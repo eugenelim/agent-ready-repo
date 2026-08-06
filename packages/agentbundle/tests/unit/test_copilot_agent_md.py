@@ -22,7 +22,7 @@ from agentbundle.build.projections.copilot_agent_md import (
 
 def test_known_tools_matches_spec_allow_list() -> None:
     # Pin the module's allow-list against the spec-documented set
-    # (docs/specs/copilot-full-parity/spec.md § Always do / AC7) so the two
+    #  so the two
     # can't drift silently — mirrors the `_EVENT_MAP` pin in the hooks-json
     # test. The web tools `WebFetch`/`WebSearch` pass through and resolve to
     # Copilot's `web` tool on the CLI + app (docs/specs/copilot-skills-and-web /

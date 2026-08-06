@@ -1,5 +1,5 @@
 """T5: the `catalogue` positional is optional on `install`/`upgrade` and still
-required on the discovery verbs — RFC-0046 (argparse surface only).
+required on the discovery verbs (argparse surface only).
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ from agentbundle.cli import _build_parser
         ["install", "--pack", "core"],
         ["install", "--profile", "starter"],
         ["upgrade", "--pack", "core"],
-        # RFC-0047: the discovery verbs are now optional too.
+        # The discovery verbs are now optional too.
         ["list-packs"],
         ["list-profiles"],
     ],

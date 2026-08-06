@@ -61,7 +61,7 @@ def product_pack_toml() -> dict:
 
 
 def test_author_product_docs_skill_exists():
-    """AC1: author-product-docs SKILL.md must exist at the expected source path."""
+    """Author-product-docs SKILL.md must exist at the expected source path."""
     assert AUTHOR_SKILL.exists(), (
         f"author-product-docs SKILL.md not found at {AUTHOR_SKILL}; "
         "the skill must be authored before the pack can ship."
@@ -72,7 +72,7 @@ def test_author_product_docs_skill_exists():
 
 
 def test_product_documentation_has_no_seeds_dir():
-    """AC6: packs/product-documentation/ must not contain a seeds/ directory.
+    """packs/product-documentation/ must not contain a seeds/ directory.
 
     The four-quadrant scaffold (tutorials/, how-to/, reference/, explanation/)
     was the central anti-pattern of user-guide-diataxis.  product-documentation
@@ -83,7 +83,7 @@ def test_product_documentation_has_no_seeds_dir():
     assert not seeds_dir.exists(), (
         f"packs/product-documentation/seeds/ must not exist; "
         f"found {seeds_dir}.  Remove it — the four-quadrant scaffold is "
-        f"explicitly rejected by the spec (AC6)."
+        f"explicitly rejected by the spec."
     )
 
 
@@ -91,7 +91,7 @@ def test_product_documentation_has_no_seeds_dir():
 
 
 def test_compat_pack_depends_on_product_documentation(compat_pack_toml):
-    """AC2: user-guide-diataxis pack.toml must declare product-documentation
+    """User-guide-diataxis pack.toml must declare product-documentation
     as a required dependency so a plain `agentbundle install --pack
     user-guide-diataxis` still delivers author-product-docs.
     """
@@ -108,7 +108,7 @@ def test_compat_pack_depends_on_product_documentation(compat_pack_toml):
 
 
 def test_new_guide_shim_references_author_product_docs(new_guide_shim_body):
-    """AC2: the new-guide SKILL.md body must name author-product-docs
+    """The new-guide SKILL.md body must name author-product-docs
     so the LLM reading the shim can route the request correctly.
     """
     assert "author-product-docs" in new_guide_shim_body, (
@@ -121,7 +121,7 @@ def test_new_guide_shim_references_author_product_docs(new_guide_shim_body):
 
 
 def test_skill_names_are_distinct():
-    """AC25: new-guide and author-product-docs use different skill dir names,
+    """New-guide and author-product-docs use different skill dir names,
     so co-installing both packs does not overwrite either skill at
     .claude/skills/<name>/SKILL.md.
     """
@@ -146,7 +146,7 @@ def test_skill_names_are_distinct():
 
 
 def test_author_skill_declares_portability(author_skill_body):
-    """AC4: the skill body must state that it is portable (does not hardcode
+    """The skill body must state that it is portable (does not hardcode
     this catalogue's specific paths).
     """
     assert "This skill is portable" in author_skill_body, (
@@ -161,7 +161,7 @@ def test_author_skill_declares_portability(author_skill_body):
 
 
 def test_author_skill_anti_pattern_forbids_docs_guides_for_external(author_skill_body):
-    """AC4: the anti-patterns section must explicitly forbid writing external
+    """The anti-patterns section must explicitly forbid writing external
     product documentation to docs/guides/.
 
     Background: docs/guides/ is the internal maintainer tree; external
@@ -188,7 +188,7 @@ def test_author_skill_anti_pattern_forbids_docs_guides_for_external(author_skill
 
 
 def test_product_documentation_allowed_scopes(product_pack_toml):
-    """AC26: product-documentation must declare allowed-scopes = ["repo", "user"]
+    """Product-documentation must declare allowed-scopes = ["repo", "user"]
     so the skill can be installed at user scope for cross-project use.
     """
     install = product_pack_toml.get("pack", {}).get("install", {})

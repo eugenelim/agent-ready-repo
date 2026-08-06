@@ -1,4 +1,4 @@
-"""Unit tests for T3 + T4 of docs/specs/incompatible-hook-event-drop.
+"""Unit tests for T3 + T4
 
 Covers:
   T3 — ``enumerate_event_dropped_wirings`` in
@@ -186,7 +186,7 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
     ) -> None:
         """Kiro+pack with attach-to-agent = "" produces a drop entry —
         install-side is more permissive than validate-side (which refuses
-        on empty string per AC4b).
+        on empty string).
 
         Documented asymmetry: validate refuses on `attach = ""` (kept
         refusal, exit 1); install enumerates it as a drop entry so the

@@ -1,5 +1,5 @@
 """T6 tests for the install CLI `--adapter` flag and helper-derived
-`choices=` (RFC-0011 / pack-allowed-adapters AC11, AC12, AC13, AC23).
+`choices=` (pack-allowed-adapters).
 """
 
 from __future__ import annotations

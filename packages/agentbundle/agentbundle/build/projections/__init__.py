@@ -7,7 +7,7 @@ shared-file merge into ``~/.claude/settings.json``) and
 pack-owned agent JSON). Shared id-synthesis lives in ``hook_id``.
 
 The pipeline (T7) wires these in; the CLI install / uninstall surface
-(T8b) drives them. Per RFC-0005 § Pipeline ordering invariant, the
+(T8b) drives them. Per the pipeline ordering invariant, the
 build pipeline must project ``agent`` files before any wiring merges
 run — that ordering is the pipeline's concern, not these modules'.
 """

@@ -1,4 +1,4 @@
-"""AC6a: install --scope user against the converters pack writes the
+"""Install --scope user against the converters pack writes the
 state-file row, lands the three projected skill directories under
 ~/.claude/skills/, and uninstall reverses both effects.
 

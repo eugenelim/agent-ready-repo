@@ -1,4 +1,4 @@
-"""Tests for the kiro-ide adapter (T1 — RFC-0022).
+"""Tests for the kiro-ide adapter (T1 —).
 
 kiro-ide targets the Kiro VS Code-fork IDE. Agents project as .md with YAML
 frontmatter (read by gray-matter), using IDE tool ids. kiro-ide-hook is
@@ -67,7 +67,7 @@ class KiroIdeAdapterTests(unittest.TestCase):
     def test_kiro_ide_gets_skill_resources(self) -> None:
         """kiro-ide custom agents (and IDE subagents) must declare the
         skill-resources glob so they reach skills — IDE custom agents don't
-        inherit the default agent's auto-discovery either (RFC-0022 E4)."""
+        inherit the default agent's auto-discovery either."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = _seed_agent_pack(tmp_path)

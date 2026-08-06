@@ -127,7 +127,7 @@ class CheckCommandTests(unittest.TestCase):
             subprocess.run(["git", "init", "-q", str(working)], check=True, env=env)
 
             # Seed `.adapt-discovery.toml` so `make build-check`'s
-            # fail-fast (spec AC14) doesn't reject the call. Canonical
+            # fail-fast doesn't reject the call. Canonical
             # v0.1 shape per adapt-to-project AC9.
             (working / ".adapt-discovery.toml").write_text(
                 'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"

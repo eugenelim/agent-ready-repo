@@ -4,7 +4,6 @@ Owns the per-file hook-wiring enumerator and the unified formatter that
 produces both the install-time ``warning:`` line and the validate-time
 ``info:`` line.
 
-docs/specs/incompatible-hook-event-drop AC6 / AC6b / AC6c / AC7.
 """
 
 from __future__ import annotations
@@ -92,7 +91,7 @@ def enumerate_event_dropped_wirings(
         2b (attach-to-agent, kiro-only): if ``attach-to-agent`` is omitted
           or empty (truthy check), append ``(relpath,
           "kiro requires 'attach-to-agent'")``.
-        Parse-fail (AC6c): on ``tomllib.TOMLDecodeError`` or ``OSError``,
+        Parse-fail: on ``tomllib.TOMLDecodeError`` or ``OSError``,
           append ``(relpath, "hook-wiring TOML failed to parse")``.
     """
     # Step 1: gate on non-dropped type.
@@ -120,7 +119,7 @@ def enumerate_event_dropped_wirings(
         try:
             data = tomllib.loads(text)
         except tomllib.TOMLDecodeError:
-            # AC6c: install-time emits a parse-fail drop entry;
+            # Install-time emits a parse-fail drop entry;
             # validate-time refuses earlier (separate code path).
             drops.append((relpath, "hook-wiring TOML failed to parse"))
             continue
@@ -132,7 +131,7 @@ def enumerate_event_dropped_wirings(
                 for event_name in sorted(events.keys()):
                     if event_name not in vocab:
                         drops.append((relpath, "event not in adapter vocabulary"))
-                        break  # one entry per file per reason category (AC6 dedup)
+                        break  # one entry per file per reason category (dedup)
 
         # Step 2b: attach-to-agent check (kiro-only, presence-only).
         # AC4b carve-out: non-empty unknown-agent references remain
@@ -242,7 +241,7 @@ def format_drop_message(
         ``Additionally, `` when primitive clause also present.
       - Closing clause (when either prior fired).
 
-    ``validate_info`` mode (AC2):
+    ``validate_info`` mode:
       - Ignores ``dropped_counts`` and ``compatible_types``.
       - Raises ``ValueError`` if ``dropped_counts`` is non-empty.
       - Raises ``ValueError`` if ``event_drops`` is empty.

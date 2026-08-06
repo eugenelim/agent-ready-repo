@@ -8,7 +8,7 @@ Skills use the shared `direct-directory` passthrough (docs/specs/copilot-skills-
 accepts our canonical Claude `SKILL.md` verbatim, so the source tree is copied
 byte-for-byte — the same mode claude-code/codex/kiro use. Agent + hook-wiring
 serialisation live in the sibling `copilot_agent_md` / `copilot_hooks_json`
-projection modules (RFC-0024 / docs/specs/copilot-full-parity); this adapter
+projection modules; this adapter
 only dispatches to them.
 
 The adapter is scope-agnostic: it emits repo-relpaths (`.github/…`) at every

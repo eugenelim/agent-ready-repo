@@ -1,6 +1,6 @@
 """Local regression check for `tools/lint-agents-md.py` check 10g, which
 fails when the `risk-triggers:start`..`:end` block diverges between the
-four docs that carry it (work-loop-light-mode spec AC2).
+four docs that carry it (work-loop-light-mode).
 
 The standing CI guard is the lint itself (run in `.github/workflows/docs.yml`);
 this test — like its sibling `test_lint_agents_md_legacy_block.py` — runs

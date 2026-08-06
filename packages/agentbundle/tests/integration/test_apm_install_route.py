@@ -1,6 +1,5 @@
 """Integration tests for the APM-route surface of the install-marker writer.
 
-Spec: docs/specs/apm-install-route-parity/spec.md
 
 T1 layer (this file's rail-level tests): exercise individual writer rails —
 ``--install-route`` argparse, data-directory precedence shim, APM scope
@@ -119,7 +118,7 @@ def _read_marker(marker_path: Path) -> dict:
 
 
 # ===========================================================================
-# AC1 — import allow-list grows by one entry (argparse)
+# Import allow-list grows by one entry (argparse)
 # ===========================================================================
 
 
@@ -130,7 +129,7 @@ ALLOWED_POST_EDIT_MODULES = frozenset({
 
 
 def test_writer_imports_argparse_only_added_to_allowlist():
-    """AC1: the writer's top-level imports are exactly the post-edit module set."""
+    """The writer's top-level imports are exactly the post-edit module set."""
     import re
     content = SOURCE_WRITER.read_text(encoding="utf-8")
     pattern = re.compile(r"^(?:import|from)\s+(\S+)", re.MULTILINE)
@@ -152,7 +151,7 @@ def test_writer_imports_argparse_only_added_to_allowlist():
 
 
 # ===========================================================================
-# AC2 — --install-route flag (required, two-valued)
+# --install-route flag (required, two-valued)
 # ===========================================================================
 
 
@@ -233,7 +232,7 @@ def test_install_route_flag_absent_fails_fast(tmp_path):
 
 
 # ===========================================================================
-# AC3 — data-directory resolution precedence
+# Data-directory resolution precedence
 # ===========================================================================
 
 
@@ -356,7 +355,7 @@ def test_data_dir_plugin_root_wins_over_cursor_plugin_root(tmp_path):
 
 
 # ===========================================================================
-# AC4 — APM scope detection by projected-hook path
+# APM scope detection by projected-hook path
 # ===========================================================================
 
 
@@ -471,7 +470,7 @@ def test_apm_scope_writer_under_home_but_not_cwd_picks_user(tmp_path):
 
 
 # ===========================================================================
-# AC5 — allowed-scopes refusal rail unchanged under APM scope detection
+# Allowed-scopes refusal rail unchanged under APM scope detection
 # ===========================================================================
 
 
@@ -513,7 +512,7 @@ def test_apm_refuse_user_only_pack_at_project_scope(tmp_path):
 
 
 # ===========================================================================
-# AC6 — route-flag dispatches scope detection
+# Route-flag dispatches scope detection
 # ===========================================================================
 
 
@@ -587,7 +586,7 @@ def test_route_flag_dispatches_apm_scope_detection(tmp_path):
 
 
 # ===========================================================================
-# T5 — End-to-end APM integration tests (AC12)
+# T5 — End-to-end APM integration tests
 #
 # T1 above tests individual writer rails (one rail per test); T5 below
 # stages full apm_modules/-shaped fixtures and asserts the integrated marker

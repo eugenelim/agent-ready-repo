@@ -1,4 +1,4 @@
-"""RFC-0012 AC24: in-band detection of pre-RFC-0012 state at install start.
+"""In-band detection of pre-RFC-0012 state at install start.
 
 Three triggers evaluated per-pack in precedence ``(b) → (a) → (c)``; only the
 first match emits. Detection runs once per ``(repo, pack)`` per session and
@@ -91,10 +91,10 @@ def _plant_state(
 
     The fixture mirrors a prior install — the row exists but no repo-scope
     per-IDE files match it on disk (dist-tree or orphan artifacts are planted
-    by the caller). The adapter is part of the table key (RFC-0052).
+    by the caller). The adapter is part of the table key.
 
     ``source`` defaults to the legacy sentinel; pass the fixture catalogue path
-    so that the source-conflict guard (RFC-0072 D3) allows the subsequent
+    so that the source-conflict guard allows the subsequent
     install when the same catalogue is used.
     """
     from agentbundle.config import _emit_basic_string
@@ -195,7 +195,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
                 "{}", encoding="utf-8", newline="\n"
             )
 
-            # `--yes` so the new force-cleanup confirm (CLI-hygiene AC7) does
+            # `--yes` so the new force-cleanup confirm (CLI-hygiene) does
             # not refuse on the non-TTY test stdin.
             rc, stderr = _run_install(
                 ["--pack", "demo", "--scope", "repo", "--force", "--yes",
@@ -249,7 +249,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
 
 
 class CrossAdapterCoexistenceTests(unittest.TestCase):
-    """RFC-0052: a different adapter is no longer a "disagreement" to refuse —
+    """A different adapter is no longer a "disagreement" to refuse —
     it coexists. (The old trigger (a) cross-adapter refusal is removed; a row
     for a different adapter falls through to a clean coexisting install.)
     """
@@ -380,7 +380,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
         Pack A's orphan files under ``.claude/skills/apack-skill/``
         must NOT trigger (c) when installing pack B (which has no state
         row, no on-disk files of its own). Before per-pack scoping
-        landed, the AC24(c) trigger surfaced pack A's paths with pack
+        landed, the trigger surfaced pack A's paths with pack
         B's name in the stderr line — the cross-pack false positive
         ROADMAP named as the only open RFC-0012 follow-on.
 
@@ -576,5 +576,5 @@ class ForceCleanupConfirmTests(unittest.TestCase):
             self.assertIn("--yes", stderr)
             self.assertTrue(
                 (adopter / "claude-plugins" / "demo" / "plugin.json").exists(),
-                "a non-TTY --force without --yes must delete nothing (AC7)",
+                "a non-TTY --force without --yes must delete nothing",
             )

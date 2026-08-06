@@ -1,7 +1,6 @@
 """T2 tests: validate.py rails 4c/4d swallow hook-wiring compat refusals.
 
 Verification mode: TDD.
-Spec: docs/specs/incompatible-hook-event-drop AC1–AC5, AC6b.
 Plan: docs/specs/incompatible-hook-event-drop/plan.md § T2.
 
 Ten cases:
@@ -100,7 +99,7 @@ def _make_hook_wiring_pack(
 
 
 def test_validate_packs_core_exits_zero(capsys):
-    """AC1: agentbundle validate packs/core exits 0 with the two-reason
+    """Agentbundle validate packs/core exits 0 with the two-reason
     info line on stdout and no 'validate:' refusal on stderr.
 
     session-start.toml fires BOTH reasons (vocabulary + attach-to-agent)
@@ -118,7 +117,7 @@ def test_validate_packs_core_exits_zero(capsys):
     assert "validate:" not in captured.err, (
         f"Unexpected 'validate:' refusal on stderr: {captured.err!r}"
     )
-    # AC2: two-reason form because both core hook-wirings (session-start.toml
+    # Two-reason form because both core hook-wirings (session-start.toml
     # and work-loop-check.toml) lack attach-to-agent AND use an out-of-vocab
     # PascalCase event for kiro.
     expected_info = (
@@ -173,7 +172,7 @@ def test_validate_swallows_missing_attach_to_agent(tmp_path, capsys):
 
 
 def test_validate_refuses_on_empty_attach_to_agent_string(tmp_path, capsys):
-    """AC4b: attach-to-agent = \"\" is treated as unknown-agent and refuses
+    """Attach-to-agent = \"\" is treated as unknown-agent and refuses
     with exit 1. Empty string is not in agent_basenames (\"\" not in set)."""
     pack = _make_hook_wiring_pack(
         tmp_path,
@@ -196,12 +195,12 @@ def test_validate_refuses_on_empty_attach_to_agent_string(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# Test 4: Refuse on hook-wiring symlink (AC3)
+# Test 4: Refuse on hook-wiring symlink
 # ---------------------------------------------------------------------------
 
 
 def test_validate_still_refuses_on_hook_wiring_symlink(tmp_path, capsys):
-    """AC3: a symlink under .apm/hook-wiring/ causes exit 1 with the
+    """A symlink under .apm/hook-wiring/ causes exit 1 with the
     security refusal 'pack <name>'s hook-wiring entry is a symlink'."""
     pack = _make_hook_wiring_pack(
         tmp_path,
@@ -225,12 +224,12 @@ def test_validate_still_refuses_on_hook_wiring_symlink(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# Test 5: Refuse on TOML parse failure (AC4)
+# Test 5: Refuse on TOML parse failure
 # ---------------------------------------------------------------------------
 
 
 def test_validate_still_refuses_on_toml_parse_failure(tmp_path, capsys):
-    """AC4: a malformed hook-wiring TOML causes exit 1 with
+    """A malformed hook-wiring TOML causes exit 1 with
     'failed to parse' in stderr."""
     pack = _make_hook_wiring_pack(
         tmp_path,
@@ -250,12 +249,12 @@ def test_validate_still_refuses_on_toml_parse_failure(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# Test 6: Refuse on unknown-agent reference (load-bearing AC4b)
+# Test 6: Refuse on unknown-agent reference (load-bearing)
 # ---------------------------------------------------------------------------
 
 
 def test_validate_still_refuses_on_unknown_agent_reference(tmp_path, capsys):
-    """AC4b: attach-to-agent = 'ghost-agent' with no matching agents/ghost-agent.md
+    """Attach-to-agent = 'ghost-agent' with no matching agents/ghost-agent.md
     exits 1 with 'or names an unknown agent' in stderr."""
     pack = _make_hook_wiring_pack(
         tmp_path,
@@ -279,12 +278,12 @@ def test_validate_still_refuses_on_unknown_agent_reference(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# Test 7: Refuse on allowed-adapters violation (AC5 scoping pin)
+# Test 7: Refuse on allowed-adapters violation (scoping pin)
 # ---------------------------------------------------------------------------
 
 
 def test_validate_still_refuses_on_allowed_adapters_violation(tmp_path, capsys):
-    """AC5: a schema cross-field violation (bad allowed-adapters) exits 1.
+    """A schema cross-field violation (bad allowed-adapters) exits 1.
     Pins that the hook-wiring compat swallow doesn't bleed to unrelated rails."""
     pack = tmp_path / "bad-adapter"
     pack.mkdir(parents=True, exist_ok=True)
@@ -316,7 +315,7 @@ def test_validate_still_refuses_on_allowed_adapters_violation(tmp_path, capsys):
 
 
 def test_validate_info_text_uses_pinned_wording_one_file_one_reason(tmp_path, capsys):
-    """AC2: validate stdout matches the pinned one-file-one-reason form.
+    """Validate stdout matches the pinned one-file-one-reason form.
 
     Uses a wiring with an out-of-vocab event AND a present+known agent
     (so only vocabulary fires, not attach-to-agent).
@@ -352,7 +351,7 @@ def test_validate_info_text_uses_pinned_wording_one_file_one_reason(tmp_path, ca
 
 
 def test_validate_info_text_uses_pinned_wording_one_file_two_reasons(tmp_path, capsys):
-    """AC2: validate stdout matches the pinned two-reason form.
+    """Validate stdout matches the pinned two-reason form.
 
     One wiring file trips BOTH vocabulary AND attach-to-agent rails.
     """
@@ -387,7 +386,7 @@ def test_validate_info_text_uses_pinned_wording_one_file_two_reasons(tmp_path, c
 
 
 def test_validate_info_text_uses_pinned_wording_two_files(tmp_path, capsys):
-    """AC2: validate stdout matches the pinned two-file form with
+    """Validate stdout matches the pinned two-file form with
     serial-comma-plus-'and' and lexicographic ordering."""
     pack = _make_hook_wiring_pack(
         tmp_path,

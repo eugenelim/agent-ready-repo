@@ -1,5 +1,5 @@
 """Unit tests for the repo-scope path-jail widening + scan_for_pack_artifacts
-helper (RFC-0012 / repo-scope-per-adapter-projection AC12-AC13, AC31).
+helper (repo-scope-per-adapter-projection).
 
 Two surfaces:
 

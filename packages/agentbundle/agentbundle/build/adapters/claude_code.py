@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Iterator
 
 
-# Phase order from RFC-0005 § Build-pipeline ordering invariant.
+# Phase order from the build-pipeline ordering invariant.
 # Uniform across all reference adapters even though Claude Code's
 # wiring lands in a settings file (not in agents) — the uniformity
 # keeps the phases predictable, which the spec calls for.

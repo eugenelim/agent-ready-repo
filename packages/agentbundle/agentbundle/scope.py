@@ -1,4 +1,4 @@
-"""Scope resolution + user-scope root expansion (RFC-0004 T17).
+"""Scope resolution + user-scope root expansion (T17).
 
 Two helpers:
 
@@ -41,9 +41,9 @@ if TYPE_CHECKING:
 
 
 # The spec's only legal scope values; ``global`` is deliberately absent
-# (RFC-0004 § Alternatives considered §6). Keep this single-sourced so
+# Keep this single-sourced so
 # argparse's `choices=` and the runtime resolver agree.
-# RFC-0080: "local" added for per-clone, never-committed installs.
+# "Local" added for per-clone, never-committed installs.
 LEGAL_SCOPES: frozenset[str] = frozenset({"repo", "user", "local"})
 
 # RFC-0011 / pack-allowed-adapters introduced this constant for the
@@ -150,7 +150,7 @@ def resolve(
     if not isinstance(pack_default, str) or pack_default not in LEGAL_SCOPES:
         pack_default = builtin_default
 
-    # AC3 (RFC-0080): packs may not declare default-scope="local" — that
+    # AC3: packs may not declare default-scope="local" — that
     # would make every unpinned install local-scope, which violates the
     # "trial-only, never committed" contract. The schema enum already
     # disallows it; this is defense-in-depth at the runtime level.
@@ -168,7 +168,7 @@ def resolve(
 
     requested = cli_flag if isinstance(cli_flag, str) else pack_default
 
-    # D4 auto-promote (RFC-0080 ADR-0070): "local" does not need to appear
+    # D4 auto-promote: "local" does not need to appear
     # explicitly in allowed-scopes — it is automatically permitted for any
     # pack whose allowed-scopes contains "repo" (local is a git-invisible
     # projection of the repo install). If "repo" is absent, refuse.
@@ -236,7 +236,7 @@ def resolve_user_root(home: Path | None = None) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Adapter-contract introspection (RFC-0011 / pack-allowed-adapters)
+# Adapter-contract introspection (pack-allowed-adapters)
 # ---------------------------------------------------------------------------
 #
 # Three pure-data helpers that derive their answers from the bundled
@@ -290,7 +290,7 @@ def user_scope_capable_adapters_from_contract() -> tuple[str, ...]:
     return tuple(sorted(capable))
 
 
-# Contract versions that pre-date hook-wiring (RFC-0005). The
+# Contract versions that pre-date hook-wiring. The
 # `_kiro_target_adapters` rail and any future hook-related code path
 # checks this; a literal-set check would silently break on the next
 # contract bump (v0.7+), so the predicate is the load-bearing form.

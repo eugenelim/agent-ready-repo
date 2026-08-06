@@ -1,4 +1,4 @@
-"""T0 (RFC-0052): cross-process state-write lock.
+"""T0: cross-process state-write lock.
 
 The lock is the mechanism behind the concurrency AC (two simultaneous installs
 of different adapter rows of one pack both land). Tests cover mutual

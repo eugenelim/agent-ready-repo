@@ -1,5 +1,5 @@
-"""End-to-end integration coverage for the RFC-0012 per-IDE projection
-at repo scope (spec AC33).
+"""End-to-end integration coverage for the per-IDE projection
+at repo scope.
 
 Each test installs a real shipped pack (`core`) at repo scope, asserts
 the per-adapter on-disk projection lands at the right directory, the
@@ -18,7 +18,7 @@ Coverage scope (vs. spec AC33's full matrix):
   - Per-adapter greenfield writes projection + state + stdout
     (claude-code default, kiro, codex, copilot).
   - `--emit-install-routes` dist-tree shape.
-  - Upgrade with state-hint at repo scope (AC10b parity).
+  - Upgrade with state-hint at repo scope (parity).
   - Migration trigger (b) shape-mismatch end-to-end.
   - Migration trigger (a) adapter-disagreement end-to-end.
 
@@ -132,7 +132,7 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
         )
 
     def test_kiro_alias_projects_md_agents_not_json(self) -> None:
-        """`kiro` is a deprecated alias for `kiro-ide` (RFC-0022 D1), so it
+        """`kiro` is a deprecated alias for `kiro-ide`, so it
         must project `.md` agents — never the `.json` shape the legacy
         `kiro.project` (kiro-cli) emits."""
         with TemporaryDirectory() as raw:
@@ -187,13 +187,13 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
                 "kiro alias must record the chosen name as the adapter key in state",
             )
 
-            # AC3: core ships hook-wiring + a command, both dropped by kiro-ide.
+            # Core ships hook-wiring + a command, both dropped by kiro-ide.
             # The warning enumerates kiro-ide's drops (names hook-wiring) but
             # displays the adopter's chosen name `kiro` — never `kiro-ide`.
             self.assertIn("hook-wiring", stderr, f"drop warning missing: {stderr}")
             self.assertIn("kiro", stderr)
             self.assertNotIn("kiro-ide", stderr)
-            # No agent JSON / no merge crash on a hook-wiring-bearing pack (AC2).
+            # No agent JSON / no merge crash on a hook-wiring-bearing pack.
 
     def test_codex_explicit_adapter(self) -> None:
         self._install_and_assert(
@@ -204,7 +204,7 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
 
     def test_copilot_explicit_adapter(self) -> None:
         """Copilot's skill projection target is `.agents/skills/` (RFC-0052 /
-        ADR-0040: shared cohort home; was `.github/skills/` in v0.11)."""
+        Shared cohort home; was `.github/skills/` in v0.11)."""
         self._install_and_assert(
             adapter_flag="copilot",
             expected_adapter="copilot",
@@ -274,7 +274,7 @@ def _plant_state_row(
 ) -> None:
     """Write a minimal v0.3 state.toml with a single ``[pack.<name>]`` row.
 
-    NOTE: v0.4 (RFC-0052 D8) hard-refuses any state file whose
+    NOTE: v0.4 hard-refuses any state file whose
     schema-version is not "0.4". A v0.3 file planted by this helper will
     be refused on read with a StateFileLegacy error. Tests that previously
     relied on the v0.3 file triggering a migration path now assert the
@@ -461,7 +461,7 @@ class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
     (ii) accreted those paths into `state.files` while the
     install-time per-IDE entries lingered — net ~3× growth.
 
-    Pin: install via the RFC-0012 default path, snapshot
+    Pin: install via the default path, snapshot
     `state.files`, run `upgrade --to <same-version>`, then assert the
     keyset is byte-identical (same paths, no dist-tree leak) and no
     `apm/` or `claude-plugins/` directories appear under the adopter
@@ -624,11 +624,11 @@ class RepoScopeDiffAfterInstallTests(unittest.TestCase):
 
 
 class RepoScopeMigrationTriggerBTests(unittest.TestCase):
-    """AC33 + AC24(b): a pre-RFC-0012 (v0.3) state file refuses at load
+    """A pre-RFC-0012 (v0.3) state file refuses at load
     time with the RFC-0052 D8 hard refusal.
 
-    Originally these tests pinned specific (b)-branch messages; RFC-0052
-    (ADR-0039) made cross-version handling a hard refusal on both read
+    Originally these tests pinned specific (b)-branch messages
+     made cross-version handling a hard refusal on both read
     and write — a v0.3 file now refuses before any migration branch fires.
     The test is re-keyed to assert the greenfield refusal shape
     (schema-version + reinstall in stderr)."""
@@ -667,11 +667,11 @@ class RepoScopeMigrationTriggerBTests(unittest.TestCase):
 
 
 class RepoScopeMigrationTriggerATests(unittest.TestCase):
-    """AC33 + AC24(a): a pre-RFC-0012 (v0.3) state file refuses at load
+    """A pre-RFC-0012 (v0.3) state file refuses at load
     time with the RFC-0052 D8 hard refusal.
 
     Originally this test pinned the (a)-branch adapter-disagreement
-    message; RFC-0052 (ADR-0039) made cross-version handling a hard
+    message; RFC-0052 made cross-version handling a hard
     refusal — a v0.3 file now refuses before any adapter-disagreement
     branch fires. The test is re-keyed to assert the greenfield refusal
     shape (schema-version + reinstall in stderr)."""
@@ -685,7 +685,7 @@ class RepoScopeMigrationTriggerATests(unittest.TestCase):
             adopter.mkdir()
             # State records claude-code; CLI passes --adapter kiro.
             # Both branches are now irrelevant: the v0.3 state file itself
-            # refuses before any adapter logic runs (RFC-0052 D8).
+            # refuses before any adapter logic runs.
             _plant_state_row(adopter, pack_name="core", adapter="claude-code")
 
             rc, stdout, stderr = _run_install(

@@ -2,7 +2,7 @@
 
 `main` is the CLI entrypoint — `python -m agentbundle.build` and the
 `tools/build/build.py` shim both call it. Sibling specs (self-hosting,
-RFC-0003's CLI) import `agentbundle.build` as a library; the public
+the CLI) import `agentbundle.build` as a library; the public
 surface is `main`, `validate.validate`, and the adapter `project`
 functions exposed through `adapters`.
 
@@ -93,7 +93,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     build_parser = subparsers.add_parser(
         "build",
-        help="Run a recipe (or the three RFC-0001 default recipes).",
+        help="Run a recipe (or the three default recipes).",
     )
     build_parser.add_argument(
         "--recipe",

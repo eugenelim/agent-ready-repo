@@ -6,7 +6,7 @@ shaped dicts are constructed inline; no on-disk fixture packs are used
 (those land in T3 and exercise the same rails via the integration path).
 
 Acceptance criterion the rail covers: spec AC6.
-Refusal text (RFC-0005 § Repo-scope Kiro promotion):
+Refusal text:
     pack <P>'s hook-wiring <name>.toml does not declare 'attach-to-agent'
     (or names an unknown agent); required for kiro projection
 """
@@ -95,7 +95,7 @@ class InMemoryRailKiroTargetedTests(unittest.TestCase):
 
 class InMemoryRailKiroCliTargetedTests(unittest.TestCase):
     """The rail fires for the whole merge-into-agent-json family — `kiro-cli`
-    as well as the legacy `kiro` (RFC-0022 / kiro-install-alias-parity). The
+    as well as the legacy `kiro` (kiro-install-alias-parity). The
     `attach-to-agent` merge target exists for both, so both validate it."""
 
     def test_fires_for_kiro_cli_unknown_agent(self) -> None:
@@ -238,7 +238,7 @@ class FilesystemWrapperTests(unittest.TestCase):
     def test_filesystem_wrapper_refuses_missing_attach_to_agent_for_kiro_cli(self) -> None:
         """The wrapper fires for the merging adapter `kiro-cli` too — symlink /
         parse / missing-attach refusals are preserved for the adapter that now
-        owns the legacy JSON+merge behavior (RFC-0022 / kiro-install-alias-parity)."""
+        owns the legacy JSON+merge behavior (kiro-install-alias-parity)."""
         import tempfile
 
         from agentbundle.build.scope_rails import check_kiro_wiring

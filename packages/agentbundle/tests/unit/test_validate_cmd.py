@@ -201,7 +201,7 @@ def test_no_adapter_contract_version_passes():
 
 
 # ---------------------------------------------------------------------------
-# T3 (RFC-0005): _allowed_scopes recognises v0.3 packs.
+# T3: _allowed_scopes recognises v0.3 packs.
 #
 # Pre-fix bug: `_allowed_scopes` hardcoded ``contract_version != "0.2"``
 # and returned ``["repo"]`` for any other version — so v0.3 packs
@@ -261,7 +261,7 @@ def test_allowed_scopes_v0_1_stays_repo_only():
 
 
 # ---------------------------------------------------------------------------
-# kiro-cli attach-to-agent rail (RFC-0022 / kiro-install-alias-parity)
+# kiro-cli attach-to-agent rail (kiro-install-alias-parity)
 # ---------------------------------------------------------------------------
 
 
@@ -302,7 +302,7 @@ def test_kiro_legacy_alias_pack_validate_stays_strict(tmp_path):
     pack-authoring well-formedness check and is INTENTIONALLY stricter than the
     install path, where the `kiro` alias (= kiro-ide) drops hook-wiring without
     validating `attach-to-agent`. Pinning this asymmetry so a future change
-    doesn't silently flip it (RFC-0022 / kiro-install-alias-parity AC7)."""
+    doesn't silently flip it (kiro-install-alias-parity)."""
     pack = tmp_path / "legacy-kiro-hooks"
     (pack / ".apm" / "agents").mkdir(parents=True)
     (pack / ".apm" / "agents" / "reviewer.md").write_text(

@@ -1,4 +1,4 @@
-"""Durable projection check for architect's `design-reviewer` subagent (RFC-0032).
+"""Durable projection check for architect's `design-reviewer` subagent.
 
 architect-design-reviewer spec AC10: the agent must project across **all seven**
 adapters architect declares in `allowed-adapters`. The per-adapter projection

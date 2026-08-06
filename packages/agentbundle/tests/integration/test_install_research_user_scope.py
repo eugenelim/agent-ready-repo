@@ -1,4 +1,4 @@
-"""AC10: install --scope user against the research pack writes the
+"""Install --scope user against the research pack writes the
 state-file row, lands the seven projected skill directories under
 ~/.claude/skills/ and the two projected subagent files under
 ~/.claude/agents/, and uninstall reverses both effects.

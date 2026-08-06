@@ -1,9 +1,9 @@
 """Unit tests for the wave-scheduled-supervisor scheduler in loop-cohort.py.
 
 Covers spec `docs/specs/wave-scheduled-supervisor/`:
-  T1 — parse_depends_on + parse_plan (AC6)
-  T2 — topological order, cycle + forward-ref detection (AC1/AC2/AC3)
-  T4 — dispatch_decision gate (AC5)
+  T1 — parse_depends_on + parse_plan
+  T2 — topological order, cycle + forward-ref detection
+  T4 — dispatch_decision gate
 
 loop-cohort.py is a standalone hyphenated script; pure functions are loaded
 via importlib here. CLI/exit-code behavior (the `schedule` verb) is exercised
@@ -30,7 +30,7 @@ lc = _load()
 LOCAL = {f"T{i}" for i in range(1, 16)} | {"T1a", "T1b", "T1c"}
 
 
-# ── T1: parse_depends_on (AC6) ──────────────────────────────────────────────
+# ── T1: parse_depends_on ────────────────────────────────────────────────────
 
 def test_parse_depends_on_none():
     assert lc.parse_depends_on("none", LOCAL) == (set(), [])
@@ -93,7 +93,7 @@ def test_parse_plan_preserves_authored_order():
     assert deps["T3"] == {"T1", "T2"}
 
 
-# ── T2: topological order (AC1) ─────────────────────────────────────────────
+# ── T2: topological order ───────────────────────────────────────────────────
 
 def test_topological_waves_layers():
     ordered, deps = lc.parse_plan(_PLAN)
@@ -112,7 +112,7 @@ def test_topological_independent_first_wave():
     assert waves[1] == ["T3"]
 
 
-# ── T2: cycle detection (AC2) ───────────────────────────────────────────────
+# ── T2: cycle detection ─────────────────────────────────────────────────────
 
 def test_detect_cycle():
     ordered, deps = lc.parse_plan(
@@ -127,7 +127,7 @@ def test_no_cycle_on_dag():
     assert lc.detect_cycles(ordered, deps) == []
 
 
-# ── T2: forward-ref detection (AC3) — the two real cases, by shape ──────────
+# ── T2: forward-ref detection — the two real cases, by shape ────────────────
 
 def test_detect_forward_ref_agent_spec_cli_shape():
     # agent-spec-cli T13 (zipapp build) declares Depends on: ... T15 (authored later)
@@ -157,7 +157,7 @@ def test_no_forward_ref_on_clean_plan():
     assert lc.detect_forward_refs(ordered, deps) == []
 
 
-# ── T4: dispatch_decision gate (AC5) ────────────────────────────────────────
+# ── T4: dispatch_decision gate ──────────────────────────────────────────────
 
 def test_dispatch_allows_safe_category_and_disjoint():
     # allow-path: all-safe categories + disjoint → parallel
@@ -187,7 +187,7 @@ def test_dispatch_fails_closed():
     assert lc.dispatch_decision(["shared-state"], merge_tree_clean=False) == "serial"
 
 
-# ── T3: `schedule` verb (AC4) — real file-path invocation via subprocess ────
+# ── T3: `schedule` verb — real file-path invocation via subprocess ──────────
 
 import json  # noqa: E402
 import subprocess  # noqa: E402
@@ -245,7 +245,7 @@ def test_schedule_warns_but_reorders_on_forward_ref(tmp_path):
     assert r.stdout.index("T15") < r.stdout.index("T13")  # reordered: T15 first
 
 
-# ── T4: `dispatch-decision` verb (AC5) — the gate as a runnable command ──────
+# ── T4: `dispatch-decision` verb — the gate as a runnable command ────────────
 
 
 def _dispatch(*args):
@@ -269,7 +269,7 @@ def test_dispatch_decision_verb_non_safe_serial():
     assert "disabled in Phase 1" in r.stderr
 
 
-# ── T7: cleared-gate surface rationale (AC10) ───────────────────────────────
+# ── T7: cleared-gate surface rationale ──────────────────────────────────────
 # Phase 1: _dispatch_rationale is removed alongside the dispatch-decision verb.
 # The pure dispatch_decision() function (unit-testable) still exists.
 
@@ -286,7 +286,7 @@ def test_dispatch_decision_verb_parallel_emits_rationale_to_stderr():
     assert "disabled in Phase 1" in r.stderr
 
 
-# ── supervisor-auto-classify T1: classify_task (AC1–AC4) ────────────────────
+# ── supervisor-auto-classify T1: classify_task ──────────────────────────────
 
 
 def test_classify_all_added_is_cannot_collide():
@@ -313,8 +313,8 @@ def test_classify_danger_paths_each_serialize():
     for path in [
         "poetry.lock", "pyproject.toml", "pkg/__init__.py", "web/index.ts",
         ".github/workflows/ci.yml", "Makefile", "marketplace.json",
-        "a/b/migrations/0001_init.py",  # nested — anchoring (AC3)
-        "migrations/0001_init.py",      # top-level — Django/Alembic default (AC3)
+        "a/b/migrations/0001_init.py",  # nested — anchoring
+        "migrations/0001_init.py",      # top-level — Django/Alembic default
     ]:
         assert lc.classify_task([("M", path)]) == "danger-path", path
 
@@ -330,7 +330,7 @@ def test_classify_labels_outside_safe_categories_except_cannot_collide():
         assert label not in lc.SAFE_CATEGORIES, label
 
 
-# ── T1: added_paths_may_share_symbol (AC8 unit) ─────────────────────────────
+# ── T1: added_paths_may_share_symbol (unit) ─────────────────────────────────
 # Phase 1: added_paths_may_share_symbol is removed alongside dispatch-decision.
 # The cross-branch symbol-collision check was only called from dispatch-decision.
 
@@ -339,7 +339,7 @@ def test_share_symbol_not_exposed_in_phase1():
     assert not hasattr(lc, "added_paths_may_share_symbol")
 
 
-# ── supervisor-auto-classify T2: dispatch-decision auto-path (AC5–AC10) ──────
+# ── supervisor-auto-classify T2: dispatch-decision auto-path ─────────────────
 
 
 def _git(repo, *args):
@@ -428,7 +428,7 @@ def test_verb_category_override_takes_precedence(tmp_path):
     assert "disabled in Phase 1" in r.stderr
 
 
-# ── supervisor-predict-disjointness PD-T1: parse Touches: (AC1) ──────────────
+# ── supervisor-predict-disjointness PD-T1: parse Touches: ────────────────────
 
 
 def test_parse_touches_comma_list():
@@ -457,7 +457,7 @@ def test_parse_plan_signature_unchanged():
     assert ordered == ["T1"]
 
 
-# ── PD-T2: globs_overlap (AC2) — conservative, segment-wise ─────────────────
+# ── PD-T2: globs_overlap — conservative, segment-wise ───────────────────────
 
 
 def test_globs_overlap_literal_segment_mismatch_disjoint():
@@ -495,7 +495,7 @@ def test_globs_overlap_charclass_is_pattern_not_literal_true():
     assert lc.globs_overlap("[abc].py", "a.py") is True
 
 
-# ── PD-T2: wave_touches_disjoint (AC3) ──────────────────────────────────────
+# ── PD-T2: wave_touches_disjoint ────────────────────────────────────────────
 
 
 def test_wave_touches_disjoint_all_disjoint_yes():
@@ -507,7 +507,7 @@ def test_wave_touches_disjoint_overlap_no():
 
 
 def test_wave_touches_disjoint_overlap_wins_over_missing():
-    # two declared tasks overlap; a third omits Touches -> still "no" (AC3)
+    # two declared tasks overlap; a third omits Touches -> still "no"
     assert lc.wave_touches_disjoint([{"src/api/*"}, {"src/api/x.py"}, None]) == "no"
 
 
@@ -516,7 +516,7 @@ def test_wave_touches_disjoint_missing_blocks_yes_only():
     assert lc.wave_touches_disjoint([{"src/a/*"}, None]) == "unknown"
 
 
-# ── PD-T3: schedule predicted-disjoint annotation (AC4) + screen-only (AC5) ──
+# ── PD-T3: schedule predicted-disjoint annotation + screen-only ──────────────
 
 
 def test_schedule_predicts_no_on_overlapping_touches(tmp_path):
@@ -584,7 +584,7 @@ def test_init_state_has_auto_parallel_false(tmp_path):
     run_id = str(uuid.uuid4())
     r = _run_lc("init", str(spec), "--run-id", run_id)
     assert r.returncode == 0, r.stderr
-    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False  # AC1
+    assert _json.loads((spec / "state.json").read_text())["auto_parallel"] is False
 
 
 def test_auto_parallel_verb_flips_both_ways(tmp_path):
@@ -600,10 +600,10 @@ def test_auto_parallel_verb_flips_both_ways(tmp_path):
 
 def test_auto_parallel_not_a_gate_input():
     import inspect
-    assert "auto_parallel" not in str(inspect.signature(lc.dispatch_decision))  # AC5
+    assert "auto_parallel" not in str(inspect.signature(lc.dispatch_decision))
 
 
 def test_merge_abort_backstop_free_of_auto_parallel():
     import inspect
-    # AC4a: the merge-abort backstop cannot be influenced by the flag.
+    # The merge-abort backstop cannot be influenced by the flag.
     assert "auto_parallel" not in inspect.getsource(lc.cmd_worktree_merge)

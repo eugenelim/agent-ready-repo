@@ -1,4 +1,4 @@
-"""T1 (pack-profiles AC1, AC2): profile-manifest schema + reader.
+"""T1 (pack-profiles): profile-manifest schema + reader.
 
 Compressible invariant: valid manifests parse into a typed structure with id
 derived from the filename stem and order preserved; invalid manifests (missing

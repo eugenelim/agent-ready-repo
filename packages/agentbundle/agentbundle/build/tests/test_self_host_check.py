@@ -93,7 +93,7 @@ def _add_agent(pack: Path, name: str, body: str = "Do the work.\n") -> Path:
 
 def _seed_discovery(tree: Path) -> Path:
     """Drop a minimal `.adapt-discovery.toml` into a test working tree so
-    `run_self_host`'s fail-fast (spec AC14) doesn't reject the call.
+    `run_self_host`'s fail-fast doesn't reject the call.
     Canonical v0.1 shape per adapt-to-project AC9 — no `[markers]`
     table needed for the no-marker case.
     """
@@ -736,7 +736,7 @@ class ExcludedGlobTests(unittest.TestCase):
 
         # docs/specs/*/notes/** should match a nested notes file
         self.assertTrue(
-            _is_excluded(Path("docs/specs/self-hosting/notes/foo.md"))
+            _is_excluded(Path("docs/specs/example/notes/foo.md"))
         )
         self.assertTrue(
             _is_excluded(Path("docs/specs/feature/notes/sub/dir/bar.md"))
@@ -801,7 +801,7 @@ class ExcludedGlobTests(unittest.TestCase):
             "guides/_shared/reference/README.md",
             "guides/_shared/explanation/README.md",
             # Explicit literal additions:
-            "workspace.toml",  # RFC-0069: seeded once; adopter-curated thereafter
+            "workspace.toml",  # Seeded once; adopter-curated thereafter
             "docs/CHARTER.md",
             "docs/knowledge/patterns.jsonl",
             "docs/rfc/README.md",
@@ -831,7 +831,7 @@ class ExcludedGlobTests(unittest.TestCase):
 
 
 class SeedProjectionTests(unittest.TestCase):
-    """Unit tests for `_project_seeds` (spec § Always do, AC7, AC9)."""
+    """Unit tests for `_project_seeds` (spec § Always do)."""
 
     def test_basic_seed_projection_copies_to_root(self) -> None:
         from agentbundle.build.self_host import _project_seeds
@@ -1389,7 +1389,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
 
 
 class MissingDiscoveryFailFastTests(unittest.TestCase):
-    """AC14: missing `.adapt-discovery.toml` causes fail-fast with named message."""
+    """Missing `.adapt-discovery.toml` causes fail-fast with named message."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -1478,7 +1478,7 @@ class DriftSourceNamingTests(unittest.TestCase):
 
 
 class InfoLineUnclassifiedTests(unittest.TestCase):
-    """AC6: paths not in Projected and not in Excluded surface as `[info]`."""
+    """Paths not in Projected and not in Excluded surface as `[info]`."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -1789,7 +1789,7 @@ class SymlinkTargetTests(unittest.TestCase):
     def test_matching_symlinks_no_drift(self) -> None:
         """Non-CLAUDE.md filename — exercises the Phase-2 matching-target
         path proper. Using `CLAUDE.md` here would pass for the wrong
-        reason (the AC15b short-circuit would fire before the
+        reason (the short-circuit would fire before the
         target-equality check), masking a future regression in the
         strict path. AGENTS.md is created on both sides so the symlink
         target resolves and the rglob iteration over AGENTS.md doesn't
@@ -1809,7 +1809,7 @@ class SymlinkTargetTests(unittest.TestCase):
     def test_symlink_in_shadow_regular_on_disk_drifts(self) -> None:
         """The general type-mismatch rule fires for any projected file
         whose shadow shape disagrees with its on-disk shape. The
-        repo-root CLAUDE.md alias is exempted by AC15b
+        repo-root CLAUDE.md alias is exempted
         (`ClaudeMdEquivalenceTests`); every other file keeps the
         strict rule, so this test uses an arbitrary non-CLAUDE.md
         filename to exercise it."""

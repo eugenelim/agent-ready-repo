@@ -1,4 +1,4 @@
-"""Contract parity tests — Wave 1 schema sync (AC14–AC17, AC19).
+"""Contract parity tests — Wave 1 schema sync.
 
 Verifies that:
   (1) The four schemas newly synced in Wave 1 are byte-identical between
@@ -30,27 +30,27 @@ def _parity(name: str) -> None:
 
 
 def test_guide_schema_synced() -> None:
-    """AC14: guide.schema.json byte-identical between contracts/ and _data/."""
+    """Guide.schema.json byte-identical between contracts/ and _data/."""
     _parity("guide.schema.json")
 
 
 def test_skill_schema_synced() -> None:
-    """AC15: skill.schema.json byte-identical between contracts/ and _data/."""
+    """Skill.schema.json byte-identical between contracts/ and _data/."""
     _parity("skill.schema.json")
 
 
 def test_skill_manifest_schema_synced() -> None:
-    """AC16: skill-manifest.schema.json byte-identical between contracts/ and _data/."""
+    """Skill-manifest.schema.json byte-identical between contracts/ and _data/."""
     _parity("skill-manifest.schema.json")
 
 
 def test_target_vocab_toml_synced() -> None:
-    """AC17: target-vocab.toml byte-identical between contracts/ and _data/."""
+    """Target-vocab.toml byte-identical between contracts/ and _data/."""
     _parity("target-vocab.toml")
 
 
 def test_check_contract_parity_tool_exits_0() -> None:
-    """AC19: check_contract_parity.py bare invocation exits 0 on clean repo."""
+    """check_contract_parity.py bare invocation exits 0 on clean repo."""
     result = subprocess.run(
         [sys.executable, str(_PARITY_TOOL)],
         capture_output=True,

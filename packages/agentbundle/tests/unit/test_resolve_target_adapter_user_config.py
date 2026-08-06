@@ -4,7 +4,7 @@ The pre-flight is inserted between Step 2 (state-hint short-circuit)
 and Step 3+4 (contract-version gate), only when `state_adapter is
 None`. It either returns the configured candidate (admissible at
 scope and in pack `allowed_adapters`) or raises
-`_AdapterResolutionRefused` with the AC13 / AC14 message.
+`_AdapterResolutionRefused` with the message.
 
 See `docs/specs/agentbundle-config-subcommand/spec.md` AC11–AC14.
 Tests use the existing `fake_home` pattern from
@@ -173,7 +173,7 @@ def test_probe_still_wins_when_user_config_none(
 
 
 # ---------------------------------------------------------------------------
-# Pre-flight refuses scope-incapable configured adapter (AC13)
+# Pre-flight refuses scope-incapable configured adapter
 # ---------------------------------------------------------------------------
 
 
@@ -197,7 +197,7 @@ def test_preflight_refuses_copilot_at_user_scope(
 
 
 # ---------------------------------------------------------------------------
-# Pre-flight refuses pack-incompatible configured adapter (AC14)
+# Pre-flight refuses pack-incompatible configured adapter
 # ---------------------------------------------------------------------------
 
 

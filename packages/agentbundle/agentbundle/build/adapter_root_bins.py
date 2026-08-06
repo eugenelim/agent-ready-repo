@@ -54,7 +54,7 @@ TARGET_SUBDIR = Path(".agentbundle") / "bin"
 # inherits the DACL from %USERPROFILE% (no explicit chmod call).
 EXECUTABLE_MODE = 0o755
 
-# AC22b: shim-companion projection. When a pack ships both
+# Shim-companion projection. When a pack ships both
 # adapter-root-bins/ and shared-libs/credentials_shim.py, the shim is
 # projected as a sibling under `bin/` so that per-platform Tier-2
 # backend modules under adapter-root-bins/ (e.g. _sso_keychain_macos.py)
@@ -112,7 +112,7 @@ def _packs_with_adapter_root_bins(packs_dir: Path) -> list[Path]:
     """Return every pack directory whose ``.apm/adapter-root-bins/``
     contains at least one ``*.py`` source. Sorted for determinism.
 
-    Used by the AC22b shim-companion enumeration and by the
+    Used by the shim-companion enumeration and by the
     content-grep hard-error rail — both predicate on "the pack ships
     adapter-root-bins/", not on what's inside it.
     """
@@ -187,7 +187,7 @@ def collect_companion_shim(packs_dir: Path) -> dict[str, Path]:
             # shared-libs/credentials_shim.py. Project the canonical
             # shim source as the companion. Opt-in by ship-both: packs
             # that ship adapter-root-bins/ alone do not get the shim
-            # — the AC22b hard-error rail catches the case where they
+            # — the hard-error rail catches the case where they
             # *need* it but don't ship it.
             return {SHIM_COMPANION_BASENAME: shim_source}
     return {}
@@ -273,7 +273,7 @@ def compute_projections(
 
 
 def _is_companion_projection(proj: AdapterRootBinProjection) -> bool:
-    """True iff ``proj`` is the AC22b shim-companion (source rooted in
+    """True iff ``proj`` is the shim-companion (source rooted in
     ``shared-libs/``), not a primary adapter-root-bins target.
 
     Drives the ``[adapter-root-bins:shim-companion]`` diagnostic
@@ -299,7 +299,7 @@ def apply_projection(working_tree: Path, packs_dir: Path) -> None:
       * **orphaned** → file removed (source basename no longer
         shipped by any pack)
 
-    AC22b: also projects the shim companion when a pack ships both
+    Also projects the shim companion when a pack ships both
     ``.apm/adapter-root-bins/`` and ``.apm/shared-libs/credentials_shim.py``.
     AC22b hard-error rail fires before any writes if a pack imports
     the shim but doesn't ship the source.

@@ -31,7 +31,7 @@ def test_user_home_state_file_parses_at_v0_4():
 
 def test_user_home_discovery_file_parses_at_user_scope():
     """The fixture's `.adapt-discovery.toml` parses with `scope="user"`
-    (the loader refuses `[markers]` at user scope per RFC-0004)."""
+    (the loader refuses `[markers]` at user scope)."""
     d = load_adapt_discovery_typed(
         FIXTURE / ".adapt-discovery.toml", scope="user"
     )

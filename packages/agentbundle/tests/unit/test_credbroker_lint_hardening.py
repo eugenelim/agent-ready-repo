@@ -1,16 +1,16 @@
-"""credbroker test-suite hardening — AC1 (fallback) / AC2 / AC3 / AC4 / AC5 / AC7 / AC8 / AC9.
+"""credbroker test-suite hardening (fallback) / AC2 / AC3 / AC4 / AC5 / AC7 / AC8 / AC9.
 
-AC1  — _cs_check_dotfile_read retained fallback substring scan catches the literal
+_cs_check_dotfile_read retained fallback substring scan catches the literal
         keyword-arg open(file="<path>") form that the AST branch misses (defense-in-depth).
-AC2  — _cs_check_dotfile_read catches inline part-composition bypass.
-AC3  — _cs_check_dotfile_read catches inline .read_bytes() form.
-AC4  — _cs_check_dotfile_read suppresses findings when opt-out marker is present.
-AC5  — _cs_check_dotfile_read catches bare open('.agentbundle/credentials.env') form.
-AC7  — _cs_is_canonical_shim returns False for canonical bytes at a
+_cs_check_dotfile_read catches inline part-composition bypass.
+_cs_check_dotfile_read catches inline .read_bytes() form.
+_cs_check_dotfile_read suppresses findings when opt-out marker is present.
+_cs_check_dotfile_read catches bare open('.agentbundle/credentials.env') form.
+_cs_is_canonical_shim returns False for canonical bytes at a
         non-canonical parent directory.
-AC8  — _cs_is_canonical_shim returns True for canonical bytes at "scripts/"
+_cs_is_canonical_shim returns True for canonical bytes at "scripts/"
         and "shared-libs/" parent directories.
-AC9  — _load_cli_module helper is available in this test suite.
+_load_cli_module helper is available in this test suite.
 """
 
 from __future__ import annotations
@@ -88,7 +88,7 @@ def test_load_cli_module_loads_broker():
 
 
 class TestIsCanonicalShimPathAnchor:
-    """Path-anchor requirement for _cs_is_canonical_shim (AC6 / AC7 / AC8)."""
+    """Path-anchor requirement for _cs_is_canonical_shim."""
 
     @pytest.fixture(autouse=True)
     def _canonical_bytes(self, tmp_path):
@@ -105,17 +105,17 @@ class TestIsCanonicalShimPathAnchor:
         return shim_file
 
     def test_non_canonical_parent_returns_false(self):
-        """AC7: canonical bytes at an arbitrary parent → False."""
+        """Canonical bytes at an arbitrary parent → False."""
         shim = self._write_shim("arbitrary")
         assert _cs_is_canonical_shim(shim, _SHIM_SOURCE_DIR) is False
 
     def test_scripts_parent_returns_true(self):
-        """AC8a: canonical bytes at a scripts/ parent → True."""
+        """Canonical bytes at a scripts/ parent → True."""
         shim = self._write_shim("scripts")
         assert _cs_is_canonical_shim(shim, _SHIM_SOURCE_DIR) is True
 
     def test_shared_libs_parent_returns_true(self):
-        """AC8b: canonical bytes at a shared-libs/ parent → True."""
+        """Canonical bytes at a shared-libs/ parent → True."""
         shim = self._write_shim("shared-libs")
         assert _cs_is_canonical_shim(shim, _SHIM_SOURCE_DIR) is True
 
@@ -124,7 +124,7 @@ class TestIsCanonicalShimPathAnchor:
 
 
 class TestD3CheckDotfileRead:
-    """D3 dotfile-read detection — AST walk and fallback scan (AC1 fallback / AC2-AC5).
+    """D3 dotfile-read detection — AST walk and fallback scan (fallback).
 
     Each test writes a minimal fixture Python file to tmp_path and calls
     _cs_check_dotfile_read() directly to verify finding presence/absence.
@@ -138,7 +138,7 @@ class TestD3CheckDotfileRead:
         return _cs_check_dotfile_read(fixture)
 
     def test_part_composition_bypass_caught(self, tmp_path: pathlib.Path) -> None:
-        """AC2: inline part-composition is caught; old substring scan would miss it.
+        """Inline part-composition is caught; old substring scan would miss it.
 
         The fixture uses ("." + "agentbundle") so no literal
         '.agentbundle/credentials.env' substring appears on any line.
@@ -153,12 +153,12 @@ class TestD3CheckDotfileRead:
             'Path.home() / ("." + "agentbundle") / ("credentials" + ".env")'
             ").read_text()\n"
         )
-        # AC2(a): prove the old substring scan would have missed this.
+        # Prove the old substring scan would have missed this.
         assert self._DOTFILE_SUBSTRING not in source, (
             "fixture must not contain the literal dotfile substring "
             "(that would make the test a tautology for the old scan)"
         )
-        # AC2(b): AST walk catches it on the correct line.
+        # AST walk catches it on the correct line.
         findings = self._run(tmp_path, source)
         assert findings, "expected a finding for inline part-composition bypass"
         matching = [(ln, desc) for ln, desc in findings if "read_text" in desc]
@@ -168,7 +168,7 @@ class TestD3CheckDotfileRead:
         )
 
     def test_read_bytes_inline_caught(self, tmp_path: pathlib.Path) -> None:
-        """AC3: inline .read_bytes() form is caught by the AST walk."""
+        """Inline .read_bytes() form is caught by the AST walk."""
         source = (
             "from pathlib import Path\n"
             "result = (Path.home() / '.agentbundle' / 'credentials.env').read_bytes()\n"
@@ -180,7 +180,7 @@ class TestD3CheckDotfileRead:
         )
 
     def test_optout_marker_suppresses_finding(self, tmp_path: pathlib.Path) -> None:
-        """AC4: opt-out marker on the same line as the call suppresses the finding."""
+        """Opt-out marker on the same line as the call suppresses the finding."""
         source = (
             "from pathlib import Path\n"
             "result = (Path.home() / '.agentbundle' / 'credentials.env').read_text()"
@@ -211,7 +211,7 @@ class TestD3CheckDotfileRead:
         )
 
     def test_bare_open_caught(self, tmp_path: pathlib.Path) -> None:
-        """AC5: bare open('.agentbundle/credentials.env') is caught by the AST walk.
+        """Bare open('.agentbundle/credentials.env') is caught by the AST walk.
 
         _cs_path_chain_components() resolves the string literal to
         ("relative", [".agentbundle", "credentials.env"]); _cs_is_dotfile_chain()

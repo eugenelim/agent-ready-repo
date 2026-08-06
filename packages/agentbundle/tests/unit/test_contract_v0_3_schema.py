@@ -7,18 +7,18 @@ remain valid under v0.5 (all v0.3 fields are preserved); only AC7's
 version assertion is updated.
 
 Covers spec ACs:
-  AC1 — `[adapter.kiro.scope]` with `allowed-prefixes.user = [".kiro/", ".agentbundle/"]`.
-  AC2 — `[adapter.kiro.projections.hook-wiring]` with `mode = "merge-into-agent-json"`,
+  `[adapter.kiro.scope]` with `allowed-prefixes.user = [".kiro/", ".agentbundle/"]`.
+  `[adapter.kiro.projections.hook-wiring]` with `mode = "merge-into-agent-json"`,
         `managed-key = "hooks"`, five-event `agent-event-vocabulary`. Legacy
         `degraded-info-log` entry removed.
-  AC3 — `[adapter."claude-code".projections.hook-wiring]` with `mode.repo = "merge-json"`,
+  `[adapter."claude-code".projections.hook-wiring]` with `mode.repo = "merge-json"`,
         `mode.user = "user-merge-json"`, scope-conditional `target`,
         `managed-key.user = "hooks"`.
-  AC4 — `[adapter."claude-code".projections.hook-body]` and
+  `[adapter."claude-code".projections.hook-body]` and
         `[adapter.kiro.projections.hook-body]` with scope-conditional `target` values.
-  AC5 — `pack.schema.json` accepts `[pack.install] user-scope-hooks = true` and refuses
+  `pack.schema.json` accepts `[pack.install] user-scope-hooks = true` and refuses
         any non-boolean value; absent value remains accepted.
-  AC7 — contract `version = "0.5"` (originally "0.3"; bumped by T2 of
+  Contract `version = "0.5"` (originally "0.3"; bumped by T2 of
         claude-plugins-install-route to "0.4"; bumped by T2 of
         apm-install-route-parity to "0.5").
 
@@ -64,7 +64,7 @@ def _parse_pack(toml_text: str) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# AC7 — contract version
+# Contract version
 # ---------------------------------------------------------------------------
 
 
@@ -77,7 +77,7 @@ class ContractVersionTests(unittest.TestCase):
         # docs/specs/dropped-primitives-coverage bumped it to v0.8;
         # RFC-0022 / kiro-adapter-split bumped it to v0.9 (this assertion was
         # left stale at "0.8" then — this CI-only root isn't in `make
-        # build-check`, so the drift didn't surface); docs/specs/copilot-full-
+        # build-check`, so the drift didn't surface)
         # parity bumped it to v0.10; RFC-0026 / cursor-full-parity bumped it to
         # v0.11; docs/specs/gemini-full-parity bumped it to v0.13;
         # docs/specs/enriched-pack-manifest bumped it to v0.14;
@@ -87,7 +87,7 @@ class ContractVersionTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC1 — Kiro [scope] table
+# Kiro [scope] table
 # ---------------------------------------------------------------------------
 
 
@@ -124,7 +124,7 @@ class KiroScopeBlockTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC2 — Kiro hook-wiring merge-into-agent-json + agent-event-vocabulary
+# Kiro hook-wiring merge-into-agent-json + agent-event-vocabulary
 # ---------------------------------------------------------------------------
 
 
@@ -139,7 +139,7 @@ class KiroHookWiringTableTests(unittest.TestCase):
         self.assertEqual(entry["agent-event-vocabulary"], KIRO_EVENTS)
 
     def test_legacy_degraded_info_log_entry_removed(self) -> None:
-        """AC2: legacy `[[adapter.kiro.projection]] degraded-info-log` is gone."""
+        """Legacy `[[adapter.kiro.projection]] degraded-info-log` is gone."""
         contract = _load_contract()
         legacy = contract["adapter"]["kiro"].get("projection", [])
         for entry in legacy:
@@ -156,7 +156,7 @@ class KiroHookWiringTableTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC3 — Claude Code hook-wiring scope-conditional mode/target/managed-key
+# Claude Code hook-wiring scope-conditional mode/target/managed-key
 # ---------------------------------------------------------------------------
 
 
@@ -189,7 +189,7 @@ class ClaudeCodeHookWiringTableTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC4 — hook-body scope-conditional target on both adapters
+# Hook-body scope-conditional target on both adapters
 # ---------------------------------------------------------------------------
 
 
@@ -383,7 +383,7 @@ class AgentEventVocabularySchemaTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC5 — pack.install user-scope-hooks boolean
+# pack.install user-scope-hooks boolean
 # ---------------------------------------------------------------------------
 
 
@@ -454,7 +454,7 @@ user-scope-hooks = false
                 )
 
     def test_absent_is_accepted(self) -> None:
-        """AC5: absent value is accepted (defaults to false at consumption time)."""
+        """Absent value is accepted (defaults to false at consumption time)."""
         from agentbundle.build.validate import validate
 
         instance = _parse_pack(

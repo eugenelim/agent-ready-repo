@@ -477,7 +477,7 @@ class TestShortCircuitSeenSet(unittest.TestCase):
                 "warning:",
                 captured.getvalue(),
                 "user-scope warning should fire fresh despite repo "
-                "being silenced — that's the independence AC11 pins",
+                "being silenced — per-scope silencing is independent",
             )
 
             # Repeat user — silenced.

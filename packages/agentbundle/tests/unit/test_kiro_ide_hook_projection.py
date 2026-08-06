@@ -1,4 +1,4 @@
-"""T-C3 (RFC-0005 kiro-ide-hook): phase order + projector module.
+"""T-C3 (kiro-ide-hook): phase order + projector module.
 
 Covers:
   - Phase order extension (PHASE_ORDER ships kiro-ide-hook between

@@ -1,4 +1,4 @@
-"""T5 (pack-profiles AC3–AC8, AC12, AC13): `install --profile` orchestrator.
+"""T5 (pack-profiles): `install --profile` orchestrator.
 
 End-to-end against a fixture catalogue + temp scope roots. Verifies one command
 installs the batch in authored order, at one scope, on one pinned adapter, with
@@ -112,7 +112,7 @@ def _repo_state(target):
 
 
 # ---------------------------------------------------------------------------
-# AC3, AC5, AC12, AC13 — ordered, one scope, one adapter, profile route
+# Ordered, one scope, one adapter, profile route
 # ---------------------------------------------------------------------------
 
 
@@ -158,7 +158,7 @@ def test_profile_state_schema_version_unchanged(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# AC6 — already-installed packs skipped, refuse-on-reinstall not tripped
+# Already-installed packs skipped, refuse-on-reinstall not tripped
 # ---------------------------------------------------------------------------
 
 
@@ -190,7 +190,7 @@ def test_profile_skips_already_installed(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# AC5 — pinned adapter disallowed by a batch pack → refuse before any write
+# Pinned adapter disallowed by a batch pack → refuse before any write
 # ---------------------------------------------------------------------------
 
 
@@ -216,7 +216,7 @@ def test_profile_refuses_when_a_pack_disallows_the_pinned_adapter(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# AC4 — path-jail failure on a later pack aborts before any write
+# Path-jail failure on a later pack aborts before any write
 # ---------------------------------------------------------------------------
 
 
@@ -248,7 +248,7 @@ def test_profile_path_jail_on_later_pack_aborts_before_any_write(tmp_path, monke
 
 
 # ---------------------------------------------------------------------------
-# AC8 — genuine write-phase I/O failure: consistent prefix + per-pack summary
+# Genuine write-phase I/O failure: consistent prefix + per-pack summary
 # ---------------------------------------------------------------------------
 
 
@@ -289,7 +289,7 @@ def test_profile_partial_write_failure_leaves_consistent_prefix(tmp_path, monkey
 
 
 # ---------------------------------------------------------------------------
-# AC4/AC7 — pre-flight refusals through the orchestrator (before any write)
+# Pre-flight refusals through the orchestrator (before any write)
 # ---------------------------------------------------------------------------
 
 
@@ -322,7 +322,7 @@ def test_profile_refuses_when_dep_preinstalled_at_unsatisfying_version(tmp_path)
 
 def test_profile_refuses_when_pack_requires_dep_not_in_batch(tmp_path):
     """A profile pack whose required dep is neither installed nor in the
-    profile is refused through the orchestrator (AC4 dep precondition)."""
+    profile is refused through the orchestrator (dep precondition)."""
     cat = tmp_path / "cat"
     target = tmp_path / "repo"
     target.mkdir()
@@ -339,7 +339,7 @@ def test_profile_refuses_when_pack_requires_dep_not_in_batch(tmp_path):
 
 def test_profile_refuses_scope_mismatch(tmp_path):
     """A user-scope profile naming a repo-only pack is refused at pre-flight
-    (AC4 scope precondition)."""
+    (scope precondition)."""
     cat = tmp_path / "cat"
     target = tmp_path / "repo"
     target.mkdir()
@@ -393,7 +393,7 @@ def test_profile_refuses_pack_installed_at_opposite_scope(tmp_path, monkeypatch)
 
 
 # ---------------------------------------------------------------------------
-# AC13 — single-pack install still records install_route="cli"
+# Single-pack install still records install_route="cli"
 # ---------------------------------------------------------------------------
 
 

@@ -1,4 +1,4 @@
-"""T6 (RFC-0052 Decision 7): the install-time cross-adapter disclosure rail.
+"""T6 (Decision 7): the install-time cross-adapter disclosure rail.
 
 After an install that writes to a `shared` prefix, stderr names the prefix's
 other shipped cohort adapters and states the skills-shared / private-needs-own-

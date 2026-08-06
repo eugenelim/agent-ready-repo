@@ -93,10 +93,10 @@ PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The canonical SessionStart hook command synthesised into each derived
-# plugin.json (claude-plugins route). Shell-exec contract (AC9 sub-assertion):
+# plugin.json (claude-plugins route). Shell-exec contract (sub-assertion):
 # when CLAUDE_PLUGIN_ROOT is substituted the double-quoted path survives
 # spaces. The trailing `--install-route claude-plugins` flag is required by
-# the writer's argparse (apm-install-route-parity AC2/AC8); the build
+# the writer's argparse (apm-install-route-parity); the build
 # pipeline and the projected command stay coupled at projection time via
 # `make build` so a refreshed writer always ships next to a refreshed
 # command — see RFC-0010 / spec apm-install-route-parity §Rollout.
@@ -116,7 +116,7 @@ _SESSION_START_COMMAND_APM = (
 )
 
 # JSON shape emitted into dist/apm/<pack>/.apm/hooks/install-marker.json
-# (spec AC7). Authored as a Python dict so json.dumps controls indentation.
+# Authored as a Python dict so json.dumps controls indentation.
 _APM_INSTALL_MARKER_HOOK_JSON = {
     "hooks": {
         "SessionStart": [
@@ -199,7 +199,7 @@ def validate_derived_plugin_manifest(plugin_json_path: Path) -> None:
 def derive_projectable_subset(pack_toml: dict) -> dict:
     """Map a parsed ``pack.toml`` to the projectable plugin-manifest subset.
 
-    enriched-pack-manifest (RFC-0031 / ADR-0021): ``pack.toml`` is the rich
+    enriched-pack-manifest: ``pack.toml`` is the rich
     metadata source of truth; the build projects a *lossy*, schema-compliant
     subset into the claude-plugins + apm routes (the ``plugin.json`` /
     ``marketplace.json`` entry). Fixed mapping:
@@ -576,7 +576,7 @@ def _run_per_pack_single(
 
     # Issue #190: ship the pack's seeds/ inside the plugin artifact so the
     # governance content travels with the pack on the Claude-plugin route
-    # (RFC-0001 §281-284). symlinks=True preserves a seed symlink as a
+    # symlinks=True preserves a seed symlink as a
     # symlink rather than dereferencing the build host's file into dist/
     # at build time — matching the APM recipe's copytree posture.
     seeds_src = pack.path / "seeds"
@@ -616,7 +616,7 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
         # apm-install-route-parity T4 / AC11: project install-marker
         # artifacts (writer + JSON hook) and pack.toml into the per-pack
         # output. The writer is byte-identical to the canonical template
-        # — drift gate (AC16) enforces this at make build-check.
+        # — drift gate enforces this at make build-check.
         hooks_dir = per_pack_output / ".apm" / "hooks"
         hooks_dir.mkdir(parents=True, exist_ok=True)
         (hooks_dir / "install-marker.py").write_bytes(writer_bytes)
@@ -627,7 +627,7 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
 
         # Project pack.toml verbatim. The writer reads it for
         # name/version/allowed-scopes — same role as in the claude-plugins
-        # derivation (spec AC11 c).
+        # derivation.
         pack_toml_src = pack.path / "pack.toml"
         if pack_toml_src.exists():
             shutil.copy2(

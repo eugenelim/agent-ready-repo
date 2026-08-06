@@ -1,17 +1,17 @@
-"""Integration tests for the build-pipeline claude-plugins derivation (T4 / AC9).
+"""Integration tests for the build-pipeline claude-plugins derivation.
 
 Goal-based check: run ``agentbundle build`` against the fixture packs and verify:
 
-  (a) pack.toml is copied verbatim (AC9 c)
-  (b) install-marker.py is copied byte-identical from the canonical template (AC9 b)
-  (c) the derived plugin.json carries the synthesised SessionStart hook (AC9 a)
-  (d) source-tree fields name/version/description are preserved (AC9 a)
+  (a) pack.toml is copied verbatim
+  (b) install-marker.py is copied byte-identical from the canonical template
+  (c) the derived plugin.json carries the synthesised SessionStart hook
+  (d) source-tree fields name/version/description are preserved
   (e) the build is idempotent — warm-overwrite AND cold-rebuild (Concern-6)
   (f) agentbundle build check exits zero after the T4 migration lands
       (Concerns 7+8: uses Python entry point, copies packs to tmp_path — no
       real-repo mutation)
   (g) the SessionStart command string survives a space-in-CLAUDE_PLUGIN_ROOT
-      path (AC9 sub-assertion)
+      path (sub-assertion)
   (h) transactional cleanup: phantom files from a prior build do not survive
       a fresh build (Blocker-4)
   (i) schema-rejection integration: source plugin.json carrying a hooks block
@@ -21,7 +21,6 @@ Goal-based check: run ``agentbundle build`` against the fixture packs and verify
 Tests (a)-(d) and (g) are parametrised over all fixture packs (Concern-5
 multi-pack coverage).
 
-Spec: docs/specs/claude-plugins-install-route/spec.md
 """
 
 from __future__ import annotations
@@ -268,7 +267,7 @@ def test_derivation_recovers_from_phantom_files(tmp_path):
 
 
 def test_make_build_check_passes_post_migration(tmp_path):
-    """AC9: agentbundle build check exits zero against the migrated working tree.
+    """Agentbundle build check exits zero against the migrated working tree.
 
     Hermetic: shadow-copies packs/ + .adapt-discovery.toml into tmp_path, then
     pre-runs `agentbundle build self --force` and `agentbundle build build`

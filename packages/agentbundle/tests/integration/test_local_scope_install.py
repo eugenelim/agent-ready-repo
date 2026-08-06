@@ -147,7 +147,7 @@ def test_install_local_happy_path(git_repo: Path) -> None:
         f"Expected local exclude line; got: {install_output!r}"
     )
 
-    # AC7: state file contains schema-version = "0.4"
+    # State file contains schema-version = "0.4"
     state_path = git_repo / ".agentbundle-local-state.toml"
     assert state_path.exists(), "Local state file should exist"
     state_content = state_path.read_text()
@@ -155,7 +155,7 @@ def test_install_local_happy_path(git_repo: Path) -> None:
         f"Expected schema-version = '0.4' in state file; got: {state_content!r}"
     )
 
-    # AC17: no seeds written (AGENTS.md and docs/CHARTER.md absent)
+    # No seeds written (AGENTS.md and docs/CHARTER.md absent)
     assert not (git_repo / "AGENTS.md").exists(), "AGENTS.md should not be written at local scope"
     assert not (git_repo / "docs" / "CHARTER.md").exists(), (
         "docs/CHARTER.md should not be written at local scope"
@@ -227,7 +227,7 @@ def test_uninstall_local_cleans_up(git_repo: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def test_same_scope_reinstall_refused(git_repo: Path) -> None:
-    """Reinstalling the same pack/adapter at local scope is refused (AC21b)."""
+    """Reinstalling the same pack/adapter at local scope is refused."""
     import contextlib
     import io
 
@@ -287,23 +287,23 @@ def test_repo_refused_when_local_installed(git_repo: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def test_write_exclude_block_docstring_ac26(tmp_path: Path) -> None:
-    """AC26: write_exclude_block docstring documents the concurrent-write limitation."""
+    """write_exclude_block docstring documents the concurrent-write limitation."""
     from agentbundle.local_exclude import write_exclude_block
     docstring = write_exclude_block.__doc__ or ""
     # AC26 key phrase
     assert any(
         phrase in docstring
         for phrase in ("lost-update", "concurrent", "last-writer")
-    ), f"AC26: concurrent-write limitation not documented in docstring; got: {docstring[:200]!r}"
+    ), f"concurrent-write limitation not documented in docstring; got: {docstring[:200]!r}"
 
 
 def test_write_exclude_block_docstring_ac27(tmp_path: Path) -> None:
-    """AC27: write_exclude_block docstring documents the cross-worktree side-effect."""
+    """write_exclude_block docstring documents the cross-worktree side-effect."""
     from agentbundle.local_exclude import write_exclude_block
     docstring = write_exclude_block.__doc__ or ""
     # AC27 key phrase
     assert "linked worktrees" in docstring, (
-        f"AC27: cross-worktree side-effect not documented in docstring; got: {docstring[:200]!r}"
+        f"cross-worktree side-effect not documented in docstring; got: {docstring[:200]!r}"
     )
 
 
@@ -312,7 +312,7 @@ def test_write_exclude_block_docstring_ac27(tmp_path: Path) -> None:
 # ---------------------------------------------------------------------------
 
 def test_rollback_on_write_failure(git_repo: Path) -> None:
-    """If state write fails, exclude block and projected files are rolled back (AC21).
+    """If state write fails, exclude block and projected files are rolled back.
 
     Injects a RuntimeError into persist_state_locked; verifies that:
     - install exits non-zero (exception propagated → rc = 1)
@@ -351,18 +351,18 @@ def test_rollback_on_write_failure(git_repo: Path) -> None:
 
     assert rc != 0, "install should exit non-zero when state write fails"
 
-    # AC21: projected files rolled back
+    # Projected files rolled back
     skill_path = git_repo / _EXPECTED_SKILL_RELPATH
     assert not skill_path.exists(), (
         "Projected skill file should be removed by rollback; "
         f"skill_path={skill_path}, err={err.getvalue()!r}"
     )
 
-    # AC21: local state file never committed
+    # Local state file never committed
     state_path = git_repo / ".agentbundle-local-state.toml"
     assert not state_path.exists(), "Local state file should not exist after rollback"
 
-    # AC21: exclude block rolled back to prior state.
+    # Exclude block rolled back to prior state.
     # snapshot_exclude returns bytes | None (None = file was absent before install).
     # After rollback: if prior was None the file should be gone; if prior was bytes
     # the file should contain those bytes.

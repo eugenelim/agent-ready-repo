@@ -54,7 +54,7 @@ def run(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     state_path = resolve_state_path("repo", root)
 
-    # ── Step 1: Multi-scope disambiguator (RFC-0004) ──────────────────────────
+    # ── Step 1: Multi-scope disambiguator ─────────────────────────────────────
     # If the pack is at both repo and user scopes, --scope is required.
     # If it's at exactly one scope, infer. The check needs *read* access
     # to both state files. Importing scope_mod lazily so --version stays fast.
@@ -84,7 +84,7 @@ def run(args: argparse.Namespace) -> int:
         print(f"uninstall: {exc}", file=sys.stderr)
         return 1
 
-    # RFC-0080: also probe the local state file.
+    # Also probe the local state file.
     local_state_path = root / ".agentbundle-local-state.toml"
     installed_at_local = False
     try:
@@ -156,7 +156,7 @@ def run(args: argparse.Namespace) -> int:
         print(f"uninstall: pack {pack_name!r} not installed", file=sys.stderr)
         return 1
 
-    # ── Step 1c: Multi-adapter disambiguator (RFC-0052) ──────────────────────
+    # ── Step 1c: Multi-adapter disambiguator ─────────────────────────────────
     # A pack can carry multiple adapter rows at one scope; uninstall targets
     # exactly one. Infer when there is a single row; require --adapter when
     # there is more than one.
@@ -188,7 +188,7 @@ def run(args: argparse.Namespace) -> int:
 
     # Per-row path-jail: at user scope, pull the *target adapter's*
     # allowed-prefixes so each removal is jailed against the removing row's
-    # own prefixes, never a sibling's (RFC-0052 / ADR-0039 per-row jail).
+    # own prefixes, never a sibling's (per-row jail).
     if effective_scope == "user":
         from agentbundle.commands.install import _adapter_allowed_prefixes_user
 
@@ -215,7 +215,7 @@ def run(args: argparse.Namespace) -> int:
     # not re-checked — see spec AC5).
     decisions: list[tuple[str, str]] = []  # (relpath, "remove" | "keep" | "shared")
 
-    # Last-owner derivation (RFC-0052 / ADR-0039), captured ONCE here
+    # Last-owner derivation, captured ONCE here
     # against the persisted union of all rows; the execute pass below acts
     # on `decisions` without re-deriving. A relpath is removable only when
     # the row being uninstalled is its **last** owner — i.e. no other
@@ -272,7 +272,7 @@ def run(args: argparse.Namespace) -> int:
     # ── Step 2a': --dry-run preview — print the plan and write nothing ────────
     # Returns BEFORE the hook-wiring unproject (Step 2b), the empty-dir prune
     # (Step 3), and the state rewrite (Step 4): a dry run mutates nothing on
-    # disk or in state (spec AC1).
+    # disk or in state.
     if dry_run:
         from agentbundle.commands._common import format_plan_line
 
@@ -289,7 +289,7 @@ def run(args: argparse.Namespace) -> int:
         )
         return 0
 
-    # ── Step 2b: Confirm before the first os.remove (spec AC2/AC3/AC4) ────────
+    # ── Step 2b: Confirm before the first os.remove ───────────────────────────
     # `--yes` skips the prompt; a non-interactive stdin refuses rather than
     # blocking on input(). Mirrors `upgrade`'s posture via the shared helper.
     from agentbundle.commands._common import confirm_or_refuse
@@ -358,7 +358,7 @@ def run(args: argparse.Namespace) -> int:
             target_file_rel = entry.get("target-file")
             if not target_file_rel:
                 # Claude Code rows default to `~/.claude/settings.json`
-                # per RFC-0005 § State-file impact (resolve via the
+                # per the state-file impact (resolve via the
                 # user-scope target on the adapter contract).
                 target_file_rel = ".claude/settings.json"
             owned_by_target.setdefault(target_file_rel, []).append((event, entry_id))
@@ -387,7 +387,7 @@ def run(args: argparse.Namespace) -> int:
 
     # ── Step 3b: RFC-0080 — update .git/info/exclude for local scope ─────────
     # After file removals, recompute or strip the pack's exclude block.
-    # Recompute order (AC14b): strip or recompute AFTER files are deleted but
+    # Recompute order: strip or recompute AFTER files are deleted but
     # BEFORE state row is dropped, so the remaining sibling rows' patterns are
     # still readable from the in-memory `state.packs`.
     if effective_scope == "local":
@@ -440,7 +440,7 @@ def run(args: argparse.Namespace) -> int:
 
     # ── Step 4: Drop only the targeted adapter row from state and persist ─────
     # Sibling adapter rows of the same pack (and their co-owned shared files)
-    # survive — only this `(pack, adapter)` row is removed (RFC-0052).
+    # survive — only this `(pack, adapter)` row is removed.
     del state.packs[(pack_name, target_adapter)]
     serialised = dump_state(state)
     # Write the state file at the right per-scope relpath. At repo scope
@@ -460,7 +460,7 @@ def run(args: argparse.Namespace) -> int:
         print(f"uninstall: {exc}", file=sys.stderr)
         return 1
 
-    # RFC-0080: delete the local state file when it becomes empty (no packs
+    # Delete the local state file when it becomes empty (no packs
     # remain). Repo/user state files persist empty (tool expectation parity).
     if effective_scope == "local" and not state.packs:
         try:

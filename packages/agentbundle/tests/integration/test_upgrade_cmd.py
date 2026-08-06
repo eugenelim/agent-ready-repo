@@ -61,7 +61,7 @@ def _args_upgrade(
 
 
 def _args_install(pack: str, catalogue: str, output: str) -> types.SimpleNamespace:
-    # RFC-0012: dist-tree fixtures need `emit_install_routes=True`.
+    # Dist-tree fixtures need `emit_install_routes=True`.
     return types.SimpleNamespace(
         pack=pack,
         catalogue=catalogue,
@@ -459,7 +459,7 @@ def test_upgrade_tier2_collision_surfaces_companion_path(tmp_path, capsys):
     """A file edited since install must, on upgrade: stay byte-for-byte the
     adopter's (never clobbered), gain a `.upstream.<ext>` companion holding the
     upstream content, AND have its companion path named on stderr with the
-    'kept as *.upstream.<ext> companions' notice. [AC1, AC2]"""
+    'kept as *.upstream.<ext> companions' notice."""
     from agentbundle import safety
     from agentbundle.render import render_pack
 
@@ -500,7 +500,7 @@ def test_upgrade_tier2_collision_surfaces_companion_path(tmp_path, capsys):
 
 def test_upgrade_without_collision_emits_no_companion_notice(tmp_path, capsys):
     """A clean install→upgrade (no adopter edits) is all Tier-1: no companion
-    is dropped and no companion notice is printed. [AC3]"""
+    is dropped and no companion notice is printed."""
     rc = _install_v1(tmp_path)
     assert rc == 0
     capsys.readouterr()  # drop install output
@@ -517,7 +517,7 @@ def test_upgrade_without_collision_emits_no_companion_notice(tmp_path, capsys):
 def test_upgrade_multiple_tier2_collisions_counts_and_lists_all(tmp_path, capsys):
     """Two files edited since install must both be preserved + companioned, and
     the notice must report the count (`2 file(s)`) and enumerate both companion
-    paths — pins the count rendering and the plural-path branch. [AC2]"""
+    paths — pins the count rendering and the plural-path branch."""
     from agentbundle import safety
     from agentbundle.render import render_pack
 
@@ -548,7 +548,7 @@ def test_upgrade_multiple_tier2_collisions_counts_and_lists_all(tmp_path, capsys
 def test_per_primitive_upgrade_surfaces_tier2_companion(tmp_path, capsys):
     """The companion notice also fires on a per-primitive (`--skill`) upgrade —
     the same shared walk handles both shapes. Edit a projected work-loop skill
-    file, upgrade just that skill, and assert the companion + notice. [AC2]"""
+    file, upgrade just that skill, and assert the companion + notice."""
     from agentbundle import safety
     from agentbundle.commands.upgrade import _filter_for_primitive
     from agentbundle.render import render_pack
@@ -598,7 +598,7 @@ def _snapshot_tree(root: Path) -> dict[str, bytes]:
 
 
 def test_dry_run_upgrade_tier2_collision_previews_companion_writes_nothing(tmp_path, capsys):
-    """AC1/AC4/AC6: a dry-run upgrade over an adopter-edited file previews the
+    """A dry-run upgrade over an adopter-edited file previews the
     `companion`/tier-2 line (with the `-> *.upstream` target), exits 0, and
     leaves the tree + state byte-identical with no companion on disk."""
     from agentbundle import safety
@@ -643,7 +643,7 @@ def test_dry_run_upgrade_tier2_collision_previews_companion_writes_nothing(tmp_p
 
 
 def test_dry_run_upgrade_no_edits_previews_overwrite_writes_nothing(tmp_path, capsys):
-    """AC1/AC3: a dry-run upgrade with no adopter edits lists the projected files
+    """A dry-run upgrade with no adopter edits lists the projected files
     with `overwrite`/tier-1 labels and target paths, exits 0, writes nothing."""
     rc = _install_v1(tmp_path)
     assert rc == 0
@@ -673,7 +673,7 @@ def test_dry_run_upgrade_no_edits_previews_overwrite_writes_nothing(tmp_path, ca
 
 
 def test_dry_run_upgrade_per_primitive_scopes_to_that_primitive(tmp_path, capsys):
-    """AC1: `--dry-run --skill work-loop` previews only that skill's files;
+    """`--dry-run --skill work-loop` previews only that skill's files;
     `--dry-run --skill bogus` still exits non-zero (primitive-not-found)."""
     from agentbundle.commands.upgrade import _filter_for_primitive
     from agentbundle.render import render_pack
@@ -718,7 +718,7 @@ def test_dry_run_upgrade_per_primitive_scopes_to_that_primitive(tmp_path, capsys
 
 
 def test_format_plan_line_shape():
-    """AC3: the shared formatter renders the documented action/tier/path shape,
+    """The shared formatter renders the documented action/tier/path shape,
     and appends the `-> companion` suffix only for a Tier-2 line."""
     from agentbundle.commands._common import (
         format_plan_line,
@@ -747,7 +747,7 @@ def test_format_plan_line_shape():
 
 
 def test_dry_run_upgrade_preflight_path_jail_passthrough(tmp_path):
-    """AC5: a path-jail-violating projection under `upgrade --dry-run` is refused
+    """A path-jail-violating projection under `upgrade --dry-run` is refused
     (non-zero), matching the real run's `write_jailed` refusal, and nothing is
     written outside the root."""
     from unittest import mock
@@ -774,7 +774,7 @@ def test_dry_run_upgrade_preflight_path_jail_passthrough(tmp_path):
 
 
 def test_upgrade_prefix_violation_writes_nothing(tmp_path, capsys):
-    """AC4: non-dry-run upgrade refuses before writing when a Tier-2 path is outside
+    """Non-dry-run upgrade refuses before writing when a Tier-2 path is outside
     allowed_prefixes — probe-all-before-write behavioral change."""
     from unittest import mock
 
@@ -826,7 +826,7 @@ def test_upgrade_prefix_violation_writes_nothing(tmp_path, capsys):
 
 
 def test_derives_target_version_from_catalogue(tmp_path, capsys):
-    """AC1/AC2: with no version argument, the target is derived from the
+    """With no version argument, the target is derived from the
     catalogue's pack.toml and the recap names both versions."""
     from agentbundle.config import load_state
 
@@ -842,7 +842,7 @@ def test_derives_target_version_from_catalogue(tmp_path, capsys):
 
 
 def test_per_primitive_recap_shows_from_to(tmp_path, capsys):
-    """AC2/AC7: per-primitive recap shows from -> to, with `from` the recorded
+    """Per-primitive recap shows from -> to, with `from` the recorded
     primitive override (here installed_version, no prior override)."""
     assert _install_v1(tmp_path) == 0
     capsys.readouterr()
@@ -854,7 +854,7 @@ def test_per_primitive_recap_shows_from_to(tmp_path, capsys):
 
 
 def test_confirmation_accept_proceeds(tmp_path, capsys, monkeypatch):
-    """AC4: an interactive `y` reply proceeds with the upgrade."""
+    """An interactive `y` reply proceeds with the upgrade."""
     from agentbundle.config import load_state
 
     assert _install_v1(tmp_path) == 0
@@ -868,7 +868,7 @@ def test_confirmation_accept_proceeds(tmp_path, capsys, monkeypatch):
 
 
 def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
-    """AC3: a non-affirmative reply aborts non-zero and writes nothing."""
+    """A non-affirmative reply aborts non-zero and writes nothing."""
     from agentbundle.config import load_state
 
     assert _install_v1(tmp_path) == 0
@@ -885,7 +885,7 @@ def test_confirmation_decline_writes_nothing(tmp_path, capsys, monkeypatch):
 
 
 def test_confirmation_eof_treated_as_decline(tmp_path, capsys, monkeypatch):
-    """AC3: an EOFError at the prompt is treated as a decline."""
+    """An EOFError at the prompt is treated as a decline."""
     from agentbundle.config import load_state
 
     assert _install_v1(tmp_path) == 0
@@ -902,7 +902,7 @@ def test_confirmation_eof_treated_as_decline(tmp_path, capsys, monkeypatch):
 
 
 def test_yes_skips_prompt(tmp_path, monkeypatch):
-    """AC5: --yes proceeds without reading stdin."""
+    """--yes proceeds without reading stdin."""
     from agentbundle.config import load_state
 
     assert _install_v1(tmp_path) == 0
@@ -918,7 +918,7 @@ def test_yes_skips_prompt(tmp_path, monkeypatch):
 
 
 def test_non_tty_without_yes_refuses(tmp_path, capsys, monkeypatch):
-    """AC6: non-TTY stdin without --yes refuses and never blocks on input()."""
+    """Non-TTY stdin without --yes refuses and never blocks on input()."""
     from agentbundle.config import load_state
 
     assert _install_v1(tmp_path) == 0
@@ -936,7 +936,7 @@ def test_non_tty_without_yes_refuses(tmp_path, capsys, monkeypatch):
 
 
 def test_dry_run_no_prompt_no_write(tmp_path, capsys, monkeypatch):
-    """AC9: --dry-run resolves the version, prompts nothing, writes nothing —
+    """--dry-run resolves the version, prompts nothing, writes nothing —
     even on a non-TTY without --yes (the refusal is short-circuited)."""
     assert _install_v1(tmp_path) == 0
     before = _snapshot_tree(tmp_path)
@@ -967,7 +967,7 @@ def test_dry_run_no_prompt_no_write(tmp_path, capsys, monkeypatch):
     ids=["missing-key", "non-string", "no-pack-table"],
 )
 def test_missing_pack_version_errors(tmp_path, capsys, pack_toml_body):
-    """AC8: a resolved catalogue whose pack.toml declares no usable [pack]
+    """A resolved catalogue whose pack.toml declares no usable [pack]
     version (missing key, non-string, or no [pack] table) exits non-zero with
     the catalogue-pointing message — the new derive check, not the spec-version
     gate (which doesn't read [pack] version)."""
@@ -983,7 +983,7 @@ def test_missing_pack_version_errors(tmp_path, capsys, pack_toml_body):
 
 
 def test_per_primitive_from_uses_recorded_override(tmp_path, capsys):
-    """AC7: on a second per-primitive upgrade, `from` is the recorded primitive
+    """On a second per-primitive upgrade, `from` is the recorded primitive
     override (0.2.0), not installed_version (0.1.0)."""
     assert _install_v1(tmp_path) == 0
     # First per-primitive upgrade → records skill/work-loop @ 0.2.0.
@@ -1002,7 +1002,7 @@ def test_per_primitive_from_uses_recorded_override(tmp_path, capsys):
 
 
 def test_already_current_states_so_with_yes(tmp_path, capsys):
-    """AC13: upgrading to the version already installed states 'already at'
+    """Upgrading to the version already installed states 'already at'
     and re-applies (with --yes)."""
     # Install 0.2.0, then "upgrade" against the same 0.2.0 catalogue.
     assert _run_install("core", str(CAT_V2), str(tmp_path)) == 0
@@ -1017,13 +1017,13 @@ def test_already_current_states_so_with_yes(tmp_path, capsys):
     assert "have local edits" not in captured.err
     recap = captured.out.strip().splitlines()[-1]
     # A same-version re-apply is no longer mislabelled `upgraded: X -> X`
-    # (install-state-visibility AC10); a clean re-apply (no local edits) reads
+    # (install-state-visibility); a clean re-apply (no local edits) reads
     # `re-applied: … (already current)`.
     assert recap == "re-applied: core @ repo 0.2.0 (already current)", recap
 
 
 def test_reapply_with_local_edit_notice_and_companion_recap(tmp_path, capsys):
-    """AC11/AC12: re-applying at the same version after a local edit prints the
+    """Re-applying at the same version after a local edit prints the
     upfront drift notice (before the action) and a recap that names the edited
     file kept as a companion — never `upgraded: X -> X`."""
     from agentbundle.config import load_state
@@ -1068,7 +1068,7 @@ def test_per_primitive_upgrade_suppresses_whole_pack_drift_notice(tmp_path, caps
 
 
 def test_already_current_interactive_offers_reapply(tmp_path, capsys, monkeypatch):
-    """AC13: interactively, the already-current prompt offers to re-apply."""
+    """Interactively, the already-current prompt offers to re-apply."""
     assert _run_install("core", str(CAT_V2), str(tmp_path)) == 0
     monkeypatch.setattr("sys.stdin.isatty", lambda: True)
     seen = {}

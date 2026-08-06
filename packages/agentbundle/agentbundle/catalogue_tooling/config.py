@@ -110,7 +110,7 @@ class CatalogueConfig:
     build: CatalogueBuild
     package: CataloguePackage
     distribution: DistributionConfig
-    # RFC-0074: per-pack config defaults and user-scope directory.
+    # Per-pack config defaults and user-scope directory.
     user_dir: str = _DEFAULT_USER_DIR
     pack_defaults: dict[str, dict[str, str]] = field(default_factory=dict)
     owner: CatalogueOwner | None = None

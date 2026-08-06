@@ -4,7 +4,7 @@ Validates a pack directory's ``pack.toml`` against ``pack.schema.json``,
 enforces the six-recipe enumeration, and applies the spec-version gate.
 With ``--strict``, runs conformance fixtures via the F-build render
 pipeline when they are present; warns and exits 0 when absent (v1 ship
-state — F-conformance deferred to v1.1 per RFC-0003).
+state — F-conformance deferred to v1.1).
 
 Exit codes:
   0 — pack is schema-valid (and conformance fixtures pass if --strict).
@@ -145,7 +145,7 @@ def run(args) -> int:
             )
             return 1
 
-    # ── 4a. Allowed-adapters cross-field check (RFC-0011 / AC3, AC22) ─────
+    # ── 4a. Allowed-adapters cross-field check ────────────────────────────
     # The schema admits `allowed-adapters` as `array<string>` but doesn't
     # hardcode the adapter enum (it's contract-derived). Validate here:
     #   - every entry must be in the bundled contract's shipped-adapter set;
@@ -158,7 +158,7 @@ def run(args) -> int:
         print(f"validate: pack.toml: {aa_refusal}", file=sys.stderr)
         return 1
 
-    # ── 4b. User-scope refusal rails (RFC-0004 A/B/C) ─────────────────────
+    # ── 4b. User-scope refusal rails (A/B/C) ──────────────────────────────
     # Rails fire only when the pack declares "user" ∈ allowed-scopes. The
     # rails run *after* schema validation so we know `[pack.install]`'s
     # shape (when present) is well-formed before we read it. v0.1 packs
@@ -180,14 +180,13 @@ def run(args) -> int:
         )
         return 1
 
-    # ── 4c/4d. Kiro hook-wiring rails (RFC-0005, T2 / T6) ────────────────
+    # ── 4c/4d. Kiro hook-wiring rails (T2 / T6) ──────────────────────────
     # Rails 4c (attach-to-agent) and 4d (event-vocabulary) are now merged
     # into a single dispatch that swallows the compatibility-only refusals
     # (missing attach-to-agent, out-of-vocab event) while preserving
     # exit-1 for security (symlink) and correctness (parse-fail,
     # unknown-agent) violations.
     #
-    # Spec: docs/specs/incompatible-hook-event-drop AC1–AC5, AC6b.
     from agentbundle.build.scope_rails import (
         _MERGE_INTO_AGENT_JSON_ADAPTERS,
         _load_pack_hook_wiring_safely,
@@ -202,14 +201,14 @@ def run(args) -> int:
     merge_adapters = target_adapters & _MERGE_INTO_AGENT_JSON_ADAPTERS
     enum_adapter = "kiro-cli" if "kiro-cli" in merge_adapters else "kiro"
     if merge_adapters:
-        # 1. Safe-load: security + correctness refusals (AC3, AC3b, AC4).
+        # 1. Safe-load: security + correctness refusals.
         loaded = _load_pack_hook_wiring_safely(pack_path, pack_name)
         if isinstance(loaded, str):
             print(f"validate: {loaded}", file=sys.stderr)
             return 1
         wiring_tomls, agent_basenames = loaded
 
-        # 2. Unknown-agent refusal (AC4b) — discriminated from input data,
+        # 2. Unknown-agent refusal — discriminated from input data,
         #    NOT from inspecting check_kiro_attach_to_agent's refusal text,
         #    which is bytewise identical for missing-vs-unknown subcases per
         #    scope_rails.py:333-337 (load-bearing per round-2 review).
@@ -241,7 +240,7 @@ def run(args) -> int:
 
         # 3. Compatibility drops (missing-attach OR out-of-vocab event) —
         #    flow to the shared enumerator + info-line emit. Single source
-        #    of truth with the install side (AC6b).
+        #    of truth with the install side.
         contract = _load_adapter_contract()
         info_drops = _drop_warning.enumerate_event_dropped_wirings(
             pack_path, enum_adapter, contract,
@@ -257,7 +256,7 @@ def run(args) -> int:
             )
             print(info)  # stdout per AC2 + adopter direction
 
-    # ── 4e. kiro-ide-hook validate rail (RFC-0005 v0.4, T-C2) ────────────
+    # ── 4e. kiro-ide-hook validate rail (v0.4, T-C2) ─────────────────────
     # Fires whenever the pack ships `.apm/kiro-ide-hooks/` content. The
     # rail's `target_adapters` heuristic differs from `_kiro_target_adapters`
     # — kiro-ide-hook needs no agent (file-event triggers fire
@@ -400,7 +399,7 @@ def _kiro_target_adapters(pack_data: dict, pack_path: Path) -> set[str]:
             allowed_strs = [s for s in allowed if isinstance(s, str)]
             # The merge-into-agent-json family (`kiro` legacy block + `kiro-cli`)
             # both validate `attach-to-agent`. `kiro-ide` is absent — it drops
-            # hook-wiring (RFC-0022). Mirrors scope_rails._MERGE_INTO_AGENT_JSON_ADAPTERS.
+            # hook-wiring. Mirrors scope_rails._MERGE_INTO_AGENT_JSON_ADAPTERS.
             return {a for a in ("kiro", "kiro-cli") if a in allowed_strs}
 
     # Heuristic: kiro projection requires a same-pack agent. A pack
@@ -506,7 +505,7 @@ def _load_adapter_contract() -> dict:
 
 def _validate_allowed_adapters(pack_data: dict) -> str | None:
     """Cross-field check for ``[pack.install] allowed-adapters``
-    (RFC-0011 substrate; RFC-0012 widens to fire at both scopes).
+    (substrate; RFC-0012 widens to fire at both scopes).
 
     Returns None when the field is absent / valid; returns a
     refuse-and-explain string suitable for printing under the
@@ -514,7 +513,7 @@ def _validate_allowed_adapters(pack_data: dict) -> str | None:
     bundled adapter contract for the shipped + user-scope-capable
     sets; if the contract doesn't ship a value the pack declares,
     that's the publisher-vs-installer drift case. **The shipped
-    check fires at both scopes** (RFC-0012); the user-scope-capability
+    check fires at both scopes**; the user-scope-capability
     subcheck is **scope-conditional** — fires only when the pack's
     resolved scope is user (so a Copilot-bearing pack at
     ``default-scope = "repo"`` admits cleanly).

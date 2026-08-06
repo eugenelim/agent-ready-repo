@@ -1,4 +1,4 @@
-# Claude Code user-scope hook-bearing fixture pack (T3 / RFC-0005).
+# Claude Code user-scope hook-bearing fixture pack.
 # Ships a single `UserPromptSubmit` wiring that calls a trivial shell
 # hook body. No agent — Claude Code's hook-wiring binds to a settings
 # file, not to a pack-owned agent, so this fixture exists to exercise

@@ -7,7 +7,7 @@ Verifies the T1 edits landed:
     (`_data/adapter.toml`) and the docs mirror
     (`contracts/adapter.toml`). The two files must stay byte-
     aligned per the v0.3-schema sync test; this module pins the
-    version on both as belt-and-braces (AC1 for both RFCs).
+    version on both as belt-and-braces (for both RFCs).
   - **RFC-0012 surface:**
     * ``[adapter.copilot.scope]`` exists with ``repo = "."``,
       ``allowed-prefixes.repo`` enumerating the per-IDE skill /
@@ -83,7 +83,7 @@ class TestContractV07(unittest.TestCase):
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")
         self.assertIsNotNone(copilot_scope, "copilot scope table missing")
         self.assertEqual(copilot_scope["repo"], ".")
-        # RFC-0052 / ADR-0040: copilot skill now routes to `.agents/skills/`
+        # Copilot skill now routes to `.agents/skills/`
         # (shared cohort home, prepended); agents + hooks stay under `.github/`.
         # `.github/skills/` is kept for path-jail compat with existing files.
         self.assertEqual(
@@ -91,7 +91,7 @@ class TestContractV07(unittest.TestCase):
             [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"],
         )
         self.assertEqual(copilot_scope["user"], "~")
-        # RFC-0052: `.agents/skills/` prepended to user list too.
+        # `.agents/skills/` prepended to user list too.
         # `.copilot/skills/` retained for path-jail compat.
         self.assertEqual(
             copilot_scope["allowed-prefixes"]["user"],
@@ -147,7 +147,7 @@ class TestContractV07(unittest.TestCase):
         self.assertIn(".agentbundle/", codex_user)
 
     def test_all_user_scope_adapters_carry_agentbundle_prefix(self) -> None:
-        """RFC-0013 AC2 — `.agentbundle/` is the credential-cache root
+        """`.agentbundle/` is the credential-cache root
         every user-scope-capable adapter must admit."""
         for adapter in ("claude-code", "kiro", "codex"):
             with self.subTest(adapter=adapter):
@@ -162,7 +162,7 @@ class TestContractV07(unittest.TestCase):
                 )
 
     def test_schema_refuses_repo_omission(self) -> None:
-        """RFC-0012 AC4 — fixture contract with the ``repo`` key removed
+        """Fixture contract with the ``repo`` key removed
         from any adapter's scope table fails validation."""
         from agentbundle.build.validate import validate
 
@@ -176,7 +176,7 @@ class TestContractV07(unittest.TestCase):
         )
 
     def test_schema_refuses_allowed_prefixes_repo_omission(self) -> None:
-        """RFC-0012 AC4 — fixture contract with ``allowed-prefixes.repo``
+        """Fixture contract with ``allowed-prefixes.repo``
         removed from any adapter's scope table fails validation."""
         from agentbundle.build.validate import validate
 

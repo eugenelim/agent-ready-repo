@@ -1,12 +1,12 @@
-"""Default catalogue-source resolution for ``install`` / ``upgrade`` (RFC-0046).
+"""Default catalogue-source resolution for ``install`` / ``upgrade``.
 
 When the ``catalogue`` positional is omitted, the install/upgrade handlers
 resolve a default source through a five-layer, trusted-by-construction,
-first-match-wins chain (ADR-0036):
+first-match-wins chain:
 
   1. the explicit ``catalogue`` arg — passed through verbatim;
   2. the user ``[settings].source`` config value;
-  3. package-shipped org Artifactory bootstrap (RFC-0072 D2);
+  3. package-shipped org Artifactory bootstrap;
   4. editable-install detection via PEP 610 ``direct_url.json``;
   5. the packaged ``_data/install-defaults.toml`` default.
 
@@ -115,7 +115,7 @@ def _is_valid_source(value: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Layer 3 — org Artifactory bootstrap (RFC-0072 D2)
+# Layer 3 — org Artifactory bootstrap
 # ---------------------------------------------------------------------------
 
 
@@ -544,7 +544,7 @@ def resolve_default_source(
 
     First-match-wins, highest-first: explicit arg (verbatim, unvalidated —
     today's behaviour) › validated ``config_source`` › org Artifactory
-    bootstrap (RFC-0072 D2) › editable detection › validated packaged default.
+    bootstrap › editable detection › validated packaged default.
     Raises ``CatalogueError`` naming all recovery paths when no layer yields a
     source. Writes nothing on any path.
 
@@ -574,7 +574,7 @@ def resolve_default_source(
         )
 
     if not os.environ.get("AGENTBUNDLE_NO_REMOTE"):
-        # Layer 3 — org Artifactory bootstrap (RFC-0072 D2).
+        # Layer 3 — org Artifactory bootstrap.
         if read_org is None:
             read_org = read_org_bootstrap
         org = read_org()  # None when disabled; raises CatalogueError on fail-closed

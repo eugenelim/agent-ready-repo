@@ -61,7 +61,7 @@ def _install_alpha(tmp_path: Path) -> None:
 
 
 def test_offer_accept_runs_upgrade_with_full_handoff(tmp_path, monkeypatch):
-    """AC11: a TTY 'y' hands off to upgrade.run with the full, concrete namespace."""
+    """A TTY 'y' hands off to upgrade.run with the full, concrete namespace."""
     _install_alpha(tmp_path)
 
     captured = {}
@@ -89,7 +89,7 @@ def test_offer_accept_runs_upgrade_with_full_handoff(tmp_path, monkeypatch):
 
 
 def test_yes_runs_upgrade_without_prompting(tmp_path, monkeypatch):
-    """AC12: install --yes of an already-installed pack runs upgrade, no prompt."""
+    """Install --yes of an already-installed pack runs upgrade, no prompt."""
     _install_alpha(tmp_path)
 
     captured = {}
@@ -110,7 +110,7 @@ def test_yes_runs_upgrade_without_prompting(tmp_path, monkeypatch):
 
 
 def test_non_tty_without_yes_keeps_refusal(tmp_path, monkeypatch):
-    """AC13: a non-TTY without --yes keeps the historical refusal (no upgrade)."""
+    """A non-TTY without --yes keeps the historical refusal (no upgrade)."""
     _install_alpha(tmp_path)
 
     def _fake_upgrade(ns):
@@ -126,7 +126,7 @@ def test_non_tty_without_yes_keeps_refusal(tmp_path, monkeypatch):
 
 
 def test_dry_run_keeps_refusal_no_offer(tmp_path, monkeypatch):
-    """AC13: install --dry-run of an already-installed pack refuses, no prompt."""
+    """Install --dry-run of an already-installed pack refuses, no prompt."""
     _install_alpha(tmp_path)
 
     def _fake_upgrade(ns):
@@ -153,7 +153,7 @@ def test_yes_runs_real_upgrade_end_to_end(tmp_path):
     assert rc == 0, f"real upgrade handoff failed: {err}"
     # install→upgrade of an already-installed pack at the same version is a
     # re-apply, not a version change: the recap reads `re-applied: … (already
-    # current)`, never `upgraded: X -> X` (install-state-visibility AC10).
+    # current)`, never `upgraded: X -> X` (install-state-visibility).
     assert "re-applied: alpha @ repo" in out, f"missing re-apply recap; stdout={out!r}"
 
 

@@ -38,8 +38,7 @@ STATE_SCHEMA_VERSION = "0.4"
 
 # Read-time default for v0.3 rows lacking explicit ``target-file`` when the
 # resolved adapter is ``claude-code`` — the adapter's user-scope settings
-# file is the only place a claude-code hook-wiring row could land
-# (RFC-0005 § State-file impact).
+# file is the only place a claude-code hook-wiring row could land.
 _CLAUDE_CODE_USER_SETTINGS_DEFAULT = "~/.claude/settings.json"
 
 
@@ -51,7 +50,7 @@ class StateFileLegacy(ConfigError):
     """Raised when a state file's ``schema-version`` is not the one this
     binary speaks.
 
-    The v0.4 schema (RFC-0052 / ADR-0039) re-keyed state to
+    The v0.4 schema re-keyed state to
     ``[pack.<name>.adapters.<adapter>]`` and made cross-version handling a
     **hard refusal**: a reader refuses any ``schema-version`` it does not
     recognise, on **both read and write** (not the v0.1/v0.2-write-only
@@ -60,7 +59,7 @@ class StateFileLegacy(ConfigError):
     literally named ``research`` with an ``adapters`` sub-table and zero
     files, then a later uninstall/install would corrupt ownership.
 
-    Migration is **greenfield** (RFC-0052 Decision 8): there is no
+    Migration is **greenfield** (Decision 8): there is no
     converter from a legacy version: an adopter on an older state file
     **re-installs** rather than auto-upgrading. The refuse-and-explain
     message therefore directs re-install, not ``init-state --migrate``.
@@ -76,7 +75,7 @@ class StateFileLegacy(ConfigError):
         super().__init__(
             f"state file at {path} is schema-version {version}, but this "
             f"agentbundle speaks {STATE_SCHEMA_VERSION}; reinstall the pack "
-            f"to regenerate state (no legacy migration — RFC-0052 D8)"
+            f"to regenerate state (no legacy migration)"
         )
 
 
@@ -124,7 +123,7 @@ class PackState:
     installed_version: str
     source: str | None = None
     install_route: str = "cli"
-    # RFC-0004: every v0.2 entry carries an explicit scope. v0.1 state
+    # Every v0.2 entry carries an explicit scope. v0.1 state
     # files are read as all-`"repo"` (the legacy implicit default);
     # `init-state --migrate` writes the column out so the file is
     # readable by both v0.1 and v0.2 consumers identically.
@@ -134,7 +133,7 @@ class PackState:
     # Per-primitive overrides for mixed-version packs (T12). Optional;
     # absent when the pack is at a single uniform version.
     primitive_versions: dict[str, dict[str, str]] = field(default_factory=dict)
-    # RFC-0005 v0.3 additions — optional, read-time defaulted.
+    # v0.3 additions — optional, read-time defaulted.
     # ``adapter`` defaults to ``"claude-code"`` when absent on read
     # (covers v0.2-vintage rows preserved across the header-only
     # migration and v0.3-vintage claude-code rows omitting the field as
@@ -146,7 +145,7 @@ class PackState:
     adapter: str = "claude-code"
     target_file: str | None = None
     hook_wiring_owned: list[dict[str, str]] = field(default_factory=list)
-    # RFC-0074 / ADR-0058: user-scope pack directory root for this adapter row.
+    # User-scope pack directory root for this adapter row.
     # Absent rows default to "~/.agentbundle" on read. Written at install time
     # from catalogue.user-dir.
     user_root: str = "~/.agentbundle"
@@ -166,7 +165,7 @@ class PackState:
 class State:
     """Parsed `.agentbundle-state.toml` — all installed pack/adapter rows.
 
-    Keyed by the ``(pack_name, adapter)`` tuple (RFC-0052 / ADR-0039): one
+    Keyed by the ``(pack_name, adapter)`` tuple: one
     pack can carry multiple adapter rows at a single scope, so the v0.3
     pack-name-keyed dict is replaced by a flat tuple-keyed one. The flat
     shape is deliberate — every whole-pack access (`del state.packs[name]`,
@@ -197,7 +196,7 @@ class State:
     def owners_of(self, relpath: str) -> list[tuple[str, str]]:
         """Return every ``(pack, adapter)`` row whose footprint claims *relpath*.
 
-        This is the derived-ownership primitive (ADR-0039): nothing is
+        This is the derived-ownership primitive: nothing is
         stored per-file beyond the SHA already in ``PackState.files``;
         the owner-set is computed by scanning rows.
         """
@@ -225,7 +224,7 @@ class State:
 
 
 # ---------------------------------------------------------------------------
-# Pack directory resolution and config loading (RFC-0074 / ADR-0058, ADR-0059)
+# Pack directory resolution and config loading
 # ---------------------------------------------------------------------------
 
 
@@ -259,7 +258,7 @@ def pack_dir(
 ) -> Path:
     """Return (and optionally create) the user-scope directory for *pack_name*.
 
-    Resolution order (ADR-0058):
+    Resolution order:
     1. If rows for *pack_name* exist in *state*, read ``user_root`` from them.
        All rows must agree; raise ``PackRootConflict`` if they disagree.
     2. If no rows exist, fall back to ``~/.agentbundle`` (or the
@@ -307,7 +306,7 @@ def load_pack_config(
 ) -> dict:
     """Return the merged configuration dict for *pack_name*.
 
-    Two-layer cascade (ADR-0059):
+    Two-layer cascade:
     1. Baked layer: ``_data/install-defaults.toml [pack-defaults.<pack>]``
        (catalogue operator defaults, baked at build time).
     2. User layer: ``<pack_dir>/config.toml`` (user overrides). When
@@ -363,7 +362,7 @@ def load_pack_config(
 
 
 # ---------------------------------------------------------------------------
-# Footprint ownership (RFC-0052 / ADR-0039) — pure, derived, no I/O
+# Footprint ownership — pure, derived, no I/O
 # ---------------------------------------------------------------------------
 
 
@@ -391,7 +390,7 @@ def classify_incoming_path(
                          the **same SHA** → co-own (record, skip the write).
       - ``"conflict"`` — owned at a **different SHA**, or owned by a **different
                          pack** (even at equal SHA). Co-ownership is intra-pack
-                         and content-addressed only (ADR-0039).
+                         and content-addressed only.
     """
     owners = state.owners_of(relpath)
     if not owners:
@@ -406,7 +405,7 @@ def classify_incoming_path(
 
 @dataclass
 class FootprintPlan:
-    """The footprint gate's verdict for an incoming install (ADR-0039)."""
+    """The footprint gate's verdict for an incoming install."""
 
     verdict: FootprintVerdict
     per_path: dict[str, str]  # relpath -> new|own|coown|conflict
@@ -445,7 +444,7 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
     before the first install / init-state. Callers distinguish "absent" from
     "present but empty" via `path.exists()` if they need to.
 
-    **Hard cross-version refusal (RFC-0052 Decision 4 / ADR-0039).** A v0.4
+    **Hard cross-version refusal (Decision 4).** A v0.4
     reader refuses any ``schema-version`` it does not recognise, on **both
     read and write** — the refusal is an allowlist (``== "0.4"``), not a
     denylist of known-legacy versions, and an **absent** ``schema-version``
@@ -666,7 +665,7 @@ def dump_state(state: State) -> str:
     The adapter is part of the table key, so it is not re-emitted as a
     field. Every key segment — pack name **and** adapter name — routes
     through `_toml_key` so a non-`[alnum-_]` name cannot inject phantom
-    TOML structure (ADR-0039 / security review).
+    TOML structure (security review).
     """
     lines: list[str] = [
         f"schema-version = {_emit_basic_string(state.schema_version)}",
@@ -689,7 +688,7 @@ def dump_state(state: State) -> str:
         lines.append(f"scope = {_emit_basic_string(ps.scope)}")
         # user-root: always emit so round-trip is byte-stable. Default value
         # is "~/.agentbundle"; catalogues with custom user-dir write a
-        # different value here (ADR-0058).
+        # different value here.
         lines.append(f"user-root = {_emit_basic_string(ps.user_root)}")
         # ``target-file`` is emitted when set (even if it equals the
         # claude-code default) so round-trip is byte-stable for
@@ -824,7 +823,7 @@ class AdaptDiscovery:
     """Parsed `.adapt-discovery.toml` in typed form.
 
     `markers` is always a dict; it is empty ``{}`` for user-scope files
-    (which must not carry a ``[markers]`` table per RFC-0004).
+    (which must not carry a ``[markers]`` table).
     """
 
     schema_version: str
@@ -847,7 +846,7 @@ def finding_id_for(
                     ``:`` after sorting — mirrors the spec's hash grammar).
     Hash algorithm: SHA-1; first 8 hex chars form the visible tail.
 
-    Per spec AC2: ``/`` separates pack from kind (pack names never contain
+    ``/`` separates pack from kind (pack names never contain
     ``/``); ``:`` separates the hash-input fields because path values may
     contain ``/``.
     """
@@ -865,10 +864,10 @@ def load_adapt_discovery_typed(
 
     Raises ``ConfigError`` on any of:
       - File not valid TOML.
-      - Top-level ``[accepted]`` table (legacy CLI shape, AC8).
-      - Top-level ``[adapt]`` table (legacy self-host shape, AC9).
-      - Unknown ``discovery-schema-version`` (AC16).
-      - ``scope="user"`` and file contains a ``[markers]`` table (AC2/RFC-0004).
+      - Top-level ``[accepted]`` table (legacy CLI shape).
+      - Top-level ``[adapt]`` table (legacy self-host shape).
+      - Unknown ``discovery-schema-version``.
+      - ``scope="user"`` and file contains a ``[markers]`` table.
       - A ``[[findings.*]]`` entry with an unknown ``kind``.
 
     Returns an ``AdaptDiscovery`` with ``markers={}`` when the file lacks a
@@ -887,21 +886,21 @@ def load_adapt_discovery_typed(
             f".adapt-discovery.toml at {path} is not valid TOML: {exc}"
         ) from exc
 
-    # AC8: legacy [accepted] top-level table (old CLI shape).
+    # Legacy [accepted] top-level table (old CLI shape).
     if "accepted" in raw:
         raise ConfigError(
             "legacy [accepted] table; migrate to [markers] per "
             "docs/specs/adapt-to-project/spec.md"
         )
 
-    # AC9: legacy [adapt] top-level table (old self-host shape).
+    # Legacy [adapt] top-level table (old self-host shape).
     if "adapt" in raw:
         raise ConfigError(
             "legacy [adapt] table; migrate to [markers] per "
             "docs/specs/adapt-to-project/spec.md"
         )
 
-    # AC16: unknown schema version.
+    # Unknown schema version.
     schema_version = raw.get("discovery-schema-version")
     if schema_version not in _KNOWN_DISCOVERY_SCHEMA_VERSIONS:
         known = ", ".join(sorted(_KNOWN_DISCOVERY_SCHEMA_VERSIONS))
@@ -910,7 +909,7 @@ def load_adapt_discovery_typed(
             f"known: {known}"
         )
 
-    # AC2 / RFC-0004: user-scope files must not carry [markers].
+    # User-scope files must not carry [markers].
     if scope == "user" and "markers" in raw:
         raise ConfigError(
             "user-scope .adapt-discovery.toml may not contain a [markers] table; "
@@ -1076,7 +1075,7 @@ def load_values_from(path: Path) -> dict[str, str]:
          passes through cleanly as an empty mapping.
 
     Presence of *both* ``[markers]`` and ``[values]`` is ambiguous and
-    refused — per AC15.
+    refused —.
     """
     if not path.exists():
         raise ConfigError(f"--values-from path not found: {path}")

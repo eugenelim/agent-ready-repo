@@ -1,6 +1,6 @@
 """``agentbundle install`` — constrained-network pack installer.
 
-Per RFC-0004 the install verb is the load-bearing CLI surface for the
+The install verb is the load-bearing CLI surface for the
 scope dimension. The handler enforces:
 
   - **Scope resolution** via :mod:`agentbundle.scope` (CLI flag > pack
@@ -19,7 +19,7 @@ scope dimension. The handler enforces:
   - **State-file v0.1 refusal** is delegated to
     :func:`config.load_state(..., for_write=True)`.
 
-Tier-1/2/3 classification is unchanged from the pre-RFC-0004 shape;
+Tier-1/2/3 classification is the same at both scope roots;
 both scope roots use :func:`_classify_for_install`. Writes go through
 :func:`safety.write_jailed` with the matching ``scope`` and
 ``allowed_prefixes`` so the user-scope jail fires.
@@ -81,7 +81,7 @@ def _check_source_conflict(
 ) -> str | None:
     """Return an error message string if a source conflict is detected, else None.
 
-    Implements RFC-0072 D3: refuse an install at ``scope`` when existing
+    Refuse an install at ``scope`` when existing
     (pack, adapter) rows at that scope have a different canonical source from
     ``source_uri``. ``--force`` is NOT a parameter — callers must not gate
     this check on ``force``. ``source_uri`` is the logical catalogue URI
@@ -154,7 +154,7 @@ def run(args: argparse.Namespace) -> int:
     )
     from agentbundle.render import render_pack
 
-    # pack-profiles (RFC-0034): `install --profile <name>` dispatches to the
+    # pack-profiles: `install --profile <name>` dispatches to the
     # batch orchestrator. The CLI mutex guarantees exactly one of --pack /
     # --profile; `--scope` is rejected here because a profile declares its own
     # scope (argparse can't express that mutex — --scope is valid with --pack).
@@ -170,7 +170,7 @@ def run(args: argparse.Namespace) -> int:
         return _run_profile(args)
 
     pack_name: str = args.pack
-    # RFC-0046: resolve the default source when the `catalogue` positional was
+    # Resolve the default source when the `catalogue` positional was
     # omitted (an explicit arg short-circuits through layer 1 unchanged).
     try:
         catalogue_uri: str = resolve_catalogue_uri(args)
@@ -229,8 +229,8 @@ def run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    # RFC-0012 removes the user-scope-only `--adapter` binding —
-    # `--adapter` is admitted at both scopes now. The handler-level
+    # `--adapter` is admitted at both scopes; there is no
+    # user-scope-only binding. The handler-level
     # mutex with `--emit-install-routes` runs after `scope.resolve()`
     # so it consults the resolved scope (matches the existing
     # `force_merge` precedent below).
@@ -239,7 +239,7 @@ def run(args: argparse.Namespace) -> int:
     # attribute (default False) so `hasattr` is the discriminator
     # between "real CLI invocation" (attribute present) and "test
     # fixture with a bare SimpleNamespace" (attribute absent). Test
-    # fixtures that pre-date RFC-0012 *at repo scope* implicitly want
+    # fixtures that pre-date per-IDE projection *at repo scope* want
     # the legacy dist-tree shape; treating absent-attribute as the
     # "legacy dist-tree" value preserves their assertions while real
     # CLI calls without the flag flow through the new per-IDE
@@ -255,7 +255,7 @@ def run(args: argparse.Namespace) -> int:
     else:
         # Absent attribute → repo-scope legacy callers want dist-tree
         # shape; user-scope and local-scope callers want the new path-jail.
-        # RFC-0080: use `not in ("user", "local")` rather than `== "repo"` so
+        # Use `not in ("user", "local")` rather than `== "repo"` so
         # legacy/programmatic callers with cli_scope=None continue to get the
         # dist-tree path (None not in ("user", "local") is True).
         emit_install_routes = cli_scope not in ("user", "local")
@@ -306,7 +306,7 @@ def run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    # Load catalogue.toml for operator-declared user-dir (RFC-0074 / ADR-0058).
+    # Load catalogue.toml for operator-declared user-dir.
     # Absent catalogue.toml → user_dir stays at the default "~/.agentbundle".
     _catalogue_user_dir = "~/.agentbundle"
     try:
@@ -344,15 +344,15 @@ def run(args: argparse.Namespace) -> int:
         return 1
 
     # ── Step 2: Resolve scope ─────────────────────────────────────────────────
-    # RFC-0004 § *v0.1 vs v0.2 contract acceptance*: a stray
+    # v0.1 vs v0.2 contract acceptance: a stray
     # [pack.install] table on a v0.1 pack is *ignored*. We gate the
     # install table on the declared contract version so a legacy pack
     # carrying `default-scope = "user"` does NOT resolve to user scope.
     # Mirrors validate.py:_allowed_scopes, kept in sync intentionally.
     from agentbundle.config import pack_spec_version
 
-    # v0.2 introduced `[pack.install]`; v0.3 (RFC-0005) added
-    # `user-scope-hooks`; v0.6 (RFC-0011) added `allowed-adapters`.
+    # v0.2 introduced `[pack.install]`; v0.3 added
+    # `user-scope-hooks`; v0.6 added `allowed-adapters`.
     # Mirror validate.py:_allowed_scopes — every version >= 0.2 carries
     # the install table. The v0.1 path stays gateless (legacy implied
     # `default-scope = "repo"`).
@@ -373,7 +373,7 @@ def run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    # RFC-0005 § Binding: ``--force-merge`` is bound to user scope only.
+    # ``--force-merge`` is bound to user scope only.
     # Gate on the *resolved* scope (the source of truth post-Step 2)
     # so a pack defaulting to repo scope also surfaces the refusal,
     # not just an explicit `--scope repo`.
@@ -385,14 +385,14 @@ def run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    # RFC-0012 handler-level mutex (after Step 2 so requested_scope is
+    # Handler-level mutex (after Step 2 so requested_scope is
     # the resolved value, matching install.py:197's force_merge
     # precedent). The mutex consults `requested_scope`, not
     # `args.scope`, so a pack whose `[scope] default-scope = "user"`
     # surfaces the binding correctly when `--scope` is omitted.
     if requested_scope == "local" and emit_install_routes:
-        # AC9 (RFC-0080): --emit-install-routes is incompatible with --scope local.
-        # The plugins route (RFC-0008) has its own local-scope behaviour; the
+        # --emit-install-routes is incompatible with --scope local.
+        # The plugins route has its own local-scope behaviour; the
         # catalogue-publishing opt-in must not run for per-clone installs.
         print(
             "install: --emit-install-routes is not supported at --scope local "
@@ -418,7 +418,7 @@ def run(args: argparse.Namespace) -> int:
         )
         return 1
 
-    # AC8 (RFC-0080): local scope requires a git work tree.  Check before any
+    # Local scope requires a git work tree. Check before any
     # git-dependent helper (derive_worktree_id, get_exclude_path) can be called.
     # The check is cheap (one git invocation) and surfaces a clear message rather
     # than a cryptic failure deep in the exclude-block path.
@@ -448,7 +448,7 @@ def run(args: argparse.Namespace) -> int:
 
     # User scope resolution fires when the install itself touches user
     # scope, OR when the installing pack declares
-    # `[[pack.dependencies.required]]` (AC17 union-of-scopes resolution
+    # `[[pack.dependencies.required]]` (union-of-scopes resolution
     # requires user_state to be consulted even for repo-only addons —
     # otherwise a `core` install at user scope is invisible to the
     # gate). Defer the expanduser call to avoid raising on adopters
@@ -480,7 +480,7 @@ def run(args: argparse.Namespace) -> int:
         user_root = None
         user_state_path = None
 
-    # RFC-0080: local state — read the per-clone state file for cross-scope
+    # Local state — read the per-clone state file for cross-scope
     # conflict detection and dependency resolution.
     local_state_path_pre = output_root / ".agentbundle-local-state.toml"
     from agentbundle.config import State as _State
@@ -491,7 +491,7 @@ def run(args: argparse.Namespace) -> int:
         local_state = _State()
 
     # ── Step 3b: Dependency gate — [pack.dependencies.required] ──────────────
-    # Resolves required deps against the union of repo + user + local state (AC17/AC23b).
+    # Resolves required deps against the union of repo + user + local state.
     # Gate runs before any write (and before the already-installed check, so
     # dep errors surface even when another early-exit would fire).
     _effective_user_state: State = user_state if user_state is not None else _State()
@@ -501,7 +501,7 @@ def run(args: argparse.Namespace) -> int:
             repo_state=repo_state,
             user_state=_effective_user_state,
             local_state=local_state if requested_scope == "local" else None,
-            # pack-profiles AC7: under a profile install, a required dep may be
+            # Under a profile install, a required dep may be
             # satisfied by another pack in the same batch. None for single-pack.
             also_installing=getattr(args, "_batch_packs", None),
         )
@@ -509,10 +509,10 @@ def run(args: argparse.Namespace) -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
-    # ── Source conflict guard (RFC-0072 D3) ────────────────────────────────────────────
+    # ── Source conflict guard ──────────────────────────────────────────────────────────
     # Must fire before Step-3c --force cleanup (the earliest mutation point).
     # --force does NOT bypass; this call has no conditional on `force`.
-    # Derive the logical source URI (AC11): profile sub-installs set
+    # Derive the logical source URI: profile sub-installs set
     # `args._source_uri` to the logical catalogue URI; `catalogue_uri` is the
     # resolved temp dir in that case. `or catalogue_uri` also handles the
     # `_source_uri = None` case (attribute present but None).
@@ -533,13 +533,13 @@ def run(args: argparse.Namespace) -> int:
         print(f"install: {_src_conflict}", file=sys.stderr)
         return 1
 
-    # ── Step 3c: RFC-0012 AC24 in-band detection (repo scope, per-IDE) ──
+    # ── Step 3c: in-band legacy-state detection (repo scope, per-IDE) ──
     # Pre-RFC-0012 state must surface migration messaging *before* the
     # already-installed branch fires its "use 'upgrade'" refusal —
     # otherwise an adopter with stale state would receive misleading
     # advice ("just upgrade") instead of the correct uninstall +
     # reinstall path. Detection is gated to ``--scope repo`` without
-    # ``--emit-install-routes`` per spec AC24's narrowed-inference rule
+    # ``--emit-install-routes`` per the narrowed-inference rule
     # (the legacy dist-tree producer must not trigger (b) on its own
     # output). The resolver is lifted here so the (a) trigger has a
     # ``repo_target_adapter`` to compare against ``state.adapter``; the
@@ -610,7 +610,7 @@ def run(args: argparse.Namespace) -> int:
 
     # Resolve the user-scope target adapter early when the request targets
     # user scope, so the already-installed gate below can be **adapter-aware**
-    # (RFC-0052): a pack already installed for a *different* adapter at this
+    # A pack already installed for a *different* adapter at this
     # scope is not "already installed" — it coexists. (Only resolve when
     # requested_scope=="user"; resolving unconditionally would surface the
     # copilot user-scope-capability refusal on a repo-only install.) The
@@ -642,7 +642,7 @@ def run(args: argparse.Namespace) -> int:
     # the misleading "use 'upgrade' to change version" refusal at
     # Step 4 even after --force succeeded.
     #
-    # Adapter-aware (RFC-0052): a scope counts as "already installed" only
+    # Adapter-aware: a scope counts as "already installed" only
     # when the SAME (pack, adapter) row is present there. A different adapter
     # is a coexisting install, fixing the reported bug (research/codex after
     # research/claude-code). When the scope's target adapter isn't resolved
@@ -658,7 +658,7 @@ def run(args: argparse.Namespace) -> int:
         if user_target_adapter is not None
         else user_state.has_pack(pack_name)
     )
-    # RFC-0080: local scope — adapter-identity check (AC21b: refuse only when
+    # Local scope — adapter-identity check (refuse only when
     # the exact (pack, adapter) row already exists, not pack-level boolean).
     installed_at_local = (
         local_state.row(pack_name, repo_target_adapter) is not None
@@ -676,8 +676,7 @@ def run(args: argparse.Namespace) -> int:
     #     refusal (`already installed at <scope>` + `use 'upgrade' to change
     #     version`) and returns 1 — the CI/test contract is unchanged.
     #   - On a TTY, it offers to upgrade; `--yes` auto-confirms. Confirming hands
-    #     off to `upgrade.run` against the same catalogue/scope (CLI-hygiene
-    #     AC11/AC12).
+    #     off to `upgrade.run` against the same catalogue/scope.
     if (requested_scope == "repo" and installed_at_repo) or (
         requested_scope == "user" and installed_at_user
     ):
@@ -713,10 +712,10 @@ def run(args: argparse.Namespace) -> int:
                 user_target_adapter if requested_scope == "user" else repo_target_adapter
             ),
         )
-    # AC21b (RFC-0080): local reinstall guard uses adapter-identity check.
+    # Local reinstall guard uses adapter-identity check.
     # upgrade.run does not support local scope in v1; refuse without offering.
     # A second *different* adapter for the same pack falls through to the
-    # union-write path (AC14b). `installed_at_local` already uses adapter-identity.
+    # union-write path. `installed_at_local` already uses adapter-identity.
     if requested_scope == "local" and installed_at_local:
         print(
             f"install: {pack_name} already installed at local scope "
@@ -727,8 +726,8 @@ def run(args: argparse.Namespace) -> int:
         return 1
 
     # 4b. Already at the *other* scope, no --force → refuse cross-scope.
-    # RFC-0080 AC11: repo/local mutual exclusion is --force-immune.
-    # AC12: user/local coexists (user-scope files land in ~/.claude/, outside
+    # repo/local mutual exclusion is --force-immune.
+    # user/local coexists (user-scope files land in ~/.claude/, outside
     # the working tree and the exclude block).
     if requested_scope == "local" and installed_at_repo:
         # Force-immune: local scope cannot coexist with a repo-scope install.
@@ -767,13 +766,12 @@ def run(args: argparse.Namespace) -> int:
     )
 
     # Probe per-adapter scope metadata (for allowed-prefixes at user
-    # scope). The Claude Code adapter ships a [scope] block from
-    # RFC-0004; RFC-0005's T1 added one to Kiro too; RFC-0011 added
-    # one to Codex; RFC-0012 added one to Copilot. Resolve which
+    # scope). Claude Code, Kiro, Codex, and Copilot each ship a
+    # [scope] block. Resolve which
     # adapter the user-scope install targets via the six-step (0–5)
     # lookup and use that adapter's `allowed-prefixes.user`.
     # ``_pack_allowed_adapters`` and ``_pack_contract_version`` were
-    # lifted to Step 3c above so the AC24 detection block can resolve
+    # lifted to Step 3c above so the detection block can resolve
     # the repo-target adapter early; reuse the same values here.
     # Only resolve the user-scope target adapter when user scope is in
     # this run's plan. Resolving unconditionally at scope="user" would
@@ -801,13 +799,13 @@ def run(args: argparse.Namespace) -> int:
             return 1
         allowed_prefixes_user = _adapter_allowed_prefixes_user(user_target_adapter)
 
-    # RFC-0012 repo-scope per-IDE resolution: ``repo_target_adapter``
+    # Repo-scope per-IDE resolution: ``repo_target_adapter``
     # and ``allowed_prefixes_repo`` were lifted to Step 3c above so the
-    # AC24 detection block (which covers the AC22 orphan-refusal path
+    # detection block (which covers the orphan-refusal path
     # as trigger (c)) can run before the already-installed branch.
     # No re-resolution here.
 
-    # RFC-0005 AC25: refuse install --scope user against an adapter
+    # Refuse install --scope user against an adapter
     # that doesn't declare a working user-scope hook-wiring mode. The
     # heuristic above picks kiro/claude-code; this guard catches a
     # contract-misconfiguration regression (e.g. someone strips
@@ -821,7 +819,7 @@ def run(args: argparse.Namespace) -> int:
         user_scope_hooks_opt_in
         and requested_scope == "user"
         # Canonicalize the deprecated `kiro` alias to `kiro-ide` so it makes
-        # the SAME refuse decision as its canonical target (RFC-0022): the
+        # the SAME refuse decision as its canonical target: the
         # IDE has no user-scope hook-wiring mode, so a `user-scope-hooks`
         # pack is refused — not silently accepted-and-dropped. The legacy
         # `[adapter.kiro]` block still declares `merge-into-agent-json`, so
@@ -841,7 +839,7 @@ def run(args: argparse.Namespace) -> int:
     plans: list[_ScopePlan] = []
     for scope_value in scopes_to_install:
         if scope_value == "repo":
-            # RFC-0012: at repo scope without --emit-install-routes,
+            # At repo scope without --emit-install-routes,
             # thread the repo-adapter's `allowed-prefixes.repo` into
             # the plan so the path-jail fences each write under the
             # per-IDE directory (`<repo>/.kiro/`, `<repo>/.claude/`,
@@ -858,7 +856,7 @@ def run(args: argparse.Namespace) -> int:
                 )
             )
         elif scope_value == "local":
-            # RFC-0080: local scope shares repo-style paths and the same
+            # Local scope shares repo-style paths and the same
             # allowed_prefixes as repo scope; state file is the per-clone
             # .agentbundle-local-state.toml (never committed).
             local_state_path = output_root / ".agentbundle-local-state.toml"
@@ -921,9 +919,9 @@ def run(args: argparse.Namespace) -> int:
                 print(f"install: {exc}", file=sys.stderr)
                 return 1
 
-    # Dropped-primitives warning rail (docs/specs/dropped-primitives-
-    # coverage T6 / AC10). Pre-write barrier: Step 5's plans are built
-    # and both target adapters are resolved by here; Step 6's pre-flight
+    # Dropped-primitives warning rail. Pre-write barrier: Step 5's
+    # plans are built and both target adapters are resolved by here;
+    # Step 6's pre-flight
     # hasn't fired yet; no byte has been written. Emit one warning per
     # (root, pack_name, adapter, scope) where the resolved adapter has
     # any `dropped` mode for a primitive type the pack actually ships.
@@ -980,7 +978,7 @@ def run(args: argparse.Namespace) -> int:
     # this rail surfaces the actual contract violation. The `kiro` alias
     # (= kiro-ide) DROPS hook-wiring, so it has no merge target to validate
     # and is intentionally NOT gated here (matches kiro-ide: drop + warn,
-    # don't refuse) — RFC-0022.
+    # don't refuse).
     if any(p.scope == "user" for p in plans) and user_target_adapter == "kiro-cli":
         target_adapters = {"kiro-cli"}
         kiro_refusal = scope_rails.check_kiro_wiring(
@@ -992,7 +990,7 @@ def run(args: argparse.Namespace) -> int:
     for plan in plans:
         if plan.scope == "user":
             allowed_scopes = _resolved_allowed_scopes(pack_install)
-            # RFC-0005 § Rail B — user-scope lift: the
+            # Rail B — user-scope lift: the
             # `[pack.install] user-scope-hooks = true` consent gesture
             # threads through to the rail at install time too. Without
             # this, validate and install would disagree on the same
@@ -1010,7 +1008,7 @@ def run(args: argparse.Namespace) -> int:
                 return 1
 
     # ── Step 7: Render projection — per-scope shape ───────────────────────────
-    # RFC-0004's user-scope install lands a Claude Code overlay (paths
+    # A user-scope install lands a Claude Code overlay (paths
     # under `.claude/...`), not the dist-tree shape `render_pack`
     # produces. We render twice when the run spans both scopes: once for
     # the dist-tree (consumed by repo-scope writes) and once for the
@@ -1021,9 +1019,9 @@ def run(args: argparse.Namespace) -> int:
     # projection target).
     repo_projection: dict[str, bytes] | None = None
     user_projection: dict[str, bytes] | None = None
-    # RFC-0005 § hook-body at user scope: user-scope packs ship hook
+    # Hook-body at user scope: user-scope packs ship hook
     # bodies that project to `<adapter>/hooks/<pack>/` (not the legacy
-    # `tools/hooks/`); RFC-0005 § hook-wiring lands the wiring merger
+    # `tools/hooks/`); hook-wiring lands the wiring merger
     # against the adopter's settings or pack-owned agent JSON instead
     # of writing the wiring TOML to disk. Both rewrites happen
     # post-render and pre-path-jail.
@@ -1031,11 +1029,11 @@ def run(args: argparse.Namespace) -> int:
     try:
         if any(p.scope in ("repo", "local") for p in plans):
             if emit_install_routes:
-                # Legacy dist-tree producer (RFC-0012 § *CLI surface*'s
-                # catalogue-publishing opt-in).
+                # Legacy dist-tree producer (the catalogue-publishing
+                # opt-in on the CLI surface).
                 repo_projection = render_pack(pack_dir)
             else:
-                # RFC-0012 default: per-IDE projection at repo scope.
+                # Default: per-IDE projection at repo scope.
                 # `_render_for_repo_scope` returns (adapter, projection);
                 # we already resolved the adapter above for the
                 # path-jail prefix list, but the helper re-resolves so
@@ -1075,7 +1073,7 @@ def run(args: argparse.Namespace) -> int:
                 # Copilot's whole prefix diverges at user scope
                 # (`.github/…`→`.copilot/…`) for every primitive — not just
                 # hooks — so this runs unconditionally for copilot, before
-                # the path-jail probe below (RFC-0024 / copilot-full-parity).
+                # the path-jail probe below (copilot-full-parity).
                 user_projection = _rewrite_copilot_user_scope_paths(
                     user_projection
                 )
@@ -1083,7 +1081,7 @@ def run(args: argparse.Namespace) -> int:
         print(f"install: render failed for pack {pack_name!r}: {exc}", file=sys.stderr)
         return 1
 
-    # RFC-0005 § Binding: ``--force-merge`` is Claude-Code-only. The
+    # ``--force-merge`` is Claude-Code-only. The
     # kiro merge target is a pack-owned agent JSON; adopter collision
     # is structurally a non-case. Refuse early once the target adapter
     # is known.
@@ -1131,7 +1129,7 @@ def run(args: argparse.Namespace) -> int:
 
     # ── Dry-run: all read-only pre-flight passed — preview and stop ───────────
     # At the top of Step 9 (after Step 8's path-jail probe) so every pre-flight
-    # refusal in Steps 1–8 has already returned the real run's exit code (AC5).
+    # refusal in Steps 1–8 has already returned the real run's exit code.
     # Classify each plan's projection with the SAME `_classify_for_install` the
     # write loop below uses, print the per-file plan to stdout, and return
     # before any write — skipping the rest of Step 9 and Steps 10–13 (file
@@ -1190,13 +1188,13 @@ def run(args: argparse.Namespace) -> int:
         if projection is None:
             projection = {}
 
-        # The adapter this scope's row is keyed by (RFC-0052). emit-install-
+        # The adapter this scope's row is keyed by. emit-install-
         # routes (legacy dist-tree) has no per-IDE adapter → claude-code.
         scope_adapter = (
             repo_target_adapter if plan.scope in ("repo", "local") else user_target_adapter
         ) or "claude-code"
 
-        # ── Footprint gate (RFC-0052 / ADR-0039) ──────────────────────────
+        # ── Footprint gate ────────────────────────────────────────────────
         # Resolve every incoming relpath against the union of installed
         # footprints at this scope: new → write+claim; same-pack same-SHA →
         # co-own (record, skip the write); different-SHA or cross-pack →
@@ -1211,10 +1209,10 @@ def run(args: argparse.Namespace) -> int:
         #
         # Concurrency bound: this verdict is computed against the pre-flight
         # state snapshot, NOT under the state lock. The lock (below) guarantees
-        # that two concurrent installs' *rows* both land (the RFC-0052
-        # concurrency AC — disjoint or co-owned-at-equal-content). It does not
+        # that two concurrent installs' *rows* both land (disjoint or
+        # co-owned-at-equal-content). It does not
         # make the conflict decision atomic: two simultaneous installs writing
-        # *different* content to the same shared path is outside the AC's
+        # *different* content to the same shared path is outside that
         # guarantee (each passes the gate against its stale snapshot). That
         # genuine-conflict-under-true-concurrency case is not a supported
         # scenario; the single-process gate refuses it.
@@ -1247,12 +1245,12 @@ def run(args: argparse.Namespace) -> int:
                 )
                 return 1
 
-        # ── Local-scope: write exclude block before files (AC21 commit order) ──
-        # Per RFC-0080 / plan T8+T9: write .git/info/exclude block for this
+        # ── Local-scope: write exclude block before files (commit order) ───────
+        # Write the .git/info/exclude block for this
         # pack+worktree BEFORE any projected file is written to disk.  Files
         # are git-invisible even if the process dies between this step and the
         # file writes; the no-footprint guarantee holds across abrupt death.
-        # Rollback order (AC21): delete written files FIRST, then restore the
+        # Rollback order: delete written files FIRST, then restore the
         # exclude block — deleting before restoring prevents a transient window
         # where files are on disk but not excluded.
         _local_exclude_path: Path | None = None
@@ -1272,7 +1270,7 @@ def run(args: argparse.Namespace) -> int:
                 _local_exclude_path = get_exclude_path(plan.root)
             except RuntimeError as _git_exc:
                 # Mid-run git failure (git binary removed, repo deleted mid-install).
-                # The AC8 pre-flight already verified the repo exists; this is a
+                # The pre-flight already verified the repo exists; this is a
                 # transient environment failure. Nothing has been written yet.
                 print(
                     f"install: git error during local-scope setup: {_git_exc}",
@@ -1308,7 +1306,7 @@ def run(args: argparse.Namespace) -> int:
         new_pack_state = PackState(
             installed_version=pack_version,
             source=canonicalize_source(getattr(args, "_source_uri", None) or catalogue_uri),
-            # pack-profiles AC13: a profile install records "profile"; the
+            # A profile install records "profile"; the
             # orchestrator sets `args._install_route`. Default "cli" keeps
             # single-pack callers unchanged.
             install_route=getattr(args, "_install_route", "cli"),
@@ -1317,7 +1315,7 @@ def run(args: argparse.Namespace) -> int:
             primitives=_collect_primitives(pack_dir),
             files={},
             primitive_versions=dict(prior.primitive_versions) if prior else {},
-            # RFC-0074 / ADR-0058: write user-root from catalogue.user-dir so
+            # Write user-root from catalogue.user-dir so
             # pack_dir() can resolve the correct user-scope directory at runtime.
             user_root=_catalogue_user_dir,
             artifact_uri=_https_provenance.artifact_uri if _https_provenance is not None else None,
@@ -1363,7 +1361,7 @@ def run(args: argparse.Namespace) -> int:
                     return 1
                 companion_relpath = safety.companion_path(Path(relpath)).as_posix()
                 plan.new_companions.append(companion_relpath)
-                # AC21 rollback: track the companion file so that a subsequent
+                # Rollback: track the companion file so that a subsequent
                 # state-write failure removes it along with regular projected files.
                 # Without this, the exclude-block restore after rollback would
                 # leave the .upstream companion git-visible.
@@ -1396,7 +1394,7 @@ def run(args: argparse.Namespace) -> int:
         # ── User-scope `.agentbundle/{lib,bin}/` delivery rail ────────────
         # (credbroker-user-scope T4) The vendored `credbroker` floor
         # (`.apm/user-libs/**` → `~/.agentbundle/lib/`) and the
-        # `adapter-root-bins/*.py` + AC22b companion shim
+        # `adapter-root-bins/*.py` + companion shim
         # (`~/.agentbundle/bin/`) are build-pipeline-only primitives with no
         # per-adapter projection rule, so the Step-7 render never emits them;
         # this is the install-time half of the same `.agentbundle/` rail the
@@ -1404,7 +1402,7 @@ def run(args: argparse.Namespace) -> int:
         # adapter's `allowed-prefixes.user` (every one includes
         # `.agentbundle/`), so `write_jailed` admits the writes without a jail
         # change. Pure file projection — no pip, no credential value touched
-        # (RFC-0006 no-leak). Skipped at repo scope (the floor is a user-scope
+        # (no-leak). Skipped at repo scope (the floor is a user-scope
         # `sys.path` fallback; repo consumers run from the monorepo).
         if plan.scope == "user":
             try:
@@ -1426,7 +1424,6 @@ def run(args: argparse.Namespace) -> int:
         # the orphan scan. Tier-1/2/3 + composition-fragment handling is shared
         # with `scaffold` via `deliver_seeds`; here we also record each delivered
         # seed in state so upgrades give edited seeds Tier-2 companion safety.
-        # (RFC-0001 §281-284 / file-safety contract.)
         if plan.scope == "repo":
             seeds_dir = pack_dir / "seeds"
             if seeds_dir.is_dir():
@@ -1464,7 +1461,7 @@ def run(args: argparse.Namespace) -> int:
                         )
                     print(_summary, file=sys.stderr)
 
-        # RFC-0005 T8b — user-scope hook-wiring merge phase.
+        # User-scope hook-wiring merge phase.
         # Runs after file writes (so hook bodies exist where wiring
         # entries reference them via $HOOK_BODY_PATH-style placeholders;
         # T8b's resolver-time substitution is the consumer's concern).
@@ -1472,12 +1469,12 @@ def run(args: argparse.Namespace) -> int:
         # to ``hook_wiring_owned`` on the PackState so uninstall can
         # be precise.
         if plan.scope == "user":
-            # AC10a — record the resolved adapter unconditionally for
+            # Record the resolved adapter unconditionally for
             # every user-scope install (lifted out of the kiro-hook-only
             # branch below). Without this, codex / non-hook claude-code
-            # installs silently default the state field, breaking AC25's
+            # installs silently default the state field, breaking the
             # state-shape assertions and the upgrade-side state-hint
-            # short-circuit (AC10b) on subsequent upgrades.
+            # short-circuit on subsequent upgrades.
             new_pack_state.adapter = user_target_adapter
 
             user_scope_hooks_enabled = bool(
@@ -1508,12 +1505,12 @@ def run(args: argparse.Namespace) -> int:
                     root=plan.root,
                 )
         elif plan.scope in ("repo", "local") and repo_target_adapter is not None:
-            # RFC-0012: record the resolved adapter on every repo/local-scope
+            # Record the resolved adapter on every repo/local-scope
             # per-IDE install. State-hint short-circuit at upgrade time
-            # (AC10b parity at repo scope) depends on this. Skipped
+            # (parity at repo scope) depends on this. Skipped
             # when `--emit-install-routes` is set — the legacy dist-tree
             # producer has no single adapter to pin.  Local scope uses the
-            # same repo_target_adapter (RFC-0080 D1: same adapter resolution).
+            # same repo_target_adapter (D1: same adapter resolution).
             new_pack_state.adapter = repo_target_adapter
 
         from agentbundle.config import STATE_SCHEMA_VERSION
@@ -1525,7 +1522,7 @@ def run(args: argparse.Namespace) -> int:
         # At repo scope the path is `<root>/.agentbundle-state.toml` —
         # a top-level file that wouldn't match any `.agentbundle/`-style
         # prefix. Skip the prefix check (the jail-under-root check still
-        # fires) so the state-write isn't blocked by RFC-0012's
+        # fires) so the state-write isn't blocked by the
         # per-IDE prefix list. At user scope the state file is under
         # `~/.agentbundle/state.toml` which already matches the prefix.
         state_relpath = str(plan.state_path.relative_to(plan.root))
@@ -1540,7 +1537,7 @@ def run(args: argparse.Namespace) -> int:
         ):
             state_prefixes = None
 
-        # Persist under the cross-process lock (RFC-0052 T0): re-read the
+        # Persist under the cross-process lock: re-read the
         # latest state and merge **only this row**, so two concurrent
         # installs of different adapter rows of one pack both land (the
         # naive read-modify-write would drop the first's row — lost update).
@@ -1560,7 +1557,7 @@ def run(args: argparse.Namespace) -> int:
                 relpath=state_relpath,
             )
         except Exception as exc:  # noqa: BLE001
-            # AC21 rollback: on ANY state-write failure, undo projected files
+            # Rollback: on ANY state-write failure, undo projected files
             # and the exclude block so the local-scope install leaves no trace.
             # Inline (no nested function) to avoid B023 loop-variable closure.
             if plan.scope == "local" and _local_exclude_path is not None:
@@ -1595,7 +1592,7 @@ def run(args: argparse.Namespace) -> int:
                 return 1
             raise
 
-        # Cross-adapter disclosure rail (RFC-0052 Decision 7): if this
+        # Cross-adapter disclosure rail (Decision 7): if this
         # install wrote to a `shared` prefix, name the prefix's other shipped
         # cohort adapters and the skills-shared / private-needs-own-install
         # boundary. stderr so the stdout `installed:` rail stays parseable.
@@ -1627,11 +1624,11 @@ def run(args: argparse.Namespace) -> int:
                 )
 
     # ── Step 11: Write install marker(s) per scope ───────────────────────────
-    # Per spec AC19a: after every successful install, append a
+    # After every successful install, append a
     # `[[packs-installed]]` entry to `.adapt-install-marker.toml` at the
     # install's scope root. The file's *path* encodes the scope.
     pack_version = pack_toml.get("pack", {}).get("version", "")
-    # Per AC19a: markers are repo-only, so unresolved-markers is computed
+    # Markers are repo-only, so unresolved-markers is computed
     # off the **repo-scope** projection regardless of which scopes the
     # install touched. User-scope marker files always carry [].
     repo_unresolved_markers = (
@@ -1639,16 +1636,16 @@ def run(args: argparse.Namespace) -> int:
         if repo_projection is not None
         else []
     )
-    # RFC-0040 / spec AC9: maintain an adopter-owned `agentbundle-layout.toml`
+    # Maintain an adopter-owned `agentbundle-layout.toml`
     # if one already exists at the scope's location — append the pack's
     # scope-keyed `[pack.layout.<scope>]` default, never creating the file and
     # never overwriting an existing section. No-op for packs that ship no
     # `[pack.layout]` (most), and for any scope whose sub-table is omitted.
     pack_layout = pack_toml.get("pack", {}).get("layout", {})
     for plan in plans:
-        # RFC-0080: local-scope installs are ephemeral (never committed); skip
-        # the install marker and layout writes.  Per AC19a ("every successful
-        # repo/user install"), local scope is deliberately excluded here.
+        # Local-scope installs are ephemeral (never committed); skip
+        # the install marker and layout writes.  The marker covers every
+        # successful repo/user install; local scope is excluded here.
         if plan.scope == "local":
             continue
         scope_markers = repo_unresolved_markers if plan.scope == "repo" else []
@@ -1674,15 +1671,15 @@ def run(args: argparse.Namespace) -> int:
             return 1
 
     # ── Step 12: Chained adapt (in-process) ──────────────────────────────────
-    # Per spec AC19b: invoke `agentbundle.commands.adapt.run` in-process
+    # Invoke `agentbundle.commands.adapt.run` in-process
     # with --values-from <repo>/.adapt-discovery.toml unless this is a
-    # local-scope-only install.  RFC-0080 amendment to AC19b: local-scope
+    # local-scope-only install.  Local-scope
     # installs are ephemeral; adapt-discovery re-running would apply to files
     # the user considers git-invisible, producing confusing churn.  The marker
     # file was deliberately NOT written in step 11 for local scope, so the
     # adapt-to-project spec comment "invoke regardless of install scope
-    # (markers are repo-only)" does not apply here.  AC19d covers the two
-    # failure modes for repo/user scope.
+    # (markers are repo-only)" does not apply here.  Two failure modes
+    # exist for repo/user scope.
     if requested_scope != "local":
         repo_plan = next((p for p in plans if p.scope == "repo"), None)
         repo_root_for_adapt = (
@@ -1690,19 +1687,19 @@ def run(args: argparse.Namespace) -> int:
         )
         adapt_rc = _chain_adapt(repo_root_for_adapt)
         if adapt_rc != 0:
-            # Per AC19d (ii): malformed `.adapt-discovery.toml` causes the
+            # A malformed `.adapt-discovery.toml` causes the
             # chained adapt to raise; install exits non-zero. The marker
             # file was already written in step 11 — that's by design.
             return adapt_rc
 
     # ── Step 13: Emit installed: lines (repo first, user last) ───────────────
-    # RFC-0011 extends user-scope output with ` via <adapter>` and an
+    # User-scope output carries ` via <adapter>` and an
     # optional ` (other declared adapters: …; use --adapter to override)`
     # suffix when multiple CLI homes match the pack's allowed-adapters.
-    # RFC-0012 extends repo-scope output with the same `via <adapter>`
+    # Repo-scope output carries the same `via <adapter>`
     # shape for per-IDE projection; the `--emit-install-routes` path
     # emits an `emitted install routes for ...` line instead (no
-    # single adapter to pin). AC21: repo scope carries no "other
+    # single adapter to pin). Repo scope carries no "other
     # declared adapters" suffix (no probe runs).
     for plan in plans:
         if plan.scope == "user":
@@ -1729,8 +1726,7 @@ def run(args: argparse.Namespace) -> int:
             # produce `<repo>/claude-plugins/<pack>/` and
             # `<repo>/apm/<pack>/`. The `marketplace` recipe doesn't
             # produce a per-pack directory and is excluded from the
-            # route list per RFC-0012 § *Install-time message rail
-            # (repo scope)*.
+            # route list for the repo-scope install-time message rail.
             routes = [
                 f"{output_root}/claude-plugins/{pack_name}/",
                 f"{output_root}/apm/{pack_name}/",
@@ -1748,12 +1744,12 @@ def run(args: argparse.Namespace) -> int:
             )
             print(f"installed: {pack_name} @ repo")
         elif plan.scope == "repo" and repo_target_adapter is not None:
-            # RFC-0012 per-IDE projection at repo scope.
+            # Per-IDE projection at repo scope.
             print(
                 f"installed: {pack_name} @ repo via {repo_target_adapter}"
             )
         elif plan.scope == "local":
-            # RFC-0080: local-scope install; files excluded via info/exclude.
+            # Local-scope install; files excluded via info/exclude.
             from agentbundle.local_exclude import get_exclude_path
             _step13_exclude = get_exclude_path(plan.root)
             print(
@@ -1899,10 +1895,10 @@ def _deliver_user_scope_floor(
       with **default** mode (no exec bit). The consumer bootstraps append
       ``~/.agentbundle/lib`` to ``sys.path`` at lowest precedence (T1), so a
       no-repo user-scope install regains Tier-2/3 credential resolution.
-    - **bin/** — the pack's ``.apm/adapter-root-bins/*.py`` plus the AC22b
+    - **bin/** — the pack's ``.apm/adapter-root-bins/*.py`` plus the
       companion ``credentials_shim.py`` (ship-both) → ``~/.agentbundle/bin/``
       with POSIX ``0o755`` (Windows inherits the parent DACL). Closes the
-      long-missing user-scope half of the RFC-0013 ``sso-broker`` delivery.
+      long-missing user-scope half of the ``sso-broker`` delivery.
 
     These are *shared, idempotent* floor artifacts — one copy serving every
     credentialed consumer — not pack-private projected files, so they are
@@ -1986,7 +1982,7 @@ def _deliver_user_scope_floor(
 
 
 _INBAND_DETECTION_SEEN: set[tuple[str, str]] = set()
-"""RFC-0012 AC24 once-per-``(root, pack_name)`` short-circuit.
+"""Once-per-``(root, pack_name)`` short-circuit for in-band detection.
 
 Process-scoped mutable state. The detection block consults this set; an
 entry means "we already emitted a migration line for this (root, pack) in
@@ -2011,18 +2007,17 @@ def _clear_inband_detection_seen() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Dropped-primitives warning rail (docs/specs/dropped-primitives-coverage T6)
+# Dropped-primitives warning rail
 # ---------------------------------------------------------------------------
 
 
 _DROPPED_WARNING_SEEN: set[tuple[str, str, str, str]] = set()
 """Once-per-``(root, pack_name, adapter, scope)`` short-circuit for the
-dropped-primitives warning rail (spec AC11).
+dropped-primitives warning rail.
 
 The 4-tuple key's `scope` component is load-bearing: dual-scope installs
 fire one warning per scope where the resolved adapter has dropped modes,
-each silenceable independently on repeat. See spec AC10/AC11 for the
-dual-scope contract."""
+each silenceable independently on repeat."""
 
 
 def _clear_dropped_warning_seen() -> None:
@@ -2211,13 +2206,13 @@ def _maybe_emit_dropped_warning(
     hook-wiring file uses an event the adapter doesn't support, emit the
     warning to stderr. Short-circuits once per
     ``(root, pack_name, adapter, scope)`` per process so repeat calls
-    in the same process stay silent (AC11).
+    in the same process stay silent.
 
     Covers both the coarse-grained primitive-type drop rail
     (``_enumerate_dropped_primitives``) and the per-file event-level
     drop rail (``enumerate_event_dropped_wirings``). The short-circuit
     key is unchanged — both drop kinds derive from the same inputs, so
-    one warning per scope per process covers both (spec AC9).
+    one warning per scope per process covers both.
 
     Pre-write barrier: callers invoke this after Step 5's plans-list is
     built (both target adapters resolved) and before Step 6's pre-flight
@@ -2239,7 +2234,7 @@ def _maybe_emit_dropped_warning(
     # alias reports kiro-ide's drops (hook-wiring + command), matching what
     # is actually projected — but keep the adopter's chosen name (`kiro`) in
     # the warning *text*, since the recorded adapter identity is preserved
-    # (RFC-0022 keeps `kiro` a named alias).
+    # (keeps `kiro` a named alias).
     canonical_adapter = _canonical_install_adapter(adapter)
     dropped = _enumerate_dropped_primitives(pack_dir, canonical_adapter, contract)
     event_drops = enumerate_event_dropped_wirings(pack_dir, canonical_adapter, contract)
@@ -2270,7 +2265,7 @@ def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:
     Scans ``<root>/claude-plugins/<pack>/`` and ``<root>/apm/<pack>/`` —
     the two per-pack subtrees the legacy ``per-pack-claude-plugin`` and
     ``per-pack-apm-package`` recipes produce. Other top-level
-    directories (``.claude/`` etc.) belong to AC24 trigger (c)'s
+    directories (``.claude/`` etc.) belong to trigger (c)'s
     ``safety.scan_for_pack_artifacts`` scan, not this one.
     """
     out: list[Path] = []
@@ -2292,7 +2287,7 @@ def _offer_upgrade(
     catalogue_uri: str,
     resolved_adapter: str | None = None,
 ) -> int:
-    """Hand off an already-installed `install` to `upgrade` (CLI-hygiene AC11/12).
+    """Hand off an already-installed `install` to `upgrade`.
 
     The install-side offer is the confirmation, so the upgrade runs with
     ``yes=True``. Builds the FULL attribute set ``upgrade.run`` reads — mapping
@@ -2313,13 +2308,13 @@ def _offer_upgrade(
 
     ns = _argparse.Namespace()
     ns.pack = pack_name
-    # RFC-0046: carry the concrete source already resolved by `run()` rather
+    # Carry the concrete source already resolved by `run()` rather
     # than `args.catalogue` (which is `None` on a bare install) — the upgrade
     # hand-off must not re-resolve and risk a divergent second detection.
     ns.catalogue = catalogue_uri
     ns.root = getattr(args, "output", ".")
     ns.scope = scope
-    # RFC-0052: forward the install-side `--adapter` so upgrade targets the same
+    # Forward the install-side `--adapter` so upgrade targets the same
     # adapter the user picked. Without this, a pack installed for multiple
     # adapters at one scope trips upgrade's multi-adapter disambiguator even
     # though the operator already passed `--adapter` to `install`.
@@ -2347,7 +2342,7 @@ def _classify_pre_rfc0012_state(
     yes: bool = False,
     projection_relpaths: set[str] | None = None,
 ) -> int | None:
-    """RFC-0012 AC24: in-band detection of pre-RFC-0012 state.
+    """In-band detection of pre-RFC-0012 state.
 
     Triggers evaluated per-pack in precedence ``(b) → (a) → (c)``; only
     the first match emits. Detection runs once per
@@ -2358,7 +2353,7 @@ def _classify_pre_rfc0012_state(
     orphan (c) branches), the deletion is confirmed first: ``yes`` skips the
     prompt, a non-interactive stdin refuses rather than deleting unattended,
     and the paths to be removed are listed on stderr before the prompt
-    (CLI-hygiene AC6/AC7). The confirm gates the *whole* destructive block —
+    (CLI-hygiene). The confirm gates the *whole* destructive block —
     for (b) that is the ``rmtree`` plus the in-memory ``packs.pop`` plus the
     state-file rewrite — so a decline mutates nothing.
 
@@ -2375,15 +2370,15 @@ def _classify_pre_rfc0012_state(
     if key in _INBAND_DETECTION_SEEN:
         return None
 
-    # Adapter-aware (RFC-0052): the "state row" is this adapter's row, not
+    # Adapter-aware: the "state row" is this adapter's row, not
     # the pack's. A row for a *different* adapter is a coexisting install, not
     # a pre-RFC-0012 signal — so it falls through to the orphan branch (c),
     # where sibling-row files are recognised as owned, not swept.
     state_row = repo_state.row(pack_name, repo_target_adapter)
 
     # (b) Shape-mismatch — state row exists AND dist-tree files exist.
-    # Pre-RFC-0012 signal per spec AC24: state.toml carries a row AND
-    # the on-disk shape is the legacy dist-tree (post-RFC-0012 the only
+    # Pre-RFC-0012 signal: state.toml carries a row AND
+    # the on-disk shape is the legacy dist-tree (today the only
     # code path producing those files is ``--emit-install-routes``,
     # which short-circuits before this detection runs).
     if state_row is not None:
@@ -2391,7 +2386,7 @@ def _classify_pre_rfc0012_state(
         if dist_tree:
             _INBAND_DETECTION_SEEN.add(key)
             if force:
-                # AC25(vi): --force is the corrective action for (b)'s
+                # --force is the corrective action for (b)'s
                 # cross-invocation false positive — clean the dist-tree
                 # files AND drop the stale state row so the install
                 # proceeds as a clean reinstall. Without the row drop
@@ -2407,7 +2402,7 @@ def _classify_pre_rfc0012_state(
 
                 from agentbundle.config import dump_state
 
-                # CLI-hygiene AC6/AC7: confirm before the FIRST mutation. The
+                # Confirm before the FIRST mutation. The
                 # deletion unit is the subtree root `rmtree` removes (not the
                 # scanned file list, which could diverge from what rmtree
                 # actually takes). Decline → return 1 having touched nothing:
@@ -2472,7 +2467,7 @@ def _classify_pre_rfc0012_state(
             )
             return 1
 
-        # (a) Adapter disagreement — REMOVED by RFC-0052. A row for a
+        # (a) Adapter disagreement — REMOVED. A row for a
         # different adapter is no longer a disagreement; cross-adapter
         # coexistence is the whole point of the footprint model. Because
         # ``state_row`` is now resolved for ``repo_target_adapter``
@@ -2538,7 +2533,7 @@ def _classify_pre_rfc0012_state(
         # result as orphans.
         if orphans:
             foreign_owned: set[str] = set()
-            # Any path recorded by ANY row (RFC-0052: including sibling
+            # Any path recorded by ANY row (including sibling
             # adapter rows of the *same* pack) is owned, not an orphan — a
             # cursor install must not sweep codex's shared `.agents/skills/`
             # files. We are in branch (c) precisely because this adapter has
@@ -2556,7 +2551,7 @@ def _classify_pre_rfc0012_state(
         if orphans:
             _INBAND_DETECTION_SEEN.add(key)
             if force:
-                # CLI-hygiene AC6/AC7: list the exact files to be unlinked and
+                # List the exact files to be unlinked and
                 # confirm before the FIRST unlink. Decline → return 1, nothing
                 # removed.
                 for orphan in orphans:
@@ -2603,8 +2598,8 @@ def _classify_pre_rfc0012_state(
 
 
 def _format_route_list(routes: list[str]) -> str:
-    """Format a list of route paths per RFC-0012 § *Install-time
-    message rail (repo scope)*.
+    """Format a list of route paths for the repo-scope install-time
+    message rail.
 
       - ``N=1`` → ``"X"``
       - ``N=2`` → ``"X and Y"``
@@ -2761,7 +2756,7 @@ def _append_install_marker(
     at `<repo>/.adapt-install-marker.toml`; user-scope at
     `<user-root>/.agentbundle/.adapt-install-marker.toml`.
 
-    Per spec AC19a: scope is encoded by the file's location, not as a
+    Scope is encoded by the file's location, not as a
     field — the path is the source of truth.
     """
     import tomllib
@@ -2926,7 +2921,7 @@ def _append_install_marker(
         lines.append("")
     content = "\n".join(lines).rstrip() + "\n"
 
-    # Atomic-rename write per AC19a, routed through the per-scope
+    # Atomic-rename write, routed through the per-scope
     # path-jail (safety.write_jailed) so user-scope marker writes
     # honour `allowed-prefixes.user` and a future contract change
     # cannot let the marker escape the jail without code review
@@ -2957,7 +2952,7 @@ def _append_layout_section(
 ) -> None:
     """Append a ``[<pack_name>]`` table to an adopter-owned
     ``agentbundle-layout.toml`` at *root* — but **only if the file already
-    exists** and the section is **absent** (RFC-0040 / spec AC9). Repo-scope
+    exists** and the section is **absent**. Repo-scope
     file lives at ``<repo>/agentbundle-layout.toml``; user-scope at
     ``<user-root>/.agentbundle/agentbundle-layout.toml``.
 
@@ -2965,7 +2960,7 @@ def _append_layout_section(
     adopter-owned, so this step never brings it into being and never
     rewrites a section the adopter already authored.
 
-    Modelled on :func:`_append_install_marker`'s upsert (spec AC11): read +
+    Modelled on :func:`_append_install_marker`'s upsert: read +
     type-validate + re-emit, with **every** emitted string — including each
     re-emitted table header, since a parsed section key can itself contain
     ``]`` or a newline — routed through :func:`config._emit_basic_string`, and
@@ -2978,7 +2973,7 @@ def _append_layout_section(
     ``[pack.layout.<scope>].parent`` manifest table. A scope whose sub-table
     (or its ``parent``) is absent appends **nothing** — e.g. all three current
     consumers omit ``[pack.layout.user]``, so the user-scope append is a no-op
-    (spec AC10). A pack with no ``[pack.layout]`` at all (most packs) no-ops too,
+    A pack with no ``[pack.layout]`` at all (most packs) no-ops too,
     so this is safe to call unconditionally per scope.
     """
     import tomllib
@@ -3083,10 +3078,10 @@ def _append_layout_section(
 
 
 def _chain_adapt(repo_root: Path) -> int:
-    """Per AC19b: run `agentbundle.commands.adapt.run` in-process with
+    """Run `agentbundle.commands.adapt.run` in-process with
     `--values-from <repo>/.adapt-discovery.toml`.
 
-    Per AC19d:
+    Two failure modes:
       (i) missing `<repo>/.adapt-discovery.toml` → adapt step is
           skipped, emits one stderr line; install exits 0.
       (ii) malformed discovery → adapt returns non-zero; the install
@@ -3223,7 +3218,7 @@ def _emit_recommends_warning(
 
 
 # Deprecated adapter aliases → their canonical adapter, for *behavior* only.
-# `kiro` is a deprecated alias for `kiro-ide` (RFC-0022 D1): same projection
+# `kiro` is a deprecated alias for `kiro-ide`: same projection
 # (`.md` agents, hook-wiring dropped). This mirrors the build registry's
 # `_kiro_alias_project`. The adopter's *chosen* name is still recorded in
 # `state.adapter` and printed in the install summary — only projection,
@@ -3250,19 +3245,18 @@ def _render_for_user_scope(
     preferred_adapter: str | None = None,
 ) -> dict[str, bytes]:
     """Project a pack via the Claude Code / Kiro / Codex adapter
-    (depending on RFC-0011 resolution), for user-scope install.
+    (depending on adapter resolution), for user-scope install.
 
-    RFC-0004 § *State file per scope* and § *Adapter-level scope roots*
-    imply that user-scope installs land per-adapter outputs (paths under
+    The state-file-per-scope and adapter-level-scope-root rules mean
+    user-scope installs land per-adapter outputs (paths under
     ``.claude/...``, ``.kiro/...``, or ``.agents/skills/...``) rather
     than the dist-tree shape ``render.render_pack`` produces. Calling
     the adapter's ``project`` function once into a tempdir gives us the
     per-primitive layout each IDE reads at ``~/``; we collect the
     result as a relpath→bytes mapping for the install walker.
 
-    The five kwargs flow into ``_resolve_target_adapter`` per
-    RFC-0011's six-step (0–5) lookup with ``scope="user"`` (RFC-0012
-    renamed the helper and added the explicit ``scope`` kwarg). They
+    The five kwargs flow into ``_resolve_target_adapter``'s six-step
+    (0–5) lookup with ``scope="user"``. They
     default to ``None`` / ``"install"`` for backward shape with
     legacy positional callers (tests), but every production call
     site threads explicit values.
@@ -3310,7 +3304,7 @@ def _render_for_user_scope(
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
         if _canonical_install_adapter(target_adapter) == "kiro-ide":
-            # `kiro` is a deprecated alias for `kiro-ide` (RFC-0022 D1):
+            # `kiro` is a deprecated alias for `kiro-ide`:
             # it projects `.md` agents, identical to `kiro-ide`. Route it
             # through `kiro_ide.project` so the alias and the registry
             # (`ADAPTERS["kiro"]` → `_kiro_alias_project`) stay in lockstep;
@@ -3328,20 +3322,19 @@ def _render_for_user_scope(
             # repo-relpaths (`.github/…`); the install handler rewrites
             # them to the user-scope home (`.copilot/…`) via
             # `_rewrite_copilot_user_scope_paths` before the path-jail
-            # (RFC-0024 / copilot-full-parity).
+            # (copilot-full-parity).
             copilot.project(pack_dir, contract, out)
         elif target_adapter == "cursor":
             # Cursor's `.cursor/` prefix is identical at both scopes (the
             # claude-code/codex pattern), so — unlike copilot — there is no
             # post-render prefix rewrite; the generic user-root rooting lands
-            # the scope-agnostic `.cursor/…` relpaths under `~` (RFC-0026 /
-            # cursor-full-parity).
+            # the scope-agnostic `.cursor/…` relpaths under `~`.
             cursor.project(pack_dir, contract, out)
         elif target_adapter == "gemini":
             # Gemini's `.gemini/` prefix is identical at both scopes (the
             # cursor pattern), so there is no post-render prefix rewrite; the
             # generic user-root rooting lands the scope-agnostic `.gemini/…`
-            # relpaths under `~` (RFC-0027 / gemini-full-parity).
+            # relpaths under `~` (gemini-full-parity).
             gemini.project(pack_dir, contract, out)
         else:
             # Defence-in-depth: every user-scope-capable adapter
@@ -3366,8 +3359,8 @@ def _render_for_repo_scope(
     user_config: UserConfig | None = None,
     preferred_adapter: str | None = None,
 ) -> tuple[str, dict[str, bytes]]:
-    """Project a pack via the resolved adapter (RFC-0011 + RFC-0012
-    six-step lookup at ``scope="repo"``), for repo-scope install at
+    """Project a pack via the resolved adapter (six-step lookup at
+    ``scope="repo"``), for repo-scope install at
     ``--scope repo`` without ``--emit-install-routes``.
 
     Mirrors :func:`_render_for_user_scope` but at the repo-scope root:
@@ -3377,8 +3370,8 @@ def _render_for_repo_scope(
     ``state.adapter`` and thread the matching ``allowed-prefixes.repo``
     into the path-jail.
 
-    RFC-0012 § *Prior art* names the build pipeline's
-    ``self-host.toml`` recipe as the in-tree mechanism that already
+    The build pipeline's ``self-host.toml`` recipe is the in-tree
+    mechanism that already
     produces per-IDE direct writes; this helper is the generalisation
     of that mechanism to the adopter-side install path.
     """
@@ -3411,7 +3404,7 @@ def _render_for_repo_scope(
     with tempfile.TemporaryDirectory() as raw:
         out = Path(raw)
         if _canonical_install_adapter(target_adapter) == "kiro-ide":
-            # `kiro` is a deprecated alias for `kiro-ide` (RFC-0022 D1):
+            # `kiro` is a deprecated alias for `kiro-ide`:
             # it projects `.md` agents, identical to `kiro-ide`. Route it
             # through `kiro_ide.project` so the alias and the registry
             # (`ADAPTERS["kiro"]` → `_kiro_alias_project`) stay in lockstep;
@@ -3473,7 +3466,7 @@ def _refresh_merge_target_shas(
 
 def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
     """Return True iff the adapter declares a hook-wiring projection
-    mode that works at user scope (RFC-0005 AC25).
+    mode that works at user scope.
 
     Three shapes count:
       - Claude Code: ``mode.user = "user-merge-json"``.
@@ -3481,8 +3474,8 @@ def _adapter_supports_user_scope_hook_wiring(adapter_name: str) -> bool:
         scope qualifier — the agent-file target is scope-conditional
         via `<scope-root>` resolution).
       - Copilot: ``mode = "copilot-hooks-json"`` in the **array-form**
-        ``[[adapter.copilot.projection]]`` table (RFC-0024 /
-        copilot-full-parity). Copilot's hooks are a *file-based* model
+        ``[[adapter.copilot.projection]]`` table. Copilot's hooks are
+        a *file-based* model
         (one self-contained JSON per wiring file in a directory), not a
         merge into a shared settings/agent file — so they work at user
         scope via the build projection + the install handler's prefix
@@ -3569,7 +3562,7 @@ def _resolve_target_adapter(
     preferred_adapter: str | None = None,
 ) -> str:
     """Resolve the adapter that an install/upgrade targets at *scope*
-    (RFC-0011 substrate; RFC-0012 widens to repo scope).
+    (substrate; resolved at repo scope too).
 
     The six-step (0–5) lookup, with scope-branched points at 0, 1, 4,
     and 5:
@@ -3590,7 +3583,7 @@ def _resolve_target_adapter(
          scope, against the contract's shipped-adapter set (Copilot
          admissible).
 
-      2. **State-hint short-circuit (AC10b)** — return
+      2. **State-hint short-circuit** — return
          ``state_adapter`` when admissible; the install was already
          pinned. Scope-uniform.
 
@@ -3600,8 +3593,8 @@ def _resolve_target_adapter(
 
       4. **Per-scope branch**: at user scope, walk the per-adapter
          probe table and return the first match; at repo scope,
-         **skip the probe** (RFC-0012 § *Alternatives* #4 — symmetric
-         probing rejected) and return ``DEFAULT_ADAPTER``
+         **skip the probe** (symmetric probing was rejected) and
+         return ``DEFAULT_ADAPTER``
          if in ``allowed_adapters``, else ``allowed_adapters[0]``.
 
       5. **Legacy heuristic** — preserved for ``< 0.7`` packs that
@@ -3651,7 +3644,7 @@ def _resolve_target_adapter(
                 )
         if scope == "user":
             # User-scope-capability subcheck — fires only at user
-            # scope. RFC-0012: Copilot is admissible at repo scope
+            # scope. Copilot is admissible at repo scope
             # without declaring `[scope].user`, so this subcheck
             # must not fire there.
             for declared in allowed_adapters:
@@ -3693,7 +3686,7 @@ def _resolve_target_adapter(
                     )
         return adapter
 
-    # Step 2: state-hint short-circuit (AC10b) — scope-uniform.
+    # Step 2: state-hint short-circuit — scope-uniform.
     if state_adapter is not None:
         if allowed_adapters is not None:
             if state_adapter in allowed_adapters:
@@ -3706,12 +3699,12 @@ def _resolve_target_adapter(
         # and the existing upgrade.py cross-adapter refusal will fire
         # if the new resolution differs.
 
-    # Step 2.5: user-config pre-flight (agentbundle-config-subcommand
-    # spec AC12). Runs only when state_adapter is None — upgrades
+    # Step 2.5: user-config pre-flight. Runs only when state_adapter
+    # is None — upgrades
     # preserve whatever adapter the existing install used; user-config
     # only affects fresh installs. When a user actively configured a
     # known adapter, either return it (when admissible at scope and
-    # in pack allowed_adapters) or raise with AC13/AC14 messages. When
+    # in pack allowed_adapters) or raise with a diagnostic. When
     # nothing is configured, this block is a no-op and Steps 3+ run
     # as today — preserving the probe-by-default behavior for users
     # who never ran `agentbundle config set`.
@@ -3783,8 +3776,8 @@ def _resolve_target_adapter(
                 probe = probes.get(declared)
                 if probe is not None and probe(home):
                     return declared
-        # Step 4 (repo-scope): no probe. RFC-0012 § *Alternatives* #4
-        # rejects symmetric probing as load-bearing asymmetry —
+        # Step 4 (repo-scope): no probe. Symmetric probing was
+        # rejected as load-bearing asymmetry —
         # probing `<repo>/.<ide>/` would silently override an explicit
         # `--adapter` (the probe runs only when `--adapter` is omitted,
         # but the same rule reads cleaner stated uniformly).
@@ -3793,18 +3786,18 @@ def _resolve_target_adapter(
         return allowed_adapters[0]
 
     # Step 4b (repo-scope v0.7+ pack with no `allowed-adapters`):
-    # AC9 step 5 — "legacy heuristic fires only for `< v0.7` packs
+    # Step 5 — "legacy heuristic fires only for `< v0.7` packs
     # at repo scope" — means a v0.7+ pack with no `allowed-adapters`
     # at repo scope must NOT fall through to step 5; return the
-    # configured default instead. Drawback #7 in RFC-0012 names the
-    # repo-only-pack v0.2 → v0.7 bump as load-bearing precisely for
+    # configured default instead. The repo-only-pack v0.2 → v0.7
+    # bump is load-bearing precisely for
     # this branch. The version gate is numeric (`contract_version_at_least`)
     # — the prior lexical `>= "0.7"` string compare mis-ordered two-digit
     # minors (`"0.11" < "0.7"` lexically), which the inline comment flagged
     # would break "once major or two-digit minor bumps land." It was latent
     # (Step 4b and the Step-5 fallback both return DEFAULT_ADAPTER), but the
     # v0.11 cursor bump made it live two-digit territory, so it moves to the
-    # numeric helper now (RFC-0026 / cursor-full-parity ride-along).
+    # numeric helper now (cursor-full-parity ride-along).
     if scope == "repo" and contract_version_at_least(contract_version, "0.7"):
         return DEFAULT_ADAPTER
 
@@ -3823,7 +3816,7 @@ def _rewrite_user_scope_hook_paths(
     target_adapter: str,
 ) -> dict[str, bytes]:
     """Rewrite legacy hook-body paths in *projection* to v0.3 user-
-    scope targets per RFC-0005 § hook-body at user scope, and drop the
+    scope targets for hook-body at user scope, and drop the
     v0.2 wiring-target file (the v0.3 merge engine writes through the
     user-merge-json / merge-into-agent-json path instead).
 
@@ -3842,7 +3835,7 @@ def _rewrite_user_scope_hook_paths(
 
     Copilot is an explicit no-op here: its hooks are file-based and the
     `.github/…`→`.copilot/…` rewrite is owned by
-    ``_rewrite_copilot_user_scope_paths`` (RFC-0024 / copilot-full-parity).
+    ``_rewrite_copilot_user_scope_paths`` (copilot-full-parity).
     Returning early keeps copilot's no-op intentional rather than relying on
     its `.github/hooks/` paths happening to miss the `tools/hooks/` branch
     below.
@@ -3900,7 +3893,7 @@ def _rewrite_copilot_user_scope_paths(
     """Rewrite copilot's repo-relpath projection to the user-scope home.
 
     The copilot build adapter is scope-agnostic and emits ``.github/…``
-    relpaths at every scope (RFC-0024 / copilot-full-parity). At user scope
+    relpaths at every scope (copilot-full-parity). At user scope
     Copilot discovers content from ``~/.copilot/…`` instead, so the install
     handler swaps the prefix for **all** copilot primitives — skill, agent,
     hook-wiring, hook-body — before the path-jail check.
@@ -3909,7 +3902,7 @@ def _rewrite_copilot_user_scope_paths(
     only its hooks diverge via ``_rewrite_user_scope_hook_paths``), copilot's
     agent/hook prefix changes, so this rewrite is **not** hook-gated.
 
-    RFC-0052 / ADR-0040: the **skill** primitive no longer routes through here —
+    The **skill** primitive no longer routes through here —
     it projects to the scope-agnostic shared `.agents/skills/` home (→
     `~/.agents/skills/` at user scope, no rewrite), shared with the rest of the
     cohort. Only agents + hooks swap to `~/.copilot/`.
@@ -3942,9 +3935,9 @@ def _merge_user_scope_hook_wiring(
     install handler stores on ``PackState.hook_wiring_owned``. The
     ``target-file`` field is omitted for Claude Code rows (the
     adapter's user-scope default target — ``~/.claude/settings.json``
-    — is the implicit target on read; RFC-0005 § State-file impact)
+    — is the implicit target on read)
     and explicit for ``kiro-cli`` rows. The deprecated ``kiro`` alias and
-    ``kiro-ide`` drop hook-wiring (RFC-0022) and return no rows.
+    ``kiro-ide`` drop hook-wiring and return no rows.
     """
     import tomllib
 
@@ -3959,7 +3952,7 @@ def _merge_user_scope_hook_wiring(
         return []
 
     if target_adapter == "copilot":
-        # Copilot's hooks are file-based (RFC-0024 / copilot-full-parity): each
+        # Copilot's hooks are file-based (copilot-full-parity): each
         # wiring `.toml` is already projected to a self-contained
         # `~/.copilot/hooks/<name>.json` by the build adapter + the user-scope
         # prefix rewrite. There is no shared settings/agent file to merge into,
@@ -3976,7 +3969,7 @@ def _merge_user_scope_hook_wiring(
 
     if _canonical_install_adapter(target_adapter) == "kiro-ide":
         # `kiro` (deprecated alias) and `kiro-ide` both DROP hook-wiring
-        # (RFC-0022): the IDE silently drops any agent carrying a `hooks`
+        # The IDE silently drops any agent carrying a `hooks`
         # key, and the agent is projected as `.md` (no agent JSON to merge
         # into). Return before parsing any wiring TOML or touching the
         # filesystem — the wiring is dropped, surfaced by the
@@ -4064,8 +4057,8 @@ def _claude_code_allowed_prefixes_user() -> list[str]:
 def _adapter_allowed_prefixes_user(adapter_name: str) -> list[str]:
     """Read *adapter_name*'s `allowed-prefixes.user` from the contract.
 
-    RFC-0005's T1 added a `[adapter.kiro.scope]` table alongside Claude
-    Code's existing one; user-scope installs of Kiro-targeted packs
+    Kiro carries a `[adapter.kiro.scope]` table alongside Claude
+    Code's; user-scope installs of Kiro-targeted packs
     need Kiro's prefixes (`.kiro/`, `.agentbundle/`) not Claude Code's
     (`.claude/`, `.agentbundle/`). The fallback (legacy contract
     without a scope table for the requested adapter) is the
@@ -4092,8 +4085,8 @@ def _adapter_allowed_prefixes_user(adapter_name: str) -> list[str]:
 def _adapter_allowed_prefixes_repo(adapter_name: str) -> list[str]:
     """Read *adapter_name*'s `allowed-prefixes.repo` from the contract.
 
-    RFC-0012 adds an `allowed-prefixes.repo` entry to every shipped
-    adapter's scope table at contract v0.7. Mirrors the user-scope
+    Every shipped adapter's scope table carries an
+    `allowed-prefixes.repo` entry at contract v0.7. Mirrors the user-scope
     helper above; the fallback is the conservative single-prefix list
     rooted at the adapter's documented repo-scope directory.
     """
@@ -4125,7 +4118,7 @@ import functools as _functools  # noqa: E402
 def _shared_prefix_cohorts() -> dict[str, list[str]]:
     """Return the contract's `[contract.shared-prefixes]` registry — each
     shared prefix → its reader cohort (shipped adapters). Empty when a legacy
-    contract predates the registry (RFC-0052). Memoised: the bundled contract
+    contract predates the registry. Memoised: the bundled contract
     is immutable for the process lifetime."""
     import tomllib
 
@@ -4153,7 +4146,7 @@ _ADAPTER_NATIVE_DIR = {
 def _shared_prefix_disclosure(
     pack_name: str, adapter: str, scope: str, written_relpaths: set[str]
 ) -> str | None:
-    """Build the install-time cross-adapter disclosure (RFC-0052 Decision 7).
+    """Build the install-time cross-adapter disclosure (Decision 7).
 
     When an install wrote to a ``shared`` prefix, name the prefix's **other
     shipped** cohort adapters and state the boundary (skills are shared;
@@ -4279,7 +4272,7 @@ def validate_dependencies_required(
     version ``A.B.C`` satisfies ``^X.Y`` when ``A == X AND (B > Y OR (B
     == Y AND C >= 0))``, i.e. ``>= X.Y.0 AND < (X+1).0.0``.
 
-    ``also_installing`` (pack-profiles AC7) — names of packs being installed in
+    ``also_installing`` (pack-profiles) — names of packs being installed in
     the *same batch* as this one (a profile install). A required dep whose name
     is in this set is treated as satisfied **by name**: at pre-flight nothing is
     written yet, so the dep carries no on-disk version to range-check. The
@@ -4311,7 +4304,7 @@ def validate_dependencies_required(
     # Union of installed packs across all scopes (pack name → installed
     # version string). A pack may have several adapter rows; any row's
     # version satisfies the dependency check (they share the pack version).
-    # RFC-0080 AC23b: local_state included when installing at local scope.
+    # local_state included when installing at local scope.
     installed: dict[str, str] = {}
     for (name, _adapter), ps in repo_state.packs.items():
         installed[name] = ps.installed_version
@@ -4342,7 +4335,7 @@ def validate_dependencies_required(
 
         dep_version = installed.get(dep_name)
         if dep_version is None:
-            # Not on disk. Batch-aware (pack-profiles AC7): a dep being
+            # Not on disk. Batch-aware (pack-profiles): a dep being
             # installed *later in this same batch* satisfies the gate by name —
             # at pre-flight nothing is written yet, so there is no version to
             # range-check. Deps-first write order means it will be on disk
@@ -4408,14 +4401,14 @@ def _profile_pack_allowed_adapters(pack_toml: dict) -> list[str] | None:
 
 
 def _run_profile(args: argparse.Namespace) -> int:
-    """Install a curated, single-scope set of packs in one command (RFC-0034).
+    """Install a curated, single-scope set of packs in one command.
 
     A thin orchestrator over single-pack ``run()``: it pins one scope and one
     adapter for the whole batch, runs the full read-only pre-flight (each pack's
     ``run(dry_run=True)``, Steps 1–8 incl. the path-jail probe) for **every**
     pack before writing **any**, then writes each pack by calling ``run()`` in
     deps-first authored order. It reimplements none of ``run()``'s write logic;
-    it only sequences and gates. See ``docs/specs/pack-profiles/``.
+    it only sequences and gates.
 
     Returns 0 on success, non-zero on any pre-flight refusal or write failure.
     """
@@ -4431,7 +4424,7 @@ def _run_profile(args: argparse.Namespace) -> int:
     from agentbundle.config import ConfigError, load_pack_toml, load_state
 
     profile_id: str = args.profile
-    # RFC-0046: a bare `install --profile X` (no catalogue) resolves through the
+    # A bare `install --profile X` (no catalogue) resolves through the
     # same default chain as `install --pack X`.
     try:
         catalogue_uri: str = resolve_catalogue_uri(args)
@@ -4476,7 +4469,7 @@ def _run_profile(args: argparse.Namespace) -> int:
     pack_names = list(profile.packs)
     batch = set(pack_names)
 
-    # ── Locate every pack + load its manifest (existence pre-check, AC4) ───────
+    # ── Locate every pack + load its manifest (existence pre-check) ────────────
     pack_dirs: dict[str, Path] = {}
     pack_tomls: dict[str, dict] = {}
     for name in pack_names:
@@ -4498,7 +4491,7 @@ def _run_profile(args: argparse.Namespace) -> int:
     # ── Resolve ONE adapter for the whole batch, assert each pack allows it ───
     # Explicit --adapter, else the scope's normal resolution run once (via the
     # first pack). Then assert membership per pack; refuse-and-suggest on a
-    # mismatch before any write (AC5, RFC-0034 D5 step 2).
+    # mismatch before any write (D5 step 2).
     from agentbundle.config import pack_spec_version
 
     def _contract_version(name: str) -> str | None:
@@ -4556,7 +4549,7 @@ def _run_profile(args: argparse.Namespace) -> int:
             )
             return 1
 
-    # ── Determine already-installed packs at the declared scope (AC6) ─────────
+    # ── Determine already-installed packs at the declared scope ───────────────
     if scope_value == "repo":
         state_path = output_root / ".agentbundle-state.toml"
     else:
@@ -4625,11 +4618,11 @@ def _run_profile(args: argparse.Namespace) -> int:
         # since the namespace is hand-built and run() now reads `args.yes`.
         ns.yes = False
         ns._user_config = user_config
-        ns._install_route = "profile"  # AC13
-        ns._batch_packs = batch  # AC7 — in-batch deps satisfy the gate
+        ns._install_route = "profile"
+        ns._batch_packs = batch  # In-batch deps satisfy the gate
         return ns
 
-    # ── Pre-flight: dry-run EVERY remaining pack before ANY write (AC4) ───────
+    # ── Pre-flight: dry-run EVERY remaining pack before ANY write ─────────────
     # run(dry_run=True) exercises Steps 1–8 — scope, batch dep gate, adapter,
     # render, and the read-only path-jail probe — and returns non-zero without
     # writing. Suppress its stdout (the per-file plan); let stderr (the real
@@ -4687,7 +4680,7 @@ def _emit_profile_summary(
     adapter: str,
     summary: list[tuple[str, str]],
 ) -> None:
-    """Print the per-pack profile-install summary to stdout (AC8)."""
+    """Print the per-pack profile-install summary to stdout."""
     print(f"profile {profile_id} ({scope_value} scope, adapter {adapter}):")
     for name, status in summary:
         print(f"  {name}: {status}")

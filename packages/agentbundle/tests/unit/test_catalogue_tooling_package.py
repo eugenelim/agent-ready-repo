@@ -92,7 +92,7 @@ def _make_args(root: Path, output: Path, **kwargs) -> object:
 
 
 # ---------------------------------------------------------------------------
-# AC1: Three-file Artifactory layout
+# Three-file Artifactory layout
 # ---------------------------------------------------------------------------
 
 
@@ -124,7 +124,7 @@ def test_package_produces_three_file_layout(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC2: Required files must be present
+# Required files must be present
 # ---------------------------------------------------------------------------
 
 
@@ -154,7 +154,7 @@ def test_missing_marketplace_json_fails(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC3: Generic LICENSE not required
+# Generic LICENSE not required
 # ---------------------------------------------------------------------------
 
 
@@ -174,7 +174,7 @@ def test_no_generic_license_required(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC4: catalogue.toml NOT in archive
+# catalogue.toml NOT in archive
 # ---------------------------------------------------------------------------
 
 
@@ -202,7 +202,7 @@ def test_catalogue_toml_excluded_from_archive(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC5: Channel descriptor written AFTER archive + sidecar verified
+# Channel descriptor written AFTER archive + sidecar verified
 # ---------------------------------------------------------------------------
 
 
@@ -237,7 +237,7 @@ def test_channel_descriptor_written_last(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC6: Deterministic bytes under SOURCE_DATE_EPOCH
+# Deterministic bytes under SOURCE_DATE_EPOCH
 # ---------------------------------------------------------------------------
 
 
@@ -260,7 +260,7 @@ def test_deterministic_under_source_date_epoch(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC7: Refuse to overwrite existing archive
+# Refuse to overwrite existing archive
 # ---------------------------------------------------------------------------
 
 
@@ -277,7 +277,7 @@ def test_refuse_overwrite_existing_archive(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC8: Staged cleanup on verify_archive failure
+# Staged cleanup on verify_archive failure
 # ---------------------------------------------------------------------------
 
 
@@ -333,7 +333,7 @@ def test_staged_cleanup_on_verify_failure(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC9: Manifest has all Bucket 8 fields
+# Manifest has all Bucket 8 fields
 # ---------------------------------------------------------------------------
 
 
@@ -366,7 +366,7 @@ def test_manifest_schema_v2_fields(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC10: Compat alias deprecation warning
+# Compat alias deprecation warning
 # ---------------------------------------------------------------------------
 
 
@@ -402,7 +402,7 @@ def test_compat_alias_deprecation_warning(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC11: Extracted archive passes verify_catalogue (round-trip)
+# Extracted archive passes verify_catalogue (round-trip)
 # ---------------------------------------------------------------------------
 
 
@@ -437,7 +437,7 @@ def test_extracted_archive_valid_local_catalogue(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC14: Archive layout has no artificial wrapper directory
+# Archive layout has no artificial wrapper directory
 # ---------------------------------------------------------------------------
 
 
@@ -461,7 +461,7 @@ def test_archive_layout_no_wrapper_directory(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC15: Denied paths (tools/, .git/, etc.) not in archive
+# Denied paths (tools/, .git/, etc.) not in archive
 # ---------------------------------------------------------------------------
 
 

@@ -73,7 +73,7 @@ def resolve_catalogue(uri: str) -> Path:
             "use catalogue+https:// or archive+https://"
         )
 
-    # Dispatch new HTTPS catalogue schemes (RFC-0072)
+    # Dispatch new HTTPS catalogue schemes
     if uri.startswith(("catalogue+https://", "archive+https://")):
         from agentbundle.https_catalogue import fetch_catalogue_archive
         return fetch_catalogue_archive(uri)

@@ -123,10 +123,10 @@ def _skill_path(adapter: str, skill_name: str) -> str:
     if adapter == "codex":
         return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "copilot":
-        # RFC-0052 / ADR-0040: copilot skill routes to shared cohort home
+        # Copilot skill routes to shared cohort home
         # `.agents/skills/` (was `.github/skills/` in v0.11).
         return f".agents/skills/{skill_name}/SKILL.md"
-    # RFC-0052 / ADR-0040: cursor + gemini skills also route to `.agents/skills/`.
+    # Cursor + gemini skills also route to `.agents/skills/`.
     if adapter == "cursor":
         return f".agents/skills/{skill_name}/SKILL.md"
     if adapter == "gemini":
@@ -376,7 +376,7 @@ def test_governance_extras_first_refuses_then_succeeds_after_core(
 def test_reinstall_same_pack_repo_scope_refused(tmp_path, adapter):
     """S3: install core twice at every adapter → second attempt
     refuses with ``use 'upgrade' to change version``. ``--force`` does
-    NOT bypass this case (RFC-0004 Step 4a). The refusal is
+    NOT bypass this case (Step 4a). The refusal is
     state-driven, so it should hold at every adapter."""
     adopter = tmp_path / "adopter"
     adopter.mkdir()
@@ -493,7 +493,7 @@ def test_copilot_orphan_scan_finds_skills_and_hooks(tmp_path):
     )
     rels = sorted(p.relative_to(adopter).as_posix() for p in orphans)
 
-    # Skills are found at the shared cohort home (RFC-0052).
+    # Skills are found at the shared cohort home.
     skill_hits = [r for r in rels if r.startswith(".agents/skills/")]
     assert skill_hits, (
         f"expected scanner to find core's skill dirs at copilot; got: {rels!r}"
@@ -514,7 +514,7 @@ def test_user_scope_multi_pack_accumulates_state(tmp_path, monkeypatch):
     """S5: install architect at user, then atlassian at user. Both
     packs default to user scope (workspace-agnostic). The user-scope
     state file accumulates both rows. User-scope adapter resolution is
-    its own surface (RFC-0011 / RFC-0012's user-scope clauses); the
+    its own surface (RFC-0012's user-scope clauses); the
     install-handler tests in this module pin the repo-scope per-IDE
     multi-pack flow, not the user-scope adapter matrix."""
     adopter = tmp_path / "adopter"
@@ -726,7 +726,7 @@ def test_force_orphan_cleanup_does_not_clobber_other_packs_files(
 ):
     """Direction A, per adapter: governance-extras ``--force`` must
     not unlink any of core's state-tracked files. Runs at **every** shipped
-    adapter including copilot (docs/specs/copilot-skills-and-web): copilot's
+    adapter including copilot: copilot's
     skills now project as a `.github/skills/<name>/` directory tree that the
     scanner matches by name, so governance-extras (skills-only) is scannable at
     copilot — no longer the vacuous case the old flat `.instructions.md`

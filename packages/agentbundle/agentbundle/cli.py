@@ -4,15 +4,15 @@ Subcommand order on the parser matches the canonical install-workflow order
 from the spec (discovery-first): `list-packs`, `list-profiles`, `list-targets`,
 `scaffold`, `install`, `validate`, `render`, `adapt`, `diff`, `upgrade`,
 `uninstall`, `init-state`, `config`, `reconcile`, `package-catalogue`.
-`list-profiles` (RFC-0034) lists the catalogue's curated single-scope install
+`list-profiles` lists the catalogue's curated single-scope install
 profiles; `install --profile <name>` installs one.
 
 Each subcommand's `run(args) -> int` lives under `agentbundle.commands.*`;
 this module wires `argparse` and prints `--version`. No business logic here.
 
-RFC-0004 surface additions:
+Install-scope surface:
   - `--scope {repo,user}` on install, uninstall, upgrade, diff, init-state
-    (the spec § *Install-scope dimension* subcommands). The original RFC-0004
+    (the install-scope-dimension subcommands). The original
     set also listed `list-targets`, and `reconcile` carried a single-value
     `--scope user`; both were dead (parsed-but-never-read / only-legal-value-
     equals-default) and dropped in the CLI-hygiene sweep, so passing `--scope`
@@ -158,7 +158,7 @@ def _shipped_adapters_choices() -> tuple[str, ...]:
     """Derive argparse `--adapter` `choices=` from the live contract.
 
     Every shipped adapter (not just user-scope-capable ones), per
-    RFC-0011 AC11: the handler issues the pinned refuse-and-explain
+    The handler issues the pinned refuse-and-explain
     when an adopter passes a shipped-but-not-user-scope-capable adapter
     (e.g. `--adapter copilot`), and argparse must accept the value
     first for the handler to be reached.
@@ -206,7 +206,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Catalogue URI (local path or git+https://...). Optional: when "
             "omitted, the source is resolved from your config, an editable "
-            "clone, or the packaged default (RFC-0047)."
+            "clone, or the packaged default."
         ),
     )
     sp.set_defaults(func=_lazy("list_packs"))
@@ -223,7 +223,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Catalogue URI (local path or git+https://...). Optional: when "
             "omitted, the source is resolved from your config, an editable "
-            "clone, or the packaged default (RFC-0047)."
+            "clone, or the packaged default."
         ),
     )
     sp.set_defaults(func=_lazy("list_profiles"))
@@ -372,7 +372,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--profile",
         help=(
             "Install a curated single-scope set of packs from "
-            "<catalogue>/profiles/<name>.toml in one command (RFC-0034). "
+            "<catalogue>/profiles/<name>.toml in one command. "
             "Mutually exclusive with --pack; --scope is not allowed (the "
             "profile declares its own scope)."
         ),
@@ -384,7 +384,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Catalogue URI (local path or git+https://...). Optional: when "
             "omitted, the source is resolved from your config, an editable "
-            "clone, or the packaged default (RFC-0046)."
+            "clone, or the packaged default."
         ),
     )
     sp.add_argument("--output", default=".")
@@ -393,7 +393,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--force",
         action="store_true",
         help=(
-            "RFC-0004: bypass the cross-scope-conflict refusal — install at "
+            "Bypass the cross-scope-conflict refusal — install at "
             "the requested scope even when the pack is already installed at "
             "the other scope. Also REMOVES on-disk files at the pack's "
             "projection paths that the current version does not ship "
@@ -406,14 +406,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "--force-merge",
         action="store_true",
         help=(
-            "RFC-0005: adopt an adopter-hand-authored entry under "
+            "Adopt an adopter-hand-authored entry under "
             "`~/.claude/settings.json` whose `command` collides with the "
             "pack's hook. Bound to `install --scope user` against a "
             "Claude-Code-targeted pack only; original command preserved "
             "in the state-file snapshot."
         ),
     )
-    # RFC-0011 / pack-allowed-adapters AC11: optional `--adapter`
+    # Optional `--adapter`
     # override at install time. choices=every-shipped-adapter (not
     # just user-scope-capable) so the handler-level user-scope check
     # can issue the pinned refuse-and-explain for copilot rather than
@@ -424,7 +424,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=_shipped_for_cli,
         help=(
             "Override the auto-detected adapter. Admitted at both "
-            "install scopes (RFC-0012). Must be in the pack's "
+            "install scopes. Must be in the pack's "
             "`allowed-adapters` set when declared (legacy packs apply "
             "the user-scope-capable / shipped-adapter subset by scope). "
             "Mutually exclusive with --emit-install-routes at --scope "
@@ -435,7 +435,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--emit-install-routes",
         action="store_true",
         help=(
-            "RFC-0012: catalogue-publishing opt-in — emit the legacy "
+            "Catalogue-publishing opt-in — emit the legacy "
             "dist-tree shape (`<repo>/claude-plugins/<pack>/`, "
             "`<repo>/apm/<pack>/`) at `--scope repo` instead of the "
             "default per-IDE projection. Bound to `--scope repo`; "
@@ -529,7 +529,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=_shipped_adapters_choices(),
         help=(
             "Disambiguate when the pack is installed for multiple adapters at "
-            "the resolved scope (RFC-0052). Inferred when the pack has a single "
+            "the resolved scope. Inferred when the pack has a single "
             "adapter row; required when it has more than one."
         ),
     )
@@ -540,7 +540,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "upgrade",
         help="Upgrade a pack or a single primitive within a pack.",
     )
-    # --pack and --all are mutually exclusive; exactly one is required (AC1).
+    # --pack and --all are mutually exclusive; exactly one is required.
     mode_group = sp.add_mutually_exclusive_group(required=True)
     mode_group.add_argument(
         "--pack",
@@ -575,7 +575,7 @@ def _build_parser() -> argparse.ArgumentParser:
         help=(
             "Catalogue URI to fetch the new version from. Optional: when "
             "omitted, the source is resolved from your config, an editable "
-            "clone, or the packaged default (RFC-0046). Rejected with --all."
+            "clone, or the packaged default. Rejected with --all."
         ),
     )
     sp.add_argument("--root", default=".")
@@ -585,7 +585,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=_shipped_adapters_choices(),
         help=(
             "Disambiguate when the pack is installed for multiple adapters at "
-            "the resolved scope (RFC-0052). Inferred when the pack has a single "
+            "the resolved scope. Inferred when the pack has a single "
             "adapter row; required when it has more than one. Rejected with --all."
         ),
     )
@@ -634,7 +634,7 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=_shipped_adapters_choices(),
         help=(
             "Disambiguate when the pack is installed for multiple adapters at "
-            "the resolved scope (RFC-0052). Inferred when the pack has a single "
+            "the resolved scope. Inferred when the pack has a single "
             "adapter row; required when it has more than one. Only the named "
             "adapter row is uninstalled; shared files survive while a sibling "
             "row still owns them."
@@ -674,7 +674,7 @@ def _build_parser() -> argparse.ArgumentParser:
     sp.add_argument(
         "--migrate",
         action="store_true",
-        help="Rewrite a v0.1 state file to v0.2 (RFC-0004). Idempotent.",
+        help="Rewrite a v0.1 state file to v0.2. Idempotent.",
     )
     sp.add_argument("--scope", choices=("repo", "user"))
     sp.set_defaults(func=_lazy("init_state"))
@@ -700,13 +700,13 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("config"))
 
-    # --- reconcile --- (read-only orphan reporter, RFC-0005 / T9)
+    # --- reconcile --- (read-only orphan reporter)
     # No --apply flag — the subcommand is report-only by design.
     # `argparse`'s default "unrecognized argument" rejects --apply.
     sp = subparsers.add_parser(
         "reconcile",
         help=(
-            "RFC-0005: read-only orphan reporter — walks Claude Code "
+            "Read-only orphan reporter — walks Claude Code "
             "settings.json and Kiro agent JSONs named in user-scope state, "
             "reports entries the file/state pair disagrees on. Read-only; "
             "no --apply flag. User-scope only; no --scope flag."
@@ -714,7 +714,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     sp.set_defaults(func=_lazy("reconcile"))
 
-    # --- package-catalogue --- (maintainer/CI only; RFC-0072 D1/D5)
+    # --- package-catalogue --- (maintainer/CI only)
     sp = subparsers.add_parser(
         "package-catalogue",
         help=(
@@ -1126,7 +1126,7 @@ def _build_parser() -> argparse.ArgumentParser:
                               help="JSON path for --mode in-harness.")
     evals_run_p.set_defaults(func=_lazy("pack_evals"))
 
-    # --- pack-config --- (RFC-0074: per-pack configuration)
+    # --- pack-config --- (per-pack configuration)
     pc_parser = subparsers.add_parser(
         "pack-config",
         help="Per-pack configuration (get, set, unset, show).",
@@ -1157,7 +1157,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     pc_parser.set_defaults(func=_lazy("pack_config_cmd"))
 
-    # --- oplog --- (RFC-0074: operation log)
+    # --- oplog --- (operation log)
     ol_parser = subparsers.add_parser(
         "oplog",
         help="Pack operation log (show, clear).",

@@ -89,17 +89,17 @@ def check_members(members: list[tarfile.TarInfo]) -> list[Diagnostic]:
     """Member-level safety checks. Exported for unit tests (T1)."""
     diags: list[Diagnostic] = []
 
-    # AC10: no absolute paths
+    # No absolute paths
     for m in members:
         if m.name.startswith("/") or (len(m.name) > 1 and m.name[1] == ":"):
             diags.append(_err("CAT-V-ARC-004", f"absolute member path: {m.name!r}", path=m.name))
 
-    # AC11: no traversal paths
+    # No traversal paths
     for m in members:
         if ".." in Path(m.name).parts:
             diags.append(_err("CAT-V-ARC-005", f"traversal path: {m.name!r}", path=m.name))
 
-    # AC12: no symlinks or hard links
+    # No symlinks or hard links
     for m in members:
         if m.issym():
             diags.append(_err("CAT-V-ARC-006", f"symlink in archive: {m.name!r}", path=m.name))
@@ -115,14 +115,14 @@ def check_members(members: list[tarfile.TarInfo]) -> list[Diagnostic]:
                 path=m.name,
             ))
 
-    # AC13: no duplicate members
+    # No duplicate members
     seen: set[str] = set()
     for m in members:
         if m.name in seen:
             diags.append(_err("CAT-V-ARC-008", f"duplicate member: {m.name!r}", path=m.name))
         seen.add(m.name)
 
-    # AC14: no case-insensitive collisions
+    # No case-insensitive collisions
     lower_seen: dict[str, str] = {}
     for m in members:
         lower = m.name.lower()
@@ -319,12 +319,12 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
     """Verify a catalogue archive (.tar.gz).
 
     Runs the full safety + semantic pipeline. Stops after safety errors.
-    AC5: sha256 sidecar mismatch causes immediate early return.
-    AC17: on pass, extracts to tmpdir and calls verify_catalogue for round-trip.
+    Sha256 sidecar mismatch causes immediate early return.
+    On pass, extracts to tmpdir and calls verify_catalogue for round-trip.
     """
     diags: list[Diagnostic] = []
 
-    # AC5: sidecar — early exit
+    # Sidecar — early exit
     sidecar_diags = _check_sha256_sidecar(archive, sha256_file)
     if sidecar_diags:
         return _make_result(sidecar_diags, "archive")
@@ -372,7 +372,7 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
         diags.extend(_check_catalogue_markers(members))
         diags.extend(_check_min_agentbundle_compat(manifest))
 
-        # AC17: local discoverability — extract to tmpdir and verify as catalogue
+        # Local discoverability — extract to tmpdir and verify as catalogue
         if not any(d.severity == Severity.ERROR for d in diags):
             prefix = _detect_prefix(members)
             with tempfile.TemporaryDirectory() as tmpdir_str:

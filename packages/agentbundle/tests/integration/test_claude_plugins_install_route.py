@@ -1,6 +1,5 @@
 """Integration tests for the canonical install-marker writer template (T1).
 
-Spec: docs/specs/claude-plugins-install-route/spec.md
 
 Each test runs ``packages/agentbundle/templates/install-marker.py`` in a
 subprocess against a fixture-controlled environment quartet:
@@ -200,7 +199,7 @@ def _read_marker(marker_path: Path) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# AC1: stdlib-only imports and docstring
+# Stdlib-only imports and docstring
 # ---------------------------------------------------------------------------
 
 ALLOWED_MODULES = frozenset({
@@ -222,7 +221,7 @@ ALLOWED_MODULES = frozenset({
 
 
 def test_writer_is_stdlib_only():
-    """AC1: the writer imports only modules from the allow-list."""
+    """The writer imports only modules from the allow-list."""
     import re
 
     content = WRITER.read_text(encoding="utf-8")
@@ -237,13 +236,13 @@ def test_writer_is_stdlib_only():
 
 
 def test_writer_docstring_names_spec():
-    """AC1: the module docstring contains the spec path."""
+    """The module docstring contains the spec path."""
     content = WRITER.read_text(encoding="utf-8")
     assert "docs/specs/claude-plugins-install-route/spec.md" in content
 
 
 # ---------------------------------------------------------------------------
-# AC2: scope detection
+# Scope detection
 # ---------------------------------------------------------------------------
 
 
@@ -330,7 +329,7 @@ def test_scope_user_opt_in_for_user_only_pack_writes_user_marker(pack_root_facto
 
 
 def test_scope_precedence_local_beats_project_beats_user(pack_root_factory):
-    """AC2(d): all three opt-ins set; most-specific (local) wins, repo-scope marker."""
+    """All three opt-ins set; most-specific (local) wins, repo-scope marker."""
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="core",
         version="0.1.0",
@@ -352,7 +351,7 @@ def test_scope_precedence_local_beats_project_beats_user(pack_root_factory):
 
 
 def test_scope_malformed_local_json_falls_through_to_project(pack_root_factory):
-    """AC2(e): malformed local-scope JSON → fall through to project."""
+    """Malformed local-scope JSON → fall through to project."""
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="core",
         version="0.1.0",
@@ -375,7 +374,7 @@ def test_scope_malformed_local_json_falls_through_to_project(pack_root_factory):
 
 
 def test_scope_no_match_exits_zero_no_marker_no_hash(pack_root_factory):
-    """AC2(f): no opt-in at any scope → exit 0, no marker, no hash-file."""
+    """No opt-in at any scope → exit 0, no marker, no hash-file."""
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="core",
         version="0.1.0",
@@ -395,7 +394,7 @@ def test_scope_no_match_exits_zero_no_marker_no_hash(pack_root_factory):
 
 
 def test_scope_project_dir_unset_skips_project_and_local_checks(pack_root_factory):
-    """AC2(g): CLAUDE_PROJECT_DIR unset + user opt-in for user-only pack → user-scope marker."""
+    """CLAUDE_PROJECT_DIR unset + user opt-in for user-only pack → user-scope marker."""
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="converters",
         version="0.1.0",
@@ -415,7 +414,7 @@ def test_scope_project_dir_unset_skips_project_and_local_checks(pack_root_factor
 
 
 # ---------------------------------------------------------------------------
-# AC3: allowed-scopes refusal rail
+# Allowed-scopes refusal rail
 # ---------------------------------------------------------------------------
 
 
@@ -461,7 +460,7 @@ def test_refuse_user_only_pack_at_project_scope(pack_root_factory):
 
 
 def test_refuse_user_only_pack_at_local_scope(pack_root_factory):
-    """AC3(c): user-only pack enabled at local scope → refuse with 'detected install scope local'.
+    """User-only pack enabled at local scope → refuse with 'detected install scope local'.
 
     Origin-vocabulary regression guard: the writer must use the three-valued
     origin (local/project/user) in the stderr message, not the collapsed scope.
@@ -483,12 +482,12 @@ def test_refuse_user_only_pack_at_local_scope(pack_root_factory):
 
 
 # ---------------------------------------------------------------------------
-# AC4: atomic rename crash recovery
+# Atomic rename crash recovery
 # ---------------------------------------------------------------------------
 
 
 def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root_factory):
-    """AC4: crash between tempfile-write and os.replace — prior marker unchanged;
+    """Crash between tempfile-write and os.replace — prior marker unchanged;
     next invocation succeeds and contains both entries.
     """
     # First: write a valid marker entry for a different pack.
@@ -593,12 +592,12 @@ def test_atomic_rename_uses_os_replace_and_recovers_on_crash(tmp_path, pack_root
 
 
 # ---------------------------------------------------------------------------
-# AC5: hash file not written when marker write fails
+# Hash file not written when marker write fails
 # ---------------------------------------------------------------------------
 
 
 def test_hash_file_not_written_when_marker_write_fails(tmp_path, pack_root_factory):
-    """AC5: os.replace raises PermissionError → no hash file; next invocation succeeds."""
+    """os.replace raises PermissionError → no hash file; next invocation succeeds."""
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="core",
         version="0.1.0",
@@ -652,12 +651,12 @@ def test_hash_file_not_written_when_marker_write_fails(tmp_path, pack_root_facto
 
 
 # ---------------------------------------------------------------------------
-# AC6: dual-detection branch
+# Dual-detection branch
 # ---------------------------------------------------------------------------
 
 
 def test_detection_cold_start_writes(pack_root_factory):
-    """AC6(a): no hash file → writes both marker and hash."""
+    """No hash file → writes both marker and hash."""
     plugin_root, plugin_data, home, project_dir = pack_root_factory(
         name="core",
         version="0.1.0",
@@ -737,12 +736,12 @@ def test_detection_warm_cache_skips(pack_root_factory):
 
 
 # ---------------------------------------------------------------------------
-# AC7: two-writers sequential + CLI-handoff datetime round-trip
+# Two-writers sequential + CLI-handoff datetime round-trip
 # ---------------------------------------------------------------------------
 
 
 def test_two_writers_sequential_both_entries_present(pack_root_factory):
-    """AC7: two writers invoked sequentially against the same marker file
+    """Two writers invoked sequentially against the same marker file
     produce a marker containing both [[packs-installed]] entries.
     """
     _, _, home, project_dir = pack_root_factory(
@@ -941,7 +940,7 @@ def test_cli_to_claude_plugins_handoff_preserves_install_route(tmp_path, pack_ro
 
 
 # ---------------------------------------------------------------------------
-# AC8: plugin upgrade replaces marker entry
+# Plugin upgrade replaces marker entry
 # ---------------------------------------------------------------------------
 
 

@@ -1,4 +1,4 @@
-"""T-C4 (RFC-0005 kiro-ide-hook): end-to-end wiring.
+"""T-C4 (kiro-ide-hook): end-to-end wiring.
 
 Pins that the kiro adapter's ``project()`` dispatches a v0.4-shaped
 synthetic contract through ``_dispatch_table_form`` into the new

@@ -4,7 +4,6 @@ The autouse `_isolate_user_config_dir` fixture redirects the
 platform env vars that `agentbundle.user_config._user_config_path`
 consults, so no test can read or write the developer's real user
 config file. See `docs/specs/agentbundle-config-subcommand/spec.md`
-AC17.
 
 Implementation note: this fixture sets env vars only. It does NOT
 monkey-patch `Path.home()` — the existing `fake_home` fixture in

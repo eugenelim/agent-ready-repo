@@ -1,7 +1,7 @@
 """Fail-closed identity and CI-boundary verification for catalogue init.
 
 Migrated from packs/catalogue-curation/.apm/skills/export-catalogue/scripts/export_verify.py
-(RFC-0059) and extended for use by the self-hosted init engine.
+ and extended for use by the self-hosted init engine.
 
 Two entry points:
 

@@ -1,7 +1,7 @@
 """Codex adapter — projects skills as full `<name>/SKILL.md` trees under
 `.agents/skills/`, projects hook bodies straight through, drops the rest.
 
-Post-RFC-0009 (codex-native-skills): the `skill` primitive lands as
+Under codex-native-skills the `skill` primitive lands as
 `direct-directory` mode (full body, byte-equal). Adopters upgrading
 from the legacy `managed-block-inline` shape get a one-shot in-place
 strip of the `<!-- agent-skills:start -->` / `<!-- agent-skills:end -->`
@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Iterator
 
 
-# RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
+# Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.merge_json import project_merge_json
@@ -72,9 +72,9 @@ def project(pack_path: Path, contract: dict, output_root: Path) -> None:
 
 
 def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
-    # One-shot migration strip on the project-root AGENTS.md. AC10:
+    # One-shot migration strip on the project-root AGENTS.md:
     # in self-host, `_compose_agents_md` rewrites AGENTS.md from the
-    # seed (which AC15 stripped of delimiters) just before this call,
+    # seed (already stripped of delimiters) just before this call,
     # so the strip is a documented no-op there. In adopter installs
     # against a pre-existing AGENTS.md carrying the legacy block, the
     # strip does real work. Both cases are correct.
@@ -84,12 +84,12 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
         stripped = _strip_legacy_skill_block(original)
         if stripped != original:
             # Destructive: any hand-edited prose between the legacy
-            # delimiters is gone (RFC-0009 § Failure modes). Leave a
+            # delimiters is gone. Leave a
             # breadcrumb so an adopter who discovers missing notes
             # has a way to reconstruct what happened.
             print(
                 f"codex: stripped legacy <!-- agent-skills:start --> region "
-                f"from {agents_md} — see RFC-0009 § Migration path",
+                f"from {agents_md} — see the codex migration path",
                 file=sys.stderr,
             )
             # Atomic rewrite: a crash between truncate and write would
@@ -191,7 +191,7 @@ def _ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
     """`shutil.copytree` ignore callback: drop symlinks with absolute targets
     and Python bytecode cache directories.
 
-    Relative symlinks (intra-skill cross-references) are preserved (AC5).
+    Relative symlinks (intra-skill cross-references) are preserved.
     Absolute symlinks always escape the tree and are a path-escape vector.
     __pycache__ directories are excluded because .pyc files embed absolute
     source paths and can never be byte-identical across machines.
@@ -230,7 +230,7 @@ def _splice_managed_block(
 
 
 # Legacy delimiter literals, hardcoded for the migration window per
-# RFC-0009 § Adapter implementation change. Removed in the post-strip
+# Adapter implementation change. Removed in the post-strip
 # release together with `_splice_managed_block`.
 _LEGACY_SKILL_BLOCK_START = "<!-- agent-skills:start -->"
 _LEGACY_SKILL_BLOCK_END = "<!-- agent-skills:end -->"
@@ -248,7 +248,7 @@ def _strip_legacy_skill_block(text: str) -> str:
     `_splice_managed_block` with an empty `managed_block` argument
     is sufficient on its own; its post-condition is that the
     delimiters and the region between them are gone from the result.
-    The call goes through that helper so the AC23 retention test
+    The call goes through that helper so the retention test
     still observes the splice symbol being used (any future inlining
     that removes the symbol breaks the retention contract).
     """

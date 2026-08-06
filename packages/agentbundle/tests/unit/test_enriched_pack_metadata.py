@@ -1,6 +1,6 @@
 """enriched-pack-manifest T8: every shipped pack carries the enriched floor.
 
-AC8: every shipped pack declares, at minimum, `readme`, `license`,
+Every shipped pack declares, at minimum, `readme`, `license`,
 `[pack.links].repository`, `categories`, and `keywords`, plus a maintainer —
 and `agentbundle validate` accepts the schema. This pins the *real* shipped
 manifests (not a synthetic fixture), so a pack silently losing its metadata —

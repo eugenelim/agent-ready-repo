@@ -285,7 +285,7 @@ class KiroAdapterTests(unittest.TestCase):
             self.assertIn("NotebookEdit", stderr.getvalue())
 
     def test_hook_wiring_array_entry_removed(self) -> None:
-        """AC2: the legacy `degraded-info-log` kiro hook-wiring entry is gone."""
+        """The legacy `degraded-info-log` kiro hook-wiring entry is gone."""
         kiro_array_primitives = {
             entry["primitive"]
             for entry in self.contract["adapter"]["kiro"].get("projection", [])
@@ -311,7 +311,7 @@ class KiroAdapterTests(unittest.TestCase):
             self.assertNotIn(
                 "hook-wiring",
                 buf.getvalue(),
-                "kiro adapter emitted a hook-wiring info-log after AC2 removal",
+                "kiro adapter emitted a hook-wiring info-log after removal",
             )
 
     def test_hook_body_extensions_preserved(self) -> None:
@@ -429,7 +429,7 @@ class TestKiroOrphanSweep(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_two_stage_shrink(self) -> None:
-        # AC19: project {a, b, c} then {a, c} into the same output.
+        # Project {a, b, c} then {a, c} into the same output.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             three = _seed_named_skills_pack(tmp_path, "three-skill", ["a", "b", "c"])
@@ -444,7 +444,7 @@ class TestKiroOrphanSweep(unittest.TestCase):
             self.assertEqual(children, {"a", "c"})
 
     def test_two_pack_union(self) -> None:
-        # AC20 — kiro case.
+        # Kiro case.
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack_a = _seed_named_skills_pack(tmp_path, "pack-a", ["a", "b"])

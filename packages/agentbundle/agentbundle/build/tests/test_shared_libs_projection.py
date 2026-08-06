@@ -137,7 +137,7 @@ class ProjectionRetirementGuardTests(unittest.TestCase):
         ):
             self.assertFalse(
                 hasattr(shared_libs, name),
-                f"shared_libs.{name} was retired in RFC-0023 — the "
+                f"shared_libs.{name} was retired — the "
                 f"shared-libs → consumer scripts/ projection is gone; "
                 f"consumers resolve via the credbroker pip library",
             )

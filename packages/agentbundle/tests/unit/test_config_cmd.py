@@ -39,7 +39,7 @@ def test_get_no_key_on_missing_file_reports_builtin(capsys) -> None:
     captured = capsys.readouterr()
     assert exit_code == 0
     # One line per known key: `adapter` (builtin default) and `source`
-    # (unset — no builtin constant; RFC-0046).
+    # (unset — no builtin constant).
     lines = {ln.split("\t")[0]: ln.split("\t") for ln in captured.out.strip().splitlines()}
     assert lines["adapter"][2] == "(builtin)"
     assert lines["source"][2] == "(unset)"

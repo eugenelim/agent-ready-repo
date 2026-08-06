@@ -10,14 +10,14 @@ from agentbundle.config import _parse_adapter_row
 
 
 def test_parse_adapter_row_preserves_local_scope():
-    """AC5: scope="local" in state row is preserved, not coerced."""
+    """scope="local" in state row is preserved, not coerced."""
     body = {"scope": "local", "files": {}}
     row = _parse_adapter_row("mypkg", "claude-code", body, default_scope="repo")
     assert row.scope == "local"
 
 
 def test_parse_adapter_row_coerces_unknown_scope():
-    """AC5: an unknown scope value still coerces to the default_scope."""
+    """An unknown scope value still coerces to the default_scope."""
     body = {"scope": "totally-unknown", "files": {}}
     row = _parse_adapter_row("mypkg", "claude-code", body, default_scope="repo")
     assert row.scope == "repo"

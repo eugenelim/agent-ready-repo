@@ -1,7 +1,7 @@
 """catalogue-curation 0.2.0: no required dependencies.
 
 ``catalogue-curation`` previously required both ``core`` and
-``governance-extras`` (RFC-0059 D1). In 0.2.0 those hard deps were removed
+``governance-extras``. In 0.2.0 those hard deps were removed
 — the pack's skills now operate portably against the target catalogue's own
 contracts. These tests pin the no-dep guarantee and confirm the install gate
 does not reject a clean install.

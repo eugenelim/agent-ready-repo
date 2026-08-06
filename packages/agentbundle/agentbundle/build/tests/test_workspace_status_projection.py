@@ -1,4 +1,4 @@
-"""Projection and end-to-end tests for workspace-status scripts/ (Order 1A, AC9/AC10).
+"""Projection and end-to-end tests for workspace-status scripts/ (Order 1A).
 
 Coverage:
 - Source scripts exist in the pack.
@@ -60,7 +60,7 @@ class SourceInvariantTests(unittest.TestCase):
 
 
 class AdapterProjectionTests(unittest.TestCase):
-    """AC9: both scripts appear under every shipped adapter's projection."""
+    """Both scripts appear under every shipped adapter's projection."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -73,7 +73,7 @@ class AdapterProjectionTests(unittest.TestCase):
         return tmp
 
     def test_scripts_project_for_all_adapters(self) -> None:
-        """AC9: scripts/ present under every shipped adapter's skill output."""
+        """scripts/ present under every shipped adapter's skill output."""
         for adapter_name in shipped_adapters_from_contract():
             with self.subTest(adapter=adapter_name):
                 out = self._project_to_tmp(adapter_name)
@@ -96,7 +96,7 @@ class AdapterProjectionTests(unittest.TestCase):
         self.assertTrue(skill_md.is_file(), "SKILL.md not projected alongside scripts/ for claude-code")
 
     def test_projected_cli_invokes_ok(self) -> None:
-        """Projected CLI (claude-code) exits 0 against the real repo root (AC10 exercise)."""
+        """Projected CLI (claude-code) exits 0 against the real repo root (exercise)."""
         out = self._project_to_tmp("claude-code")
         cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
         if not cli.exists():
@@ -112,7 +112,7 @@ class AdapterProjectionTests(unittest.TestCase):
         self.assertEqual(data.get("schema_version"), 1)
 
     def test_exit2_stderr_no_root_path(self) -> None:
-        """AC20: exit-2 stderr must not expose the --root path."""
+        """Exit-2 stderr must not expose the --root path."""
         out = self._project_to_tmp("claude-code")
         cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
         if not cli.exists():
@@ -129,12 +129,12 @@ class AdapterProjectionTests(unittest.TestCase):
             "exit-2 stderr exposes the --root path; it must be redacted to <root>")
 
     def test_projected_cli_against_fixture_workspace(self) -> None:
-        """AC10/AC11/AC17: projected CLI against a fixture workspace (not the real repo).
+        """Projected CLI against a fixture workspace (not the real repo).
 
         Exercises the install path end-to-end: projects to a temp dir, invokes the
-        CLI from a CWD outside the fixture (AC11), parses the JSON, and cross-checks
+        CLI from a CWD outside the fixture, parses the JSON, and cross-checks
         key semantic fields against the source-engine CLI to detect installed/source
-        divergence (AC17).
+        divergence.
         """
         out = self._project_to_tmp("claude-code")
         cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
@@ -144,7 +144,7 @@ class AdapterProjectionTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, fixture, True)
         (fixture / "workspace.toml").write_bytes(b"# fixture\n")
 
-        # AC11: invoke from a CWD that is neither the fixture nor the repo root.
+        # Invoke from a CWD that is neither the fixture nor the repo root.
         outside_cwd = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, outside_cwd, True)
         r = subprocess.run(
@@ -157,7 +157,7 @@ class AdapterProjectionTests(unittest.TestCase):
         self.assertEqual(installed.get("schema_version"), 1)
         self.assertTrue(installed.get("workspace_present"), "workspace_present should be True")
 
-        # AC17: cross-check against source engine — same fixture, same CWD.
+        # Cross-check against source engine — same fixture, same CWD.
         source_cli = CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
         r_src = subprocess.run(
             [sys.executable, str(source_cli), "--root", str(fixture)],
@@ -201,7 +201,7 @@ class RealTreeProjectionTests(unittest.TestCase):
 
 
 class EndToEndCLITests(unittest.TestCase):
-    """AC10/AC17: installed CLI executed end-to-end; result recorded."""
+    """Installed CLI executed end-to-end; result recorded."""
 
     _cli = REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
 
@@ -219,7 +219,7 @@ class EndToEndCLITests(unittest.TestCase):
             self.skipTest(self._skip_reason)
 
     def test_installed_cli_exit_0(self) -> None:
-        """AC10: installed CLI returns exit 0 against the real repo."""
+        """Installed CLI returns exit 0 against the real repo."""
         self._skip_if_not_installed()
         r = subprocess.run(
             [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
@@ -230,7 +230,7 @@ class EndToEndCLITests(unittest.TestCase):
         self.assertEqual(r.returncode, 0, f"CLI failed.\nstdout: {r.stdout[:500]}\nstderr: {r.stderr[:500]}")
 
     def test_installed_cli_schema_version(self) -> None:
-        """AC10/AC17: output is valid JSON with schema_version == 1."""
+        """Output is valid JSON with schema_version == 1."""
         self._skip_if_not_installed()
         r = subprocess.run(
             [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
@@ -241,7 +241,7 @@ class EndToEndCLITests(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertEqual(data.get("schema_version"), 1)
-        # AC17: record semantic counts (printed to the test runner output)
+        # Record semantic counts (printed to the test runner output)
         work = data.get("work", {})
         diag = data.get("diagnostics", {})
         print(
@@ -256,7 +256,7 @@ class EndToEndCLITests(unittest.TestCase):
         )
 
     def test_installed_cli_workspace_present(self) -> None:
-        """AC17: workspace_present is True for the real repo."""
+        """workspace_present is True for the real repo."""
         self._skip_if_not_installed()
         r = subprocess.run(
             [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],

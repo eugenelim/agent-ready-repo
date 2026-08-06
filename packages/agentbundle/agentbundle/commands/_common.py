@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 def resolve_catalogue_uri(args: argparse.Namespace) -> str:
     """Resolve the catalogue URI for ``install`` / ``upgrade``.
 
-    Applies the four-layer default chain (RFC-0046 / ADR-0036) when the
+    Applies the four-layer default chain when the
     ``catalogue`` positional was omitted. An explicit positional is returned
     verbatim (layer 1 short-circuits before any metadata/bundle read), so the
     default chain runs only on a bare invocation. May raise ``CatalogueError``
@@ -232,7 +232,7 @@ def _major(version: str) -> str:
 
 def format_adapter_versions(rows: dict[str, PackState]) -> str:
     """Render sorted ``adapter (version)`` pairs for a multi-adapter
-    disambiguator message (RFC-0052).
+    disambiguator message.
 
     ``rows`` is a ``{adapter: PackState}`` mapping (the shape
     ``State.rows_for_pack`` returns). Output e.g. ``claude-code (0.9.0),

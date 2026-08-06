@@ -1,8 +1,8 @@
 """T5/T6 (pure): the upgrade recap verdict and the shared drift counter.
 
 The recap honestly distinguishes a version change from a same-version re-apply
-(install-state-visibility AC9-AC11), and the drift counter underpins both the
-``--check-drift`` column and the upgrade upfront notice (AC6/AC12).
+(install-state-visibility), and the drift counter underpins both the
+``--check-drift`` column and the upgrade upfront notice.
 """
 
 from __future__ import annotations

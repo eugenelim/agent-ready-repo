@@ -21,7 +21,7 @@ gitignored, iteration-numbered eval-workspace.
 
 Detection note: `--output-format json` returns a result-only envelope with no
 tool_use events; `stream-json --verbose` is required to observe the activation
-event. RFC-0037 / ADR-0028 / spec AC1 originally specified `json`; corrected by
+event. The original design specified `json`; corrected by
 an in-PR erratum (the activation event is not present in the `json` envelope on
 claude 2.1.185).
 
@@ -642,7 +642,7 @@ def grade_reports(
     *,
     repo_root: pathlib.Path | None = None,
 ) -> dict:
-    """Grade **in-harness** (Phase 2, RFC-0037 § Errata E2) activation reports.
+    """Grade **in-harness** (Phase 2) activation reports.
 
     `reports` is `{skill: {query_id: [reported_skill | null | "__error__", ...]}}`
     — collected by the catalogue-internal driver, which dispatches each query to
@@ -670,7 +670,7 @@ def grade_reports(
         "adapter": "claude-code",
         "mode": "in-harness",
         # Reported (description-match judgement), not the observed router event —
-        # a dispatched sub-context can't be skill-isolated (RFC-0037 § Errata E2).
+        # a dispatched sub-context can't be skill-isolated.
         "fidelity": "reported",
         # The reports are collected by a hand-driven procedure, so the grade is
         # operator-attested, not tool-observed — a reader must not mistake this
@@ -744,7 +744,7 @@ def seed_workspace(skill_dir: pathlib.Path, files: list[str]) -> pathlib.Path:
     runs the skill there and is responsible for teardown in a `finally`.
 
     This is **not** a mechanical sandbox — a host agent running the skill keeps
-    its full tool surface (RFC-0037 § Errata E3 / the spec-stage security pass).
+    its full tool surface.
     Containment is the procedure + the scope gate (only non-destructive,
     no-network/credential skills are eligible); this helper only confines what
     is seeded *in*.
@@ -784,7 +784,7 @@ def grade_behavior(
     workspaces: dict,
     repo_root: pathlib.Path | None = None,
 ) -> dict:
-    """Grade the **lightweight behavior/output check** (Phase 3, RFC-0037 §
+    """Grade the **lightweight behavior/output check** (Phase 3
     Errata E3). For each eval in a covered skill's `evals/evals.json`, the driver
     has run the skill in a per-eval working dir; this grades **without running
     anything**:
@@ -922,7 +922,7 @@ def grade_judge(
     repo_root: pathlib.Path | None = None,
     timeout: int = DEFAULT_TIMEOUT_S,
 ) -> dict:
-    """LLM-judge the **quality layer** (RFC-0037 § Errata E4). For each eval, run
+    """LLM-judge the **quality layer**. For each eval, run
     the eval's rubric (`expected_output` + `assertions`) over the produced
     artifact through a judge backend (same model `claude-code`, or an independent
     `codex`). `artifacts` is `{skill: {eval_id: <artifact-path>}}`. Report-only;
@@ -1118,7 +1118,7 @@ def main(argv: list[str] | None = None) -> int:
         choices=("activation", "behavior"),
         default="activation",
         help="in-harness check: activation (Tier-A, default) or behavior "
-             "(Tier-B-lite output/behavior — RFC-0037 § Errata E3)",
+             "(Tier-B-lite output/behavior)",
     )
     parser.add_argument(
         "--prepare-workspace",

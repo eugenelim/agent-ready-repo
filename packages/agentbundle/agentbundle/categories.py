@@ -14,7 +14,7 @@ single source of truth the validate command reads.
 from __future__ import annotations
 
 # The default slugs: the RFC-0031 D3 baseline (~16) plus `design` (added for
-# the design-craft pack). Soft and extensible by design (RFC-0031 D8) — unknown
+# the design-craft pack). Soft and extensible by design — unknown
 # slugs warn, never fail — so the list grows without an RFC.
 DEFAULT_CATEGORIES: frozenset[str] = frozenset(
     {

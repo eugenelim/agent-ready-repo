@@ -2,7 +2,7 @@
 the right target file (settings.json for Claude Code, agent JSON for
 Kiro) and leaves the target file otherwise untouched.
 
-Covers spec ACs AC11 (Claude Code uninstall precision) and AC19
+Covers spec ACs AC11 (Claude Code uninstall precision)
 (Kiro uninstall removes wiring but leaves the agent file in place
 until the agent primitive's own uninstall runs).
 """
@@ -88,7 +88,7 @@ class _UninstallBase(unittest.TestCase):
 
 
 class CCUserHooksUninstallTests(_UninstallBase):
-    """AC11: uninstall removes only owned entries from the settings
+    """Uninstall removes only owned entries from the settings
     file; empty `hooks.<event>` arrays are pruned. Other top-level
     keys in the settings file must survive."""
 
@@ -118,7 +118,7 @@ class CCUserHooksUninstallTests(_UninstallBase):
 
         data_after = json.loads(settings.read_text(encoding="utf-8"))
         # The pack's owned entry is gone — and the empty event array
-        # is pruned per RFC-0005 § Uninstall.
+        # is pruned per the Uninstall.
         self.assertNotIn(
             "UserPromptSubmit",
             data_after.get("hooks", {}),
@@ -192,7 +192,7 @@ class MultiPackUninstallPrecisionTests(_UninstallBase):
 
 
 class KiroUserHooksUninstallTests(_UninstallBase):
-    """AC19: uninstall's hook-wiring unprojection removes the owned
+    """Uninstall's hook-wiring unprojection removes the owned
     entries from the agent JSON. The end-to-end uninstall ALSO runs
     the agent primitive's `direct-file` uninstall which removes the
     agent file (because `state.files` recorded it as pack-owned).

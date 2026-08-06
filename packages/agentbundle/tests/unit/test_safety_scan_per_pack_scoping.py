@@ -446,13 +446,13 @@ class CollectPackOwnedNamesTests(unittest.TestCase):
             self.assertIn(
                 "credentials_shim",
                 primitives,
-                "shared-libs primitive not collected; RFC-0013 type "
+                "shared-libs primitive not collected; the type "
                 "missing from _PACK_PRIMITIVE_TYPES",
             )
             self.assertIn(
                 "sso-broker",
                 primitives,
-                "adapter-root-bins primitive not collected; RFC-0013 "
+                "adapter-root-bins primitive not collected; the "
                 "type missing from _PACK_PRIMITIVE_TYPES",
             )
 

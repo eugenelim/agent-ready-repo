@@ -1,5 +1,5 @@
 # Synthetic user-scope discovery file. NO [markers] table — markers
-# are repo-only per RFC-0004; consumers refuse [markers] at this
+# are repo-only; consumers refuse [markers] at this
 # scope. A single declined finding seeded so re-run dedup paths can
 # exercise it.
 

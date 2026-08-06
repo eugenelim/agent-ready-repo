@@ -41,7 +41,7 @@ ALPHA_PACK_DIR = FIXTURE_CATALOGUE / "packs" / "alpha"
 # ---------------------------------------------------------------------------
 
 def _args(pack: str, catalogue: str, output: str) -> types.SimpleNamespace:
-    # RFC-0012: test fixtures predate per-IDE projection at repo scope;
+    # Test fixtures predate per-IDE projection at repo scope;
     # pass `emit_install_routes=True` to keep the dist-tree shape.
     return types.SimpleNamespace(
         pack=pack, catalogue=catalogue, output=output,
@@ -502,7 +502,7 @@ def _snapshot_tree(root: Path) -> dict:
 
 
 def test_dry_run_install_fresh_previews_create_writes_nothing(tmp_path):
-    """AC2/AC6: a dry-run fresh install lists every projected file with
+    """A dry-run fresh install lists every projected file with
     `create`/tier-1 + target path, exits 0, and writes nothing — no projected
     file, no `.agentbundle-state.toml`, no install marker."""
     target = tmp_path / "repo"
@@ -526,7 +526,7 @@ def test_dry_run_install_fresh_previews_create_writes_nothing(tmp_path):
 
 
 def test_dry_run_install_over_edited_previews_companion(tmp_path):
-    """AC2/AC4: a dry-run install over an adopter-edited file at a projection
+    """A dry-run install over an adopter-edited file at a projection
     path previews the `companion`/tier-2 line, exits 0, writes no companion."""
     from agentbundle import safety
 
@@ -553,7 +553,7 @@ def test_dry_run_install_over_edited_previews_companion(tmp_path):
 
 
 def test_dry_run_force_refused_leaves_orphan_intact(tmp_path):
-    """AC8/AC6: `--dry-run --force` is refused up front (non-zero + stderr), and
+    """`--dry-run --force` is refused up front (non-zero + stderr), and
     over a fixture where `--force` WOULD rmtree/unlink, the orphan crumb is left
     intact — the destructive Step 3c cleanup never runs. (Its sibling
     `test_dry_run_step3c_refusal_passthrough` confirms this crumb is a genuine
@@ -578,7 +578,7 @@ def test_dry_run_force_refused_leaves_orphan_intact(tmp_path):
 
 
 def test_dry_run_step3c_refusal_passthrough(tmp_path):
-    """AC5: `--dry-run` (no --force) over a non-projection orphan crumb exits
+    """`--dry-run` (no --force) over a non-projection orphan crumb exits
     non-zero with the same refusal a real run gives, writing nothing."""
     target = tmp_path / "repo"
     (target / ".claude" / "skills" / "work-loop").mkdir(parents=True)
@@ -595,7 +595,7 @@ def test_dry_run_step3c_refusal_passthrough(tmp_path):
 
 
 def test_dry_run_preflight_path_jail_passthrough(tmp_path):
-    """AC5: a path-jail-violating projection under `--dry-run` is refused at the
+    """A path-jail-violating projection under `--dry-run` is refused at the
     Step 8 probe (non-zero), and nothing is written outside the root."""
     from agentbundle.commands.install import run
 
@@ -622,7 +622,7 @@ CORE_SEEDS = REPO_ROOT / "packs" / "core" / "seeds"
 
 
 def test_dry_run_includes_seed_create_lines(tmp_path):
-    """AC3/AC8: dry-run fresh install stdout contains AGENTS.md, docs/CHARTER.md,
+    """Dry-run fresh install stdout contains AGENTS.md, docs/CHARTER.md,
     docs/CONVENTIONS.md as 'create tier-1' lines."""
     target = tmp_path / "repo"
     target.mkdir()
@@ -644,8 +644,8 @@ def test_dry_run_includes_seed_create_lines(tmp_path):
 
 
 def test_dry_run_seed_companion_line(tmp_path):
-    """AC3: a user-edited seed shows 'companion tier-2 <path> -> <companion>' in
-    dry-run output, and no companion is written to disk (AC5)."""
+    """A user-edited seed shows 'companion tier-2 <path> -> <companion>' in
+    dry-run output, and no companion is written to disk."""
     target = tmp_path / "repo"
     target.mkdir()
     (target / "docs").mkdir()
@@ -671,7 +671,7 @@ def test_dry_run_seed_companion_line(tmp_path):
 
 
 def test_dry_run_writes_nothing_including_seeds(tmp_path):
-    """AC5: tree is byte-identical before and after a dry-run install (no-write
+    """Tree is byte-identical before and after a dry-run install (no-write
     invariant extends to seeds)."""
     target = tmp_path / "repo"
     target.mkdir()

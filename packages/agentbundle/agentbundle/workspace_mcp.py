@@ -11,7 +11,7 @@ Spawned once per session by the Claude Code adapter (Class A). Provides:
   - elicit()            — route AI questions to the control plane
   - git_status / git_branch / git_commit / git_push — scoped git lifecycle
 
-Design constraints (ADR-0062 through ADR-0069):
+Design constraints:
   - Per-session only; stdin close → process exit within 5 s (no port, no daemon).
   - Pure stdlib Python 3.11+; no new runtime dependencies.
   - events.jsonl polling; notifications generated but not relayed (spike (c)).
@@ -62,10 +62,10 @@ _BRIDGE_POLL_INTERVAL = 0.2  # 200 ms
 # Slug safety: ^[a-zA-Z0-9._-]+$, not "." or "..", not starting with "-"
 _SAFE_SLUG_RE = re.compile(r"^[a-zA-Z0-9._-]+$")
 
-# ── Lifecycle manifest (ADR-0067 built-in defaults) ───────────────────────────
+# ── Lifecycle manifest (built-in defaults) ────────────────────────────────────
 #
 # Maps each initiative item type to its lifecycle metadata.
-# NOT computed at runtime from workspace.toml — embedded constant per ADR-0067.
+# NOT computed at runtime from workspace.toml — embedded constant.
 # workspace-types.d/ extension deferred to Stage 3.
 
 _LIFECYCLE_MANIFEST: dict[str, dict] = {
@@ -761,8 +761,8 @@ class _ElicitTool:
     """Implements elicit() — routes questions to the control plane.
 
     Delivery path selected at init-handshake time:
-      - elicitation/create path (AC11): when client declares elicitation capability
-      - response-file fallback (AC12): when elicitation is absent from client capabilities
+      - elicitation/create path: when client declares elicitation capability
+      - response-file fallback: when elicitation is absent from client capabilities
 
     The response-file path is used only for known-incapable adapters (Codex, Kiro CLI).
     Its same-OS-user limitation (O_EXCL does not prevent same-uid racing) is documented.
@@ -825,7 +825,7 @@ class _ElicitTool:
         result_holder: list[Any] = []
         self._request_map[request_id] = (result_event, result_holder)
 
-        # Encode choices in requestedSchema when options are provided (AC11).
+        # Encode choices in requestedSchema when options are provided.
         if options:
             resp_schema: dict = {
                 "type": "string",
@@ -833,7 +833,7 @@ class _ElicitTool:
             }
         else:
             resp_schema = {"type": "string"}
-        # Append context to message so it reaches the human via the native path (AC11).
+        # Append context to message so it reaches the human via the native path.
         full_message = f"{message}\n\nContext: {context}" if context else message
         req = {
             "jsonrpc": "2.0",
@@ -873,7 +873,7 @@ class _ElicitTool:
     def _call_via_response_file(
         self, message: str, context: Any, options: Any, seq: int
     ) -> dict:
-        """Response-file fallback (AC12): O_EXCL creation, 300s poll timeout."""
+        """Response-file fallback: O_EXCL creation, 300s poll timeout."""
         if self._tmp_dir is None:
             return {"error": "response-file directory not initialised"}
 
@@ -913,7 +913,7 @@ class _ElicitTool:
         correlation_id = gate_id if gate_id and gate_key != self._consumed_gate_key else None
 
         # Notify the control plane where to write the answer before blocking.
-        # Method name and payload per design.md:346 (ADR-0068 namespace).
+        # Method name and payload per design.md:346 (namespace).
         self._write({
             "jsonrpc": "2.0",
             "method": "_agentbundle.core/elicitation-pending",
@@ -950,7 +950,7 @@ class _ElicitTool:
 # ── _GitTools ─────────────────────────────────────────────────────────────────
 
 class _GitTools:
-    """Implements git_status, git_branch, git_commit, git_push (AC14, AC15).
+    """Implements git_status, git_branch, git_commit, git_push.
 
     Discovery mode (no WORKSPACE_MCP_SPEC_PATH or WORKSPACE_MCP_DISPATCHED_ITEM):
       - git_status allowed
@@ -1022,11 +1022,11 @@ class _GitTools:
         self._session_branch: str | None = self._read_head_branch()
         # Once git_branch() sets the work branch, no subsequent call may rebind it.
         # This prevents progressive rebinding across multiple git_branch() calls from
-        # widening the push target beyond the immutable session-bound branch (AC14).
+        # widening the push target beyond the immutable session-bound branch.
         # Pre-lock in two situations:
         # 1. Resumed session: HEAD is already on the expected dispatched branch.
         # 2. FSM mode without DISPATCHED_ITEM: lock to startup HEAD so the session
-        #    cannot redirect git_push to an arbitrary caller-chosen ref (AC14).
+        #    cannot redirect git_push to an arbitrary caller-chosen ref.
         self._branch_locked = (
             # Case 1: resumed dispatched session
             (self._expected_branch is not None
@@ -1039,7 +1039,7 @@ class _GitTools:
         # Serialize all mutating git operations: prevents index.lock collisions
         # and TOCTOU races on _session_branch between concurrent tool calls.
         self._git_lock = threading.Lock()
-        # Track active Popen objects for forced-exit cleanup (F15 / AC22).
+        # Track active Popen objects for forced-exit cleanup (F15).
         self._procs_lock = threading.Lock()
         self._active_procs: list[subprocess.Popen] = []
         # Set True by block_new_procs() before terminate_all_procs() to prevent
@@ -1180,7 +1180,7 @@ class _GitTools:
         except ValueError:
             _log.warning("WORKSPACE_MCP_DISPATCHED_ITEM has unexpected shape: %r", dispatched)
             return None
-        # Validate each path component to match the AC10 slug guard used in the
+        # Validate each path component to match the slug guard used in the
         # workspace_status path — prevents a crafted env var from widening the
         # commit pattern (defense-in-depth; the env var is set by the orchestrator).
         for component in (ini_slug, slug):
@@ -1305,12 +1305,12 @@ class _GitTools:
         if r.returncode != 0:
             return {"error": f"invalid branch name: {name!r}"}
         # When a dispatched item is bound, the branch name must match the expected
-        # ini_slug/type/slug form derived from WORKSPACE_MCP_DISPATCHED_ITEM (AC14).
+        # ini_slug/type/slug form derived from WORKSPACE_MCP_DISPATCHED_ITEM.
         if self._expected_branch is not None and name != self._expected_branch:
             return {
                 "error": (
                     f"branch {name!r} does not match the dispatched-item branch "
-                    f"{self._expected_branch!r} (AC14)"
+                    f"{self._expected_branch!r}"
                 )
             }
         # _git_lock serializes all mutating git operations to prevent index.lock
@@ -1320,7 +1320,7 @@ class _GitTools:
                 return {
                     "error": (
                         f"session branch already set to {self._session_branch!r}; "
-                        "git_branch may only be called once per session (AC14)"
+                        "git_branch may only be called once per session"
                     )
                 }
             # Create and check out (no -- : branch name is an option arg, not a pathspec)
@@ -1465,12 +1465,12 @@ class _GitTools:
         with self._git_lock:
             # Require the session branch to have been explicitly established via
             # git_branch(). This prevents pushing the startup branch (e.g. main)
-            # before the session has created its own work branch (AC14).
+            # before the session has created its own work branch.
             if not self._branch_locked:
                 return {
                     "error": (
                         "git_push requires a session branch established by git_branch(); "
-                        "call git_branch() first (AC14)"
+                        "call git_branch() first"
                     )
                 }
             # Two-sided check under lock: branch arg must equal session-bound
@@ -1500,9 +1500,9 @@ class _GitTools:
 class _StdioLoop:
     """Main MCP stdio loop — JSON-RPC 2.0 over newline-delimited stdin/stdout.
 
-    Frame-size cap: 1 MiB enforced during bounded read (AC16a).
-    Malformed JSON: quarantined and discarded with error response (AC16b).
-    Unknown request_id on elicitation/create response: discarded (AC16c).
+    Frame-size cap: 1 MiB enforced during bounded read.
+    Malformed JSON: quarantined and discarded with error response.
+    Unknown request_id on elicitation/create response: discarded.
     """
 
     def __init__(
@@ -1937,13 +1937,13 @@ def main(argv: list[str] | None = None) -> None:
     finally:
         bridge.stop()
         elicit_tool.cleanup()
-        # Ensure exit within 5 s (AC22). Non-daemon executor threads from in-flight git
+        # Ensure exit within 5 s. Non-daemon executor threads from in-flight git
         # subprocesses can outlive the session; the force-exit timer guarantees the
         # process terminates even if a worker is blocked on a 30-second git timeout.
         shutdown_event.set()
 
         def _force_exit() -> None:
-            # AC22: total exit budget is 5 s from stdin close.  Cleanup fits
+            # Total exit budget is 5 s from stdin close. Cleanup fits
             # within 3 s (SIGTERM → bounded wait → SIGKILL), leaving 2 s for
             # scheduling overhead, then unconditional exit.
             # Block new subprocess creation before taking the snapshot so worker

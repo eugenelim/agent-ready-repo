@@ -1,4 +1,4 @@
-"""Tests for the cursor adapter (RFC-0026 / ADR-0015 / cursor-full-parity).
+"""Tests for the cursor adapter (cursor-full-parity).
 
 Cursor is a full-parity native adapter projecting all five catalogue
 primitives to `.cursor/*`. Agents project as `.md` with the source `tools`
@@ -52,16 +52,15 @@ class CursorContractTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_contract_version_is_0_11(self) -> None:
-        """AC1 — contract bumped to 0.11 by cursor-full-parity; subsequently
-        0.12 (copilot-skills-and-web), 0.13 (docs/specs/gemini-full-parity),
-        0.14 (docs/specs/enriched-pack-manifest), 0.15
-        (docs/specs/kiro-cli-agent-skill-resources), then 0.17
-        (docs/specs/consolidated-pack-layout).
+        """Contract bumped to 0.11 by cursor-full-parity; subsequently
+        0.12 (copilot-skills-and-web), 0.13,
+        0.14, 0.15
+        Then 0.17.
         Name preserved to keep the diff small."""
         self.assertEqual(self.contract["contract"]["version"], "0.17")
 
     def test_cursor_block_projects_five_primitives(self) -> None:
-        """AC2 — the five standard primitives are in the projection array."""
+        """The five standard primitives are in the projection array."""
         block = self.contract["adapter"]["cursor"]
         prims = {e["primitive"]: e for e in block["projection"]}
         self.assertEqual(
@@ -84,14 +83,14 @@ class CursorContractTests(unittest.TestCase):
         self.assertEqual(prims["command"]["target-path"], ".cursor/commands/")
 
     def test_kiro_ide_hook_dropped_in_table_form(self) -> None:
-        """AC2 — kiro-ide-hook is dropped, in the table form (not the array)."""
+        """Kiro-ide-hook is dropped, in the table form (not the array)."""
         block = self.contract["adapter"]["cursor"]
         array_prims = {e["primitive"] for e in block["projection"]}
         self.assertNotIn("kiro-ide-hook", array_prims)
         self.assertEqual(block["projections"]["kiro-ide-hook"]["mode"], "dropped")
 
     def test_hook_event_map_keys_on_pascalcase(self) -> None:
-        """AC10 — the contract hook-event-map keys on Claude PascalCase."""
+        """The contract hook-event-map keys on Claude PascalCase."""
         block = self.contract["adapter"]["cursor"]
         hw = next(e for e in block["projection"] if e["primitive"] == "hook-wiring")
         self.assertEqual(
@@ -106,7 +105,7 @@ class CursorContractTests(unittest.TestCase):
         )
 
     def test_scope_same_prefix_both_scopes(self) -> None:
-        """AC3 — `.cursor/` prefix is identical at both scopes (no rewrite)."""
+        """`.cursor/` prefix is identical at both scopes (no rewrite)."""
         scope = self.contract["adapter"]["cursor"]["scope"]
         self.assertEqual(scope["repo"], ".")
         self.assertEqual(scope["user"], "~")
@@ -116,7 +115,7 @@ class CursorContractTests(unittest.TestCase):
         )
 
     def test_frontmatter_mapping_present_no_tools(self) -> None:
-        """AC4 — cursor-agent-frontmatter-v0.11 renames name/description/model,
+        """Cursor-agent-frontmatter-v0.11 renames name/description/model,
         no `tools` rule (tools is dropped by the adapter)."""
         mapping = self.contract["frontmatter-mapping"]["cursor-agent-frontmatter-v0.11"]
         self.assertEqual(mapping["name"]["rename"], "name")
@@ -125,7 +124,7 @@ class CursorContractTests(unittest.TestCase):
         self.assertNotIn("tools", mapping)
 
     def test_registered_in_both_registries(self) -> None:
-        """AC12 — cursor is in ADAPTERS and registry."""
+        """Cursor is in ADAPTERS and registry."""
         self.assertIn("cursor", ADAPTERS)
         self.assertIs(registry["cursor"], cursor)
 
@@ -136,7 +135,7 @@ class CursorProjectionTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_skill_command_hook_body_project(self) -> None:
-        """AC7 — skill (direct-directory), command + hook-body (direct-file)."""
+        """Skill (direct-directory), command + hook-body (direct-file)."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -153,7 +152,7 @@ class CursorProjectionTests(unittest.TestCase):
             self.assertTrue((out / ".cursor" / "hooks" / "on-start.py").exists())
 
     def test_agent_md_shape_readonly_reviewer(self) -> None:
-        """AC8 — agent .md: name/description/model/readonly, no tools."""
+        """Agent .md: name/description/model/readonly, no tools."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -170,7 +169,7 @@ class CursorProjectionTests(unittest.TestCase):
             self.assertIn("agent body", text)
 
     def test_readonly_predicate_all_arms(self) -> None:
-        """AC9 — readonly: true for non-mutating declared tools; omitted for
+        """Readonly: true for non-mutating declared tools; omitted for
         mutating tools and for absent tools."""
         cases = {
             # name: (tools, expects_readonly_line)
@@ -210,7 +209,7 @@ class CursorProjectionTests(unittest.TestCase):
             self.assertIn("readonly: true", fm)
 
     def test_agent_name_derived_from_filename(self) -> None:
-        """AC8 — when frontmatter omits `name`, it is derived from the filename."""
+        """When frontmatter omits `name`, it is derived from the filename."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -226,7 +225,7 @@ class CursorProjectionTests(unittest.TestCase):
             self.assertIn("name: from-file", fm)
 
     def test_hook_wiring_aggregated_with_version_and_remap(self) -> None:
-        """AC10 — one hooks.json, version 1, event remap, path-rewritten cmd."""
+        """One hooks.json, version 1, event remap, path-rewritten cmd."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -243,7 +242,7 @@ class CursorProjectionTests(unittest.TestCase):
             )
 
     def test_hook_wiring_merge_is_non_destructive(self) -> None:
-        """AC11 — merge preserves foreign top-level keys + foreign events."""
+        """Merge preserves foreign top-level keys + foreign events."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -269,7 +268,7 @@ class CursorProjectionTests(unittest.TestCase):
             self.assertIn("sessionStart", data["hooks"])  # managed event added
 
     def test_unmapped_event_dropped_not_crash(self) -> None:
-        """AC10 — an unmapped source event is dropped (no exception)."""
+        """An unmapped source event is dropped (no exception)."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -344,7 +343,7 @@ class CursorProjectionTests(unittest.TestCase):
 
 
 class CursorInstallDispatchTests(unittest.TestCase):
-    """AC14 — cursor is wired into both install render dispatchers; neither
+    """Cursor is wired into both install render dispatchers; neither
     raises `no … projection wired for adapter 'cursor'` for a cursor pack."""
 
     def _seed_pack(self, root: Path) -> Path:
@@ -409,7 +408,7 @@ class ContractVersionAtLeastTests(unittest.TestCase):
 
 class CursorSelfHostTests(unittest.TestCase):
     def test_cursor_not_in_self_host_adapters(self) -> None:
-        """AC15 — cursor is distribution-only, not self-hosted."""
+        """Cursor is distribution-only, not self-hosted."""
         from agentbundle.build.self_host import SELF_HOST_ADAPTERS
 
         self.assertNotIn("cursor", SELF_HOST_ADAPTERS)

@@ -1,4 +1,4 @@
-"""Tests for pack-config-api spec (RFC-0074, ADR-0058, ADR-0059).
+"""Tests for pack-config-api spec.
 
 Covers:
   - make_pack_dir: slug validation, reserved slugs, home-confinement, symlink guard

@@ -24,7 +24,7 @@ the rail exists to refuse a future second-pack collision before it can
 silently overwrite.
 
 The detection of ``metadata.auth: creds`` and the projection/drift
-machinery that consumed it were removed with the projection in RFC-0023;
+machinery that consumed it were removed with the projection;
 the standing regression that no shim copy reappears under a consumer
 ``scripts/`` lives in ``tests/test_shared_libs_projection.py``.
 """
@@ -45,9 +45,9 @@ def collect_sources(packs_dir: Path) -> dict[str, Path]:
     shipping the same basename produces non-deterministic projection
     order and silent overwrites; refuse hard at enumeration time.
 
-    Consumed by ``adapter_root_bins`` for the AC22b companion-shim
+    Consumed by ``adapter_root_bins`` for the companion-shim
     projection and its collision rail; the original skill-``scripts/``
-    projection was retired in RFC-0023.
+    projection was retired.
     """
     sources: dict[str, Path] = {}
     for pack in sorted(packs_dir.iterdir()):

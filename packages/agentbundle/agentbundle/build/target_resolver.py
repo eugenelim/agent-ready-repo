@@ -1,6 +1,6 @@
 """Scope-conditional `target` resolver for v0.3 projection declarations.
 
-The v0.3 adapter contract (RFC-0005) introduced a string-or-scope-map shape
+The v0.3 adapter contract introduced a string-or-scope-map shape
 for `target` on `[adapter.<x>.projections.<primitive>]` entries:
 
     # bare-string (v0.1 legacy shorthand)

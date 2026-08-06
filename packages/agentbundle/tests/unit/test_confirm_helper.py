@@ -1,4 +1,4 @@
-"""Unit tests for `commands/_common.confirm_or_refuse` (CLI-hygiene AC17).
+"""Unit tests for `commands/_common.confirm_or_refuse` (CLI-hygiene).
 
 The shared confirm/refuse/--yes helper that `uninstall`, `install --force`, the
 `install`→`upgrade` offer, and `upgrade` all call. Pins the four-way decision:

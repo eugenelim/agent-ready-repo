@@ -1,5 +1,5 @@
 """T3 tests for `[pack.install] allowed-adapters` validation
-(RFC-0011 / pack-allowed-adapters AC3, AC7, AC22).
+(pack-allowed-adapters).
 
 Two surfaces under test:
 
@@ -128,7 +128,7 @@ class TestValidateAllowedAdaptersCrossField(unittest.TestCase):
         self.assertIsNone(_validate_allowed_adapters(pack))
 
     def test_user_scope_pack_accepts_copilot(self) -> None:
-        # RFC-0024 / docs/specs/copilot-full-parity: copilot is now a
+        # Copilot is now a
         # user-scope-capable adapter (`[adapter.copilot.scope].user`), so a
         # user-scope pack declaring it is **accepted** — the inverse of the
         # repo-only refusal RFC-0012 recorded. (`research`, a user-scope-default

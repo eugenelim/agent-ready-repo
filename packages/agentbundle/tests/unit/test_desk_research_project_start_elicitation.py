@@ -65,7 +65,7 @@ class DeskResearchProjectStartElicitationContract(unittest.TestCase):
                 pattern,
                 f"SKILL.md still describes .context/research as a fallback "
                 f"(matched {pattern!r}) — remove this from resolution order "
-                f"per RFC-0064 M3 D8 fix",
+                f"as designed",
             )
 
     def test_no_context_scratch_as_step_two(self) -> None:
@@ -85,7 +85,7 @@ class DeskResearchProjectStartElicitationContract(unittest.TestCase):
                 ".context/",
                 line,
                 f"A numbered resolution step describes .context/ as an option: "
-                f"{line!r} — remove the silent scratch fallback per RFC-0064 M3 fix",
+                f"{line!r} — remove the silent scratch fallback",
             )
 
     # ------------------------------------------------------------------
@@ -106,7 +106,7 @@ class DeskResearchProjectStartElicitationContract(unittest.TestCase):
                 token,
                 self.body,
                 f"SKILL.md missing elicitation token {token!r} — "
-                f"the two-branch fallback must be described per RFC-0064 M3 D8",
+                f"the two-branch fallback must be described",
             )
 
     def test_never_default_to_context_stated(self) -> None:

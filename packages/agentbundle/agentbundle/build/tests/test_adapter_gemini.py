@@ -1,4 +1,4 @@
-"""Tests for the gemini adapter (RFC-0027 / ADR-0016 / gemini-full-parity).
+"""Tests for the gemini adapter (gemini-full-parity).
 
 Gemini is a full-parity native adapter projecting all five catalogue primitives
 to `.gemini/*` at both scopes. Unlike Cursor, agents KEEP their `tools:` allowlist
@@ -74,7 +74,7 @@ class GeminiCommandTomlTests(unittest.TestCase):
         return out / ".gemini" / "commands"
 
     def test_single_injection_and_description(self) -> None:
-        """AC7 — `$ARGUMENTS`→`{{args}}`, body→`prompt`, description→`description`."""
+        """`$ARGUMENTS`→`{{args}}`, body→`prompt`, description→`description`."""
         with tempfile.TemporaryDirectory() as t:
             tmp = Path(t)
             _write_command(
@@ -91,7 +91,7 @@ class GeminiCommandTomlTests(unittest.TestCase):
             self.assertNotIn("$ARGUMENTS", data["prompt"])
 
     def test_subdir_namespacing_preserved(self) -> None:
-        """AC7 — `git/commit.md` → `.gemini/commands/git/commit.toml`."""
+        """`git/commit.md` → `.gemini/commands/git/commit.toml`."""
         with tempfile.TemporaryDirectory() as t:
             tmp = Path(t)
             _write_command(tmp / "pack", "git/commit.md", description=None, body="Commit.")
@@ -99,7 +99,7 @@ class GeminiCommandTomlTests(unittest.TestCase):
             self.assertTrue((commands / "git" / "commit.toml").exists())
 
     def test_positional_arg_raises(self) -> None:
-        """AC7 — a body using positional `$1` raises a build error (fail-closed)."""
+        """A body using positional `$1` raises a build error (fail-closed)."""
         with tempfile.TemporaryDirectory() as t:
             tmp = Path(t)
             _write_command(
@@ -110,7 +110,7 @@ class GeminiCommandTomlTests(unittest.TestCase):
                 self._project(tmp)
 
     def test_no_description_omits_key(self) -> None:
-        """AC7 — a command with no `description` frontmatter omits the key."""
+        """A command with no `description` frontmatter omits the key."""
         with tempfile.TemporaryDirectory() as t:
             tmp = Path(t)
             _write_command(tmp / "pack", "plain.md", description=None, body="Just a prompt.")
@@ -157,7 +157,7 @@ class GeminiContractTests(unittest.TestCase):
         self.assertEqual(self.contract["contract"]["version"], "0.17")
 
     def test_gemini_block_projects_five_primitives(self) -> None:
-        """AC2 — five standard primitives with their gemini targets."""
+        """Five standard primitives with their gemini targets."""
         block = self.contract["adapter"]["gemini"]
         prims = {e["primitive"]: e for e in block["projection"]}
         self.assertEqual(set(prims), {"skill", "agent", "hook-body", "hook-wiring", "command"})
@@ -175,13 +175,13 @@ class GeminiContractTests(unittest.TestCase):
         self.assertEqual(prims["command"]["target-path"], ".gemini/commands/")
 
     def test_kiro_ide_hook_dropped_in_table_form(self) -> None:
-        """AC2 — kiro-ide-hook dropped in the table form (not the array)."""
+        """Kiro-ide-hook dropped in the table form (not the array)."""
         block = self.contract["adapter"]["gemini"]
         self.assertNotIn("kiro-ide-hook", {e["primitive"] for e in block["projection"]})
         self.assertEqual(block["projections"]["kiro-ide-hook"]["mode"], "dropped")
 
     def test_hook_event_map_pascalcase_to_gemini(self) -> None:
-        """AC9 — the hook-event-map keys on Claude PascalCase, values are Gemini events."""
+        """The hook-event-map keys on Claude PascalCase, values are Gemini events."""
         hw = next(
             e for e in self.contract["adapter"]["gemini"]["projection"]
             if e["primitive"] == "hook-wiring"
@@ -199,7 +199,7 @@ class GeminiContractTests(unittest.TestCase):
         )
 
     def test_context_filenames_on_hook_wiring_rule(self) -> None:
-        """AC8 — the static context bridge data lives in the contract."""
+        """The static context bridge data lives in the contract."""
         hw = next(
             e for e in self.contract["adapter"]["gemini"]["projection"]
             if e["primitive"] == "hook-wiring"
@@ -207,7 +207,7 @@ class GeminiContractTests(unittest.TestCase):
         self.assertEqual(hw["context-filenames"], ["AGENTS.md", "GEMINI.md"])
 
     def test_scope_identical_prefixes_both_scopes(self) -> None:
-        """AC3 — `.gemini/` prefix identical at both scopes (no rewrite)."""
+        """`.gemini/` prefix identical at both scopes (no rewrite)."""
         scope = self.contract["adapter"]["gemini"]["scope"]
         self.assertEqual(scope["repo"], ".")
         self.assertEqual(scope["user"], "~")
@@ -215,7 +215,7 @@ class GeminiContractTests(unittest.TestCase):
         self.assertEqual(scope["allowed-prefixes"]["repo"], scope["allowed-prefixes"]["user"])
 
     def test_frontmatter_mapping_keeps_tools_and_model(self) -> None:
-        """AC5/AC6 — gemini-agent-frontmatter maps name/description/tools/model."""
+        """Gemini-agent-frontmatter maps name/description/tools/model."""
         m = self.contract["frontmatter-mapping"]["gemini-agent-frontmatter"]
         self.assertEqual(m["name"]["rename"], "name")
         self.assertEqual(m["description"]["rename"], "description")
@@ -228,7 +228,7 @@ class GeminiContractTests(unittest.TestCase):
         self.assertEqual(m["model"]["values"]["haiku"], "gemini-2.5-flash-lite")
 
     def test_registered_in_both_registries(self) -> None:
-        """AC1 — gemini in ADAPTERS and registry."""
+        """Gemini in ADAPTERS and registry."""
         self.assertIn("gemini", ADAPTERS)
         self.assertIs(registry["gemini"], gemini)
 
@@ -244,7 +244,7 @@ class GeminiProjectionTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_skill_command_hook_body_project(self) -> None:
-        """AC2 — skill (direct-directory), command (gemini-command-toml), hook-body."""
+        """Skill (direct-directory), command (gemini-command-toml), hook-body."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -260,7 +260,7 @@ class GeminiProjectionTests(unittest.TestCase):
             self.assertTrue((out / ".gemini" / "hooks" / "on-start.py").exists())
 
     def test_agent_keeps_and_maps_tools_and_model(self) -> None:
-        """AC5/AC6 — tools name-mapped + kept, model tier-mapped."""
+        """Tools name-mapped + kept, model tier-mapped."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -279,7 +279,7 @@ class GeminiProjectionTests(unittest.TestCase):
             self.assertIn("agent body", text)
 
     def test_agent_dedups_collided_tools(self) -> None:
-        """AC5 — Edit + MultiEdit both map to `replace`; the list de-duplicates."""
+        """Edit + MultiEdit both map to `replace`; the list de-duplicates."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -292,7 +292,7 @@ class GeminiProjectionTests(unittest.TestCase):
             self.assertEqual(sorted(tools), ["replace", "write_file"])  # Edit+MultiEdit→one replace
 
     def test_agent_all_tools_unmapped_omits_tools_key(self) -> None:
-        """AC5 — an agent whose tools all drop emits NO `tools` key (not `tools: []`,
+        """An agent whose tools all drop emits NO `tools` key (not `tools: []`,
         which Gemini could read as 'no tools permitted'); matches model-absent omit."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -304,7 +304,7 @@ class GeminiProjectionTests(unittest.TestCase):
             self.assertNotIn("tools:", fm)
 
     def test_agent_absent_model_omitted(self) -> None:
-        """AC6 — an agent with no model produces no model field."""
+        """An agent with no model produces no model field."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -315,7 +315,7 @@ class GeminiProjectionTests(unittest.TestCase):
             self.assertNotIn("model:", fm)
 
     def test_agent_unmapped_tool_dropped(self) -> None:
-        """AC5 — an unmapped tool is dropped (not emitted), with no crash."""
+        """An unmapped tool is dropped (not emitted), with no crash."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -327,7 +327,7 @@ class GeminiProjectionTests(unittest.TestCase):
             self.assertNotIn("NotARealTool", fm)
 
     def test_agent_name_derived_from_filename(self) -> None:
-        """AC2 — frontmatter omitting `name` derives it from the filename."""
+        """Frontmatter omitting `name` derives it from the filename."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -381,7 +381,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
         return json.loads((out / ".gemini" / "settings.json").read_text())
 
     def test_hooks_and_context_single_merge(self) -> None:
-        """AC8 — hooks + context.fileName land in one settings.json; event remapped;
+        """Hooks + context.fileName land in one settings.json; event remapped;
         command path-rewritten tools/hooks/→.gemini/hooks/."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -397,7 +397,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
             self.assertEqual(cmd, "python .gemini/hooks/session-start.py")
 
     def test_no_settings_json_without_wiring(self) -> None:
-        """AC8 — a pack with no hook-wiring writes NO `.gemini/settings.json`
+        """A pack with no hook-wiring writes NO `.gemini/settings.json`
         (the cursor single-writer model: repo-scope install overwrites merge
         targets whole-file, so emitting a settings.json for every pack would
         clobber another pack's hooks). The `context` bridge rides in the
@@ -411,7 +411,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
             self.assertFalse((out / ".gemini" / "settings.json").exists())
 
     def test_event_remap_all_arms(self) -> None:
-        """AC9 — every shipped-vocabulary event maps to its Gemini event."""
+        """Every shipped-vocabulary event maps to its Gemini event."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -433,7 +433,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
             )
 
     def test_foreign_key_survives_merge(self) -> None:
-        """AC8 — a pre-existing foreign top-level key + foreign event survive."""
+        """A pre-existing foreign top-level key + foreign event survive."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -453,7 +453,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
             self.assertIn("SessionStart", data["hooks"])  # managed event added
 
     def test_unmapped_event_fails_build(self) -> None:
-        """AC9 — an unrecognised source event fails the build (fail-closed)."""
+        """An unrecognised source event fails the build (fail-closed)."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -468,7 +468,7 @@ class GeminiSettingsMergeTests(unittest.TestCase):
                 gemini.project(pack, self.contract, out)
 
     def test_matcher_passthrough(self) -> None:
-        """AC9 — a source matcher passes through unchanged."""
+        """A source matcher passes through unchanged."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             pack = tmp_path / "pack"
@@ -525,7 +525,7 @@ class GeminiInstallDispatchTests(unittest.TestCase):
         self.assertIn(".gemini/agents/foo.md", projection)
 
     def test_gemini_user_scope_hook_body_and_settings(self) -> None:
-        """AC10 — a hook-shipping pack lands its hook body at `.gemini/hooks/` AND
+        """A hook-shipping pack lands its hook body at `.gemini/hooks/` AND
         `.gemini/settings.json` in the user-scope projection (every target under
         `.gemini/`, rooted at `~` by the generic user-rooting)."""
         from agentbundle.commands.install import _render_for_user_scope
@@ -547,7 +547,7 @@ class GeminiInstallDispatchTests(unittest.TestCase):
 
 
 class GeminiShippedAgentToolCoverageTests(unittest.TestCase):
-    """AC5 — every tool any shipped agent declares is in the gemini tools map, so
+    """Every tool any shipped agent declares is in the gemini tools map, so
     an unmapped tool would surface here rather than silently dropping at install."""
 
     def test_every_shipped_agent_tool_is_mapped(self) -> None:
@@ -570,7 +570,7 @@ class GeminiShippedAgentToolCoverageTests(unittest.TestCase):
 
 class GeminiSelfHostTests(unittest.TestCase):
     def test_gemini_not_in_self_host_adapters(self) -> None:
-        """AC12 — gemini is distribution-only, not self-hosted."""
+        """Gemini is distribution-only, not self-hosted."""
         from agentbundle.build.self_host import SELF_HOST_ADAPTERS
 
         self.assertNotIn("gemini", SELF_HOST_ADAPTERS)
@@ -582,7 +582,7 @@ class GeminiSelfHostTests(unittest.TestCase):
 
 
 class GeminiAllPacksAdmissibleTests(unittest.TestCase):
-    """AC11 — `--adapter gemini` resolves (is not refused) for every shipped pack
+    """`--adapter gemini` resolves (is not refused) for every shipped pack
     at both repo and user scope: the 7 list-declaring packs list gemini, and the
     4 list-less packs admit any shipped (repo) / user-scope-capable (user) adapter."""
 

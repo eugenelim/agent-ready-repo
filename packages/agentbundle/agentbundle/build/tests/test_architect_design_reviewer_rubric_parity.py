@@ -1,4 +1,4 @@
-"""Rubric-parity guard for architect's `design-reviewer` subagent (RFC-0032).
+"""Rubric-parity guard for architect's `design-reviewer` subagent.
 
 The `design-reviewer` agent inlines a condensed copy of `architect-review`'s
 verdict scheme, severity glossary, and 🔧/🧭 mechanical-judgment taxonomy

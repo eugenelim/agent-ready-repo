@@ -200,7 +200,7 @@ def test_force_no_op_when_pack_not_already_other_scope(tmp_path, monkeypatch):
         {"pack": "demo-both", "catalogue": str(cat), "output": str(target), "scope": "repo", "force": True}  # noqa: E501
     )
     assert rc == 0
-    # RFC-0012: repo-scope install at the dist-tree fallback (no
+    # Repo-scope install at the dist-tree fallback (no
     # `emit_install_routes` attribute on the Namespace) emits the
     # `emitted install routes ...` line instead of the legacy
     # `installed: X @ repo` plain text.

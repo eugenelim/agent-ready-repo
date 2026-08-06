@@ -1,6 +1,6 @@
 """State-file legacy handling under v0.4 (greenfield, RFC-0052 D8).
 
-The v0.4 schema (ADR-0039) made cross-version handling a hard refusal: every
+The v0.4 schema made cross-version handling a hard refusal: every
 legacy version (v0.1/v0.2/v0.3) is refused on read AND write with re-install
 guidance, and ``init-state --migrate`` no longer converts — it refuses. (The
 pure-loader refusal matrix lives in ``test_state_v0_4_schema.py``; this file
@@ -72,7 +72,7 @@ def test_init_state_refuses_legacy_state_file(tmp_path):
 
 
 def test_migrate_refuses_legacy_version(tmp_path):
-    """Greenfield (RFC-0052 D8): --migrate refuses a legacy file rather than
+    """Greenfield: --migrate refuses a legacy file rather than
     converting — the old header-only bump would relabel a v0.3 body as v0.4."""
     state_path = _write(tmp_path / ".agentbundle-state.toml", V01_FIXTURE)
     args = argparse.Namespace(

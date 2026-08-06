@@ -71,7 +71,7 @@ def _redact_error(msg: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Status computation -- pure function (AC4, AC5, AC6)
+# Status computation -- pure function
 # ---------------------------------------------------------------------------
 
 
@@ -133,7 +133,7 @@ def _version_key(version: str) -> tuple[int, ...] | None:
 
 
 # ---------------------------------------------------------------------------
-# Multi-source resolution (AC7-AC10, AC12)
+# Multi-source resolution
 # ---------------------------------------------------------------------------
 
 
@@ -150,7 +150,7 @@ def _resolve_per_source(
     immediately and are not added to ``sources``.
 
     The returned ``sources`` list is sorted ascending by canonical source string
-    (AC14 sources[] ordering).
+    (sources[] ordering).
     """
     from agentbundle.catalogue import CatalogueError, resolve_catalogue
     from agentbundle.commands._common import _major
@@ -258,7 +258,7 @@ def _resolve_per_source(
             "error_message": None,
         })
 
-    # Sort sources ascending by canonical source string (AC14)
+    # Sort sources ascending by canonical source string
     sources.sort(key=lambda s: s["source"])
     return sources, row_ctx_map
 
@@ -286,9 +286,9 @@ def _render_json(
     serialized -- to emit exactly the nine contract keys and avoid serialization
     crashes (``PackState`` is not JSON-serializable).
     """
-    # Sort rows deterministically (AC14)
+    # Sort rows deterministically
     display_rows = sorted(rows, key=lambda r: (r["scope"], r["pack"], r["adapter"]))
-    # Sort sources ascending by canonical source string (AC14)
+    # Sort sources ascending by canonical source string
     sources = sorted(sources, key=lambda s: s["source"])
 
     # Summary counts over full pre-filter set
@@ -424,7 +424,7 @@ def _collect_rows(
 
     Each row carries the display fields plus ``_pack_state`` / ``_root`` for a
     later (optional) drift pass. Sorted by (scope, pack, adapter) so output is
-    deterministic (RFC-0072 D5).
+    deterministic.
     """
     rows: list[dict] = []
     for scope_name, root, state in scope_states:
@@ -481,7 +481,7 @@ def run(args: argparse.Namespace) -> int:
         if sc == "repo":
             base, state_path = repo_root, repo_root / ".agentbundle-state.toml"
         elif sc == "local":
-            # RFC-0080: per-clone state file, never committed.
+            # Per-clone state file, never committed.
             base = repo_root
             state_path = repo_root / ".agentbundle-local-state.toml"
         else:  # user

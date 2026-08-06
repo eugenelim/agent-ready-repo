@@ -44,7 +44,7 @@ def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
 
 
 class PackManifestShapeTests(unittest.TestCase):
-    """AC4: pack.toml carries the verbatim field shape from RFC-0013 § 4."""
+    """pack.toml carries the verbatim field shape from RFC-0013 § 4."""
 
     def setUp(self) -> None:
         self.pack_toml = tomllib.loads(
@@ -96,7 +96,7 @@ class PackManifestShapeTests(unittest.TestCase):
 
 
 class PackDirectoryInvariantTests(unittest.TestCase):
-    """AC5: .apm/ tree contains exactly the declared primitive directories
+    """apm/ tree contains exactly the declared primitive directories
     (shared-libs/, adapter-root-bins/, user-libs/, skills/credential-setup/),
     plus pack.toml at the pack root. No seeds/, no hooks/, no
     hook-wiring/, no second .apm/skills/<other>/. No <adapt:NAME>
@@ -236,7 +236,7 @@ class SeedsRefusalRailTests(_BaseInstall):
 class UserScopeFloorDeliveryTests(_BaseInstall):
     """credbroker-user-scope T4: a ``$HOME``-redirected user-scope install
     delivers the vendored ``credbroker`` floor (``lib/``) **and** the
-    ``sso-broker`` rail (``bin/`` + the AC22b companion shim), and a real
+    ``sso-broker`` rail (``bin/`` + the companion shim), and a real
     consumer entry script resolves ``import credbroker`` from the floor.
     """
 
@@ -288,7 +288,7 @@ class UserScopeFloorDeliveryTests(_BaseInstall):
                 f"~/.agentbundle/lib/credbroker/{name} absent after install",
             )
         binp = self.home / ".agentbundle" / "bin"
-        # sso-broker.py + the AC22b companion shim + both _sso_* backends.
+        # sso-broker.py + the companion shim + both _sso_* backends.
         for name in (
             "sso-broker.py",
             "credentials_shim.py",

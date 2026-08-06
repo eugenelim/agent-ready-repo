@@ -906,7 +906,7 @@ def test_table_user_info_source_shows_dash(tmp_path, capsys):
 
 
 def test_table_source_column_count_pre_filter(tmp_path, capsys):
-    """SOURCE column decision uses pre-filter source count (AC13 + AC1)."""
+    """SOURCE column decision uses pre-filter source count."""
     cat_a = _write_catalogue(tmp_path / "cat_a", {"core": "1.0.0", "base": "1.0.0"})
     cat_b = _write_catalogue(tmp_path / "cat_b", {"architect": "1.1.0"})
     _write_state(
@@ -1089,7 +1089,7 @@ def test_table_golden_120col(tmp_path, capsys):
 
 
 def test_table_column_alignment_mixed_lengths_and_unicode(tmp_path, capsys):
-    """Column separator offsets are identical across all data rows (AC16)."""
+    """Column separator offsets are identical across all data rows."""
     _write_golden_state(tmp_path)
     args = _make_args(root=str(tmp_path), scope="repo", no_check=True)
     li.run(args)
@@ -1179,7 +1179,7 @@ def test_subprocess_exit_0_on_catalogue_failure(tmp_path):
 
 
 def test_no_state_mutation(tmp_path, capsys):
-    """State file mtime unchanged after list-installed invocations (AC18)."""
+    """State file mtime unchanged after list-installed invocations."""
     _write_state(
         tmp_path / ".agentbundle-state.toml",
         State(packs={("core", "claude-code"): PackState(installed_version="1.0.0")}),

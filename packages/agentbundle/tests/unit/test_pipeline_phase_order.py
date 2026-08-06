@@ -1,6 +1,6 @@
 """T7: build-pipeline phase-order invariant — RFC-0005.
 
-Per RFC-0005 § Build-pipeline ordering invariant, the pipeline projects
+Per the build-pipeline ordering invariant, the pipeline projects
 primitives in fixed order **`hook-body` → `agent` → `hook-wiring` →
 `command` → `skill`** within each pack. `merge-into-agent-json` reads
 the agent JSON the agent projection wrote, so agents must land first.
@@ -201,7 +201,7 @@ class KiroHookWiringMergeDuringBuildTests(unittest.TestCase):
 
 
 class CrossAdapterIndependenceTests(unittest.TestCase):
-    """RFC-0005: cross-pack ordering is not introduced. The build
+    """Cross-pack ordering is not introduced. The build
     pipeline's *adapter-level* independence is the load-bearing
     guarantee — pack X projecting against Claude Code never touches
     pack Y's Kiro outputs (different target paths). Cross-pack

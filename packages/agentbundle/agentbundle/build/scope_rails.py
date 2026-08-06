@@ -1,4 +1,4 @@
-"""Contract-level user-scope refusal rails (RFC-0004 Rails A/B/C).
+"""Contract-level user-scope refusal rails (Rails A/B/C).
 
 The three rails fire **only when a pack declares `"user" ∈
 allowed-scopes`**. Repo-only packs are not inspected. The whole point
@@ -28,7 +28,7 @@ Rails:
     form `<adapt:[A-Z_][A-Z0-9_]*>` *or* the canonical lowercase-hyphen
     form `<adapt:[a-z][a-z0-9-]*>` in any file under `.apm/skills/`,
     `.apm/agents/`, or `.apm/commands/`. Both casings are recognised
-    per `adapt-to-project` spec AC14 (canonical syntax) and AC21
+    per `adapt-to-project` spec AC14 (canonical syntax)
     (cross-spec widening) so a user-scope pack carrying lowercase-
     hyphen markers cannot bypass the rail. The rail walks those
     directories in `sorted(os.walk(...))` order so the first-offending-
@@ -278,7 +278,7 @@ def run_all(
     ``validate`` surfaces to keep the message order consistent.
 
     ``user_scope_hooks`` propagates to Rail B's conditional lift
-    (RFC-0005 § Rail B — user-scope lift). Rails A and C ignore it.
+    Rails A and C ignore it.
     """
     if (result := check_seeds(pack_path, allowed_scopes)) is not None:
         return result
@@ -290,7 +290,7 @@ def run_all(
 
 
 # ---------------------------------------------------------------------------
-# T2 (RFC-0005): kiro `attach-to-agent` validate rail.
+# T2: kiro `attach-to-agent` validate rail.
 #
 # Pure-function shape so unit tests can drive it with in-memory pack-shaped
 # dicts (per the T2 plan's testing approach — no on-disk fixtures). The CLI
@@ -355,11 +355,11 @@ def check_kiro_event_vocabulary(
     target_adapters: Iterable[str],
     adapter_name: str,
 ) -> str | None:
-    """T6 (RFC-0005): per-adapter event-vocabulary refusal.
+    """T6: per-adapter event-vocabulary refusal.
 
-    AC17 and AC17b: a wiring TOML naming an event outside the resolved
+    A wiring TOML naming an event outside the resolved
     target adapter's declared ``agent-event-vocabulary`` is refused at
-    ``validate`` time with the RFC-0005 verbatim text
+    ``validate`` time with the verbatim text
     ``pack <P>'s hook-wiring <name>.toml uses event '<E>'; not in
     adapter '<adapter>' agent-event-vocabulary``.
 
@@ -371,7 +371,7 @@ def check_kiro_event_vocabulary(
     Claude Code's projection does not declare ``agent-event-vocabulary``,
     so a wiring TOML with arbitrary event names projected against
     Claude Code passes ``validate``. The vocabulary refusal is
-    per-adapter, not per-RFC (AC17b).
+    per-adapter, not per-RFC.
 
     Arguments:
       pack_name: substituted into the refusal text.
@@ -511,7 +511,7 @@ def check_kiro_wiring(
 
 
 # ---------------------------------------------------------------------------
-# T-C2 (RFC-0005): kiro-ide-hook validate rail.
+# T-C2: kiro-ide-hook validate rail.
 #
 # Five refusal paths covering the RFC's "validate rail" subsection
 # under § *Kiro IDE event hooks — new `kiro-ide-hook` primitive*:

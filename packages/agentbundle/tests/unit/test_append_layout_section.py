@@ -1,6 +1,6 @@
 """Unit tests for `commands.install._append_layout_section` (T2).
 
-Spec: docs/specs/consolidated-pack-layout/spec.md (AC9, AC10, AC11).
+Spec: docs/specs/consolidated-pack-layout/spec.md.
 
 `_append_layout_section` maintains an adopter-owned `agentbundle-layout.toml`:
 it appends a pack's scope-keyed `[pack.layout.<scope>]` default as a `[<pack>]`
@@ -21,7 +21,7 @@ from agentbundle.commands.install import _append_layout_section
 from agentbundle.safety import PathJailError
 
 # ---------------------------------------------------------------------------
-# never-create / never-overwrite (AC9)
+# never-create / never-overwrite
 # ---------------------------------------------------------------------------
 
 
@@ -76,7 +76,7 @@ def test_appends_missing_section_when_file_exists(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# scope-keyed selection + omit-`.user` no-op (AC10)
+# scope-keyed selection + omit-`.user` no-op
 # ---------------------------------------------------------------------------
 
 
@@ -139,7 +139,7 @@ def test_no_layout_table_is_no_op(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# injection-safe emit + re-emit type-validation (AC11)
+# injection-safe emit + re-emit type-validation
 # ---------------------------------------------------------------------------
 
 
@@ -195,7 +195,7 @@ def test_malformed_file_left_untouched(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# jailed write — user scope succeeds; symlink target fails closed (AC11, AC14)
+# jailed write — user scope succeeds; symlink target fails closed
 # ---------------------------------------------------------------------------
 
 

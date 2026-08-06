@@ -6,7 +6,7 @@ test harness lands in a future spec. Until then these tests sit
 alongside CLI tests so a single `pytest packages/agentbundle/`
 covers them.
 
-Per AC1: the body must contain five behavior-pinning literal strings.
+The body must contain five behavior-pinning literal strings.
 Per AC23 / T17 (split-into-two prompt): two additional literal
 phrases pin the cross-scope restructure contract.
 
@@ -282,7 +282,7 @@ def test_skill_body_preserves_idempotence_clause(body):
 def test_skill_body_apm_stale_entry_drop_grep(body):
     """AC14 / AC27 grep: the stale-entry-drop paragraph names `apm_modules`
     so a reader can identify the APM clause without parsing the paragraph
-    structure. Cf. AC27 in docs/specs/adapt-to-project/spec.md."""
+    structure. Cf. AC27."""
     # Locate the stale-entry-drop region by anchoring on its heading text.
     anchor = "Stale-entry drop-on-read."
     assert anchor in body, "missing stale-entry-drop heading"

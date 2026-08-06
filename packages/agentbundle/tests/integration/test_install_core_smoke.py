@@ -32,7 +32,7 @@ REAL_CORE = REPO_ROOT / "packs" / "core"
 
 
 def test_real_core_install_writes_session_start_binding(tmp_path):
-    """AC10: real `packs/core/` install produces the dist-tree settings file
+    """Real `packs/core/` install produces the dist-tree settings file
     with the canonical SessionStart command string.
     """
     assert REAL_CORE.exists(), f"real packs/core/ missing at {REAL_CORE}"

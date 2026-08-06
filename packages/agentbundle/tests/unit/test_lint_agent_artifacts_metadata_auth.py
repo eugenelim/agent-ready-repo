@@ -1,6 +1,6 @@
 """Tests for `_step_agent_artifacts`'s `metadata.auth` admission.
 
-Verifies AC3 + AC26 from docs/specs/credential-broker-contract/spec.md:
+Verifies AC3 + AC26.md:
   - The lint admits `metadata.auth` as an enum (env / cli / creds /
     sso-cookie) under the spec-blessed `metadata:` escape hatch.
   - Unknown `metadata.auth` values are refused with the pinned message:

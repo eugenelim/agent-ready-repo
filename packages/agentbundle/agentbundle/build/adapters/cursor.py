@@ -1,4 +1,4 @@
-"""Cursor adapter — full-parity native adapter (RFC-0026 / ADR-0015).
+"""Cursor adapter — full-parity native adapter.
 
 Projects every catalogue primitive to Cursor's native `.cursor/*` discovery
 paths. Cursor's CLI and IDE share one `.cursor/` layout, so a single adapter
@@ -47,7 +47,7 @@ _ADAPTER = "cursor"
 
 # Cursor subagents inherit all parent tools; a `readonly: true` flag is the
 # only way to restrict one. An agent is read-only when its declared tool set
-# contains none of these mutating tools (RFC-0026 Open Q2 / spec AC9). `Bash`
+# contains none of these mutating tools (Open Q2). `Bash`
 # is deliberately not here — the `core` reviewers declare it and must stay
 # read-only.
 _MUTATING_TOOLS = {"Edit", "Write", "MultiEdit", "NotebookEdit"}

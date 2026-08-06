@@ -1,4 +1,4 @@
-"""RFC-0012 AC30b: refusal-ordering witness.
+"""Refusal-ordering witness.
 
 Defensive regression pin against a future refactor that reorders the
 install handler's refusal tiers. Each case supplies inputs that
@@ -35,7 +35,7 @@ The tests pass today by construction. They fail if anyone reorders the
 install handler's checks (e.g., moves the handler-level mutex above
 ``scope.resolve()``, or invokes the resolver before the mutex). Per
 spec AC30b's own framing: "without this witness, a refactor that
-reorders the tiers passes every per-tier test in AC30/AC32."
+reorders the tiers passes every per-tier test."
 """
 
 from __future__ import annotations

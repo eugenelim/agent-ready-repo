@@ -1,6 +1,6 @@
 """T11: `pack.schema.json` enforces `[pack.install]` under contract v0.2.
 
-Verifies AC #15 (RFC-0004) for the distribution-adapters spec. Six test
+Verifies AC #15 for the distribution-adapters spec. Six test
 rows from the plan:
 
   1. A v0.2 pack with no [pack.install] table is rejected.

@@ -1,5 +1,5 @@
 """T8 integration tests for RFC-0011 / pack-allowed-adapters at install
-time (spec AC25).
+time.
 
 End-to-end: invoke `agentbundle install --pack <name> --scope user`
 in-process against fixture catalogues with `$HOME` redirected, and
@@ -11,7 +11,7 @@ in-process `install.run`, `$HOME` patched via `patch.dict`. The four
 credentialed user-scope packs ship `allowed-adapters = ["claude-code",
 "kiro-ide", "codex", "copilot", "cursor"]` — the bare `kiro` alias was
 de-staled to its current RFC-0022 name, and `copilot` + `cursor` were
-added by RFC-0013 § Errata (2026-06-12). This test covers the
+added by the errata (2026-06-12). This test covers the
 claude-code / kiro-ide / codex resolver paths without fabricating
 fixtures; it asserts install behaviour, not list equality.
 """
@@ -89,7 +89,7 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
             skill_dir.is_dir(),
             f"expected skill directory at {skill_dir}",
         )
-        # State records the resolved adapter (AC10a).
+        # State records the resolved adapter.
         from agentbundle.config import load_state
 
         state_path = self.home / ".agentbundle" / "state.toml"
@@ -146,7 +146,7 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
         self._assert_pack_landed(".kiro/skills", "kiro-ide")
 
     def test_upgrade_state_hint_preserves_adapter(self) -> None:
-        """AC10b / AC25: install under claude-code; populate ~/.kiro/
+        """Install under claude-code; populate ~/.kiro/
         post-install; upgrade — state.adapter stays claude-code and
         the cross-adapter refusal at upgrade.py does NOT fire."""
         # Step 1: greenfield install → claude-code.

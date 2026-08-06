@@ -1,5 +1,5 @@
 """Tests for the build pipeline (T6) — recipe loading, dispatch,
-pack-internal collision detection, aggregate marketplace, RFC-0002
+pack-internal collision detection, aggregate marketplace
 recipe expansion shapes, and the empty-pack edge case.
 """
 

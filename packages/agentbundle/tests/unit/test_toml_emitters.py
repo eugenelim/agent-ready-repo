@@ -325,7 +325,7 @@ def test_cli_install_preserves_existing_install_route(tmp_path) -> None:
 
 
 def test_cli_install_emits_install_route_cli(tmp_path) -> None:
-    """AC13: every [[packs-installed]] entry written by _append_install_marker
+    """Every [[packs-installed]] entry written by _append_install_marker
     carries install-route = "cli". Regression pin — the field must appear on
     every entry regardless of the unresolved-markers / new-companions content."""
     from agentbundle.commands.install import _append_install_marker

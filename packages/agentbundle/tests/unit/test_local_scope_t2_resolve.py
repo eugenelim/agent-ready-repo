@@ -10,22 +10,22 @@ import pytest
 from agentbundle import scope
 
 # ---------------------------------------------------------------------------
-# AC2: LEGAL_SCOPES includes "local"
+# LEGAL_SCOPES includes "local"
 # ---------------------------------------------------------------------------
 
 
 def test_legal_scopes_contains_local():
-    """AC2: LEGAL_SCOPES must equal {"repo", "user", "local"}."""
+    """LEGAL_SCOPES must equal {"repo", "user", "local"}."""
     assert frozenset({"repo", "user", "local"}) == scope.LEGAL_SCOPES
 
 
 # ---------------------------------------------------------------------------
-# AC4: D4 auto-promote — local permitted when repo is in allowed-scopes
+# D4 auto-promote — local permitted when repo is in allowed-scopes
 # ---------------------------------------------------------------------------
 
 
 def test_resolve_local_when_repo_in_allowed():
-    """AC4: resolve(requested='local', allowed=['repo']) → 'local'.
+    """resolve(requested='local', allowed=['repo']) → 'local'.
 
     The D4 auto-promote rule: "local" is not required to appear in
     allowed-scopes; the presence of "repo" is sufficient.
@@ -45,12 +45,12 @@ def test_resolve_local_refused_when_repo_not_in_allowed():
 
 
 # ---------------------------------------------------------------------------
-# AC3: default-scope="local" in pack manifest raises ScopeRefused
+# default-scope="local" in pack manifest raises ScopeRefused
 # ---------------------------------------------------------------------------
 
 
 def test_resolve_refuses_local_as_default_scope():
-    """AC3: if the pack's default-scope resolves to "local", raise ScopeRefused.
+    """If the pack's default-scope resolves to "local", raise ScopeRefused.
 
     packs are not permitted to declare default-scope = "local" (schema
     also disallows it, but runtime guard is defense-in-depth).

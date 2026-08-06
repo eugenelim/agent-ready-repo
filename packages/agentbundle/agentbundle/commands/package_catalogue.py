@@ -2,7 +2,7 @@
 
 All logic has moved to agentbundle.catalogue_tooling.package.
 This module re-exports the internal helpers so existing import paths
-continue to work (AC13), and wraps ``run()`` with a deprecation warning.
+continue to work, and wraps ``run()`` with a deprecation warning.
 
 Use ``agentbundle catalogue package`` instead.
 """

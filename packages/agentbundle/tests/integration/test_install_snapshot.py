@@ -52,7 +52,7 @@ FIXTURES_DIR = (
     / "install_snapshot"
 )
 
-# Mirror lint.py (_PackRules._check_seeds) blocklist. Sourced from RFC-0002 § Amendments
+# Mirror lint.py (_PackRules._check_seeds) blocklist. Sourced from the Amendments
 # § 2026-05-25. Keep in sync; see lint.py (_PackRules._check_seeds):_SEEDS_BLOCKLIST_PATTERNS.
 BLOCKLIST_REGEXES = [
     re.compile(p)

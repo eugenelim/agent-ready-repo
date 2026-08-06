@@ -1,4 +1,4 @@
-"""Tests for spec/source-conflict-install-guard (RFC-0072 D3).
+"""Tests for spec/source-conflict-install-guard.
 
 Unit tests call _check_source_conflict directly (pure function, no I/O).
 Integration tests drive install.run() with a minimal args namespace.
@@ -143,7 +143,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
         self.assertIsNone(result)
 
     def test_source_conflict_same_canonical_source_allowed(self, tmp_path=None):
-        """Same concrete source → allowed (AC3)."""
+        """Same concrete source → allowed."""
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             cat = Path(d) / "catalogue"
@@ -153,7 +153,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             self.assertIsNone(result)
 
     def test_source_conflict_differing_representations_allowed(self):
-        """Path with .. resolves to same canonical as direct path → allowed (AC3, AC7).
+        """Path with .. resolves to same canonical as direct path → allowed.
 
         This test fails if canonicalize_source is NOT engaged — a bare string
         compare would refuse because the strings differ.
@@ -172,7 +172,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             self.assertIsNone(result)
 
     def test_source_conflict_different_concrete_sources_refused(self):
-        """Different concrete paths → refused (AC2)."""
+        """Different concrete paths → refused."""
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             cat_a = Path(d) / "catA"
@@ -184,7 +184,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             self.assertIsNotNone(result)
 
     def test_source_conflict_incoming_none_existing_concrete_refused(self):
-        """Incoming canonicalizes to None, existing is concrete → refused (AC8)."""
+        """Incoming canonicalizes to None, existing is concrete → refused."""
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             cat = Path(d) / "catalogue"
@@ -195,7 +195,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             self.assertIsNotNone(result)
 
     def test_source_conflict_existing_none_incoming_concrete_refused(self):
-        """Existing source=None, incoming is concrete → refused (AC8)."""
+        """Existing source=None, incoming is concrete → refused."""
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             cat = Path(d) / "catalogue"
@@ -205,7 +205,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             self.assertIsNotNone(result)
 
     def test_source_conflict_both_none_refused(self):
-        """Both canonicalize to None → refused (AC8 'cannot prove equal')."""
+        """Both canonicalize to None → refused ('cannot prove equal')."""
         state = _state_with_row("mypack", "claude-code", "agent-ready-repo")
         result = _check_source_conflict("mypack", "repo", state, "agent-ready-repo")
         self.assertIsNotNone(result)
@@ -221,7 +221,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             self.assertIsNotNone(result)
 
     def test_source_conflict_multiple_adapters_all_same_source_allowed(self):
-        """Multiple adapters, all same non-None canonical → allowed (AC3)."""
+        """Multiple adapters, all same non-None canonical → allowed."""
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             cat = Path(d) / "catalogue"
@@ -237,7 +237,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             self.assertIsNone(result)
 
     def test_source_conflict_cross_scope_not_blocked(self):
-        """Guard only inspects the passed state (AC6).
+        """Guard only inspects the passed state.
 
         Pass user_state (empty for the pack) even though repo_state has
         a conflicting row — the guard must return None because it only
@@ -257,7 +257,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             result = _check_source_conflict("mypack", "user", user_state, str(cat_b))
             self.assertIsNone(result)
 
-    # Error message content tests (AC5)
+    # Error message content tests
 
     def _conflict_result(self, pack_name="mypkg", scope="repo"):
         """Helper: trigger a conflict and return the error string."""
@@ -273,38 +273,38 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
             return result, str(cat_a.resolve()), str(cat_b.resolve())
 
     def test_source_conflict_error_message_contains_pack_name(self):
-        """Error message includes the pack name (AC5a)."""
+        """Error message includes the pack name."""
         result, _, _ = self._conflict_result(pack_name="specialpack")
         self.assertIn("specialpack", result)
 
     def test_source_conflict_error_message_contains_scope(self):
-        """Error message includes the target scope (AC5b)."""
+        """Error message includes the target scope."""
         result, _, _ = self._conflict_result(scope="repo")
         self.assertIn("repo", result)
 
     def test_source_conflict_error_message_contains_incoming_source(self):
-        """Error message includes the canonical incoming source string (AC5c)."""
+        """Error message includes the canonical incoming source string."""
         result, existing, incoming = self._conflict_result()
         self.assertIn(incoming, result)
 
     def test_source_conflict_error_message_contains_existing_adapter_and_source(self):
-        """Error message includes existing adapter name and canonical source (AC5d)."""
+        """Error message includes existing adapter name and canonical source."""
         result, existing, _ = self._conflict_result()
         self.assertIn("claude-code", result)
         self.assertIn(existing, result)
 
     def test_source_conflict_error_message_contains_upgrade_recovery(self):
-        """Error message mentions upgrade as a recovery path (AC5e)."""
+        """Error message mentions upgrade as a recovery path."""
         result, _, _ = self._conflict_result()
         self.assertIn("upgrade", result)
 
     def test_source_conflict_error_message_contains_uninstall_recovery(self):
-        """Error message mentions uninstall all existing adapters as recovery (AC5e)."""
+        """Error message mentions uninstall all existing adapters as recovery."""
         result, _, _ = self._conflict_result()
         self.assertIn("uninstall all existing adapters", result)
 
     def test_source_conflict_error_message_force_no_bypass_note(self):
-        """Error message explicitly states --force does not bypass (AC4, AC5)."""
+        """Error message explicitly states --force does not bypass."""
         result, _, _ = self._conflict_result()
         self.assertIn("--force does not", result)
 
@@ -358,7 +358,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         return state.row("demo", adapter) is not None
 
     def test_source_conflict_multi_adapter_same_source_allowed(self):
-        """Multi-adapter install from same catalogue is allowed (AC3)."""
+        """Multi-adapter install from same catalogue is allowed."""
         rc1, _, err1 = self._install(catalogue=self.cat_a, adapter="claude-code")
         self.assertEqual(rc1, 0, f"first install failed: {err1!r}")
 
@@ -370,7 +370,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         self.assertTrue(self._state_has_adapter("kiro"))
 
     def test_source_conflict_refusal_before_any_file_written(self):
-        """Refusal happens before any write — kiro row absent from state (AC1, AC2)."""
+        """Refusal happens before any write — kiro row absent from state."""
         rc1, _, _ = self._install(catalogue=self.cat_a, adapter="claude-code")
         self.assertEqual(rc1, 0)
 
@@ -384,7 +384,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         self.assertFalse((self.repo / ".kiro").exists())
 
     def test_source_conflict_force_flag_does_not_bypass(self):
-        """--force does NOT bypass source mismatch (AC4, AC1)."""
+        """--force does NOT bypass source mismatch."""
         rc1, _, _ = self._install(catalogue=self.cat_a, adapter="claude-code")
         self.assertEqual(rc1, 0)
 
@@ -399,7 +399,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         self.assertFalse((self.repo / ".kiro").exists())
 
     def test_source_conflict_same_adapter_different_source_refused(self):
-        """Same adapter, different source → refused by guard (not Step 4a) (AC2)."""
+        """Same adapter, different source → refused by guard (not Step 4a)."""
         rc1, _, _ = self._install(catalogue=self.cat_a, adapter="claude-code")
         self.assertEqual(rc1, 0)
 
@@ -410,7 +410,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         self.assertNotIn("use 'upgrade' to change version", err2)
 
     def test_source_conflict_legacy_row_blocks_second_adapter(self):
-        """Legacy source='agent-ready-repo' row blocks new-adapter install (AC7, AC8)."""
+        """Legacy source='agent-ready-repo' row blocks new-adapter install."""
         from agentbundle.config import dump_state
         # Seed legacy state manually.
         state = _state_with_row("demo", "claude-code", "agent-ready-repo")
@@ -422,7 +422,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         self.assertIn("uninstall all existing adapters", err)
 
     def test_source_conflict_guard_before_step3c_orphan_cleanup(self):
-        """Guard fires before Step-3c --force cleanup; dist-tree files survive (AC1).
+        """Guard fires before Step-3c --force cleanup; dist-tree files survive.
 
         Steps:
         1. Install demo for claude-code from cat_a → source recorded.
@@ -456,7 +456,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
         )
 
     def test_source_conflict_cross_scope_force_dual_scope_succeeds(self):
-        """Cross-scope different-source install is not blocked (AC6).
+        """Cross-scope different-source install is not blocked.
 
         repo scope from cat_a → user scope from cat_b should succeed:
         the guard checks user_state (empty for this pack) → allows.
@@ -513,7 +513,7 @@ class SourceConflictInstallIntegrationTests(unittest.TestCase):
             )
 
     def test_source_conflict_profile_source_uri_integration(self):
-        """_source_uri attribute is used when present for source comparison (AC11).
+        """_source_uri attribute is used when present for source comparison.
 
         Setup:
         - demo for claude-code installed from cat_a (source recorded = canonicalize(cat_a)).

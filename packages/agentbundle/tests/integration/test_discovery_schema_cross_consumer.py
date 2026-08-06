@@ -8,9 +8,9 @@ in a single parametrised set, so a future drift in either stays caught.
 Per spec AC8/AC9: legacy refusal stderr lines are exact, per consumer:
 
   CLI:        ``adapt: legacy [accepted] table; migrate to [markers]
-              per docs/specs/adapt-to-project/spec.md``
+              Md``
   self-host:  ``self-host: legacy [adapt] table; migrate to [markers]
-              per docs/specs/adapt-to-project/spec.md``
+              Md``
 """
 
 from __future__ import annotations

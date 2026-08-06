@@ -1,6 +1,6 @@
 """Unit tests for the six-step (0–5) ``_resolve_target_adapter``
-lookup (RFC-0011 substrate; RFC-0012 widens to scope-branched form).
-Covers spec AC6, AC10, AC10a, AC10b, AC15, AC21 from RFC-0011 plus
+lookup (substrate; RFC-0012 widens to scope-branched form).
+Covers spec AC6, AC21 from RFC-0011 plus
 the new RFC-0012 cases (probe asymmetry at repo scope, scope-conditional
 step-1 subcheck, etc.).
 
@@ -271,7 +271,7 @@ def test_user_scope_capability_refusal_arms_still_fire(tmp_path, fake_home, monk
 
 
 # ---------------------------------------------------------------------------
-# State-hint short-circuit (AC10b)
+# State-hint short-circuit
 # ---------------------------------------------------------------------------
 
 
@@ -380,7 +380,7 @@ def test_stray_allowed_adapters_on_v05_pack_uses_legacy(tmp_path, fake_home):
 
 
 # ---------------------------------------------------------------------------
-# Publisher-vs-installer drift (AC15)
+# Publisher-vs-installer drift
 # ---------------------------------------------------------------------------
 
 
@@ -412,7 +412,7 @@ def test_publisher_drift_uses_command_name_prefix(tmp_path, fake_home):
 
 
 # ---------------------------------------------------------------------------
-# RFC-0012: repo-scope branches (steps 0, 1, 4, 5)
+# Repo-scope branches (steps 0, 1, 4, 5)
 # ---------------------------------------------------------------------------
 
 
@@ -641,7 +641,7 @@ def test_repo_scope_state_hint_short_circuit(tmp_path, fake_home):
 
 
 # ---------------------------------------------------------------------------
-# RFC-0012: DEFAULT_ADAPTER rename + deprecation alias (AC18-AC19)
+# DEFAULT_ADAPTER rename + deprecation alias
 # ---------------------------------------------------------------------------
 
 

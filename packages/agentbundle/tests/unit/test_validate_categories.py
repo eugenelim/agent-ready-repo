@@ -1,6 +1,6 @@
 """enriched-pack-manifest T6: soft `categories` vocabulary in `validate`.
 
-`categories` is a *soft* vocabulary (RFC-0031 D3): an unknown slug produces
+`categories` is a *soft* vocabulary: an unknown slug produces
 a warning on stderr and exit 0; a known slug is silent. The schema owns the
 shape (array of ≤5 strings); this rail only nudges taxonomy consistency.
 """

@@ -43,7 +43,7 @@ def _run_install(argv: list[str]) -> tuple[int, str, str]:
 
 
 class CopilotRepoScopeCoreTests(unittest.TestCase):
-    """AC12 / AC21: core via copilot at repo scope."""
+    """Core via copilot at repo scope."""
 
     def setUp(self) -> None:
         from agentbundle.commands import install
@@ -82,13 +82,13 @@ class CopilotRepoScopeCoreTests(unittest.TestCase):
 
         # All four projected primitive homes are populated.
         agents = self.adopter / ".github" / "agents"
-        # RFC-0052 / ADR-0040: copilot skill routes to the shared cohort home.
+        # Copilot skill routes to the shared cohort home.
         skills = self.adopter / ".agents" / "skills"
         hooks = self.adopter / ".github" / "hooks"
         self.assertTrue(
             list(agents.glob("*.agent.md")), f"no agents projected: {agents}"
         )
-        # RFC-0052: skills project to `.agents/skills/<name>/SKILL.md`
+        # Skills project to `.agents/skills/<name>/SKILL.md`
         # (shared cohort home — not `.github/skills/` which was v0.11 shape).
         self.assertTrue(
             list(skills.glob("*/SKILL.md")),
@@ -104,7 +104,7 @@ class CopilotRepoScopeCoreTests(unittest.TestCase):
         # No legacy tools/hooks/ output for copilot.
         self.assertFalse((self.adopter / "tools" / "hooks").exists())
 
-        # AC12: the drop-warning names only `command`. Inspect the *dropped
+        # The drop-warning names only `command`. Inspect the *dropped
         # clause* (before "these primitives will not be installed") so the
         # plural compatible-list terms ("agents", "hook-wirings") don't trip a
         # naive substring check.
@@ -123,7 +123,7 @@ class CopilotRepoScopeCoreTests(unittest.TestCase):
 
 
 class CopilotUserScopeResearchTests(unittest.TestCase):
-    """AC11 / AC13: research via copilot at user scope."""
+    """Research via copilot at user scope."""
 
     def setUp(self) -> None:
         from agentbundle.commands import install
@@ -161,7 +161,7 @@ class CopilotUserScopeResearchTests(unittest.TestCase):
         self.assertEqual(
             rc, 0, f"research via copilot at user scope refused/failed: {err!r}"
         )
-        # RFC-0052 / ADR-0040: copilot skill at user scope routes to
+        # Copilot skill at user scope routes to
         # `~/.agents/skills/` (shared cohort home); agents stay at ~/.copilot/agents/.
         skills = self.home / ".agents" / "skills"
         agents = self.home / ".copilot" / "agents"
@@ -176,7 +176,7 @@ class CopilotUserScopeResearchTests(unittest.TestCase):
         # No path leaked under ~/.github/… (the bug the prefix rewrite prevents).
         self.assertFalse((self.home / ".github").exists())
 
-        # AC13: research ships no command → no 'dropped' warning line.
+        # Research ships no command → no 'dropped' warning line.
         self.assertNotIn("dropped", err)
 
 

@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     import argparse
 
-# Marker regex (AC14): canonical lowercase-hyphen identifiers. The CLI
+# Marker regex: canonical lowercase-hyphen identifiers. The CLI
 # narrows from the prior UPPER_SNAKE-only regex to the canonical form
 # that the adapt-to-project skill writes. UPPER_SNAKE markers still
 # appearing in adopter trees are left in place with a one-shot warning
@@ -118,7 +118,7 @@ def _apply_markers(text: str, values: dict[str, str], *, src_label: str) -> str:
     """Replace ``<adapt:NAME>`` in *text* using *values*.
 
     Unknown markers are left in place; a warning is printed to stderr.
-    Legacy UPPER_SNAKE markers (per AC14) are left in place with a single
+    Legacy UPPER_SNAKE markers are left in place with a single
     warning per file.
     """
     if _LEGACY_UPPER_RE.search(text):

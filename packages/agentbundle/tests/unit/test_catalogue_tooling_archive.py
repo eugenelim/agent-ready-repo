@@ -56,7 +56,7 @@ def _make_manifest_bytes(files: dict[str, bytes]) -> bytes:
 def _make_valid_archive(tmp_path: Path, extra_data_files: dict[str, bytes] | None = None) -> Path:
     """Create a minimal, fully-valid catalogue .tar.gz at tmp_path/test.tar.gz.
 
-    Uses AGENTS.md as the catalogue marker so that the AC17 round-trip
+    Uses AGENTS.md as the catalogue marker so that the round-trip
     (verify_catalogue on the extracted dir) passes without a catalogue.toml
     or any packs — all verify steps that require config skip gracefully.
     """

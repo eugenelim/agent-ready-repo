@@ -5,9 +5,9 @@ Two cohorts:
 
   - Four user-scope-capable packs (`atlassian`, `figma`, `converters`,
     `contracts`) bump `[pack.adapter-contract] version` from 0.6 to
-    0.7. `allowed-adapters` carries the RFC-0011 three-harness set,
+    0.7. `allowed-adapters` carries the three-harness set,
     de-staled to current adapter names (`["claude-code", "kiro-ide",
-    "codex"]`) — the bare `kiro` alias was renamed by RFC-0022.
+    "codex"]`) — the bare `kiro` alias was renamed.
   - Four repo-only packs (`core`, `governance-extras`,
     `user-guide-diataxis`, `monorepo-extras`) bump from 0.2 to 0.7 —
     load-bearing per Drawback #7: without this bump the legacy
@@ -50,14 +50,14 @@ class TestUserScopePacksV07(unittest.TestCase):
                 )
 
     def test_user_scope_packs_allowed_adapters(self) -> None:
-        """allowed-adapters started as the RFC-0011 three-harness set,
+        """allowed-adapters started as the three-harness set,
         de-staled to current adapter names (RFC-0022 renamed bare `kiro` →
-        `kiro-ide`), then widened to add `copilot` + `cursor` by RFC-0013
+        `kiro-ide`), then widened to add `copilot` + `cursor`
         § Errata (2026-06-12) and `gemini` by RFC-0027 / gemini-full-parity:
         all three full-parity adapters declare `.agentbundle/` in
         `allowed-prefixes.user` (the broker's § 4d precondition), so these
         credentialed consumer packs admit them in lockstep with
-        `credential-brokers`. Order is append-only (RFC-0011)."""
+        `credential-brokers`. Order is append-only."""
         for name in USER_SCOPE_PACKS:
             with self.subTest(pack=name):
                 pack = _load_pack_toml(name)

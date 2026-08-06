@@ -1,6 +1,6 @@
 """``agentbundle config`` — get/set/unset/path on the user-scope config file.
 
-See `docs/specs/agentbundle-config-subcommand/spec.md` AC1, AC2, AC5–AC10.
+See `docs/specs/agentbundle-config-subcommand/spec.md` AC1.
 
 The handler is intentionally small: an action-dispatch dict, a small
 known-keys registry, and four `_do_*` workers. Future settings keys

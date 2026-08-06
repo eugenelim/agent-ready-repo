@@ -38,7 +38,7 @@ CATALOGUE_HOOK = REPO_ROOT / "tools" / "catalogue" / "pre_pr_catalogue.py"
 
 
 def test_catalogue_hook_runs_core_checks_and_delegates() -> None:
-    """AC3: the repo-native catalogue hook runs the core check set, then delegates
+    """The repo-native catalogue hook runs the core check set, then delegates
     to the shipped pre-pr.py. Agent-artifact, seeds, credentialed-skill, and
     profiles checks are now covered by agentbundle catalogue verify/lint."""
     src = CATALOGUE_HOOK.read_text(encoding="utf-8")

@@ -5,13 +5,13 @@ Pure-function unit coverage. Integration coverage against the
 ``packages/agentbundle/tests/integration/test_cc_user_hooks_fixture.py``.
 
 Covers spec ACs:
-  - AC8  — empty file → write hooks.<event> arrays with id-tagged entries.
-  - AC9  — reinstall same version is byte-for-byte no-op.
-  - AC10 — second pack with overlapping event appends; first pack unmoved.
-  - AC11 — uninstall removes only owned entries; empty arrays removed.
-  - AC12 — adopter hand-edit collision refuses; --force-merge adopts.
-  - AC13 — unparseable JSON refuses non-zero; file unchanged.
-  - AC14 — wrong-shape `hooks` or `hooks.<event>` refuses with the
+  - Empty file → write hooks.<event> arrays with id-tagged entries.
+  - Reinstall same version is byte-for-byte no-op.
+  - Second pack with overlapping event appends; first pack unmoved.
+  - Uninstall removes only owned entries; empty arrays removed.
+  - Adopter hand-edit collision refuses; --force-merge adopts.
+  - Unparseable JSON refuses non-zero; file unchanged.
+  - Wrong-shape `hooks` or `hooks.<event>` refuses with the
            `<key-path> has unexpected shape` text.
   - Plus: auto-init absent `hooks` to `{}` and absent `hooks.<event>`
     to `[]`. Atomic write via `Path.replace`.
@@ -25,7 +25,7 @@ import unittest
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
-# AC8 — empty file → write hooks.<event> arrays with id-tagged entries
+# Empty file → write hooks.<event> arrays with id-tagged entries
 # ---------------------------------------------------------------------------
 
 
@@ -98,7 +98,7 @@ class EmptyFileTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC9 — reinstall same version is byte-for-byte no-op
+# Reinstall same version is byte-for-byte no-op
 # ---------------------------------------------------------------------------
 
 
@@ -133,7 +133,7 @@ class IdempotencyTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC10 — second pack appends; first pack unmoved
+# Second pack appends; first pack unmoved
 # ---------------------------------------------------------------------------
 
 
@@ -154,7 +154,7 @@ class TwoPacksOverlappingEventTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC11 — uninstall removes only owned entries
+# Uninstall removes only owned entries
 # ---------------------------------------------------------------------------
 
 
@@ -187,7 +187,7 @@ class UninstallTests(unittest.TestCase):
             self.assertEqual(ids, ["a:h", "c:h"])
 
     def test_uninstall_removes_empty_event_array(self) -> None:
-        """RFC-0005: empty `hooks.<event>` arrays are removed (not left as `[]`)."""
+        """Empty `hooks.<event>` arrays are removed (not left as `[]`)."""
         from agentbundle.build.projections.user_merge_json import project, unproject
 
         with tempfile.TemporaryDirectory() as td:
@@ -209,7 +209,7 @@ class UninstallTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC12 — adopter collision refuses; --force-merge adopts
+# Adopter collision refuses; --force-merge adopts
 # ---------------------------------------------------------------------------
 
 
@@ -299,7 +299,7 @@ class AdopterCollisionTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC13 — unparseable JSON refuses; file unchanged
+# Unparseable JSON refuses; file unchanged
 # ---------------------------------------------------------------------------
 
 
@@ -324,7 +324,7 @@ class UnparseableJsonTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
-# AC14 — wrong-shape hooks key refuses with `unexpected shape` text
+# Wrong-shape hooks key refuses with `unexpected shape` text
 # ---------------------------------------------------------------------------
 
 

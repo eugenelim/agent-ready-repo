@@ -63,7 +63,7 @@ def test_agentbundle_credentials_is_removed_from_installed_wheel(tmp_path):
     )
     assert result.returncode != 0, (
         f"agentbundle.credentials imported from the wheel — regression "
-        f"against AC36 (the module was removed in 0.2.0):\n"
+        f"(the module was removed in 0.2.0):\n"
         f"stdout={result.stdout}\nstderr={result.stderr}"
     )
     assert (

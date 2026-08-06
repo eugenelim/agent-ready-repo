@@ -1,4 +1,4 @@
-"""T5 (adopter-clean-enforcement-gate AC6): `max_implementation_retries` is single-sourced.
+"""T5 (adopter-clean-enforcement-gate): `max_implementation_retries` is single-sourced.
 
 The implementation-retry cap lives in exactly one place — the bundled `state.json` template
 (the adopter-visible per-spec knob). `loop-cohort.py` DEFAULTS derives its value

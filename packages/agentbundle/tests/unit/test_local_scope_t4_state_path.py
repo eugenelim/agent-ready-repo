@@ -12,7 +12,7 @@ from agentbundle.commands._common import resolve_state_path
 
 
 def test_resolve_state_path_local():
-    """AC6: local scope → .agentbundle-local-state.toml in repo root."""
+    """Local scope → .agentbundle-local-state.toml in repo root."""
     root = Path("/repo")
     assert resolve_state_path("local", root) == Path("/repo/.agentbundle-local-state.toml")
 

@@ -1,4 +1,4 @@
-"""Keystone integration test (RFC-0046 T3): editable detection resolves to the
+"""Keystone integration test: editable detection resolves to the
 real clone root against a **real** `pip install -e`, not a mocked
 `direct_url.json`.
 

@@ -1,5 +1,5 @@
-"""Unit tests for the RFC-0012 install-time message rail at repo scope
-(spec AC20-AC23, AC32) and the route-list formatting helper.
+"""Unit tests for the install-time message rail at repo scope
+ and the route-list formatting helper.
 
 Covers:
 
@@ -9,9 +9,9 @@ Covers:
     ``--emit-install-routes`` at repo scope.
   - ``installed: <pack> @ repo via <adapter>`` shape under the default
     per-IDE projection.
-  - Orphan-projection refusal (AC22): pre-existing on-disk per-IDE
+  - Orphan-projection refusal: pre-existing on-disk per-IDE
     artifacts with no state row trigger the pinned refusal.
-  - ``--force`` clears orphans and proceeds (AC23).
+  - ``--force`` clears orphans and proceeds.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from tempfile import TemporaryDirectory
 
 
 class FormatRouteListTests(unittest.TestCase):
-    """The route-list join rule pinned in AC20."""
+    """The route-list join rule pinned."""
 
     def test_single_route_returns_bare_string(self) -> None:
         from agentbundle.commands.install import _format_route_list
@@ -55,7 +55,7 @@ class FormatRouteListTests(unittest.TestCase):
 
 
 class OrphanRefusalTests(unittest.TestCase):
-    """AC22: refuse install when on-disk per-IDE artifacts exist with
+    """Refuse install when on-disk per-IDE artifacts exist with
     no state row for the pack."""
 
     def _make_pack(self, packs_dir: Path) -> Path:
@@ -170,7 +170,7 @@ class OrphanRefusalTests(unittest.TestCase):
                     "--scope",
                     "repo",
                     "--force",
-                    # `--yes` so the orphan-cleanup confirm (CLI-hygiene AC7)
+                    # `--yes` so the orphan-cleanup confirm (CLI-hygiene)
                     # does not refuse on the non-TTY test stdin.
                     "--yes",
                     "--output",
@@ -281,7 +281,7 @@ class OrphanRefusalTests(unittest.TestCase):
             self.assertIn("--yes", buf.getvalue())
             self.assertTrue(
                 orphan.exists(),
-                "a non-TTY --force without --yes must delete nothing (AC7)",
+                "a non-TTY --force without --yes must delete nothing",
             )
 
 

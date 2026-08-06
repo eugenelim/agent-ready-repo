@@ -1,20 +1,19 @@
-"""Integration tests for the build-pipeline APM derivation (T4 / AC11).
+"""Integration tests for the build-pipeline APM derivation.
 
 Goal-based check: run ``agentbundle build`` against the fixture packs and
 verify, under ``dist/apm/<pack>/``:
 
   (a) ``.apm/hooks/install-marker.py`` is byte-identical to the canonical
-      template (AC11 b)
+      template
   (b) ``.apm/hooks/install-marker.json`` carries the synthesised
-      SessionStart block with the canonical APM-route command (AC7 / AC11 a)
-  (c) ``pack.toml`` is projected byte-for-byte from the source (AC11 c)
+      SessionStart block with the canonical APM-route command
+  (c) ``pack.toml`` is projected byte-for-byte from the source
   (d) the SessionStart command string survives a space-in-PLUGIN_ROOT
-      path (AC7 shlex sub-assertion)
+      path (shlex sub-assertion)
   (e) the build is idempotent — running twice produces byte-identical
       output at the APM projection (Concern-6 parallel of the
       claude-plugins derivation)
 
-Spec: docs/specs/apm-install-route-parity/spec.md
 """
 
 from __future__ import annotations
@@ -70,7 +69,7 @@ def _run_build(packs_dir: Path, output_dir: Path) -> subprocess.CompletedProcess
 
 
 # ---------------------------------------------------------------------------
-# AC11: per-pack artifact projection
+# Per-pack artifact projection
 # ---------------------------------------------------------------------------
 
 

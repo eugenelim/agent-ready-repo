@@ -35,7 +35,7 @@ import pytest
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 PACKS = REPO_ROOT / "packs"
 SHIM_SOURCE = PACKS / "credential-brokers" / ".apm" / "shared-libs"
-# AC11: projected copies that `make build-self` places under dist/apm/
+# Projected copies that `make build-self` places under dist/apm/
 DIST_APM = REPO_ROOT / "dist" / "apm"
 
 
@@ -169,7 +169,7 @@ def test_entry_point_imports_resolve_under_user_scope_layout(
     user-scope layout. This is the exact invocation the SKILL.md docs
     instruct adopters to use.
 
-    AC11: parametrised over two staging variants:
+    Parametrised over two staging variants:
       - "source"   — from ``packs/<pack>/.apm/skills/<skill>/scripts/``
       - "projected" — from ``dist/apm/<pack>/.apm/skills/<skill>/scripts/``
         (the ``make build-self`` output); skips when ``dist/apm/`` is absent.
@@ -259,12 +259,12 @@ def test_sso_broker_tier2_backend_loads_under_user_scope_layout(
     stdout = result.stdout
     if sys.platform == "darwin":
         assert "_sso_keychain_macos" in stdout, (
-            f"AC22b regression: Tier-2 backend silently degraded to None "
+            f"regression: Tier-2 backend silently degraded to None "
             f"on darwin under realistic user-scope layout. stdout: {stdout!r}"
         )
     elif sys.platform == "win32":
         assert "_sso_credman_windows" in stdout, (
-            f"AC22b regression: Tier-2 backend silently degraded to None "
+            f"regression: Tier-2 backend silently degraded to None "
             f"on win32 under realistic user-scope layout. stdout: {stdout!r}"
         )
     else:

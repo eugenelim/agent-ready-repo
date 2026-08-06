@@ -1,12 +1,12 @@
-"""T1 (RFC-0052): state-file schema v0.4 — multi-adapter rows + hard
+"""T1: state-file schema v0.4 — multi-adapter rows + hard
 cross-version refusal.
 
 v0.4 re-keys state to ``[pack.<name>.adapters.<adapter>]`` so one pack can
-carry multiple adapter rows at one scope (ADR-0039). Cross-version handling
+carry multiple adapter rows at one scope. Cross-version handling
 is a **hard refusal**: a v0.4 reader refuses any ``schema-version`` it does
 not recognise — including an absent version and the immediately-prior v0.3 —
 on both read and write (allowlist, not denylist). Migration is greenfield
-(RFC-0052 D8): no converter, re-install.
+No converter, re-install.
 """
 
 from __future__ import annotations
@@ -129,7 +129,7 @@ class EmitterInjectionTests(unittest.TestCase):
 
 class HardCrossVersionRefusalTests(unittest.TestCase):
     """Allowlist refusal: anything not exactly ``"0.4"`` raises, read and
-    write, including absent and v0.3 (RFC-0052 falsifier)."""
+    write, including absent and v0.3 (falsifier)."""
 
     def _assert_refuses(self, toml_text: str, *, version_in_msg: str) -> None:
         from agentbundle import config

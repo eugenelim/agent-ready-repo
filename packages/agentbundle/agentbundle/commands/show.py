@@ -1,7 +1,7 @@
 """``agentbundle show <pack>`` subcommand.
 
 Answers "what skills and agents does pack X contain?" by walking the pack's
-``.apm/`` source tree **live** on each call (ADR-0049 / RFC-0060): nothing is
+``.apm/`` source tree **live** on each call: nothing is
 persisted and no manifest is touched, so the answer cannot drift from what the
 pack actually ships.
 
@@ -53,7 +53,7 @@ def run(args: argparse.Namespace) -> int:
     try:
         catalogue_dir = resolve_catalogue(resolve_catalogue_uri(args))
     except CatalogueError:
-        # Honest, state-differentiated degrade (ADR-0049).
+        # Honest, state-differentiated degrade.
         return _degrade(args, pack_name, fmt)
 
     # ── Name-match the pack in the catalogue ──────────────────────────────────
@@ -163,7 +163,7 @@ def _load_states(args: argparse.Namespace) -> list[State]:
     Gathers three scopes:
     - user: ``~/.agentbundle/state.toml`` via ``scope.resolve_user_root``
     - repo: ``<--root>/.agentbundle-state.toml``
-    - local: ``<--root>/.agentbundle-local-state.toml`` (RFC-0080, per-clone)
+    - local: ``<--root>/.agentbundle-local-state.toml`` (per-clone)
 
     An unresolvable user home is skipped; an absent state file loads as an
     empty ``State``; a legacy/incompatible file (``StateFileLegacy`` — a
@@ -182,7 +182,7 @@ def _load_states(args: argparse.Namespace) -> list[State]:
         candidates.append(("user", user_root / ".agentbundle" / "state.toml"))
     repo_root = Path(getattr(args, "root", ".") or ".").resolve()
     candidates.append(("repo", repo_root / ".agentbundle-state.toml"))
-    # RFC-0080: include local-scope state so `show` finds locally-installed packs
+    # Include local-scope state so `show` finds locally-installed packs
     candidates.append(("local", resolve_state_path("local", repo_root)))
 
     states: list[State] = []

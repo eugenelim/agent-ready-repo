@@ -1,8 +1,8 @@
-"""AC22c: documented bin/-load degradation of the shim's own
+"""Documented bin/-load degradation of the shim's own
 `_tier2_backend`.
 
 When `credentials_shim.py` is loaded as a sibling under
-`~/.agentbundle/bin/` per the AC22b companion projection, its own
+`~/.agentbundle/bin/` per the companion projection, its own
 platform-dispatch block (`from . import _keychain_macos as
 _tier2_backend` on darwin / `from . import _credman_windows ...` on
 win32) raises `ImportError` because the shim's platform backends are
@@ -68,7 +68,7 @@ class ShimDocstringRecordsBinLoadDegradationTests(unittest.TestCase):
         ):
             self.assertIn(
                 phrase, text,
-                f"AC22c: credentials_shim.py docstring must record the "
+                f"credentials_shim.py docstring must record the "
                 f"bin/-load degradation note verbatim. Missing clause: "
                 f"{phrase!r}",
             )
@@ -121,7 +121,7 @@ class ShimBinLoadTier2BackendIsNoneTests(unittest.TestCase):
         )
         self.assertEqual(
             result.returncode, 0,
-            f"AC22c: bin/-loaded shim's _tier2_backend should be None "
+            f"bin/-loaded shim's _tier2_backend should be None "
             f"on every platform.\nstdout: {result.stdout!r}\n"
             f"stderr: {result.stderr!r}",
         )

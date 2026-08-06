@@ -1,7 +1,7 @@
 """T8: install.py — full six-family fork audit for local scope.
 
 Tests for the key install.py sites added/widened in T8:
-- Exclude block written before file writes (AC21 commit order)
+- Exclude block written before file writes (commit order)
 - Adapter recording widened to local scope
 - State write not blocked by prefix check for local state file
 - Install marker and layout writes skipped for local scope
@@ -77,7 +77,7 @@ def test_is_git_repo_false_outside_repo(tmp_path: Path) -> None:
 
 
 def test_install_local_refused_outside_git_repo(tmp_path: Path, capsys) -> None:
-    """AC8: install --scope local is refused when output is not a git work tree."""
+    """Install --scope local is refused when output is not a git work tree."""
     from types import SimpleNamespace
 
     from agentbundle.commands.install import run as install_run
@@ -159,7 +159,7 @@ def test_exclude_block_write_uses_union_of_patterns(git_repo: Path) -> None:
 def test_exclude_block_written_before_files(git_repo: Path) -> None:
     """Exclude block file exists before any projected file is written to disk.
 
-    Simulates the AC21 commit order by checking that write_exclude_block
+    Simulates the commit order by checking that write_exclude_block
     is called before any safety.write_jailed call in the install flow.
     """
     from agentbundle.local_exclude import get_exclude_path
@@ -282,7 +282,7 @@ def test_install_marker_skipped_for_local_scope() -> None:
 
     for plan in plans:
         if plan.scope == "local":
-            continue  # RFC-0080: skip for local
+            continue  # Skip for local
         fake_append_marker(plan.root, plan.scope)
         fake_append_layout(plan.root, plan.scope)
 

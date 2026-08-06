@@ -36,7 +36,7 @@ def _agentbundle(*args: str) -> subprocess.CompletedProcess:
 
 
 # ---------------------------------------------------------------------------
-# AC15(a) — subprocess flow
+# Subprocess flow
 # ---------------------------------------------------------------------------
 
 
@@ -102,7 +102,7 @@ def test_subprocess_fail_soft_against_malformed_config() -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC15(b) — in-process resolver test
+# In-process resolver test
 # ---------------------------------------------------------------------------
 
 
@@ -138,7 +138,7 @@ def test_in_process_resolver_honors_user_config(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# AC15(c) — AST static check
+# AST static check
 # ---------------------------------------------------------------------------
 
 

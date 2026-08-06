@@ -24,9 +24,9 @@ from pathlib import Path
 def apm_entries(pack_dir: Path, subdir: str) -> list[Path]:
     """Return the sorted direct children of ``<pack_dir>/.apm/<subdir>``.
 
-    Returns ``[]`` when the directory is absent (AC4) — a pack that ships no
+    Returns ``[]`` when the directory is absent — a pack that ships no
     skills, or no agents, is not an error. Sorted ascending by path so every
-    consumer sees a deterministic order. This is the shared raw walk (AC9);
+    consumer sees a deterministic order. This is the shared raw walk;
     callers filter the entries themselves.
     """
     d = pack_dir / ".apm" / subdir
@@ -38,8 +38,8 @@ def apm_entries(pack_dir: Path, subdir: str) -> list[Path]:
 def skill_names(pack_dir: Path) -> list[str]:
     """Sorted names of ``.apm/skills/<name>/`` dirs that contain a ``SKILL.md``.
 
-    A skills subdirectory without a ``SKILL.md`` is not a skill (AC2); a
-    missing ``.apm/skills/`` yields ``[]`` (AC4).
+    A skills subdirectory without a ``SKILL.md`` is not a skill; a
+    missing ``.apm/skills/`` yields ``[]``.
     """
     return [
         entry.name
@@ -51,8 +51,8 @@ def skill_names(pack_dir: Path) -> list[str]:
 def agent_names(pack_dir: Path) -> list[str]:
     """Sorted stems of ``.apm/agents/*.md`` files.
 
-    Non-``.md`` entries and subdirectories are ignored (AC2); a missing
-    ``.apm/agents/`` yields ``[]`` (AC4).
+    Non-``.md`` entries and subdirectories are ignored; a missing
+    ``.apm/agents/`` yields ``[]``.
     """
     return [
         entry.stem

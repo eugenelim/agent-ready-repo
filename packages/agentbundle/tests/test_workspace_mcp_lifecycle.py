@@ -1,4 +1,4 @@
-"""Tests for _LIFECYCLE_MANIFEST and DEFAULT_SESSION_INSTRUCTION (AC20, AC24)."""
+"""Tests for _LIFECYCLE_MANIFEST and DEFAULT_SESSION_INSTRUCTION."""
 from __future__ import annotations
 
 import importlib.util
@@ -15,7 +15,7 @@ def _load_wsmcp():
 
 
 class TestLifecycleManifest:
-    """_LIFECYCLE_MANIFEST has exactly 7 keys with required fields (AC24)."""
+    """_LIFECYCLE_MANIFEST has exactly 7 keys with required fields."""
 
     def test_manifest_has_seven_keys(self) -> None:
         mod = _load_wsmcp()
@@ -53,7 +53,7 @@ class TestLifecycleManifest:
 
 
 class TestDefaultSessionInstruction:
-    """DEFAULT_SESSION_INSTRUCTION contains the 6 required rules (AC20)."""
+    """DEFAULT_SESSION_INSTRUCTION contains the 6 required rules."""
 
     def test_session_instruction_is_non_empty_string(self) -> None:
         mod = _load_wsmcp()

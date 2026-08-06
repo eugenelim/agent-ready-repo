@@ -1,7 +1,7 @@
 """Hook-entry id synthesis — shared between ``user_merge_json`` (Claude
 Code user scope) and ``merge_into_agent_json`` (Kiro at both scopes).
 
-Per RFC-0005 § Merge semantics step 2, every hook entry the CLI writes
+Per the merge semantics step 2, every hook entry the CLI writes
 carries an ``id`` field of the form ``<pack-name>:<hook-source-basename>``.
 The id is the ownership tag the merger uses to detect "this is mine"
 on reinstall / replace / uninstall. Claude Code today treats unknown

@@ -1,4 +1,4 @@
-"""Pre-flight detection primitives for adapt-to-project (AC4a rows 17, 18).
+"""Pre-flight detection primitives for adapt-to-project (rows 17, 18).
 
 The adapt-to-project skill's Pre-flight section delegates dirty-state
 and Tier-2 detection to two deterministic primitives:

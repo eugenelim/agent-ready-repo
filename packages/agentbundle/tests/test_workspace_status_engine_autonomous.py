@@ -1,4 +1,4 @@
-"""Tests for is_need_satisfied() autonomous-dispatch mode (AC19)."""
+"""Tests for is_need_satisfied() autonomous-dispatch mode."""
 from __future__ import annotations
 
 import importlib.util
@@ -47,10 +47,10 @@ def _make_ini(
 
 
 class TestShapeNeedAutonomous:
-    """AC19: shape: need — absent from active AND backlog → unsatisfied when autonomous."""
+    """Shape: need — absent from active AND backlog → unsatisfied when autonomous."""
 
     def test_shape_absent_unsatisfied_autonomous(self) -> None:
-        pytest.skip("STUB: AC19")
+        pytest.skip("STUB")
 
     def test_shape_in_active_unsatisfied_both_modes(self) -> None:
         mod = _load_engine()
@@ -86,7 +86,7 @@ class TestShapeNeedAutonomous:
 
 
 class TestResearchNeedAutonomous:
-    """AC19: research: need — absence from backlog means satisfied in both human and autonomous mode.
+    """Research: need — absence from backlog means satisfied in both human and autonomous mode.
 
     Absent = satisfied because completed research is removed from the backlog;
     there is no way to distinguish "completed" from "never planned" from backlog state alone.

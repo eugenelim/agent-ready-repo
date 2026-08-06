@@ -26,7 +26,7 @@ ADAPTERS: Dict[str, Callable] = {
     "claude-code": claude_code.project,
     "kiro-ide": kiro_ide.project,
     "kiro-cli": kiro_cli.project,
-    "kiro": _kiro_alias_project,  # deprecated alias → kiro-ide (RFC-0022 D1)
+    "kiro": _kiro_alias_project,  # deprecated alias → kiro-ide
     "copilot": copilot.project,
     "cursor": cursor.project,
     "codex": codex.project,

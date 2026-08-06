@@ -98,13 +98,13 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
         self.assertEqual(artifacts, [".kiro/agents/reviewer.json"])
 
     def test_dispatchable_command_after_merge(self) -> None:
-        """AC18: the projected hook entry's `command` field must
+        """The projected hook entry's `command` field must
         dispatch via `sh -c "$command"` from any working directory.
         T8b's resolver substitutes `$HOOK_BODY_PATH` with the resolved
         absolute path; we simulate that here by substituting the
         placeholder in the wiring before merge, then merging, then
         reading the merged `command` back and dispatching it. This
-        closes the loop that AC18 demands: the byte path running
+        closes the loop that demands: the byte path running
         through is `wiring TOML → merge → merged JSON → sh -c → exit 0`.
         """
         from agentbundle.build.projections.merge_into_agent_json import project

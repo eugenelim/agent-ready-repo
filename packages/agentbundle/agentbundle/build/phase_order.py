@@ -1,4 +1,4 @@
-"""Build-pipeline phase order (RFC-0005 § Build-pipeline ordering invariant).
+"""Build-pipeline phase order.
 
 Single source of truth for the order primitives project within each
 pack: ``hook-body`` → ``agent`` → ``hook-wiring`` → ``kiro-ide-hook``

@@ -153,7 +153,7 @@ class OrphanInStateTests(_ReconcileBase):
 
 
 class GroupedByAdapterTests(_ReconcileBase):
-    """AC26: output is grouped by adapter."""
+    """Output is grouped by adapter."""
 
     def test_two_adapters_produce_separate_headings(self) -> None:
         # Install cc-user-hooks AND kiro-user-hooks, then inject one
@@ -211,7 +211,7 @@ class ReadOnlyContractTests(_ReconcileBase):
 
 
 class ApplyFlagRejectedTests(unittest.TestCase):
-    """AC26: `reconcile --apply` is rejected by argparse — the
+    """`reconcile --apply` is rejected by argparse — the
     subcommand's parser does not register the flag."""
 
     def test_apply_flag_rejected_by_argparse(self) -> None:

@@ -1,4 +1,4 @@
-"""T4 (pack-profiles AC10, AC11): CLI surface for profiles.
+"""T4 (pack-profiles): CLI surface for profiles.
 
   - `--profile` and `--pack` are a required mutually-exclusive group: passing
     both, or neither, exits non-zero.

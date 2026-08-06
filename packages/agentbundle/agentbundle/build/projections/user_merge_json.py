@@ -3,7 +3,7 @@
 Merges a pack's ``.apm/hook-wiring/*.toml`` content into the
 hand-edited shared ``~/.claude/settings.json`` under the ``hooks`` key,
 using **array-append-with-id** (not key-replace). The merger respects
-three boundaries documented in RFC-0005 § Merge semantics:
+three boundaries documented in the merge semantics:
 
 1. Adopter-authored keys at the top level (``theme``, ``model``,
    ``env``, ...) are never read or rewritten.
@@ -71,7 +71,7 @@ def project(
         Iteration order is the call's order.
       force_merge: when True, an adopter-authored entry whose
         ``command`` collides with an incoming pack command is replaced
-        rather than refused (RFC-0005 § User-already-set-this-key).
+        rather than refused.
 
     Returns:
       List of ``(event, id)`` tuples reflecting every owned entry the
@@ -186,7 +186,7 @@ def unproject(target_path: Path, owned: list[tuple[str, str]]) -> None:
 
 def _load_settings(target_path: Path) -> dict:
     """Read the settings file. Returns ``{}`` for an absent file;
-    raises ``UserMergeRefusal`` with the RFC-0005 unparseable text
+    raises ``UserMergeRefusal`` with the unparseable text
     when the file exists but is not valid JSON."""
     if not target_path.exists():
         return {}

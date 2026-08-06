@@ -1,6 +1,5 @@
 """TDD stubs for the linear primitive script.
 
-Spec: docs/specs/m5-linear-brief-intake-and-sync/spec.md
 T2 invariants:
   - MAX_PAGES=5: _get_project_pages stops after 5 pages regardless of hasNextPage.
   - Retry-After: on HTTP 429, the client reads Retry-After, sleeps, and retries once.

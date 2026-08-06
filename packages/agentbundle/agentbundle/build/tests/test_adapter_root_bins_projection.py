@@ -2,12 +2,12 @@
 primitive class — AC22 / AC23.
 
 Verifies:
-- AC22: source-to-target projection at `<working_tree>/.agentbundle/bin/<basename>.py`
-- AC22: POSIX mode 0o755
-- AC22: path-jail compliance — the target falls under the v0.7
+- Source-to-target projection at `<working_tree>/.agentbundle/bin/<basename>.py`
+- POSIX mode 0o755
+- Path-jail compliance — the target falls under the v0.7
   contract's `allowed-prefixes.repo` for `.agentbundle/`
-- AC22: no PATH manipulation — `os.environ["PATH"]` unchanged
-- AC23: drift gate distinguishes modified / missing / orphaned;
+- No PATH manipulation — `os.environ["PATH"]` unchanged
+- Drift gate distinguishes modified / missing / orphaned;
   build-self resolves all three; inter-pack basename collision is hard-error
 """
 
@@ -186,7 +186,7 @@ class AdapterRootBinsTests(unittest.TestCase):
         self.assertIn("collision", drifts[0])
 
     def test_no_path_manipulation(self) -> None:
-        """AC22: os.environ['PATH'] is unchanged before/after apply_projection."""
+        """os.environ['PATH'] is unchanged before/after apply_projection."""
         packs = self._packs()
         _make_fixture_pack(packs, "p1", {"sso-broker.py": b"# real\n"})
         wt = self._wt()
@@ -231,7 +231,7 @@ class AdapterRootBinsTests(unittest.TestCase):
 
 
 class AdapterRootBinsShimCompanionTests(unittest.TestCase):
-    """AC22b: shim-companion projection alongside adapter-root-bins/.
+    """Shim-companion projection alongside adapter-root-bins/.
 
     Closes the deferred-projection gap from the credential
     user-install fix — under bare user-scope
@@ -259,7 +259,7 @@ class AdapterRootBinsShimCompanionTests(unittest.TestCase):
         return wt
 
     def test_apply_projection_writes_shim_companion(self) -> None:
-        """AC22b: pack ships both adapter-root-bins/ and
+        """Pack ships both adapter-root-bins/ and
         shared-libs/credentials_shim.py — companion projected as a
         sibling under bin/."""
         packs = self._packs()
@@ -332,7 +332,7 @@ class AdapterRootBinsShimCompanionTests(unittest.TestCase):
         )
 
     def test_check_drift_modified_shim_companion_carries_prefix(self) -> None:
-        """AC22b: companion drift descriptions use the
+        """Companion drift descriptions use the
         `[adapter-root-bins:shim-companion]` prefix so the source-side
         reference (under `shared-libs/`) reads coherently."""
         packs = self._packs()
@@ -420,7 +420,7 @@ class AdapterRootBinsShimCompanionTests(unittest.TestCase):
         )
         self.assertTrue(
             target.is_file(),
-            "AC22b companion projection did not write "
+            "companion projection did not write "
             "credentials_shim.py into bin/ from the real pack",
         )
         self.assertEqual(target.read_bytes(), source.read_bytes())

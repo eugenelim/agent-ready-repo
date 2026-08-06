@@ -461,7 +461,7 @@ def test_preferred_adapter_coexists_with_defaults_table():
 
 
 def test_preferred_adapter_compatible_with_organization_subtable():
-    """[organization] key and [organization.artifactory] subtable coexist (RFC-0072 compat)."""
+    """[organization] key and [organization.artifactory] subtable coexist (compat)."""
     text = (
         "[organization]\n"
         'preferred_adapter = "cursor"\n'

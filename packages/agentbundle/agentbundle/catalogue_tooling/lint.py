@@ -323,7 +323,7 @@ def _seeds_check_file(path: Path, seeds_root: Path) -> list[str]:
 
     Byte-identical message strings to the original standalone seeds linter EXCEPT
     the fail-loud unknown-seed message, which references
-    lint.py (_PackRules._check_seeds) per AC2.
+    lint.py (_PackRules._check_seeds).
     """
     violations: list[str] = []
     try:
@@ -349,7 +349,7 @@ def _seeds_check_file(path: Path, seeds_root: Path) -> list[str]:
             violations.append(
                 f"{path}:1: patterns.jsonl seed must be empty "
                 "(adopters' knowledge entries accumulate post-install; "
-                "see RFC-0002 amendment 2026-05-25)"
+                "seed the file with a placeholder entry)"
             )
         return violations
 
@@ -396,7 +396,7 @@ def _seeds_check_file(path: Path, seeds_root: Path) -> list[str]:
             if regex.search(raw_line):
                 violations.append(
                     f"{path}:{lineno}: contains {name} — pack seeds must "
-                    "be placeholder shape (RFC-0002 amendment 2026-05-25). "
+                    "be placeholder shape. "
                     "Add a `<!-- seed-content-lint-ignore: <reason> -->` "
                     "sentinel immediately above the line if the catalogue "
                     "string is genuinely required."
@@ -1498,7 +1498,7 @@ class _PackRules:
         return diags
 
     def _check_credentialed_skills(self) -> list[Diagnostic]:
-        """CAT-L031: credentialed-skill convention checks (D1/D2/D2b/D3/AC25)."""
+        """CAT-L031: credentialed-skill convention checks (D1/D2/D2b/D3)."""
         skills_dir = self._dir / ".apm" / "skills"
         if not skills_dir.is_dir():
             return []
@@ -1623,7 +1623,7 @@ class _PackRules:
                         f"(architectural violation — opt-out marker absent)",
                     )
 
-            # AC25: broker-specific checks
+            # Broker-specific checks
             consumer_py_files = [
                 p for p in py_files if not _cs_is_canonical_shim(p, shim_source_dir)
             ]
@@ -1638,7 +1638,7 @@ class _PackRules:
                     _report(
                         skill_md,
                         f"auth=creds requires at least one credential-resolver import "
-                        f"in scripts/ — `from credbroker import …` (RFC-0023) or the "
+                        f"in scripts/ — `from credbroker import …` or the "
                         f"legacy `from .{target} import …` — none found",
                     )
 

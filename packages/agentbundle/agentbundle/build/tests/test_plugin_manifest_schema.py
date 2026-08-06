@@ -4,12 +4,12 @@ Verifies:
   - plugin-manifest.schema.json (source shape) accepts a minimal hand-authored
     .claude-plugin/plugin.json (AC 4).
   - The source schema loads with the expected top-level shape.
-  - T2: source schema forbids the hooks property (AC10 gate 1).
-  - T2: derived schema accepts the synthesised hooks.SessionStart block (AC10 gate 1).
+  - T2: source schema forbids the hooks property (gate 1).
+  - T2: derived schema accepts the synthesised hooks.SessionStart block (gate 1).
   - T5: every source-tree packs/*/.claude-plugin/plugin.json carries no hooks
-    block (AC10).
+    block.
   - T5: every source-tree packs/*/.claude-plugin/plugin.json validates against
-    the source-shape schema (AC10).
+    the source-shape schema.
 """
 
 from __future__ import annotations
@@ -245,7 +245,7 @@ class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
 
 
 class PluginManifestSchemaSplitTests(unittest.TestCase):
-    """T2: Source schema forbids hooks; derived schema accepts synthesised hooks (AC10 gate 1).
+    """T2: Source schema forbids hooks; derived schema accepts synthesised hooks (gate 1).
 
     test_source_plugin_manifest_schema_forbids_hooks
     test_derived_plugin_manifest_schema_accepts_synthesised_hooks
@@ -353,7 +353,7 @@ class PluginManifestSchemaSplitTests(unittest.TestCase):
 
 
 class SourcePluginJsonAuditTests(unittest.TestCase):
-    """T5: Audit every source-tree packs/*/.claude-plugin/plugin.json (AC10).
+    """T5: Audit every source-tree packs/*/.claude-plugin/plugin.json.
 
     test_no_source_plugin_json_carries_hooks
     test_source_plugin_json_validates_against_schema
@@ -366,7 +366,7 @@ class SourcePluginJsonAuditTests(unittest.TestCase):
     def test_no_source_plugin_json_carries_hooks(self) -> None:
         """Every source-tree plugin.json must not declare a hooks block.
 
-        AC10: the hooks block is synthesised by the build pipeline; hand-authored
+        The hooks block is synthesised by the build pipeline; hand-authored
         source manifests must never pre-declare it. This test pins that invariant
         permanently so a future accidental hooks block is caught immediately.
         """
@@ -391,7 +391,7 @@ class SourcePluginJsonAuditTests(unittest.TestCase):
     def test_source_plugin_json_validates_against_schema(self) -> None:
         """Every source-tree plugin.json must validate against the source-shape schema.
 
-        AC10: the source schema (plugin-manifest.schema.json) explicitly forbids
+        The source schema (plugin-manifest.schema.json) explicitly forbids
         hooks via additionalProperties: false. Validating every source-tree
         manifest against it here provides a second gate that catches both missing
         required fields and any stray additional properties (including hooks).

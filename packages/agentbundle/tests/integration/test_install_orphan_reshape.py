@@ -49,7 +49,7 @@ def _reset_inband_cache() -> None:
 
 
 def test_first_install_over_edited_primitive_drops_companion(tmp_path):
-    """AC3: an edited file at a projection path → companion, no refusal."""
+    """An edited file at a projection path → companion, no refusal."""
     target = tmp_path / "repo"
     (target / ".claude" / "skills" / "work-loop").mkdir(parents=True)
     edited = b"# my hand-authored work-loop, do not delete\n"
@@ -66,7 +66,7 @@ def test_first_install_over_edited_primitive_drops_companion(tmp_path):
 
 
 def test_first_install_over_identical_primitive_is_clean(tmp_path):
-    """AC4: a byte-identical file at a projection path (no state) → no companion."""
+    """A byte-identical file at a projection path (no state) → no companion."""
     target = tmp_path / "repo"
     target.mkdir()
     rc, _out, err = _install_core(target)
@@ -84,7 +84,7 @@ def test_first_install_over_identical_primitive_is_clean(tmp_path):
 
 
 def test_non_projection_crumb_still_refused(tmp_path):
-    """AC5/AC6: a stale crumb not in the projection still triggers the (reworded) guard."""
+    """A stale crumb not in the projection still triggers the (reworded) guard."""
     target = tmp_path / "repo"
     (target / ".claude" / "skills" / "work-loop").mkdir(parents=True)
     # Matches the `work-loop` primitive-name heuristic but is NOT a projected file.
@@ -95,13 +95,13 @@ def test_non_projection_crumb_still_refused(tmp_path):
     assert rc == 1, "a non-projection crumb must still be refused without --force"
     assert crumb.exists(), "refusal must not delete anything"
     assert "prior install interrupted" not in err, (
-        "AC6: the message must not assert 'prior install interrupted' as fact"
+        "the message must not assert 'prior install interrupted' as fact"
     )
-    assert "your own files" in err, "AC6: the message must acknowledge adopter-authored files"
+    assert "your own files" in err, "the message must acknowledge adopter-authored files"
 
 
 def test_non_projection_crumb_removed_with_force(tmp_path):
-    """AC5: `--force` removes the genuine non-projection crumb and proceeds."""
+    """`--force` removes the genuine non-projection crumb and proceeds."""
     target = tmp_path / "repo"
     (target / ".claude" / "skills" / "work-loop").mkdir(parents=True)
     crumb = target / ".claude" / "skills" / "work-loop" / "STALE-EXTRA.md"

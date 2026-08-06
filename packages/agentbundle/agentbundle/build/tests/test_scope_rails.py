@@ -1,6 +1,6 @@
 """T12: user-scope refusal rails — seeds / hooks / marker.
 
-Verifies AC #16 (RFC-0004) for the distribution-adapters spec. The rails
+Verifies AC #16 for the distribution-adapters spec. The rails
 fire only when a pack declares `"user" ∈ allowed-scopes` — repo-only
 packs are not inspected, so SKILL.md files that *document* the marker
 syntax (e.g. `adapt-to-project`) are not refused because their packs
@@ -184,7 +184,7 @@ class RailCMarkersTests(unittest.TestCase):
     def test_rail_c_refuses_lowercase_hyphen_marker_in_skill_with_user_scope(self) -> None:
         """Canonical lowercase-hyphen form `<adapt:project-name>` is refused.
 
-        Closes the AC21 carve-out: until the code-side widening, a
+        Closes the carve-out: until the code-side widening, a
         user-scope pack carrying the canonical marker form passed
         `validate` in code even though the spec contract refused it.
         """
@@ -356,7 +356,7 @@ allowed-scopes = ["repo"]
                 rc = validate_cmd.run(args)
             self.assertEqual(rc, 1)
             err = buf.getvalue()
-            # Spec contract text (RFC-0004 last AC for agent-spec-cli).
+            # Spec contract text (last AC for agent-spec-cli).
             self.assertIn("default-scope", err)
             self.assertIn("'user'", err)
             self.assertIn("allowed-scopes", err)

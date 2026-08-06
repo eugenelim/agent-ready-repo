@@ -1,4 +1,4 @@
-"""T5 (RFC-0052 / ADR-0039+0040): the `shared` prefix class + cohort routing.
+"""T5 (ADR-0039+0040): the `shared` prefix class + cohort routing.
 
 The adapter contract gains a `[contract.shared-prefixes]` registry mapping each
 shared prefix to its reader cohort (shipped adapters); every other prefix is

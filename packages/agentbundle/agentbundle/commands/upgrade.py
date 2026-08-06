@@ -477,7 +477,7 @@ def _apply_single_row(
 
     user_config = getattr(args, "_user_config", None)
 
-    # ── Path-jail pre-flight (AC4) ──────────────────────────────────────────────
+    # ── Path-jail pre-flight ────────────────────────────────────────────────────
     try:
         safety.assert_projection_jailed(
             root, sorted(work_projection), allowed_prefixes, command="upgrade"
@@ -917,7 +917,7 @@ def run(args: argparse.Namespace) -> int:
 
     Returns 0 on success, non-zero on any failure.
     """
-    # --format json with --pack is not yet supported (AC5)
+    # --format json with --pack is not yet supported
     if getattr(args, "format", "table") == "json" and not getattr(args, "all", False):
         _print_err(
             "upgrade: --format json is not yet supported with --pack; "
@@ -931,7 +931,7 @@ def run(args: argparse.Namespace) -> int:
         return _run_all(args, root)
 
     pack_name: str = args.pack
-    # RFC-0046: resolve the default source when the `catalogue` positional was
+    # Resolve the default source when the `catalogue` positional was
     # omitted (an explicit arg short-circuits through layer 1 unchanged). On the
     # install→upgrade hand-off the synthetic namespace already carries the
     # concrete resolved URI, so layer 1 returns it verbatim — no re-resolution.
@@ -951,12 +951,12 @@ def run(args: argparse.Namespace) -> int:
     user_config: UserConfig | None = getattr(args, "_user_config", None)
     root = Path(args.root).resolve()
 
-    # ── Multi-scope disambiguator (RFC-0004) ──────────────────────────────────
+    # ── Multi-scope disambiguator ─────────────────────────────────────────────
     # If the pack is at both scopes, --scope is required; at one scope, infer.
     from agentbundle import scope as scope_mod
 
     repo_state_path = resolve_state_path("repo", root)
-    # A legacy (non-v0.4) state file is refused on read too (RFC-0052);
+    # A legacy (non-v0.4) state file is refused on read too;
     # surface it as a clean refuse rather than a traceback.
     try:
         repo_state_for_check = load_state(repo_state_path)
@@ -1001,7 +1001,7 @@ def run(args: argparse.Namespace) -> int:
         root = user_state_path.parent.parent
         effective_scope = "user"
 
-    # Multi-adapter disambiguator (RFC-0052): a pack can carry multiple
+    # Multi-adapter disambiguator: a pack can carry multiple
     # adapter rows at one scope; upgrade targets exactly one. Infer when a
     # single row exists; require --adapter when more than one.
     effective_check = (
@@ -1093,7 +1093,7 @@ def run(args: argparse.Namespace) -> int:
         return gate
 
     # ── Load current state ────────────────────────────────────────────────────
-    # upgrade is a write — refuse-and-explain on a v0.1 file (RFC-0004).
+    # upgrade is a write — refuse-and-explain on a v0.1 file.
     # At user scope, the state file lives at `<root>/.agentbundle/state.toml`,
     # not the repo-style `<root>/.agentbundle-state.toml`.
     state_path = user_state_path if effective_scope == "user" else resolve_state_path("repo", root)
@@ -1235,7 +1235,7 @@ def run(args: argparse.Namespace) -> int:
     # (`apm/...`, `claude-plugins/...`) would fail the user-scope
     # `allowed-prefixes` jail and wouldn't match the user-scope-installed
     # state's `.claude/...` paths. Mirrors `install._render_for_user_scope`.
-    # RFC-0011: thread the pack's allowed-adapters, contract version,
+    # Thread the pack's allowed-adapters, contract version,
     # and recorded state.adapter through the resolver so v0.6+ packs
     # use the six-step (0–5) lookup (and existing adopters get the
     # state-hint short-circuit AC10b on upgrade, avoiding the
@@ -1308,7 +1308,7 @@ def run(args: argparse.Namespace) -> int:
             # safety.write_jailed below).
             #
             # Backward compat for the `--emit-install-routes` install
-            # path (RFC-0012 § *CLI surface*): if existing state.files
+            # path: if existing state.files
             # already carries dist-tree-shaped paths, this was a
             # catalogue-publishing install — keep rendering the legacy
             # shape so we don't accrete a parallel per-IDE subtree on
@@ -1375,7 +1375,7 @@ def run(args: argparse.Namespace) -> int:
     # and return before the walk: no companion, no state write, no hook-wiring
     # reconciliation, no `upgraded:` recap.
     if getattr(args, "dry_run", False):
-        # Path-jail pre-flight (AC5). Unlike install (which probes every file in
+        # Path-jail pre-flight. Unlike install (which probes every file in
         # its standalone Step 8 before any write), upgrade enforces the jail
         # *inside* its write loop via `write_jailed`, so a real upgrade over a
         # projection that escapes the root would fail non-zero there. Mirror
@@ -1543,7 +1543,7 @@ def _compute_new_wiring_rows(
         return []
     if _canonical_install_adapter(target_adapter) == "kiro-ide":
         # `kiro` (deprecated alias) and `kiro-ide` DROP hook-wiring
-        # (RFC-0022): the install-time merge returns no rows, so the
+        # The install-time merge returns no rows, so the
         # symmetric-diff computation must agree and yield none.
         return []
     rows: list[dict[str, str]] = []

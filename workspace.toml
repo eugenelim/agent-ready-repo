@@ -434,17 +434,17 @@ backlog = []
 open = [
   # Sweep internal governance markers (RFC-0NNN / ADR-0NNN / our spec ACs) out of
   # `packages/**`, on the same "everything source-code-wise is visible" principle
-  # already applied to `packs/`. 916 occurrences across 195 files; ~475 of them
-  # resolve to ~460 DISTINCT surrounding contexts, so this is per-sentence work, not
-  # a regex pass — only ~388 fall into mechanically safe classes.
-  # Three traps, all measured:
+  # already applied to `packs/`. In progress under spec/packages-governance-marker-sweep.
+  # Two traps, both measured:
   #   1. IETF RFCs must survive (`RFC 9106` in credbroker/_vault.py). Ours are
   #      zero-padded four digits; IETF never starts with 0 — that is the discriminator.
   #   2. Some markers are terms of art inside user-facing strings ("pre-RFC-0012
-  #      dist-tree files", install.py:2422/:2465) and those exact strings are pinned by
+  #      dist-tree files" in install.py) and those exact strings are pinned by
   #      assertIn/assertNotIn in the integration tests — rename source + assertion together.
-  #   3. agentbundle/CHANGELOG.md (16 markers) is a historical record; decide
-  #      explicitly whether rewriting it is wanted before touching it.
+  # RESOLVED — the CHANGELOG question is closed, not open: agentbundle/CHANGELOG.md and
+  #   credbroker/CHANGELOG.md are absent from the wheel, the sdist, and the catalogue init
+  #   scaffold, so they reach no adopter. They stay untouched permanently, as historical
+  #   records. Do not reopen this as a follow-up.
   # credbroker/_sso.py is byte-identical to the packs/ copy and was already done.
   # Fix: tiered exact-string + regex pass for the safe classes, then per-site rewrite;
   #   verify with `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b' packages/` plus the full suite.

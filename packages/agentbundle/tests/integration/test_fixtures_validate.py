@@ -81,7 +81,7 @@ def _ensure_executable(path: Path) -> None:
     Some CI runners apply restrictive umasks that drop the executable
     bit on tracked files. Hooks are run via ``sh -c "$command"``, so the
     bit doesn't affect *projection* shape — but downstream T6 tests
-    that observe dispatchability (AC18) need it. Defensive re-chmod
+    that observe dispatchability need it. Defensive re-chmod
     keeps the fixtures self-healing.
     """
     if path.exists() and not os.access(path, os.X_OK):
@@ -166,7 +166,7 @@ class MalformedFixturesRefusedTests(unittest.TestCase):
         rc, err = _run_validate(FIXTURES / "malformed-kiro-unknown-agent")
         self.assertEqual(rc, 1, "malformed-kiro-unknown-agent was accepted")
         # Same refusal text — "or names an unknown agent" disjunct
-        # covers both shapes (RFC-0005 § Repo-scope Kiro promotion).
+        # covers both shapes.
         self.assertIn("or names an unknown agent", err)
 
 
@@ -194,7 +194,7 @@ class PascalEventsRefusedByT6Tests(unittest.TestCase):
 
 
 class FixtureIsolationTests(unittest.TestCase):
-    """AC29: nothing in this test module writes to ``~/.claude``,
+    """Nothing in this test module writes to ``~/.claude``,
     ``~/.kiro``, or ``~/.agentbundle``. Redirects ``$HOME`` to a
     ``tmp_path``-scoped directory and asserts the redirected tree is
     empty after validate runs against each user-scope fixture. This is

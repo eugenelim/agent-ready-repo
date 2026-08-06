@@ -1,4 +1,4 @@
-"""T7 (RFC-0052): end-to-end coexistence flows + concurrent-install race.
+"""T7: end-to-end coexistence flows + concurrent-install race.
 
 Installs the real shipped `core` pack for sibling adapters at repo scope and
 asserts the footprint model's coexistence guarantees:
@@ -7,7 +7,7 @@ asserts the footprint model's coexistence guarantees:
     (not rewritten, not swept); cursor's private `.cursor/` primitives land.
   - kiro family: kiro-cli then kiro-ide → `.kiro/skills/` co-owned, `.json`
     (cli) + `.md` (ide) agents coexist; uninstall kiro-cli → `.json` removed,
-    shared skills remain (RFC-0052 falsifier).
+    shared skills remain (falsifier).
   - concurrency: two simultaneous installs of different adapter rows of one
     pack to the same state file — both rows land (the T0 lock prevents the
     lost-update that a naive read-modify-write would suffer).
@@ -128,7 +128,7 @@ class KiroFamilyCoexistenceTests(unittest.TestCase):
 
 
 class DisambiguatorParityTests(unittest.TestCase):
-    """RFC-0052: uninstall/upgrade/diff require --adapter when a pack has
+    """uninstall/upgrade/diff require --adapter when a pack has
     multiple adapter rows at the resolved scope, and infer when it has one.
     (uninstall's parity is covered by the kiro e2e above; this pins upgrade
     and diff.)"""

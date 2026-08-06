@@ -114,7 +114,7 @@ def test_idempotent_re_run(tmp_path):
 
 
 def test_pending_report_byte_identical_with_multiple_companions(tmp_path):
-    """AC10: `.adapt-pending.md` is byte-identical across re-runs and
+    """`.adapt-pending.md` is byte-identical across re-runs and
     lists companion paths in lex order — load-bearing for the
     deterministic-sort contract, not the trivial one-element case.
 

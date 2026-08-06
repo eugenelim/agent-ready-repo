@@ -98,7 +98,7 @@ def test_write_force_propagated(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# preferred_adapter propagation (AC3)
+# preferred_adapter propagation
 # ---------------------------------------------------------------------------
 
 
@@ -142,12 +142,12 @@ def test_check_no_catalogue_toml_passes_none_preferred_adapter(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# _effective_adapters unit tests (AC1 + AC2)
+# _effective_adapters unit tests
 # ---------------------------------------------------------------------------
 
 
 def test_effective_adapters_unknown_adapter_uses_only_preferred():
-    """AC1: preferred_adapter not in SELF_HOST_ADAPTERS → singleton set."""
+    """preferred_adapter not in SELF_HOST_ADAPTERS → singleton set."""
     from agentbundle.build.self_host import SELF_HOST_ADAPTERS, _effective_adapters
 
     # kiro-ide is not in SELF_HOST_ADAPTERS for this repo's recipe.
@@ -157,7 +157,7 @@ def test_effective_adapters_unknown_adapter_uses_only_preferred():
 
 
 def test_effective_adapters_known_adapter_uses_full_list():
-    """AC2: preferred_adapter in SELF_HOST_ADAPTERS → full allow-list unchanged."""
+    """preferred_adapter in SELF_HOST_ADAPTERS → full allow-list unchanged."""
     from agentbundle.build.self_host import SELF_HOST_ADAPTERS, _effective_adapters
 
     assert "claude-code" in SELF_HOST_ADAPTERS
@@ -166,19 +166,19 @@ def test_effective_adapters_known_adapter_uses_full_list():
 
 
 def test_effective_adapters_none_uses_full_list():
-    """AC2: preferred_adapter=None → full allow-list unchanged."""
+    """preferred_adapter=None → full allow-list unchanged."""
     from agentbundle.build.self_host import SELF_HOST_ADAPTERS, _effective_adapters
 
     assert _effective_adapters(None) == SELF_HOST_ADAPTERS
 
 
 # ---------------------------------------------------------------------------
-# _project_all_adapters direct verification (AC1)
+# _project_all_adapters direct verification
 # ---------------------------------------------------------------------------
 
 
 def test_project_all_adapters_restricts_to_preferred_when_outside_self_host_adapters(tmp_path):
-    """AC1: _project_all_adapters with kiro-ide preferred_adapter calls only kiro-ide,
+    """_project_all_adapters with kiro-ide preferred_adapter calls only kiro-ide,
     not claude-code or codex, even when all three are present in the contract."""
     from unittest.mock import MagicMock
 
@@ -212,7 +212,7 @@ def test_project_all_adapters_restricts_to_preferred_when_outside_self_host_adap
 
 
 # ---------------------------------------------------------------------------
-# _project_claude_artifacts gating (AC7)
+# _project_claude_artifacts gating
 # ---------------------------------------------------------------------------
 
 
@@ -233,7 +233,7 @@ def test_effective_adapters_none_includes_claude_code():
 
 
 def test_run_self_host_kiro_ide_skips_claude_artifacts(tmp_path):
-    """AC7: run_self_host with preferred_adapter='kiro-ide' does not call
+    """run_self_host with preferred_adapter='kiro-ide' does not call
     _aggregate_marketplace or _recreate_claude_symlink."""
     from unittest.mock import MagicMock
 
