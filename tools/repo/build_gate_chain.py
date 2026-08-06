@@ -122,8 +122,11 @@ def build_check(args: argparse.Namespace) -> int:
     The portable verify (lint, build, schema, self-host drift) runs before this
     chain is invoked — via `make build-check` or the caller. This chain handles
     the repo-specific gates: build output for manifest validation, the manifest
-    validator itself, the catalogue pre-PR aggregator, and the spec/traceability
-    policy linters.
+    validator itself, the catalogue pre-PR aggregator, the spec/traceability
+    policy linters, the two repo-own lints that were previously CI-only (the
+    catalogue-curation guard and the experience-agnosticism lint), and the
+    CI-parity gate that keeps that list from silently falling behind
+    build-check.yml again.
 
     The SAST leg is intentionally omitted (Semgrep has no Windows support and
     is conditional) — it stays Makefile-appended after this chain.
@@ -170,6 +173,47 @@ def build_check(args: argparse.Namespace) -> int:
             "test-workspace-status-cli",
             "tools", "test_workspace_status_cli.py",
         ),
+        # Repo-own lints that build-check.yml ran and no local chain did, so a
+        # green `make ci` said nothing about them (spec/local-gate-ci-parity).
+        # Both default to `--root .` (the guard also to `--base origin/main`),
+        # so they invoke zero-arg like every other step here. They belong in
+        # this chain rather than the projected tools/hooks/pre-pr.py, which
+        # deliberately runs no repo linters — see each linter's docstring.
+        _script_step(
+            "test-lint-catalogue-curation-guard",
+            "tools", "test-lint-catalogue-curation-guard.py",
+        ),
+        _script_step(
+            "lint-catalogue-curation-guard",
+            "tools", "lint-catalogue-curation-guard.py",
+        ),
+        _script_step(
+            "test-lint-experience-agnostic",
+            "tools", "test-lint-experience-agnostic.py",
+        ),
+        _script_step(
+            "lint-experience-agnostic",
+            "tools", "lint-experience-agnostic.py",
+        ),
+        # The standing check that the four steps above do not become stale
+        # again: lint-ci-parity fails when build-check.yml gains a gate with no
+        # local counterpart and no declared exemption.
+        _script_step(
+            "test-lint-ci-parity",
+            "tools", "test-lint-ci-parity.py",
+        ),
+        _script_step(
+            "lint-ci-parity",
+            "tools", "lint-ci-parity.py",
+        ),
+        # tools/test-all.py is hand-run, so its manifest rotted unnoticed for
+        # weeks. This suite's live case asserts every TESTS entry resolves to a
+        # file — the cheap half of the umbrella, gated, without running the
+        # multi-minute suite itself.
+        _script_step(
+            "test-test-all",
+            "tools", "test-test-all.py",
+        ),
     ]
     return _run_chain(steps)
 
@@ -194,7 +238,8 @@ def _build_parser() -> argparse.ArgumentParser:
     bc = sub.add_parser(
         "build-check",
         help="catalogue build, validate-manifests, pre-pr-catalogue, spec-status, "
-             "brief-coverage, traceability, workspace-status tests "
+             "brief-coverage, traceability, workspace-status tests, "
+             "catalogue-curation guard, experience-agnosticism lint, CI parity "
              "(no portable verify, no SAST).",
     )
     bc.add_argument("--packs-dir", default="packs", help="Ignored (resolved via --root .).")

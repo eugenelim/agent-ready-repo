@@ -98,6 +98,30 @@ class BuildSelfChainTest(unittest.TestCase):
         self.assertNotIn("--write", argv)
 
 
+# The `build-check` chain's spawned script steps, in order. Single source for
+# both the ordering assertion and the step count — a literal count drifts out of
+# step with the list it is supposed to describe.
+EXPECTED_SCRIPT_STEPS = [
+    "tools/catalogue/pre_pr_catalogue.py",
+    "tools/catalogue/check_contract_parity.py",
+    "packs/core/tests/skills/work-loop/test-lint-spec-status.py",
+    ".claude/skills/work-loop/scripts/lint-spec-status.py",
+    "packs/core/tests/skills/receive-brief/test-lint-brief-coverage.py",
+    ".claude/skills/receive-brief/scripts/lint-brief-coverage.py",
+    "packs/core/tests/skills/work-loop/test-lint-traceability.py",
+    ".claude/skills/work-loop/scripts/lint-traceability.py",
+    "tools/test_workspace_status.py",
+    "tools/test_workspace_status_cli.py",
+    "tools/test-lint-catalogue-curation-guard.py",
+    "tools/lint-catalogue-curation-guard.py",
+    "tools/test-lint-experience-agnostic.py",
+    "tools/lint-experience-agnostic.py",
+    "tools/test-lint-ci-parity.py",
+    "tools/lint-ci-parity.py",
+    "tools/test-test-all.py",
+]
+
+
 class BuildCheckChainTest(unittest.TestCase):
     """`build_check` assembles every Windows-clean step, in order, no SAST."""
 
@@ -113,8 +137,8 @@ class BuildCheckChainTest(unittest.TestCase):
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # 1 module step (catalogue build) + 10 script steps = 11 total subprocess calls.
-        self.assertEqual(len(order), 11)
+        # 1 module step (catalogue build) + the script steps.
+        self.assertEqual(len(order), 1 + len(EXPECTED_SCRIPT_STEPS))
 
     def test_first_step_is_catalogue_build(self):
         """The first step must invoke agentbundle catalogue build."""
@@ -165,7 +189,8 @@ class BuildCheckChainTest(unittest.TestCase):
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
-        # All script steps (indices 1-10) must be [sys.executable, script_path].
+        # Every script step must be [sys.executable, script_path] — no cwd, no
+        # arguments, no shell. See EXPECTED_SCRIPT_STEPS for the list.
         for argv in seen[1:]:  # skip first (module step has extra args)
             self.assertEqual(argv[0], sys.executable)
             self.assertEqual(len(argv), 2)
@@ -186,21 +211,7 @@ class BuildCheckChainTest(unittest.TestCase):
 
         # seen[0] = module step (catalogue build); seen[1:] = script steps.
         spawned = [Path(argv[1]).as_posix() for argv in seen[1:]]
-        self.assertEqual(
-            spawned,
-            [
-                "tools/catalogue/pre_pr_catalogue.py",
-                "tools/catalogue/check_contract_parity.py",
-                "packs/core/tests/skills/work-loop/test-lint-spec-status.py",
-                ".claude/skills/work-loop/scripts/lint-spec-status.py",
-                "packs/core/tests/skills/receive-brief/test-lint-brief-coverage.py",
-                ".claude/skills/receive-brief/scripts/lint-brief-coverage.py",
-                "packs/core/tests/skills/work-loop/test-lint-traceability.py",
-                ".claude/skills/work-loop/scripts/lint-traceability.py",
-                "tools/test_workspace_status.py",
-                "tools/test_workspace_status_cli.py",
-            ],
-        )
+        self.assertEqual(spawned, EXPECTED_SCRIPT_STEPS)
 
 
 class ParserWiringTest(unittest.TestCase):
