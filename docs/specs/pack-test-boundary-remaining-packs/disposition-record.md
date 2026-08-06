@@ -122,4 +122,38 @@ loop vs. surfaced to the human, per the work-loop self-coverage gate.
   each where it bites rather than closing it — but a reader of the PR should know
   that `tools/test-all.py` is red before this change and after it, and that the
   pack version-parity gate does not work.
-- *(further entries appended at DECIDE)*
+## Closed at DECIDE
+
+Every REVIEW finding was applied; none was deferred. Six pre-EXECUTE adversarial
+rounds plus two security rounds closed 55 blockers before any code was written;
+the post-EXECUTE adversarial and quality passes closed 9 more, of which five were
+defects in code this loop added rather than in the relocation:
+
+- The collision lint compared test basenames only, so it guarded the failure
+  pytest announces and missed the one that passes green. Its single apparent
+  catch was `conftest.py` — by design, and the message would have been false.
+- It could not parse two of the three shapes that matter, including the one the
+  spec itself records as unparseable by substring match.
+- It parsed comments as invocations.
+- `grep -c` under `bash -e` silenced the floor assertions' total-loss case.
+- `test_e2e_docx_sample` degraded to a silent skip, invisible to the derivation
+  the runner manifest is built from.
+
+Two spec claims were wrong and were corrected rather than worked around: AC6d's
+"the drift-gate reason evaporates" is false for `new-adr`/`new-rfc`, whose
+harnesses load the module under test *from* `.apm/`; and AC6c's runner-coverage
+manifest could not stay true once the spec ships frozen, so the guard grew a
+fifth case that enforces it from the tree.
+
+**Resolved late, on user direction:** `render-proof`'s JavaScript suites. PLAN
+recorded them as unverifiable; installing the dependencies locally made all three
+a real before/after run. That also surfaced the archive-walk hole
+(`node_modules/` under `packs/`), which is folded into
+`package-archive-carries-pycache`.
+
+**Surfaced, not decided here:** whether `render-proof`'s suites should gain a CI
+runner (needs an `npm install` step and a committed lockfile for nine
+floating-caret dependencies, one of them the `dompurify` its own assertions
+test); and the orphaned `render-proof/evals/files/fixture.md`, whose only reader
+this change rewired — `evals/` is out of scope by this spec's own rail, so it was
+left in place rather than deleted quietly.
