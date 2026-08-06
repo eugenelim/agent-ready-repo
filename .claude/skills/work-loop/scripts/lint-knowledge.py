@@ -5,8 +5,13 @@ id that matches the K-NNNN format. Exit non-zero on any error.
 
 The empty file is valid (no learnings yet).
 
-Fixture mode: set KNOWLEDGE_FILE=<path> to lint a different file
-(used by the self-test).
+Fixture mode: pass a path argument to lint a different file (used by the
+self-test). An argument rather than an environment variable on purpose: the
+hook is for a caller that is already invoking this script deliberately, and an
+env var flowing into a filesystem target is an unvalidated external-control
+path (CWE-22 / CWE-73) that the repo's SAST rule rightly refuses. The argument
+is resolved before the chdir below, so a relative path means what the caller
+meant by it.
 """
 
 from __future__ import annotations
@@ -43,11 +48,16 @@ ALLOWED_TIERS = {"invariant", "observation"}
 ID_PATTERN = re.compile(r"^K-\d{4,}$")
 
 
-def main() -> int:
+def main(argv: list[str] | None = None) -> int:
+    args = sys.argv[1:] if argv is None else argv
+    if args and args[0] in ("-h", "--help"):
+        print(__doc__)
+        return 0
+    # Resolve against the caller's cwd *before* chdir, so a relative override
+    # points where the caller meant rather than at the repo root.
+    override = pathlib.Path(args[0]).expanduser().resolve() if args else None
     os.chdir(_repo_root())
-    knowledge_file = pathlib.Path(
-        os.environ.get("KNOWLEDGE_FILE", "docs/knowledge/patterns.jsonl")
-    )
+    knowledge_file = override or pathlib.Path("docs/knowledge/patterns.jsonl")
     error_count = 0
 
     def err(line_no: int, msg: str) -> None:

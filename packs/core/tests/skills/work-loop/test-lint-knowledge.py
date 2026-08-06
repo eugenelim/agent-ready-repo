@@ -4,8 +4,8 @@
 Three layers:
 
 1. **Validation rules.** Tempdir JSONL fixtures trip each rule and assert the
-   right error fires, driven through the documented `KNOWLEDGE_FILE=<path>
-   python <skill>/scripts/lint-knowledge.py` invocation.
+   right error fires, driven through the documented
+   `python <skill>/scripts/lint-knowledge.py <path>` invocation.
 2. **Schema drift.** The field table in `docs/knowledge/README.md` and the
    linter's `REQUIRED_KEYS` / `OPTIONAL_KEYS` / `ALLOWED_KINDS` must agree.
 3. **Guidance drift.** Every surface that tells a writer to author an entry
@@ -77,11 +77,10 @@ ROOT = _repo_root()
 
 
 def _lint(path: Path) -> subprocess.CompletedProcess[str]:
-    """Run the linter over *path* via the documented KNOWLEDGE_FILE hook."""
+    """Run the linter over *path* via its documented path argument."""
     return subprocess.run(
-        [sys.executable, str(LINTER)],
+        [sys.executable, str(LINTER), str(path)],
         capture_output=True, text=True, encoding="utf-8", check=False,
-        env={**os.environ, "KNOWLEDGE_FILE": str(path)},
     )
 
 
