@@ -544,18 +544,34 @@ def _capture(
     validation_endpoint: str = args.validation_endpoint or ""
     ttl_hint_minutes: int = int(args.ttl_hint_minutes or 480)
 
+    # Names the verb the operator actually ran: `refresh` reaches here too, via
+    # the stored profile, and a message telling them to pass `--login-url` to
+    # `register` when they typed `refresh` sends them the wrong way.
+    verb = "refresh" if headless else "register"
+
     if not login_url or not success_pattern:
         sys.stderr.write(
-            "sso-broker register: --login-url and --success-url-pattern are required\n"
+            f"sso-broker {verb}: login-url and success-url-pattern are required "
+            f"(refresh reads them from the stored profile)\n"
         )
         return 3
-
-    sync_playwright = _import_playwright()
 
     captured_cookies: list[dict] = []
     storage_state: dict | None = None
     success = False
-    success_re = re.compile(success_pattern)
+    try:
+        success_re = re.compile(success_pattern)
+    except re.error as exc:
+        # A stored profile can carry a pattern this build of Python will not
+        # compile. Uncaught it escapes main() as a traceback and exit 1, on a
+        # path whose stdio the consumer inherits.
+        sys.stderr.write(
+            f"sso-broker {verb}: stored success-url-pattern is not a valid "
+            f"regular expression ({exc.msg}); re-register the profile\n"
+        )
+        return 3
+
+    sync_playwright = _import_playwright()
     poll_seconds = _REFRESH_SILENT_WINDOW_S if headless else _REGISTER_SIGNIN_POLL_S
 
     # Corporate-network env passthrough. The parent (``credbroker``) already
@@ -577,11 +593,23 @@ def _capture(
             browser = pw.chromium.launch(headless=headless, env=env_for_browser)
             context = browser.new_context()
 
+        navigated = True
         try:
             page = context.pages[0] if context.pages else context.new_page()
-            page.goto(login_url)
+            try:
+                page.goto(login_url)
+            except Exception as exc:  # noqa: BLE001 — playwright's own error types
+                # A navigation timeout on the headless path means the same thing
+                # exit 5 means: this could not complete unaided. Uncaught it
+                # escapes as a traceback and exit 1, which the consumer maps to
+                # "recapture failed" and reports without the re-register hint.
+                navigated = False
+                sys.stderr.write(
+                    f"sso-broker {verb}: could not reach the sign-in destination "
+                    f"({type(exc).__name__})\n"
+                )
 
-            deadline = time.time() + poll_seconds
+            deadline = time.time() + (poll_seconds if navigated else 0)
             while time.time() < deadline:
                 if success_re.search(page.url):
                     success = True

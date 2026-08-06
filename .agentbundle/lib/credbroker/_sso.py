@@ -26,6 +26,7 @@ platform integration, not just atlassian.
 from __future__ import annotations
 
 import contextlib
+import http.client
 import json
 import os
 import re
@@ -695,14 +696,37 @@ def _derivation_opener() -> urllib.request.OpenerDirector:
     )
 
 
-def _read_capped(fp) -> bytes:  # noqa: ANN001 — any file-like the opener yields
-    """Read at most the cap, and refuse anything larger — before parsing."""
-    data = fp.read(_DERIVE_BODY_CAP_BYTES + 1)
-    if len(data) > _DERIVE_BODY_CAP_BYTES:
+# Read granularity. Small enough that the budget is re-checked often against a
+# slow server, large enough that a healthy response is one or two reads.
+_DERIVE_READ_CHUNK_BYTES = 8 * 1024
+
+
+def _read_capped(fp, budget: _DerivationBudget | None = None) -> bytes:  # noqa: ANN001
+    """Read at most the cap, and refuse anything larger — before parsing.
+
+    Read **in chunks with the budget re-checked between them**, not in one
+    ``read(cap + 1)``. A single large read loops inside the socket layer, and the
+    socket timeout applies per ``recv`` — so a server drip-feeding one byte at a
+    time resets the clock on every byte and the read is bounded only by
+    cap × timeout. On the credential path, reached from a URL taken out of an
+    attacker-influenceable response header, that is a hang, and
+    ``check --register`` calls it synchronously.
+    """
+    chunks: list[bytes] = []
+    total = 0
+    while total <= _DERIVE_BODY_CAP_BYTES:
+        if budget is not None:
+            budget.check()
+        chunk = fp.read(min(_DERIVE_READ_CHUNK_BYTES, _DERIVE_BODY_CAP_BYTES + 1 - total))
+        if not chunk:
+            break
+        chunks.append(chunk)
+        total += len(chunk)
+    if total > _DERIVE_BODY_CAP_BYTES:
         raise _DerivationAbort(
             f"derivation document exceeds the {_DERIVE_BODY_CAP_BYTES}-byte cap"
         )
-    return data
+    return b"".join(chunks)
 
 
 def _derive_open(url: str, budget: _DerivationBudget) -> _DerivationResponse:
@@ -721,15 +745,20 @@ def _derive_open(url: str, budget: _DerivationBudget) -> _DerivationResponse:
     timeout = min(_DERIVE_SOCKET_TIMEOUT_S, max(0.001, budget.remaining()))
     try:
         with _derivation_opener().open(request, timeout=timeout) as resp:  # noqa: S310
-            return _DerivationResponse(resp.status, resp.headers, _read_capped(resp))
+            body = _read_capped(resp, budget)
+            return _DerivationResponse(resp.status, resp.headers, body)
     except urllib.error.HTTPError as exc:
         # A 401 carrying WWW-Authenticate and a 302 carrying Location are the
         # answers two of the three tiers are looking for, not failures.
         with contextlib.closing(exc):
-            return _DerivationResponse(exc.code, exc.headers, _read_capped(exc))
+            return _DerivationResponse(exc.code, exc.headers, _read_capped(exc, budget))
     except _DerivationAbort:
         raise
-    except (OSError, ValueError) as exc:
+    except (OSError, ValueError, http.client.HTTPException) as exc:
+        # `HTTPException` (IncompleteRead, LineTooLong, …) is neither OSError nor
+        # ValueError, and is raised during the body read — after urllib has
+        # finished wrapping transport errors. Without it a malformed response
+        # escapes derivation entirely and surfaces as a traceback.
         raise _DerivationAbort(f"derivation hop failed: {type(exc).__name__}") from exc
 
 
