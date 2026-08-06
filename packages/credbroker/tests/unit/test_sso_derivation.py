@@ -241,6 +241,71 @@ def test_body_is_capped_before_parsing():                       # STUB: AC32
         _sso._read_capped(_Fp())
 
 
+def test_a_drip_feeding_server_cannot_outrun_the_budget():      # STUB: AC32
+    # The socket timeout applies per `recv`, so one large `read(cap + 1)` lets a
+    # server that sends a byte at a time reset the clock forever — bounded only
+    # by cap x timeout, which is hours. The budget must be re-checked *during*
+    # the read, not only before the hop.
+    import time as _time
+
+    class _Drip:
+        def __init__(self):
+            self.reads = 0
+
+        def read(self, n):
+            self.reads += 1
+            _time.sleep(0.001)   # a byte at a time, slowly — forever
+            return b"x"
+
+        def close(self):
+            pass
+
+    drip = _Drip()
+    started = _time.monotonic()
+    with pytest.raises(_sso._DerivationAbort):
+        _sso._read_capped(drip, _sso._DerivationBudget(0.2))
+    elapsed = _time.monotonic() - started
+
+    # It gave up on the clock, not on the cap — and promptly.
+    assert drip.reads < _sso._DERIVE_BODY_CAP_BYTES
+    assert elapsed < 5, f"read ran {elapsed:.1f}s past a 0.2s budget"
+
+
+def test_a_healthy_body_still_reads_whole():                    # STUB: AC32
+    payload = b'{"authorization_endpoint": "https://idp.example/authorize"}'
+
+    class _Fp:
+        def __init__(self):
+            self.rest = payload
+
+        def read(self, n):
+            head, self.rest = self.rest[:n], self.rest[n:]
+            return head
+
+        def close(self):
+            pass
+
+    assert _sso._read_capped(_Fp(), _sso._DerivationBudget(15.0)) == payload
+
+
+def test_a_malformed_response_is_an_abort_not_a_traceback(monkeypatch):  # STUB: AC32
+    # http.client.HTTPException (IncompleteRead, LineTooLong) is neither OSError
+    # nor ValueError and is raised during the body read, after urllib has
+    # finished wrapping transport errors — so without it in the except tuple a
+    # malformed response escapes derivation entirely.
+    import http.client
+
+    class _Opener:
+        def open(self, req, timeout=None):
+            raise http.client.IncompleteRead(b"partial")
+
+    monkeypatch.setattr(_sso, "_derivation_opener", lambda: _Opener())
+    with pytest.raises(_sso._DerivationAbort):
+        _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(15.0))
+    # And the public entry point degrades to cannot-derive rather than raising.
+    assert credbroker.derive_sso_destination(BASE) is None
+
+
 def test_total_budget_is_enforced():                            # STUB: AC32
     budget = _sso._DerivationBudget(0.0)
     with pytest.raises(_sso._DerivationAbort):

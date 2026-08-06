@@ -965,11 +965,13 @@ def test_refresh_login_page_returns_5_and_closes(broker, monkeypatch, capsys):  
 
 
 def test_refresh_never_polls_for_a_human(broker):                # STUB: AC14a
-    # The headless window is bounded far short of a human sign-in; the headed
-    # register poll is the only human-duration wait in the engine.
+    # Pinned exactly, not banded: credbroker's 180 s refresh bound is *derived*
+    # from this 20 s window, so a silent widening here would leave the spawn
+    # timeout under-sized. The headed register poll is the only human-duration
+    # wait in the engine.
     mod, _ = broker
-    assert mod._REFRESH_SILENT_WINDOW_S <= 30
-    assert mod._REGISTER_SIGNIN_POLL_S >= 300
+    assert mod._REFRESH_SILENT_WINDOW_S == 20
+    assert mod._REGISTER_SIGNIN_POLL_S == 300
 
 
 @pytest.mark.parametrize("flag,value", [

@@ -494,6 +494,12 @@ async def _probe(sso_config: object) -> int:
         await client.__aexit__(None, None, None)
 
 
+def _origin_of(url: str) -> str:
+    """`scheme://host[:port]`, lower-cased — the unit both sides are compared in."""
+    parts = urlsplit(url)
+    return f"{parts.scheme.lower()}://{parts.netloc.lower()}"
+
+
 def _attest_sign_in_destination(sso_config: object) -> str | None:
     """``None`` to proceed; a stderr-ready refusal otherwise.
 
@@ -506,6 +512,13 @@ def _attest_sign_in_destination(sso_config: object) -> str | None:
     *majority* Jira DC configuration. In SP-initiated SAML `login_url` sits on
     the SP host while the vendor probe's redirect names the IdP host.
     """
+    # Compared as scheme+authority, not bare hostname: `derive_sso_destination`
+    # returns the port when the server names one, so reducing both sides to
+    # `.hostname` would accept a derived `https://idp:8443` against a configured
+    # `https://idp:9999` — a different origin, and on many corporate networks a
+    # different service.
+    login_origin = _origin_of(sso_config.login_url)
+    base_origin = _origin_of(sso_config.base_url)
     login_host = (urlsplit(sso_config.login_url).hostname or "").lower()
     base_host = (urlsplit(sso_config.base_url).hostname or "").lower()
 
@@ -516,7 +529,7 @@ def _attest_sign_in_destination(sso_config: object) -> str | None:
     # unconstrained. Accepted rather than fixed: requiring derivation here would
     # refuse every SSO-with-local-fallback adopter, and derivation is explicitly
     # not the control. Recorded as `sso-branch2-destination-attestation`.
-    if login_host and login_host == base_host:
+    if login_origin and login_origin == base_origin:
         return None
 
     try:
@@ -536,10 +549,10 @@ def _attest_sign_in_destination(sso_config: object) -> str | None:
             f"If it is correct, register with: python scripts/setup_sso.py"
         )
 
-    derived_host = (urlsplit(derived).hostname or "").lower()
-    if derived_host == login_host:
+    if _origin_of(derived) == login_origin:
         return None
 
+    derived_host = (urlsplit(derived).hostname or "").lower()
     return (
         f"error: {base_host} sends users to sign in at {derived_host}, but "
         f"sso-config.toml points at {login_host}. Refusing to open a browser. "
@@ -640,6 +653,7 @@ async def _cmd_check_sso(sso_config: object, args: argparse.Namespace) -> int:
         # makes an automated recapture structurally unable to choose one.
         credbroker.refresh_sso_session(sso_config.profile)
     except credbroker.SsoProfileNotRegisteredError:
+        log.info("recapture refused for profile %s: never registered", sso_config.profile)
         print(
             f"error: no SSO session has ever been captured for profile "
             f"{sso_config.profile} on this machine — {_REGISTER_REMEDIATION}",
@@ -647,6 +661,10 @@ async def _cmd_check_sso(sso_config: object, args: argparse.Namespace) -> int:
         )
         return EXIT_USER_ACTION
     except credbroker.SsoInteractionRequiredError:
+        log.info(
+            "recapture failed for profile %s: a human must sign in",
+            sso_config.profile,
+        )
         print(
             f"error: the stored browser session for profile {sso_config.profile} "
             f"could not re-authenticate on its own, so a person must sign in. No "
@@ -657,6 +675,10 @@ async def _cmd_check_sso(sso_config: object, args: argparse.Namespace) -> int:
     except credbroker.SsoError as exc:
         # The engine's own stderr already reached the caller (its stdio is
         # inherited), so this adds no guessed remediation.
+        log.info(
+            "recapture failed for profile %s (%s)",
+            sso_config.profile, type(exc).__name__,
+        )
         print(f"error: could not re-establish the SSO session: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION
 
@@ -971,6 +993,22 @@ async def _run(args: argparse.Namespace) -> int:
     # routes to the cookie path; absent or "creds" → today's token path unchanged.
     try:
         auth_path, sso_config = _select_auth_path()
+    except ImportError as exc:
+        # An old pinned `credbroker` shadows the vendored floor, and the loader's
+        # `from credbroker import (…, validate_sso_profile)` fails on a name the
+        # old release does not export. This is the *first* thing an out-of-date
+        # install hits, before the feature-detect below ever runs, so it gets the
+        # same upgrade remediation rather than a raw ImportError naming an
+        # internal path.
+        #
+        # Reachable on the SSO-cookie path only: `load_sso_config` returns before
+        # its credbroker import when `auth_default` is absent or `creds`, so the
+        # token path cannot land here.
+        if "credbroker" in str(exc) or getattr(exc, "name", "") == "credbroker":
+            print(_credbroker_floor_error() or f"error: {exc}", file=sys.stderr)
+        else:
+            print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USER_ACTION
     except Exception as exc:  # noqa: BLE001 — malformed SSO config → fail closed
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION

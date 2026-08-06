@@ -85,7 +85,7 @@ first (it changes an exit code T5's tests assert).
 | CI | `.github/workflows/build-check.yml` | wire the new jira suite |
 | CI | `packages/agentbundle/…/self_host_windows.py` | add credbroker suite + the new jira suite |
 | docs | `docs/architecture/credentials.md` | already landed; reconcile with shipped behaviour |
-| docs | `guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md`, `guides/_shared/reference/`, `docs/product/changelog.md` | AC21–AC24 |
+| docs | `guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md`, `guides/credential-brokers/reference/credbroker-sso-api.md` (**not** `guides/_shared/reference/` — pack-owned subtree, per AGENTS.md § Guide trees), `docs/product/changelog.md` | AC21–AC24 |
 | bookkeeping | `workspace.toml` | queue entry + deferred slugs |
 | release | `packages/credbroker/pyproject.toml`, `packs/atlassian/{pack.toml,.claude-plugin/plugin.json}`, `packs/credential-brokers/pack.toml` | version bumps (**last**) |
 
@@ -114,7 +114,10 @@ cd packs/atlassian/.apm/skills/jira && python scripts/jira.py --insecure check
 **What I am not changing**
 
 - The token path's credential resolution (only AC18's warning is added).
-- Any `jira.py` subcommand other than `check`.
+- Any `jira.py` subcommand other than `check` — except that AC18's
+  `--insecure` warning lives in the shared client construction, so every
+  token-path subcommand gains that one stderr line. See the spec's *Out of
+  scope* carve-out.
 - `confluence-crawler`'s `check` behaviour (it *does* inherit the shared-file
   changes — see spec scope; that is not "no change").
 - `[pack.adapter-contract] version`.

@@ -568,14 +568,12 @@ def test_probe_closes_the_client_on_failure(sso_path, recapture, responses):
         return await original(self, *exc)
 
     responses(_EXPIRED, _EXPIRED)
-    import types
     _client.JiraClient.__aexit__ = _aexit
     try:
         _check()
     finally:
         _client.JiraClient.__aexit__ = original
     assert len(closed) >= 2, "each probe must close its client"
-    del types
 
 
 # --- AC19 / AC31: blast radius ------------------------------------------
@@ -735,16 +733,84 @@ def test_insecure_warns_ignored_on_sso_path(sso_path, recapture, responses, caps
 
 
 def test_insecure_is_never_forwarded_to_the_engine(sso_path, recapture, responses):
-    # STUB: AC18
+    # STUB: AC18 — asserted on the argv `credbroker` actually composes, not on
+    # the skill-side stub's kwargs (which cannot carry the flag whatever the
+    # implementation does, so asserting there would be a tautology).
+    import inspect
+    src = inspect.getsource(credbroker._sso.refresh_sso_session)
+    assert "insecure" not in src
     responses(_EXPIRED, _OK)
     args = jira._build_parser().parse_args(["--insecure", "check"])
     import asyncio
     asyncio.run(jira._run(args))
-    flat = repr(recapture.refresh_calls)
-    assert "insecure" not in flat
+    # The one call it does make carries the profile and nothing else.
+    assert recapture.refresh_calls == [(("jira",), {})]
 
 
 # --- AC30: the credbroker version floor --------------------------------
+
+
+# `credbroker` 0.4.1's entire public SSO surface, transcribed from
+# `origin/main:packages/credbroker/credbroker/__init__.py`. Deleting one
+# attribute off the real 0.5.0 module would not reproduce the failure an adopter
+# actually hits: the *loader* imports `validate_sso_profile` by name, so on a
+# real 0.4.1 the ImportError fires long before any feature-detect.
+_CREDBROKER_041_SSO_SURFACE = (
+    "SsoError", "SsoBrokerNotInstalledError", "SsoSessionUnavailableError",
+    "SsoConfigError", "load_sso_cookies", "validate_https_url",
+    "validate_root_relative_endpoint", "domain_in_cookie_domains",
+    "filter_jar_to_domains", "require_host_in_cookie_domains",
+)
+
+
+@pytest.fixture
+def credbroker_041(monkeypatch):
+    """Replace `credbroker` with a module exporting exactly 0.4.1's surface."""
+    import types
+    stub = types.ModuleType("credbroker")
+    stub.__version__ = "0.4.1"
+    for name in _CREDBROKER_041_SSO_SURFACE:
+        setattr(stub, name, getattr(credbroker, name))
+    monkeypatch.setitem(sys.modules, "credbroker", stub)
+    monkeypatch.setattr(jira, "credbroker", stub)
+    # The loader imports from `credbroker` at call time, so the sys.modules
+    # swap above is what it resolves against.
+    return stub
+
+
+def test_real_041_install_gets_the_upgrade_remediation(sso_path, credbroker_041, capsys):
+    # STUB: AC30 — the scenario an adopter pinned to 0.4.1 actually hits. The
+    # loader's `from credbroker import (…, validate_sso_profile)` raises
+    # ImportError before the feature-detect runs; without routing that to the
+    # floor message the operator gets a raw ImportError naming an internal path.
+    assert _check() == jira.EXIT_USER_ACTION
+    err = capsys.readouterr().err
+    assert "0.5.0" in err, f"no upgrade remediation; got: {err}"
+    assert "credbroker" in err
+    assert "Traceback" not in err
+
+
+def test_041_stub_does_not_break_the_token_path(token_path, credbroker_041, monkeypatch):
+    # STUB: AC30/AC19 — the loader returns before its credbroker import on the
+    # token path, so an old pin must not gate any token-path subcommand.
+    import asyncio
+    creds = _client.Credentials(
+        base_url="https://jira.corp.example.com", token="t",
+        flavor=_client.FLAVOR_SERVER, email=None,
+    )
+    monkeypatch.setattr(jira, "load_credentials", lambda: creds)
+    real_init = _client.JiraClient.__init__
+
+    def _init(self, credentials, **kwargs):
+        real_init(self, credentials, **kwargs)
+        self._client = httpx.AsyncClient(
+            base_url=credentials.base_url,
+            transport=httpx.MockTransport(lambda r: _OK),
+        )
+
+    monkeypatch.setattr(_client.JiraClient, "__init__", _init)
+    args = jira._build_parser().parse_args(["whoami"])
+    assert asyncio.run(jira._run(args)) == jira.EXIT_OK
 
 
 def test_old_credbroker_exits_2_with_upgrade_hint(sso_path, monkeypatch, capsys):

@@ -115,8 +115,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **`--insecure` is honest on both auth paths.** On the token path it now warns
-  whenever it fires, which it should always have done. On the SSO-cookie path it
+- **`--insecure` is honest on both auth paths.** On the token path **every
+  subcommand** now warns whenever the flag fires, which they should always have
+  done. On the SSO-cookie path it
   is inert — the session cookie is a bearer secret — and `check` says so rather
   than implying verification was disabled.
 

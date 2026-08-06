@@ -15,11 +15,13 @@ engine computes ``_AGENTBUNDLE_HOME`` at *import* time.
 from __future__ import annotations
 
 import ast
+import contextlib
 import importlib.util
 import inspect
 import json
 import os
 import signal
+import subprocess
 import sys
 import textwrap
 import time
@@ -74,20 +76,42 @@ def test_profile_grammar_accepts_ordinary():       # STUB: AC4
 # ----------------------------------------------------------------------
 
 
-@pytest.mark.skipif(os.name != "posix", reason="POSIX process-group kill arm")
+def _process_alive(pid: int) -> bool:
+    """True while *pid* is still running. Cross-platform."""
+    if os.name == "posix":
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return False
+        except PermissionError:  # pragma: no cover — alive, owned elsewhere
+            return True
+        return True
+    # Windows: tasklist is the portable probe without a third-party dep.
+    out = subprocess.run(  # noqa: S603, S607
+        ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
+        capture_output=True, text=True, check=False,
+    ).stdout
+    return str(pid) in out
+
+
 def test_spawn_kills_process_tree(tmp_path):       # STUB: AC3
-    # The fake broker forks a grandchild that outlives it, then sleeps past the
-    # timeout. Without the process-group kill the grandchild survives — exactly
-    # how playwright's Chromium leaks a live corporate session.
+    # The fake broker spawns a grandchild that outlives it, then sleeps past the
+    # timeout. Without the tree kill the grandchild survives — exactly how
+    # playwright's Chromium leaks a live corporate session and keeps the
+    # browser-state lock.
+    #
+    # Runs on **both** platforms deliberately. A POSIX-only assertion would leave
+    # the Windows `taskkill` arm unexercised even on the Windows parity runner —
+    # which would look like coverage while proving nothing about the arm that is
+    # reasoned rather than executed. The grandchild is spawned via
+    # `subprocess.Popen` rather than `os.fork` so the same test body runs on
+    # Windows.
     marker = tmp_path / "grandchild.pid"
     fake = _write_fake_broker(tmp_path, f"""
-        pid = os.fork()
-        if pid == 0:
-            os.setpgid(0, os.getpgid(os.getppid()))
-            open({str(marker)!r}, "w").write(str(os.getpid()))
-            time.sleep(60)
-            os._exit(0)
-        time.sleep(60)
+        import subprocess
+        child = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(120)"])
+        open({str(marker)!r}, "w").write(str(child.pid))
+        time.sleep(120)
     """)
 
     # 6 s, not 2: the timeout must not fire before the fake broker's interpreter
@@ -108,20 +132,17 @@ def test_spawn_kills_process_tree(tmp_path):       # STUB: AC3
         else:
             time.sleep(0.05)
     assert grandchild is not None, (
-        "fake broker never forked its grandchild — the spawn timeout fired "
-        "before the child reached its fork, so this run proved nothing"
+        "fake broker never spawned its grandchild — the spawn timeout fired "
+        "before the child got that far, so this run proved nothing"
     )
-    # The grandchild joined the spawned session's group, so the group kill must
-    # have reached it.
-    deadline = time.monotonic() + 5
-    while time.monotonic() < deadline:
-        try:
-            os.kill(grandchild, 0)
-        except ProcessLookupError:
-            break
-        time.sleep(0.05)
-    else:  # pragma: no cover — the regression this test exists to catch
-        os.kill(grandchild, signal.SIGKILL)
+    # POSIX: the grandchild inherited the new session's process group, so the
+    # group kill reaches it. Windows: `taskkill /T` walks the process tree.
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline and _process_alive(grandchild):
+        time.sleep(0.1)
+    if _process_alive(grandchild):  # pragma: no cover — the regression to catch
+        with contextlib.suppress(OSError):
+            os.kill(grandchild, getattr(signal, "SIGKILL", signal.SIGTERM))
         pytest.fail("grandchild survived the timeout kill")
 
 

@@ -44,22 +44,40 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
     ):
         rc = run_windows_compat(fake_root)
     assert rc == 0
-    assert len(calls) == 16, f"Expected 16 steps, got {len(calls)}"
-    # The SSO trios importorskip("credbroker") at module scope and _step
-    # judges by return code alone, so the probe is what stops a missing
-    # dependency from skipping both suites and reporting pass. Pin it by
-    # shape, not only by the count above.
-    assert any(
-        cmd[1:] == ["-c", "import credbroker, httpx"] for cmd, _ in calls
-    ), "the atlassian SSO dependency probe must run"
-    # Likewise named rather than left to the count: credbroker's suite is here
-    # because the cross-platform process-tree kill lives in it — the `taskkill`
-    # arm is only verified once this run is green (jira-check-sso-auto-login
-    # AC26).
-    cwds = {str(cwd) for _cmd, cwd in calls}
-    assert any(cwd.endswith(str(Path("packages") / "credbroker")) for cwd in cwds), (
-        "the credbroker suite must run on the Windows parity runner"
-    )
+    # Asserted as a *set of steps*, not a count. A bare count tells you a step
+    # was dropped but not which, and a floor is weaker still — remove any other
+    # step and the total stays put. Each entry is (cwd suffix, a token that must
+    # appear in the command).
+    #
+    # `packages/credbroker` is here because the cross-platform process-tree kill
+    # lives in that suite; the `taskkill` arm is only verified once this run is
+    # green (jira-check-sso-auto-login AC26).
+    #
+    # The dependency probe is here because both SSO trios `importorskip`
+    # `credbroker` at module scope and the step runner judges by return code
+    # alone — without it, a machine missing the dependency skips both suites
+    # and the step reports pass.
+    #
+    # Pack tests live outside the runtime payload (ADR-0071), so the SSO cwds
+    # are the pack's test tree rather than the skill's `scripts/`.
+    expected = {
+        ("", "catalogue"),
+        ("", "import credbroker, httpx"),
+        (str(Path("packages") / "agentbundle"), "test_install_converters_user_scope.py"),
+        (str(Path("packages") / "agentbundle"), "test_shared_libs_projection.py"),
+        (str(Path("packages") / "agentbundle"), "test_self_host_recipe_config.py"),
+        (str(Path("packages") / "agentbundle"), "test_self_host_fixture_guard.py"),
+        (str(Path("packages") / "agentbundle"), "test_user_libs_projection.py"),
+        (str(Path("packages") / "agentbundle"), "test_credential_brokers_pack_install.py"),
+        (str(Path("packages") / "credbroker"), "pytest"),
+        (str(Path("tests") / "skills" / "jira"), "test_check_sso_login.py"),
+        (str(Path("tests") / "skills" / "confluence-crawler"), "test_sso_config.py"),
+    }
+    observed = [(str(cwd), " ".join(str(part) for part in cmd)) for cmd, cwd in calls]
+    for cwd_suffix, token in sorted(expected):
+        assert any(
+            cwd.endswith(cwd_suffix) and token in command for cwd, command in observed
+        ), f"parity step missing: {token} in a cwd ending {cwd_suffix!r}"
 
 
 def test_stops_on_first_failure(fake_root: Path) -> None:

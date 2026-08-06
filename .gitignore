@@ -91,3 +91,4 @@ docs-site/src/sidebar-config.json
 .workspace.toml.*.tmp
 .plan.*.tmp
 .loop-run/
+.adapt-pending.md

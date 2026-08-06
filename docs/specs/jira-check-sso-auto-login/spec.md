@@ -133,7 +133,15 @@ to read. Safety rests on destination pinning instead.
 
 **Out of scope**
 
-- The token path's credential resolution; every `jira.py` subcommand but `check`.
+- The token path's credential resolution; every `jira.py` subcommand but
+  `check` — **with one carve-out, AC18's `--insecure` warning.** That warning
+  lives in `_run`'s shared client construction (`jira.py:722`), which every
+  subcommand reaches, because `docs/CONVENTIONS.md:1197,1214` require it
+  *whenever the flag fires* and scoping it to `check` would leave the violation
+  live everywhere else. So every token-path subcommand gains one stderr line
+  when `--insecure` is passed, and nothing else about them changes. (Recorded at
+  implementation, 2026-08-06: AC18's own wording already implied this by citing
+  the shared construction site, but this bullet read as forbidding it.)
 - `confluence-crawler`'s `check` auto-recovery. See *Deferred*.
 - `tools/lint-sso-config.py` — a build-time grammar copy would be a further drift site.
 - Sourcing `auth_default` / `base_url` from `catalogue.toml`. See *Deferred*.
@@ -997,12 +1005,20 @@ fix, so the pack bumps and the change is named in the changelog.
       prompted now fails fast (AC14a) — `refresh`'s rejection of connection
       arguments and `register`'s persistence change (AC35), and AC33's new install
       gate,
-      and `guides/_shared/reference/` documents **all four** new `credbroker`
+      and `guides/credential-brokers/reference/credbroker-sso-api.md` documents
+      **all four** new `credbroker`
       functions alongside the existing SSO entries — `validate_sso_profile`,
       `refresh_sso_session`, `register_sso_session` and `derive_sso_destination`,
       the last of which AC32 requires be publicly exported from
       `credbroker/__init__.py` on the same additive-compatibility basis as the
       other three.
+
+      **Corrected at implementation (2026-08-06):** this AC first named
+      `guides/_shared/reference/`. There are no existing SSO entries there to
+      sit alongside — the credbroker guides live in the owning pack's subtree,
+      which is also what `AGENTS.md` § Guide trees routes to ("pack-specific in
+      `guides/<pack>/{quadrant}/`"). The page landed under
+      `guides/credential-brokers/reference/` and is indexed in that README.
 
 - [ ] **AC25 (deferred work recorded, with its constraint).**
       `workspace.toml [backlog].open` carries a slug per *Deferred* entry. The
@@ -1053,7 +1069,8 @@ fix, so the pack bumps and the change is named in the changelog.
       `test_sso_client.py`, `test_setup_sso.py`, `test_auth_selector.py` and
       `test_exit_codes.py` pass in **both** skills' `scripts/`;
       `python tools/test-lint-sso-config.py` passes; `pytest packages/credbroker`
-      passes; `make build-check` passes **with SAST enabled** — the change adds
+      passes; `make build-check` passes **with SAST enabled, once `credbroker`
+      0.5.0 is published** (see the precondition below) — the change adds
       subprocess spawning on the credential path, which is what the SAST leg
       exists to inspect.
 
