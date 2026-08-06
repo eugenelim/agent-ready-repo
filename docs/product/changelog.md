@@ -15,6 +15,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [Unreleased]
+
+### Changed
+
+- **CLI help and diagnostic text no longer cite internal governance documents.**
+  `agentbundle --help` and every subcommand's help, the `catalogue lint`
+  diagnostics, the `init-state --migrate` message, and the workspace-mcp git
+  errors previously carried `RFC-0NNN` / `ADR-0NNN` ordinals and internal
+  acceptance-criterion labels — pointers to documents no adopter has. Each now
+  states the rule directly. No flag, verb, exit code, or output *structure*
+  changed; this is wording only, so no version bump. The same sweep removed the
+  markers from source comments and docstrings, which ship in the sdist and the
+  wheel.
+
+### Fixed
+
+- **`init-state --migrate` printed a stranded token.** The message read
+  `Migration is greenfield D8) — reinstall…`, with an unmatched parenthesis.
+  It now reads `Migration is greenfield — reinstall the pack(s) to regenerate
+  state instead.`
+
+- **`catalogue lint` contradicted itself on `patterns.jsonl`.** The refusal for
+  a non-empty knowledge seed told the operator to "seed the file with a
+  placeholder entry" — the exact thing it had just refused. It now says the file
+  must carry no entries at seed time.
+
+- **The codex `AGENTS.md` strip warning over-promised recovery.** It claimed the
+  removed region was recoverable from git history; it now says that holds only
+  if the file was committed.
+
 ## [agentbundle][0.29.2] — 2026-08-05
 
 ### Fixed
