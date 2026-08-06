@@ -43,9 +43,9 @@ is used directly. Test runner entry point: `npm test` (`vitest run`).
 
 - `npm run build` emits into `../build/` (repo root), NOT `web/dist/`
   (`astro.config.ts` `outDir`).
-- `astro build` cleans `outDir` on every run — this `web/` build MUST run before
-  the `docs-site/` Starlight build writes into `build/docs/`. See
-  `.github/workflows/pages.yml`.
+- Build order relative to the docs site is load-bearing; the canonical
+  build-order fact lives in [`docs-site/AGENTS.md`](../docs-site/AGENTS.md)
+  § Build — read it before touching either build.
 - Some files in `web/src/content/journeys/` are generated from `packs/*/JOURNEY.md`
   by `tools/build-site.py --journeys-only`. Running `npm run build --prefix web`
   without first running `python tools/build-site.py --journeys-only` (or
@@ -83,15 +83,6 @@ Links inside markdown files rendered via `<Content />` (pack and journey bodies)
   subpath base (`/agent-ready-repo`), and will 404 on GitHub Pages.
 - The `docsUrl` and `journeyUrl` frontmatter fields are the canonical navigation
   entry points and are already processed through `withBase()` by the template.
-
-## Broken links in docs
-
-Both the Astro marketing site and the Starlight docs site are built in the same
-`pages.yml` job. Unlike the previous MkDocs `--strict` mode, Starlight does not
-fail the build on broken internal links. Broken anchors and cross-page links
-in `guides/**` must be caught by manual review or a link-checker tool.
-
-To check for broken links locally: build the docs site (`python tools/build-site.py && npm run build --prefix docs-site`) and inspect the output.
 
 ## Navigation cohesion
 
