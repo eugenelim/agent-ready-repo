@@ -1057,6 +1057,27 @@ fix, so the pack bumps and the change is named in the changelog.
       subprocess spawning on the credential path, which is what the SAST leg
       exists to inspect.
 
+      **Release-ordering precondition, found at implementation (2026-08-06) and
+      not anticipated here.** The SCA leg runs
+      `pip-audit -r <requirements.txt>` over every skill's requirements file, and
+      `pip-audit` resolves each pin **against PyPI**. AC30's
+      `credbroker>=0.5.0` therefore cannot resolve until `credbroker` 0.5.0 is
+      published, and `make build-check` fails with
+      `Could not find a version that satisfies the requirement credbroker>=0.5.0`
+      on both `jira` and `confluence-crawler`. Verified: with the pin at the
+      published `0.4.1` the whole SAST leg — bandit, every `pip-audit`, semgrep
+      — is green, so the pin is the only outstanding item.
+
+      **This is a merge-ordering decision, not a code defect**, and it is the
+      one thing in this spec that cannot be closed from inside the PR. Either
+      `credbroker` 0.5.0 is published before merge (the plan's *Rollout* already
+      commits to releasing it), or the pin lands in a follow-up and the runtime
+      feature-detect carries the floor alone until then — AC30's guard already
+      exits 2 with the upgrade command, so an adopter on an old pin is refused
+      with a remediation either way. Recorded rather than silently worked
+      around: carving these two files out of `pip-audit` would weaken the SCA
+      gate on precisely the credential path this change hardens.
+
 - [ ] **AC29 (version bump lands last).** After code, tests and docs are settled:
       `packages/credbroker` `[project].version` → `0.5.0` (**minor** — new public
       API, and the engine now rejects input it previously accepted);

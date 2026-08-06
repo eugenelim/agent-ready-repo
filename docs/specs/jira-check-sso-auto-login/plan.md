@@ -721,6 +721,13 @@ arms (source and projected) now that regeneration is final.
 
 ## Rollout
 
+**Release ordering is load-bearing, and was not in the first draft.** The SCA
+leg resolves `pip-audit -r <requirements.txt>` against PyPI, so AC30's
+`credbroker>=0.5.0` pin makes `make build-check` fail until 0.5.0 is published.
+Publish `credbroker` 0.5.0 **before** merging, or land the pin in a follow-up —
+see AC28's precondition note. The packs are unaffected: `.apm` packs ship
+through the marketplace aggregate, so the bump PR *is* their release.
+
 One PR. Releases `credbroker` 0.5.0 to PyPI and **four** packs through the
 marketplace aggregate — `atlassian` 0.8.0, `credential-brokers` 0.3.0,
 `figma` 0.3.0 and `linear` 0.2.0 — (`.apm` packs do not publish to PyPI — the bump PR *is*
