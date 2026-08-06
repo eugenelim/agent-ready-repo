@@ -9,12 +9,17 @@ a PR — the same way regardless of which agent tool you use:
     python tools/hooks/pre-pr.py
 
 What it runs:
+  - ``lint-knowledge.py`` over ``docs/knowledge/patterns.jsonl`` — the
+    knowledge base the work-loop's Capture-learnings step appends to. The
+    file is yours and the gate that validates it ships with it, so there is
+    nothing to wire. Skipped cleanly when the file is absent.
   - ``loop-cohort.py check <spec-dir>`` for each ``docs/specs/*/state.json``,
     in ``--phase implement`` and ``--phase review`` — the work-loop's
     iteration/stasis caps. The script ships with the work-loop skill; this
     hook finds it under whichever skills directory your agent tool installed
-    into (``.claude/``, ``.agents/``, ``.kiro/`` …). Skipped cleanly when
-    there are no active specs (or the work-loop isn't installed).
+    into (``.claude/``, ``.agents/``, ``.kiro/`` …) — same for
+    ``lint-knowledge.py`` above. Skipped cleanly when there are no active
+    specs (or the work-loop isn't installed).
 
 It deliberately runs **none** of the source project's own artifact linters —
 those enforce that project's conventions on its own tree and
@@ -49,12 +54,12 @@ _SKILL_ROOTS = (
 )
 
 
-def _find_loop_cohort() -> Path | None:
-    """Locate the work-loop's ``loop-cohort.py`` under whichever adapter skill
-    root it was installed into. Returns ``None`` when the work-loop isn't
-    present (caps check is then skipped, not failed)."""
+def _find_work_loop_script(name: str) -> Path | None:
+    """Locate one of the work-loop's ``scripts/`` under whichever adapter skill
+    root the pack was installed into. Returns ``None`` when the work-loop isn't
+    present (the dependent check is then skipped, not failed)."""
     for root in _SKILL_ROOTS:
-        candidate = Path(root) / "work-loop" / "scripts" / "loop-cohort.py"
+        candidate = Path(root) / "work-loop" / "scripts" / name
         if candidate.is_file():
             return candidate
     return None
@@ -105,8 +110,27 @@ def main() -> int:
 
     py = sys.executable  # use the parent interpreter for child scripts
 
+    # --- Knowledge-base gate (ships with `core`) -----------------------------
+    # `docs/knowledge/patterns.jsonl` is seeded into your repo and appended to
+    # by the work-loop's Capture-learnings step, so the gate that validates it
+    # ships too — nothing to wire by hand.
+    knowledge_file = Path("docs/knowledge/patterns.jsonl")
+    lint_knowledge = _find_work_loop_script("lint-knowledge.py")
+    if not knowledge_file.is_file():
+        print("pre-pr: (no docs/knowledge/patterns.jsonl — skipping knowledge lint)")
+    elif lint_knowledge is None:
+        # stderr, not stdout: the knowledge base exists but nothing checked it.
+        # A ✓-shaped line on stdout would scroll past as if it had been gated.
+        print(
+            "pre-pr: — lint-knowledge.py not found under any known skills root "
+            "— docs/knowledge/patterns.jsonl was NOT checked",
+            file=sys.stderr,
+        )
+    else:
+        _run("knowledge lint", [py, str(lint_knowledge)])
+
     # --- Work-loop caps gate (ships with `core`) -----------------------------
-    loop_cohort = _find_loop_cohort()
+    loop_cohort = _find_work_loop_script("loop-cohort.py")
     state_files = sorted(Path("docs/specs").glob("*/state.json"))
     if loop_cohort is None:
         print("pre-pr: — loop-cohort.py not found — skipping work-loop caps check")
