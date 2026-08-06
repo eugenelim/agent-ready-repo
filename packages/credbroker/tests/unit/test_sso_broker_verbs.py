@@ -554,3 +554,219 @@ def test_do_test_rejects_schemeless_url(broker):
     )
     mod._store_cookie_jar("bare", b'[{"name":"sid","value":"v"}]')
     assert mod._do_test("bare") == 3
+
+
+# ----------------------------------------------------------------------
+# AC6a / AC6b — the refreshed jar reaches the consumer, and "not registered"
+# has its own exit code.
+# ----------------------------------------------------------------------
+
+
+def _seed_profile(mod, profile: str) -> None:
+    """Write a minimal valid profile TOML for *profile*."""
+    mod._SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    mod._write_profile(profile, {
+        "name": profile,
+        "login_url": "https://jira.example.com/login",
+        "success_url_pattern": "https://jira.example.com/secure/.*",
+        "cookie_domains": ["jira.example.com"],
+        "session_filename": f"{profile}-session.jar",
+        "validation_endpoint": "/rest/api/2/myself",
+        "ttl_hint_minutes": 480,
+    })
+
+
+def _get_cookies_path(mod, monkeypatch, profile: str) -> pathlib.Path:
+    """Run ``get-cookies`` and return the materialised path it printed."""
+    import io
+    buf = io.StringIO()
+    monkeypatch.setattr(sys, "stdout", buf)
+    rc = mod._do_get_cookies(profile)
+    assert rc == 0, f"get-cookies returned {rc}"
+    return pathlib.Path(buf.getvalue().strip())
+
+
+@pytest.fixture(params=["keychain", "file-floor"])
+def store_backend(request, broker):
+    """Run a test under both store shapes.
+
+    The keychain arm is the AC6a regression guard: there the primary store and
+    the materialisation surface are *different* files, so a materialisation that
+    skips the rewrite serves a stale jar after every re-capture. The file-floor
+    arm is the control — the two are the same file there, which is why CI (Linux)
+    never caught the bug.
+    """
+    mod, backend = broker
+    if request.param == "file-floor":
+        mod._tier2_backend = None
+    return mod
+
+
+def test_get_cookies_rewrites_stale_materialised_jar(store_backend, monkeypatch):  # STUB: AC6a
+    mod = store_backend
+    _seed_profile(mod, "jira")
+
+    mod._store_cookie_jar("jira", b'[{"name":"old","value":"v","domain":"x"}]')
+    p1 = _get_cookies_path(mod, monkeypatch, "jira")
+    mod._store_cookie_jar("jira", b'[{"name":"new","value":"v","domain":"x"}]')
+    p2 = _get_cookies_path(mod, monkeypatch, "jira")
+
+    assert p1 == p2                            # same path…
+    assert b"new" in p2.read_bytes()           # …fresh bytes (fails today)
+    assert b"old" not in p2.read_bytes()
+
+
+def test_write_uses_unique_temp_name(broker, monkeypatch):       # STUB: AC6a
+    # Making the materialisation unconditional makes the shared temp path
+    # routine: every check now rewrites, so two concurrent checks for one
+    # profile collide on `<profile>.jar.tmp`. A unique name per write removes
+    # the collision. (Ordering between concurrent materialisers is deliberately
+    # unspecified — see AC6a and `sso-materialisation-ordering`.)
+    mod, _ = broker
+    seen: list[str] = []
+    real_replace = pathlib.Path.replace
+
+    def _record(self, target):
+        seen.append(self.name)
+        return real_replace(self, target)
+
+    monkeypatch.setattr(pathlib.Path, "replace", _record)
+    mod._file_floor_write("jira", b"[]")
+    mod._file_floor_write("jira", b"[]")
+
+    assert len(seen) == 2
+    assert seen[0] != seen[1], f"temp name reused across writes: {seen}"
+    assert all(name != "jira.jar" for name in seen)
+    # No temp file survives either write.
+    leftovers = sorted(p.name for p in mod._SSO_COOKIE_FILE_FLOOR.glob("*.tmp*"))
+    assert leftovers == [], leftovers
+
+
+def test_refresh_unregistered_returns_4(broker):                 # STUB: AC6b
+    # `3` is returned from ten distinct engine sites — including playwright
+    # being absent and the operator not finishing sign-in — so it cannot mean
+    # "not registered". Recovery needs a code it can key on.
+    mod, _ = broker
+    assert mod.main(["refresh", "never-registered"]) == 4
+
+
+# ----------------------------------------------------------------------
+# AC6 / AC7 / AC8 / AC9 — the engine's own profile guard and path containment.
+# ----------------------------------------------------------------------
+
+_BAD_PROFILES = [
+    "../../../../tmp/pwn", "abc\n", "abc\r\n", "x" * 65, "café",
+    "", ".", "..", "CON", "con.toml",
+]
+
+
+@pytest.mark.parametrize("verb", ["register", "get-cookies", "test", "refresh"])
+@pytest.mark.parametrize("bad", _BAD_PROFILES)
+def test_profile_rejected_per_verb(broker, verb, bad, capsys):   # STUB: AC6/AC9
+    mod, _ = broker
+    assert mod.main([verb, bad]) == 3
+    # The exit code alone is already green today for most of these vectors —
+    # get-cookies and test return 2 for an unregistered profile, and register
+    # returns 3 before mkdir when --login-url is absent — so the stderr
+    # assertion is what makes this a red stub.
+    err = capsys.readouterr().err.lower()
+    assert "profile" in err
+    assert "must match" in err or "reserved device name" in err
+
+
+def test_profile_guard_precedes_path_composition(broker):        # STUB: AC6
+    # The guard fires before any store path is composed, so a traversal vector
+    # cannot create a directory outside the store.
+    mod, _ = broker
+    assert mod.main(["register", "../../../../tmp/pwn",
+                     "--login-url", "https://idp.example",
+                     "--success-url-pattern", "https://x.example/ok"]) == 3
+    assert not (mod._AGENTBUNDLE_HOME / "browser-state").exists()
+
+
+def test_flag_shaped_via_double_dash_reaches_guard(broker):      # STUB: AC9
+    mod, _ = broker
+    # The `--` escape parses -x as the positional, so the grammar's
+    # leading-'-' rejection is load-bearing rather than cosmetic.
+    assert mod.main(["get-cookies", "--", "-x"]) == 3
+
+
+def test_bare_flag_is_argparse_exit(broker):                     # STUB: AC9
+    mod, _ = broker
+    with pytest.raises(SystemExit) as e:
+        mod.main(["get-cookies", "-x"])
+    assert e.value.code == 2
+
+
+def test_non_str_profile_is_refused_not_a_traceback(broker):     # STUB: AC9
+    # Reachable only in-process (argv is always str), but a non-str must fail
+    # closed at the path composer rather than composing "5.jar".
+    mod, _ = broker
+    with pytest.raises(mod.ProfileConfinementError):
+        mod._cookie_floor_path(5)
+
+
+def test_path_containment_is_asserted_independently_of_grammar(broker):  # STUB: AC7
+    # Grammar is a denylist of shapes; containment is an allowlist of
+    # locations. Proven by driving the composer directly, past the verb guard.
+    mod, _ = broker
+    for bad in ("../escape", "sub/dir", "a\\b" if os.name == "nt" else "/abs"):
+        with pytest.raises(mod.ProfileConfinementError):
+            mod._profile_path(bad)
+        with pytest.raises(mod.ProfileConfinementError):
+            mod._cookie_floor_path(bad)
+
+
+def test_rm_still_deletes_legacy_invalid_name(broker):           # STUB: AC8
+    # A profile registered before this change under a now-invalid name must
+    # remain deletable: list-profiles enumerates the filesystem directly and
+    # would otherwise keep showing a live corporate cookie jar the operator
+    # cannot remove.
+    mod, _ = broker
+    _seed_profile(mod, "legacy name")
+    mod._store_cookie_jar("legacy name", b'[{"name":"sid","value":"v","domain":"x"}]')
+    mod._file_floor_write("legacy name", b'[{"name":"sid","value":"v","domain":"x"}]')
+
+    assert mod.main(["rm", "legacy name"]) == 0
+    assert not mod._profile_path("legacy name").exists()
+    assert not mod._cookie_floor_path("legacy name").exists()
+    assert mod._load_cookie_jar("legacy name") is None
+
+
+def test_rm_still_refuses_a_path_escape(broker):                 # STUB: AC7/AC8
+    mod, _ = broker
+    assert mod.main(["rm", "../../../../tmp/pwn"]) == 3
+
+
+@pytest.mark.parametrize(
+    "bad", ['a"b', "a" + chr(92) + "b", "a" + chr(1) + "b", "a" + chr(0x7F) + "b"]
+)
+@pytest.mark.parametrize("field", ["login_url", "cookie_domains"])  # scalar AND list
+def test_write_profile_survives_toml_breaking_chars(broker, bad, field):  # STUB: AC6
+    # `_write_profile` interpolates f'{key} = "{value}"' unescaped, and
+    # `_do_refresh` reads the stored table then re-writes every value back
+    # through it — so a consumer-side guard on *newly supplied* values does not
+    # cover a profile poisoned before this change. A four-character check is not
+    # enough either: a TOML source can encode U+0001 as an escape, so the parsed
+    # value holds a bare control character with no literal backslash, passes a
+    # quote/backslash/CR/LF check, and is interpolated straight back in.
+    mod, _ = broker
+    table = {
+        "name": "p",
+        "login_url": "https://idp.example",
+        "success_url_pattern": "https://x.example/ok",
+        "cookie_domains": ["x.example"],
+        "session_filename": "p.jar",
+        "validation_endpoint": "/v",
+        "ttl_hint_minutes": 480,
+    }
+    table[field] = [bad] if field == "cookie_domains" else bad
+    mod._write_profile("p", table)
+
+    # What must hold is that the profile still round-trips through tomllib, so
+    # every later check / refresh / rm can read it.
+    import tomllib as _tomllib
+    with mod._profile_path("p").open("rb") as fh:
+        parsed = _tomllib.load(fh)["profile"]
+    got = parsed[field][0] if field == "cookie_domains" else parsed[field]
+    assert got == bad
