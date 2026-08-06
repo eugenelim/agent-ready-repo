@@ -23,7 +23,7 @@ import convert
 import pytest
 import safe_io
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "file-to-markdown" / "scripts"
 SAMPLE_DOCX = HERE.parent / "evals" / "files" / "sample.docx"
 
 
@@ -910,7 +910,7 @@ def test_dispatch_constructs_only_tiers_0_1_2(tmp_path, monkeypatch):
 
 import re as _re  # noqa: E402
 
-_SCRIPTS = Path(__file__).resolve().parent
+_SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "file-to-markdown" / "scripts"
 # The Tier-1 path must import no network client and no OCR/ML model. convert.py
 # is excluded from the ML check only because Docling (Tier 2) legitimately lives
 # there; it is still covered by the no-network and no-pymupdf checks.

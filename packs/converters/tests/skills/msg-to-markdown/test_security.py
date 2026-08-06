@@ -17,7 +17,7 @@ import mapi
 import msg_fixtures as fx
 import pytest
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "msg-to-markdown" / "scripts"
 
 
 # --- confined attachment extraction -----------------------------------------

@@ -19,7 +19,7 @@ import html_md
 import mapi
 import msg_fixtures as fx
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "msg-to-markdown" / "scripts"
 
 
 # --- helpers ----------------------------------------------------------------

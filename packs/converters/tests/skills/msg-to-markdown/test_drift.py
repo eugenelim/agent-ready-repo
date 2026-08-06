@@ -11,7 +11,7 @@ from pathlib import Path
 
 import pytest
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "msg-to-markdown" / "scripts"
 ORIGIN = HERE.parent.parent / "file-to-markdown" / "scripts"
 
 

@@ -231,7 +231,8 @@ def test_content_type_normalizes_stray_suffix(tmp_path):
 
 # --- the grounding doc records the three adopter controls -------------------
 
-_GROUNDING = (Path(__file__).resolve().parent.parent / "references"
+_GROUNDING = (Path(__file__).resolve().parents[3] / ".apm" / "skills"
+              / "file-to-markdown" / "references"
               / "tier3-managed-api.md")
 
 

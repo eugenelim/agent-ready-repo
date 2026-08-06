@@ -1,11 +1,11 @@
 'use strict';
 
-// test/security.test.js — run with: node test/security.test.js
+// run with: node security.test.js  (from packs/converters/tests/skills/render-proof/)
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { validateInputPath, validateOutputPath, validateInputSize, parseArgs } = require('../scripts/render-proof.js');
+const { validateInputPath, validateOutputPath, validateInputSize, parseArgs } = require('../../../.apm/skills/render-proof/scripts/render-proof.js');
 
 const cwd = process.cwd();
 // Isolated temp root for all test fixtures — avoids fixed-name collisions in shared os.tmpdir()
@@ -31,9 +31,21 @@ try {
     'containment error must name the resolved path — the path-naming requirement applies to both ENOENT and containment branches (on Linux CI, /etc/passwd exists so the containment branch fires, not ENOENT)'
   );
 
-  // Valid relative path accepted; fixture.md exists (full GFM content written in T1)
-  const ok = validateInputPath('evals/files/fixture.md', cwd);
-  assert(ok === null, 'valid path rejected: ' + ok);
+  // Valid relative path accepted. The file is created here rather than borrowed
+  // from the skill's evals/ tree: `cwd` is the confinement root the CLI would be
+  // invoked with, and this suite now runs from the pack's test tree, which is
+  // never projected. An eval fixture is skill-local runtime content, not test
+  // material (ADR-0071), so depending on one across that boundary would couple
+  // this assertion to a directory it has no claim on.
+  const validRel = 'valid-input-inside-root.md';
+  const validAbs = path.join(cwd, validRel);
+  try {
+    fs.writeFileSync(validAbs, '# valid\n');
+    const ok = validateInputPath(validRel, cwd);
+    assert(ok === null, 'valid path rejected: ' + ok);
+  } finally {
+    if (fs.existsSync(validAbs)) fs.unlinkSync(validAbs);
+  }
 
   // Symlink in cwd pointing outside is rejected
   const symlinkTarget = path.join(testTmp, 'secret.md');

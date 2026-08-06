@@ -1,10 +1,10 @@
 'use strict';
 
-// test/renderer.test.js — run with: node test/renderer.test.js
+// run with: node renderer.test.js  (from packs/converters/tests/skills/render-proof/)
 // Note: plan fixture letters (a)–(o) cover both sanitizer and non-sanitizer checks;
 // sanitizer fixtures start at plan (c). Plan (a)=GFM bold, (b)=Shiki highlight.
 const assert = require('assert');
-const { renderMarkdown, sanitizeStyle } = require('../scripts/render-proof.js');
+const { renderMarkdown, sanitizeStyle } = require('../../../.apm/skills/render-proof/scripts/render-proof.js');
 
 async function run() {
   // (a) GFM bold
@@ -126,7 +126,7 @@ async function run() {
 
   // (q) renderProof: Mermaid CDN injected when diagram present; absent otherwise
   // Verification mode: goal-based — tests the hasMermaid detection through the full renderProof pipeline
-  const { renderProof } = require('../scripts/render-proof.js');
+  const { renderProof } = require('../../../.apm/skills/render-proof/scripts/render-proof.js');
   const proofWith = await renderProof('# T\n\n```mermaid\ngraph TD\n  A --> B\n```\n', {});
   assert(proofWith.html.includes('cdn.jsdelivr.net/npm/mermaid@11'), 'renderProof: CDN not injected when diagram present');
   assert(proofWith.html.includes('integrity="sha384-T/0lMUdJpd2S1ZHtRiofG3htU3xPCrFVeAQ1UUE2TJwlEJSV5NUwn30kP28n238E"'), 'renderProof: mermaid CDN tag missing SRI integrity hash');

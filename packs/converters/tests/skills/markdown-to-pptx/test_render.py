@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 import render
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "markdown-to-pptx" / "scripts"
 
 MARKDOWN = """\
 ---

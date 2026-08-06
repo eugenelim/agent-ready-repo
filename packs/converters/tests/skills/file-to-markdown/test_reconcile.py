@@ -23,7 +23,7 @@ from pathlib import Path
 import contract
 import reconcile
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "file-to-markdown" / "scripts"
 
 
 # Byte-parity locked to the REAL producer (reconcile.render_markdown), not

@@ -432,13 +432,13 @@ jobs:
       - name: pip install the Markdown→Office render libraries (RFC-0036)
         run: pip install 'python-pptx==1.0.2' 'docxtpl==0.20.2' 'openpyxl==3.1.5' 'python-docx==1.2.0'
       - name: pytest markdown-to-pptx renderer (markdown-to-office-publishing)
-        working-directory: packs/converters/.apm/skills/markdown-to-pptx/scripts
+        working-directory: packs/converters/tests/skills/markdown-to-pptx
         run: python -m pytest test_render.py
       - name: pytest markdown-to-docx renderer (markdown-to-office-publishing)
-        working-directory: packs/converters/.apm/skills/markdown-to-docx/scripts
+        working-directory: packs/converters/tests/skills/markdown-to-docx
         run: python -m pytest test_render.py
       - name: pytest markdown-to-xlsx renderer (markdown-to-office-publishing)
-        working-directory: packs/converters/.apm/skills/markdown-to-xlsx/scripts
+        working-directory: packs/converters/tests/skills/markdown-to-xlsx
         run: python -m pytest test_render.py
 
       # file-to-markdown skill scripts (extraction-tier0-and-output-contract):
@@ -451,8 +451,13 @@ jobs:
       - name: pip install the Tier-0 PDF library (extraction-tier0)
         run: pip install 'pypdf==5.1.0'
       - name: pytest file-to-markdown extraction (extraction-tier0-and-output-contract)
-        working-directory: packs/converters/.apm/skills/file-to-markdown/scripts
-        run: python -m pytest test_contract.py test_safe_io.py test_convert.py test_reconcile.py
+        working-directory: packs/converters/tests/skills/file-to-markdown
+        # test_convert.py importorskips the Office libraries in-function; they come
+        # from the RFC-0036 install above, not from this step's own pip line. Probe
+        # them here so a future step reorder fails loudly instead of skipping green.
+        run: |
+          python -c "import docx, openpyxl, pptx, PIL.Image"
+          python -m pytest test_contract.py test_safe_io.py test_convert.py test_reconcile.py
 
       # msg-to-markdown skill scripts (extraction-msg-to-markdown-python-contract):
       # the vendored-builder drift guard, the .msg (olefile + hand-rolled MAPI)
@@ -463,7 +468,7 @@ jobs:
         # Exact pin for CI reproducibility; the runtime hint floor is olefile>=0.47.
         run: pip install 'olefile==0.47'
       - name: pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)
-        working-directory: packs/converters/.apm/skills/msg-to-markdown/scripts
+        working-directory: packs/converters/tests/skills/msg-to-markdown
         run: python -m pytest test_drift.py test_convert.py test_security.py test_parity.py
 
       - name: catalogue-curation guard lint + self-test (RFC-0059 D6)
