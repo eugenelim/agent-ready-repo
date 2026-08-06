@@ -587,16 +587,96 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "agentbundle-surface-doc-reconciliation-engine-stragglers", source = "spec/agentbundle-surface-doc-reconciliation (out of scope)"},
 
-  # `tools/test-all.py` names two self-tests that do not exist in the tree:
-  # `tools/test-check-xd-chain.py` and `tools/test-llm-judge-cross-pack-eval.py`.
-  # Absent on origin/main too, so the umbrella runner has reported two
-  # permanent failures for some time; nothing gates on it, which is why it went
-  # unnoticed. Found while re-pointing test-all.py during the pack-test-boundary
-  # relocation — not caused by it.
-  # Fix: restore the two scripts, or drop their entries. Decide which by
-  #   checking whether the checks they named are covered elsewhere.
+  # Three XD-chain structural invariants lost their only implementation. The
+  # deterministic checker `tools/check-xd-chain.py` and its `xd-chain-gate.yml`
+  # workflow are absent from main (readable only from the unreachable commit
+  # 321c825c). Two of its five invariants survive elsewhere — description length
+  # via `agentbundle catalogue lint`, Digital-Experience-Contract copy parity via
+  # `tools/catalogue/check_contract_parity.py`. The other three do not: chain
+  # completeness (every chain skill exists at its expected SKILL.md path),
+  # phantom-handoff resolution (every backtick-quoted skill name in a
+  # description resolves to a real in-pack SKILL.md), and boundary-guard
+  # adjacency (each chain skill's description references its required
+  # neighbours). Nothing detects a chain skill renamed out from under a sibling's
+  # description today.
+  # Fix: re-derive the chain map against the current experience-design pack (the
+  #   old map's `design-token-taxonomy` / `design-system-foundations` names are
+  #   both stale — see ADR-0052, RFC-0071) and reimplement the three checks, or
+  #   decide explicitly that the pack lint should carry phantom-handoff detection
+  #   generically instead of per-chain.
   # Unblocks when: picked up — no dependency.
-  {slug = "test-all-dangling-entries", source = "spec/pack-test-boundary pre-flight"},
+  {slug = "xd-chain-structural-invariants-uncovered", source = "spec/local-gate-ci-parity AC12"},
+
+  # `tools/lint-ci-parity.py`'s per-step disposition roster does not catch a gate
+  # added INSIDE a step that already carries a disposition — a second command on a
+  # later line of an existing step changes nothing the roster sees, and extraction
+  # catches it only when the new command names a literal path it can parse. This
+  # was measured, not assumed: appending a `D=tools; N=x; python3 "$D/$N".py` line
+  # to an already-dispositioned step leaves the gate green.
+  # No per-step scheme closes it. The options, none cheap:
+  #   (a) disposition per *command* rather than per step — a content hash of each
+  #       step's `run:` body alongside its disposition, so any edit to the body
+  #       invalidates the disposition and forces a re-read. Cheap to implement,
+  #       but noisy: every whitespace change to a `run:` block demands a re-sign.
+  #   (b) execute or fully parse each command. Correct and far too expensive.
+  #   (c) accept it, which is today's position — the linter's § What it does not
+  #       prove states it and the suite asserts it
+  #       (`roster-residual-hidden-gate-in-known-step`).
+  # Recommend (a) if this ever bites; the hash-per-step form is ~20 lines and the
+  # noise is tolerable because `run:` bodies change rarely.
+  # Unblocks when: picked up — no dependency.
+  {slug = "ci-parity-hidden-gate-in-dispositioned-step", source = "spec/local-gate-ci-parity round-4 review"},
+
+  # `tools/lint-ci-parity.py` gates the local↔CI correspondence for
+  # `build-check.yml` only. `docs.yml`, `catalogue-tooling-ci-gates.yml`, and
+  # `ci-security.yml` are classified out-of-scope in its WORKFLOW_SCOPE map, so a
+  # gate added to any of them can still land with no local counterpart and no
+  # signal. `make pre-pr` overlaps much of docs.yml, but nothing verifies the
+  # overlap — the honest current claim is "one workflow is parity-gated".
+  # Fix: extend the linter's in-scope set one workflow at a time; each needs its
+  #   own exemption inventory (docs.yml's per-layer jobs and lifecycle-hook job
+  #   are the bulk of the work), so this is not a one-line change.
+  # Unblocks when: picked up — no dependency.
+  {slug = "ci-parity-docs-yml-out-of-scope", source = "spec/local-gate-ci-parity (scope)"},
+
+  # `tools/repo/build_gate_chain.py`'s step contract is `[sys.executable, <script>]`
+  # with no cwd and no arguments — asserted by
+  # `test_build_gate_chain.py::test_script_steps_are_windows_clean`. Several CI
+  # gates are `working-directory` pytest invocations against skill `scripts/`
+  # dirs (catalogue-curation's assimilate-primitive/assimilate-repo suites, the
+  # credential-setup suite, the converters evals-disposition loop). They are
+  # pure-stdlib and could run locally, but the chain has no vocabulary for them,
+  # so they sit in lint-ci-parity.py's EXEMPTIONS with that as the stated reason.
+  # Fix: add a cwd-aware step kind (`_pytest_step(label, cwd, *targets)`) that
+  #   stays Windows-clean (no shell, no `cd &&`), relax the argv-length assertion
+  #   to a shell-token assertion, then move those exemptions into the chain.
+  # Unblocks when: picked up — no dependency.
+  {slug = "gate-chain-step-vocabulary", source = "spec/local-gate-ci-parity review"},
+
+  # `tools/lint-catalogue-curation-guard.py`'s path-gate layer exits 0 with only a
+  # stderr note when git or the `--base` ref is unavailable. It is now wired into
+  # the local `build-check` chain, so that silent skip is the same class of defect
+  # spec/local-gate-ci-parity fixed for SKIP_SAST: a run that gated nothing reads
+  # identically to a run that gated everything, and the new terminal verdict
+  # banner says "complete" either way.
+  # Two directions, and the second is worse than the first:
+  #   (a) absent base — the path-gate does not run at all. The presence and
+  #       dup-sync layers still do, so the miss is partial.
+  #   (b) STALE base — a FALSE PASS, not merely a widening. `git diff
+  #       {base}...HEAD` widens to the older merge-base, and because the
+  #       exemption is changeset-scoped (`has_exemption` reads the whole
+  #       `git log {base}..HEAD` message blob), an already-merged commit
+  #       carrying `Engine-Change-RFC:` inside that widened range exempts the
+  #       CURRENT changeset. Untrailered engine change: green locally, red in
+  #       CI — exactly the divergence this spec exists to end.
+  # CI is unaffected: build-check.yml uses fetch-depth: 0 and an explicit
+  # `--base origin/main`, so both directions are local-only today.
+  # Fix: scope `has_exemption` to commits reachable only from HEAD (closes (b)),
+  #   and have the guard report base absence/staleness loudly — deciding whether
+  #   the local invocation fails closed while CI's stays fail-open. Touches a gate
+  #   CI shares, so it is a deliberate CI-behaviour change, not a ride-along.
+  # Unblocks when: picked up — no dependency.
+  {slug = "curation-guard-silent-base-skip", source = "spec/local-gate-ci-parity review"},
 
   # `package.py` defines `_IMPLICIT_DENY_DIRS` (including `__pycache__`) and then
   # never references it, so compiled caches reach the packaged archive. Only

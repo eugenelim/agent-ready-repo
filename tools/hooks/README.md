@@ -200,14 +200,32 @@ versions, but their sandbox setup remains bash:
 - `packs/core/tests/hooks/test_session_start_projection.sh` — the bash-runner equivalent of
   `test_session_start_py.py`.
 
-The umbrella `tools/test-all.py` runs the repo's self-tests, including the
-core-pack suites it delegates to under `packs/core/tests/`. Run it by hand
-whenever a linter, hook, or `loop-cohort.py` changes.
+The umbrella `tools/test-all.py` runs a **curated** list of self-tests, not
+every `tools/test-*` script — several are gated elsewhere instead (the
+catalogue aggregator and `tools/repo/build_gate_chain.py` each run their own
+set). Run it by hand whenever a linter, hook, or `loop-cohort.py` changes. It
+is hand-run only; nothing invokes it in CI, which is how two entries naming
+absent files went unnoticed for weeks. What *is* gated is its manifest:
+`tools/test-test-all.py` runs in the `build-check` chain and fails if any
+`TESTS` entry no longer resolves to a file.
 
-**CI parity.** The catalogue gate and CI run the same checks. CI's
-`.github/workflows/docs.yml` has a job per catalogue linter, the
-caps-enforcer self-test, and a `hooks` job that exercises
-`tools/pre-pr-catalogue.py` end-to-end (after seeding a healthy
-`state.json` so `loop-cohort.py check` actually runs). Run
-`python tools/test-all.py` and `python tools/pre-pr-catalogue.py`
-locally before opening a PR; CI runs the same checks afterward.
+**CI parity.** One workflow is watched, and only one:
+`.github/workflows/build-check.yml`. `tools/lint-ci-parity.py` — chained into
+`make build-check` — holds a **disposition per step**: each `run:`/`uses:` step
+of that workflow declares either the `make` target that covers it locally or why
+no local gate can. A step cannot be added, renamed, or removed without someone
+dispositioning it, and that check reads no shell commands, so no shell shape
+defeats it. Extraction still runs, but only to corroborate a `locally-covered`
+claim — a bug there raises a false alarm, never a false pass.
+
+It does not prove the two environments verify the same things, and it does not
+catch a gate added *inside* a step that already has a disposition. The linter's
+own § What it does not prove is the canonical statement of the bound.
+
+Nothing gates the local↔CI correspondence for any other workflow. `make pre-pr`
+overlaps much of `docs.yml` (which has a job per catalogue linter, the
+caps-enforcer self-test, and a `hooks` job exercising the aggregator end-to-end
+after seeding a healthy `state.json`), but that overlap is incidental and
+unverified — do not read a green `make pre-pr` as evidence about `docs.yml`.
+Before opening a PR, run `make ci`; `SKIP_SAST=1` makes it faster and ends the
+run with an INCOMPLETE banner naming the leg CI will still run.

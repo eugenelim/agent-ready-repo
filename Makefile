@@ -77,6 +77,45 @@ package:
 	$(PYTHON) -m agentbundle catalogue package \
 		--root . --bundle $(BUNDLE) --release $(RELEASE) --channel $(CHANNEL) --output $(OUTPUT)
 
+# Terminal verdict banner. A local run that skipped a leg CI will run must never
+# be mistakable for a full pass, so the LAST thing a gate prints states which
+# kind of run it was. The mid-run skip notice below is not enough on its own — it
+# scrolls away, and the reader who scrolls to the bottom is exactly the reader
+# about to conclude "green, ship it". $(1) is the invoked target's name.
+#
+# Three outcomes, not two. build-check.yml sets SKIP_SAST=1 itself whenever a
+# PR's diff touches nothing SAST-relevant, so shouting INCOMPLETE inside a green
+# required check on most PRs would train readers to ignore the banner — the same
+# way the mid-run echo trained them to miss the skip. In CI the skip is a
+# decision the workflow made from the diff; on a laptop it is a shortcut whose
+# consequence the reader is about to inherit.
+#
+# "was invoked", not "ran": make reports whether each leg exited 0, and a leg can
+# exit 0 having gated nothing — the wired catalogue-curation guard skips its
+# path-gate when the base ref is missing or stale (backlog
+# `curation-guard-silent-base-skip`). The banner should not assert more than make
+# can see.
+# The CI-intentional branch keys on GITHUB_WORKFLOW, not GITHUB_ACTIONS alone:
+# the reassuring line asserts a specific provenance ("build-check.yml decided the
+# diff has nothing to scan"), and any process can export GITHUB_ACTIONS — `act`,
+# a devcontainer image, a developer exercising the CI branch — which would hand
+# them a claim that is not true of their run.
+define gate_verdict
+@if [ -n "$(SKIP_SAST)" ] && [ "$$GITHUB_WORKFLOW" = "build-check" ]; then \
+	printf '\n%s: %s\n\n' '$(1)' 'complete for this diff — SAST/SCA skipped by build-check.yml because the diff touches nothing scannable.'; \
+elif [ -n "$(SKIP_SAST)" ]; then \
+	printf '\n%s\n' '*************************************************************'; \
+	printf '*** %s: %s\n' '$(1)' 'INCOMPLETE — this is NOT a full pass.'; \
+	printf '%s\n' '*** The SAST/SCA leg was SKIPPED (SKIP_SAST is set).'; \
+	printf '*** CI runs that leg on any diff touching: %s\n' "$(SAST_DIRS)"; \
+	printf '*** or: %s\n' "$(SAST_CONFIG)"; \
+	printf '%s\n' '*** Re-run without SKIP_SAST before treating this as green.'; \
+	printf '%s\n\n' '*************************************************************'; \
+else \
+	printf '\n%s: %s\n\n' '$(1)' 'complete — every leg of this target was invoked, SAST/SCA included.'; \
+fi
+endef
+
 # Portable verify then repo-only policy gates.
 # Step 1 (portable): lint, build, schema, self-host drift — via agentbundle catalogue verify.
 # Step 2 (repo-only): build output validation, pre-pr aggregator, spec/traceability linters.
@@ -98,6 +137,7 @@ build-check:
 	else \
 		$(MAKE) sast; \
 	fi
+	$(call gate_verdict,make build-check)
 
 # SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
@@ -211,10 +251,26 @@ test:
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_build_site_routing.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 
-# Local CI gate — mirrors build-check.yml + docs.yml on Linux/macOS.
-# Windows-specific jobs (build-check-windows.yml) run on GitHub Actions only.
-# Skip SAST: SKIP_SAST=1 make ci
+# Local CI gate. Exactly one workflow is watched: build-check.yml.
+# tools/lint-ci-parity.py — chained into build-check — holds a disposition per
+# step: each one declares either the make target that covers it locally, or why no
+# local gate can. So a CI step cannot be added, renamed, or removed without someone
+# dispositioning it. It does NOT prove the two environments verify the same things,
+# nor catch a gate added inside a step that already has a disposition — read that
+# file's § What it does not prove before treating a clean run as equivalence. The previous claim here ("mirrors build-check.yml +
+# docs.yml") was unverified and had drifted: the catalogue-curation guard and the
+# SAST leg both reached CI red past a green local run
+# (spec/local-gate-ci-parity).
+#
+# No other workflow is covered. `make pre-pr` incidentally overlaps much of
+# docs.yml, but nothing verifies that overlap, so a green `make ci` is not
+# evidence about it; every workflow's in/out-of-scope status is recorded in
+# lint-ci-parity.py's WORKFLOW_SCOPE, which fails on an unclassified new one.
+#
+# Skip SAST: SKIP_SAST=1 make ci — the run then ends with an INCOMPLETE banner,
+# because a run missing a leg CI will run must not read like a pass.
 ci: build-check pre-pr lint-ruff lint-mypy test
+	$(call gate_verdict,make ci)
 
 # ── Site publishing ──────────────────────────────────────────────────────────
 # Requires: npm ci --prefix docs-site (one-time setup)
