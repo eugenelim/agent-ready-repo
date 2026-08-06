@@ -43,18 +43,40 @@ const { entry, pagination } = Astro.props;
   // Mermaid is bundled (exact pin in package.json) and lazy-loaded only on
   // pages that carry diagrams — no runtime CDN calls (spec AC9). Diagrams
   // re-render on theme toggle; the raw source persists in data-mermaid.
+  // A run token guards against interleaved re-renders on rapid toggling:
+  // a superseded run must not overwrite a newer theme's SVG.
+  let renderRun = 0;
   const renderDiagrams = async () => {
     const els = document.querySelectorAll('.mermaid-diagram[data-mermaid]');
     if (els.length === 0) return;
-    const { default: mermaid } = await import('mermaid');
-    const theme =
-      document.documentElement.dataset.theme === 'dark' ? 'dark' : 'neutral';
-    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme });
+    const run = ++renderRun;
+    const dark = document.documentElement.dataset.theme === 'dark';
+    let mermaid;
+    try {
+      ({ default: mermaid } = await import('mermaid'));
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: dark ? 'dark' : 'neutral',
+        // The dark theme leaves edge-label backgrounds light; pin them to
+        // the dark surface token so labels sit flush on the diagram ground.
+        themeVariables: dark ? { edgeLabelBackground: '#111726' } : {},
+      });
+    } catch (e) {
+      console.warn('Mermaid bundle failed to load — showing raw source', e);
+      for (const el of els) {
+        const pre = document.createElement('pre');
+        pre.textContent = decodeURIComponent(el.getAttribute('data-mermaid') ?? '');
+        el.replaceChildren(pre);
+      }
+      return;
+    }
     for (const el of els) {
       const src = decodeURIComponent(el.getAttribute('data-mermaid') ?? '');
       const id = 'mermaid-' + Math.random().toString(36).slice(2);
       try {
         const { svg } = await mermaid.render(id, src);
+        if (run !== renderRun) return; // superseded by a newer toggle
         el.innerHTML = svg;
       } catch (e) {
         console.warn('Mermaid render failed', e);
@@ -62,6 +84,9 @@ const { entry, pagination } = Astro.props;
     }
   };
   renderDiagrams();
+  // Not disconnected: this is an MPA (no view transitions), so the script
+  // and observer die with the page on every navigation. If a ClientRouter
+  // ever lands, disconnect on astro:before-swap.
   new MutationObserver(renderDiagrams).observe(document.documentElement, {
     attributes: true,
     attributeFilter: ['data-theme'],

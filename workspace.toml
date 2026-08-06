@@ -79,15 +79,14 @@ ready     = []
 draft     = []
 
 ["ini-002".work]
-active  = [
-  # Docs-site design refresh (full-mode work-loop, in flight 2026-08-05).
-  # Restyles the Starlight tech docs to a display-serif + enterprise-cobalt
-  # design language; self-hosts fonts + mermaid (removes the CDN script);
-  # splits per-site AGENTS.md. Explicit boundary: NO sidebar-IA changes —
-  # docs IA structure is owned by ini-007 Wave 6 (see its needs entry).
-  "spec/docs-site-design-refresh",
-]
+active  = []
 shipped = [
+  # Docs-site design refresh (2026-08-05): Starlight tech docs restyled to a
+  # display-serif + enterprise-cobalt design language; fonts + mermaid
+  # self-hosted (CDN script removed); per-site AGENTS.md split. Boundary
+  # held: NO sidebar-IA changes — docs IA structure is owned by ini-007
+  # Wave 6 (see its needs entry).
+  "spec/docs-site-design-refresh",
   "spec/work-loop-step0-observability",              # core 1.0.2 — Step 0 Branch-1 echo in orientation block
   "spec/product-documentation-pack",            # PR this branch — product-documentation pack (Phase 1)
   "spec/agentbundle-first-value-handoff",          # PR this branch — first-value handoff block in agentbundle install

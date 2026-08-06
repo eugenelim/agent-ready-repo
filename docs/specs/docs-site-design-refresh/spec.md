@@ -1,6 +1,6 @@
 # Spec: docs-site-design-refresh
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0061 (web/ top-level directory), platform-site spec (design-system foundations), [`creative-direction.md`](creative-direction.md)
@@ -76,7 +76,7 @@ measured table in the plan is the record.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 (fonts, exact pins).** `docs-site` self-hosts three families via
+- [x] **AC1 (fonts, exact pins).** `docs-site` self-hosts three families via
   exact-pinned Fontsource packages — `@fontsource-variable/source-serif-4@5.3.0`
   (display serif), `@fontsource-variable/inter@5.3.0`,
   `@fontsource/jetbrains-mono@5.3.0` — wired through Starlight `customCss`;
@@ -90,22 +90,22 @@ measured table in the plan is the record.
   `fsevents@2.3.3`) — a different version of either package carrying an
   install script fails the audit. These pins are the
   canonical version record; the plan references them rather than restating.
-- [ ] **AC2 (header).** The header is restyled to the reference language:
+- [x] **AC2 (header).** The header is restyled to the reference language:
   light ground with a hairline bottom rule in light mode (dark equivalent in
   dark mode), wordmark set in the display serif; search and theme toggle
   remain functional, and the pagefind search modal/results overlay is
   restyled to the new palette (not left at default styling).
-- [ ] **AC3 (sidebar).** Sidebar group labels render as accent eyebrows
+- [x] **AC3 (sidebar).** Sidebar group labels render as accent eyebrows
   (uppercase, letter-spaced, small); links are medium-weight rows with
   rounded hover/active treatment; the active item carries an accent-tinted
   background — matching the reference's sidebar grammar.
-- [ ] **AC4 (prose).** Content typography carries the reference language:
+- [x] **AC4 (prose).** Content typography carries the reference language:
   h1/h2 in the display serif with optical sizing active, h2 with a hairline
   bottom rule, h3 in the sans at semibold, body line-height ≥ 1.7, inline
   code as tinted chips, code blocks dark-on-light with rounded corners,
   styled tables (2px head rule, 1px row rules) and accent-bordered
   blockquotes.
-- [ ] **AC5 (palette).** Both light and dark themes are fully mapped to a
+- [x] **AC5 (palette).** Both light and dark themes are fully mapped to a
   cool neutral ground with a single cobalt-family accent; every text/ground
   pair used for body, sidebar, eyebrows, chips, and code text is ≥ 4.5:1
   **measured against its actual ground**, recorded in the plan's measured
@@ -113,7 +113,7 @@ measured table in the plan is the record.
   (decision: respecting the OS preference is the enterprise-polish behavior;
   "light-first" in the direction doc means light is the primary derivation
   target, with dark re-derived — not a forced default).
-- [ ] **AC6 (footer + banner + chrome colors + primitive compatibility).**
+- [x] **AC6 (footer + banner + chrome colors + primitive compatibility).**
   The hard-coded dark-hero palette in `starlight.css` (`header.header`,
   `.site-footer*` rules) is replaced by the new language (hairline rules,
   faint small text meeting AA); the `Footer.astro` prev/next block and
@@ -131,11 +131,11 @@ measured table in the plan is the record.
   consumed in `docs-site/src` and checking each has a docs-local
   definition (the extraction, not a hand count, is the contract). No amber
   `--ds-accent` value survives.
-- [ ] **AC7 (responsive + a11y floor).** No horizontal body scroll at
+- [x] **AC7 (responsive + a11y floor).** No horizontal body scroll at
   375 px on the checked pages; `prefers-reduced-motion` disables the
   transitions this spec adds; `:focus-visible` meets the ≥ 3:1 / ≥ 2px bar
   in both themes.
-- [ ] **AC8 (per-site agent context).** `docs-site/AGENTS.md` exists (with
+- [x] **AC8 (per-site agent context).** `docs-site/AGENTS.md` exists (with
   `CLAUDE.md` symlink) recording the dependency table, the docs-palette
   divergence from `--ds-*`, and the canonical build-order fact;
   `web/AGENTS.md` is slimmed to marketing-site scope and **references** the
@@ -143,7 +143,7 @@ measured table in the plan is the record.
   it (shared facts live in exactly one place). Both files ≤ 150 lines;
   `.github/workflows/docs.yml` `paths:` gains `docs-site/**/AGENTS.md` and
   `web/**/AGENTS.md` so the cap is CI-enforced for both.
-- [ ] **AC9 (mermaid self-hosted).** The runtime CDN `<script>` for mermaid
+- [x] **AC9 (mermaid self-hosted).** The runtime CDN `<script>` for mermaid
   is removed; `mermaid@11.16.1` (exact pin) is bundled as a docs-site
   dependency and lazily imported client-side with
   `{ startOnLoad: false, securityLevel: 'strict' }`, rendering the existing
@@ -152,7 +152,7 @@ measured table in the plan is the record.
   theme toggle** (observe `data-theme` on the root element; mermaid theme
   `neutral` in light, `dark` in dark) so the surface is fully mapped in
   both modes — the raw source stays available in `data-mermaid`.
-- [ ] **AC10 (gates + QA evidence).** `python tools/build-site.py`, the
+- [x] **AC10 (gates + QA evidence).** `python tools/build-site.py`, the
   `web` build, and the `docs-site` build all pass; screenshots of the docs
   home, one guide page, and one reference page (light + dark, desktop +
   375 px) are captured during QA and the observed results recorded in the

@@ -23,20 +23,26 @@
   --doc-font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --doc-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
+  /* Theme-invariant: code blocks are dark-on-light in BOTH themes (the
+     design language keeps code dark). Defined once — do not re-declare
+     per theme, or the copies will silently diverge. */
+  --doc-code-ground: #0d1424;
+  --doc-code-text: #c9d6ee;
+
   /* Dark theme (Starlight's :root default) */
   --doc-ground: #0c111c;
   --doc-surface: #111726;
   --doc-heading: #e8edf6;
   --doc-text: #c3ccdb;
   --doc-text-muted: #8b95a7;
+  /* Deliberate: dark collapses faint into muted — anything fainter than
+     muted drops below AA on this ground. */
   --doc-text-faint: #8b95a7;
   --doc-rule: rgba(255, 255, 255, 0.09);
   --doc-accent: #4f7df0;        /* fills, large marks */
   --doc-accent-strong: #8ab0f9; /* text-safe on dark ground (8.68:1) */
   --doc-tint: rgba(138, 176, 249, 0.12);
   --doc-hover-fill: rgba(255, 255, 255, 0.04);
-  --doc-code-ground: #0d1424;
-  --doc-code-text: #c9d6ee;
 }
 
 :root[data-theme='light'],
@@ -52,8 +58,6 @@
   --doc-accent-strong: #1d4ed8; /* links, eyebrows, chip text (6.31:1) */
   --doc-tint: rgba(37, 99, 235, 0.08);
   --doc-hover-fill: rgba(17, 24, 39, 0.04);
-  --doc-code-ground: #0d1424;
-  --doc-code-text: #c9d6ee;
 }
 
 /* ── Starlight slot mapping — dark ──────────────────────────────────────── */
@@ -221,8 +225,13 @@ starlight-toc a {
 starlight-toc a:hover {
   color: var(--doc-heading);
 }
+/* Two channels (fill + color), matching the sidebar's active grammar —
+   color alone would fail WCAG 1.4.1. */
 starlight-toc a[aria-current='true'] {
   color: var(--doc-accent-strong);
+  background-color: var(--doc-tint);
+  border-radius: 6px;
+  font-weight: 600;
 }
 
 /* ── Content typography ─────────────────────────────────────────────────── */
@@ -280,6 +289,13 @@ main h1 {
   padding: 0.15em 0.4em;
 }
 
+/* At heading scale the chip box competes with the serif for hierarchy —
+   keep the mono voice, drop the box. */
+.sl-markdown-content :is(h1, h2, h3, h4) code:not(:where(.expressive-code *)) {
+  background-color: transparent;
+  padding: 0;
+}
+
 /* Plain (non-Expressive-Code) pre fallback: dark-on-light block */
 .sl-markdown-content pre:not(:where(.expressive-code *)) {
   background-color: var(--doc-code-ground);
@@ -332,11 +348,14 @@ main h1 {
 
 /* ── Banner ("← Platform") ──────────────────────────────────────────────── */
 
+/* Hairline-separated inline breadcrumb, not a filled band — hairlines are
+   the only chrome in this design language. */
 .sl-banner {
-  background-color: var(--doc-tint);
+  background-color: var(--sl-color-bg);
   color: var(--doc-accent-strong);
   font-size: 0.8125rem;
   font-weight: 500;
+  text-align: start;
   border-bottom: 1px solid var(--doc-rule);
   box-shadow: none;
 }
@@ -483,11 +502,9 @@ main h1 {
   --ds-on-surface-2: var(--doc-text);
   --ds-on-surface-muted: var(--doc-text-muted);
   --ds-border: #29334a;
-  --ds-border-subtle: rgba(255, 255, 255, 0.06);
   --ds-accent: var(--doc-accent-strong);
   --ds-accent-deep: #b7cdfb;
   --ds-accent-subtle: var(--doc-tint);
-  --ds-accent-subtle-dk: var(--doc-tint);
 
   /* semantic state — dark (hue-distinct; measured in plan LLD) */
   --ds-state-success-bg: #122a1c;
@@ -514,11 +531,9 @@ main h1 {
   --ds-on-surface-2: var(--doc-text);
   --ds-on-surface-muted: var(--doc-text-muted);
   --ds-border: var(--doc-rule);
-  --ds-border-subtle: rgba(17, 24, 39, 0.06);
   --ds-accent: var(--doc-accent-strong);
   --ds-accent-deep: #1e40af;
   --ds-accent-subtle: var(--doc-tint);
-  --ds-accent-subtle-dk: rgba(138, 176, 249, 0.12);
 
   /* semantic state — light (hue-distinct; measured in plan LLD) */
   --ds-state-success-bg: #dcfce7;

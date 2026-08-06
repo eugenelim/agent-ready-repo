@@ -46,8 +46,10 @@ add a primitive that consumes a new `--ds-*` name, define it in the
 compatibility block (the extraction check below is the contract).
 
 Contrast floor: every text/ground pair ≥ 4.5:1 in both themes; measured
-values live in the spec's `plan.md` LLD tables. Re-run the check when
-touching palette values.
+values live in the spec's `plan.md` LLD tables. When touching palette
+values, re-run `python3 tools/check-docs-contrast.py` (from the repo
+root) — it resolves the themed tokens from `starlight.css` and fails on
+any pair below the floor.
 
 ```bash
 # extraction check: every consumed token name must be defined locally
