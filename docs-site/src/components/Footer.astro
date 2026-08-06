@@ -38,3 +38,32 @@ const { entry, pagination } = Astro.props;
     <p class="site-footer__copy">© 2026 · The supervised AI operating model for software teams.</p>
   </div>
 </footer>
+
+<script>
+  // Mermaid is bundled (exact pin in package.json) and lazy-loaded only on
+  // pages that carry diagrams — no runtime CDN calls (spec AC9). Diagrams
+  // re-render on theme toggle; the raw source persists in data-mermaid.
+  const renderDiagrams = async () => {
+    const els = document.querySelectorAll('.mermaid-diagram[data-mermaid]');
+    if (els.length === 0) return;
+    const { default: mermaid } = await import('mermaid');
+    const theme =
+      document.documentElement.dataset.theme === 'dark' ? 'dark' : 'neutral';
+    mermaid.initialize({ startOnLoad: false, securityLevel: 'strict', theme });
+    for (const el of els) {
+      const src = decodeURIComponent(el.getAttribute('data-mermaid') ?? '');
+      const id = 'mermaid-' + Math.random().toString(36).slice(2);
+      try {
+        const { svg } = await mermaid.render(id, src);
+        el.innerHTML = svg;
+      } catch (e) {
+        console.warn('Mermaid render failed', e);
+      }
+    }
+  };
+  renderDiagrams();
+  new MutationObserver(renderDiagrams).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['data-theme'],
+  });
+</script>

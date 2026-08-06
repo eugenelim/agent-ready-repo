@@ -79,7 +79,14 @@ ready     = []
 draft     = []
 
 ["ini-002".work]
-active  = []
+active  = [
+  # Docs-site design refresh (full-mode work-loop, in flight 2026-08-05).
+  # Restyles the Starlight tech docs to a display-serif + enterprise-cobalt
+  # design language; self-hosts fonts + mermaid (removes the CDN script);
+  # splits per-site AGENTS.md. Explicit boundary: NO sidebar-IA changes —
+  # docs IA structure is owned by ini-007 Wave 6 (see its needs entry).
+  "spec/docs-site-design-refresh",
+]
 shipped = [
   "spec/work-loop-step0-observability",              # core 1.0.2 — Step 0 Branch-1 echo in orientation block
   "spec/product-documentation-pack",            # PR this branch — product-documentation pack (Phase 1)
@@ -544,6 +551,14 @@ open = [
   # File: packages/agentbundle/agentbundle/catalogue_tooling/results.py + initialise.py.
   # Unblocks when: an automation consumer needs next_steps in the JSON output.
   {slug = "init-result-json-next-steps", source = "spec/catalogue-wave3-enterprise-authoring-discovery"},
+
+  # docs-site-design-refresh deferrals (spec Assumptions). SCA: no npm audit/
+  # Dependabot wiring exists repo-wide; docs-site now vendors mermaid's transitive
+  # tree (previously CDN-loaded), so the unscanned-code surface is net-new — wire a
+  # scanner or record acceptance. Print: docs-site print rendering left at
+  # Starlight defaults (accent/hairlines untuned for paper).
+  {slug = "docs-site-npm-sca-gap", source = "spec/docs-site-design-refresh"},
+  {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
   # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
   # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
@@ -1318,10 +1333,15 @@ queue   = [
   # release comparison; release evidence in catalogue-manifest.json; regression tests.
   {path = "spec/catalogue-wave5-release-integrity", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
 
-  # Wave 6 — Technical docs information architecture. Gated on Wave 4 + IA design.
+  # Wave 6 — Technical docs information architecture. Gated on Wave 4 + IA design
+  # + the docs-site design refresh (ini-002): both touch docs-site/astro.config.ts
+  # and the Starlight theme; the refresh owns the visual system (tokens, type,
+  # sidebar/link presentation, eyebrow group labels), so Wave 6 is IA/structure
+  # ONLY — new sections, routes, and sidebar reorganization on top of the
+  # refreshed theme, with no restyling and no token changes.
   # Deliver: "Build a Catalogue" top-level docs-site section; generated field references;
   # index consumption; "Use" vs "Build" home routes; sidebar links verified.
-  {path = "spec/catalogue-wave6-technical-docs-ia", needs = ["work:spec/catalogue-wave4-semantic-contracts-index", "shape:catalogue-discovery-information-architecture"]},
+  {path = "spec/catalogue-wave6-technical-docs-ia", needs = ["work:spec/catalogue-wave4-semantic-contracts-index", "shape:catalogue-discovery-information-architecture", "ini-002:work:spec/docs-site-design-refresh"]},
 
   # Wave 7 — Marketing evaluator surfaces. Gated on Wave 6.
   # Deliver: /evaluate/ page; catalogue+pack pages consume neutral-index facts;

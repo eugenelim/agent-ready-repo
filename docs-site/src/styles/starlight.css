@@ -1,105 +1,393 @@
 /*
- * Starlight brand-theme overrides for agent-ready-repo docs site.
+ * Docs-site brand theme — docs-site-design-refresh spec
+ * (docs/specs/docs-site-design-refresh/spec.md; direction in
+ * creative-direction.md).
  *
- * tokens.css (imported below) is the canonical design-token source from
- * web/src/styles/tokens.css, copied here by tools/build-site.py at
- * build time (gitignored). Run `python tools/build-site.py` before
- * `astro dev` — the import resolves at Vite build time, not at import
- * resolution in the source tree.
+ * Self-contained token sheet: the docs palette deliberately diverges from
+ * web/'s --ds-* system (enterprise cobalt vs. marketing amber) — see
+ * docs-site/AGENTS.md. Custom CSS loads unlayered, so these rules win over
+ * Starlight's @layer styles.
  *
- * All colour values reference --ds-* or --prim-* tokens from tokens.css.
- * Raw hex is only used for --sl-color-* assignments where the token
- * variable hasn't been loaded yet (bootstrap context).
+ * Design language: optical-size display serif (Source Serif 4 Variable)
+ * over Inter, eyebrow-labeled sidebar groups, hairline rules as the only
+ * chrome, dark code blocks on light ground, single cobalt accent.
+ * All text/ground pairs measured ≥ 4.5:1 — the record lives in the spec's
+ * plan.md LLD tables.
  */
 
-@import './tokens.css';
-
-/* ── Starlight colour overrides — light mode ─────────────────────────────── */
+/* ── Doc tokens ─────────────────────────────────────────────────────────── */
 
 :root,
-[data-theme='light'] {
-  /* Accent — amber-gold */
-  --sl-color-accent-low:  var(--prim-amber-10);     /* subtle tint */
-  --sl-color-accent:      var(--ds-accent);          /* #e8952b — primary accent */
-  --sl-color-accent-high: var(--ds-accent-deep);     /* #8b5e0a — text-safe on light */
+::backdrop {
+  --doc-font-display: 'Source Serif 4 Variable', ui-serif, Georgia, 'Times New Roman', serif;
+  --doc-font-sans: 'Inter Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --doc-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Surface */
-  --sl-color-bg:           var(--ds-surface);        /* warm near-white */
-  --sl-color-bg-sidebar:   var(--ds-surface);
-  --sl-color-bg-nav:       var(--prim-dark-950);     /* dark header zone */
-  --sl-color-bg-inline-code: var(--ds-accent-subtle);
-
-  /* Text */
-  --sl-color-text:          var(--ds-on-surface-2);
-  --sl-color-text-accent:   var(--ds-accent-deep);
-  --sl-color-text-invert:   #ffffff;
-
-  /* Hairlines */
-  --sl-color-hairline:      var(--ds-border);
-  --sl-color-hairline-light: var(--ds-border-subtle);
-
-  /* Typography */
-  --sl-font: 'Inter Variable', 'Inter', system-ui, sans-serif;
-  --sl-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  /* Dark theme (Starlight's :root default) */
+  --doc-ground: #0c111c;
+  --doc-surface: #111726;
+  --doc-heading: #e8edf6;
+  --doc-text: #c3ccdb;
+  --doc-text-muted: #8b95a7;
+  --doc-text-faint: #8b95a7;
+  --doc-rule: rgba(255, 255, 255, 0.09);
+  --doc-accent: #4f7df0;        /* fills, large marks */
+  --doc-accent-strong: #8ab0f9; /* text-safe on dark ground (8.68:1) */
+  --doc-tint: rgba(138, 176, 249, 0.12);
+  --doc-hover-fill: rgba(255, 255, 255, 0.04);
+  --doc-code-ground: #0d1424;
+  --doc-code-text: #c9d6ee;
 }
 
-/* ── Starlight colour overrides — dark mode ──────────────────────────────── */
-
-[data-theme='dark'] {
-  /* Accent */
-  --sl-color-accent-low:  var(--prim-amber-15);
-  --sl-color-accent:      var(--ds-accent);          /* #e8952b */
-  --sl-color-accent-high: var(--prim-amber-300);     /* #f5bc6a — lighter on dark */
-
-  /* Surface */
-  --sl-color-bg:           var(--prim-dark-950);
-  --sl-color-bg-sidebar:   var(--prim-dark-900);
-  --sl-color-bg-nav:       var(--prim-dark-950);
-  --sl-color-bg-inline-code: var(--ds-accent-subtle-dk);
-
-  /* Text */
-  --sl-color-text:          var(--prim-white-80);
-  --sl-color-text-accent:   var(--prim-amber-300);
-  --sl-color-text-invert:   var(--prim-dark-950);
-
-  /* Hairlines */
-  --sl-color-hairline:      var(--prim-white-10);
-  --sl-color-hairline-light: var(--prim-white-06);
+:root[data-theme='light'],
+[data-theme='light'] ::backdrop {
+  --doc-ground: #f7f8fa;
+  --doc-surface: #eceff2;
+  --doc-heading: #111827;
+  --doc-text: #2b3444;
+  --doc-text-muted: #4b5565;
+  --doc-text-faint: #67707f;
+  --doc-rule: #dfe3e9;
+  --doc-accent: #2563eb;        /* icons, large text (4.86:1) */
+  --doc-accent-strong: #1d4ed8; /* links, eyebrows, chip text (6.31:1) */
+  --doc-tint: rgba(37, 99, 235, 0.08);
+  --doc-hover-fill: rgba(17, 24, 39, 0.04);
+  --doc-code-ground: #0d1424;
+  --doc-code-text: #c9d6ee;
 }
 
-/* ── Header: dark unified zone matching hero ─────────────────────────────── */
+/* ── Starlight slot mapping — dark ──────────────────────────────────────── */
+
+:root,
+::backdrop {
+  --sl-font: 'Inter Variable';
+  --sl-font-mono: 'JetBrains Mono';
+
+  --sl-color-white: var(--doc-heading);
+  --sl-color-gray-1: #dde4f0;
+  --sl-color-gray-2: var(--doc-text);
+  --sl-color-gray-3: var(--doc-text-muted);
+  --sl-color-gray-4: #576174;
+  --sl-color-gray-5: #29334a;
+  --sl-color-gray-6: var(--doc-surface);
+  --sl-color-black: var(--doc-ground);
+
+  /* Cobalt accent family; blue hue aligned to it for asides/badges */
+  --sl-hue-blue: 222;
+  --sl-color-accent-low: #1a2c55;
+  --sl-color-accent: var(--doc-accent);
+  --sl-color-accent-high: var(--doc-accent-strong);
+
+  --sl-color-text: var(--doc-text);
+  --sl-color-text-accent: var(--doc-accent-strong);
+  --sl-color-text-invert: var(--doc-ground);
+  --sl-color-bg: var(--doc-ground);
+  --sl-color-bg-nav: var(--doc-ground);
+  --sl-color-bg-sidebar: var(--doc-ground);
+  --sl-color-bg-inline-code: var(--doc-tint);
+  --sl-color-hairline-light: var(--doc-rule);
+  --sl-color-hairline: var(--doc-rule);
+  --sl-color-hairline-shade: var(--doc-rule);
+
+  /* Pagefind search UI */
+  --pagefind-ui-primary: var(--doc-accent-strong);
+  --pagefind-ui-text: var(--doc-text);
+  --pagefind-ui-background: var(--doc-surface);
+  --pagefind-ui-border: var(--doc-rule);
+  --pagefind-ui-tag: var(--doc-tint);
+  --pagefind-ui-font: var(--doc-font-sans);
+}
+
+/* ── Starlight slot mapping — light ─────────────────────────────────────── */
+
+:root[data-theme='light'],
+[data-theme='light'] ::backdrop {
+  --sl-color-white: var(--doc-heading);
+  --sl-color-gray-1: #1b2333;
+  --sl-color-gray-2: var(--doc-text);
+  --sl-color-gray-3: var(--doc-text-muted);
+  --sl-color-gray-4: var(--doc-text-faint);
+  --sl-color-gray-5: var(--doc-rule);
+  --sl-color-gray-6: var(--doc-surface);
+  --sl-color-gray-7: var(--doc-ground);
+  --sl-color-black: var(--doc-ground);
+
+  --sl-color-accent-low: #dbe6fb;
+  --sl-color-accent: var(--doc-accent);
+  --sl-color-accent-high: var(--doc-accent-strong);
+
+  --sl-color-text-accent: var(--doc-accent-strong);
+  --sl-color-text-invert: #ffffff;
+  --sl-color-bg-nav: var(--doc-ground);
+  --sl-color-bg-sidebar: var(--sl-color-bg);
+  --sl-color-bg-inline-code: var(--doc-surface);
+  --sl-color-hairline-light: var(--doc-rule);
+  --sl-color-hairline-shade: var(--doc-rule);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
 
 header.header {
-  background-color: var(--prim-dark-950);
-  border-bottom: 1px solid var(--prim-white-06);
+  background-color: var(--sl-color-bg-nav);
+  border-bottom: 1px solid var(--doc-rule);
+  box-shadow: none;
 }
 
-/* ── Mermaid diagram sizing ──────────────────────────────────────────────── */
+.site-title {
+  font-family: var(--doc-font-display);
+  font-variation-settings: 'opsz' 40;
+  font-weight: 560;
+  font-size: 1.25rem;
+  letter-spacing: -0.015em;
+  color: var(--doc-heading);
+}
 
+/* Search bar button — quiet hairline pill */
+site-search > button {
+  background-color: transparent;
+  border: 1px solid var(--doc-rule);
+  color: var(--doc-text-muted);
+  border-radius: 999px;
+}
+site-search > button:hover {
+  border-color: var(--doc-text-faint);
+  color: var(--doc-text);
+}
+site-search kbd {
+  background-color: var(--doc-surface);
+  color: var(--doc-text-muted);
+}
+
+/* ── Sidebar ────────────────────────────────────────────────────────────── */
+
+nav.sidebar .sidebar-pane {
+  background-color: var(--sl-color-bg-sidebar);
+  border-inline-end: 1px solid var(--doc-rule);
+}
+
+/* Top-level group labels: accent eyebrows (11px / 0.18em / uppercase) */
+.sidebar-content ul.top-level > li > details > summary .group-label .large {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--doc-accent-strong);
+}
+
+/* Nested group labels: small semibold sans in heading ink */
+.sidebar-content ul ul .group-label .large {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--doc-heading);
+}
+
+.sidebar-content summary .caret {
+  color: var(--doc-text-faint);
+}
+
+/* Link rows: 13.5px medium, rounded hover pills */
+.sidebar-content a {
+  font-size: 0.84375rem;
+  font-weight: 500;
+  color: var(--doc-text-muted);
+  border-radius: 6px;
+}
+.sidebar-content a:hover {
+  color: var(--doc-heading);
+  background-color: var(--doc-hover-fill);
+}
+.sidebar-content a[aria-current='page'],
+.sidebar-content a[aria-current='page']:hover {
+  background-color: var(--doc-tint);
+  color: var(--doc-accent-strong);
+  font-weight: 600;
+}
+
+/* ── On-page ToC (right sidebar) ────────────────────────────────────────── */
+
+#starlight__on-this-page,
+#starlight__on-this-page--mobile {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--doc-accent-strong);
+}
+
+starlight-toc a {
+  font-size: 0.8125rem;
+  color: var(--doc-text-muted);
+}
+starlight-toc a:hover {
+  color: var(--doc-heading);
+}
+starlight-toc a[aria-current='true'] {
+  color: var(--doc-accent-strong);
+}
+
+/* ── Content typography ─────────────────────────────────────────────────── */
+
+/* Page title + markdown h1/h2 carry the display serif with optical sizing */
+main h1 {
+  font-family: var(--doc-font-display);
+  font-variation-settings: 'opsz' 48;
+  font-weight: 540;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  color: var(--doc-heading);
+}
+
+.sl-markdown-content h2 {
+  font-family: var(--doc-font-display);
+  font-variation-settings: 'opsz' 32;
+  font-weight: 560;
+  letter-spacing: -0.015em;
+  color: var(--doc-heading);
+}
+
+/* Starlight wraps headings (display: inline) in .sl-heading-wrapper; the
+   hairline rule must sit on the block wrapper, not the inline h2. */
+.sl-markdown-content .sl-heading-wrapper.level-h2 {
+  border-bottom: 1px solid var(--doc-rule);
+  padding-bottom: 0.4em;
+}
+
+.sl-markdown-content h3,
+.sl-markdown-content h4,
+.sl-markdown-content h5 {
+  font-family: var(--doc-font-sans);
+  font-weight: 600;
+  color: var(--doc-heading);
+}
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--doc-accent-strong);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--doc-accent-strong) 40%, transparent);
+}
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  text-decoration-color: var(--doc-accent-strong);
+}
+
+/* Inline code: tinted chips */
+.sl-markdown-content code:not(:where(.expressive-code *)) {
+  font-family: var(--doc-font-mono);
+  font-size: 0.85em;
+  background-color: var(--sl-color-bg-inline-code);
+  color: var(--doc-accent-strong);
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+
+/* Plain (non-Expressive-Code) pre fallback: dark-on-light block */
+.sl-markdown-content pre:not(:where(.expressive-code *)) {
+  background-color: var(--doc-code-ground);
+  color: var(--doc-code-text);
+  border-radius: 10px;
+  padding: 1.25rem 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.sl-markdown-content pre:not(:where(.expressive-code *)) code {
+  background: none;
+  color: inherit;
+  padding: 0;
+}
+
+/* Tables: 2px head rule, 1px row rules */
+.sl-markdown-content table {
+  font-size: 0.875rem;
+}
+.sl-markdown-content th {
+  border-bottom: 2px solid var(--doc-rule);
+  color: var(--doc-heading);
+  font-weight: 600;
+}
+.sl-markdown-content td {
+  border-bottom: 1px solid var(--doc-rule);
+}
+
+.sl-markdown-content blockquote {
+  border-inline-start: 3px solid var(--doc-accent);
+  color: var(--doc-text-muted);
+}
+
+.sl-markdown-content hr {
+  border: 0;
+  border-top: 1px solid var(--doc-rule);
+}
+
+/* ── Mermaid diagrams ───────────────────────────────────────────────────── */
+
+.mermaid-diagram {
+  margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
 .mermaid-diagram svg {
   max-width: 100%;
   height: auto;
 }
 
-/* ── Code block sizing ───────────────────────────────────────────────────── */
+/* ── Banner ("← Platform") ──────────────────────────────────────────────── */
 
-.sl-markdown-content pre {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+.sl-banner {
+  background-color: var(--doc-tint);
+  color: var(--doc-accent-strong);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border-bottom: 1px solid var(--doc-rule);
+  box-shadow: none;
 }
 
-/* ── Site footer custom styles ───────────────────────────────────────────── */
+/* ── Prev/next pagination (custom Footer) ───────────────────────────────── */
+
+.sl-prev-next {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 3rem;
+}
+.sl-prev-next__link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 1px solid var(--doc-rule);
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+  text-decoration: none;
+}
+.sl-prev-next__link:hover {
+  border-color: var(--doc-accent-strong);
+}
+.sl-prev-next__link--next {
+  grid-column: 2;
+  text-align: end;
+}
+.sl-prev-next__direction {
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--doc-text-faint);
+}
+.sl-prev-next__label {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--doc-accent-strong);
+}
+
+/* ── Site footer ────────────────────────────────────────────────────────── */
 
 .site-footer {
-  border-top: 1px solid var(--prim-white-06);
-  background-color: var(--prim-dark-950);
-  color: var(--prim-white-60);
-  padding: 2rem 1.5rem;
+  border-top: 1px solid var(--doc-rule);
+  margin-top: 3rem;
+  padding: 2rem 0 0.5rem;
+  color: var(--doc-text-faint);
 }
 
 .site-footer__inner {
-  max-width: 80rem;
-  margin-inline: auto;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -107,15 +395,16 @@ header.header {
 }
 
 .site-footer__brand {
-  font-family: var(--sl-font-mono);
-  font-weight: 700;
-  color: #ffffff;
-  text-decoration: none;
+  font-family: var(--doc-font-display);
+  font-variation-settings: 'opsz' 32;
+  font-weight: 560;
+  color: var(--doc-heading);
   font-size: 1rem;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
+  margin: 0;
 }
 
-.site-footer__links {
+.site-footer__links ul {
   display: flex;
   gap: 1.5rem;
   list-style: none;
@@ -124,18 +413,127 @@ header.header {
 }
 
 .site-footer__links a {
-  color: var(--prim-white-80);
-  font-size: 0.875rem;
+  color: var(--doc-text-muted);
+  font-size: 0.8125rem;
   text-decoration: none;
 }
-
 .site-footer__links a:hover {
-  color: var(--ds-accent);
+  color: var(--doc-accent-strong);
 }
 
 .site-footer__copy {
   flex-basis: 100%;
-  font-size: 0.8125rem;
-  color: var(--prim-white-60);
+  font-size: 0.75rem;
+  color: var(--doc-text-faint);
   margin: 0;
+}
+
+/* ── Accessibility floor ────────────────────────────────────────────────── */
+
+/* ≥2px, ≥3:1 non-text contrast in both themes (measured in plan LLD) */
+:focus-visible {
+  outline: 2px solid var(--doc-accent-strong);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .sidebar-content a,
+  .sl-markdown-content a,
+  .sl-prev-next__link,
+  .site-footer__links a,
+  site-search > button {
+    transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+  }
+}
+
+/* ── Compatibility layer — primitive components (NOT edited) ────────────── */
+/*
+ * The components under src/components/primitives/ consume web/'s --ds-*
+ * token names in scoped styles. tokens.css is no longer imported; these
+ * definitions re-derive exactly the consumed names onto the doc palette.
+ * Semantic state tokens are the AC6 carve-out: hue-distinct
+ * green/red/orange/blue/gray — NEVER collapsed into the cobalt accent.
+ * Contrast for every fg-on-bg pair is measured in the plan LLD.
+ */
+
+:root {
+  /* type + structure (theme-invariant) */
+  --ds-font-sans: var(--doc-font-sans);
+  --ds-font-mono: var(--doc-font-mono);
+  --ds-type-xs: 0.75rem;
+  --ds-type-sm: 0.875rem;
+  --ds-type-body: 1rem;
+  --ds-type-mono-sm: 0.8125rem;
+  --ds-track-label: 0.08em;
+  --ds-weight-medium: 500;
+  --ds-weight-semibold: 600;
+  --ds-lead-body: 1.65;
+  --ds-radius-sm: 4px;
+  --ds-radius-md: 8px;
+  --ds-space-1: 4px;
+  --ds-space-2: 8px;
+  --ds-space-3: 12px;
+  --ds-space-4: 16px;
+  --ds-space-5: 24px;
+
+  /* surfaces + accent (dark defaults, matching Starlight's :root) */
+  --ds-surface: var(--doc-ground);
+  --ds-surface-alt: var(--doc-surface);
+  --ds-on-surface: var(--doc-heading);
+  --ds-on-surface-2: var(--doc-text);
+  --ds-on-surface-muted: var(--doc-text-muted);
+  --ds-border: #29334a;
+  --ds-border-subtle: rgba(255, 255, 255, 0.06);
+  --ds-accent: var(--doc-accent-strong);
+  --ds-accent-deep: #b7cdfb;
+  --ds-accent-subtle: var(--doc-tint);
+  --ds-accent-subtle-dk: var(--doc-tint);
+
+  /* semantic state — dark (hue-distinct; measured in plan LLD) */
+  --ds-state-success-bg: #122a1c;
+  --ds-state-success-fg: #86dfa8;
+  --ds-state-success-border: #2e5c40;
+  --ds-state-danger-bg: #341418;
+  --ds-state-danger-fg: #f4a3a3;
+  --ds-state-danger-border: #6b2a30;
+  --ds-state-warn-bg: #33200f;
+  --ds-state-warn-fg: #f0b27f;
+  --ds-state-warn-border: #6b4423;
+  --ds-state-info-bg: #131f3a;
+  --ds-state-info-fg: #8ab0f9;
+  --ds-state-info-border: #2c4270;
+  --ds-state-neutral-bg: #1a2130;
+  --ds-state-neutral-fg: #c3ccdb;
+  --ds-state-neutral-border: #3a4356;
+}
+
+:root[data-theme='light'] {
+  --ds-surface: var(--doc-ground);
+  --ds-surface-alt: var(--doc-surface);
+  --ds-on-surface: var(--doc-heading);
+  --ds-on-surface-2: var(--doc-text);
+  --ds-on-surface-muted: var(--doc-text-muted);
+  --ds-border: var(--doc-rule);
+  --ds-border-subtle: rgba(17, 24, 39, 0.06);
+  --ds-accent: var(--doc-accent-strong);
+  --ds-accent-deep: #1e40af;
+  --ds-accent-subtle: var(--doc-tint);
+  --ds-accent-subtle-dk: rgba(138, 176, 249, 0.12);
+
+  /* semantic state — light (hue-distinct; measured in plan LLD) */
+  --ds-state-success-bg: #dcfce7;
+  --ds-state-success-fg: #15803d;
+  --ds-state-success-border: #86efac;
+  --ds-state-danger-bg: #fee2e2;
+  --ds-state-danger-fg: #b91c1c;
+  --ds-state-danger-border: #fca5a5;
+  --ds-state-warn-bg: #ffedd5;
+  --ds-state-warn-fg: #c2410c;
+  --ds-state-warn-border: #fdba74;
+  --ds-state-info-bg: #dbeafe;
+  --ds-state-info-fg: #1d4ed8;
+  --ds-state-info-border: #93c5fd;
+  --ds-state-neutral-bg: #eceff2;
+  --ds-state-neutral-fg: #2b3444;
+  --ds-state-neutral-border: #c4c9d2;
 }

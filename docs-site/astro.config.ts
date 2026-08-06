@@ -1,6 +1,5 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
-import { unified } from '@astrojs/markdown-remark';
 import sidebarConfig from './src/sidebar-config.json';
 import { visit } from 'unist-util-visit';
 
@@ -28,9 +27,13 @@ export default defineConfig({
   base: '/agent-ready-repo/docs',
   outDir: '../build/docs',
   trailingSlash: 'always',
-  markdown: unified({
+  // Standard registration — the previous `unified({...})` wrapper was
+  // silently ignored, so mermaid fences reached Expressive Code untouched
+  // and no placeholder was ever emitted (pre-existing defect, fixed by the
+  // docs-site-design-refresh spec's AC9 path).
+  markdown: {
     remarkPlugins: [remarkMermaid],
-  }),
+  },
   integrations: [
     starlight({
       title: 'agent-ready-repo',
@@ -42,32 +45,33 @@ export default defineConfig({
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/eugenelim/agent-ready-repo' },
       ],
-      customCss: ['./src/styles/starlight.css'],
+      // Fonts are self-hosted via Fontsource (exact pins — see AGENTS.md).
+      // The serif MUST be the opsz-carrying stylesheet; the package's
+      // default index.css is wght-only and would break optical sizing.
+      customCss: [
+        '@fontsource-variable/source-serif-4/opsz.css',
+        '@fontsource-variable/inter/index.css',
+        '@fontsource/jetbrains-mono/400.css',
+        '@fontsource/jetbrains-mono/500.css',
+        '@fontsource/jetbrains-mono/600.css',
+        '@fontsource/jetbrains-mono/700.css',
+        './src/styles/starlight.css',
+      ],
+      expressiveCode: {
+        // Dark code blocks on both themes — the docs design language keeps
+        // code dark-on-light (see docs/specs/docs-site-design-refresh).
+        themes: ['github-dark'],
+        styleOverrides: {
+          borderRadius: '10px',
+          borderColor: 'transparent',
+        },
+      },
       components: {
         Banner: './src/components/Banner.astro',
         Footer: './src/components/Footer.astro',
       },
-      head: [
-        {
-          tag: 'script',
-          attrs: { type: 'module' },
-          content: `
-            import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
-            mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
-            document.addEventListener('DOMContentLoaded', () => {
-              document.querySelectorAll('.mermaid-diagram[data-mermaid]').forEach(async (el) => {
-                const id = 'mermaid-' + Math.random().toString(36).slice(2);
-                try {
-                  const { svg } = await mermaid.render(id, decodeURIComponent(el.getAttribute('data-mermaid')));
-                  el.innerHTML = svg;
-                } catch (e) {
-                  console.warn('Mermaid render failed', e);
-                }
-              });
-            });
-          `,
-        },
-      ],
+      // Mermaid is bundled (exact pin) and lazily imported in
+      // Footer.astro's client script — no runtime CDN calls.
       sidebar: [
         { label: 'Home', slug: 'index' },
         {
