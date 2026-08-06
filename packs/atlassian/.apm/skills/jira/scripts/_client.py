@@ -60,6 +60,49 @@ class AuthError(JiraError):
     pass
 
 
+class SsoSessionUnavailable(AuthError):
+    """No usable SSO session — and re-authenticating could fix it.
+
+    The typed signal `check`'s auto-recovery keys on. Raised at exactly five
+    sites and nowhere else: the two construction-time jar failures, a `401` or
+    an unfollowed `3xx`, and the two shapes of "a `2xx` that is not an identity"
+    an SSO reverse proxy answers an expired session with. The last three are
+    scoped to the cookie path.
+
+    Deliberately **not** raised for a `403`, a failed confinement check, a
+    missing engine, or a broker timeout: re-authenticating cannot fix any of
+    them, and opening a browser for them would be worse than failing.
+
+    Subclasses :class:`AuthError`, so every existing handler and exit code is
+    unchanged.
+    """
+
+
+# The identity fields a Jira `myself` response may carry, in preference order.
+# Single-sourced: the raise site below and `jira.py`'s `_cmd_check` display
+# fallback must agree exactly. Listing a field the raise site accepts but the
+# display does not still prints `as ?` at exit 0 — the failure the guard exists
+# to stop — and omitting one the display uses would reject a valid response and
+# open a browser for nothing.
+_IDENTITY_FIELDS = ("displayName", "name", "emailAddress", "key", "accountId")
+
+
+def identity_of(info: object) -> str | None:
+    """The first non-empty ``str`` identity field in *info*, or ``None``.
+
+    Presence is not the test. ``{"displayName": null}`` and ``{"name": ""}``
+    both satisfy a presence check while leaving nothing to display, which is
+    exactly the shape an expired-session proxy response takes.
+    """
+    if not isinstance(info, Mapping):
+        return None
+    for field in _IDENTITY_FIELDS:
+        value = info.get(field)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
 @dataclass(frozen=True)
 class Credentials:
     base_url: str
@@ -79,6 +122,30 @@ def detect_flavor(base_url: str) -> str:
 
 def _api_prefix(flavor: str) -> str:
     return "/rest/api/3" if flavor == FLAVOR_CLOUD else "/rest/api/2"
+
+
+def _validate_jar_shape(raw: object) -> None:
+    """Raise ``ValueError`` unless *raw* is a well-formed cookie jar.
+
+    A list-of-dicts check is not sufficient. ``filter_jar_to_domains`` calls
+    ``.lstrip()`` on ``domain`` and indexes ``c["name"]``, and the loader below
+    passes ``c.get("path") or "/"`` straight to ``httpx.Cookies.set`` — so a
+    non-``str`` ``domain``, a missing ``name``, or an ``int`` ``path`` raises
+    ``AttributeError`` / ``KeyError`` / ``TypeError`` deep in the call and
+    escapes as exit 1, which is the band the guard exists to close. Each record
+    is validated field by field instead.
+    """
+    if not isinstance(raw, list):
+        raise ValueError("cookie jar must be a list of cookie records")
+    for record in raw:
+        if not isinstance(record, dict):
+            raise ValueError("cookie jar entry is not an object")
+        for field in ("name", "domain", "value"):
+            if not isinstance(record.get(field), str):
+                raise ValueError(f"cookie record field {field!r} must be a string")
+        path = record.get("path")
+        if path is not None and not isinstance(path, str):
+            raise ValueError("cookie record field 'path' must be a string when set")
 
 
 def _sso_cafile_capath() -> tuple[str | None, str | None]:
@@ -196,18 +263,36 @@ class JiraClient:
                 "SSO-cookie base_url must be https (the session cookie is a bearer secret)"
             )
         host = parsed.hostname or ""
-        # Send-host confinement + fail-closed jar resolution. Both
-        # credbroker fail-closed paths re-raise as AuthError so the skill surfaces
-        # them as a single user-action (the remediation text is preserved).
+        # Send-host confinement + fail-closed jar resolution. Every credbroker
+        # fail-closed path re-raises as AuthError so the skill surfaces them as a
+        # single user-action (the remediation text is preserved) — but only the
+        # *session-unavailable* one carries the typed subclass, because that is
+        # the only one a recapture could fix. A confinement failure, a missing
+        # engine, or a broker timeout stays a plain AuthError: opening a browser
+        # for any of them would be worse than failing.
         try:
             credbroker.require_host_in_cookie_domains(host, sso_config.cookie_domains)
             jar_path = credbroker.load_sso_cookies(sso_config.profile)
+        except credbroker.SsoSessionUnavailableError as exc:
+            raise SsoSessionUnavailable(str(exc)) from exc
         except credbroker.SsoError as exc:
             raise AuthError(str(exc)) from exc
 
+        # Read, parse and **shape-check** the jar inside the guarded block. The
+        # message is fixed remediation text naming only the profile, with the
+        # cause chained rather than interpolated: a UnicodeDecodeError's own text
+        # quotes the offending bytes of a cookie jar.
+        try:
+            raw_cookies = json.loads(jar_path.read_text(encoding="utf-8"))
+            _validate_jar_shape(raw_cookies)
+        except (OSError, ValueError, UnicodeDecodeError) as exc:
+            raise SsoSessionUnavailable(
+                f"the stored SSO cookie jar for profile {sso_config.profile} is "
+                f"unreadable or malformed; re-capture the session"
+            ) from exc
+
         # Confine the deliberately over-broad captured jar to the declared domains
         # before attaching it; the result is never written back.
-        raw_cookies = json.loads(jar_path.read_text(encoding="utf-8"))
         confined = credbroker.filter_jar_to_domains(
             raw_cookies, sso_config.cookie_domains
         )
@@ -320,9 +405,10 @@ class JiraClient:
                         # cookie-bearing request with this session. The
                         # remediation names the profile, never the cookie bytes.
                         self._client.cookies.clear()
-                        raise AuthError(
-                            f"401 Unauthorized — SSO session expired; run "
-                            f"'sso-broker register {self._profile}' to re-authenticate"
+                        raise SsoSessionUnavailable(
+                            f"401 Unauthorized — SSO session expired for profile "
+                            f"{self._profile}; run "
+                            f"'python scripts/jira.py check --register' to re-authenticate"
                         )
                     raise AuthError(
                         "401 Unauthorized — Jira credentials are missing, "
@@ -334,10 +420,10 @@ class JiraClient:
                     # 30x is surfaced, never followed (which would re-attach the
                     # session cookie to the redirect target). A redirect to login
                     # is the DC expired-session signal.
-                    raise AuthError(
-                        f"SSO session may have expired (HTTP {resp.status_code} "
-                        f"redirect, not followed); run 'sso-broker register "
-                        f"{self._profile}' to re-authenticate"
+                    raise SsoSessionUnavailable(
+                        f"SSO session may have expired for profile {self._profile} "
+                        f"(HTTP {resp.status_code} redirect, not followed); run "
+                        f"'python scripts/jira.py check --register' to re-authenticate"
                     )
                 if resp.status_code == 403:
                     # On Cloud, 403 with X-Seraph-LoginReason often means
@@ -392,8 +478,30 @@ class JiraClient:
 
         Cloud: GET /rest/api/3/myself.
         Server: GET /rest/api/2/myself (same path under the v2 prefix).
+
+        On the **cookie path** a ``2xx`` is not on its own evidence of a live
+        session: an SSO reverse proxy commonly answers an expired one with
+        ``200`` plus the IdP login page, or with a parseable body carrying no
+        identity. Both are :class:`SsoSessionUnavailable` — the second
+        especially, because without the guard it reports an expired session as
+        exit 0, which is worse than a missed recovery.
         """
         resp = await self._request("GET", f"{self._api}/myself")
+        if self._auth_mode == "sso-cookie":
+            try:
+                data = resp.json()
+            except ValueError as exc:  # incl. json.JSONDecodeError
+                raise SsoSessionUnavailable(
+                    f"the SSO session for profile {self._profile} returned a "
+                    f"non-JSON body (an IdP login page is the usual cause); "
+                    f"the session has expired"
+                ) from exc
+            if identity_of(data) is None:
+                raise SsoSessionUnavailable(
+                    f"the SSO session for profile {self._profile} returned no "
+                    f"identity; the session has expired"
+                )
+            return data
         data = resp.json()
         return data if isinstance(data, dict) else {"value": data}
 

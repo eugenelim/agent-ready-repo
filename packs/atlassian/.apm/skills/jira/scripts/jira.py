@@ -83,6 +83,7 @@ try:
         JiraError,
         load_credentials,
     )
+    from ._client import identity_of as _identity_of  # noqa: E402
     from ._sso_config import _select_auth_path  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
     # A missing module here is a non-secret dependency (e.g. httpx);
@@ -402,12 +403,11 @@ async def _cmd_check(client: JiraClient) -> int:
     except JiraError as exc:
         print(f"server error: {exc}", file=sys.stderr)
         return EXIT_ERROR
-    name = (
-        info.get("displayName")
-        or info.get("name")
-        or info.get("emailAddress")
-        or "?"
-    )
+    # The identical selector the cookie path's expired-session guard uses. Two
+    # lists that happened to agree would drift: a field the guard accepts but
+    # this does not still prints `as ?` at exit 0, which is the outcome the
+    # guard exists to stop.
+    name = _identity_of(info) or "?"
     print(
         f"ok: connected to {client.base_url} ({client.flavor}) as {name}"
     )
