@@ -153,6 +153,48 @@ project page and the swept docstrings actually reach installers.
 - **`workspace_mcp._build_tools_list`**: refined git tool descriptions for
   harness clarity; `shaping[]` items marked informational-only in Stage 1.
 
+## [core][2.2.1] — 2026-08-06
+
+### Fixed
+
+- **A failed fetch is no longer misreported as a wrong branch name.** The
+  work-loop's base-freshness check classified *any* fetch failure whose stderr
+  mentioned "remote ref" as "branch not found on remote" — and a remote URL
+  containing that phrase is enough to trip it. The agent then went off to
+  correct a `--target` that was never wrong, while the actual auth or network
+  fault went unreported. Only git's own not-found wording now selects that
+  message; everything else falls through to `check network/auth`. That wording
+  is a gettext string, so every git subprocess the check runs now sets
+  `LC_ALL=C` — on a git build with translation catalogues installed the match
+  would otherwise never fire.
+- **A dirty tree is told to commit, not to stash.** `refs/stash` is not a
+  per-worktree ref, so every linked worktree of a repository shares one stash
+  stack — work stashed in one worktree is visible, and poppable, from all the
+  others. The check now recommends committing the work in progress on the
+  current branch before rebasing, says why, and names the unwind
+  (`git reset --soft HEAD~1`). The untracked/tracked distinction is kept: it
+  selects between `git add -A` + commit and `git commit -a`. The suggested
+  subject is `chore: wip`, so the command survives a `commit-msg` hook.
+- **The unmerged-files message no longer implies committing is unavailable.**
+  `git stash` refuses an unmerged index, but `git commit -a` succeeds and
+  commits the conflict markers — and it is the command the sibling branch now
+  recommends. The message names both.
+- **An unreadable commit count fails closed.** When `git rev-list --count`
+  exited 0 with output that was not a number, the count fell back to `0`, which
+  the next line reported as "head is current" — the one answer this check must
+  never give by accident. It now Surfaces instead.
+
+### Changed
+
+- **The pack no longer tells you to stash, anywhere.** Three surfaces still
+  did, which left the guidance self-contradictory once the freshness check
+  stopped. `work-loop`'s pre-existing-failure triage replaces the **stash-check**
+  (`git stash -u && <gate> && git stash pop`) with a **worktree-check** —
+  `git worktree add --detach`, run the gate there, remove it — which answers the
+  same question without touching the shared stack; the dependency caveat and the
+  commit-first fallback are named. `adapt-to-project`'s dirty-state escalation
+  offers committing rather than "stash or commit".
+
 ## [core][2.2.0] — 2026-08-06
 
 ### Added
