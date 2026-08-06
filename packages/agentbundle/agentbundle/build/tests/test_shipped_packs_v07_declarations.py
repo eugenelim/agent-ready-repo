@@ -1,5 +1,5 @@
-"""Tests for the eight shipped packs' v0.7 declarations (RFC-0012 /
-repo-scope-per-adapter-projection AC5-AC6).
+"""Tests for the eight shipped packs' v0.7 declarations
+(repo-scope per-adapter projection).
 
 Two cohorts:
 
@@ -36,7 +36,7 @@ def _load_pack_toml(name: str) -> dict:
 class TestUserScopePacksV07(unittest.TestCase):
     def test_user_scope_packs_bump_to_v07(self) -> None:
         """Test name preserved across bumps; the version assertion now
-        pins v0.8 (post docs/specs/dropped-primitives-coverage T7).
+        pins v0.8 (post dropped-primitives coverage).
         See test_shipped_packs_v08_declarations.py for the load-bearing
         v0.8 pin; this preserves the structural invariant that the
         four user-scope packs all share the same contract version."""
@@ -51,9 +51,9 @@ class TestUserScopePacksV07(unittest.TestCase):
 
     def test_user_scope_packs_allowed_adapters(self) -> None:
         """allowed-adapters started as the three-harness set,
-        de-staled to current adapter names (RFC-0022 renamed bare `kiro` →
+        de-staled to current adapter names (the kiro split renamed bare `kiro` →
         `kiro-ide`), then widened to add `copilot` + `cursor`
-        § Errata (2026-06-12) and `gemini` by RFC-0027 / gemini-full-parity:
+        errata (2026-06-12) and `gemini` by gemini full parity:
         all three full-parity adapters declare `.agentbundle/` in
         `allowed-prefixes.user` (the broker's § 4d precondition), so these
         credentialed consumer packs admit them in lockstep with
@@ -73,8 +73,8 @@ class TestRepoOnlyPacksV07(unittest.TestCase):
         """Drawback #7 mitigation — without the bump the legacy
         heuristic at step 5 fires at repo scope for these packs. Test
         name preserved; version assertion pins v0.8, except `core` which
-        docs/specs/copilot-full-parity bumped to v0.10 and
-        docs/specs/copilot-skills-and-web bumps to v0.12 (its skills now project
+        copilot full parity bumped to v0.10 and copilot skills and web
+        bumps to v0.12 (its skills now project
         as first-class Copilot Agent Skills)."""
         expected = {
             "core": "0.12",

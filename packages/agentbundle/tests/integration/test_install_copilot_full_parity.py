@@ -1,5 +1,5 @@
 """Integration tests for copilot full parity (T6 + T7 of
-docs/specs/copilot-full-parity).
+copilot full parity).
 
 End-to-end against the live `packs/` catalogue (core + research) plus a
 synthetic user-scope hook pack:
@@ -181,7 +181,7 @@ class CopilotUserScopeResearchTests(unittest.TestCase):
 
 
 class CopilotUserScopeSyntheticHookPackTests(unittest.TestCase):
-    """AC21 user-scope-hook validation gap: a synthetic copilot user-scope
+    """User-scope-hook validation gap: a synthetic copilot user-scope
     hook pack lands `~/.copilot/hooks/` with both the wiring JSON and the
     hook body. No shipped pack exercises this (core is repo-only; research
     ships no hooks)."""

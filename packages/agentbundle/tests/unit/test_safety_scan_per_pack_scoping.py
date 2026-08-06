@@ -2,9 +2,9 @@
 
 The pre-2026-05-26 helper was adapter-prefix scoped — it walked every
 file under each ``<root>/<prefix>/`` and returned them all. The
-AC24(c) orphan-recovery trigger consumed this list, which produced a
+The orphan-recovery trigger consumed this list, which produced a
 **cross-pack false positive**: pack A's orphan files would surface
-when installing pack B, with AC24(c)'s stderr line claiming "for pack
+when installing pack B, with the trigger's stderr line claiming "for pack
 B" but citing pack A's paths.
 
 This module covers the tightening: when callers pass ``pack_dir`` and
@@ -13,7 +13,7 @@ prefix either (a) shares a segment with a primitive name walked from
 ``<pack_dir>/.apm/<type>/``, or (b) has a file-stem equal to
 ``pack_name`` (a flat single-file-per-pack projection shape,
 illustrated below as ``.github/instructions/<pack>.md``; note copilot
-no longer emits instruction files post docs/specs/copilot-skills-and-web —
+no longer emits instruction files —
 its skills are directory trees matched by branch (a) — so branch (b) is
 a general flat-file heuristic, not copilot-specific). When the kwargs are
 omitted the helper preserves the legacy behaviour for back-compat with any
@@ -133,7 +133,7 @@ class PerPackScopingTests(unittest.TestCase):
 
     def test_cross_pack_clean_install_returns_empty(self) -> None:
         """Pack B is greenfield. Pack A has orphans under the same
-        adapter prefix. Per-pack scan for B returns empty — the AC24(c)
+        adapter prefix. Per-pack scan for B returns empty — the
         cross-pack false positive is fixed."""
         from agentbundle import safety
 
@@ -420,12 +420,12 @@ class CollectPackOwnedNamesTests(unittest.TestCase):
             self.assertEqual(primitives, {"bpack-skill"})
 
     def test_rfc_0013_primitive_types_are_collected(self) -> None:
-        """RFC-0013 added ``shared-libs`` and ``adapter-root-bins`` to
+        """The credential-broker contract added ``shared-libs`` and ``adapter-root-bins`` to
         the contract's primitive set. The catalogue-broker pack
         projects load-bearing files under those types (e.g.
         ``adapter-root-bins/sso-broker.py`` → ``.agentbundle/bin/sso-broker.py``);
         if ``_PACK_PRIMITIVE_TYPES`` misses either type, the
-        AC22/AC24(c) orphan scan silently returns empty on a real
+        orphan scan silently returns empty on a real
         partial-write of that pack."""
         from agentbundle.safety import _collect_pack_owned_names
 

@@ -1,4 +1,4 @@
-"""T7 / AC10 smoke check — install the real `packs/core/` and assert the
+"""T7 smoke check — install the real `packs/core/` and assert the
 SessionStart wiring lands at the dist-tree path.
 
 Guards against the synthetic-pack construction test in

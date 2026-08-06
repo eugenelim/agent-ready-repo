@@ -6,7 +6,6 @@ TDD construction tests for:
   - finding_id_for (deterministic SHA-1 prefix)
   - adapt_discovery_to_toml (round-trip serialiser)
 
-Per docs/specs/adapt-to-project/plan.md T1 and spec.md AC2/AC8/AC9/AC16.
 """
 
 from __future__ import annotations
@@ -155,7 +154,7 @@ def test_canonical_schema_parses_user_scope(tmp_path):
 
 
 def test_user_scope_with_markers_refused(tmp_path):
-    """User-scope file with [markers] raises ConfigError naming RFC-0004."""
+    """User-scope file with [markers] raises ConfigError naming the rule."""
     p = _write_toml(tmp_path, _USER_SCOPE_WITH_MARKERS_TOML)
     with pytest.raises(ConfigError, match="markers are repo-only per RFC-0004"):
         load_adapt_discovery_typed(p, scope="user")

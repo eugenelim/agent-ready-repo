@@ -1,5 +1,5 @@
 """Unit tests for the four-layer catalogue-source default resolver
-(`agentbundle.source_defaults`) — RFC-0046 / ADR-0036.
+(`agentbundle.source_defaults`).
 
 Covers T1 (packaged default reader), T3 (editable detection, hardened), and
 T4 (the precedence/validation composer + negative invariants). The keystone

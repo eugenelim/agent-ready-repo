@@ -46,7 +46,7 @@ def resolve_state_path(scope: str, root: Path) -> Path:
     ``scope="repo"``  → ``<root>/.agentbundle-state.toml``
     ``scope="user"``  → ``<root>/.agentbundle/state.toml``
     ``scope="local"`` → ``<root>/.agentbundle-local-state.toml``
-      (RFC-0080: per-clone, never-committed; never added to .gitignore)
+      (per-clone, never-committed; never added to .gitignore)
     """
     if scope == "user":
         return root / ".agentbundle" / "state.toml"

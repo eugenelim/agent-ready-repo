@@ -197,7 +197,7 @@ class CursorProjectionTests(unittest.TestCase):
             self.assertNotIn("readonly", notools_fm, "no-tools agent should omit readonly")
 
     def test_empty_tools_list_is_readonly(self) -> None:
-        """AC9 edge — a declared-but-empty tools list has zero mutating tools,
+        """Edge case — a declared-but-empty tools list has zero mutating tools,
         so it is read-only (documents the chosen behavior of the predicate)."""
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
@@ -310,7 +310,7 @@ class CursorProjectionTests(unittest.TestCase):
             self.assertEqual(handlers[0]["command"], "python .cursor/hooks/ok.py")
 
     def test_real_core_pack_projects(self) -> None:
-        """AC8/AC9 against the real shipped core pack: reviewers readonly,
+        """Against the real shipped core pack: reviewers readonly,
         implementer writable (omitted)."""
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "out"

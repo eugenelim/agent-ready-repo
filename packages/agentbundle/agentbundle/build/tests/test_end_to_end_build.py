@@ -5,7 +5,7 @@ the four reference fixture packs at
 `packages/agentbundle/agentbundle/build/tests/fixtures/packs/` on a
 clean checkout and asserts the dist/ shape AC #7 + AC #13 require.
 Production-pack migration into a top-level `packs/` directory is out
-of scope per the spec's amended AC #7 (RFC-0001 F-dist follow-on
+of scope per the spec's amendment (an F-dist follow-on
 owns it).
 """
 
@@ -128,7 +128,7 @@ class CheckCommandTests(unittest.TestCase):
 
             # Seed `.adapt-discovery.toml` so `make build-check`'s
             # fail-fast doesn't reject the call. Canonical
-            # v0.1 shape per adapt-to-project AC9.
+            # Canonical v0.1 shape.
             (working / ".adapt-discovery.toml").write_text(
                 'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"
             )

@@ -1,6 +1,6 @@
 """T18: every write-capable subcommand refuses against a v0.1 state file.
 
-Verifies AC #(RFC-0004) for the agent-spec-cli spec:
+Verifies the agent-spec-cli state contract:
   - install, uninstall, upgrade, init-state (without --migrate) refuse on
     a v0.1 .agentbundle-state.toml with the documented stderr.
   - Read-only subcommands (list-targets, diff, adapt without

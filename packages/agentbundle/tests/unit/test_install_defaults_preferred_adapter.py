@@ -6,7 +6,6 @@ None`, slotting between user-config step 2.5 and the probe/default step 3+4 in
 the six-step chain.  Precedence: --adapter (step 1) > state-hint (step 2) >
 user-config (step 2.5) > org hint (step 2.75) > probe/default (step 3+4).
 
-See `docs/specs/install-defaults-preferred-adapter-hint/spec.md`.
 """
 
 from __future__ import annotations

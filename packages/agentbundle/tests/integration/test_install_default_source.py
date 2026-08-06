@@ -106,7 +106,7 @@ def test_offer_upgrade_hands_off_resolved_uri(monkeypatch):
 
 
 def test_offer_upgrade_forwards_adapter(monkeypatch):
-    # RFC-0052 regression: the install→upgrade-offer hand-off must forward the
+    # Regression: the install→upgrade-offer hand-off must forward the
     # install-side `--adapter`, otherwise upgrade's multi-adapter disambiguator
     # demands `--adapter` even though the operator passed it to `install`.
     from agentbundle.commands import upgrade as _upgrade

@@ -1,7 +1,5 @@
 """Archive verification — safety and semantic checks for catalogue archives.
 
-Spec: docs/specs/catalogue-tooling-verify/spec.md (ini-005 Bucket 6).
-
 Two public entry points:
   ``verify_archive(archive, sha256_file=None) -> VerifyResult``
   ``check_members(members) -> list[Diagnostic]``  (for unit tests)

@@ -1,5 +1,5 @@
 """T6 (credential-broker-contract): adapter-root-bins/ build-pipeline
-primitive class — AC22 / AC23.
+primitive class.
 
 Verifies:
 - Source-to-target projection at `<working_tree>/.agentbundle/bin/<basename>.py`
@@ -196,7 +196,7 @@ class AdapterRootBinsTests(unittest.TestCase):
         self.assertEqual(path_before, path_after)
 
     def test_path_jail_compliance_against_contract(self) -> None:
-        """AC22 path-jail: `.agentbundle/` is in `allowed-prefixes.repo`
+        """Path-jail: `.agentbundle/` is in `allowed-prefixes.repo`
         for the named user-scope adapters in the v0.7 contract."""
         contract_path = (
             Path(__file__).resolve().parents[2] / "_data" / "adapter.toml"
@@ -303,7 +303,7 @@ class AdapterRootBinsShimCompanionTests(unittest.TestCase):
     def test_apply_projection_hard_errors_on_shim_import_without_companion(
         self,
     ) -> None:
-        """AC22b content-grep rail. A pack ships an adapter-root-bins
+        """Content-grep rail. A pack ships an adapter-root-bins
         module that imports the shim, but does NOT ship the shim
         source — refuse the build with the broker-agnostic message.
         Uses a non-`_sso_*` basename to exercise the generalised

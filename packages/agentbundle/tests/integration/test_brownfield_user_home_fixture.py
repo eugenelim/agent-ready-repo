@@ -3,7 +3,7 @@ fixture is consumed by automation so regressions to its shape trip
 pytest (not just code review).
 
 The fixture plumbs the synthetic user-scope dot-directory used by
-AC4a's user-scope plumbing rows in the manual QA matrix. Before this
+the user-scope plumbing rows in the manual QA matrix. Before this
 test, the fixture was declared but never loaded — a regression
 (deletion, malformed TOML, missing `[markers]`-refusal property)
 would have shipped silently.

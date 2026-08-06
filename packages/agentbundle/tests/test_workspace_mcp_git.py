@@ -1,6 +1,6 @@
 """Stub tests for _GitTools — branch validation, commit path intersection, injection defence.
 
-AC14/AC15 behavioral tests are stubs here; the FSM-mode guard integration tests
+The behavioral tests are stubs here; the FSM-mode guard integration tests
 live in tests/integration/test_workspace_mcp_git_fsm.py (disk + subprocess).
 """
 from __future__ import annotations

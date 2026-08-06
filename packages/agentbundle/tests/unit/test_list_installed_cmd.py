@@ -110,7 +110,7 @@ def test_collect_rows_sorted_across_scopes(tmp_path):
         packs={("architect", "claude-code"): PackState(installed_version="0.9.0")}
     )
     rows = li._collect_rows([("repo", tmp_path, repo), ("user", tmp_path, user)])
-    # Sort order is now (scope, pack, adapter) per RFC-0072 D5.
+    # Sort order is (scope, pack, adapter).
     assert [(r["scope"], r["pack"], r["adapter"]) for r in rows] == [
         ("repo", "architect", "codex"),
         ("repo", "core", "claude-code"),

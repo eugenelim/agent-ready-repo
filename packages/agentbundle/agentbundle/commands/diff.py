@@ -53,7 +53,7 @@ def run(args: argparse.Namespace) -> int:
     repo_state_for_check = None
     user_state_for_check = None
     if pack_name:
-        # A legacy (non-v0.4) state file is refused on read too (RFC-0052
+        # A legacy (non-v0.4) state file is refused on read too (the
         # hard cross-version refusal); surface it as a clean refuse rather
         # than a traceback.
         try:
@@ -138,7 +138,7 @@ def run(args: argparse.Namespace) -> int:
     if gate is not None:
         return gate
 
-    # Pick the projection shape to compare against. RFC-0012 changed
+    # Pick the projection shape to compare against. v0.7 changed
     # install's default at repo scope from the dist-tree producer
     # (`render_pack`) to a per-IDE projection (`.claude/...`,
     # `.kiro/...`). Comparing on-disk per-IDE files against a dist-tree

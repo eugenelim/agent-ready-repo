@@ -1,4 +1,4 @@
-"""argv-flag-normalised: every AC27 obfuscation path the lint must defeat.
+"""argv-flag-normalised: every obfuscation path the lint must defeat.
 
 The lint normalises the flag name (strip leading ``-``, casefold, ``-``
 → ``_``) and compares against the banned set. Each ``add_argument`` call

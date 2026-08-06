@@ -216,7 +216,7 @@ class UninstallTests(unittest.TestCase):
 class AdopterCollisionTests(unittest.TestCase):
     def test_collision_with_adopter_entry_refuses(self) -> None:
         """An adopter-hand-authored entry with matching command must
-        refuse install with the RFC-0005-specified text."""
+        refuse install with the contract-specified text."""
         from agentbundle.build.projections.user_merge_json import (
             UserMergeRefusal,
             project,
@@ -242,7 +242,7 @@ class AdopterCollisionTests(unittest.TestCase):
 
     def test_collision_whitespace_normalised(self) -> None:
         """Collision detection compares commands after whitespace normalisation
-        per RFC-0005 (`textual equality after whitespace normalisation`)."""
+        per the contract (`textual equality after whitespace normalisation`)."""
         from agentbundle.build.projections.user_merge_json import (
             UserMergeRefusal,
             project,

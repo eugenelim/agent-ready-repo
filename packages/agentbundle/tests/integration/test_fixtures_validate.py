@@ -4,15 +4,15 @@ Six fixture packs under ``packages/agentbundle/tests/fixtures/packs/``
 exercise the validate rails from T1/T2 via the file-on-disk loader (not
 just the in-memory unit-test path T2 covers). The well-formed fixtures
 demonstrate the acceptance paths T8b/T6 will project; the malformed
-fixtures pin the refusal text RFC-0005 mandates.
+fixtures pin the refusal text the contract mandates.
 
 Pascal-case-event refusal lives in T6 (Kiro's `agent-event-vocabulary`
 gate); its fixture ships here for use by that task. T3 covers the
 two refusal classes the T2 rail already implements:
 attach-to-agent missing, and attach-to-agent naming an unknown agent.
 
-Spec ACs covered: AC6 (refusal text), AC28 (fixtures exist + are
-exercised), AC29 (no test writes to ~/.claude, ~/.kiro, ~/.agentbundle
+Covered: the refusal text, fixtures exist + are
+exercised, and no test writes to ~/.claude, ~/.kiro, ~/.agentbundle
 outside tmp_path).
 
 **T2 update (incompatible-hook-event-drop spec):** The
@@ -22,7 +22,7 @@ been updated to reflect the new T2 behaviour: these compatibility-only
 refusals are now swallowed by validate, which exits 0 and emits an
 ``info:`` line on stdout instead. The
 ``test_unknown_agent_refused`` test remains exit-1 (correctness
-refusal — AC4b of the incompatible-hook-event-drop spec).
+refusal, per the incompatible-hook-event-drop rules).
 """
 
 from __future__ import annotations
@@ -144,9 +144,9 @@ class MalformedFixturesRefusedTests(unittest.TestCase):
     Updated for incompatible-hook-event-drop T2:
     - ``malformed-kiro-missing-attach``: the missing-attach-to-agent case
       is now a *compatibility drop* (exit 0, info on stdout) — the T2
-      swallow per spec AC1.
+      swallow.
     - ``malformed-kiro-unknown-agent``: the unknown-agent case is a
-      *correctness refusal* (exit 1, stderr) — AC4b of the same spec.
+      *correctness refusal* (exit 1, stderr).
     """
 
     def test_missing_attach_to_agent_swallowed_as_compat_drop(self) -> None:
@@ -198,7 +198,7 @@ class FixtureIsolationTests(unittest.TestCase):
     ``~/.kiro``, or ``~/.agentbundle``. Redirects ``$HOME`` to a
     ``tmp_path``-scoped directory and asserts the redirected tree is
     empty after validate runs against each user-scope fixture. This is
-    the AC29-shaped pin: a regression that writes into ``$HOME`` from
+    the home-isolation pin: a regression that writes into ``$HOME`` from
     validate would create artifacts in the tmp tree."""
 
     def test_validate_does_not_write_to_redirected_home(self) -> None:

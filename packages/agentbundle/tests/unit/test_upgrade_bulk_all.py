@@ -842,7 +842,7 @@ def test_json_mode_tty_without_yes(tmp_path):
 
 
 def test_json_dry_run_non_tty_no_yes_succeeds(tmp_path):
-    """AC6 dry-run carve-out: non-TTY + json + dry-run does NOT require --yes."""
+    """Dry-run carve-out: non-TTY + json + dry-run does NOT require --yes."""
     _setup_state(tmp_path, [("core", "claude-code", "git+https://example.test/packs", "0.13.6")])
     args = _make_args(scope="repo", fmt="json", dry_run=True, yes=False)
     pack_toml = {"pack": {"version": "0.13.7"}}
@@ -872,7 +872,7 @@ def test_json_no_stdout_pollution(tmp_path):
 
 
 def test_json_empty_scope(tmp_path):
-    """AC28/empty: empty state -> conformant JSON with empty rows."""
+    """Empty state -> conformant JSON with empty rows."""
     # Write empty state
     _write_state_toml(tmp_path, State())
     args = _make_args(scope="repo", yes=True, fmt="json")

@@ -2,7 +2,7 @@
 
 These are defense-in-depth — none of these failure modes are
 exploitable today against the four repo-owned fixture packs, but
-RFC-0001 anticipates third-party pack submission and these tests
+The distribution contract anticipates third-party pack submission, and these tests
 cover the bundle's attack surface against pack-supplied content.
 """
 

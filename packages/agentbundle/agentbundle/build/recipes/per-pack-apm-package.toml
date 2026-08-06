@@ -1,4 +1,4 @@
-# RFC-0001 recipe: project each pack as an APM package into dist/apm/<pack>/.
+# Default recipe: project each pack as an APM package into dist/apm/<pack>/.
 
 [recipe]
 name = "per-pack-apm-package"

@@ -112,7 +112,7 @@ class KiroFamilyCoexistenceTests(unittest.TestCase):
                             "kiro-cli .json agents must survive the kiro-ide install")
 
             # Uninstall kiro-cli → its .json agents go; shared skills remain
-            # (kiro-ide still owns them). RFC-0052 falsifier.
+            # (kiro-ide still owns them). Shared-prefix falsifier.
             rc, _, err = _run(
                 "uninstall",
                 ["--pack", "core", "--adapter", "kiro-cli", "--scope", "repo",

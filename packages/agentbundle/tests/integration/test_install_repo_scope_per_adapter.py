@@ -8,12 +8,12 @@ pinned `installed: <pack> @ repo via <adapter>` shape.
 
 Pre-existing unit coverage in `tests/unit/test_install_argparse_emit_install_routes.py`,
 `tests/unit/test_install_messages_repo_scope.py`, and
-`tests/unit/test_resolve_user_scope_target_adapter.py` (RFC-0012
+`tests/unit/test_resolve_user_scope_target_adapter.py` (the repo-scope
 repo-scope cases) covers the resolver branches, message-rail
 formatting, and orphan-refusal mechanics. This module exercises the
 adopter-facing greenfield path end-to-end.
 
-Coverage scope (vs. spec AC33's full matrix):
+Coverage scope (vs. the spec's full matrix):
 
   - Per-adapter greenfield writes projection + state + stdout
     (claude-code default, kiro, codex, copilot).
@@ -203,7 +203,7 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
         )
 
     def test_copilot_explicit_adapter(self) -> None:
-        """Copilot's skill projection target is `.agents/skills/` (RFC-0052 /
+        """Copilot's skill projection target is `.agents/skills/` (the
         Shared cohort home; was `.github/skills/` in v0.11)."""
         self._install_and_assert(
             adapter_flag="copilot",
@@ -309,10 +309,10 @@ def _plant_state_row(
 
 
 class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
-    """AC33 upgrade-with-state-hint case — **AC10b parity at repo scope**.
+    """Upgrade-with-state-hint case — **parity at repo scope**.
 
     Now that repo-scope upgrade routes through
-    ``_render_for_repo_scope`` (mirroring install), AC10b is real at
+    ``_render_for_repo_scope`` (mirroring install), the short-circuit is real at
     this scope: ``upgrade.run`` invokes ``_resolve_target_adapter``
     with ``state_adapter=pack_state.adapter`` so a Kiro-installed
     pack stays on Kiro even when the resolver's legacy heuristic
@@ -367,7 +367,7 @@ class RepoScopeUpgradeWithStateHintTests(unittest.TestCase):
 
             # Step 2: populate <repo>/.claude/ to simulate the
             # adopter having Claude Code state present alongside Kiro.
-            # AC10b parity: the resolver's state-hint short-circuit
+            # The resolver's state-hint short-circuit
             # must prefer state.adapter (kiro) over any heuristic that
             # would route to claude-code on observing this directory.
             claude_dir = adopter / ".claude" / "skills" / "marker"
@@ -454,7 +454,7 @@ class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
     The bug: pre-fix, `upgrade.run` at repo scope called
     `render.render_pack(pack_dir)` (the dist-tree producer used by
     `make build`), which emits `apm/<pack>/...` +
-    `claude-plugins/<pack>/...` + `marketplace.json` keys. RFC-0012's
+    `claude-plugins/<pack>/...` + `marketplace.json` keys. The v0.7
     install lift uses `_render_for_repo_scope` (per-IDE shape such as
     `.claude/skills/<name>/SKILL.md`). Same-version upgrade therefore
     (i) wrote the dist-tree subtree on top of the per-IDE install and
@@ -479,7 +479,7 @@ class RepoScopeSameVersionUpgradeStateFilesTests(unittest.TestCase):
             adopter.mkdir()
             parser = _build_parser()
 
-            # Step 1: install at repo scope (RFC-0012 default — no
+            # Step 1: install at repo scope (the default — no
             # `--emit-install-routes`, no `--adapter`).
             install_args = parser.parse_args(
                 [
@@ -571,7 +571,7 @@ class RepoScopeDiffAfterInstallTests(unittest.TestCase):
     must report no drift.
 
     The bug: pre-fix, `diff.run` unconditionally rendered the dist-tree
-    shape via `render.render_pack`, but RFC-0012's install lift landed
+    shape via `render.render_pack`, but the install lift landed
     files at `<repo>/.claude/...` (or `.kiro/...`, etc.). The two
     shapes never overlap, so diff returned exit 1 with every per-IDE
     file flagged as missing — and any in-place adopter edit slipped
@@ -625,10 +625,10 @@ class RepoScopeDiffAfterInstallTests(unittest.TestCase):
 
 class RepoScopeMigrationTriggerBTests(unittest.TestCase):
     """A pre-RFC-0012 (v0.3) state file refuses at load
-    time with the RFC-0052 D8 hard refusal.
+    time with the hard cross-version refusal.
 
-    Originally these tests pinned specific (b)-branch messages
-     made cross-version handling a hard refusal on both read
+    Originally these tests pinned specific (b)-branch messages; the
+    schema bump made cross-version handling a hard refusal on both read
     and write — a v0.3 file now refuses before any migration branch fires.
     The test is re-keyed to assert the greenfield refusal shape
     (schema-version + reinstall in stderr)."""
@@ -660,7 +660,7 @@ class RepoScopeMigrationTriggerBTests(unittest.TestCase):
                     str(REPO_ROOT),
                 ]
             )
-            # RFC-0052 D8: v0.3 state file is hard-refused before install runs.
+            # A v0.3 state file is hard-refused before install runs.
             self.assertNotEqual(rc, 0)
             self.assertIn("schema-version", stderr)
             self.assertIn("reinstall", stderr)
@@ -668,10 +668,10 @@ class RepoScopeMigrationTriggerBTests(unittest.TestCase):
 
 class RepoScopeMigrationTriggerATests(unittest.TestCase):
     """A pre-RFC-0012 (v0.3) state file refuses at load
-    time with the RFC-0052 D8 hard refusal.
+    time with the hard cross-version refusal.
 
     Originally this test pinned the (a)-branch adapter-disagreement
-    message; RFC-0052 made cross-version handling a hard
+    message; cross-version handling is now a hard
     refusal — a v0.3 file now refuses before any adapter-disagreement
     branch fires. The test is re-keyed to assert the greenfield refusal
     shape (schema-version + reinstall in stderr)."""
@@ -697,7 +697,7 @@ class RepoScopeMigrationTriggerATests(unittest.TestCase):
                     str(REPO_ROOT),
                 ]
             )
-            # RFC-0052 D8: v0.3 state file is hard-refused.
+            # A v0.3 state file is hard-refused.
             self.assertNotEqual(rc, 0)
             self.assertIn("schema-version", stderr)
             self.assertIn("reinstall", stderr)

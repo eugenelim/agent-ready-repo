@@ -1,6 +1,6 @@
 """``agentbundle adapt`` — marker resolution and pending-companion report.
 
-RFC-0004 turned this into a **dual-state-file** walk:
+The scope dimension makes this a **dual-state-file** walk:
 
   - Read both ``<repo>/.agentbundle-state.toml`` and
     ``~/.agentbundle/state.toml``. Either may be absent (a fresh repo,
@@ -230,7 +230,7 @@ def run(args: argparse.Namespace) -> int:
 
     # ── Default mode ──────────────────────────────────────────────────────────
     # Build marker values from the **repo-scope** discovery file's
-    # [markers] table. Markers are repo-only per RFC-0004 — the user-
+    # [markers] table. Markers are repo-only — the user-
     # scope discovery file is still read (to surface legacy-shape errors
     # symmetrically and to honour the dual-scope walk contract) but
     # carries no [markers] table by rail. --values-from (when supplied)

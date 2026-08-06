@@ -1013,11 +1013,11 @@ def test_already_current_states_so_with_yes(tmp_path, capsys):
     captured = capsys.readouterr()
     assert "is already at 0.2.0" in captured.err
     # Clean re-apply (no local edits) → the upfront drift notice is suppressed
-    # (install-state-visibility AC12 zero-suppression).
+    # (install-state-visibility zero-suppression).
     assert "have local edits" not in captured.err
     recap = captured.out.strip().splitlines()[-1]
     # A same-version re-apply is no longer mislabelled `upgraded: X -> X`
-    # (install-state-visibility); a clean re-apply (no local edits) reads
+    # A clean re-apply (no local edits) reads
     # `re-applied: … (already current)`.
     assert recap == "re-applied: core @ repo 0.2.0 (already current)", recap
 
@@ -1050,7 +1050,7 @@ def test_reapply_with_local_edit_notice_and_companion_recap(tmp_path, capsys):
 
 
 def test_per_primitive_upgrade_suppresses_whole_pack_drift_notice(tmp_path, capsys):
-    """AC12 carve-out: a per-primitive upgrade re-applies only that primitive's
+    """Carve-out: a per-primitive upgrade re-applies only that primitive's
     files, so the whole-pack drift notice is deliberately NOT printed — even
     when other installed files have local edits."""
     from agentbundle.config import load_state
@@ -1082,7 +1082,7 @@ def test_already_current_interactive_offers_reapply(tmp_path, capsys, monkeypatc
     assert rc == 0
     assert "already at 0.2.0" in seen["prompt"]
     assert "Re-apply" in seen["prompt"]
-    # AC12 prompt half: the old "repairs local drift" jargon is gone, and the
+    # Prompt half: the old "repairs local drift" jargon is gone, and the
     # prompt states edits are preserved as companions. (Both assertions fail
     # against the pre-change wording, so they actually pin the rewrite.)
     assert "repairs local drift" not in seen["prompt"]

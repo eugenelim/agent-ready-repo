@@ -86,7 +86,7 @@ class TestCoreWorkLoopHook(unittest.TestCase):
         stdout = result.stdout.strip()
         self.assertTrue(stdout, "empty stdout")
         self.assertIn("work-loop", stdout.lower())
-        # spec work-loop-activation-hook AC1: the reminder is bounded at 6 lines.
+        # The reminder is bounded at 6 lines.
         # A failure here means the REMINDER grew past that cap — trim it, don't
         # bump the bound (the nudge fires on every prompt).
         self.assertLessEqual(len(stdout.splitlines()), 6)

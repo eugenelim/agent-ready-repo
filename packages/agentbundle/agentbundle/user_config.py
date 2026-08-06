@@ -2,7 +2,6 @@
 
 The file holds adapter-scoped settings the user can change post-pip-install
 without monkey-patching `scope.DEFAULT_ADAPTER`. See
-`docs/specs/agentbundle-config-subcommand/spec.md` for the contract.
 
 Module surface:
   - `UserConfig` — frozen dataclass; today only `adapter: str | None`.

@@ -1,12 +1,12 @@
 ---
 name: dotfile-grep
-description: Credentialed fixture whose script opens `.agentbundle/credentials.env` directly without the opt-out marker; AC26(c) finding expected.
+description: Credentialed fixture whose script opens `.agentbundle/credentials.env` directly without the opt-out marker; a dotfile-read finding is expected.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
 ---
 
-Body with the full "Don't" block so only AC26(c) fires:
+Body with the full "Don't" block so only the dotfile-read check fires:
 
 ### Security rules (non-negotiable)
 

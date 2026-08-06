@@ -26,7 +26,7 @@ ALPHA_PACK_DIR = FIXTURE_CATALOGUE / "packs" / "alpha"
 def _run_install(pack: str, catalogue: str, output: str) -> int:
     from agentbundle.commands.install import run
 
-    # Test fixtures predate RFC-0012's per-IDE projection at repo scope;
+    # Test fixtures predate per-IDE projection at repo scope;
     # pass `emit_install_routes=True` to keep the dist-tree shape these
     # tests assert against. The per-IDE projection path is covered by
     # the new `test_install_repo_scope_per_adapter.py` integration suite.

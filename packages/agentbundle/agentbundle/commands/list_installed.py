@@ -10,7 +10,7 @@ each row against its ``pack.toml`` version to report a status
 ``--no-check`` (alias ``--offline``) skips that join and prints only the
 state-only columns. ``--check-drift`` adds a per-row count of locally edited
 files (on-disk SHA != the SHA recorded in state). ``--format json`` emits a
-stable JSON contract (schema_version 1, RFC-0072 D5) to stdout with all
+stable JSON contract (schema_version 1) to stdout with all
 diagnostics on stderr. ``--updates-only`` hides ``up-to-date`` rows from
 output while keeping the summary counts over the full set.
 

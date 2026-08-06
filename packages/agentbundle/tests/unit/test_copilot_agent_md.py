@@ -1,5 +1,5 @@
 """Unit tests for the copilot-agent-md serialiser (T1 of
-docs/specs/copilot-full-parity).
+copilot full parity).
 
 The serialiser converts ``.apm/agents/<name>.md`` (YAML frontmatter + body)
 into Copilot's ``<name>.agent.md`` shape: ``name`` / ``description`` pass
@@ -25,8 +25,8 @@ def test_known_tools_matches_spec_allow_list() -> None:
     #  so the two
     # can't drift silently — mirrors the `_EVENT_MAP` pin in the hooks-json
     # test. The web tools `WebFetch`/`WebSearch` pass through and resolve to
-    # Copilot's `web` tool on the CLI + app (docs/specs/copilot-skills-and-web /
-    # RFC-0024 § Errata E1; only the cloud agent lacks it), so they are
+    # Copilot's `web` tool on the CLI + app (only the cloud agent lacks
+    # it), so they are
     # known-and-recorded, not unknown.
     assert frozenset(
         {

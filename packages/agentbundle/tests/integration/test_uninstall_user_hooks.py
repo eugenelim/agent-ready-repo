@@ -2,7 +2,7 @@
 the right target file (settings.json for Claude Code, agent JSON for
 Kiro) and leaves the target file otherwise untouched.
 
-Covers spec ACs AC11 (Claude Code uninstall precision)
+Covers Claude Code uninstall precision
 (Kiro uninstall removes wiring but leaves the agent file in place
 until the agent primitive's own uninstall runs).
 """
@@ -127,7 +127,7 @@ class CCUserHooksUninstallTests(_UninstallBase):
 
 
 class MultiPackUninstallPrecisionTests(_UninstallBase):
-    """AC11 precision: uninstalling pack A leaves pack B's entries in
+    """Precision: uninstalling pack A leaves pack B's entries in
     place at their original positions. Exercises the end-to-end
     integration (install A → install B → uninstall A → assert B
     survives unchanged)."""
@@ -231,7 +231,7 @@ class KiroUserHooksUninstallTests(_UninstallBase):
         )
 
     def test_wiring_unproject_leaves_adopter_keys_alone(self) -> None:
-        """Wiring-side AC19: unproject removes only the wiring-owned
+        """Wiring side: unproject removes only the wiring-owned
         entries. Construct a scenario where the agent file persists
         after uninstall (synthetic pre-write of an adopter key the
         pack doesn't own) and assert the adopter key survives.
@@ -277,7 +277,7 @@ class KiroUserHooksUninstallTests(_UninstallBase):
 
 
 class LegacyKiroJsonUninstallMigrationTests(_UninstallBase):
-    """RFC-0022 / kiro-install-alias-parity AC8: an adopter who installed via
+    """kiro-install-alias parity: an adopter who installed via
     the legacy `kiro` JSON path (agent JSON on disk, `state.adapter == "kiro"`,
     `hook_wiring_owned` rows pointing at the agent JSON) must uninstall cleanly
     under the new code — the agent JSON is removed (not orphaned) and the

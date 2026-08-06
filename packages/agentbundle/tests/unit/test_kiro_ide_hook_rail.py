@@ -1,7 +1,7 @@
 """T-C2 (kiro-ide-hook): validate rail tests.
 
 Five refusal paths plus an accept case. Each refusal pins the
-RFC-0005 § *validate rail* error text and the rail's first-offender
+The validate rail's error text and its first-offender
 discipline (sorted enumeration; first refusal wins).
 
 The rail lives at
@@ -18,9 +18,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-# E3 vocabulary — closed by RFC-0022 via static analysis of
+# E3 vocabulary — closed by the kiro split via static analysis of
 # extension.js IDEListenableEvent enum (2026-06-01). Supersedes the
-# RFC-0005 best-guess list (fileSave/fileEdit/manualTrigger).
+# the earlier best-guess list (fileSave/fileEdit/manualTrigger).
 # See the Errata, E3 and probes.md Q11 Outcome.
 KIRO_EVENT_VOCAB = [
     "fileEdited",

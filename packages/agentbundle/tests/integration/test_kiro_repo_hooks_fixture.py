@@ -2,7 +2,7 @@
 ``kiro-repo-hooks`` fixture.
 
 End-to-end: read the fixture's `.apm/hook-wiring/on-spawn.toml` with
-`tomllib`, seed a `.kiro/agents/reviewer.json` (per RFC-0005's
+`tomllib`, seed a `.kiro/agents/reviewer.json` (per the contract's
 pipeline-ordering invariant — the agent file must exist before
 wiring runs; T7 will enforce this; here we simulate the pipeline by
 pre-seeding), run the merger, assert the shape.
@@ -11,7 +11,6 @@ Per spec § Boundaries — *Never do* — no live writes to
 `~/.kiro/agents/` outside tmp_path. The repo-scope variant works
 against `tmp_path/.kiro/agents/<agent>.json`.
 
-Spec AC coverage: AC15, AC19 against the fixture.
 """
 
 from __future__ import annotations

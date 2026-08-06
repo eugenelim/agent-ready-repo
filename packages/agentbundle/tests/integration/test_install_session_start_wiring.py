@@ -109,7 +109,7 @@ def test_install_writes_nested_session_start_binding(tmp_path):
     assert len(entries) == 1, f"expected 1 SessionStart entry, got {entries!r}"
 
     outer = entries[0]
-    # AC1 pins the matcher-absence semantic (fires on all session types:
+    # Pins the matcher-absence semantic (fires on all session types:
     # startup / resume / clear). Guards against a future TOML edit
     # accidentally narrowing scope by adding `matcher = "startup"`.
     assert outer.get("matcher", "") == "", (

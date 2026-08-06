@@ -66,7 +66,7 @@ def test_no_categories_is_silent_exit_0(tmp_path):
 
 
 def test_default_vocabulary_is_the_rfc_0031_baseline_plus_design():
-    # The RFC-0031 D3 baseline. The vocabulary is soft and extensible (D8),
+    # The baseline. The vocabulary is soft and extensible,
     # so it grows without an RFC — `design` was added for the design-craft pack.
     rfc_0031_baseline = {
         "code-review",

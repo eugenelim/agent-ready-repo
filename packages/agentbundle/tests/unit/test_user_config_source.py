@@ -1,4 +1,4 @@
-"""T2: the user `[settings].source` config key — RFC-0046 / ADR-0036.
+"""T2: the user `[settings].source` config key.
 
 Covers the write/read/unset round-trip, the read-back that layer 2 consumes,
 the parseable-only write validation (no scheme gate at write time), the

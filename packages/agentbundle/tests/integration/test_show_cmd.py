@@ -3,10 +3,10 @@
 Two paths exercised through ``run(args)``:
 
   - **T3 / primary (catalogue):** a temp catalogue fixture plus the working-tree
-    catalogue (`show core`), asserting AC1 (table block), AC2 (full untagged
-    inventory), AC3 (JSON shape), AC4 (empty lists), AC5 (unknown pack).
+    catalogue (`show core`), asserting the table block, the full untagged
+    inventory, the JSON shape, empty lists, and the unknown-pack path.
   - **T4 / degrade (install state):** an unresolvable catalogue (a `git+ssh://`
-    URI raises `CatalogueError`) plus fabricated state files, asserting AC6
+    URI raises `CatalogueError`) plus fabricated state files, asserting the
     (two-scope union, extension-agnostic recovery, null metadata)
     (not-installed error).
 
@@ -71,7 +71,7 @@ def _make_catalogue(
 
 
 # ---------------------------------------------------------------------------
-# T3 / AC1 — primary path, table block
+# T3 — primary path, table block
 # ---------------------------------------------------------------------------
 
 
@@ -111,7 +111,7 @@ def test_primary_via_default_source_chain(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# T3 / AC2 — working-tree `show core` lists the FULL inventory, not evals subset
+# T3 — working-tree `show core` lists the FULL inventory, not evals subset
 # ---------------------------------------------------------------------------
 
 
@@ -128,7 +128,7 @@ def test_show_core_lists_full_inventory_not_evals_subset(capsys):
 
 
 # ---------------------------------------------------------------------------
-# T3 / AC3 — JSON shape
+# T3 — JSON shape
 # ---------------------------------------------------------------------------
 
 
@@ -151,7 +151,7 @@ def test_json_exact_keys_sorted_arrays_source_catalogue(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# T3 / AC4 — empty skills/agents → empty list, no error
+# T3 — empty skills/agents → empty list, no error
 # ---------------------------------------------------------------------------
 
 
@@ -165,7 +165,7 @@ def test_pack_with_no_apm_dirs_shows_empty_lists(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# T3 / AC5 — unknown pack → one-line stderr, empty stdout, exit non-zero
+# T3 — unknown pack → one-line stderr, empty stdout, exit non-zero
 # ---------------------------------------------------------------------------
 
 
@@ -188,7 +188,7 @@ def test_unknown_pack_json_still_empty_stdout(tmp_path, capsys):
 
 
 # ---------------------------------------------------------------------------
-# T4 / AC6 — degrade to install state (repo scope)
+# T4 — degrade to install state (repo scope)
 # ---------------------------------------------------------------------------
 
 
@@ -327,7 +327,7 @@ def test_degrade_installed_user_scope_only(tmp_path, capsys, _isolate_user_confi
 
 
 # ---------------------------------------------------------------------------
-# T4 / AC7 — unresolvable catalogue + not installed → error
+# T4 — unresolvable catalogue + not installed → error
 # ---------------------------------------------------------------------------
 
 
@@ -437,7 +437,7 @@ def _make_catalogue_with_integrations(root: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# STUBS: AC13-AC16 — integrations in show output (Task 3 TDD)
+# STUBS: integrations in show output (Task 3 TDD)
 # All fail until show.py gains the `integrations` parameter on _emit().
 # ---------------------------------------------------------------------------
 
@@ -481,7 +481,7 @@ def test_show_integrations_table_row_when_declared(tmp_path, capsys):
     assert rc == 0
     assert "integrations" in out
     assert "test-int" in out
-    # AC13 requires kind and target pack in summary
+    # Summary must carry kind and target pack
     assert "input" in out
     assert "other-pack" in out
 

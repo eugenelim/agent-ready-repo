@@ -15,7 +15,7 @@ The one-source-file → one-output-file shape mirrors ``codex-agent-toml``; the
 per-file (vs. merged) distinction is the new part, and the reason this is a
 separate mode rather than a reuse of ``merge-json``.
 
-Event-name map (frozen; all six verified to fire — RFC-0024 § Acceptance
+Event-name map (frozen; all six verified to fire — the acceptance
 Runs 2–4, CLI + app 1.0.59). A source event with no entry **fails the build**
 (fail-closed; never emit an unrecognised event key).
 
@@ -29,7 +29,7 @@ Hook-body path rewrite: copilot retargets ``hook-body`` from ``tools/hooks/``
 to ``.github/hooks/`` (contract v0.10). A wiring command that references the
 body by its legacy path (``python tools/hooks/<name>.py``) is rewritten to the
 new location so the emitted JSON references the script where it actually lands
-(spec AC9-repo: "the scripts land alongside the ``<name>.json`` wiring that
+(the scripts land alongside the ``<name>.json`` wiring that
 references them"). Without this, an adopter's ``sessionStart`` hook fires but
 fails to find its script. **Repo-scope only:** the rewrite targets the
 ``.github/hooks/`` repo-relpath; resolving the command at *user* scope

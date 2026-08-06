@@ -1,4 +1,4 @@
-"""Profile-manifest reader (spec pack-profiles, T1).
+"""Profile-manifest reader (T1).
 
 A *profile* is a first-party-curated, single-scope set of packs an adopter
 installs in one command. It is a hand-authored ``profiles/<name>.toml`` at the

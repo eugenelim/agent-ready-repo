@@ -1,4 +1,4 @@
-"""State-file legacy handling under v0.4 (greenfield, RFC-0052 D8).
+"""State-file legacy handling under v0.4 (greenfield).
 
 The v0.4 schema made cross-version handling a hard refusal: every
 legacy version (v0.1/v0.2/v0.3) is refused on read AND write with re-install

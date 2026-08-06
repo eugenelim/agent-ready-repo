@@ -35,13 +35,13 @@ from agentbundle.build.projections.hook_id import synthesize_id
 class UserMergeRefusal(Exception):
     """Raised when ``project`` / ``unproject`` refuses to write.
 
-    The exception's string is the refuse-and-explain text RFC-0005
+    The exception's string is the refuse-and-explain text the contract
     specifies. CLI callers (T8b's install / uninstall handlers) catch
     and print to stderr without paraphrasing.
     """
 
 
-# RFC-0005 § Merge semantics: "textual equality after whitespace
+# Merge semantics: "textual equality after whitespace
 # normalisation". Collapse runs of whitespace to a single space and
 # strip leading/trailing whitespace before comparing commands.
 _WS_RE = re.compile(r"\s+")
@@ -247,7 +247,7 @@ def _merge_one_entry(
 ) -> None:
     """Append, replace-in-place, or refuse for a single tagged entry.
 
-    Mutates ``event_array`` in place. Three cases per RFC-0005:
+    Mutates ``event_array`` in place. Three cases:
       1. An existing entry with the same ``id`` → replace in place
          (idempotency / reinstall).
       2. An existing entry without ``id`` whose ``command`` matches
@@ -311,7 +311,7 @@ def _atomic_write(target_path: Path, data: dict) -> None:
     # disk. Without this, a power loss between `replace()` and the
     # directory entry being flushed can leave the target absent
     # despite the rename appearing to succeed — the same byte-stability
-    # concern AC9 / AC13 pin via their "file unchanged on refusal"
+    # concern is pinned via the "file unchanged on refusal"
     # contracts. Tolerate OSError on platforms where dir-fsync is a
     # no-op (some macOS configurations).
     try:

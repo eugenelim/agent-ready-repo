@@ -60,7 +60,7 @@ def run(args: argparse.Namespace) -> int:
     # to both state files. Importing scope_mod lazily so --version stays fast.
     from agentbundle import scope as scope_mod
 
-    # A legacy (non-v0.4) state file is refused on read too (RFC-0052 hard
+    # A legacy (non-v0.4) state file is refused on read too (hard
     # cross-version refusal); surface it as a clean refuse, not a traceback.
     try:
         repo_state_for_check = load_state(state_path)
@@ -212,7 +212,7 @@ def run(args: argparse.Namespace) -> int:
     # execution pass (Step 2c) acts on it WITHOUT re-hashing — so the bytes
     # a `--dry-run` / prompt shows are exactly the bytes a real run removes
     # (the Tier-1 SHA is captured here, once; the confirm-reading window is
-    # not re-checked — see spec AC5).
+    # not re-checked).
     decisions: list[tuple[str, str]] = []  # (relpath, "remove" | "keep" | "shared")
 
     # Last-owner derivation, captured ONCE here
@@ -340,7 +340,7 @@ def run(args: argparse.Namespace) -> int:
             )
             kept.append(relpath)
 
-    # ── Step 2d: RFC-0005 T8b — unproject hook-wiring-owned entries ─────────
+    # ── Step 2d: unproject hook-wiring-owned entries ────────────────────────
     # When the pack has hook_wiring_owned rows (v0.3 user-scope hooks),
     # dispatch to the right merge engine's `unproject` to remove those
     # entries from the merge target file. Empty `hooks.<event>` arrays
@@ -385,7 +385,7 @@ def run(args: argparse.Namespace) -> int:
     # ── Step 3: Best-effort cleanup of empty parent directories ──────────────
     _prune_empty_parents(root, removed)
 
-    # ── Step 3b: RFC-0080 — update .git/info/exclude for local scope ─────────
+    # ── Step 3b: update .git/info/exclude for local scope ────────────────────
     # After file removals, recompute or strip the pack's exclude block.
     # Recompute order: strip or recompute AFTER files are deleted but
     # BEFORE state row is dropped, so the remaining sibling rows' patterns are

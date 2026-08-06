@@ -254,7 +254,7 @@ class PluginManifestSchemaSplitTests(unittest.TestCase):
     def test_source_plugin_manifest_schema_forbids_hooks(self) -> None:
         """Source-shape schema rejects any manifest carrying a hooks property.
 
-        AC10 gate 1 (Blocker-5 rail): a stray hooks block in a source-tree
+        Gate 1: a stray hooks block in a source-tree
         plugin.json must fail schema validation. The additionalProperties: false
         + explicit property list is the mechanism — hooks is not in the list.
         """
@@ -301,7 +301,7 @@ class PluginManifestSchemaSplitTests(unittest.TestCase):
     def test_derived_plugin_manifest_schema_accepts_synthesised_hooks(self) -> None:
         """Derived-shape schema accepts a manifest with the synthesised hooks.SessionStart block.
 
-        AC10 gate 1: the build pipeline validates derived-tree manifests against
+        Gate 1: the build pipeline validates derived-tree manifests against
         the derived schema. The derived schema adds hooks to the properties
         enumeration so additionalProperties: false still holds.
         """

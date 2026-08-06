@@ -46,9 +46,8 @@ if TYPE_CHECKING:
 # "Local" added for per-clone, never-committed installs.
 LEGAL_SCOPES: frozenset[str] = frozenset({"repo", "user", "local"})
 
-# RFC-0011 / pack-allowed-adapters introduced this constant for the
-# greenfield-fallback default at user scope; RFC-0012 widens it to
-# cover both scopes (the constant is the single per-distribution
+# The greenfield-fallback default adapter, at both scopes
+# (the constant is the single per-distribution
 # default, consulted at both `--scope user` and `--scope repo`).
 # Downstream catalogues can monkey-patch this constant at startup to
 # flip the default for their own distribution (e.g. an enterprise
@@ -57,8 +56,8 @@ DEFAULT_ADAPTER: str = "claude-code"
 
 
 # Deprecated alias for ``DEFAULT_ADAPTER`` — kept for one release
-# (removed in agentbundle 0.2.0 per RFC-0012 § *Module-level constant
-# rename*). PEP 562 module-level ``__getattr__`` fires only on access
+# (removed in agentbundle 0.2.0 when the constant was renamed).
+# PEP 562 module-level ``__getattr__`` fires only on access
 # of the deprecated name; direct access to ``DEFAULT_ADAPTER`` is
 # warning-free.
 def __getattr__(name: str) -> str:  # pragma: no cover - exercised via tests
@@ -131,8 +130,7 @@ def resolve(
     Args:
         cli_flag: the ``--scope`` argparse value (``None`` if omitted).
         pack_install: the ``[pack.install]`` table from the pack's TOML
-            (``None`` when the pack is v0.1 — see RFC-0004 § *Install-
-            scope dimension*; treated as ``{}``).
+            (``None`` when the pack is v0.1; treated as ``{}``).
         builtin_default: the fallback when neither CLI nor pack declares.
         pack_name: the pack name for refusal text; the caller passes the
             real name when known so :class:`ScopeRefused` carries the
@@ -150,7 +148,7 @@ def resolve(
     if not isinstance(pack_default, str) or pack_default not in LEGAL_SCOPES:
         pack_default = builtin_default
 
-    # AC3: packs may not declare default-scope="local" — that
+    # Packs may not declare default-scope="local" — that
     # would make every unpinned install local-scope, which violates the
     # "trial-only, never committed" contract. The schema enum already
     # disallows it; this is defense-in-depth at the runtime level.
@@ -161,8 +159,8 @@ def resolve(
     if isinstance(raw_allowed, list) and raw_allowed:
         allowed = [s for s in raw_allowed if isinstance(s, str)]
     else:
-        # Implied default: `[default-scope]` per RFC-0004 § *Per-pack
-        # default and allowance*. v0.1 packs (no install table) fall
+        # Implied default: `[default-scope]`. v0.1 packs (no install
+        # table) fall
         # through to `[builtin_default]` which is `"repo"`.
         allowed = [pack_default]
 
@@ -334,7 +332,7 @@ def contract_supports_hook_wiring(version: str | None) -> bool:
     first-class primitive (v0.3 and later).
 
     The semantic predicate replaces the literal `version != "0.3"`
-    check that lived at `validate.py:379` pre-RFC-0011 — that check
+    check that once lived at `validate.py:379` — that check
     silently dropped v0.6+ packs from the kiro-targeting rail and
     would re-break on v0.7. None / unknown values return False
     (conservative: a pack with no declared contract version is

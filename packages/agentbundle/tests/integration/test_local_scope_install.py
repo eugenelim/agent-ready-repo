@@ -6,11 +6,11 @@ fixture catalogue under ``tests/fixtures/local_scope/``.
 Test matrix:
 - Happy path (install + list-installed + uninstall): files appear in tree,
   git-invisible, exclude block written; uninstall removes files and block.
-- AC7 state schema version.
-- AC17 no seeds written.
-- AC21b same-scope reinstall refused.
-- AC11 repo↔local mutual exclusion (force-immune).
-- AC26/AC27 docstring content checks.
+- State schema version.
+- No seeds written.
+- Same-scope reinstall refused.
+- repo↔local mutual exclusion (force-immune).
+- Docstring content checks.
 - Rollback: exclude block and file state restored on write failure.
 """
 
@@ -223,7 +223,7 @@ def test_uninstall_local_cleans_up(git_repo: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# T11c: AC21b — same-scope reinstall refused
+# T11c: same-scope reinstall refused
 # ---------------------------------------------------------------------------
 
 def test_same_scope_reinstall_refused(git_repo: Path) -> None:
@@ -246,7 +246,7 @@ def test_same_scope_reinstall_refused(git_repo: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# T11d: AC11 — repo↔local mutual exclusion (force-immune)
+# T11d: repo↔local mutual exclusion (force-immune)
 # ---------------------------------------------------------------------------
 
 def test_local_refused_when_repo_installed(git_repo: Path) -> None:
@@ -283,14 +283,14 @@ def test_repo_refused_when_local_installed(git_repo: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# T11e: AC26/AC27 docstring content checks
+# T11e: docstring content checks
 # ---------------------------------------------------------------------------
 
 def test_write_exclude_block_docstring_ac26(tmp_path: Path) -> None:
     """write_exclude_block docstring documents the concurrent-write limitation."""
     from agentbundle.local_exclude import write_exclude_block
     docstring = write_exclude_block.__doc__ or ""
-    # AC26 key phrase
+    # Key phrase
     assert any(
         phrase in docstring
         for phrase in ("lost-update", "concurrent", "last-writer")
@@ -301,7 +301,7 @@ def test_write_exclude_block_docstring_ac27(tmp_path: Path) -> None:
     """write_exclude_block docstring documents the cross-worktree side-effect."""
     from agentbundle.local_exclude import write_exclude_block
     docstring = write_exclude_block.__doc__ or ""
-    # AC27 key phrase
+    # Key phrase (cross-worktree)
     assert "linked worktrees" in docstring, (
         f"cross-worktree side-effect not documented in docstring; got: {docstring[:200]!r}"
     )

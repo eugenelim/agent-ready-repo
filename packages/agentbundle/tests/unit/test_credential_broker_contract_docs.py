@@ -1,5 +1,5 @@
 """T10 (credential-broker-contract): documentation surface presence
-checks for AC40-AC45 (ADR, CONVENTIONS, backlog, guide, sibling
+checks for the governance surface (ADR, CONVENTIONS, backlog, guide, sibling
 spec amendments).
 """
 
@@ -11,7 +11,7 @@ REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 
 
 def test_ac40_adr_exists():
-    """AC40: docs/adr/ gains a new ADR recording the four-broker decision."""
+    """An ADR records the four-broker decision."""
     adr = REPO_ROOT / "docs" / "adr" / "0003-credential-broker-contract.md"
     assert adr.is_file(), f"missing ADR: {adr}"
     body = adr.read_text(encoding="utf-8")
@@ -30,7 +30,7 @@ def test_ac40_adr_exists():
 
 
 def test_ac41_conventions_credentialed_section_names_brokers():
-    """AC41: docs/CONVENTIONS.md § Credentialed skills names the four
+    """CONVENTIONS § Credentialed skills names the four
     brokers and `metadata.auth`."""
     conventions = (REPO_ROOT / "docs" / "CONVENTIONS.md").read_text(encoding="utf-8")
     # Locate the Credentialed skills section.
@@ -44,7 +44,7 @@ def test_ac41_conventions_credentialed_section_names_brokers():
 
 
 def test_ac42_roadmap_entry_carries_manual_qa_matrix():
-    """AC42: workspace.toml [backlog] entry tracks the six manual-QA rows."""
+    """A workspace.toml [backlog] entry tracks the six manual-QA rows."""
     workspace = (REPO_ROOT / "workspace.toml").read_text(encoding="utf-8")
     slug = "credential-broker-contract-manual-qa"
     assert f'slug = "{slug}"' in workspace, (
@@ -66,7 +66,7 @@ def test_ac42_roadmap_entry_carries_manual_qa_matrix():
 
 
 def test_ac43_guide_walks_broker_first():
-    """AC43: the how-to guide replaces 'pick a primitive class' with
+    """The how-to guide replaces 'pick a primitive class' with
     'pick a broker' as the first step."""
     guide = (
         REPO_ROOT / "guides" / "credential-brokers" / "how-to" / "add-a-credentialed-skill.md"
@@ -82,8 +82,8 @@ def test_ac43_guide_walks_broker_first():
 
 
 def test_ac44_skill_secrets_footer_present():
-    """AC44: docs/specs/skill-secrets/spec.md carries the verbatim footer
-    pointing AC34/AC35 invariants to the new shim."""
+    """The skill-secrets spec carries the verbatim footer pointing the
+    inheritance invariants at the new shim."""
     spec = (REPO_ROOT / "docs" / "specs" / "skill-secrets" / "spec.md").read_text(encoding="utf-8")
     assert "AC34 and AC35 inheritance invariants" in spec
     assert "credentials_shim" in spec
@@ -92,7 +92,7 @@ def test_ac44_skill_secrets_footer_present():
 
 
 def test_ac45_distribution_adapters_changelog_bullet_present():
-    """AC45: docs/specs/distribution-adapters/spec.md carries the
+    """The distribution-adapters spec carries the
     new dated bullet naming the two new primitive classes."""
     spec = (
         REPO_ROOT / "docs" / "specs" / "distribution-adapters" / "spec.md"

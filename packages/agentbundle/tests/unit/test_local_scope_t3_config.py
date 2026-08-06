@@ -1,6 +1,6 @@
 """T3: config.py — _parse_adapter_row uses LEGAL_SCOPES for scope allowlist.
 
-Verifies AC5: scope="local" rows are preserved; unknown scopes still coerce
+Verifies that scope="local" rows are preserved; unknown scopes still coerce
 to the default_scope fallback.
 """
 

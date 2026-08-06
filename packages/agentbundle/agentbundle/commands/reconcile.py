@@ -1,6 +1,6 @@
 """``agentbundle reconcile`` — read-only orphan reporter.
 
-Per the follow-on artifacts and AC26: walks the Claude Code
+Walks the Claude Code
 settings file (``~/.claude/settings.json``) and every Kiro agent JSON
 named in user-scope state, comparing the on-disk ``hooks.<event>``
 arrays against the state file's ``hook-wiring-owned`` rows to surface
@@ -20,7 +20,7 @@ Output is grouped by adapter (one heading per adapter that has any
 orphans, plus an "all clean" line when there are none). The
 subcommand is **read-only**: it does not register an ``--apply`` flag.
 A write-mode reconciler would re-create the merge-discipline problems
-RFC-0005 is designed to avoid; the adopter takes manual action from
+the merge rails are designed to avoid; the adopter takes manual action from
 this report.
 """
 

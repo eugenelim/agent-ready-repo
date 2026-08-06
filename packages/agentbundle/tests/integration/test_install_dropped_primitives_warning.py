@@ -143,7 +143,7 @@ class CopilotWarningEndToEnd(unittest.TestCase):
             )
 
             # Install completed — skills landed at copilot's target
-            # (ADR-0040: shared cohort home `.agents/skills/`).
+            # (shared cohort home `.agents/skills/`).
             self.assertTrue(
                 (adopter / ".agents" / "skills").exists(),
                 "copilot skill projection missing",

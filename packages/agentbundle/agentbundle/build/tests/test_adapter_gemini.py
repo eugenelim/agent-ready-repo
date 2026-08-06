@@ -152,7 +152,7 @@ class GeminiContractTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_contract_version_is_0_14(self) -> None:
-        """Contract version is 0.17 (docs/specs/consolidated-pack-layout
+        """Contract version is 0.17 (consolidated pack layout
         bumped it from kiro-cli-agent-skill-resources' 0.15). Name preserved."""
         self.assertEqual(self.contract["contract"]["version"], "0.17")
 
@@ -341,7 +341,7 @@ class GeminiProjectionTests(unittest.TestCase):
             self.assertIn("name: from-file", fm)
 
     def test_real_core_pack_projects(self) -> None:
-        """AC5 against the real core pack — reviewers + implementer map cleanly."""
+        """Against the real core pack — reviewers + implementer map cleanly."""
         with tempfile.TemporaryDirectory() as tmp:
             out = Path(tmp) / "out"
             gemini.project(REPO_ROOT / "packs" / "core", self.contract, out)

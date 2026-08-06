@@ -6,8 +6,8 @@ install orphan and refused/deleted. Genuine stale crumbs — files under a
 shipped-primitive directory that the current projection does NOT include — stay
 guarded by the (reworded) orphan refusal.
 
-Covers AC3 (edited collision → companion), AC4 (identical → clean), AC5 (non-
-projection crumb → orphan guard fires; `--force` removes), AC6 (message wording).
+Covers edited collision → companion, identical → clean, non-projection
+crumb → orphan guard fires (`--force` removes), and message wording.
 """
 
 from __future__ import annotations
@@ -32,7 +32,7 @@ def _install_core(target: Path, *, force: bool = False) -> tuple[int, str, str]:
         emit_install_routes=False,
         force=force,
         # `yes=True` so the new --force destructive-cleanup confirm (CLI-hygiene
-        # AC7) does not refuse on the non-TTY test stdin; harmless when no
+        # confirm) does not refuse on the non-TTY test stdin; harmless when no
         # cleanup fires.
         yes=True,
     )

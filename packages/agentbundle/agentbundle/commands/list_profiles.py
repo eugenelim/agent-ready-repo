@@ -1,4 +1,4 @@
-"""``agentbundle list-profiles`` subcommand (spec pack-profiles).
+"""``agentbundle list-profiles`` subcommand.
 
 Resolves a catalogue URI, enumerates every valid ``profiles/*.toml``, and
 prints a stable table of id, scope, description to stdout. Modeled on

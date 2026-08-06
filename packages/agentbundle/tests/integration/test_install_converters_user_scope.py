@@ -165,7 +165,7 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
                 f"projected skill directory at {skill_dir} survived uninstall",
             )
 
-        # Spec AC6a's looser form covers two valid implementations: state
+        # The looser form covers two valid implementations: state
         # file is gone, OR state file remains with the converters row
         # removed. Expressed as a single boolean rather than a conditional
         # that silently no-ops when the file is gone.

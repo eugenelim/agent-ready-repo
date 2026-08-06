@@ -62,7 +62,7 @@ class KiroAdapterTests(unittest.TestCase):
             self.assertTrue((out / ".kiro" / "skills" / "foo" / "SKILL.md").exists())
 
     def test_agent_projects_as_json_per_kiro_schema(self) -> None:
-        """RFC-0005 / T7: Kiro agents are JSON files per the documented
+        """Kiro agents are JSON files per the documented
         Kiro schema (https://kiro.dev/docs/cli/custom-agents/configuration-reference/),
         not markdown-with-frontmatter as v0.2 used to project. The
         `kiro-ide-agent-frontmatter-v0.9` mapping table is reinterpreted as

@@ -251,7 +251,7 @@ def _seed_same_name_pack(root: Path, name: str, body: str) -> Path:
 
 
 class TestDirectDirectoryProjection(unittest.TestCase):
-    """Post-RFC-0009 Codex `skill` projection — `direct-directory` mode."""
+    """Codex `skill` projection — `direct-directory` mode."""
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -498,11 +498,11 @@ class TestMigrationStripIntegrated(unittest.TestCase):
         )
 
     def test_happy_path_strips_delimiters_and_preserves_prose(self) -> None:
-        # AC10. The strip's only allowed mutation is removing
+        # The strip's only allowed mutation is removing
         # the legacy delimiter region; outside-delimiter bytes must
         # survive byte-for-byte. Substring `assertIn` would pass on
         # munged surrounding bytes; the concatenation assertion
-        # below pins the byte-equality contract AC11(c) names.
+        # below pins the byte-equality contract.
         outside_before = "# Top\n\nIntroductory prose.\n\n"
         outside_after = "\nClosing prose.\n"
         populated = (
@@ -652,7 +652,7 @@ class TestMigrationStripPureFunction(unittest.TestCase):
         self.assertTrue(callable(_splice_managed_block))
 
     def test_strip_invokes_splice_managed_block_once(self) -> None:
-        # AC23(ii) — deliberate retention test. A refactor that
+        # Deliberate retention test. A refactor that
         # inlines the splice and deletes `_splice_managed_block`
         # breaks the import. A refactor that keeps the symbol but
         # stops calling it from `_strip_legacy_skill_block` makes
@@ -699,7 +699,7 @@ class TestCodexProjectsEveryShippedSkill(unittest.TestCase):
         # Collect every source skill across every pack. Tracks the
         # "winning" source path for same-name collisions so byte-equal
         # comparisons use the last-supplied pack's body (matching
-        # AC6).
+        # projection).
         winning_source: dict[str, Path] = {}
         for pack_path in pack_paths:
             skills_dir = pack_path / ".apm" / "skills"

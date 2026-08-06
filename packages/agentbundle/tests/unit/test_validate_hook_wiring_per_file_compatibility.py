@@ -1,19 +1,18 @@
 """T2 tests: validate.py rails 4c/4d swallow hook-wiring compat refusals.
 
 Verification mode: TDD.
-Plan: docs/specs/incompatible-hook-event-drop/plan.md § T2.
 
 Ten cases:
-  1.  test_validate_packs_core_exits_zero               AC1 + AC2 (load-bearing)
-  2.  test_validate_swallows_missing_attach_to_agent     AC1 + swallow (omitted field)
-  3.  test_validate_refuses_on_empty_attach_to_agent_string  AC4b (empty string = unknown)
-  4.  test_validate_still_refuses_on_hook_wiring_symlink      AC3
-  5.  test_validate_still_refuses_on_toml_parse_failure       AC4
-  6.  test_validate_still_refuses_on_unknown_agent_reference  AC4b (load-bearing)
-  7.  test_validate_still_refuses_on_allowed_adapters_violation  AC5 (scoping)
-  8.  test_validate_info_text_uses_pinned_wording_one_file_one_reason  AC2
-  9.  test_validate_info_text_uses_pinned_wording_one_file_two_reasons AC2
-  10. test_validate_info_text_uses_pinned_wording_two_files             AC2
+  1.  test_validate_packs_core_exits_zero (load-bearing)
+  2.  test_validate_swallows_missing_attach_to_agent (omitted field)
+  3.  test_validate_refuses_on_empty_attach_to_agent_string (empty = unknown)
+  4.  test_validate_still_refuses_on_hook_wiring_symlink
+  5.  test_validate_still_refuses_on_toml_parse_failure
+  6.  test_validate_still_refuses_on_unknown_agent_reference (load-bearing)
+  7.  test_validate_still_refuses_on_allowed_adapters_violation (scoping)
+  8.  test_validate_info_text_uses_pinned_wording_one_file_one_reason
+  9.  test_validate_info_text_uses_pinned_wording_one_file_two_reasons
+  10. test_validate_info_text_uses_pinned_wording_two_files
 """
 
 from __future__ import annotations
@@ -94,7 +93,7 @@ def _make_hook_wiring_pack(
 
 
 # ---------------------------------------------------------------------------
-# Test 1: packs/core exits zero (load-bearing AC1 + AC2 pin)
+# Test 1: packs/core exits zero (load-bearing pin)
 # ---------------------------------------------------------------------------
 
 

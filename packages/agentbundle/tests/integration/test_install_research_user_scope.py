@@ -127,7 +127,7 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
         self.assertEqual(pack_state.scope, "user")
         # Floor at len(SKILL_NAMES) — one file-tracking entry per
         # shipped skill at minimum, matching the converters precedent
-        # (spec AC10 floor at 7; agent files may or may not appear in
+        # (floor at 7; agent files may or may not appear in
         # this list depending on the install implementation).
         self.assertGreaterEqual(
             len(pack_state.files),
@@ -177,7 +177,7 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
                 f"projected agent file at {agent_file} survived uninstall",
             )
 
-        # AC10's looser form: state file is gone OR state file remains
+        # The looser form: state file is gone OR state file remains
         # with the desk-research row removed.
         research_gone = (
             not state_path.exists()

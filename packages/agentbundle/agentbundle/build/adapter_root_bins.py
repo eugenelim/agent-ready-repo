@@ -16,7 +16,7 @@ new primitive class:
   Called by ``make build-self``.
 - ``check_drift(working_tree, packs_dir)`` — read-only gate. Returns
   a list of drift descriptions (empty list == clean). Three outcomes
-  per RFC-0013 § 4d / spec AC22-AC23:
+  Three rules:
     * **modified** — projected file exists but bytes diverge from source
     * **missing** — source exists but projected file absent
     * **orphaned** — projected file present but source has been removed
@@ -50,7 +50,7 @@ SOURCE_SUBDIR = ".apm/adapter-root-bins"
 # `~/.agentbundle/bin/` path at user scope (install-time surface).
 TARGET_SUBDIR = Path(".agentbundle") / "bin"
 
-# POSIX mode bits applied after copy. AC22 pins 0o755; Windows
+# POSIX mode bits applied after copy: 0o755. Windows
 # inherits the DACL from %USERPROFILE% (no explicit chmod call).
 EXECUTABLE_MODE = 0o755
 
@@ -61,7 +61,7 @@ EXECUTABLE_MODE = 0o755
 # can resolve `from .credentials_shim import Tier2HardFailError`.
 SHIM_COMPANION_BASENAME = "credentials_shim.py"
 
-# AC22b content-grep trigger. Any *.py under adapter-root-bins/ whose
+# Content-grep trigger. Any *.py under adapter-root-bins/ whose
 # bytes contain this literal substring is considered shim-dependent;
 # the pack must then ship .apm/shared-libs/credentials_shim.py or the
 # build hard-errors. Literal-substring match has a documented
@@ -131,7 +131,7 @@ def _packs_with_adapter_root_bins(packs_dir: Path) -> list[Path]:
 
 
 def _assert_shim_companion_present(packs_dir: Path) -> None:
-    """AC22b hard-error rail (content-based, generalises past _sso_*).
+    """Hard-error rail (content-based, generalises past _sso_*).
 
     For each pack that ships any ``.apm/adapter-root-bins/*.py``,
     content-grep its sources for the literal substring
@@ -165,7 +165,7 @@ def _assert_shim_companion_present(packs_dir: Path) -> None:
 
 
 def collect_companion_shim(packs_dir: Path) -> dict[str, Path]:
-    """AC22b companion projection enumeration.
+    """Companion projection enumeration.
 
     Returns ``{basename → source_path}`` for the shim companion when
     at least one pack ships BOTH ``.apm/adapter-root-bins/`` AND
@@ -197,7 +197,7 @@ def collect_pack_root_bins(pack_dir: Path) -> dict[str, Path]:
     """Single-pack, companion-aware enumeration for install-time delivery.
 
     Returns ``{basename → source_path}`` for one already-resolved
-    catalogue ``pack_dir``'s ``.apm/adapter-root-bins/*.py`` plus the AC22b
+    catalogue ``pack_dir``'s ``.apm/adapter-root-bins/*.py`` plus the
     companion ``credentials_shim.py`` when the pack ships BOTH that
     directory (at least one ``*.py``) AND
     ``.apm/shared-libs/credentials_shim.py`` — the same ship-both opt-in as
@@ -252,7 +252,7 @@ def compute_projections(
 ) -> list[AdapterRootBinProjection]:
     """Return the full list of ``(source → target)`` pairs.
 
-    Deterministic order — drift gates depend on it. Includes the AC22b
+    Deterministic order — drift gates depend on it. Includes the
     shim companion when applicable (opt-in by ship-both).
     """
     sources = collect_sources(packs_dir)
@@ -301,7 +301,7 @@ def apply_projection(working_tree: Path, packs_dir: Path) -> None:
 
     Also projects the shim companion when a pack ships both
     ``.apm/adapter-root-bins/`` and ``.apm/shared-libs/credentials_shim.py``.
-    AC22b hard-error rail fires before any writes if a pack imports
+    The hard-error rail fires before any writes if a pack imports
     the shim but doesn't ship the source.
     """
     _assert_shim_companion_present(packs_dir)
@@ -326,7 +326,7 @@ def apply_projection(working_tree: Path, packs_dir: Path) -> None:
 def check_drift(working_tree: Path, packs_dir: Path) -> list[str]:
     """Return drift descriptions for ``make build-check``.
 
-    Three outcomes per RFC-0013 § 4d / spec AC22-AC23:
+    Three outcomes:
         * **modified** — projected bytes diverge from source
         * **missing** — source exists but projected file absent
         * **orphaned** — projected file present, no source claiming it

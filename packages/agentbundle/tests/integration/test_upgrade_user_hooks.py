@@ -216,7 +216,7 @@ class UpgradeRemovesHookEntryTests(_UpgradeBase):
 
 
 class LegacyKiroJsonUpgradeMigrationTests(_UpgradeBase):
-    """RFC-0022 / kiro-install-alias-parity AC8: an adopter who installed via
+    """kiro-install-alias parity: an adopter who installed via
     the legacy `kiro` JSON path (agent `.json` on disk, `state.adapter ==
     "kiro"`, `hook_wiring_owned` rows) must UPGRADE cleanly under the new
     code — the `kiro` alias now resolves to kiro-ide, so the upgrade re-renders

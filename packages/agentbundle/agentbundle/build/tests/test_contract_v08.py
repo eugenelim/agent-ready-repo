@@ -169,7 +169,7 @@ class TestContractV08(unittest.TestCase):
             },
         )
         # No `body` sub-table — body-to-`developer_instructions` is a
-        # mode-level convention per spec AC4, not a frontmatter rename.
+        # mode-level convention, not a frontmatter rename.
         self.assertNotIn("body", mapping)
         self.assertNotIn("developer_instructions", mapping)
 

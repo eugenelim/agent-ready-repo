@@ -1,7 +1,7 @@
 """T16: argparse surface gains --scope on the install-scope subcommands +
 --force on install.
 
-Verifies AC #(RFC-0004) for the agent-spec-cli spec, as narrowed by the
+Verifies the agent-spec-cli scope surface, as narrowed by the
 CLI-hygiene sweep (which dropped the dead --scope on `list-targets` — parsed
 but never read — and on `reconcile` — single legal value equal to its default):
   - --scope {repo,user} is accepted on install, uninstall, upgrade, diff,

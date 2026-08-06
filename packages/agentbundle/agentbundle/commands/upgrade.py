@@ -829,7 +829,7 @@ def _run_all(args: object, root: Path, *, _rows_out: list | None = None) -> int:
 
     stdin_is_tty = sys.stdin.isatty()
 
-    # Gate: --format json without --yes (non-dry-run) — AC6
+    # Gate: --format json without --yes (non-dry-run)
     fmt = getattr(args, "format", "table")
     if (
         fmt == "json"
@@ -946,7 +946,7 @@ def run(args: argparse.Namespace) -> int:
     # The pre-flight in `_resolve_target_adapter` no-ops when
     # `state_adapter` is set (upgrades preserve their existing-install
     # adapter), so on a normal upgrade this is read but unused. We
-    # still thread it so the AC15(c) AST check is satisfied and so the
+    # still thread it so the AST static check is satisfied and so the
     # state-pin-mismatch fall-through path stays well-defined.
     user_config: UserConfig | None = getattr(args, "_user_config", None)
     root = Path(args.root).resolve()
@@ -1238,7 +1238,7 @@ def run(args: argparse.Namespace) -> int:
     # Thread the pack's allowed-adapters, contract version,
     # and recorded state.adapter through the resolver so v0.6+ packs
     # use the six-step (0–5) lookup (and existing adopters get the
-    # state-hint short-circuit AC10b on upgrade, avoiding the
+    # state-hint short-circuit on upgrade, avoiding the
     # cross-adapter refusal when they've populated a second CLI home).
     _pack_install_table = pack_toml.get("pack", {}).get("install")
     _pack_allowed_adapters = None
@@ -1298,7 +1298,7 @@ def run(args: argparse.Namespace) -> int:
                 target_adapter=_new_target_adapter,
             )
         else:
-            # Repo-scope render. RFC-0012 lifted the install default at
+            # Repo-scope render. v0.7 lifted the install default at
             # this scope from the dist-tree producer to a per-IDE
             # projection (`.claude/...`, `.kiro/...`, ...). Upgrade
             # must mirror that shape, else the rendered keys won't
@@ -1604,7 +1604,7 @@ def _unproject_removed_rows(
 
     Walks the OLD adapter for dispatch (Claude Code vs Kiro). Claude
     Code rows default ``target-file`` to ``.claude/settings.json`` per
-    RFC-0005 § State-file impact.
+    State-file impact.
     """
     def _key(row: dict[str, str]) -> tuple[str, str, str]:
         return (row.get("event", ""), row.get("id", ""), row.get("target-file", ""))

@@ -1,5 +1,5 @@
 """Unit tests for the copilot-hooks-json serialiser (T2 of
-docs/specs/copilot-full-parity).
+copilot full parity).
 
 Copilot reads **every** ``*.json`` in its hooks dir, so each source
 hook-wiring ``.toml`` serialises to its own self-contained
@@ -116,7 +116,7 @@ class TestCopilotHooksJsonSerialiser(unittest.TestCase):
     def test_hook_body_path_rewritten_to_github_hooks(self) -> None:
         # copilot retargets hook-body tools/hooks/ -> .github/hooks/, so a
         # command referencing the body by its legacy path must be rewritten to
-        # where direct-file actually lands the script (AC9-repo). Our shipped
+        # where direct-file actually lands the script at repo scope. Our shipped
         # core wiring is exactly `python tools/hooks/session-start.py`.
         self._write(
             "session-start.toml",

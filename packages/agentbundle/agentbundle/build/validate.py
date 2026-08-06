@@ -2,7 +2,7 @@
 
 The build pipeline depends on stdlib only (per spec § Boundaries —
 Never do), so we cannot import a JSON-Schema library. This module
-ships the subset RFC-0001 + spec AC #6 commit to:
+ships this subset:
 
 Supported keywords:
   - `type`: one of "object", "array", "string", "integer", "boolean"
@@ -16,7 +16,7 @@ Supported keywords:
   - `maxItems`: integer; array must have at most this many items
   - `contains`: subschema; array must have at least one item matching it
   - `if` / `then` / `else`: conditional subschemas (all three applied to
-    the same instance as the parent). RFC-0004's pack.schema.json uses
+    the same instance as the parent). `pack.schema.json` uses
     this trio to express "v0.2 packs require `[pack.install]`" and
     "default-scope ∈ allowed-scopes."
 
@@ -87,7 +87,7 @@ def validate(instance: Any, schema: dict, path: str = "$") -> list[str]:
     # instance is a dict — per JSON-Schema 2020-12, these keywords are
     # vacuously true for non-object instances. Gating on `expected_type ==
     # "object"` (the previous shape) caused subschemas with no `type`
-    # declaration (e.g. RFC-0004's `if`/`then` blocks) to silently skip
+    # declaration (e.g. the `if`/`then` blocks) to silently skip
     # their constraints — surprising callers and breaking the cross-field
     # `default-scope ∈ allowed-scopes` invariant. Stay safe-by-default:
     # apply when the instance matches.

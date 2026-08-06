@@ -1,6 +1,6 @@
 ---
 name: missing-dont-block
-description: Credentialed-CLI fixture missing the `### Security rules (non-negotiable)` heading; AC26(a) finding expected.
+description: Credentialed-CLI fixture missing the `### Security rules (non-negotiable)` heading; a missing-block finding is expected.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli

@@ -189,7 +189,7 @@ class UnknownAdapterTargetTests(unittest.TestCase):
 
 
 class Rfc0002RecipeLoadTests(unittest.TestCase):
-    """The three RFC-0002 recipe files load and expand to the shapes T7 needs."""
+    """The three self-host recipe files load and expand to the shapes T7 needs."""
 
     @classmethod
     def setUpClass(cls) -> None:

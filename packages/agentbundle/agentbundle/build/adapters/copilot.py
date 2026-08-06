@@ -3,8 +3,8 @@
 per-file JSON, hook bodies straight through; drops only `command`
 (copilot-cli#618/#1113).
 
-Skills use the shared `direct-directory` passthrough (docs/specs/copilot-skills-and-web
-/ RFC-0024 § Errata E2): Copilot reads `.github/skills/<name>/SKILL.md` and
+Skills use the shared `direct-directory` passthrough: Copilot reads
+`.github/skills/<name>/SKILL.md` and
 accepts our canonical Claude `SKILL.md` verbatim, so the source tree is copied
 byte-for-byte — the same mode claude-code/codex/kiro use. Agent + hook-wiring
 serialisation live in the sibling `copilot_agent_md` / `copilot_hooks_json`
@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Iterator
 
 
-# RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
+# Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.copilot_agent_md import (

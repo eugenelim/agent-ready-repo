@@ -197,7 +197,7 @@ def test_validate_dependencies_local_state_satisfies_dep():
 
 
 def test_validate_dependencies_no_local_state_misses_dep():
-    """AC23b negative: without local_state, a local-only dep fails the gate."""
+    """Negative: without local_state, a local-only dep fails the gate."""
     from agentbundle.commands.install import validate_dependencies_required
     from agentbundle.config import PackState, State
 

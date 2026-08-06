@@ -15,7 +15,7 @@ Goal-based check: run ``agentbundle build`` against the fixture packs and verify
   (h) transactional cleanup: phantom files from a prior build do not survive
       a fresh build (Blocker-4)
   (i) schema-rejection integration: source plugin.json carrying a hooks block
-      causes the build to exit non-zero (AC10 gate 1 at the pipeline layer,
+      causes the build to exit non-zero (gate 1 at the pipeline layer,
       Concern-11)
 
 Tests (a)-(d) and (g) are parametrised over all fixture packs (Concern-5
@@ -78,7 +78,7 @@ def _run_build(packs_dir: Path, output_dir: Path) -> subprocess.CompletedProcess
 
 @pytest.mark.parametrize("pack_name", FIXTURE_PACK_NAMES)
 def test_derivation_projects_pack_toml(tmp_path, pack_name):
-    """AC9 (c): pack.toml is projected byte-for-byte for every fixture pack."""
+    """Case (c): pack.toml is projected byte-for-byte for every fixture pack."""
     result = _run_build(FIXTURES_PACKS, tmp_path)
     assert result.returncode == 0, result.stderr
 
@@ -93,7 +93,7 @@ def test_derivation_projects_pack_toml(tmp_path, pack_name):
 
 @pytest.mark.parametrize("pack_name", FIXTURE_PACK_NAMES)
 def test_derivation_projects_install_marker(tmp_path, pack_name):
-    """AC9 (b): install-marker.py is projected byte-identical to the template for every pack."""
+    """Case (b): install-marker.py is projected byte-identical to the template for every pack."""
     result = _run_build(FIXTURES_PACKS, tmp_path)
     assert result.returncode == 0, result.stderr
 
@@ -114,7 +114,7 @@ def test_derivation_projects_install_marker(tmp_path, pack_name):
 
 @pytest.mark.parametrize("pack_name", FIXTURE_PACK_NAMES)
 def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
-    """AC9 (a): derived plugin.json carries the synthesised SessionStart hook for every pack.
+    """Case (a): derived plugin.json carries the synthesised SessionStart hook for every pack.
 
     Claude Code 2.1.209+ hook contract: each event entry must be an object with a
     nested "hooks" array of typed hook objects, not a flat {command} object.
@@ -152,7 +152,7 @@ def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
 
 @pytest.mark.parametrize("pack_name", FIXTURE_PACK_NAMES)
 def test_derivation_preserves_source_fields(tmp_path, pack_name):
-    """AC9 (a): derived plugin.json name/version/description match source for every pack."""
+    """Case (a): derived plugin.json name/version/description match source for every pack."""
     result = _run_build(FIXTURES_PACKS, tmp_path)
     assert result.returncode == 0, result.stderr
 
@@ -356,12 +356,12 @@ def test_make_build_check_passes_post_migration(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# AC9 sub-assertion: space in CLAUDE_PLUGIN_ROOT
+# Sub-assertion: space in CLAUDE_PLUGIN_ROOT
 # ---------------------------------------------------------------------------
 
 
 def test_shell_exec_quoting_survives_space_in_root(tmp_path):
-    """AC9 sub-assertion: the SessionStart command survives a space in CLAUDE_PLUGIN_ROOT."""
+    """Sub-assertion: the SessionStart command survives a space in CLAUDE_PLUGIN_ROOT."""
     result = _run_build(FIXTURES_PACKS, tmp_path)
     assert result.returncode == 0, result.stderr
 
@@ -394,16 +394,16 @@ def test_shell_exec_quoting_survives_space_in_root(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Schema-rejection integration (Concern-11 / AC10 gate 1 at pipeline layer)
+# Schema-rejection integration (gate 1 at the pipeline layer)
 # ---------------------------------------------------------------------------
 
 
 def test_build_rejects_source_plugin_json_with_hooks_block(tmp_path):
-    """Concern-11 / AC10 gate 1: a source plugin.json carrying a hooks block
+    """Gate 1: a source plugin.json carrying a hooks block
     must cause the build pipeline to exit non-zero and name 'hooks' or the
     offending file in the error output.
 
-    This pins AC10 gate 1 at the build-pipeline integration layer (the
+    This pins gate 1 at the build-pipeline integration layer (the
     existing schema unit tests pin it at the schema unit layer).
     """
     # Copy a fixture pack into tmp_path and mutate its source plugin.json
@@ -434,13 +434,13 @@ def test_build_rejects_source_plugin_json_with_hooks_block(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# apm-install-route-parity AC8 / T4 — claude-plugins-side projection grows the
+# T4 — claude-plugins-side projection grows the
 # --install-route flag.
 # ---------------------------------------------------------------------------
 
 
 def test_claude_plugins_hook_command_now_passes_flag(tmp_path):
-    """apm-install-route-parity AC8 / T4: the projected claude-plugins
+    """T4: the projected claude-plugins
     SessionStart command now ends with `--install-route claude-plugins`.
 
     Run `make build` against the fixture packs and assert the literal

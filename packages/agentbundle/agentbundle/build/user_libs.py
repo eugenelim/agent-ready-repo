@@ -38,7 +38,8 @@ Like ``adapter-root-bins``/``shared-libs``, ``user-libs`` is a
 build-pipeline-only primitive: it has no per-adapter projection rules (its
 target is ``.agentbundle/lib/``, fenced by ``allowed-prefixes.<scope>``, not
 a per-adapter target path), so adding it does **not** bump the
-adapter-contract version (precedent: RFC-0013 added both build-only
+adapter-contract version (precedent: the credential-broker change added
+both build-only
 primitives within v0.7 — see ``de790fe``).
 
 **Non-monorepo invocation.** The package source only ever exists in the

@@ -1,4 +1,4 @@
-"""T7: build-pipeline phase-order invariant — RFC-0005.
+"""T7: build-pipeline phase-order invariant.
 
 Per the build-pipeline ordering invariant, the pipeline projects
 primitives in fixed order **`hook-body` → `agent` → `hook-wiring` →
@@ -60,7 +60,7 @@ class PhaseOrderExecutionTests(unittest.TestCase):
     These tests instrument the adapter's primitive-iterator entry
     point at runtime — wrapping ``_iter_primitives`` so we capture
     what the live ``project()`` call actually consumes, not just what
-    the helper would yield in isolation. AC16 demands the
+    the helper would yield in isolation. The invariant demands the
     *observed* order from the *running* pipeline; tautological tests
     that just iterate the helper in isolation would pass a no-op
     implementation."""
@@ -107,7 +107,7 @@ class PhaseOrderExecutionTests(unittest.TestCase):
             self.assertIn("hook-wiring", order)
             self.assertIn("hook-body", order)
             # `agent` must precede `hook-wiring` — the merge target
-            # invariant. AC16's load-bearing assertion.
+            # invariant. The load-bearing assertion.
             self.assertLess(
                 order.index("agent"),
                 order.index("hook-wiring"),
@@ -164,7 +164,7 @@ class PhaseOrderExecutionTests(unittest.TestCase):
 
 
 class KiroHookWiringMergeDuringBuildTests(unittest.TestCase):
-    """AC15 end-to-end: ``merge-into-agent-json`` fires during
+    """End-to-end: ``merge-into-agent-json`` fires during
     ``kiro.project()`` when a pack ships both an agent and a wiring
     TOML naming that agent. T6 shipped the merge engine; T7 wires it
     into the kiro adapter's pipeline. This test pins the integration:

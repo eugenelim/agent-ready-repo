@@ -1,6 +1,6 @@
 """T21: adapt walks both state files; writes per-scope pending reports.
 
-Verifies AC #(RFC-0004) for the agent-spec-cli spec § *adapt
+Verifies the agent-spec-cli adapt
 dual-state-file walk*:
 
   - adapt writes per-scope `.adapt-pending.md` at

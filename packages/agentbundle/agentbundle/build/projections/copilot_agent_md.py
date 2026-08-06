@@ -30,7 +30,7 @@ official custom-agents reference documents ``web`` with aliases ``WebSearch`` /
 ``WebFetch`` on the CLI + app (the only non-coverage is the Copilot *cloud
 agent*, which we serve only via repo ``.github/``). So ``research``'s retrieval
 subagents keep live web access on Copilot CLI/app; they are **not** degraded
-there. (RFC-0024 § Errata E1 / docs/specs/copilot-skills-and-web corrected the
+there. (A later correction changed the
 earlier "no web tool" finding, which a confounded 1.0.59 probe produced.) A
 token in no set raises ``ValueError`` rather than passing through to be
 silently ignored by Copilot — which would drop a needed capability invisibly.

@@ -7,7 +7,7 @@ asserts only the higher-tier line fires; the lower-tier line must be
 absent (i.e., evaluation short-circuited before the lower tier ran).
 
 Tier order per spec § *Boundaries — Always do* (refusal-ordering
-invariant) and RFC-0012 § *Pinned refusal messages*' closing paragraph:
+invariant) and the pinned-refusal-message rule's closing paragraph:
 
   1. ``scope.resolve()`` declared-scope refusals
      (``<pack>: scope '<requested>' not in allowed-scopes <set>``)
@@ -34,7 +34,7 @@ Cases covered:
 The tests pass today by construction. They fail if anyone reorders the
 install handler's checks (e.g., moves the handler-level mutex above
 ``scope.resolve()``, or invokes the resolver before the mutex). Per
-spec AC30b's own framing: "without this witness, a refactor that
+the spec's own framing: "without this witness, a refactor that
 reorders the tiers passes every per-tier test."
 """
 

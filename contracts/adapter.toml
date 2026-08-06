@@ -641,7 +641,7 @@ mode = "merge-json"
 target-path = ".cursor/hooks.json"
 managed-key = "hooks"
 on-conflict = "merge-managed-key-only"
-# Hook-event map (decision 4). Our hook-wiring source uses Claude-
+# Hook-event map. Our hook-wiring source uses Claude-
 # native PascalCase event names (e.g. `[[hooks.SessionStart]]`); Cursor's
 # hooks.json uses camelCase event keys. cursor.py's merge helper reads this
 # table to translate each source event; a source event with no entry here is
@@ -734,7 +734,7 @@ mode = "merge-json"
 target-path = ".gemini/settings.json"
 managed-key = "hooks"
 on-conflict = "merge-managed-key-only"
-# Hook-event map (decision 6). Our hook-wiring source uses Claude-native
+# Hook-event map. Our hook-wiring source uses Claude-native
 # PascalCase event names (e.g. `[[hooks.SessionStart]]`); Gemini's settings.json
 # uses its own event vocabulary. gemini.py's settings-merge helper reads this table
 # to translate each source event; a source event with no entry here **fails the
@@ -742,7 +742,7 @@ on-conflict = "merge-managed-key-only"
 # cursor's fail-open drop-with-log). The map lives in the contract, not the adapter
 # code.
 hook-event-map = { SessionStart = "SessionStart", SessionEnd = "SessionEnd", UserPromptSubmit = "BeforeAgent", PreToolUse = "BeforeTool", PostToolUse = "AfterTool", Stop = "AfterAgent" }
-# Static `context.fileName` bridge (decision 5). gemini.py's settings-merge
+# Static `context.fileName` bridge. gemini.py's settings-merge
 # helper emits `context = { fileName = <this list> }` into the same `.gemini/settings.json`
 # so Gemini CLI reads the canonical `AGENTS.md` (and `GEMINI.md` if present). Data
 # lives in the contract, not a literal in code; written in the single hook-wiring

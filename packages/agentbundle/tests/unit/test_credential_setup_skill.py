@@ -1,4 +1,4 @@
-"""T7 (credential-broker-contract): credential-setup skill body — AC18 / AC19.
+"""T7 (credential-broker contract): credential-setup skill body.
 
 Verifies:
 - SKILL.md carries the verbatim phrase "interactive, user-invoked, do not auto-run"
@@ -96,7 +96,7 @@ def test_ac19_reserved_sso_namespace_refused(tmp_path):
 
 
 def test_ac18_argv_ban_refused(tmp_path):
-    """AC18 / argv-ban: setup.py refuses --token / --api-token / etc.
+    """setup.py refuses --token / --api-token / etc.
     on the command line."""
     if subprocess.run([sys.executable, "-c", "import credbroker"], capture_output=True).returncode != 0:  # noqa: E501
         pytest.skip("credbroker not installed")
@@ -168,7 +168,7 @@ def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
 
 
 def test_setup_py_imports_from_credbroker():
-    """AC25 / `auth: creds` lint: setup.py resolves via the credbroker library
+    """`auth: creds` lint: setup.py resolves via the credbroker library
     (— migrated off the build-projected `credentials_shim` sibling)."""
     body = SETUP_PY.read_text(encoding="utf-8")
     assert "from credbroker import" in body

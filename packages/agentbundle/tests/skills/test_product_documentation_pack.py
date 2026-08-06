@@ -3,18 +3,18 @@
 Verifies the structural and behavioural invariants that cannot be caught
 by reading the skill at inference time:
 
-- AC1  (spec): author-product-docs SKILL.md exists at the expected source path.
-- AC2  (spec): the compat pack (user-guide-diataxis) declares product-documentation
+- Case (spec): author-product-docs SKILL.md exists at the expected source path.
+- Case (spec): the compat pack (user-guide-diataxis) declares product-documentation
               as a required dependency in its pack.toml; new-guide shim routes
               to author-product-docs.
-- AC4  (spec): skill body explicitly states portability ("This skill is portable")
+- Case (spec): skill body explicitly states portability ("This skill is portable")
               and anti-patterns section forbids writing to docs/guides/ for
               external product users.
-- AC6  (spec): no seeds/ directory under packs/product-documentation/
+- Case (spec): no seeds/ directory under packs/product-documentation/
               (four-quadrant scaffold removed).
-- AC25 (spec): skill names are distinct — new-guide vs author-product-docs —
+- Case (spec): skill names are distinct — new-guide vs author-product-docs —
               so a simultaneous install produces no file-level collision.
-- AC26 (spec): allowed-scopes = ["repo", "user"].
+- Case (spec): allowed-scopes = ["repo", "user"].
 """
 
 from __future__ import annotations
@@ -57,7 +57,7 @@ def product_pack_toml() -> dict:
     return tomllib.loads(path.read_text(encoding="utf-8"))
 
 
-# ── AC1: SKILL.md exists ──────────────────────────────────────────────────────
+# ── SKILL.md exists ───────────────────────────────────────────────────────────
 
 
 def test_author_product_docs_skill_exists():
@@ -68,7 +68,7 @@ def test_author_product_docs_skill_exists():
     )
 
 
-# ── AC6: no seeds/ directory ──────────────────────────────────────────────────
+# ── No seeds/ directory ───────────────────────────────────────────────────────
 
 
 def test_product_documentation_has_no_seeds_dir():
@@ -87,7 +87,7 @@ def test_product_documentation_has_no_seeds_dir():
     )
 
 
-# ── AC2: compat pack declares dependency ─────────────────────────────────────
+# ── Compat pack declares dependency ──────────────────────────────────────────
 
 
 def test_compat_pack_depends_on_product_documentation(compat_pack_toml):
@@ -104,7 +104,7 @@ def test_compat_pack_depends_on_product_documentation(compat_pack_toml):
     )
 
 
-# ── AC2: new-guide shim routes to author-product-docs ────────────────────────
+# ── New-guide shim routes to author-product-docs ─────────────────────────────
 
 
 def test_new_guide_shim_references_author_product_docs(new_guide_shim_body):
@@ -117,7 +117,7 @@ def test_new_guide_shim_references_author_product_docs(new_guide_shim_body):
     )
 
 
-# ── AC25: distinct skill names → no install collision ────────────────────────
+# ── Distinct skill names → no install collision ──────────────────────────────
 
 
 def test_skill_names_are_distinct():
@@ -142,7 +142,7 @@ def test_skill_names_are_distinct():
     )
 
 
-# ── AC4: portability clause ───────────────────────────────────────────────────
+# ── Portability clause ────────────────────────────────────────────────────────
 
 
 def test_author_skill_declares_portability(author_skill_body):
@@ -157,7 +157,7 @@ def test_author_skill_declares_portability(author_skill_body):
     )
 
 
-# ── AC4: anti-pattern guards external docs/guides/ misrouting ────────────────
+# ── Anti-pattern guards external docs/guides/ misrouting ─────────────────────
 
 
 def test_author_skill_anti_pattern_forbids_docs_guides_for_external(author_skill_body):
@@ -184,7 +184,7 @@ def test_author_skill_anti_pattern_forbids_docs_guides_for_external(author_skill
     )
 
 
-# ── AC26: allowed-scopes = ["repo", "user"] ──────────────────────────────────
+# ── Allowed-scopes = ["repo", "user"] ────────────────────────────────────────
 
 
 def test_product_documentation_allowed_scopes(product_pack_toml):

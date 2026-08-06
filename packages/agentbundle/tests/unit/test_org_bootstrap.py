@@ -323,7 +323,7 @@ def test_org_bootstrap_repository_slash_raises():
 
 
 def test_org_bootstrap_repository_dotdot_raises():
-    """AC12 defense-in-depth: repository = '..' → CatalogueError naming repository."""
+    """Defense-in-depth: repository = '..' → CatalogueError naming repository."""
     text = (
         '[organization.artifactory]\nenabled = true\n'
         'base-url = "https://example.test/art"\n'
@@ -395,7 +395,7 @@ def test_org_bootstrap_bundle_invalid_raises():
 
 
 def test_org_bootstrap_bundle_dotdot_raises():
-    """AC13 defense-in-depth: bundle = '..' → CatalogueError naming bundle."""
+    """Defense-in-depth: bundle = '..' → CatalogueError naming bundle."""
     text = (
         '[organization.artifactory]\nenabled = true\n'
         'base-url = "https://example.test/art"\n'
@@ -419,7 +419,7 @@ def test_org_bootstrap_channel_slash_raises():
 
 
 def test_org_bootstrap_channel_dotdot_raises():
-    """AC14 defense-in-depth: channel = '..' → CatalogueError naming channel."""
+    """Defense-in-depth: channel = '..' → CatalogueError naming channel."""
     text = (
         '[organization.artifactory]\nenabled = true\n'
         'base-url = "https://example.test/art"\n'
@@ -563,19 +563,19 @@ def test_org_bootstrap_is_valid_source_accepts_constructed_url():
 
 
 def test_read_org_bootstrap_disabled_returns_none():
-    """AC4 via public API: disabled TOML → None."""
+    """Via public API: disabled TOML → None."""
     result = read_org_bootstrap(read_text=lambda: (_DISABLED_ORG_TOML, "mock-path"))
     assert result is None
 
 
 def test_read_org_bootstrap_valid_returns_url():
-    """AC5 via public API: valid enabled = true TOML → constructed URL."""
+    """Via public API: valid enabled = true TOML → constructed URL."""
     result = read_org_bootstrap(read_text=lambda: (_VALID_ORG_TOML, "mock-path"))
     assert result == _CONSTRUCTED_URL
 
 
 def test_read_org_bootstrap_invalid_raises():
-    """AC19 prerequisite: invalid base-url propagates CatalogueError."""
+    """Prerequisite: invalid base-url propagates CatalogueError."""
     bad_toml = (
         '[organization.artifactory]\nenabled = true\n'
         'base-url = "http://example.test/art"\n'
@@ -654,7 +654,7 @@ def test_resolve_layer3_fail_closed_does_not_fall_through():
 
 
 def test_resolve_layer1_beats_layer3():
-    """AC18 extension: Layer 1 explicit arg wins; read_org is never called."""
+    """Extension: Layer 1 explicit arg wins; read_org is never called."""
     called: list[bool] = []
 
     def _read_org_spy() -> str | None:

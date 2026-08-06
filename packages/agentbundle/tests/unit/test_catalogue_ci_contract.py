@@ -6,7 +6,7 @@ All tests use subprocess invocation to exercise the real CLI surface, not
 internal imports.
 
 Verification modes per plan.md:
-  T7 — TDD: AC16 (JSON output, exit codes, package layout)
+  T7 — TDD: JSON output, exit codes, package layout
 """
 
 from __future__ import annotations

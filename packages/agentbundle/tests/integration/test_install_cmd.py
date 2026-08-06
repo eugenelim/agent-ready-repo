@@ -86,8 +86,8 @@ def test_brownfield_tier2_gets_companion_not_overwrite(tmp_path):
     """A pre-existing adopter-edited file (Tier-2) must not be
     overwritten; a .upstream.<ext> companion must appear instead.
 
-    Pre-RFC-0004 this test pre-seeded `.agentbundle-state.toml` with the
-    same pack at an old SHA to force Tier-2 detection. Post-RFC-0004
+    This test used to pre-seed `.agentbundle-state.toml` with the
+    same pack at an old SHA to force Tier-2 detection. Now
     install refuses against a pack already installed at the requested
     scope (spec § *Dual-scope install conflict*); pre-seeding the same
     pack would short-circuit before Tier classification. The new shape
@@ -406,10 +406,10 @@ def test_reinstall_preserves_mixed_version_primitives(tmp_path):
     ))
     assert rc == 0
 
-    # 2. Post-RFC-0004: re-install is refused with the spec-named message.
+    # 2. Re-install is refused with the spec-named message.
     #    The previous shape of this test (re-install carries forward
     #    `primitive_versions` from prior state) is incompatible with the
-    #    RFC-0004 contract; primitive-version carry-forward is now
+    #    contract; primitive-version carry-forward is now
     #    `upgrade`'s job, not `install`'s.
     buf = io.StringIO()
     with contextlib.redirect_stderr(buf):

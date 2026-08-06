@@ -5,7 +5,6 @@ plus filesystem-shaped tests of the wrapper `check_kiro_wiring`. Pack-
 shaped dicts are constructed inline; no on-disk fixture packs are used
 (those land in T3 and exercise the same rails via the integration path).
 
-Acceptance criterion the rail covers: spec AC6.
 Refusal text:
     pack <P>'s hook-wiring <name>.toml does not declare 'attach-to-agent'
     (or names an unknown agent); required for kiro projection
@@ -126,7 +125,7 @@ class InMemoryRailNonKiroTargetTests(unittest.TestCase):
     """Rail is a no-op when kiro isn't in target_adapters — Claude-Code-only packs."""
 
     def test_claude_code_only_with_attach_to_agent_accepted(self) -> None:
-        """AC6 / plan T2: a Claude-Code-only pack with `attach-to-agent` present
+        """T2: a Claude-Code-only pack with `attach-to-agent` present
         — the field is ignored, not refused."""
         from agentbundle.build.scope_rails import check_kiro_attach_to_agent
 
@@ -181,7 +180,7 @@ class InMemoryRailEmptyWiringTests(unittest.TestCase):
 class FilesystemWrapperTests(unittest.TestCase):
     """`check_kiro_wiring` reads from disk, parses each wiring TOML with
     tomllib, and delegates to the in-memory rail. A malformed wiring TOML
-    refuses on its own (per RFC-0005's refuse-and-explain pattern)."""
+    refuses on its own (the refuse-and-explain pattern)."""
 
     def _make_pack(self, tmp_path: Path, *, wiring: dict[str, str], agents: list[str]) -> Path:
         pack = tmp_path / "demo-pack"

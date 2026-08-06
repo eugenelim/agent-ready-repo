@@ -626,7 +626,7 @@ class _WorkspaceStatusTool:
         shaping_items: list[dict] = []
         active_items: list[dict] = []
 
-        # Active work items (AC8: "active" key)
+        # Active work items (the "active" key)
         for ini in result.initiatives:
             if ini.status not in ("active",):
                 continue

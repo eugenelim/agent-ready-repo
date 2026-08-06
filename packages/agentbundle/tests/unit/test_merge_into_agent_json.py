@@ -14,13 +14,13 @@ Covers spec ACs:
            (name, description, etc.) untouched.
   - Uninstall removes wiring-owned entries from the agent JSON;
            the agent file itself remains.
-  - AC17 (validate-time) — covered by scope_rails tests in
+  - Case (validate-time) — covered by scope_rails tests in
            `test_kiro_event_vocabulary.py`; this file's vocabulary
            tests pin the rail-output shape against the projection
            module.
 
 Plus internal failure modes:
-  - Missing agent file at merge time refuses with the RFC-0005
+  - Missing agent file at merge time refuses with the contract's
     `internal: <agent-file> missing` text (pipeline-ordering invariant
     violation; reachable only via test instrumentation).
   - Unparseable agent JSON refuses with the `cannot parse` text.
@@ -144,7 +144,7 @@ class UninstallTests(unittest.TestCase):
             self.assertEqual(ids, ["beta:h"])
 
     def test_uninstall_keeps_agent_file_in_place(self) -> None:
-        """RFC-0005 § Uninstall: the agent file itself stays — the
+        """On uninstall the agent file itself stays — the
         agent primitive's `direct-file` uninstall removes it."""
         from agentbundle.build.projections.merge_into_agent_json import (
             project,

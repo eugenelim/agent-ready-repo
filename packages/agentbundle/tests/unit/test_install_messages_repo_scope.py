@@ -1,5 +1,5 @@
 """Unit tests for the install-time message rail at repo scope
- and the route-list formatting helper.
+and the route-list formatting helper.
 
 Covers:
 
@@ -208,7 +208,7 @@ class OrphanRefusalTests(unittest.TestCase):
         return argv + ["--output", str(adopter), str(packs_dir)]
 
     def test_orphan_force_confirm_lists_files_and_proceeds_on_yes(self) -> None:
-        """CLI-hygiene AC6: the orphan (c) --force confirm lists the exact files
+        """CLI hygiene: the orphan (c) --force confirm lists the exact files
         and proceeds on a TTY 'y'."""
         import io
         from contextlib import redirect_stderr
@@ -233,7 +233,7 @@ class OrphanRefusalTests(unittest.TestCase):
             self.assertFalse(orphan.exists(), "confirmed --force must remove the orphan")
 
     def test_orphan_force_confirm_decline_deletes_nothing(self) -> None:
-        """CLI-hygiene AC6: declining the orphan --force confirm deletes nothing."""
+        """CLI hygiene: declining the orphan --force confirm deletes nothing."""
         import io
         from contextlib import redirect_stderr
         from unittest.mock import patch
@@ -255,7 +255,7 @@ class OrphanRefusalTests(unittest.TestCase):
             self.assertTrue(orphan.exists(), "a declined --force must delete nothing")
 
     def test_orphan_force_non_tty_without_yes_refuses_zero_deletions(self) -> None:
-        """CLI-hygiene AC7: a non-TTY orphan --force without --yes refuses and
+        """CLI hygiene: a non-TTY orphan --force without --yes refuses and
         leaves the orphan on disk."""
         import io
         from contextlib import redirect_stderr

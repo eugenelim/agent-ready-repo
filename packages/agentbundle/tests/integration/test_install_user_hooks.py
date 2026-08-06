@@ -2,7 +2,7 @@
 engines (user_merge_json for Claude Code; merge_into_agent_json for
 Kiro) and writes hook-wiring-owned state rows.
 
-Covers spec ACs AC11; the CLI binding rails
+Covers the CLI binding rails
 for the new ``--force-merge`` flag also live here.
 """
 
@@ -167,7 +167,7 @@ class KiroUserHooksInstallTests(_UserScopeInstallBase):
 
 
 class ForceMergeFlagBindingTests(unittest.TestCase):
-    """AC12 binding rails for ``--force-merge``:
+    """Binding rails for ``--force-merge``:
     - Bound to ``install`` verb (other verbs refuse with
       ``unknown flag for <verb>: --force-merge``).
     - Bound to ``--scope user``.
@@ -307,7 +307,7 @@ class AttachToAgentPathTraversalRefusedTests(_UserScopeInstallBase):
 
 
 class KiroAliasRefusesUserScopeHooksLikeKiroIdeTests(_UserScopeInstallBase):
-    """RFC-0022 / kiro-install-alias-parity AC2: the deprecated ``kiro`` alias
+    """kiro-install-alias parity: the deprecated ``kiro`` alias
     must make the SAME user-scope decision as ``kiro-ide``. kiro-ide has no
     user-scope hook-wiring mode, so a ``user-scope-hooks = true`` pack is
     REFUSED — not silently accepted-and-dropped. The legacy

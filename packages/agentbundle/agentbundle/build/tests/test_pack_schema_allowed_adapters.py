@@ -131,7 +131,7 @@ class TestValidateAllowedAdaptersCrossField(unittest.TestCase):
         # Copilot is now a
         # user-scope-capable adapter (`[adapter.copilot.scope].user`), so a
         # user-scope pack declaring it is **accepted** — the inverse of the
-        # repo-only refusal RFC-0012 recorded. (`research`, a user-scope-default
+        # repo-only refusal recorded at v0.7. (`research`, a user-scope-default
         # pack, ships exactly this.)
         pack = _v06_pack(
             install={

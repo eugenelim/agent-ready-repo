@@ -1,4 +1,4 @@
-"""credbroker test-suite hardening (fallback) / AC2 / AC3 / AC4 / AC5 / AC7 / AC8 / AC9.
+"""credbroker test-suite hardening (fallback).
 
 _cs_check_dotfile_read retained fallback substring scan catches the literal
         keyword-arg open(file="<path>") form that the AST branch misses (defense-in-depth).
@@ -35,7 +35,7 @@ _CANONICAL_SHIM_SRC = (
 _SHIM_SOURCE_DIR = _CANONICAL_SHIM_SRC.parent
 
 
-# ── AC9: _load_cli_module helper ─────────────────────────────────────────────
+# ── _load_cli_module helper ──────────────────────────────────────────────────
 
 def _load_cli_module(py_path: pathlib.Path) -> types.ModuleType:
     """Load a Python file as a module via importlib, prepending its parent
@@ -65,11 +65,11 @@ _BROKER_PY = (
 )
 
 
-# ── AC9: smoke-test that _load_cli_module works ───────────────────────────────
+# ── Smoke-test that _load_cli_module works ────────────────────────────────────
 
 
 def test_load_cli_module_loads_broker():
-    """AC9 exercise: _load_cli_module can load sso-broker.py and the
+    """Exercise: _load_cli_module can load sso-broker.py and the
     returned module exposes the expected top-level names."""
     if not _BROKER_PY.is_file():
         pytest.skip("sso-broker.py not present in this checkout")
@@ -84,7 +84,7 @@ def test_load_cli_module_loads_broker():
     )
 
 
-# ── AC7 / AC8: _is_canonical_shim path-anchor ────────────────────────────────
+# ── _is_canonical_shim path-anchor ───────────────────────────────────────────
 
 
 class TestIsCanonicalShimPathAnchor:
@@ -120,7 +120,7 @@ class TestIsCanonicalShimPathAnchor:
         assert _cs_is_canonical_shim(shim, _SHIM_SOURCE_DIR) is True
 
 
-# ── AC2 / AC3 / AC4 / AC5: _cs_check_dotfile_read ───────────────────────────
+# ── _cs_check_dotfile_read ──────────────────────────────────────────────────
 
 
 class TestD3CheckDotfileRead:
@@ -193,7 +193,7 @@ class TestD3CheckDotfileRead:
         )
 
     def test_fallback_substring_scan_caught(self, tmp_path: pathlib.Path) -> None:
-        """AC1 defense-in-depth: keyword-arg open() evades the AST branch but is
+        """Defense-in-depth: keyword-arg open() evades the AST branch but is
         caught by the retained fallback substring scan.
 
         _cs_check_dotfile_read's AST branch requires a positional arg in node.args;

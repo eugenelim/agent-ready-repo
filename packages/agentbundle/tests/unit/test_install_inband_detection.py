@@ -7,7 +7,7 @@ short-circuits to silence on subsequent calls.
   - **(b) Shape-mismatch.** ``state.toml`` has a row for the pack AND
     dist-tree files exist at ``<repo>/claude-plugins/<pack>/`` or
     ``<repo>/apm/<pack>/``. Pinned stderr names the dist-tree paths to
-    remove. ``--force`` cleans dist-tree and proceeds (AC25(vi)).
+    remove. ``--force`` cleans dist-tree and proceeds.
 
   - **(a) Adapter disagreement.** ``state.toml`` has a row for the pack
     with a recorded ``adapter`` AND resolver's pick disagrees AND no
@@ -16,13 +16,13 @@ short-circuits to silence on subsequent calls.
     the corrective action.
 
   - **(c) Orphan recovery.** No state row but per-IDE artifacts exist
-    under the resolved adapter's ``allowed-prefixes.repo``. The AC22
+    under the resolved adapter's ``allowed-prefixes.repo``. The orphan
     refusal path (already covered in :mod:`test_install_messages_repo_scope`)
     extended here to pin precedence-chain semantics and once-per-session
     short-circuit.
 
 Detection runs only on the per-IDE install code path —
-``--scope repo`` without ``--emit-install-routes`` (spec AC24
+``--scope repo`` without ``--emit-install-routes`` (the
 narrowed-inference rule). ``--emit-install-routes`` short-circuits
 before detection.
 """
@@ -177,7 +177,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             self.assertIn("rerun with --force", stderr)
 
     def test_b_force_cleans_dist_tree_and_proceeds(self) -> None:
-        """AC25(vi): ``--force`` is the corrective action for (b). It
+        """``--force`` is the corrective action for (b). It
         must (1) delete the dist-tree subtrees, (2) drop the stale
         state row so Step 4 doesn't re-refuse with "use 'upgrade'",
         and (3) let the install complete cleanly with the per-IDE
@@ -321,7 +321,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
         _clear_session_set()
 
     def test_per_pack_evaluation_b_for_a_then_c_for_b(self) -> None:
-        """Spec AC24 (b)+(c) overlap fixture. Two packs share the adopter:
+        """Case (b)+(c) overlap fixture. Two packs share the adopter:
         pack A has a state row + dist-tree files (fires (b)); pack B has
         orphan per-IDE files but no state row (fires (c)).
 
@@ -382,7 +382,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
         row, no on-disk files of its own). Before per-pack scoping
         landed, the trigger surfaced pack A's paths with pack
         B's name in the stderr line — the cross-pack false positive
-        ROADMAP named as the only open RFC-0012 follow-on.
+        ROADMAP named as the only open per-IDE-projection follow-on.
 
         Post-fix, the scan walks pack B's source for owned primitive
         names (``bpack``, ``bpack-skill``), finds no match against
@@ -457,7 +457,7 @@ class PrecedenceAndSessionShortCircuitTests(unittest.TestCase):
 
 
 class EmitInstallRoutesBypassesDetectionTests(unittest.TestCase):
-    """Spec AC24 narrowed-inference rule: detection runs only on the
+    """Narrowed-inference rule: detection runs only on the
     per-IDE install code path (``--scope repo`` without
     ``--emit-install-routes``). The dist-tree producer must NOT trigger
     (b) on its own legitimate output."""
@@ -494,7 +494,7 @@ if __name__ == "__main__":
 
 
 class ForceCleanupConfirmTests(unittest.TestCase):
-    """CLI-hygiene AC6/AC7: the ``--force`` destructive cleanup (trigger (b))
+    """CLI hygiene: the ``--force`` destructive cleanup (trigger (b))
     lists what it removes and confirms before deleting."""
 
     def setUp(self) -> None:
@@ -548,7 +548,7 @@ class ForceCleanupConfirmTests(unittest.TestCase):
                 (adopter / "claude-plugins" / "demo" / "plugin.json").exists(),
                 "a declined --force must delete nothing",
             )
-            # AC6 atomicity: decline must not pop the state row or rewrite
+            # Atomicity: decline must not pop the state row or rewrite
             # state either — the whole destructive block is gated.
             import tomllib
 

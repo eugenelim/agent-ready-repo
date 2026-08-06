@@ -238,7 +238,7 @@ def _dispatch_table_form(
         if target_template:
             _project_direct_file_template(source_dir, output_root, target_template)
     elif primitive_name == "kiro-ide-hook" and effective_mode == "direct-file":
-        # RFC-0005 v0.4 — IDE event hooks via the kiro-ide-hook primitive.
+        # v0.4 — IDE event hooks via the kiro-ide-hook primitive.
         # Delegate the file-walk, JSON-parse, and `${hook-body:<name>}`
         # expansion to the dedicated projection module so the wiring
         # here stays mechanical.
@@ -278,7 +278,7 @@ def _project_agent_as_json(
     The mapping table on the contract retains its `rename` / `normalize`
     grammar; what changes from v0.2 is the *emission* — JSON instead
     of frontmatter-with-body markdown — which closes the spec/Kiro-docs
-    drift RFC-0005's "observed-but-not-publicly-documented" drawback
+    drift the "observed-but-not-publicly-documented" drawback
     flagged.
     """
     target_dir = output_root / rule["target-path"].rstrip("/")
@@ -348,7 +348,7 @@ def _project_hook_wiring_to_agent_json(
     phase-order invariant ensures agent projection ran first
     (`_iter_primitives` yields `agent` before `hook-wiring`). If the
     wiring TOML's `attach-to-agent` names an agent the pack didn't
-    ship, the merge module refuses with the RFC-0005 `internal:` text.
+    ship, the merge module refuses with the `internal:` text.
 
     Pack-side validation already refused malformed wiring TOMLs at
     `validate` time (T2's `check_kiro_wiring`), so by the time we
@@ -383,7 +383,7 @@ def _project_hook_wiring_to_agent_json(
     for attach_to_agent, wiring_tomls in wiring_by_agent.items():
         resolved = target_template.replace("<attach-to-agent>", attach_to_agent)
         target_path = output_root / resolved.lstrip("/")
-        # Let AgentJsonRefusal propagate. RFC-0005 names the reachable
+        # Let AgentJsonRefusal propagate. The contract names the reachable
         # cases — missing agent (pipeline-ordering invariant violation),
         # unparseable JSON, wrong-shape `hooks` — all of which are bugs
         # at build time, not adopter-fixable conditions. Silently

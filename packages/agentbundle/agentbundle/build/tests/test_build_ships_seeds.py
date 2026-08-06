@@ -1,7 +1,7 @@
 """T5 (issue #190 Finding 1, dist half): the per-pack APM and Claude-plugin
 build recipes ship the pack's seeds/ inside the artifact.
 
-RFC-0001 §595 (APM) + §281-284 (both routes) require a pack's governance seeds
+Both install routes require a pack's governance seeds
 to travel inside the published artifact so the content is available on every
 install route. The build never copied seeds/; this test drives the real build
 pipeline against a seed-bearing temp pack and asserts seeds land in both

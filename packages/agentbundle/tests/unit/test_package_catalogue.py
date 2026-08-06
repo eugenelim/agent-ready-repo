@@ -695,7 +695,7 @@ def test_write_channel_descriptor_sha256_matches_sidecar(tmp_path: Path) -> None
 
 
 def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
-    """AC3."""
+    """Manifest sha256 matches the archived bytes."""
     root = _make_fixture_catalogue(
         tmp_path,
         extra_dirs=["build", "tests", ".git"],
@@ -856,7 +856,7 @@ def test_package_catalogue_source_date_epoch_in_manifest(tmp_path: Path) -> None
 
 
 def test_package_catalogue_generated_at_no_microseconds(tmp_path: Path) -> None:
-    """AC9 format: generated_at must not contain a microsecond component."""
+    """Format: generated_at must not contain a microsecond component."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
 
@@ -997,7 +997,7 @@ def test_package_catalogue_empty_source_date_epoch_treated_as_unset(tmp_path: Pa
 
 
 def test_package_catalogue_published_at_default(tmp_path: Path) -> None:
-    """AC19 default: published_at is a valid ISO-8601 UTC timestamp without microseconds."""
+    """Default: published_at is a valid ISO-8601 UTC timestamp without microseconds."""
     root = _make_fixture_catalogue(tmp_path)
     output = tmp_path / "output"
     args = _make_args(root, output=output, published_at=None)

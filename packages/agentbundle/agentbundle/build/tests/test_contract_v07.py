@@ -1,5 +1,5 @@
-"""Tests for adapter-contract v0.7 (RFC-0012 / repo-scope-per-adapter-projection
-and RFC-0013 / credential-broker-contract co-residing at v0.7).
+"""Tests for adapter-contract v0.7 (repo-scope per-adapter projection and
+the credential-broker contract, co-residing at v0.7).
 
 Verifies the T1 edits landed:
 
@@ -7,8 +7,8 @@ Verifies the T1 edits landed:
     (`_data/adapter.toml`) and the docs mirror
     (`contracts/adapter.toml`). The two files must stay byte-
     aligned per the v0.3-schema sync test; this module pins the
-    version on both as belt-and-braces (for both RFCs).
-  - **RFC-0012 surface:**
+    version on both as belt-and-braces.
+  - **Per-adapter-projection surface:**
     * ``[adapter.copilot.scope]`` exists with ``repo = "."``,
       ``allowed-prefixes.repo`` enumerating the per-IDE skill /
       hook-body targets, and NO ``user`` key (Copilot is admissible
@@ -17,7 +17,7 @@ Verifies the T1 edits landed:
       non-empty list of trailing-slash strings.
     * Schema validator refuses fixtures that omit the ``repo`` key
       or ``allowed-prefixes.repo`` from any adapter's scope table.
-  - **RFC-0013 surface:**
+  - **Credential-broker surface:**
     * Each user-scope-capable adapter (`claude-code`, `kiro`, `codex`)
       still carries `.agentbundle/` in `allowed-prefixes.user`
       (non-regression — the prefix is what `metadata.auth: creds`
@@ -63,7 +63,8 @@ class TestContractV07(unittest.TestCase):
         )
 
     def test_contract_version_is_07(self) -> None:
-        """RFC-0012 + RFC-0013 + dropped-primitives-coverage co-residing at v0.8.
+        """Per-adapter projection + credential broker + dropped-primitives
+        coverage, co-residing at v0.8.
 
         Name preserved to keep the diff small; the v0.7 invariants below
         remain load-bearing post-v0.8 bump because dropped-primitives-coverage
@@ -129,7 +130,8 @@ class TestContractV07(unittest.TestCase):
 
     def test_existing_user_prefixes_invariants(self) -> None:
         """Property-based assertion — every user-scope-capable adapter's
-        prefix list still carries its load-bearing entries. RFC-0013's
+        prefix list still carries its load-bearing entries. The
+        credential-broker
         `.agentbundle/` non-regression rolls into this same shape."""
         cc = self.contract["adapter"]["claude-code"]["scope"]
         cc_user = cc["allowed-prefixes"]["user"]

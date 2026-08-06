@@ -1,6 +1,6 @@
 """T4: _common.py — resolve_state_path handles 'local' scope.
 
-Verifies AC6: resolve_state_path("local", root) returns
+Verifies that resolve_state_path("local", root) returns
 root / ".agentbundle-local-state.toml".
 """
 

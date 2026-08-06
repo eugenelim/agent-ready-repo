@@ -29,7 +29,7 @@ _SCRIPTS = ("workspace_status.py", "workspace_status_engine.py")
 
 
 class SourceInvariantTests(unittest.TestCase):
-    """AC1 + AC9 precondition: source scripts must exist in the pack."""
+    """Precondition: source scripts must exist in the pack."""
 
     _scripts_dir = CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts"
 
@@ -174,7 +174,7 @@ class AdapterProjectionTests(unittest.TestCase):
 
 
 class RealTreeProjectionTests(unittest.TestCase):
-    """AC9 real-tree invariant: scripts present in the self-hosted .claude/ projection."""
+    """Real-tree invariant: scripts present in the self-hosted .claude/ projection."""
 
     _projected_scripts = (
         REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts"

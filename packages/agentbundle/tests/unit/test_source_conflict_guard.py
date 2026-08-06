@@ -211,7 +211,7 @@ class SourceConflictGuardUnitTests(unittest.TestCase):
         self.assertIsNotNone(result)
 
     def test_source_conflict_legacy_literal_refused(self):
-        """source='agent-ready-repo' (legacy sentinel) with concrete incoming → refused (AC7, AC8)."""  # noqa: E501
+        """source='agent-ready-repo' (legacy sentinel) with concrete incoming → refused."""
         import tempfile
         with tempfile.TemporaryDirectory() as d:
             cat = Path(d) / "catalogue"

@@ -1,6 +1,6 @@
 """T17: scope-resolution helper + allowed-scopes refusal + ~-expansion.
 
-Verifies AC #(RFC-0004): scope resolution precedence, the refusal text
+Verifies scope resolution precedence, the refusal text
 shape on `allowed-scopes` violation, and `~`-expansion's two failure
 modes.
 """

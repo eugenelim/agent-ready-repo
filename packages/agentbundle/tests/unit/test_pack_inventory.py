@@ -1,9 +1,9 @@
 """T1: the shared ``.apm/`` walk primitive (``agentbundle.pack_inventory``).
 
 Pure functions over a fixture pack tree — no catalogue, no state, no I/O
-beyond the tree the test builds. Covers spec AC2 (skill = a
+beyond the tree the test builds. Covers the skill shape (a
 ``.apm/skills/<name>/`` dir containing ``SKILL.md``; agent =
-``.apm/agents/<name>.md``) and AC4 (missing dirs → empty list, no raise).
+``.apm/agents/<name>.md``) and missing dirs → empty list, no raise.
 """
 
 from __future__ import annotations

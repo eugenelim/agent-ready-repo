@@ -1,6 +1,5 @@
 """Unit tests for `commands.install._append_layout_section` (T2).
 
-Spec: docs/specs/consolidated-pack-layout/spec.md.
 
 `_append_layout_section` maintains an adopter-owned `agentbundle-layout.toml`:
 it appends a pack's scope-keyed `[pack.layout.<scope>]` default as a `[<pack>]`

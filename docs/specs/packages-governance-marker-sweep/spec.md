@@ -36,13 +36,14 @@ class is the larger half.
 - [ ] AC3 — No mechanical artifact from the automated pass survives: doubled spaces, trailing whitespace, empty `#` comments, lower-cased sentence starts, or comment banners whose trailing dashes no longer align.
 - [ ] AC4 — Every IETF RFC reference under `packages/` survives byte-identical.
 - [ ] AC5 — **The retained set is exactly these classes, each retained for a stated reason:**
-  - **The four pinned message strings** (below). Each is asserted on verbatim, so it needs a rename decision plus a matching assertion edit — a separate change, not this one.
-    - `commands/install.py` — **both** `pre-RFC-0012 dist-tree` strings (the `--force will REMOVE` warning and the `install:` refusal). Seven `assertIn`/`assertNotIn` in `tests/unit/test_install_inband_detection.py` pin them, and the token is the *name of a legacy on-disk layout*, not a citation.
+  - **Pinned runtime message strings, and only the assertions that pin them.** Each is asserted on verbatim, so the string and its assertion have to move in one commit — a separate change, not this one.
+    - `commands/install.py` — **both** `pre-RFC-0012 dist-tree` strings (the `--force will REMOVE` warning and the `install:` refusal), plus the seven `assertIn`/`assertNotIn` in `tests/unit/test_install_inband_detection.py` that pin them. The token is the *name of a legacy on-disk layout*, not a citation, so it needs a rename decision first. That file's own comments and docstrings **were** swept.
     - `config.py` — `"markers are repo-only per RFC-0004"`, pinned by `pytest.raises(ConfigError, match=...)` in `tests/unit/test_adapt_discovery_schema.py`.
+    - `config.py` — the three `ConfigError` messages naming `docs/specs/adapt-to-project/spec.md`, pinned by `test_adapt_schema_migration.py`, `test_self_host_schema_migration.py`, and `test_discovery_schema_cross_consumer.py`.
     - `commands/install.py` — the `--emit-install-routes` refusal citing `RFC-0008`. Its test asserts `"RFC-0008" in err or "emit-install-routes" in err.lower()`; stripping the marker leaves the `or` branch load-bearing and the assertion misleading, so the assertion must be simplified in the same commit.
-  - `pytest.skip()` reason strings, assertion messages, and asserted-on substrings inside the test tree.
-  - Tests whose *subject* is one of our governance documents (`test_adapt_spec_shape.py`, `test_distribution_adapters_spec_shape.py`, `test_apm_spec_amendments.py`, `test_manual_qa_matrix_shape.py`, `test_credential_broker_contract_docs.py`): the spec paths and AC names are functional arguments to the test, not citations. Their own comments and docstrings are still in scope.
-  - `templates/install-marker.py` and its `_data/` twin — see Boundaries.
+  - **Asserted-on substrings** in the test tree. `pytest.skip()` reasons and assert-*message* text are **not** in this class and were swept — a message argument renders only on failure, so editing it cannot affect any assertion.
+  - Tests whose *subject* is one of our governance documents — `test_adapt_spec_shape.py`, `test_distribution_adapters_spec_shape.py`, `test_apm_spec_amendments.py`, `test_manual_qa_matrix_shape.py`: the spec paths and AC names are functional arguments (regex patterns, `_read()` paths, assert text naming which AC must exist), so their docstrings restate the same functional content and are retained with them. `test_credential_broker_contract_docs.py` is the exception: only its two content assertions are functional, so its docstrings **were** swept.
+  - `templates/install-marker.py` and its `_data/` twin — **only** the `Specs:` docstring block, which `test_claude_plugins_install_route.py::test_writer_docstring_names_spec` asserts on. The rest of both files was swept. See Boundaries.
   - `agentbundle/CHANGELOG.md` and `credbroker/CHANGELOG.md` — **decided, not deferred**: both were confirmed absent from the wheel, the sdist, and the catalogue init scaffold. They ship to nobody, and they are historical records; stripping them would rewrite history to remove a pointer no adopter can see. Permanently out of scope.
   - `AGENTS*.md` — insider context, not exported.
 - [ ] AC5a — **Every user-visible message string outside that retained set is swept**: all argparse `help=` text in `cli.py`, `commands/pack_evals.py`, and `build/__init__.py`; the three `catalogue_tooling/lint.py` diagnostics; `commands/init_state.py`'s greenfield-migration message; `commands/install.py`'s once-per-`(root, pack_name)` short-circuit string; `config.py`'s no-legacy-migration note; `build/adapters/codex.py`'s migration-path note; and `safety.py`'s `_PACK_PRIMITIVE_TYPES` explanation. Each still states the thing; none leaves an empty `()` or a stranded dash.
@@ -54,7 +55,7 @@ class is the larger half.
 
 ## Boundaries
 
-**In scope:** comments and docstrings in every file under `packages/` — `agentbundle/**`,
+**In scope:** comments, docstrings, and message text in every file under `packages/` — `agentbundle/**`,
 `agentbundle/tests/**`, `agentbundle/build/tests/**`, `agentbundle/_data/**`,
 `agentbundle/build/recipes/*.toml`, `templates/**`, test fixtures under `tests/fixtures/**`, and
 the two `credbroker` READMEs.
@@ -89,6 +90,20 @@ which this sweep has no mandate to do. Recorded as its own backlog item rather t
 
 **No lint rule, no CI gate.** Explicitly deferred by the owner. The `packages/AGENTS.local.md`
 grep carries the rule.
+
+**`contracts/adapter.toml` and `contracts/target-vocab.toml` move with the sweep even
+though they sit outside `packages/`.** Both are asserted byte-identical to their
+`agentbundle/_data/` twins by `tests/unit/test_contract_parity.py` and
+`tools/catalogue/check_contract_parity.py`, so editing the packaged copy alone lands red.
+Same coupled-file carve-out the precedent spec made for `docs/CONVENTIONS.md`.
+`contracts/README.md` is *not* coupled and is left — recorded as
+`contracts-readme-governance-markers` in `[backlog].open`.
+
+**Bare feature slugs are not swept.** `pack-profiles`, `install-state-visibility`,
+`copilot-full-parity` and friends double as the names of the features themselves, and the
+verification grep does not match them. Unambiguous citation forms — `spec <slug>`,
+`(spec <slug>)`, a slug alone in a parenthetical carrying nothing else — were rewritten as
+ride-alongs; slugs used as ordinary feature names in prose stay.
 
 Genuinely out of scope: `packs/`, `docs/`, `.github/`, `tools/`.
 

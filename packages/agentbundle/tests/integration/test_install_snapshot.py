@@ -1,4 +1,4 @@
-"""First-install snapshot test (RFC-0002 amendment 2026-05-25, item (e)).
+"""First-install snapshot test (the 2026-05-25 amendment, item (e)).
 
 For each pack with seeds (`core`, `governance-extras`, `monorepo-extras`),
 this test runs
@@ -18,12 +18,12 @@ leak:
 *Scope:* this test exercises `agentbundle scaffold` — one of the two CLI
 functions that drop `packs/<pack>/seeds/` into an adopter tree (the other is
 `agentbundle install`, which shares the same `deliver_seeds` Tier-1/2/3 helper;
-see `docs/specs/core-install-seed-delivery/`). As of issue #190 the
+see the core-install-seed-delivery notes). As of issue #190 the
 `per-pack-claude-plugin` and `per-pack-apm-package` build recipes also ship
 `seeds/` *inside* the dist artifact (`dist/<route>/<pack>/seeds/`, covered by
 `build/tests/test_build_ships_seeds.py`); that copy is byte-verbatim from the
 same source tree this golden/leak test guards, so testing `scaffold` here
-remains sufficient to catch a seed-scrub regression at the source. AC21's
+remains sufficient to catch a seed-scrub regression at the source.
 `lint.py (_PackRules._check_seeds)` is the cross-source invariant.
 
 Goldens live at

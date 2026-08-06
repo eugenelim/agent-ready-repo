@@ -90,7 +90,7 @@ def _find_pack_dir(catalogue_dir: Path, pack_name: str) -> tuple[Path, dict] | N
 
     Reuses ``list-packs``' ``_discover_pack_dirs`` so the accepted catalogue
     layouts stay identical, then matches on the pack's declared ``[pack].name``
-    (falling back to the directory name) — the step the AC5 "unknown pack" path
+    (falling back to the directory name) — the step the "unknown pack" path
     depends on.
     """
     from agentbundle.commands.list_packs import _discover_pack_dirs

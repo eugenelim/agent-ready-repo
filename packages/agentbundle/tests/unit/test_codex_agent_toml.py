@@ -1,5 +1,5 @@
 """Unit tests for the codex-agent-toml serialiser (T3 of
-docs/specs/dropped-primitives-coverage).
+dropped-primitives coverage).
 
 The serialiser converts ``.apm/agents/<name>.md`` (YAML frontmatter + body)
 into codex-style ``<name>.toml`` with three keys: ``name``, ``description``,
@@ -264,7 +264,7 @@ class TestCodexAgentTomlSerialiser(unittest.TestCase):
     def test_developer_instructions_not_in_frontmatter_mapping(self) -> None:
         """Contract assertion — the mapping must NOT contain a `body` or
         `developer_instructions` sub-table; the body-to-DI is a mode-level
-        convention per spec AC4. This test pins the assumption the
+        convention. This test pins the assumption the
         serialiser relies on."""
         self.assertNotIn("body", CODEX_AGENT_FRONTMATTER_V08)
         self.assertNotIn("developer_instructions", CODEX_AGENT_FRONTMATTER_V08)

@@ -131,7 +131,7 @@ class RailBHooksTests(unittest.TestCase):
             self.assertIsNone(check_hooks(pack, ["user"]))
 
     def test_rail_b_lifts_when_user_scope_hooks_true(self) -> None:
-        """RFC-0005 § Rail B — user-scope lift: a pack that opts in via
+        """Rail B — user-scope lift: a pack that opts in via
         ``user-scope-hooks = true`` is accepted even with hooks at user
         scope. The flag is the consent gesture."""
         from agentbundle.build.scope_rails import check_hooks
@@ -265,7 +265,7 @@ class RailCMarkersTests(unittest.TestCase):
             self.assertIsNone(check_markers(pack, ["user"]))
 
     def test_rail_c_refuses_symlink_under_skills(self) -> None:
-        """RFC-0004 Rail C must refuse symlinks under primitive dirs.
+        """Rail C must refuse symlinks under primitive dirs.
 
         A `*.md → /dev/zero` symlink would bypass the size cap because
         `stat()` follows the symlink and reports the target's

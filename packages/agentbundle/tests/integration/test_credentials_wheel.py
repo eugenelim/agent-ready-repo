@@ -1,6 +1,6 @@
-"""T15 / AC36 + AC39: ``agentbundle.credentials`` is NOT reachable from
+"""T15: ``agentbundle.credentials`` is NOT reachable from
 the installed wheel — the module was removed in version 0.2.0 per
-RFC-0013 § 9.
+the credential-broker contract.
 
 The test builds + installs ``packages/agentbundle`` into a
 ``tmp_path``-scoped site directory, then asserts that the import in a

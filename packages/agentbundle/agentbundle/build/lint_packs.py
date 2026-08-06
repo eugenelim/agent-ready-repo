@@ -19,7 +19,6 @@ Three checks, applied to every pack under a `--packs-dir`:
      descriptions (`>`, `|`, continuation lines) are refused outright
      rather than mis-parsed. Constraints come from
      `contracts/target-vocab.toml` — see
-     `docs/specs/lint-packs-target-vocab/spec.md`.
 
 The lint is Python-only so it runs on every CI platform without
 shelling out, and it is wired into `make build` / `make build-self` /
@@ -52,7 +51,7 @@ _VOCAB_RELPATH = Path("contracts/target-vocab.toml")
 
 # Sentinel returned by `_extract_frontmatter_fields` when a key's
 # value position is `>`, `|`, or empty (signaling a folded / nested
-# block). The metadata checks translate this into an AC12 finding
+# block). The metadata checks translate this into a finding
 # rather than try to parse the continuation.
 _MULTILINE = object()
 
@@ -403,7 +402,7 @@ def _length_finding(
 ) -> str | None:
     """Length check for the on-disk name only. The display_name slot
     IS the candidate; no separate frontmatter-name length finding —
-    per spec AC3, projection risk for over-long frontmatter `name:`
+    projection risk for over-long frontmatter `name:`
     is not separately documented and the dir/stem length covers the
     operational case."""
     if len(display_name) <= constraints.name_max:

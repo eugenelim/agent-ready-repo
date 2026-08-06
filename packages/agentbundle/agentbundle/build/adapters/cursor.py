@@ -11,7 +11,7 @@ helpers for the parts a declarative mode can't express.
                     `.cursor/agents/<name>.md`. Cursor subagents have no
                     per-agent tool allowlist, so `_project_agent_as_md` drops
                     the source `tools` and derives a `readonly` flag for
-                    non-mutating agents (documented degradation, the ADR-0013
+                    non-mutating agents (documented degradation, the
                     Copilot shape).
   - `hook-body`   → `direct-file` → `.cursor/hooks/<name>.{sh,py}`
   - `hook-wiring` → `merge-json` → an aggregated `.cursor/hooks.json`.
@@ -39,7 +39,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Iterator
 
-# RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
+# Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projections.direct_directory import sweep_orphans
 
@@ -264,7 +264,7 @@ def _derive_readonly(frontmatter: dict[str, Any]) -> bool | None:
     `None` — every other case (a `tools:` list with a mutating tool, or no
              `tools:` list at all): the agent inherits all tools and is
              writable, which is Cursor's default — so the flag is omitted
-             rather than emitted as `readonly: false` (RFC-0026: derive
+             rather than emitted as `readonly: false` (derive
              read-only for non-mutating agents, "otherwise inherit-all").
              Emitting `readonly: true` for a writable agent would wrongly
              restrict it; emitting `readonly: false` is redundant noise.

@@ -1,7 +1,5 @@
 """Catalogue sync-defaults: compile, check, and write install-defaults.toml.
 
-Spec: docs/specs/catalogue-tooling-sync-defaults/spec.md (ini-005 Bucket 4).
-
 The generated install-defaults.toml is the single source of truth for
 adapter preference, Artifactory bootstrap coordinates, and default source.
 No credentials are written; auth stays in environment variables.

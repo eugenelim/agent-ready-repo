@@ -474,7 +474,7 @@ def load_catalogue_config(root: Path) -> CatalogueConfig | None:
     )
     distribution = DistributionConfig(agentbundle=agentbundle_dist)
 
-    # --- RFC-0074: user-dir and pack-defaults ---
+    # --- user-dir and pack-defaults ---
 
     user_dir_raw = cat.get("user-dir", _DEFAULT_USER_DIR)
     if not isinstance(user_dir_raw, str):

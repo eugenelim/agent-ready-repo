@@ -589,7 +589,7 @@ def _write_marker(
         _assert_portable_name(part)
 
     existing = _read_entries(marker_path)
-    # Replace any existing entry for the same pack name (AC8 upgrade semantics).
+    # Replace any existing entry for the same pack name (upgrade semantics).
     entries = [e for e in existing if e.get("name") != new_entry["name"]]
     entries.append(new_entry)
 
@@ -645,12 +645,12 @@ def _write_hash(plugin_data: pathlib.Path, current_hash: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# APM-route helpers (apm-install-route-parity AC3 / AC4)
+# APM-route helpers
 # ---------------------------------------------------------------------------
 
 
 def _resolve_data_dir(env: "dict[str, str]") -> "pathlib.Path | None":
-    """Resolve hash-file directory per the apm-install-route-parity AC3 precedence.
+    """Resolve the hash-file directory by the documented precedence.
 
     Precedence (first set-and-non-empty wins):
       1. ``${CLAUDE_PLUGIN_DATA}``       — APM at Claude Code target.
@@ -688,7 +688,7 @@ def _apm_detect_scope(
       ``"repo"`` if ``writer_path.resolve()`` is contained under
         ``cwd.resolve()`` — first-branch-wins, even when ``cwd`` is itself
         nested under ``$HOME`` and the home branch would also succeed in the
-        abstract (AC4 case (a)).
+        abstract (case (a)).
       ``"user"`` if (and only if) the repo branch fails and ``writer_path``
         is contained under ``home.resolve()``.
       ``None`` otherwise — no-match fall-through; the caller exits 0 without
@@ -696,7 +696,7 @@ def _apm_detect_scope(
 
     Symlinks are resolved on both sides via ``.resolve()`` before comparison
     so a writer that lives under a symlinked cache directory still passes
-    the containment check (AC4 case (d)).
+    the containment check (case (d)).
     """
     wp = writer_path.resolve()
     cwd_r = cwd.resolve()
@@ -911,7 +911,7 @@ def _main_claude_plugins(args: argparse.Namespace) -> int:
 
 
 def _main_apm(args: argparse.Namespace) -> int:
-    """APM-route writer (apm-install-route-parity AC2/3/4/5).
+    """APM-route writer.
 
     Reads precedence-resolved data directory and pack root from the APM
     environment; scope detection by writer's own resolved ``__file__`` path
@@ -927,7 +927,7 @@ def _main_apm(args: argparse.Namespace) -> int:
         return 1
     home = pathlib.Path(home_str)
 
-    # --- Resolve data directory per AC3 precedence ---
+    # --- Resolve data directory by precedence ---
     plugin_data = _resolve_data_dir(env)  # type: ignore[arg-type]
     if plugin_data is None:
         # No-match fall-through (no APM data-directory token set); exit 0

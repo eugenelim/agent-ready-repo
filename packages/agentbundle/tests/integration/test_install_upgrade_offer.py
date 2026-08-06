@@ -1,4 +1,4 @@
-"""CLI-hygiene AC10–AC14: `install` of an already-installed pack offers to
+"""CLI hygiene: `install` of an already-installed pack offers to
 `upgrade` instead of the old flat "use 'upgrade'" refusal.
 
   - TTY + 'y' → runs the whole-pack upgrade against the same catalogue/scope.
@@ -146,14 +146,14 @@ def test_dry_run_keeps_refusal_no_offer(tmp_path, monkeypatch):
 
 
 def test_yes_runs_real_upgrade_end_to_end(tmp_path):
-    """AC12 (real wiring): install --yes of an already-installed pack actually
+    """Case (real wiring): install --yes of an already-installed pack actually
     drives upgrade.run (no monkeypatch) and exits 0 with the upgrade recap."""
     _install_alpha(tmp_path)
     rc, out, err = _run_install(_install_args(str(tmp_path), yes=True))
     assert rc == 0, f"real upgrade handoff failed: {err}"
     # install→upgrade of an already-installed pack at the same version is a
     # re-apply, not a version change: the recap reads `re-applied: … (already
-    # current)`, never `upgraded: X -> X` (install-state-visibility).
+    # current)`, never `upgraded: X -> X`.
     assert "re-applied: alpha @ repo" in out, f"missing re-apply recap; stdout={out!r}"
 
 

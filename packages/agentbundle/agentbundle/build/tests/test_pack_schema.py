@@ -37,7 +37,7 @@ class PackSchemaAcceptsValidExamplesTests(unittest.TestCase):
     """pack.schema.json accepts well-formed pack.toml structures."""
 
     def test_accepts_governance_extras_recommended_on_core(self) -> None:
-        """Modeled on RFC-0001's governance-extras recommended-on-core example.
+        """Modeled on the governance-extras recommended-on-core example.
 
         Verifies AC 3: the schema accepts [pack], [pack.dependencies] with a
         recommended array of {catalogue, pack, version} objects.

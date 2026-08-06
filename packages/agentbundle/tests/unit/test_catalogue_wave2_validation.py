@@ -112,7 +112,7 @@ def test_verify_consumer_agent_ref_missing_errors(tmp_path):
 def test_verify_consumer_skill_ref_present_passes(tmp_path):
     pack_dir = _make_pack(tmp_path, "declaring", [_valid_entry(pack="absent-pack")])
     _add_skill(pack_dir, "consumer-skill")
-    # "absent-pack" is not in the catalogue — AC11 says that's ok
+    # "absent-pack" is not in the catalogue — that is allowed
     result = _step_integration_validation(tmp_path, None, None, tmp_path)
     assert result == []
 
@@ -126,7 +126,7 @@ def test_verify_self_target_errors(tmp_path):
     assert any("CAT-V-019" in d.code and "self" in d.message.lower() for d in result)
 
 
-# STUB: AC10 (accept) — valid semver ranges pass
+# STUB (accept): valid semver ranges pass
 @pytest.mark.parametrize("v", [
     "^1.0.0",
     ">=2.0.0 <3.0.0",
@@ -146,7 +146,7 @@ def test_verify_valid_version_range_passes(tmp_path, v):
     assert version_errors == []
 
 
-# STUB: AC10 (reject) — invalid version strings error
+# STUB (reject): invalid version strings error
 @pytest.mark.parametrize("v", ["latest", "@1", "not-a-version"])
 def test_verify_invalid_version_range_errors(tmp_path, v):
     entry = _valid_entry(version=v, pack="absent-pack")
@@ -223,7 +223,7 @@ def test_verify_consumer_hook_ref_present_passes(tmp_path):
     assert result == []
 
 
-# STUB: AC5 scope — two distinct packs may use the same id (seen_ids resets per pack)
+# STUB (scope): two distinct packs may use the same id (seen_ids resets per pack)
 def test_verify_same_id_in_different_packs_passes(tmp_path):
     # Both packs declare an integration with id="shared-id" — this is VALID (scopes to pack)
     entry = _valid_entry(id="shared-id", pack="absent-pack")

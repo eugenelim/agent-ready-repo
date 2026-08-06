@@ -1,6 +1,6 @@
 """T20: `recommends` cross-scope warning text split.
 
-Verifies AC #(RFC-0004) for the agent-spec-cli spec § *recommends
+Verifies the agent-spec-cli *recommends
 across scopes*. The five test rows cover:
 
   - Disjoint, recommended is repo-only (recommender at user scope).

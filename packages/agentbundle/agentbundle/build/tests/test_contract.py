@@ -5,7 +5,7 @@ Verifies:
   - Every (5 standard primitives × 8 adapters) = 40 standard pairs present;
     kiro-ide, kiro-cli, cursor, and gemini each add a kiro-ide-hook table
     entry = 44 total.
-  - The mode enum in adapter.schema.json contains exactly the seven RFC-0001 modes;
+  - The mode enum in adapter.schema.json contains exactly the seven base modes;
     unknown modes are rejected (AC 2).
   - Every projection entry carries an on-conflict value from the legal set,
     matching the per-mode default — except for degraded-info-log and dropped
@@ -30,7 +30,7 @@ REPO_ROOT = Path(__file__).resolve().parents[5]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
 
-# All seven RFC-0001 projection modes.
+# All seven base projection modes.
 SEVEN_RFC_MODES = {
     "direct-directory",
     "direct-file",
@@ -66,7 +66,7 @@ NO_WRITE_MODES = {"degraded-info-log", "dropped"}
 # All five primitive names.
 ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
 
-# All reference adapter names (RFC-0022: kiro-ide and kiro-cli added; kiro retained as alias;
+# All reference adapter names (kiro-ide and kiro-cli added by the kiro split; kiro retained as alias;
 # Cursor added).
 ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex", "gemini"}
 
@@ -143,7 +143,7 @@ class AllPairsEnumeratedTests(unittest.TestCase):
         coexists with its v0.3 table) count once per adapter, matching the
         "primitive coverage" semantic.
 
-        RFC-0022 T1: kiro-ide added (+5 standard + 1 kiro-ide-hook = +6),
+        The kiro split added kiro-ide (+5 standard + 1 kiro-ide-hook = +6),
         kiro-cli carries kiro-ide-hook dropped (+6). Plus kiro-ide adds
         hook-wiring dropped to its array_form, which is already counted.
         Cursor added (+5 standard + 1 kiro-ide-hook dropped = +6).
@@ -161,8 +161,8 @@ class AllPairsEnumeratedTests(unittest.TestCase):
 
 
 class ModeEnumTests(unittest.TestCase):
-    """adapter.schema.json mode enum: seven RFC-0001 modes plus the two
-    v0.3 additions from RFC-0005 (`user-merge-json`, `merge-into-agent-json`)
+    """adapter.schema.json mode enum: seven base modes plus the two
+    v0.3 additions (`user-merge-json`, `merge-into-agent-json`)
     plus the v0.8 addition
     (`codex-agent-toml`)."""
 
@@ -179,11 +179,11 @@ class ModeEnumTests(unittest.TestCase):
             "user-merge-json",
             "merge-into-agent-json",
             "codex-agent-toml",
-            # docs/specs/copilot-full-parity (v0.10): copilot agent + hook-wiring
+            # Copilot full parity (v0.10): copilot agent + hook-wiring
             # modes admitted at every `dropped`-enumerating site.
             "copilot-agent-md",
             "copilot-hooks-json",
-            # docs/specs/gemini-full-parity (v0.13): gemini command projection.
+            # Gemini full parity (v0.13): gemini command projection.
             "gemini-command-toml",
         }
         self.assertEqual(
@@ -442,8 +442,8 @@ class ContractV05Tests(unittest.TestCase):
     """T2 (apm-install-route-parity): contract-version assertion.
 
     Originally pinned v0.5; bumped to v0.6, v0.7 by
-    RFC-0013 / credential-broker-contract, v0.8 by
-    docs/specs/dropped-primitives-coverage. Class name preserved to avoid
+    the credential-broker contract, v0.8 by dropped-primitives
+    coverage. Class name preserved to avoid
     needless diff churn against the next bump.
     """
 
@@ -477,7 +477,7 @@ class ContractV05Tests(unittest.TestCase):
         """kiro-family, Copilot, and Codex do not declare install-routes (regression
         guard: the v0.4 → v0.5 bump must not silently extend the field's surface to
         those adapters; per-adapter optionality / default ['cli'] on read is unchanged).
-        Kiro-ide and kiro-cli added to the checked set; RFC-0026: cursor added."""
+        Kiro-ide and kiro-cli added to the checked set; cursor added at v0.11."""
         for adapter_name in ("kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex"):
             adapter_block = self.contract["adapter"].get(adapter_name, {})
             self.assertNotIn(
@@ -579,7 +579,7 @@ SEED_AGENTS_MD_PATH = REPO_ROOT / "packs" / "core" / "seeds" / "AGENTS.md"
 
 
 class TestCodexSkillDirectDirectory(unittest.TestCase):
-    """RFC-0009 / codex-native-skills contract flip.
+    """The codex-native-skills contract flip.
 
     Codex `skill` is `direct-directory` projecting to
          `.agents/skills/` with `on-conflict = "prompt-then-preserve"`;

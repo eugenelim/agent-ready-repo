@@ -1,7 +1,5 @@
 """Catalogue verification engine — 18-step source-checkout pipeline.
 
-Spec: docs/specs/catalogue-tooling-verify/spec.md (ini-005 Bucket 6).
-
 Entry points:
   ``verify_catalogue(root, pack=None) -> VerifyResult``
   ``render_json(result) -> str``
@@ -774,7 +772,7 @@ def _step_integration_validation(
 ) -> list[Diagnostic]:
     """Step 19: validate [[pack.integrations]] entries (Wave 2).
 
-    Rules checked (schema-layer rules AC6/AC8 are NOT re-implemented here):
+    Rules checked (schema-layer rules are NOT re-implemented here):
       Id is unique within each declaring pack
       Consumer primitive refs resolve in the declaring pack
       Pack does not target itself

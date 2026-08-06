@@ -178,7 +178,7 @@ class HardCrossVersionRefusalTests(unittest.TestCase):
 
 
 class V04NotMisparseableAsZeroFilePackTests(unittest.TestCase):
-    """RFC-0052 falsifier (structural): a v0.4 file's
+    """Falsifier (structural): a v0.4 file's
     ``[pack.<name>.adapters.<adapter>]`` shape must not be mis-readable as a
     zero-file pack by the v0.3 parse rules. We assert against a frozen copy
     of the v0.3 parse logic, since the live reader is now v0.4.

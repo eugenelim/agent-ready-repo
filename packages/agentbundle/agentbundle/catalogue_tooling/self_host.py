@@ -1,7 +1,5 @@
 """Catalogue self-host wrappers.
 
-Spec: docs/specs/catalogue-tooling-build-self/spec.md (ini-005 Bucket 7).
-
 Thin wrappers over agentbundle.build.self_host.{cmd_check, cmd_self} that
 expose structured SelfHostResult types. check uses dry_run=True (read-only);
 write uses dry_run=False.

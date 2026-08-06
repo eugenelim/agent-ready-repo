@@ -1,7 +1,5 @@
 """Portable catalogue lint engine.
 
-Spec: docs/specs/catalogue-tooling-lint/spec.md (ini-005 Bucket 5).
-
 Entry point: lint_catalogue(root, pack=None) -> LintResult
 
 Rules split into three tiers:

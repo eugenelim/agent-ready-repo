@@ -34,13 +34,12 @@ def _load_contract() -> dict:
 
 class ContractVersionTests(unittest.TestCase):
     """Contract version: bumped to 0.2, then to 0.3,
-    then to 0.4 by RFC-0008 (T2 / spec claude-plugins-install-route), then to
-    0.5 by RFC-0010 (T2 / spec apm-install-route-parity), then to 0.6 by
-    RFC-0011 / pack-allowed-adapters (codex user-scope table), then to 0.7
-    by RFC-0012 / repo-scope-per-adapter-projection (every adapter declares
-    `allowed-prefixes.repo`; copilot gains a scope table) and RFC-0013 /
-    credential-broker-contract (governance bump) co-residing at v0.7, then
-    to 0.8 by docs/specs/dropped-primitives-coverage (codex agent +
+    then to 0.4 by the claude-plugins install route, then to 0.5 by the apm
+    install route, then to 0.6 by the codex user-scope table, then to 0.7
+    by repo-scope per-adapter projection (every adapter declares
+    `allowed-prefixes.repo`; copilot gains a scope table) and the
+    credential-broker contract (governance bump) co-residing at v0.7, then
+    to 0.8 by dropped-primitives coverage (codex agent +
     hook-wiring move from `dropped` to first-class projections)."""
 
     def test_contract_version_is_0_5(self) -> None:
@@ -81,7 +80,7 @@ class ClaudeCodeScopeBlockTests(unittest.TestCase):
 class OtherAdaptersOmitScopeTests(unittest.TestCase):
     """v0.3 adds a `[scope]` table to Kiro alongside Claude
     Code's existing one; v0.6 adds one to Codex; v0.7
-     adds one to Copilot — every shipped adapter now carries
+    v0.7 adds one to Copilot — every shipped adapter now carries
     a `[scope]` table at v0.7."""
 
     def test_copilot_has_scope_per_rfc_0012(self) -> None:
@@ -97,7 +96,7 @@ class OtherAdaptersOmitScopeTests(unittest.TestCase):
             scope["allowed-prefixes"]["repo"],
             [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"],
         )
-        # User scope: RFC-0052 prepends `.agents/skills/` to the user list.
+        # User scope: v0.17 prepends `.agents/skills/` to the user list.
         # `.copilot/skills/` is kept for path-jail compat; `.agentbundle/` stays.
         self.assertEqual(scope["user"], "~")
         self.assertEqual(

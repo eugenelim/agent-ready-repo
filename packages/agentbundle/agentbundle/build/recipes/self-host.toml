@@ -1,4 +1,4 @@
-# RFC-0002 self-host recipe — composes the four-pack overlay used by
+# Self-host recipe — composes the four-pack overlay used by
 # `make build-self`.
 #
 # The self-host runner reads this recipe-shape contract and executes the

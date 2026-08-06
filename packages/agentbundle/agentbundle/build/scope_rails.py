@@ -28,7 +28,7 @@ Rails:
     form `<adapt:[A-Z_][A-Z0-9_]*>` *or* the canonical lowercase-hyphen
     form `<adapt:[a-z][a-z0-9-]*>` in any file under `.apm/skills/`,
     `.apm/agents/`, or `.apm/commands/`. Both casings are recognised
-    per `adapt-to-project` spec AC14 (canonical syntax)
+    in the canonical marker syntax
     (cross-spec widening) so a user-scope pack carrying lowercase-
     hyphen markers cannot bypass the rail. The rail walks those
     directories in `sorted(os.walk(...))` order so the first-offending-
@@ -55,7 +55,7 @@ from typing import Iterable
 
 
 # Both legacy UPPER_SNAKE and canonical lowercase-hyphen marker forms
-# are recognised per adapt-to-project spec AC14 + AC21. The canonical
+# are recognised. The canonical
 # form is what self_host.resolve_markers writes; the legacy form is
 # tolerated with a one-shot per-file warning during the migration
 # window. Rail C refuses either form in user-scope packs because both
@@ -120,7 +120,7 @@ def check_hooks(
     A pack containing a non-empty ``.apm/hooks/`` or
     ``.apm/hook-wiring/`` directory cannot declare ``"user" ∈
     allowed-scopes`` **unless** it explicitly opts in via
-    ``[pack.install] user-scope-hooks = true`` (RFC-0005 § Rail B —
+    ``[pack.install] user-scope-hooks = true`` (Rail B —
     user-scope lift). The opt-in is the consent gesture: "yes, my
     hooks land on the adopter's machine outside per-project isolation".
 
@@ -131,7 +131,7 @@ def check_hooks(
     if not _allows_user(allowed_scopes):
         return None
     if user_scope_hooks:
-        # Pack-author opted in — RFC-0005 says the rail lifts. The
+        # Pack-author opted in — the rail lifts. The
         # adapter-side gate (hook-wiring mode declares user-scope
         # capability) is checked later in the projection pipeline
         # (T5/T6); the rail's job is the consent-gesture check.
@@ -322,7 +322,7 @@ def check_kiro_attach_to_agent(
       - ``attach-to-agent`` value naming an agent the pack does not ship
         (no ``.apm/agents/<value>.md``) → refuse.
 
-    Refusal text is RFC-0005 § Repo-scope Kiro promotion verbatim:
+    Refusal text, verbatim:
     ``pack <P>'s hook-wiring <name>.toml does not declare 'attach-to-agent'
     (or names an unknown agent); required for kiro projection``.
 
@@ -572,7 +572,7 @@ def check_kiro_ide_hook(
       ``target_adapters``, or when the pack ships no
       ``.apm/kiro-ide-hooks/`` directory.
 
-      A refusal string in RFC-0005 § *validate rail* verbatim form
+      A refusal string in the validate rail's verbatim form
       otherwise. The string carries enough context for the caller to
       format the spec's stderr line — ``validate: <pack>: <message>``
       — without per-rail formatting code at each call site.

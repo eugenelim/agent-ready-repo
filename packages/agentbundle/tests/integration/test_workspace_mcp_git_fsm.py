@@ -1,4 +1,4 @@
-"""Integration tests for _GitTools FSM-mode guard — AC15a.
+"""Integration tests for the _GitTools FSM-mode guard.
 
 These tests create git repositories on disk and invoke subprocess git,
 so they belong in tests/integration/ per packages/AGENTS.md:50-51.

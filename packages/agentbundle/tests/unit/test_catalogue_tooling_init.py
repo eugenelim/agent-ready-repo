@@ -1,4 +1,4 @@
-"""Unit tests for catalogue init — Tasks 1-10 (spec catalogue-tooling-init).
+"""Unit tests for catalogue init — Tasks 1-10.
 
 Coverage map (per plan.md):
   T1 — Schema relaxation (optional contracts, owner)

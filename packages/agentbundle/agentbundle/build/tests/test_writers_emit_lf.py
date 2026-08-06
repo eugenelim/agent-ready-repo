@@ -17,7 +17,6 @@ Test helpers (files under ``tests/``) are also excluded by design: they write
 fixture data whose exact bytes are under test control and are never projected
 onto a user's filesystem.
 
-See `docs/specs/lf-line-endings/spec.md`.
 """
 
 from __future__ import annotations
@@ -151,7 +150,7 @@ class WriterEmitsLFBytes(unittest.TestCase):
     `NamedTemporaryFile(mode="w", newline="\\n")` sites. Its `json.dumps(...,
     indent=2)` emits real ``\\n`` line breaks between keys, so a regression that
     dropped the kwarg would turn this red on Windows (where it would write
-    ``\\r\\n``). This is the AC5 "representative writer" check; the AST guard is
+    ``\\r\\n``). This is the "representative writer" check; the AST guard is
     the package-wide invariant.
     """
 

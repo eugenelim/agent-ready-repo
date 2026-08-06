@@ -217,7 +217,7 @@ def test_project_all_adapters_restricts_to_preferred_when_outside_self_host_adap
 
 
 def test_effective_adapters_kiro_ide_excludes_claude_code():
-    """AC7 precondition: kiro-ide effective set does not contain claude-code."""
+    """Precondition: kiro-ide effective set does not contain claude-code."""
     from agentbundle.build.self_host import _effective_adapters
 
     result = _effective_adapters("kiro-ide")
@@ -226,7 +226,7 @@ def test_effective_adapters_kiro_ide_excludes_claude_code():
 
 
 def test_effective_adapters_none_includes_claude_code():
-    """AC7 precondition: default effective set includes claude-code (backward compat)."""
+    """Precondition: default effective set includes claude-code (backward compat)."""
     from agentbundle.build.self_host import _effective_adapters
 
     assert "claude-code" in _effective_adapters(None)

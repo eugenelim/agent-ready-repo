@@ -1,6 +1,6 @@
-"""AC8 stub conformance — research-pack retriever scripts.
+"""Stub conformance — research-pack retriever scripts.
 
-The spec's AC8 names a "stub conformance check" that imports each
+The spec names a "stub conformance check" that imports each
 example retriever and confirms `retrieve(query)` exists. This file
 implements that check, plus a small description-token regression
 test that catches the most common mode-dispatch misfire pattern
@@ -159,7 +159,7 @@ class PerplexityRetrieverConformance(unittest.TestCase):
 class ResearchSkillDescriptionRegression(unittest.TestCase):
     """The /desk-research SKILL.md description's wording is load-bearing —
     it's the dispatcher signal that biases between quick / standard /
-    deep modes. AC11 enforces the behavior via manual QA; this test
+    deep modes. The behavior is enforced via manual QA; this test
     catches the most common regression (description "cleanup" that
     drops the casual-cue tokens or the explicit-default wording)."""
 
@@ -171,7 +171,7 @@ class ResearchSkillDescriptionRegression(unittest.TestCase):
         self.description = m.group(1)
 
     def test_casual_cue_tokens_present(self) -> None:
-        # AC11's casual-phrasing set; at least these three must
+        # The casual-phrasing set; at least these three must
         # appear in the description verbatim.
         for token in ("look up", "find out", "quick check"):
             self.assertIn(
@@ -194,7 +194,7 @@ class ResearchSkillDescriptionRegression(unittest.TestCase):
     def test_standard_or_deep_cue_tokens_present(self) -> None:
         # At least one standard/deep cue must appear so the description
         # biases away from quick on the academic-discipline side. The
-        # tuple is the canonical contract — Always-do / AC11 / AC28
+        # tuple is the canonical contract — the always-do set
         # single-source the closed set from this test method.
         standard_deep_tokens = (
             "research with citations",

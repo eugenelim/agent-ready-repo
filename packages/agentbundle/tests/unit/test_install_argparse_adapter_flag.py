@@ -20,9 +20,9 @@ def test_shipped_adapters_choices_stable_alphabetic_tuple() -> None:
     from agentbundle.cli import _shipped_adapters_choices
 
     result = _shipped_adapters_choices()
-    # RFC-0022 (kiro-adapter-split) added `kiro-cli` + `kiro-ide` alongside the
-    # retained `kiro` alias; RFC-0026 (cursor-full-parity) added `cursor`;
-    # RFC-0027 (gemini-full-parity) added `gemini` (sorts after `cursor`, before
+    # Case (kiro-adapter-split) added `kiro-cli` + `kiro-ide` alongside the
+    # retained `kiro` alias; cursor full parity added `cursor`;
+    # Case (gemini-full-parity) added `gemini` (sorts after `cursor`, before
     # `kiro`). This CI-only root isn't gated by `make build-check`. Pinning the
     # full shipped set, sorted.
     assert result == (
@@ -73,7 +73,7 @@ def test_help_text_includes_pinned_wording(capsys) -> None:
     with pytest.raises(SystemExit):
         p.parse_args(["install", "--help"])
     captured = capsys.readouterr()
-    # RFC-0012 widens the flag's help text — admitted at both scopes;
+    # Widens the flag's help text — admitted at both scopes;
     # the user-scope-only wording is gone. Argparse may wrap the text
     # across lines, so use a contiguous substring that survives the
     # default-width wrap.

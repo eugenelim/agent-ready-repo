@@ -64,7 +64,7 @@ def test_result_types_structure():
     import dataclasses
 
     diag_fields = {f.name for f in dataclasses.fields(Diagnostic)}
-    # Diagnostic has 8 fields per spec AC3 and results.py
+    # Diagnostic has 8 fields, matching results.py
     for field in ("code", "severity", "pack", "path", "line", "col", "message", "remediation"):
         assert field in diag_fields, f"Diagnostic missing field: {field}"
 

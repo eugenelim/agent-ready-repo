@@ -109,7 +109,7 @@ def run(args) -> int:
 
     errors = validate_instance(pack_data, schema)
     if errors:
-        # RFC-0004 § *Install-scope dimension* names a specific stderr
+        # The install-scope dimension names a specific stderr
         # text for the cross-field invariant: `pack <name>: default-scope
         # '<requested>' not in allowed-scopes <declared-set>`. The
         # schema's `contains` failure on `$.pack.install.allowed-scopes`
@@ -214,7 +214,7 @@ def run(args) -> int:
         #    scope_rails.py:333-337 (load-bearing per round-2 review).
         #
         #    Condition: attach is not None AND is a string AND not in
-        #    agent_basenames — matches spec AC4b exactly.
+        #    agent_basenames.
         #    Empty string is preserved as "unknown agent" (kept refusal,
         #    exit 1) to match today's helper behavior at scope_rails.py:332
         #    — `"" not in agent_basenames` is True, so today's helper
@@ -227,9 +227,9 @@ def run(args) -> int:
                 and attach not in agent_basenames
             ):
                 # Refusal text matches check_kiro_attach_to_agent's
-                # pinned wording byte-for-byte (RFC-0005:474). Single
+                # pinned wording byte-for-byte. Single
                 # source of truth: the helper composes the same string;
-                # a future RFC-0005 wording change must update both.
+                # a future wording change must update both.
                 refusal = (
                     f"pack {pack_name}'s hook-wiring {stem}.toml "
                     f"does not declare 'attach-to-agent' (or names an unknown "
@@ -254,7 +254,7 @@ def run(args) -> int:
                 compatible_types=[],
                 event_drops=info_drops,
             )
-            print(info)  # stdout per AC2 + adopter direction
+            print(info)  # stdout, per adopter direction
 
     # ── 4e. kiro-ide-hook validate rail (v0.4, T-C2) ─────────────────────
     # Fires whenever the pack ships `.apm/kiro-ide-hooks/` content. The
@@ -279,7 +279,7 @@ def run(args) -> int:
             print(f"validate: {ide_hook_refusal}", file=sys.stderr)
             return 1
 
-    # ── 4f. Soft categories vocabulary (enriched-pack-manifest / RFC-0031 D3) ─
+    # ── 4f. Soft categories vocabulary ───────────────────────────────────────
     # `categories` is a *soft* vocabulary: a slug outside the default set is a
     # warning, never a refusal. The schema already enforces shape (array of
     # strings, ≤5) and the ≤5 cap; this rail only nudges taxonomy consistency.
@@ -345,7 +345,7 @@ def _is_default_scope_invariant_violation(pack_data: dict, first_error: str) -> 
 def _user_scope_hooks_opt_in(pack_data: dict) -> bool:
     """Return True iff the pack declares ``[pack.install] user-scope-hooks = true``.
 
-    RFC-0005 § Rail B — user-scope lift: the flag is the consent
+    Rail B — user-scope lift: the flag is the consent
     gesture that lets a pack ship hook-shaped primitives at user scope.
     Absent or non-boolean → False (rail still refuses the pack).
     """
@@ -505,7 +505,7 @@ def _load_adapter_contract() -> dict:
 
 def _validate_allowed_adapters(pack_data: dict) -> str | None:
     """Cross-field check for ``[pack.install] allowed-adapters``
-    (substrate; RFC-0012 widens to fire at both scopes).
+    (substrate; fires at both scopes).
 
     Returns None when the field is absent / valid; returns a
     refuse-and-explain string suitable for printing under the
@@ -553,7 +553,7 @@ def _validate_allowed_adapters(pack_data: dict) -> str | None:
             )
         if user_eligible and name not in user_capable:
             # Read the bundled contract version once so the message
-            # tracks RFC-0012's v0.7 bump without per-spec edits.
+            # tracks the v0.7 bump without per-spec edits.
             from agentbundle.build.main import _read_bundled
 
             cv = (
@@ -573,7 +573,7 @@ def _validate_allowed_adapters(pack_data: dict) -> str | None:
 def _allowed_scopes(pack_data: dict) -> list[str]:
     """Return the pack's resolved allowed-scopes list.
 
-    Resolution mirrors RFC-0004 § *v0.1 vs v0.2 contract acceptance*:
+    Resolution mirrors v0.1-vs-v0.2 contract acceptance:
 
       - v0.1 packs (declared version "0.1", or no `[pack.adapter-contract]`)
         get the implied `["repo"]`. Any stray `[pack.install]` table is

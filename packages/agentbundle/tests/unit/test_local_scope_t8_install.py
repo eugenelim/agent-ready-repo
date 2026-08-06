@@ -68,7 +68,7 @@ def test_is_git_repo_true_inside_repo(git_repo: Path) -> None:
 
 
 def test_is_git_repo_false_outside_repo(tmp_path: Path) -> None:
-    """is_git_repo returns False for a plain directory (AC8: pre-flight gate)."""
+    """is_git_repo returns False for a plain directory (pre-flight gate)."""
     from agentbundle.local_exclude import is_git_repo
 
     plain_dir = tmp_path / "not_a_repo"
@@ -179,7 +179,7 @@ def test_exclude_block_written_before_files(git_repo: Path) -> None:
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_bytes(content)
 
-    # The AC21 invariant: exclude written before files
+    # The ordering invariant: exclude written before files
     with patch("agentbundle.local_exclude.write_exclude_block", side_effect=mock_write_exclude):
         mock_write_exclude(exclude_path, "pack", "primary", [])
         mock_write_jailed(git_repo, ".claude/skills/pack/SKILL.md", b"# skill", scope="local", allowed_prefixes=None)

@@ -33,7 +33,7 @@ ADAPTERS: Dict[str, Callable] = {
     "gemini": gemini.project,
 }
 
-# Module-keyed registry — the surface RFC-0003 F-cli AC requires.
+# Module-keyed registry — the surface the build CLI requires.
 # Keys are the Python module names (`claude_code`, etc.) which is what the
 # CLI's `list-targets` and the AC's test reference. Values are the adapter
 # modules themselves so callers can introspect any future per-adapter

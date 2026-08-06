@@ -1,6 +1,6 @@
 """Unit tests for the `--emit-install-routes` flag and the handler-level
-mutex with `--adapter` at `--scope repo` (RFC-0012 / repo-scope-per-
-adapter-projection AC14-AC17).
+mutex with `--adapter` at `--scope repo` (repo-scope per-adapter
+projection).
 
 Covers:
 

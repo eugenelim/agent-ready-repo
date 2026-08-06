@@ -8,7 +8,7 @@ _tier2_backend` on darwin / `from . import _credman_windows ...` on
 win32) raises `ImportError` because the shim's platform backends are
 intentionally NOT projected into `bin/` (sso-broker uses its own
 `_sso_*` backends instead). The shim's existing `except ImportError:
-_tier2_backend = None` clause swallows it. AC22c pins this as
+_tier2_backend = None` clause swallows it. This is pinned as
 documented, intentional behaviour so a future "improvement" of the
 shim cannot silently break the contract.
 
@@ -44,7 +44,7 @@ SHIM_SOURCE = (
     / "shared-libs" / "credentials_shim.py"
 )
 
-# Pinned phrases. Each clause carries a distinct part of the AC22c
+# Pinned phrases. Each clause carries a distinct part of the
 # contract: the trigger condition (when), the resolved value (what),
 # and the caller guidance (so what). A paraphrase of any single
 # clause fails the test. Splitting the assertion this way means a
@@ -75,7 +75,7 @@ class ShimDocstringRecordsBinLoadDegradationTests(unittest.TestCase):
 
 
 class ShimBinLoadTier2BackendIsNoneTests(unittest.TestCase):
-    """AC22c case 2: load the shim from a bin/-style staging and
+    """Case 2: load the shim from a bin/-style staging and
     assert `_tier2_backend is None` on every platform."""
 
     def setUp(self) -> None:
@@ -90,7 +90,7 @@ class ShimBinLoadTier2BackendIsNoneTests(unittest.TestCase):
             self.skipTest("credentials_shim.py source not present")
         bin_dir = self.tmp_path / "bin"
         bin_dir.mkdir()
-        # AC22b companion staging: shim only, NO platform-backend
+        # Companion staging: shim only, NO platform-backend
         # siblings, NO __init__.py.
         shutil.copy(SHIM_SOURCE, bin_dir / "credentials_shim.py")
         self.assertFalse((bin_dir / "_keychain_macos.py").exists())

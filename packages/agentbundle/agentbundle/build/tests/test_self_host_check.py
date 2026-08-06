@@ -94,7 +94,7 @@ def _add_agent(pack: Path, name: str, body: str = "Do the work.\n") -> Path:
 def _seed_discovery(tree: Path) -> Path:
     """Drop a minimal `.adapt-discovery.toml` into a test working tree so
     `run_self_host`'s fail-fast doesn't reject the call.
-    Canonical v0.1 shape per adapt-to-project AC9 — no `[markers]`
+    Canonical v0.1 shape — no `[markers]`
     table needed for the no-marker case.
     """
     path = tree / ".adapt-discovery.toml"
@@ -390,7 +390,7 @@ class WorkingTreeOnConflictTests(unittest.TestCase):
             text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
             self.assertIn("# Custom AGENTS.md", text)
             self.assertIn("Do not lose me.", text)
-            # Post-RFC-0009: Codex no longer writes the managed block.
+            # Codex no longer writes the managed block.
             # The legacy delimiter must be absent from projected output.
             self.assertNotIn("<!-- agent-skills:start -->", text)
 
@@ -598,7 +598,7 @@ class AgentsMdCompositionTests(unittest.TestCase):
             self.assertEqual(exit_code, 0)
             text = (working_tree / "AGENTS.md").read_text(encoding="utf-8")
             self.assertTrue(text.startswith("# Body\n\nBody source.\n"))
-            # Post-RFC-0009: skill descriptions no longer inline into
+            # Skill descriptions no longer inline into
             # AGENTS.md. Claude Code and Codex both project full skill
             # bodies under their repo-native skill trees.
             self.assertNotIn("core skill description", text)
@@ -771,7 +771,7 @@ class ExcludedGlobTests(unittest.TestCase):
         self.assertFalse(_is_excluded(Path("packs.md")))
 
     def test_post_2026_05_25_shrink_leaves_only_conventions(self) -> None:
-        """Per RFC-0002 amendment 2026-05-25: PROJECTED_README_OVERRIDES
+        """Per the 2026-05-25 amendment: PROJECTED_README_OVERRIDES
         shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remains.
         Every other formerly-overridden path now falls through to
         EXCLUDED_PATTERNS coverage."""
@@ -860,7 +860,7 @@ class SeedProjectionTests(unittest.TestCase):
             )
 
     def test_excluded_path_with_on_disk_content_preserved(self) -> None:
-        """RFC-0002 § Amendments § 2026-05-25 invariant: seed projection
+        """The 2026-05-25 amendment invariant: seed projection
         MUST NOT overwrite Manual paths whose on-disk content is this
         repo's filled-in instance.
 
@@ -909,7 +909,7 @@ class SeedProjectionTests(unittest.TestCase):
             self.assertNotIn("<!-- no specs yet -->", on_disk)
 
     def test_workspace_toml_curated_content_preserved_on_reprojection(self) -> None:
-        """RFC-0069 D4: a curated workspace.toml on disk (with live initiative
+        """A curated workspace.toml on disk (with live initiative
         data) must survive `_project_seeds` unchanged — the blank seed template
         must NOT overwrite it.
 
@@ -1761,7 +1761,7 @@ class FileModeBitsTests(unittest.TestCase):
 class SymlinkTargetTests(unittest.TestCase):
     """Phase-2 comparison rule (c): symlink targets compared via lstat,
     never followed. The repo-root `CLAUDE.md` alias is exempted from the
-    strict target-equality rule by AC15b (see `ClaudeMdEquivalenceTests`),
+    strict target-equality rule (see `ClaudeMdEquivalenceTests`),
     so these tests deliberately use non-CLAUDE.md filenames where they
     need to exercise the Phase-2 path without short-circuiting through
     the equivalence helper."""
@@ -1770,7 +1770,7 @@ class SymlinkTargetTests(unittest.TestCase):
         """CLAUDE.md is fine here: the disk-side target is `README.md`,
         not `AGENTS.md`, so the equivalence helper returns False (clause
         1 fails) and the comparison falls through to the strict
-        target-equality path AC15b leaves unchanged."""
+        target-equality path leaves unchanged."""
         with tempfile.TemporaryDirectory() as tmp:
             shadow = Path(tmp) / "shadow"
             tree = Path(tmp) / "tree"
@@ -1913,7 +1913,7 @@ class ClaudeMdEquivalenceTests(unittest.TestCase):
     presentational and must not count as drift: a symlink to AGENTS.md,
     a regular-file copy of AGENTS.md content, and a regular file whose
     content is the literal string "AGENTS.md" (Windows-materialised
-    symlink). See spec AC15b."""
+    symlink)."""
 
     def _shadow_with_symlink_claude(self, tree: Path) -> Path:
         """Build a tiny shadow tree where the shadow's CLAUDE.md is a

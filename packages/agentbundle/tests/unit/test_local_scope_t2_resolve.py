@@ -1,7 +1,7 @@
 """T2: scope.py — extend LEGAL_SCOPES and resolve() guard for local scope.
 
-Verifies AC2 (LEGAL_SCOPES), AC3 (default-scope=local refusal),
-AC4 (D4 auto-promote: local permitted when repo is in allowed-scopes).
+Verifies LEGAL_SCOPES, the default-scope=local refusal, and the
+auto-promote rule (local permitted when repo is in allowed-scopes).
 """
 
 from __future__ import annotations
@@ -35,7 +35,7 @@ def test_resolve_local_when_repo_in_allowed():
 
 
 def test_resolve_local_refused_when_repo_not_in_allowed():
-    """AC4 negative: resolve(requested='local', allowed=['user']) raises ScopeRefused.
+    """Negative: resolve(requested='local', allowed=['user']) raises ScopeRefused.
 
     "user" alone in allowed-scopes does not grant local-scope access.
     """

@@ -72,7 +72,7 @@ class TestCopilotUserScopePathJail(unittest.TestCase):
                 self.assertTrue((root / relpath).exists())
 
     def test_jail_rejects_github_under_home(self) -> None:
-        # The bug AC10b's rewrite prevents: an unrewritten `.github/…` path
+        # The bug the user-scope rewrite prevents: an unrewritten `.github/…` path
         # would resolve under `~/.github/…`, outside the user prefixes.
         from agentbundle import safety
         from agentbundle.commands.install import _adapter_allowed_prefixes_user

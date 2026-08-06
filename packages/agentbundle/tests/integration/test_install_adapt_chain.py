@@ -198,7 +198,7 @@ def test_install_with_no_discovery_file_emits_one_line_and_succeeds(tmp_path):
 
 
 def test_install_chained_adapt_failure_returns_nonzero_preserves_marker(tmp_path):
-    """Per AC19d(ii): malformed `.adapt-discovery.toml` causes the
+    """A malformed `.adapt-discovery.toml` causes the
     chained adapt to refuse; install exits non-zero; marker still
     on disk (it was written before the chained adapt step)."""
     cat = tmp_path / "cat"

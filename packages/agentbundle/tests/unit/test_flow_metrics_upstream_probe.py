@@ -1,7 +1,7 @@
 """Regression test for the flow-metrics upstream-skill probe across the
 three user-scope-capable adapter directories.
 
-Pinned by RFC-0011 (Per-pack `allowed-adapters` declaration). Before this
+Pinned by the per-pack `allowed-adapters` declaration. Before that
 RFC's branch, `discover_skill_path` hardcoded `~/.claude/skills/` as the
 sole user-scope and project-scope candidate. The fix walks `.claude`,
 `.kiro`, and `.agents` for both user and project scope so the atlassian
@@ -96,7 +96,7 @@ def test_env_override_wins_over_user_scope(upstream, monkeypatch):
     """The priority-1 env override remains the documented runtime escape
     valve for adopters who want a specific adapter root regardless of
     probe order (mirrors the install-time `--adapter` flag admitted in
-    RFC-0011 as the user-scope adopter's escape valve)."""
+    the contract as the user-scope adopter's escape valve)."""
     with tempfile.TemporaryDirectory() as home, tempfile.TemporaryDirectory() as override:
         home_path = Path(home)
         # Place a sibling under ~/.claude/ that would win priority 3

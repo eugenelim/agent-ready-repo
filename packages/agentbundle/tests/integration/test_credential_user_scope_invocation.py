@@ -13,7 +13,7 @@ the top of each entry-point raises::
 
 before argparse ever runs. The fix is a ``__package__``-bootstrap block
 at the top of every entry-point script (see
-``docs/specs/credential-broker-contract/spec.md`` AC35). The bootstrap
+the credential-broker contract). The bootstrap
 is a no-op when ``__package__`` is already set (e.g. by an importlib-based
 test harness that synthesises its own parent package).
 
@@ -192,11 +192,11 @@ def test_entry_point_imports_resolve_under_user_scope_layout(
 def test_sso_broker_tier2_backend_loads_under_user_scope_layout(
     tmp_path: pathlib.Path,
 ) -> None:
-    """AC22b regression: the SSO broker's Tier-2 backend must load
+    """Regression: the SSO broker's Tier-2 backend must load
     under the realistic post-fix `~/.agentbundle/bin/` layout, not
     silently degrade to None on macOS/Windows.
 
-    The AC22b shim-companion projection puts `credentials_shim.py`
+    The shim-companion projection puts `credentials_shim.py`
     next to `sso-broker.py` + `_sso_keychain_macos.py` +
     `_sso_credman_windows.py` in the bin/ target, so
     `_sso_*`'s `from .credentials_shim import Tier2HardFailError`
@@ -220,13 +220,13 @@ def test_sso_broker_tier2_backend_loads_under_user_scope_layout(
     shim_src = PACKS / "credential-brokers" / ".apm" / "shared-libs"
     if not (src / "sso-broker.py").is_file():
         pytest.skip("sso-broker.py not present")
-    # Stage the realistic post-AC22b user-scope layout.
+    # Stage the realistic user-scope layout.
     staged_bin = tmp_path / "bin"
     staged_bin.mkdir()
     for entry in src.iterdir():
         if entry.is_file() and entry.suffix == ".py":
             shutil.copy(entry, staged_bin / entry.name)
-    # AC22b companion: the build pipeline projects credentials_shim.py
+    # Companion: the build pipeline projects credentials_shim.py
     # next to sso-broker.py + the _sso_* siblings. Re-project here
     # from the canonical source so the test does not depend on a
     # prior `make build-self` having run.
@@ -239,7 +239,7 @@ def test_sso_broker_tier2_backend_loads_under_user_scope_layout(
     # The shim's own platform backends MUST NOT be projected into
     # bin/ — sso-broker uses its own _sso_* backends; the shim's
     # _tier2_backend resolves to None when loaded from bin/ per
-    # AC22c, which is correct behaviour.
+    # the degradation rule, which is correct behaviour.
     assert not (staged_bin / "_keychain_macos.py").exists()
     assert not (staged_bin / "_credman_windows.py").exists()
 

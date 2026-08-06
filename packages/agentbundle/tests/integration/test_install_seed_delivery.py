@@ -1,4 +1,4 @@
-"""Integration tests for CLI `install` seed delivery (spec core-install-seed-delivery).
+"""Integration tests for CLI `install` seed delivery.
 
 `agentbundle install` must deliver the `core` pack's governance seeds into the
 adopter repo, record each in `.agentbundle-state.toml`, compose
@@ -94,7 +94,7 @@ def test_install_composes_agents_md_and_skips_footer(tmp_path):
 
 
 def test_install_seed_collision_drops_companion(tmp_path):
-    """AC1 Tier-2: an adopter-edited seed is left untouched and gets a companion."""
+    """Tier-2: an adopter-edited seed is left untouched and gets a companion."""
     target = tmp_path / "repo"
     target.mkdir()
     (target / "docs").mkdir()
@@ -112,7 +112,7 @@ def test_install_seed_collision_drops_companion(tmp_path):
 
 
 def test_install_gitignore_collision_drops_companion(tmp_path):
-    """AC1 Tier-2: the highest-probability brownfield collision — repo-root .gitignore."""
+    """Tier-2: the highest-probability brownfield collision — repo-root .gitignore."""
     target = tmp_path / "repo"
     target.mkdir()
     existing = b"node_modules/\n.env\n"
@@ -150,7 +150,7 @@ def test_install_records_no_phantom_unresolved_markers(tmp_path):
 
 
 def test_install_identical_seed_skipped(tmp_path):
-    """AC1 Tier-1: a pre-existing byte-identical seed is a clean no-op (no companion)."""
+    """Tier-1: a pre-existing byte-identical seed is a clean no-op (no companion)."""
     target = tmp_path / "repo"
     target.mkdir()
     (target / "docs").mkdir()

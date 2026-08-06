@@ -1,4 +1,4 @@
-"""RFC-0064 M3 bug-fix contract — desk-research-project-start resolution order.
+"""M3 bug-fix contract — desk-research-project-start resolution order.
 
 Asserts that the skill body:
   1. Does NOT use `.context/research` (or `.context/desk-research`) as a

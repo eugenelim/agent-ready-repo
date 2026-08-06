@@ -331,7 +331,7 @@ def _compose_agents_md(
     """Compose root AGENTS.md from the core body seed and optional
     core footer fragment.
 
-    Post-RFC-0009: Codex projects full skill bodies to `.agents/skills/`
+    Codex projects full skill bodies to `.agents/skills/`
     rather than splicing a managed block into AGENTS.md. Root AGENTS.md
     self-host composition is therefore only the core seed body plus the
     optional footer; Codex's in-repo projection is handled by the Codex
@@ -402,7 +402,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     # Manual seed-projected paths (amendment 2026-05-25). The
     # `docs/<area>/*.md` patterns above cover 11 of the 19 reclassified
     # paths; the following 7 are not matched by any pattern and need
-    # explicit listing. See `docs/specs/self-hosting/spec.md` AC20.
+    # explicit listing.
     "docs/CHARTER.md",
     "docs/knowledge/patterns.jsonl",
     "docs/rfc/README.md",
@@ -481,12 +481,12 @@ _EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
 # Hardcoded "Projected README" allow-list — paths classified as
 # *Projected* even when EXCLUDED_PATTERNS would otherwise catch them.
 #
-# The 2026-05-25 amendment to RFC-0002 reclassified 19 paths Projected
+# The 2026-05-25 amendment reclassified 19 paths Projected
 # → Manual; this allow-list shrank to one entry (`docs/CONVENTIONS.md`)
 # accordingly. The reclassified paths now fall through to
 # EXCLUDED_PATTERNS coverage (`docs/architecture/*.md`,
 # `docs/product/*.md`, `docs/knowledge/*.md`, `guides/**/*.md`,
-# and the 8 explicit additions listed above). See RFC-0002 §
+# and the 8 explicit additions listed above). See the
 # Amendments § 2026-05-25.
 PROJECTED_README_OVERRIDES: tuple[str, ...] = (
     "docs/CONVENTIONS.md",
@@ -562,7 +562,7 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
             seen[relative] = src
     # Second pass: collisions are clean, now write.
     #
-    # Per the RFC-0002 2026-05-25 amendment: paths that are Manual
+    # Per the 2026-05-25 amendment: paths that are Manual
     # (and therefore matched by EXCLUDED_PATTERNS without being
     # rescued by PROJECTED_README_OVERRIDES) carry placeholder seeds
     # but their on-disk content is the adopter's living instance —
@@ -1196,7 +1196,7 @@ def run_self_host(
 
     # Real write: project directly into the working tree so adapter
     # merge/splice logic sees existing content.
-    # RFC-0023 retired the shared-libs/ → consumer-skill scripts/
+    # The shared-libs/ → consumer-skill scripts/ projection was retired;
     # projection: credentialed consumers resolve via the `credbroker`
     # pip library, not a vendored shim. The shim source survives only as
     # the adapter-root-bins companion-shim projection source (below).
@@ -1440,7 +1440,7 @@ def run_build_check_drift_gates(
             )
 
     # ------------------------------------------------------------------
-    # Gate 1c: APM writer-template drift (apm-install-route-parity AC16 a)
+    # Gate 1c: APM writer-template drift
     #
     # Every dist/apm/<pack>/.apm/hooks/install-marker.py must be byte-
     # identical to the canonical template. Same rail as Gate 1 (claude-

@@ -1,6 +1,6 @@
 """T9: `agentbundle reconcile --scope user` — read-only orphan reporter.
 
-Covers spec AC26: walks both adapters' target files, reports
+Walks both adapters' target files, reports
 orphan-in-file (target claims own, state doesn't know) and
 orphan-in-state (state claims own, file doesn't have), groups output
 by adapter, and crucially **never writes**. The subcommand does not
@@ -77,7 +77,7 @@ class _ReconcileBase(unittest.TestCase):
 
 
 class CleanInstallReportsNoOrphansTests(_ReconcileBase):
-    """AC26 empty case: a clean install produces an 'all clean' line."""
+    """Empty case: a clean install produces an 'all clean' line."""
 
     def test_clean_install_reports_all_clean(self) -> None:
         _copy_fixture(FIXTURES / "cc-user-hooks", self.cat / "packs" / "cc-user-hooks")
@@ -98,7 +98,7 @@ class CleanInstallReportsNoOrphansTests(_ReconcileBase):
 
 
 class OrphanInFileTests(_ReconcileBase):
-    """AC26 type A: an id-tagged entry the file claims, that no
+    """Type A: an id-tagged entry the file claims, that no
     installed pack owns. Surfaces under the adapter heading."""
 
     def test_synthetic_settings_entry_reported(self) -> None:
@@ -127,7 +127,7 @@ class OrphanInFileTests(_ReconcileBase):
 
 
 class OrphanInStateTests(_ReconcileBase):
-    """AC26 type B: state records ownership of an entry the target
+    """Type B: state records ownership of an entry the target
     file doesn't have. Surfaces under the adapter heading."""
 
     def test_hand_deleted_entry_reported(self) -> None:
@@ -193,7 +193,7 @@ class GroupedByAdapterTests(_ReconcileBase):
 
 
 class ReadOnlyContractTests(_ReconcileBase):
-    """AC26 read-only invariant: target files are byte-identical
+    """Read-only invariant: target files are byte-identical
     before and after a reconcile run."""
 
     def test_reconcile_does_not_write(self) -> None:

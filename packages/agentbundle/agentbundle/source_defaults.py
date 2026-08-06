@@ -14,7 +14,6 @@ first-match-wins chain:
 path/marker validation; **all** validation lives here. Resolution is
 stateless — it never writes config, never falls back to ``.``/cwd, and never
 consults a repo-committed source. See
-``docs/specs/convenient-install-defaults/spec.md``.
 """
 
 from __future__ import annotations
@@ -124,7 +123,7 @@ def _source_from_org_bootstrap(text: str, *, config_path: str) -> str | None:
 
     Returns ``None`` when the bootstrap is disabled: absent table, absent or
     ``false`` ``enabled`` key, or unparseable TOML (the file cannot reveal
-    ``enabled``, so fall-through is the only safe choice — AC2b).
+    ``enabled``, so fall-through is the only safe choice).
 
     When ``enabled = true`` (TOML boolean), applies all validation rules before
     constructing the URL. On any validation failure raises ``CatalogueError``

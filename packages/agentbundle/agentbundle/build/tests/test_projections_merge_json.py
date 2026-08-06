@@ -2,7 +2,7 @@
 
 Originally private to ``adapters/claude_code.py`` as ``_project_merge_json``;
 lifted to ``build/projections/merge_json.py`` by
-docs/specs/dropped-primitives-coverage (T2). The existing claude-code
+dropped-primitives coverage. The existing claude-code
 merge-json tests at ``test_adapter_claude_code.py`` remain green and
 form the regression safety net for the lift; this module pins the
 helper's contract directly so codex.py (T4) can rely on it.

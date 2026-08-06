@@ -8,7 +8,7 @@ projection rule with ``mode == "merge-json"``.
 
 Originally private to ``adapters/claude_code.py`` as
 ``_project_merge_json``; lifted to this sibling module by
-docs/specs/dropped-primitives-coverage (T2) so codex.py can reuse the
+dropped-primitives coverage so codex.py can reuse the
 exact same code path without re-implementing.
 """
 

@@ -1,6 +1,6 @@
 """shared-libs/ source-enumeration + projection-retirement tests.
 
-RFC-0023 retired the original projection contract: ``shared-libs/*.py``
+The original projection contract was retired: ``shared-libs/*.py``
 is no longer byte-copied into every ``auth: creds`` skill's ``scripts/``
 (those consumers resolve credentials via the ``credbroker`` pip
 library). What survives is source enumeration for the
@@ -122,7 +122,7 @@ class InterPackCollisionTests(_FixtureBase):
 
 
 class ProjectionRetirementGuardTests(unittest.TestCase):
-    """RFC-0023 retired the skill-scripts projection. These names must
+    """The skill-scripts projection was retired. These names must
     stay gone — reintroducing the projection mechanism here turns this
     red (the projection model is replaced by the credbroker pip dep)."""
 

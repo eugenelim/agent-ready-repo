@@ -1,6 +1,6 @@
 """Unit tests for the wave-scheduled-supervisor scheduler in loop-cohort.py.
 
-Covers spec `docs/specs/wave-scheduled-supervisor/`:
+Covers the wave-scheduled supervisor:
   T1 — parse_depends_on + parse_plan
   T2 — topological order, cycle + forward-ref detection
   T4 — dispatch_decision gate
@@ -294,12 +294,12 @@ def test_classify_all_added_is_cannot_collide():
 
 
 def test_classify_iff_reverse_single_non_added_flips_off():
-    # AC1 reverse direction: one M among adds → not cannot-collide.
+    # Reverse direction: one M among adds → not cannot-collide.
     assert lc.classify_task([("A", "src/new.py"), ("M", "src/old.py")]) != "cannot-collide"
 
 
 def test_classify_all_added_but_danger_path_is_not_cannot_collide():
-    # AC1 reverse: an added danger-path is still not cannot-collide.
+    # Reverse: an added danger-path is still not cannot-collide.
     assert lc.classify_task([("A", "pkg/__init__.py")]) == "danger-path"
 
 
@@ -554,7 +554,7 @@ def test_schedule_no_annotation_on_single_task_wave(tmp_path):
 
 
 def test_schedule_is_screen_only_no_gate_call(tmp_path):
-    # AC5 positive form: the predict path (cmd_schedule) shares no call with the
+    # Positive form: the predict path (cmd_schedule) shares no call with the
     # authoritative gate; and dispatch_decision's signature is unchanged.
     import inspect
     # the whole predict path (cmd_schedule -> wave_touches_disjoint ->

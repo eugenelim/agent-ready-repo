@@ -1,6 +1,6 @@
 """T19: dual-scope install conflict + --force + `installed: <pack> @ <scope>`.
 
-Verifies AC #(RFC-0004) for the agent-spec-cli spec:
+Verifies the agent-spec-cli dual-scope surface:
   - install against a pack already at the requested scope refuses with
     the in-place message; --force does not bypass it.
   - install against a pack already at the *other* scope refuses without
@@ -158,8 +158,8 @@ def test_cross_scope_force_proceeds_and_writes_both_state_files(tmp_path, monkey
     # Both state files exist after the run.
     assert (target / ".agentbundle-state.toml").exists()
     assert (fake_home / ".agentbundle" / "state.toml").exists()
-    # RFC-0011 extends the user-scope line with ` via <adapter>`;
-    # RFC-0012 extends repo too (`installed: X @ repo via Y`) at the
+    # The user-scope line carries ` via <adapter>`;
+    # Extends repo too (`installed: X @ repo via Y`) at the
     # default per-IDE projection or emits `emitted install routes
     # for X at ...` under `--emit-install-routes`. Strip the suffix
     # / route-list and grep for the repo-then-user ordering invariant
@@ -291,7 +291,7 @@ def test_upgrade_refuses_when_at_multiple_scopes(tmp_path, monkeypatch):
 
 
 def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatch):
-    """RFC-0004 Blocker fix: uninstall at user scope must write the state
+    """Blocker fix: uninstall at user scope must write the state
     file to `~/.agentbundle/state.toml` (the namespaced dot-directory),
     never a bare `~/.agentbundle-state.toml`. Adversarial-reviewer Blocker
     pass 2 surfaced this — the test pins the fix.
@@ -334,7 +334,7 @@ def test_uninstall_at_user_scope_writes_dot_directory_state(tmp_path, monkeypatc
 
 
 def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
-    """RFC-0004 Blocker fix: upgrade at user scope must render via the
+    """Blocker fix: upgrade at user scope must render via the
     Claude Code adapter directly (paths under `.claude/...`), not the
     dist-tree shape. The first-pass fix only addressed the state-file
     path; this test pins the render-shape fix too.
@@ -387,7 +387,7 @@ def test_upgrade_at_user_scope_renders_claude_code_shape(tmp_path, monkeypatch):
 
 
 def test_install_v01_pack_stray_install_table_ignored(tmp_path):
-    """RFC-0004 Blocker fix: a v0.1 pack carrying `[pack.install]
+    """Blocker fix: a v0.1 pack carrying `[pack.install]
     default-scope = "user"` is treated as legacy repo-only. The schema
     accepts the stray table; the CLI must ignore it.
     """

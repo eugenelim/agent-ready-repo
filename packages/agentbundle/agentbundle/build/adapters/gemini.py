@@ -42,7 +42,7 @@ import tomllib
 from pathlib import Path
 from typing import Any, Iterator
 
-# RFC-0005 § Build-pipeline ordering invariant — uniform across adapters.
+# Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.gemini_command_toml import (

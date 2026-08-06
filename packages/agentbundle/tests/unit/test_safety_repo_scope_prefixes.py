@@ -1,5 +1,5 @@
 """Unit tests for the repo-scope path-jail widening + scan_for_pack_artifacts
-helper (repo-scope-per-adapter-projection).
+helper.
 
 Two surfaces:
 

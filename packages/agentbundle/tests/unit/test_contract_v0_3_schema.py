@@ -1,9 +1,9 @@
 """T1: adapter contract v0.3 schema acceptances and refusals.
 
 Note: the contract version was bumped from "0.3" to "0.4" by T2 (spec
-claude-plugins-install-route / RFC-0008), then to "0.5" by T2 of spec
-apm-install-route-parity / RFC-0010. The v0.3 structural tests below
-remain valid under v0.5 (all v0.3 fields are preserved); only AC7's
+the claude-plugins install route), then to "0.5" by the apm install
+route. The v0.3 structural tests below remain valid under v0.5 (all
+v0.3 fields are preserved); only the
 version assertion is updated.
 
 Covers spec ACs:
@@ -71,18 +71,18 @@ def _parse_pack(toml_text: str) -> dict:
 class ContractVersionTests(unittest.TestCase):
     def test_contract_version_is_0_5(self) -> None:
         # T2 of apm-install-route-parity bumped the contract to v0.5;
-        # RFC-0011 / pack-allowed-adapters bumped it to v0.6;
-        # RFC-0012 / repo-scope-per-adapter-projection and RFC-0013 /
+        # pack-allowed-adapters bumped it to v0.6;
+        # repo-scope per-adapter projection and the
         # credential-broker-contract co-bumped it to v0.7;
-        # docs/specs/dropped-primitives-coverage bumped it to v0.8;
-        # RFC-0022 / kiro-adapter-split bumped it to v0.9 (this assertion was
+        # dropped-primitives coverage bumped it to v0.8;
+        # the kiro adapter split bumped it to v0.9 (this assertion was
         # left stale at "0.8" then — this CI-only root isn't in `make
         # build-check`, so the drift didn't surface)
-        # parity bumped it to v0.10; RFC-0026 / cursor-full-parity bumped it to
-        # v0.11; docs/specs/gemini-full-parity bumped it to v0.13;
-        # docs/specs/enriched-pack-manifest bumped it to v0.14;
-        # docs/specs/kiro-cli-agent-skill-resources bumped it to v0.15;
-        # docs/specs/consolidated-pack-layout bumps it to v0.17.
+        # parity bumped it to v0.10; cursor full parity bumped it to
+        # v0.11; gemini full parity bumped it to v0.13;
+        # the enriched pack manifest bumped it to v0.14;
+        # kiro-cli agent skill resources bumped it to v0.15;
+        # the consolidated pack layout bumps it to v0.17.
         self.assertEqual(_load_contract()["contract"]["version"], "0.17")
 
 
@@ -161,8 +161,9 @@ class KiroHookWiringTableTests(unittest.TestCase):
 
 
 class ClaudeCodeHookWiringTableTests(unittest.TestCase):
-    """AC3 mandates the new table form be *declared*; it does not require the
-    legacy array entry to be removed simultaneously (compare AC2's explicit
+    """The contract mandates the new table form be *declared*; it does not
+    require the legacy array entry to be removed simultaneously (compare the
+    explicit
     removal of kiro `degraded-info-log`). The legacy entry stays as the
     pipeline-of-record until T5/T7 land — see adapter.toml comment."""
 
@@ -176,7 +177,7 @@ class ClaudeCodeHookWiringTableTests(unittest.TestCase):
         self.assertEqual(entry["managed-key"]["user"], "hooks")
 
     def test_managed_key_is_user_only(self) -> None:
-        """AC3 names `managed-key.user`; repo scope's `merge-json` carries its
+        """The contract names `managed-key.user`; repo scope's `merge-json` carries its
         managed-key contract implicitly (legacy array entry). A `managed-key.repo`
         appearing here would silently duplicate or override that contract."""
         entry = _load_contract()["adapter"]["claude-code"]["projections"]["hook-wiring"]
@@ -194,8 +195,9 @@ class ClaudeCodeHookWiringTableTests(unittest.TestCase):
 
 
 class HookBodyScopeConditionalTests(unittest.TestCase):
-    """AC4 mandates the new table-form declaration of `hook-body` for both
-    adapters. AC4 does not demand removal of the legacy array entries; those
+    """The contract mandates the new table-form declaration of `hook-body`
+    for both adapters. It does not demand removal of the legacy array
+    entries; those
     stay as pipeline-of-record until T5/T7."""
 
     def test_claude_code_hook_body_scope_conditional(self) -> None:
@@ -559,7 +561,7 @@ class AdapterBlockCoverageTests(unittest.TestCase):
     """An adapter block declaring neither `projection` nor `projections` would
     project nothing — yet the relaxed v0.3 schema (no `required: [projection]`)
     accepts it. Catch this at the test layer until the stdlib validator gains
-    an `anyOf` or equivalent. AC1 implicitly requires every reference adapter
+    an `anyOf` or equivalent. The schema implicitly requires every reference adapter
     to cover all five primitives via one form or the other."""
 
     def test_every_adapter_declares_at_least_one_form(self) -> None:
@@ -616,7 +618,7 @@ class BundledCopiesMatchTests(unittest.TestCase):
         )
 
     def test_install_marker_template_copies_match(self) -> None:
-        """AC20 / Blocker-1 drift gate: _data/install-marker.py and
+        """Drift gate: _data/install-marker.py and
         templates/install-marker.py must be byte-identical.
 
         ``_read_install_marker_template`` (build/main.py) reads _data/ first

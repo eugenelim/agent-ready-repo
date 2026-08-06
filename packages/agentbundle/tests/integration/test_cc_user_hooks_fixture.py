@@ -12,7 +12,6 @@ Per spec § Boundaries — *Never do* — no live writes to
 ``patch.dict(os.environ, {"HOME": tmp})`` for the duration of each
 test; the assertion target is the tmp-scoped settings file.
 
-Spec AC coverage: AC8 / AC9 / AC11 against the fixture.
 """
 
 from __future__ import annotations

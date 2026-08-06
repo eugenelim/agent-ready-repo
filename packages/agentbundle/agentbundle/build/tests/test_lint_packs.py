@@ -285,7 +285,7 @@ class LintPackVocabTests(unittest.TestCase):
         return path
 
     # ------------------------------------------------------------------
-    # Skill checks (— name pattern, AC3 — name length, AC4 — desc)
+    # Skill checks (name pattern, name length, description)
     # ------------------------------------------------------------------
 
     def test_skill_dir_name_pattern_violation_detected(self) -> None:
@@ -362,7 +362,7 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertIn("skill/valid-name", ml_findings[0])
 
     # ------------------------------------------------------------------
-    # Agent checks (— name pattern + length, AC6 — desc length)
+    # Agent checks (name pattern + length, description length)
     # ------------------------------------------------------------------
 
     def test_agent_name_length_violation_detected(self) -> None:
@@ -519,7 +519,7 @@ class LintPackVocabTests(unittest.TestCase):
 
     def test_skill_name_multiline_refused(self) -> None:
         """A folded `name:` in frontmatter must be refused — same
-        rationale as AC12 for `description:`, applied to `name:`."""
+        rationale as for `description:`, applied to `name:`."""
         constraints = _make_constraints()
         with tempfile.TemporaryDirectory() as tmp:
             pack = Path(tmp) / "ml-name-pack"
@@ -597,7 +597,7 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertEqual(len(desc_findings), 1, findings)
 
     def _run_with_bad_vocab(self, body: str) -> tuple[int, str]:
-        """Helper for AC11 refusal-branch coverage. Materialises an
+        """Helper for refusal-branch coverage. Materialises an
         isolated tree with a controlled `target-vocab.toml`, invokes
         `cmd_lint_packs` against a minimal pack inside that tree, and
         returns `(rc, stderr_text)`. The explicit `--packs-dir` walk

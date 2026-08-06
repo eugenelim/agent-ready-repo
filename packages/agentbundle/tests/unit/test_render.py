@@ -29,7 +29,7 @@ def test_render_pack_returns_bytes_dict_for_core(tmp_path):
     rendered = render.render_pack(pack_path)
     assert isinstance(rendered, dict)
     assert all(isinstance(v, bytes) for v in rendered.values())
-    # The three RFC-0001 recipes leave the marketplace + per-pack outputs.
+    # The three default recipes leave the marketplace + per-pack outputs.
     assert any("marketplace.json" in k for k in rendered)
     assert any(k.startswith("claude-plugins/core/") for k in rendered)
     assert any(k.startswith("apm/core/") for k in rendered)

@@ -1,4 +1,4 @@
-"""T8 integration tests for RFC-0011 / pack-allowed-adapters at install
+"""T8 integration tests for pack-allowed-adapters at install
 time.
 
 End-to-end: invoke `agentbundle install --pack <name> --scope user`
@@ -10,7 +10,7 @@ Reference idiom mirrors `test_install_converters_user_scope.py`:
 in-process `install.run`, `$HOME` patched via `patch.dict`. The four
 credentialed user-scope packs ship `allowed-adapters = ["claude-code",
 "kiro-ide", "codex", "copilot", "cursor"]` — the bare `kiro` alias was
-de-staled to its current RFC-0022 name, and `copilot` + `cursor` were
+de-staled to its current name, and `copilot` + `cursor` were
 added by the errata (2026-06-12). This test covers the
 claude-code / kiro-ide / codex resolver paths without fabricating
 fixtures; it asserts install behaviour, not list equality.
@@ -202,7 +202,7 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
             f"adapters present: {after.adapters_for_pack('converters')!r}",
         )
 
-    # Note: `test_adapter_at_repo_scope_refused` was deleted by RFC-0012 —
+    # Note: `test_adapter_at_repo_scope_refused` was deleted at v0.7 —
     # `--adapter` is admitted at both scopes now. The new mutex with
     # `--emit-install-routes` is covered by
     # `tests/unit/test_install_argparse_emit_install_routes.py`.

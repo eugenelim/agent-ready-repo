@@ -1,7 +1,7 @@
 """Unit tests for the six-step (0–5) ``_resolve_target_adapter``
-lookup (substrate; RFC-0012 widens to scope-branched form).
-Covers spec AC6, AC21 from RFC-0011 plus
-the new RFC-0012 cases (probe asymmetry at repo scope, scope-conditional
+lookup (substrate; widened to a scope-branched form).
+Covers the user-scope cases plus the repo-scope ones
+(probe asymmetry at repo scope, scope-conditional
 step-1 subcheck, etc.).
 
 The module's filename is preserved at its pre-RFC-0012 name (the
@@ -31,7 +31,7 @@ from agentbundle.scope import DEFAULT_ADAPTER
 
 
 def _resolve_user_scope_target_adapter(*args, **kwargs):
-    """Test-local shim. RFC-0012 renamed the production helper to
+    """Test-local shim. The production helper was renamed to
     ``_resolve_target_adapter`` with an explicit ``scope`` kwarg; the
     test module's filename preserves the pre-rename function name
     (gated by *Ask first* in the spec's *Boundaries* section), so we
@@ -219,7 +219,7 @@ def test_adapter_flag_refused_not_in_allowed_adapters(tmp_path, fake_home):
 
 
 def test_adapter_flag_refused_not_user_scope_capable(tmp_path, fake_home):
-    # RFC-0024 / copilot-full-parity makes copilot user-scope-capable, so the
+    # Copilot full parity makes copilot user-scope-capable, so the
     # refusal this test originally pinned no longer fires for it — copilot is
     # admitted at user scope. (After this bump every shipped adapter is
     # user-scope-capable, so no shipped adapter triggers the refusal path; it
@@ -453,7 +453,7 @@ def test_repo_scope_adapter_flag_admits_all_shipped_adapters(
 
 
 def test_step1_copilot_admitted_at_repo_user_refused(tmp_path, fake_home):
-    """RFC-0024 / copilot-full-parity supersedes the scope-conditional subcheck
+    """Copilot full parity supersedes the scope-conditional subcheck
     for copilot: now user-scope-capable, copilot admits at **both** scopes via
     `--adapter` (the v0.8 user-scope refusal wording no longer fires for it)."""
     pack = _make_pack_v07(tmp_path)
@@ -471,7 +471,7 @@ def test_step1_copilot_admitted_at_repo_user_refused(tmp_path, fake_home):
 
 
 def test_repo_scope_does_not_probe_dot_claude(tmp_path, fake_home):
-    """Load-bearing asymmetry — RFC-0012 § *Alternatives* #4 rejects
+    """Load-bearing asymmetry — the contract rejects
     symmetric probing. Even with `<repo>/.claude/` populated, an
     explicit `--adapter kiro` at repo scope returns kiro."""
     pack = _make_pack_v07(tmp_path)
@@ -492,7 +492,7 @@ def test_repo_scope_does_not_probe_dot_claude(tmp_path, fake_home):
 
 @pytest.mark.parametrize("scope", ["user", "repo"])
 def test_step0_publisher_drift_scope_uniform(tmp_path, fake_home, scope):
-    """Spec AC9 step 0 — publisher-vs-installer drift refusal is
+    """Step 0 — publisher-vs-installer drift refusal is
     scope-uniform modulo the <verb> prefix; the user-scope-capability
     subcheck does NOT fire at repo scope (Copilot is admissible there).
     Here we assert the shipped-adapter check fires at both scopes."""
@@ -511,7 +511,7 @@ def test_step0_publisher_drift_scope_uniform(tmp_path, fake_home, scope):
 
 
 def test_step0_copilot_admitted_at_repo_in_allowed_adapters(tmp_path, fake_home):
-    """RFC-0024 / copilot-full-parity: copilot is now user-scope-capable, so a
+    """Copilot is now user-scope-capable, so a
     pack declaring it in allowed-adapters has it admitted at **both** scopes
     (the v0.7 repo-only refusal at user scope is superseded)."""
     pack = _make_pack_v07(tmp_path)
@@ -527,7 +527,7 @@ def test_step0_copilot_admitted_at_repo_in_allowed_adapters(tmp_path, fake_home)
 
 
 def test_repo_scope_greenfield_returns_default_adapter(tmp_path, fake_home):
-    """Spec AC9 step 4 (repo branch) — no --adapter, no probe; returns
+    """Step 4 (repo branch) — no --adapter, no probe; returns
     DEFAULT_ADAPTER if in allowed_adapters."""
     pack = _make_pack_v07(tmp_path)
     # List built from the constant so the default stays in-list under a rebrand.
@@ -559,7 +559,7 @@ def test_repo_scope_greenfield_falls_back_to_first_when_default_absent(
 
 
 def test_repo_scope_legacy_heuristic_for_pre_v07_pack(tmp_path, fake_home):
-    """Spec AC9 step 5 — `< v0.7` pack omitting allowed-adapters falls
+    """Step 5 — `< v0.7` pack omitting allowed-adapters falls
     through to the legacy heuristic at repo scope. Returns
     ``DEFAULT_ADAPTER`` regardless of `.apm/agents/` presence so a
     downstream-rebranded constant is honored uniformly."""
@@ -619,13 +619,13 @@ def test_repo_scope_legacy_heuristic_honors_monkey_patched_default(
 
 
 def test_repo_scope_state_hint_short_circuit(tmp_path, fake_home):
-    """Spec AC9 step 2 — state-hint short-circuit (AC10b parity at
+    """Step 2 — state-hint short-circuit (parity at
     repo scope). Install under kiro; populate `<repo>/.claude/`;
     upgrade with state_adapter=kiro returns kiro (no cross-adapter
     refusal)."""
     pack = _make_pack_v07(tmp_path)
     # Populate ~/.claude/ as a sanity probe — irrelevant at repo
-    # scope per the asymmetry, but matches RFC-0011's upgrade-side
+    # scope per the asymmetry, but matches the upgrade-side
     # scenario.
     (fake_home / ".claude").mkdir()
     result = _resolve_target_adapter(
@@ -648,7 +648,7 @@ def test_repo_scope_state_hint_short_circuit(tmp_path, fake_home):
 def test_default_adapter_value_unchanged():
     """The renamed constant carries the same value (claude-code).
 
-    This is the single assertion an ADR-0004 enterprise-rebrand flips: a
+    This is the single assertion an enterprise rebrand flips: a
     downstream distribution that sets ``DEFAULT_ADAPTER`` to its own default
     (e.g. ``kiro-ide``) updates this literal and nothing else here — every
     other default-fallback assertion in this module references the constant and

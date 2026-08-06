@@ -87,7 +87,7 @@ class AskAgentByteCopyTests(unittest.TestCase):
     """askAgent hooks with no `${` in raw bytes byte-copy verbatim;
     assert SHA equality between source and target.
 
-    This pins RFC-0005 § Substitution rules clause 1 — only
+    This pins substitution-rule clause 1 — only
     then.command is scanned — by ensuring askAgent files (no command
     field) round-trip exactly."""
 

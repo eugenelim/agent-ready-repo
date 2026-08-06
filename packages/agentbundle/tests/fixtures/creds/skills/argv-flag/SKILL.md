@@ -1,12 +1,12 @@
 ---
 name: argv-flag
-description: Credentialed-CLI fixture whose script accepts `--token` on argv; AC26(b) finding expected.
+description: Credentialed-CLI fixture whose script accepts `--token` on argv; an argv-flag finding is expected.
 metadata:
   credentialed: true
   primitive-class: credentialed-cli
 ---
 
-Body content with the full "Don't" block (so AC26(a) is silent and the
+Body content with the full "Don't" block (so the missing-block check is silent and the
 argv finding is the only one fired):
 
 ### Security rules (non-negotiable)
