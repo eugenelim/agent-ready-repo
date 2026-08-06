@@ -592,7 +592,12 @@ def _step_plugin_manifests(
 ) -> list[Diagnostic]:
     """Step 13: validate generated claude-plugin manifests against schema."""
     dist_dir = tmpdir / "dist" / "claude-plugins"
-    if not dist_dir.exists():
+    root_marketplace = root / ".claude-plugin" / "marketplace.json"
+    # No early return on `dist_dir` alone: the ROOT marketplace is checked
+    # independently, so gating both on a built dist tree would make the root
+    # check unreachable whenever `dist/` is absent — a gate that only looks
+    # like a gate.
+    if not dist_dir.exists() and not root_marketplace.exists():
         return []
 
     try:
@@ -603,12 +608,45 @@ def _step_plugin_manifests(
 
     try:
         schema = json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
+        entry_schema = json.loads(_read_bundled("marketplace-entry.schema.json"))
     except Exception:
         return []
 
     diags: list[Diagnostic] = []
 
-    for manifest_path in sorted(dist_dir.rglob("*.claude-plugin/plugin.json")):
+    def _check_marketplace(path: Path, label: str) -> None:
+        """Validate every ``plugins[]`` entry in a marketplace file.
+
+        Entries need their own schema: ``plugin.json`` must *not* carry
+        ``source`` (``build/main.py`` pops it) while an entry must require it,
+        and entries carry ``category``, which the derived schema forbids under
+        ``additionalProperties: false``. Until this ran, marketplace entries
+        were validated by nothing at all.
+        """
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            diags.append(_err("CAT-V-013", f"{label} parse error: {exc}",
+                              path=label))
+            return
+        for plugin_entry in payload.get("plugins", []):
+            name = plugin_entry.get("name", "unknown")
+            if "hooks" in plugin_entry:
+                diags.append(_err(
+                    "CAT-V-013",
+                    f"plugin '{name}' contains 'hooks' — "
+                    "hooks must not appear in marketplace entries",
+                    path=label,
+                ))
+            for error in _validate_manifest(plugin_entry, entry_schema):
+                diags.append(_err(
+                    "CAT-V-013",
+                    f"marketplace entry '{name}': {error}",
+                    path=label,
+                ))
+
+    for manifest_path in sorted(dist_dir.rglob("*.claude-plugin/plugin.json")) \
+            if dist_dir.exists() else []:
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except Exception as exc:
@@ -620,24 +658,17 @@ def _step_plugin_manifests(
             diags.append(_err("CAT-V-013", f"plugin manifest schema: {error}",
                                path=str(manifest_path.relative_to(tmpdir))))
 
-    marketplace_path = dist_dir / "marketplace.json"
-    if marketplace_path.exists():
-        try:
-            marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
-        except Exception as exc:
-            diags.append(_err("CAT-V-013", f"marketplace.json parse error: {exc}",
-                              path=str(marketplace_path.relative_to(tmpdir))))
-        else:
-            for plugin_entry in marketplace.get("plugins", []):
-                if "hooks" in plugin_entry:
-                    name = plugin_entry.get("name", "unknown")
-                    diags.append(_err(
-                        "CAT-V-013",
-                        f"plugin '{name}' contains 'hooks' — "
-                        "hooks must not appear in marketplace entries",
-                        path=str(marketplace_path.relative_to(tmpdir)),
-                    ))
-                    break
+    # Both marketplace files, not just dist: the ROOT `.claude-plugin/
+    # marketplace.json` is the file `claude plugin marketplace add <owner>/<repo>`
+    # actually reads, and it is written by a second writer
+    # (`build/self_host.py:_aggregate_marketplace`).
+    dist_marketplace = dist_dir / "marketplace.json"
+    if dist_marketplace.exists():
+        _check_marketplace(dist_marketplace,
+                           str(dist_marketplace.relative_to(tmpdir)))
+
+    if root_marketplace.exists():
+        _check_marketplace(root_marketplace, ".claude-plugin/marketplace.json")
 
     return diags
 
