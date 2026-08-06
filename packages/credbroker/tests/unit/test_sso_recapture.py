@@ -90,10 +90,14 @@ def test_spawn_kills_process_tree(tmp_path):       # STUB: AC3
         time.sleep(60)
     """)
 
+    # 6 s, not 2: the timeout must not fire before the fake broker's interpreter
+    # has started and reached its fork, or the grandchild never exists and the
+    # test fails for a harness reason. Interpreter start plus fork is a few
+    # hundred milliseconds; this is a ~20x margin, which a loaded CI box needs.
     with pytest.raises(credbroker.SsoBrokerUnavailableError):
         _sso._spawn_broker(
             [sys.executable, str(fake), "refresh", "p"],
-            timeout=2.0, env_profile="browser", capture=False,
+            timeout=6.0, env_profile="browser", capture=False,
         )
 
     deadline = time.monotonic() + 5
@@ -103,7 +107,10 @@ def test_spawn_kills_process_tree(tmp_path):       # STUB: AC3
             grandchild = int(marker.read_text())
         else:
             time.sleep(0.05)
-    assert grandchild is not None, "fake broker never forked its grandchild"
+    assert grandchild is not None, (
+        "fake broker never forked its grandchild — the spawn timeout fired "
+        "before the child reached its fork, so this run proved nothing"
+    )
     # The grandchild joined the spawned session's group, so the group kill must
     # have reached it.
     deadline = time.monotonic() + 5
