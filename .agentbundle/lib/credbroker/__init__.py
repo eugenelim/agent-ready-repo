@@ -56,15 +56,23 @@ from ._core import _tier2_backend_label as tier2_backend_label
 # keeps the base import graph free of any third-party dependency.
 from ._sso import (
     SsoBrokerNotInstalledError,
+    SsoBrokerUnavailableError,
     SsoConfigError,
     SsoError,
+    SsoInteractionRequiredError,
+    SsoProfileNotRegisteredError,
+    SsoRecaptureFailedError,
     SsoSessionUnavailableError,
+    derive_sso_destination,
     domain_in_cookie_domains,
     filter_jar_to_domains,
     load_sso_cookies,
+    refresh_sso_session,
+    register_sso_session,
     require_host_in_cookie_domains,
     validate_https_url,
     validate_root_relative_endpoint,
+    validate_sso_profile,
 )
 
 __version__ = "0.4.1"
@@ -98,11 +106,19 @@ __all__ = [
     "store_in_vault",
     # SSO web-session cookie family.
     "load_sso_cookies",
+    "derive_sso_destination",
+    "refresh_sso_session",
+    "register_sso_session",
     "SsoError",
     "SsoBrokerNotInstalledError",
     "SsoSessionUnavailableError",
     "SsoConfigError",
+    "SsoBrokerUnavailableError",
+    "SsoProfileNotRegisteredError",
+    "SsoRecaptureFailedError",
+    "SsoInteractionRequiredError",
     # SSO confinement primitives (security-control surface).
+    "validate_sso_profile",
     "validate_https_url",
     "validate_root_relative_endpoint",
     "domain_in_cookie_domains",
