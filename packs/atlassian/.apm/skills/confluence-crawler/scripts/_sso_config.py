@@ -49,6 +49,42 @@ _DEFAULT_CONFIG_PATH = (
     Path(__file__).resolve().parent.parent / "references" / "sso-config.toml"
 )
 
+# Scalar `[sso]` string fields that can reach an engine argv or the engine's
+# profile writer. `profile` is not here — it has its own grammar, which is
+# strictly narrower.
+_FORWARDED_STRING_KEYS = (
+    "base_url",
+    "login_url",
+    "success_url_pattern",
+    "validation_endpoint",
+    "session_filename",
+)
+
+# Characters a TOML basic string cannot carry literally, which is what the
+# engine writes profile values into. The whole C0 range plus DEL, not just
+# `\n` / `\r` / `\t`: a TOML source can encode any of them as `\uXXXX`, so the
+# parsed value carries the bare character with no literal backslash to notice.
+_UNFORWARDABLE = frozenset(
+    {'"', "\\"} | {chr(c) for c in range(0x20)} | {chr(0x7F)}
+)
+
+
+def _reject_unforwardable(value: object, *, field: str, error: type[Exception]) -> None:
+    """Fail closed unless *value* is a string safe to forward to the engine.
+
+    Two consumers downstream cannot defend themselves: ``urlsplit`` strips CR/LF
+    before parsing, so the https guard cannot see them, and the engine writes
+    values into a quoted TOML string.
+    """
+    if not isinstance(value, str):
+        raise error(f"{field} must be a string, got {type(value).__name__}")
+    for ch in value:
+        if ch in _UNFORWARDABLE:
+            raise error(
+                f"{field} carries U+{ord(ch):04X}, which cannot be safely "
+                f"forwarded to the SSO broker"
+            )
+
 
 @dataclass(frozen=True)
 class SsoConfig:
@@ -87,6 +123,7 @@ def load_sso_config(config_path: Path | None = None) -> SsoConfig | None:
         domain_in_cookie_domains,
         validate_https_url,
         validate_root_relative_endpoint,
+        validate_sso_profile,
     )
 
     sso = data.get("sso")
@@ -101,6 +138,37 @@ def load_sso_config(config_path: Path | None = None) -> SsoConfig | None:
     missing = _REQUIRED_SSO_KEYS - set(sso)
     if missing:
         raise SsoConfigError(f"missing required [sso] keys: {sorted(missing)}")
+
+    # Before any other check, and before any `str()` coercion: a `str()` here
+    # would turn an int `5` into `"5"` and make the grammar's non-str rejection
+    # unreachable from this path.
+    validate_sso_profile(sso["profile"])
+
+    # Every string field that can reach an argv or the engine's profile writer.
+    # Runs before the URL guards because `urlsplit` strips CR/LF before parsing,
+    # so `validate_https_url` structurally cannot see them — while the engine
+    # interpolates the value into `key = "value"`, where a newline injects a
+    # line into the profile store.
+    for field in _FORWARDED_STRING_KEYS:
+        value = sso.get(field)
+        if value is None:
+            continue
+        _reject_unforwardable(value, field=field, error=SsoConfigError)
+    for index, domain in enumerate(sso.get("cookie_domains") or []):
+        if isinstance(domain, str):
+            _reject_unforwardable(
+                domain, field=f"cookie_domains[{index}]", error=SsoConfigError
+            )
+
+    # `int | None` in the annotation but passed through untyped, so a string
+    # reached the argv builder and then `--ttl-hint-minutes`. `bool` is excluded
+    # explicitly: `isinstance(True, int)` is True in Python, and a bool is not a
+    # duration.
+    ttl = sso.get("ttl_hint_minutes")
+    if ttl is not None and (isinstance(ttl, bool) or not isinstance(ttl, int)):
+        raise SsoConfigError(
+            f"ttl_hint_minutes must be an integer, got {type(ttl).__name__}"
+        )
 
     validate_https_url(sso["base_url"], field="base_url")
     validate_https_url(sso["login_url"], field="login_url")
@@ -152,7 +220,7 @@ def load_sso_config(config_path: Path | None = None) -> SsoConfig | None:
             )
 
     return SsoConfig(
-        profile=str(sso["profile"]),
+        profile=sso["profile"],
         base_url=sso["base_url"],
         login_url=sso["login_url"],
         success_url_pattern=sso["success_url_pattern"],
