@@ -84,12 +84,21 @@ CASES: list[tuple[str, str, int]] = [
 _REPO = Path(__file__).resolve().parent.parent
 _JIRA = _REPO / "packs/atlassian/.apm/skills/jira/scripts"
 _CONF = _REPO / "packs/atlassian/.apm/skills/confluence-crawler/scripts"
+_JIRA_TESTS = _REPO / "packs/atlassian/tests/skills/jira"
+_CONF_TESTS = _REPO / "packs/atlassian/tests/skills/confluence-crawler"
 # The per-skill SSO files RFC-0023 forbids sharing as a projected module, so they
 # are duplicated byte-for-byte across the two skills. Pin them equal here so a
 # one-sided edit to the security-control loader fails loudly instead of drifting.
-_DUPLICATED = (
+#
+# Two path bases, because the pinned set spans the runtime boundary (ADR-0071):
+# the loaders stay under `.apm/skills/<skill>/scripts/`, their tests moved to
+# `packs/atlassian/tests/skills/<skill>/`. Both halves keep their parity check —
+# a one-sided edit to a duplicated *test* hides a one-sided edit to the control.
+_DUPLICATED_RUNTIME = (
     "_sso_config.py",
     "setup_sso.py",
+)
+_DUPLICATED_TESTS = (
     "test_sso_config.py",
     "test_setup_sso.py",
     "test_auth_selector.py",
@@ -110,12 +119,18 @@ def _load_module(path: Path, name: str):
 
 def _parity_failures() -> list[str]:
     fails: list[str] = []
-    for fn in _DUPLICATED:
-        jb, cb = (_JIRA / fn), (_CONF / fn)
-        if not jb.is_file() or not cb.is_file():
-            fails.append(f"missing duplicated file: {fn}")
-        elif jb.read_bytes() != cb.read_bytes():
-            fails.append(f"{fn} differs between jira and confluence-crawler scripts/")
+    for names, jroot, croot, where in (
+        (_DUPLICATED_RUNTIME, _JIRA, _CONF, "scripts/"),
+        (_DUPLICATED_TESTS, _JIRA_TESTS, _CONF_TESTS, "tests/skills/"),
+    ):
+        for fn in names:
+            jb, cb = (jroot / fn), (croot / fn)
+            if not jb.is_file() or not cb.is_file():
+                fails.append(f"missing duplicated file: {where}{fn}")
+            elif jb.read_bytes() != cb.read_bytes():
+                fails.append(
+                    f"{fn} differs between jira and confluence-crawler {where}"
+                )
     # The lint's schema set must equal the loader's (the triplicated [sso] key set
     # must not drift between the lint that pins it and the loader that enforces it).
     try:

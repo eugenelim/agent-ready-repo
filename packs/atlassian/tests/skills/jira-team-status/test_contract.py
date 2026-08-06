@@ -35,7 +35,10 @@ import unittest
 
 # ── paths ──────────────────────────────────────────────────────────────────────
 
-_SKILL_DIR = pathlib.Path(__file__).parent.parent   # jira-team-status/
+_SKILL_DIR = (pathlib.Path(__file__).resolve().parents[3]
+              / ".apm" / "skills" / "jira-team-status")
+if not _SKILL_DIR.is_dir():               # wrong parents[] depth after a move
+    raise SystemExit(f"skill root not found at {_SKILL_DIR}")
 _SKILLS_DIR = _SKILL_DIR.parent                     # .apm/skills/
 _TRIAGE_DIR = _SKILLS_DIR / "jira-story-triage"    # .apm/skills/jira-story-triage/
 

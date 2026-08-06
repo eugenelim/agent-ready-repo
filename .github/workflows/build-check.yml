@@ -243,12 +243,20 @@ jobs:
       # installed editable above; httpx is the only extra runtime dep.
       - name: pip install httpx for the atlassian SSO suites (RFC-0035)
         run: pip install 'httpx>=0.27'
+      # Both trios `pytest.importorskip("credbroker")` at module scope, so a
+      # missing dependency exits 0 with the whole file skipped and the cookie
+      # confinement / fail-closed-config assertions silently stop running. The
+      # in-step import is what survives a future reordering of the installs above.
       - name: pytest jira SSO suites (atlassian-sso-cookie)
-        working-directory: packs/atlassian/.apm/skills/jira/scripts
-        run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
+        working-directory: packs/atlassian/tests/skills/jira
+        run: |
+          python -c "import credbroker, httpx"
+          python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
       - name: pytest confluence-crawler SSO suites (atlassian-sso-cookie)
-        working-directory: packs/atlassian/.apm/skills/confluence-crawler/scripts
-        run: python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
+        working-directory: packs/atlassian/tests/skills/confluence-crawler
+        run: |
+          python -c "import credbroker, httpx"
+          python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
 
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
       # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
