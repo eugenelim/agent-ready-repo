@@ -139,6 +139,7 @@ queue   = [
 
   # Backlog-graduated specs — Approved, independent of RFC-0064
   "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
+  "spec/jira-check-sso-auto-login",                      # jira check SSO auto-recovery in credbroker; engine errata RFC-0035/0013
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -438,6 +439,92 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+    # ~/.agentbundle/browser-state/<profile> holds a standing, silently-replayable corporate
+    # IdP session; this change makes replaying it agent-triggered. No lifetime management
+    # today. Fix: bound/expire it in sso-broker.py. Unblocks: after
+    # jira-check-sso-auto-login ships.
+  {slug = "browser-state-lifetime", source = "spec/jira-check-sso-auto-login"},
+    # confluence-crawler inherits the shared _sso_config/setup_sso files but not check
+    # auto-recovery. Fix: adopt the same _probe/recapture flow now that it lives in
+    # credbroker. Unblocks: after credbroker 0.5.0.
+  {slug = "confluence-crawler-check-auto-login", source = "spec/jira-check-sso-auto-login"},
+    # docs/CONVENTIONS.md:1197 requires --insecure to emit a stderr warning; jira-align,
+    # confluence-crawler, confluence-publisher and figma are silent. Fix: add the warning in
+    # each _client/CLI. Unblocks: now.
+  {slug = "insecure-warning-sibling-clis", source = "spec/jira-check-sso-auto-login"},
+    # tools/lint-sso-config.py validates the [sso] key set but not the profile charset, so a
+    # pre-baked traversal value only fails at runtime. Fix: add the AC4 grammar as a
+    # build-time check. Unblocks: after AC4 lands.
+  {slug = "lint-sso-config-profile-charset", source = "spec/jira-check-sso-auto-login"},
+    # AC11 site 4/5 guards only whoami; every other read method calls resp.json(), so an SSO
+    # login-page body still exits 1 there. Fix: move the guard to a shared _json helper.
+    # Unblocks: after AC11.
+  {slug = "nonjson-2xx-guard-all-read-paths", source = "spec/jira-check-sso-auto-login"},
+    # RFC-0074's catalogue pack-defaults cascade is Shipped but has no consumer, and its
+    # baked layer sits inside the agentbundle package, unreachable from stdlib-only skill
+    # scripts. Fix: installer projects [pack-defaults.<pack>] to
+    # ~/.agentbundle/<pack>/defaults.toml; needs an RFC-0074 addendum plus an ADR extending
+    # ADR-0059. CONSTRAINT (AC25): a projected defaults.toml is NOT trusted merely because
+    # the installer wrote it — its contents come from catalogue.toml, so if it can supply
+    # auth_default or a sign-in destination it becomes a second adopter-writable source for
+    # an automated launch; the addendum must keep the automatic path pinned to
+    # broker-written state exactly as AC1 does. Unblocks: after the addendum is Accepted.
+  {slug = "pack-config-catalogue-sso-defaults", source = "spec/jira-check-sso-auto-login"},
+    # AC32 branch 2 (login_url host == base_url host, the majority SP-initiated SAML
+    # topology) consults no server, so derivation attests nothing there. Fix: an attestation
+    # that works when SP and IdP share a host. Unblocks: needs design.
+  {slug = "sso-branch2-destination-attestation", source = "spec/jira-check-sso-auto-login"},
+    # sso-broker.py creates browser-state/<profile> with umask-default mode and stores
+    # context.cookies() unfiltered, so IdP cookies persist at rest though the consumer
+    # filters at load. Fix: 0700 mode + capture-time domain filter. Unblocks: now.
+  {slug = "sso-broker-at-rest-minimisation", source = "spec/jira-check-sso-auto-login"},
+    # Two concurrent recaptures collide on Chromium's singleton lock in the shared
+    # browser-state/<profile> dir. Scoped to the browser launch only; materialisation
+    # ordering is separately deferred as sso-materialisation-ordering. Fix: per-profile
+    # launch lockfile. Unblocks: now.
+  {slug = "sso-broker-register-concurrency", source = "spec/jira-check-sso-auto-login"},
+    # catalogue_tooling/lint.py:458 pins the phrase 'do not run any setup helper for them',
+    # whose literal meaning the check carve-out inverts. Fix: amend the pinned phrase set.
+    # Unblocks: needs a lint-contract change.
+  {slug = "sso-cookie-lint-phrase-amendment", source = "spec/jira-check-sso-auto-login"},
+    # Derive the destination from the browser's live state rather than config, after
+    # 1Password's extension model (inject only when already on the matching origin). Fix:
+    # design a live-state derivation. Unblocks: needs design.
+  {slug = "sso-live-browser-destination-derivation", source = "spec/jira-check-sso-auto-login"},
+    # login_url and success_url_pattern are the only fields that can point a human at a
+    # login page; everything else in sso-config.toml can stay adopter-editable. Fix:
+    # integrity-protect just those two (root-owned or signed). Unblocks: now — this is the
+    # one control the accepted threat profile says earns its cost.
+  {slug = "sso-destination-field-integrity", source = "spec/jira-check-sso-auto-login"},
+    # sso-config.toml is agent-writable, so no validation closes poisoning; a practitioner writeup's
+    # sudo-gated gh wrappers are the only mechanism found that actually protects such a
+    # file. Fix: privilege-separate the config at install. Unblocks: needs an install-path
+    # decision.
+  {slug = "sso-privilege-separated-config", source = "spec/jira-check-sso-auto-login"},
+    # AC16 logs recapture via log.info, but jira.py:780-783 configures logging with no filename,
+    # so the record goes to stderr the agent may discard - an unattended re-auth stays repudiable.
+    # Fix: append-only 0600 log under ~/.agentbundle/logs/. Unblocks: now.
+  {slug = "sso-recapture-audit-sink", source = "spec/jira-check-sso-auto-login"},
+    # AC16 logs recapture via log.info, but jira.py:780-783 configures logging with no
+    # filename, so the record goes to stderr the agent may discard — an unattended re-auth
+    # stays repudiable. Fix: append-only 0600 log under ~/.agentbundle/logs/. Unblocks: now.
+    # Making get-cookies materialisation unconditional (AC6a) makes an existing shared-temp race
+    # routine; ordering between concurrent materialisers is deliberately unspecified - a write-guard
+    # permits reversal, lock vs generation-check is not distinguishable by any single test, and a
+    # generation check is racy unless compare-and-replace is atomic. Fix: design an ordering protocol
+    # with its own tests. Unblocks: needs design.
+  {slug = "sso-materialisation-ordering", source = "spec/jira-check-sso-auto-login"},
+    # AC17's at-most-once bound is per-process and each agent turn is a new process, so a retry
+    # loop can spawn a HEADLESS recapture on every invocation - no browser is shown (AC14a),
+    # but each spawn still costs up to refresh's 180 s and re-exercises the engine.
+    # Fix: persist a last-attempt timestamp per profile and refuse inside a cooldown. Unblocks: now.
+  {slug = "sso-recapture-cooldown", source = "spec/jira-check-sso-auto-login"},
+    # A pack-shipped PreToolUse hook denying BOTH agent-facing capture commands (jira.py
+    # check --register and setup_sso.py) while allowing bare check. Belt-only, not a
+    # boundary: lands in .claude/settings.local.json, an agent-writable repo file; uneven
+    # adapter coverage (kiro-ide drops hook-wiring); cannot stop direct sso-broker.py
+    # register. Fix: only if an adopter wants it knowing the limits. Unblocks: on request.
+  {slug = "sso-register-pretooluse-hook", source = "spec/jira-check-sso-auto-login"},
 
   # Two ADR-0055 / v0.13 stragglers found while reconciling docs/architecture/
   # against the real agentbundle surface. Both are engine-or-tooling edits, so

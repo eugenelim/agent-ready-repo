@@ -565,3 +565,54 @@ record. Corrections found while building it are appended here, Approver-signed.
   loaded jar to `cookie_domains` at load time, before attaching it
   (`atlassian-sso-cookie` AC4/AC5). The over-broad jar at rest is the broker's
   existing behavior, named honestly rather than claimed away.
+
+- **2026-08-05 (Approver: eugenelim) — the broker engine's non-goal is narrowed:
+  two engine contract changes are required for recapture to work at all.** This
+  RFC's non-goal preserved `sso-broker.py` unchanged, and the ADR-0026 erratum
+  above reaffirmed it by relocating consumer resolution into `credbroker`. Two
+  defects found while specifying agent-triggered recapture cannot be closed from
+  the consumer side, so the non-goal is narrowed here rather than silently
+  broken:
+
+  1. **`get-cookies` never refreshes the materialised jar.** It writes
+     `sso-cookies/<profile>.jar` only `if not materialised.exists()`, while on
+     Tier-2-capable platforms `_store_cookie_jar` writes the captured jar to the
+     **OS keychain**. So on macOS and Windows a successful re-capture updates the
+     keychain and the consumer keeps reading the stale file — recapture is a
+     silent no-op. It works only where Tier 2 is deferred by policy (Linux),
+     which is where CI runs, so no existing suite observes it. The guard is
+     removed; `get-cookies` rewrites the file unconditionally from the store it
+     just loaded.
+  2. **Exit `3` is overloaded across ten distinct sites**, including
+     playwright-absent and success-pattern-not-matched (the ordinary
+     "operator did not finish signing in" case). A consumer cannot distinguish
+     "profile not registered" — the one condition with a different remediation —
+     from the rest. `refresh` therefore returns **`4`** for not-registered,
+     leaving `3` for every other engine failure.
+
+  **`refresh` also becomes headless and non-interactive.** It launches
+  `headless=True`, waits up to 20 s for the flow to complete unaided, and
+  otherwise closes the context and returns the new exit **`5`** rather than
+  presenting a login page. That is what lets an automated consumer
+  re-authenticate without ever putting an agent-influenced login page in front of
+  an operator; interactive capture belongs solely to `register`. Adopter-visible:
+  exit `5` is new, and a `refresh` that previously prompted now fails fast.
+
+  Additionally, `register` gains an `--ephemeral` capture mode and `refresh`
+  **rejects** connection arguments (`--login-url`, `--success-url-pattern`,
+  `--cookie-domain`, `--validation-endpoint`, `--session-filename`,
+  `--ttl-hint-minutes`), so an automated refresh cannot supply a sign-in
+  destination and takes it only from the stored profile.
+
+  Recorded as an erratum rather than a new ADR because what this RFC owns — and
+  what is being changed here — is its **non-goal**, not the engine contract: the
+  broker's verb table and exit semantics belong to
+  [RFC-0013 § Subcommands](0013-credential-broker-contract.md), where a companion
+  Approver-signed erratum records the contract change itself. This entry narrows
+  "consumes the existing broker unchanged"; it does not reverse this RFC's
+  decision. Exit `3` → `4`, the new headless-`refresh` contract with its 20 s window and
+  exit `5`, and the `--ephemeral` / argument-rejection changes are all
+  adopter-visible; both ship with a `credential-brokers` minor bump and are
+  named in the changelog. Implemented by
+  [`spec/jira-check-sso-auto-login`](../specs/jira-check-sso-auto-login/spec.md)
+  AC6a / AC6b / AC35.
