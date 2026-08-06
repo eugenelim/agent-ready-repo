@@ -1,6 +1,6 @@
 # Spec: jira-check-sso-auto-login
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](./plan.md)
 - **Constrained by:** [RFC-0035](../../rfc/0035-sso-cookie-auth-for-atlassian-pack.md) — pins the dual-auth selector and the fail-closed no-downgrade rule; [ADR-0026](../../adr/0026-sso-consumer-resolution-in-credbroker.md) — places SSO consumer resolution in `credbroker`, which this spec extends from resolution-only to resolution-plus-recapture.
