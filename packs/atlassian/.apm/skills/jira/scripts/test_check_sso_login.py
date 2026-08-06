@@ -348,3 +348,441 @@ def test_401_remediation_names_no_cookie(monkeypatch, resolves):   # STUB: AC12
         _run(client.whoami())
     assert "JSESSIONID" not in str(exc.value)
     assert "jira" in str(exc.value)
+
+
+# ----------------------------------------------------------------------
+# AC13–AC19, AC30, AC31 — the `check` flow, driven through `_run`.
+#
+# The SSO path is selected by the real loader, pointed at a tmp_path config.
+# Patching `_select_auth_path` instead would bypass the loader AC19 verifies.
+# ----------------------------------------------------------------------
+
+
+_SSO_CONFIG_TOML = """\
+auth_default = "sso-cookie"
+
+[sso]
+profile = "jira"
+base_url = "https://jira.corp.example.com"
+login_url = "https://sso.corp.example.com/login"
+success_url_pattern = "https://jira.corp.example.com/secure/Dashboard.jspa"
+cookie_domains = ["jira.corp.example.com"]
+validation_endpoint = "/rest/api/2/myself"
+"""
+
+
+@pytest.fixture
+def sso_path(tmp_path, monkeypatch):
+    """Route the real loader to an SSO-cookie config."""
+    cfg = tmp_path / "sso-config.toml"
+    cfg.write_text(_SSO_CONFIG_TOML, encoding="utf-8")
+    monkeypatch.setattr(_sso_config, "_DEFAULT_CONFIG_PATH", cfg)
+    return cfg
+
+
+@pytest.fixture
+def token_path(tmp_path, monkeypatch):
+    cfg = tmp_path / "sso-config.toml"
+    cfg.write_text('auth_default = "creds"\n', encoding="utf-8")
+    monkeypatch.setattr(_sso_config, "_DEFAULT_CONFIG_PATH", cfg)
+    return cfg
+
+
+class _Recorder:
+    """Stubs the two credbroker verbs at the `scripts.jira` binding."""
+
+    def __init__(self):
+        self.refresh_calls: list[tuple] = []
+        self.register_calls: list[tuple] = []
+        self.refresh_raises: Exception | None = None
+        self.register_raises: Exception | None = None
+
+    def install(self, monkeypatch):
+        def _refresh(*args, **kwargs):
+            self.refresh_calls.append((args, kwargs))
+            if self.refresh_raises is not None:
+                raise self.refresh_raises
+
+        def _register(*args, **kwargs):
+            self.register_calls.append((args, kwargs))
+            if self.register_raises is not None:
+                raise self.register_raises
+
+        monkeypatch.setattr(jira.credbroker, "refresh_sso_session", _refresh)
+        monkeypatch.setattr(jira.credbroker, "register_sso_session", _register)
+        return self
+
+
+@pytest.fixture
+def recapture(monkeypatch):
+    return _Recorder().install(monkeypatch)
+
+
+@pytest.fixture
+def responses(monkeypatch, resolves):
+    """Drive `whoami` through a scripted list of responses, one per probe."""
+    def _install(*sequence):
+        remaining = list(sequence)
+        seen: list[int] = []
+
+        def _handler(request):
+            seen.append(len(seen))
+            item = remaining.pop(0) if remaining else remaining_last[0]
+            remaining_last[0] = item
+            return item() if callable(item) else item
+
+        remaining_last = [httpx.Response(200, json={"displayName": "ok"})]
+        original = _client.JiraClient.from_sso_cookies
+
+        def _from_sso_cookies(cfg, **kwargs):
+            client = original(cfg, **kwargs)
+            client._client = httpx.AsyncClient(
+                base_url=cfg.base_url,
+                transport=httpx.MockTransport(_handler),
+                follow_redirects=False,
+            )
+            return client
+
+        monkeypatch.setattr(
+            _client.JiraClient, "from_sso_cookies", classmethod(
+                lambda cls, cfg, **kw: _from_sso_cookies(cfg, **kw)
+            )
+        )
+        return seen
+    return _install
+
+
+def _check(*extra):
+    """Parse and run `jira.py check [...]` the way main() does."""
+    import asyncio
+    args = jira._build_parser().parse_args(["check", *extra])
+    return asyncio.run(jira._run(args))
+
+
+_EXPIRED = httpx.Response(401)
+_OK = httpx.Response(200, json={"displayName": "Example User"})
+
+
+def test_expired_session_refreshes_then_retries(sso_path, recapture, responses, capsys):
+    # STUB: AC14
+    probes = responses(_EXPIRED, _OK)
+    assert _check() == jira.EXIT_OK
+    assert len(recapture.refresh_calls) == 1
+    assert len(probes) == 2, "must re-probe after the recapture"
+    assert "ok: connected" in capsys.readouterr().out
+
+
+def test_refresh_called_with_profile_only(sso_path, recapture, responses):
+    # STUB: AC1/AC14 — no destination may reach the refresh call.
+    responses(_EXPIRED, _OK)
+    _check()
+    args, kwargs = recapture.refresh_calls[0]
+    assert args == ("jira",)
+    assert kwargs == {}
+
+
+def test_healthy_session_never_recaptures(sso_path, recapture, responses):
+    # STUB: AC14
+    responses(_OK)
+    assert _check() == jira.EXIT_OK
+    assert recapture.refresh_calls == []
+
+
+def test_unregistered_names_check_register(sso_path, recapture, responses, capsys):
+    # STUB: AC14 — remediation addressed to the *user*, no retry, no register.
+    recapture.refresh_raises = credbroker.SsoProfileNotRegisteredError("nope")
+    probes = responses(_EXPIRED, _OK)
+    assert _check() == jira.EXIT_USER_ACTION
+    err = capsys.readouterr().err
+    assert "ask the user to run: python scripts/jira.py check --register" in err
+    assert len(probes) == 1, "no retry after a failed recapture"
+    assert recapture.register_calls == []
+
+
+def test_automatic_path_aborts_rather_than_showing_login_page(
+    sso_path, recapture, responses, capsys
+):
+    # STUB: AC14a — the engine returns 5; check exits 2 with the
+    # `check --register` remediation and NO login page.
+    recapture.refresh_raises = credbroker.SsoInteractionRequiredError("needs a human")
+    probes = responses(_EXPIRED, _OK)
+    assert _check() == jira.EXIT_USER_ACTION
+    err = capsys.readouterr().err
+    assert "check --register" in err
+    assert len(probes) == 1
+    assert recapture.register_calls == [], "the automatic path never registers"
+
+
+def test_recapture_failure_is_terminal(sso_path, recapture, responses):
+    # STUB: AC14 — any other recapture failure yields exit 2 with no retry.
+    recapture.refresh_raises = credbroker.SsoRecaptureFailedError("playwright absent")
+    probes = responses(_EXPIRED, _OK)
+    assert _check() == jira.EXIT_USER_ACTION
+    assert len(probes) == 1
+
+
+def test_post_recapture_probe_is_the_success_criterion(sso_path, recapture, responses):
+    # STUB: AC14 — refresh returns 0 whenever the success-URL pattern matched,
+    # so it can succeed while leaving nothing resolvable. Exit 0 is not enough.
+    probes = responses(_EXPIRED, _EXPIRED)
+    assert _check() == jira.EXIT_USER_ACTION
+    assert len(probes) == 2
+
+
+def test_recapture_invoked_at_most_once(sso_path, recapture, responses):
+    # STUB: AC17
+    responses(_EXPIRED, _EXPIRED)
+    _check()
+    assert len(recapture.refresh_calls) == 1
+
+
+def test_403_does_not_recapture_through_check(sso_path, recapture, responses):
+    # STUB: AC11/AC19 — terminal; a recapture cannot fix a permission failure.
+    responses(httpx.Response(403))
+    assert _check() == jira.EXIT_USER_ACTION
+    assert recapture.refresh_calls == []
+
+
+def test_probe_does_not_route_through_cmd_check(sso_path, recapture, responses, monkeypatch):
+    # STUB: AC13 — `_cmd_check` catches AuthError and returns an int, so routing
+    # the probe through it would swallow the typed subclass at the two primary
+    # expired-session sites and no recovery would ever fire. Asserted by
+    # behaviour: with `_cmd_check` poisoned, an expired session must still
+    # recover.
+    async def _must_not_be_called(client):
+        raise AssertionError("_probe must not route through _cmd_check")
+
+    monkeypatch.setattr(jira, "_cmd_check", _must_not_be_called)
+    responses(_EXPIRED, _OK)
+    assert _check() == jira.EXIT_OK
+    assert len(recapture.refresh_calls) == 1
+
+
+def test_probe_closes_the_client_on_failure(sso_path, recapture, responses):
+    # STUB: AC13
+    closed: list[bool] = []
+    original = _client.JiraClient.__aexit__
+
+    async def _aexit(self, *exc):
+        closed.append(True)
+        return await original(self, *exc)
+
+    responses(_EXPIRED, _EXPIRED)
+    import types
+    _client.JiraClient.__aexit__ = _aexit
+    try:
+        _check()
+    finally:
+        _client.JiraClient.__aexit__ = original
+    assert len(closed) >= 2, "each probe must close its client"
+    del types
+
+
+# --- AC19 / AC31: blast radius ------------------------------------------
+
+
+@pytest.mark.parametrize("command", ["whoami", "get-issue"])
+def test_non_check_subcommand_never_recaptures(sso_path, recapture, monkeypatch, command):
+    # STUB: AC19/AC31 — `from_sso_cookies` is called for every subcommand
+    # before dispatch, so the obvious implementation would recapture for all
+    # of them.
+    import asyncio
+    calls = []
+
+    def _from_sso_cookies(cls, cfg, **kw):
+        calls.append(cfg)
+        raise _client.SsoSessionUnavailable("expired")
+
+    monkeypatch.setattr(
+        _client.JiraClient, "from_sso_cookies", classmethod(_from_sso_cookies)
+    )
+    argv = [command] if command == "whoami" else [command, "PROJ-1"]
+    args = jira._build_parser().parse_args(argv)
+    assert asyncio.run(jira._run(args)) == jira.EXIT_USER_ACTION
+    assert recapture.refresh_calls == []
+    assert calls, "the shared construction path must still run for other commands"
+
+
+def test_malformed_sso_config_fails_at_the_selector(tmp_path, monkeypatch, recapture):
+    # STUB: AC19 — exit 2 at the selector, no recapture.
+    cfg = tmp_path / "sso-config.toml"
+    cfg.write_text(
+        _SSO_CONFIG_TOML.replace("https://jira.corp", "http://jira.corp"),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(_sso_config, "_DEFAULT_CONFIG_PATH", cfg)
+    assert _check() == jira.EXIT_USER_ACTION
+    assert recapture.refresh_calls == []
+
+
+def test_token_path_check_is_unchanged(token_path, recapture, monkeypatch, capsys):
+    # STUB: AC19 — absent/creds config runs the token path unchanged.
+    import asyncio
+    creds = _client.Credentials(
+        base_url="https://jira.corp.example.com", token="t",
+        flavor=_client.FLAVOR_SERVER, email=None,
+    )
+    monkeypatch.setattr(jira, "load_credentials", lambda: creds)
+    real_init = _client.JiraClient.__init__
+
+    def _init(self, credentials, **kwargs):
+        real_init(self, credentials, **kwargs)
+        self._client = httpx.AsyncClient(
+            base_url=credentials.base_url,
+            transport=httpx.MockTransport(lambda r: _OK),
+        )
+
+    monkeypatch.setattr(_client.JiraClient, "__init__", _init)
+    args = jira._build_parser().parse_args(["check"])
+    assert asyncio.run(jira._run(args)) == jira.EXIT_OK
+    assert recapture.refresh_calls == []
+    assert "ok: connected" in capsys.readouterr().out
+
+
+# --- AC15 / AC16: --register, disclosure -------------------------------
+
+
+def test_bare_check_never_registers(sso_path, recapture, responses):   # STUB: AC15
+    responses(_EXPIRED, _OK)
+    _check()
+    assert recapture.register_calls == []
+
+
+def test_register_flag_discloses_host_on_stderr(sso_path, recapture, responses, capsys):
+    # STUB: AC15/AC16 — the headed-browser notice names the resolved login host.
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_OK
+    err = capsys.readouterr().err
+    assert "sso.corp.example.com" in err
+    assert "browser" in err.lower()
+    assert len(recapture.register_calls) == 1
+
+
+def test_automatic_notice_promises_no_browser(sso_path, recapture, responses, capsys):
+    # STUB: AC16 — the automatic notice must not mention a headed browser,
+    # because AC14a forbids one, and must say where the destination comes from.
+    responses(_EXPIRED, _OK)
+    _check()
+    err = capsys.readouterr().err
+    assert "jira" in err
+    assert "headless" in err.lower()
+    assert "no browser" in err.lower()
+    assert "stored profile" in err.lower()
+
+
+def test_nothing_written_to_stdout_before_retry(sso_path, recapture, responses, capsys):
+    # STUB: AC16 — the disclosure is stderr-only.
+    responses(_EXPIRED, _EXPIRED)
+    _check()
+    assert capsys.readouterr().out == ""
+
+
+def test_register_is_not_retried(sso_path, recapture, responses, capsys):   # STUB: AC17
+    recapture.register_raises = credbroker.SsoRecaptureFailedError("not completed")
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_USER_ACTION
+    assert len(recapture.register_calls) == 1
+
+
+def test_register_flag_exists_only_on_check(sso_path):     # STUB: AC15
+    # "Ask first" before adding any CLI flag to check — and nothing else earns
+    # one, so --register must not leak onto another subcommand.
+    with pytest.raises(SystemExit):
+        jira._build_parser().parse_args(["whoami", "--register"])
+
+
+# --- AC18: --insecure is honest on both paths --------------------------
+
+
+def test_insecure_warns_on_token_path(token_path, monkeypatch, capsys):   # STUB: AC18
+    import asyncio
+    creds = _client.Credentials(
+        base_url="https://jira.corp.example.com", token="t",
+        flavor=_client.FLAVOR_SERVER, email=None,
+    )
+    monkeypatch.setattr(jira, "load_credentials", lambda: creds)
+    seen = {}
+    real_init = _client.JiraClient.__init__
+
+    def _init(self, credentials, **kwargs):
+        seen.update(kwargs)
+        real_init(self, credentials, **kwargs)
+        self._client = httpx.AsyncClient(
+            base_url=credentials.base_url,
+            transport=httpx.MockTransport(lambda r: _OK),
+        )
+
+    monkeypatch.setattr(_client.JiraClient, "__init__", _init)
+    args = jira._build_parser().parse_args(["--insecure", "check"])
+    asyncio.run(jira._run(args))
+    assert seen["verify_tls"] is False, "the flag must still take effect"
+    assert "warning" in capsys.readouterr().err.lower()
+
+
+def test_insecure_warns_ignored_on_sso_path(sso_path, recapture, responses, capsys):
+    # STUB: AC18 — inert on the cookie path (from_sso_cookies hardcodes its own
+    # SSL context), so say so rather than implying it worked.
+    responses(_OK)
+    args = jira._build_parser().parse_args(["--insecure", "check"])
+    import asyncio
+    assert asyncio.run(jira._run(args)) == jira.EXIT_OK
+    err = capsys.readouterr().err.lower()
+    assert "ignored" in err
+
+
+def test_insecure_is_never_forwarded_to_the_engine(sso_path, recapture, responses):
+    # STUB: AC18
+    responses(_EXPIRED, _OK)
+    args = jira._build_parser().parse_args(["--insecure", "check"])
+    import asyncio
+    asyncio.run(jira._run(args))
+    flat = repr(recapture.refresh_calls)
+    assert "insecure" not in flat
+
+
+# --- AC30: the credbroker version floor --------------------------------
+
+
+def test_old_credbroker_exits_2_with_upgrade_hint(sso_path, monkeypatch, capsys):
+    # STUB: AC30 — the pip layer precedes the vendored floor on sys.path, so an
+    # adopter pinned to 0.4.1 silently gets the old library. Only
+    # `credbroker.refresh_sso_session` — a module attribute referenced here —
+    # produces the uncaught-AttributeError exit-1 path.
+    monkeypatch.delattr(jira.credbroker, "refresh_sso_session", raising=False)
+    assert _check() == jira.EXIT_USER_ACTION
+    err = capsys.readouterr().err
+    assert "0.5.0" in err
+    assert "credbroker" in err
+
+
+def test_version_floor_guard_does_not_gate_the_token_path(token_path, monkeypatch, capsys):
+    # STUB: AC30/AC19 — placing the guard in the shared bootstrap would break
+    # every token-path subcommand.
+    import asyncio
+    monkeypatch.delattr(jira.credbroker, "refresh_sso_session", raising=False)
+    creds = _client.Credentials(
+        base_url="https://jira.corp.example.com", token="t",
+        flavor=_client.FLAVOR_SERVER, email=None,
+    )
+    monkeypatch.setattr(jira, "load_credentials", lambda: creds)
+    real_init = _client.JiraClient.__init__
+
+    def _init(self, credentials, **kwargs):
+        real_init(self, credentials, **kwargs)
+        self._client = httpx.AsyncClient(
+            base_url=credentials.base_url,
+            transport=httpx.MockTransport(lambda r: _OK),
+        )
+
+    monkeypatch.setattr(_client.JiraClient, "__init__", _init)
+    args = jira._build_parser().parse_args(["whoami"])
+    assert asyncio.run(jira._run(args)) == jira.EXIT_OK
+
+
+def test_requirements_pin_the_floor_in_both_skills():         # STUB: AC30
+    # Both consuming skills: confluence-crawler inherits the mirrored files, so
+    # a pin on only one side leaves it importing an API its loader now needs.
+    skills_dir = Path(__file__).resolve().parents[2]
+    for skill in ("jira", "confluence-crawler"):
+        text = (skills_dir / skill / "requirements.txt").read_text(encoding="utf-8")
+        assert "credbroker>=0.5.0" in text, f"{skill} does not pin the floor"

@@ -104,9 +104,11 @@ python tools/test-lint-sso-config.py
 make lint-ruff && python3 tools/lint-mypy.py && make build-check
 # 5  spec hygiene
 python .claude/skills/work-loop/scripts/lint-spec-status.py --root .
-# 6  manual QA — token path untouched, no browser
+# 6  manual QA — token path untouched, no browser.
+#    `--insecure` is a *global* flag: it must precede the subcommand, or
+#    argparse exits 2 with "unrecognized arguments" (observed 2026-08-06).
 cd packs/atlassian/.apm/skills/jira && python scripts/jira.py check
-cd packs/atlassian/.apm/skills/jira && python scripts/jira.py check --insecure
+cd packs/atlassian/.apm/skills/jira && python scripts/jira.py --insecure check
 ```
 
 **What I am not changing**

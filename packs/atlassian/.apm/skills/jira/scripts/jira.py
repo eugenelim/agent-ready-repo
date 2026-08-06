@@ -2,7 +2,9 @@
 """Jira REST API CLI (Atlassian Cloud v3 + Server / Data Center v2).
 
 Subcommands:
-    check               Verify credentials and reachability.
+    check               Verify credentials and reachability. On SSO-cookie
+                        auth it re-establishes an expired session headlessly;
+                        --register captures a new one (the user runs that).
     whoami              Print the authenticated user record.
 
     # Issues
@@ -77,24 +79,36 @@ if __package__ in (None, "") and __spec__ is None:
     __package__ = _here.name
 
 try:
+    from urllib.parse import urlsplit  # noqa: E402
+
     from ._client import (  # noqa: E402
         AuthError,
         JiraClient,
         JiraError,
+        SsoSessionUnavailable,
         load_credentials,
     )
     from ._client import identity_of as _identity_of  # noqa: E402
     from ._sso_config import _select_auth_path  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
-    # A missing module here is a non-secret dependency (e.g. httpx);
-    # `credbroker` is imported lazily inside load_credentials(), so its
-    # absence surfaces at runtime (exit 1 via the top-level handler), not
-    # at this import guard.
+    # A missing module here is a non-secret dependency (e.g. httpx).
+    # `credbroker` is deliberately outside this guard — see the block below:
+    # its absence must not refuse every token-path subcommand.
     sys.stderr.write(
         f"error: missing dependency {_import_exc.name!r} — run: "
         "python -m pip install -r requirements.txt\n"
     )
     raise SystemExit(2) from None
+
+# Bound at module scope rather than lazily, because the SSO-cookie `check` path
+# feature-detects on it for the version floor. Guarded, and deliberately *not*
+# part of the import guard above: the token path never reaches credbroker
+# through this module, so its absence must degrade to today's behaviour rather
+# than refusing every subcommand.
+try:
+    import credbroker  # noqa: E402
+except ModuleNotFoundError:  # pragma: no cover — the no-floor, no-pip install
+    credbroker = None  # type: ignore[assignment]
 
 log = logging.getLogger("jira.cli")
 
@@ -203,7 +217,15 @@ def _build_parser() -> argparse.ArgumentParser:
         dest="command", required=True, parser_class=_ScrubbingArgumentParser,
     )
 
-    sub.add_parser("check", help="Verify credentials and reachability.")
+    p_check = sub.add_parser("check", help="Verify credentials and reachability.")
+    p_check.add_argument(
+        "--register",
+        action="store_true",
+        help=(
+            "SSO-cookie auth only: capture a new browser session first, then "
+            "check. Opens a headed browser — the user runs this, never the agent."
+        ),
+    )
     sub.add_parser("whoami", help="Show the authenticated user record.")
 
     # --- issues ---
@@ -394,6 +416,16 @@ def _load_body(args: argparse.Namespace) -> dict[str, Any]:
 # --- command implementations ----------------------------------------------
 
 
+def _print_connected(client: JiraClient, info: dict) -> int:
+    # The identical selector the cookie path's expired-session guard uses. Two
+    # lists that happened to agree would drift: a field the guard accepts but
+    # this does not still prints `as ?` at exit 0, which is the outcome the
+    # guard exists to stop.
+    name = _identity_of(info) or "?"
+    print(f"ok: connected to {client.base_url} ({client.flavor}) as {name}")
+    return EXIT_OK
+
+
 async def _cmd_check(client: JiraClient) -> int:
     try:
         info = await client.whoami()
@@ -403,15 +435,186 @@ async def _cmd_check(client: JiraClient) -> int:
     except JiraError as exc:
         print(f"server error: {exc}", file=sys.stderr)
         return EXIT_ERROR
-    # The identical selector the cookie path's expired-session guard uses. Two
-    # lists that happened to agree would drift: a field the guard accepts but
-    # this does not still prints `as ?` at exit 0, which is the outcome the
-    # guard exists to stop.
-    name = _identity_of(info) or "?"
+    return _print_connected(client, info)
+
+
+# --- SSO-cookie `check`: probe, recapture, re-probe -------------------------
+#
+# Scoped to `check` and to the SSO-cookie path, deliberately. `_run` routes here
+# *before* the shared client construction below, because that construction runs
+# for every subcommand — so recovering inside it would recapture on a `get-issue`
+# too, which nothing asked for.
+
+# The minimum credbroker carrying the recapture API. The pip layer precedes the
+# vendored floor on sys.path, so an adopter pinned to an older release silently
+# gets the old library.
+_CREDBROKER_FLOOR = "0.5.0"
+
+# Addressed to the *user*, not to the agent: the agent relays this command, it
+# does not run it.
+_REGISTER_REMEDIATION = "ask the user to run: python scripts/jira.py check --register"
+
+
+def _credbroker_floor_error() -> str | None:
+    """The upgrade remediation, or ``None`` when the floor is satisfied.
+
+    A feature-detect rather than a version-string compare. Placed in the
+    sso-cookie branch of `check` and nowhere else: in the shared bootstrap it
+    would break every token-path subcommand, whose credential resolution does
+    not touch this API at all.
+    """
+    if credbroker is None:
+        return (
+            "error: credbroker is not installed — install the credential-brokers "
+            f"pack, or run: python -m pip install 'credbroker>={_CREDBROKER_FLOOR}'"
+        )
+    if not hasattr(credbroker, "refresh_sso_session"):
+        found = getattr(credbroker, "__version__", "an older release")
+        return (
+            f"error: 'check' on the SSO-cookie path needs credbroker "
+            f">={_CREDBROKER_FLOOR}, found {found}. Run: "
+            f"python -m pip install --upgrade 'credbroker>={_CREDBROKER_FLOOR}'"
+        )
+    return None
+
+
+async def _probe(sso_config: object) -> int:
+    """Build the cookie-path client, ask who we are, and close it.
+
+    Calls ``whoami()`` **directly** rather than routing through `_cmd_check`,
+    which catches `AuthError` and returns an ``int`` — that would swallow
+    `SsoSessionUnavailable` at the two primary expired-session sites and no
+    recovery would ever fire.
+    """
+    client = JiraClient.from_sso_cookies(sso_config)
+    try:
+        info = await client.whoami()
+        return _print_connected(client, info)
+    finally:
+        await client.__aexit__(None, None, None)
+
+
+def _register_session(sso_config: object) -> int:
+    """Operator-typed first capture. Headed, and disclosed before it opens."""
+    host = urlsplit(sso_config.login_url).hostname or "(unknown host)"
     print(
-        f"ok: connected to {client.base_url} ({client.flavor}) as {name}"
+        f"notice: capturing a new SSO session for profile {sso_config.profile}. "
+        f"A browser window will open at {host} for you to sign in.",
+        file=sys.stderr,
     )
+    log.info("SSO capture requested for profile %s at %s", sso_config.profile, host)
+    try:
+        credbroker.register_sso_session(
+            sso_config.profile,
+            login_url=sso_config.login_url,
+            success_url_pattern=sso_config.success_url_pattern,
+            cookie_domains=sso_config.cookie_domains,
+            validation_endpoint=sso_config.validation_endpoint,
+            session_filename=sso_config.session_filename,
+            ttl_hint_minutes=sso_config.ttl_hint_minutes,
+        )
+    except credbroker.SsoError as exc:
+        print(f"error: could not capture an SSO session: {exc}", file=sys.stderr)
+        log.info("SSO capture failed for profile %s", sso_config.profile)
+        return EXIT_USER_ACTION
+    log.info("SSO capture completed for profile %s", sso_config.profile)
     return EXIT_OK
+
+
+async def _cmd_check_sso(sso_config: object, args: argparse.Namespace) -> int:
+    """`check` on the SSO-cookie path: probe, recapture once, re-probe."""
+    if args.insecure:
+        # Inert here — `from_sso_cookies` builds its own SSL context and this
+        # flag is never forwarded to the engine. Say so rather than letting the
+        # user believe verification was disabled.
+        print(
+            "warning: --insecure is ignored on the SSO-cookie path (the session "
+            "cookie is a bearer secret; TLS verification stays on).",
+            file=sys.stderr,
+        )
+
+    if args.register:
+        rc = _register_session(sso_config)
+        if rc != EXIT_OK:
+            return rc
+        # No recapture on this path — the capture just happened.
+        try:
+            return await _probe(sso_config)
+        except AuthError as exc:
+            print(f"auth failed: {exc}", file=sys.stderr)
+            return EXIT_USER_ACTION
+        except JiraError as exc:
+            print(f"server error: {exc}", file=sys.stderr)
+            return EXIT_ERROR
+
+    try:
+        return await _probe(sso_config)
+    except SsoSessionUnavailable as exc:
+        # The one recoverable signal. Every other AuthError — a 403, a failed
+        # confinement check, a missing engine — is terminal below.
+        log.info("SSO session unavailable for profile %s: %s", sso_config.profile, exc)
+    except AuthError as exc:
+        print(f"auth failed: {exc}", file=sys.stderr)
+        return EXIT_USER_ACTION
+    except JiraError as exc:
+        print(f"server error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
+
+    # Disclosure before anything is spawned. Path-specific: this notice must not
+    # mention a headed browser, because the automatic path never opens one.
+    #
+    # Not an audit record. `logging.basicConfig` below has no filename and no
+    # handler, so this goes to the stderr of a process the caller may discard.
+    # It makes the attempt visible in the invoking session; an unattended
+    # re-authentication remains repudiable. A durable sink is deferred
+    # (`sso-recapture-audit-sink`).
+    print(
+        f"notice: the SSO session for profile {sso_config.profile} has expired. "
+        f"Re-establishing it headlessly — no browser will be shown, and the "
+        f"sign-in destination comes from the engine's stored profile, not from "
+        f"sso-config.toml.",
+        file=sys.stderr,
+    )
+    log.info("recapture attempt for profile %s", sso_config.profile)
+
+    try:
+        # Profile only. The signature accepts no destination, which is what
+        # makes an automated recapture structurally unable to choose one.
+        credbroker.refresh_sso_session(sso_config.profile)
+    except credbroker.SsoProfileNotRegisteredError:
+        print(
+            f"error: no SSO session has ever been captured for profile "
+            f"{sso_config.profile} on this machine — {_REGISTER_REMEDIATION}",
+            file=sys.stderr,
+        )
+        return EXIT_USER_ACTION
+    except credbroker.SsoInteractionRequiredError:
+        print(
+            f"error: the stored browser session for profile {sso_config.profile} "
+            f"could not re-authenticate on its own, so a person must sign in. No "
+            f"browser was opened — {_REGISTER_REMEDIATION}",
+            file=sys.stderr,
+        )
+        return EXIT_USER_ACTION
+    except credbroker.SsoError as exc:
+        # The engine's own stderr already reached the caller (its stdio is
+        # inherited), so this adds no guessed remediation.
+        print(f"error: could not re-establish the SSO session: {exc}", file=sys.stderr)
+        return EXIT_USER_ACTION
+
+    log.info("recapture completed for profile %s; re-probing", sso_config.profile)
+
+    # Exactly one retry. The probe, not the recapture's exit code, is the
+    # success criterion: `refresh` returns 0 whenever the success-URL pattern
+    # matched, so it can succeed while leaving nothing resolvable.
+    try:
+        return await _probe(sso_config)
+    except AuthError as exc:
+        print(f"auth failed after re-authentication: {exc}", file=sys.stderr)
+        return EXIT_USER_ACTION
+    except JiraError as exc:
+        print(f"server error: {exc}", file=sys.stderr)
+        return EXIT_ERROR
 
 
 async def _cmd_whoami(client: JiraClient, writer: OutputWriter) -> int:
@@ -714,10 +917,29 @@ async def _run(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION
 
+    # `check` on the SSO-cookie path routes to its own handler *before* the
+    # shared construction below. That construction runs for every subcommand, so
+    # recovering inside it would recapture on a `get-issue` too. Every other
+    # command keeps today's path unchanged.
+    if auth_path == "sso-cookie" and args.command == "check":
+        floor_error = _credbroker_floor_error()
+        if floor_error is not None:
+            print(floor_error, file=sys.stderr)
+            return EXIT_USER_ACTION
+        return await _cmd_check_sso(sso_config, args)
+
     try:
         if auth_path == "sso-cookie":
             client = JiraClient.from_sso_cookies(sso_config)
         else:
+            if args.insecure:
+                # CONVENTIONS requires this whenever the flag fires; the token
+                # path was silent.
+                print(
+                    "warning: --insecure disables TLS certificate verification "
+                    "for this invocation.",
+                    file=sys.stderr,
+                )
             credentials = load_credentials()
             client = JiraClient(credentials, verify_tls=not args.insecure)
     except AuthError as exc:
