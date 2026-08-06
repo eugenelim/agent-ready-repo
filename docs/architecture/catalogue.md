@@ -56,7 +56,7 @@ up from the package directory — bounded by the enclosing `.git` root — to th
 first ancestor carrying both catalogue markers. So a developer working inside
 a clone gets that clone as their catalogue with no configuration.
 
-Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4, falling through directly to Layer 5. See the [adopter reference](../guides/_shared/reference/agentbundle.md) for the full env var list.
+Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4, falling through directly to Layer 5. See the [adopter reference](../../guides/_shared/reference/agentbundle.md) for the full env var list.
 
 When no layer yields a source, the CLI refuses with a message naming the
 recovery paths rather than silently falling back to the current directory:
@@ -102,7 +102,7 @@ opinionated recipe — fork this catalogue, add an org pack carrying your house
 conventions, blank the packaged upstream default so stray installs can't reach
 it, and ship a one-command profile every engineer installs — lives in the
 adopter how-to:
-[Build an org stack pack](../guides/_shared/how-to/build-an-org-stack-pack.md).
+[Build an org stack pack](../../guides/_shared/how-to/build-an-org-stack-pack.md).
 
 ## Where to read next
 
@@ -113,5 +113,5 @@ adopter how-to:
 - [`skill-and-pack-format.md`](skill-and-pack-format.md) — the format map:
   the agentskills.io skill standard we conform to, wrapped by our pack
   envelope and projection.
-- [Build an org stack pack](../guides/_shared/how-to/build-an-org-stack-pack.md) —
+- [Build an org stack pack](../../guides/_shared/how-to/build-an-org-stack-pack.md) —
   the full stand-up-your-own recipe.

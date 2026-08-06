@@ -66,8 +66,8 @@ merged into:
   [`self_host.py`](../../packages/agentbundle/agentbundle/build/self_host.py)).
 
 Both outputs validate against
-[`plugin-manifest.derived.schema.json`](../contracts/plugin-manifest.derived.schema.json);
-the source-shape [`plugin-manifest.schema.json`](../contracts/plugin-manifest.schema.json)
+[`plugin-manifest.derived.schema.json`](../../contracts/plugin-manifest.derived.schema.json);
+the source-shape [`plugin-manifest.schema.json`](../../contracts/plugin-manifest.schema.json)
 admits the same named subset. Both keep `additionalProperties: false` — a
 genuinely unknown key is still rejected.
 

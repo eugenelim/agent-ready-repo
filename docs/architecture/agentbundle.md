@@ -10,7 +10,7 @@ the pip-installable `credbroker` library (RFC-0023)
 (see [`credentials.md`](credentials.md)). This page describes the
 package as code; the spec lives in
 [`docs/specs/agent-spec-cli/spec.md`](../specs/agent-spec-cli/spec.md),
-the contract in [`contracts/adapter.toml`](../contracts/adapter.toml),
+the contract in [`contracts/adapter.toml`](../../contracts/adapter.toml),
 and the *why* in [RFC-0001](../rfc/0001-bundle-distribution-by-adapter-spec.md)
 + [RFC-0003](../rfc/0003-spec-and-cli.md).
 
@@ -39,26 +39,39 @@ pip-installable `credbroker` library per RFC-0023; see
 
 ## The CLI surface
 
-The verbs below are all stdlib-only. The catalogue layer is read-only —
-`install`, `upgrade`, and `uninstall` are the only verbs that touch the working
-tree.
+The verbs below are all stdlib-only. The catalogue *source* is never written —
+reads resolve it, and the verbs that touch a working tree write only into the
+install target, the adopter's config, or a catalogue you own. Run
+`agentbundle --help` for the authoritative surface; this table is the map.
 
 | Verb | What it does |
 | --- | --- |
-| `list-packs` | Enumerate packs in a catalogue source. |
-| `list-targets` | Print the names of the four shipped adapter targets (`claude_code`, `codex`, `copilot`, `kiro`), derived from the runtime registry. |
+| `list-packs` | Enumerate packs in a catalogue URI (local path or `git+https`). |
+| `list-profiles` | Enumerate the catalogue's curated single-scope install profiles. `install --profile <name>` installs one. |
+| `list-targets` | Print the shipped adapter targets, derived from the runtime registry: `claude_code`, `codex`, `copilot`, `cursor`, `gemini`, `kiro_ide`, `kiro_cli`, and `kiro` (deprecated alias for `kiro_ide`). |
 | `list-installed` | Read state files (both scopes) and report each installed `(pack, adapter)` with its version and an up-to-date / upgrade-available / unknown status. Read-only. |
-| `scaffold` | Drop a pack's `seeds/` into a target path (brownfield governance). |
+| `show` | Show a pack's skills and agents, derived live from its `.apm/` tree; falls back to install state when the catalogue is unresolvable. |
+| `docs` | Read pack documentation from the catalogue source — `index.md` by default, `--list` to enumerate. |
+| `scaffold` | Drop a pack's `seeds/` into `--output`, honouring Tier-1/2/3 file-safety (brownfield governance). |
 | `install` | Project a pack's primitives into the target. Drops `.adapt-install-marker.toml`, chains to `adapt`. |
-| `validate` | Schema + semantic conformance. `--strict` runs fixture checks. |
-| `render` | Re-render without writing — same engine as the build pipeline. |
-| `adapt` | Deterministic non-LLM walk: substitute `<adapt:NAME>` markers, drop `.adapt-pending.md`. |
-| `diff` | Compare on-disk projection against a freshly-rendered one. |
+| `validate` | Schema + semantic conformance against the bundled schemas. `--strict` runs fixture checks. |
+| `render` | Render a pack to `--output` via the F-build pipeline — byte-identical to `make build`. |
+| `adapt` | Deterministic non-LLM walk: substitute `<adapt:NAME>` markers, report `.upstream.*` companions. |
+| `diff` | Compare the on-disk projection against a fresh render; non-zero on drift. |
 | `upgrade` | Per-pack or per-primitive; honours the file-safety contract. |
-| `uninstall` | Per-pack removal; reads `.agentbundle-state.toml`. |
-| `init-state` | One-shot hashing of already-installed paths (closes the safety gap for APM/plugin routes). |
-| `reconcile` | `--scope user` only; read-only orphan reporter (RFC-0005). |
-| `creds` | `setup`/`check`/`where`/`rm` — no `get`. See [`credentials.md`](credentials.md). |
+| `uninstall` | Per-pack removal; removes Tier-1 files, preserves Tier-2 and Tier-3. |
+| `init-state` | One-shot hashing of already-installed paths into `.agentbundle-state.toml` (closes the safety gap for APM/plugin routes). |
+| `config` | Get or set adapter-scoped user settings. |
+| `reconcile` | `--scope user` only; read-only orphan reporter over Claude Code `settings.json` and Kiro agent JSONs named in user-scope state (RFC-0005). No `--apply`. |
+| `package-catalogue` | Package a catalogue repository into an Artifactory artifact layout (maintainer/CI only). |
+| `catalogue` | Portable catalogue engine: `lint`, `verify`, `build`, `self-host`, `package`, `sync-defaults`, `init`. |
+| `lint` | Lint commands — `packs` today. |
+| `pack` | Pack-level commands — `evals run` today. |
+| `pack-config` | Per-pack configuration: `get`, `set`, `unset`, `show`. |
+| `oplog` | Pack operation log: `show`, `clear`. |
+
+There is no `creds` verb — it went out with the rest of the credential surface
+in 0.2.0 (see [Package shape](#package-shape) above).
 
 `cli.py` rewrites unknown verb flags into a contract-shaped error message
 ("unknown flag `--foo` for `install`") so every wrapper around the CLI sees
@@ -98,7 +111,8 @@ packs/                                dist/
    [`build/main.py`](../../packages/agentbundle/agentbundle/build/main.py)
    asks the contract which adapters to run, then calls
    [`build/adapters/`](../../packages/agentbundle/agentbundle/build/adapters/)
-   (`claude_code`, `codex`, `copilot`, `kiro`) which delegate to
+   (`claude_code`, `codex`, `copilot`, `cursor`, `gemini`, `kiro_ide`,
+   `kiro_cli`, and `kiro` — the deprecated alias for `kiro_ide`) which delegate to
    [`build/projections/`](../../packages/agentbundle/agentbundle/build/projections/).
 4. **Aggregation.** `marketplace.json` lists every per-pack plugin entry.
 5. **Self-host overlay.** `make build-self` runs `self-host.toml` against
@@ -129,36 +143,49 @@ packs/                                dist/
 ### The adapter contract
 
 The contract is published, semver'd, and lives at
-[`contracts/adapter.toml`](../contracts/adapter.toml). Currently
-**v0.6** (RFC-0011 / pack-allowed-adapters). The four user-scope-capable
-packs (`atlassian`, `figma`, `converters`, `contracts`) target v0.6 to
-opt into the new resolver; the four repo-only packs still target the
-older **v0.2** contract because they don't need v0.3+ features. Pack
-versions and contract versions are independent; bumping a pack only
+[`contracts/adapter.toml`](../../contracts/adapter.toml). Currently
+**v0.17** (RFC-0052 / shared-prefix registry). No pack targets the
+latest contract: each pins the *minimum* version whose behaviour it
+needs, and the pinned values today spread across the v0.7–v0.13 range.
+Pack versions and contract versions are independent; bumping a pack only
 matters when it consumes a feature added past its current target.
 The contract declares:
 
-- **Five primitives**: `skill`, `agent`, `hook-body`, `hook-wiring`, `command`.
-  (RFC-0005's `kiro-ide-hook` adds a sixth in design but isn't declared
-  in v0.6 yet.)
+- **Primitives**: the pack-authored `skill`, `agent`, `hook-body`,
+  `hook-wiring`, and `command`, plus `kiro-ide-hook` (activated at v0.9
+  for the Kiro IDE adapter, per RFC-0005) and the projection-support
+  types `shared-libs`, `adapter-root-bins`, and `user-libs`. The
+  authoritative list is the `[primitive.*]` tables in the contract.
 - **Projection modes** drive how each primitive lands per adapter.
   The schema enum at
   [`adapter.schema.json`](../../packages/agentbundle/agentbundle/_data/adapter.schema.json)
-  declares nine: `direct-directory`, `direct-file`, `merge-json`,
+  is the authoritative list. Alongside the portable modes
+  (`direct-directory`, `direct-file`, `merge-json`,
   `merge-into-agent-json`, `user-merge-json`, `instruction-file`,
-  `managed-block-inline`, `degraded-info-log`, `dropped`. Seven are in
-  active production use today; `managed-block-inline` survives only as
+  `managed-block-inline`, `degraded-info-log`, `dropped`) it carries the
+  adapter-specific `codex-agent-toml` (v0.8), `copilot-agent-md` and
+  `copilot-hooks-json` (v0.10), and `gemini-command-toml` (v0.13).
+  `managed-block-inline` survives only as
   the Codex one-shot migration helper in
   [`adapters/codex.py`](../../packages/agentbundle/agentbundle/build/adapters/codex.py)
   (scheduled for removal per RFC-0009), and `degraded-info-log` has no
   live caller after RFC-0005 lifted Kiro `hook-wiring` out of it.
-- **`install-routes`** array per adapter: `cli`, `claude-plugins`, `apm`
-  (and the draft `codex-native`).
+- **`install-routes`** array per adapter — `cli`, `claude-plugins`, `apm`.
+  Only `claude-code` declares it; the other adapters install via the CLI
+  route alone.
 - **`[adapter.<name>.scope]`** table — `repo`, `user`, and
-  `allowed-prefixes.user`. Three adapters declare a user-scope root
-  today: `claude-code` (`~/.claude/`), `kiro` (`~/.kiro/`), and `codex`
-  (`~/.agents/skills/`, added in v0.6 per RFC-0011). Copilot is
-  repo-only by construction.
+  `allowed-prefixes.{repo,user}`. Every shipped adapter declares a
+  user-scope root (`~`) today; what differs is the prefix set it may write
+  beneath it — `.claude/` for `claude-code`, `.kiro/` for the Kiro
+  adapters, and the shared `.agents/skills/` home for `codex` (added in
+  v0.6 per RFC-0011), which `cursor`, `gemini`, and `copilot` joined at
+  v0.17 alongside their own native prefixes. Copilot gained its user
+  scope at v0.10 and is no longer repo-only. Every adapter also declares
+  `.agentbundle/` so credentialed packs can reach the broker.
+- **`[contract.shared-prefixes]`** registry (v0.17) — classifies each
+  allowed-prefix as *shared* (named here, with its reader cohort) or
+  *private* (absent). It is what lets one pack coexist across adapters
+  that write the same path.
 - **`[pack.install]`** table on packs — `default-scope` ∈ `{repo, user}`,
   `allowed-scopes`, and (v0.6+) the optional `allowed-adapters` array
   declaring which user-scope-capable adapters a pack travels with.
@@ -246,5 +273,5 @@ directory via a portability shim (`${CLAUDE_PLUGIN_DATA}` →
   authoritative spec for the CLI verbs.
 - [`docs/specs/distribution-adapters/spec.md`](../specs/distribution-adapters/spec.md) —
   authoritative spec for the contract, primitives, and projection modes.
-- [`guides/_shared/explanation/install-routes.md`](../guides/_shared/explanation/install-routes.md) —
+- [`guides/_shared/explanation/install-routes.md`](../../guides/_shared/explanation/install-routes.md) —
   adopter-facing companion to this page.

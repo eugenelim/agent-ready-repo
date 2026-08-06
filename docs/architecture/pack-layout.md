@@ -81,15 +81,15 @@ the pack targets. Three required tables:
   route — see [`pack-manifest.md`](pack-manifest.md). Every enriched field
   is optional; a pack that omits them projects exactly as before.
 - **`[pack.adapter-contract]`** — `version`, must reference a
-  published contract version. The contract is at **v0.14** today
-  (enriched-pack-manifest); a pack pins the *minimum* version whose
+  published contract version. The contract is at **v0.17** today
+  (shared-prefix registry); a pack pins the *minimum* version whose
   behaviour it needs, not necessarily the latest. When authoring a new
   pack, copy the value from a sibling with the same scope shape rather
   than the contract.
 - **`[pack.install]`** — `default-scope` ∈ `{repo, user}`,
   `allowed-scopes`, optional `user-scope-hooks` (v0.3+, RFC-0005),
   and optional `allowed-adapters` (v0.6+, RFC-0011 — array of
-  user-scope-capable adapter names like `["claude-code", "kiro",
+  user-scope-capable adapter names like `["claude-code", "kiro-ide",
   "codex"]`; declared order drives the greenfield fallback). The
   `default-scope ∈ allowed-scopes` invariant is enforced in
   [`_data/pack.schema.json`](../../packages/agentbundle/agentbundle/_data/pack.schema.json)'s
@@ -108,8 +108,8 @@ projected. The build pipeline reads it directly when emitting the
 
 ### `.apm/` — primitives
 
-The five primitives declared in the adapter contract
-([`contracts/adapter.toml`](../contracts/adapter.toml)):
+The pack-authored primitives declared in the adapter contract
+([`contracts/adapter.toml`](../../contracts/adapter.toml)):
 
 | Primitive | On-disk path | Notes |
 | --- | --- | --- |
@@ -119,15 +119,21 @@ The five primitives declared in the adapter contract
 | `hook-wiring` | `.apm/hook-wiring/<name>.toml` | Declarative binding of a body to an editor event. |
 | `command` | `.apm/commands/<name>.md` | Slash-command primitive (Claude Code today; other harnesses degrade per the contract). |
 
-A sixth primitive — `kiro-ide-hook`, for native Kiro IDE-event hooks —
-is designed in [RFC-0005](../rfc/0005-user-scope-hook-support.md) but
-isn't declared in `adapter.toml` v0.6 yet; the implementation work is
-tracked separately and the source path will be `.apm/kiro-ide-hooks/<name>.kiro.hook`
-once it lands.
+One more pack-authored primitive — `kiro-ide-hook`, for native Kiro
+IDE-event hooks — was designed in
+[RFC-0005](../rfc/0005-user-scope-hook-support.md) and activated in
+`adapter.toml` at v0.9, when the `kiro` adapter split into `kiro-ide` and
+`kiro-cli`. Its source path is `.apm/kiro-ide-hooks/<name>.kiro.hook`; the
+`kiro-ide` adapter projects it; every other adapter either declares it
+`dropped` or omits it. The contract also declares `shared-libs`,
+`adapter-root-bins`, and `user-libs` — pack-authored source paths under
+`.apm/` that carry *no* per-adapter projection rules, because their
+targets are the scope-fenced `<scope-root>/.agentbundle/` roots rather
+than a per-adapter path.
 
 ### Generated: `.eval-workspace/` (run artifacts, not pack source)
 
-When [`tools/run-pack-evals.py`](../../tools/run-pack-evals.py) runs a pack's
+When `agentbundle pack evals run` runs a pack's
 Tier-A activation evals, it writes a repo-relative, **gitignored**
 eval-workspace — distinct from the ephemeral temp dir the pack is *projected*
 into for discovery:
@@ -149,7 +155,7 @@ fills (`without_skill/`, per-run `timing.json` / `grading.json`, an
 
 Governance content the pack drops at the repo root on install. Every
 file under `seeds/` is **Tier-1** under the
-[file-safety contract](../guides/_shared/explanation/file-safety-contract.md) —
+[file-safety contract](../../guides/_shared/explanation/file-safety-contract.md) —
 collisions land as `*.upstream.<ext>` companions, never silent
 overwrites. Typical contents: `AGENTS.md`, `docs/CHARTER.md`,
 `docs/CONVENTIONS.md`, quadrant READMEs.
@@ -173,7 +179,7 @@ that contribute to the AGENTS.md managed block.
    `_data/pack.schema.json`, and rejects pack-internal name collisions
    before any adapter runs.
 2. The build dispatcher reads
-   [`contracts/adapter.toml`](../contracts/adapter.toml) to learn
+   [`contracts/adapter.toml`](../../contracts/adapter.toml) to learn
    which projection mode applies to each primitive per adapter.
 3. [`build/adapters/`](../../packages/agentbundle/agentbundle/build/adapters/)
    projects `.apm/<primitive-type>/` into the per-tool output
@@ -194,5 +200,5 @@ that contribute to the AGENTS.md managed block.
   authoring inside each.
 - [`agentbundle.md`](agentbundle.md) — how the bundler reads this
   shape into `dist/<route>/<pack>/`.
-- [`pack-catalogue.md`](../guides/_shared/explanation/pack-catalogue.md) —
+- [`pack-catalogue.md`](../../guides/_shared/explanation/pack-catalogue.md) —
   the adopter-facing companion to this page.
