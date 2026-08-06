@@ -1,6 +1,8 @@
 """credbroker test-suite hardening (fallback).
 
-_cs_check_dotfile_read retained fallback substring scan catches the literal
+Covers:
+
+- _cs_check_dotfile_read retained fallback substring scan catches the literal
         keyword-arg open(file="<path>") form that the AST branch misses (defense-in-depth).
 _cs_check_dotfile_read catches inline part-composition bypass.
 _cs_check_dotfile_read catches inline .read_bytes() form.

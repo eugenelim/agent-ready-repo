@@ -1,6 +1,6 @@
 # Spec: packages-governance-marker-sweep
 
-**Status:** Implementing
+**Status:** Shipped
 **Mode:** light (no risk trigger fired)
 
 ## Objective
@@ -31,27 +31,31 @@ class is the larger half.
 
 ## Acceptance criteria
 
-- [ ] AC1 — `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' packages/ --exclude='AGENTS*.md' --exclude='CHANGELOG.md'` resolves entirely to the retained set enumerated in AC5 — no comment, no docstring.
-- [ ] AC2 — Every edited comment and docstring still states its rule. No dangling fragment, no orphaned `(`, no subject-less clause, no rule silently dropped, and no substitute pointer to a document the reader does not have ("the decision record carries the rationale" is a failure, not a fix).
-- [ ] AC3 — No mechanical artifact from the automated pass survives: doubled spaces, trailing whitespace, empty `#` comments, lower-cased sentence starts, or comment banners whose trailing dashes no longer align.
-- [ ] AC4 — Every IETF RFC reference under `packages/` survives byte-identical.
-- [ ] AC5 — **The retained set is exactly these classes, each retained for a stated reason:**
+- [x] AC1 — `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bACs?\s*-?#?\s*[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' packages/ --exclude='AGENTS*.md' --exclude='CHANGELOG.md'` resolves entirely to the retained set enumerated in AC5 — no comment, no docstring, no message string.
+- [x] AC1a — **The AC pattern matches the spaced and hashed forms too.** `\bAC-?[0-9]+[a-z]?\b` cannot match `AC #7`, `AC 4`, or `ACs 1-15`; 31 sites survived the first pass because of it. It is the second under-match of this kind — the precedent sweep's `\bAC-?[0-9]+\b` missed `AC6a` for the same reason, a `\b` that cannot follow a digit with a letter after it. The pattern is now `\bACs?\s*-?#?\s*[0-9]+[a-z]?(\([a-z]\))?\b` everywhere it appears: this spec's Verification block and `packages/AGENTS.local.md`.
+- [x] AC2 — Every edited comment and docstring still states its rule. No dangling fragment, no orphaned `(`, no subject-less clause, no rule silently dropped, and no substitute pointer to a document the reader does not have ("the decision record carries the rationale" is a failure, not a fix).
+- [x] AC3 — No mechanical artifact from the automated pass survives: doubled spaces, trailing whitespace, empty `#` comments, lower-cased sentence starts, or comment banners whose trailing dashes no longer align.
+- [x] AC4 — Every IETF RFC reference under `packages/` survives byte-identical.
+- [x] AC5 — **The retained set is exactly these classes, each retained for a stated reason:**
   - **Pinned runtime message strings, and only the assertions that pin them.** Each is asserted on verbatim, so the string and its assertion have to move in one commit — a separate change, not this one.
-    - `commands/install.py` — **both** `pre-RFC-0012 dist-tree` strings (the `--force will REMOVE` warning and the `install:` refusal), plus the seven `assertIn`/`assertNotIn` in `tests/unit/test_install_inband_detection.py` that pin them. The token is the *name of a legacy on-disk layout*, not a citation, so it needs a rename decision first. That file's own comments and docstrings **were** swept.
+    - `commands/install.py` — **both** `pre-RFC-0012 dist-tree` strings (the `--force will REMOVE` warning and the `install:` refusal), plus the seven `assertIn`/`assertNotIn` in `tests/unit/test_install_inband_detection.py` that pin them. The token is the *name of a legacy on-disk layout*, not a citation, so it needs a rename decision first. Every other occurrence — comments and docstrings in `install.py` and across the test tree — **was** swept to "the legacy dist-tree layout"; the retained set is the two strings and their assertions, nothing more.
     - `config.py` — `"markers are repo-only per RFC-0004"`, pinned by `pytest.raises(ConfigError, match=...)` in `tests/unit/test_adapt_discovery_schema.py`.
     - `config.py` — the three `ConfigError` messages naming `docs/specs/adapt-to-project/spec.md`, pinned by `test_adapt_schema_migration.py`, `test_self_host_schema_migration.py`, and `test_discovery_schema_cross_consumer.py`.
-    - `commands/install.py` — the `--emit-install-routes` refusal citing `RFC-0008`. Its test asserts `"RFC-0008" in err or "emit-install-routes" in err.lower()`; stripping the marker leaves the `or` branch load-bearing and the assertion misleading, so the assertion must be simplified in the same commit.
+    - `commands/install.py` — the `--emit-install-routes` refusal citing `RFC-0008`, and the one assertion that reads `"RFC-0008" in err or "emit-install-routes" in err.lower()`. The `or` is why these must move together: strip the marker on its own and the second branch silently carries the test. The assertion is therefore left exactly as-is here and simplified in the commit that renames the string. The surrounding docstring prose in `test_local_scope_t7_install_gates.py` **was** swept.
   - **Asserted-on substrings** in the test tree. `pytest.skip()` reasons and assert-*message* text are **not** in this class and were swept — a message argument renders only on failure, so editing it cannot affect any assertion.
   - Tests whose *subject* is one of our governance documents — `test_adapt_spec_shape.py`, `test_distribution_adapters_spec_shape.py`, `test_apm_spec_amendments.py`, `test_manual_qa_matrix_shape.py`: the spec paths and AC names are functional arguments (regex patterns, `_read()` paths, assert text naming which AC must exist), so their docstrings restate the same functional content and are retained with them. `test_credential_broker_contract_docs.py` is the exception: only its two content assertions are functional, so its docstrings **were** swept.
   - `templates/install-marker.py` and its `_data/` twin — **only** the `Specs:` docstring block, which `test_claude_plugins_install_route.py::test_writer_docstring_names_spec` asserts on. The rest of both files was swept. See Boundaries.
+  - **The two `credbroker` README hyperlinks.** The precedent spec's AC11a (Shipped) recorded the decision that these "keep their working GitHub URLs and lose only the ordinal link text, so an adopter still reaches the design docs." The link *text* is ordinal-free here; the URLs stay. A sentinel decision with authority is not this sweep's to overturn.
+  - **Generic placeholder paths in test data** — `docs/specs/example/notes/foo.md`, `docs/specs/feature/notes/sub/dir/bar.md`, and the `docs/specs/foo/…` pair AC10's test writes, all in `build/tests/test_self_host_check.py`, are arguments to the glob under test, not citations. The first was `docs/specs/self-hosting/...`; renaming the slug to a generic one removes an our-spec reference while exercising the identical `docs/specs/*/notes/**` pattern. That is a deliberate fixture-literal change, licensed here rather than left implicit under "no test logic".
   - `agentbundle/CHANGELOG.md` and `credbroker/CHANGELOG.md` — **decided, not deferred**: both were confirmed absent from the wheel, the sdist, and the catalogue init scaffold. They ship to nobody, and they are historical records; stripping them would rewrite history to remove a pointer no adopter can see. Permanently out of scope.
   - `AGENTS*.md` — insider context, not exported.
-- [ ] AC5a — **Every user-visible message string outside that retained set is swept**: all argparse `help=` text in `cli.py`, `commands/pack_evals.py`, and `build/__init__.py`; the three `catalogue_tooling/lint.py` diagnostics; `commands/init_state.py`'s greenfield-migration message; `commands/install.py`'s once-per-`(root, pack_name)` short-circuit string; `config.py`'s no-legacy-migration note; `build/adapters/codex.py`'s migration-path note; and `safety.py`'s `_PACK_PRIMITIVE_TYPES` explanation. Each still states the thing; none leaves an empty `()` or a stranded dash.
-- [ ] AC6 — `python3 tools/lint-ruff.py` passes; `PYTHONUTF8=1 python3 -m pytest tests/ agentbundle/build/tests/ -q` passes from `packages/agentbundle`; `SKIP_SAST=1 make build-check` passes from the repo root.
-- [ ] AC6a — `python3 -m agentbundle --help`, `install --help`, `catalogue --help`, and `catalogue lint packs --help` were invoked and their output read: no empty `()`, no stranded dash, no half-sentence. Recorded under **Observed**.
-- [ ] AC7 — No version bumped in `version.py`, `pyproject.toml`, or any `pack.toml`. Comment/docstring-only change.
-- [ ] AC8 — `templates/install-marker.py` and `agentbundle/_data/install-marker.py` remain byte-identical to each other.
-- [ ] AC9 — `packages/credbroker/**` residue (`README.md`, `README-pypi.md`) swept; the projected pack copy under `packs/credential-brokers/.apm/user-libs/credbroker/` stays consistent after `make build-self`.
+- [x] AC5a — **Every user-visible message string outside that retained set is swept**: all argparse `help=` text in `cli.py`, `commands/pack_evals.py`, and `build/__init__.py`; the three `catalogue_tooling/lint.py` diagnostics; `commands/init_state.py`'s greenfield-migration message; `commands/install.py`'s once-per-`(root, pack_name)` short-circuit string; `config.py`'s no-legacy-migration note; `build/adapters/codex.py`'s migration-path note; and `safety.py`'s `_PACK_PRIMITIVE_TYPES` explanation. Each still states the thing; none leaves an empty `()` or a stranded dash.
+- [x] AC6 — `python3 tools/lint-ruff.py` passes; `PYTHONUTF8=1 python3 -m pytest tests/ agentbundle/build/tests/ -q` passes from `packages/agentbundle`; `SKIP_SAST=1 make build-check` passes from the repo root.
+- [x] AC6a — `python3 -m agentbundle --help`, `install --help`, `catalogue --help`, and `catalogue lint packs --help` were invoked and their output read: no empty `()`, no stranded dash, no half-sentence. Recorded under **Observed**.
+- [x] AC7 — No version bumped in `version.py`, `pyproject.toml`, or any `pack.toml`. Comment/docstring-only change.
+- [x] AC8 — `templates/install-marker.py` and `agentbundle/_data/install-marker.py` remain byte-identical to each other.
+- [x] AC9 — `packages/credbroker/**` residue (`README.md`, `README-pypi.md`) swept; the projected pack copy under `packs/credential-brokers/.apm/user-libs/credbroker/` stays consistent after `make build-self`.
+- [x] AC10 — **`_is_excluded` has a behavioural test, not just a glob test.** Reviewing the one fixture path this sweep touched surfaced that `ExcludedGlobTests` only exercises the glob→regex translation: it calls the predicate with synthetic strings and never touches disk, so it stays green if a caller drops the guard, passes an absolute path, or the pattern list empties. `ExclusionIsHonouredOnDiskTests` closes that for **one** of the three call sites — the unclassified-path enumeration's guard: it tracks a real file at `docs/specs/foo/notes/x.md` in a git working tree, runs `run_self_host`, and asserts the path is absent from that enumeration, with a control file in the same subtree so a silent stderr cannot pass. The guards at `self_host.py:353` and `:587` remain pinned only by the glob tests. **Verified by mutation:** replacing the caller's guard at `self_host.py` with `if False:` leaves all four `ExcludedGlobTests` passing and fails only the new test (`1 failed, 4 passed`). Scope note: this is a deliberate addition beyond "strip markers", made on explicit direction rather than deferred.
 
 ## Boundaries
 
@@ -66,27 +70,27 @@ same review attention, not the lighter pass a test tree would otherwise earn. Th
 `tests/` tree is sdist-only and lower priority, but still in scope.
 
 **User-visible message strings are in scope — amended mid-change.** The brief opened with "any
-marker inside a string literal is out of scope"; that was narrowed to the four pinned strings in
-AC5 after an AST walk of every string literal in shipped code cross-referenced against every
-marker appearing in a test literal. The finding that unlocked it: the `--help` tests assert only
-on subcommand and flag *names*, never on help prose, and most apparent pins are markers in the
-*message argument* of an assert — text shown only on failure, which editing shipped code cannot
-affect. `--help` output is the highest-value surface in the corpus, so it is swept.
+marker inside a string literal is out of scope"; that was narrowed to the pinned strings AC5
+enumerates, after an AST walk of every string literal in shipped code cross-referenced against
+every marker appearing in a test literal. The finding that unlocked it: the `--help` tests assert
+only on subcommand and flag *names*, never on help prose, and most apparent pins are markers in
+the *message argument* of an assert — text shown only on failure, which editing shipped code
+cannot affect. `--help` output is the highest-value surface in the corpus, so it is swept, and so
+are skip reasons and assert-message text.
 
-**Out of scope — phase 1.** The four pinned strings enumerated in AC5, and the test-side literals
-(skip reasons, assert messages, asserted substrings). Those need renaming in lockstep with the
-assertions that pin them, which is a separate change with a different risk profile. Before
-editing any string literal, grep the test tree for a distinctive fragment of it; a hit means
-carve-out, not rewrite.
+**Out of scope — phase 1.** Exactly the retained set AC5 enumerates, and nothing else. AC5 is the
+single canonical statement of what stays; this section does not restate it. The operative rule
+while editing: before touching any string literal, grep the test tree for a distinctive fragment
+of it — a hit means carve-out, not rewrite.
 
-**`templates/install-marker.py` is left alone, and this is the sharpest residue.** Its module
-docstring carries a `Specs:` block naming two of our spec paths, and the file is a shipped
-template written into the adopter's repo — the highest-harm marker site in the corpus. It stays
-because `tests/integration/test_claude_plugins_install_route.py::test_writer_docstring_names_spec`
-asserts the spec path is present, so the docstring is an asserted-on string literal and falls
-under the phase-1 carve-out by the letter of the rule. Removing it also means deleting a test
-whose stated requirement is that the docstring name the spec — reversing a recorded decision,
-which this sweep has no mandate to do. Recorded as its own backlog item rather than done quietly.
+**`templates/install-marker.py`'s `Specs:` block is the sharpest residue.** That block names two
+of our spec paths, and the file is a shipped template written into the adopter's repo — the
+highest-harm marker site in the corpus. It stays because
+`tests/integration/test_claude_plugins_install_route.py::test_writer_docstring_names_spec` asserts
+the spec path is present, so removing it means deleting a test whose stated requirement is that
+the docstring name the spec — reversing a recorded decision this sweep has no mandate to
+overturn. **The rest of both copies of the file was swept.** Recorded as its own backlog item
+rather than done quietly.
 
 **No lint rule, no CI gate.** Explicitly deferred by the owner. The `packages/AGENTS.local.md`
 grep carries the rule.
@@ -151,13 +155,15 @@ Genuinely out of scope: `packs/`, `docs/`, `.github/`, `tools/`.
 
 ## Verification
 
-**Mode: goal-based check.** The change is prose; its correctness is "the grep resolves to the
-retained set and each sentence still reads", which no unit test can assert. No test file added.
+**Mode: goal-based check, plus one behavioural test.** The sweep itself is prose; its correctness
+is "the grep resolves to the retained set and each sentence still reads", which no unit test can
+assert. One test *was* added — see AC10.
 
 ```bash
-# Whole tree, no --include, no path narrowing. Pattern deliberately looser than the
-# target — a \b-anchored AC pattern cannot match AC6a and under-reports as clean.
-grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bAC-?[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' \
+# Whole tree, no --include, no path narrowing. Pattern deliberately looser than
+# the target on BOTH axes: `\b`-anchored cannot match `AC6a`, and `AC-?[0-9]`
+# cannot match `AC #7` / `AC 4` / `ACs 1-15`. Both under-report as clean.
+grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bACs?\s*-?#?\s*[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' \
   packages/ --exclude='AGENTS*.md' --exclude='CHANGELOG.md'
 python3 tools/lint-ruff.py
 cd packages/agentbundle && PYTHONUTF8=1 python3 -m pytest tests/ agentbundle/build/tests/ -q
@@ -178,4 +184,31 @@ sub-paths (`pyproject.toml`, `README*`, `_data/**`, `tests/**`) never scanned; a
 under review. All four are pre-empted above — and the working-tree diff is read with
 `git diff origin/main`, two dots.
 
-**Observed:** _(filled at close)_
+**Observed.**
+
+- **AC1 grep** (widened pattern, whole tree, no `--include`): residue resolves entirely to the
+  AC5 classes — the four governance-subject tests (84), `test_install_inband_detection.py`'s
+  seven pinned assertions, `config.py` (4), `install.py` (3), the two `install-marker.py` copies'
+  `Specs:` block (2 each), the two `credbroker` README hyperlinks (2 each), the placeholder
+  fixture paths in `test_self_host_check.py` (4), and six single pinned sites. Nothing else.
+- `python3 tools/lint-ruff.py` → `All checks passed!`
+- `PYTHONUTF8=1 python3 -m pytest tests/ agentbundle/build/tests/ -q` from `packages/agentbundle`
+  → 3,543 passed, 58 skipped, 0 failed (exit 0), re-run after the final fix pass.
+- `SKIP_SAST=1 make build-check` → `68 passed, 0 failed`; `Ran 96 tests OK`; `pre-pr: all checks passed`.
+- `python3 -m agentbundle catalogue self-host --write --force` → zero changes; projections consistent.
+- `tools/catalogue/check_contract_parity.py` → 11 contract files byte-identical.
+- **AC6a — `--help` surfaces invoked and read**, zero marker or artifact hits and zero argparse
+  errors in each: root (57 lines), `install` (62), `upgrade` (48), `uninstall` (24), `catalogue`
+  (17), `catalogue lint` (11), `init-state` (10), `reconcile` (4), `diff` (16). An earlier pass at
+  this evidence was invalid — a zsh loop left `$c` unquoted, so multi-word subcommands ran as a
+  single argument and returned a 2-line usage error that trivially contained no markers. The
+  numbers above come from explicit per-subcommand invocations.
+- **AC7** — an AST-skeleton diff against `origin/main` shows no Python code changed, and all 16
+  changed `.toml` files parse to identical values. No version bumped.
+- **AC2/AC3** — two adversarial review rounds (25 then 27 findings, all resolved) plus a
+  purpose-built cross-line detector (`.context/marker-sweep/detect_orphans.py`) that compares each
+  comment/docstring block's prose-integrity signature against `origin/main` and reports only
+  regressions. It took the introduced-damage count from 34 to 1 (a doubled word), now fixed; the
+  12 remaining signals are proper-noun line wraps, checked individually.
+- **AC10** — new test passes; its own file is green at 73 tests; deterministic over three runs;
+  mutation of the caller guard gives `1 failed, 4 passed`.

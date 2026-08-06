@@ -1,4 +1,4 @@
-"""In-band detection of pre-RFC-0012 state at install start.
+"""In-band detection of legacy dist-tree state at install start.
 
 Three triggers evaluated per-pack in precedence ``(b) → (a) → (c)``; only the
 first match emits. Detection runs once per ``(repo, pack)`` per session and
@@ -152,7 +152,7 @@ class TriggerBShapeMismatchTests(unittest.TestCase):
             adopter = tmp / "adopter"
             adopter.mkdir()
             _plant_state(adopter, pack_name="demo", source=str(packs_dir))
-            # Plant dist-tree files (pre-RFC-0012 shape).
+            # Plant dist-tree files (the legacy shape).
             (adopter / "claude-plugins" / "demo").mkdir(parents=True)
             (adopter / "claude-plugins" / "demo" / "plugin.json").write_text(
                 "{}", encoding="utf-8", newline="\n"

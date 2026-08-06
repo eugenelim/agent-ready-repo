@@ -40,9 +40,9 @@ if TYPE_CHECKING:
     from agentbundle.user_config import UserConfig
 
 
-# The spec's only legal scope values; ``global`` is deliberately absent
-# Keep this single-sourced so
-# argparse's `choices=` and the runtime resolver agree.
+# The only legal scope values; ``global`` is deliberately absent.
+# Keep this single-sourced so argparse's `choices=` and the runtime
+# resolver agree.
 # "Local" added for per-clone, never-committed installs.
 LEGAL_SCOPES: frozenset[str] = frozenset({"repo", "user", "local"})
 

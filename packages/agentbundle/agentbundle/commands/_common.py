@@ -184,7 +184,7 @@ def check_spec_version_gate(pack_toml: dict[str, Any]) -> int | None:
 
     The pack declares its version under `[pack.adapter-contract] version`;
     the CLI's version comes from `agentbundle.version.SPEC_VERSION` (read
-    at import time from the bundled `adapter.toml`). AC #14 in the spec
+    at import time from the bundled `adapter.toml`). The spec
     requires every subcommand that consumes a pack manifest to invoke
     this gate before any I/O the pack would drive — uniform refusal, no
     partial behaviour.

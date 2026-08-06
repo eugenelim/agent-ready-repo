@@ -169,7 +169,7 @@ def test_ac18_no_token_in_stdout(tmp_path, monkeypatch):
 
 def test_setup_py_imports_from_credbroker():
     """`auth: creds` lint: setup.py resolves via the credbroker library
-    (— migrated off the build-projected `credentials_shim` sibling)."""
+    (migrated off the build-projected `credentials_shim` sibling)."""
     body = SETUP_PY.read_text(encoding="utf-8")
     assert "from credbroker import" in body
     assert "from .credentials_shim import" not in body

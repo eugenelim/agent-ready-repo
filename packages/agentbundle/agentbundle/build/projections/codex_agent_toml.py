@@ -43,8 +43,7 @@ from typing import Any
 # ---------------------------------------------------------------------------
 # Frontmatter split / parse (mirrors kiro.py:_split_frontmatter +
 # _parse_frontmatter without reaching across module boundaries; the cross-
-# module duplication is acknowledged
-# coverage spec § Always do — sibling-projection-mode rules duplicate
+# module duplication is deliberate — sibling projection modes duplicate
 # rather than depend on each other's privates).
 # ---------------------------------------------------------------------------
 

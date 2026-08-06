@@ -155,7 +155,7 @@ def test_per_primitive_upgrade_moves_only_matching_files(
     v1_projection = render_pack(PACK_V1)
     v2_projection = render_pack(PACK_V2)
     prim_paths = set(_filter_for_primitive(v2_projection, prim_name, src_dir).keys())
-    # --hook co-moves the matching hook-wiring of the same name (spec AC #10).
+    # --hook co-moves the matching hook-wiring of the same name.
     if flag_attr == "hook":
         prim_paths |= set(_filter_for_primitive(v2_projection, prim_name, "hook-wiring").keys())
     non_prim_paths = set(v1_projection.keys()) - prim_paths
@@ -295,7 +295,7 @@ def test_hook_extension_preservation_sh(tmp_path):
 def test_hook_upgrade_co_moves_wiring(tmp_path):
     """`--hook <name>` is atomic over hook-body AND matching hook-wiring.
 
-    Per spec AC #10 the wiring co-moves with its body so a per-hook
+    The wiring co-moves with its body so a per-hook
     upgrade can never land a torn pair (a new hook script paired with
     the previous matcher/event wiring). The v1→v2 fixture diff includes
     a wiring change (`matcher = "Bash"` → `matcher = "Bash|Edit"`); a

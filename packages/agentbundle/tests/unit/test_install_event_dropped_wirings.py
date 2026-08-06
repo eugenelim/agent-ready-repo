@@ -1,4 +1,4 @@
-"""Unit tests for T3 + T4
+"""Unit tests for T3 + T4.
 
 Covers:
   T3 — ``enumerate_event_dropped_wirings`` in

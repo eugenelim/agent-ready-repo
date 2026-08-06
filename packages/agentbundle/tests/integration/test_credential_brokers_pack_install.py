@@ -64,7 +64,8 @@ class PackManifestShapeTests(unittest.TestCase):
         self.assertEqual(pack["version"], "0.2.2")
 
     def test_description_names_the_three_artefacts(self) -> None:
-        # The description names the artefacts the pack ships. Since the retirement the
+        # The description names the artefacts the pack ships. Since the
+        # skill-scripts projection was retired, the
         # `auth: creds` resolver is the `credbroker` library (the build-projected
         # `credentials_shim` it replaced is no longer the consumer-facing
         # resolver), so the description names credbroker, sso-broker, and
@@ -96,7 +97,7 @@ class PackManifestShapeTests(unittest.TestCase):
 
 
 class PackDirectoryInvariantTests(unittest.TestCase):
-    """apm/ tree contains exactly the declared primitive directories
+    """`.apm/` tree contains exactly the declared primitive directories
     (shared-libs/, adapter-root-bins/, user-libs/, skills/credential-setup/),
     plus pack.toml at the pack root. No seeds/, no hooks/, no
     hook-wiring/, no second .apm/skills/<other>/. No <adapt:NAME>

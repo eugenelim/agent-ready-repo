@@ -7,8 +7,8 @@ Two paths exercised through ``run(args)``:
     inventory, the JSON shape, empty lists, and the unknown-pack path.
   - **T4 / degrade (install state):** an unresolvable catalogue (a `git+ssh://`
     URI raises `CatalogueError`) plus fabricated state files, asserting the
-    (two-scope union, extension-agnostic recovery, null metadata)
-    (not-installed error).
+    degrade-to-install-state path (two-scope union, extension-agnostic
+    recovery, null metadata) and the not-installed error.
 
 Plus unit coverage of the pure relpath name-recovery helpers.
 """

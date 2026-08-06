@@ -1,4 +1,4 @@
-"""Tests for the kiro-ide adapter (T1 —).
+"""Tests for the kiro-ide adapter (T1).
 
 kiro-ide targets the Kiro VS Code-fork IDE. Agents project as .md with YAML
 frontmatter (read by gray-matter), using IDE tool ids. kiro-ide-hook is

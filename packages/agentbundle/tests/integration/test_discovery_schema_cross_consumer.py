@@ -7,10 +7,8 @@ in a single parametrised set, so a future drift in either stays caught.
 
 Legacy refusal stderr lines are exact, per consumer:
 
-  CLI:        ``adapt: legacy [accepted] table; migrate to [markers]
-              Md``
-  self-host:  ``self-host: legacy [adapt] table; migrate to [markers]
-              Md``
+  CLI:        ``adapt: legacy [accepted] table; migrate to [markers]``
+  self-host:  ``self-host: legacy [adapt] table; migrate to [markers]``
 """
 
 from __future__ import annotations

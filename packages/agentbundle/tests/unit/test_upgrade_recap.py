@@ -1,7 +1,7 @@
 """T5/T6 (pure): the upgrade recap verdict and the shared drift counter.
 
-The recap honestly distinguishes a version change from a same-version re-apply
-in the recap, and the drift counter underpins both the
+The recap honestly distinguishes a version change from a same-version
+re-apply, and the drift counter underpins both the
 ``--check-drift`` column and the upgrade upfront notice.
 """
 

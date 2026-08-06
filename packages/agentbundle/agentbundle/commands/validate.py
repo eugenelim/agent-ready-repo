@@ -505,7 +505,7 @@ def _load_adapter_contract() -> dict:
 
 def _validate_allowed_adapters(pack_data: dict) -> str | None:
     """Cross-field check for ``[pack.install] allowed-adapters``
-    (substrate; fires at both scopes).
+    (substrate; the rail fires at both scopes).
 
     Returns None when the field is absent / valid; returns a
     refuse-and-explain string suitable for printing under the

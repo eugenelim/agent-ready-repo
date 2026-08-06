@@ -89,7 +89,8 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
             # has a way to reconstruct what happened.
             print(
                 f"codex: stripped legacy <!-- agent-skills:start --> region "
-                f"from {agents_md} — see the codex migration path",
+                f"from {agents_md} — the removed region is only recoverable if "
+                f"{agents_md} was committed",
                 file=sys.stderr,
             )
             # Atomic rewrite: a crash between truncate and write would
@@ -229,8 +230,8 @@ def _splice_managed_block(
     return existing + managed_block
 
 
-# Legacy delimiter literals, hardcoded for the migration window per
-# Adapter implementation change. Removed in the post-strip
+# Legacy delimiter literals, hardcoded for the migration window.
+# Removed in the post-strip
 # release together with `_splice_managed_block`.
 _LEGACY_SKILL_BLOCK_START = "<!-- agent-skills:start -->"
 _LEGACY_SKILL_BLOCK_END = "<!-- agent-skills:end -->"

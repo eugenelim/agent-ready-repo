@@ -453,7 +453,7 @@ def lint_pack(pack_dir: Path, constraints: Constraints | None = None) -> list[st
 
     When `constraints` is supplied, the per-target metadata gate runs
     after the portability sweep and the combined findings are sorted
-    by trailing relpath (the invariant). When omitted, behaviour
+    by trailing relpath — the deterministic-order invariant. When omitted, behaviour
     matches the pre-vocab gate exactly.
     """
     findings: list[str] = []

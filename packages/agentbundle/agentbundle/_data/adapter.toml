@@ -1,7 +1,7 @@
 # Adapter contract — every (primitive × adapter) pair enumerated.
 # Validates against ./adapter.schema.json.
 #
-# Version history:
+# Version history (continues below the [contract] block):
 # v0.1: base contract.
 # v0.2: scope dimension.
 # v0.3: hook-body / hook-wiring forks.
@@ -35,7 +35,7 @@
 # `[adapter.copilot.scope]` gains `user = "~"` + `allowed-prefixes.user`; new
 # `copilot-agent-frontmatter-v0.10` mapping. `command` stays `dropped`
 # (copilot-cli#618/#1113). Two-pack bump (research + core), not all-pack.
-# Corrects the existing codex
+# Codex agent-config correction (no version bump): corrects the existing
 # `codex-agent-frontmatter-v0.8` mapping to preserve `model` and `tools`
 # intent as documented Codex agent config instead of dropping those fields.
 # v0.11 (cursor full parity): new native
@@ -53,7 +53,7 @@
 # v0.12 (2026-06-11): copilot `skill` flips
 # `instruction-file`→`direct-directory` (first-class Agent Skills at
 # `.github/skills/<name>/SKILL.md`); the `copilot-instruction` frontmatter-default
-# is retired. Web correction is docs/comments-only.
+# is retired. The copilot web-tool correction is docs/comments-only.
 # (Lands atop cursor v0.11; the two co-bumped — copilot takes v0.12.)
 # v0.13 (gemini full parity): new native
 # `gemini` full-parity adapter projecting all five primitives to `.gemini/*` at
@@ -93,7 +93,7 @@
 version = "0.17"
 
 # Sibling schemas this contract references — pack metadata and the
-# per-pack Claude-plugin manifest. Defined by spec AC #3 + #4.
+# per-pack Claude-plugin manifest.
 [contract.schemas]
 pack = "pack.schema.json"
 plugin-manifest = "plugin-manifest.schema.json"
@@ -286,8 +286,8 @@ on-conflict = "prompt-then-preserve"
 primitive = "command"
 mode = "dropped"
 
-# hook-body — scope-conditional target. User-scope lands under `~/.kiro/hooks/`
-# per the hook-body-at-user-scope rule. Forward-looking v0.3 declaration;
+# hook-body — scope-conditional target. User-scope lands under `~/.kiro/hooks/`.
+# Forward-looking v0.3 declaration;
 # the legacy array entry above remains authoritative until T5/T7.
 [adapter.kiro.projections.hook-body]
 mode = "direct-file"
@@ -296,7 +296,7 @@ target.user = ".kiro/hooks/<name>.{sh,py}"
 on-conflict = "prompt-then-preserve"
 
 # hook-wiring — merge into the pack-owned agent JSON. Same mode at both scopes;
-# the agent-file target is scope-conditional via scope-root resolution
+# the agent-file target is scope-conditional via scope-root resolution.
 # The legacy
 # `degraded-info-log` array entry is removed.
 [adapter.kiro.projections.hook-wiring]
@@ -330,8 +330,8 @@ allowed-prefixes.user = [".kiro/", ".agentbundle/"]
 #
 # Projects agents as `.md` (gray-matter YAML frontmatter + body); the IDE
 # reads `.kiro/agents/<name>.md` via its gray-matter loader. hook-wiring is
-# DROPPED — the IDE loader silently drops any agent carrying a `hooks` key
-# Kiro-ide-hook is ACTIVATED with the flat path confirmed by
+# DROPPED — the IDE loader silently drops any agent carrying a `hooks` key.
+# `kiro-ide-hook` is ACTIVATED with the flat path confirmed by
 # Q6 probe (no-recursion, yes-extension-filter, 2026-06-01, Kiro 0.12.224):
 # `.kiro/hooks/<pack>--<name>.kiro.hook`. The split assumed yes-recursion;
 # T1 carries the corrected no-recursion flat path (no T-E1b fires).
@@ -537,7 +537,7 @@ user = "~"
 # Repo-scope skills at `.github/skills/`,
 # agents at `.github/agents/`, hook wiring + bodies at `.github/hooks/`.
 # Skills route to the shared `.agents/skills/` home; agents + hooks
-# stay native under `.github/` (moves only the skill primitive).
+# stay native under `.github/` — only the skill primitive moves.
 allowed-prefixes.repo = [".agents/skills/", ".github/skills/", ".github/agents/", ".github/hooks/"]
 # User-scope home is `~/.copilot/` for agents/hooks (the prefix the install
 # rewrite produces) and `~/.agents/skills/` for skills (scope-agnostic, no
@@ -829,7 +829,7 @@ values = { Read = "read", Grep = "grep", Glob = "glob", Edit = "write", Write = 
 rename = "model"
 values = { opus = "claude-opus-4.6", sonnet = "claude-sonnet-4.5", haiku = "claude-haiku-4.5" }
 
-# Codex agent frontmatter v0.8 (amended):
+# Codex agent frontmatter v0.8:
 # rewrite rules from claude-code-style markdown agent (YAML frontmatter with
 # `name`, `description`, optionally `tools`, `model`) to codex's TOML agent
 # shape. `model` maps Claude-style aliases to OpenAI model IDs. `tools`

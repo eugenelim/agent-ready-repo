@@ -59,7 +59,7 @@ class StateFileLegacy(ConfigError):
     literally named ``research`` with an ``adapters`` sub-table and zero
     files, then a later uninstall/install would corrupt ownership.
 
-    Migration is **greenfield** (Decision 8): there is no
+    Migration is **greenfield**: there is no
     converter from a legacy version: an adopter on an older state file
     **re-installs** rather than auto-upgrading. The refuse-and-explain
     message therefore directs re-install, not ``init-state --migrate``.
@@ -444,7 +444,7 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
     before the first install / init-state. Callers distinguish "absent" from
     "present but empty" via `path.exists()` if they need to.
 
-    **Hard cross-version refusal (Decision 4).** A v0.4
+    **Hard cross-version refusal.** A v0.4
     reader refuses any ``schema-version`` it does not recognise, on **both
     read and write** — the refusal is an allowlist (``== "0.4"``), not a
     denylist of known-legacy versions, and an **absent** ``schema-version``
@@ -453,7 +453,7 @@ def load_state(path: Path, *, for_write: bool = False) -> State:
     file (flat ``[pack.<name>]`` rows) loaded under v0.4 rules, or a v0.4
     file (``[pack.<name>.adapters.<adapter>]``) loaded by a v0.3 binary,
     would otherwise corrupt ownership silently. Migration is greenfield
-    (Decision 8) — no converter; the adopter re-installs.
+    — no converter; the adopter re-installs.
 
     ``for_write`` is retained for call-site compatibility but no longer
     gates the refusal (it is now unconditional, read and write).
@@ -1075,7 +1075,7 @@ def load_values_from(path: Path) -> dict[str, str]:
          passes through cleanly as an empty mapping.
 
     Presence of *both* ``[markers]`` and ``[values]`` is ambiguous and
-    refused —.
+    refused.
     """
     if not path.exists():
         raise ConfigError(f"--values-from path not found: {path}")

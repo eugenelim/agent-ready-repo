@@ -2,7 +2,7 @@
 
 Verifies:
   - pack.schema.json accepts a governance-extras recommended-on-core
-    example (AC 3).
+    example.
   - pack.schema.json rejects a pack.toml missing [pack].
   - pack.schema.json rejects a pack.toml whose [pack.adaptation]
     infer-from value is a non-string.
@@ -39,7 +39,7 @@ class PackSchemaAcceptsValidExamplesTests(unittest.TestCase):
     def test_accepts_governance_extras_recommended_on_core(self) -> None:
         """Modeled on the governance-extras recommended-on-core example.
 
-        Verifies AC 3: the schema accepts [pack], [pack.dependencies] with a
+        The schema accepts [pack], [pack.dependencies] with a
         recommended array of {catalogue, pack, version} objects.
         """
         from agentbundle.build.validate import validate
@@ -114,7 +114,7 @@ description = "Core agent skills."
     def test_accepts_seeds_with_relative_paths(self) -> None:
         """[pack.seeds] entries that are relative-path strings are accepted.
 
-        Verifies the [pack.seeds] shape clause of AC 3.
+        Verifies the [pack.seeds] shape clause.
         """
         from agentbundle.build.validate import validate
 
@@ -207,7 +207,7 @@ infer-from = 42
     def test_rejects_seeds_with_absolute_path(self) -> None:
         """A seeds entry starting with '/' is an absolute path and must be rejected.
 
-        Verifies the [pack.seeds] shape clause of AC 3.
+        Verifies the [pack.seeds] shape clause.
         """
         from agentbundle.build.validate import validate
 
@@ -228,7 +228,7 @@ seeds = ["/etc/foo"]
     def test_rejects_seeds_with_non_string_entry(self) -> None:
         """A seeds entry that is not a string (e.g. an inline table) is rejected.
 
-        Verifies the [pack.seeds] shape clause of AC 3.
+        Verifies the [pack.seeds] shape clause.
         """
         from agentbundle.build.validate import validate
 

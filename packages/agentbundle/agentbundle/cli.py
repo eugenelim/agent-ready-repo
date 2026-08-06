@@ -157,7 +157,7 @@ def _version_string() -> str:
 def _shipped_adapters_choices() -> tuple[str, ...]:
     """Derive argparse `--adapter` `choices=` from the live contract.
 
-    Every shipped adapter (not just user-scope-capable ones), per
+    Every shipped adapter is offered, not just user-scope-capable ones.
     The handler issues the pinned refuse-and-explain
     when an adopter passes a shipped-but-not-user-scope-capable adapter
     (e.g. `--adapter copilot`), and argparse must accept the value

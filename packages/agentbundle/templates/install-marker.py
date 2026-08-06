@@ -688,7 +688,7 @@ def _apm_detect_scope(
       ``"repo"`` if ``writer_path.resolve()`` is contained under
         ``cwd.resolve()`` — first-branch-wins, even when ``cwd`` is itself
         nested under ``$HOME`` and the home branch would also succeed in the
-        abstract (case (a)).
+        abstract.
       ``"user"`` if (and only if) the repo branch fails and ``writer_path``
         is contained under ``home.resolve()``.
       ``None`` otherwise — no-match fall-through; the caller exits 0 without
@@ -696,7 +696,7 @@ def _apm_detect_scope(
 
     Symlinks are resolved on both sides via ``.resolve()`` before comparison
     so a writer that lives under a symlinked cache directory still passes
-    the containment check (case (d)).
+    the containment check.
     """
     wp = writer_path.resolve()
     cwd_r = cwd.resolve()

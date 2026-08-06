@@ -376,7 +376,7 @@ def _compose_agents_md(
 # Comparison-rule strengthening (LF norm / mode bits / lstat) remains open.
 # ---------------------------------------------------------------------------
 
-# Excluded path patterns per the what stays out. Phase-1
+# Excluded path patterns — what stays out of the projection. Phase-1
 # implementation uses glob patterns matched against POSIX-style
 # relative paths. `*` matches one path segment; `**` matches zero or
 # more segments (including empty). Patterns *without* `/` (e.g.
@@ -486,8 +486,7 @@ _EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
 # accordingly. The reclassified paths now fall through to
 # EXCLUDED_PATTERNS coverage (`docs/architecture/*.md`,
 # `docs/product/*.md`, `docs/knowledge/*.md`, `guides/**/*.md`,
-# and the 8 explicit additions listed above). See the
-# Amendments § 2026-05-25.
+# and the 8 explicit additions listed above).
 PROJECTED_README_OVERRIDES: tuple[str, ...] = (
     "docs/CONVENTIONS.md",
 )
@@ -514,7 +513,7 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
     moved into its owning skill's `assets/` folder; the merge rule still
     holds in principle for any future shared seed directory). File-level
     collisions (same target path, *different* content) raise `ValueError`
-    naming both source paths — per spec § *Ask first*.
+    naming both source paths rather than silently picking one.
 
     Returns a `{relative_target → source}` map for use by the drift
     source-naming logic.
@@ -588,7 +587,7 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
         if _is_excluded(relative) and (output_root / relative).exists():
             # Manual file on disk — leave it alone. The seed is
             # placeholder; the on-disk file is the adopter's
-            # filled-in instance per the amendments § 2026-05-25.
+            # filled-in instance.
             continue
         target = output_root / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -1196,8 +1195,8 @@ def run_self_host(
 
     # Real write: project directly into the working tree so adapter
     # merge/splice logic sees existing content.
-    # The shared-libs/ → consumer-skill scripts/ projection was retired;
-    # projection: credentialed consumers resolve via the `credbroker`
+    # The shared-libs/ → consumer-skill scripts/ projection was retired:
+    # credentialed consumers resolve via the `credbroker`
     # pip library, not a vendored shim. The shim source survives only as
     # the adapter-root-bins companion-shim projection source (below).
     # T6: project adapter-root-bins/ into <working_tree>/.agentbundle/bin/
@@ -1236,7 +1235,7 @@ def run_self_host(
 
 
 # ---------------------------------------------------------------------------
-# Build-check drift gates (gate 2 +)
+# Build-check drift gates
 # ---------------------------------------------------------------------------
 
 # Fixed corpus for the _emit_basic_string parity check.
@@ -1337,7 +1336,7 @@ def run_build_check_drift_gates(
     1. **Writer-template drift:** every derived
        ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
        must be byte-identical to the canonical template.
-    2. **Source-shape plugin.json (gate 2):** every
+    2. **Source-shape plugin.json:** every
        ``packs/<pack>/.claude-plugin/plugin.json`` must NOT carry a ``hooks``
        block (defence-in-depth, in-Python rail).
     3. **Vendored ``_emit_basic_string`` parity:** the template's
@@ -1487,7 +1486,7 @@ def run_build_check_drift_gates(
                     )
 
     # ------------------------------------------------------------------
-    # Gate 2: Source-shape plugin.json (gate 2)
+    # Gate 2: Source-shape plugin.json
     # ------------------------------------------------------------------
     if packs_dir.is_dir():
         for pack_dir in sorted(packs_dir.iterdir()):
@@ -1639,7 +1638,7 @@ def cmd_check(args) -> int:
 
     Runs two phases:
       1. The existing self-host dry-run (adapter projection drift check).
-      2. The three new mechanical drift gates (gate 2 +):
+      2. The three mechanical drift gates:
          writer-template byte-identity, source-shape plugin.json, and vendored
          ``_emit_basic_string`` parity across the fixed attack corpus.
 

@@ -118,7 +118,7 @@ class CCUserHooksUninstallTests(_UninstallBase):
 
         data_after = json.loads(settings.read_text(encoding="utf-8"))
         # The pack's owned entry is gone — and the empty event array
-        # is pruned per the Uninstall.
+        # is pruned on uninstall.
         self.assertNotIn(
             "UserPromptSubmit",
             data_after.get("hooks", {}),

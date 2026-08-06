@@ -52,11 +52,11 @@ class CursorContractTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_contract_version_is_0_11(self) -> None:
-        """Contract bumped to 0.11 by cursor-full-parity; subsequently
-        0.12 (copilot-skills-and-web), 0.13,
-        0.14, 0.15
-        Then 0.17.
-        Name preserved to keep the diff small."""
+        """Contract bumped to 0.11 by cursor full parity; subsequently to
+        0.12 by copilot skills and web, 0.13 by gemini full parity, 0.14 by
+        the enriched pack manifest, 0.15 by kiro-cli agent skill resources,
+        and 0.17 by the consolidated pack layout. Name preserved to keep the
+        diff small."""
         self.assertEqual(self.contract["contract"]["version"], "0.17")
 
     def test_cursor_block_projects_five_primitives(self) -> None:

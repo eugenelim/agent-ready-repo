@@ -4,7 +4,7 @@ Pure-function unit coverage. Integration coverage against the
 `cc-user-hooks` fixture lives in
 ``packages/agentbundle/tests/integration/test_cc_user_hooks_fixture.py``.
 
-Covers spec ACs:
+Covers:
   - Empty file → write hooks.<event> arrays with id-tagged entries.
   - Reinstall same version is byte-for-byte no-op.
   - Second pack with overlapping event appends; first pack unmoved.
@@ -12,7 +12,7 @@ Covers spec ACs:
   - Adopter hand-edit collision refuses; --force-merge adopts.
   - Unparseable JSON refuses non-zero; file unchanged.
   - Wrong-shape `hooks` or `hooks.<event>` refuses with the
-           `<key-path> has unexpected shape` text.
+    `<key-path> has unexpected shape` text.
   - Plus: auto-init absent `hooks` to `{}` and absent `hooks.<event>`
     to `[]`. Atomic write via `Path.replace`.
 """

@@ -695,7 +695,7 @@ def test_write_channel_descriptor_sha256_matches_sidecar(tmp_path: Path) -> None
 
 
 def test_package_catalogue_end_to_end(tmp_path: Path) -> None:
-    """Manifest sha256 matches the archived bytes."""
+    """End-to-end: three output files, allowlist, manifest schema, channel descriptor."""
     root = _make_fixture_catalogue(
         tmp_path,
         extra_dirs=["build", "tests", ".git"],

@@ -658,7 +658,7 @@ def _step_selfhost_drift(
     """
     if config is None:
         return []
-    # Adapt-discovery.toml is required by run_self_host (fail-fast). Its
+    # `.adapt-discovery.toml` is required by run_self_host (fail-fast). Its
     # absence means this catalogue has no self-host projection to drift-check.
     if not (root / ".adapt-discovery.toml").exists():
         return []
@@ -773,12 +773,12 @@ def _step_integration_validation(
     """Step 19: validate [[pack.integrations]] entries (Wave 2).
 
     Rules checked (schema-layer rules are NOT re-implemented here):
-      Id is unique within each declaring pack
-      Consumer primitive refs resolve in the declaring pack
-      Pack does not target itself
-      Version, when present, is a valid semver range
-      Absent target pack is not an error (portable across catalogues)
-      Provider primitive refs resolve in the target pack when present
+      - id is unique within each declaring pack
+      - consumer primitive refs resolve in the declaring pack
+      - a pack does not target itself
+      - version, when present, is a valid semver range
+      - an absent target pack is not an error (portable across catalogues)
+      - provider primitive refs resolve in the target pack when present
     """
     try:
         import tomllib

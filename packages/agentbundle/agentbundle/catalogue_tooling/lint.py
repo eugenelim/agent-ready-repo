@@ -346,8 +346,8 @@ def _seeds_check_file(path: Path, seeds_root: Path) -> list[str]:
         if content.strip():
             violations.append(
                 f"{path}:1: patterns.jsonl seed must be empty "
-                "(adopters' knowledge entries accumulate post-install; "
-                "seed the file with a placeholder entry)"
+                "(no entries at seed time; adopters' knowledge entries "
+                "accumulate post-install)"
             )
         return violations
 

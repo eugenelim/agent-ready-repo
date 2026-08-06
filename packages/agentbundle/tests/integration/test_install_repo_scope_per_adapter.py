@@ -203,8 +203,8 @@ class RepoScopePerAdapterGreenfieldTests(unittest.TestCase):
         )
 
     def test_copilot_explicit_adapter(self) -> None:
-        """Copilot's skill projection target is `.agents/skills/` (the
-        Shared cohort home; was `.github/skills/` in v0.11)."""
+        """Copilot's skill projection target is `.agents/skills/` — the
+        shared cohort home; it was `.github/skills/` in v0.11."""
         self._install_and_assert(
             adapter_flag="copilot",
             expected_adapter="copilot",
@@ -624,7 +624,7 @@ class RepoScopeDiffAfterInstallTests(unittest.TestCase):
 
 
 class RepoScopeMigrationTriggerBTests(unittest.TestCase):
-    """A pre-RFC-0012 (v0.3) state file refuses at load
+    """A legacy (v0.3) state file refuses at load
     time with the hard cross-version refusal.
 
     Originally these tests pinned specific (b)-branch messages; the
@@ -667,7 +667,7 @@ class RepoScopeMigrationTriggerBTests(unittest.TestCase):
 
 
 class RepoScopeMigrationTriggerATests(unittest.TestCase):
-    """A pre-RFC-0012 (v0.3) state file refuses at load
+    """A legacy (v0.3) state file refuses at load
     time with the hard cross-version refusal.
 
     Originally this test pinned the (a)-branch adapter-disagreement

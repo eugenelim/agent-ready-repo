@@ -2,7 +2,7 @@
 
 Verifies:
   - plugin-manifest.schema.json (source shape) accepts a minimal hand-authored
-    .claude-plugin/plugin.json (AC 4).
+    .claude-plugin/plugin.json.
   - The source schema loads with the expected top-level shape.
   - T2: source schema forbids the hooks property (gate 1).
   - T2: derived schema accepts the synthesised hooks.SessionStart block (gate 1).
@@ -41,7 +41,7 @@ class PluginManifestSchemaAcceptsValidExamplesTests(unittest.TestCase):
     def test_accepts_minimal_plugin_manifest(self) -> None:
         """A minimal hand-authored .claude-plugin/plugin.json is accepted.
 
-        Verifies AC 4: the schema validates the hand-authored per-pack manifest.
+        The schema validates the hand-authored per-pack manifest.
         """
         from agentbundle.build.validate import validate
 

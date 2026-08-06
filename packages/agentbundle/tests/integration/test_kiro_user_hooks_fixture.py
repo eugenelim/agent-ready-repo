@@ -104,8 +104,8 @@ class KiroUserHooksFixtureTests(unittest.TestCase):
         absolute path; we simulate that here by substituting the
         placeholder in the wiring before merge, then merging, then
         reading the merged `command` back and dispatching it. This
-        closes the loop that demands: the byte path running
-        through is `wiring TOML → merge → merged JSON → sh -c → exit 0`.
+        closes the dispatchability loop: the byte path running through is
+        `wiring TOML → merge → merged JSON → sh -c → exit 0`.
         """
         from agentbundle.build.projections.merge_into_agent_json import project
 

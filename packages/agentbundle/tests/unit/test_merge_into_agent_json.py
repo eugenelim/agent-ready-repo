@@ -8,16 +8,16 @@ Mirrors the shape of T5's `test_user_merge_json.py` but adapts for the
 pack-owned target file (no adopter-collision logic, no force_merge,
 missing-agent-file refusal with the `internal:` text).
 
-Covers spec ACs:
+Covers:
   - Merge into pack-owned agent JSON writes hooks.<event>
-           arrays with id-tagged entries; other agent JSON keys
-           (name, description, etc.) untouched.
+    arrays with id-tagged entries; other agent JSON keys
+    (name, description, etc.) untouched.
   - Uninstall removes wiring-owned entries from the agent JSON;
-           the agent file itself remains.
-  - Case (validate-time) — covered by scope_rails tests in
-           `test_kiro_event_vocabulary.py`; this file's vocabulary
-           tests pin the rail-output shape against the projection
-           module.
+    the agent file itself remains.
+  - Validate-time coverage lives in the scope_rails tests in
+    `test_kiro_event_vocabulary.py`; this file's vocabulary
+    tests pin the rail-output shape against the projection
+    module.
 
 Plus internal failure modes:
   - Missing agent file at merge time refuses with the contract's

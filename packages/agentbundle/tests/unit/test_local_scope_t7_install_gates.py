@@ -2,7 +2,7 @@
 
 Tests for:
   - emit_install_routes inference: cli_scope not in ("user", "local")
-  - --scope local --emit-install-routes refused with RFC-0008 message
+  - --scope local --emit-install-routes refused with the plugins-route message
   - --scope local --force-merge refused (force-merge is user-scope-only)
   - validate_dependencies_required local_state parameter
 """
@@ -65,7 +65,7 @@ def test_emit_install_routes_inferred_true_for_repo():
 def test_install_scope_local_emit_install_routes_refused(tmp_path, capsys):
     """Install --scope local --emit-install-routes is refused.
 
-    The error message must reference RFC-0008 or 'emit-install-routes'.
+    The error message must name the plugins route or 'emit-install-routes'.
     Tested via direct run() call with a minimal pack that resolves scope correctly.
     """
     from agentbundle.commands.install import run as install_run

@@ -1,6 +1,6 @@
 """Tests for catalogue_tooling.package (Wave 4 — catalogue-tooling-package-enhanced spec).
 
-Covers ACs 1-15 from the spec.
+Covers the full packager contract.
 """
 
 from __future__ import annotations

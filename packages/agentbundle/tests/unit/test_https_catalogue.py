@@ -149,41 +149,41 @@ _VALID_DESCRIPTOR = {
 
 
 def test_is_valid_source_catalogue_https():
-    """catalogue+https:// accepted."""
+    """The `catalogue+https://` scheme is accepted."""
     assert _is_valid_source("catalogue+https://example.test/path/stable.json") is True
 
 
 def test_is_valid_source_catalogue_http():
-    """catalogue+http:// rejected."""
+    """The `catalogue+http://` scheme is rejected."""
     assert _is_valid_source("catalogue+http://example.test/path/stable.json") is False
 
 
 def test_is_valid_source_archive_https_with_sha256():
-    """archive+https:// with valid #sha256=<64hex> accepted."""
+    """An `archive+https://` URI with a valid `#sha256=<64hex>` is accepted."""
     assert _is_valid_source(
         "archive+https://example.test/path/release.tar.gz#sha256=" + "a" * 64
     ) is True
 
 
 def test_is_valid_source_archive_http():
-    """archive+http:// rejected."""
+    """The `archive+http://` scheme is rejected."""
     assert _is_valid_source("archive+http://example.test/release.tar.gz") is False
 
 
 def test_is_valid_source_catalogue_https_user_info():
-    """catalogue+https:// with user-info rejected."""
+    """A `catalogue+https://` URI carrying user-info is rejected."""
     assert _is_valid_source("catalogue+https://user:pass@example.test/path") is False
 
 
 def test_is_valid_source_archive_https_user_info():
-    """archive+https:// with user-info rejected."""
+    """An `archive+https://` URI carrying user-info is rejected."""
     assert _is_valid_source(
         "archive+https://user:pass@example.test/release.tar.gz#sha256=" + "a" * 64
     ) is False
 
 
 def test_is_valid_source_archive_https_no_fragment():
-    """archive+https:// without #sha256= fragment rejected."""
+    """An `archive+https://` URI without a `#sha256=` fragment is rejected."""
     assert _is_valid_source("archive+https://example.test/release.tar.gz") is False
 
 
@@ -199,7 +199,7 @@ def test_is_valid_source_archive_https_no_fragment():
     ],
 )
 def test_is_valid_source_archive_https_bad_fragment(fragment_suffix: str):
-    """archive+https:// with bad fragment rejected."""
+    """An `archive+https://` URI with a malformed fragment is rejected."""
     assert _is_valid_source(
         f"archive+https://example.test/release.tar.gz#{fragment_suffix}"
     ) is False
@@ -770,7 +770,7 @@ def test_same_origin_anchor_is_originally_requested():
 
 
 def test_fetch_catalogue_archive_catalogue_https(tmp_path: Path):
-    """catalogue+https:// end-to-end: descriptor → artifact → extract."""
+    """End-to-end `catalogue+https://`: descriptor → artifact → extract."""
     archive_data, archive_sha256 = _make_tarball(("pack.txt", b"pack content"))
 
     descriptor = {
@@ -802,7 +802,7 @@ def test_fetch_catalogue_archive_catalogue_https(tmp_path: Path):
 
 
 def test_fetch_catalogue_archive_archive_https(tmp_path: Path):
-    """archive+https:// — no descriptor fetch, directly streams + extracts."""
+    """An `archive+https://` URI skips the descriptor fetch and streams directly."""
     archive_data, archive_sha256 = _make_tarball(("pack.txt", b"direct content"))
     archive_tmp = tmp_path / "archive.tar.gz"
     archive_tmp.write_bytes(archive_data)
@@ -821,7 +821,7 @@ def test_fetch_catalogue_archive_archive_https(tmp_path: Path):
 
 
 def test_fetch_catalogue_archive_minimum_version_rejected():
-    """minimum_agentbundle_version newer than running version fails before download."""
+    """A `minimum_agentbundle_version` newer than the running version fails before download."""
     descriptor = {
         **_VALID_DESCRIPTOR,
         "minimum_agentbundle_version": "999.0.0",
@@ -864,7 +864,7 @@ def test_fetch_catalogue_archive_unsupported_scheme():
 
 
 def test_fetch_catalogue_archive_archive_https_no_sha256_fragment():
-    """archive+https:// without sha256 fragment raises CatalogueError."""
+    """An `archive+https://` URI without a sha256 fragment raises CatalogueError."""
     with pytest.raises(CatalogueError, match="sha256"):
         fetch_catalogue_archive("archive+https://example.test/release.tar.gz")
 

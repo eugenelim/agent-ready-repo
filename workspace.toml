@@ -432,50 +432,15 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # Sweep internal governance markers (RFC-0NNN / ADR-0NNN / our spec ACs) out of
-  # `packages/**`, on the same "everything source-code-wise is visible" principle
-  # already applied to `packs/`. In progress under spec/packages-governance-marker-sweep.
-  # Two traps, both measured:
-  #   1. IETF RFCs must survive (`RFC 9106` in credbroker/_vault.py). Ours are
-  #      zero-padded four digits; IETF never starts with 0 — that is the discriminator.
-  #   2. Some markers are terms of art inside user-facing strings ("pre-RFC-0012
-  #      dist-tree files" in install.py) and those exact strings are pinned by
-  #      assertIn/assertNotIn in the integration tests — rename source + assertion together.
-  # RESOLVED — the CHANGELOG question is closed, not open: agentbundle/CHANGELOG.md and
-  #   credbroker/CHANGELOG.md are absent from the wheel, the sdist, and the catalogue init
-  #   scaffold, so they reach no adopter. They stay untouched permanently, as historical
-  #   records. Do not reopen this as a follow-up.
-  # credbroker/_sso.py is byte-identical to the packs/ copy and was already done.
-  # Fix: tiered exact-string + regex pass for the safe classes, then per-site rewrite;
-  #   verify with `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b' packages/` plus the full suite.
-  # Unblocks when: picked up — no dependency. Guardrail already in packages/AGENTS.local.md.
-  {slug = "packages-governance-marker-sweep", source = "spec/pack-governance-marker-removal AC12"},
 
   # Phase-1 residue from the packages/ marker sweep: the marker sites that are
-  # asserted on verbatim, so source and assertion must move in one commit.
-  #   1. `pre-RFC-0012 dist-tree` (two strings in commands/install.py) — pinned by
-  #      seven assertIn/assertNotIn in tests/unit/test_install_inband_detection.py.
-  #      It names a legacy on-disk layout, so it needs a rename decision first.
-  #   2. config.py's `markers are repo-only per RFC-0004` — pinned by a
-  #      pytest.raises(match=...) in tests/unit/test_adapt_discovery_schema.py.
-  #   3. install.py's --emit-install-routes refusal citing RFC-0008 — its test
-  #      asserts `"RFC-0008" in err or "emit-install-routes" in err.lower()`;
-  #      stripping the marker makes the `or` branch load-bearing and the
-  #      assertion misleading, so simplify the assertion in the same commit.
-  #   4. config.py's three `docs/specs/adapt-to-project/spec.md` ConfigError
-  #      messages — pinned by test_adapt_schema_migration, test_self_host_schema_
-  #      migration, and test_discovery_schema_cross_consumer.
-  #   5. templates/install-marker.py + its _data/ twin: the `Specs:` docstring
-  #      block is pinned by test_claude_plugins_install_route.py::
-  #      test_writer_docstring_names_spec, whose stated requirement IS that the
-  #      docstring name the spec. Highest-harm site left — the file ships into
-  #      the adopter's repo. Needs that test retired or reframed first.
-  #   6. The four governance-subject tests (test_apm_spec_amendments,
-  #      test_adapt_spec_shape, test_distribution_adapters_spec_shape,
-  #      test_manual_qa_matrix_shape): their AC labels and spec paths are
-  #      functional arguments (regex patterns, _read() paths), not citations.
-  #      They only go if the tests themselves are retired.
-  # Fix: for each, rename the string and edit its pinning assertion together.
+  # asserted on verbatim. The set itself is enumerated once, in
+  # docs/specs/packages-governance-marker-sweep/spec.md AC5 — do not restate it
+  # here; two copies drift.
+  # Fix: for each retained string, rename it and edit its pinning assertion in the
+  #   same commit. `pre-RFC-0012` needs a naming decision for the legacy on-disk
+  #   layout first; the RFC-0008 refusal needs its `or` branch dropped so the
+  #   assertion stops silently passing on the second clause.
   # Unblocks when: picked up — no dependency.
   {slug = "packages-marker-sweep-pinned-strings", source = "spec/packages-governance-marker-sweep AC5"},
 

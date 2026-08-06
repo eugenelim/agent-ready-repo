@@ -1,6 +1,6 @@
 """T12: user-scope refusal rails — seeds / hooks / marker.
 
-Verifies AC #16 for the distribution-adapters spec. The rails
+Verifies the user-scope refusal rails. They
 fire only when a pack declares `"user" ∈ allowed-scopes` — repo-only
 packs are not inspected, so SKILL.md files that *document* the marker
 syntax (e.g. `adapt-to-project`) are not refused because their packs

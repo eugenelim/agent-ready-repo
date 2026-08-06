@@ -58,7 +58,7 @@ def _validate(instance: dict) -> list[str]:
 
 
 def test_local_in_allowed_scopes_items():
-    """'Local' is a valid item in allowed-scopes."""
+    """`"local"` is a valid item in allowed-scopes."""
     errors = _validate(_base_pack(["repo", "local"]))
     assert errors == [], f"Expected no errors, got: {errors}"
 

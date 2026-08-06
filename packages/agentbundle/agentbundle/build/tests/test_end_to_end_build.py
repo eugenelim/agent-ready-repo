@@ -3,10 +3,9 @@
 Drives `make build` (via `python -m agentbundle.build build`) against
 the four reference fixture packs at
 `packages/agentbundle/agentbundle/build/tests/fixtures/packs/` on a
-clean checkout and asserts the dist/ shape AC #7 + AC #13 require.
-Production-pack migration into a top-level `packs/` directory is out
-of scope per the spec's amendment (an F-dist follow-on
-owns it).
+clean checkout and asserts the dist/ shape the contract requires.
+Production-pack migration into a top-level `packs/` directory is out of
+scope here; a follow-on owns it.
 """
 
 from __future__ import annotations
@@ -59,7 +58,7 @@ class EndToEndBuildTests(unittest.TestCase):
                 self.assertTrue((tmp_path / "claude-plugins" / pack).exists())
                 self.assertTrue((tmp_path / "apm" / pack).exists())
 
-            # AC #7 + integrated-journey coverage: assert each of the five
+            # Integrated-journey coverage: assert each of the five
             # primitives lands at its declared output under the `core` pack
             # — the only fixture that exercises every primitive type.
             core_plugin = tmp_path / "claude-plugins" / "core"
@@ -76,7 +75,7 @@ class EndToEndBuildTests(unittest.TestCase):
         """AC: plain `make build` produces only dist/apm, dist/claude-plugins,
         and dist/claude-plugins/marketplace.json — never the three self-host
         recipes' artefacts (overlay output in the working tree, composite
-        AGENTS.md, composite marketplace). Verifies AC #14: working tree is
+        AGENTS.md, composite marketplace). Verifies the working tree is
         unchanged after the run (git status --porcelain returns byte-
         identical output before and after)."""
         before = subprocess.run(
@@ -127,8 +126,7 @@ class CheckCommandTests(unittest.TestCase):
             subprocess.run(["git", "init", "-q", str(working)], check=True, env=env)
 
             # Seed `.adapt-discovery.toml` so `make build-check`'s
-            # fail-fast doesn't reject the call. Canonical
-            # Canonical v0.1 shape.
+            # fail-fast doesn't reject the call. Canonical v0.1 shape.
             (working / ".adapt-discovery.toml").write_text(
                 'discovery-schema-version = "0.1"\n', encoding="utf-8", newline="\n"
             )

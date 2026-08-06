@@ -61,11 +61,11 @@ class CodexAdapterTests(unittest.TestCase):
         """v0.8 inverts the pre-bump assertion: codex now projects `agent`
         (via codex-agent-toml) and `hook-wiring` (via merge-json) natively.
         Only `command` stays dropped — codex custom-prompts are deprecated
-        upstream in favour of skills (RFC pointer in spec § Assumptions).
+        upstream in favour of skills.
 
         Renamed from ``test_agent_hook_wiring_command_dropped`` — the
-        v0.7 assertion was the inverse of what the v0.8 contract claims
-        Deliberate spec-driven inversion, not a regression hiding
+        v0.7 assertion was the inverse of what the v0.8 contract claims.
+        A deliberate spec-driven inversion, not a regression hiding
         behind a test deletion.
         """
         with tempfile.TemporaryDirectory() as tmp:

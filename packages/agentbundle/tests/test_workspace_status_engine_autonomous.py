@@ -50,7 +50,10 @@ class TestShapeNeedAutonomous:
     """Shape: need — absent from active AND backlog → unsatisfied when autonomous."""
 
     def test_shape_absent_unsatisfied_autonomous(self) -> None:
-        pytest.skip("STUB")
+        pytest.skip(
+            "STUB: a need absent from both active and backlog is "
+            "unsatisfied in autonomous mode"
+        )
 
     def test_shape_in_active_unsatisfied_both_modes(self) -> None:
         mod = _load_engine()

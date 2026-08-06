@@ -21,8 +21,7 @@ from agentbundle.build.projections.copilot_agent_md import (
 
 
 def test_known_tools_matches_spec_allow_list() -> None:
-    # Pin the module's allow-list against the spec-documented set
-    #  so the two
+    # Pin the module's allow-list against the spec-documented set so the two
     # can't drift silently — mirrors the `_EVENT_MAP` pin in the hooks-json
     # test. The web tools `WebFetch`/`WebSearch` pass through and resolve to
     # Copilot's `web` tool on the CLI + app (only the cloud agent lacks

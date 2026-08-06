@@ -19,7 +19,7 @@ scope dimension. The handler enforces:
   - **State-file v0.1 refusal** is delegated to
     :func:`config.load_state(..., for_write=True)`.
 
-Tier-1/2/3 classification is the same at both scope roots;
+Tier-1/2/3 classification is unchanged from the pre-scope-dimension shape;
 both scope roots use :func:`_classify_for_install`. Writes go through
 :func:`safety.write_jailed` with the matching ``scope`` and
 ``allowed_prefixes`` so the user-scope jail fires.
@@ -534,7 +534,7 @@ def run(args: argparse.Namespace) -> int:
         return 1
 
     # ── Step 3c: in-band legacy-state detection (repo scope, per-IDE) ──
-    # Pre-RFC-0012 state must surface migration messaging *before* the
+    # Legacy dist-tree state must surface migration messaging *before* the
     # already-installed branch fires its "use 'upgrade'" refusal —
     # otherwise an adopter with stale state would receive misleading
     # advice ("just upgrade") instead of the correct uninstall +
@@ -766,8 +766,7 @@ def run(args: argparse.Namespace) -> int:
     )
 
     # Probe per-adapter scope metadata (for allowed-prefixes at user
-    # scope). Claude Code, Kiro, Codex, and Copilot each ship a
-    # [scope] block. Resolve which
+    # scope). Every shipped adapter carries a [scope] block. Resolve which
     # adapter the user-scope install targets via the six-step (0–5)
     # lookup and use that adapter's `allowed-prefixes.user`.
     # ``_pack_allowed_adapters`` and ``_pack_contract_version`` were
@@ -1510,7 +1509,7 @@ def run(args: argparse.Namespace) -> int:
             # (parity at repo scope) depends on this. Skipped
             # when `--emit-install-routes` is set — the legacy dist-tree
             # producer has no single adapter to pin.  Local scope uses the
-            # same repo_target_adapter (D1: same adapter resolution).
+            # same repo_target_adapter — the adapter resolves identically.
             new_pack_state.adapter = repo_target_adapter
 
         from agentbundle.config import STATE_SCHEMA_VERSION
@@ -1592,7 +1591,7 @@ def run(args: argparse.Namespace) -> int:
                 return 1
             raise
 
-        # Cross-adapter disclosure rail (Decision 7): if this
+        # Cross-adapter disclosure rail: if this
         # install wrote to a `shared` prefix, name the prefix's other shipped
         # cohort adapters and the skills-shared / private-needs-own-install
         # boundary. stderr so the stdout `installed:` rail stays parseable.
@@ -1735,7 +1734,7 @@ def run(args: argparse.Namespace) -> int:
             # plain-text line. Order: route-list first (the new info)
             # so adopters reading the tail see the existing
             # ``installed: <pack> @ repo`` recap last — preserves the
-            # invariant every pre-RFC-0012 integration test asserts
+            # invariant every legacy-layout integration test asserts
             # against (last non-empty stdout line is the install
             # recap).
             print(
@@ -1757,7 +1756,7 @@ def run(args: argparse.Namespace) -> int:
                 f" (excluded via {_step13_exclude})"
             )
         else:
-            # Defensive fallback: matches pre-RFC-0012 wording for any
+            # Defensive fallback: matches the legacy wording for any
             # path the new branches don't capture.
             print(f"installed: {pack_name} @ {plan.scope}")
 
@@ -2260,7 +2259,7 @@ def _maybe_emit_dropped_warning(
 
 
 def _scan_dist_tree_artifacts(root: Path, pack_name: str) -> list[Path]:
-    """Return pre-RFC-0012 dist-tree projection files for ``pack_name``.
+    """Return legacy dist-tree projection files for ``pack_name``.
 
     Scans ``<root>/claude-plugins/<pack>/`` and ``<root>/apm/<pack>/`` —
     the two per-pack subtrees the legacy ``per-pack-claude-plugin`` and
@@ -2342,7 +2341,7 @@ def _classify_pre_rfc0012_state(
     yes: bool = False,
     projection_relpaths: set[str] | None = None,
 ) -> int | None:
-    """In-band detection of pre-RFC-0012 state.
+    """In-band detection of legacy dist-tree state.
 
     Triggers evaluated per-pack in precedence ``(b) → (a) → (c)``; only
     the first match emits. Detection runs once per
@@ -2353,7 +2352,7 @@ def _classify_pre_rfc0012_state(
     orphan (c) branches), the deletion is confirmed first: ``yes`` skips the
     prompt, a non-interactive stdin refuses rather than deleting unattended,
     and the paths to be removed are listed on stderr before the prompt
-    (CLI-hygiene). The confirm gates the *whole* destructive block —
+    The confirm gates the *whole* destructive block —
     for (b) that is the ``rmtree`` plus the in-memory ``packs.pop`` plus the
     state-file rewrite — so a decline mutates nothing.
 
@@ -2372,12 +2371,12 @@ def _classify_pre_rfc0012_state(
 
     # Adapter-aware: the "state row" is this adapter's row, not
     # the pack's. A row for a *different* adapter is a coexisting install, not
-    # a pre-RFC-0012 signal — so it falls through to the orphan branch (c),
+    # a legacy-layout signal — so it falls through to the orphan branch (c),
     # where sibling-row files are recognised as owned, not swept.
     state_row = repo_state.row(pack_name, repo_target_adapter)
 
     # (b) Shape-mismatch — state row exists AND dist-tree files exist.
-    # Pre-RFC-0012 signal: state.toml carries a row AND
+    # Legacy-layout signal: state.toml carries a row AND
     # the on-disk shape is the legacy dist-tree (today the only
     # code path producing those files is ``--emit-install-routes``,
     # which short-circuits before this detection runs).
@@ -2929,7 +2928,7 @@ def _append_install_marker(
     # `.adapt-install-marker.toml` (not under `.agentbundle/`); the
     # per-prefix check is skipped here because the file is CLI-owned
     # metadata, not pack-projected content, and the same root-level
-    # placement was the pre-RFC-0012 contract.
+    # placement was the legacy contract.
     marker_prefixes = allowed_prefixes
     if scope == "repo" and marker_relpath == ".adapt-install-marker.toml":
         marker_prefixes = None
@@ -3562,7 +3561,7 @@ def _resolve_target_adapter(
     preferred_adapter: str | None = None,
 ) -> str:
     """Resolve the adapter that an install/upgrade targets at *scope*
-    (substrate; resolved at repo scope too).
+    (substrate; the same lookup resolves at repo scope).
 
     The six-step (0–5) lookup, with scope-branched points at 0, 1, 4,
     and 5:
@@ -4146,7 +4145,7 @@ _ADAPTER_NATIVE_DIR = {
 def _shared_prefix_disclosure(
     pack_name: str, adapter: str, scope: str, written_relpaths: set[str]
 ) -> str | None:
-    """Build the install-time cross-adapter disclosure (Decision 7).
+    """Build the install-time cross-adapter disclosure.
 
     When an install wrote to a ``shared`` prefix, name the prefix's **other
     shipped** cohort adapters and state the boundary (skills are shared;

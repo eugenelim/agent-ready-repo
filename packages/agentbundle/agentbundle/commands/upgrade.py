@@ -1348,7 +1348,7 @@ def run(args: argparse.Namespace) -> int:
         ptype, src_dir = _PRIMITIVE_FLAG_MAP[prim_flag]
         filtered = _filter_for_primitive(projection, prim_name, src_dir)
         # --hook is atomic over hook-body + matching hook-wiring of the
-        # same name (per spec AC #10 — wiring co-moves with body so a
+        # same name (wiring co-moves with body so a
         # per-hook upgrade can never land a torn pair).
         if prim_flag == "hook":
             filtered.update(
@@ -1603,8 +1603,7 @@ def _unproject_removed_rows(
     project the same row at the NEW target-file.
 
     Walks the OLD adapter for dispatch (Claude Code vs Kiro). Claude
-    Code rows default ``target-file`` to ``.claude/settings.json`` per
-    State-file impact.
+    Code rows default ``target-file`` to ``.claude/settings.json``.
     """
     def _key(row: dict[str, str]) -> tuple[str, str, str]:
         return (row.get("event", ""), row.get("id", ""), row.get("target-file", ""))

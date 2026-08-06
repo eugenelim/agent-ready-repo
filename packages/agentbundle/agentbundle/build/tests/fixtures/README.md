@@ -33,6 +33,6 @@ explicitly excludes this directory.
 
 Production-pack migration (a top-level `packs/` directory holding
 this repo's catalogue content) is **out of scope** for this spec
-per the spec's amendment. When that lands (an F-dist follow-on), `make
+in a follow-on that owns production-pack migration. When that lands, `make
 build` will pick up both `packs/` and these fixtures without code
 change — pack discovery is a glob.

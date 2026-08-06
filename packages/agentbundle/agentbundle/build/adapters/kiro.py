@@ -278,8 +278,7 @@ def _project_agent_as_json(
     The mapping table on the contract retains its `rename` / `normalize`
     grammar; what changes from v0.2 is the *emission* — JSON instead
     of frontmatter-with-body markdown — which closes the spec/Kiro-docs
-    drift the "observed-but-not-publicly-documented" drawback
-    flagged.
+    drift flagged as an "observed-but-not-publicly-documented" behaviour.
     """
     target_dir = output_root / rule["target-path"].rstrip("/")
     target_dir.mkdir(parents=True, exist_ok=True)

@@ -5,8 +5,8 @@ v0.4 re-keys state to ``[pack.<name>.adapters.<adapter>]`` so one pack can
 carry multiple adapter rows at one scope. Cross-version handling
 is a **hard refusal**: a v0.4 reader refuses any ``schema-version`` it does
 not recognise — including an absent version and the immediately-prior v0.3 —
-on both read and write (allowlist, not denylist). Migration is greenfield
-No converter, re-install.
+on both read and write (allowlist, not denylist). Migration is greenfield:
+no converter — re-install.
 """
 
 from __future__ import annotations

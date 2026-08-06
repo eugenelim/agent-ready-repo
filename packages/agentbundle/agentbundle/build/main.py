@@ -93,13 +93,13 @@ PLUGIN_MANIFEST_SCHEMA_PATH = _bundled_or_repo("plugin-manifest.schema.json")
 PRIMITIVE_DIRS = ("skills", "agents", "hooks", "hook-wiring", "commands")
 
 # The canonical SessionStart hook command synthesised into each derived
-# plugin.json (claude-plugins route). Shell-exec contract (sub-assertion):
+# plugin.json (claude-plugins route). Shell-exec contract:
 # when CLAUDE_PLUGIN_ROOT is substituted the double-quoted path survives
 # spaces. The trailing `--install-route claude-plugins` flag is required by
 # the writer's argparse (apm-install-route-parity); the build
 # pipeline and the projected command stay coupled at projection time via
 # `make build` so a refreshed writer always ships next to a refreshed
-# command — see the apm-route rollout notes.
+# command — the apm route ships the same writer at a second path.
 _SESSION_START_COMMAND = (
     'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
     ' --install-route claude-plugins'
@@ -115,7 +115,7 @@ _SESSION_START_COMMAND_APM = (
     ' --install-route apm'
 )
 
-# JSON shape emitted into dist/apm/<pack>/.apm/hooks/install-marker.json
+# JSON shape emitted into dist/apm/<pack>/.apm/hooks/install-marker.json.
 # Authored as a Python dict so json.dumps controls indentation.
 _APM_INSTALL_MARKER_HOOK_JSON = {
     "hooks": {

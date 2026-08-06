@@ -52,8 +52,8 @@ class TestUserScopePacksV07(unittest.TestCase):
     def test_user_scope_packs_allowed_adapters(self) -> None:
         """allowed-adapters started as the three-harness set,
         de-staled to current adapter names (the kiro split renamed bare `kiro` →
-        `kiro-ide`), then widened to add `copilot` + `cursor`
-        errata (2026-06-12) and `gemini` by gemini full parity:
+        `kiro-ide`), then widened to add `copilot` + `cursor` by the
+        2026-06-12 errata and `gemini` by gemini full parity:
         all three full-parity adapters declare `.agentbundle/` in
         `allowed-prefixes.user` (the broker's § 4d precondition), so these
         credentialed consumer packs admit them in lockstep with

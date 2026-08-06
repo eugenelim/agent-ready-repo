@@ -123,7 +123,7 @@ class WriteJailedRepoScopeTests(unittest.TestCase):
 
     def test_repo_scope_with_none_prefixes_skips_check(self) -> None:
         """Backward-compat: ``scope="repo"`` with ``allowed_prefixes=None``
-        is the pre-RFC-0012 shape — the per-prefix check is skipped and
+        is the legacy dist-tree shape — the per-prefix check is skipped and
         only the bare jail-under-root applies."""
         from agentbundle import safety
 

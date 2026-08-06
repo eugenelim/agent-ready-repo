@@ -1,6 +1,6 @@
 """Tests for the v0.2 `[scope]` table on the adapter contract.
 
-Verifies AC #14 for the distribution-adapters spec:
+Verifies the adapter scope contract:
   - adapter.schema.json accepts a well-formed [adapter.<name>.scope] block.
   - adapter.schema.json rejects each malformed `allowed-prefixes.user` shape
     enumerated in the spec: ["/"], [""], ["../"], [".."],
@@ -78,10 +78,10 @@ class ClaudeCodeScopeBlockTests(unittest.TestCase):
 
 
 class OtherAdaptersOmitScopeTests(unittest.TestCase):
-    """v0.3 adds a `[scope]` table to Kiro alongside Claude
-    Code's existing one; v0.6 adds one to Codex; v0.7
-    v0.7 adds one to Copilot — every shipped adapter now carries
-    a `[scope]` table at v0.7."""
+    """Contract version history for the `[scope]` table: v0.2 adds the
+    scope dimension, v0.3 adds a table to Kiro alongside Claude Code's,
+    v0.6 adds one to Codex, and v0.7 adds one to Copilot — every shipped
+    adapter now carries a `[scope]` table at v0.7."""
 
     def test_copilot_has_scope_per_rfc_0012(self) -> None:
         contract = _load_contract()

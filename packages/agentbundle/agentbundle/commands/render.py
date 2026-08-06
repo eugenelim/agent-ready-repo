@@ -36,7 +36,7 @@ def run(args) -> int:
         )
         return 1
 
-    # Spec-version gate (AC #14 — uniform refusal across subcommands).
+    # Spec-version gate — uniform refusal across subcommands.
     try:
         gate = check_spec_version_gate(load_pack_toml(pack_path / "pack.toml"))
     except ConfigError as exc:

@@ -233,7 +233,7 @@ def format_drop_message(
 ) -> str:
     """Build the drop warning / info message.
 
-    ``install_warning`` mode composes the three-clause grammar per
+    ``install_warning`` mode composes the three-clause grammar.
     Pinned wording:
       - Primitive-type clause (when ``dropped_counts`` non-empty).
       - Event-level clause (when ``event_drops`` non-empty), prefixed

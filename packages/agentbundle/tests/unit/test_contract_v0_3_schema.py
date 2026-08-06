@@ -1,12 +1,11 @@
 """T1: adapter contract v0.3 schema acceptances and refusals.
 
-Note: the contract version was bumped from "0.3" to "0.4" by T2 (spec
-the claude-plugins install route), then to "0.5" by the apm install
-route. The v0.3 structural tests below remain valid under v0.5 (all
-v0.3 fields are preserved); only the
-version assertion is updated.
+Note: the contract version was bumped from "0.3" to "0.4" by the
+claude-plugins install route, then to "0.5" by the apm install route.
+The v0.3 structural tests below remain valid under v0.5 (all v0.3 fields
+are preserved); only the version assertion is updated.
 
-Covers spec ACs:
+Covers:
   `[adapter.kiro.scope]` with `allowed-prefixes.user = [".kiro/", ".agentbundle/"]`.
   `[adapter.kiro.projections.hook-wiring]` with `mode = "merge-into-agent-json"`,
         `managed-key = "hooks"`, five-event `agent-event-vocabulary`. Legacy
@@ -77,7 +76,7 @@ class ContractVersionTests(unittest.TestCase):
         # dropped-primitives coverage bumped it to v0.8;
         # the kiro adapter split bumped it to v0.9 (this assertion was
         # left stale at "0.8" then — this CI-only root isn't in `make
-        # build-check`, so the drift didn't surface)
+        # build-check`, so the drift didn't surface); copilot full
         # parity bumped it to v0.10; cursor full parity bumped it to
         # v0.11; gemini full parity bumped it to v0.13;
         # the enriched pack manifest bumped it to v0.14;

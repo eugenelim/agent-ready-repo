@@ -1,4 +1,4 @@
-"""Tests for the kiro-cli adapter (T3 —).
+"""Tests for the kiro-cli adapter (T3).
 
 kiro-cli targets the `kiro` terminal binary. It projects agents as
 `.json` with CLI short-name tool tokens (read, grep, glob, write,

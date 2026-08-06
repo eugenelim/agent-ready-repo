@@ -195,7 +195,7 @@ class DryRunCleanTreeTests(unittest.TestCase):
                     contract=self.contract,
                 )
             self.assertNotEqual(exit_code, 0)
-            # AC #10: stderr names the drifted file (per-file drift listing).
+            # stderr names the drifted file (per-file drift listing).
             stderr_text = buf.getvalue()
             self.assertIn(".claude/skills/foo/SKILL.md", stderr_text)
             self.assertIn("drift", stderr_text)
@@ -830,8 +830,72 @@ class ExcludedGlobTests(unittest.TestCase):
         self.assertFalse(_is_excluded(Path("packages/foo/_example/README.md")))
 
 
+class ExclusionIsHonouredOnDiskTests(unittest.TestCase):
+    """`_is_excluded` is a pure predicate; the tests above only pin the
+    glob→regex translation. This one pins the *behaviour* — a real file at
+    an excluded path, in a real git working tree, driven through
+    `run_self_host`.
+
+    Without it, every assertion in `ExcludedGlobTests` still passes if a
+    caller stops consulting the guard, hands it an absolute path, or the
+    pattern list empties — which are the ways an excluded file actually
+    leaks into the projection.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.contract = load_contract(CONTRACT_PATH)
+
+    def test_tracked_file_at_excluded_path_is_not_reported_unclassified(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            _seed_pack(packs_dir, "core")
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            _seed_discovery(working_tree)
+
+            # Two tracked files the projection does not produce. One sits
+            # under `docs/specs/*/notes/**` (excluded); the control does not.
+            excluded = working_tree / "docs" / "specs" / "foo" / "notes" / "x.md"
+            excluded.parent.mkdir(parents=True)
+            excluded.write_text("scratch\n", encoding="utf-8", newline="\n")
+            control = working_tree / "docs" / "specs" / "foo" / "kept.md"
+            control.write_text("kept\n", encoding="utf-8", newline="\n")
+
+            run_self_host(
+                working_tree=working_tree,
+                packs_dir=packs_dir,
+                dry_run=False,
+                force=True,
+                contract=self.contract,
+            )
+            _git_commit_all(working_tree, "seed")
+
+            buf = io.StringIO()
+            with redirect_stderr(buf):
+                run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=True,
+                    force=False,
+                    contract=self.contract,
+                )
+            stderr_text = buf.getvalue()
+
+            # The control proves the enumeration ran and reaches this
+            # directory at all — without it, a silent stderr would pass.
+            self.assertIn("unclassified: docs/specs/foo/kept.md", stderr_text)
+            self.assertNotIn("docs/specs/foo/notes/x.md", stderr_text)
+
+
 class SeedProjectionTests(unittest.TestCase):
-    """Unit tests for `_project_seeds` (spec § Always do)."""
+    """Unit tests for `_project_seeds`."""
 
     def test_basic_seed_projection_copies_to_root(self) -> None:
         from agentbundle.build.self_host import _project_seeds

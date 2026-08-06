@@ -155,8 +155,8 @@ def run(args: argparse.Namespace) -> int:
 def _run_migrate(args: argparse.Namespace) -> int:
     """`init-state --migrate`: report on a state file's schema-version.
 
-    Migration is **greenfield** as of state schema v0.4
-    Decision 8): there is no converter from a legacy version. The prior
+    Migration is **greenfield** as of state schema v0.4: there is no
+    converter from a legacy version. The prior
     header-only rewrite (v0.2/v0.3 → bump the version line, preserve the
     body) is unsafe under v0.4 because the body shape changed —
     ``[pack.<name>]`` became ``[pack.<name>.adapters.<adapter>]`` — so a
@@ -193,7 +193,7 @@ def _run_migrate(args: argparse.Namespace) -> int:
 
     source_version = _peek_schema_version(original_text)
 
-    # Greenfield migration (Decision 8): there is no converter
+    # Greenfield migration: there is no converter
     # from a legacy schema to v0.4. The old header-only rewrite would have
     # relabelled a flat v0.3 ``[pack.<name>]`` body as v0.4 while leaving
     # the body in the v0.3 shape — a file the v0.4 reader would then
@@ -209,8 +209,8 @@ def _run_migrate(args: argparse.Namespace) -> int:
     print(
         f"init-state --migrate: {state_path} is schema-version "
         f"{source_version or 'absent'}, but this agentbundle speaks "
-        f"{config.STATE_SCHEMA_VERSION}. Migration is greenfield "
-        f"D8) — reinstall the pack(s) to regenerate state instead.",
+        f"{config.STATE_SCHEMA_VERSION}. Migration is greenfield — "
+        f"reinstall the pack(s) to regenerate state instead.",
         file=sys.stderr,
     )
     return 1
@@ -240,8 +240,7 @@ def _rewrite_schema_version_line(text: str, new_version: str) -> str:
 
     Touches only the first match (anchored to file start) — every other
     byte is preserved. Trailing newline is preserved. This is the
-    v0.2 → v0.3 (and v0.3 → v0.3 no-op) migration's whole job per
-    State-file impact.
+    v0.2 → v0.3 (and v0.3 → v0.3 no-op) migration's whole job.
     """
     def _sub(m: _re.Match[str]) -> str:
         return f"{m.group(1)}{m.group(2)}{new_version}{m.group(4)}"

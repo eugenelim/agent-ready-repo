@@ -27,10 +27,9 @@ Rails:
     allowed-scopes` cannot carry either the legacy UPPER_SNAKE marker
     form `<adapt:[A-Z_][A-Z0-9_]*>` *or* the canonical lowercase-hyphen
     form `<adapt:[a-z][a-z0-9-]*>` in any file under `.apm/skills/`,
-    `.apm/agents/`, or `.apm/commands/`. Both casings are recognised
-    in the canonical marker syntax
-    (cross-spec widening) so a user-scope pack carrying lowercase-
-    hyphen markers cannot bypass the rail. The rail walks those
+    `.apm/agents/`, or `.apm/commands/`. Both the legacy UPPER_SNAKE form
+    and the canonical lowercase-hyphen form are recognised, so a user-scope
+    pack carrying lowercase-hyphen markers cannot bypass the rail. The rail walks those
     directories in `sorted(os.walk(...))` order so the first-offending-
     path stderr message is deterministic across runs and platforms.
     Non-UTF-8 (binary) files are skipped silently — they cannot contain
@@ -277,8 +276,8 @@ def run_all(
     was populated). Use this helper from the CLI's ``install`` and
     ``validate`` surfaces to keep the message order consistent.
 
-    ``user_scope_hooks`` propagates to Rail B's conditional lift
-    Rails A and C ignore it.
+    ``user_scope_hooks`` propagates to Rail B's conditional lift; Rails A
+    and C ignore it.
     """
     if (result := check_seeds(pack_path, allowed_scopes)) is not None:
         return result
@@ -371,7 +370,7 @@ def check_kiro_event_vocabulary(
     Claude Code's projection does not declare ``agent-event-vocabulary``,
     so a wiring TOML with arbitrary event names projected against
     Claude Code passes ``validate``. The vocabulary refusal is
-    per-adapter, not per-RFC.
+    keyed to the adapter, not to the wiring source.
 
     Arguments:
       pack_name: substituted into the refusal text.
@@ -513,7 +512,7 @@ def check_kiro_wiring(
 # ---------------------------------------------------------------------------
 # T-C2: kiro-ide-hook validate rail.
 #
-# Five refusal paths covering the RFC's "validate rail" subsection
+# Five refusal paths covering the validate rail
 # under § *Kiro IDE event hooks — new `kiro-ide-hook` primitive*:
 #
 #   1. Missing required field (`name`, `version`, `when.type`,
@@ -527,7 +526,7 @@ def check_kiro_wiring(
 #   5. Unresolvable placeholder — well-formed `${hook-body:<name>}`
 #      whose `<name>` is not a same-pack `.apm/hooks/<name>.<ext>`.
 #
-# RFC § Substitution rules clause 1 fences the placeholder scan to
+# Substitution-rule clause 1 fences the placeholder scan to
 # `then.command` only; placeholder-shaped text in `then.prompt`
 # (askAgent), `name`, `description`, `when.patterns`, or any other
 # field passes through verbatim.
@@ -539,7 +538,7 @@ def check_kiro_wiring(
 # ---------------------------------------------------------------------------
 
 
-# Strict placeholder grammar — RFC § Substitution rules clause 4.
+# Strict placeholder grammar — substitution-rule clause 4.
 # Closing brace required; inner name matches `[a-zA-Z0-9_-]+` only,
 # so whitespace, slashes, dots, and `..` are all forbidden by
 # construction.
@@ -708,7 +707,7 @@ def check_kiro_ide_hook(
                 f"ide-action-vocabulary"
             )
 
-        # Checks 4 + 5 — placeholder scan. RFC § Substitution rules
+        # Checks 4 + 5 — placeholder scan. The substitution rules
         # clause 1 fences this to `then.command` only.
         command = then.get("command")
         if isinstance(command, str):

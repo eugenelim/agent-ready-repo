@@ -13,7 +13,7 @@ single source of truth the validate command reads.
 
 from __future__ import annotations
 
-# The default slugs: the original baseline plus `design` (added for
+# The default slugs: the ~16-slug baseline plus `design` (added for
 # the design-craft pack). Soft and extensible by design — unknown
 # slugs warn, never fail — so the list grows without an RFC.
 DEFAULT_CATEGORIES: frozenset[str] = frozenset(

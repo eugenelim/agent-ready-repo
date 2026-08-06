@@ -4,7 +4,7 @@ Covers the user-scope cases plus the repo-scope ones
 (probe asymmetry at repo scope, scope-conditional
 step-1 subcheck, etc.).
 
-The module's filename is preserved at its pre-RFC-0012 name (the
+The module's filename is preserved at its original name (the
 rename of the file itself is gated by *Ask first* in the spec's
 *Boundaries* section); the production function it tests is now
 ``_resolve_target_adapter`` with an explicit ``scope`` kwarg. A

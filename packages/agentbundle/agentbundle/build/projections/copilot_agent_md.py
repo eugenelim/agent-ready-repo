@@ -65,8 +65,8 @@ _KNOWN_TOOLS: frozenset[str] = frozenset(
 # ---------------------------------------------------------------------------
 # Frontmatter split / parse (mirrors copilot.py / codex_agent_toml.py without
 # reaching across module boundaries; the cross-module duplication is the
-# acknowledged sibling-projection convention —
-# parity § Always do).
+# deliberate sibling-projection convention — these modes duplicate rather
+# than depend on each other's privates).
 # ---------------------------------------------------------------------------
 
 

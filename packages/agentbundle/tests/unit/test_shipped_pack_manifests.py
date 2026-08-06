@@ -94,8 +94,8 @@ def test_shim_requires_product_documentation():
 def test_repo_only_packs_declare_install_table(pack_name):
     """Repo-only shipped packs declare the current contract + the
     `[pack.install]` table with `default-scope = "repo"` and
-    `allowed-scopes = ["repo"]`. The scope dimension sets the install-scope
-    dimension; all four repo-only packs are repo-only by content (core
+    `allowed-scopes = ["repo"]`. All four repo-only packs are repo-only by
+    content (core
     ships hooks, addons scaffold project directories). v0.7 bumps
     the four repo-only packs from v0.2 to v0.7 (Drawback #7 mitigation —
     required for the resolver to route them to codex/copilot via the

@@ -1,15 +1,15 @@
 """Tests for adapter.toml + adapter.schema.json (T1b).
 
 Verifies:
-  - adapter.toml validates against adapter.schema.json (AC 1).
+  - adapter.toml validates against adapter.schema.json.
   - Every (5 standard primitives × 8 adapters) = 40 standard pairs present;
     kiro-ide, kiro-cli, cursor, and gemini each add a kiro-ide-hook table
     entry = 44 total.
   - The mode enum in adapter.schema.json contains exactly the seven base modes;
-    unknown modes are rejected (AC 2).
+    unknown modes are rejected.
   - Every projection entry carries an on-conflict value from the legal set,
     matching the per-mode default — except for degraded-info-log and dropped
-    which are no-write/no-output and carry no on-conflict (AC 2).
+    which are no-write/no-output and carry no on-conflict.
   - hook-wiring primitive's source-path is .apm/hook-wiring/.
   - command primitive's source-path is .apm/commands/; Claude Code projects
     direct-file; Copilot/Codex/Kiro-family are dropped.
@@ -84,7 +84,7 @@ def _load_schema() -> dict:
 
 
 class ContractSchemaValidationTests(unittest.TestCase):
-    """adapter.toml must validate against adapter.schema.json (AC 1)."""
+    """adapter.toml must validate against adapter.schema.json."""
 
     def test_contract_validates_against_schema(self) -> None:
         from agentbundle.build.validate import validate
@@ -441,9 +441,9 @@ class FrontmatterTableTests(unittest.TestCase):
 class ContractV05Tests(unittest.TestCase):
     """T2 (apm-install-route-parity): contract-version assertion.
 
-    Originally pinned v0.5; bumped to v0.6, v0.7 by
-    the credential-broker contract, v0.8 by dropped-primitives
-    coverage. Class name preserved to avoid
+    Originally pinned v0.5; bumped to v0.6 by the codex user-scope table,
+    to v0.7 by per-adapter projection and the credential-broker contract,
+    and to v0.8 by dropped-primitives coverage. Class name preserved to avoid
     needless diff churn against the next bump.
     """
 

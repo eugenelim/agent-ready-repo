@@ -1,7 +1,7 @@
 """Per-pack scoping for ``safety.scan_for_pack_artifacts``.
 
 The pre-2026-05-26 helper was adapter-prefix scoped — it walked every
-file under each ``<root>/<prefix>/`` and returned them all. The
+file under each ``<root>/<prefix>/`` and returned them all.
 The orphan-recovery trigger consumed this list, which produced a
 **cross-pack false positive**: pack A's orphan files would surface
 when installing pack B, with the trigger's stderr line claiming "for pack

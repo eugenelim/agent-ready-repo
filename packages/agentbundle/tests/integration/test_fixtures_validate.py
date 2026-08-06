@@ -11,9 +11,8 @@ gate); its fixture ships here for use by that task. T3 covers the
 two refusal classes the T2 rail already implements:
 attach-to-agent missing, and attach-to-agent naming an unknown agent.
 
-Covered: the refusal text, fixtures exist + are
-exercised, and no test writes to ~/.claude, ~/.kiro, ~/.agentbundle
-outside tmp_path).
+Covered: the refusal text; fixtures exist and are exercised; and no test
+writes to ~/.claude, ~/.kiro, or ~/.agentbundle outside tmp_path.
 
 **T2 update (incompatible-hook-event-drop spec):** The
 ``test_missing_attach_to_agent_refused`` and

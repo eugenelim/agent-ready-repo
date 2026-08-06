@@ -784,8 +784,9 @@ def grade_behavior(
     workspaces: dict,
     repo_root: pathlib.Path | None = None,
 ) -> dict:
-    """Grade the **lightweight behavior/output check** (Phase 3
-    Errata E3). For each eval in a covered skill's `evals/evals.json`, the driver
+    """Grade the **lightweight behavior/output check** (Phase 3).
+
+    For each eval in a covered skill's `evals/evals.json`, the driver
     has run the skill in a per-eval working dir; this grades **without running
     anything**:
 
