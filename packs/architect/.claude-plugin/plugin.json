@@ -1,5 +1,5 @@
 {
   "name": "architect",
-  "version": "0.14.2",
+  "version": "0.14.3",
   "description": "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration."
 }

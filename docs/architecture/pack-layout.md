@@ -55,6 +55,28 @@ The normative rules — tests vs. evals, fixture hygiene, dependency separation 
 are in [`catalogue-authoring-standards.md` § 4](../../guides/_shared/reference/catalogue-authoring-standards.md#4-pack-layout),
 which ships to adopters. This section describes only what the shape is.
 
+**Every pack now follows it, and a lint says so.** `tools/lint-pack-test-boundary.py`
+fails when test content appears under any pack's `.apm/`, and — separately and
+positively — when it appears in a projected skill. The second half exists because
+inferring "no tests are installed" from "the installer ignores those paths" is
+the reasoning that let the violation persist for as long as it did: an adapter
+that copied `.apm/**` wholesale would break the inference without breaking a
+test. `tools/test-lint-pack-test-boundary.py` is its self-test, falsified in both
+directions. Both run in the `docs` workflow.
+
+The lint lives in `tools/` rather than in a pack's test tree because behaviour
+that reads every pack belongs to no pack — the rule § 4 states under
+*Repository-root tests*. It is not in the engine's suite either: it reads the
+repository's projected tree and its runner call sites, neither of which is
+`agentbundle`'s to know about.
+
+**One pytest process per skill test directory.** Two skills may each ship a
+`render.py` and a `test_render.py`; collected into one run, pytest refuses the
+duplicate basenames, and a `sys.path`-based sibling import would bind one module
+for both. `tools/lint-pack-test-boundary.py` checks the runner call sites for
+this, not the tree — overlapping basenames *across* directories are the expected
+end state.
+
 Every pack ships `pack.toml` (schema-enforced) and a hand-authored
 `.claude-plugin/plugin.json` (build-convention-required — the bundler
 reads it directly). Beyond that, two orthogonal axes shape the

@@ -1,8 +1,8 @@
 {
   "files": {
-    "guides/_shared/reference/catalogue-authoring-standards.md": "0d278062872d62d059e322bae9e5af9f573d79bc93ff24ca18fb750705da5cc6",
+    "guides/_shared/reference/catalogue-authoring-standards.md": "537ae62cac7ef6f641c6b6e8dc9a5d4f31384e419ce03ec136cc2743a7a8572b",
     "guides/_shared/reference/catalogue-ci-contract.md": "fae793ab47989b6dd3c731afcb0b4cda21c7d08bbe7fa40fca6d3abb3d158141",
-    "packs/AGENTS.md": "7b534acfdaab757079ca678d9290c2257267d7f4e0b4b3c3401d9da22cb4be0b",
+    "packs/AGENTS.md": "861a029007741cd7645cdfcc018e5ac85cf218d332f6688115156c9c676381b8",
     "packs/README.md": "d2de5f9556f4c8e521103474bde74636e02cc805f9bf5312a3a61a1f3eb45d8f",
     "packs/_example/.apm/skills/example-skill/SKILL.md": "33be8cbf4b2c014a5a63e788b7d0b350ad8061c6c4b2579369a3e984135bf9f1",
     "packs/_example/.apm/skills/example-skill/evals/eval_queries.json": "f41ecda0834a22f3b4823c81ab02e58b0e4beba610e3b40c185579abff9cfeee",

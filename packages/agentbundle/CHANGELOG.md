@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.29.5] - 2026-08-06
+
+### Changed
+
+- `catalogue self-host --windows` runs the atlassian SSO suites from the packs'
+  test trees rather than the skills' `scripts/` directories, and probes
+  `credbroker` and `httpx` before doing so. Both suites `importorskip` at module
+  scope and the step runner judges by return code alone, so without the probe a
+  machine missing either dependency skipped both suites and reported pass.
+- Three suites whose subject was pack content left the package's own test tree
+  for the owning pack: the desk-research retriever-conformance and
+  project-start elicitation checks, and the credential-setup skill-body check.
+  A pack edit could otherwise turn the published package's suite red. Engine
+  tests that use a pack as fixture data are unaffected — the distinction is
+  subject, not mention.
+
+No flag, verb, exit code, schema, or output changed.
+
 ## [Unreleased]
 
 ## [0.29.4] — 2026-08-06

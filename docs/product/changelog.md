@@ -15,6 +15,125 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [agentbundle][0.29.5] — 2026-08-06
+
+### Changed
+
+- **`catalogue self-host --windows` can no longer report a pass it did not
+  earn.** It runs the atlassian SSO suites from the packs' test trees now, and
+  probes `credbroker` and `httpx` first. Both suites skip themselves at import
+  when those are missing, and the step runner judges by exit code alone — so on
+  a machine without them, both suites skipped silently and the step went green.
+- Three suites whose subject was pack content moved out of the package's test
+  tree to the packs that own them. A pack edit could otherwise turn the
+  published package's suite red. No flag, verb, exit code, schema, or output
+  changed.
+
+## [architect][0.14.3] — 2026-08-06
+
+### Changed
+
+- **Tests no longer ship into your skills tree.** Projection adapters copy
+  `.apm/skills/<skill>/` wholesale, so every test file this pack kept under
+  `.apm/` was being written into your tree on install. They now live at
+  `packs/<pack>/tests/`, which is never projected. Nothing you invoke changed —
+  no skill, script, command, hook, reference or eval was removed, renamed, or
+  edited. If you have an older install, the stale `test_*.py` files under your
+  installed skills are safe to delete.
+
+  For `architect-diagram` this also removes `scripts/` entirely — it held
+  nothing but the fixture suite and its `.mmd` corpus.
+
+## [atlassian][0.7.1] — 2026-08-06
+
+### Changed
+
+- **Tests no longer ship into your skills tree.** Projection adapters copy
+  `.apm/skills/<skill>/` wholesale, so every test file this pack kept under
+  `.apm/` was being written into your tree on install. They now live at
+  `packs/<pack>/tests/`, which is never projected. Nothing you invoke changed —
+  no skill, script, command, hook, reference or eval was removed, renamed, or
+  edited. If you have an older install, the stale `test_*.py` files under your
+  installed skills are safe to delete.
+
+## [catalogue-curation][0.2.3] — 2026-08-06
+
+### Changed
+
+- **Tests no longer ship into your skills tree.** Projection adapters copy
+  `.apm/skills/<skill>/` wholesale, so every test file this pack kept under
+  `.apm/` was being written into your tree on install. They now live at
+  `packs/<pack>/tests/`, which is never projected. Nothing you invoke changed —
+  no skill, script, command, hook, reference or eval was removed, renamed, or
+  edited. If you have an older install, the stale `test_*.py` files under your
+  installed skills are safe to delete.
+
+## [converters][0.9.4] — 2026-08-06
+
+### Changed
+
+- **Tests no longer ship into your skills tree.** Projection adapters copy
+  `.apm/skills/<skill>/` wholesale, so every test file this pack kept under
+  `.apm/` was being written into your tree on install. They now live at
+  `packs/<pack>/tests/`, which is never projected. Nothing you invoke changed —
+  no skill, script, command, hook, reference or eval was removed, renamed, or
+  edited. If you have an older install, the stale `test_*.py` files under your
+  installed skills are safe to delete.
+
+  `msg-to-markdown`'s `## Scripts` list drops its test-material bullet, since
+  those files are no longer in the skill.
+
+## [credential-brokers][0.2.3] — 2026-08-06
+
+### Changed
+
+- **Tests no longer ship into your skills tree.** Projection adapters copy
+  `.apm/skills/<skill>/` wholesale, so every test file this pack kept under
+  `.apm/` was being written into your tree on install. They now live at
+  `packs/<pack>/tests/`, which is never projected. Nothing you invoke changed —
+  no skill, script, command, hook, reference or eval was removed, renamed, or
+  edited. If you have an older install, the stale `test_*.py` files under your
+  installed skills are safe to delete.
+
+## [desk-research][1.1.4] — 2026-08-06
+
+### Changed
+
+- **Tests no longer ship into your skills tree.** Projection adapters copy
+  `.apm/skills/<skill>/` wholesale, so every test file this pack kept under
+  `.apm/` was being written into your tree on install. They now live at
+  `packs/<pack>/tests/`, which is never projected. Nothing you invoke changed —
+  no skill, script, command, hook, reference or eval was removed, renamed, or
+  edited. If you have an older install, the stale `test_*.py` files under your
+  installed skills are safe to delete.
+
+  The `desk-research` skill body no longer cites a repository path for its
+  closed cue tuples — that path did not exist in your tree.
+
+## [figma][0.2.3] — 2026-08-06
+
+### Changed
+
+- **Tests no longer ship into your skills tree.** Projection adapters copy
+  `.apm/skills/<skill>/` wholesale, so every test file this pack kept under
+  `.apm/` was being written into your tree on install. They now live at
+  `packs/<pack>/tests/`, which is never projected. Nothing you invoke changed —
+  no skill, script, command, hook, reference or eval was removed, renamed, or
+  edited. If you have an older install, the stale `test_*.py` files under your
+  installed skills are safe to delete.
+
+## [governance-extras][0.9.6] — 2026-08-06
+
+### Changed
+
+- **Tests no longer ship into your skills tree.** Projection adapters copy
+  `.apm/skills/<skill>/` wholesale, so every test file this pack kept under
+  `.apm/` was being written into your tree on install. They now live at
+  `packs/<pack>/tests/`, which is never projected. Nothing you invoke changed —
+  no skill, script, command, hook, reference or eval was removed, renamed, or
+  edited. If you have an older install, the stale `test_*.py` files under your
+  installed skills are safe to delete.
+
 ## [agentbundle][0.29.4] — 2026-08-06
 
 ### Changed

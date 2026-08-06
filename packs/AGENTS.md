@@ -6,8 +6,9 @@ Read `packs/AGENTS.local.md` when present — it carries host-specific overrides
 ## Pack layout
 
 The pack is the ownership and test-execution boundary; `.apm/` is the runtime export boundary; a skill is the
-evaluation-fixture boundary. Tests go in `packs/<pack>/tests/`, never under `.apm/`. Evals stay skill-local at
-`.apm/skills/<skill>/evals/` and project with the skill.
+evaluation-fixture boundary. Tests go in `packs/<pack>/tests/`, never under `.apm/`; evals stay skill-local at
+`.apm/skills/<skill>/evals/` and project with the skill. `tools/lint-pack-test-boundary.py` enforces both across
+every pack, plus one pytest process per skill test dir. Shape: `docs/architecture/pack-layout.md`.
 
 | Path | Purpose |
 |------|---------|
