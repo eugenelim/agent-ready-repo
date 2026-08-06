@@ -19,7 +19,12 @@ from pathlib import Path
 import pytest
 
 HERE = Path(__file__).resolve().parent
-TESTDATA = HERE / "testdata"
+TESTDATA = HERE / "testdata"          # moved with this suite (ADR-0071)
+SKILL = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "architect-diagram"
+if not SKILL.is_dir() or not TESTDATA.is_dir():
+    # A wrong parents[] depth would otherwise degrade to one skipped
+    # `no-fixtures` param and exit 0 — a silent pass, not a red suite.
+    raise SystemExit(f"expected {SKILL} and {TESTDATA} to exist")
 
 _MMDC = shutil.which("mmdc")
 

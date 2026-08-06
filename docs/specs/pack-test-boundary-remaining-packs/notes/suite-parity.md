@@ -34,6 +34,28 @@ record `collected / passed`; the standalone harnesses — those carrying an
 | `converters/render-proof/pipeline.test.js` | node | exit 0 | exit 0 |
 | `converters/render-proof/renderer.test.js` | node | exit 0 | exit 0 |
 | `converters/render-proof/security.test.js` | node | exit 0 | exit 0 |
+| `atlassian/confluence-crawler` (5 files) | pytest | 45 passed | 45 passed |
+| `atlassian/confluence-crawler/test_exit_codes.py` | script | exit 0, 9 checks | exit 0, 9 checks |
+| `atlassian/confluence-publisher/test_exit_codes.py` | pytest | 9 passed | 9 passed |
+| `atlassian/confluence-publisher/test_exit_codes.py` | script | exit 0, 9 checks | exit 0, 9 checks |
+| `atlassian/jira` (5 files) | pytest | 48 passed | 48 passed |
+| `atlassian/jira/test_exit_codes.py` | script | exit 0, 9 checks | exit 0, 9 checks |
+| `atlassian/jira-align/test_exit_codes.py` | pytest | 9 passed | 9 passed |
+| `atlassian/jira-align/test_exit_codes.py` | script | exit 0, 9 checks | exit 0, 9 checks |
+| `atlassian/jira-team-status/test_contract.py` | pytest | 51 passed | 51 passed |
+| `catalogue-curation/assimilate-primitive` (4 files) | pytest | 30 passed | 30 passed |
+| `catalogue-curation/assimilate-repo/test_ledger.py` | pytest | 7 passed | 7 passed |
+| `figma/figma/test_exit_codes.py` | pytest | 9 passed | 9 passed |
+| `figma/figma/test_exit_codes.py` | script | exit 0, 9 checks | exit 0, 9 checks |
+| `credential-brokers/credential-setup/test_setup.py` | pytest | 9 passed | 9 passed |
+| `architect/architect-diagram/test_fixtures.py` | pytest | 16 passed | 16 passed |
+| `governance-extras/new-adr/test_next_ordinal.py` | script | exit 0 | exit 0 |
+| `governance-extras/new-rfc/test_next_ordinal.py` | script | exit 0 | exit 0 |
+
+`new-adr` / `new-rfc`'s `test_next_ordinal.py` define no `test_*` functions, so
+pytest collects nothing and exits 5 both before and after; they are harnesses
+only. The `test_exit_codes.py` files are both — nine `test_*` functions *and* an
+`if __name__ == "__main__":` harness — so each is measured twice.
 
 ## 2 — Runner coverage (AC6c)
 
@@ -55,6 +77,24 @@ Permitted values: one or more runner names, `none (pre-existing)`, or
 | `packs/converters/tests/skills/markdown-to-xlsx/` | `build-check.yml` "pytest markdown-to-xlsx renderer" |
 | `packs/converters/tests/skills/msg-to-markdown/` | `build-check.yml` "pytest msg-to-markdown extraction" |
 | `packs/converters/tests/skills/render-proof/` | none (pre-existing) — no workflow has ever run these; enabling them needs an `npm install` step and a lockfile, which is a scope decision, not a repoint |
+| `packs/atlassian/tests/skills/jira/` | `build-check.yml` "pytest jira SSO suites" (probed: `credbroker, httpx`) · `self_host_windows.py` "jira SSO suites" (probed) — names 3 of its 5 suites |
+| ↳ `test_auth_selector.py` | none (pre-existing) — self-skips on `credbroker` |
+| ↳ `test_exit_codes.py` | none (pre-existing) |
+| `packs/atlassian/tests/skills/confluence-crawler/` | `build-check.yml` "pytest confluence-crawler SSO suites" (probed) · `self_host_windows.py` "confluence-crawler SSO suites" (probed) — names 3 of its 5 suites |
+| ↳ `test_auth_selector.py` | none (pre-existing) — self-skips on `credbroker` |
+| ↳ `test_exit_codes.py` | none (pre-existing) |
+| `packs/atlassian/tests/skills/confluence-publisher/` | none (pre-existing) |
+| `packs/atlassian/tests/skills/jira-align/` | none (pre-existing) |
+| `packs/atlassian/tests/skills/jira-team-status/` | `tools/check-atlassian-phase3-readiness.py` `atlassian-deterministic-tests` (not a CI workflow — operator-invoked) |
+| `packs/catalogue-curation/tests/skills/assimilate-primitive/` | `build-check.yml` "catalogue-curation skill-script tests" (floor: 30 collected) |
+| `packs/catalogue-curation/tests/skills/assimilate-repo/` | `build-check.yml` "catalogue-curation skill-script tests" (floor: 7 collected) |
+| `packs/credential-brokers/tests/skills/credential-setup/` | `build-check.yml` "pytest credential-setup skill" (probed: `credbroker, cryptography, argon2`) — names both its suites |
+| `packs/figma/tests/skills/figma/` | none (pre-existing) |
+| `packs/architect/tests/skills/architect-diagram/` | none (pre-existing) — needs `mmdc` |
+| `packs/governance-extras/tests/skills/new-adr/` | none (pre-existing) |
+| `packs/governance-extras/tests/skills/new-rfc/` | none (pre-existing) |
+| `packs/desk-research/tests/skills/desk-research/` | *(T5)* |
+| `packs/desk-research/tests/skills/desk-research-project-start/` | *(T5)* |
 
 ## 3 — Fixture review (AC5a)
 

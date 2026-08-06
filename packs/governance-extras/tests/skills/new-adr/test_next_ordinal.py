@@ -14,7 +14,10 @@ import tempfile
 # bundler's self-host check treats any *.pyc as drift.
 sys.dont_write_bytecode = True
 
-HERE = pathlib.Path(__file__).resolve().parent
+HERE = pathlib.Path(__file__).resolve().parents[3] / ".apm" / "skills" \
+    / "new-adr" / "scripts"
+if not HERE.is_dir():                     # wrong parents[] depth after a move
+    raise SystemExit(f"skill scripts dir not found at {HERE}")
 
 # next-ordinal.py is hyphenated, so we load it by path rather than by
 # import statement (Python's import grammar doesn't accept hyphens).

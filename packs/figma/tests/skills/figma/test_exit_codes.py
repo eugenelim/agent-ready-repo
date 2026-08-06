@@ -17,7 +17,10 @@ import pathlib
 import subprocess
 import sys
 
-HERE = pathlib.Path(__file__).resolve().parent
+HERE = pathlib.Path(__file__).resolve().parents[3] / ".apm" / "skills" \
+    / "figma" / "scripts"
+if not HERE.is_dir():                     # wrong parents[] depth after a move
+    raise SystemExit(f"skill scripts dir not found at {HERE}")
 CLI = HERE / "figma.py"
 SRC = CLI.read_text(encoding="utf-8")
 

@@ -231,8 +231,16 @@ jobs:
       # explicitly or it never gates. Placed after the credbroker[crypto]
       # install above so the in-process import + crypto-extra cases resolve.
       - name: pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)
-        working-directory: packs/credential-brokers/.apm/skills/credential-setup/scripts
-        run: python -m pytest test_setup.py
+        working-directory: packs/credential-brokers/tests/skills/credential-setup
+        # `requires_crypto` gates on find_spec("cryptography") and ("argon2"), so a
+        # missing extra skips the no-token-to-stdout and reserved-namespace cases
+        # while the step still exits 0. Probe them. Deliberately NOT httpx: this
+        # suite never imports it and CI installs it below this step.
+        # test_credential_setup_skill.py is named explicitly — it moved here from
+        # the engine's tree, where it gated only by residence.
+        run: |
+          python -c "import credbroker, cryptography, argon2"
+          python -m pytest test_setup.py test_credential_setup_skill.py
 
       # atlassian-sso-cookie (RFC-0035): the jira + confluence-crawler cookie-path
       # security suites (mock-transport — cookie confinement, no-Authorization,
@@ -495,18 +503,34 @@ jobs:
       - name: catalogue-curation skill-script tests (RFC-0059 security ACs)
         # The deterministic helpers behind the catalogue-curation skills:
         # SSRF allowlist + write-jail (assimilate-primitive), the resumable
-        # ledger (assimilate-repo). Pure-stdlib pytest; run from each scripts/
-        # dir so the local modules import (agentbundle is on the path for
-        # write_jail). PYTHONDONTWRITEBYTECODE + -p no:cacheprovider so pytest
-        # leaves no __pycache__ in the pack source — otherwise the self-host
-        # drift gate would flag the projected .pyc (a known gotcha).
+        # ledger (assimilate-repo). Pure-stdlib pytest; run from each test dir so
+        # the conftest puts the skill's scripts/ on sys.path (agentbundle is on
+        # the path for write_jail).
+        #
+        # These invocations are directory-scoped with no filenames, so a suite
+        # that fails to land reduces the collected count and the step still exits
+        # 0 — assert a floor. PYTHONDONTWRITEBYTECODE + -p no:cacheprovider are
+        # retained with a new reason: the tests no longer sit under .apm/, so the
+        # self-host drift gate is no longer what they protect. `package.py` walks
+        # `packs/**` with no deny-list, so __pycache__ under packs/*/tests/ would
+        # be collected into the catalogue archive (see the
+        # `package-archive-carries-pycache` backlog entry).
         # export-catalogue removed in 0.2.0 (superseded by agentbundle catalogue
         # init --preset self-hosted).
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
-          (cd packs/catalogue-curation/.apm/skills/assimilate-primitive/scripts && python -m pytest -q -p no:cacheprovider)
-          (cd packs/catalogue-curation/.apm/skills/assimilate-repo/scripts && python -m pytest -q -p no:cacheprovider)
+          run_with_floor() {
+            dir=$1; floor=$2
+            n=$(cd "$dir" && python -m pytest -q -p no:cacheprovider --collect-only | grep -c '::')
+            if [ "$n" -lt "$floor" ]; then
+              echo "::error::$dir collected $n tests, expected at least $floor — did a suite fail to land?"
+              exit 1
+            fi
+            (cd "$dir" && python -m pytest -q -p no:cacheprovider)
+          }
+          run_with_floor packs/catalogue-curation/tests/skills/assimilate-primitive 30
+          run_with_floor packs/catalogue-curation/tests/skills/assimilate-repo 7
 
       - name: experience framework-agnosticism lint + self-test (design-craft-pack AC8)
         # RFC-0033: the experience pack (renamed from design-craft, ADR-0038)

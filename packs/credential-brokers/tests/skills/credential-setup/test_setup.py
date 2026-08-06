@@ -17,8 +17,7 @@ import sys
 
 import pytest
 
-sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-import setup  # noqa: E402
+import setup  # noqa: E402  (conftest.py puts the skill's scripts/ on sys.path)
 from credbroker import _core  # noqa: E402
 
 _HAS_CRYPTO = (
