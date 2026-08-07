@@ -34,12 +34,12 @@ design note asserting the opposite intent. ADR-0072 records it as the writer
 missed last time; the predecessor plan missed it again. It is listed first in
 every task that touches marketplace output for that reason.
 
-**The site.** `web/src/content/packs/*.md` are 21 hand-authored frontmatter
-files with no generator — `tools/build-site.py` feeds `docs-site/`, not `web/`.
+**The site.** `web/src/content/packs/*.md` are hand-authored frontmatter files,
+one per pack, with no generator — `tools/build-site.py` feeds `docs-site/`, not `web/`.
 So the user-capability field is another hand-copied value, and the only thing
 that keeps it honest is a test reading `pack.toml` and comparing. That test has
-to run somewhere `make ci` reaches, because `web/`'s own test script is wired
-into no workflow.
+to hang off `make build-check`: `web/`'s own test script is in no workflow,
+`make ci` is invoked by none, and Gate A path-ignores `web/**`.
 
 ## Constraints
 
@@ -90,11 +90,13 @@ rely on defaults.
 
 **Tests:** `stub: pending` (materialise before EXECUTE) — a test reading each `packs/<slug>/pack.toml` and
 asserting `web/src/content/packs/<slug>.md`'s user-capability field equals
-`"user" in allowed-scopes`. Written under `packages/agentbundle/tests/` so
-`make ci` runs it, since `npm run test --prefix web` is in no workflow.
+`"user" in allowed-scopes`, plus the built-output assertion. Reachable from
+`make build-check` — the only required, path-unfiltered gate. Not `make ci`
+(no workflow invokes it) and not Gate A (`paths-ignore: 'web/**'` skips exactly
+the edit this guards).
 
-**Approach:** add the field to `web/src/content.config.ts` and the 21 markdown
-files; gate `[pack].astro` and `catalogue/index.astro` on it, **not** on `scope`
+**Approach:** add the field to `web/src/content.config.ts` (required, no
+default, so the Astro build fails on omission) and each pack's markdown file; gate `[pack].astro` and `catalogue/index.astro` on it, **not** on `scope`
 (which is `default-scope` and would hide `product-documentation`).
 
 ### T3 — Prose docs

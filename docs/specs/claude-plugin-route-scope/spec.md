@@ -109,12 +109,8 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
   stale dist directory carrying the *old* declaration — which would resolve
   user-capable and publish contrary to the pack's current intent. A
   `dist/claude-plugins/<name>/` with no corresponding source pack is itself a
-  fail-loud error.
-
-  Original text: `publish_claude_plugins.py`
-  exits non-zero naming the pack if a repo-only pack is present in `dist/`,
-  rather than skipping it silently. Nothing clears `dist/` before a build, so a
-  stale directory must be caught, not republished.
+  fail-loud error. `publish_claude_plugins.py` exits non-zero naming the pack
+  if a repo-only pack is present in `dist/`, rather than skipping it silently.
 
 - [ ] **AC6 — The site gates on user-capability, computed not copied.**
   `web/src/content/packs/*.md` are hand-authored with no generator, and their
@@ -122,7 +118,7 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
   hide `product-documentation` (`default-scope = "repo"`,
   `allowed-scopes = ["repo","user"]`), which AC1 publishes. A user-capability
   field is added and **a test reads each `packs/<slug>/pack.toml` and asserts the
-  corresponding `web/` frontmatter matches**, so 21 hand-copied values cannot
+  corresponding `web/` frontmatter matches**, so the per-pack copies cannot
   drift. `[pack].astro` and `catalogue/index.astro` gate the plugin-install
   command on it. Separately from the consistency test, **a built-output
   assertion**: a repo-only pack's rendered page emits no
