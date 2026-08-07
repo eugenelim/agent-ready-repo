@@ -221,6 +221,12 @@ def load_layout(root: Path) -> dict:
         return {}
     for cfg in (root / "agentbundle-layout.toml",
                 Path.home() / ".agentbundle" / "agentbundle-layout.toml"):
+        # Confine the root-relative candidate only: a symlink planted at
+        # `<root>/agentbundle-layout.toml` in an untrusted tree would otherwise
+        # be followed. The user-scope candidate is deliberately outside `root`
+        # and is operator-owned, so it is exempt by design, not by oversight.
+        if cfg.parent == root and not _within(cfg, root):
+            continue
         text = _read(cfg)  # stat-size-guarded; None if absent/oversized/unreadable
         if text is None:
             continue
@@ -257,7 +263,12 @@ def resolve_base(layer: str, root: Path, layout: dict) -> tuple[Path | None, str
     # Tier 3: discover by marker. Only reached when the default is absent — the
     # common case is "this layer is simply unpopulated", so a miss is not an
     # error. A bounded search keeps it from walking vendored trees.
-    candidates = _discover_layer_dirs(root, layer)
+    # `_confined` completes the control here: on Windows `os.path.islink()` is
+    # False for NTFS junctions, so `_iter_dirs`' `followlinks=False` does not
+    # stop `os.walk` descending one, and a discovered candidate can resolve
+    # outside `root`. Every downstream read is `_confined` already, so this is
+    # the one asymmetry rather than an exploit path — closed for consistency.
+    candidates = _confined(_discover_layer_dirs(root, layer), root)
     if not candidates:
         return None, None
     if len(candidates) > 1:

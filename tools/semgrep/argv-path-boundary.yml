@@ -31,6 +31,20 @@
 # `tools packs packages` yields 73 findings — nearly every Python CLI in the
 # repo does `Path(args.x)`, so a repo-wide blocking rule is untenable.
 #
+# KNOWN LIMITATIONS — do not over-trust this rule
+# ----------------------------------------------
+# It guards the CONVERSION site (`args.x` becoming a Path), so two shapes slip
+# past it, both verified:
+#   * An intermediate binding. `raw = args.root` then `raw.resolve()` yields 0
+#     findings — the match needs the attribute access and the call adjacent.
+#   * Argv handed to a helper. `_validated_root(args.root)` is an argument, not
+#     a conversion, so a helper that validates NOTHING is indistinguishable
+#     from one that validates correctly. That is why the behavioural test
+#     (packs/core/tests/skills/work-loop/test-root-validation.py, wired into
+#     docs.yml) is the real guard and this rule is only the tripwire.
+# Treat a green result here as "the obvious regression did not happen", never
+# as "the boundary is validated".
+#
 # EXPANSION CONDITION: add a path here as its script adopts a boundary
 # validator (`_validated_root` / `_resolved_report` or equivalent). Do not add
 # a path before the fix lands, or the gate goes red on unrelated work. The
@@ -80,15 +94,14 @@ rules:
       # negative fixture firing; the deep form silences it while the positive
       # fixture still fires.
       - pattern-not-inside: |
-          def $F(...):
-            ...
-            <... $P.is_relative_to(...) ...>
-            ...
-      # The validators themselves legitimately contain the raw conversion;
-      # firing inside them would make the fix unimplementable.
-      - pattern-not-inside: |
-          def _validated_root(...):
-            ...
-      - pattern-not-inside: |
-          def _resolved_report(...):
-            ...
+          $P = Path($ARGS.$FIELD).resolve()
+          ...
+          <... $Q.is_relative_to($P) ...>
+      # NOTE: there is deliberately no `def _validated_root(...)` /
+      # `def _resolved_report(...)` exemption. Name-based exemptions certify a
+      # function's NAME, not that it validates anything — verified that
+      # `def _validated_root(c): return Path(c)`, with no check at all, scanned
+      # to zero findings under the old form. They are also unnecessary: both
+      # helpers take a plain parameter, so their bodies read `Path(candidate)`
+      # rather than `Path(args.x)`, and `$ARGS.$FIELD` requires an attribute
+      # access. The rule cannot fire inside them regardless.

@@ -33,7 +33,7 @@ pin the content of the four in-scope files.
 ### T1 — Red tests for the validator contract
 **Depends on:** none
 **Mode:** TDD
-**Tests:** new `packs/core/tests/skills/work-loop/test_root_validation.py`:
+**Tests:** new `packs/core/tests/skills/work-loop/test-root-validation.py` (hyphens — matches the sibling convention; note pytest's default `test_*.py` will NOT collect it, so it needs an explicit runner):
 - `test_nonexistent_root_exits_nonzero_with_diagnostic` — asserts exit != 0 and the path appears in stderr (AC6)
 - `test_file_valued_root_exits_nonzero` — `--root` pointing at a file, not a dir (AC6)
 - `test_valid_root_unchanged` / `test_omitted_root_unchanged` / `test_relative_root_unchanged` — exit code + stdout parity vs. current behaviour (AC5)
@@ -81,8 +81,8 @@ committed fixtures and asserts 1 finding on the positive, 0 on the negative.
 (not `mode: taint` — proven unable to cross a call). Must not fire on the
 `resolve()`-then-`is_relative_to()` guard shape, or it false-positives on
 `check-spec-status.py:72`. Scope via `paths.include` to the three fixed
-scripts; record in a rule comment that a repo-wide scope is 73 findings and
-name the expansion condition.
+scripts; record the repo-wide finding count and the expansion condition in the rule
+header — one location, since it drifts as the ratchet expands.
 **Traces to:** AC7, AC8
 
 ### T6 — Version bump, projections, changelog, backlog

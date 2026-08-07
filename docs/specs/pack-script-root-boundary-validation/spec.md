@@ -184,7 +184,7 @@ The validator normalises and asserts directory-ness; it does not restrict
 - [x] **AC5** — CLI behaviour is unchanged for every valid input: same exit codes, same stdout, for a valid `--root`, an omitted `--root`, and a relative `--root`.
 - [x] **AC6** — An invalid `--root` (nonexistent path, or a file rather than a directory) exits non-zero with a diagnostic naming the offending path, rather than raising a traceback.
 - [x] **AC7** — A new Semgrep rule `tools/semgrep/argv-path-boundary.yml` fires on the pre-fix form and is silent on the post-fix form, proven by committed positive **and** negative fixtures.
-- [x] **AC8** — That rule is scoped (`paths.include`) to the fixed scripts only — a ratchet, not a repo-wide sweep — with the 73-site figure and the expansion condition recorded in a rule comment.
+- [x] **AC8** — That rule is scoped (`paths.include`) to the fixed scripts only — a ratchet, not a repo-wide sweep — with the repo-wide finding count and the expansion condition recorded in the rule header. The number lives in `tools/semgrep/argv-path-boundary.yml` alone; it drifts as the ratchet expands, so nothing else restates it.
 - [x] **AC9** — `make sast` passes with the new rule loaded; no new findings in the existing gate.
 - [x] **AC10** — Full existing test suite for `packs/core` work-loop scripts passes unchanged.
 - [x] **AC11** — `packs/core` version bumped in all three required files (`pack.toml`, `plugin.json`, `marketplace.json`); projections re-synced via `make build-self`.

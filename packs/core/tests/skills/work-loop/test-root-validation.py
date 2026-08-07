@@ -147,10 +147,10 @@ def test_missing_report_classifies_invalid_not_crash() -> None:
             fail(name, f"could not initialise a cohort fixture (rc={rc} err={err!r})")
             return
 
-        missing = Path(td) / "no-such-report.md"
         rc, out, err = run(
             LOOP_COHORT, "review", "inspect", str(spec_dir),
-            "--report", str(missing), "--json",
+            "--report", "no-such-report.md", "--json",
+            cwd=Path(td),
         )
         combined = f"{out}\n{err}"
         if "Traceback" in combined:
@@ -169,12 +169,51 @@ def test_missing_report_classifies_invalid_not_crash() -> None:
                 ok(name)
 
 
+def test_report_sites_route_through_resolver() -> None:
+    """Both `--report` call sites go through `_resolved_report` — a STRUCTURAL
+    check, deliberately, because there is no behavioural one to make.
+
+    `_resolved_report` only calls `.resolve()`. `_classify_report` returns
+    `invalid` for an unreadable path whether or not it was resolved, and a
+    readable report reads the same through either form — so reverting the
+    helper changes no observable output. Verified: with both call sites
+    reverted to bare `Path(args.report)`, every behavioural case in this file
+    still passed.
+
+    The helper exists for scanner legibility, not behaviour, so the honest
+    guard is that the call sites still use it. Do not replace this with a
+    behavioural assertion that appears stronger; it would be green either way.
+    """
+    name = "loop-cohort: both --report sites route through _resolved_report"
+    src = LOOP_COHORT.read_text(encoding="utf-8")
+    # Match assignment form only: `_resolved_report`'s own docstring names
+    # `Path(args.report)` in prose, and a substring count would score that as
+    # a live call site.
+    routed = src.count("= _resolved_report(args.report)")
+    bare = src.count("= Path(args.report)")
+    if routed != 2:
+        fail(name, f"expected 2 routed call sites, found {routed}")
+    elif bare:
+        fail(name, f"found {bare} bare Path(args.report) call site(s) — should be 0")
+    else:
+        ok(name)
+
+
 # ---------------------------------------------------------------------------
 # AC5 — every currently-valid invocation is unchanged
 # ---------------------------------------------------------------------------
 
 def _repo_root() -> Path:
-    return Path(__file__).resolve().parents[4]
+    """The repository root — parents[5], NOT parents[4].
+
+    parents[4] is `<repo>/packs`, which both linters also happily accept, so
+    the off-by-one produced green parity tests that were not exercising the
+    repo at all.
+    """
+    root = Path(__file__).resolve().parents[5]
+    if not (root / "docs" / "specs").is_dir():
+        raise SystemExit(f"repo root not found at {root} — check the parents[] depth")
+    return root
 
 
 def test_valid_root_unchanged() -> None:
@@ -187,7 +226,12 @@ def test_valid_root_unchanged() -> None:
         name = f"{label}: valid explicit --root is accepted"
         rc, out, err = run(script, "--root", str(root))
         combined = f"{out}\n{err}"
-        if "Traceback" in combined:
+        # AC5 promises "same exit codes". Asserting rc is what makes this a
+        # parity test — without it the case passes against an implementation
+        # whose exit codes changed entirely.
+        if rc != 0:
+            fail(name, f"expected exit 0 on a valid invocation, got {rc}: {combined!r}")
+        elif "Traceback" in combined:
             fail(name, f"raised a traceback on a valid root:\n{combined}")
         elif "is not a directory" in combined or "does not exist" in combined:
             fail(name, f"validator rejected a legitimate root: {combined!r}")
@@ -202,7 +246,12 @@ def test_omitted_root_unchanged() -> None:
         name = f"{label}: omitted --root still resolves via fallback"
         rc, out, err = run(script, cwd=root)
         combined = f"{out}\n{err}"
-        if "Traceback" in combined:
+        # AC5 promises "same exit codes". Asserting rc is what makes this a
+        # parity test — without it the case passes against an implementation
+        # whose exit codes changed entirely.
+        if rc != 0:
+            fail(name, f"expected exit 0 on a valid invocation, got {rc}: {combined!r}")
+        elif "Traceback" in combined:
             fail(name, f"raised a traceback with --root omitted:\n{combined}")
         elif "is not a directory" in combined or "does not exist" in combined:
             fail(name, f"fallback root was rejected by the validator: {combined!r}")
@@ -221,7 +270,12 @@ def test_relative_root_unchanged() -> None:
         name = f"{label}: relative --root is resolved and accepted"
         rc, out, err = run(script, "--root", ".", cwd=root)
         combined = f"{out}\n{err}"
-        if "Traceback" in combined:
+        # AC5 promises "same exit codes". Asserting rc is what makes this a
+        # parity test — without it the case passes against an implementation
+        # whose exit codes changed entirely.
+        if rc != 0:
+            fail(name, f"expected exit 0 on a valid invocation, got {rc}: {combined!r}")
+        elif "Traceback" in combined:
             fail(name, f"raised a traceback on a relative root:\n{combined}")
         elif "is not a directory" in combined or "does not exist" in combined:
             fail(name, f"validator rejected a relative root: {combined!r}")
@@ -233,6 +287,7 @@ def main() -> int:
     test_nonexistent_root_exits_nonzero_with_diagnostic()
     test_file_valued_root_exits_nonzero()
     test_missing_report_classifies_invalid_not_crash()
+    test_report_sites_route_through_resolver()
     test_valid_root_unchanged()
     test_omitted_root_unchanged()
     test_relative_root_unchanged()
