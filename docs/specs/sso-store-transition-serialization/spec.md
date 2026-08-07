@@ -1,6 +1,6 @@
 # Spec: sso-store-transition-serialization
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0035](../../rfc/0035-sso-cookie-auth-for-atlassian-pack.md) — owns the `sso-cookie` broker and its per-verb exit-code contract; [RFC-0013](../../rfc/0013-credential-broker-contract.md) — carries the exit-code errata RFC-0035 wrote against; [ADR-0026](../../adr/0026-sso-consumer-resolution-in-credbroker.md) — places consumer resolution in `credbroker`, fixing the engine→library dependency direction this spec must not invert.
