@@ -656,9 +656,9 @@ project page and the swept docstrings actually reach installers.
 ## [Unreleased]
 ### Added
 
-- **62 guide pages that were published but unreachable now appear in the docs
+- **58 guide pages that were published but unreachable now appear in the docs
   site navigation.** The sidebar was a hand-maintained list in
-  `docs-site/astro.config.ts` carrying 119 entries against 181 navigable files,
+  `docs-site/astro.config.ts` carrying 119 entries against 177 navigable files,
   so adding a page and forgetting the config edit was the default outcome. It is
   now generated from the guides tree on every build — writing the file is all
   that navigation requires. Group labels and order are declared in `site.toml`'s
