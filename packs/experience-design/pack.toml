@@ -1,7 +1,7 @@
 [pack]
 name = "experience-design"
 version = "2.0.0"
-description = "Design method that walks from outcome to realization: customer journey, content and copy direction, screen flows, visual craft, and independent design review, all held to one accessibility and quality floor."
+description = "Walk a design from outcome to realization. Customer journey, content and copy direction, screen flows, visual craft, and independent design review, all held to one accessibility and quality floor."
 readme = "README.md"
 display_name = "Experience Design"
 license = "Apache-2.0 OR MIT"
