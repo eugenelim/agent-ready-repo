@@ -68,27 +68,42 @@
       "type": "object",
       "required": [
         "source",
-        "repo",
-        "branch",
-        "directory"
+        "url",
+        "path"
       ],
       "additionalProperties": false,
       "properties": {
         "source": {
           "type": "string",
           "enum": [
-            "github"
+            "git-subdir"
           ]
         },
-        "repo": {
+        "url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/[^/]+/[^/]+\\.git$"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "ref": {
           "type": "string"
         },
-        "branch": {
-          "type": "string"
-        },
-        "directory": {
+        "sha": {
           "type": "string"
         }
+      },
+      "if": {
+        "required": [
+          "ref"
+        ]
+      },
+      "then": {},
+      "else": {
+        "required": [
+          "sha"
+        ]
       }
     }
   }

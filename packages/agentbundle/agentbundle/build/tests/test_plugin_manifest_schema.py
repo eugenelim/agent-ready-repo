@@ -176,10 +176,10 @@ class PluginManifestSchemaProjectableSubsetTests(unittest.TestCase):
         "keywords": ["osint", "synthesis"],
         "displayName": "Research",
         "source": {
-            "source": "github",
-            "repo": "example/repo",
-            "branch": "claude-plugins-dist",
-            "directory": "research",
+            "source": "git-subdir",
+            "url": "https://github.com/example/repo.git",
+            "path": "research",
+            "ref": "claude-plugins-dist",
         },
     }
     # category is valid in the source schema but not the derived schema.

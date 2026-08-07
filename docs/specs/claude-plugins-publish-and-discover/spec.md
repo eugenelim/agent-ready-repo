@@ -9,6 +9,14 @@
   [`docs/specs/claude-plugins-install-route/spec.md`](../claude-plugins-install-route/spec.md)
   (Shipped; this spec adds the publish + discover layer on top).
 
+> **Erratum (2026-08-06).** AC3's layout claim — that a published pack
+> directory contains `.claude/skills/` — is **superseded** by
+> `docs/specs/claude-plugins-manifest-correctness` AC2: Claude Code plugins
+> load `skills/`, `agents/` and `commands/` from the plugin root, so the
+> published branch now carries those. The AC body below is left as written:
+> it records an observation that was true when verified, and this spec is
+> Shipped → Frozen (`docs/CONVENTIONS.md` — status may change, bodies may not).
+
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 

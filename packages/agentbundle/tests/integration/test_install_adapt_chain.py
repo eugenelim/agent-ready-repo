@@ -84,7 +84,7 @@ def test_install_marker_records_new_companions(tmp_path):
 
     # Pre-seed an adopter file at one of the projection targets with
     # different content, forcing the Tier-2 branch.
-    collision_relpath = "claude-plugins/demo/.claude/skills/demo/SKILL.md"
+    collision_relpath = "claude-plugins/demo/skills/demo/SKILL.md"
     collision_full = target / collision_relpath
     collision_full.parent.mkdir(parents=True)
     collision_full.write_text("adopter-edited\n", encoding="utf-8", newline="\n")
@@ -95,7 +95,7 @@ def test_install_marker_records_new_companions(tmp_path):
     assert rc == 0
 
     # The companion file landed next to the original.
-    companion_path = target / "claude-plugins/demo/.claude/skills/demo/SKILL.upstream.md"
+    companion_path = target / "claude-plugins/demo/skills/demo/SKILL.upstream.md"
     assert companion_path.exists(), (
         "Tier-2 collision did not write `.upstream` companion; the marker "
         "assertion below would be untrustworthy without this"
@@ -107,7 +107,7 @@ def test_install_marker_records_new_companions(tmp_path):
     entries = marker.get("packs-installed", [])
     assert len(entries) == 1
     assert entries[0]["new-companions"] == [
-        "claude-plugins/demo/.claude/skills/demo/SKILL.upstream.md"
+        "claude-plugins/demo/skills/demo/SKILL.upstream.md"
     ]
 
 

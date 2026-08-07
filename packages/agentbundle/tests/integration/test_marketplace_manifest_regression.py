@@ -117,29 +117,40 @@ class TestDeriveProjectableSubsetSource:
             f"source must be an object, got {source!r}"
         )
 
-    def test_source_scheme_is_github(self):
+    def test_source_scheme_is_git_subdir(self):
+        """`github` has no subdirectory support; `branch`/`directory` were
+        silently dropped and the installer cloned the default branch at root."""
         from agentbundle.build.main import derive_projectable_subset
 
         result = derive_projectable_subset(_PACK_WITH_METADATA)
-        assert result["source"]["source"] == "github"
+        assert result["source"]["source"] == "git-subdir"
 
-    def test_source_repo_is_owner_slash_name(self):
+    def test_source_url_is_https_clone_url(self):
         from agentbundle.build.main import derive_projectable_subset
 
         result = derive_projectable_subset(_PACK_WITH_METADATA)
-        assert result["source"]["repo"] == "example-org/example-repo"
+        assert result["source"]["url"] == (
+            "https://github.com/example-org/example-repo.git"
+        )
 
-    def test_source_branch_is_dist_branch(self):
+    def test_source_ref_is_dist_branch(self):
         from agentbundle.build.main import derive_projectable_subset
 
         result = derive_projectable_subset(_PACK_WITH_METADATA)
-        assert result["source"]["branch"] == "claude-plugins-dist"
+        assert result["source"]["ref"] == "claude-plugins-dist"
 
-    def test_source_directory_is_pack_name(self):
+    def test_source_path_is_pack_name(self):
         from agentbundle.build.main import derive_projectable_subset
 
         result = derive_projectable_subset(_PACK_WITH_METADATA)
-        assert result["source"]["directory"] == "research"
+        assert result["source"]["path"] == "research"
+
+    def test_source_carries_no_legacy_keys(self):
+        from agentbundle.build.main import derive_projectable_subset
+
+        src = derive_projectable_subset(_PACK_WITH_METADATA)["source"]
+        assert "branch" not in src and "directory" not in src
+        assert "repo" not in src
 
     def test_source_absent_when_no_repository(self):
         from agentbundle.build.main import derive_projectable_subset
@@ -247,14 +258,20 @@ class TestRunAggregateMarketplaceName:
             if src is None:
                 continue
             assert isinstance(src, dict), f"{plugin['name']}.source must be object"
-            assert src.get("source") == "github", (
-                f"{plugin['name']}.source.source must be 'github'"
+            assert src.get("source") == "git-subdir", (
+                f"{plugin['name']}.source.source must be 'git-subdir'"
             )
-            assert "/" in src.get("repo", ""), (
-                f"{plugin['name']}.source.repo must be 'owner/name'"
+            assert src.get("url", "").startswith("https://github.com/"), (
+                f"{plugin['name']}.source.url must be an https github clone url"
             )
-            assert src.get("branch"), f"{plugin['name']}.source.branch must be set"
-            assert src.get("directory"), f"{plugin['name']}.source.directory must be set"
+            assert src.get("path"), f"{plugin['name']}.source.path must be set"
+            assert src.get("ref") or src.get("sha"), (
+                f"{plugin['name']}.source must pin ref or sha — neither means "
+                "the client silently fetches the default branch"
+            )
+            assert "branch" not in src and "directory" not in src, (
+                f"{plugin['name']}.source carries legacy keys"
+            )
 
 
 # ---------------------------------------------------------------------------

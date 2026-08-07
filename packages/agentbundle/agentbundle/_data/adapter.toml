@@ -188,12 +188,14 @@ install-routes = ["cli", "claude-plugins", "apm"]
 primitive = "skill"
 mode = "direct-directory"
 target-path = ".claude/skills/"
+plugin-target-path = "skills/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter."claude-code".projection]]
 primitive = "agent"
 mode = "direct-file"
 target-path = ".claude/agents/"
+plugin-target-path = "agents/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter."claude-code".projection]]
@@ -213,6 +215,7 @@ on-conflict = "merge-managed-key-only"
 primitive = "command"
 mode = "direct-file"
 target-path = ".claude/commands/"
+plugin-target-path = "commands/"
 on-conflict = "prompt-then-preserve"
 
 # hook-body — scope-conditional target.

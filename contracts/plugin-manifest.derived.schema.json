@@ -1,44 +1,105 @@
 {
   "type": "object",
-  "required": ["name", "version", "description"],
+  "required": [
+    "name",
+    "version",
+    "description"
+  ],
   "additionalProperties": false,
   "properties": {
-    "name": {"type": "string"},
-    "version": {"type": "string"},
-    "description": {"type": "string"},
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
     "skills": {
       "type": "array",
-      "items": {"type": "string"}
+      "items": {
+        "type": "string"
+      }
     },
     "agents": {
       "type": "array",
-      "items": {"type": "string"}
+      "items": {
+        "type": "string"
+      }
     },
     "author": {
       "type": "object",
-      "required": ["name"],
+      "required": [
+        "name"
+      ],
       "properties": {
-        "name": {"type": "string"},
-        "email": {"type": "string"}
+        "name": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        }
       }
     },
-    "license": {"type": "string"},
-    "homepage": {"type": "string"},
-    "repository": {"type": "string"},
+    "license": {
+      "type": "string"
+    },
+    "homepage": {
+      "type": "string"
+    },
+    "repository": {
+      "type": "string"
+    },
     "keywords": {
       "type": "array",
-      "items": {"type": "string"}
+      "items": {
+        "type": "string"
+      }
     },
-    "displayName": {"type": "string"},
+    "displayName": {
+      "type": "string"
+    },
     "source": {
       "type": "object",
-      "required": ["source", "repo", "branch", "directory"],
+      "required": [
+        "source",
+        "url",
+        "path"
+      ],
       "additionalProperties": false,
       "properties": {
-        "source": {"type": "string", "enum": ["github"]},
-        "repo": {"type": "string"},
-        "branch": {"type": "string"},
-        "directory": {"type": "string"}
+        "source": {
+          "type": "string",
+          "enum": [
+            "git-subdir"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "pattern": "^https://github\\.com/[^/]+/[^/]+\\.git$"
+        },
+        "path": {
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]*$"
+        },
+        "ref": {
+          "type": "string"
+        },
+        "sha": {
+          "type": "string"
+        }
+      },
+      "if": {
+        "required": [
+          "ref"
+        ]
+      },
+      "then": {},
+      "else": {
+        "required": [
+          "sha"
+        ]
       }
     },
     "hooks": {
@@ -55,12 +116,24 @@
                 "type": "array",
                 "items": {
                   "type": "object",
-                  "required": ["type", "command"],
+                  "required": [
+                    "type",
+                    "command"
+                  ],
                   "additionalProperties": false,
                   "properties": {
-                    "type": {"type": "string", "enum": ["command"]},
-                    "command": {"type": "string"},
-                    "timeout": {"type": "integer"}
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "command"
+                      ]
+                    },
+                    "command": {
+                      "type": "string"
+                    },
+                    "timeout": {
+                      "type": "integer"
+                    }
                   }
                 }
               }
