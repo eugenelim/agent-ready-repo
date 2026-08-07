@@ -29,15 +29,31 @@ Required: `title`, `summary`, `pack`, `kind`. Optional: `slug`, `order`,
 `kind` (`tutorial` | `how-to` | `reference` | `explanation`) is a page contract,
 not a directory choice — it records what the page does for the reader.
 
+## Navigation is generated
+
+`tools/build-site.py` collates this tree into an inventory, then projects it
+into the sidebar. Writing the file is all that navigation requires — there is
+no config to edit.
+
+- **Group labels and order** are declared in `site.toml`'s `[[guide_groups]]`
+  (`dir` + `label`). A directory with no entry still gets a group, labelled from
+  its title-cased name and appended last.
+- **`order`** sorts a page within its pack group **across kinds** — that is how
+  a tutorial, a how-to, and an explanation form one reading sequence. Pages
+  without it fall into kind buckets below the ordered run.
+- **Labels** resolve `guide-nav-baseline.toml` → `title:` frontmatter →
+  filename. The baseline is transitional: it froze the pre-generation labels so
+  none regressed. Add `title:` to a page and delete its baseline entry — that
+  deletion is the deliberate act, and the registry shrinks.
+
 ## Traps
 
-- **The sidebar is hand-maintained** in `docs-site/astro.config.ts`. A new page
-  publishes but stays out of navigation until you add an entry there in the same
-  PR. `generate_sidebar_config()` covers the pack catalogue only, not guides.
 - **No link checker.** Starlight does not fail the build on broken internal
   links. Verify targets exist before linking.
 - Links out of `guides/` become GitHub blob URLs — they send the reader off the
   site. Prefer an in-tree target.
+- `AGENTS.md` is mirrored but never enters navigation. It stays reachable by
+  URL; that is deliberate, not a gap.
 
 ## Verify
 
