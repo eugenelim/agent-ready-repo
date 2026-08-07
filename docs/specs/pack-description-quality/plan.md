@@ -6,14 +6,14 @@
 ## Assumption trio
 
 **Files I'll touch**
-- `packages/agentbundle/agentbundle/build/lint_packs.py` — new pack-description check.
-- `packages/agentbundle/agentbundle/build/tests/test_lint_packs.py` — new test
-  class, co-located with the existing `lint_packs` tests (this repo has two test
-  roots; `lint_packs` tests live under `agentbundle/build/tests/`).
+- `tools/lint-pack-descriptions.py` + `tools/test-lint-pack-descriptions.py` — new
+  repository policy lint and its self-test.
+- `tools/repo/build_gate_chain.py` + `.github/workflows/build-check.yml` — wire the
+  lint into both gate surfaces (`lint-ci-parity` fails if they disagree).
 - `packs/*/pack.toml` — description only (no version bump; see spec Assumption 2).
 - `packs/*/.claude-plugin/plugin.json` — mirrored description.
 - `.claude-plugin/marketplace.json` — regenerated or hand-synced (T3 decides).
-- `CHANGELOG.md`, `workspace.toml` (`[backlog].open` entry only).
+- `docs/product/changelog.md`, `workspace.toml` (`[backlog].open` entry only).
 
 **Tests that demonstrate done**
 - New unit tests for the ceiling, the independence of the two caps, and the
@@ -23,7 +23,8 @@
 
 **What I am NOT changing**
 - Any skill or agent `description` (activation-bearing — see spec § two-audience).
-- `pack.schema.json`, `contracts/target-vocab.toml`, `Constraints.description_max`.
+- Anything under `packages/agentbundle/` — `pack.schema.json`, the packaged
+  `lint_packs`, `contracts/target-vocab.toml`. All are adopter-facing.
 - Any pack's `keywords`, `categories`, `README.md`, or skill content.
 - The adapter contract, recipes, or any install route.
 
@@ -51,12 +52,11 @@
 
 ## Tasks
 
-### T1 — Pack-description ceiling in `lint_packs.py` (TDD)
+### T1 — Pack-description ceiling as a repo policy lint (TDD)
 
 **Depends on:** none
 
-**Tests:** new `PackDescriptionCeilingTest` in
-`packages/agentbundle/agentbundle/build/tests/test_lint_packs.py`
+**Tests:** `tools/test-lint-pack-descriptions.py`
 - `test_description_over_ceiling_is_flagged` — 401-char description → one finding
   naming pack, actual length, ceiling.
 - `test_description_at_ceiling_passes` — exactly 400 chars → no finding.
@@ -66,10 +66,18 @@
 - `test_pack_schema_has_no_description_maxlength` — reads `pack.schema.json`,
   asserts no `maxLength` under `properties.pack.properties.description`.
 
-**Approach:** add `_PACK_DESCRIPTION_MAX = 400` and a `_check_pack_description()`
-helper reading `[pack].description` from the already-parsed `pack.toml`; call it
-from `lint_pack()`; route the finding string through the existing diagnostic
-translator so it gets a stable code like its siblings.
+**Approach:** a pure-stdlib `tools/` lint with `MAX_DESCRIPTION = 400`, a
+`find_violations()` pure function, `--root` flag, exit 0/1 — the shape every other
+`tools/lint-*.py` uses. Wired into `build_gate_chain.py` and `build-check.yml` as
+a `test-lint-*` / `lint-*` pair.
+
+**Revised mid-EXECUTE.** First implemented inside
+`packages/agentbundle/agentbundle/build/lint_packs.py`; the curation guard
+(RFC-0059 D6) refused the changeset, which surfaced that `lint_packs` ships in
+the published package and runs on adopter catalogues via `agentbundle catalogue
+lint`. That is the same adopter-imposition objection already raised against
+`pack.schema.json`, so the ceiling moved to `tools/` and the
+`packages/agentbundle/` edits were reverted.
 
 ### T2 — Rewrite all pack descriptions (goal-based)
 

@@ -1,7 +1,7 @@
 """Pack-source lint — refuse packs whose content would break either
 Windows portability or per-target metadata caps at projection time.
 
-Four checks, applied to every pack under a `--packs-dir`:
+Three checks, applied to every pack under a `--packs-dir`:
 
   1. **No symlinks** — `Path.is_symlink()` against the entry. Windows
      symlink creation requires Developer Mode or admin privileges, and
@@ -19,10 +19,6 @@ Four checks, applied to every pack under a `--packs-dir`:
      descriptions (`>`, `|`, continuation lines) are refused outright
      rather than mis-parsed. Constraints come from
      `contracts/target-vocab.toml` — see
-  4. **Pack-description ceiling** — `[pack].description` is marketplace
-     display copy read by a person, not activation text read by a model,
-     so it carries its own editorial ceiling independent of the
-     per-target caps in check 3. See `_PACK_DESCRIPTION_MAX`.
 
 The lint is Python-only so it runs on every CI platform without
 shelling out, and it is wired into `make build` / `make build-self` /
@@ -47,32 +43,6 @@ from agentbundle.safety import PathJailError, assert_portable_name
 # live outside the walk because their schemas already constrain
 # their content.
 _PACK_SUBTREES = ("seeds", ".apm")
-
-# Editorial ceiling on `[pack].description`.
-#
-# Deliberately NOT `Constraints.description_max`, and deliberately not in
-# `pack.schema.json`. The two `description` fields in this repo answer to
-# different audiences:
-#
-#   * A skill's or agent's `description` is read by the *model*, which uses it
-#     to decide whether to activate the primitive. Its ceiling is a technical
-#     ingest limit derived from `contracts/target-vocab.toml` — the strictest
-#     `description-max-length` across declared targets.
-#   * A pack's `description` is read by a *person* scanning a marketplace
-#     browser or catalogue listing. No target ingests it, so no target caps it;
-#     what constrains it is how much prose someone will read in a list.
-#
-# Keeping the two values separate stops a target vocabulary that permits a
-# 1024-character skill description from silently permitting a 1024-character
-# pack description. Pack discoverability is carried by the separate
-# `[pack].keywords` and `[pack].categories` fields, so a short description
-# costs no findability.
-#
-# This lives in the build lint rather than `pack.schema.json` on purpose:
-# the schema validates third-party packs through `agentbundle validate`, and
-# an editorial rule there would turn this catalogue's house style into an
-# adopter's build break. The lint only runs on this catalogue's own build.
-_PACK_DESCRIPTION_MAX = 400
 
 # Path to the sibling vocab file, relative to a repo root. The loader
 # walks up from a caller-supplied start until an ancestor contains
@@ -475,34 +445,6 @@ def _description_findings(
     return out
 
 
-def _check_pack_description(pack_dir: Path) -> list[str]:
-    """Refuse a `[pack].description` longer than `_PACK_DESCRIPTION_MAX`.
-
-    Unlike the skill/agent metadata gate, this check is not conditioned on a
-    target vocabulary — the ceiling is editorial, not per-target (see the
-    `_PACK_DESCRIPTION_MAX` comment). A pack with no `pack.toml`, no
-    `[pack].description`, or an unparseable `pack.toml` is not this check's
-    business: the first two are legitimate, and the third is already reported
-    by schema validation, so re-reporting it here would double-count.
-    """
-    manifest = pack_dir / "pack.toml"
-    if not manifest.is_file():
-        return []
-    try:
-        parsed = tomllib.loads(manifest.read_text(encoding="utf-8"))
-    except (tomllib.TOMLDecodeError, OSError, UnicodeDecodeError):
-        return []
-    description = parsed.get("pack", {}).get("description")
-    if not isinstance(description, str) or len(description) <= _PACK_DESCRIPTION_MAX:
-        return []
-    return [
-        f"{pack_dir.name}: [pack].description length exceeds "
-        f"{_PACK_DESCRIPTION_MAX} (got {len(description)}) — pack descriptions "
-        f"are marketplace display copy; lead with the adopter outcome and move "
-        f"detail to README.md: pack.toml"
-    ]
-
-
 def lint_pack(pack_dir: Path, constraints: Constraints | None = None) -> list[str]:
     """Return a list of human-readable violation strings for one pack.
 
@@ -511,13 +453,10 @@ def lint_pack(pack_dir: Path, constraints: Constraints | None = None) -> list[st
 
     When `constraints` is supplied, the per-target metadata gate runs
     after the portability sweep and the combined findings are sorted
-    by trailing relpath — the deterministic-order invariant.
-
-    The `[pack].description` ceiling runs in *both* call modes: it is an
-    editorial rule with no per-target derivation, so a caller that has no
-    target vocabulary still gets it.
+    by trailing relpath — the deterministic-order invariant. When omitted, behaviour
+    matches the pre-vocab gate exactly.
     """
-    findings: list[str] = _check_pack_description(pack_dir)
+    findings: list[str] = []
     for subtree_name in _PACK_SUBTREES:
         subtree = pack_dir / subtree_name
         if not subtree.exists():

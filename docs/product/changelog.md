@@ -38,6 +38,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   also had descriptions that disagreed between their manifest and the
   marketplace listing; all three copies now match.
 
+### Added
+
+- **A repo lint keeps pack descriptions readable.**
+  `tools/lint-pack-descriptions.py` fails the build on a `[pack].description`
+  over 400 characters and tells you to lead with the adopter outcome. It is a
+  repository policy lint, not a packaged one: `pack.schema.json` and the
+  packaged pack lint both run against *adopter* catalogues, so an editorial
+  rule in either would turn this catalogue's house style into someone else's
+  build break.
+
 ## [agentbundle][0.29.7] — 2026-08-06
 
 ### Changed

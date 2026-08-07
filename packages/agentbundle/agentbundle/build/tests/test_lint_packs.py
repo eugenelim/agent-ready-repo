@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import argparse
 import io
-import json
 import re
 import shutil
 import sys
@@ -20,7 +19,6 @@ from contextlib import redirect_stderr
 from pathlib import Path
 
 from agentbundle.build.lint_packs import (
-    _PACK_DESCRIPTION_MAX,
     Constraints,
     cmd_lint_packs,
     lint_all_packs,
@@ -712,100 +710,6 @@ class LintPackVocabTests(unittest.TestCase):
                 rc = cmd_lint_packs(args)
         self.assertEqual(rc, 1)
         self.assertIn("name-pattern", buf.getvalue())
-
-
-class PackDescriptionCeilingTest(unittest.TestCase):
-    """The `[pack].description` editorial ceiling.
-
-    Distinct from the per-target `description-max-length` gate covered above:
-    that one caps *skill/agent* frontmatter, which the model reads to decide
-    activation, and its value is derived from `contracts/target-vocab.toml`.
-    This one caps the *pack* description, which is display copy for a
-    marketplace browser and has no target that ingests it.
-    """
-
-    @staticmethod
-    def _pack_with_description(packs_dir: Path, description: str) -> Path:
-        pack = packs_dir / "p"
-        pack.mkdir(parents=True)
-        (pack / "pack.toml").write_text(
-            '[pack]\nname = "p"\nversion = "0.0.1"\n'
-            f"description = {json.dumps(description)}\n",
-            encoding="utf-8",
-            newline="\n",
-        )
-        return pack
-
-    def test_description_over_ceiling_is_flagged(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            pack = self._pack_with_description(Path(tmp), "x" * (_PACK_DESCRIPTION_MAX + 1))
-            findings = lint_pack(pack)
-        self.assertEqual(len(findings), 1, findings)
-        self.assertIn("p:", findings[0])
-        self.assertIn(str(_PACK_DESCRIPTION_MAX + 1), findings[0])
-        self.assertIn(str(_PACK_DESCRIPTION_MAX), findings[0])
-        self.assertTrue(findings[0].endswith("pack.toml"), findings[0])
-
-    def test_description_at_ceiling_passes(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            pack = self._pack_with_description(Path(tmp), "x" * _PACK_DESCRIPTION_MAX)
-            findings = lint_pack(pack)
-        self.assertEqual(findings, [])
-
-    def test_absent_description_is_not_flagged(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            pack = Path(tmp) / "p"
-            pack.mkdir()
-            (pack / "pack.toml").write_text(
-                '[pack]\nname = "p"\nversion = "0.0.1"\n', encoding="utf-8", newline="\n"
-            )
-            findings = lint_pack(pack)
-        self.assertEqual(findings, [])
-
-    def test_ceiling_fires_without_constraints(self) -> None:
-        """The pack ceiling is not gated on the target-vocab `constraints` arg.
-
-        It is an editorial rule, not a per-target ingest limit, so a caller with
-        no target vocabulary still gets it.
-        """
-        with tempfile.TemporaryDirectory() as tmp:
-            pack = self._pack_with_description(Path(tmp), "x" * (_PACK_DESCRIPTION_MAX + 50))
-            self.assertEqual(len(lint_pack(pack, constraints=None)), 1)
-
-    def test_pack_ceiling_independent_of_target_cap(self) -> None:
-        """The two ceilings are separate values with separate purposes.
-
-        A target vocabulary that permits a 1024-char *skill* description must
-        not thereby permit a 1024-char *pack* description.
-        """
-        self.assertNotEqual(_PACK_DESCRIPTION_MAX, 1024)
-        constraints = _make_constraints(description_max=1024)
-        self.assertEqual(constraints.description_max, 1024)
-        with tempfile.TemporaryDirectory() as tmp:
-            pack = self._pack_with_description(Path(tmp), "x" * 1024)
-            findings = lint_pack(pack, constraints=constraints)
-        self.assertEqual(len(findings), 1, findings)
-
-    def test_malformed_pack_toml_is_not_a_crash(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            pack = Path(tmp) / "p"
-            pack.mkdir()
-            (pack / "pack.toml").write_text("this is not toml [[[", encoding="utf-8")
-            self.assertEqual(lint_pack(pack), [])
-
-    def test_pack_schema_has_no_description_maxlength(self) -> None:
-        """The ceiling stays out of the adopter-facing schema.
-
-        `pack.schema.json` validates third-party packs via `agentbundle
-        validate`; an editorial cap there would turn this catalogue's house
-        style into someone else's build break.
-        """
-        schema_path = (
-            Path(__file__).resolve().parents[2] / "_data" / "pack.schema.json"
-        )
-        schema = json.loads(schema_path.read_text(encoding="utf-8"))
-        description = schema["properties"]["pack"]["properties"]["description"]
-        self.assertNotIn("maxLength", description)
 
 
 if __name__ == "__main__":  # pragma: no cover

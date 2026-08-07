@@ -9,9 +9,10 @@
 > PR must match this spec, or update it. Verification must be derivable from it.
 
 <!-- Mode: light (work-loop). No risk trigger fired. Checked and did NOT fire:
-structural/public-interface — the cap lands in `build/lint_packs.py` (a
-catalogue-build lint), NOT in `pack.schema.json`, so no adopter-facing validation
-contract changes and no adopter pack can newly fail `agentbundle validate`.
+structural/public-interface — the cap lands in `tools/lint-pack-descriptions.py`,
+a repository-only policy lint. Nothing under `packages/agentbundle/` changes, so
+no adopter-facing validation contract moves and no adopter pack can newly fail
+`agentbundle validate` or `agentbundle catalogue lint`.
 Lean fill: Objective + Acceptance Criteria + Boundaries + Testing Strategy +
 Assumptions (the last three earn their place via the two-audience distinction and
 the three-file sync obligation). -->
@@ -36,7 +37,7 @@ conflate them:
 | Field | Audience | Job | Governed by |
 | --- | --- | --- | --- |
 | **Skill/agent** `description` (frontmatter) | The *model* | Drives **activation** — the agent decides whether to load the skill | `lint_packs.Constraints.description_max`, a strictest-cap snapshot of `contracts/target-vocab.toml` (a technical ingest cap, 1024) |
-| **Pack** `[pack].description` | A *human* | **Display copy** in a marketplace browser or catalogue listing | Nothing today — this spec adds it |
+| **Pack** `[pack].description` | A *human* | **Display copy** in a marketplace browser or catalogue listing | `tools/lint-pack-descriptions.py` (repo-only), added by this spec |
 
 Keyword density is *correct* in a skill description and *noise* in a pack
 description. Pack discoverability is already carried by the separate
@@ -45,14 +46,16 @@ costs no findability.
 
 ## Acceptance criteria
 
-- [x] AC1. `build/lint_packs.py` refuses a `[pack].description` longer than
-      `_PACK_DESCRIPTION_MAX` (400), with a finding naming the pack, the actual
-      length, and the ceiling.
+- [x] AC1. `tools/lint-pack-descriptions.py` refuses a `[pack].description`
+      longer than `MAX_DESCRIPTION` (400), with a finding naming the pack, the
+      actual length, and the ceiling, and is wired into both the local build
+      gate chain and `build-check.yml`.
 - [x] AC2. The new check uses its own constant and does **not** read, reuse, or
-      mutate `Constraints.description_max` — the target-derived skill/agent cap.
-      A test asserts the two are independent.
-- [x] AC3. `pack.schema.json` is unchanged. A test asserts no `maxLength` was
-      added under `properties.pack.properties.description`.
+      mutate the target-derived skill/agent cap. A test asserts the two are
+      independent.
+- [x] AC3. Nothing under `packages/agentbundle/` changes — not
+      `pack.schema.json`, not the packaged `lint_packs`. Both run against
+      adopter catalogues, so neither may carry this repository's house style.
 - [x] AC4. Every pack in `packs/` has a description that is ≤400 characters and
       whose first sentence names an adopter outcome, not a component inventory.
 - [x] AC5. No pack description contains a cross-pack reference, a bare component
@@ -64,10 +67,10 @@ costs no findability.
       across `pack.toml`, `plugin.json`, and `marketplace.json`. See
       Assumption 2 for why a bump is not warranted here.
 - [x] AC8. `make build-check` and the `agentbundle` test suite pass.
-- [x] AC9. Both changelogs record the change under `[Unreleased]`:
-      `docs/product/changelog.md` (the user-visible description rewrite) and
-      `packages/agentbundle/CHANGELOG.md` (the new lint ceiling). This repo has
-      no root `CHANGELOG.md`.
+- [x] AC9. `docs/product/changelog.md` records both the description rewrite and
+      the new lint under `[Unreleased]`. `packages/agentbundle/CHANGELOG.md` is
+      deliberately untouched — nothing in that package changed. This repo has no
+      root `CHANGELOG.md`.
 
 ## Boundaries
 
@@ -81,23 +84,28 @@ costs no findability.
 
 - **Never touch a skill or agent `description`.** Those drive activation; this
   spec is display copy only. A shortened skill description is a regression.
-- Never add the ceiling to `pack.schema.json` — that schema validates adopter
-  packs via `agentbundle validate`, and an editorial rule there converts our house
-  style into someone else's build break.
+- Never put the ceiling anywhere inside `packages/agentbundle/` — neither
+  `pack.schema.json` (adopter-facing via `agentbundle validate`) nor the packaged
+  `lint_packs` (adopter-facing via `agentbundle catalogue lint`). An editorial
+  rule in either converts our house style into someone else's build break. It
+  belongs in `tools/`, which runs only on this repository's build.
 - Never drop a `keywords` or `categories` entry to compensate for shortened prose.
 
 ## Testing strategy
 
-- **AC1–AC3 — TDD.** Unit tests in the `agentbundle` build test suite: a pack
-  fixture over the ceiling produces a finding; one at the ceiling does not; the
-  pack ceiling and `Constraints.description_max` are asserted independent; a test
-  reads `pack.schema.json` and asserts the absence of a description `maxLength`.
+- **AC1–AC3 — TDD.** `tools/test-lint-pack-descriptions.py`: a pack fixture over
+  the ceiling produces a finding; one at the ceiling does not; absent, malformed,
+  and non-pack directories are ignored; the editorial ceiling is asserted distinct
+  from the target-vocab ingest cap; the in-tree catalogue satisfies its own lint;
+  and both exit codes are exercised. Backed by a real-tree negative control —
+  restoring `core`'s 439-char description makes the lint exit 1, and reverting it
+  returns exit 0, so the gate is proven capable of failing.
 - **AC4–AC5 — goal-based.** `Done when:` a repo-wide script reports every pack
   ≤400 chars, and the lint added in AC1 exits clean across `packs/`.
 - **AC6–AC7 — goal-based.** `Done when:` a script confirms the three files agree
   per pack, and `make build-check` passes.
 - **AC8 — goal-based.** `Done when:` `make build-check` and `python3 -m pytest
-  packages/agentbundle/tests/ -q` both exit 0.
+  packages/agentbundle/ -q` both exit 0.
 
 ## Assumptions
 

@@ -195,7 +195,15 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-experience-agnostic",
             "tools", "lint-experience-agnostic.py",
         ),
-        # The standing check that the four steps above do not become stale
+        _script_step(
+            "test-lint-pack-descriptions",
+            "tools", "test-lint-pack-descriptions.py",
+        ),
+        _script_step(
+            "lint-pack-descriptions",
+            "tools", "lint-pack-descriptions.py",
+        ),
+        # The standing check that the repo-lint steps above do not become stale
         # again: lint-ci-parity fails when build-check.yml gains a gate with no
         # local counterpart and no declared exemption.
         _script_step(

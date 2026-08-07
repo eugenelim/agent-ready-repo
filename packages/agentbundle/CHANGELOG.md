@@ -6,29 +6,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
-## [Unreleased]
-
-### Added
-
-- **The pack lint now caps `[pack].description` at 400 characters.** A pack
-  description is display copy — it is what someone reads in a marketplace
-  browser or catalogue listing while deciding whether to install — and ours had
-  grown to as much as 1122 characters of component inventory. The build now
-  refuses one over the ceiling and tells you to lead with the adopter outcome.
-
-  This is a *separate* ceiling from the per-target `description-max-length` that
-  already caps skill and agent frontmatter. That one is a technical ingest limit
-  read from `contracts/target-vocab.toml`, and it governs text the model uses to
-  decide whether to activate a primitive; shortening it would degrade activation.
-  The two values are deliberately independent, so a target vocabulary that
-  permits a 1024-character skill description does not thereby permit a
-  1024-character pack description.
-
-  `pack.schema.json` is unchanged on purpose. That schema validates third-party
-  packs through `agentbundle validate`, so an editorial rule there would turn
-  this catalogue's house style into an adopter's build break. The ceiling lives
-  in the build lint, which only runs on a catalogue's own build.
-
 ## [0.29.7] — 2026-08-06
 
 ### Changed
