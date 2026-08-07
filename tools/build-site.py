@@ -285,6 +285,97 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
+# Guide sidebar projection — inventory becomes Starlight groups.
+# Contract: docs/specs/guides-sidebar-generation/spec.md § Layer 2
+# ---------------------------------------------------------------------------
+
+# Reader-visible bucket labels, in the canonical sequence.
+_KIND_BUCKETS = (
+    ("tutorial", "Tutorials"),
+    ("how-to", "How-to"),
+    ("reference", "Reference"),
+    ("explanation", "Explanation"),
+)
+
+
+def _guide_label(record: dict, baseline: dict) -> str:
+    """Resolve a sidebar label: frozen baseline, then the page's own title,
+    then the filename.
+
+    Baseline first is deliberate. Thirteen pages carry a ``title:`` that differs
+    from the label they show in navigation today, so putting frontmatter first
+    would rewrite them silently. Removing a baseline entry is the reviewable act
+    that adopts a page's own title.
+    """
+    if record["slug"] in baseline:
+        return baseline[record["slug"]]
+    if record["title"]:
+        return record["title"]
+    if record["is_index"]:
+        # Filename derivation would read "Readme"; every index entry in the
+        # pre-change tree reads "Overview".
+        return "Overview"
+    return record["slug"].rsplit("/", 1)[-1].replace("-", " ").title()
+
+
+def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
+                          baseline: dict) -> dict:
+    """Project inventory records into the Starlight ``Guides`` sidebar group.
+
+    Emission order within a pack group is fixed: index pages, then records
+    declaring ``order`` (ascending, across kinds), then kind-less non-index
+    records, then the kind buckets in canonical sequence.
+    """
+    eligible = [r for r in records if r["nav_eligible"]]
+
+    declared = [g["dir"] for g in guide_groups]
+    labels = {g["dir"]: g["label"] for g in guide_groups}
+    # An undeclared directory still gets a group rather than vanishing.
+    extra = sorted({r["pack"] for r in eligible if r["pack"] and r["pack"] not in labels})
+    for d in extra:
+        labels[d] = d.replace("-", " ").replace("_", " ").strip().title()
+
+    items: list[dict] = []
+
+    # The root README belongs to the tree itself, not to any pack.
+    for rec in (r for r in eligible if r["pack"] is None and r["is_index"]):
+        items.append({"label": _guide_label(rec, baseline), "slug": rec["slug"]})
+
+    for pack in [d for d in declared if d in {r["pack"] for r in eligible}] + extra:
+        members = [r for r in eligible if r["pack"] == pack]
+        group_items: list[dict] = []
+
+        def entry(r):
+            return {"label": _guide_label(r, baseline), "slug": r["slug"]}
+
+        for rec in sorted((r for r in members if r["is_index"]), key=lambda r: r["slug"]):
+            group_items.append(entry(rec))
+        for rec in sorted((r for r in members if r["order"] is not None and not r["is_index"]),
+                          key=lambda r: (r["order"], r["slug"])):
+            group_items.append(entry(rec))
+        for rec in sorted((r for r in members
+                           if r["order"] is None and not r["is_index"] and r["kind"] is None),
+                          key=lambda r: r["slug"]):
+            group_items.append(entry(rec))
+
+        for kind, bucket_label in _KIND_BUCKETS:
+            bucket = [r for r in members
+                      if r["kind"] == kind and r["order"] is None and not r["is_index"]]
+            if not bucket:
+                continue
+            bucket.sort(key=lambda r: _guide_label(r, baseline))
+            group_items.append({
+                "label": bucket_label,
+                "items": [entry(r) for r in bucket],
+            })
+
+        if group_items:
+            items.append({"label": labels[pack], "items": group_items})
+
+    return {"label": "Guides", "items": items}
+
+
+# ---------------------------------------------------------------------------
 # Guide-aware mirror (replaces the bare mirror_dir call for guides/)
 # ---------------------------------------------------------------------------
 
