@@ -177,7 +177,8 @@ merely presence);
 `test_no_frontmatter_page_is_projected` (AC4);
 `test_guide_groups_labels_and_order_applied`;
 `test_undeclared_dir_gets_titlecased_group_appended_last`;
-`test_iac_arc_orders_1_2_3`.
+`test_iac_arc_orders_1_2_3`;
+`test_malformed_guide_group_entry_is_skipped_not_raised`.
 Approach: emit in the four-step order stated in [`spec.md` § Layer
 2](spec.md#layer-2--projection) — it is the sole statement, deliberately not
 restated here. Resolve labels via the same section's precedence chain.

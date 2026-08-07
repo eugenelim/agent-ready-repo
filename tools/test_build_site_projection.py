@@ -208,6 +208,10 @@ def test_iac_arc_orders_1_2_3():
     ]
 
 
+# ---------------------------------------------------------------------------
+# Synthetic cases — fixtures only, no real tree
+# ---------------------------------------------------------------------------
+
 def test_no_two_siblings_in_a_group_share_a_label():
     """Pages AND buckets are siblings. An earlier fix compared only page
     labels, so it could not see a page colliding with a bucket of the same
@@ -233,8 +237,6 @@ def test_slug_override_ending_in_index_is_stripped(tmp_path):
     rec = build_site.build_guide_inventory(root)[0]
     assert rec["slug"] == "guides/a/deep"
 
-
-# --- Degradation (not real-tree) ---------------------------------------------
 
 def test_malformed_guide_group_entry_is_skipped_not_raised():
     """A missing `dir` or `label` previously raised a bare KeyError mid-build,
