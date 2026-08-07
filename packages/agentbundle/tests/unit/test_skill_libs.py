@@ -59,13 +59,26 @@ class TestProjection:
     def test_no_op_outside_the_monorepo(self, tmp_path: Path) -> None:
         """Package source absent: nothing to project, nothing to compare.
 
-        Adopters receive the committed copy, so a no-op costs them nothing.
+        The target IS PRESENT here, which is the whole point: outside the
+        monorepo the committed copy ships with the pack while the package tree
+        is absent. An earlier version of this case left the target out, so
+        `not target.exists()` short-circuited the orphan branch and the case
+        passed vacuously — while every real fixture packs dir was reported as
+        orphaned, breaking three build-check integration tests.
         """
+        _source_rel, target_rel = skill_libs.PROJECTIONS[0]
         packs_dir = tmp_path / "packs"
-        packs_dir.mkdir()
+        target = packs_dir / target_rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text("# shipped with the pack\n", encoding="utf-8")
+
         assert skill_libs.compute_projections(packs_dir) == []
         skill_libs.apply_projection(packs_dir)  # must not raise
-        assert skill_libs.check_drift(packs_dir) == []
+        assert skill_libs.check_drift(packs_dir) == [], (
+            "a committed target with no package tree is the non-monorepo shape, "
+            "not drift"
+        )
+        assert target.read_text(encoding="utf-8") == "# shipped with the pack\n"
 
 
 class TestDriftGate:

@@ -140,12 +140,21 @@ def check_drift(packs_dir: Path) -> list[str]:
                 f"{_REGEN}"
             )
 
-    # Orphan: a committed target whose source row no longer exists. Only
-    # reachable in the monorepo, where a missing source means the row was
-    # retired rather than that we are outside the repo.
+    # Orphan: the package tree IS here but this specific module is gone, i.e.
+    # the row was retired and its committed target left behind.
+    #
+    # The predicate is the source's *package directory*, not the source file.
+    # Keying on the file alone conflates "row retired" with "not in the
+    # monorepo" — and the non-monorepo shape is precisely `source absent,
+    # target present`, because the target is committed and ships with the pack.
+    # That mistake reported a false orphan for every fixture packs dir and broke
+    # three build-check integration tests.
     projected_targets = {p.target for p in projections}
     for target in sorted(declared_targets - projected_targets):
         source_rel = next(s for s, t in PROJECTIONS if packs_dir / t == target)
+        package_dir = repo_root / source_rel.parent
+        if not package_dir.is_dir():
+            continue  # not the monorepo — nothing to compare, stay silent
         if (repo_root / source_rel).exists() or not target.exists():
             continue
         drifts.append(

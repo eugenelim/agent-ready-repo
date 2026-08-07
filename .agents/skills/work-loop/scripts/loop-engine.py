@@ -88,11 +88,19 @@ _GIT_OVERRIDE_VARS = frozenset({
 
 def _get_repo_root() -> Path:
     safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
-    r = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True, encoding="utf-8", check=False,
-        env=safe_env, timeout=SUBPROCESS_TIMEOUT_S,
-    )
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, encoding="utf-8", check=False,
+            env=safe_env, timeout=SUBPROCESS_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as exc:
+        # Raised as ValueError because every caller already handles that; a bare
+        # TimeoutExpired would surface as a traceback.
+        raise ValueError(
+            f"git rev-parse --show-toplevel timed out after "
+            f"{SUBPROCESS_TIMEOUT_S:.0f}s"
+        ) from exc
     if r.returncode != 0 or not r.stdout.strip():
         raise ValueError("could not determine repo root (git rev-parse --show-toplevel failed)")
     return Path(r.stdout.strip()).resolve()
@@ -624,7 +632,11 @@ def _locked(verb: str):
                 spec_dir = _resolve_spec_dir(args.spec_dir)
             except ValueError as exc:
                 return stop(str(exc))
-            sl = _statelock()
+            try:
+                sl = _statelock()
+            except (ImportError, OSError) as exc:
+                # Refuse, never traceback — see loop-cohort.py's twin.
+                return stop(f"{verb}: state lock unavailable: {exc}")
             try:
                 with sl.exclusive(_engine_state_path(spec_dir)):
                     return fn(args)
@@ -736,6 +748,10 @@ def cmd_reset(args: argparse.Namespace) -> int:
         repo_root = _get_repo_root()
         loop_run = _loop_run_dir(repo_root)
         if loop_run.exists():
+            # Repo-global, like _recover_pending in cmd_transition: this wipes
+            # the outbox for EVERY spec while holding only this spec's lock. A
+            # per-spec lock cannot serialise it. Tracked as backlog:
+            # loop-outbox-cross-spec-rmw.
             shutil.rmtree(loop_run)
             print(f"loop-engine: removed {loop_run}")
         else:

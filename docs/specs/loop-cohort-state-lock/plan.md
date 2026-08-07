@@ -1,6 +1,6 @@
 # Plan: loop-cohort-state-lock
 
-- **Status:** Drafting <!-- Drafting | Approved | Done -->
+- **Status:** Done <!-- Drafting | Approved | Done -->
 - **Spec:** [`spec.md`](spec.md)
 - **Owner:** eugenelim
 
@@ -108,13 +108,20 @@ away — two holders. So:
 
 1. `rename` to `<lock>.reclaim.<uuid4>` — unique per attempt, not per pid
    (same-pid threads collide on a pid-keyed name).
-2. `os.lstat` the renamed file and compare `(st_dev, st_ino)` with what step 2
-   observed. Match → it is the file we judged stale; unlink and retry acquire.
-   Mismatch → we moved a *live* lock; rename it back, best effort, and continue.
-3. The residual window is bounded by AC9: a holder whose lockfile was moved
+2. `os.lstat` the renamed file and compare `(st_dev, st_ino)` **and the record
+   bytes** with what step 2 observed. Inode identity alone false-matches after
+   inode reuse (routine on ext4/tmpfs), which would delete a foreign file
+   created in the window. Match → unlink and retry acquire.
+3. Mismatch → we moved a *live* lock, so restore it with `os.link` +
+   `unlink(claimed)`, **not** `rename`. `rename` silently replaces its
+   destination, so if a third process took the momentarily-free lock path,
+   restoring by rename would delete that process's lockfile and leave two
+   holders in their bodies. `link` raises `FileExistsError` instead; leaving
+   `claimed` in place then makes the *displaced* holder fail closed at release.
+4. The residual window is bounded by AC9: a holder whose lockfile was moved
    discovers it at release and reports a lost lock. Fail-loud, not fail-silent.
 
-Release, in `finally`: `os.lstat` the path and compare `(st_dev, st_ino)` to the
+Release, in `finally`: compare `(st_dev, st_ino)` **and the record bytes** to the
 acquire-time capture. Identity, not content — content comparison would reject a
 correct inode-based implementation, and a truncate-in-place rewrite keeps the
 same inode. Match → unlink. Missing or foreign → leave it (it is the successor's)
@@ -275,7 +282,7 @@ present.
 | Suite pollutes the live repo | AC21, from an import-time baseline. |
 | Hand-edit to the projected copy | AC4's drift gate; header on the generated file. |
 | `agentbundle` carries two locks until the follow-up | ADR-0074 Consequences; hard `needs` edge on the backlog item. |
-| Added CI wall-clock (~15 s, 37 barriered launches, 37 `git init`s) | Recorded here so a trial-count increase is a visible decision. |
+| Added CI wall-clock — measured **~46 s** warm (a cold-cache first run was 2:17), 52 barriered child launches across 17 `git init`s | Recorded here so a trial-count increase is measured against a true baseline. The earlier "~15 s" was the fail-fast path, before the cases passed. |
 
 ## Rollout
 

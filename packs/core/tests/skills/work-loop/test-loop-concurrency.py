@@ -74,6 +74,37 @@ sys.exit(mod.main(argv))
 # the ~40 ms of startup the barrier exists to absorb.
 MAX_ARRIVAL_SPREAD = 0.050
 
+# The live repo this suite must not touch. parents[5], not [4]: [3] is
+# packs/core, [4] is packs/, [5] is the repo root — getting that wrong made the
+# hermeticity case pass vacuously.
+LIVE_ROOT = Path(__file__).resolve().parents[5]
+
+
+def _live_fingerprint() -> dict[str, str]:
+    """{relpath: sha256} over the live .loop-run/ contents plus .gitignore.
+
+    CONTENTS, not names: `loop-engine` APPENDS to events.jsonl and to
+    .gitignore, so a name-only listing stays green through exactly the pollution
+    this guards. Taken at IMPORT — a baseline captured inside the last test bakes
+    in whatever the earlier cases already did.
+    """
+    import hashlib
+
+    out: dict[str, str] = {}
+    for target in (LIVE_ROOT / ".loop-run", LIVE_ROOT / ".gitignore"):
+        if target.is_file():
+            out[target.name] = hashlib.sha256(target.read_bytes()).hexdigest()
+        elif target.is_dir():
+            for f in sorted(target.rglob("*")):
+                if f.is_file():
+                    out[str(f.relative_to(LIVE_ROOT))] = hashlib.sha256(
+                        f.read_bytes()
+                    ).hexdigest()
+    return out
+
+
+_LIVE_BASELINE = _live_fingerprint()
+
 failures: list[str] = []
 ran = 0
 
@@ -189,6 +220,7 @@ def _run_barriered(n: int, target: Path, argvs: list[list[str]], cwd: Path):
     return results, spread, len(arrivals)
 
 
+# STUB: AC20
 def _check_barrier(name: str, n: int, spread: float, arrived: int) -> bool:
     """Every case must prove its children raced. A smeared run is a loud
     failure, not a quiet pass."""
@@ -206,7 +238,7 @@ def _check_barrier(name: str, n: int, spread: float, arrived: int) -> bool:
 
 # ── AC15 — cohort: no lost update ──────────────────────────────────────────
 
-# STUB: AC15
+# STUB: AC17
 def test_concurrent_record_attempt_no_lost_update(tmp: Path) -> None:
     """Pre-fix: 20/20 trials lost an update at N=2 (notes/reproduction.md A)."""
     for n, trials in ((2, 6), (8, 3)):
@@ -244,7 +276,7 @@ def test_concurrent_record_attempt_no_lost_update(tmp: Path) -> None:
 
 # ── AC16 — engine: exactly one transition admitted, one audit record ───────
 
-# STUB: AC16
+# STUB: AC18
 def test_concurrent_identical_transition(tmp: Path) -> None:
     """Pre-fix: 10/10 trials admitted BOTH (notes/reproduction.md B)."""
     for trial in range(4):
@@ -292,7 +324,7 @@ def test_concurrent_identical_transition(tmp: Path) -> None:
 
 # ── AC17 — init is not racy ────────────────────────────────────────────────
 
-# STUB: AC17
+# STUB: AC19
 def test_concurrent_init(tmp: Path) -> None:
     n = 6
     root = tmp / "init"
@@ -345,7 +377,7 @@ def _plant_contended(state_file: Path) -> Path:
 # STUB: AC15
 def test_locked_verbs_refuse_when_held(tmp: Path) -> None:
     """The WIRING, not the module: a module-level timeout test proves nothing
-    about whether each verb was actually wrapped."""
+    about whether each verb was actually wrapped. All TEN locked verbs."""
     root = tmp / "refuse"
     root.mkdir(parents=True)
     repo = _init_git_repo(root)
@@ -396,21 +428,28 @@ def test_locked_verbs_refuse_when_held(tmp: Path) -> None:
                  f"{label} modified {state_file.name} despite refusing")
             return
 
-    # init is the exists-then-create case: point it at a fresh spec dir so the
-    # refusal cannot come from "already exists".
-    fresh = _make_spec_dir(repo, "fresh")
-    lock = _plant_unacquirable(fresh / "state.json")
-    try:
-        r = _run(COHORT, "init", str(fresh), "--run-id", run_id, cwd=repo)
-    finally:
-        lock.rmdir()
-    if r.returncode == 0:
-        fail("locked-verbs-refuse-when-held", "init exited 0 while the lock was held")
-        return
-    if (fresh / "state.json").exists():
-        fail("locked-verbs-refuse-when-held",
-             "init created state.json despite refusing")
-        return
+    # The two `init` verbs are exists-then-create, so they need a FRESH spec dir
+    # or the refusal could come from "already exists" rather than the lock.
+    for script, label, state_name, argv_for in (
+        (COHORT, "cohort init", "state.json",
+         lambda d: ["init", str(d), "--run-id", run_id]),
+        (ENGINE, "engine init", "engine-state.json",
+         lambda d: ["init", str(d), "--mode", "code"]),
+    ):
+        fresh = _make_spec_dir(repo, f"fresh-{label.split()[0]}")
+        lock = _plant_unacquirable(fresh / state_name)
+        try:
+            r = _run(script, *argv_for(fresh), cwd=repo)
+        finally:
+            lock.rmdir()
+        if r.returncode == 0:
+            fail("locked-verbs-refuse-when-held",
+                 f"{label} exited 0 while the lock was held")
+            return
+        if (fresh / state_name).exists():
+            fail("locked-verbs-refuse-when-held",
+                 f"{label} created {state_name} despite refusing")
+            return
 
     # One CONTENDED case, so the timeout path is covered too and not just the
     # immediate-refusal path.
@@ -468,6 +507,27 @@ def test_noop_paths_do_not_write(tmp: Path) -> None:
         return
     if lock_residue := list(spec_dir.glob("*.lock*")):
         fail("noop-paths-do-not-write", f"lock residue left behind: {lock_residue}")
+        return
+
+    # AC16's second clause: approve-plan re-run with both artifacts unchanged is
+    # a no-op and must not rewrite the file either.
+    first = _run(COHORT, "approve-plan", str(spec_dir),
+                 "--expect-run-id", run_id, cwd=repo)
+    if first.returncode != 0:
+        fail("noop-paths-do-not-write",
+             f"approve-plan failed: {(first.stdout + first.stderr).strip()[:200]}")
+        return
+    before_approve = state_file.read_bytes()
+    again = _run(COHORT, "approve-plan", str(spec_dir),
+                 "--expect-run-id", run_id, cwd=repo)
+    if again.returncode != 0:
+        fail("noop-paths-do-not-write",
+             f"re-running approve-plan unchanged should be a no-op, got: "
+             f"{(again.stdout + again.stderr).strip()[:200]}")
+        return
+    if state_file.read_bytes() != before_approve:
+        fail("noop-paths-do-not-write",
+             "approve-plan rewrote state.json when nothing had changed")
         return
     ok("noop-paths-do-not-write")
 
@@ -531,36 +591,40 @@ def test_lock_hold_budget(_tmp: Path) -> None:
 
 # ── AC18 — the suite does not touch the live repo ──────────────────────────
 
-# STUB: AC18
+# STUB: AC21
 def test_harness_is_hermetic(tmp: Path) -> None:
-    """Every case above passes cwd=<tmp repo>, so loop-engine's _get_repo_root()
-    resolves inside tmp_path. Assert the real repo is untouched."""
-    # parents[5], not [4]: [3] is packs/core, [4] is packs/, [5] is the repo
-    # root. Getting this wrong made this case pass vacuously (no packs/.loop-run
-    # exists, so before == after == None) — a false green in the one test whose
-    # job is to catch false greens. The .git assertion makes a future move loud.
-    live_root = Path(__file__).resolve().parents[5]
-    if not (live_root / ".git").exists():
+    """The live repo is byte-identical after a full run.
+
+    Compared against the import-time baseline, so this covers what EVERY case
+    above did, not just this one.
+    """
+    if not (LIVE_ROOT / ".git").exists():
         fail("harness-is-hermetic",
-             f"{live_root} is not the repo root — check the parents[] depth")
+             f"{LIVE_ROOT} is not the repo root — check the parents[] depth")
         return
-    live_loop_run = live_root / ".loop-run"
-    before = sorted(p.name for p in live_loop_run.iterdir()) if live_loop_run.is_dir() else None
+
+    # Exercise the engine once more for good measure, in its own temp repo.
     root = tmp / "herm"
     root.mkdir(parents=True)
     repo = _init_git_repo(root)
     spec_dir = _make_spec_dir(repo, "demo")
     _engine_init(repo, spec_dir)
-    _run_barriered(2, ENGINE, [["transition", str(spec_dir), "spec-ready"]] * 2, repo)  # noqa
-    after = sorted(p.name for p in live_loop_run.iterdir()) if live_loop_run.is_dir() else None
-    if before != after:
-        fail("harness-is-hermetic",
-             f"the live repo's .loop-run/ changed: {before} -> {after}")
-        return
+    _run_barriered(2, ENGINE, [["transition", str(spec_dir), "spec-ready"]] * 2, repo)
+
     if not (repo / ".loop-run").is_dir():
         fail("harness-is-hermetic",
              "the tmp repo has no .loop-run/ — the child did not resolve its "
              "repo root inside tmp_path, so the run was not hermetic")
+        return
+
+    now = _live_fingerprint()
+    if now != _LIVE_BASELINE:
+        changed = sorted(
+            set(now) ^ set(_LIVE_BASELINE)
+            | {k for k in set(now) & set(_LIVE_BASELINE) if now[k] != _LIVE_BASELINE[k]}
+        )
+        fail("harness-is-hermetic",
+             f"the live repo changed during this suite: {changed}")
         return
     ok("harness-is-hermetic")
 

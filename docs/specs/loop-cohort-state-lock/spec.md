@@ -1,6 +1,6 @@
 # Spec: loop-cohort-state-lock
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Contract:** none
@@ -82,120 +82,130 @@ and each task's `Tests:`.
 
 **One authored source (ADR-0074)**
 
-- [ ] **AC1** — The lock is authored once, at
+- [x] **AC1** — The lock is authored once, at
       `packages/agentbundle/agentbundle/statelock_core.py`, and imports only the
       standard library — no `agentbundle` import, so the projected copy is
       importable standalone.
-- [ ] **AC2** — It behaves identically on every platform: no platform branch and
+- [x] **AC2** — It behaves identically on every platform: no platform branch and
       no `fcntl` / `msvcrt` import.
-- [ ] **AC3** — `packs/core/.apm/skills/work-loop/scripts/_statelock.py` is a
+- [x] **AC3** — `packs/core/.apm/skills/work-loop/scripts/_statelock.py` is a
       byte-identical projection of that source, written by `make build-self`.
-- [ ] **AC4** — `make build-check` fails when the projected copy is **modified**,
+- [x] **AC4** — `make build-check` fails when the projected copy is **modified**,
       **missing**, or **orphaned**, each message naming the source and the
       regeneration command. Projection is a documented no-op outside the
       monorepo; the committed copy is what adopters receive.
 
 **The lock primitive**
 
-- [ ] **AC5** — Mutual exclusion holds **across OS processes**: with N
+- [x] **AC5** — Mutual exclusion holds **across OS processes**: with N
       contenders, never two holders at once.
-- [ ] **AC6** — No lockfile *created by this holder* remains after the body
+- [x] **AC6** — No lockfile *created by this holder* remains after the body
       returns or after the body raises. (A lockfile that is no longer this
       holder's is deliberately left alone — AC9.)
-- [ ] **AC7** — Every failure to acquire raises a `StateLockError`, which does
+- [x] **AC7** — Every failure to acquire raises a `StateLockError`, which does
       **not** derive from `OSError`. One base for all of them — contention,
       `EACCES`, `EROFS`, a non-regular lock path — so no pre-existing broad
       `except OSError` can swallow one into a fall-through, and a caller can
       distinguish "retry later" from "this will never be acquirable".
       Acquisition never leaves a traceback.
-- [ ] **AC8** — Bounded wait, no hot spin. With the lock path occupied by a
+- [x] **AC8** — Bounded wait, no hot spin. With the lock path occupied by a
       **dangling symlink**, a **directory**, and a **FIFO**, acquisition fails
       in **less than `timeout`** in each case — it is unacquirable, not
       contended — and burns no measurable CPU spinning. This is a confirmed live
       defect in the precedent (`notes/reproduction.md` Case C).
-- [ ] **AC9** — Reclaim and release cannot admit or mask a second writer:
-      - N concurrent reclaimers of one stale lock yield exactly one holder,
-        including when they share a pid.
+- [x] **AC9** — Reclaim and release cannot admit or mask a second writer:
+      - N concurrent reclaimers of one stale lock yield exactly one holder
+        (asserted across OS processes; the reclaim target name is also unique
+        per *attempt*, so same-process reclaimers cannot collide either — see
+        the plan's LLD).
       - Reclaim refuses a file at the lock path that does not parse as a
         lockfile this module wrote, so it deletes nothing it does not recognise.
       - Release identifies its own lockfile by `(st_dev, st_ino)` captured at
-        acquire, not by content.
+        acquire **and** the per-hold token it wrote. Inode identity alone
+        false-matches after inode reuse (routine on ext4 and tmpfs, i.e. Linux
+        CI), which would unlink a successor's live lock while reporting success;
+        the same pair gates reclaim, so it deletes nothing it did not write.
       - **If release finds its lockfile gone or foreign, the verb reports that
         it lost the lock mid-mutation, names the state file, and exits
         non-zero.** Ownership-checked release protects the successor's *file*;
         this criterion is what protects the *state*, and without it a reclaimed
         holder completes its write and exits 0 — the original defect, restored
         through the reclaim path.
-- [ ] **AC10** — The linked budget is machine-checked, not asserted in prose:
+- [x] **AC10** — The linked budget is machine-checked, not asserted in prose:
       every subprocess reachable while the lock is held passes an explicit
       `timeout=`, and `stale_after` exceeds the resulting maximum hold, which in
       turn exceeds `timeout`. A test derives this from the source and fails when
       a new unbounded call is added under lock.
-- [ ] **AC11** — The lockfile is mode `0o600`, holds a single bounded
+- [x] **AC11** — The lockfile is mode `0o600`, holds a single bounded
       well-formed record, and the token write must succeed before the body is
-      entered — on failure the lockfile is removed and the verb fails closed.
+      entered — on failure the lockfile is removed and the verb fails closed
+      (this last clause is by construction, not by an automated case: injecting
+      an `os.write` failure needs a seam the module deliberately lacks;
+      deferred: `statelock-token-write-failure-test`).
       A timeout message names the lock path and the holder pid, rendering the
       pid only if it parses as a pid, so lockfile bytes can never reach a
       terminal unvalidated.
-- [ ] **AC12** — Acquiring the lock creates no directory; a verb given a
+- [x] **AC12** — Acquiring the lock creates no directory; a verb given a
       nonexistent spec-dir refuses without creating anything.
 
 **The wiring**
 
-- [ ] **AC13** — Every code path that writes `state.json` or
+- [x] **AC13** — Every code path that writes `state.json` or
       `engine-state.json` does so inside a critical section that also contains
       the read it decided from. Ten verbs today; the inventory is in the LLD.
-- [ ] **AC14** — For `loop-engine.py`'s `transition`, the critical section
+- [x] **AC14** — For `loop-engine.py`'s `transition`, the critical section
       extends through the outbox finalisation, not merely through the state
       write. Releasing at the write leaves a reachable same-spec
       duplicate-event interleaving.
-- [ ] **AC15** — Every locked verb, when the lock cannot be acquired for **any**
+- [x] **AC15** — Every locked verb, when the lock cannot be acquired for **any**
       reason, exits non-zero and creates or modifies nothing on disk. Verified
       per verb, not by a module-level timeout test.
-- [ ] **AC16** — Locked no-op paths still do not write: `record-attempt` with a
+- [x] **AC16** — Locked no-op paths still do not write: `record-attempt` with a
       repeated `--cycle-id`, and `approve-plan` when already approved, leave
       `state.json` byte-identical.
 
 **The regressions** (each recorded failing pre-fix in `notes/reproduction.md`)
 
-- [ ] **AC17** — N concurrent `record-attempt` calls in separate OS processes
+- [x] **AC17** — N concurrent `record-attempt` calls in separate OS processes
       with distinct `--cycle-id` values: **all N exit 0 and
       `implementation_retry_count == N`.** Asserted against N, never against
-      the number that happened to succeed. N = 2 over 20 trials, N = 8 over 5.
-- [ ] **AC18** — Two concurrent identical `transition` calls: exactly one exits
+      the number that happened to succeed, at more than one N and over repeated
+      trials (counts in `plan.md` T2; pre-fix rates in
+      `notes/reproduction.md`).
+- [x] **AC18** — Two concurrent identical `transition` calls: exactly one exits
       0; the loser exits non-zero with `illegal transition`, never a lock
       timeout. Surviving `transition_sequence` is 1, and `events.jsonl` holds
       exactly one record for that spec.
-- [ ] **AC19** — N concurrent `init` calls: exactly one exits 0 and the rest
+- [x] **AC19** — N concurrent `init` calls: exactly one exits 0 and the rest
       refuse with `already exists` — a lock timeout does not satisfy this.
       Covers both scripts' `init`, and a concurrent `init`/`reset` pair cannot
       leave a resurrected state file.
-- [ ] **AC20** — Every concurrency case proves its children actually raced,
+- [x] **AC20** — Every concurrency case proves its children actually raced,
       and fails loudly when they did not. A guessed barrier lead smears them
       apart (measured in `notes/reproduction.md`), which would turn every case
       into a silent false pass.
-- [ ] **AC21** — The suite is hermetic: the live repo's `.loop-run/` **contents**
+- [x] **AC21** — The suite is hermetic: the live repo's `.loop-run/` **contents**
       and `.gitignore` are byte-identical before and after a full run, compared
       against a baseline taken at import — not mid-suite — since
       `loop-engine init` appends to `.gitignore`.
 
 **Not-a-regression, and the ship-side**
 
-- [ ] **AC22** — Existing behavior is unchanged: `test-loop-cohort.py`,
+- [x] **AC22** — Existing behavior is unchanged: `test-loop-cohort.py`,
       `test-loop-engine.py`, `test-loop-cohort.sh`, and the pytest-collected
       `test_loop_cohort_schedule.py`, `test_loop_engine_events_jsonl.py`,
       `test_loop_cohort_max_iter_single_source.py` all pass.
-- [ ] **AC23** — `.gitignore` and the shipped adopter seed
+- [x] **AC23** — `.gitignore` and the shipped adopter seed
       `packs/core/seeds/.gitignore` both ignore the lockfile and its reclaim
       residue; `git status` is clean after a run that leaves both behind.
-- [ ] **AC24** — The three projected copies of every touched skill script are
+- [x] **AC24** — The three projected copies of every touched skill script are
       byte-identical after `make build-self`, and `docs.yml` path triggers cover
       the new module and test files.
-- [ ] **AC25** — `docs/product/changelog.md` carries a user-facing entry that
+- [x] **AC25** — `docs/product/changelog.md` carries a user-facing entry that
       names how to clear a stale lock and how long the stale window is;
       `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` and
       `.claude-plugin/marketplace.json` all carry the same bumped version.
-- [ ] **AC26** — `workspace.toml [backlog].open` drops
+- [x] **AC26** — `workspace.toml [backlog].open` drops
       `loop-cohort-state-rmw-unlocked` and carries
       `agentbundle-statelock-symlink-spin`, `loop-outbox-cross-spec-rmw`,
       `append-knowledge-rmw-unlocked` and

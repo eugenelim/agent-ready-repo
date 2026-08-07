@@ -209,7 +209,13 @@ def with_state_lock(spec_dir: Path, verb: str, body):
     different: the mutation ran, and a reclaim may have overwritten it, so
     exiting 0 would be a lie.
     """
-    sl = _statelock()
+    try:
+        sl = _statelock()
+    except (ImportError, OSError) as exc:
+        # A missing or unloadable projection must refuse, not traceback. In an
+        # adopter tree this is the realistic shape, and proceeding unlocked would
+        # be the fail-open this lock exists to prevent.
+        return stop(f"{verb}: state lock unavailable: {exc}")
     try:
         with sl.exclusive(state_path_for(spec_dir)):
             return body()

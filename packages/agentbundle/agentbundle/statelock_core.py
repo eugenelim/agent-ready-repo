@@ -1,12 +1,17 @@
 """Cross-process advisory lock for a state-file read-modify-write.
 
-**This module is the single authored source for two consumers** (ADR-0074). It
-is projected byte-faithfully to
-``packs/core/.apm/skills/work-loop/scripts/_statelock.py`` by
-``agentbundle.build.skill_libs``, so it must import **only the standard
-library** — no ``agentbundle`` import, direct or lazy. The projected copy runs in
-adopter trees where this package is not installed. ``make build-check`` gates
-the copy against this file.
+**One authored source, projected — do not edit a copy** (ADR-0074).
+
+The source of truth is ``packages/agentbundle/agentbundle/statelock_core.py``.
+Every copy that appears under a skill's ``scripts/`` directory — for example
+``packs/core/.apm/skills/work-loop/scripts/_statelock.py``, and the ``.claude/``
+and ``.agents/`` projections of it — is **generated** by ``make build-self`` via
+``agentbundle.build.skill_libs``. If you are reading this from any of those
+paths, edit the source instead; ``make build-check`` fails on a modified copy.
+
+Because the copies must be importable standalone, this module imports **only the
+standard library** — no ``agentbundle`` import, direct or lazy. The skills run in
+adopter trees where this package is not installed.
 
 The problem it solves: writing a state file atomically (``mkstemp`` +
 ``os.replace``) does not make the *command-level* read-modify-write atomic. Two
@@ -22,15 +27,19 @@ Hardening over ``statelock.state_lock``, which this supersedes for new callers:
   follows a symlink — so a dangling symlink at the lock path spins at ~98% CPU
   forever and the timeout never fires. Here the examine step uses ``os.lstat``
   and refuses any non-regular file outright: waiting cannot make it acquirable.
-* **Reclaim re-checks inode identity.** Rename alone is not enough. Contender B
-  observes a stale lock; A reclaims it, unlinks, and creates a fresh lock; B then
-  renames *A's live lock* away and acquires — two holders. So the reclaim renames
-  to a per-attempt unique name, confirms the moved file is the one it judged
-  stale, and puts it back if it is not.
-* **Release keys on identity, not content**, and reports when its lockfile is
-  gone or foreign (``StateLockLost``) instead of unlinking a successor's file and
-  exiting quietly. This is what protects the *state* rather than the file: a
-  holder whose lock was reclaimed mid-body must not report success.
+* **Reclaim and release key on inode identity AND the per-hold token.** Rename
+  alone is not enough: contender B observes a stale lock; A reclaims it and
+  creates a fresh one; B then renames *A's live lock* away and acquires — two
+  holders. Inode identity alone is not enough either, because ext4 and tmpfs
+  reuse inode numbers, so a successor's lockfile can land on the freed inode of
+  the file being checked. Both together make a false match require reproducing a
+  uuid4. A mismatched reclaim restores the file with ``os.link`` rather than
+  ``rename``, since ``rename`` would silently replace — and so delete — a
+  bystander's lockfile.
+* **A holder that lost its lock says so** (``StateLockLost``) rather than
+  unlinking a successor's file and exiting quietly. This is what protects the
+  *state* rather than the file: a holder reclaimed mid-body must not report
+  success, or the lost update is back with a green exit code.
 * **No ``mkdir``.** The older helper creates the lock's parent, which is safe
   only for a confined state path. A caller whose path is unconfined would gain an
   arbitrary-directory-creation side effect on a path it then refuses.
@@ -111,35 +120,75 @@ def lock_path_for(path: Path) -> Path:
     return path.with_name(path.name + ".lock")
 
 
-def _read_holder_pid(lock: Path) -> str | None:
-    """The holder pid from a lockfile this module wrote, else None.
+def _read_record(lock: Path) -> bytes | None:
+    """The raw record bytes, or None if the path is not a plain readable file.
 
-    None means "not a record we recognise" — either foreign content or a
-    partially written one. Callers must not reclaim on None.
+    Opened ``O_NOFOLLOW`` so this is the one call on the lock path that cannot
+    be redirected by a symlink planted after the ``S_ISREG`` check.
     """
     try:
-        with Path(lock).open("rb") as fh:
-            raw = fh.read(_MAX_RECORD_BYTES + 1)
+        fd = os.open(lock, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
     except OSError:
         return None
-    if len(raw) > _MAX_RECORD_BYTES:
+    try:
+        return os.read(fd, _MAX_RECORD_BYTES + 1)
+    except OSError:
+        return None
+    finally:
+        with contextlib.suppress(OSError):
+            os.close(fd)
+
+
+def _holder_pid(record: bytes | None) -> str | None:
+    """The holder pid from a record this module wrote, else None.
+
+    None means "not a record we recognise" — foreign content, or a create that
+    was torn before its write. Never rendered into a message unvalidated.
+    """
+    if record is None or len(record) > _MAX_RECORD_BYTES:
         return None
     try:
-        text = raw.decode("ascii")
+        text = record.decode("ascii")
     except UnicodeDecodeError:
         return None
     match = _RECORD_RE.match(text)
     return match.group(2) if match else None
 
 
-def _reclaim(lock: Path, observed: os.stat_result) -> None:
+def _same_file(st: os.stat_result, ident: tuple[int, int]) -> bool:
+    """Inode identity. Necessary but NOT sufficient — see :func:`_is_ours`."""
+    return (st.st_dev, st.st_ino) == ident
+
+
+def _is_ours(lock: Path, ident: tuple[int, int], record: bytes) -> bool:
+    """True iff *lock* is still the exact file this hold created.
+
+    Inode identity alone is not enough: ext4 and tmpfs reuse inode numbers
+    aggressively, so a successor's lockfile can land on the freed inode of the
+    file we are checking for. Matching the per-hold token as well makes a false
+    positive require reproducing a uuid4, which is the point of the token.
+    """
+    try:
+        st = os.lstat(lock)
+    except OSError:
+        return False
+    return _same_file(st, ident) and _read_record(lock) == record
+
+
+def _reclaim(lock: Path, observed: os.stat_result, record: bytes | None) -> None:
     """Best-effort removal of the stale lockfile *observed*.
 
     Rename to a per-attempt unique name — unique per *attempt*, not per pid, so
     two threads of one process cannot collide — then confirm the file that moved
-    is the one judged stale before unlinking it. On a mismatch we moved a live
-    lock: put it back. Any residual window is caught at the other end by
-    :class:`StateLockLost`.
+    is the one judged stale before unlinking it.
+
+    On a mismatch we moved a *live* holder's lock, so it has to go back. The
+    restore uses ``os.link`` rather than ``rename``: ``rename`` silently replaces
+    its destination, so if a third process took the momentarily-free lock path in
+    the meantime, restoring by rename would delete that process's lockfile and
+    leave two holders inside the section. ``link`` fails with ``FileExistsError``
+    instead, and the displaced holder then discovers the loss at release
+    (:class:`StateLockLost`) rather than a bystander losing a write silently.
     """
     claimed = lock.with_name(f"{lock.name}.reclaim.{uuid.uuid4().hex}")
     try:
@@ -150,27 +199,35 @@ def _reclaim(lock: Path, observed: os.stat_result) -> None:
         moved = os.lstat(claimed)
     except OSError:
         return
-    if (moved.st_dev, moved.st_ino) != (observed.st_dev, observed.st_ino):
-        # Not the file we judged stale — a live holder's. Restore it.
+    # Both inode identity AND the bytes we judged stale — inode reuse alone
+    # would let this delete a foreign file created in the window.
+    if not _same_file(moved, (observed.st_dev, observed.st_ino)) or (
+        _read_record(claimed) != record
+    ):
+        try:
+            os.link(claimed, lock)
+        except FileExistsError:
+            # The lock path is occupied again; leaving `claimed` where it is
+            # fails closed — that holder reports StateLockLost at release.
+            return
+        except OSError:
+            return
         with contextlib.suppress(OSError):
-            Path(claimed).rename(lock)
+            Path(claimed).unlink()
         return
     with contextlib.suppress(OSError):
         Path(claimed).unlink()
 
 
-def _release(lock: Path, ident: tuple[int, int]) -> bool:
+def _release(lock: Path, ident: tuple[int, int], record: bytes) -> bool:
     """Unlink *lock* iff it is still the file we created. True == lock lost.
 
-    Identity, not content: a truncate-in-place rewrite keeps the inode, and
-    comparing bytes would reject this check's own stronger form.
+    Identity plus token, never content-equality-only and never inode-only: the
+    first would reject a legitimate re-read, the second false-matches after
+    inode reuse and would unlink a successor's live lock while reporting success.
     """
-    try:
-        current = os.lstat(lock)
-    except OSError:
-        return True  # gone — someone reclaimed it
-    if (current.st_dev, current.st_ino) != ident:
-        return True  # a successor's file — leave it alone
+    if not _is_ours(lock, ident, record):
+        return True  # gone, or a successor's — leave it alone and report
     with contextlib.suppress(OSError):
         Path(lock).unlink()
     return False
@@ -229,13 +286,19 @@ def exclusive(
                     "cannot make this acquirable — remove it."
                 ) from None
 
-            holder = _read_holder_pid(lock)
-            unrecognised = holder is None
+            observed_record = _read_record(lock)
+            holder = _holder_pid(observed_record)
+            # A zero-length lockfile is a TORN CREATE: the record is written
+            # immediately after O_CREAT|O_EXCL, so an empty file can never be a
+            # live holder's. Treat it as reclaimable, or a process killed in that
+            # one-instruction window wedges the spec until a human intervenes.
+            torn = observed_record == b""
+            unrecognised = holder is None and not torn
             # Staleness is wall-clock (st_mtime), unlike the monotonic timeout,
             # so it is exposed to NTP skew; the stale_after margin absorbs it.
             age = time.time() - observed.st_mtime
-            if age > stale_after and not unrecognised:
-                _reclaim(lock, observed)
+            if (age > stale_after or torn) and not unrecognised:
+                _reclaim(lock, observed, observed_record)
                 if time.monotonic() >= deadline:
                     raise StateLockTimeout(
                         f"could not acquire {lock} within {timeout}s"
@@ -248,15 +311,23 @@ def exclusive(
 
             if time.monotonic() >= deadline:
                 if unrecognised:
+                    detail = (
+                        "it is not readable by this user "
+                        f"(owner uid {observed.st_uid})"
+                        if observed_record is None
+                        else "it holds no record this tool wrote"
+                    )
                     raise StateLockTimeout(
-                        f"could not acquire {lock} within {timeout}s: it holds "
-                        "no record this tool wrote, so it was not reclaimed. "
-                        "Inspect it and remove it by hand if the run is dead."
+                        f"could not acquire {lock} within {timeout}s: {detail}, "
+                        f"so it was not reclaimed. It is "
+                        f"{time.time() - observed.st_mtime:.0f}s old; inspect it "
+                        "and remove it by hand if the run is dead."
                     ) from None
                 raise StateLockTimeout(
-                    f"could not acquire {lock} within {timeout}s (held by pid "
-                    f"{holder}). If that process is gone, the lock is reclaimed "
-                    f"automatically after {stale_after:.0f}s, or remove it."
+                    f"could not acquire {lock} within {timeout}s (recorded "
+                    f"holder pid {holder}). If that process is gone, the lock is "
+                    f"reclaimed automatically after {stale_after:.0f}s, or "
+                    "remove it."
                 ) from None
             time.sleep(poll)
         except OSError as exc:
@@ -273,8 +344,6 @@ def exclusive(
         # An empty or partial lockfile can never be recognised at release, so it
         # would wedge every later verb until stale_after. Remove it and refuse.
         with contextlib.suppress(OSError):
-            os.close(fd)
-        with contextlib.suppress(OSError):
             Path(lock).unlink()
         raise StateLockError(
             f"could not write the lock record to {lock}: {exc}"
@@ -287,7 +356,7 @@ def exclusive(
     try:
         yield lock
     finally:
-        lost = _release(lock, ident)
+        lost = _release(lock, ident, record)
     # Only reached when the body completed. If the body raised, that exception
     # propagates out of the try/finally and is not masked by this one.
     if lost:
