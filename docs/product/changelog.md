@@ -394,6 +394,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no skill, script, command, hook, reference or eval was removed, renamed, or
   edited. If you have an older install, the stale `test_*.py` files under your
   installed skills are safe to delete.
+## [core][2.2.2] — 2026-08-06
+
+### Fixed
+
+- **The approval pin no longer breaks on the writes the loop itself mandates.**
+  `loop-cohort approve-plan` pinned the raw bytes of `spec.md`, but `work-loop`
+  requires writing `Status: Implementing` before any code and `Shipped` plus a
+  ticked acceptance criterion at finish — so `plan check-current` went red one
+  mandated step after approval, every run. `plan.md` had the same defect on a
+  worse path: `schedule check-current` guards every `CODE-*` transition, so a
+  plan `Status: Done` could wedge the state machine mid-EXECUTE. Both artifacts
+  are now hashed through one canonical form that normalizes the preamble status
+  *token* and checkbox bracket contents and nothing else. Substance stays
+  pinned: acceptance-criterion text, task text, `Depends on:` edges, a
+  `(deferred: <slug>)` annotation, a re-indented criterion, and any free text
+  appended after the status token all still invalidate the baseline.
+
+- **Knowledge entries have a writer, so the file stops drifting between
+  encodings.** `docs/knowledge/patterns.jsonl` is line-delimited JSON, where
+  both `\u2014` and a literal `—` are valid — so an author reaching for
+  `json.dumps(entry)` (whose `ensure_ascii` defaults to `True`) silently changed
+  the file's encoding while passing every gate, and for a non-BMP character
+  emitted a surrogate pair that is not a valid TOML/YAML scalar downstream.
+  `append-knowledge.py` now allocates the next id, writes raw UTF-8, confines
+  its target, and lints the candidate before installing it, so a rejected entry
+  never reaches the file. `lint-knowledge.py` rejects a `\uXXXX` escape for any
+  character that should have been literal — keeping the escaped form legal
+  where it is the only one that survives (`U+0085`, `U+2028`, `U+2029`, which
+  `str.splitlines()` treats as line breaks, and everything below `U+0020`).
+
+### Upgrading
+
+A run already in flight when this lands carries a baseline pinned by the old
+hash, which the new canonical form will not match. Recover with a **cohort-only**
+reset — do not reset the engine, whose `plan-locked` transition is legal only
+from `SPEC-PLAN-APPROVED`, so resetting it strands the run:
+
+1. Restore `Status: Approved` in **both** `spec.md` and `plan.md`; `approve-plan`
+   refuses unless both read `Approved`.
+2. `loop-cohort reset`, then `loop-cohort init` with the engine's existing
+   `run_id` (read it from `loop-engine status --json`).
+3. `approve-plan`, then `schedule`.
+4. Restore the status you were on and continue.
+
+Two things to know before you do it. Re-running `approve-plan` re-pins whatever
+bytes are on disk — that is a re-approval in substance, so it is the plan
+approver's call to re-affirm them, not something to self-serve. And the reset
+returns `implementation_retry_count`, `review_round_count`, `review_retry_count`
+and the recorded finding fingerprints to zero, so retry caps restart and stasis
+detection loses its baseline.
 
 ## [agentbundle][0.29.4] — 2026-08-06
 

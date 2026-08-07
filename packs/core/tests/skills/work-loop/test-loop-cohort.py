@@ -35,9 +35,8 @@ _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 
 parse_findings = _mod.parse_findings
-canonical_plan = _mod.canonical_plan
-sha256_canonical_plan = _mod.sha256_canonical_plan
-sha256_file = _mod.sha256_file
+canonical_contract = _mod.canonical_contract
+sha256_canonical_contract = _mod.sha256_canonical_contract
 CLEAN_SUBSTRING = _mod.CLEAN_SUBSTRING
 
 # ── helpers ───────────────────────────────────────────────────────────────
@@ -475,8 +474,16 @@ def test_approve_plan_overwrites_hashes(tmp: Path) -> None:
         return
     path = spec_dir / "state.json"
     before = path.read_bytes()
-    # Spec bytes change (status edit) → second approve-plan must refuse
+    # A status-only bump is bookkeeping: approve-plan replays as a no-op.
     write_spec(spec_dir, status="Implementing")
+    rc_noop, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    if rc_noop != 0:
+        fail(name, f"status bump should replay as a no-op, got exit {rc_noop}")
+        return
+    # A substantive change must still refuse.
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n"
+        "- [ ] AC1\n- [ ] AC2 added after approval\n", encoding="utf-8")
     rc2, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     after = path.read_bytes()
     if rc2 == 0:
@@ -514,8 +521,11 @@ def test_plan_check_current_changed_spec(tmp: Path) -> None:
     write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
-    # Change spec.md after approval
-    write_spec(spec_dir, status="Implementing")
+    # Substantive change after approval — a *status* bump is bookkeeping and is
+    # deliberately hash-neutral, so it would no longer prove anything here.
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n"
+        "- [ ] AC1\n- [ ] AC2 added after approval\n", encoding="utf-8")
     rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
     if rc == 0:
         fail(name, "expected non-zero when spec.md changed after approve-plan")
@@ -1634,10 +1644,10 @@ def test_validate_run_id_rejects_wrong_schema(tmp: Path) -> None:
         ok(name)
 
 
-def test_canonical_plan_normalization(tmp: Path) -> None:
-    name = "canonical-plan-normalization"
+def test_canonical_contract_normalization(tmp: Path) -> None:
+    name = "canonical-contract-normalization"
     crlf_text = "line1  \r\nline2\r\n"
-    result = canonical_plan(crlf_text)
+    result = canonical_contract(crlf_text)
     if "\r" in result:
         fail(name, "CRLF not normalized")
     elif any(line != line.rstrip() for line in result.split("\n")):
@@ -1726,8 +1736,10 @@ def test_approve_plan_refuses_changed_spec(tmp: Path) -> None:
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     path = spec_dir / "state.json"
     before = path.read_bytes()
-    # Modify spec.md after approval
-    write_spec(spec_dir, status="Implementing")
+    # Substantive modification — a status bump is now hash-neutral by design.
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n"
+        "- [ ] AC1\n- [ ] AC2 added after approval\n", encoding="utf-8")
     rc, _, err = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     after = path.read_bytes()
     if rc == 0:
@@ -1842,8 +1854,12 @@ def test_approve_plan_state_preserved_on_refusal(tmp: Path) -> None:
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     path = spec_dir / "state.json"
-    # Scenario A: changed spec after approval
-    write_spec(spec_dir, status="Implementing")
+    # Scenario A: substantively changed spec after approval. A status bump is
+    # hash-neutral by design, so it would leave this case green while no longer
+    # exercising the refusal the test name claims.
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n"
+        "- [ ] AC1\n- [ ] AC2 added after approval\n", encoding="utf-8")
     before_a = path.read_bytes()
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     after_a = path.read_bytes()
@@ -2028,10 +2044,120 @@ def test_gplan_ordering_status_approved_before_approve_plan(tmp: Path) -> None:
 # ── runner ────────────────────────────────────────────────────────────────
 
 
+# ── STUBS: docs/specs/loop-tooling-mandated-writes, task T1 ─────────────────
+#
+# They encode the invariant the pin is *supposed* to hold: the loop's own
+# mandated bookkeeping writes must not move the hash, while anything that
+# changes approved scope still must.
+#
+# Only the first is red today. The second is a must-still-pass guard — the
+# current raw-byte hash already catches it, and the point is that the
+# canonicalization of T1 must not stop catching it.
+
+
+# STUB: AC4
+def test_stub_lifecycle_status_bump_keeps_pin(tmp: Path) -> None:
+    """STUB: AC4. SKILL.md:220 mandates spec `Status: Implementing` before any
+    code and :434 mandates spec `Shipped` / plan `Done` at finish. None of
+    those writes may move the approved baseline."""
+    name = "stub-lifecycle-status-bump-keeps-pin"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    for spec_status, plan_status in (("Implementing", "Approved"),
+                                     ("Shipped", "Done")):
+        write_spec(spec_dir, status=spec_status)
+        write_plan(spec_dir, status=plan_status)
+        rc_plan, _, err_plan = run_cohort(
+            "plan", "check-current", str(spec_dir), "--require-schedule")
+        if rc_plan != 0:
+            fail(name, f"plan check-current went red on spec={spec_status} "
+                       f"plan={plan_status}: {err_plan!r}")
+            return
+        rc_sched, _, err_sched = run_cohort(
+            "schedule", "check-current", str(spec_dir))
+        if rc_sched != 0:
+            fail(name, f"schedule check-current went red on spec={spec_status} "
+                       f"plan={plan_status}: {err_sched!r}")
+            return
+    ok(name)
+
+
+# STUB: AC4
+def test_stub_lifecycle_bump_with_vocabulary_comment(tmp: Path) -> None:
+    """STUB: AC4, on the shape real specs actually have.
+
+    158 spec/plan files in this repo carry the status token a second time
+    inside the trailing vocabulary comment. `write_spec` / `write_plan` emit no
+    comment, so a `str.replace(token, ...)` implementation normalizes both
+    occurrences, produces a different digest per status, and fails every real
+    spec while the other fixtures stay green. Only a span-bounded splice of the
+    token itself passes this.
+    """
+    name = "stub-lifecycle-bump-with-vocabulary-comment"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    spec_vocab = "<!-- Draft | Approved | Implementing | Shipped | Archived -->"
+    plan_vocab = "<!-- Drafting | Approved | Executing | Done -->"
+
+    def write_real(spec_status: str, plan_status: str) -> None:
+        (spec_dir / "spec.md").write_text(
+            f"# Spec\n\n- **Status:** {spec_status} {spec_vocab}\n\n"
+            "## Acceptance criteria\n\n- [ ] AC1\n", encoding="utf-8")
+        (spec_dir / "plan.md").write_text(
+            f"# Plan\n\n- **Status:** {plan_status} {plan_vocab}\n\n"
+            "### T1\n\n**Depends on:** none\n", encoding="utf-8")
+
+    write_real("Approved", "Approved")
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    for spec_status, plan_status in (("Implementing", "Approved"),
+                                     ("Shipped", "Done")):
+        write_real(spec_status, plan_status)
+        rc, _, err = run_cohort("plan", "check-current", str(spec_dir),
+                                "--require-schedule")
+        if rc != 0:
+            fail(name, f"went red on spec={spec_status} plan={plan_status} "
+                       f"with the vocabulary comment present: {err!r}")
+            return
+    ok(name)
+
+
+# STUB: AC6
+def test_stub_status_line_smuggling_still_caught(tmp: Path) -> None:
+    """STUB: AC6. Only the status *token* is bookkeeping. Free text appended
+    after it sits inside the approved contract and must still trip the pin."""
+    name = "stub-status-line-smuggling-still-caught"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Implementing — scope now also covers "
+        "deleting packages/credbroker\n\n## Acceptance criteria\n\n- [ ] AC1\n",
+        encoding="utf-8",
+    )
+    rc, _, _ = run_cohort("plan", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "free text appended after the status token passed the pin")
+    else:
+        ok(name)
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
         tests = [
+            test_stub_lifecycle_status_bump_keeps_pin,
+            test_stub_lifecycle_bump_with_vocabulary_comment,
+            test_stub_status_line_smuggling_still_caught,
             test_identity_absent_state,
             test_identity_wrong_schema_version,
             test_identity_run_id_mismatch,
@@ -2104,7 +2230,7 @@ def main() -> int:
             test_parse_findings_specialist_formats,
             test_classify_report_ship_it_clean,
             test_validate_run_id_rejects_wrong_schema,
-            test_canonical_plan_normalization,
+            test_canonical_contract_normalization,
             test_schedule_accepts_level2_task_headings,
             test_gplan_ordering_status_approved_before_approve_plan,
             test_approve_plan_first_write,

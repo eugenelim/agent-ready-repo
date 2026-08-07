@@ -29,9 +29,14 @@ wants into their own AGENTS.md).
 
 ## Mid-EXECUTE re-plan — Phase-1 note
 
-In Phase 1 approved plans are **immutable**: `loop-cohort plan check-current`
-guards every `CODE-*` transition against the scheduled `plan_hash`; any edit to
-`plan.md` after `approve-plan` causes a refusal. If EXECUTE discovers a plan
+In Phase 1 approved plans are **immutable in substance**: `loop-cohort schedule
+check-current` guards every `CODE-*` transition against the scheduled
+`plan_hash`. Lifecycle **bookkeeping** is exempt — the preamble status token and
+progress checkboxes are normalized out of the hash, because this skill mandates
+writing them. Any *substantive* edit to `plan.md` after `approve-plan` — task
+text, a `Depends on:` edge, a re-ordering — still causes a refusal.
+(Note `loop-cohort.py`'s `_resolve_spec_dir` is a lexical `..` check, not path
+confinement; don't cite it as the pattern for a new path-taking verb.) If EXECUTE discovers a plan
 error, surface to the human and stop — do not edit `plan.md` in-flight. The
 full mid-EXECUTE re-plan path (structural-change re-fire, reviewer re-run, new
 approval) is a Phase-2 feature; this section will be updated when it ships.

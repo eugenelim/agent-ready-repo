@@ -171,26 +171,108 @@ def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPro
 
 # ── hashing helpers ───────────────────────────────────────────────────────
 
+# Lazy handle on the sibling lint-spec-status.py. Status and acceptance-criterion
+# recognition has exactly one implementation in this repo — a shipped spec
+# (docs/specs/loop-approved-spec-state, Constrained by ADR-0061) requires every
+# status read to go through its `parse_status`, and a second copy of the AC
+# regexes is how the two silently disagree about what an AC line is.
+_lint_module: object | None = None
+
+
+def _lint_spec_status():
+    global _lint_module
+    if _lint_module is None:
+        lint_path = Path(__file__).resolve().parent / "lint-spec-status.py"
+        spec = importlib.util.spec_from_file_location("_lint_spec_status", str(lint_path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"loop-cohort: cannot load {lint_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _lint_module = module
+    return _lint_module
+
 
 def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def sha256_file(path: Path) -> str:
-    """SHA-256 of raw file bytes (for spec.md)."""
-    return _sha256_bytes(path.read_bytes())
+# The approved baseline pins the *scope a human approved*. It deliberately does
+# not pin the two field families this skill mandates writing after approval —
+# the preamble status token (SKILL.md: `Implementing` before code, `Shipped` at
+# finish, plan `Done`) and progress checkboxes (every AC to `[x]`). Pinning
+# those made `plan check-current` and `schedule check-current` fail by
+# construction, one mandated step after `approve-plan`.
+#
+# Everything else stays pinned, including anything else on the status line: a
+# `- **Status:** Implementing — scope now also covers X` still moves the digest.
+_STATUS_PLACEHOLDER = "<loop-cohort:status>"
+
+# AC10: a mismatch has two possible causes and the verb cannot tell them apart,
+# so it names both rather than asserting the one that is usually wrong.
+_BOTH_CAUSES = (
+    "either the approved scope changed, or this baseline was pinned before "
+    "canonical hashing landed — in which case run `loop-cohort reset` and "
+    "re-run the G-plan sequence (spec.md and plan.md are preserved)"
+)
 
 
-def canonical_plan(text: str) -> str:
-    """Canonical form of plan.md: CRLF→LF, trailing whitespace stripped per line."""
+def canonical_contract(text: str) -> str:
+    """Canonical form of spec.md / plan.md for approval pinning.
+
+    Normalizes exactly four things: CRLF/CR → LF; per-line trailing whitespace;
+    the preamble status *token*; and the bracket contents of a checkbox.
+    """
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    lines = [line.rstrip() for line in text.split("\n")]
-    return "\n".join(lines)
+    lines = text.split("\n")
+
+    lint = _lint_spec_status()
+    # Newline-preserving comment strip. `parse_status` uses a plain sub() with
+    # re.DOTALL, which collapses a multiline comment to nothing and shifts every
+    # later line index — fine when you only want the token, wrong here, where
+    # the index has to map back to the raw line being rewritten.
+    cleaned = lint._HTML_COMMENT_RE.sub(
+        lambda m: "\n" * m.group(0).count("\n"), text
+    ).split("\n")
+
+    for i, cleaned_line in enumerate(cleaned):
+        if lint._SECTION_HEADING_RE.match(cleaned_line):
+            break  # preamble ends at the first section heading
+        if cleaned_line.lstrip().startswith("#"):
+            continue
+        if not lint._STATUS_RE.search(cleaned_line):
+            continue
+        # Rewrite the *raw* line, not the comment-stripped one.
+        raw = lines[i]
+        m = lint._STATUS_RE.search(raw)
+        if m is None:
+            break
+        token = lint.extract_status_token(m.group(1))
+        if token:
+            # Span-bounded splice of the token only. A str.replace would also
+            # rewrite the token where it recurs inside the trailing vocabulary
+            # comment (`<!-- Draft | Approved | Implementing | ... -->`), which
+            # 158 spec/plan files in this repo carry — making each status
+            # normalize differently. Splicing _STATUS_RE's whole group(1) span
+            # would swallow appended free text and defeat the pin.
+            start = m.start(1)
+            lines[i] = raw[:start] + _STATUS_PLACEHOLDER + raw[start + len(token):]
+        break
+
+    for i, line in enumerate(lines):
+        if lint._AC_DONE_RE.match(line):
+            # Bracket contents only — leading whitespace and the bullet run stay
+            # byte-for-byte, so re-indenting a criterion still moves the digest.
+            j = line.index("[")
+            lines[i] = line[:j + 1] + " " + line[j + 2:]
+
+    return "\n".join(line.rstrip() for line in lines)
 
 
-def sha256_canonical_plan(path: Path) -> str:
-    """SHA-256 of canonical(plan.md)."""
-    return _sha256_bytes(canonical_plan(path.read_text(encoding="utf-8")).encode("utf-8"))
+def sha256_canonical_contract(path: Path) -> str:
+    """SHA-256 of canonical_contract(<spec.md | plan.md>)."""
+    return _sha256_bytes(
+        canonical_contract(path.read_text(encoding="utf-8")).encode("utf-8")
+    )
 
 
 # ── run_id / schema_version validation ───────────────────────────────────
@@ -502,30 +584,11 @@ def cmd_reset(args: argparse.Namespace) -> int:
 
 # ── approve-plan ──────────────────────────────────────────────────────────
 
-# Lazy reference to parse_status from the sibling lint-spec-status.py so both
-# tools share one canonical parser implementation (handles Approved<!-- -->
-# and other annotated statuses correctly).
-_parse_status_fn: object | None = None
-
-
-def _get_parse_status():
-    global _parse_status_fn
-    if _parse_status_fn is None:
-        lint_path = Path(__file__).resolve().parent / "lint-spec-status.py"
-        spec = importlib.util.spec_from_file_location("_lint_spec_status", str(lint_path))
-        if spec is None or spec.loader is None:
-            raise ImportError(f"loop-cohort: cannot load {lint_path}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        _parse_status_fn = module.parse_status
-    return _parse_status_fn
-
-
 def _read_md_status(path: Path) -> str | None:
     """Return the canonical status token from a markdown file, or None."""
     try:
         text = path.read_text(encoding="utf-8")
-        return _get_parse_status()(text)
+        return _lint_spec_status().parse_status(text)
     except (OSError, ImportError):
         return None
 
@@ -553,8 +616,8 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     # Idempotency: if already approved, verify hashes before writing.
     current_status = state.get("plan_review_status", "pending")
     if current_status == "approved":
-        spec_hash = sha256_file(spec_path)
-        plan_hash = sha256_canonical_plan(plan_path)
+        spec_hash = sha256_canonical_contract(spec_path)
+        plan_hash = sha256_canonical_contract(plan_path)
         stored_spec_hash = state.get("approved_spec_hash", "")
         stored_plan_hash = state.get("approved_plan_hash", "")
         if spec_hash == stored_spec_hash and plan_hash == stored_plan_hash:
@@ -566,7 +629,8 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         plan_changed = plan_hash != stored_plan_hash
         return stop(
             f"approve-plan: artifact changed since approval — "
-            f"spec_changed={spec_changed}, plan_changed={plan_changed}"
+            f"spec_changed={spec_changed}, plan_changed={plan_changed}; "
+            + _BOTH_CAUSES
         )
 
     # Crash-window guard: verify that both spec.md and plan.md still carry
@@ -588,8 +652,8 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         )
 
     state["plan_review_status"] = "approved"
-    state["approved_spec_hash"] = sha256_file(spec_path)
-    state["approved_plan_hash"] = sha256_canonical_plan(plan_path)
+    state["approved_spec_hash"] = sha256_canonical_contract(spec_path)
+    state["approved_plan_hash"] = sha256_canonical_contract(plan_path)
     write_state_atomic(spec_dir, state)
     print(
         f"loop-cohort: approve-plan for {spec_dir.name} "
@@ -622,19 +686,39 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
     if not plan_path.exists():
         return stop(f"plan check-current: plan.md not found at {plan_path}")
 
-    current_spec_hash = sha256_file(spec_path)
+    # Normalizing the status token out of the hash also removed the incidental
+    # detection of a *regressed* status — an approved run whose spec.md went
+    # back to Draft used to trip the byte compare. Assert it directly instead.
+    # Runs after the plan_review_status early return above so the documented
+    # `plan_review_status: pending` cue during PLAN is not replaced by a status
+    # complaint. An absent or unparseable token is skipped, not stopped: plan
+    # fixtures legitimately carry no status line.
+    for label, path, allowed in (
+        ("spec.md", spec_path, ("Approved", "Implementing", "Shipped")),
+        ("plan.md", plan_path, ("Approved", "Executing", "Done")),
+    ):
+        token = _read_md_status(path)
+        if token is not None and token not in allowed:
+            return stop(
+                f"plan check-current: {label} Status is {token!r}; expected one "
+                f"of {list(allowed)} after approval"
+            )
+
+    current_spec_hash = sha256_canonical_contract(spec_path)
     if state.get("approved_spec_hash") != current_spec_hash:
         return stop(
-            "plan check-current: spec.md has changed since approve-plan "
-            f"(approved={state.get('approved_spec_hash', 'null')!r} "
+            "plan check-current: spec.md no longer matches the approved baseline — "
+            + _BOTH_CAUSES
+            + f" (approved={state.get('approved_spec_hash', 'null')!r} "
             f"current={current_spec_hash!r})"
         )
 
-    current_plan_hash = sha256_canonical_plan(plan_path)
+    current_plan_hash = sha256_canonical_contract(plan_path)
     if state.get("approved_plan_hash") != current_plan_hash:
         return stop(
-            "plan check-current: plan.md has changed since approve-plan "
-            f"(approved={state.get('approved_plan_hash', 'null')!r} "
+            "plan check-current: plan.md no longer matches the approved baseline — "
+            + _BOTH_CAUSES
+            + f" (approved={state.get('approved_plan_hash', 'null')!r} "
             f"current={current_plan_hash!r})"
         )
 
@@ -642,7 +726,8 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
         if state.get("plan_hash") != state.get("approved_plan_hash"):
             return stop(
                 "plan check-current: plan_hash != approved_plan_hash "
-                "(schedule not run or run on a different plan version)"
+                "(schedule not run or run on a different plan version); "
+                + _BOTH_CAUSES
             )
         waves = state.get("schedule_waves", [])
         if not waves:
@@ -669,12 +754,13 @@ def _schedule_check_current_impl(spec_dir: Path) -> int:
     plan_path = spec_dir / "plan.md"
     if not plan_path.exists():
         return stop(f"schedule check-current: plan.md not found at {plan_path}")
-    current_hash = sha256_canonical_plan(plan_path)
+    current_hash = sha256_canonical_contract(plan_path)
     stored = state.get("plan_hash")
     if stored != current_hash:
         return stop(
-            f"schedule check-current: plan.md has changed since schedule "
-            f"(stored={stored!r} current={current_hash!r})"
+            "schedule check-current: plan.md no longer matches the scheduled "
+            "baseline — " + _BOTH_CAUSES
+            + f" (stored={stored!r} current={current_hash!r})"
         )
     print(f"loop-cohort: schedule check-current OK for {spec_dir.name}")
     return 0
@@ -689,13 +775,13 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     if err is not None:
         return err
 
-    canonical_plan = spec_dir / "plan.md"
-    if plan_override and Path(plan_override).resolve() != canonical_plan.resolve():
+    plan_path_canonical = spec_dir / "plan.md"
+    if plan_override and Path(plan_override).resolve() != plan_path_canonical.resolve():
         return stop(
-            f"schedule: --plan must point to {canonical_plan}; alternate paths create "
+            f"schedule: --plan must point to {plan_path_canonical}; alternate paths create "
             "unusable state because schedule check-current always hashes plan.md"
         )
-    plan_path = canonical_plan
+    plan_path = plan_path_canonical
     if not plan_path.exists():
         return stop(f"plan not found at {plan_path}")
     plan_text = plan_path.read_text(encoding="utf-8")
@@ -733,7 +819,7 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
                 "(Touches: screen — serialize-only, never a greenlight)"
             )
 
-    plan_hash = sha256_canonical_plan(plan_path)
+    plan_hash = sha256_canonical_contract(plan_path)
     state["plan_hash"] = plan_hash
     state["schedule_waves"] = waves
     state["current_wave_index"] = 0

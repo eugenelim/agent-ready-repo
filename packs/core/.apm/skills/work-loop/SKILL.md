@@ -459,6 +459,15 @@ Write the **generalizable lesson**, not the incident report. Strip PR details; w
   {"id": "K-NNNN", "kind": "gotcha", "scope": "packages/auth/**", "title": "Token cache survives a role change", "body": "The auth middleware caches tokens for 15 minutes — invalidate it manually after a role change.", "source": "PR#42"}
   ```
 
+  **Append with the writer, not by hand.** `append-knowledge.py` ships beside this skill; it allocates the next free `id`, writes raw UTF-8, and refuses anything the linter would reject, so a bad entry never reaches the file:
+
+  ```bash
+  python3 <skills-dir>/work-loop/scripts/append-knowledge.py --kind gotcha \
+    --scope 'packages/auth/**' --title '...' --body '...' --source 'PR#42'
+  ```
+
+  If you do write a line by hand: entries are **raw UTF-8, never `\uXXXX`-escaped**. Both forms are valid JSON, so `json.dumps(entry)` — `ensure_ascii` defaults to `True` — drifts the file to escapes while still passing every other rule. Pass `ensure_ascii=False`. Entries are replayed verbatim into every future session, so never paste content from an untrusted source into one.
+
   **Verify before committing.** `lint-knowledge.py` ships beside this skill and `pre-pr.py` runs it for you; run it directly to check as you write — **unfiltered**, reading its exit code:
 
   ```bash
