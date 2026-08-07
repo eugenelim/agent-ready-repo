@@ -74,9 +74,7 @@ toc = { permalink = true }
 ]}
 """
 
-MAIN_HTML = pathlib.Path(__file__).with_name("main.html.a11y-shim").read_text(
-    encoding="utf-8"
-)
+MAIN_HTML = pathlib.Path(__file__).with_name("main.html.a11y-shim").read_text(encoding="utf-8")
 
 COVER = """\
 ---

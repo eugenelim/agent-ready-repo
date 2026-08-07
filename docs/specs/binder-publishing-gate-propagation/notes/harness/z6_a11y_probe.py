@@ -1,5 +1,6 @@
 import contextlib
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from playwright.sync_api import sync_playwright
 
@@ -13,7 +14,7 @@ with sync_playwright() as pw:
     p.on("request", lambda r: reqs.append(r.url))
     p.route(
         "**/*",
-        lambda ro, rq: ro.continue_() if rq.url.startswith("file://") else ro.abort("failed"),
+        lambda ro, rq: ro.continue_() if urlsplit(rq.url).scheme == "file" else ro.abort("failed"),
     )
     errs = []
     p.on("pageerror", lambda e: errs.append(str(e)[:200]))
@@ -51,6 +52,9 @@ with sync_playwright() as pw:
         "=== diagram rendered? div heights:",
         p.evaluate("()=>[...document.querySelectorAll('div.mermaid')].map(d=>d.offsetHeight)"),
     )
-    print("=== remote requests:", [r for r in reqs if not r.startswith("file://")])
+    print(
+        "=== remote requests:",
+        [r for r in reqs if urlsplit(r).scheme != "file"],
+    )
     print("=== page errors:", errs)
     b.close()

@@ -26,10 +26,28 @@ import json
 import re
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from playwright.sync_api import sync_playwright
 
 CHAPTER = "003-docs-product-research-payments-landscape-survey/index.html"
+
+
+def _is_host(url: str, host: str) -> bool:
+    """True when `url`'s host is `host` or a subdomain of it.
+
+    Deliberately not `host in url`: a substring test would count
+    `https://evil.example/?x=unpkg.com` as an unpkg fetch, so the gate's central
+    assertion -- "no request to unpkg was attempted" -- could be satisfied or
+    broken by an unrelated query string.
+    """
+    got = (urlsplit(url).hostname or "").lower()
+    return got == host or got.endswith("." + host)
+
+
+def _is_local(url: str) -> bool:
+    """True for the `file://` scheme, by scheme rather than by string prefix."""
+    return urlsplit(url).scheme == "file"
 
 
 def run(site: Path, *, block_egress: bool, label: str) -> dict:
@@ -56,7 +74,7 @@ def run(site: Path, *, block_egress: bool, label: str) -> dict:
         if block_egress:
 
             def handler(route, request):  # noqa: ANN001, ANN202
-                if request.url.startswith("file://"):
+                if _is_local(request.url):
                     route.continue_()
                 else:
                     route.abort("failed")
@@ -119,8 +137,8 @@ def run(site: Path, *, block_egress: bool, label: str) -> dict:
     svgs = re.findall(r"<svg[^>]*>", pierced)
     shadow_svgs = re.findall(r"<svg[^>]*>", shadow_part)
     aria_svgs = [s for s in svgs if "aria-label" in s or "aria-roledescription" in s]
-    unpkg = [r for r in requests if "unpkg.com" in r["url"]]
-    remote = [r for r in requests if not r["url"].startswith("file://")]
+    unpkg = [r for r in requests if _is_host(r["url"], "unpkg.com")]
+    remote = [r for r in requests if not _is_local(r["url"])]
 
     return {
         "label": label,
