@@ -1,6 +1,7 @@
 # The binder recipe
 
 > `binder.toml` — the authored contract and how it evolves.
+> Written against D-A (strict-only, no policy file) and D-B (Zensical).
 > Part of [binder publishing architecture](README.md).
 
 ## Binder recipe schema
@@ -24,7 +25,7 @@ a versioned public contract whose validator hard-errors on unknown keys,
 | `schema-version` | 1 | required; string |
 | `id` | 1 | required; `^[a-z0-9]([a-z0-9-]*[a-z0-9])?$`; unique per content root |
 | `title`, `subtitle`, `purpose`, `audience`, `subject`, `status` | 1 | binder identity |
-| `renderer` | 1 | default `"quarto"` |
+| `renderer` | 1 | default `"zensical"`. The only value v1 accepts; the key exists so a second adapter is additive rather than a schema change |
 | `source-roots` | 2 | array; confined beneath the content root. Bounds **selector scanning only** (D33), and selectors are Phase 2 — so a v1 recipe declaring it gets a validator **warning**: *"`source-roots` has no effect until selectors ship (Phase 2). It never was a confinement boundary — control 1 confines every path to the content root regardless — so narrowing it does not narrow what can be read."* The wording matters: an author who set it expecting a security narrowing must be told plainly that they did not get one. Warned rather than errored, because a recipe written for Phase 2 should still build at Phase 1. |
 | `extends` | 3 | overlay base |
 | `[params]` | 1 | Parameter definitions — every key here is a parameter *name*. Substitution is permitted only into the closed set of **target** keys enumerated in *Parameter substitution*; the two lists are different things. |
@@ -34,17 +35,15 @@ a versioned public contract whose validator hard-errors on unknown keys,
 | `[policy] on-ambiguous` | 2 | `error` (default) \| `first` \| `all` |
 | `[policy] on-unknown-status` | 2 | `warn` (default) \| `error` \| `ignore` |
 | `[policy] include-drafts` | 2 | default `false` |
-| `[policy] profile` | 1 | `strict` (default) \| `trusted`; a *request*, authorized elsewhere |
-| `[policy] shortcodes` | 1 | `reject` (default) \| `escape` |
 | `[policy] allow-cross-section-duplicates` | 1 | default `true` (warns) |
 | `[policy] scan-exclusions-override` | 2 | array of paths re-admitted to a `select` scan; never the workspace or publication directory |
 | `[policy] keep-superseded` | 2 | default `false` |
-| `[output] publication-dir`, `workspace-dir` | 1 | **relative to the content root.** An absolute or `..`-escaping value is exit 6 unless the user policy file names a containing root in `[publication] roots` — see *The publication directory must be ours*. This is the single statement; the cross-device `EXDEV` path exists for the granted case. |
+| `[output] publication-dir`, `workspace-dir` | 1 | **relative to the content root, with no exception.** An absolute or `..`-escaping value is **exit 6** — D-A removed the grant that used to admit one. This is the single statement; the cross-device `EXDEV` path still exists, because a mount point beneath the content root is a normal configuration. |
 | `[renderers.<name>]` | 1 | opaque to the core; adapter-allowlisted |
 | `[x-<vendor>]` | 1 | reserved third-party namespace; copied verbatim to `extensions`. Same shape constraint as `[renderers.*]` — scalars or arrays of scalars only, 8 KB per table — because the index is a published artifact and an unbounded opaque blob in it is an unbounded opaque blob in everyone's publication. |
 | `[[sections]] id`, `title` | 1 | required per section |
 | `[[sections]] kind` | 1 | `source` (default) \| `editorial` \| `generated` |
-| `[[sections]] numbered` | 1 | **default depends on `kind`** — `true` for `source`, `false` for `editorial` and `generated`. `false` emits `{.unnumbered}` on the chapter heading (Q17). Appendices are excluded from this key entirely: Q17 records that Quarto letters them automatically, so "unnumbered appendix" is not a thing the renderer offers. |
+| `[[sections]] numbered` | 1 | **default depends on `kind`** — `true` for `source`, `false` for `editorial` and `generated`. **Numbering is compiler-emitted and presentational** (D44): Z2h verified Zensical numbers nothing, so `true` makes the adapter emit a `data-ordinal` attribute the theme renders with CSS — **never text inside the title**, so the number stays out of the search index and the browser tab. Appendices are lettered by the same mechanism, and `numbered` on an appendix-reached section is therefore meaningful rather than ignored — see `[[appendices]] sections`. |
 | `[[sections]] intro` | 1 | path to an editorial section introduction |
 | `[[sections]] position` | 3 | `first` \| `last`; overlay-only placement hint |
 | `[[sections.items]] path` | 1 | explicit reference |
@@ -61,14 +60,33 @@ a versioned public contract whose validator hard-errors on unknown keys,
 | `[[sections.items]] order` | 2 | `path` (default) \| `date` |
 | `[[sections.items.figures]]` | 2 | `ordinal` + `caption` + optional `fence-sha256` — see *Caption binding*. Moved out of v1: captions are the sole reason the hash-verification protocol exists, and Level-0 diagrams render fine without them. |
 | `[[sections.overrides]]` | 3 | overlay-only; `section` + replacement `items` |
-| `[[parts]] id`, `title`, `sections` | 1 | one nesting level (matches Q2) |
+| `[[parts]] id`, `title`, `sections` | 1 | one nesting level. Z2a verified the nested `nav` form renders as a titled sidebar group; deeper nesting is a validation error with a clear message, never a silent flattening |
 | `[[appendices]] id`, `title`, `kind` | 1 | `kind = "generated"` (compiler output) or `"source"` |
 | `[[appendices]] generator` | 1 | closed enum, currently `source-inventory`. Required when `kind = "generated"`; this is what makes the provenance appendix opt-in. |
 | `[[sections.items]] review-state` | 1 | `unreviewed` (default) \| `reviewed`. Editorial items only; the one field a human sets by hand. |
 | `<recipe>` format | 1 | inferred from suffix: `.json` parsed as JSON, everything else as TOML. A parse failure against the inferred format is exit 4 naming both the inferred format and the suffix, rather than silently retrying the other. |
-| `[[appendices]] sections` | 1 | array of section ids, mirroring `[[parts]]`. `numbered` is **ignored** for sections reached this way — Q17 records that Quarto letters appendices automatically — and setting it warns rather than silently doing nothing — this is how **source artifacts reach an appendix**. Q2 records that Quarto's `appendices:` takes chapters, so the schema must be able to express them; without this key the only possible appendix would be compiler-generated, and `keep-superseded`'s promised *Superseded material* appendix would have no way to exist. |
+| `[[appendices]] sections` | 1 | array of section ids, mirroring `[[parts]]`. This is how **source artifacts reach an appendix**; without it the only possible appendix would be compiler-generated, and `keep-superseded`'s promised *Superseded material* appendix would have no way to exist. `numbered` **is** honoured here, unlike under the Quarto adapter where Q17's automatic lettering made it a no-op: since Z2h established that the compiler emits every ordinal itself, an unlettered appendix is now expressible. |
 | `[[exclude]] path` / `select` / `reason` | 1 (`path`) / 2 (`select`) | evaluated last; always wins |
 | `[[include-binder]]` | 3 | child binders |
+
+### What `[policy]` no longer contains
+
+D-A removed `[policy] profile` and D-B removed `[policy] shortcodes`. Neither is
+deprecated: both are **unknown keys**, and a recipe carrying either is exit 4 with
+the ordinary unknown-field message.
+
+That is deliberate rather than harsh. A deprecation warning implies the key once
+did something the author might still want; these two named a trust relaxation that
+no longer exists and a renderer behaviour that no longer exists. Warning would
+suggest a migration path where there is none — the honest message is "this key is
+not in the schema", plus the nearest-valid-key suggestion the validator already
+emits.
+
+**`[policy]` is now purely resolution semantics** — what to do about a missing
+required artifact, an ambiguous selector, an unknown status, a draft, a
+cross-section duplicate. Nothing in it reaches trust, and nothing in it reaches a
+path. That is what makes the substitution rule below simple enough to state in one
+line.
 
 ### Parameter substitution — a closed surface
 
@@ -88,8 +106,13 @@ Substitution is therefore restricted:
   substitution, which keeps the path-injection ban intact — a slug cannot contain
   a separator or a `..`.
 - **Not substitutable:** every other path-valued key (`path`, `source-roots`,
-  `extends`, `intro`), every `[renderers.*]` value, and every `[policy]` value. A parameter that could name a path would turn `--param` into a file
-  selector; one that could reach `[policy]` would turn it into a trust knob.
+  `extends`, `intro`), every `[renderers.*]` value, and every `[policy]` value. A
+  parameter that could name a path would turn `--param` into a file selector; one
+  that could reach `[policy]` would turn it into a resolution-semantics knob
+  settable from the invocation string. The second is a weaker objection than it
+  was — D-A left no trust value in `[policy]` for a parameter to reach — but the
+  rule stays, because "`--param` substitutes into display strings and selector
+  values" is a smaller thing to specify and to test than any partial exception.
 - **Single-pass and non-recursive.** `${a}` expanding to a string containing
   `${b}` leaves `${b}` literal. No recursion means no expansion bombs and no
   order-dependence.
@@ -99,6 +122,14 @@ Substitution is therefore restricted:
   authored strings (see *String emission*).
 
 ### Worked recipe
+
+> **Abridged.** This prints three of the twelve sections the payments-review
+> fixture carries, chosen to exercise every *key shape* — an editorial section, a
+> section with an `intro` and ordering constraints, a required item, a part, a
+> generated appendix, an exclusion. The full fixture is the one the node counts in
+> [`examples.md`](examples.md), [`resolution.md`](resolution.md), and
+> [`editorial-model.md`](editorial-model.md) refer to: **12 nodes — 9 source, 2
+> editorial, 1 generated.** Do not count items here and expect them to match.
 
 ```toml
 schema-version = "1"
@@ -110,7 +141,7 @@ purpose  = "Decide whether to approve the payments migration for build."
 audience = ["architecture review board", "engineering leads", "security reviewer"]
 subject  = "payments-migration"
 status   = "for-review"
-renderer = "quarto"
+renderer = "zensical"
 
 source-roots = ["docs", "notes"]
 
@@ -118,15 +149,13 @@ source-roots = ["docs", "notes"]
 subject = "payments-migration"
 
 [policy]
-profile             = "strict"
-shortcodes          = "reject"
 on-missing-required = "error"
 
 [output]
 publication-dir = "build/binders/payments-review"
 workspace-dir   = ".binder-work"
 
-[renderers.quarto]
+[renderers.zensical]
 mermaid-theme = "neutral"
 toc-depth     = 3
 
@@ -189,7 +218,7 @@ Note the `after` constraint names an item **in the same section**. Cross-section
 | An optional supporting item | `select` permitted. |
 | Exclusions | `select` permitted and encouraged — over-exclusion fails safe (absent, and in diagnostics); over-inclusion does not. |
 | `pick = "one"` | Requires exactly one match, or an explicit `choose`. Zero or 2+ without `choose` is an ambiguity error. |
-| Overlays | May add exclusions and exact references. May **not** convert an exact reference into a selector, and may not set `[policy] profile` less strictly than the base. |
+| Overlays | May add exclusions and exact references. May **not** convert an exact reference into a selector. (An earlier version also barred an overlay from loosening `[policy] profile`; D-A removed the key, so there is nothing left to loosen.) |
 
 ### Schema evolution
 
@@ -205,10 +234,11 @@ Note the `after` constraint names an item **in the same section**. Cross-section
   third parties, ignored by the core, and copied verbatim into the index under
   `extensions`; `--allow-unknown-fields` downgrades the *unknown-field* error to a
   warning for forward compatibility with a newer producer. **It never applies
-  inside `[policy]`, `[trust]`, or any table the trust lattice reads** — an unknown
-  key there is exit 4 at every level, because a v2-only key that *tightens* policy,
-  silently discarded by a v1 binary, is a relaxation performed by a flag reachable
-  from a committed `Makefile`. That is the channel D30 and D35 close elsewhere. It
+  inside `[policy]`** — an unknown key there is exit 4 at every level, because a
+  v2-only key that *tightens* resolution behaviour, silently discarded by a v1
+  binary, is a relaxation performed by a flag reachable from a committed
+  `Makefile`. (There is no `[trust]` table; D-A deleted it with the lattice that
+  read it.) It
   also **does not downgrade the not-yet-implemented class** — a `select` that silently does nothing is the
   failure D15 exists to prevent, and a flag that re-enables it would undo the
   decision.

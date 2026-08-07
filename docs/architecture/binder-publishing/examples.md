@@ -126,10 +126,14 @@ reason = "superseded by RFC-0091"
 Overlay semantics: `extends` deep-merges; `[[sections]]` with a new `id` are added
 at `position`; `[[sections.overrides]]` replaces a named section's items;
 `[[exclude]]` entries accumulate and always win. An overlay may **not** convert a
-required exact reference into a selector, and may not set `[policy] profile` less
-strictly than its base.
+required exact reference into a selector, and may not introduce a key the schema
+does not define — which the unknown-field rule already covers.
 
-### Mermaid normalization, worked — with the line map
+> An earlier version added "and may not set `[policy] profile` less strictly than
+> its base". D-A removed the key: it is now an unknown field, exit 4, at every
+> level. [`binder-recipe.md`](binder-recipe.md) is the authority on the surface.
+
+### The per-file transformation, worked — and the diagram that is not transformed
 
 Source (`docs/design/payments/design.md`, unchanged on disk):
 
@@ -146,12 +150,12 @@ Source (`docs/design/payments/design.md`, unchanged on disk):
 10
 11  ```mermaid
 12  flowchart LR
-13    A[Gateway] --> B[Ledger service]
+13    A[Gateway] --> B["Ledger<br/>service"]
 14    B --> C[(Postgres)]
 15  ```
 ````
 
-Staged (`011-docs-design-payments-design.qmd`):
+Staged (`docs/011-docs-design-payments-design.md`):
 
 ````markdown
  1  ---
@@ -160,36 +164,46 @@ Staged (`011-docs-design-payments-design.qmd`):
  4
  5  The ledger boundary is shown below.
  6
- 7  ```{mermaid}
- 8  %%| label: fig-docs-design-payments-design-1
- 9  flowchart LR
-10    A[Gateway] --> B[Ledger service]
-11    B --> C[(Postgres)]
-12  ```
+ 7  ```mermaid
+ 8  flowchart LR
+ 9    A[Gateway] --> B["Ledger<br/>service"]
+10    B --> C[(Postgres)]
+11  ```
 ````
 
-**This is the v1 output**: one injected `%%|` line, the deterministic label. Phase
-2's caption adds a `%%| fig-cap:` line and one more breakpoint.
+**The fence is byte-identical to the source's.** No `` ```{mermaid} `` rewrite, no
+injected `%%| label:` line, no caption-binding protocol, no fence content-hash —
+because Z3a verified Zensical reads the portable fence directly and emits
+`<pre class="mermaid"><code>…`. Z3e verified the `<br/>` inside the node label
+survives, entity-escaped in the HTML and decoded by the browser as the `<pre>`'s
+text content, exactly as Q28 recorded under Quarto.
 
 Emitted into `renderer-plan.json` (**not** the index — invariant 22):
 
 ```json
-"line-map": [[1, 1], [9, 5], [11, 7], [12, 9]]
+"line-offset": -4
 ```
 
-Reading it: the frontmatter rebuild (steps 1–2) shortens by 2; the duplicate-H1
-drop (step 3) shortens by a further 2, so source 9 → staged 5; the fence
-transform (step 4) is neutral at the fence line itself but the two injected
-`%%|` line pushes the diagram body down by 1, so source 12 → staged 9. A single
-scalar offset cannot express this — the deltas are 0, −4, −4, −3 across one file —
-which is why `line-map` is an array.
+Reading it: the frontmatter rebuild (steps 1–2) shortens by 2, the duplicate-H1
+drop (step 3) shortens by a further 2, and **nothing below that changes**. Source
+9 → staged 5, source 12 → staged 8, source 15 → staged 11 — one delta, every line.
 
-Three security-relevant things happened. The `css:` key — a source-controlled
-renderer-configuration channel — was **discarded with the rest of the
-frontmatter**, not filtered out. The H1 was dropped because it duplicated the
-chapter title. The fence became an executable diagram cell with a deterministic
-label and the caption the recipe bound to ordinal 1 and verified against that
-fence's content hash. **The source file on disk is byte-identical to before.**
+**This example used to be the proof that a scalar offset was impossible.** Under
+Quarto the deltas were 0, −4, −4, −3 across this one file, because the fence
+transform and its injected cell option shifted the body relative to the head; that
+is why round 1 replaced `line-offset` with a `line-map` breakpoint array, and why
+this example existed. D-B removed the transformation that made the array
+necessary, and the same example now demonstrates the opposite. That is worth
+noticing rather than quietly editing: the array was correct for the renderer it
+was designed against.
+
+Two security-relevant things still happen, and one no longer needs to. The `css:`
+key — a source-controlled renderer-configuration channel — is **discarded with the
+rest of the frontmatter**, not filtered out; a source cannot reach renderer
+configuration whatever the renderer is. The H1 is dropped because it duplicated
+the chapter title. What is *not* needed any more is a shortcode pass: Z3f verified
+`{{< env … >}}` and `${…}` pass through as literal escaped text. **The source file
+on disk is byte-identical to before.**
 
 ### Minimal `binder.toml` — Level 0
 
@@ -256,12 +270,20 @@ python scripts/binder.py build binders/payments-review.binder.toml \\
   --root=/Users/dev/proj
 ```
 
-Resolution: 11 nodes — the nine source artifacts named by path, one editorial
-executive summary, one generated source inventory. `0088` excluded by the explicit
-`[[exclude]]` rule with its reason recorded. `notes/security-assessment-payments.md`
-is listed by path and resolves, because an explicit path needs no `source-roots`
-entry (D33). No gaps, no ambiguity, nothing deferred — this is the whole v1
-feature set exercised end to end.
+Resolution: **12 nodes — 9 source, 2 editorial, 1 generated.** The nine source
+artifacts are named by path; the two editorial nodes are the executive summary and
+the `context` section's introduction; the generated node is the source inventory.
+`0088` excluded by the explicit `[[exclude]]` rule with its reason recorded.
+`notes/security-assessment-payments.md` is listed by path and resolves, because an
+explicit path needs no `source-roots` entry (D33). No gaps, no ambiguity, nothing
+deferred — this is the whole v1 feature set exercised end to end.
+
+This is the same 12-node count the build summary in
+[`resolution.md`](resolution.md), the sequence diagram in
+[`editorial-model.md`](editorial-model.md), and the missing-dependency error in
+[`zensical-adapter.md`](zensical-adapter.md) all print. The *Worked recipe*
+in [`binder-recipe.md`](binder-recipe.md) is an abridged excerpt of this fixture
+and says so.
 
 ### Path A — committed recipe with selectors (Phase 2)
 
@@ -293,37 +315,49 @@ flagged in the summary.
 
 ```
 .binder-work/payments-board-2026-08/c41d7e0a/stage/
-├── _quarto.yml
-├── binder.scss
-├── index.qmd                                       # generated cover
-├── 001-executive-summary.qmd                        # editorial
-├── 002-part-evidence.qmd                            # generated part page
-├── 003-docs-product-research-payments-landscape-survey.qmd
-├── 004-docs-product-intents-payments-migration.qmd
-├── 005-notes-vendor-comparison.qmd
-├── 006-part-proposals.qmd
-├── 007-context-intro.qmd                            # editorial section intro
-├── 008-docs-rfc-0091-payments-migration.qmd
-├── 009-docs-rfc-0093-payments-strangler.qmd
-├── 010-docs-adr-0044-ledger-boundary.qmd
-├── 011-docs-adr-0045-dual-write-window.qmd
-├── 012-docs-design-payments-migration-design.qmd    # 3 mermaid diagrams
-├── 013-docs-specs-payments-migration-spec.qmd
-├── 014-notes-security-assessment-payments.qmd
-├── 900-source-inventory.qmd                        # generated appendix
-├── assets/n008/ledger-topology.png                 # copied, confined, rewritten (step 7b)
-└── _output/
+├── zensical.toml                                   # generated entirely from the index
+├── theme/
+│   ├── main.html                                   # injects the vendored mermaid.min.js
+│   └── assets/javascripts/mermaid.min.js           # vendored — Zensical does not bundle it
+├── docs/
+│   ├── index.md                                    # generated cover
+│   ├── 001-executive-summary.md                    # editorial
+│   ├── 002-part-evidence.md                        # generated part page
+│   ├── 003-docs-product-research-payments-landscape-survey.md
+│   ├── 004-docs-product-intents-payments-migration.md
+│   ├── 005-notes-vendor-comparison.md
+│   ├── 006-part-proposals.md
+│   ├── 007-context-intro.md                        # editorial section intro
+│   ├── 008-docs-rfc-0091-payments-migration.md
+│   ├── 009-docs-rfc-0093-payments-strangler.md
+│   ├── 010-docs-adr-0044-ledger-boundary.md
+│   ├── 011-docs-adr-0045-dual-write-window.md
+│   ├── 012-docs-design-payments-migration-design.md   # 3 mermaid diagrams
+│   ├── 013-docs-specs-payments-migration-spec.md
+│   ├── 014-notes-security-assessment-payments.md
+│   ├── 900-source-inventory.md                     # generated appendix
+│   └── assets/n008/ledger-topology.png             # copied, confined, rewritten
+├── .cache/                                         # Zensical's
+└── site/                                           # render output; published from here
 ```
+
+`docs/` and `site/` are Zensical's default `docs_dir` and `site_dir`, and both are
+resolved relative to `zensical.toml` (Z1d, Z1e) — which is why placing the config
+in `stage/` keeps every byte the renderer writes inside the workspace.
 
 ### Final HTML information architecture
 
-Cover (title, purpose, audience, subject, binder status, build summary) →
+Cover (title, purpose, audience, subject, binder status) →
 Executive summary *(marked editorial, unreviewed)* → **Part I Evidence** (survey,
 intent, vendor comparison) → **Part II Proposals and decisions** (section intro,
-Proposal A, Proposal B, ADR-0044, ADR-0045) → **Part III Architecture and
-delivery** (design with three rendered diagrams, spec, security assessment) →
-Appendix: source inventory and provenance. Sidebar, search, previous/next, and
-per-page TOC throughout.
+Proposal A, Proposal B, ADR-0044, ADR-0045, the design with three diagrams, the
+spec, the security assessment) → Appendix: source inventory and provenance.
+Sidebar, search, previous/next, and per-page TOC throughout.
+
+**Two parts, matching the two part pages in the staged tree above** —
+`002-part-evidence.md` and `006-part-proposals.md`. An earlier version described a
+third, *Architecture and delivery*, which no part page in the tree corresponded
+to; the architecture and delivery chapters sit in Part II.
 
 ### The same mechanism in a clean directory
 

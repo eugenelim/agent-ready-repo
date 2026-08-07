@@ -3,87 +3,85 @@
 > Design for `binder-publishing`: a portable pack that compiles selected Markdown
 > artifacts into a coherent, reader-oriented static HTML binder.
 >
-> **Status:** Draft — pre-RFC. Eight cold-review rounds ran against the previous
-> single-file draft; this tree is the holistic re-shape that followed. See
-> [`review-history.md`](review-history.md) for what changed and why.
-
-## Why this is a tree and not a document
-
-The previous draft was one 4,800-line file. Eight review rounds found real defects
-every time, and a recurring class of them was **"X is specified two or three
-incompatible ways"** — because patching one section reliably broke another that
-repeated the same fact. The split is not cosmetic: each file below owns one
-concern, so a change to the trust model touches one file and a reader checking a
-contract reads one file.
-
-The same review history produced two other shape-level diagnoses, and both are
-fixed here rather than patched:
-
-1. **The trust surface was too large to route.** Five separate rounds each found
-   *a different* flag, environment variable, or file that had not been routed
-   through the authority lattice. The first response was a better router; the right
-   response is fewer inputs. D-A cuts the `trusted` profile, the policy file, and
-   six flags — which deletes the lattice rather than perfecting it, leaving
-   [`trust-model.md`](trust-model.md) at one sentence.
-2. **The renderer was chosen on paper and never spiked.** D-B replaced Quarto's
-   236 MB external CLI with a 12.2 MB pip package after a spike showed Zensical
-   reads portable Mermaid fences directly and does not interpret `{{< … >}}` —
-   deleting two entire control areas that existed only to work around Quarto.
-3. **The strict profile was a denylist validated against no corpus.** It rejected
-   `<br/>` in Mermaid labels (45 occurrences in the design doc itself), `<|--` in
-   class diagrams, and `{{<` in any document about Quarto. Rules are now
-   corpus-tested by construction — see the corpus gate in
-   [`security-profile.md`](security-profile.md).
-
-## Read in this order
-
-> **⚠ The tree is mid-propagation.** Decisions D-A (collapse the trust surface)
-> and D-B (Zensical replaces Quarto) reached the files marked ✓. Files marked
-> ⚠ still describe the pre-decision shape — a Quarto adapter, a `trusted`
-> profile, a policy file. **`open-decisions.md` is authoritative** wherever they
-> disagree. Do not write a specification from a ⚠ file.
-
-| File | Status | What it settles |
-|---|---|---|
-| [`open-decisions.md`](open-decisions.md) | **authority** | **Read first.** Two shape-level questions raised after the review rounds: collapsing the trust surface, and whether Quarto is the right renderer at all. The rest of the tree is written against the pre-reshape answers. |
-| [`renderer-choice.md`](renderer-choice.md) | evidence | **Measured** applied survey resolving D-B: Quarto vs mkdocs-material vs Zensical vs owning it. |
-| [`outline-and-templates.md`](outline-and-templates.md) | ✓ new | `binder outline` — drafting a recipe from a folder — and how packs ship reusable recipe templates. |
-| [`overview.md`](overview.md) | ⚠ not propagated | Problem, goals and non-goals, product boundary, the alternatives and why this shape won |
-| [`trust-model.md`](trust-model.md) | ✓ D-A | **One sentence, and why it got that small.** Everything outside the pack is untrusted, the profile is strict, and nothing can relax it |
-| [`security-profile.md`](security-profile.md) | ✓ D-A/D-B | What the scanner rejects, how it detects it, and the corpus it is tested against |
-| [`binder-recipe.md`](binder-recipe.md) | ⚠ not propagated | `binder.toml` — the authored contract, its complete surface, and how it evolves |
-| [`resolved-index.md`](resolved-index.md) | ⚠ not propagated | `binder-index.json` and `renderer-plan.json` — the two output contracts and the invariant that separates them |
-| [`resolution.md`](resolution.md) | ⚠ not propagated | Discovery, identity, ordering, conflicts, diagnostics, explainability |
-| [`zensical-adapter.md`](zensical-adapter.md) | ✓ D-B | Staging, the per-file transformation, the generated `zensical.toml`, and the required offline hardening |
-| [`dependency-contract.md`](dependency-contract.md) | ✓ D-B | One pinned pip package. Reduced from 211 lines to a manifest block and an install command. |
-| [`runtime.md`](runtime.md) | ⚠ not propagated | Storage layout, locks, concurrency, publication replacement |
-| [`invocation.md`](invocation.md) | ⚠ not propagated | The command contract, exit codes, and entry-point resolution |
-| [`verified-findings.md`](verified-findings.md) | Quarto evidence | **Evidence.** Every Quarto claim with source and confidence; the gates, including which have been run |
-| [`rollout.md`](rollout.md) | ⚠ not propagated | Phases, testing strategy, CI wiring, unresolved questions |
-| [`decisions.md`](decisions.md) | ⚠ not propagated | The decision log |
-| [`review-history.md`](review-history.md) | historical | Non-normative record of the eight review rounds |
+> **Status:** Draft — pre-RFC. Ten cold-review rounds ran; the tree is internally
+> consistent and a specification can be written from any file in it.
+> [`history.md`](history.md) records what changed and why.
 
 ## The one-paragraph version
 
 Markdown artifacts are produced by many workflows, each writing where its own
 convention puts it — and **the source hierarchy is not the reader hierarchy**. A
 `binder.toml` recipe declares a reading order over artifacts that already exist; a
-resolver turns it into a deterministic `binder-index.json`; a renderer adapter —
-Zensical as of D-B — renders that index to a static HTML binder. **The resolved index, not the
+resolver turns it into a deterministic `binder-index.json`; a Zensical adapter
+renders that index to a static HTML binder. **The resolved index, not the
 renderer, is the interoperability contract** — which is what lets another pack
 participate with `tomllib` and nothing else, and what makes a second renderer a
 later addition rather than a later redesign.
 
+## Read in this order
+
+| File | What it settles |
+|---|---|
+| [`overview.md`](overview.md) | **Start here.** Problem, goals and non-goals, product boundary, charter fit, the architecture alternatives, and the component view |
+| [`binder-recipe.md`](binder-recipe.md) | `binder.toml` — the authored contract, its complete surface, and how it evolves |
+| [`resolved-index.md`](resolved-index.md) | `binder-index.json`, `renderer-plan.json`, and `binder-stamp.json` — what each holds and why they are three files |
+| [`resolution.md`](resolution.md) | Discovery, identity, ordering, conflicts, diagnostics, explainability |
+| [`security-profile.md`](security-profile.md) | **The trust model in one sentence**, what the scanner rejects, how it detects it, and the corpus that proves the rules right |
+| [`zensical-adapter.md`](zensical-adapter.md) | Staging, the per-file transformation, the generated `zensical.toml`, the invocation, the offline hardening, and the dependency contract |
+| [`invocation.md`](invocation.md) | The complete verb table, the closed flag surface, the six cut flags, exit codes, entry-point resolution |
+| [`runtime.md`](runtime.md) | Storage layout, two locks, concurrency, publication replacement |
+| [`outline-and-templates.md`](outline-and-templates.md) | `outline`, the producer-copies template seam, and `recipe write` |
+| [`editorial-model.md`](editorial-model.md) | Pack and skill shape, `pack.toml`, the chief-editor procedure, the three content classes |
+| [`examples.md`](examples.md) | Worked recipes, the staged tree, and an end-to-end scenario |
+| [`rollout.md`](rollout.md) | Phases, testing strategy, CI wiring, unresolved questions |
+| [`verified-findings.md`](verified-findings.md) | **Evidence.** Z1–Z4 (Zensical, executed) are the live gates; Q1–Q28 (Quarto) are retained for a future PDF adapter |
+| [`decisions.md`](decisions.md) | The decision log. **D39–D45 are the post-review authority** |
+| [`history.md`](history.md) | Non-normative: the ten review rounds, the two shape decisions, and the alternatives that lost |
+
+**Decided elsewhere:**
+[**ADR-0073**](../../adr/0073-zensical-as-the-v1-binder-renderer.md) — why
+Zensical is the v1 renderer, with the measurements, the shared-fixture comparison,
+and the revisit conditions.
+
+## Why this is a tree and not a document
+
+The previous draft was one 4,800-line file. Every review round found real defects,
+and a recurring class was **"X is specified two or three incompatible ways"** —
+because patching one section reliably broke another repeating the same fact. The
+split is not cosmetic: each file owns one concern.
+
+The same review history produced three shape-level diagnoses, and all three were
+fixed rather than patched:
+
+1. **The trust surface was too large to route.** Five rounds each found *a
+   different* flag, environment variable, or file that had not been routed through
+   the authority lattice. The first response was a better router; the right one was
+   fewer inputs. D39 cut the `trusted` profile, the policy file, and six flags —
+   deleting the lattice rather than perfecting it.
+2. **The renderer was chosen on paper and never spiked.** Running it deleted two
+   entire control areas that existed only to work around Quarto, and later
+   measurement showed the *stated* reason for the replacement was wrong too. See
+   ADR-0073.
+3. **The strict profile was a denylist validated against no corpus.** It rejected
+   `<br/>` in Mermaid labels — 45 occurrences in the design document itself. Rules
+   are now corpus-tested by construction.
+
 ## Load-bearing invariants
 
-The full list is in [`overview.md`](overview.md#architectural-invariants). Three
-carry most of the weight:
+The invariants this tree restates and amends are #3, #8, #10, #12, #13, #18, #21
+and #22, in [`overview.md`](overview.md#architectural-invariants); the original
+twenty come from the brief. Three carry most of the weight:
 
+- **3 — the adapter cannot re-select.** Every source read goes through a single
+  `read_node_source(node)` accessor that rejects any path not enumerated in the
+  index. Renderer neutrality is mechanical rather than declared.
 - **21 — `binder-index.json` is byte-reproducible for identical inputs.** No
   timestamps, run IDs, host names, or absolute paths. This makes ceremonial fields
   structurally impossible rather than merely discouraged.
 - **22 — `binder build` writes no field of `binder-index.json`.** Anything an
-  adapter must invent goes in that adapter's own plan file. Renderer neutrality
-  becomes checkable rather than aspirational.
-- **23 — every input is classified by origin before it is trusted.** New in this
-  re-shape; it is what stops the authority model needing a new rule per flag.
+  adapter must invent goes in that adapter's own plan file — and this was checked
+  rather than asserted: the renderer changed and the index did not.
+
+> There is no invariant 23. An earlier draft added *"every input is classified by
+> origin before it is trusted"* to serve the authority lattice; D39 deleted the
+> lattice, and origin classification with it.

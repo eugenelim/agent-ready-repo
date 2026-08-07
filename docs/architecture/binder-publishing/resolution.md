@@ -54,7 +54,7 @@ A document may declare `canonical-id` (frontmatter or sidecar) to become
 path-independent, so a file can move without breaking recipes. Two documents
 declaring the same `canonical-id` is a hard error naming both paths.
 
-**Staged filename** is `NNN-<slug>.qmd` — **three digits throughout**, so a
+**Staged filename** is `NNN-<slug>.md` — **three digits throughout**, so a
 chapter and an appendix never differ in width, where `<slug>` derives from the content-id
 (lowercased, non-alphanumerics to `-`, truncated to 48 characters,
 `-<6-hex-of-sha256(content-id)>` appended on collision). Deterministic,
@@ -64,12 +64,19 @@ in `renderer-plan.json`, not the index (invariant 22).
 `NNN` — an **adapter-owned** number recorded in `renderer-plan.json`, unrelated to `node-id` — numbers **every staged file in final reading order**, not just resolved
 nodes — part pages and generated appendices are interleaved at the position they
 occupy in the book, so a directory listing reads in the order a reader
-encounters it. Two fixed points: `index.qmd` carries no prefix, because Q3 makes the name
-mandatory; and appendices are numbered from `900`. Chapters therefore occupy `001`–`899`, and
-**more than 899 chapters is an adapter-stage error (exit 7)** naming the count —
-not a *resolution* error, because a numbering ceiling is a Quarto filename
-convention and a second renderer has no reason to inherit it — a bound worth stating, since the scan
-cap is 5000 files and nothing else would have caught the collision.
+encounters it. Two fixed points: `index.md` carries no prefix, because it is the
+site root; and appendices are numbered from `900`. Chapters therefore occupy
+`001`–`899`, and **more than 899 chapters is an adapter-stage error (exit 7)**
+naming the count — not a *resolution* error, because a numbering ceiling is a
+staged-filename convention of this adapter and a second renderer has no reason to
+inherit it — a bound worth stating, since the scan cap is 5000 files and nothing
+else would have caught the collision.
+
+**Do not confuse `NNN` with the number a reader sees.** `NNN` orders files on
+disk; the chapter number in the rendered output is `emitted-ordinal`, written by
+the adapter because Z2h found Zensical numbers nothing. They coincide only by
+accident — `NNN` counts part pages and appendices, and the reader-facing sequence
+does not.
 
 ### Scan boundaries
 
@@ -128,7 +135,7 @@ truncation"). Hence: warn on every skip, and give the author a key to override.
 ### Text encoding, line endings, and hashing
 
 Four normative guarantees — invariant 21's byte-reproducible index, byte-identical
-staged files, `line-map` accuracy, and `check --published`'s staleness contract —
+staged files, `line-offset` accuracy, and `check --published`'s staleness contract —
 all change answer on a CRLF source, a BOM, or a non-UTF-8 file. So the rules are
 stated rather than inherited:
 
@@ -138,14 +145,20 @@ stated rather than inherited:
 - **A leading BOM is stripped** before hashing, before line counting, and before
   staging.
 - **Line endings are normalized to LF** for hashing, for staging, and for
-  `line-map` construction. A CRLF source and its LF equivalent therefore produce
-  the same `sha256`, the same staged bytes, and the same line map — which is what
+  `line-offset` computation. A CRLF source and its LF equivalent therefore produce
+  the same `sha256`, the same staged bytes, and the same offset — which is what
   makes a Windows contributor's commit not register as a stale publication.
-- **Everything written is LF-only and UTF-8**: staged `.qmd`, `_quarto.yml`,
+- **Everything written is LF-only and UTF-8**: staged `.md`, `zensical.toml`,
   `binder-index.json`, `renderer-plan.json`, `binder-stamp.json`.
 
 A unit test asserts a CRLF copy and an LF copy of one file yield identical hashes
 and identical staged bytes.
+
+The `line-offset` guarantee is easier to hold than the `line-map` one it replaced:
+with the fence transformation gone (Z3a), only the frontmatter rebuild and the
+duplicate-H1 drop shift lines, and both happen at the top of the file. Normalized
+line endings are still what makes the offset correct on a Windows contributor's
+commit.
 
 ### Ordering
 
@@ -212,7 +225,7 @@ docs/rfc/0091-payments-migration.md
   metadata       kind=rfc  status=Accepted → current  producer=governance-extras
                  (source: sidecar docs/rfc/0091-payments-migration.md.binder.toml)
   order          base index 0; weight 0; no constraints; final position 1
-  staged as      008-docs-rfc-0091-payments-migration.qmd
+  staged as      docs/008-docs-rfc-0091-payments-migration.md   (chapter 8)
                  (shown only when a renderer-plan.json for this index-sha256 is in
                   the workspace; the index carries no staged path — invariant 22)
   not selected instead:
@@ -272,32 +285,37 @@ ERROR  Path outside approved roots (exit 6)
 ### Unsafe-Markdown rejection
 
 ```
-ERROR  Unsafe constructs in source (exit 6, profile "strict")
+ERROR  Unsafe constructs in source (exit 6)
 
-  notes/vendor-pitch.md:14   shortcode {{< env AWS_SECRET_ACCESS_KEY >}}
-      Shortcodes are processed by the renderer regardless of execution
-      settings and would place the environment variable's value into the
-      published HTML.
   notes/vendor-pitch.md:31   raw HTML block <script src="https://…">
+      Raw HTML is rendered by the renderer and would execute in the
+      reader's browser.
   docs/design/payments/design.md:96   mermaid %%{init: …}%% directive
       Diagram directives can alter renderer configuration.
+  docs/design/payments/design.md:214  mermaid click callback
+      Diagram callbacks execute code in the reader's browser.
 
   3 constructs in 2 files. Nothing was staged.
 
   Options
     remove the constructs (recommended)
-    exclude the file:            [[exclude]] path = "notes/vendor-pitch.md"
-    escape shortcodes:           [policy] shortcodes = "escape"
-      Renders {{< … >}} as literal text. Fixes line 14 only; the raw HTML
-      and the mermaid directive still require the trusted profile.
-    request the trusted profile: allows raw HTML in prose and a closed set
-      of mermaid init keys. Never allows shortcodes, execution, filters,
-      callbacks, or raw HTML in diagram labels. Requires this in the
-      user policy file (~/.agentbundle/binder-policy.toml):
-        [trust]
-        trusted-paths = ["/Users/dev/proj"]
-      A --profile=trusted flag alone will NOT grant it.
+    exclude the file:   [[exclude]] path = "notes/vendor-pitch.md"
+
+  There is no profile that permits these. The scan is strict, it is the only
+  profile, and nothing relaxes it — see the trust model.
 ```
+
+**That last paragraph is the whole of D-A, rendered.** The previous version of
+this error offered two escape routes — `[policy] shortcodes = "escape"` and a
+`trusted` grant in a user policy file, with the exact TOML to paste. Both are
+gone: the first had no subject once D-B removed shortcode interpretation, and the
+second was the relaxation D-A cut.
+
+An error that names no way out is a real cost and the design does not pretend
+otherwise; it is the cost recorded in [`security-profile.md`](security-profile.md) § *The
+cost, stated*. What it buys is that the message is true. The old message told an
+operator to edit a file that grants trust, which is precisely the instruction an
+attacker most wants a frustrated operator to follow.
 
 ### Invalid-Mermaid error
 
@@ -305,7 +323,7 @@ ERROR  Unsafe constructs in source (exit 6, profile "strict")
 ERROR  Renderer reported a diagram failure (exit 7)
 
   source   docs/design/payments/design.md:118  (section "architecture", node n009)
-  staged   011-docs-design-payments-design.qmd:124
+  staged   docs/011-docs-design-payments-design.md:114   (line-offset -4)
   detail   Parse error on line 3: expected 'graph', 'flowchart', 'sequenceDiagram'…
              got 'flowchrt LR'
 
@@ -321,7 +339,7 @@ Binder built.
 
   Payments Migration Review — payments-review
   Audience  architecture review board · engineering leads · security reviewer
-  Profile   strict          Renderer  quarto 1.10.18
+  Renderer  zensical 0.0.53
 
   12 nodes   9 source · 2 editorial · 1 generated
    7 sections in 3 parts, 1 appendix
@@ -352,9 +370,9 @@ confident-looking binder that quietly omitted the security assessment.
 | `schema-version` too new | validation | states required and supported | 4 |
 | Cross-section `before`/`after` | validation | names both items and their sections | 4 |
 | Duplicate `id` or colliding publication dir | validation | names both recipes | 4 |
-| Publication directory exists and is not ours | validation | names the path, what was found, and `--replace-foreign-dir` | 4 |
+| Publication directory exists and is not ours | validation | names the path and what was found; the caller empties it themselves | 4 |
+| `publication-dir` absolute or escaping the content root | validation | names the resolved path and the content root | 6 |
 | Publication parent unwritable, or cross-device without a usable parent | validation | names the path, alongside the `st_dev` check | 6 |
-| `--out` outside workspace / publication / temp | validation | names the resolved path and the three permitted roots | 6 |
 | Caption `fence-sha256` mismatch (Phase 2) | staging | names the caption, both hashes, both first lines | 7 |
 | Required artifact missing | resolution | names path and section | 5 |
 | Ambiguity | resolution | lists candidates + fixes | 5 |
@@ -362,15 +380,18 @@ confident-looking binder that quietly omitted the security assessment.
 | Content-id collision | resolution | names both paths | 5 |
 | Recursive binder | resolution | prints recipe chain | 5 |
 | Path escape / symlink escape | any read | names requested, resolved, roots | 6 |
-| Unsafe construct | scan | all violations across all files at once | 6 |
-| Unauthorized `trusted` (recipe or `--profile`) | validation | exact policy line to add | 6 |
-| `--quarto` / `$BINDER_QUARTO` beneath the content root | detection | refuses, names the path (control 25a) | 6 |
+| Refused content root (home, filesystem root, ancestor of `~/.agentbundle/` or the pack) | validation | names the resolved root and why it is refused | 6 |
+| Node read with a non-Markdown extension | any read | names the file and the three permitted extensions | 6 |
+| Unsafe construct | scan | all violations across all files at once; no relaxation offered. **Except under `inventory` and `outline`**, which report the candidate with `unsafe: true` and skip it — a triage verb that dies on one bad file is useless for triage (D29) | 6 |
 | Write into installed pack | any write | refuses, names the path | 6 |
-| Quarto absent | check | full missing-dependency error; index retained | 2 |
-| Quarto unsupported version | check | found + required range | 3 |
-| Render failure | invoke | mapped diagnostics; staging retained | 7 |
+| Renderer absent | check | full missing-dependency error; index retained | 2 |
+| Renderer present but not the pinned version | check | found + pinned | 3 |
+| `nav` target never staged | staging | names the node and the expected staged path (Z2g — the renderer will not catch it) | 7 |
+| Render failure, or a `--strict` build reporting issues | invoke | mapped diagnostics with ANSI stripped; staging retained | 7 |
 | Lock contention (either lock) | build | waits, then names holder PID and age | 8 |
 | Published output stale | `check --published <recipe>` | lists changed sources, and any node added to or removed from the resolved set | 9 |
+| Published output built by a different pack version | `check --published <recipe>` | `rebuild-recommended`; compared **before** the index hash, so a pack upgrade does not read as source drift | 10 |
+| Python older than 3.11 | first action | names the version found | 11 |
 | `check --published` without a recipe | argv parse | names the missing argument and why it is required | 4 |
 | Disk full mid-render | invoke | staging retained; publication untouched | 7 |
 | Interrupted (SIGINT) | signal | locks released; staging retained; publication untouched | 130 |

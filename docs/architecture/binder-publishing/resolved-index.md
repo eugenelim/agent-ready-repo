@@ -13,16 +13,22 @@ gives it a second consumer by definition.
 
 ### Two artifacts, because one of them is not renderer-neutral
 
-A resolved index that carried `.qmd` filenames, pandoc anchor syntax, and a line
-map produced by the Quarto transformer would be a Quarto file wearing a neutral
-name — and it could not be written by `binder resolve`, which is specified to run
-on a machine with no Quarto at all. So the resolution output is **two files with
-two owners**:
+A resolved index that carried staged filenames, the renderer's link syntax, and a
+transformer's line map would be that renderer's file wearing a neutral name — and
+it could not be written by `binder resolve`, which is specified to run on a machine
+with no renderer installed at all. So the resolution output is **two files with two
+owners**:
 
 | File | Written by | Contains | Contract |
 |---|---|---|---|
 | `binder-index.json` | `resolve` (core) | identity, sections, order, selection reasons, metadata, `sha256`, `assets`, `links[].target-node`, diagnostics | **public, versioned, stable** |
-| `renderer-plan.json` | `build` (adapter) | `staged-path`, `line-map`, `links[].rewritten`, emitted figure labels | **adapter-private; no stability guarantee** |
+| `renderer-plan.json` | `build` (adapter) | `staged-path`, `line-offset`, `links[].rewritten`, emitted ordinals | **adapter-private; no stability guarantee** |
+
+**The split survived a renderer change, which is the evidence it was drawn in the
+right place.** Under Quarto the plan held `.qmd` filenames, a `line-map`
+breakpoint *array*, and pandoc `#sec-` anchors; under Zensical it holds `.md`
+filenames, a single integer `line-offset`, and relative page links. Every one of
+those fields changed. **Not one field of `binder-index.json` did.**
 
 > **Invariant 22.** `binder build` writes **no field of `binder-index.json`.** The
 > index is complete when `resolve` returns, and `build` reads it. A second
@@ -35,8 +41,8 @@ renderer detail (it emits no renderer-shaped field).
 
 `figures[]` (**Phase 2**, with captions) will sit in the index because ordinal,
 caption, and fence content-hash describe *source content and editorial intent*;
-the `fig-…` label derived from them is a pandoc cross-reference convention and
-lives in the plan. v1 emits no `figures` key at all.
+whatever label or anchor a renderer derives from them is that renderer's
+convention and lives in the plan. v1 emits no `figures` key at all.
 
 ### `binder-index.json`
 
@@ -59,10 +65,11 @@ lives in the plan. v1 emits no `figures` key at all.
   },
   "content-root": ".",
   "source-roots": ["docs", "notes"],
-  "profile": "strict",
-  "renderer": "quarto",
-  "renderers": { "quarto": { "mermaid-theme": "neutral", "toc-depth": 3 } },
+  "renderer": "zensical",
+  "renderers": { "zensical": { "mermaid-theme": "neutral", "toc-depth": 3 } },
   "extensions": {},
+
+  "_comment": "EXCERPT — three of twelve nodes, chosen to show one of each type. The real array is in global reading order and its node-ids are its 1-based positions; see the node-id rule below.",
 
   "nodes": [
     {
@@ -109,7 +116,8 @@ lives in the plan. v1 emits no `figures` key at all.
       "role": "executive-summary",
       "authored-by": "editor",
       "review-state": "unreviewed",
-      "selection": { "reason": "editorial-node", "rule": "…#sections[0].items[0]" }
+      "selection": { "reason": "editorial-node", "rule": "…#sections[0].items[0]" },
+      "ordering": { "base-index": 0, "weight": 0, "constraints": [], "final": 1 }
     },
     {
       "node-id": "n012",
@@ -147,7 +155,8 @@ Three properties make the format implementable by a second renderer:
 - **Link targets are pre-resolved, link *syntax* is not.** Deciding whether
   `../adr/0044-ledger-boundary.md` names a document that is *in this binder* is a
   selection-aware question, so `target-node` belongs in the resolver. Turning that
-  into `#sec-adr-0044` is pandoc syntax, so it belongs in the plan.
+  into whatever the renderer wants — a staged filename under Zensical, a `#sec-`
+  anchor under Quarto — is renderer syntax, so it belongs in the plan.
 - **Every node's content is hashed and its figures enumerated**, so a renderer
   knows what it is rendering and a CI job can tell whether a publication is stale
   — without either needing to re-read the sources.
@@ -163,7 +172,7 @@ may be absent.
 
 | Field | `source` | `editorial` | `generated` | Notes |
 |---|---|---|---|---|
-| `node-id` | R | R | R | `n` + the zero-padded 1-based position of the node **in the `nodes[]` array**, assigned by `resolve` over resolved nodes only. It has nothing to do with staged filenames, which are the adapter's and are numbered over a different set (they interleave part pages the core does not know about). **Stable across runs with identical inputs** (invariant 21); not stable across a change to the resolved node set. |
+| `node-id` | R | R | R | `n` + the zero-padded 1-based position of the node **in the `nodes[]` array**, assigned by `resolve` over resolved nodes only. The array is in global reading order, so `n001` is always its first element — the excerpt above prints three non-adjacent nodes and is labelled as such. It has nothing to do with staged filenames, which are the adapter's and are numbered over a different set (they interleave part pages the core does not know about). **Stable across runs with identical inputs** (invariant 21); not stable across a change to the resolved node set. |
 | `type` | R | R | R | closed set: `source` \| `editorial` \| `generated` |
 | `content-id`, `source-path`, `sha256` | R | R | — | a generated node has no source |
 | `section`, `numbered`, `label` | R | R | R | |
@@ -173,7 +182,7 @@ may be absent.
 | `metadata` | O | O | — | absent entirely at Level 0 |
 | `selection` | R | R | — | `reason` + `rule`; `required` optional |
 | `ordering` | R | R | — | |
-| `assets`, `links` | O | O | — | absent when empty, not `[]`. **`assets` is derived** as the set of inline-image destinations in the CommonMark AST that resolve to a relative path beneath the content root; reference-style images resolve first, and `<img>` never appears because control 13 rejects it. |
+| `assets`, `links` | O | O | — | absent when empty, not `[]`. **`assets` is derived** as the set of inline-image destinations in the CommonMark AST that resolve to a relative path beneath the content root; reference-style images resolve first, and `<img>` never appears because the raw-HTML rule rejects it. |
 | `figures` | — | — | — | **Phase 2.** Added additively when captions ship; v1 has no consumer for `fence-sha256` or `caption-binding`, and emitting them would be the circularity D13 removed for `--if-stale`. |
 | `role` | O | O | — | |
 | `authored-by`, `review-state` | — | R | — | editorial only |
@@ -186,8 +195,19 @@ it is necessary, because a second renderer handed only the index would otherwise
 have paths it cannot resolve.
 
 Top level: `schema-version`, `binder`, `recipe`, `content-root`, `source-roots`,
-`profile`, `renderer`, `nodes`, `structure`, `diagnostics` are **R**;
-`renderers` and `extensions` are **O**.
+`renderer`, `nodes`, `structure`, `diagnostics` are **R**; `renderers` and
+`extensions` are **O**.
+
+**`profile` was removed by D-A, and that is not a cosmetic deletion.** With one
+possible value the field carried no information — it would have been a constant
+emitted into every index in every repository, which is precisely the ceremonial
+field invariant 21 exists to make structurally impossible. If a second profile is
+ever added on evidence, the field returns additively; a consumer that never saw it
+is unaffected, because a consumer MUST ignore unknown fields.
+
+Its removal also simplifies the content-key: the profile was hashed into it so
+that a strict and a trusted build of one recipe could not share a workspace. With
+one profile there is nothing to separate — see [`runtime.md`](runtime.md).
 
 `authored-by` is **compiler-derived** from the containing section's `kind`, not
 authored — a recipe cannot claim a source document was written by the editor.
@@ -200,35 +220,84 @@ makes "additive-only" a usable promise rather than a slogan.
 
 ### `renderer-plan.json` — adapter-owned, not a contract
 
-Written by `build` into the workspace beside the index. One entry per node:
+Written by `build` into the workspace beside the index. One entry per node.
+
+> **The plan's field list and worked example live in
+> [`zensical-adapter.md`](zensical-adapter.md#renderer-plan), not here.** The
+> adapter owns the plan, so the adapter's file is where it is specified — and an
+> adapter-private structure printed in two places is exactly the
+> "specified-two-ways" defect this tree was split to prevent. What belongs here is
+> the *boundary*: what the plan may hold, and why it is not the index.
+
+The plan holds whatever the adapter had to invent — staged filenames, the line
+offset, rewritten link targets, emitted ordinals, and any transformation record
+like a clamped heading. None of it is a contract, none of it is published, and a
+second adapter writes a completely different set of fields beside the same index.
+
+**`line-map` collapsed to `line-offset`, a single integer, and that is a D-B
+consequence worth naming.** Under Quarto, five of eight transformation steps
+changed line counts — the fence transform, the injected `%%|` cell option, the
+label line — so a scalar was *provably* wrong and round 1 replaced it with a
+breakpoint array. Zensical reads the portable fence directly (Z3a), so only the
+frontmatter rebuild and the duplicate-H1 drop change line counts, both by a fixed
+amount at the top of the file. The delta is uniform below the frontmatter, and one
+integer expresses it exactly.
+
+This is checkable rather than merely asserted: if a future adapter reintroduces a
+length-changing transformation in the body, the array comes back — in the plan,
+where it always belonged.
+
+`links` maps a source-relative target to a **staged filename**, not to an anchor:
+Z2b confirmed Zensical turns a `.md` link into its own pretty URL, so the adapter
+emits the filename and lets the renderer own the URL shape. Under Quarto this
+field held a pandoc `#sec-` anchor. Same field, same purpose, different renderer
+convention — which is the entire reason it lives in the plan.
+
+The plan carries **no stability guarantee** and is not published; only the adapter
+reads it, and only to map diagnostics and record what it emitted.
+
+---
+
+## `binder-stamp.json` — the one machine artifact that ships
+
+The index is never published (D32) and the plan is never published, so the stamp
+is the only structured file that leaves the workspace — and it goes to review
+boards, clients, and vendors. It is also `check --published`'s entire input. By
+this file's own standard, *a contract specified only by example is not a
+contract*, so it is enumerated here rather than left implicit.
 
 ```json
 {
-  "plan-version": "1",
+  "schema-version": "1",
+  "binder-id": "payments-review",
+  "pack-version": "0.1.0",
+  "renderer": "zensical",
+  "renderer-version": "0.0.53",
   "index-sha256": "e91b…",
-  "nodes": {
-    "n008": {
-      "staged-path": "008-docs-rfc-0091-payments-migration.qmd",
-      "line-map": [[1, 1], [9, 5], [11, 7], [12, 9]],
-      "figure-labels": { "1": "fig-docs-rfc-0091-payments-migration-1" },
-      "heading-rule": "dropped-duplicate-h1",
-      "clamped-source-lines": [],
-      "assets": { "img/ledger-topology.png": "assets/n008/ledger-topology.png" },
-      "links": { "../adr/0044-ledger-boundary.md": "#sec-adr-0044" }
-    }
-  }
+  "nodes": [
+    { "id-sha256": "3c9f…", "sha256": "4f2c…" },
+    { "id-sha256": "a71b…", "sha256": "9ab1…" }
+  ]
 }
 ```
 
-`line-map` is an array of `[source-line, staged-line]` breakpoints, each marking a
-position where the two diverge; a lookup finds the last breakpoint at or before
-the staged line and applies its delta. It is an array — not a scalar offset —
-because five of the eight transformation steps change line counts (see *Quarto
-staging adapter*), which the worked Mermaid example demonstrates.
+| Field | Read by | Notes |
+|---|---|---|
+| `schema-version` | `check --published` | stamp format, independent of the index's |
+| `binder-id` | publication-ownership check | the one field `runtime.md`'s replace-guard compares |
+| `pack-version` | `check --published` step 4 | a mismatch is **exit 10**, `rebuild-recommended` — distinct from stale |
+| `renderer`, `renderer-version` | humans, and a future second adapter | recorded, never compared; a renderer upgrade is not staleness |
+| `index-sha256` | `check --published` step 5 | catches a reorder, a renamed section, a changed `label` — everything a node-set comparison misses |
+| `nodes[].id-sha256` | mismatch explanation | `sha256(content-id)`, **never the content-id** (D37) |
+| `nodes[].sha256` | mismatch explanation | source content hash |
 
-`index-sha256` pins the plan to the index it was generated from, so a stale plan
-is detected rather than silently misapplied. The plan carries **no stability
-guarantee** and is not published; only the adapter reads it, and only to map
-diagnostics.
+**The closure clause is the point of the design, not a footnote.** The stamp
+carries **no source path, no exclusion reason, no unresolved gap, no diagnostics
+key, no recipe line reference, and no label or title.** Round 3 found the design
+publishing all of those inside a copied index; D32 replaced the copy with a
+purpose-built artifact precisely so the reduction could not drift back. Anything
+added here is a disclosure to every reader of every published binder, and the
+field table above is closed — a new field is a decision, not an implementation
+detail.
 
 ---

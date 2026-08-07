@@ -1,7 +1,123 @@
 # Verified findings and gates
 
-> Every Quarto claim with source and confidence; the gates and their results.
+> Every renderer claim with source and confidence; the gates and their results.
 > Part of [binder publishing architecture](README.md).
+
+**Two renderers appear here, and only one of them is live.** Z1–Z4 are the
+**Zensical** gates — the v1 renderer under D-B — and they are the ones a spec
+author builds against. Q1–Q28 are **Quarto** findings, retained because a future
+PDF or EPUB adapter would go through Quarto and would be built against them.
+Where the two disagree about a behaviour, they are not in conflict: they describe
+different renderers.
+
+---
+
+## Zensical findings and the Z-gates
+
+Run **2026-08-06** against `zensical==0.0.53` in a clean virtualenv on
+macOS/arm64, using the same discipline V1 established: **a real fixture and the
+real emitted `zensical.toml`**, not a hand-written config the pack never emits.
+The fixture is a five-chapter binder with a nested `nav`, a `custom_dir` theme, a
+generated cover, fresh per-file frontmatter, a portable ` ```mermaid ` fence with
+a `<br/>` node label, a class diagram using `<|--`, a literal `{{< env … >}}`, a
+`${HOME}`, an admonition, and a cross-document `.md` link.
+
+`[high]` throughout means direct execution against that fixture.
+
+### Z1 — invocation, version probe, and where output lands
+
+| # | Finding | Confidence |
+|---|---|---|
+| Z1a | **`zensical build` takes no positional directory.** Its only path input is `-f/--config-file PATH`; the other flags are `-c/--clean` and `-s/--strict`. The argv is therefore `[sys.executable, "-m", "zensical", "build", "-f", "<stage>/zensical.toml", "--strict"]` — list-form, no shell, no caller-supplied element. | **High — VERIFIED** |
+| Z1b | **`--strict` is required, not optional.** Without it a build that emits warnings still **exits 0**. Verified exit codes: `--strict` with issues → **1**; `--strict` clean → **0**; no `--strict` with issues → **0**. A compiler that reported success on a warned build would publish a binder with dead links. | **High — VERIFIED** |
+| Z1c | **`zensical.__version__` does not exist.** The module exposes `build`, `serve`, and `version` — and `zensical.version` is a *built-in function*, not a string, so a naive probe stringifies a function object rather than failing. The version probe is `importlib.metadata.version("zensical")`, which returns `"0.0.53"`. `python -m zensical --version` also prints it. | **High — VERIFIED** |
+| Z1d | **`site_dir` and `docs_dir` are configurable and default to `site` and `docs`**, and Zensical itself rejects either resolving outside the project root, or the two being equal. Output is `site/`, not `_output/`. | **High — VERIFIED** (`zensical/config.py`) |
+| Z1e | **Output and cache land relative to the config file's directory, not the process CWD.** Building `-f cachetest/zensical.toml` from a parent directory wrote `cachetest/site/` and `cachetest/.cache/`. `.cache/` is an undeclared write the design had not accounted for; it is inside the staging directory and therefore inside the workspace. | **High — VERIFIED** |
+| Z1f | **`NO_COLOR=1` is not honoured** — diagnostics still carry ANSI SGR sequences. The adapter must strip them before parsing or re-emitting. Diagnostics are reported as `<staged-file>.md:LINE:COL`, which is exactly the anchor the `line-offset` mapping needs. | **High — VERIFIED** |
+
+### Z2 — the config surface the adapter emits
+
+| # | Finding | Confidence |
+|---|---|---|
+| Z2a | **The nested `nav` form is correct.** `{ "Part I — Evidence" = [ {…}, {…} ] }` renders as a titled sidebar group containing its children. The generator is told the structure and derives none of it. | **High — VERIFIED** |
+| Z2b | **`markdown_extensions` REPLACES the scaffold set — it does not merge.** With the closed allowlist emitted, `pymdownx.tilde`, `pymdownx.caret`, `pymdownx.details`, `pymdownx.emoji`, `pymdownx.keys`, and `pymdownx.arithmatex` were all inert and their syntax rendered as literal text. This is the answer the design needed: **excluding `arithmatex` and `emoji` genuinely removes the MathJax and twemoji references**, rather than leaving a default in place underneath. | **High — VERIFIED** |
+| Z2c | **Quoted dotted keys are accepted.** `"pymdownx.superfences" = { … }` parses to the extension named `pymdownx.superfences`. The scaffold's unquoted `pymdownx.superfences = { … }` is a TOML *dotted key* producing a nested table; both forms reach the same extension, and the quoted form is what the adapter emits because it is unambiguous. | **High — VERIFIED** |
+| Z2d | **`custom_dir` works, and a `main.html` extending `base.html` can inject into `{% block extrahead %}`** — which lands in `<head>`, ahead of the bundle. Non-template files in the custom directory are **copied verbatim into `site/`**; template files are consumed. So the theme directory is a publication surface and only pack-owned assets may go in it. | **High — VERIFIED** |
+| Z2e | **The `features` strings are accepted as given**, and `navigation.footer` does produce prev/next. | **High — VERIFIED** |
+| Z2f | **`pymdownx.snippets` is commented out in the scaffold, not active.** An earlier claim that it was one of three defaults the allowlist removes was wrong about this one; `arithmatex` and `emoji` *are* scaffold defaults, `snippets` is not. Excluding it is still correct — it reads arbitrary files from disk — but it is a precaution, not a removal. | **High — VERIFIED** |
+| Z2g | **A `nav` entry naming a file that does not exist produces no warning, even under `--strict`, and renders a dead sidebar link.** A missing chapter is silently navigable. **The adapter must assert every `nav` target exists on disk before invoking** — Zensical will not tell it. | **High — VERIFIED** |
+| Z2h | **Zensical numbers nothing.** No chapter numbers, no appendix lettering, no `.unnumbered` equivalent. Q17's automatic appendix lettering is a *Quarto* behaviour with no counterpart here, so **`numbered` is compiler-emitted** — see [`binder-recipe.md`](binder-recipe.md). | **High — VERIFIED** |
+
+### Z3 — Mermaid, and whether it is bundled
+
+> **The answer is no.** The vendored `mermaid.min.js` and its delivery problem
+> both stand.
+
+| # | Finding | Confidence |
+|---|---|---|
+| Z3a | **The portable ` ```mermaid ` fence is read directly** and emitted as `<pre class="mermaid"><code>…</code></pre>`. No transformation, no line-count change, no cell-option injection. This is what deletes the Quarto staging transform. | **High — VERIFIED** |
+| Z3b | **Mermaid itself is NOT bundled.** The theme bundle contains `it("https://unpkg.com/mermaid@11/dist/mermaid.min.js")` and fetches it **from the reader's browser at read time** whenever a `.mermaid` element mounts. A binder with a single diagram phones out to unpkg. | **High — VERIFIED** |
+| Z3c | **Vendoring is supported, by a guard in the bundle itself:** `typeof mermaid == "undefined" || mermaid instanceof Element ? fetch(unpkg) : skip`. If a global `mermaid` is already defined, **no request is made.** So shipping `mermaid.min.js` in the pack's theme assets and defining the global before the bundle runs suppresses the fetch. | **High — VERIFIED** (source inspection of the emitted bundle) |
+| Z3d | **`extra_javascript` is emitted *after* the bundle**, so using it for the vendored file is an execution-order race. **`custom_dir` + `{% block extrahead %}` is the deterministic form** — verified to place the script in `<head>`, before the bundle. This is why the adapter vendors through the theme rather than through `extra_javascript`. | **High — VERIFIED** |
+| Z3e | **`<br/>` in a node label survives**, entity-escaped inside the `<pre>` and decoded by the browser as text content — the same mechanism Q28 recorded under Quarto. `<\|--`, `<\|..`, and `<-->` pass through unharmed. The label allowlist in [`security-profile.md`](security-profile.md) is verified under both renderers. | **High — VERIFIED** |
+| Z3f | **`{{< env AWS_SECRET_ACCESS_KEY >}}` and `${HOME}` pass through as literal escaped text.** Confirms the Q11 attack surface does not exist here. | **High — VERIFIED** |
+
+### Z4 — offline hardening, and V2b restated
+
+| # | Finding | Confidence |
+|---|---|---|
+| Z4a | **`[project.theme.font] text = false, code = false` DOES NOT suppress Google Fonts — it emits a request for a typeface named `False`.** The rendered head carried `https://fonts.googleapis.com/css?family=False:300,300i,…%7CFalse:400,…`. The design specified this form and it is wrong. | **High — VERIFIED** |
+| Z4b | **The correct form is scalar `font = false` on the theme table.** `base.html` guards the block with `{% if config.theme.font != false %}`. With `[project.theme] font = false`, both the `fonts.googleapis.com` stylesheet and the `fonts.gstatic.com` preconnect disappear. | **High — VERIFIED** |
+| Z4c | **With `font = false` and the closed extension allowlist, the only `https://` strings left in the built HTML are one `zensical.org` attribution `<a href>`** — a link, not a fetch — **and two Font Awesome licence-comment URLs in the CSS.** Neither issues a request. | **High — VERIFIED** |
+| Z4d | **V2b as previously written is unsatisfiable.** "Zero `https://` references anywhere in `_output/`, CSS included" cannot pass against a licence comment and an attribution anchor. Restated below as zero remote **subresource** references, which is the property that actually matters and is testable. | **High — VERIFIED** |
+| Z4e | **Search is local and offline** — `site/search.json`, 1.7 KB for the fixture — and every asset reference is document-relative (`./assets/…`, `../assets/…`), so a published binder opens from `file://` with no server. | **High — VERIFIED** |
+
+### The four findings that changed the design
+
+**Z3b deletes a simplification that had been assumed.** The renderer-choice spike
+recorded Mermaid as "renders from the portable fence" and stopped there; it did
+not ask *where the JavaScript comes from*. It comes from unpkg, at read time, in
+the reader's browser. The vendored `mermaid.min.js` stays, and Z3c/Z3d turn "we
+will vendor it somehow" into a specified mechanism with a verified guard.
+
+**Z4a is a specified control that does not work.** The design named a font-
+suppression form, called it "required, not optional", and it emits a broken
+request instead. This is the Q26 class of finding exactly: a control asserted from
+the shape of a configuration surface rather than from running it.
+
+**Z2b is the good news.** The closed extension allowlist behaves the way the
+design needed — replacement, not merge — so the two CDN-bearing extensions are
+genuinely gone rather than shadowed.
+
+**Z2g is a gap in the renderer, not in the design, and the adapter has to cover
+it.** A nav entry pointing at a file that was never staged is silently rendered as
+a working-looking sidebar link. The adapter asserts nav-target existence itself.
+
+### Z-gate status
+
+| Gate | Claim | Status | Result |
+|---|---|---|---|
+| **Z1** | Invocation contract, version probe, exit codes, output location | **PASSED** 2026-08-06 | Argv, `--strict` necessity, and exit codes settled. **Corrected the design:** `zensical.__version__` does not exist (Z1c). |
+| **Z2** | The emitted config — nav, `custom_dir`, `features`, `markdown_extensions` | **PASSED** 2026-08-06 | All four accepted as specified. **Settled the open question:** extensions replace, not merge (Z2b). **Surfaced Z2g and Z2h.** |
+| **Z3** | Mermaid from the portable fence, and whether it is bundled | **PASSED with a finding** 2026-08-06 | Fence read directly; **Mermaid is not bundled** (Z3b). Vendoring mechanism verified (Z3c/Z3d). |
+| **Z4** | Offline hardening | **RUN, FAILED, then FIXED** 2026-08-06 | The specified font form is wrong (Z4a); the correct one is verified (Z4b). V2b restated (Z4d). |
+| **Z5** | Telemetry — does `zensical build` make any outbound request during the build? | **NOT RUN** | Requires a network-isolated runner. Same shape as V2 was for Quarto. Fallback: document any fetch and name its suppressing key. |
+| **Z6** | Vendored Mermaid actually renders a diagram in a browser with egress blocked | **NOT RUN** | Z3c/Z3d verify the guard and the injection point by source and by emitted HTML; that a real browser then renders the diagram needs a headless run. Fallback: if the guard misbehaves, the diagram degrades to a readable `<pre>` of its own source rather than disappearing. |
+| **V6** | Whether an agent's process working directory is the skill directory | **NOT RUN** | **Renderer-independent, and the one pre-D-B gate still live.** Invoke `python scripts/binder.py check` from a live session on each adapter and record the CWD. Until it returns, content-root resolution is specified defensively both ways and `--root` is effectively required on the agent surface — see [`invocation.md`](invocation.md) and [`overview.md`](overview.md). |
+
+**Regression duty.** Z1–Z4 become CI assertions in
+`tests/skills/publish-binder/integration/` once implemented, on every PR — they
+need a 12.2 MB pip install, not a 236 MB toolchain, so there is no path filter to
+argue about.
+
+---
+
+## Retained Quarto findings — evidence for a future PDF adapter
+
+> **Not live design.** Everything below describes Quarto, which D-B removed from
+> v1. It is retained because Q5, Q10a, Q11, Q17, Q18, Q26, Q27, and Q28 are
+> hard-won by direct execution and are exactly what a future PDF or EPUB adapter
+> would be built against. Read it as history, not as specification.
 
 ## Verified Quarto findings
 
@@ -73,7 +189,13 @@ gated (V1) rather than assumed**, with a named fallback.
 
 ---
 
-## Pre-implementation verification gates
+## Pre-implementation verification gates — Quarto
+
+> **Historical.** V1–V6 gated *Quarto* claims. D-B retired the renderer, and with
+> it V2 (render-time network), V4 (the install-command platform matrix), and V5
+> (shortcode expansion in metadata) — none of which has a subject any more. V2b's
+> *concern* survives as **Z4**, restated; V6 (agent CWD) is renderer-independent
+> and is still open. The rest is kept as the record a PDF adapter inherits.
 
 **Three of these have been run, not deferred.** V1, V3, and V4-on-macOS were
 executed against Quarto 1.10.18 on 2026-08-06, because a renderer decision resting
@@ -96,9 +218,9 @@ precisely what broke.
 | **V3** | Q20 — fenced divs and attributed spans survive the reader toggles | **PASSED** 2026-08-06 | `callout-note` and `<span class="badge">` render under every `from:` variant tested. Badges and editorial markers use callouts and fenced divs as planned; the plain-label fallback is not needed. |
 | **V4** | Q24 — the printed rung-1 command installs a working `quarto` | **PARTIAL** — macOS passed 2026-08-06 | `python -m pip install --no-deps --user quarto-cli==1.10.18` produced `~/.local/bin/quarto` reporting `1.10.18`. **Still to run:** a PEP 668 externally-managed interpreter, and Windows. Fallback unchanged: surface the interpreter's own message, never add `--break-system-packages`, fall through to rung 2. |
 | **V2** | Q19 — no network access *during* render | **NOT RUN** | Requires a network-isolated runner. Fallback: document the specific fetch and name the suppressing configuration key if one exists. |
-| **V2b** | Q27 — no network access *at read time*, from the published tree | **RUN, FAILED** 2026-08-06 | The rendered HTML carries zero absolute `src=`/`href=` references — but the stock Bootstrap CSS contains `@import url("https://fonts.googleapis.com/…Source+Sans+Pro…")`, so a reader's browser phones out. **This is a design requirement, not a gate failure to accept:** the shipped `binder.scss` must override the theme's font stack with a system-font stack, and V2b asserts **zero** `https://` references anywhere in `_output/` — CSS included. A binder for an air-gapped review board or a privacy-sensitive client cannot fetch a typeface from a third party. |
+| **V2b** | Q27 — no network access *at read time*, from the published tree | **RUN, FAILED** 2026-08-06 | The rendered HTML carries zero absolute `src=`/`href=` references — but the stock Bootstrap CSS contains `@import url("https://fonts.googleapis.com/…Source+Sans+Pro…")`, so a reader's browser phones out. **This is a design requirement, not a gate failure to accept:** a binder for an air-gapped review board or a privacy-sensitive client cannot fetch a typeface from a third party. **Superseded by Z4** under Zensical, which found the same class of leak, a different suppression key, and that the "zero `https://` anywhere" form of the assertion is unsatisfiable (Z4d). |
 | **V5** | Q25 — shortcode expansion in `title` / `book.title` metadata | **NOT RUN** | Render the fixture with a `book.title` containing a literal `{{< env HOME >}}`, injected by the test to bypass the validator, and assert the value does not appear in the output. No fallback needed — the emitted-string validator (D36) rejects this input on every real path; V5 tells us whether the validator is the only thing standing between a title and an environment variable. |
-| **V6** | Whether an agent's process working directory is the skill directory | **NOT RUN** | Invoke `python scripts/binder.py check` from a live session on each adapter and record the CWD. Until it returns, content-root resolution is specified defensively both ways — see *What "repository scope" means outside Git*. |
+| **V6** | Whether an agent's process working directory is the skill directory | **MOVED** — see the Z-gate status table above | Renderer-independent, so it did not retire with Quarto. Listed with the live gates rather than under this section's "not live design" heading. |
 
 **What the executed gates changed.** V1 was expected to confirm a fact and instead
 produced Q26, which removed a security layer the design had claimed and forced the
