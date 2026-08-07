@@ -211,8 +211,9 @@ unparseable lines.
       environment-steerable.
 - [x] AC16. Field values are validated **before** the file is opened: refused
       if they contain a C0 control character (including `ESC`, which would be
-      replayed as an ANSI sequence by `session-start.py`), `U+0085`, `U+2028`,
-      or `U+2029`, a lone surrogate, or any **default-ignorable code point**;
+      replayed as an ANSI sequence by `session-start.py`), `U+0085`, `U+2028`
+      or `U+2029` **in either spelling**, a lone surrogate, or any
+      **default-ignorable code point**;
       and `title` is capped at 120 codepoints and `body` at 2000, a refusal
       naming the field and its limit.
 
@@ -282,14 +283,19 @@ unparseable lines.
       error instead of tracebacking.
 - [x] AC20. `lint-knowledge.py` fails an entry that escapes a character as
       `\uXXXX` when that character should have been written literally, naming
-      the character and the fix. Legal escapes are exactly: the five C0
-      characters JSON needs (`\b \t \n \f \r`), and `U+0085` / `U+2028` /
-      `U+2029`, for which the escaped form is the *only* representation that
-      survives `splitlines()`. Every other C0 escape is refused — the writer
-      refuses a literal `ESC` because `session-start.py` replays it as an ANSI
-      sequence, so the gate must refuse the escaped spelling or the hand-edit
-      path stays open. A literal backslash-u sequence in body text is not an
-      escape and stays legal.
+      the character and the fix. The decoded pass of AC20a is what makes this
+      total: an escaped `ESC` is refused there exactly like a literal one, and
+      so are `U+0085` / `U+2028` / `U+2029`. The escape rule's exemption for
+      those three exists only so an entry carrying one gets a single clear
+      error rather than two — not to make them legal.
+
+      An earlier version did make the escaped form legal, on the reasoning that
+      it was the only representation surviving `splitlines()`. That is precisely
+      why it had to be refused: surviving intact is what lets it forge a line
+      inside the block `session-start.py` replays, so a closed
+      `=== end knowledge ===` followed by an instruction reads as genuine. A
+      literal backslash-u sequence in body text is not an escape and stays
+      legal.
 - [x] AC21. `SKILL.md`, `docs/knowledge/README.md`, and
       `packs/core/seeds/docs/knowledge/README.md` name the script as the way to
       append, state the raw-UTF-8 convention, and state the trust posture from

@@ -138,7 +138,11 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
         leave it alone.
     """
     lock = target.with_name(target.name + ".lock")
-    token = f"{os.getpid()}:{uuid.uuid4().hex}"
+    nonce = uuid.uuid4().hex
+    # `pid:nonce` identifies the holder in the lock *contents*; the rename
+    # target uses the bare nonce, because `:` is reserved in Windows
+    # filenames and a rejected rename turns an abandoned lock permanent.
+    token = f"{os.getpid()}:{nonce}"
     deadline = time.monotonic() + timeout
     fd = None
     while fd is None:
@@ -169,7 +173,7 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
                     # breaks it and acquires, then B's unlink removes A's live
                     # lock and a third process enters. `os.replace` is atomic,
                     # so exactly one breaker moves the file it saw.
-                    stale = lock.with_name(f"{lock.name}.stale-{token}")
+                    stale = lock.with_name(f"{lock.name}.stale-{nonce}")
                     try:
                         lock.replace(stale)
                     except FileNotFoundError:
@@ -184,7 +188,10 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
                         # race; clearing the renamed file is tidiness. It is
                         # gitignored, so failing here is not worth refusing over.
                         with contextlib.suppress(OSError):
-                            stale.unlink()
+                            if stale.is_dir():
+                                stale.rmdir()
+                            else:
+                                stale.unlink()
             if time.monotonic() >= deadline:
                 held = "could not be inspected" if age is None else f"held for {age:.0f}s"
                 raise LockUnavailable(

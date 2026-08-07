@@ -61,11 +61,10 @@ ID_PATTERN = re.compile(r"^K-\d{4,}$")
 _ESCAPE_RE = re.compile(r"(?<!\\)((?:\\\\)*\\)u([0-9a-fA-F]{4})")
 # Belt and braces: refuse to regex a pathological line at all.
 _MAX_LINE = 8192
-# Escapes that must stay legal:
-#   < 0x20  — JSON requires escaping these.
-#   U+0085 / U+2028 / U+2029 — str.splitlines() (used by this linter and by
-#   tools/hooks/session-start.py) breaks on them, so the escaped form is the
-#   *only* representation that survives a round trip.
+# `gratuitous_escapes` exempts these so an entry carrying one gets a single
+# clear error rather than two: the decoded pass refuses the character itself, in
+# both spellings. The literal form also breaks `str.splitlines()`, which is how
+# both this linter and session-start.py read the file.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
 # The C0 characters JSON actually needs an escape for. The rest of C0 has no
 # business in a knowledge entry in *either* form — the writer refuses a
@@ -185,6 +184,15 @@ def field_problems(value: str) -> list[str]:
         elif is_hidden_char(ch):
             problems.append(f"invisible character U+{cp:04X} "
                             f"({unicodedata.name(ch, 'unnamed')})")
+        if cp in _LINE_BREAKERS:
+            # U+0085 is Cc and caught above; U+2028 is Zl and U+2029 is Zp, so
+            # neither falls under any other rule. They have to be named here or
+            # the *escaped* spelling survives the round trip intact and forges a
+            # line into the block session-start replays — a closed
+            # `=== end knowledge ===` followed by an instruction reads as
+            # genuine to any line-oriented consumer. The writer already refuses
+            # all three; this is what makes that true of the gate as well.
+            problems.append(f"line separator U+{cp:04X}")
         if 0xD800 <= cp <= 0xDFFF:
             problems.append(f"lone surrogate U+{cp:04X}")
         if ch in _RUN_CHARS:
