@@ -59,7 +59,7 @@ def _env_view(dumped: dict[str, str]) -> dict[str, str]:
     return {_env_key(name): value for name, value in dumped.items()}
 
 
-def _distinct_env_names(names: "set[str]") -> list[str]:
+def _distinct_env_names(names: frozenset[str] | set[str]) -> list[str]:
     """One representative per *distinct* environment variable on this platform.
 
     The allowlist carries both `HTTP_PROXY` and `http_proxy` so POSIX honours

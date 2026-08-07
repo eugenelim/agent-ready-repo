@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import http.server
 import json
+import socket
 import ssl
 import threading
 import urllib.error
@@ -567,8 +568,11 @@ def test_a_stalled_resolver_cannot_outrun_the_budget(monkeypatch):   # STUB: AC3
     import time as _time
 
     def _never_answers(*_a, **_k):
-        _time.sleep(30)
-        raise AssertionError("resolver should have been abandoned")
+        # Outlives the join bound, then returns benignly. Raising here instead
+        # would surface as an unraisable exception on the abandoned daemon
+        # thread *after* the test has already passed.
+        _time.sleep(_sso._DERIVE_SOCKET_TIMEOUT_S * 2)
+        return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 443))]
 
     monkeypatch.setattr(_sso.socket, "getaddrinfo", _never_answers)
     budget = _sso._DerivationBudget(_sso._DERIVE_TOTAL_BUDGET_S)
