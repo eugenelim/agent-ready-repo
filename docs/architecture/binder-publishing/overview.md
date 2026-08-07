@@ -25,8 +25,10 @@ Three things are settled and carried by other files:
   there is no policy file at any tier, there are no grants, and six flags are cut.
   [`security-profile.md`](security-profile.md) carries the model in one sentence.
 - **Every renderer claim has been executed**, not inferred.
-  [`verified-findings.md`](verified-findings.md) carries Z1–Z4, which found three
-  of the adapter's own assertions wrong.
+  [`verified-findings.md`](verified-findings.md) carries Z1–Z6 and V6 — all run —
+  and they found several of the adapter's own assertions wrong — the last of them
+  (Z6d/Z6e) a control that would have passed CI while the feature was broken, now
+  replaced by D46.
 
 ---
 
@@ -82,9 +84,12 @@ The producer side is solved and growing. The consumer side does not exist.
 6. **The installed pack is read-only at runtime.** Every byte written goes to a
    caller-owned location.
 7. **Source Markdown is never modified.**
-8. **Mermaid renders from portable GitHub-style fences**, and the staged fence is
-   byte-identical to the source's (Z3a). Under Quarto this goal needed a
-   transformation; here it needs nothing, which is the strongest form it can take.
+8. **Mermaid renders from portable GitHub-style fences**, and the staged fence
+   *body* is byte-identical to the source's (Z3a) — the opening delimiter carries
+   compiler-emitted accessibility attributes (D46), at no line-count cost. Under
+   Quarto this goal needed the body rewritten; here it needs one same-line
+   annotation, which is why the diagram source a reader copies out is the source
+   the author wrote.
 9. **A published binder makes no network request when read.** A *goal*, not a
    property inherited from the renderer — Zensical's defaults fetch from four
    CDNs, and Z4 is what closes them.
@@ -152,13 +157,29 @@ configuration **is** a repository for this pack's purposes, whether or not Git h
 ever been run in it. Nothing about the runtime requires Git.
 
 **Rules 2–4 apply only when the process working directory is outside the installed
-pack.** Whether an agent's working directory *is* the skill directory is an
-**assumption, not a documented contract** — nothing in `author-a-skill.md`, the
-skill-script conventions, or the adapter contract states it, and
-`markdown-to-html`'s shipped interface implies the opposite. **Gate V6** settles
-it. Until it returns, `binder.py` resolves its own realpath and skips rules 2–4
-when its CWD is beneath the installed pack; a missing `--root` is then exit 4, so
-`--root` is effectively **required** on the agent surface.
+pack — and on both adapters gate V6 could measure, it is.** Measured 2026-08-07:
+on `claude-code` and on `codex` an agent runs a script with the CWD of the
+**session's project root**, which is the content root, not the skill directory. So rule 4
+resolves correctly on the agent surface and **`--root` is not required** there; it
+remains the recommended form because it makes the resolution explicit rather than
+positional, which is what a `Makefile` or a CI step wants.
+
+The guard stays anyway, and it is now cheap insurance rather than the load-bearing
+rule: `binder.py` resolves its own realpath and skips rules 2–4 when its CWD is
+beneath the installed pack, exiting 4 with the message naming `--root`. The
+remaining adapters were not measured — `copilot`, `cursor`, and `gemini` were not
+installed, and the `kiro` binary is the IDE launcher with no headless agent CLI, so
+neither `kiro-ide` nor `kiro-cli` could be driven — so an adapter that does behave
+differently degrades to a clear error naming its own fix, instead of resolving a
+content root the caller did not intend.
+
+> **The old text said `--root` was "effectively required", and V6 removed the
+> premise.** It was written defensively because nothing in `author-a-skill.md`, the
+> skill-script conventions, or the adapter contract documents the CWD, and
+> `markdown-to-html`'s shipped interface implies the opposite. That reading of
+> `markdown-to-html` turned out to be right about the *documentation* and wrong
+> about the *behaviour*: its `node scripts/render.js` form does not resolve from an
+> agent session at all. See [`verified-findings.md`](verified-findings.md) V6.
 
 ### `--root` is refusal-grade, and D-A withdrew the grant that would have changed that
 
@@ -566,7 +587,7 @@ on it.
 | Source attribution | **Compiler-generated**, one restrained line per chapter — artifact kind and status only, **never the repository-relative path** |
 | Decision / risk / open-question callouts | **`admonition` blocks**, emitted where the recipe assigns a `role`; **not** inferred from prose |
 | Cross-document links | **Binder semantics** (target resolution) + **renderer-native** URL shaping (Z2b) |
-| Mermaid diagrams | **Binder semantics** (constraints, accessible names) + **the vendored bundle** rendering client-side. The compiler performs **no transformation** (Z3a) |
+| Mermaid diagrams | **Binder semantics** (constraints) + **compiler-generated** accessible naming, as allowlisted `attr_list` attributes on the fence delimiter that the **pack theme** lifts into the Mermaid source, so the SVG itself carries `<title>`/`<desc>` (D46 — Z6d found attributes left *on* the fence are destroyed at render time) + **the vendored bundle** rendering client-side (Z6a). The compiler performs **no transformation of the fence body** (Z3a) |
 | Appendices; source inventory and provenance | **Compiler-generated**, and the inventory is **opt-in** |
 | Superseded material | **Binder semantics** — dropped, or gathered into an appendix |
 | Conflicting material | **Editor-generated** commentary; the compiler surfaces both, never adjudicates |

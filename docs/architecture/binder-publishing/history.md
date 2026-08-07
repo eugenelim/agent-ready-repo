@@ -138,6 +138,52 @@ files at once.
 
 ---
 
+## The gate runs — 2026-08-06 and 2026-08-07
+
+Not review rounds. The rounds above found what the tree said; these found what the
+renderer and the harness *do*.
+
+**2026-08-06 — Z1–Z4.** Ran against `zensical==0.0.53` and a transcription of the
+config the adapter is specified to emit. Several specified controls were wrong, each
+inferred from the shape of a configuration surface rather than executed: the
+version probe named an attribute that does not exist, the font-suppression form
+requested a typeface literally named `False`, and Mermaid turned out not to be
+bundled at all.
+
+**2026-08-07 — Z5, Z6, and V6.** The three that had been left as "needs a
+network-isolated runner" or "needs a headless browser". Two came back confirming
+the design and one falsified it.
+
+- **Z5 confirmed more than it was asked.** The question was whether the build
+  reaches the network; the answer is that it makes **no attempt at all**, measured
+  with `SIGKILL` armed on any outbound operation. The instructive part was needing
+  a kernel-level instrument rather than a Python-level one: `zensical` ships a
+  compiled extension that links network symbols, so a source grep would have
+  reported clean for the wrong reason.
+- **Z6 is the round's real finding, and it is a new failure mode for this tree.**
+  The three earlier corrections were about configuration; this one was about a
+  *runtime*. The design reasoned about the HTML the compiler emits and never asked
+  what the client-side bundle does to it — and the bundle replaces the element the
+  accessibility attributes were on. Worse, Z6e found the mechanism fails
+  **inverted**: the name is present exactly when the diagram is broken, so the
+  static CI check the design had specified would have read green forever. D46
+  replaces it with attributes on the fence delimiter that the theme lifts into the
+  Mermaid source, verified in a browser — a `<figure>` wrapper was drafted first and
+  rejected for inserting lines per diagram.
+- **V6 removed a defensive requirement rather than confirming one.** The agent's
+  working directory is the project root on both adapters measured, so `--root`
+  stopped being effectively required. The guard was kept, because the remaining
+  adapters could not be measured — the honest shape for a relaxation drawn from a
+  partial sample.
+
+**What the runs say about the review rounds.** Ten cold reviews did not catch any
+of the corrected controls, and could not have: every one of them was a claim
+about external behaviour that reads as entirely plausible on the page. That is the
+argument for gates being executed before the RFC rather than after, and it is the
+reason Z1–Z6 become CI assertions rather than retiring once green.
+
+---
+
 ## Alternatives considered and rejected
 
 Twelve were assessed. The four that were close are above and in

@@ -247,6 +247,15 @@ This is checkable rather than merely asserted: if a future adapter reintroduces 
 length-changing transformation in the body, the array comes back — in the plan,
 where it always belonged.
 
+**It has already been checked once, under pressure.** The replacement mechanism for
+the falsified accessible name (D46) was first drafted as a `<figure>` wrapper around
+each fence, which inserts lines *per diagram* and would have made the delta
+non-uniform below the frontmatter — the exact condition named above. That is what
+disqualified it: the adopted mechanism annotates the fence's opening delimiter
+instead, a same-line rewrite, so the scalar holds. **A design change that would have
+forced the array back was rejected because of this paragraph**, which is the
+strongest evidence available that the tripwire is real rather than decorative.
+
 `links` maps a source-relative target to a **staged filename**, not to an anchor:
 Z2b confirmed Zensical turns a `.md` link into its own pretty URL, so the adapter
 emits the filename and lets the renderer own the URL shape. Under Quarto this

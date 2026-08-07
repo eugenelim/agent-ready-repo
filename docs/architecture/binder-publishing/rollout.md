@@ -24,7 +24,8 @@ cycle detection · ambiguity · missing required vs optional · duplicate handli
 supersession · exclusion beating inclusion · excluded-required erroring ·
 **duplicate `id` and colliding publication dir** · child-binder cycle detection ·
 frontmatter discard-and-rebuild · **executable-cell fence neutralization, with a
-` ```mermaid ` fence asserted byte-identical to its source** · Mermaid
+` ```mermaid ` fence *body* asserted byte-identical to its source and its opening
+delimiter asserted line-count-neutral after the D46 annotation** · Mermaid
 directive/click/callback rejection and the `<br>`/`<|--`/`<-->` label allowlist ·
 link rewriting to staged `.md` filenames · **`line-offset` accuracy, property-tested
 against randomly generated sources, including the CRLF and BOM cases** ·
@@ -105,8 +106,17 @@ to a file, not a property that arrives by itself:
 |---|---|
 | Add `packs/binder-publishing/tests/` to the pytest invocation | `catalogue-tooling-ci-gates.yml` |
 | Add `python -m pip install zensical==0.0.53` as an ordinary step | same workflow |
+| **Provision a headless browser for the Z6 assertions** — the one dependency the design otherwise avoids, and non-negotiable: Z6e is a mechanism that fails in the direction a static check reads as green | same workflow |
+| **Provision a Linux egress detector for Z5, with its own negative control** — `sandbox-exec` is macOS-only, so the executed instrument does not port; a namespace or seccomp filter is needed, and **a denial mechanism that silently fails open turns Z5 into a green light** | same workflow |
 
-**Two rows, where the previous version had three and an argument.** Quarto
+**Four rows. Two of them are the two most expensive gates, and they are named here
+rather than assumed** — an earlier version of this section said "two rows" while the
+same file committed Phase 1 to converting Z1–Z6, which would have left the two gates
+that need real provisioning as the ones nobody had budgeted. If the browser and the
+Linux detector slip, **say so and ship Z1–Z4 as the CI floor**; do not let "required
+in CI" quietly mean four of six.
+
+**The first two rows were the whole story when this said so.** Quarto
 provisioning was a ~236 MB download per job, which forced the render gates behind
 a path filter, split the suite into "runs always" and "runs when the pack
 changes", and needed a separate V4 platform-matrix job to prove an install command
@@ -178,17 +188,43 @@ see an `<svg>` at all, and a check asserting one would have failed on every buil
 
 Two checks replace it, and between them they cover the same concern honestly:
 
-- **Static:** every `<pre class="mermaid">` block carries an accessible name in
-  its `attr_list` attributes, emitted by the compiler from the node label and
-  diagram ordinal. This is assertable over the built HTML and is the part the
-  compiler actually controls.
-- **Z6, not yet run:** that the rendered SVG carries the name through. This needs
-  a headless browser, which the design does not otherwise require, so it is a
-  gate rather than a smoke check.
+- **Static:** every `<pre class="mermaid">` carries `data-a11y-name` (and
+  `data-a11y-desc` once Phase 2 gives it a source), HTML-escaped and rejected on
+  `%%{` or a newline, emitted by the compiler from values it owns — never from the
+  fence body (D46).
+
+  > **In v1 that name is an ordinal — `Diagram <n>.<m>` — and nothing more.** The
+  > index carries no per-diagram text until `figures[]` lands, so there is nothing
+  > descriptive to emit and `accDescr` is not emitted at all. **This check therefore
+  > verifies that diagrams are identifiable, not that they are described**, and the
+  > distinction is worth keeping visible: by the `<img alt>` reasoning above, an
+  > ordinal is the honest null rather than a description. The descriptive alternative
+  > is Phase 2 work, not a gap this check closes. Assertable over
+  the built HTML, and the part the compiler actually controls. **Where no name is
+  derivable the attributes are absent**, which is recorded in diagnostics and is not
+  a failure — the same reasoning as the `<img alt>` rule above, and the reason this
+  check asserts *consistency with `renderer-plan.json`* rather than mere presence.
+- **Z6, run 2026-08-07:** that the name reaches the reader. It does, **on the
+  graphic itself** — measured `role='graphics-document'` carrying both the name and
+  the description, with real `<title>`/`<desc>` inside the SVG, diagram rendered and
+  egress blocked. The theme lifts the attributes into the Mermaid source before the
+  bundle mounts; [`zensical-adapter.md`](zensical-adapter.md) has the mechanism.
+
+> **What Z6 falsified was not the attributes but the belief that they were enough.**
+> The old text read: *every `<pre class="mermaid">` block carries an accessible name
+> in its `attr_list` attributes* — and stopped there, treating the built HTML as the
+> reader's HTML. The bundle replaces that `<pre>` with a fresh `div` carrying only
+> `class`, so the attributes never reach the diagram (Z6d), **and the check would
+> have passed anyway**, because the name is present exactly when the diagram *fails*
+> to render (Z6e). A static assertion that reads green precisely when the feature is
+> broken is worse than no assertion — the argument for having spent a headless
+> browser here. D46 keeps the attributes, which are cheap and add no lines, and adds
+> the theme-side step that carries them into the SVG.
 
 The graceful-degradation property is worth stating because it is unusually good
-here: if the vendored bundle fails to load, the reader sees the diagram's own
-Mermaid source as preformatted text rather than a blank space.
+here, and Z6k measured it rather than assuming it: if the vendored bundle fails to
+load, the reader sees the diagram's own Mermaid source as preformatted text rather
+than a blank space.
 
 ### Activation evals
 
@@ -227,20 +263,25 @@ allowlist. Everything the Quarto table carried about shortcodes and raw pandoc
 blocks has no subject here.
 
 **Phase 1 — v1 completes. First readable binder.**
-The remaining gates (**Z5, Z6**, and the renderer-independent **V6**) · Zensical
-staging adapter · the strict scanner · Mermaid constraints and the vendored
-bundle · theme assets and the offline hardening · compiler-emitted numbering ·
-cover, part pages, source inventory, provenance · link rewriting and asset
-copying · diagnostics mapping · `build`, `recipe write`, `clean`,
-`check --published` · **two** locks, concurrency, near-atomic publication ·
-**the clean-directory portability fixture and the multi-pack fixture** ·
-activation evals · guides.
+Zensical staging adapter · the strict scanner · Mermaid constraints, the vendored
+bundle, and the accessible-name mechanism (D46) — compiler-emitted `data-a11y-name`
+fence attributes carrying `Diagram <n>.<m>`, plus the theme-side `accTitle:` lift;
+descriptive names and `accDescr` wait on `figures[]` in Phase 2 · theme assets and the
+offline hardening · compiler-emitted numbering · cover, part pages, source
+inventory, provenance · link rewriting and asset copying · diagnostics mapping ·
+`build`, `recipe write`, `clean`, `check --published` · **two** locks,
+concurrency, near-atomic publication · **the clean-directory portability fixture
+and the multi-pack fixture** · activation evals · guides · **converting Z1–Z6 into
+CI assertions**, which is the one place Phase 1 needs a headless browser.
 
 **Phase 0 + Phase 1 = v1.**
 
-Z1–Z4 are already run, so Phase 1 opens with its renderer questions settled rather
-than gated — which is the difference between the two decisions being made and
-being merely written down.
+**No gate remains.** Z1–Z4 ran 2026-08-06, Z5 and Z6 on 2026-08-07, and V6 — the
+last renderer-independent one — was answered the same day. Phase 1 opens with every
+renderer question settled rather than gated, which is the difference between the
+decisions being made and being merely written down. What Phase 1 inherits from the
+gates is work, not uncertainty: a falsified accessibility mechanism replaced
+(D46), and the Z-gates to convert into regression tests.
 
 **Phase 2 — metadata and refinement.** Frontmatter and sidecar ingestion ·
 **`sidecar init`** · `select` queries · status maps · `pick = "one"`
@@ -268,8 +309,14 @@ or an ADR before it is added** · pack and skill names · the `binder.toml` sche
 and its version-1 surface · the index schema and its stability guarantee ·
 identity rules · the security control set and which are mechanical · the renderer
 pin and its upgrade procedure · configuration precedence · workspace and
-publication layout · the two-lock concurrency model · exit codes · the outcome of
-Z5, Z6, and V6.
+publication layout · the two-lock concurrency model · exit codes.
+
+**The gate outcomes left this list — they are results now, not pending
+decisions.** Z5, Z6, and V6 all ran; what they produced that the RFC still has to
+ratify is folded into the items above and into **D46**, the accessible-name
+mechanism Z6 forced. The one thing the RFC should read as a *finding* rather than a
+decision is Z6e: a specified check that passes when the feature is broken, which is
+the argument for the headless-browser dependency in Phase 1's CI.
 
 **Three items left this list, and one joined it.** The Tier-2 policy amendment
 (U5), the Quarto version range, and the install-ladder ordering all went with D-B.
@@ -338,9 +385,13 @@ policy change. Withdrawn, not deferred — the amendment is not wanted later eit
 **U6 — WITHDRAWN by D-B.** *Was: gate V1, Mermaid under execution-off.* A Quarto
 question. Zensical executes nothing, and Z3a settles diagram rendering directly.
 
-**U7 — SUPERSEDED by Z5.** *Was: gate V2, render-time network access.* The
-question is renderer-independent and still open; it is now tracked as **Z5**
-against `zensical build` rather than against `quarto render`.
+**U7 — SUPERSEDED by Z5, and CLOSED by it.** *Was: gate V2, render-time network
+access.* The question was renderer-independent, moved to **Z5** against
+`zensical build`, and answered 2026-08-07: **no outbound operation is attempted at
+all**, cold cache or warm, with the output byte-identical to a network-allowed
+build. The posture in [`security-profile.md`](security-profile.md) is unchanged —
+we still constrain the input rather than the process — but the residual is a
+measured-empty channel under the pin rather than an unexamined one.
 
 **U8 — WITHDRAWN by D-B.** *Was: gate V3, fenced divs under `-raw_attribute`.* A
 pandoc reader-toggle question with no counterpart here. The badge and editorial-

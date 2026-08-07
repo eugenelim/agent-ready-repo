@@ -1,0 +1,52 @@
+{
+  "label": "GATE-vendored-blocked",
+  "url": "file:///private/tmp/binder-gates-20260807/z6-vendored/stage/site/003-docs-product-research-payments-landscape-survey/index.html",
+  "pre_mermaid_remaining": 0,
+  "div_mermaid": 2,
+  "svg_count_pierced": 9,
+  "diagram_svgs_in_shadow": 2,
+  "diagram_svg_tags": [
+    "<svg id=\"__mermaid_0\" width=\"100%\" xmlns=\"http://www.w3.org/2000/svg\" class=\"flowchart\" style=\"max-width: 165.0625px;\" viewBox=\"0 0 165.0625 420.04412841796875\" role=\"graphics-document document\" aria-roledescription=\"flowchart-v2\">",
+    "<svg id=\"__mermaid_1\" width=\"100%\" xmlns=\"http://www.w3.org/2000/svg\" class=\"flowchart\" style=\"max-width: 275.125px;\" viewBox=\"0 0 275.125 70\" role=\"graphics-document document\" aria-roledescription=\"flowchart-v2\">"
+  ],
+  "shadow_root_count": 3,
+  "shadow_title_desc": [],
+  "svg_with_aria": [
+    "<svg id=\"__mermaid_0\" width=\"100%\" xmlns=\"http://www.w3.org/2000/svg\" class=\"flowchart\" style=\"max-width: 165.0625px;\" viewBox=\"0 0 165.0625 420.04412841796875\" role=\"graphics-document document\" aria-roledescription=\"flowchart-v2\">",
+    "<svg id=\"__mermaid_1\" width=\"100%\" xmlns=\"http://www.w3.org/2000/svg\" class=\"flowchart\" style=\"max-width: 275.125px;\" viewBox=\"0 0 275.125 70\" role=\"graphics-document document\" aria-roledescription=\"flowchart-v2\">"
+  ],
+  "aria_label_in_pierced_dom": false,
+  "ax_image_nodes": [
+    {
+      "role": "image",
+      "name": ""
+    },
+    {
+      "role": "image",
+      "name": ""
+    },
+    {
+      "role": "graphics-document",
+      "name": ""
+    },
+    {
+      "role": "graphics-document",
+      "name": ""
+    },
+    {
+      "role": "image",
+      "name": ""
+    },
+    {
+      "role": "image",
+      "name": ""
+    }
+  ],
+  "div_outer_html": [
+    "<div class=\"mermaid\"></div>",
+    "<div class=\"mermaid\"></div>"
+  ],
+  "first_pre_visible_text": "",
+  "unpkg_requests": [],
+  "remote_requests": []
+}

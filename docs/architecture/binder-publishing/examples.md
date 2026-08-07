@@ -164,19 +164,29 @@ Staged (`docs/011-docs-design-payments-design.md`):
  4
  5  The ledger boundary is shown below.
  6
- 7  ```mermaid
+ 7  ```{.mermaid data-a11y-name="Diagram 11.1"}
  8  flowchart LR
  9    A[Gateway] --> B["Ledger<br/>service"]
 10    B --> C[(Postgres)]
 11  ```
 ````
 
-**The fence is byte-identical to the source's.** No `` ```{mermaid} `` rewrite, no
-injected `%%| label:` line, no caption-binding protocol, no fence content-hash —
-because Z3a verified Zensical reads the portable fence directly and emits
-`<pre class="mermaid"><code>…`. Z3e verified the `<br/>` inside the node label
-survives, entity-escaped in the HTML and decoded by the browser as the `<pre>`'s
-text content, exactly as Q28 recorded under Quarto.
+**The fence *body* is byte-identical to the source's, and the fence is still one
+line.** No `` ```{mermaid} `` rewrite, no injected `%%| label:` line, no
+caption-binding protocol, no fence content-hash — because Z3a verified Zensical
+reads the portable fence directly and emits `<pre class="mermaid"><code>…`. Z3e
+verified the `<br/>` inside the node label survives, entity-escaped in the HTML and
+decoded by the browser as the `<pre>`'s text content, exactly as Q28 recorded under
+Quarto.
+
+**The opening delimiter carries the accessibility attribute (D46), and that is why
+it is on line 7 in both columns.** The annotation is a same-line rewrite: the theme
+lifts `data-a11y-name` into the Mermaid source as an `accTitle:` in the reader's
+browser, so nothing is inserted into the staged file and the offset below stays
+constant. The value is `Diagram <chapter-ordinal>.<n>` — all of it compiler-owned,
+none of it from the diagram body — and allowlist-reduced, because Z6h found an
+`attr_list` value containing a quote terminates the attribute and admits raw markup.
+A descriptive name and a `data-a11y-desc` arrive with `figures[]` in Phase 2.
 
 Emitted into `renderer-plan.json` (**not** the index — invariant 22):
 
@@ -185,8 +195,17 @@ Emitted into `renderer-plan.json` (**not** the index — invariant 22):
 ```
 
 Reading it: the frontmatter rebuild (steps 1–2) shortens by 2, the duplicate-H1
-drop (step 3) shortens by a further 2, and **nothing below that changes**. Source
-9 → staged 5, source 12 → staged 8, source 15 → staged 11 — one delta, every line.
+drop (step 3) shortens by a further 2, and **nothing below that changes** — the
+link/asset rewrite (step 4) and the fence annotation (step 5) both edit within a
+line. Source 9 → staged 5, source 12 → staged 8, source 15 → staged 11 — one delta,
+every line.
+
+**This is the property that decided D46.** The first replacement drafted for the
+falsified accessible-name mechanism wrapped each fence in a `<figure>` with a
+`<figcaption>`, which would have inserted lines *here*, between the head and the
+tail of this very file — reintroducing exactly the per-diagram divergence the
+paragraph below describes. The offset staying scalar is not a happy accident of the
+chosen mechanism; it is the constraint the mechanism was chosen to satisfy.
 
 **This example used to be the proof that a scalar offset was impossible.** Under
 Quarto the deltas were 0, −4, −4, −3 across this one file, because the fence

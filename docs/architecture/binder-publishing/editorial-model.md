@@ -59,8 +59,8 @@ packs/binder-publishing/
 table already scores this option ○ on both maintenance burden and new machinery
 without ever putting a number on it. The v1 surface is: a hand-written TOML
 validator with edit-distance suggestions, a JSON-Schema parity harness, the
-resolver with Kahn ordering and cycle detection, the source scanner, a four-step
-Markdown transformer with a line offset, link rewriting, the Zensical adapter and
+resolver with Kahn ordering and cycle detection, the source scanner, the
+Markdown transformer and its line offset, link rewriting, the Zensical adapter and
 its TOML emitter, two lock protocols, near-atomic publication, and nine verbs.
 
 **D-A and D-B took real code out of that list, not just prose.** Gone: the trust
@@ -290,12 +290,25 @@ code path, and the renderer install is an ordinary `pip install` the *user* runs
 outside the skill. Declaring a boundary the code does not cross would devalue the
 declaration everywhere else it appears.
 
-Two things sit just outside that claim and are named rather than elided. **Z5 is
-open** — whether `zensical build` itself reaches the network during a build is
-unverified, and a subprocess's egress is not `binder.py`'s boundary to declare.
-And the *published output* fetched from four CDNs by default until the hardening
-in [`zensical-adapter.md`](zensical-adapter.md) closed it — a read-time property
-of the artifact, not a runtime property of the skill, and the reason Z4 exists.
+One thing still sits just outside that claim, and one used to. The *published
+output* fetched from four CDNs by default until the hardening in
+[`zensical-adapter.md`](zensical-adapter.md) closed it — a read-time property of
+the artifact, not a runtime property of the skill, and the reason Z4 exists.
+
+**The other was the renderer subprocess, and Z5 closed it.** `zensical build`
+attempts no outbound operation during a build, so the subprocess adds no egress the
+declaration would have to cover, and the token stays off because nothing crosses it
+— **under the exact pin, on the paths a build exercises.** An upgrade re-opens the
+question, which is precisely why Z5 is a required regression assertion rather than a
+settled fact, and why `security-profile.md` still says we constrain the input rather
+than the process.
+
+> **The reasoning this supersedes is worth keeping visible.** The earlier text
+> argued that *a subprocess's egress is not `binder.py`'s boundary to declare* — a
+> scoping argument, which would have held whatever Z5 returned. That was the weaker
+> position: it made the declaration depend on where we drew the boundary rather than
+> on what crosses it. Z5 replaces it with a measurement, which is why the row now
+> reads as evidence rather than as a scoping choice.
 
 ---
 

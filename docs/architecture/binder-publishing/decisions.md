@@ -49,8 +49,8 @@
 
 ## Post-review decisions
 
-These seven reshaped the design after the later review rounds and are the
-authority where any earlier row disagrees.
+These reshaped the design after the later review rounds and the gate runs, and are
+the authority where any earlier row disagrees.
 
 | # | Decision | Rationale | Supersedes |
 |---|---|---|---|
@@ -61,6 +61,13 @@ authority where any earlier row disagrees.
 | D43 | **`profile` is removed from `binder-index.json`, and the resolved profile is removed from the content-key.** | With one profile both were constants. A constant field in a published contract is the ceremonial field invariant 21 exists to make structurally impossible, and a constant in a hash is noise. Removing it also makes index reproducibility **machine-independent** rather than per-machine, which is a better CI contract than the one it replaced. | invariant 21's "inputs includes the resolved trust profile" qualifier |
 | D44 | **Numbering is presentational: the compiler emits the ordinal as an attribute, the theme renders it with CSS. It never enters a title string.** | Z2h: Zensical numbers nothing, so the compiler must supply the ordinal. Baking it into the title was the obvious route and is wrong — the number would land in the browser tab, in `search.json` as part of the indexed title, and in anything a reader copy-pastes, and inserting one chapter would rewrite every later chapter's published title. Emitting `{: data-ordinal="3" }` via `attr_list` (already in the allowlist) and rendering it with `::before` keeps the number out of the text while both the sidebar and the page heading show it. | Q17-derived numbering behaviour in `binder-recipe.md` |
 | D45 | **U1 is resolved: the pack clears Charter Principle 3.** Its *subject* is a habit — assembling a decision dossier for a review forum; the machinery makes that habit reproducible and reviewable. | Principle 3 reads "a habit, **not** a tool", so the test is which one the pack is *about*. `work-loop` ships scripts, `new-spec` ships a validator, and `iac-terraform` ships scaffolding; shipping a mechanism does not make the habit a tool. A habit that recurs at a team of fifty needs one. Principles 1, 2, and 4 were already assessed and clear. | U1's open status in `rollout.md` |
+| D46 | **A diagram's accessible name and description are emitted as allowlisted `attr_list` attributes on the fence's opening delimiter, and lifted into the Mermaid source by the theme as `accTitle:`/`accDescr:` before the bundle mounts.** So Mermaid generates the `<title>`/`<desc>` inside the SVG itself. | Z6d: the bundle mounts a diagram with `e.replaceWith(A("div",{class:"mermaid"}))`, so **every attribute on the `<pre>` is discarded** and the SVG lands in a closed shadow root — the specified `attr_list` name never reached the reader. Z6e is why this had to be a gate rather than a static check: the name is in the accessibility tree **only when the diagram fails to render**, so the specified assertion would have read green forever. The adopted route was measured naming the graphic itself — `role='graphics-document'` carrying both name and description, real `<title>`/`<desc>`, zero remote requests (Z6f) — with a `MutationObserver` in `<head>` removing the ordering race (Z6i). It costs **no added lines**, so the scalar `line-offset` survives; it leaves the fence **body** untouched, so the scanner still sees the author's bytes; and it needs no new extension. **Emitted values are HTML-escaped, and rejected if they contain `%%{` or a newline** — Z6h found an unescaped `attr_list` value containing `"` terminates the attribute and put a live `<script>` in the page, and Z6i found the value's real sink is Mermaid source, where `%%{init:…}%%` is consumed as a **directive** and a newline destroys the diagram. Escaping round-trips international text exactly, so an ASCII allowlist — specified here first — was withdrawn as gratuitously destructive of the one string that exists to be read aloud. The same rule binds `data-ordinal` (D44). **In v1 the name is `Diagram <chapter-ordinal>.<n>` and nothing more** — `resolved-index.md` emits no `figures` key until Phase 2, so there is no source for a descriptive name and `accDescr` is not emitted at all; both arrive with captions, and the mechanism does not change when they do. Saying so matters: an earlier draft sourced the name "from index metadata", which in v1 means from nothing, so the decision would have shipped as a permanent no-op behind a Phase 1 static check asserting a property no build could produce. Rejected: injecting `accTitle:` into the staged body (identical result, but writes into the body); a `<figure role="group" aria-label>` wrapper (names a container not the graphic, no `accDescr` equivalent, duplicate literal, and **inserts lines per diagram**, which is what disqualified it). Z6n records the two upstream behaviours this rests on, neither of which is a stability promise. | the `attr_list`-borne accessible name in `rollout.md` § *Accessibility smoke checks* and in `zensical-adapter.md`; extends D44's `attr_list` emission with the allowlist rule |
+| D47 | **`--root` is recommended, not required, on the agent surface. The self-realpath guard is retained as the coverage substitute for the adapters V6 could not measure.** | V6 measured the agent working directory as the session's project root — which *is* the content root — on `claude-code` and `codex`, so rule 4 of content-root resolution resolves correctly and the previous "`--root` is effectively required" language had lost its premise. **This is a withdrawal of a stated requirement on a two-of-seven-adapter sample, which is why it is a decision and not merely evidence.** The residual is accepted rather than hidden: `copilot`, `cursor` and `gemini` were not installed, and the `kiro` binary is the IDE launcher with no headless agent CLI, so those adapters are unmeasured. The guard makes the failure mode legible instead of silent — an adapter that *does* run from the installed pack skips rules 2–4 and exits 4 naming `--root`, rather than resolving a content root the caller never intended. `--root` stays in every published example, because reproducibility outside the originating session is a separate reason from correctness. | the "`--root` is effectively **required**" language in `overview.md` and `invocation.md` |
+
+**Revisit D47 if** any adapter is measured running a skill script with its working
+directory beneath the installed pack. That is the single observation that would turn
+the guard from a net into a requirement, and it is why the guard is kept rather than
+deleted along with the language it supported.
 
 **Retained as Quarto-adapter evidence, not live design:** D9 (shortcode escaping),
 D16–D18 (the install ladder), D31 (version-range procedure). A future PDF adapter
@@ -69,15 +76,25 @@ goes through Quarto and inherits all of them.
 ### What the Z-gates changed after D40
 
 D40 was decided on a spike that established Zensical *could* render the fixture.
-Z1–Z4 then tested what the adapter had been specified to do, and **found three
-assertions wrong** — all three in the direction of the design having assumed a
-behaviour from the shape of a configuration surface:
+Z1–Z4 then tested what the adapter had been specified to do, and Z5–Z6 finished
+the set. Between them they **found these specified assertions wrong**:
 
 | Corrected | Was | Is |
 |---|---|---|
 | Version probe (Z1c) | `zensical.__version__` | `importlib.metadata.version("zensical")` — the attribute does not exist, and `zensical.version` is a *function* |
 | Font suppression (Z4a) | `[project.theme.font] text = false, code = false` | `[project.theme] font = false` — the specified form emitted a request for a typeface named `False` |
 | Mermaid delivery (Z3b) | assumed bundled | fetched from `unpkg` at read time; the vendored bundle stays, delivered via `custom_dir` because `extra_javascript` loads after the theme bundle |
+| Diagram accessible name (Z6d) | an `aria-label` on the fence, expected to reach the reader | the same attributes, plus a theme-side step that lifts them into the Mermaid source so the SVG carries `<title>`/`<desc>` — the bundle replaces the `<pre>` with a fresh `div`, discarding whatever is left on it (**D46**) |
 
-None reverses D40 — the trade is still strongly favourable — but they are the
-reason the pin is exact, the gates are CI-required, and U13 exists.
+Z1c and Z4a were wrong in the same direction — a behaviour inferred from the shape
+of a configuration surface. Z3b was an assumption carried over from the
+renderer-choice spike, which recorded that Mermaid renders and never asked where
+the JavaScript comes from. **Z6d is a different and more expensive mistake**
+— reasoning about the HTML the compiler emits without asking what the client-side
+bundle does to it — and it is the one that would have survived CI, because Z6e
+found the specified check passes exactly when the diagram is broken.
+
+None reverses D40 — the trade is still strongly favourable, and **Z5 and Z6a
+strengthen it**: the build reaches the network not at all, and the vendored bundle
+renders offline as specified. But they are the reason the pin is exact, the reason
+Z1–Z6 are CI-required, and the reason U13 exists.

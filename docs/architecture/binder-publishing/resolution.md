@@ -155,7 +155,8 @@ A unit test asserts a CRLF copy and an LF copy of one file yield identical hashe
 and identical staged bytes.
 
 The `line-offset` guarantee is easier to hold than the `line-map` one it replaced:
-with the fence transformation gone (Z3a), only the frontmatter rebuild and the
+with the fence *body* transformation gone (Z3a) and the D46 delimiter annotation
+changing no line count, only the frontmatter rebuild and the
 duplicate-H1 drop shift lines, and both happen at the top of the file. Normalized
 line endings are still what makes the offset correct on a Windows contributor's
 commit.
