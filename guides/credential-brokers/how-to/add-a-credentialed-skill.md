@@ -331,8 +331,8 @@ Because the bootstrap **appends** (never prepends) the floor, a pip-installed `c
 - **From an internal package index** (Artifactory, Nexus, a private mirror):
 
   ```bash
-  pip install credbroker --index-url https://pypi.example.corp/simple
-  pip install "credbroker[crypto]" --index-url https://pypi.example.corp/simple   # + encrypted-at-rest vault
+  python -m pip install credbroker --index-url https://pypi.example.corp/simple
+  python -m pip install "credbroker[crypto]" --index-url https://pypi.example.corp/simple   # + encrypted-at-rest vault
   ```
 
 - **From a local `.whl`**:

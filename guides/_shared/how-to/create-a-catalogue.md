@@ -14,7 +14,7 @@ ready-to-run directory layout in one step.
 
 **Prerequisites:**
 - Python 3.11+
-- `agentbundle` ≥ 0.24.0 (`pip install agentbundle`)
+- `agentbundle` ≥ 0.24.0 (`python -m pip install agentbundle`)
 
 ---
 

@@ -86,7 +86,7 @@ Per release:
    git push origin agentbundle-vX.Y.Z
    ```
 3. **Watch the run** (Actions → `release-agentbundle`). `build-and-smoke` and `publish-pypi` must go green; `publish-artifactory` shows green-skipped when the corp secrets are unset.
-4. **Verify** from a clean venv, ideally on another machine: `pip install agentbundle` resolves to the new version and `agentbundle --help` exits 0.
+4. **Verify** from a clean venv, ideally on another machine: `python -m pip install agentbundle` resolves to the new version and `agentbundle --help` exits 0.
 
 Caveats the workflow enforces — know them before you tag:
 
@@ -111,7 +111,7 @@ Per release:
    git push origin credbroker-vX.Y.Z
    ```
 3. **Watch the run** (Actions → `release-credbroker`). `build-and-smoke` and `publish-pypi` must go green; `publish-artifactory` shows green-skipped when the corp secrets are unset.
-4. **Verify** from a clean venv, ideally on another machine: `pip install credbroker` resolves to the new version and `python -c "import credbroker; print(credbroker.__version__)"` prints it.
+4. **Verify** from a clean venv, ideally on another machine: `python -m pip install credbroker` resolves to the new version and `python -c "import credbroker; print(credbroker.__version__)"` prints it.
 
 Caveats the workflow enforces — the same fail-closed assertions as `agentbundle`:
 

@@ -10,7 +10,7 @@ Four ways to get packs into your agent. Pick the one that matches your workflow.
 The standard route. Installs into the current repo (repo scope) or your home directory (user scope).
 
 ```bash
-pip install agentbundle
+python -m pip install agentbundle
 agentbundle install --pack core
 ```
 

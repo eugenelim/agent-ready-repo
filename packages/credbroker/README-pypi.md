@@ -11,8 +11,8 @@
 ## Install
 
 ```bash
-pip install credbroker              # stdlib-only core
-pip install 'credbroker[crypto]'    # + encrypted-at-rest vault
+python -m pip install credbroker              # stdlib-only core
+python -m pip install 'credbroker[crypto]'    # + encrypted-at-rest vault
 ```
 
 ## Use

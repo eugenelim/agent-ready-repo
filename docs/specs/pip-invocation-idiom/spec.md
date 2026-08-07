@@ -15,8 +15,10 @@ Every operative editable-install instruction in this repo reads
 and this repo runs Windows CI (`.github/workflows/build-check-windows.yml`).
 `python3` would be a cross-OS regression, not a fix.
 
-Switch every **runnable** editable-install command in **documentation and CI
-configuration** from `pip install …` to `python -m pip install …`.
+Switch every **runnable** install command for *this project* — editable local
+installs (AC1–AC3) and the front-door PyPI one-liners (AC8) — in
+**documentation and CI configuration** from `pip install …` to
+`python -m pip install …`. Third-party dependency installs are out of scope.
 
 ## Acceptance criteria
 
@@ -46,6 +48,17 @@ configuration** from `pip install …` to `python -m pip install …`.
   This is a documentation change and must not force a release.
 - [x] AC7 — `make build-check` and `make lint-ruff` pass, and `make build-self`
   produces no projection drift.
+- [ ] AC8 — Every runnable **front-door** install command — `pip install
+  agentbundle` / `pip install credbroker` and their pinned and extra-bearing
+  variants — reads `python -m pip install …` across `README.md`,
+  `CONTRIBUTING.md`, `web/`, `docs-site/`, `docs/guides/`, `guides/**`, and
+  `packages/credbroker/README-pypi.md`, subject to the AC6 and AC9 exclusions.
+- [ ] AC9 — `guides/_shared/reference/catalogue-ci-contract.md` is **unchanged**.
+  `tools/catalogue/sync_authoring_scaffold.py` holds it byte-identical to a copy
+  inside `packages/agentbundle/agentbundle/_data/catalogue-scaffold/`, enforced
+  by `test_scaffold_projection.py`, so editing it forces a write into the
+  curation-guarded tree. Same reasoning for
+  `guides/_shared/reference/catalogue-authoring-standards.md`.
 
 ## Boundaries
 
@@ -71,12 +84,23 @@ would be a false claim. The file keeps bare `pip install -e` until either an
 RFC covers it or the guard grows a docs carve-out — the latter is a change to
 an RFC-governed guard and does not belong in a doc PR.
 
-**Not in scope — the front-door PyPI one-liners** (`pip install agentbundle` in
-`README.md:22,45`, `packages/agentbundle/README-pypi.md:12`,
-`packages/credbroker/README-pypi.md:14,15`) and the dependency-install family
+**In scope as of the second pass — the front-door PyPI one-liners** (AC8).
+Originally surfaced as an open decision and taken: the same
+bind-the-installer-to-the-interpreter argument applies most strongly at the
+entry line an adopter copies first, and a half-swept repo reads worse than
+either endpoint. `packages/agentbundle/README-pypi.md:12,282` stays bare for
+the curation-guard reason above; `catalogue-ci-contract.md` stays bare for the
+scaffold reason in AC9.
+
+**Still not in scope — the dependency-install family**
 (`pip install -r tools/requirements.txt`, `pip install ruff mypy`,
-`pip install docling`). Those are separate decisions about the public entry
-line and about CI dependency setup; folding them in would widen a scoped sweep.
+`pip install docling`, `pip install 'httpx>=0.27'`). Those install *third-party
+prerequisites*, not this project, and they span CI setup, SAST tooling, and
+optional per-skill runtime deps — a different decision with a different blast
+radius. An earlier pass applied the `-r` rewrite to `AGENTS.md` and
+`CONTRIBUTING.md`, then reverted it: it left five other sites of the same
+command untouched, which is precisely the cross-file drift this sweep exists to
+remove.
 
 **No `--upgrade`.** Verified by dry-run against this workspace's venv: `pip
 install -e packages/agentbundle` and `pip install --upgrade -e
@@ -97,7 +121,15 @@ config with no logic to exercise.
 - **Done when** (AC6): `git diff --name-only` matches no
   `^packs/`, `^packages/[^/]*/(agentbundle|credbroker)/`, or `CHANGELOG.md`.
 - **Done when** (AC7): `make build-check` and `make lint-ruff` exit 0;
-  `make build-self FORCE=1` adds no files to `git status`.
+  `make build-self FORCE=1` adds no files to `git status`. Because
+  `lint-catalogue-curation-guard` reads `git diff origin/main...HEAD`
+  (committed state), `build-check` runs **after** the commit or it gates an
+  empty changeset and passes vacuously.
+- **Done when** (AC8): `git grep "pip install \(agentbundle\|credbroker\|'agentbundle\|'credbroker\)"`
+  over the in-scope surfaces returns only prose mentions and the AC6/AC9
+  exclusions.
+- **Done when** (AC9): `pytest packages/agentbundle/tests/integration/test_scaffold_projection.py`
+  passes and `git status` shows no `packages/agentbundle/**` entry.
 
 ## Assumptions
 
