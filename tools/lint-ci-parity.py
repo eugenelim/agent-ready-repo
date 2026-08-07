@@ -259,6 +259,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest make-free gate chains (windows-build-gate-chain)":
         LOCAL("test"),
+    "pytest guides sidebar generation":
+        LOCAL("test"),
     "Install credbroker (editable, with crypto extra)":
         CI_ONLY(
             "Provisioning."
