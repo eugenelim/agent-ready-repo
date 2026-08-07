@@ -10,308 +10,292 @@
 
 ## Approach
 
-Five moving parts, sequenced so no gate is red between tasks.
+**A — the seam.** `_resolve_contract_for_route` (`build/main.py`) already makes
+the claude-plugins route differ from the direct route without widening every
+adapter's signature. Hooks join it: `hook-body` gains a `plugin-target-path`,
+`hook-wiring` gains a `plugin-mode` resolving to `dropped`. Both new keys extend
+the existing fail-loud check, for the reason that check exists — a missing or
+typo'd key must not silently restore the broken layout. Critically the resolver
+must **apply** `plugin-mode`, not merely require it: today it swaps only
+`target-path`, and `_iter_primitives` skips a primitive only when the entry's
+`mode` is `"dropped"`.
 
-**A — the seam.** `_resolve_contract_for_route` (`build/main.py:510`) already
-makes the claude-plugins route differ from the direct route without widening
-every adapter's signature. Hooks join it: `hook-body` gains a
-`plugin-target-path`, and `hook-wiring` gains a `plugin-mode` that resolves to
-`dropped` so the adapter stops writing `.claude/settings.local.json` into the
-plugin. Both new keys extend the existing fail-loud check, for the reason that
-check already exists — a missing or typo'd key must not silently restore the
-broken layout.
+**B — the compiler.** `build/projections/plugin_hooks.py`, pure in / pure out,
+so the fail-closed ACs are unit-testable without a build. A sibling of
+`merge_json.py`, not a parameter on it: that one merges TOML into a JSON file's
+managed key and is shared with codex; this compiles TOML into an in-memory block
+while rewriting paths and rejecting shapes.
 
-**B — the compiler.** A new pure module,
-`build/projections/plugin_hooks.py`, reads `.apm/hook-wiring/*.toml` and
-returns the manifest `hooks` block. Pure in / pure out, which is what makes the
-fail-closed ACs unit-testable without a build. It is a *sibling* of
-`merge_json.py`, not a parameter on it: `merge_json` merges TOML into a JSON
-file's managed key and is shared with codex; this compiles TOML into an
-in-memory block while rewriting paths and rejecting types. Different return
-type, different job.
+**C — the merge.** `build/main.py` currently *assigns* `derived["hooks"]`. It
+becomes marker-entry-first, then the compiled block appended.
 
-**C — the merge.** `build/main.py:585` currently *assigns* `derived["hooks"]`.
-It becomes: install-marker entry first, then the compiled authored block
-appended (creating the `SessionStart` list when absent). Marker-first per AC12.
+**D — the scope guard.** #890 repaired the `enabledPlugins` walk, so the rail
+`templates/install-marker.py` applies to the marker now actually resolves. The
+guard reuses that resolution but **not** its precedence: per spec AC8 the permit
+comes from adopter-controlled state only, and workspace files may narrow but
+never grant. The guard ships as its own projected file with its own mirror and
+drift gates (AC19) rather than as an edit to the install-marker template, which
+three gates pin byte-for-byte and which is projected standalone into the plugin
+cache where it cannot import from `agentbundle`.
 
-**D — the scope rail.** RFC-0008's `allowed-scopes` enforcement already exists
-at `templates/install-marker.py:797,849` but gates only marker writing.
-Compiled hooks become sibling entries that Claude runs independently, so they
-need the same gate. Rather than duplicate the resolution logic, the rail is
-lifted into a small guard the compiled command invokes; the marker writer and
-the guard read the same precedence (local → project → user).
+The APM route needs nothing: #890 records that `_apm_detect_scope` resolves
+scope by projected-path containment and never reads `enabledPlugins`, so its
+copy of the rail has been enforcing all along.
 
-**E — the schema.** The derived schema's `hooks` block grows from
-one-event-one-shape to `{additionalProperties: <entry-array schema>}` — one
-subschema, shape only. Event-name validation moves to the compiler.
-`build/validate.py` supports neither `$ref` nor `propertyNames`, so a closed
-enum in the schema would mean 31 longhand copies kept byte-identical across two
-mirrored files; a compiler-side frozenset is one source of truth and produces a
-locating error instead of `$.hooks: additional property 'X' not allowed`.
+**E — the schema.** The derived `hooks` block becomes
+`{additionalProperties: <entry-array schema>}` — shape only. Event-name
+validation lives in the compiler; spec AC7 carries the full rationale and this
+plan does not restate it.
 
-Verification anchors on AC13 against the real `claude` binary (2.1.223).
+Verification anchors on spec AC13 against the real `claude` binary (2.1.223).
 
 ## Constraints
 
-- **ADR-0072** governs the derived schema: it mirrors a contract we do not own;
-  a local departure must be restrictive.
-- **RFC-0008** (Accepted) owns the plugin-route scope taxonomy and the
-  `allowed-scopes` rail. This spec extends that rail; it does not invent one.
+- **ADR-0072** governs the derived schema. **RFC-0008** owns the plugin-route
+  scope taxonomy; **#890** repaired its enforcement.
 - `agentbundle` is stdlib-only. `build/validate.py` supports no `$ref`,
-  `$defs`, `oneOf`/`anyOf`/`allOf`, `propertyNames`, numeric bounds, or length
-  bounds — which is why AC7 and AC9 are compiler checks, not schema checks.
-- `contracts/*` has a byte-identical mirror under `agentbundle/_data/`.
+  `propertyNames`, numeric bounds, or length bounds — which is why spec AC7 and
+  AC9 are compiler checks.
+- `contracts/*` mirrors to `agentbundle/_data/`. `templates/install-marker.py`
+  and any sibling projected script are pinned by three `build/self_host.py`
+  drift gates.
 
-## Current-state enumeration (done at PLAN)
-
-Built the fixture packs and the real `packs/core` into scratch dirs:
-
-| Artifact | Today | After |
-|---|---|---|
-| `<pack>/.claude/settings.local.json` | written, inert | not written (AC11) |
-| `<pack>/tools/hooks/<name>.{sh,py}` | written, unreferenced | moves to `<pack>/hooks/` (AC3) |
-| `<pack>/.claude-plugin/plugin.json` `hooks` | install-marker only | marker + authored (AC1) |
-| core's hooks at plugin user scope | never run (inert) | refused by the scope rail (AC8) |
-
-Writers and readers of a plugin `hooks` key — the complete set:
+## Writers of a plugin `hooks` key — complete set
 
 | Site | Role | Disposition |
 |---|---|---|
-| `build/main.py:585` | assigns the synthetic block | **must change** — becomes merge |
-| `build/main.py:748` | strips `hooks` from dist marketplace entries | unchanged |
-| `build/self_host.py:623` | `entry.pop("hooks")` — **second** marketplace writer | unchanged; reads source manifests, which the source schema still forbids `hooks` on |
-| `build/self_host.py:1509` | build-check gate: source `plugin.json` carrying `hooks` is drift | unchanged; source manifests stay hooks-free |
-| `catalogue_tooling/verify.py:662` | asserts no `hooks` in a marketplace entry | unchanged |
-| `adapters/claude_code.py:160` → `merge_json` | writes `.claude/settings.local.json` | unchanged code; **not reached** on the plugin route once `hook-wiring` resolves to `dropped` |
+| `build/main.py` synthetic-hooks assignment | assigns the block | **must change** — becomes merge |
+| `build/main.py` dist marketplace aggregation | strips `hooks` from entries | unchanged |
+| `build/self_host.py` `_aggregate_marketplace` | `entry.pop("hooks")` — **second** marketplace writer | unchanged; reads source manifests |
+| `build/self_host.py` source-shape gate | source `plugin.json` carrying `hooks` is drift | unchanged |
+| `catalogue_tooling/verify.py` | asserts no `hooks` in a marketplace entry | unchanged |
+| `build/main.py` `_APM_INSTALL_MARKER_HOOK_JSON` | writes `hooks` into `dist/apm/.../install-marker.json` | unchanged — APM route, different artifact |
+| `adapters/claude_code.py` → `merge_json` | writes `.claude/settings.local.json` | unchanged code; **not reached** once `plugin-mode` resolves to `dropped` |
 
-ADR-0072 records `self_host.py:_aggregate_marketplace` as the writer missed last
-time, which is why both its sites are listed explicitly rather than assumed.
+ADR-0072 records `_aggregate_marketplace` as the writer missed last time, which
+is why both its sites are listed rather than assumed.
 
-## Anchor-test sweep (done at PLAN)
+## Anchor-test sweep
 
-Tests pinning exact content of files this change touches. Both agentbundle test
-roots swept (`packages/agentbundle/tests/` and
+Both test roots swept (`packages/agentbundle/tests/` and
 `packages/agentbundle/agentbundle/build/tests/`).
 
-**Artifact-layout pins — go red under AC3 / AC4 / AC11:**
+**Artifact-layout pins — red under AC3 / AC4 / AC11:**
 
-| Test | What it pins | Disposition |
+| Test | Pins | Disposition |
 |---|---|---|
-| `build/tests/test_end_to_end_build.py:71-75` | `core_plugin/tools/hooks/baz.{sh,py}` exist **and** `.claude/settings.local.json` exists | re-pin to `hooks/`; invert the `.claude/` assertion |
-| `tests/unit/test_render_cmd.py:89-99` | `any("tools/hooks/" in k)` and `"claude-plugins/core/.claude/settings.local.json" in k`, under the comment "hook wiring is the exception — it stays under `.claude/`" | re-pin both; delete the stale comment |
-| `tests/integration/test_install_session_start_wiring.py:98,124` | the file exists at `claude-plugins/test-core/.claude/settings.local.json`; `command == "python tools/hooks/session-start.py"` | re-pin to the manifest + rewritten command |
+| `build/tests/test_end_to_end_build.py:67-75` | `tools/hooks/baz.{sh,py}` exist; `.claude/settings.local.json` exists; stale "hook wiring is the exception" comment | re-pin to `hooks/`; invert the `.claude/` assertion; delete the comment |
+| `tests/unit/test_render_cmd.py:89-99` | `any("tools/hooks/" in k)`; `claude-plugins/core/.claude/settings.local.json`; same stale comment | re-pin both; delete the comment |
+| `tests/integration/test_install_session_start_wiring.py:98,124` | file at `claude-plugins/test-core/.claude/settings.local.json`; `command == "python tools/hooks/session-start.py"` | re-pin to manifest + rewritten command |
 | `tests/integration/test_install_core_smoke.py:60-69` | same, against real `packs/core` | re-pin |
 | `tests/integration/test_build_derivation_claude_plugins.py` | `EXPECTED_COMMAND` + the `hooks` block | extend, not replace |
-| `build/tests/test_plugin_manifest_schema.py` | derived-schema accept/reject set | extend for AC7 |
+| `build/tests/test_plugin_manifest_schema.py` | derived-schema accept/reject set | extend |
 
-**Contract-version pins — go red under AC16's bump.** Seven files assert the
-literal `"0.17"`: `build/tests/test_contract.py:463`,
-`test_shared_prefix_contract.py:35`, `test_contract_scope.py`,
+**Contract-version pins — red under AC16's bump. Six, and they re-pin in the
+contract task, not later** (otherwise the tree is red between tasks):
+`build/tests/test_contract.py:463`, `test_shared_prefix_contract.py:35`,
 `test_adapter_gemini.py:157`, `test_adapter_cursor.py:60`,
 `test_adapter_kiro_ide.py:182`, `tests/unit/test_contract_v0_3_schema.py:85`.
-All re-pin to the new version.
+**Not a pin:** `build/tests/test_contract_scope.py` asserts `version >= (0, 8)`
+as a tuple and stays green; only its prose comment at `:99` needs updating.
 
-**Must stay green (AC14):** `build/tests/test_adapter_claude_code.py:126` and
-`test_self_host_check.py:332-362` assert the *direct* route's
-`settings.local.json` payload. Both build their own pack, so T0's fixture change
-does not reach them.
+**Fixture wiring the fail-closed compiler will now reject.** Every
+`.apm/hook-wiring/*.toml` under a fixture tree that reaches the claude-plugins
+recipe — roughly twenty test modules call `--emit-install-routes` / `render_pack`:
 
-**Stale prose to fix in the same PR:** `commands/upgrade.py:1672` (docstring
-cites `claude-plugins/core/tools/hooks/pre-commit.sh`);
-`tests/integration/test_tier_invariants.py:315-317` (comment documents
-`tools/hooks/`; the assertion uses a `/hooks/` substring so it stays green and
-the comment would rot unnoticed).
+| Fixture | Problem under AC6/AC7 | Disposition |
+|---|---|---|
+| `build/tests/fixtures/packs/core/.apm/hook-wiring/baz.toml` | `[hooks] baz = "…"` — unknown event, value is a string not an entry array | rewrite to the real nested shape, on a non-`SessionStart` event |
+| `tests/fixtures/install/catalogue/packs/alpha/.apm/hook-wiring/run.toml` | same shape | rewrite |
+| `tests/fixtures/packs/cc-user-hooks/.apm/hook-wiring/on-prompt.toml` | entry has a top-level `command`, no nested `hooks` array, no `type` | rewrite |
+| `tests/fixtures/upgrade/catalogue_v{1,2,3}/packs/core/.apm/hook-wiring/pre-commit.toml` | same shape; reached via `test_tier_invariants.py:311` | rewrite all three |
+
+Enumerate the full set with a glob at task start rather than trusting this
+table — it was built by grep and the suite grows.
+
+**Must stay green:** `build/tests/test_adapter_claude_code.py:126` and
+`test_self_host_check.py:332-362` assert the *direct* route's payload; both
+build their own pack, so fixture rewrites do not reach them.
+
+**Stale prose:** `commands/upgrade.py:1672`;
+`tests/integration/test_tier_invariants.py:315-317`.
 
 ## Tasks
 
-### T0 — Realistic fixture + red integration test
-
-**Depends on:** none · **Verification mode:** TDD
+### T0 — Fixtures + red integration test
+**Depends on:** none · **Mode:** TDD
 
 **Tests:** `test_build_derivation_claude_plugins.py::test_authored_wiring_reaches_manifest`
-— builds the fixture packs, asserts the derived `core` manifest's `hooks`
-carries the fixture's authored event *and* the install-marker entry. Red here.
+— red here.
 
-**Approach:** replace the fixture pack's toy `.apm/hook-wiring/baz.toml`
-(`baz = "tools/hooks/baz.sh"` — not a valid Claude hook block at all) with the
-real nested shape, wiring `baz.sh` to a **non-`SessionStart`** event so AC1 and
-AC2 are distinguishable. Leave every unit test that constructs its own pack
+**Approach:** glob every fixture `.apm/hook-wiring/*.toml`, rewrite each to the
+real nested shape per the table above, wiring to a **non-`SessionStart`** event
+so AC1 and AC2 stay distinguishable. Leave unit tests that build their own pack
 alone.
 
-### T1 — Contract: route-scoped hook targets
+### T1 — Contract + version re-pins
+**Depends on:** none · **Mode:** Goal-based check
 
-**Depends on:** none · **Verification mode:** Goal-based check
+**Done when:** a parse of `contracts/adapter.toml` asserts the `hook-body`
+entry's `plugin-target-path == "hooks/"` **and** the `hook-wiring` entry's
+`plugin-mode == "dropped"`; `diff` against `_data/adapter.toml` is empty;
+`validate` exits 0; and the six contract-version pins are green again.
 
-**Tests:** no stub (goal-based). **Done when:** a Python one-liner parses
-`contracts/adapter.toml` and asserts the `hook-body` entry's
-`plugin-target-path == "hooks/"` **and** the `hook-wiring` entry's
-`plugin-mode == "dropped"`, `diff` against `_data/adapter.toml` is empty, and
-`python3 -m agentbundle.build validate` exits 0.
+The value assertions are the point — the projection-array item schema has no
+`additionalProperties: false`, so `validate` exits 0 with either key misspelled
+or omitted.
 
-The value assertions are the point: `contracts/adapter.schema.json`'s
-projection-array item has no `additionalProperties: false`, so `validate` exits
-0 with either key misspelled, omitted, or wrong. A parse-and-diff check alone
-would pass while the change it gates is absent.
+**Approach:** add both keys, bump `[contract].version`, record it in the
+version-history block, extend `adapter.schema.json` (`plugin-mode` under the
+`mode` enum), mirror both files. Update `overview.md`, `pack-layout.md`,
+`agentbundle.md`, `DESIGN.md` (×2), and `test_contract_scope.py:99`'s comment.
 
-**Approach:** add both keys; bump `[contract].version`; record it in the
-version-history comment block. Add `plugin-target-path` (string) and
-`plugin-mode` (same enum as `mode`) to `adapter.schema.json`. Mirror both files
-into `_data/`. Update the three living architecture docs that state the version
-(`overview.md:101`, `pack-layout.md:129`, `agentbundle.md:147`).
+### T2 — Derived schema
+**Depends on:** none · **Mode:** TDD
 
-### T2 — Derived schema: shape-only hooks block
-
-**Depends on:** none · **Verification mode:** TDD
-
-**Tests:** `build/tests/test_plugin_manifest_schema.py` — accepts a compiled
-two-event block with and without `matcher`; rejects a `type: "http"` hook, an
-unknown key inside a hook object, and an unknown key inside an event entry.
+**Tests:** accepts a compiled two-event block with and without `matcher`;
+rejects `type: "http"`, an unknown key in a hook object, an unknown key in an
+entry.
 
 **Approach:** replace the single `SessionStart` property with
-`additionalProperties: <entry-array schema>`, `additionalProperties: false`
-retained inside the entry and hook objects. Mirror to `_data/`.
+`additionalProperties: <entry-array schema>`; **add `matcher`** to the entry
+object (absent today, and `additionalProperties: false` would reject it);
+retain `additionalProperties: false` inside entry and hook objects. Mirror.
 
-### T3 — The hook compiler
+### T3 — Hook-wiring rules (neutral module)
+**Depends on:** none · **Mode:** TDD
 
-**Depends on:** none · **Verification mode:** TDD
+**Approach:** `build/hook_wiring_rules.py` — neutral validation shared by the
+compiler and the pack lint so the two gates cannot disagree. Exposes
+`KNOWN_EVENTS` (frozenset) and
+`validate_wiring_entry(entry, *, pack_name, wiring_file) -> None`. Neutral
+module rather than importing `projections/` from `lint_packs.py`, which today
+imports only `agentbundle.pack_inventory` / `agentbundle.safety`.
 
-**Tests:** new `build/tests/test_plugin_hooks.py` —
-- authored block compiles verbatim except the rewritten token;
-- `tools/hooks/x.py` → `"${CLAUDE_PLUGIN_ROOT}/hooks/x.py"`, quoted;
-- a root containing a space stays one `shlex.split` token;
-- multiple occurrences in one command (`a && b`) all rewrite, and the result
-  round-trips through `shlex.split` with each path as exactly one token;
-- a leading `./tools/hooks/x.py` rewrites correctly;
-- a token with trailing arguments keeps them;
-- sorted wiring-filename order; install-marker first;
-- AC5(a) command names a shipped body, no `${CLAUDE_PLUGIN_ROOT}` → raises;
-- AC5(b) rewritten token names a body the pack doesn't ship → raises;
-- AC6 `type: "http"` → raises; AC7 unknown event → raises;
-- AC9 `timeout: 3600` and an over-long `matcher` → raise;
-- absent `hook-wiring/` returns an empty block, not `None`.
-Every raise asserts pack + file + command in the message.
+**Tests:** each raise — unknown event, non-`command` type, non-string command,
+timeout out of range, entry/hook count caps, matcher shape. Every message
+asserts pack + file + command.
+
+### T4 — The scope guard
+**Depends on:** none · **Mode:** TDD
+
+**Tests:** the trust invariant, driven through real settings files —
+a hostile repo-committed `.claude/settings.json` granting the pack must **not**
+cause a hook to run; unset `CLAUDE_PROJECT_DIR`, unset `HOME`, malformed JSON,
+and empty `allowed-scopes` each resolve `undetermined` → refuse; a legitimate
+`project`-scope install of a repo-only pack runs. Object-form `enabledPlugins`
+throughout — the array form is what hid #890's bug.
+
+**Approach:** a standalone projected script (AC19), self-contained, stdlib-only,
+no `agentbundle` import. Reuses #890's repaired reading of `enabledPlugins` but
+resolves the permit per AC8's trust invariant, returning three values. Register
+its projected path and `_data/` mirror in all three `build/self_host.py` drift
+gates. **Do not edit `templates/install-marker.py`** — its behaviour is correct
+after #890 and three gates pin its bytes.
+
+### T5 — Guard emission in the compiler
+**Depends on:** T3, T4 · **Mode:** TDD
 
 **Approach:** `build/projections/plugin_hooks.py` exposing
 `compile_plugin_hooks(pack_path, *, repo_hook_prefix, plugin_hook_prefix,
-pack_name) -> dict`. **Both prefixes are parameters read off the contract entry
-by the caller** — no module-level constant. `"tools/hooks/"` and `"hooks/"` are
-contract-owned (`adapter.toml` `target-path` and T1's `plugin-target-path`); a
-third copy here would drift silently the day T1's value changes. This
-deliberately departs from the gemini/cursor/copilot sibling convention of a
-private `_LEGACY_HOOK_BODY_PREFIX`, because those adapters hardcode a
-destination this route reads from the contract.
+hook_source_path, wiring_source_path, guard_path, pack_name) -> dict`. **All
+five paths are parameters read off the contract by the caller** — `tools/hooks/`
+and `hooks/` are `target-path`/`plugin-target-path`, and `.apm/hooks/` /
+`.apm/hook-wiring/` are `[primitive.*] source-path`. A module-level constant for
+any of them would be a second copy that drifts the day the contract changes.
+This departs from the gemini/cursor/copilot sibling convention of a private
+prefix constant, because those adapters hardcode a destination this route reads
+from the contract.
 
-Structure and error wording mirror `gemini.py:400-420`
-(`_translate_hook_entry`) so the four read alike — preserve `matcher`, raise on
-a non-`command` handler. The **mechanism** diverges: `shlex.split` /
-rewrite-token / `shlex.quote`, not `str.replace`, per AC4.
+Structure and error wording mirror `gemini.py`'s `_translate_hook_entry` so the
+four read alike. The **mechanism** diverges per AC4: positional regex splice
+with a double-quoted replacement.
 
-Raise `ValueError`; the dispatcher's existing
-`RuntimeError(f"pack {pack.name!r}: {exc}")` wrapper (`build/main.py:506`)
-prefixes the pack name.
+The compiler emits the guard invocation as part of each compiled command, so
+AC4's expected string for `packs/core` is the guarded form — stated in AC4, and
+the same string AC13 asserts against the real client.
 
-### T4 — The scope rail
+**Tests:** the AC4 case list (multi-occurrence, leading `./`, `--flag=path`,
+`sh -c "…"` nesting, trailing args, a command with no hook path); the `sh -c`
+execution assertion with a space-and-`$` root; AC5 both predicates; ordering;
+empty block when no `hook-wiring/`.
 
-**Depends on:** none · **Verification mode:** TDD
+### T6 — Wire into the derivation
+**Depends on:** T0, T1, T2, T5 · **Mode:** TDD (T0 goes green)
 
-**Tests:** exercise the real resolution path at both scopes — a repo-only pack
-enabled at plugin `user` scope no-ops with the stderr warning; the same pack
-enabled at `project` scope runs. Drive `enabledPlugins` in the three settings
-files rather than mocking the resolver, so the test fails if the precedence
-regresses.
+**Approach:** extend `_resolve_contract_for_route` to require both new keys and
+**swap `mode` ← `plugin-mode` alongside the existing `target-path` swap** —
+requiring is not applying. Route `_project_direct_file`'s `target_prefix`
+through `_resolve_target` (AC21). Replace the `derived["hooks"]` assignment with
+marker-first-then-compiled. Re-pin the artifact-layout anchors.
 
-**Approach:** lift the scope resolution + `allowed-scopes` comparison out of
-`templates/install-marker.py:797,849` into a shared helper both the marker
-writer and the compiled-hook guard call, preserving the marker writer's
-observable behaviour byte-for-byte (its own tests are the regression witness).
-The compiled command invokes the guard; on refusal it exits 0 without running
-the body, matching the marker's refuse-and-warn-exit-0 contract.
+### T7 — Pack-source gate
+**Depends on:** T3 · **Mode:** TDD
 
-### T5 — Wire the compiler into the derivation
+**Approach:** `build/lint_packs.py` calls `hook_wiring_rules.validate_wiring_entry`.
+The compiler's validators are the single source; the lint restates nothing.
 
-**Depends on:** T0, T1, T2, T3, T4 · **Verification mode:** TDD (T0 goes green)
+### T8 — Publish-time validation
+**Depends on:** T6 · **Mode:** TDD
 
-**Tests:** T0's test plus: no `<pack>/.claude/` in the output; bodies at
-`<pack>/hooks/`; a pack with no `hook-wiring/` yields a marker-only manifest;
-a pack with `hook-wiring/` and no `plugin.json` raises (AC10); warm and cold
-rebuild byte-identical.
+**Approach:** `tools/catalogue/publish_claude_plugins.py` re-validates each
+`plugin.json` against the derived schema and `KNOWN_EVENTS` before pushing
+(AC20).
 
-**Approach:** extend `_resolve_contract_for_route` to require
-`plugin-target-path` on `hook-body` and `plugin-mode` on `hook-wiring`, raising
-on either missing. Replace the `derived["hooks"] = {...}` assignment with
-marker-first-then-compiled. Re-pin the anchor tests above.
+### T9 — Other-route regression
+**Depends on:** T6 · **Mode:** TDD
 
-### T6 — Pack-source gate
+**Approach:** assert per projection that a non-plugins build still writes
+`.claude/settings.local.json` and `tools/hooks/`; assert each of the five
+`render_pack` consumers for its expected new output.
 
-**Depends on:** T3 · **Verification mode:** TDD
+### T10 — Real client, docs, erratum, changelog
+**Depends on:** T7, T8, T9 · **Mode:** Visual / manual QA
 
-**Tests:** `lint-packs` rejects a pack whose wiring has an unknown event,
-a non-`command` type, a non-string `command`, or an out-of-bounds `timeout`.
+**Done when:** `claude plugin validate` passes; `claude plugin details` reports
+the exact hook set; an authored hook is observed firing at `--scope project` and
+observed refusing at `--scope user`; the execution model for AC12 is recorded;
+transcripts pasted below.
 
-**Approach:** add the rule to `build/lint_packs.py`, reusing T3's validation
-helpers so the two gates cannot disagree.
-
-### T7 — Other-route regression
-
-**Depends on:** T5 · **Verification mode:** TDD
-
-**Tests:** a non-plugins build over the same fixture packs still writes
-`.claude/settings.local.json` with the authored payload and `tools/hooks/`
-bodies; APM output unchanged. Assert per projection.
-
-**Approach:** assertions only; extend existing direct-route tests rather than
-duplicating.
-
-### T8 — Real client, docs, erratum, changelog
-
-**Depends on:** T7 · **Verification mode:** Visual / manual QA
-
-**Tests:** no stub (manual QA). **Done when:** `claude plugin validate` passes
-on the built `core` plugin; `claude plugin details` reports the exact expected
-hook set; one authored hook is observed firing; all transcripts pasted into the
-Verification log below.
-
-**Approach:** build `packs/core` through the claude-plugins recipe into a
-scratch dir; run the client in a throwaway `CLAUDE_CONFIG_DIR`. Then:
-- erratum on `docs/specs/wire-session-start-hook/spec.md` (frozen — erratum
-  only, body not edited);
-- `packs/core/README.md` + plugin `description` enumerate the registered hooks
-  (AC17);
-- `[Unreleased]` entries in **`packages/agentbundle/CHANGELOG.md`** and
-  **`docs/product/changelog.md`**, naming the behavioural change;
-- fix the two stale-prose sites (`commands/upgrade.py:1672`,
-  `test_tier_invariants.py:315-317`).
+Then: erratum on `docs/specs/wire-session-start-hook/spec.md` (frozen — body not
+edited); `packs/core/README.md` + plugin `description` per AC17, including the
+default-scope refusal; `[Unreleased]` entries in
+`packages/agentbundle/CHANGELOG.md` and `docs/product/changelog.md`; fix the two
+stale-prose sites.
 
 ## Risks
 
-- **Event-set drift.** Claude Code adds events without notice; a pack
-  authoring a newer one fails the build. That is the chosen fail-closed mode,
-  and AC7 records the widening procedure so the cheapest green is not "add the
-  key". The residual is real: nothing in CI detects an upstream addition, and
-  AC13 is a one-shot manual run in this PR. Accepted explicitly rather than
-  mitigated — a recurring real-client check is the honest fix and is out of
-  scope here (ADR-0072 already records it as a known follow-on).
-- **`python` vs `python3`.** `packs/core` authors bare `python`, absent on a
-  stock macOS. Pre-existing on every route; relocating the path is in scope,
-  restyling the interpreter token is not (spec § Ask first).
-- **Scope-rail regression surface.** T4 moves logic out of a shipped,
-  security-relevant writer. Its existing tests are the witness; if they cannot
-  be kept green byte-for-byte, stop and surface rather than adjusting them.
+- **Event-set drift.** Fail-closed by choice; spec AC7 records the widening
+  procedure. Residual: nothing in CI detects an upstream addition, and AC13 is a
+  one-shot manual run. Accepted explicitly — a recurring real-client check is
+  the honest fix and is ADR-0072's recorded follow-on.
+- **Branch integrity is only partly satisfied.** Force-push and deletion are now
+  denied on `claude-plugins-dist`, but ordinary pushes are unrestricted and
+  `enforce_admins: false`, so ADR-0072's named threat — anyone with repo write,
+  or any workflow holding `contents: write` — is untouched. AC20 is the
+  compensating control this spec adds; signature requirements or a rebuild-and-
+  compare check remain open.
+- **`python` vs `python3`.** `packs/core` authors bare `python`, absent on stock
+  macOS. Pre-existing on every route; out of scope (spec § Ask first).
 
 ## Verification log
 
-_(AC13 transcripts land here during T8.)_
+_(AC13 transcripts land here during T10.)_
 
 ## Changelog
 
 - **2026-08-07** — initial plan.
-- **2026-08-07** — revised after round 1 review (adversarial + security).
-  Substantive changes, not re-ordering: (1) command rewriting moves from prefix
-  substitution to `shlex` token rewriting — the precedent mechanism cannot emit
-  a balanced quote and silently neuters `&&`; (2) new T4 extends RFC-0008's
-  `allowed-scopes` rail to compiled hooks, which the marker-only enforcement
-  left uncovered; (3) event validation moves from the schema to the compiler
-  after confirming `build/validate.py` supports neither `$ref` nor
-  `propertyNames`; (4) install-marker ordering flipped to first; (5) anchor
-  sweep and writers table completed (three artifact tests, seven version pins,
-  two `self_host.py` sites); (6) new T6 adds the pack-source gate.
+- **2026-08-07** — revised after round 1 (adversarial + security).
+- **2026-08-07** — revised after round 2. Substantive: (1) AC4's mechanism
+  replaced a second time — `shlex.quote` emits single quotes, inside which `sh`
+  never expands `${CLAUDE_PLUGIN_ROOT}`, and split-then-rejoin destroys `&&`;
+  the positional-splice replacement was verified by execution before being
+  written down. (2) AC8 rebuilt on a trust invariant after review showed the
+  inherited `local → project → user` precedence lets a hostile repo *grant*
+  execution. (3) The guard became its own governed artifact (AC19) rather than
+  an edit to the three-gate-pinned install-marker template. (4) T3 split out as
+  a neutral rules module. (5) Fixture sweep added — six more wiring files the
+  fail-closed compiler rejects. (6) Contract-version pins corrected to six and
+  moved into T1. (7) New AC20 (publish-time validation) and AC21 (`_resolve_target`
+  confinement). Unblocked by **#890**, which repaired the `enabledPlugins` walk
+  this spec's scope rail depends on.

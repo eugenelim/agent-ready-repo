@@ -19,6 +19,11 @@ A pack that ships hook bodies and hook wiring gets working hooks on the
 Claude-plugin route, the same way it does on the direct Claude adapter — and no
 hook runs at a scope the pack forbids.
 
+For `packs/core` specifically, which declares `allowed-scopes = ["repo"]`, that
+means hooks work at `--scope project` / `--scope local` and stay refused at the
+install default of `--scope user`. That is the correct outcome, not a
+shortfall — but it is a user-visible one, so AC17 requires saying it out loud.
+
 Today it does not. The claude-plugins route publishes a plugin whose hook
 surface is one synthetic install-marker `SessionStart` entry. The pack's own
 hooks are shipped as *inert files*:
@@ -145,28 +150,46 @@ quoting discipline AC4 mandates is what makes shell form safe.
   `plugin-target-path`; `<pack>/tools/hooks/` is not emitted. The direct route's
   `tools/hooks/` target is unchanged.
 
-- [ ] **AC4 — Commands resolve against the plugin root, by token.** Rewriting
-  is **token-level, not prefix substitution**: the command is `shlex.split`, a
-  token whose value is `<repo-hook-prefix><name>` is replaced by
-  `${CLAUDE_PLUGIN_ROOT}/<plugin-hook-prefix><name>`, and the command is
-  re-emitted with the rewritten token quoted so it survives a space in the
-  install path. `packs/core`'s wiring compiles to
+- [ ] **AC4 — Commands resolve against the plugin root, by positional splice.**
+  Rewriting replaces each occurrence of `<repo-hook-prefix><name>` **in place in
+  the original command string** with a double-quoted
+  `"${CLAUDE_PLUGIN_ROOT}/<plugin-hook-prefix><name>"`, leaving every other byte
+  — operators, pipes, redirections, surrounding arguments — untouched. An
+  optional leading `./` is absorbed. `packs/core`'s wiring compiles to
   `python "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.py"`.
 
-  A prefix `str.replace` — the gemini/cursor/copilot precedent — **cannot
-  satisfy this AC** and must not be used: it has no way to emit the closing
-  quote, and the half-quoted result re-pairs quotes across a `&&`, silently
-  turning a two-command wiring into one command with the second as an argument.
-  The emitted command must round-trip through `shlex.split` with the rewritten
-  path as exactly one token. Cases covered: multiple occurrences in one
-  command, a leading `./`, and a token with trailing arguments.
+  Two mechanisms are **forbidden**, each having been shown to corrupt the
+  command:
+  - `str.replace` on the prefix (the gemini/cursor/copilot precedent) cannot
+    emit the closing quote; the half-quoted result re-pairs quotes across a
+    `&&` and silently turns two commands into one.
+  - `shlex.split` + rejoin destroys shell operators, and `shlex.quote` emits
+    **single** quotes, inside which `sh` does not expand `${CLAUDE_PLUGIN_ROOT}`
+    at all — verified: the hook would resolve to a literal directory named
+    `${CLAUDE_PLUGIN_ROOT}`.
 
-- [ ] **AC5 — Fail closed on an unrewritable or dangling command.** Two-sided:
-  (a) a command naming a shipped hook-body filename with no
-  `${CLAUDE_PLUGIN_ROOT}` after rewriting raises; (b) a rewritten
-  `${CLAUDE_PLUGIN_ROOT}/<prefix><name>` token that does not correspond to a
-  file the pack ships under `.apm/hooks/` raises. A relative path is never
-  published silently, and neither is a path to a file that will not exist.
+  Double quotes are required, not incidental: they are what makes the variable
+  expand while still surviving a space in the install path.
+
+  **Verification is execution, not shape.** The emitted command is run through
+  `sh -c` with `CLAUDE_PLUGIN_ROOT` set to a path containing both a space and a
+  `$`, and the hook's observed `argv` must show the path as exactly one
+  argument. A `shlex.split`-based round-trip assertion is not acceptable
+  evidence — it returns one token for the broken single-quoted form too, so it
+  cannot fail.
+
+- [ ] **AC5 — Fail closed on an unrewritable or dangling command.** Two
+  predicates, each stated at the depth that makes it checkable:
+  (a) **basename scan over the whole command** — if any whitespace- or
+  `=`-delimited fragment contains the basename of a hook body the pack ships and
+  the command does not carry `${CLAUDE_PLUGIN_ROOT}`, raise. A basename scan,
+  not token equality: `--script=tools/hooks/x.py` and a path nested inside
+  `sh -c "python tools/hooks/x.py"` are not standalone tokens, and publishing
+  either with a relative path is the failure class ADR-0072 exists to prevent.
+  (b) **confinement, not existence** — each rewritten
+  `${CLAUDE_PLUGIN_ROOT}/<prefix><name>` must correspond to a path that, after
+  `resolve()`, is `relative_to` the pack's hook-body source directory. A bare
+  `exists()` check would accept a `..`-bearing or symlinked name.
 
 - [ ] **AC6 — Only `command` hooks are published.** A hook object whose `type`
   is not `"command"` raises with the same locating detail.
@@ -199,21 +222,47 @@ quoting discipline AC4 mandates is what makes shell form safe.
   an AC13 real-client run is recorded. Widening is mirror maintenance, never a
   local extension.
 
-- [ ] **AC8 — Compiled hooks obey the pack's `allowed-scopes`.** Every compiled
-  hook command passes the same scope check `templates/install-marker.py:797,849`
-  already performs for the marker: at run time the hook resolves the effective
-  Claude-plugins scope by RFC-0008's precedence (local → project → user) and
-  no-ops with a one-line stderr warning when that scope is outside the pack's
-  `allowed-scopes`. `packs/core` (`allowed-scopes = ["repo"]`) installed at the
-  default `--scope user` therefore runs neither `session-start.py` nor
-  `work-loop-check.py` — matching the refusal the marker beside them already
-  emits. Asserted by exercising both scopes, not by reading the code.
+- [ ] **AC8 — Compiled hooks obey the pack's `allowed-scopes`, and workspace
+  files can only narrow.** Every compiled hook command resolves the effective
+  Claude-plugins scope and no-ops with a one-line stderr warning when that scope
+  is outside the pack's `allowed-scopes` — the same rail
+  `templates/install-marker.py` applies to the marker, now repaired by #890 to
+  read the object form the client actually writes.
 
-- [ ] **AC9 — Bounded `timeout` and `matcher`.** The compiler raises on a
-  `timeout` outside 1–60 seconds or a `matcher` longer than 512 characters,
-  with the AC5 locating detail. Neither bound is expressible in the schema
-  (`build/validate.py` supports no numeric or length bounds), and both are
-  per-adopter denial-of-service delivered through a published artifact.
+  **Trust invariant:** the permit is resolved from **adopter-controlled state
+  only** — `$HOME` settings plus the pack's own install record under the
+  adopter's plugin cache. Files under `${CLAUDE_PROJECT_DIR}` may *narrow* the
+  resolved scope; they may never grant one. RFC-0008's `local → project → user`
+  precedence is correct for deciding where to write a marker and backwards for
+  deciding whether to execute: it ranks the least-trusted file highest, so a
+  cloned hostile repo committing `.claude/settings.json` with
+  `{"enabledPlugins": {"core@agent-ready-repo": true}}` would otherwise grant
+  itself execution and pipe its own `docs/knowledge/patterns.jsonl` into model
+  context.
+
+  **Three-valued, and undetermined refuses.** The resolution returns
+  `allowed` / `denied` / `undetermined`; only `allowed` runs the body. Unset
+  `CLAUDE_PROJECT_DIR`, unset `HOME`, a malformed or unreadable settings file,
+  and an empty `allowed-scopes` all resolve `undetermined`. For a marker write
+  "undetermined" can safely mean *don't write*; for an execution decision it
+  must mean *don't run*, and the fall-through must not be inherited unexamined.
+
+  Asserted by exercising real settings files at each scope — including a
+  hostile repo-committed `.claude/settings.json` that must not cause a hook to
+  run — not by mocking the resolver.
+
+- [ ] **AC9 — Bounded hook cost.** The compiler raises, with the AC5 locating
+  detail, on: a `timeout` outside 1–60s (60 is Claude Code's documented default
+  for command hooks; a lower ceiling is a local *restriction*, permitted under
+  ADR-0072); more than 8 entries per event or 32 compiled hooks per pack; and a
+  `matcher` whose **shape** is unbounded — anchored literals and alternations
+  over tool names are admitted, nested unbounded quantifiers are not.
+
+  A length cap is explicitly *not* the control for matcher cost: catastrophic
+  backtracking is a complexity property, not a length one — `(a+)+$` is seven
+  characters and burns the adopter's client. None of these bounds is expressible
+  in the schema (`build/validate.py` has no numeric or length keywords), so all
+  three live in the compiler.
 
 - [ ] **AC10 — A pack with wiring but no source manifest raises.**
   `build/main.py:571` gates manifest synthesis on `plugin.json` existing. A
@@ -225,29 +274,39 @@ quoting discipline AC4 mandates is what makes shell form safe.
   `<pack>/.claude/` directory.
 
 - [ ] **AC12 — Idempotent and order-stable.** Warm and cold rebuilds produce
-  byte-identical `plugin.json`. Within an event: **the install-marker entry
-  first**, then authored entries in sorted wiring-filename order. Marker-first
-  because it is the governance record — a pack hook that blocks, times out, or
-  exits non-zero must not be able to suppress it.
+  byte-identical `plugin.json`. Within an event: the install-marker entry first,
+  then authored entries in sorted wiring-filename order.
+
+  Marker-first is for **determinism**, not suppression-resistance. Claude Code
+  documents matching hooks running in parallel, so ordering does not protect the
+  marker from a pack hook that blocks or exits non-zero; AC13 records the
+  observed execution model rather than assuming one.
 
 - [ ] **AC13 — Real-client verification, on the exact hook set.**
   `claude plugin validate` passes on the built `core` plugin, and
   `claude plugin details` reports the **exact** registered hook set — event
   names, entry count, and command strings — with no extra or missing
-  registration. Plus one observed side effect of an authored hook actually
-  firing. Registration alone does not discharge this AC: a hook whose command
-  points at a nonexistent path registers fine, which is the failure class
-  ADR-0072 exists to prevent. Transcripts recorded in `plan.md`.
+  registration. Plus one observed side effect of an authored hook firing, and
+  the observed execution model for AC12. Registration alone does not discharge
+  this AC: a hook whose command points at a nonexistent path registers fine,
+  which is the failure class ADR-0072 exists to prevent. The same test asserts
+  AC17's documented hook enumeration against the compiled `hooks` block, so
+  prose and artifact cannot drift. Transcripts recorded in `plan.md`.
 
-- [ ] **AC14 — Other routes unchanged, and the two that do change are named.**
+- [ ] **AC14 — Other routes unchanged; every changed consumer named.**
   `build/self_host.py` (direct via `project_packs`), `commands/pack_evals.py`,
-  and the APM recipe emit output byte-identical to pre-change, including
-  `.claude/settings.local.json` and `tools/hooks/` at their direct-route
-  locations. **`commands/render.py` and `commands/install.py
-  --emit-install-routes` change by design** — both run the
-  `per-pack-claude-plugin` recipe via `render_pack`, so their
-  `claude-plugins/<pack>/` output moves under AC3 and AC11. Asserted per
-  *projection*, not per consumer.
+  and the APM recipe emit output byte-identical to pre-change.
+
+  **Five consumers run the `per-pack-claude-plugin` recipe via `render_pack` and
+  therefore change by design:** `commands/render.py`, `commands/install.py
+  --emit-install-routes`, `commands/upgrade.py`, `commands/diff.py`, and
+  `commands/validate.py`. Each is asserted for its *expected* new output, not
+  for byte-identity. `upgrade` and `diff` will additionally see the old
+  `tools/hooks/` and `.claude/` paths as orphans; that is stated, not silently
+  absorbed.
+
+  Carve-out: `templates/install-marker.py` and the guard of AC19 are pinned by
+  byte-drift gates whose *content* changes here. AC19 governs their mirrors.
 
 - [ ] **AC15 — Pack-source gate.** `build/lint_packs.py` validates every
   `.apm/hook-wiring/*.toml` at authoring time — event key in the known set,
@@ -257,20 +316,26 @@ quoting discipline AC4 mandates is what makes shell form safe.
 
 - [ ] **AC16 — Contract bumped and mirrored.** `contracts/adapter.toml` bumps
   `[contract].version`, declares `plugin-target-path` on `hook-body` and
-  `plugin-mode` on `hook-wiring`, and is byte-identical to
+  `plugin-mode` on `hook-wiring`, and stays byte-identical to
   `packages/agentbundle/agentbundle/_data/adapter.toml`.
-  `contracts/adapter.schema.json` admits both new keys — `plugin-mode` under
-  the same enum as `mode`, so a typo fails validation — and is likewise
-  mirrored. The three living architecture docs that state the contract version
-  (`docs/architecture/overview.md:101`, `pack-layout.md:129`,
-  `agentbundle.md:147`) are updated in the same PR.
+  `contracts/adapter.schema.json` constrains `plugin-mode`'s **value** to the
+  same enum as `mode`; a misspelled *key* is not caught by the schema — the
+  projection-array item has no `additionalProperties: false` — and is caught
+  instead by the value assertion in the contract task's done-when. Living docs
+  stating the contract version are updated in the same PR:
+  `docs/architecture/overview.md`, `pack-layout.md`, `agentbundle.md`, and
+  `packages/agentbundle/DESIGN.md` (two occurrences).
 
-- [ ] **AC17 — Adopter-facing disclosure.** Adopters with `core` already
-  installed as a plugin gain two executing hooks on their next update, one
-  firing per prompt. `packs/core`'s README and the plugin `description`
-  enumerate the hooks the plugin registers, the events they bind, and what each
-  reads; the `[Unreleased]` changelog entry names this as a behavioural change,
-  not a bug fix.
+- [ ] **AC17 — Adopter-facing disclosure, including what does *not* run.**
+  `packs/core`'s README and the plugin `description` enumerate the hooks the
+  plugin registers, the events they bind, and what each reads. The
+  `[Unreleased]` changelog entry names this as a behavioural change, not a bug
+  fix.
+
+  It states plainly that `packs/core` declares `allowed-scopes = ["repo"]` while
+  `claude plugin install` defaults to `--scope user`, so **at the default scope
+  core's hooks are refused-and-warned and do not run**; working hooks require
+  `--scope project` or `--scope local`. Adopters are told how to re-scope.
 
 - [ ] **AC18 — Frozen spec superseded by erratum, not edited.**
   `docs/specs/wire-session-start-hook/spec.md` is `Status: Shipped` and
@@ -278,6 +343,30 @@ quoting discipline AC4 mandates is what makes shell form safe.
   `claude-plugins/<pack>/.claude/settings.local.json` in three places. It
   receives an erratum recording that AC11 supersedes that layout. The spec body
   is not edited.
+
+- [ ] **AC19 — The guard is a governed artifact.** The scope guard runs from
+  inside the plugin, so it ships as a projected file like
+  `install-marker.py`. Its projected path is declared, it has a byte-identical
+  `agentbundle/_data/` mirror, and it is added to the same `build/self_host.py`
+  drift gates that pin the install-marker template — all three of them. It must
+  not become a fourth uncontrolled copy of security-relevant code, and it must
+  not `import` from `agentbundle`, which is unavailable in the plugin cache.
+
+- [ ] **AC20 — The published artifact is validated at publish time.**
+  `tools/catalogue/publish_claude_plugins.py` re-validates each `plugin.json`
+  against the derived schema *and* the compiler's event set before pushing to
+  `claude-plugins-dist`. Today the compiler and the schema both run inside the
+  same build function, so they are never independent gates, and the publish step
+  validates no manifest at all — a manifest reaching the branch by any route
+  other than a clean build passes every check that exists.
+
+- [ ] **AC21 — `plugin-target-path` resolves through the blessed helper.**
+  `adapters/claude_code.py:_resolve_target` exists to confine a contract-owned
+  target path, and its docstring already names `plugin-target-path` and the
+  `shutil.rmtree` hazard — but `_project_direct_file` joins `target_prefix` onto
+  the output root with no confinement. Adding a second contract-owned path key
+  on the unconfined path extends an existing bypass; this change routes
+  `_project_direct_file` through `_resolve_target`.
 
 ## Testing Strategy
 
