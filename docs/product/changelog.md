@@ -15,6 +15,166 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [agentbundle][0.29.7] — 2026-08-06
+
+### Changed
+
+- **`catalogue init` stops handing you a `packs/AGENTS.md` full of dead links.**
+  Six of its references pointed at files that exist only in the upstream
+  catalogue, so the pack-authoring rules arrived without the means to follow
+  them — including a test-layout rule credited to a linter you do not have.
+  Every rule now stands on its own or points at a guide the scaffold ships, and
+  a new gate fails the build if a future edit cites something unshipped.
+
+## [credbroker][0.5.0] — 2026-08-06
+
+### Added
+
+- **Re-establish an expired SSO session from your own code.**
+  `refresh_sso_session(profile)` re-captures without a human;
+  `register_sso_session(...)` performs a first capture;
+  `validate_sso_profile(profile)` is the shared grammar guard; and
+  `derive_sso_destination(base_url, strategies=())` asks a resource server where
+  it sends users to sign in (RFC 9728, then OIDC discovery, then an opt-in
+  vendor probe). All four are additive.
+
+  Derivation is an outbound fetch whose later targets come out of the server's
+  own responses, so it is bounded hard: https-only at every hop, redirects not
+  followed, a 5 s socket timeout under a 15 s budget, a 64 KiB body cap, strict
+  TLS, no auth headers, and — for any hop that is not on your configured
+  `base_url`'s origin — a refusal when the host resolves to loopback,
+  link-local, RFC 1918 or another internal range.
+
+  `refresh_sso_session` takes **only a profile**, deliberately: the signature is
+  structurally incapable of forwarding a sign-in destination, so an automated
+  caller cannot choose where the browser goes. `register_sso_session` is the sole
+  function that accepts one.
+
+- **New exception types**, so a caller can tell "your session expired" from
+  "the broker failed": `SsoProfileNotRegisteredError` (subclasses the existing
+  `SsoSessionUnavailableError`, so current handlers keep working),
+  `SsoInteractionRequiredError`, `SsoRecaptureFailedError` and
+  `SsoBrokerUnavailableError`.
+
+### Changed
+
+- **`load_sso_cookies` no longer hands your whole environment to the broker**,
+  and no longer runs unbounded. It composes the child environment from an
+  allowlist — so a spawned process cannot inherit an unrelated `*_API_TOKEN` —
+  and applies a 30-second bound.
+
+  **Behaviour change worth reading:** a timeout, a spawn failure, or an
+  engine-internal error now raises `SsoBrokerUnavailableError` rather than
+  `SsoSessionUnavailableError`. If your code retries or re-registers on the
+  latter, a slow keychain no longer sends it down that path. Catch `SsoError` for
+  the old blanket behaviour.
+
+- `load_sso_cookies` validates the profile against the grammar before spawning.
+
+## [credential-brokers][0.3.0] — 2026-08-06
+
+### Changed
+
+- **`sso-broker refresh` returns `4`, not `3`, when the profile was never
+  registered.** A caller reading `3` as "not registered" was wrong: the engine
+  returns it from a dozen distinct sites, including playwright being absent and
+  a sign-in the operator did not finish. **If you read exit codes from this
+  engine, re-read them.**
+
+- **`sso-broker refresh` is now headless, and can return `5`.** It waits a
+  bounded 20 seconds for a warm browser profile to complete the IdP flow
+  unaided; if it cannot, it returns the new exit `5` instead of opening a
+  window. **A `refresh` that used to prompt now fails fast** — by design: an
+  unattended refresh must never leave a login page in front of whoever happens
+  to be at the machine.
+
+- **`sso-broker refresh` rejects every connection argument** (`--login-url`,
+  `--success-url-pattern`, `--cookie-domain`, `--validation-endpoint`,
+  `--session-filename`, `--ttl-hint-minutes`) with exit 3. Destinations come
+  only from the stored profile.
+
+- **`sso-broker register --ephemeral` changes where the session is captured.**
+  Capture runs in a throwaway browser context which then *seeds*
+  `browser-state/<profile>`, rather than capturing in that profile directly. A
+  caller relying on `register` leaving a reusable profile now gets a seeded one.
+  The verb's default is unchanged; `--ephemeral` is opt-in.
+
+- **`profile` is validated and its store paths confined.** `register`,
+  `get-cookies`, `test` and `refresh` refuse a name outside
+  `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` or matching a Windows reserved device
+  name. `rm` is exempt from the grammar so a profile registered under a
+  now-invalid name stays deletable.
+
+### Fixed
+
+- **`get-cookies` served a stale cookie jar after every re-capture on macOS and
+  Windows.** It materialised the jar only when the file was absent, while the
+  primary store on those platforms is the OS keychain — so a successful refresh
+  wrote to the keychain and the next read returned the pre-refresh file. Linux
+  was unaffected (both surfaces are the same file there), which is why CI never
+  caught it. The write is unconditional now, via a unique temp name per write.
+
+## [atlassian][0.8.0] — 2026-08-06
+
+### Added
+
+- **`jira.py check` re-establishes an expired SSO session and retries, in one
+  command.** No second step and no browser: the recapture is headless and takes
+  no sign-in destination. If your identity-provider session has expired too,
+  `check` stops with exit 2 and names the command to run — it never leaves a
+  login page on screen.
+
+- **`jira.py check --register`** captures a new session and completes the check
+  in one command. It is the ordinary first run, and the only capture path that
+  *attempts* to verify the sign-in destination against the instance — where the
+  configured sign-in host is the instance host (SP-initiated SAML), that check
+  short-circuits and confirms nothing. `scripts/setup_sso.py` remains for a
+  scripted pre-bake and for the case where `--register` refuses.
+
+### Changed
+
+- **`--insecure` is honest on both auth paths.** On the token path **every
+  subcommand** now warns whenever the flag fires, which they should always have
+  done. On the SSO-cookie path it
+  is inert — the session cookie is a bearer secret — and `check` says so rather
+  than implying verification was disabled.
+
+- **The SSO config loader rejects input it previously accepted**, in `jira` *and*
+  `confluence-crawler`, which shares the file: a `profile` outside the broker
+  grammar or supplied as a non-string, a non-integer `ttl_hint_minutes`, and any
+  quote, backslash or control character in a `[sso]` string field. Control
+  characters matter because URL parsing strips CR/LF before validation while the
+  broker writes the value into a quoted TOML string.
+
+- **`confluence-crawler`'s registration inherits the new spawn bounds** —
+  timeout, whole-process-tree kill, and the environment allowlist — because
+  `setup_sso.py` now calls `credbroker` instead of spawning the broker itself.
+
+- **Both skills require `credbroker>=0.5.0`.** An older pinned install shadows
+  the vendored floor; `check` on the SSO-cookie path detects it and exits 2 with
+  the upgrade command.
+
+- **Installing `atlassian` now requires the `credential-brokers` pack.** The
+  install gate names the fix. Previously the install succeeded and failed at
+  runtime with no remediation.
+
+## [figma][0.3.0] — 2026-08-06
+
+### Changed
+
+- **Installing `figma` now requires the `credential-brokers` pack.** It ships a
+  credentialed skill and has always depended on the broker layer; the dependency
+  is now declared, so a missing broker is refused at install time with a named
+  fix instead of failing at runtime. If you installed the library with `pip` but
+  not the pack, the upgrade will refuse until you install the pack.
+
+## [linear][0.2.0] — 2026-08-06
+
+### Changed
+
+- **Installing `linear` now requires the `credential-brokers` pack.** Same
+  change, same reason, same upgrade-time refusal as `figma` above.
+
 ## [agentbundle][0.29.5] — 2026-08-06
 
 ### Changed

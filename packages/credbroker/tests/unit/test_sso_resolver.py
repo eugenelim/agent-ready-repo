@@ -1,10 +1,10 @@
 """SSO consumer-resolver contract (task T1).
 
-``load_sso_cookies`` subprocess-invokes the unchanged ``sso-broker.py`` engine and
-returns the on-disk jar path, proceeding only on exit-0-with-readable-path and
-failing closed otherwise. The engine is faked here with a stub script returning
-canned exit codes / stdout, plus monkeypatched ``subprocess.run`` for the branches
-a real subprocess can't reach deterministically.
+``load_sso_cookies`` subprocess-invokes the ``sso-broker.py`` engine and returns
+the on-disk jar path, proceeding only on exit-0-with-readable-path and failing
+closed otherwise. The engine is faked here with a stub script returning canned
+exit codes / stdout, plus monkeypatched ``subprocess.Popen`` for the branches a
+real subprocess can't reach deterministically.
 """
 
 from __future__ import annotations
@@ -76,17 +76,20 @@ def test_exit0_unreadable_path_fails_closed(fake_home: Path) -> None:
         _sso.load_sso_cookies("corp")
 
 
-def test_uncaught_engine_oserror_fails_closed(
+def test_unspawnable_engine_fails_closed_as_broker_unavailable(
     fake_home: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # A spawn failure is not an expired session — the stored session is
+    # untouched — so it must not reach the consumer's recovery path.
     _install_fake_broker(fake_home, exit_code=0, stdout="ignored\n")
 
     def _boom(*_a, **_k):
         raise OSError("interpreter vanished")
 
-    monkeypatch.setattr(subprocess, "run", _boom)
-    with pytest.raises(_sso.SsoSessionUnavailableError):
+    monkeypatch.setattr(subprocess, "Popen", _boom)
+    with pytest.raises(_sso.SsoBrokerUnavailableError) as exc:
         _sso.load_sso_cookies("corp")
+    assert not isinstance(exc.value, _sso.SsoSessionUnavailableError)
 
 
 def test_argv_carries_only_profile_no_cookie_value(
@@ -95,13 +98,13 @@ def test_argv_carries_only_profile_no_cookie_value(
     _install_fake_broker(fake_home, exit_code=2)
     seen: dict[str, list[str]] = {}
 
-    real_run = subprocess.run
+    real_popen = subprocess.Popen
 
     def _capture(argv, *a, **k):
         seen["argv"] = list(argv)
-        return real_run(argv, *a, **k)
+        return real_popen(argv, *a, **k)
 
-    monkeypatch.setattr(subprocess, "run", _capture)
+    monkeypatch.setattr(subprocess, "Popen", _capture)
     with pytest.raises(_sso.SsoSessionUnavailableError):
         _sso.load_sso_cookies("corp")
 
@@ -114,14 +117,21 @@ def test_argv_carries_only_profile_no_cookie_value(
         assert all(banned not in part for part in argv), argv
 
 
-def test_subprocess_run_is_the_only_spawn() -> None:
-    # Structural: the resolver uses subprocess.run, not Popen / os.system /
-    # os.exec*; and it never writes/copies the jar (only reads its path).
+def test_spawn_is_argv_composed_and_never_shelled() -> None:
+    # Structural: every engine invocation is a composed argv list — never a shell,
+    # never os.system / os.exec*; and the resolver never writes or copies the jar
+    # (it only reads the path the engine prints).
+    #
+    # ``subprocess.Popen`` *is* permitted, and is the point: AC3's wall-clock bound
+    # has to kill the whole process tree on expiry, and ``subprocess.run``'s own
+    # timeout kills only the direct child — leaving playwright's Chromium alive
+    # holding a live corporate session. The ban that carries the security meaning
+    # is on shelling out, not on the spawn primitive.
     src = Path(_sso.__file__).read_text(encoding="utf-8")
-    assert "subprocess.run(" in src
-    for banned in ("subprocess.Popen", "os.system(", "os.exec"):
+    assert "subprocess.Popen(" in src
+    for banned in ("os.system(", "os.exec", "shell=True"):
         assert banned not in src, banned
 
 
 def test_version_matches_pyproject() -> None:
-    assert credbroker.__version__ == "0.4.1"
+    assert credbroker.__version__ == "0.5.0"

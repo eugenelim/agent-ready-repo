@@ -1,6 +1,6 @@
 # Spec: jira-check-sso-auto-login
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](./plan.md)
 - **Constrained by:** [RFC-0035](../../rfc/0035-sso-cookie-auth-for-atlassian-pack.md) — pins the dual-auth selector and the fail-closed no-downgrade rule; [ADR-0026](../../adr/0026-sso-consumer-resolution-in-credbroker.md) — places SSO consumer resolution in `credbroker`, which this spec extends from resolution-only to resolution-plus-recapture.
@@ -108,7 +108,11 @@ to read. Safety rests on destination pinning instead.
   `docs/CONVENTIONS.md:1197,1214` violation in a file this change already edits).
 - `sso-broker.py`: independent profile guard plus path containment.
 - `packages/agentbundle`: add `packages/credbroker`'s suite to the Windows
-  parity list. This is the **only** agentbundle change, and it is warranted
+  parity list, plus the two test files that pin this change's own
+  behaviour — `tests/unit/test_self_host_windows.py` (the parity list's own
+  test) and `tests/unit/test_shipped_pack_manifests.py` (AC33's
+  dependency-declaration and install-gate tests). No `agentbundle`
+  *source* change beyond the parity list, and it is warranted
   because Shape D puts the cross-platform kill logic in credbroker, whose tests
   run Linux-only today (`self_host_windows.py` lists agentbundle suites and the
   two skill script dirs, not credbroker). No agentbundle version bump — the
@@ -133,7 +137,26 @@ to read. Safety rests on destination pinning instead.
 
 **Out of scope**
 
-- The token path's credential resolution; every `jira.py` subcommand but `check`.
+- The token path's credential resolution; every `jira.py` subcommand but
+  `check` — **with two carve-outs, both recorded at implementation
+  (2026-08-06).** The second: AC11 requires `_cmd_check`'s display fallback and
+  the cookie path's expired-session guard to use the *identical* selector, so
+  `check` on the **token** path now also reads `key` and `accountId`. A token
+  response carrying only one of those prints `as <value>` where it printed
+  `as ?`. That is the point of single-sourcing — two lists that happened to
+  agree would drift — but it is a token-path output change, so it is named here
+  rather than left implied. The first carve-out is AC18's `--insecure`
+  warning, on **both** paths: every token-path subcommand gains the
+  "verification disabled" line, and every SSO-cookie subcommand gains the
+  "ignored" line. Both follow from the *Always do* boundary's "fires **or is
+  ignored**", which no scoping to `check` could satisfy. That warning
+  lives in `_run`'s shared client construction (`jira.py:722`), which every
+  subcommand reaches, because `docs/CONVENTIONS.md:1197,1214` require it
+  *whenever the flag fires* and scoping it to `check` would leave the violation
+  live everywhere else. So every token-path subcommand gains one stderr line
+  when `--insecure` is passed, and nothing else about them changes. (Recorded at
+  implementation, 2026-08-06: AC18's own wording already implied this by citing
+  the shared construction site, but this bullet read as forbidding it.)
 - `confluence-crawler`'s `check` auto-recovery. See *Deferred*.
 - `tools/lint-sso-config.py` — a build-time grammar copy would be a further drift site.
 - Sourcing `auth_default` / `base_url` from `catalogue.toml`. See *Deferred*.
@@ -149,7 +172,7 @@ fix, so the pack bumps and the change is named in the changelog.
 
 ### `credbroker` — the recapture API
 
-- [ ] **AC1 (`refresh_sso_session`).** `credbroker.refresh_sso_session(profile)`
+- [x] **AC1 (`refresh_sso_session`).** `credbroker.refresh_sso_session(profile)`
       resolves the broker via the module's existing `_broker_path()`, validates
       *profile* per AC4, and runs `sso-broker refresh <profile>` with **no**
       connection arguments. Its signature accepts no destination parameter.
@@ -189,7 +212,7 @@ fix, so the pack bumps and the change is named in the changelog.
       `SsoRecaptureFailedError` surfaces that rather than substituting a guessed
       remediation.
 
-- [ ] **AC2 (`register_sso_session`).** `credbroker.register_sso_session(profile,
+- [x] **AC2 (`register_sso_session`).** `credbroker.register_sso_session(profile,
       *, login_url, success_url_pattern, cookie_domains, validation_endpoint,
       session_filename=None, ttl_hint_minutes=None)` builds the `register` argv
       and spawns it under **AC3's `register` bound**, always passing
@@ -201,7 +224,7 @@ fix, so the pack bumps and the change is named in the changelog.
       is refactored onto it, so `build_register_argv` and the duplicate
       `_broker_path` leave the skill scripts entirely.
 
-- [ ] **AC3 (bounded spawn, process tree killed, both platforms).** Both
+- [x] **AC3 (bounded spawn, process tree killed, both platforms).** Both
       functions spawn through one shared helper that:
       - applies a **per-operation** wall-clock timeout — there is no single value
         for "both functions", because their worst cases differ by an order of
@@ -273,7 +296,7 @@ fix, so the pack bumps and the change is named in the changelog.
       backstop, and `JIRA_API_TOKEN` crosses to the engine. It takes a short
       (30 s) timeout and the allowlist minus the display/browser variables.
 
-- [ ] **AC4 (`validate_sso_profile`, canonical grammar).** Raises
+- [x] **AC4 (`validate_sso_profile`, canonical grammar).** Raises
       `SsoConfigError` unless *profile* is a `str` matching **`re.fullmatch`** of
       `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` and is not a case-insensitive Windows
       reserved device name (`CON`, `PRN`, `AUX`, `NUL`, `COM1`–`COM9`,
@@ -281,13 +304,13 @@ fix, so the pack bumps and the change is named in the changelog.
       the denylist is in the architecture page; both were confirmed by spike. A
       non-`str` raises `SsoConfigError` (exit 2), never `TypeError` (exit 1).
 
-- [ ] **AC5 (`load_sso_cookies` validates too).** The existing
+- [x] **AC5 (`load_sso_cookies` validates too).** The existing
       `load_sso_cookies` calls `validate_sso_profile` before composing its argv,
       so every credbroker entry point that reaches the engine is guarded.
 
 ### `sso-broker.py` — the sink
 
-- [ ] **AC6 (independent guard).** The engine enforces the AC4 grammar on
+- [x] **AC6 (independent guard).** The engine enforces the AC4 grammar on
       `register`, `get-cookies`, `test` and `refresh` before any path is
       composed — `:274` (jar), `:293` (`_profile_path`), `:376`
       (`browser-state` user-data dir) and the keychain target name all
@@ -310,7 +333,7 @@ fix, so the pack bumps and the change is named in the changelog.
       that `tomllib` can no longer read, which breaks every later `check`,
       `refresh` and `rm`. Guarded independently of the consumer.
 
-- [ ] **AC6a (the refreshed jar must actually reach the consumer).**
+- [x] **AC6a (the refreshed jar must actually reach the consumer).**
       `_do_get_cookies` materialises the jar to
       `sso-cookies/<profile>.jar` **only** `if not materialised.exists()`
       (`sso-broker.py:467-469`), while on Tier-2-capable platforms
@@ -348,24 +371,24 @@ fix, so the pack bumps and the change is named in the changelog.
       return different bytes, under both a keychain-backed and a
       file-floor-backed store — the AC6a regression, which is deterministic.
 
-- [ ] **AC6b (distinct not-registered code).** `_do_refresh` returns **`4`** when
+- [x] **AC6b (distinct not-registered code).** `_do_refresh` returns **`4`** when
       the profile is not registered, leaving `3` for every other engine failure.
       Pinned by AC10's parity test so credbroker's mapping and the engine agree.
 
-- [ ] **AC7 (containment, not just grammar).** Each guarded verb additionally
+- [x] **AC7 (containment, not just grammar).** Each guarded verb additionally
       asserts that the **resolved** profile and jar paths have the engine's store
       directories as their direct parent (canonicalize-then-verify-parent, the
       CWE-73 depth), independent of the grammar, and case-insensitively on
       Windows. Grammar alone is not the control: it is a denylist of shapes,
       while containment is an allowlist of locations.
 
-- [ ] **AC8 (`rm` stays usable).** `rm` is gated on **containment only**, not the
+- [x] **AC8 (`rm` stays usable).** `rm` is gated on **containment only**, not the
       AC4 grammar. A profile registered before this change under a now-invalid
       name must remain deletable — `list-profiles` enumerates the filesystem
       directly (`sso-broker.py:591-602`) and would otherwise keep showing a live
       corporate cookie jar the operator cannot remove.
 
-- [ ] **AC9 (traversal proven closed, per verb).** For each guarded verb a test
+- [x] **AC9 (traversal proven closed, per verb).** For each guarded verb a test
       asserts exit `3` **and** that stderr names the constraint. An
       exit-code-only assertion would already be green for most cases today
       (`get-cookies` and `test` return 2 for an unregistered profile; `register`
@@ -379,7 +402,7 @@ fix, so the pack bumps and the change is named in the changelog.
       (verified by spike — the `--` escape is why the grammar's leading-`-`
       rejection is load-bearing rather than cosmetic).
 
-- [ ] **AC10 (grammar cannot drift).** A test under `packages/credbroker/tests/unit/`
+- [x] **AC10 (grammar cannot drift).** A test under `packages/credbroker/tests/unit/`
       extracts the pattern literal and the device-name denylist from
       `sso-broker.py` and from `credbroker` and asserts equality — the same
       byte-equivalence shape as `test_sso_broker_verbs.py`'s existing
@@ -393,7 +416,7 @@ fix, so the pack bumps and the change is named in the changelog.
 
 ### `jira` skill — `check` recovery
 
-- [ ] **AC11 (typed discriminator).** A typed `SsoSessionUnavailable(AuthError)`
+- [x] **AC11 (typed discriminator).** A typed `SsoSessionUnavailable(AuthError)`
       subclass in `_client.py` marks "no usable session", raised at exactly **five**
       sites and nowhere else:
       1. `from_sso_cookies` — `credbroker.SsoSessionUnavailableError` from `load_sso_cookies`;
@@ -428,7 +451,7 @@ fix, so the pack bumps and the change is named in the changelog.
       Because the subclass *is* an `AuthError`, every existing handler and exit
       code is unchanged.
 
-- [ ] **AC12 (jar failures are in the contract, without leaking bytes).**
+- [x] **AC12 (jar failures are in the contract, without leaking bytes).**
       `from_sso_cookies` reads, parses **and shape-checks** the jar inside the
       guarded block. A list-of-dicts check is **not** sufficient: `filter_jar_to_domains`
       calls `.lstrip()` on `domain` and indexes `c["name"]`, so
@@ -448,13 +471,13 @@ fix, so the pack bumps and the change is named in the changelog.
       interpolated — a `UnicodeDecodeError`'s text quotes the offending bytes of
       a cookie jar, which `jira.py:798-800` already refuses to echo.
 
-- [ ] **AC13 (`_probe` preserves the discriminator).** The probe helper
+- [x] **AC13 (`_probe` preserves the discriminator).** The probe helper
       constructs the client, calls `client.whoami()` **directly**, and closes it
       in a `finally`. It must not route through `_cmd_check`, which catches
       `AuthError` (`jira.py:399-401`) and returns an `int` — that would swallow
       the subclass at raise sites 3 and 4, the primary expired-session cases.
 
-- [ ] **AC14 (automatic path).** On `SsoSessionUnavailable`, `check` calls
+- [x] **AC14 (automatic path).** On `SsoSessionUnavailable`, `check` calls
       `refresh_sso_session(profile)` and re-probes **once**.
       `SsoProfileNotRegisteredError` yields exit 2 with a remediation addressed
       to the **user** — `ask the user to run: python scripts/jira.py check --register` — with no retry and no registration. Any other recapture
@@ -466,7 +489,7 @@ fix, so the pack bumps and the change is named in the changelog.
       `headless=True`. The post-recapture probe, not the exit code, is
       the success criterion.
 
-- [ ] **AC14a (the automatic path never renders a login page to a human).**
+- [x] **AC14a (the automatic path never renders a login page to a human).**
       Automatic refresh may re-establish a session **only without human
       interaction.** If the recapture would require a person to type credentials
       — the IdP session has also expired, so the warm browser profile cannot
@@ -523,7 +546,7 @@ fix, so the pack bumps and the change is named in the changelog.
       keep `headless=False`. Added to AC1's taxonomy table and to the
       RFC-0013 erratum, since it changes the verb's contract.
 
-- [ ] **AC15 (`check --register`, under the accepted threat profile).**
+- [x] **AC15 (`check --register`, under the accepted threat profile).**
       `check --register` performs first capture from `sso-config.toml` and then
       completes the check — one command, not two. Accepted on `check` only.
 
@@ -554,7 +577,7 @@ fix, so the pack bumps and the change is named in the changelog.
       that. That is belt, not the boundary: it reduces accidental invocation by an
       erring agent, which is exactly the threat the accepted profile *does* cover.
 
-- [ ] **AC16 (disclosure and record).** Before any recapture, `check` writes one
+- [x] **AC16 (disclosure and record).** Before any recapture, `check` writes one
       stderr line naming the profile. The wording is **path-specific**: on
       `--register` it states that a headed browser will open and names the
       resolved `login_url` host; on the **automatic** path it states that recapture
@@ -572,17 +595,25 @@ fix, so the pack bumps and the change is named in the changelog.
       engine's child may write to the shared streams, which is noted rather than
       claimed away.
 
-- [ ] **AC17 (exactly one attempt).** `check` invokes recapture at most once per
+- [x] **AC17 (exactly one attempt).** `check` invokes recapture at most once per
       process, on either path.
 
-- [ ] **AC18 (`--insecure` is honest on both paths).** On the **token** path it
+- [x] **AC18 (`--insecure` is honest on both paths).** On the **token** path it
       emits a stderr warning whenever it fires — `docs/CONVENTIONS.md:1197` and
       `:1214` require it and `jira.py:722` is silent today. On the **SSO-cookie**
-      path the flag is inert (`from_sso_cookies` hardcodes `_sso_ssl_context()`);
-      `check` warns that it is ignored, scoped to `check` so no other subcommand
-      changes, and it is never forwarded to the engine.
+      path the flag is inert (`from_sso_cookies` hardcodes `_sso_ssl_context()`),
+      and it is never forwarded to the engine.
 
-- [ ] **AC19 (blast radius).** No `jira.py` path other than `check` invokes
+      **Corrected at implementation (2026-08-06): the ignored-notice is *not*
+      scoped to `check`.** This AC first said it was, which contradicts the
+      *Always do* boundary — "emit a stderr warning whenever `--insecure` fires
+      **or is ignored**". Scoped to `check`, `jira.py --insecure whoami` on the
+      cookie path would ignore the flag in silence, which is the case the
+      boundary exists to prevent. The notice therefore fires on every
+      SSO-cookie subcommand, exactly as the token-path warning fires on every
+      token-path subcommand.
+
+- [x] **AC19 (blast radius).** No `jira.py` path other than `check` invokes
       recapture. On the token path `check` behaves exactly as today apart from
       AC18's warning. A malformed `sso-config.toml` — non-`https` URL, unknown or
       missing `[sso]` key, over-broad `cookie_domains`, `base_url` host outside
@@ -591,7 +622,7 @@ fix, so the pack bumps and the change is named in the changelog.
       selector with exit 2 and no recapture; `auth_default = "creds"` and an
       absent file run the token path unchanged.
 
-- [ ] **AC20 (forwarded-field validation).** `_sso_config.load_sso_config`
+- [x] **AC20 (forwarded-field validation).** `_sso_config.load_sso_config`
       delegates `profile` to `validate_sso_profile` **before any `str()`
       coercion** — `_sso_config.py:155` currently does
       `profile=str(sso["profile"])`, which would turn an int `5` into `"5"` and
@@ -608,7 +639,7 @@ fix, so the pack bumps and the change is named in the changelog.
       into the profile store. AC1 removes this exposure from the automatic path;
       AC2's `register` path retains it, which is why the guard lives at load.
 
-- [ ] **AC30 (credbroker version floor).** The pip layer **precedes** the
+- [x] **AC30 (credbroker version floor).** The pip layer **precedes** the
       vendored floor on `sys.path`, so an adopter pinned to `credbroker==0.4.1` (or earlier)
       with atlassian 0.8.0 gets the old library. The failure differs by call
       site, and the guard is scoped to match: `_sso_config.py:85` uses
@@ -622,13 +653,27 @@ fix, so the pack bumps and the change is named in the changelog.
       So the guard is a feature-detect (`hasattr(credbroker,
       "refresh_sso_session")`) placed **in the sso-cookie branch of `_run`,
       before `_cmd_check_sso`** — never in the shared bootstrap, which would
-      break every token-path subcommand and contradict AC19. It exits 2 with an
+      break every token-path subcommand and contradict AC19.
+
+      **Corrected at implementation (2026-08-06): the guard has two sites, not
+      one, and the second is in the shared bootstrap.** The analysis above is
+      right that the loader's `ImportError` already lands on exit 2 — but it
+      lands there carrying the raw `cannot import name … from 'credbroker'
+      (/path/to/site-packages/…)`, with no upgrade command, and it fires
+      *first*: a real 0.4.1 install never reaches the feature-detect, because
+      `_sso_config.py` imports `validate_sso_profile` by name. So `_run` also
+      catches a credbroker `ImportError` around `_select_auth_path()` and routes
+      it to the same remediation. That does not gate the token path: the loader
+      returns before its credbroker import when `auth_default` is absent or
+      `creds`, so no token-path subcommand can reach the handler. Both sites are
+      tested, the second against a stub built from the real module minus every
+      0.5.0 addition. It exits 2 with an
       upgrade remediation naming the required version. `requirements.txt` pins
       `credbroker>=0.5.0` in **both** consuming skills (`confluence-crawler` is
       at `>=0.1.0` today and inherits the mirrored files); a test asserts the
       guard fires against a stub 0.4.1 module.
 
-- [ ] **AC31 (`_run` routing is pinned).** Today `from_sso_cookies` is called at
+- [x] **AC31 (`_run` routing is pinned).** Today `from_sso_cookies` is called at
       `jira.py:719` for **every** subcommand before dispatch, and its `AuthError`
       is caught at `:723` — so AC11 sites 1–2 raise from a block shared by all
       commands, and the obvious implementation would violate AC19. `_run` routes
@@ -637,7 +682,7 @@ fix, so the pack bumps and the change is named in the changelog.
       command keeps today's construction path byte-for-byte. A test asserts the
       recapture stub is never called for `whoami` or `get-issue`.
 
-- [ ] **AC32 (server-attested destination on `--register`).** The automatic
+- [x] **AC32 (server-attested destination on `--register`).** The automatic
       path already accepts no destination (AC1). `--register` does, so it
       attests it against the instance itself rather than trusting the config.
 
@@ -647,8 +692,9 @@ fix, so the pack bumps and the change is named in the changelog.
       — the keying parameter is explicit, because
       the broker is meant to serve any vendor with this shape (an on-prem
       Confluent admin console, any corporate tool behind SSO), not just
-      Atlassian. It tries, in order, and returns the first **scheme+host** it
-      resolves:
+      Atlassian. It tries, in order, and returns the first **origin** it
+      resolves — `scheme://host:port`, the port always explicit and an IPv6 host
+      bracketed:
 
       1. **RFC 9728 — OAuth 2.0 Protected Resource Metadata.** Unauthenticated
          request → `401` carrying `WWW-Authenticate: … resource_metadata="…"` →
@@ -676,8 +722,12 @@ fix, so the pack bumps and the change is named in the changelog.
       operator escape (AC23).
       4. **None** → cannot-derive.
 
-      Only the **scheme+host** is compared; every tier's URL carries per-request
-      `state` / `SAMLRequest` / `nonce` values that change on each call.
+      Only the **scheme and authority** — host *and port* — are compared; every
+      tier's URL carries per-request `state` / `SAMLRequest` / `nonce` values
+      that change on each call. (Implementation note, 2026-08-06: an earlier
+      draft said "scheme+host", which would have accepted a derived
+      `https://idp:8443` against a configured `https://idp:9999` — a different
+      origin, and often a different service.)
 
       The same spike recorded that `jira.atlassian.com` answers its REST `401`
       with the **legacy** `WWW-Authenticate: OAuth realm="…"` form, *not* RFC
@@ -741,7 +791,29 @@ fix, so the pack bumps and the change is named in the changelog.
       budget; a 64 KiB body cap before `json.loads`; strict certificate
       verification that never honours `--insecure` and never reuses the token
       path's SSL context; no `Authorization`, `Cookie`, or proxy-auth header on
-      any derivation request. The same bounds are recorded in
+      any derivation request.
+
+      **Plus an address bound, added at implementation (2026-08-06) — this AC
+      first enumerated every constraint except the one that matters most.**
+      Bounding the scheme, the hops and the clock still leaves the *target* free:
+      a hostile or compromised instance can answer the first probe with a
+      `resource_metadata` URL naming `https://169.254.169.254/…`, loopback, or
+      any corporate-LAN host, and the operator's machine issues the request. So
+      every hop whose origin is **not** the configured `base_url` origin is
+      refused when the host resolves to a loopback, link-local, unique-local,
+      RFC 1918, reserved, multicast or unspecified address — checked against the
+      *resolved* address, not the literal.
+
+      The exemption is keyed to the **origin**, not to "the first request":
+      RFC 9728 puts `/.well-known/oauth-protected-resource` on the resource
+      server itself, so tier 1's second hop is normally the same origin as its
+      first, and a first-request-only exemption would silently kill tier 1 for
+      every internally-hosted instance — the deployment this broker exists to
+      serve. A resolver failure is refused rather than allowed, because
+      `_derivation_opener` installs the environment's proxies and a proxy
+      resolves the hostname itself. **Named limit:** it resolves and then
+      connects, so it does not close DNS rebinding; a pinned-address connection
+      would, and `urllib` does not offer one. The same bounds are recorded in
       `credentials.md`'s derivation table.
 
       **Named degradation, verified for the Atlassian tier.** Derivation is
@@ -773,7 +845,7 @@ fix, so the pack bumps and the change is named in the changelog.
       its baseline would be written after the poisoned registration, so the
       attacker's host would become the reference.
 
-- [ ] **AC33 (declare the pack dependency, don't imply it).** Every pack
+- [x] **AC33 (declare the pack dependency, don't imply it).** Every pack
       shipping a `credentialed: true` skill declares
       `[[pack.dependencies.required]]` on `credential-brokers` — **`atlassian`,
       `figma`, `linear`** — i.e. every credentialed pack *other than the broker pack*
@@ -806,7 +878,21 @@ fix, so the pack bumps and the change is named in the changelog.
       at upgrade. The gate message names the fix. This makes `figma` and `linear`
       minor bumps.
 
-- [ ] **AC34 (engine-change governance — RFC-0035, amended).** The changeset
+      **Named limit, found at implementation (2026-08-06): the gate is
+      scope-blind.** `validate_dependencies_required` resolves the union of repo
+      and user state and discards scope, so a **repo**-scoped
+      `credential-brokers` satisfies a **user**-scope install of a credentialed
+      pack — while the skill resolves the broker only under `~/.agentbundle/`.
+      The declaration is still strictly better than none (it catches the common
+      case, and `credential-brokers` defaults to user scope), and the
+      consequence of the gap is the pre-declaration behaviour: exit 2 with
+      "install the credential-brokers pack". Closing it needs a scope qualifier
+      in the dependency entry, which `pack.schema.json` forbids today
+      (`additionalProperties: false`), so it is a schema change with its own
+      review rather than a ride-along.
+      *(deferred: pack-dependency-scope-qualifier)*
+
+- [x] **AC34 (engine-change governance — RFC-0035, amended).** The changeset
       edits `packs/credential-brokers/**` (AC6, AC6a, AC6b, AC35) and
       `packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py`
       (AC26), both protected by `tools/lint-catalogue-curation-guard.py` —
@@ -843,7 +929,7 @@ fix, so the pack bumps and the change is named in the changelog.
       there too. Neither RFC body is edited and no `## Amendments` section is
       introduced. Verification is the AC34 Testing Strategy row.
 
-- [ ] **AC35 (`register` captures in an ephemeral context, and still seeds the
+- [x] **AC35 (`register` captures in an ephemeral context, and still seeds the
       persistent one).** `_do_refresh` currently *is* `_do_register`
       (`sso-broker.py:583` → `return _do_register(profile, args)`), with
       `launch_persistent_context(user_data_dir=…/browser-state/<profile>)`
@@ -914,7 +1000,7 @@ fix, so the pack bumps and the change is named in the changelog.
 
 ### Docs
 
-- [ ] **AC21 (SKILL.md matches behavior, and still lints).** The phrases
+- [x] **AC21 (SKILL.md matches behavior, and still lints).** The phrases
       `catalogue_tooling/lint.py:439-459` pins for `auth: sso-cookie` **and**
       `auth-fallback: creds` (jira declares both) survive in the
       `### Security rules (non-negotiable)` section, matched after
@@ -931,7 +1017,7 @@ fix, so the pack bumps and the change is named in the changelog.
       reserved for exactly two cases and named only there: scripted pre-bake, and
       AC32's mismatch / cannot-derive escape where attestation is unavailable —
       routing an ordinary unregistered first run through it would bypass AC32's
-      attestation even when derivation would have succeeded. And **two** negative eval cases are
+      attestation even when derivation would have succeeded. And **three** negative eval cases are
       added: (i) the agent still refuses to run `credential-setup` or
       `setup_sso.py`; (ii) driven by a prompt in which `check` has already emitted
       AC14's `ask the user to run: python scripts/jira.py check --register`
@@ -949,7 +1035,7 @@ fix, so the pack bumps and the change is named in the changelog.
       value including AC35's seeding launch, not the 420 s pre-margin sum — plus two worst-case
       probes (`MAX_RETRIES` × `DEFAULT_TIMEOUT_S` plus backoff).
 
-- [ ] **AC22 (architecture page).** `docs/architecture/credentials.md` carries a
+- [x] **AC22 (architecture page).** `docs/architecture/credentials.md` carries a
       `## The sso-cookie broker` section covering the engine/library split, the
       consumer API, destination pinning, the confinement controls, and the
       auto-recovery contract; the `auth:` paragraph routes to it instead of
@@ -960,7 +1046,7 @@ fix, so the pack bumps and the change is named in the changelog.
       does not outlive this spec carrying an unqualified security claim. The
       shipped behavior matches that page.
 
-- [ ] **AC36 (the authoring how-to stops teaching the banned pattern).**
+- [x] **AC36 (the authoring how-to stops teaching the banned pattern).**
       `guides/credential-brokers/how-to/add-a-credentialed-skill.md:139-151`
       instructs new `auth: sso-cookie` skills to build
       `Path.home() / ".agentbundle" / "bin" / "sso-broker.py"` and
@@ -969,7 +1055,7 @@ fix, so the pack bumps and the change is named in the changelog.
       with `credbroker.load_sso_cookies(profile)` and the recapture verbs, and
       its re-auth exit-code note (`:220`) records AC6b's `4` alongside `2`.
 
-- [ ] **AC23 (adopter how-to).**
+- [x] **AC23 (adopter how-to).**
       `guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md`
       states that `check` self-heals an expired session, that **`check --register`
       is the ordinary one-command first run** and the only path that attests the
@@ -987,7 +1073,7 @@ fix, so the pack bumps and the change is named in the changelog.
       separation would support an out-of-reach claim, and none is shipped. Also
       the profile grammar constraint.
 
-- [ ] **AC24 (changelog + API reference).** `docs/product/changelog.md` gains
+- [x] **AC24 (changelog + API reference).** `docs/product/changelog.md` gains
       `## [credbroker][0.5.0]`, `## [atlassian][0.8.0]`,
       `## [credential-brokers][0.3.0]`, `## [figma][0.3.0]` and
       `## [linear][0.2.0]` — each `— <YYYY-MM-DD>` in the file's existing heading
@@ -997,14 +1083,22 @@ fix, so the pack bumps and the change is named in the changelog.
       prompted now fails fast (AC14a) — `refresh`'s rejection of connection
       arguments and `register`'s persistence change (AC35), and AC33's new install
       gate,
-      and `guides/_shared/reference/` documents **all four** new `credbroker`
+      and `guides/credential-brokers/reference/credbroker-sso-api.md` documents
+      **all four** new `credbroker`
       functions alongside the existing SSO entries — `validate_sso_profile`,
       `refresh_sso_session`, `register_sso_session` and `derive_sso_destination`,
       the last of which AC32 requires be publicly exported from
       `credbroker/__init__.py` on the same additive-compatibility basis as the
       other three.
 
-- [ ] **AC25 (deferred work recorded, with its constraint).**
+      **Corrected at implementation (2026-08-06):** this AC first named
+      `guides/_shared/reference/`. There are no existing SSO entries there to
+      sit alongside — the credbroker guides live in the owning pack's subtree,
+      which is also what `AGENTS.md` § Guide trees routes to ("pack-specific in
+      `guides/<pack>/{quadrant}/`"). The page landed under
+      `guides/credential-brokers/reference/` and is indexed in that README.
+
+- [x] **AC25 (deferred work recorded, with its constraint).**
       `workspace.toml [backlog].open` carries a slug per *Deferred* entry. The
       `pack-config-catalogue-sso-defaults` entry additionally records the
       destination-pinning constraint this spec discovered: a projected
@@ -1016,7 +1110,7 @@ fix, so the pack bumps and the change is named in the changelog.
 
 ### Tests and release
 
-- [ ] **AC26 (credbroker suites, and they run on Windows).** `packages/credbroker/tests/unit/`
+- [x] **AC26 (credbroker suites, and they run on Windows).** `packages/credbroker/tests/unit/`
       covers AC1–AC5, AC10 and AC32 (the last in `test_sso_derivation.py`) with a
       **fake broker executable** in `tmp_path`,
       giving real argv, real exit codes and no browser. The single test seam is a
@@ -1030,8 +1124,13 @@ fix, so the pack bumps and the change is named in the changelog.
       exercised on Windows; until that run is green the `taskkill` arm is a
       named limitation, not a verified control.
 
-- [ ] **AC27 (jira skill suite).** A new `test_check_sso_login.py` covers
-      AC11–AC20. It imports via `sys.path.insert(0, <skill root>)` +
+- [x] **AC27 (jira skill suite).** A new
+      `packs/atlassian/tests/skills/jira/test_check_sso_login.py` covers
+      AC11–AC20. It lives at the pack test boundary rather than under `.apm/`
+      (ADR-0071 — `.apm/` is the runtime export boundary, so a suite there
+      ships into every adopter's tree), and therefore resolves the skill by an
+      absolute path from the repo root. It imports via
+      `sys.path.insert(0, <skill root>)` +
       `import scripts.jira` — flat `import jira` raises `ImportError: attempted
       relative import with no known parent package` because the bootstrap block
       at `jira.py:54` is gated on `__spec__ is None` while the relative imports
@@ -1049,15 +1148,37 @@ fix, so the pack bumps and the change is named in the changelog.
       the refresh call. Wired into `.github/workflows/build-check.yml` and
       `self_host_windows.py`.
 
-- [ ] **AC28 (existing suites green).** `test_sso_config.py`,
+- [ ] **AC28 (existing suites green).** *(deferred: credbroker-050-requirements-pin)* `test_sso_config.py`,
       `test_sso_client.py`, `test_setup_sso.py`, `test_auth_selector.py` and
       `test_exit_codes.py` pass in **both** skills' `scripts/`;
       `python tools/test-lint-sso-config.py` passes; `pytest packages/credbroker`
-      passes; `make build-check` passes **with SAST enabled** — the change adds
+      passes; `make build-check` passes **with SAST enabled, once `credbroker`
+      0.5.0 is published** (see the precondition below) — the change adds
       subprocess spawning on the credential path, which is what the SAST leg
       exists to inspect.
 
-- [ ] **AC29 (version bump lands last).** After code, tests and docs are settled:
+      **Release-ordering precondition, found at implementation (2026-08-06) and
+      not anticipated here.** The SCA leg runs
+      `pip-audit -r <requirements.txt>` over every skill's requirements file, and
+      `pip-audit` resolves each pin **against PyPI**. AC30's
+      `credbroker>=0.5.0` therefore cannot resolve until `credbroker` 0.5.0 is
+      published, and `make build-check` fails with
+      `Could not find a version that satisfies the requirement credbroker>=0.5.0`
+      on both `jira` and `confluence-crawler`. Verified: with the pin at the
+      published `0.4.1` the whole SAST leg — bandit, every `pip-audit`, semgrep
+      — is green, so the pin is the only outstanding item.
+
+      **This is a merge-ordering decision, not a code defect**, and it is the
+      one thing in this spec that cannot be closed from inside the PR. Either
+      `credbroker` 0.5.0 is published before merge (the plan's *Rollout* already
+      commits to releasing it), or the pin lands in a follow-up and the runtime
+      feature-detect carries the floor alone until then — AC30's guard already
+      exits 2 with the upgrade command, so an adopter on an old pin is refused
+      with a remediation either way. Recorded rather than silently worked
+      around: carving these two files out of `pip-audit` would weaken the SCA
+      gate on precisely the credential path this change hardens.
+
+- [x] **AC29 (version bump lands last).** After code, tests and docs are settled:
       `packages/credbroker` `[project].version` → `0.5.0` (**minor** — new public
       API, and the engine now rejects input it previously accepted);
       `packs/atlassian` → `0.8.0`, `packs/credential-brokers` → `0.3.0`,
@@ -1083,12 +1204,12 @@ fix, so the pack bumps and the change is named in the changelog.
 | AC32 | TDD | `packages/credbroker/tests/unit/test_sso_derivation.py` — a fake resource server per tier, plus bounds assertions: non-`https` at any hop rejected, redirect not followed, connect/read timeouts, ≤15 s budget, 64 KiB cap, no auth headers on the wire. |
 | AC35 | TDD | `test_sso_broker_verbs.py` — `register` ephemeral / `refresh` persistent; `refresh` rejects every connection argument; the seeding step. |
 | AC34 | Goal-based | `git log --format=%B` on the branch contains `Engine-Change-RFC:`; grep **both** RFC-0035's and RFC-0013's `## Errata` for the `2026-08-05 (Approver: eugenelim)` entries; confirm neither file has an `## Amendments` heading. |
-| AC21 | Goal-based | `make build-check` (runs the normalized pinned-phrase lint); both negative eval cases in `evals.json`. |
+| AC21 | Goal-based | `make build-check` (runs the normalized pinned-phrase lint); all three negative eval cases in `evals.json`. |
 | AC22–AC25 | Goal-based | grep the new heading + anchor in `credentials.md`; grep `--register` in the how-to; grep both bracketed changelog headings; grep all four function names in the reference guide; grep each slug in `workspace.toml`; `lint-spec-status.py --root .`. |
 | AC26, AC27 | Goal-based | grep the new filenames in `build-check.yml` and `self_host_windows.py`. |
 | AC28 | Goal-based | the plan's canonical command block. |
 | AC29 | Goal-based | `make build-self` then `make build-check` (drift-gated); version grep across every site. |
-| whole change | Visual / manual QA | `python scripts/jira.py check` against the shipped `sso-config.toml` (`auth_default = "creds"`) — token path untouched, no browser. Then `check --insecure` on the token path to observe AC18's warning. Record observed stdout, stderr and exit code for both. |
+| whole change | Visual / manual QA | `python scripts/jira.py check` against the shipped `sso-config.toml` (`auth_default = "creds"`) — token path untouched, no browser. Then `--insecure check` on the token path to observe AC18's warning (`--insecure` is global and precedes the subcommand). Observed stdout, stderr and exit code recorded in [`manual-qa.md`](./manual-qa.md), together with an SSO-path end-to-end run against the real engine and an explicit list of what the session did not exercise. |
 
 **Named limitation.** A live corporate SSO sign-in is not reachable in this loop
 — no Data Center instance and no identity provider. The fake-broker rung proves

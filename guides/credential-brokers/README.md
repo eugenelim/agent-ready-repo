@@ -8,6 +8,10 @@ New here? Read [Credentialed skills](explanation/credentialed-skills.md) for the
 
 - [Add a credentialed skill](how-to/add-a-credentialed-skill.md) — pick a broker, declare the credentials, and wire the verbatim security-rules blocks.
 
+## Reference
+
+- [`credbroker` SSO API](reference/credbroker-sso-api.md) — the consumer surface for `auth: sso-cookie`: resolving a jar, re-establishing an expired session, first capture, destination derivation, and which failures a consumer may recover from.
+
 ## Explanation
 
 - [Credentialed skills](explanation/credentialed-skills.md) — the two-layer architecture, why skills don't hold tokens, and how it differs by install route.

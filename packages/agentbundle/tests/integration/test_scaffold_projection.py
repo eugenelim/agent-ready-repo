@@ -10,6 +10,7 @@ Also verifies:
 from __future__ import annotations
 
 import importlib.util
+import re
 from pathlib import Path
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -84,6 +85,47 @@ def test_packs_agents_md_is_portable():
     )
     assert "docs/product/changelog.md" not in text, (
         "packs/AGENTS.md in _data/ references docs/product/changelog.md — this is host-specific"
+    )
+
+
+def test_packs_agents_md_cites_only_paths_it_ships():
+    """Every path this file points an adopter at must exist in their tree.
+
+    The scaffold is what `catalogue init` writes, so a reference to a
+    catalogue-local tool, governance doc, or unshipped guide dangles the moment
+    it lands in an adopter's repo — they read a rule enforced by a linter they
+    do not have, or a pointer to a file they cannot open. The rule itself has to
+    carry its own weight in the shipped copy.
+    """
+    agents_md = _DATA_SCAFFOLD / "packs" / "AGENTS.md"
+    text = agents_md.read_text(encoding="utf-8")
+    shipped = {
+        str(p.relative_to(_DATA_SCAFFOLD)).replace("\\", "/")
+        for p in _DATA_SCAFFOLD.rglob("*")
+        if p.is_file()
+    }
+    # Prefixes that name a real location rather than a per-pack template
+    # fragment (`pack.toml`, `evals/evals.json`, `.apm/skills/<name>/…`).
+    rooted = ("tools/", "docs/", "contracts/", "guides/", "packs/", "profiles/")
+    # `AGENTS.local.md` is the documented host-override hook: absent by design,
+    # and every reference to it is conditional on the adopter having created one.
+    optional_by_design = {"packs/AGENTS.local.md"}
+    cited = {
+        ref.split("#")[0].lstrip("./").removeprefix("../")
+        for ref in re.findall(r"`([^`\n]+?\.(?:py|md|json|toml|sh|yml))`", text)
+        + re.findall(r"\]\(([^)]+)\)", text)
+    }
+    dangling = sorted(
+        ref for ref in cited
+        if ref.startswith(rooted)
+        and "<" not in ref
+        and ref not in shipped
+        and ref not in optional_by_design
+    )
+    assert not dangling, (
+        "packs/AGENTS.md points an adopter at paths the scaffold does not ship: "
+        + ", ".join(dangling)
+        + "\nState the rule without the citation, or ship the file."
     )
 
 

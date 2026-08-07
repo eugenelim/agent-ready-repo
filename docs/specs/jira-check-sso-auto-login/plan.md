@@ -1,6 +1,6 @@
 # Plan: jira-check-sso-auto-login
 
-- **Status:** Approved
+- **Status:** Done
 - **Spec:** [`spec.md`](./spec.md)
 - **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#the-sso-cookie-broker)
 - **Mode:** full (risk triggers: **security boundary** — auth, secrets, subprocess on the credential path; **public-interface change** — new `credbroker` API)
@@ -73,7 +73,7 @@ first (it changes an exit code T5's tests assert).
 | jira | `…/jira/scripts/_sso_config.py` | validation delegation (+ mirror) |
 | jira | `…/jira/scripts/setup_sso.py` | refactor onto `register_sso_session` (+ mirror) |
 | jira | `…/jira/scripts/jira.py` | `_run` routing, `_probe`, recovery, `--register`, `--insecure`, version floor |
-| jira | `…/jira/scripts/test_check_sso_login.py` | **new** — AC11–AC20, AC30, AC31 |
+| jira | `packs/atlassian/tests/skills/jira/test_check_sso_login.py` | **new** — AC11–AC20, AC30, AC31. At the pack test boundary (ADR-0071), not under `.apm/` — that is the runtime export boundary, so a suite there ships into every adopter's tree |
 | credbroker | `packages/credbroker/tests/unit/test_sso_derivation.py` | **new** — AC32 chain + fetch bounds |
 | governance | `docs/rfc/0035-…md`, `docs/rfc/0013-credential-broker-contract.md` | Approver-signed `## Errata` entries — RFC-0035 narrows its non-goal, RFC-0013 records the verb-table/exit contract change (AC34) |
 | jira | `…/jira/scripts/test_setup_sso.py` | rewritten onto `register_sso_session` (+ mirror) |
@@ -85,7 +85,7 @@ first (it changes an exit code T5's tests assert).
 | CI | `.github/workflows/build-check.yml` | wire the new jira suite |
 | CI | `packages/agentbundle/…/self_host_windows.py` | add credbroker suite + the new jira suite |
 | docs | `docs/architecture/credentials.md` | already landed; reconcile with shipped behaviour |
-| docs | `guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md`, `guides/_shared/reference/`, `docs/product/changelog.md` | AC21–AC24 |
+| docs | `guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md`, `guides/credential-brokers/reference/credbroker-sso-api.md` (**not** `guides/_shared/reference/` — pack-owned subtree, per AGENTS.md § Guide trees), `docs/product/changelog.md` | AC21–AC24 |
 | bookkeeping | `workspace.toml` | queue entry + deferred slugs |
 | release | `packages/credbroker/pyproject.toml`, `packs/atlassian/{pack.toml,.claude-plugin/plugin.json}`, `packs/credential-brokers/pack.toml` | version bumps (**last**) |
 
@@ -104,15 +104,22 @@ python tools/test-lint-sso-config.py
 make lint-ruff && python3 tools/lint-mypy.py && make build-check
 # 5  spec hygiene
 python .claude/skills/work-loop/scripts/lint-spec-status.py --root .
-# 6  manual QA — token path untouched, no browser
+# 6  manual QA — token path untouched, no browser.
+#    `--insecure` is a *global* flag: it must precede the subcommand, or
+#    argparse exits 2 with "unrecognized arguments" (observed 2026-08-06).
 cd packs/atlassian/.apm/skills/jira && python scripts/jira.py check
-cd packs/atlassian/.apm/skills/jira && python scripts/jira.py check --insecure
+cd packs/atlassian/.apm/skills/jira && python scripts/jira.py --insecure check
 ```
 
 **What I am not changing**
 
 - The token path's credential resolution (only AC18's warning is added).
-- Any `jira.py` subcommand other than `check`.
+- Any `jira.py` subcommand other than `check` — except that AC18's
+  `--insecure` notice lives in the shared client construction, so every
+  subcommand gains one stderr line when the flag is passed: "verification
+  disabled" on the token path, "ignored" on the SSO-cookie path. The boundary
+  says *fires **or is ignored***, which no scoping to `check` satisfies. See
+  the spec's *Out of scope* carve-out.
 - `confluence-crawler`'s `check` behaviour (it *does* inherit the shared-file
   changes — see spec scope; that is not "no change").
 - `[pack.adapter-contract] version`.
@@ -271,8 +278,7 @@ spec must already resolve in `workspace.toml [backlog].open` or canonical 5 is
 red from here through T13. Add the queue entry under `["ini-002".work]` and **exactly** the
 `[backlog].open` slugs this spec's `(deferred: …)` anchors name — no more, no
 fewer. An anchor with no slug is a hard lint violation; a slug with no anchor is
-stale bookkeeping that exposes withdrawn work through backlog tooling. The
-current set is: `browser-state-lifetime`, `confluence-crawler-check-auto-login`, `insecure-warning-sibling-clis`, `lint-sso-config-profile-charset`, `nonjson-2xx-guard-all-read-paths`, `pack-config-catalogue-sso-defaults`, `sso-branch2-destination-attestation`, `sso-broker-at-rest-minimisation`, `sso-broker-register-concurrency`, `sso-cookie-lint-phrase-amendment`, `sso-destination-field-integrity`, `sso-live-browser-destination-derivation`, `sso-materialisation-ordering`, `sso-privilege-separated-config`, `sso-recapture-audit-sink`, `sso-recapture-cooldown`, `sso-register-pretooluse-hook`. Derive it, do not transcribe it:
+stale bookkeeping that exposes withdrawn work through backlog tooling. Derive the set — do not transcribe it, which is how it goes stale:
 `grep -o '(deferred: [a-z0-9-]*)' spec.md | sort -u`.
 Then flip `spec.md` → `Implementing` and this plan → `Executing`, and run
 `loop-cohort approve-plan`. **Done when:** canonical 5 green (it now can be).
@@ -640,8 +646,9 @@ def test_cannot_derive_refuses_and_names_setup_sso(fake_jira):  # STUB: AC32
 # test_register_capture_is_ephemeral_then_seeds — not duplicated here.
 ```
 Derivation is a plain unauthenticated GET with `follow_redirects=False` and no
-cookies — it must not reuse the SSO client. Compare **scheme+host only**; the
-query carries per-request `state` / `SAMLRequest`. `derive_sso_destination` is a
+cookies — it must not reuse the SSO client. Compare **origins only** —
+`scheme://host:port`, the port made explicit on both sides — never the path or
+query, which carry per-request `state` / `SAMLRequest`. `derive_sso_destination` is a
 **credbroker** function, bounded per AC32 (https-only, no redirects, 5 s/5 s,
 ≤15 s total, 64 KiB cap, strict TLS, no auth headers).
 **Done when:** canonical 1 + 2 + 4.
@@ -660,7 +667,9 @@ artifacts. From here the engine suites run **both** fixture arms again.
 ### T12 — CI wiring (AC26, AC27)
 
 **Depends on:** T6, T10, T11b · **Mode:** goal-based · `no stub (goal-based)`
-Add `test_check_sso_login.py` to `build-check.yml` and `self_host_windows.py`;
+Add `packs/atlassian/tests/skills/jira/test_check_sso_login.py` to
+`build-check.yml` and `self_host_windows.py` — both run it from the repo root,
+since it sits at the pack test boundary rather than in the skill's `scripts/`;
 add `packages/credbroker`'s suite to `self_host_windows.py` so the Windows kill
 arm is exercised on Windows. **Done when:** grep shows all three entries;
 canonical 4.
@@ -718,6 +727,13 @@ their `plugin.json` files agree; and the engine suites pass on **both** fixture
 arms (source and projected) now that regeneration is final.
 
 ## Rollout
+
+**Release ordering is load-bearing, and was not in the first draft.** The SCA
+leg resolves `pip-audit -r <requirements.txt>` against PyPI, so AC30's
+`credbroker>=0.5.0` pin makes `make build-check` fail until 0.5.0 is published.
+Publish `credbroker` 0.5.0 **before** merging, or land the pin in a follow-up —
+see AC28's precondition note. The packs are unaffected: `.apm` packs ship
+through the marketplace aggregate, so the bump PR *is* their release.
 
 One PR. Releases `credbroker` 0.5.0 to PyPI and **four** packs through the
 marketplace aggregate — `atlassian` 0.8.0, `credential-brokers` 0.3.0,

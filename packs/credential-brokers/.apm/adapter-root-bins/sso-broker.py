@@ -2,11 +2,18 @@
 
 Six verbs: register / get-cookies / test / refresh / list-profiles / rm.
 
-Performs corporate-SSO cookie capture via headed Chromium (Playwright);
-stores the serialised cookie jar in the OS keychain (macOS / Windows)
-with continuation-credential chunking for jars > 2048 bytes; falls
+Performs corporate-SSO cookie capture via Chromium (Playwright) — ``register``
+drives a **headed** browser for interactive first capture, ``refresh`` a
+**headless** one with a bounded silent-completion window that returns exit 5
+rather than putting a login page in front of an operator; stores the
+serialised cookie jar in the OS keychain (macOS / Windows) with
+continuation-credential chunking for jars > 2048 bytes; falls
 back to a 0600 file under ``~/.agentbundle/sso-cookies/`` only on
 Linux (the documented Tier-2 deferred path).
+
+Exit codes: 0 ok · 2 no usable session (``get-cookies`` / ``test``) ·
+3 engine failure · 4 profile not registered (``refresh``) ·
+5 headless refresh needs a human (``refresh``).
 
 Reserved keychain target-name prefix: ``agentbundle:sso:<profile>``
 and ``agentbundle:sso:<profile>:<n>`` for continuation slots.
@@ -23,6 +30,7 @@ import json
 import os
 import pathlib
 import re
+import secrets
 import sys
 import time
 import tomllib
@@ -108,6 +116,86 @@ _SSO_PROFILE_DIR = _AGENTBUNDLE_HOME / "sso-profiles"
 _SSO_COOKIE_FILE_FLOOR = _AGENTBUNDLE_HOME / "sso-cookies"
 
 
+# ----------------------------------------------------------------------
+# Profile grammar + path containment.
+#
+# Two independent controls, and the split is the point. The grammar is a
+# denylist of *shapes*; containment is an allowlist of *locations*. Neither
+# subsumes the other, so both run.
+#
+# This grammar is a deliberate duplicate of ``credbroker.validate_sso_profile``.
+# The engine cannot import ``credbroker`` — the dependency runs the other way,
+# ``credbroker`` subprocesses this file — so the two copies are pinned equal by
+# ``test_sso_recapture.py``'s parity test instead. Change one, change the other.
+# ----------------------------------------------------------------------
+
+_SSO_PROFILE_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+
+# Case-insensitive Win32 reserved device names. On Windows ``CON.toml`` resolves
+# to the console device regardless of the directory it is written to, so the
+# check is applied to the name's first dot-separated component rather than to the
+# whole string.
+_RESERVED_DEVICE_NAMES = frozenset({
+    "CON", "PRN", "AUX", "NUL",
+    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+})
+
+_PROFILE_RE = re.compile(_SSO_PROFILE_PATTERN)
+
+
+class ProfileConfinementError(Exception):
+    """A composed store path escaped its store directory, or ``profile`` was
+    not a string. Raised by the path composers so no verb — including the
+    grammar-exempt ``rm`` — can reach outside the store."""
+
+
+def _profile_grammar_error(profile: str) -> str | None:
+    """Return a stderr-ready reason *profile* is unsafe, or ``None``."""
+    if not isinstance(profile, str):
+        return f"profile must be a string, got {type(profile).__name__}"
+    if not _PROFILE_RE.fullmatch(profile):
+        # fullmatch, not match: the pattern's `$` matches before a trailing
+        # newline, so `match` would admit "jira\n".
+        return (
+            f"profile {profile!r} must match {_SSO_PROFILE_PATTERN} "
+            f"(1-64 chars, leading alphanumeric, then alphanumerics, '.', '_', '-')"
+        )
+    if profile.split(".", 1)[0].upper() in _RESERVED_DEVICE_NAMES:
+        return f"profile {profile!r} is a Windows reserved device name"
+    return None
+
+
+def _contained(path: pathlib.Path, parent: pathlib.Path) -> pathlib.Path:
+    """Return *path* iff its resolved parent is exactly *parent*.
+
+    Canonicalize-then-verify-parent (the CWE-73 depth), applied independently of
+    the grammar so ``rm`` — which is grammar-exempt by AC8, or a legacy profile
+    would be undeletable — still cannot reach outside the store. Compared
+    case-insensitively on Windows, where the filesystem is.
+    """
+    resolved_parent = os.path.normcase(str(path.resolve().parent))
+    expected = os.path.normcase(str(parent.resolve()))
+    if resolved_parent != expected:
+        raise ProfileConfinementError(
+            f"refusing a store path outside {parent}: resolved to {path.resolve()}"
+        )
+    return path
+
+
+def _profile_component(profile: object) -> str:
+    """The single path component *profile* contributes, or raise.
+
+    A non-``str`` is refused here rather than f-string-coerced: an ``int`` 5
+    would otherwise compose ``5.jar`` and pass containment.
+    """
+    if not isinstance(profile, str):
+        raise ProfileConfinementError(
+            f"profile must be a string, got {type(profile).__name__}"
+        )
+    return profile
+
+
 def _refuse_argv_ban(argv: list[str]) -> None:
     for arg in argv:
         head = arg.split("=", 1)[0]
@@ -125,17 +213,40 @@ def _tier2_capable() -> bool:
     return _tier2_backend is not None
 
 
-def _profile_target(profile: str, *, chunk: int | None = None) -> tuple[str, str]:
+def _profile_target(
+    profile: str, *, chunk: int | None = None, generation: str | None = None
+) -> tuple[str, str]:
     """Return (namespace, key) suitable for Tier-2 backend dispatch.
 
-    Tier-2 backends accept ``(namespace, key)`` and join with ``:``;
-    we squat ``_SSO_NAMESPACE`` as the namespace and use ``profile``
-    (or ``profile:<n>``) as the key. Net wire shape:
-    ``agentbundle:sso:<profile>`` or ``agentbundle:sso:<profile>:<n>``.
+    Tier-2 backends accept ``(namespace, key)`` and join with ``:``; we squat
+    ``_SSO_NAMESPACE`` as the namespace and use ``profile`` (or
+    ``profile:[<generation>:]<n>``) as the key. Net wire shape:
+    ``agentbundle:sso:<profile>``, ``agentbundle:sso:<profile>:<n>`` (legacy),
+    or ``agentbundle:sso:<profile>:<generation>:<n>``.
+
+    **The generation is what makes a continuation write non-destructive.** Slot
+    keys are otherwise identical across writes, so a new jar's chunks land on
+    the keys the *currently committed* header still points at — corrupting a
+    readable jar before the header switch, and leaving a concurrent reader
+    combining the old count with half-new chunks. Writing under a fresh
+    generation and switching the header last makes the header a real commit
+    point. ``None`` reads the legacy layout, so headers written before this
+    change keep working.
     """
     if chunk is None:
         return _SSO_NAMESPACE, profile
-    return _SSO_NAMESPACE, f"{profile}:{chunk}"
+    if generation is None:
+        return _SSO_NAMESPACE, f"{profile}:{chunk}"
+    return _SSO_NAMESPACE, f"{profile}:{generation}:{chunk}"
+
+
+# Two generations are enough: a write only ever needs to avoid the one that is
+# currently committed, and alternating bounds the keys a profile can occupy.
+_GENERATIONS = ("a", "b")
+
+
+def _next_generation(current: str | None) -> str:
+    return _GENERATIONS[1] if current == _GENERATIONS[0] else _GENERATIONS[0]
 
 
 def write_credential(namespace: str, key: str, value: str) -> None:
@@ -168,6 +279,156 @@ def _delete_credential(namespace: str, key: str) -> None:
             _tier2_backend.delete_credential(namespace, key)
 
 
+def _purge_credential(namespace: str, key: str) -> bool:
+    """Remove a credential's **bytes**, not merely its entry.
+
+    `_delete_credential` suppresses backend errors, and a policy-restricted
+    keychain can accept writes while silently ignoring deletes — the case
+    `_delete_cookie_jar_tier2` already has to defend against. Generation-scoped
+    slots make that matter more than it used to: a replacement no longer
+    overwrites the superseded session's chunks, so if the delete is a no-op the
+    old jar's cookie bytes stay readable under their old keys indefinitely.
+
+    Delete first and verify; overwrite only if the entry survived, so the
+    ordinary path stays a single delete and never opens a window in which the
+    key reads back empty.
+
+    :returns: whether the key verifiably holds no credential material.
+    """
+    _delete_credential(namespace, key)
+    try:
+        if not read_credential(namespace, key):
+            return True
+    except Exception:  # noqa: BLE001 — unreadable is not "empty"
+        return False
+    with contextlib.suppress(Exception):  # noqa: BLE001 — scrub is best-effort
+        write_credential(namespace, key, "")
+    try:
+        return not read_credential(namespace, key)
+    except Exception:  # noqa: BLE001
+        return False
+
+
+class StoreTransitionError(RuntimeError):
+    """A jar could not be stored under a single authority.
+
+    Raised rather than returning a success label, because the alternative is
+    reporting a capture stored while a *stale* copy still wins on read — or
+    while a superseded copy's cookie bytes are still at rest in the store.
+    """
+
+
+class _HeaderUnreadable(RuntimeError):
+    """The committed continuation header could not be read.
+
+    Distinct from *absent*, and the distinction is load-bearing: a generation
+    cannot be chosen safely without knowing which one the committed jar
+    occupies. Treating a transient read failure as "nothing is stored" selects
+    the first generation and writes over a live jar's slots — reintroducing the
+    corruption the generation exists to prevent.
+    """
+
+
+def _continuation_meta(profile: str) -> tuple[int, str | None]:
+    """``(slot_count, generation)`` for the currently stored jar.
+
+    ``(0, None)`` when nothing is stored or the header is a plain jar. An
+    unreadable header raises `_HeaderUnreadable` instead — see that class.
+    A legacy header carries no generation, which is why the slot-key builder
+    still accepts ``None``.
+    """
+    try:
+        header = read_credential(*_profile_target(profile))
+    except Exception as exc:  # noqa: BLE001 — unreadable is not "absent"
+        raise _HeaderUnreadable(
+            f"could not read the stored continuation header for profile "
+            f"{profile!r} ({type(exc).__name__})"
+        ) from exc
+    if header is None:
+        return 0, None
+    try:
+        meta = json.loads(header)
+    except json.JSONDecodeError:
+        return 0, None
+    if not isinstance(meta, dict) or "continuation_count" not in meta:
+        return 0, None
+    generation = meta.get("generation")
+    if not isinstance(generation, str):
+        generation = None
+    with contextlib.suppress(TypeError, ValueError):
+        return int(meta["continuation_count"]), generation
+    return 0, generation
+
+
+def _delete_cookie_jar_tier2(profile: str) -> bool:
+    """Drop the Tier-2 header (and any continuation slots it names).
+
+    :returns: whether Tier-2 **verifiably** holds no credential material for
+        this profile. `_delete_credential` suppresses backend errors — a
+        read-only or policy-restricted keychain deletes nothing and says
+        nothing — so the caller must not treat the call as having worked.
+        `_load_cookie_jar` prefers any readable Tier-2 header, so a surviving
+        header silently outranks the floor; a surviving *slot* cannot be read
+        without one, but is still the previous session's cookie bytes at rest.
+        An **emptied** header is acceptable, though: `_load_cookie_jar` treats a
+        falsy header as absent, so it shadows nothing, and its credential bytes
+        are verifiably gone. Demanding physical absence would turn a safely
+        completed transition into a reported failure on any backend that ignores
+        deletes but honours overwrites. Unreadable and non-empty both still fail.
+    """
+    header = None
+    with contextlib.suppress(Exception):  # noqa: BLE001
+        header = read_credential(*_profile_target(profile))
+    purged = _purge_credential(*_profile_target(profile))
+    if header is not None:
+        with contextlib.suppress(json.JSONDecodeError, ValueError, TypeError):
+            meta = json.loads(header)
+            if isinstance(meta, dict) and "continuation_count" in meta:
+                gen = meta.get("generation")
+                if not isinstance(gen, str):
+                    gen = None
+                for n in range(int(meta["continuation_count"])):
+                    purged &= _purge_credential(
+                        *_profile_target(profile, chunk=n, generation=gen)
+                    )
+    # Verify, rather than assume.
+    try:
+        return purged and not read_credential(*_profile_target(profile))
+    except Exception:  # noqa: BLE001 — unreadable is not "absent"
+        return False
+
+
+def _fall_back_to_floor(profile: str, serialized: bytes) -> str:
+    """Move authority from Tier-2 to the file floor, in a safe order.
+
+    Floor **first**, invalidate **second**, verify **third**:
+
+    * writing the floor before deleting means a failed floor write leaves the
+      previous session intact rather than destroying a usable jar in exchange
+      for nothing;
+    * verifying the delete means a keychain that refuses deletion is a loud
+      failure, not a success label over a stale entry that will win the next
+      read and overwrite the fresh floor.
+    """
+    try:
+        _file_floor_write(profile, serialized)
+    except OSError as exc:
+        # Nothing has been invalidated yet, so this statement is true — which
+        # is exactly why the translation belongs here and not in a handler
+        # wrapping every verb, where it would also be claimed for `rm`.
+        raise StoreTransitionError(
+            f"could not write the cookie-jar floor for profile {profile!r} "
+            f"({type(exc).__name__}); the stored session was not changed"
+        ) from exc
+    if not _delete_cookie_jar_tier2(profile):
+        raise StoreTransitionError(
+            f"could not invalidate the stored keychain session for profile "
+            f"{profile!r}; refusing to report a capture while the superseded "
+            f"entry could still shadow it or leave its cookie bytes at rest"
+        )
+    return "file-floor-overflow"
+
+
 def _store_cookie_jar(profile: str, serialized: bytes) -> str:
     """Write the serialised jar via Tier-2 (with continuation chunking
     when > CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES); fall back to a 0600
@@ -180,7 +441,13 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
     threshold = CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES
 
     if not _tier2_capable():
-        _file_floor_write(profile, serialized)
+        try:
+            _file_floor_write(profile, serialized)
+        except OSError as exc:
+            raise StoreTransitionError(
+                f"could not write the cookie-jar floor for profile {profile!r} "
+                f"({type(exc).__name__}); the session was not stored"
+            ) from exc
         return "file-floor"
 
     if len(serialized) <= threshold:
@@ -188,28 +455,102 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
             ns, key = _profile_target(profile)
             write_credential(ns, key, serialized.decode("utf-8"))
             return "keychain"
-        except Exception:  # noqa: BLE001 — backend refused; floor
-            _file_floor_write(profile, serialized)
-            return "file-floor-overflow"
+        except StoreTransitionError:
+            raise
+        except Exception:  # noqa: BLE001 — backend refused; move to the floor
+            return _fall_back_to_floor(profile, serialized)
 
-    # Split into header + continuation slots.
+    # Split into continuation slots + header.
+    #
+    # **Chunks first, header last.** The header lives at `<profile>` — the same
+    # key the previous jar occupies — while chunks live at `<profile>:<n>`, so
+    # writing the header first destroys the old session before the new one is
+    # complete, and a later chunk failure leaves nothing. Writing every chunk
+    # first and switching the header once, at the end, makes the header the
+    # single commit point: a chunk failure leaves the old header (and its jar)
+    # exactly as it was.
+    #
+    # This also removes the previous design's reliance on the *live* cookie
+    # floor as transition staging. `_file_floor_write` deliberately specifies no
+    # ordering against concurrent materialisers, so a concurrent `get-cookies`
+    # could overwrite staged bytes — depending on that would have turned a
+    # documented-undefined area into a correctness requirement.
     text = serialized.decode("utf-8")
     chunks = [text[i:i + threshold] for i in range(0, len(text), threshold)]
     try:
-        ns, key = _profile_target(profile)
-        # Header credential stores the count.
-        write_credential(ns, key, json.dumps({"continuation_count": len(chunks)}))
+        previous_slots, previous_generation = _continuation_meta(profile)
+    except _HeaderUnreadable:
+        # Which generation the committed jar occupies is unknown, so *every*
+        # slot key is potentially live and there is no safe one to stage under.
+        # The floor writes first and verifies the Tier-2 invalidation, so a
+        # persistent read failure surfaces as a loud transition error rather
+        # than as slots written over a jar that may still be in use.
+        return _fall_back_to_floor(profile, serialized)
+    generation = _next_generation(previous_generation)
+    try:
+        # Under a *fresh* generation, so nothing the committed header points at
+        # is touched. Until the header switches, the old jar is still whole.
         for n, chunk in enumerate(chunks):
-            ns_n, key_n = _profile_target(profile, chunk=n)
+            ns_n, key_n = _profile_target(profile, chunk=n, generation=generation)
             write_credential(ns_n, key_n, chunk)
-        return "keychain-continuation"
-    except Exception:  # noqa: BLE001 — backend refused continuation
-        # Roll back any partial writes and floor to file.
-        _delete_credential(*_profile_target(profile))
+        # Commit point.
+        ns, key = _profile_target(profile)
+        write_credential(ns, key, json.dumps({
+            "continuation_count": len(chunks),
+            "generation": generation,
+        }))
+    except StoreTransitionError:
+        raise
+    except Exception as refusal:  # noqa: BLE001 — backend refused continuation
+        # Roll back only *this* generation's slots; the committed jar is
+        # untouched. Then move authority to the floor in the safe order:
+        # floor first, invalidate second, verify third.
+        #
+        # Verified, for the same reason the reap below is: chunks are written
+        # before the header, so a backend that accepts every chunk, rejects the
+        # header, and ignores deletes would strand a *complete* jar under keys
+        # no header enumerates — invisible to every later replacement and `rm`.
+        retained: list[str] = []
         for n in range(len(chunks)):
-            _delete_credential(*_profile_target(profile, chunk=n))
-        _file_floor_write(profile, serialized)
-        return "file-floor-overflow"
+            ns_n, key_n = _profile_target(
+                profile, chunk=n, generation=generation
+            )
+            if not _purge_credential(ns_n, key_n):
+                retained.append(key_n)
+        label = _fall_back_to_floor(profile, serialized)
+        if retained:
+            raise StoreTransitionError(
+                f"stored the new session for profile {profile!r} on the "
+                f"cookie-jar floor, but could not remove the staged keychain "
+                f"chunks ({', '.join(retained)}); remove those entries before "
+                f"relying on this profile"
+            ) from refusal
+        return label
+
+    # Committed. Reap the superseded generation — and any legacy un-generationed
+    # slots — so a shrinking or rotating jar does not leave the previous
+    # session's cookie bytes in the keychain indefinitely. The captured jar is
+    # deliberately over-broad, so those are real credential material at rest.
+    #
+    # Verified, not best-effort. Generation-scoped writes no longer overwrite
+    # the old chunks, so a backend that accepts writes and ignores deletes would
+    # otherwise keep a *complete* previous session readable under its old keys
+    # while this returns success.
+    unpurged: list[str] = []
+    for n in range(previous_slots):
+        ns_n, key_n = _profile_target(
+            profile, chunk=n, generation=previous_generation
+        )
+        if not _purge_credential(ns_n, key_n):
+            unpurged.append(key_n)
+    if unpurged:
+        raise StoreTransitionError(
+            f"stored the new session for profile {profile!r}, but could not "
+            f"remove the superseded session's cookie bytes from the keychain "
+            f"({', '.join(unpurged)}); remove those entries before relying on "
+            f"this profile"
+        )
+    return "keychain-continuation"
 
 
 def _load_cookie_jar(profile: str) -> bytes | None:
@@ -219,7 +560,11 @@ def _load_cookie_jar(profile: str) -> bytes | None:
     if _tier2_capable():
         ns, key = _profile_target(profile)
         header = read_credential(ns, key)
-        if header is not None:
+        # Empty is absent, not a jar. `_purge_credential` scrubs to `""` when a
+        # backend ignores deletes, and a captured jar is always JSON — `[]` at
+        # minimum — so treating `""` as a raw jar would hand the caller an empty
+        # file and exit 0 where the contract calls for exit 2.
+        if header:
             # Distinguish continuation-header (JSON with count) from
             # a single-credential value (raw cookie-jar text).
             try:
@@ -227,9 +572,14 @@ def _load_cookie_jar(profile: str) -> bytes | None:
             except json.JSONDecodeError:
                 meta = None
             if isinstance(meta, dict) and "continuation_count" in meta:
+                # `generation` is absent on headers written before it existed,
+                # and `_profile_target` then falls back to the legacy key shape.
+                gen = meta.get("generation")
+                if not isinstance(gen, str):
+                    gen = None
                 parts: list[str] = []
                 for n in range(int(meta["continuation_count"])):
-                    ns_n, key_n = _profile_target(profile, chunk=n)
+                    ns_n, key_n = _profile_target(profile, chunk=n, generation=gen)
                     part = read_credential(ns_n, key_n)
                     if part is None:
                         return None  # corrupted; treat as missing
@@ -255,13 +605,20 @@ def _delete_cookie_jar(profile: str) -> None:
             header = read_credential(ns, key)
         except Exception:  # noqa: BLE001
             pass
-        _delete_credential(*_profile_target(profile))
+        # Purge rather than delete: `rm` is asked to remove a session, and a
+        # backend that ignores deletes would otherwise leave its cookie bytes.
+        _purge_credential(*_profile_target(profile))
         if header is not None:
             try:
                 meta = json.loads(header)
                 if isinstance(meta, dict) and "continuation_count" in meta:
+                    gen = meta.get("generation")
+                    if not isinstance(gen, str):
+                        gen = None
                     for n in range(int(meta["continuation_count"])):
-                        _delete_credential(*_profile_target(profile, chunk=n))
+                        _purge_credential(
+                            *_profile_target(profile, chunk=n, generation=gen)
+                        )
             except json.JSONDecodeError:
                 pass
 
@@ -271,17 +628,68 @@ def _delete_cookie_jar(profile: str) -> None:
 
 
 def _cookie_floor_path(profile: str) -> pathlib.Path:
-    return _SSO_COOKIE_FILE_FLOOR / f"{profile}.jar"
+    return _contained(
+        _SSO_COOKIE_FILE_FLOOR / f"{_profile_component(profile)}.jar",
+        _SSO_COOKIE_FILE_FLOOR,
+    )
+
+
+def _browser_state_dir(profile: str) -> pathlib.Path:
+    """The persistent Chromium user-data dir for *profile*.
+
+    Guarded like the other two store paths: this one is interpolated straight
+    into a directory Chromium then writes a standing, silently-replayable
+    corporate session into.
+    """
+    root = _AGENTBUNDLE_HOME / "browser-state"
+    return _contained(root / _profile_component(profile), root)
 
 
 def _file_floor_write(profile: str, serialized: bytes) -> None:
+    """Atomically write the jar to the file floor via a **unique** temp name.
+
+    The temp name carries the pid and a random suffix rather than a shared
+    ``<profile>.jar.tmp``. ``get-cookies`` re-materialises unconditionally now
+    (see ``_do_get_cookies``), so this fires on every consumer call rather than
+    at most once per profile, and two concurrent calls for one profile would
+    otherwise collide on the same temp path. Ordering between concurrent
+    materialisers is deliberately *not* specified here — that is a concurrency
+    protocol with its own design, tracked as ``sso-materialisation-ordering``.
+    """
     _SSO_COOKIE_FILE_FLOOR.mkdir(parents=True, exist_ok=True, mode=0o700)
-    path = _cookie_floor_path(profile)
-    tmp = path.with_suffix(path.suffix + ".tmp")
-    tmp.write_bytes(serialized)
     if os.name == "posix":
-        tmp.chmod(0o600)
-    tmp.replace(path)
+        # `mkdir(mode=...)` does not repair an existing directory, and this now
+        # runs on every consumer call rather than once per profile.
+        with contextlib.suppress(OSError):
+            _SSO_COOKIE_FILE_FLOOR.chmod(0o700)
+    path = _cookie_floor_path(profile)
+    tmp = path.with_name(f"{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+    try:
+        # Created *with* the mode, not chmod'd afterwards: `write_bytes` would
+        # create at the umask default, leaving the cookie jar world-readable for
+        # the length of the write — a window that used to open once per profile
+        # and now opens on every `get-cookies`.
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        fd = os.open(tmp, flags, 0o600)
+        try:
+            # `os.write` may write fewer bytes than asked — permitted when
+            # storage is constrained or the call is interrupted after partial
+            # progress. Ignoring the count and promoting the temp file would
+            # publish a truncated jar over the authoritative one.
+            view = memoryview(serialized)
+            while view:
+                written = os.write(fd, view)
+                if written <= 0:
+                    raise OSError("short write to the cookie-jar floor")
+                view = view[written:]
+        finally:
+            os.close(fd)
+        tmp.replace(path)
+    except OSError:
+        # Never leave a partial temp behind for the next glob to trip over.
+        with contextlib.suppress(OSError):
+            tmp.unlink()
+        raise
 
 
 # ----------------------------------------------------------------------
@@ -290,7 +698,10 @@ def _file_floor_write(profile: str, serialized: bytes) -> None:
 
 
 def _profile_path(profile: str) -> pathlib.Path:
-    return _SSO_PROFILE_DIR / f"{profile}.toml"
+    return _contained(
+        _SSO_PROFILE_DIR / f"{_profile_component(profile)}.toml",
+        _SSO_PROFILE_DIR,
+    )
 
 
 def _load_profile(profile: str) -> dict:
@@ -305,17 +716,49 @@ def _load_profile(profile: str) -> dict:
     return table
 
 
+# Characters a TOML basic string cannot carry literally: the quote, the
+# backslash, and the whole C0 control range plus DEL. A four-character
+# quote/backslash/CR/LF check is not enough — TOML input can encode U+0001 as an
+# escape, so after parsing the value holds a bare control character with no
+# literal backslash to notice.
+_TOML_SHORTHAND_ESCAPES = {
+    "\\": "\\\\", '"': '\\"',
+    "\b": "\\b", "\t": "\\t", "\n": "\\n", "\f": "\\f", "\r": "\\r",
+}
+
+
+def _toml_basic_string(value: str) -> str:
+    """Render *value* as a quoted TOML basic string, escaped.
+
+    Escaping rather than rejecting, deliberately: ``_do_refresh`` reads the
+    stored table and re-writes every value back through this function, so a
+    profile poisoned before this change would otherwise be re-injected on every
+    automatic refresh — or, if we rejected, become permanently unrefreshable.
+    Escaping keeps the store parseable, which is the invariant that matters: an
+    unparseable profile breaks every later check, refresh and rm.
+    """
+    out = []
+    for ch in value:
+        if ch in _TOML_SHORTHAND_ESCAPES:
+            out.append(_TOML_SHORTHAND_ESCAPES[ch])
+        elif ch < "\x20" or ch == "\x7f":
+            out.append(f"\\u{ord(ch):04X}")
+        else:
+            out.append(ch)
+    return '"' + "".join(out) + '"'
+
+
 def _write_profile(profile: str, table: dict) -> None:
     _SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
     path = _profile_path(profile)
     lines = ["[profile]"]
     for key, value in table.items():
         if isinstance(value, str):
-            lines.append(f'{key} = "{value}"')
+            lines.append(f"{key} = {_toml_basic_string(value)}")
         elif isinstance(value, int):
             lines.append(f"{key} = {value}")
         elif isinstance(value, list):
-            items = ", ".join(f'"{v}"' for v in value)
+            items = ", ".join(_toml_basic_string(v) for v in value)
             lines.append(f"{key} = [{items}]")
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -349,14 +792,40 @@ def _import_playwright():
 # ----------------------------------------------------------------------
 
 
-def _do_register(profile: str, args: argparse.Namespace) -> int:
-    """Open a headed browser at ``login_url``, capture cookies for
-    declared domains on landing at ``success_url_pattern``, persist the
-    profile TOML and the cookie jar.
+# How long the capture waits for the success URL, by headedness.
+#
+# Headed means a human is at the keyboard, so the wait is a human-duration
+# sign-in poll. Headless means nobody is: the wait is only long enough for a
+# warm IdP session's redirect chain to land unaided, and far short of anything a
+# person could type into. The two are not interchangeable, which is why
+# ``refresh`` is headless *and* short rather than one or the other.
+_REGISTER_SIGNIN_POLL_S: float = 300
+_REFRESH_SILENT_WINDOW_S: float = 20
 
-    Required args: ``--login-url``, ``--success-url-pattern``.
-    Optional: ``--cookie-domain`` (repeatable), ``--session-filename``,
-    ``--validation-endpoint``, ``--ttl-hint-minutes``.
+
+def _capture(
+    profile: str,
+    args: argparse.Namespace,
+    *,
+    persist: bool,
+    headless: bool,
+) -> int:
+    """Drive a browser to ``success_url_pattern`` and store what it captured.
+
+    Two independent axes, because persistence and headedness vary
+    independently:
+
+    * *persist* — capture in the standing ``browser-state/<profile>`` profile
+      (the operator's own ``register``, and every ``refresh``), or in a throwaway
+      context that is then used to **seed** the standing one
+      (``register --ephemeral``, which is what the library API drives).
+    * *headless* — a human may complete the flow (``register``), or the browser
+      profile must complete it unaided or not at all (``refresh``).
+
+    :returns: ``0`` captured; ``3`` missing arguments, or a headed sign-in that
+        was not completed; ``5`` a headless attempt that could not complete
+        without a human — the caller's cue to ask for a re-register rather than
+        to retry.
     """
     login_url: str = args.login_url
     success_pattern: str = args.success_url_pattern
@@ -365,46 +834,117 @@ def _do_register(profile: str, args: argparse.Namespace) -> int:
     validation_endpoint: str = args.validation_endpoint or ""
     ttl_hint_minutes: int = int(args.ttl_hint_minutes or 480)
 
+    # AC35's matrix has exactly three legal rows. `persist=False, headless=True`
+    # would run an ephemeral *headless* capture and then seed a standing profile
+    # from a session no human established — refused by construction rather than
+    # left unreachable-by-convention. (Collapsing the pair into a named mode is
+    # the better shape and is deferred: `sso-capture-mode-enum`.)
+    if not persist and headless:
+        raise AssertionError(
+            "internal bug: an ephemeral capture is never headless — no human "
+            "could have established the session it would seed"
+        )
+
+    # Names the verb the operator actually ran: `refresh` reaches here too, via
+    # the stored profile, and a message telling them to pass `--login-url` to
+    # `register` when they typed `refresh` sends them the wrong way.
+    verb = "refresh" if headless else "register"
+
     if not login_url or not success_pattern:
         sys.stderr.write(
-            "sso-broker register: --login-url and --success-url-pattern are required\n"
+            f"sso-broker {verb}: login-url and success-url-pattern are required "
+            f"(refresh reads them from the stored profile)\n"
+        )
+        return 3
+
+    captured_cookies: list[dict] = []
+    storage_state: dict | None = None
+    success = False
+    try:
+        success_re = re.compile(success_pattern)
+    except re.error as exc:
+        # A stored profile can carry a pattern this build of Python will not
+        # compile. Uncaught it escapes main() as a traceback and exit 1, on a
+        # path whose stdio the consumer inherits.
+        sys.stderr.write(
+            f"sso-broker {verb}: stored success-url-pattern is not a valid "
+            f"regular expression ({exc.msg}); re-register the profile\n"
         )
         return 3
 
     sync_playwright = _import_playwright()
+    poll_seconds = _REFRESH_SILENT_WINDOW_S if headless else _REGISTER_SIGNIN_POLL_S
 
-    user_data_dir = _AGENTBUNDLE_HOME / "browser-state" / profile
-    user_data_dir.mkdir(parents=True, exist_ok=True)
-
-    captured_cookies: list[dict] = []
-    success = False
-    success_re = re.compile(success_pattern)
-
-    # Corporate-network env passthrough — explicit by design.
+    # Corporate-network env passthrough. The parent (``credbroker``) already
+    # composed this from an allowlist, so forwarding it is a passthrough, not a
+    # widening.
     env_for_browser = {**os.environ}
 
     with sync_playwright() as pw:
-        context = pw.chromium.launch_persistent_context(
-            user_data_dir=str(user_data_dir),
-            headless=False,
-            env=env_for_browser,
-        )
-        page = context.pages[0] if context.pages else context.new_page()
-        page.goto(login_url)
+        browser = None
+        if persist:
+            user_data_dir = _browser_state_dir(profile)
+            user_data_dir.mkdir(parents=True, exist_ok=True)
+            context = pw.chromium.launch_persistent_context(
+                user_data_dir=str(user_data_dir),
+                headless=headless,
+                env=env_for_browser,
+            )
+        else:
+            browser = pw.chromium.launch(headless=headless, env=env_for_browser)
+            context = browser.new_context()
 
-        # Wait for the URL pattern to land. Poll for up to 5 minutes.
-        deadline = time.time() + 300
-        while time.time() < deadline:
-            if success_re.search(page.url):
-                success = True
-                break
-            page.wait_for_timeout(500)
+        navigated = True
+        try:
+            page = context.pages[0] if context.pages else context.new_page()
+            try:
+                page.goto(login_url)
+            except Exception as exc:  # noqa: BLE001 — playwright's own error types
+                # A navigation timeout on the headless path means the same thing
+                # exit 5 means: this could not complete unaided. Uncaught it
+                # escapes as a traceback and exit 1, which the consumer maps to
+                # "recapture failed" and reports without the re-register hint.
+                navigated = False
+                sys.stderr.write(
+                    f"sso-broker {verb}: could not reach the sign-in destination "
+                    f"({type(exc).__name__})\n"
+                )
 
-        if success:
-            captured_cookies = context.cookies()
-        context.close()
+            deadline = time.time() + (poll_seconds if navigated else 0)
+            while time.time() < deadline:
+                if success_re.search(page.url):
+                    success = True
+                    break
+                page.wait_for_timeout(500)
+
+            if success:
+                captured_cookies = context.cookies()
+                if not persist:
+                    storage_state = context.storage_state()
+        finally:
+            # Suppressed independently: if closing the context raises, the
+            # browser must still be closed, or the ephemeral Chromium survives
+            # holding whatever the capture context had. The parent's tree kill
+            # only fires on timeout or interrupt, not on a clean-but-erroring
+            # engine exit, so nothing else would reclaim it.
+            with contextlib.suppress(Exception):  # noqa: BLE001
+                context.close()
+            if browser is not None:
+                with contextlib.suppress(Exception):  # noqa: BLE001
+                    browser.close()
+
+        if success and not persist:
+            _seed_persistent_profile(pw, profile, storage_state, env_for_browser)
 
     if not success:
+        if headless:
+            sys.stderr.write(
+                f"sso-broker refresh: the stored browser session could not reach "
+                f"{success_pattern!r} unaided within {poll_seconds:g}s — a human "
+                f"must sign in. No browser was shown; re-register to capture a "
+                f"new session.\n"
+            )
+            return 5
         sys.stderr.write(
             f"sso-broker register: success URL pattern {success_pattern!r} "
             f"not matched within timeout; cookies not captured\n"
@@ -436,6 +976,81 @@ def _do_register(profile: str, args: argparse.Namespace) -> int:
     return 0
 
 
+def _seed_persistent_profile(
+    pw, profile: str, storage_state: dict | None, env_for_browser: dict
+) -> bool:
+    """Copy an ephemeral capture's cookies into ``browser-state/<profile>``.
+
+    ``launch_persistent_context`` takes no ``storage_state`` — a persistent
+    context owns its own state directory — so seeding is a second, *headless*
+    persistent launch plus ``add_cookies``.
+
+    **Named limitation:** ``localStorage`` and ``sessionStorage`` are not seeded.
+    ``storage_state()`` reports them under ``origins``, but there is no
+    context-level API to restore them into a persistent profile. Where the IdP
+    session depends on either, the seed silently under-delivers and the first
+    automatic ``refresh`` returns ``5`` — the operator re-registers. That is a
+    UX cost, not an exposure: the automatic path never renders a login page.
+
+    :returns: whether the seed was written. A failed seed is not a failed
+        capture — the session itself was captured and stored.
+    """
+    cookies = (storage_state or {}).get("cookies") or []
+    if not cookies:
+        sys.stderr.write(
+            f"sso-broker register: nothing to seed into browser-state for "
+            f"{profile!r}; the next automatic refresh will need a re-register\n"
+        )
+        return False
+    # One guard over the directory, the launch *and* the write. Seeding runs
+    # before the profile TOML and the jar are stored, so anything escaping here
+    # throws away a sign-in the human has already completed — the opposite of
+    # this function's contract. `mkdir` is inside it because it raises
+    # FileExistsError when `browser-state/<profile>` is a regular file, and
+    # PermissionError or NotADirectoryError otherwise.
+    context = None
+    try:
+        user_data_dir = _browser_state_dir(profile)
+        user_data_dir.mkdir(parents=True, exist_ok=True)
+        context = pw.chromium.launch_persistent_context(
+            user_data_dir=str(user_data_dir),
+            headless=True,
+            env=env_for_browser,
+        )
+        context.add_cookies(cookies)
+    except Exception as exc:  # noqa: BLE001 — a failed seed must not fail capture
+        sys.stderr.write(
+            f"sso-broker register: could not seed browser-state for {profile!r} "
+            f"({type(exc).__name__}); the next automatic refresh will need a "
+            f"re-register\n"
+        )
+        return False
+    finally:
+        if context is not None:
+            with contextlib.suppress(Exception):  # noqa: BLE001
+                context.close()
+    return True
+
+
+def _do_register(profile: str, args: argparse.Namespace) -> int:
+    """Interactive first capture: a **headed** browser at ``login_url``.
+
+    Persistent by default, so a direct operator invocation is unchanged.
+    ``--ephemeral`` captures in a throwaway context and seeds the persistent
+    profile from it; ``credbroker.register_sso_session`` is its only user.
+
+    Required args: ``--login-url``, ``--success-url-pattern``.
+    Optional: ``--cookie-domain`` (repeatable), ``--session-filename``,
+    ``--validation-endpoint``, ``--ttl-hint-minutes``, ``--ephemeral``.
+    """
+    return _capture(
+        profile,
+        args,
+        persist=not getattr(args, "ephemeral", False),
+        headless=False,
+    )
+
+
 # ----------------------------------------------------------------------
 # Verb: get-cookies.
 # ----------------------------------------------------------------------
@@ -452,6 +1067,16 @@ def _do_get_cookies(profile: str) -> int:
             f"run 'sso-broker register {profile} ...'\n"
         )
         return 2
+    except (OSError, ValueError) as exc:
+        # Unparseable or unreadable TOML — including the state `_write_profile`'s
+        # escaping exists to stop *creating*, but which a profile written before
+        # that landed can already be in. Uncaught this is a traceback and exit 1
+        # on stdio the consumer inherits.
+        sys.stderr.write(
+            f"sso-broker get-cookies: profile {profile!r} is unreadable "
+            f"({type(exc).__name__}); re-register it\n"
+        )
+        return 2
 
     jar = _load_cookie_jar(profile)
     if jar is None:
@@ -461,12 +1086,24 @@ def _do_get_cookies(profile: str) -> int:
         )
         return 2
 
-    # Materialise the jar to a 0600 file under sso-cookies/ and print
-    # its path. Consumer skills read the file and never see cookie
-    # values via argv / stdout.
+    # Materialise the jar to a 0600 file under sso-cookies/ and print its path.
+    # Consumer skills read the file and never see cookie values via argv/stdout.
+    #
+    # The rewrite is **unconditional**. On Tier-2-capable platforms the primary
+    # store is the keychain and this file is only a materialisation surface, so
+    # skipping the write when the file already exists serves the *pre-refresh*
+    # jar after every successful re-capture: the consumer's retry 401s and the
+    # recapture was for nothing. It looked correct only on Linux, where the two
+    # surfaces are the same file — which is where CI runs.
     materialised = _cookie_floor_path(profile)
-    if not materialised.exists():
+    try:
         _file_floor_write(profile, jar)
+    except OSError as exc:
+        sys.stderr.write(
+            f"sso-broker get-cookies: could not materialise the jar for "
+            f"profile {profile!r}: {type(exc).__name__}\n"
+        )
+        return 3
     sys.stdout.write(f"{materialised}\n")
     return 0
 
@@ -484,6 +1121,12 @@ def _do_test(profile: str) -> int:
     except FileNotFoundError:
         sys.stderr.write(
             f"sso-broker test: profile {profile!r} not registered\n"
+        )
+        return 2
+    except (OSError, ValueError) as exc:
+        sys.stderr.write(
+            f"sso-broker test: profile {profile!r} is unreadable "
+            f"({type(exc).__name__}); re-register it\n"
         )
         return 2
 
@@ -550,13 +1193,41 @@ def _do_test(profile: str) -> int:
 # ----------------------------------------------------------------------
 
 
-def _do_refresh(profile: str, args: argparse.Namespace) -> int:
-    """Equivalent to ``register`` but bypasses any 'already registered' check.
+# Every argument that could carry, or narrow, a sign-in destination. `refresh`
+# refuses all of them: the destination comes from the stored profile, which only
+# a completed operator-authorised `register` writes.
+_REFRESH_REFUSED_ARGS = (
+    ("login_url", "--login-url"),
+    ("success_url_pattern", "--success-url-pattern"),
+    ("cookie_domain", "--cookie-domain"),
+    ("validation_endpoint", "--validation-endpoint"),
+    ("session_filename", "--session-filename"),
+    ("ttl_hint_minutes", "--ttl-hint-minutes"),
+)
 
-    The current implementation of ``register`` is idempotent — every call
-    overwrites the profile TOML and the cookie jar — so ``refresh``
-    delegates straight through.
+
+def _do_refresh(profile: str, args: argparse.Namespace) -> int:
+    """Re-capture an existing profile's session **without a human**.
+
+    Differs from ``register`` in three ways, all of them load-bearing:
+
+    * it is **headless**, with a bounded silent-completion window — if the warm
+      browser profile cannot complete the IdP flow unaided it returns ``5``
+      rather than leaving a login page in front of whoever is at the machine;
+    * it **rejects every connection argument** — the destination comes only from
+      the stored profile, so an automated caller cannot choose where the browser
+      goes;
+    * it returns ``4``, not ``3``, when the profile is not registered.
     """
+    supplied = [flag for attr, flag in _REFRESH_REFUSED_ARGS if getattr(args, attr, None)]
+    if supplied:
+        sys.stderr.write(
+            f"sso-broker refresh: {', '.join(supplied)} not accepted — refresh "
+            f"reads the destination from the stored profile. Use 'register' to "
+            f"change it.\n"
+        )
+        return 3
+
     try:
         table = _load_profile(profile)
     except FileNotFoundError:
@@ -564,23 +1235,30 @@ def _do_refresh(profile: str, args: argparse.Namespace) -> int:
             f"sso-broker refresh: profile {profile!r} not registered; "
             f"run 'register' first\n"
         )
-        return 3
+        # Exit 4, not 3. `3` is returned from ten distinct sites in this file —
+        # playwright absent, sign-in not completed, a corrupt jar — so a consumer
+        # reading it as "not registered" would attempt a browser recapture on
+        # every internal failure. Not-registered gets a code of its own.
+        return 4
+    except (OSError, ValueError) as exc:
+        # An unreadable profile is not refreshable, and the remediation is the
+        # same as never-registered: capture a new one. Same code, so the
+        # consumer routes it to the same message.
+        sys.stderr.write(
+            f"sso-broker refresh: profile {profile!r} is unreadable "
+            f"({type(exc).__name__}); re-register it\n"
+        )
+        return 4
 
-    # Re-use any saved knobs if the caller didn't override them on the CLI.
-    if not args.login_url:
-        args.login_url = table.get("login_url", "")
-    if not args.success_url_pattern:
-        args.success_url_pattern = table.get("success_url_pattern", "")
-    if not args.session_filename:
-        args.session_filename = table.get("session_filename", "")
-    if not args.validation_endpoint:
-        args.validation_endpoint = table.get("validation_endpoint", "")
-    if not args.ttl_hint_minutes:
-        args.ttl_hint_minutes = table.get("ttl_hint_minutes", 480)
-    if not args.cookie_domain:
-        args.cookie_domain = list(table.get("cookie_domains") or [])
+    # The destination is the stored one, unconditionally: nothing was supplied.
+    args.login_url = table.get("login_url", "")
+    args.success_url_pattern = table.get("success_url_pattern", "")
+    args.session_filename = table.get("session_filename", "")
+    args.validation_endpoint = table.get("validation_endpoint", "")
+    args.ttl_hint_minutes = table.get("ttl_hint_minutes", 480)
+    args.cookie_domain = list(table.get("cookie_domains") or [])
 
-    return _do_register(profile, args)
+    return _capture(profile, args, persist=True, headless=True)
 
 
 # ----------------------------------------------------------------------
@@ -659,6 +1337,15 @@ def _build_parser() -> argparse.ArgumentParser:
     p_register.add_argument("--session-filename", default="")
     p_register.add_argument("--validation-endpoint", default="")
     p_register.add_argument("--ttl-hint-minutes", type=int, default=0)
+    p_register.add_argument(
+        "--ephemeral", action="store_true",
+        help=(
+            "Capture in a throwaway context and seed browser-state/<profile> "
+            "from it, instead of capturing in the persistent profile directly. "
+            "Used by credbroker.register_sso_session; the verb's default is "
+            "unchanged."
+        ),
+    )
 
     p_get = sub.add_parser("get-cookies", help="Print cookie-jar path.")
     p_get.add_argument("profile")
@@ -688,6 +1375,14 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# Verbs whose ``profile`` must satisfy the grammar before any path is composed.
+# ``rm`` is deliberately absent: a profile registered before this change under a
+# now-invalid name must stay deletable, or ``list-profiles`` keeps advertising a
+# live corporate cookie jar the operator cannot remove. ``rm`` is gated on
+# containment alone, which the path composers enforce for every verb.
+_GRAMMAR_GUARDED_VERBS = frozenset({"register", "get-cookies", "test", "refresh"})
+
+
 def main(argv: list[str] | None = None) -> int:
     raw = list(sys.argv[1:]) if argv is None else list(argv)
     _refuse_argv_ban(raw)
@@ -695,20 +1390,37 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(raw)
 
     verb = args.verb
-    if verb == "register":
-        return _do_register(args.profile, args)
-    if verb == "get-cookies":
-        return _do_get_cookies(args.profile)
-    if verb == "test":
-        return _do_test(args.profile)
-    if verb == "refresh":
-        return _do_refresh(args.profile, args)
-    if verb == "list-profiles":
-        return _do_list_profiles()
-    if verb == "rm":
-        return _do_rm(args.profile)
-    if verb == "show-tier2-backend":
-        return _do_show_tier2_backend()
+    if verb in _GRAMMAR_GUARDED_VERBS:
+        reason = _profile_grammar_error(args.profile)
+        if reason is not None:
+            sys.stderr.write(f"sso-broker {verb}: {reason}\n")
+            return 3
+
+    try:
+        if verb == "register":
+            return _do_register(args.profile, args)
+        if verb == "get-cookies":
+            return _do_get_cookies(args.profile)
+        if verb == "test":
+            return _do_test(args.profile)
+        if verb == "refresh":
+            return _do_refresh(args.profile, args)
+        if verb == "list-profiles":
+            return _do_list_profiles()
+        if verb == "rm":
+            return _do_rm(args.profile)
+        if verb == "show-tier2-backend":
+            return _do_show_tier2_backend()
+    except ProfileConfinementError as exc:
+        sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        return 3
+    except StoreTransitionError as exc:
+        # Newly raised by the store fallback. Without a handler here it escapes
+        # `main` as exit 1 with a traceback, putting a real storage failure in
+        # the functional band instead of the engine-failure one.
+        sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        return 3
+
     raise AssertionError(f"unreachable verb: {verb}")  # pragma: no cover
 
 

@@ -6,6 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.29.7] — 2026-08-06
+
+### Changed
+
+- **The scaffold's `packs/AGENTS.md` no longer cites paths it does not ship.**
+  `catalogue init` writes this file into your repository, where six of its
+  references pointed at files that exist only in the upstream catalogue — a
+  test-boundary rule attributed to a linter you were never given, a shape
+  document you cannot open, two JSON Schemas by repository path rather than by
+  the `agentbundle catalogue lint` that validates against them, and two links to
+  an authoring guide outside the shipped guide set. Each rule now stands on its
+  own or points at `guides/_shared/reference/catalogue-authoring-standards.md`,
+  which the scaffold does ship. A new projection assertion walks every path the
+  shipped copy cites and fails when one is missing, so the class cannot recur.
+
+- `catalogue self-host --check --windows` runs the atlassian pack's
+  `test_check_sso_login.py` in the existing jira step rather than a second
+  process for the same skill directory.
+
 ## [0.29.6] — 2026-08-06
 
 ### Fixed

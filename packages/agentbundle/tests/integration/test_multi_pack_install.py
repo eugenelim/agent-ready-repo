@@ -532,6 +532,17 @@ def test_user_scope_multi_pack_accumulates_state(tmp_path, monkeypatch):
     )
     assert rc1 == 0, f"architect install failed: {err1}"
 
+    # `atlassian` declares a required dependency on `credential-brokers` — it
+    # ships credentialed skills that resolve through the broker layer, and the
+    # install gate refuses before any write without it. Install the dependency
+    # first, as an adopter would; the gate's own refusal path is covered in
+    # `test_shipped_pack_manifests.py`.
+    rc_dep, _, err_dep = _install_argv(
+        ["--pack", "credential-brokers", "--scope", "user",
+         "--output", str(adopter), str(REPO_ROOT)]
+    )
+    assert rc_dep == 0, f"credential-brokers install failed: {err_dep}"
+
     rc2, _, err2 = _install_argv(
         ["--pack", "atlassian", "--scope", "user",
          "--output", str(adopter), str(REPO_ROOT)]
@@ -542,7 +553,9 @@ def test_user_scope_multi_pack_accumulates_state(tmp_path, monkeypatch):
     )
 
     user_state = _state(fake_home, scope="user")
-    assert _packs_in_state(user_state) >= {"architect", "atlassian"}, (
+    assert _packs_in_state(user_state) >= {
+        "architect", "atlassian", "credential-brokers"
+    }, (
         f"user state.toml missing one of the packs: "
         f"{sorted(_packs_in_state(user_state))}"
     )

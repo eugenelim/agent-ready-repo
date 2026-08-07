@@ -101,10 +101,41 @@ the token (`creds`) path above. On the SSO-cookie path:
   cookie values.
 - **Never** put a session cookie on the command line. The skill attaches cookies
   to its HTTP client internally and sends no `Authorization` header on this path.
-- If the SSO session is missing or expired, tell the user to run
-  `python scripts/setup_sso.py` (which drives `sso-broker register`) themselves —
-  it opens a browser for interactive sign-in, so do not run any setup helper for
-  them.
+- **`jira.py check` self-heals an expired session — that is the whole
+  carve-out, and it applies to `jira.py check` only.** On the SSO-cookie path
+  bare `check` re-establishes an expired session *headlessly*: no browser is
+  shown, and the call carries no sign-in destination — it comes from the
+  engine's stored profile, which only a completed, user-authorised capture
+  writes. Run bare `check` as you would any other command.
+- **Two files are the exception, and you must never write either.**
+  `references/sso-config.toml` and `~/.agentbundle/sso-profiles/` are the only
+  places a sign-in destination lives. Editing them is how a destination would
+  get changed, so treat both as read-only: if `check --register` refuses because
+  the destination cannot be confirmed, surface the refusal to the user — never
+  edit the config to clear it.
+- **Everything that opens a browser stays with the user.** When `check` reports
+  that a new capture is needed, **relay `python scripts/jira.py check --register`
+  to the user as text** and let them run it — it opens a browser for interactive
+  sign-in, so do not run any setup helper for them. Never pass `--register`
+  yourself, and never invoke `scripts/setup_sso.py` or `credential-setup` on the
+  user's behalf.
+- **`check --register` is the ordinary first run**, and the only capture path
+  that *attempts* to verify the sign-in destination against the instance. It
+  does not always achieve it — where the configured sign-in host is the instance
+  host, verification is skipped by construction. `scripts/setup_sso.py` attempts
+  none at all and is reserved for exactly two cases: a scripted pre-bake, and
+  the case where `check --register` refuses because it cannot confirm the
+  destination.
+- **`[sso].login_url` is user-configured, and it is where a human types their
+  password.** Before relaying `check --register`, verify the configured
+  `login_url` in `references/sso-config.toml` resolves to a known corporate
+  identity-provider host — not a private IP range (`10.0.0.0/8`,
+  `172.16.0.0/12`, `192.168.0.0/16`, `127.0.0.0/8`), not a cloud-metadata
+  endpoint (`169.254.0.0/16`), and not an unfamiliar public host. If it looks
+  unexpected, stop and ask the user to confirm. This is an **agent pre-flight
+  check**, the same shape as the `JIRA_BASE_URL` rule above: the scripts
+  validate the scheme and compare hosts, not whether the host is one your
+  organisation actually uses.
 
 ### Step 1: Verify the environment
 
@@ -121,10 +152,24 @@ python scripts/jira.py check
 ```
 
 - Exit code 0 → authenticated, proceed.
-- Exit code 2 → the user must act (credentials missing/invalid/expired). Tell
-  the user to run `credential-setup` skill themselves (interactive — they run
-  it, not you). Stop here.
+- Exit code 2, **token path** → the user must act (credentials
+  missing/invalid/expired). Tell the user to run `credential-setup` skill
+  themselves (interactive — they run it, not you). Stop here.
+- Exit code 2, **SSO-cookie path** → the session could not be re-established on
+  its own. Read the stderr message: it names the command to relay, which is
+  `python scripts/jira.py check --register`. Stop here and hand it to the user.
 - Any other non-zero → see *When a request fails*.
+
+**Bare `check` never blocks for a browser sign-in.** On the SSO-cookie path it
+may re-establish an expired session first, and that recapture is headless and
+bounded — worst case 180 s. Budget roughly **9 minutes** for the whole
+invocation: the recapture plus up to two probes, each bounded by 5 retries ×
+30 s plus backoff.
+
+**`check --register` does block for a sign-in**, because a human is at the
+keyboard. Budget roughly **15 minutes**: the capture is bounded at 540 s (a
+300 s sign-in poll, browser launch, and the profile-seeding step behind it),
+plus the same two probes. Relay it to the user rather than running it.
 
 ### When a request fails
 
@@ -135,7 +180,8 @@ specific cause, then act on the band:
 |---|---|---|
 | 0 | success | proceed |
 | 1 | functional error — server 5xx, transport, keychain hard-fail, unexpected | surface the message to the user; don't loop or retry blindly |
-| 2 | user must act — credentials missing/invalid/expired, 401/403 | tell the user to run `credential-setup` themselves (interactive — do not run it for them), then re-run `check` |
+| 2 (token path) | user must act — credentials missing/invalid/expired, 401/403 | tell the user to run `credential-setup` themselves (interactive — do not run it for them), then re-run `check` |
+| 2 (SSO-cookie path) | user must act — the session could not be re-established headlessly, or the destination could not be confirmed | relay `python scripts/jira.py check --register` to the user as text; do not run it. `check` has already tried the automatic recovery once |
 
 - A **401** means the credential is invalid or expired → exit 2 → re-auth via
   `credential-setup`.
@@ -172,7 +218,10 @@ Global flags:
 | `--format json\|jsonl\|csv` | Output format (default: `json`). Use `jsonl` or `csv` for bulk exports. |
 | `--output FILE` | Write to file instead of stdout. Recommended for >100 records. |
 | `--verbose` | Debug logging. |
-| `--insecure` | Disable TLS verification. Only if the user explicitly asks (common on self-signed Server installs). |
+| `--insecure` | Disable TLS verification. Only if the user explicitly asks (common on self-signed Server installs). Global, so it precedes the subcommand: `jira.py --insecure check`. Inert on the SSO-cookie path — `check` says so rather than implying it worked. |
+
+`check` also takes `--register` on the SSO-cookie path — the user runs that
+one, never you. See *Security rules*.
 
 ### Step 3: JQL — the primary query language
 

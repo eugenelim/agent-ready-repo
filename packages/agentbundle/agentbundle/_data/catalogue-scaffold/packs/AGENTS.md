@@ -6,9 +6,11 @@ Read `packs/AGENTS.local.md` when present — it carries host-specific overrides
 ## Pack layout
 
 The pack is the ownership and test-execution boundary; `.apm/` is the runtime export boundary; a skill is the
-evaluation-fixture boundary. Tests go in `packs/<pack>/tests/`, never under `.apm/`; evals stay skill-local at
-`.apm/skills/<skill>/evals/` and project with the skill. `tools/lint-pack-test-boundary.py` enforces both across
-every pack, plus one pytest process per skill test dir. Shape: `docs/architecture/pack-layout.md`.
+evaluation-fixture boundary. Skill tests go in `packs/<pack>/tests/skills/<skill>/` and hook tests in
+`packs/<pack>/tests/hooks/` — never under `.apm/`, which adapters project verbatim into an installed tree.
+Evals stay skill-local at `.apm/skills/<skill>/evals/` and project with the skill. Run **one pytest process
+per skill test directory**: two skills may ship the same test basename, and a shared `sys.path` binds one
+skill's module for both suites and passes green.
 
 | Path | Purpose |
 |------|---------|
@@ -28,14 +30,13 @@ every pack, plus one pytest process per skill test dir. Shape: `docs/architectur
 
 ## Reserved authoring assets
 
-Any immediate child of the packs root whose name begins with `_` is a reserved authoring asset.
-Reserved directories are not catalogue payload — they do not appear in `list-packs`, are not
-installed, and are not included in packaged archives. See `packs/README.md`.
+Any immediate child of the packs root whose name begins with `_` is a reserved authoring asset: not
+catalogue payload, absent from `list-packs`, never installed or packaged. See `packs/README.md`.
 
 ## pack.toml schema map
 
-> The machine source of truth for pack.toml format is `contracts/pack.schema.json`.
-> The table below is a navigational summary; the JSON Schema is normative.
+> The normative source for pack.toml format is the `pack` JSON Schema that ships inside `agentbundle`;
+> `agentbundle catalogue lint --root .` validates against it. The table below is a navigational summary.
 
 | Table | Required fields | Notable optional fields |
 |-------|----------------|------------------------|
@@ -64,14 +65,14 @@ For CI pipeline orchestration — publication ordering, exit codes, JSON output 
 
 ## Version bump rule
 
-Every **non-cosmetic** change to pack content requires a version bump in both:
-1. `pack.toml` → `[pack] version`
-2. `.claude-plugin/plugin.json` → `"version"`
+Every **non-cosmetic** change to pack content requires a version bump in **both** `pack.toml` →
+`[pack] version` and `.claude-plugin/plugin.json` → `"version"`.
 
 Which increment: **patch** for changed bodies/directives/conventions; **minor** for new primitives;
 **major** for removals. Never ride an unreleased version from another in-flight PR.
 
-Host-specific post-bump steps (changelog, marketplace regeneration) are in `packs/AGENTS.local.md`.
+Further post-bump steps (changelog, marketplace regeneration) are host-specific — see `AGENTS.local.md` if
+your catalogue has one.
 
 ## Self-hosting projection
 
@@ -80,52 +81,50 @@ projects them to every shipped adapter's layout. Never edit a projected output d
 
 On a dirty working tree: `agentbundle catalogue self-host --root . --write --force`.
 
-**Critical ordering:** when a session edits both seeds and non-seed pack sources (`.apm/**`,
-`pack.toml`), run self-host AFTER all edits — not between them.
+**Critical ordering:** when a session edits both seeds and non-seed pack sources (`.apm/**`, `pack.toml`),
+run self-host AFTER all edits — not between them.
 
 ## Claude plugin JSON format
 
-Each pack's `.claude-plugin/plugin.json` is validated against `contracts/plugin-manifest.schema.json`.
-Non-compliant manifests block publishing.
+Each pack's `.claude-plugin/plugin.json` is validated against the plugin-manifest JSON Schema that ships
+inside `agentbundle`; `agentbundle catalogue lint --root .` reports violations. Non-compliant manifests
+block publishing.
 
 **Required:** `name` (string), `version` (string matching `pack.toml`), `description` (string).
 
-**Allowed optional fields** — `skills`, `agents` (arrays of strings); `author` (`{name, email?}`);
-`license`, `homepage`, `repository`, `category`, `displayName` (strings); `keywords` (array);
-`source` (`{source, repo, branch, directory}`).
+**Allowed optional fields** — `skills`, `agents` (arrays of strings); `author` (`{name, email?}`); `license`,
+`homepage`, `repository`, `category`, `displayName` (strings); `keywords` (array); `source`
+(`{source, repo, branch, directory}`).
 
 `additionalProperties: false` — any unknown key fails validation.
 
 ## Authoring or editing a skill
 
-`README.md` states pack intent and the user journey it serves — not a contributor capability list.
-Edit `.apm/skills/<name>/SKILL.md`. Run self-host to project. Run
-`agentbundle catalogue lint --root . --deep` to confirm spec compliance.
+`README.md` states pack intent and the user journey it serves — not a contributor capability list. Edit
+`.apm/skills/<name>/SKILL.md`, run self-host to project, then `agentbundle catalogue lint --root . --deep`.
 
-Full authoring standards — frontmatter key whitelist, body structure, naming, three-tier dependency
-policy, and evals — live in [`guides/_shared/how-to/author-a-skill.md`](../guides/_shared/how-to/author-a-skill.md).
+Full authoring standards — frontmatter key whitelist, body structure, naming, three-tier dependency policy,
+evals — live in [`catalogue-authoring-standards.md`](../guides/_shared/reference/catalogue-authoring-standards.md).
 
 ## Eval coverage
 
 A non-cosmetic pack update must also update the pack's eval harness:
-- **Tier-A activation** — `evals/eval_queries.json` (~8–10 should-trigger + ~8–10 near-miss) and
-  a `[pack.evals]` block in `pack.toml` listing every user-triggered skill.
+- **Tier-A activation** — `evals/eval_queries.json` (~8–10 should-trigger + ~8–10 near-miss) and a
+  `[pack.evals]` block in `pack.toml` listing every user-triggered skill.
 - **Tier-4 LLM-judge rubric** — `evals/evals.json` for judgment/authoring skills.
 - **Tier-B-lite behavior check** — add an `expect` block to an `evals/evals.json` entry (non-destructive,
-  non-credentialed skills only). Four things that must be explicit to avoid format churn:
-  - Field name is **`files`** (not `fixture`): paths are relative to the **skill root**
-    (e.g. `"evals/files/sample.md"`), not relative to `evals/`. The runner seeds a temp workspace
-    with these files before invoking the skill.
+  non-credentialed skills only). Four things must be explicit, or the format churns:
+  - The field is **`files`**, not `fixture`, and its paths are relative to the **skill root**
+    (`"evals/files/sample.md"`) — not to `evals/`. The runner seeds a temp workspace with them first.
   - `expect.produces`: filenames the run must create in the workspace.
   - `expect.output_contains` / `expect.output_excludes`: substrings in captured output.
-  - **Your skill script must accept the workspace path** — via a `--fixture`/`--root` flag or by
-    treating CWD as the workspace — so the runner can confine writes and verify `produces`.
-  Full procedure: [`guides/_shared/how-to/author-a-skill.md`](../guides/_shared/how-to/author-a-skill.md).
+  - **Your skill script must accept the workspace path** — a `--fixture`/`--root` flag, or treat CWD as
+    the workspace — so the runner can confine writes and verify `produces`.
+  Full procedure: [`guides/_shared/reference/catalogue-authoring-standards.md`](../guides/_shared/reference/catalogue-authoring-standards.md).
 
 ## Windows-safe Python scripts
 
-Any script under `.apm/` that prints to stdout or stderr must include the UTF-8 reconfigure guard
-immediately after `import sys`, before any `print()` call:
+Any script under `.apm/` that prints to stdout or stderr must include the UTF-8 reconfigure guard immediately after `import sys`, before any `print()` call:
 
 ```python
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -145,6 +144,7 @@ Stubs in `plan.md` tasks must be `raise NotImplementedError  # STUB: ACn` — no
 
 ## Shipped pack content carries no internal-governance citations
 
-Anywhere under `packs/` — `.apm/**`, `pack.toml`, `README`/`JOURNEY`/`DESIGN`, `seeds/**` —
-never cite this catalogue's own governance: `RFC-0NNN`, `ADR-0NNN`, spec/plan or AC citations,
-internal doc paths. Keep the rule, drop the citation. Detail: `packs/AGENTS.local.md`.
+Anywhere under `packs/` — `.apm/**`, `pack.toml`, `README`/`JOURNEY`/`DESIGN`, `seeds/**` — never cite your
+catalogue's own governance: decision-record or proposal numbers, spec/plan or acceptance-criterion citations,
+or repository-only paths. Shipped content lands in someone else's tree, where each is a dead end. **Keep the
+rule, drop the citation** — state what the reader must do, in full.

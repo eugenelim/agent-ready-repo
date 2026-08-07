@@ -165,7 +165,12 @@ def test_401_surfaces_reregister_without_cookie_value(broker_jar, monkeypatch):
             return str(exc.value)
 
     msg = asyncio.run(go())
-    assert "sso-broker register jira" in msg
+    # `check --register`, not a raw `sso-broker register`: the skill rules
+    # reserve the engine binary for the operator, and `check --register` is the
+    # canonical re-capture path — the only one that attempts destination
+    # attestation.
+    assert "check --register" in msg
+    assert "jira" in msg
     assert "sess1" not in msg and "tok1" not in msg  # no cookie bytes in the error
 
 

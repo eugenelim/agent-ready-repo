@@ -1,6 +1,6 @@
 [pack]
 name = "linear"
-version = "0.1.6"
+version = "0.2.0"
 description = "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief."
 readme = "README.md"
 display_name = "Linear"
@@ -10,6 +10,16 @@ keywords = ["linear", "brief", "intake", "sync"]
 
 [pack.adapter-contract]
 version = "0.8"
+
+# Every credentialed skill in this pack resolves its credential through the
+# broker layer, which this pack does not ship: the `credbroker` library, plus
+# the `credential-setup` skill that populates it. `install.py` gates required
+# dependencies before any write, so a missing broker is refused at install time
+# with a named fix instead of failing at runtime with none.
+[[pack.dependencies.required]]
+catalogue = "agent-ready-repo"
+pack = "credential-brokers"
+version = "^0.2"
 
 [pack.install]
 default-scope = "user"
