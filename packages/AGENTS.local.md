@@ -2,6 +2,24 @@
 
 **Read before modifying `packages/`:** version bump rule is in [`packages/AGENTS.md`](AGENTS.md#version-bump-rule); PyPI release coupling is below.
 
+## Local installs go in a per-workspace venv, never global
+
+`pip install -e packages/<pkg>` records one absolute path, so with several Conductor workspaces on
+this repo the global interpreter resolves the package from whichever workspace installed it last —
+not the one you are in. Local gates then exercise a different checkout, and when that workspace is
+deleted the import fails outright.
+
+Install into the workspace's own `.venv` (already gitignored) and drive every local gate through it:
+
+```bash
+.venv/bin/python -m pip install -e packages/agentbundle -e 'packages/credbroker[crypto]' ruff mypy pytest
+.venv/bin/python -m pip install -r tools/requirements.txt
+.venv/bin/python -c "import agentbundle, credbroker; print(agentbundle.__file__, credbroker.__file__)"  # must name this workspace
+```
+
+Keep the global interpreter on PyPI builds. `pip list` shows a path for editable installs, and
+`site-packages/<pkg>-<ver>.dist-info/direct_url.json` carries `{"dir_info": {"editable": true}}`.
+
 ## Release Coupling
 
 Changes to `packages/agentbundle/` that alter a public CLI verb, add or remove a subcommand, or change
