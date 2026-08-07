@@ -76,6 +76,10 @@ def broker(request, tmp_path, monkeypatch):
     mod._AGENTBUNDLE_HOME = home / ".agentbundle"
     mod._SSO_PROFILE_DIR = mod._AGENTBUNDLE_HOME / "sso-profiles"
     mod._SSO_COOKIE_FILE_FLOOR = mod._AGENTBUNDLE_HOME / "sso-cookies"
+    # Without this the suite writes lockfiles into the developer's real
+    # ~/.agentbundle/sso-locks/ the moment the fixture stops resolving
+    # Path.home() before import.
+    mod._SSO_LOCK_DIR = mod._AGENTBUNDLE_HOME / "sso-locks"
 
     # Stub Tier-2 with an in-memory dict that tracks (namespace, key) → value.
     class _InMemoryBackend:

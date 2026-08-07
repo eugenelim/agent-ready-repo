@@ -738,8 +738,12 @@ _HELD_LOCKS: set[tuple[int, str]] = set()
 
 
 def _thread_holds_any_lock() -> bool:
+    # Snapshot before iterating. Production is single-threaded, but the
+    # reproduction harness this change exists to satisfy runs acquiring threads
+    # concurrently, and a bare iteration over a set another thread is mutating
+    # raises `RuntimeError: Set changed size during iteration`.
     ident = threading.get_ident()
-    return any(t == ident for t, _ in _HELD_LOCKS)
+    return any(t == ident for t, _ in tuple(_HELD_LOCKS))
 
 
 def _thread_holds(profile: str) -> bool:
@@ -792,7 +796,10 @@ def _is_contention(exc: BaseException) -> bool:
         # unserialised — an acquire that "succeeds" while serialising nothing
         # is the one outcome worse than refusing.
         return False
-    return code in (errno.EACCES, errno.EPERM, _EDEADLK)
+    # EACCES and the deadlock code only. `EPERM` is deliberately absent: a
+    # policy or mount denial is permanent, and calling it contention would
+    # spin the whole budget and then tell the caller to retry forever.
+    return code in (errno.EACCES, _EDEADLK)
 
 
 @contextlib.contextmanager
@@ -815,7 +822,7 @@ def _profile_lock(profile: str, budget_s: float | None = None):
         # would self-deadlock until the budget expired and present as an
         # intermittent stall. Raise now, and as a *fault* so no caller retries.
         raise LockUnavailableError(
-            f"sso-broker: internal bug: nested lock acquisition for profile "
+            f"internal bug: nested lock acquisition for profile "
             f"{profile!r} while this thread already holds one"
         )
 
@@ -840,7 +847,7 @@ def _profile_lock(profile: str, budget_s: float | None = None):
         # RuntimeError included: `Path.resolve()` raises it, not OSError, for
         # symlink loops on 3.11-3.12 (CPython #109187).
         raise LockUnavailableError(
-            f"sso-broker: could not open the lock for profile {profile!r} "
+            f"could not open the lock for profile {profile!r} "
             f"({type(exc).__name__})"
         ) from exc
 
@@ -858,12 +865,12 @@ def _profile_lock(profile: str, budget_s: float | None = None):
             except Exception as exc:  # noqa: BLE001 — re-raised as one of two types
                 if not _is_contention(exc):
                     raise LockUnavailableError(
-                        f"sso-broker: the lock for profile {profile!r} is "
+                        f"the lock for profile {profile!r} is "
                         f"unusable ({type(exc).__name__})"
                     ) from exc
                 if time.monotonic() >= deadline:
                     raise StoreContendedError(
-                        f"sso-broker: profile {profile!r} is locked by another "
+                        f"profile {profile!r} is locked by another "
                         f"process and did not free within {budget_s:g}s"
                     ) from exc
             time.sleep(min(backoff, max(0.0, deadline - time.monotonic())))
@@ -924,8 +931,11 @@ def _file_floor_write(profile: str, serialized: bytes) -> None:
     (see ``_do_get_cookies``), so this fires on every consumer call rather than
     at most once per profile, and two concurrent calls for one profile would
     otherwise collide on the same temp path. Ordering between concurrent
-    materialisers is deliberately *not* specified here — that is a concurrency
-    protocol with its own design, tracked as ``sso-materialisation-ordering``.
+    materialisers **is** now specified, where it once deliberately was not:
+    every caller holds the profile's lock across the load and this write
+    together, so the last writer to ``replace`` is the last one to have read.
+
+    **The caller holds this profile's lock.**
     """
     _SSO_COOKIE_FILE_FLOOR.mkdir(parents=True, exist_ok=True, mode=0o700)
     if os.name == "posix":
@@ -1364,14 +1374,7 @@ def _do_get_cookies(profile: str) -> int:
     # commit-and-reap reads `None` from a jar that exists, and two materialisers
     # can land their `os.replace` out of order so a stale reader overwrites a
     # fresher file.
-    with _profile_lock(profile):
-        jar = _load_cookie_jar(profile)
-        if jar is None:
-            sys.stderr.write(
-                f"sso-broker get-cookies: no cookie jar for profile {profile!r}; "
-                f"re-auth required (run 'sso-broker register {profile} ...')\n"
-            )
-            return 2
+    materialised = _cookie_floor_path(profile)
 
     # Materialise the jar to a 0600 file under sso-cookies/ and print its path.
     # Consumer skills read the file and never see cookie values via argv/stdout.
@@ -1382,15 +1385,29 @@ def _do_get_cookies(profile: str) -> int:
     # jar after every successful re-capture: the consumer's retry 401s and the
     # recapture was for nothing. It looked correct only on Linux, where the two
     # surfaces are the same file — which is where CI runs.
-    materialised = _cookie_floor_path(profile)
-    try:
-        _file_floor_write(profile, jar)
-    except OSError as exc:
-        sys.stderr.write(
-            f"sso-broker get-cookies: could not materialise the jar for "
-            f"profile {profile!r}: {type(exc).__name__}\n"
-        )
-        return 3
+    with _profile_lock(profile):
+        jar = _load_cookie_jar(profile)
+        if jar is None:
+            sys.stderr.write(
+                f"sso-broker get-cookies: no cookie jar for profile {profile!r}; "
+                f"re-auth required (run 'sso-broker register {profile} ...')\n"
+            )
+            return 2
+        try:
+            _file_floor_write(profile, jar)
+        except OSError as exc:
+            sys.stderr.write(
+                f"sso-broker get-cookies: could not materialise the jar for "
+                f"profile {profile!r}: {type(exc).__name__}\n"
+            )
+            return 3
+
+    # Only the announcement is outside. Releasing between the load and the
+    # write would leave the second half of the original finding wide open: two
+    # readers could each load under the lock, release, and land their
+    # `os.replace` in the opposite order, so a stale reader overwrites a fresher
+    # materialisation. On Linux the floor *is* the primary store, which makes
+    # that a destroyed recapture rather than a cosmetic staleness.
     sys.stdout.write(f"{materialised}\n")
     return 0
 

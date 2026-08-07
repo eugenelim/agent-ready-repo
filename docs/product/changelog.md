@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > is humans who use the software, not humans who wrote it.
 
 
-## Unreleased
+## [Unreleased]
 
 ### Fixed
 
@@ -30,8 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   When a profile is busy, commands exit `6` and `credbroker` raises
   `SsoStoreContendedError` rather than waiting indefinitely or reporting a
   false expiry. Every wait is bounded well inside the caller's timeout.
-
-## [Unreleased]
 
 ### Changed
 

@@ -83,7 +83,17 @@ class _ParkingBackend:
     def park_at(self, ident: int, index: int, release: threading.Event):
         reached = threading.Event()
         self._parks[ident] = (index, release, reached)
+        self._reached = reached
         return reached
+
+    def wait_parked(self, timeout: float) -> bool:
+        """Whether the registered park was actually hit.
+
+        Registering a park and *reaching* it are different events; asserting on
+        the first only would let a harness that never parked degrade into an
+        unforced race that passes by luck.
+        """
+        return getattr(self, "_reached", threading.Event()).wait(timeout)
 
     def write_credential(self, namespace, key, value):
         ident = threading.get_ident()
@@ -153,35 +163,57 @@ def _tags_present(jar: bytes | None) -> set[str]:
 
 
 def _run_two_writers(mod, backend, park_index: int, lock_enabled: bool = True):
-    """Writer A parks at *park_index*; writer B runs to completion; A resumes."""
+    """Force A and B to overlap, and make sure *both* actually write.
+
+    The naive shape — park A, run B to completion, release A — deadlocks under
+    the lock: A parks while *holding* it, so B spends its whole budget retrying
+    and dies with `StoreContendedError` having written nothing. The test then
+    passes because only one writer ever ran, which proves nothing.
+
+    So: start B, wait until it is genuinely blocked on the lock, *then* release
+    A. Under the lock that yields a real serialised ordering (A completes, B
+    follows). With the lock stubbed out it yields the true interleaving — B's
+    chunks land in the middle of A's — which is what the negative control needs.
+
+    Returns both writers' exceptions so the caller can assert nobody was
+    silently contended out.
+    """
     release = threading.Event()
+    parked = threading.Event()
     errors: list[BaseException] = []
     store = _store if lock_enabled else (
         lambda m, p, v: m._store_cookie_jar(p, v)
     )
 
-    reached: dict[str, threading.Event] = {}
-
     def writer_a():
-        reached["a"] = backend.park_at(threading.get_ident(), park_index, release)
+        reached = backend.park_at(threading.get_ident(), park_index, release)
+        parked.set()  # the park is *registered*; A may not have hit it yet
         try:
             store(mod, "jira", _jar("a"))
-        except BaseException as exc:  # noqa: BLE001 — recorded, asserted below
+        except BaseException as exc:  # noqa: BLE001 — asserted by the caller
             errors.append(exc)
+        finally:
+            reached.set()
 
     a = threading.Thread(target=writer_a, daemon=True)
     a.start()
-    # Wait for A to park. Its park event is registered from inside the thread.
-    for _ in range(500):
-        if "a" in reached and reached["a"].wait(0.01):
-            break
-    b = threading.Thread(
-        target=lambda: store(mod, "jira", _jar("b")), daemon=True
-    )
+    assert parked.wait(5), "writer A never registered its park"
+    assert backend.wait_parked(5), "writer A never reached its park index"
+
+    def writer_b():
+        try:
+            store(mod, "jira", _jar("b"))
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
+
+    b = threading.Thread(target=writer_b, daemon=True)
     b.start()
-    b.join(15)
+    # Let B reach the lock (or, unlocked, reach the backend) before freeing A.
+    # Without this, A finishes first and the two never overlap at all.
+    time.sleep(0.25)
     release.set()
-    a.join(15)
+    b.join(20)
+    a.join(20)
     return errors
 
 
@@ -194,7 +226,11 @@ def _run_two_writers(mod, backend, park_index: int, lock_enabled: bool = True):
 def test_two_writers_leave_exactly_one_whole_jar(broker, park_index):
     """AC1: no reader ever observes bytes from both writers."""
     mod, backend = broker
-    _run_two_writers(mod, backend, park_index)
+    errors = _run_two_writers(mod, backend, park_index)
+    # Both writers must actually have written. A writer contended out of its
+    # budget writes nothing, and a one-writer run proves nothing about
+    # serialisation however clean the result looks.
+    assert not errors, errors
     tags = _tags_present(_read(mod, "jira"))
     assert tags in ({"a"}, {"b"}), f"mixed or absent jar: {tags}"
 
@@ -229,33 +265,73 @@ def test_negative_control_two_writers_corrupt_without_the_lock(
     )
 
 
-def test_three_writers_leave_one_whole_jar(broker):
-    """AC2: a rotating third writer must not strand the first's generation."""
-    mod, backend = broker
+def _run_three_writers(mod, backend, lock_enabled: bool = True):
+    """A parks mid-transition; B and C run; A resumes. All three must write."""
     release = threading.Event()
-    reached: dict[str, threading.Event] = {}
+    parked = threading.Event()
+    errors: list[BaseException] = []
+    store = _store if lock_enabled else (lambda m, p, v: m._store_cookie_jar(p, v))
 
     def writer_a():
-        reached["a"] = backend.park_at(threading.get_ident(), 1, release)
-        _store(mod, "jira", _jar("a"))
+        backend.park_at(threading.get_ident(), 1, release)
+        parked.set()
+        try:
+            store(mod, "jira", _jar("a"))
+        except BaseException as exc:  # noqa: BLE001
+            errors.append(exc)
 
     a = threading.Thread(target=writer_a, daemon=True)
     a.start()
-    for _ in range(500):
-        if "a" in reached and reached["a"].wait(0.01):
-            break
-    for tag in ("b", "c"):
-        t = threading.Thread(
-            target=lambda tg=tag: _store(mod, "jira", _jar(tg)), daemon=True
-        )
-        t.start()
-        t.join(15)
-    release.set()
-    a.join(15)
+    assert parked.wait(5)
+    assert backend.wait_parked(5), "writer A never reached its park index"
 
+    others = []
+    for tag in ("b", "c"):
+        def run(tg=tag):
+            try:
+                store(mod, "jira", _jar(tg))
+            except BaseException as exc:  # noqa: BLE001
+                errors.append(exc)
+        th = threading.Thread(target=run, daemon=True)
+        th.start()
+        others.append(th)
+    time.sleep(0.25)
+    release.set()
+    for th in others:
+        th.join(20)
+    a.join(20)
+    return errors
+
+
+def test_three_writers_leave_one_whole_jar(broker):
+    """AC2: a rotating third writer must not strand the first's generation."""
+    mod, backend = broker
+    errors = _run_three_writers(mod, backend)
+    assert not errors, errors
     jar = _read(mod, "jira")
     assert jar is not None, "fail-closed miss is no longer reachable under the lock"
     assert len(_tags_present(jar)) == 1, _tags_present(jar)
+
+
+def test_negative_control_three_writers_corrupt_without_the_lock(
+    broker, monkeypatch
+):
+    """AC6: the three-writer control the first pass omitted.
+
+    Unlocked, the third writer rotates and reaps the generation the first is
+    still staging under — the fail-closed miss the spec's Objective names.
+    """
+    mod, backend = broker
+    monkeypatch.setattr(
+        mod, "_profile_lock", lambda *_a, **_k: contextlib.nullcontext()
+    )
+    monkeypatch.setattr(mod, "_thread_holds", lambda _p: True)
+    _run_three_writers(mod, backend, lock_enabled=False)
+    tags = _tags_present(mod._load_cookie_jar("jira"))
+    assert len(tags) != 1, (
+        "expected a mixed or absent jar without the lock; the harness cannot "
+        f"detect the defect it exists to catch (got {tags})"
+    )
 
 
 # ----------------------------------------------------------------------
@@ -347,67 +423,8 @@ def test_reader_never_sees_a_partially_reaped_generation(broker):
     assert len(_tags_present(results[0])) == 1
 
 
-def _materialise(mod, profile: str, jar: bytes):
-    """What `_do_get_cookies` does: load, then write the materialisation."""
-    with mod._profile_lock(profile):
-        mod._file_floor_write(profile, jar)
-
-
-def test_stale_reader_never_overwrites_a_fresher_materialisation(broker):
-    """AC4: the later-completing call wins the `os.replace`, not a stale one."""
-    mod, _ = broker
-    done = threading.Event()
-
-    def slow():
-        _materialise(mod, "jira", _jar("a"))
-        done.set()
-
-    def fast():
-        done.wait(15)
-        _materialise(mod, "jira", _jar("b"))
-
-    threads = [threading.Thread(target=f, daemon=True) for f in (slow, fast)]
-    for t in threads:
-        t.start()
-    for t in threads:
-        t.join(20)
-    assert _tags_present(mod._cookie_floor_path("jira").read_bytes()) == {"b"}
-
-
-# ----------------------------------------------------------------------
-# AC8 / AC9 / AC12 / AC13 — the exit-code contract (T5).
-#
-# This module carries the contended-acquire case rather than
-# test_sso_broker_verbs.py, so it sits behind the same Windows execution guard
-# AC20 requires: `self_host_windows.py` judges its steps by return code alone,
-# so a wholly-skipped module would exit 0 and read as coverage.
-# ----------------------------------------------------------------------
-
-
-def _run_verb(mod, argv, hold_profile=None, budget=0.3):
-    """Drive `main` with the profile's lock optionally held by another thread."""
-    if hold_profile is None:
-        return mod.main(argv)
-    holding = threading.Event()
-    release = threading.Event()
-
-    def hold():
-        with mod._profile_lock(hold_profile):
-            holding.set()
-            release.wait(10)
-
-    mod._LOCK_WAIT_BUDGET_S = budget  # read at call time, not bound at def time
-    t = threading.Thread(target=hold, daemon=True)
-    t.start()
-    assert holding.wait(5)
-    try:
-        return mod.main(argv)
-    finally:
-        release.set()
-        t.join(5)
-
-
-def _registered(mod, profile="jira"):
+def _register_profile(mod, profile="jira"):
+    """`_do_get_cookies` refuses an unregistered profile before it reaches the lock."""
     mod._SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
     mod._write_profile(profile, {
         "name": profile,
@@ -420,13 +437,185 @@ def _registered(mod, profile="jira"):
     })
 
 
+def _stale_reader_wins(mod) -> bool:
+    """Force the stale-reader interleaving and report whether it corrupted.
+
+    A reader is parked between its jar load and its materialisation; while it
+    is parked, a writer commits a fresher jar and a second reader materialises
+    that. If the parked reader then lands its `os.replace` last, the fresher
+    materialisation is destroyed.
+
+    **Under the fix this interleaving is unreachable** — load and materialise
+    are one critical section, so there is no window to park in, and the second
+    reader simply waits. That is why this helper drives the *negative control*:
+    it is the shape that demonstrates the defect, and the positive case asserts
+    the outcome the lock produces rather than re-forcing a race the lock
+    prevents.
+    """
+    release = threading.Event()
+    parked = threading.Event()
+    real_write = mod._file_floor_write
+    slow: dict[str, int] = {}
+
+    def parking_write(profile, jar):
+        if threading.get_ident() == slow.get("id"):
+            parked.set()
+            release.wait(10)
+        return real_write(profile, jar)
+
+    mod._file_floor_write = parking_write
+
+    def stale():
+        slow["id"] = threading.get_ident()
+        mod._do_get_cookies("jira")
+
+    s = threading.Thread(target=stale, daemon=True)
+    s.start()
+    try:
+        if not parked.wait(5):
+            return False  # never parked: the window does not exist
+        try:
+            # Under the lock the parked reader still *holds* it, so this writer
+            # is contended out — that refusal is the property, not a failure.
+            with mod._profile_lock("jira", budget_s=0.5):
+                mod._store_cookie_jar("jira", _jar("b"))
+        except mod.StoreContendedError:
+            return False
+        fresh = threading.Thread(
+            target=lambda: mod._do_get_cookies("jira"), daemon=True
+        )
+        fresh.start()
+        fresh.join(20)
+        release.set()
+        s.join(20)
+    finally:
+        release.set()
+        mod._file_floor_write = real_write
+        s.join(5)
+    return _tags_present(mod._cookie_floor_path("jira").read_bytes()) == {"a"}
+
+
+def test_a_stale_reader_never_overwrites_a_fresher_materialisation(broker):
+    """AC4: two concurrent `get-cookies` leave the later-completing call's jar."""
+    mod, _ = broker
+    _register_profile(mod)
+    with mod._profile_lock("jira"):
+        mod._store_cookie_jar("jira", _jar("b"))
+
+    results: list[int] = []
+    threads = [
+        threading.Thread(
+            target=lambda: results.append(mod._do_get_cookies("jira")), daemon=True
+        )
+        for _ in range(2)
+    ]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join(20)
+    # Neither reader was contended out — a run where one gave up proves nothing.
+    assert results == [0, 0], results
+    assert _tags_present(mod._cookie_floor_path("jira").read_bytes()) == {"b"}
+
+
+def test_negative_control_stale_reader_wins_without_the_lock(broker, monkeypatch):
+    """AC6: the AC4 control — and the one that would have caught the real defect.
+
+    The first implementation released the lock between the load and the write.
+    This is the interleaving that exposes it: the parked reader materialises the
+    jar it read before the writer committed, destroying a completed recapture.
+    On Linux the floor *is* the primary store, so that is data loss.
+    """
+    mod, _ = broker
+    _register_profile(mod)
+    monkeypatch.setattr(mod, "_thread_holds", lambda _p: True)
+    with mod._profile_lock("jira"):
+        mod._store_cookie_jar("jira", _jar("a"))
+    monkeypatch.setattr(
+        mod, "_profile_lock", lambda *_a, **_k: contextlib.nullcontext()
+    )
+    assert _stale_reader_wins(mod), (
+        "expected the stale reader to win without the lock; the harness cannot "
+        "detect the defect it exists to catch"
+    )
+
+
+def test_the_locked_build_closes_the_stale_reader_window(broker):
+    """AC4/AC6 paired: the same forcing attempt finds no window under the lock.
+
+    `_stale_reader_wins` parks between load and materialise. With the lock held
+    across both there is nothing to park in, so the attempt cannot reproduce the
+    corruption — which is the property, stated as a test rather than as prose.
+    """
+    mod, _ = broker
+    _register_profile(mod)
+    with mod._profile_lock("jira"):
+        mod._store_cookie_jar("jira", _jar("a"))
+    assert not _stale_reader_wins(mod)
+
+
+# ----------------------------------------------------------------------
+# AC8 / AC9 / AC12 / AC13 / AC14 — the exit-code contract (T5).
+#
+# These live here rather than in test_sso_broker_verbs.py so they sit behind
+# this module's Windows fail-not-skip guard: `self_host_windows.py` judges a
+# step by return code alone, and Windows is the only platform where
+# EACCES-means-contention is exercised at all.
+# ----------------------------------------------------------------------
+
+
+def _registered(mod, profile="jira"):
+    _register_profile(mod, profile)
+
+
+def _run_verb(mod, argv, hold_profile=None, budget=0.3):
+    """Drive `main` with the profile's lock optionally held by another thread."""
+    if hold_profile is None:
+        return mod.main(argv)
+    mod._LOCK_WAIT_BUDGET_S = budget  # read at call time, not bound at def time
+    holding = threading.Event()
+    release = threading.Event()
+
+    def hold():
+        with mod._profile_lock(hold_profile):
+            holding.set()
+            release.wait(10)
+
+    t = threading.Thread(target=hold, daemon=True)
+    t.start()
+    assert holding.wait(5)
+    try:
+        return mod.main(argv)
+    finally:
+        release.set()
+        t.join(5)
+
+
+def test_the_shipped_budget_is_below_the_callers_timeout(broker):
+    """AC9: the constant itself, not a stubbed one.
+
+    The measured-elapsed test below runs with the budget stubbed down so it
+    finishes quickly — which means it would stay green if someone raised
+    `_LOCK_WAIT_BUDGET_S` to 600. This is what actually catches that. The engine
+    and the library cannot import each other, so the relationship the spec
+    states in prose has no other enforcement.
+    """
+    from credbroker import _sso
+
+    mod, _ = broker
+    assert mod._LOCK_WAIT_BUDGET_S < _sso._TIMEOUT_GET_COOKIES_S, (
+        f"engine budget {mod._LOCK_WAIT_BUDGET_S}s is not below the library's "
+        f"{_sso._TIMEOUT_GET_COOKIES_S}s get-cookies timeout"
+    )
+    assert mod._LOCK_WAIT_BUDGET_S < 15.0, "AC9's stated ceiling"
+
+
 @pytest.mark.parametrize("verb", ["get-cookies", "test", "rm"])
 def test_a_contended_verb_exits_6_not_3(broker, verb, capsys):
     """AC8, AC12: contention gets its own recoverable code.
 
-    The end-to-end form of T1's `BlockingIOError` regression test. On Windows
-    this is the case that matters most — `EACCES` rather than `BlockingIOError`
-    signals contention there, and this repo has never executed that path.
+    The end-to-end form of T1's `BlockingIOError` regression test, and on
+    Windows the only exercise of `EACCES`-means-contention anywhere.
     """
     mod, _ = broker
     _registered(mod)
@@ -449,13 +638,13 @@ def test_a_contended_verb_leaves_the_store_untouched(broker):
     assert mod._profile_path("jira").read_bytes() == toml_before
 
 
-def test_contention_is_bounded_from_process_entry(broker):
-    """AC9: under 15 s for the verbs that reach the lock immediately."""
+def test_contention_overhead_is_small(broker):
+    """AC9: pins the overhead around the budget; the bound is pinned above."""
     mod, _ = broker
     _registered(mod)
     started = time.monotonic()
     assert _run_verb(mod, ["get-cookies", "jira"], hold_profile="jira") == 6
-    assert time.monotonic() - started < 15.0
+    assert time.monotonic() - started < 5.0
 
 
 def test_an_unusable_lock_exits_3_with_no_traceback(broker, capsys, monkeypatch):
@@ -474,8 +663,7 @@ def test_an_unusable_lock_exits_3_with_no_traceback(broker, capsys, monkeypatch)
     assert exc.errno == _errno.ENOLCK
     monkeypatch.setattr(mod, "_acquire_once", lambda fd: (_ for _ in ()).throw(exc))
     assert mod.main(["get-cookies", "jira"]) == 3
-    err = capsys.readouterr().err
-    assert "Traceback" not in err, err
+    assert "Traceback" not in capsys.readouterr().err
 
 
 def test_rm_exit_3_names_the_manual_recourse(broker, capsys, monkeypatch):

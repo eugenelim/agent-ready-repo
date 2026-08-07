@@ -113,9 +113,9 @@ All derive from `SsoError`.
 | `SsoConfigError` | a config value or profile violates the confinement contract | no |
 | `SsoStoreContendedError` | another process holds the profile's store lock (exit 6) | **yes, by retrying** |
 
-**Only the recoverable rows may trigger a recapture — and `SsoStoreContendedError`
-is not one of them.** It is recoverable by *retrying the same call* after a short
-back-off, never by re-authenticating: the session is valid and the store is busy.
+`SsoStoreContendedError` is recoverable in a different sense from the rest: by
+*retrying the same call* after a short back-off, never by re-authenticating —
+the session is valid and the store is merely busy.
 Bound the retries — on a Windows `%USERPROFILE%` redirected to SMB the engine
 cannot tell a held lock from a filesystem that does not support locking, so the
 error can be permanent there.
