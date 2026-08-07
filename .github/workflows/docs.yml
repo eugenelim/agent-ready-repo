@@ -36,6 +36,15 @@ on:
       - 'packs/core/tests/skills/work-loop/test-loop-cohort.sh'
       - 'tools/hooks/**'
       - 'tools/test-all.py'
+      - 'tools/lint-pack-test-boundary.py'
+      - 'tools/test-lint-pack-test-boundary.py'
+      # The boundary lint reads these as runner call sites, so a change to
+      # any of them has to re-trigger it — collapsing the Makefile's
+      # pack-test lines is precisely the regression it exists to catch.
+      - 'Makefile'
+      - '.github/workflows/build-check.yml'
+      - '.github/workflows/catalogue-tooling-ci-gates.yml'
+      - 'packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py'
       - 'tools/test-pre-pr.sh'
       - 'tools/seed_test_sandbox.py'
       - 'packs/core/tests/hooks/**'
@@ -85,8 +94,13 @@ jobs:
         run: python3 packs/core/tests/skills/work-loop/test-loop-cohort.py
       - name: Python test suite — loop-engine FSM (84 unit/integration tests)
         run: python3 packs/core/tests/skills/work-loop/test-loop-engine.py
-      - name: Pack runtime boundary (.apm/ carries no tests; projection is clean)
-        run: python3 packs/core/tests/pack/test-runtime-boundary.py
+      - name: Pack runtime boundary (no pack's .apm/ carries tests; projection is clean)
+        run: python3 tools/lint-pack-test-boundary.py
+      - name: Pack runtime boundary — self-test (falsified in both directions)
+        # The lint above is the only thing standing between a new pack and a
+        # regression, so its own falsification cases need a runner of their own.
+        # `tools/test-all.py` is executed by no workflow; this step is the gate.
+        run: python3 tools/test-lint-pack-test-boundary.py
 
   # Aggregator end-to-end. Duplicates the per-layer linter jobs by design —
   # those each surface with their own check name in PR UI; this one catches

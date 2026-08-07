@@ -499,13 +499,14 @@ def check_atlassian_activation_evals() -> dict:
 
 def check_atlassian_deterministic_tests() -> dict:
     """Deterministic behavior tests for jira-team-status/jira-story-triage pass."""
-    test_file = (ROOT / "packs" / "atlassian" / ".apm" / "skills"
-                 / "jira-team-status" / "tests" / "test_contract.py")
+    # Pack tests live outside the runtime payload (ADR-0071).
+    test_file = (ROOT / "packs" / "atlassian" / "tests" / "skills"
+                 / "jira-team-status" / "test_contract.py")
     evidence = []
 
     if not _exists(test_file):
         return _check("atlassian-deterministic-tests", status="fail",
-                      evidence=["MISSING: jira-team-status/tests/test_contract.py"])
+                      evidence=["MISSING: tests/skills/jira-team-status/test_contract.py"])
 
     passed, out = _run_validator([PY, "-m", "pytest", str(test_file), "-q", "--tb=short"])
     lines = out.splitlines()

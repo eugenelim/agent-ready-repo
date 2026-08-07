@@ -62,13 +62,59 @@ _REQUIRED_PATHS: tuple[str, ...] = (
 )
 
 # Implicit denylist — top-level directories always excluded regardless of include.
-_IMPLICIT_DENY_DIRS: frozenset[str] = frozenset({
-    ".git",
-    "tools",
-    "packages",
-    "dist",
+# Build residue: never authored, never packaged. Pruned at *every* level of every
+# collection walk, so a cache anywhere under an included root is dropped.
+#
+# This replaces an earlier `_IMPLICIT_DENY_DIRS` that also listed `.git`,
+# `tools`, `packages` and `dist`. That set was referenced nowhere — the archive
+# collected caches for as long as it has existed — and it could not simply be
+# applied as written: those four are *repository-root* names, already excluded
+# because `_DEFAULT_INCLUDE_DIRS` is an allowlist, and pruning them at every
+# level would have silently dropped real content. `packs/monorepo-extras/seeds/packages/`
+# is exactly that case.
+#
+# `catalogue-authoring-standards.md` § 4 tells adopters that caches, coverage
+# output and generated artefacts are "neither committed nor packaged". This is
+# what makes the second half true.
+_TRANSIENT_DIRS: frozenset[str] = frozenset({
     "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
+    ".tox",
+    "node_modules",
+    ".venv",
+    "venv",
+    "htmlcov",
+    ".hypothesis",
 })
+
+# Same idea, for files that sit beside authored content rather than in a cache
+# directory of their own.
+_TRANSIENT_FILE_SUFFIXES: tuple[str, ...] = (".pyc", ".pyo")
+_TRANSIENT_FILE_NAMES: frozenset[str] = frozenset({".DS_Store", "coverage.xml"})
+
+
+def _is_transient_file(p: Path) -> bool:
+    # `.coverage` by prefix, not equality: `coverage combine` writes shards named
+    # `.coverage.<host>.<pid>.<random>`, whose suffix is the random component.
+    return (
+        p.name in _TRANSIENT_FILE_NAMES
+        or p.name.startswith(".coverage")
+        or p.suffix in _TRANSIENT_FILE_SUFFIXES
+    )
+
+
+def _prune(dp: Path, dirnames: list[str]) -> None:
+    """Drop symlinked and build-residue directories from an `os.walk` descent.
+
+    Mutates `dirnames` in place — that is how `os.walk` is told not to descend.
+    """
+    dirnames[:] = [
+        dn for dn in dirnames
+        if dn not in _TRANSIENT_DIRS and not (dp / dn).is_symlink()
+    ]
+
 
 # Path-safety pattern for --bundle/--release/--channel flag values.
 _SAFE_NAME_RE = re.compile(r"^[A-Za-z0-9\-._]+$")
@@ -111,17 +157,22 @@ def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Pat
                     f"contain path traversal components"
                 )
             d = root / entry
-            if not d.is_dir():
+            if not d.is_dir() or d.is_symlink():
                 raise ValueError(
                     f"pack_include entry {entry!r} does not exist on disk at {d}"
                 )
+            if Path(entry).name in _TRANSIENT_DIRS:
+                raise ValueError(
+                    f"pack_include entry {entry!r} names build residue; "
+                    f"it is never packaged"
+                )
             for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
                 dp = Path(dirpath)
+                _prune(dp, dirnames)
                 for fname in filenames:
                     p = dp / fname
-                    if p.is_file() and not p.is_symlink():
+                    if p.is_file() and not p.is_symlink() and not _is_transient_file(p):
                         collected.append(p)
-                dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
         for dir_parts in _DEFAULT_INCLUDE_DIRS:
             if dir_parts[0] == "packs":
                 continue
@@ -133,15 +184,12 @@ def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Pat
                 dp = Path(dirpath)
                 for fname in filenames:
                     p = dp / fname
-                    if p.is_file() and not p.is_symlink():
+                    if p.is_file() and not p.is_symlink() and not _is_transient_file(p):
                         collected.append(p)
+                _prune(dp, dirnames)
                 if is_catalogue_root and dp == d:
-                    dirnames[:] = [
-                        dn for dn in dirnames
-                        if not dn.startswith("_") and not (dp / dn).is_symlink()
-                    ]
-                else:
-                    dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+                    # Reserved authoring dirs, at the catalogue root only.
+                    dirnames[:] = [dn for dn in dirnames if not dn.startswith("_")]
     else:
         for dir_parts in _DEFAULT_INCLUDE_DIRS:
             d = root.joinpath(*dir_parts)
@@ -152,16 +200,12 @@ def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Pat
                 dp = Path(dirpath)
                 for fname in filenames:
                     p = dp / fname
-                    if p.is_file() and not p.is_symlink():
+                    if p.is_file() and not p.is_symlink() and not _is_transient_file(p):
                         collected.append(p)
-                # At packs/ and profiles/ root level, exclude reserved authoring dirs.
+                _prune(dp, dirnames)
                 if is_catalogue_root and dp == d:
-                    dirnames[:] = [
-                        dn for dn in dirnames
-                        if not dn.startswith("_") and not (dp / dn).is_symlink()
-                    ]
-                else:
-                    dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+                    # Reserved authoring dirs, at the catalogue root only.
+                    dirnames[:] = [dn for dn in dirnames if not dn.startswith("_")]
 
     for fname in _DEFAULT_INCLUDE_ROOT_FILES:
         p = root / fname
@@ -226,17 +270,27 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
             if candidate.exists() and candidate.is_symlink():
                 return f"error: symlink not allowed: {candidate}"
 
-    # 4. Symlink walk inside allowlisted dirs
+    # 4. Symlink walk inside allowlisted dirs.
+    #    Scoped to what the archive actually collects. Build residue is pruned
+    #    the same way `_scan_content` prunes it — otherwise a real `node_modules`
+    #    (whose `.bin/` is always symlinks) or a virtualenv aborts packaging for
+    #    files that were never going to ship.
     for dir_parts in _DEFAULT_INCLUDE_DIRS:
         d = root.joinpath(*dir_parts)
         if not d.is_dir() or d.is_symlink():
             continue
         for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
             dp = Path(dirpath)
+            # Check *before* pruning: `_prune` drops symlinked directories, and
+            # a symlinked directory in authored content is precisely what this
+            # step exists to reject. Only build residue is skipped.
             for entry in list(dirnames) + list(filenames):
                 full = dp / entry
+                if entry in _TRANSIENT_DIRS or _is_transient_file(full):
+                    continue
                 if full.is_symlink():
                     return f"error: symlink not allowed: {full}"
+            _prune(dp, dirnames)
 
     # 5. Hard-link detection (POSIX only)
     for p in content_paths:
@@ -260,6 +314,8 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
             continue
         if pack_dir.name.startswith("_"):
             continue
+        if pack_dir.name in _TRANSIENT_DIRS:
+            continue  # build residue, not a pack — and not in the archive
         pack_toml_path = pack_dir / "pack.toml"
         try:
             pack_data = load_pack_toml(pack_toml_path)
@@ -771,10 +827,10 @@ def package_source_flavour(
         if d.is_dir() and not d.is_symlink():
             for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
                 dp = Path(dirpath)
-                dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+                _prune(dp, dirnames)
                 for fname in filenames:
                     fp = dp / fname
-                    if fp.is_file() and not fp.is_symlink():
+                    if fp.is_file() and not fp.is_symlink() and not _is_transient_file(fp):
                         collected.append(fp)
 
     # guides/_shared/
@@ -782,10 +838,10 @@ def package_source_flavour(
     if guides_shared.is_dir() and not guides_shared.is_symlink():
         for dirpath, dirnames, filenames in os.walk(str(guides_shared), followlinks=False):
             dp = Path(dirpath)
-            dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
+            _prune(dp, dirnames)
             for fname in filenames:
                 fp = dp / fname
-                if fp.is_file() and not fp.is_symlink():
+                if fp.is_file() and not fp.is_symlink() and not _is_transient_file(fp):
                     collected.append(fp)
 
     # .claude-plugin/marketplace.json

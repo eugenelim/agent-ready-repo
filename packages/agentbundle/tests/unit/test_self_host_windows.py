@@ -20,17 +20,11 @@ class FakeResult:
 def fake_root(tmp_path: Path) -> Path:
     """Minimal directory structure run_windows_compat expects."""
     (tmp_path / "packages" / "agentbundle").mkdir(parents=True)
-    (tmp_path / "packs" / "atlassian" / ".apm" / "skills" / "jira" / "scripts").mkdir(
-        parents=True
-    )
+    # Pack tests live outside the runtime payload (ADR-0071), so the SSO steps'
+    # cwds are the pack's test tree, not the skill's scripts/.
+    (tmp_path / "packs" / "atlassian" / "tests" / "skills" / "jira").mkdir(parents=True)
     (
-        tmp_path
-        / "packs"
-        / "atlassian"
-        / ".apm"
-        / "skills"
-        / "confluence-crawler"
-        / "scripts"
+        tmp_path / "packs" / "atlassian" / "tests" / "skills" / "confluence-crawler"
     ).mkdir(parents=True)
     (tmp_path / "tools" / "hooks").mkdir(parents=True)
     return tmp_path
@@ -49,7 +43,14 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
     ):
         rc = run_windows_compat(fake_root)
     assert rc == 0
-    assert len(calls) == 14, f"Expected 14 steps, got {len(calls)}"
+    assert len(calls) == 15, f"Expected 15 steps, got {len(calls)}"
+    # The SSO trios importorskip("credbroker") at module scope and _step
+    # judges by return code alone, so the probe is what stops a missing
+    # dependency from skipping both suites and reporting pass. Pin it by
+    # shape, not only by the count above.
+    assert any(
+        cmd[1:] == ["-c", "import credbroker, httpx"] for cmd, _ in calls
+    ), "the atlassian SSO dependency probe must run"
 
 
 def test_stops_on_first_failure(fake_root: Path) -> None:
@@ -145,20 +146,12 @@ def test_atlassian_steps_use_correct_cwd(fake_root: Path) -> None:
         run_windows_compat(fake_root)
 
     cwds = [str(cwd) for _, cwd in calls]
-    jira_cwd = str(
-        fake_root / "packs" / "atlassian" / ".apm" / "skills" / "jira" / "scripts"
-    )
+    jira_cwd = str(fake_root / "packs" / "atlassian" / "tests" / "skills" / "jira")
     confluence_cwd = str(
-        fake_root
-        / "packs"
-        / "atlassian"
-        / ".apm"
-        / "skills"
-        / "confluence-crawler"
-        / "scripts"
+        fake_root / "packs" / "atlassian" / "tests" / "skills" / "confluence-crawler"
     )
-    assert jira_cwd in cwds, "jira scripts/ must be a step cwd"
-    assert confluence_cwd in cwds, "confluence-crawler scripts/ must be a step cwd"
+    assert jira_cwd in cwds, "jira test tree must be a step cwd"
+    assert confluence_cwd in cwds, "confluence-crawler test tree must be a step cwd"
 
 
 def test_windows_flag_requires_check_via_cli() -> None:

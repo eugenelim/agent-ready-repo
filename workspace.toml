@@ -678,17 +678,6 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "curation-guard-silent-base-skip", source = "spec/local-gate-ci-parity review"},
 
-  # `package.py` defines `_IMPLICIT_DENY_DIRS` (including `__pycache__`) and then
-  # never references it, so compiled caches reach the packaged archive. Only
-  # `.apm/` scripts cached before; pytest suites under `packs/<pack>/tests/`
-  # cache on every run, so anyone running `make test` before `make package`
-  # now ships `.pyc` routinely. The boundary policy this PR adds says caches are
-  # "neither committed nor packaged" — currently untrue for packaging.
-  # Fix: prune `_IMPLICIT_DENY_DIRS` from `dirnames` in package.py's three
-  #   os.walk loops; add an archive-contents assertion. Needs an agentbundle release.
-  # Unblocks when: picked up — no dependency.
-  {slug = "package-archive-carries-pycache", source = "spec/pack-test-boundary review"},
-
   # `verify.py:_step_version_parity` probes `pack_dir / "plugin.json"`, but
   # every pack keeps it at `pack_dir / ".claude-plugin" / "plugin.json"`, so the
   # CAT-V-005 parity check silently no-ops. A pack.toml bump without the
@@ -699,18 +688,64 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "version-parity-probes-wrong-path", source = "spec/pack-test-boundary review"},
 
-  # Tests in the other packs still live under `.apm/skills/*/scripts/`, against
-  # the boundary documented in catalogue-authoring-standards.md § 4 and decided
-  # in ADR-0071. Core and product-documentation were migrated; the rest were
-  # deferred by explicit direction. Two pack-subject suites also remain in
-  # `packages/agentbundle/tests/unit/`: `test_research_retrievers_conformance.py`
-  # (desk-research) and `test_credential_setup_skill.py` (credential-brokers).
-  # Evals are NOT part of this — `.apm/skills/<skill>/evals/` is the decided,
-  # linter-enforced layout; do not move them.
-  # The boundary test is core-scoped, so nothing stops a new pack regressing.
-  # Fix: migrate per pack, then add a lint refusing `test*` under `.apm/`.
-  # Unblocks when: picked up — no dependency.
-  {slug = "pack-test-boundary-remaining-packs", source = "spec/pack-test-boundary Boundaries"},
+  # ADRs have no errata mechanism. `docs/CONVENTIONS.md` freezes the body, the
+  # shipped new-adr template says only the Status line moves, and the `## Errata`
+  # convention is RFC-scoped in new-rfc. So ADR-0071 permanently names a file the
+  # pack-test-boundary work deleted (`packs/core/tests/pack/test-runtime-boundary.py`,
+  # line 74) and says the migration is partial when it is complete. Two other
+  # frozen records carry the same staleness. Fix: extend the errata convention to
+  # ADRs — amend new-adr's SKILL.md and template plus CONVENTIONS.md, bump
+  # governance-extras, then file the ADR-0071 erratum. A governance change, so it
+  # wants its own PR. Unblocks when: picked up.
+  {slug = "adr-errata-convention", source = "spec/pack-test-boundary-remaining-packs review"},
+
+  # Fixtures that now sit in archived pack test trees use fabricated addresses at
+  # *registered* domains (`corp.com`, `x.com`) rather than RFC 2606 reserved ones,
+  # which catalogue-authoring-standards.md § 4 and CLAUDE.md § Privacy both ask
+  # for. No credential or real personal data — reviewed file by file in
+  # docs/specs/pack-test-boundary-remaining-packs/notes/suite-parity.md § 3. Not
+  # fixed inline because `corp.com` appears in both msg_fixtures.py and the
+  # byte-compared msgreader_baseline.json that test_parity.py asserts against, so
+  # a half-applied rename reds the suite. Fix: rename and regenerate the baseline
+  # in one commit. Unblocks when: picked up.
+  {slug = "test-fixture-domain-normalisation", source = "spec/pack-test-boundary-remaining-packs AC5a"},
+
+  # The repo has no CI for JavaScript that lives in a pack. `web/` and
+  # `docs-site/` are covered — pages.yml and pack-evals.yml run npm, and both
+  # ship committed lockfiles — but `packs/converters/.apm/skills/render-proof/`
+  # and `.../markdown-to-html/` each declare dependencies with no lockfile and no
+  # workflow. So the three suites at
+  # `packs/converters/tests/skills/render-proof/` have never run in CI. They are
+  # not dead: all three pass locally after `npm install` in the skill, and
+  # security.test.js covers validateInputPath/validateOutputPath path
+  # confinement, which nothing else asserts.
+  # Deliver: a JS workflow for pack skills — setup-node, `npm ci` per skill
+  #   package.json, run the suites; committed lockfiles for both skills;
+  #   `npm audit` wired, since neither has any supply-chain gate today
+  #   (render-proof declares nine floating-caret deps, one being the `dompurify`
+  #   its own sanitizer assertions test).
+  # Then drop the two render-proof entries from `_NO_RUNNER` in
+  #   tools/lint-pack-test-boundary.py — the lint fails on a stale exemption, so
+  #   it will tell you.
+  # Unblocks when: picked up — but read this first. agentbundle 0.29.5 fixed the
+  #   packaging half: both archive flavours now prune node_modules and the cache
+  #   dirs, and `catalogue package` no longer aborts on a real node_modules
+  #   (whose .bin/ is all symlinks). The *cost* half is untouched — agentbundle's
+  #   integration tests `shutil.copytree` the whole `packs/` tree into temp dirs,
+  #   so ~10k installed files still slow that suite by an order of magnitude.
+  #   Either scope the install to a CI job that does not run those tests, or fix
+  #   the copytree to prune too.
+  {slug = "pack-js-ci-workflow", source = "spec/pack-test-boundary-remaining-packs disposition"},
+
+  # lint-spec-status.py matches `^##\s+Acceptance Criteria\b` case-sensitively, so
+  # eight specs whose heading reads `## Acceptance criteria` collect zero criteria
+  # and their AC-completeness invariant (ii) has always passed vacuously — the
+  # pack-test-boundary predecessor among them. Three more specs carry no
+  # Acceptance-Criteria heading at all, which the casing fix would not close:
+  # eleven ungated in total. Fix: decide whether the matcher should be
+  # case-insensitive and whether a spec with no criteria section should fail
+  # loudly, then correct the headings. Unblocks when: picked up.
+  {slug = "spec-ac-heading-casing-silent-gate", source = "spec/pack-test-boundary-remaining-packs review"},
 
   # Phase-1 residue from the packages/ marker sweep: the marker sites that are
   # asserted on verbatim. The set itself is enumerated once, in
@@ -1517,6 +1552,7 @@ backlog = []
 ["ini-007".work]
 active  = []
 shipped = [
+  "spec/pack-test-boundary-remaining-packs",  # completes ADR-0071 — no pack ships tests in its runtime payload
   "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate
   "spec/catalogue-wave2-pack-integrations",     # 0.27.0 — D6 integrations schema + verifier + show + pilots + hub
 ]

@@ -88,8 +88,9 @@ test suite into adopter trees.
       what happened during this change.
       `test_research_retrievers_conformance.py` (desk-research) and
       `test_credential_setup_skill.py` (credential-brokers) are the same shape
-      and remain, with the rest of the per-pack migration
-      (deferred: pack-test-boundary-remaining-packs).
+      and remain, with the rest of the per-pack migration — since completed by
+      `docs/specs/pack-test-boundary-remaining-packs/`, which also found a third
+      suite of that shape.
 
 - [x] **AC14** — The boundary is mechanically enforced: a regression test fails
       when test content appears under `packs/core/.apm/` or in a projected core

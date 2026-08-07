@@ -156,17 +156,51 @@ credentials or private data, prefer synthetic data, stay modest in size, and
 name their licence when sourced externally. Fuzzing corpora, generated output,
 coverage reports, and caches are neither committed nor packaged.
 
+The packager enforces the second half. It prunes these directory names at every
+level of a pack, and never descends into them:
+
+```
+__pycache__  .pytest_cache  .mypy_cache  .ruff_cache  .tox
+.hypothesis  htmlcov  node_modules  .venv  venv
+```
+
+plus `*.pyc`, `*.pyo`, `.DS_Store`, `coverage.xml`, and any `.coverage*` shard.
+A directory you mean to ship must not be named one of those — the drop is
+silent. Note this is matched by name at any depth, so it is deliberately *not*
+the same list as the repository-root exclusions.
+
 ### Repository-root tests
 
 A test concerning one pack stays inside that pack. Behaviour no single pack
 owns — the catalogue system, packaging, shared projection machinery, profiles,
 cross-pack interaction — belongs to the repository, not to a pack.
 
-Where that lives is the repository's call. This catalogue keeps it in the
-engine's own suite (`packages/agentbundle/tests/`) rather than a root `tests/`
-tree; a catalogue that wants the separate tree can add one. Don't create a
-top-level directory for a single test — the ownership rule is what matters,
-not the path.
+Where that lives is the repository's call. This catalogue splits it: behaviour
+that exercises the engine keeps to the engine's own suite
+(`packages/agentbundle/tests/`), while cross-pack *lints* — the ones that read
+every pack's tree and belong to no pack — live with the repository's other
+tooling. Neither is a root `tests/` tree; a catalogue that wants the separate
+tree can add one. Don't create a top-level directory for a single test — the
+ownership rule is what matters, not the path.
+
+### One test process per skill
+
+Run each skill's suite in its own process. This is a correctness requirement,
+not a performance preference.
+
+Skills are independent, so two of them may reasonably ship a `render.py`, and
+their suites may both be called `test_render.py`. Collect them into one pytest
+run and two things break: pytest refuses the duplicate test basenames outright
+(`import file mismatch`), and if it did not, the first `render` module imported
+would serve every suite that expects its own.
+
+```
+pytest packs/<pack>/tests/skills/<skill>/     # one invocation per skill
+```
+
+An invocation that spans two skill test directories is safe only while their
+basenames happen not to collide — which is a property of today's contents, not
+of the layout. Keep the invocations separate and the question never arises.
 
 ### Normative summary
 

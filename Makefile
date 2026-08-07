@@ -243,11 +243,23 @@ lint-mypy:
 	$(PYTHON) tools/lint-mypy.py
 
 # Dev-time Python deps beyond agentbundle: jsonschema>=4.0, PyYAML  (see tools/requirements.txt)
-# Core package + tools tests. Full CI test matrix (38 suites) runs on GitHub Actions.
+# Core package + tools tests. The full CI test matrix runs on GitHub Actions.
+#
+# Do NOT collapse the pack-test lines into `pytest packs/*/tests/`. Pack test
+# suites share basenames across skills (several `test_render.py`,
+# `test_exit_codes.py`, `test_next_ordinal.py`), and so do the modules they
+# import — three skills ship a `render.py`, two ship a byte-identical
+# `ssrf_check.py`. pytest refuses the duplicate test basenames outright, and a
+# sys.path-based sibling import would bind the first `render` for all three
+# renderers. One process per skill test directory is a correctness requirement,
+# not a style choice; see catalogue-authoring-standards.md § 4.
 test:
 	$(PYTHON) -m pytest packages/agentbundle/tests/ packages/agentbundle/agentbundle/build/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
 	$(PYTHON) -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
+	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::' || true); \
+	 if [ "$$n" -lt 16 ]; then echo "packs/desk-research/tests/ collected $$n, expected >= 16" >&2; exit 1; fi
+	$(PYTHON) -m pytest packs/desk-research/tests/ -q
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_build_site_routing.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 

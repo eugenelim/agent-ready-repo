@@ -6,6 +6,50 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.29.5] - 2026-08-06
+
+### Changed
+
+- `catalogue self-host --windows` runs the atlassian SSO suites from the packs'
+  test trees rather than the skills' `scripts/` directories, and probes
+  `credbroker` and `httpx` before doing so. Both suites `importorskip` at module
+  scope and the step runner judges by return code alone, so without the probe a
+  machine missing either dependency skipped both suites and reported pass.
+- Three suites whose subject was pack content left the package's own test tree
+  for the owning pack: the desk-research retriever-conformance and
+  project-start elicitation checks, and the credential-setup skill-body check.
+  A pack edit could otherwise turn the published package's suite red. Engine
+  tests that use a pack as fixture data are unaffected — the distinction is
+  subject, not mention.
+
+### Fixed
+
+- **`catalogue package` no longer puts build residue in the archive.** Both
+  flavours walk `packs/**` recursively, and the deny-set that was meant to stop
+  this was referenced nowhere — so `__pycache__` from any `pytest` run, and
+  `node_modules` from any `npm install` in a skill that ships a `package.json`,
+  were collected verbatim. On this repository that is 104 files. The walks now
+  prune `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`,
+  `node_modules`, `.venv`, `venv` and `htmlcov` at every level, plus stray
+  `.pyc`/`.pyo`, `.DS_Store` and `.coverage` files.
+
+  Validation was fixed alongside collection. The symlink check walked the same
+  trees and refused the first symlink anywhere, and a real `node_modules/.bin/`
+  is entirely symlinks — so pruning collection alone would have left
+  `catalogue package` aborting on exactly the tree it was meant to handle. The
+  pack-discovery step no longer treats a `packs/__pycache__/` as a pack either.
+
+  The old set could not simply be applied: it also listed `.git`, `tools`,
+  `packages` and `dist`, which are *repository-root* names already excluded by
+  the include allowlist. Pruning those at every level would have dropped real
+  content — `packs/monorepo-extras/seeds/packages/` is exactly that case, and
+  there is a regression test for it.
+
+No flag, verb, exit code, or schema changed. Archive *contents* do change: an
+archive built from a tree that has been tested or npm-installed is now smaller,
+and matches what `catalogue-authoring-standards.md` § 4 has always told adopters
+it contains.
+
 ## [Unreleased]
 
 ## [0.29.4] — 2026-08-06

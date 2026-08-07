@@ -19,6 +19,7 @@ from agentbundle.catalogue_tooling.package import (
     _check_required_files,
     _generate_manifest,
     _scan_content,
+    _validate_content,
     _write_archive,
     package_catalogue,
 )
@@ -466,7 +467,13 @@ def test_archive_layout_no_wrapper_directory(tmp_path: Path) -> None:
 
 
 def test_denied_dirs_not_in_archive(tmp_path: Path) -> None:
-    """Denied directories are excluded even if present in root."""
+    """Denied directories are excluded even if present in root.
+
+    Note what this does *not* prove: these names are excluded because
+    `_DEFAULT_INCLUDE_DIRS` is an allowlist that never walks them, not because
+    any deny-set is applied. Build residue *nested inside* an included root is a
+    separate question — see `test_transient_dirs_pruned_inside_included_roots`.
+    """
     root = _make_catalogue(tmp_path)
     # Add stub files at denied paths
     for denied in [".git", "tools", "packages", "dist", "__pycache__"]:
@@ -489,6 +496,135 @@ def test_denied_dirs_not_in_archive(tmp_path: Path) -> None:
     for denied in [".git/", "tools/", "packages/", "dist/", "__pycache__/"]:
         for name in names:
             assert not name.startswith(denied), f"denied path found in archive: {name}"
+
+
+def test_transient_dirs_pruned_inside_included_roots(tmp_path: Path) -> None:
+    """Build residue nested inside a walked root never reaches the archive.
+
+    The root-level check above passes on the allowlist alone. This is the case
+    that was open: `packs/**` is walked recursively, so a `__pycache__` from any
+    `pytest` run and a `node_modules` from any `npm install` were collected
+    verbatim. `catalogue-authoring-standards.md` § 4 tells adopters caches are
+    "neither committed nor packaged"; this is what makes the second half true.
+
+    Asserted through the real archive, not through `_scan_content`. Collection is
+    only half of it — `_validate_content` runs in between and refuses the first
+    symlink it finds anywhere, and a real `node_modules/.bin/` is all symlinks.
+    Testing the collection list alone would miss that.
+    """
+    root = _make_catalogue(tmp_path)
+    pack = root / "packs" / "core"
+
+    (pack / "__pycache__").mkdir()
+    (pack / "__pycache__" / "convert.cpython-313.pyc").write_bytes(b"\x00")
+
+    # A *realistic* node_modules: `.bin/` entries are symlinks, always.
+    (pack / "node_modules" / "dompurify").mkdir(parents=True)
+    (pack / "node_modules" / "dompurify" / "index.js").write_text(
+        "module.exports = {}\n", encoding="utf-8", newline="\n")
+    (pack / "node_modules" / ".bin").mkdir()
+    Path(pack / "node_modules" / ".bin" / "dompurify").symlink_to("../dompurify/index.js")
+
+    # Residue directly under packs/ — step 7 iterates that directory looking for
+    # packs and used to report `invalid pack.toml` for it.
+    (root / "packs" / "__pycache__").mkdir()
+    (root / "packs" / "__pycache__" / "stale.pyc").write_bytes(b"\x00")
+
+    # Every remaining name in the two sets, so a typo in either is visible.
+    from agentbundle.catalogue_tooling.package import (
+        _TRANSIENT_DIRS,
+        _TRANSIENT_FILE_SUFFIXES,
+    )
+    for name in sorted(_TRANSIENT_DIRS):
+        d = pack / name
+        d.mkdir(exist_ok=True)
+        (d / "residue.txt").write_text("x\n", encoding="utf-8", newline="\n")
+    (pack / "scripts").mkdir()
+    (pack / "scripts" / "convert.py").write_text(
+        "x = 1\n", encoding="utf-8", newline="\n")
+    for suffix in _TRANSIENT_FILE_SUFFIXES:
+        (pack / "scripts" / f"stray{suffix}").write_bytes(b"\x00")
+    (pack / "scripts" / ".DS_Store").write_bytes(b"\x00")
+    (pack / "scripts" / "coverage.xml").write_text(
+        "<x/>\n", encoding="utf-8", newline="\n")
+    # `coverage combine` shard: `.suffix` is the random component, not `.coverage`.
+    (pack / "scripts" / ".coverage.host.1234.5678").write_text(
+        "x\n", encoding="utf-8", newline="\n")
+
+    # A real directory whose *name* collides with a repo-root deny name. Pruning
+    # the old `_IMPLICIT_DENY_DIRS` at every level — the obvious fix — would have
+    # silently dropped this; `packs/monorepo-extras/seeds/packages/` is the live
+    # instance.
+    (pack / "seeds" / "packages").mkdir(parents=True)
+    (pack / "seeds" / "packages" / "README.md").write_text(
+        "# seeded\n", encoding="utf-8", newline="\n")
+
+    output = tmp_path / "out"
+    with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
+    assert result.ok, f"packaging refused a tree with build residue: {result}"
+
+    archive = output / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    with tarfile.open(fileobj=io.BytesIO(archive.read_bytes()), mode="r:gz") as tf:
+        names = set(tf.getnames())
+
+    for name in sorted(_TRANSIENT_DIRS):
+        assert f"packs/core/{name}/residue.txt" not in names, (
+            f"build residue reached the archive: {name}/")
+    for gone in ("packs/core/__pycache__/convert.cpython-313.pyc",
+                 "packs/core/node_modules/dompurify/index.js",
+                 "packs/__pycache__/stale.pyc",
+                 "packs/core/scripts/.DS_Store",
+                 "packs/core/scripts/coverage.xml",
+                 "packs/core/scripts/.coverage.host.1234.5678"):
+        assert gone not in names, f"build residue reached the archive: {gone}"
+    for suffix in _TRANSIENT_FILE_SUFFIXES:
+        assert f"packs/core/scripts/stray{suffix}" not in names
+
+    assert "packs/core/scripts/convert.py" in names
+    assert "packs/core/seeds/packages/README.md" in names, (
+        "a real directory named `packages` was pruned — the deny set must not be "
+        "applied below the repository root"
+    )
+
+
+def test_authored_symlink_still_refused(tmp_path: Path) -> None:
+    """Pruning residue must not weaken the symlink refusal on real content.
+
+    `_prune` now owns symlink filtering for every collection walk, and the
+    validation walk skips residue — so the rejection has to be shown to still
+    fire for a symlink in authored content.
+    """
+    root = _make_catalogue(tmp_path)
+    pack = root / "packs" / "core"
+    Path(pack / "alias.toml").symlink_to("pack.toml")
+
+    err = _validate_content(root.resolve(), _scan_content(root.resolve()))
+    assert err is not None and "symlink not allowed" in err, err
+
+
+def test_symlinked_dir_below_root_is_pruned(tmp_path: Path) -> None:
+    """A symlinked directory nested below the walk root is not descended into.
+
+    Collection prunes it; validation still *rejects* it — see
+    `test_package_catalogue.py::test_validate_content_symlink_dir_rejected`.
+    Both must hold, and the order inside the validation walk is what makes that
+    possible: the symlink check runs before `_prune` removes the entry, or the
+    rejection silently stops firing.
+    """
+    root = _make_catalogue(tmp_path)
+    pack = root / "packs" / "core"
+    (pack / "real").mkdir()
+    (pack / "real" / "kept.md").write_text("x\n", encoding="utf-8", newline="\n")
+    (pack / "nested").mkdir()
+    Path(pack / "nested" / "link").symlink_to("../real")
+
+    rels = {p.relative_to(root.resolve()).as_posix()
+            for p in _scan_content(root.resolve())}
+    assert "packs/core/real/kept.md" in rels
+    assert not any("nested/link" in r for r in rels)
 
 
 # ---------------------------------------------------------------------------
