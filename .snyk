@@ -23,12 +23,18 @@
 #
 # Likely first candidates (ADR-0017): Snyk Code keys its weak-hash rule on the
 # `hashlib.sha1(...)` call, not on the `usedforsecurity=False` kwarg, so it may
-# still flag the two NON-security SHA-1 digests our gate already cleared:
+# still flag NON-security SHA-1 digests our own gate already cleared:
 #   - packages/agentbundle/agentbundle/config.py  (8-char derivation cache key)
-#   - packs/core/.apm/skills/work-loop/scripts/loop-cohort.py  (review fingerprint)
-# Both are documented non-security digests (see their docstrings); changing the
-# algorithm would diverge from documented spec/skill contracts. If the org scan
-# flags them, accept here with the Snyk-assigned ID — do not change the code.
+# That one is a documented non-security digest (see its docstring). If the org
+# scan flags it, accept here with the Snyk-assigned ID.
+#
+# RESOLVED (core 2.3.0): loop-cohort.py's review fingerprint was the second
+# candidate. Rather than suppress it we switched the digest to SHA-256 — the
+# fingerprints are opaque tokens compared set-wise for stasis detection, so the
+# change is behaviour-preserving, and a real fix satisfies Bandit, Semgrep AND
+# Snyk where a policy entry reaches only the last. That also removed the need
+# for the Semgrep sha1 rule exclusion to cover this file. Prefer this route
+# whenever the digest is genuinely non-security: ADR-0017 rung 1 beats rung 3.
 #
 # Worked example (commented — not active; replace with a real ID before use):
 #

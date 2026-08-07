@@ -35,7 +35,7 @@ write-second ordering.
 | `review_round_count` | Total review rounds (all outcomes), incremented by `review record --fingerprint`, `--report`, and `--all-skipped`. |
 | `review_retry_count` | Findings-only review rounds; incremented by `review record --fingerprint` only (not `--report` or `--all-skipped`). `check --phase review` exits non-zero when `review_retry_count >= max_review_retries`. |
 | `max_review_retries` | Cap. Default: `5`. |
-| `finding_fingerprints` | `sha1("<file>\|<line>\|<title>")` per finding in the last findings round. Written by `review record --fingerprint`; used for stasis detection via `review inspect`. |
+| `finding_fingerprints` | `sha256("<file>\|<line>\|<title>")` per finding in the last findings round. Written by `review record --fingerprint`; used for stasis detection via `review inspect`. |
 | `previous_finding_fingerprints` | `finding_fingerprints` from the round before last. Rotated atomically with `finding_fingerprints` by `review record`. |
 | `auto_parallel` | Always `false` in Phase 1; `dispatch-decision` and `auto-parallel` verbs are disabled. |
 | `last_commit_sha` | Latest commit SHA (informational; set externally). |

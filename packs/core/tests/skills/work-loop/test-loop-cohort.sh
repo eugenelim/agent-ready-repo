@@ -398,7 +398,12 @@ fi
 
 # ── review record ────────────────────────────────────────────────────────
 
-# --fingerprint path: increments both counters
+# --fingerprint path: increments both counters.
+# NOTE: this fixture is sequential and the counters accumulate — a new
+# `review record` case inserted here shifts every downstream count assertion.
+# Fingerprint-width coverage lives in test-fingerprint-width.py instead.
+# 40-hex (SHA-1) is the legacy width, still accepted so a cohort that was
+# mid-review when core upgraded to SHA-256 can finish.
 run_and_check "review-record-fingerprint" 0 "" -- $PY review record "$SPEC1" --fingerprint "aabbccdd112233445566778899001122334455aa" --expect-run-id "$RUN_ID"
 
 ran=$((ran + 1))

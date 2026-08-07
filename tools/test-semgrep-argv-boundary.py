@@ -60,8 +60,14 @@ def fail(name: str, reason: str) -> None:
     print(f"FAIL [{name}]: {reason}", file=sys.stderr)
 
 
-def scan(target: Path) -> list[dict]:
-    """Run the rule over `target`; return its findings."""
+def scan(target: Path) -> tuple[list[dict], list[str]]:
+    """Run the rule over `target`; return (findings, files_actually_scanned).
+
+    `scanned` is returned alongside the findings because zero findings is an
+    ambiguous result: it means both "the rule ran and the file is clean" and
+    "the rule's paths.include excluded the file entirely". Asserting on
+    findings alone lets a paths.include regression pass as success.
+    """
     proc = subprocess.run(
         [
             "semgrep", "--config", str(RULE),
@@ -76,12 +82,13 @@ def scan(target: Path) -> list[dict]:
     )
     if not proc.stdout.strip():
         raise RuntimeError(f"semgrep produced no output for {target} — stderr: {proc.stderr}")
-    return json.loads(proc.stdout)["results"]
+    payload = json.loads(proc.stdout)
+    return payload["results"], list(payload.get("paths", {}).get("scanned", []))
 
 
 def test_positive_fixture_fires() -> None:
     name = "positive fixture fires exactly once"
-    hits = scan(FIXTURES / "positive.py")
+    hits, _ = scan(FIXTURES / "positive.py")
     if len(hits) != 1:
         fail(name, f"expected 1 finding, got {len(hits)}: {[h['start']['line'] for h in hits]}")
     else:
@@ -90,7 +97,7 @@ def test_positive_fixture_fires() -> None:
 
 def test_negative_fixture_silent() -> None:
     name = "negative fixture is silent (validator + is_relative_to exemplar)"
-    hits = scan(FIXTURES / "negative.py")
+    hits, _ = scan(FIXTURES / "negative.py")
     if hits:
         lines = [h["start"]["line"] for h in hits]
         fail(name, f"expected 0 findings, got {len(hits)} at lines {lines}")
@@ -104,8 +111,14 @@ def test_fixed_scripts_silent() -> None:
         if not script.is_file():
             fail(name, f"subject not found at {script} — path drifted?")
             continue
-        hits = scan(script)
-        if hits:
+        hits, scanned = scan(script)
+        # Order matters: prove the rule REACHED the file before trusting its
+        # silence. Dropping this path from the rule's paths.include also
+        # yields zero findings, so a findings-only assertion would stay green
+        # while the ratchet covered nothing.
+        if not scanned:
+            fail(name, "rule did not scan this file — check paths.include in the rule")
+        elif hits:
             lines = [h["start"]["line"] for h in hits]
             fail(name, f"expected 0 findings, got {len(hits)} at lines {lines}")
         else:

@@ -1,6 +1,6 @@
 # Plan: boundary validation for CLI path arguments in shipped work-loop scripts
 
-- **Status:** Approved
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Constraints
@@ -62,11 +62,15 @@ pattern. Leave `_within`/`_confined` untouched — they remain the real control.
 ### T4 — `--report` boundary in `loop-cohort.py`
 **Depends on:** T1
 **Mode:** TDD
-**Tests:** T1 suite extended for a nonexistent `--report`.
-**Approach:** both sites (`:1083`, `:1147`) call one shared helper. `--report`
-names a file, not a directory — assert file-ness, not dir-ness. Do not disturb
-the SHA-1 fingerprint logic (`:1003–1027`); it is out of scope here.
-**Traces to:** AC3, AC6
+**Tests:** `test-root-validation.py` asserts `classification == "invalid"` at
+exit 0 for a missing report — see the amended AC3.
+**Approach:** both sites call one shared `_resolved_report()`. **Revised during
+EXECUTE:** normalise-only, not file-ness assertion — `_classify_report` returns
+`invalid` for an unreadable report and SKILL.md defines that as a Surface
+signal, so raising would convert a defined outcome into an operational error.
+The `resolve()` is wrapped against `ValueError` (embedded null) so it does not
+become a raising site itself.
+**Traces to:** AC3
 
 ### T5 — Semgrep boundary rule + fixtures
 **Depends on:** T2, T3, T4
@@ -85,8 +89,8 @@ name the expansion condition.
 **Depends on:** T5
 **Mode:** Goal-based
 **Done when:** three-file version bump greps clean; `make build-self` run and
-`git status` clean afterwards; CHANGELOG `[Unreleased]` entry present;
-three backlog slugs parse out of `workspace.toml`.
+`git status` clean afterwards; changelog entry present; every backlog slug
+named by AC13 parses out of `workspace.toml` (count lives in AC13, not here).
 **Traces to:** AC11, AC12, AC13
 
 ### T7 — Real-invocation QA + full gates
@@ -117,7 +121,8 @@ all green.
 | Confine `--root` to a hardcoded prefix | Breaks the linter's documented purpose — `--root` *is* the scan scope. |
 | Extract a shared `pathsafe.py` across the four scripts | Skill scripts are standalone by design; no second consumer outside work-loop yet. Inline per file; extract when a real second caller appears. |
 | Build the YAML-merge so packs can ship `.snyk` | Large agentbundle change, wrong layer, and still needs each org to enable Consistent Ignores. Backlogged. |
-| Change SHA-1 → SHA-256 in `loop-cohort.py` while in the file | Separate concern with a state migration and a SKILL contract edit. Not this PR. |
+| ~~Change SHA-1 → SHA-256 in `loop-cohort.py`~~ | **Reversed on request during EXECUTE** — folded in as AC15 after confirming it cannot break the loop: fingerprints are opaque tokens compared set-wise between rounds, and `_RE_FINGERPRINT` accepts both widths so an in-flight cohort survives the upgrade. |
+| Convert `test-loop-cohort.sh` to Python in this PR | Raised during EXECUTE. Real portability defect (493 lines, ~20 bash-isms, unrunnable on Windows) but not urgent — `docs.yml:92` runs it on ubuntu and pack tests never install into adopter repos. Bundling a 51-case sequential port into a security fix would obscure both. Backlogged as `loop-cohort-shell-suite-to-python`. |
 
 ## Resolve-vs-surface disposition record
 

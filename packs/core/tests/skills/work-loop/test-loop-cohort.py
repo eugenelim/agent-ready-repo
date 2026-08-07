@@ -104,8 +104,14 @@ def write_plan(
     return p
 
 
-def _sha1(key: str) -> str:
-    return hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+def _fingerprint(key: str) -> str:
+    """Independent recomputation of the documented fingerprint algorithm.
+
+    Deliberately spelled out here rather than imported from loop-cohort, so a
+    change to the algorithm has to be made in two places and cannot slip
+    through as a tautology.
+    """
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
 
 
 def init_pair(tmp: Path, feature: str = "myfeature", mode: str = "code") -> tuple[Path, str]:
@@ -1536,7 +1542,7 @@ def test_clean_substring_constant(tmp: Path) -> None:
 
 
 def test_parse_findings_canonical_algorithm(tmp: Path) -> None:
-    """parse_findings must produce sha1('<file>|<line>|<title>') per finding."""
+    """parse_findings must produce sha256('<file>|<line>|<title>') per finding."""
     name = "parse-findings-algorithm"
     report = """\
 ## Blockers
@@ -1548,7 +1554,7 @@ def test_parse_findings_canonical_algorithm(tmp: Path) -> None:
         fail(name, f"expected 1 fingerprint; got {len(fps)}")
         return
     expected_key = "src/foo.py|99|**1. Bad thing.**"
-    expected_fp = hashlib.sha1(expected_key.encode("utf-8"), usedforsecurity=False).hexdigest()
+    expected_fp = hashlib.sha256(expected_key.encode("utf-8")).hexdigest()
     if fps[0] != expected_fp:
         fail(name, f"fingerprint mismatch: {fps[0]!r} != {expected_fp!r}")
     else:
@@ -1562,7 +1568,7 @@ def test_parse_findings_specialist_formats(tmp: Path) -> None:
     fe_report = "**1. Token drift.** src/styles.css:42. Lens: CSS. Fix: use token.\n"
     fps_fe = parse_findings(fe_report)
     fe_key = "src/styles.css|42|**1. Token drift.**"
-    fe_fp = hashlib.sha1(fe_key.encode("utf-8"), usedforsecurity=False).hexdigest()
+    fe_fp = hashlib.sha256(fe_key.encode("utf-8")).hexdigest()
     if len(fps_fe) != 1:
         fail(name, f"frontend-reviewer: expected 1 fingerprint; got {len(fps_fe)}")
         return
@@ -1576,7 +1582,7 @@ def test_parse_findings_specialist_formats(tmp: Path) -> None:
     )
     fps_exp = parse_findings(exp_report)
     exp_key = "Hero screen|0|**1. Incoherent contrast.**"
-    exp_fp = hashlib.sha1(exp_key.encode("utf-8"), usedforsecurity=False).hexdigest()
+    exp_fp = hashlib.sha256(exp_key.encode("utf-8")).hexdigest()
     if len(fps_exp) != 1:
         fail(name, f"experience-reviewer: expected 1 fingerprint; got {len(fps_exp)}")
         return

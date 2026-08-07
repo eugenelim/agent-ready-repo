@@ -1,6 +1,6 @@
 # Spec: boundary validation for CLI path arguments in shipped work-loop scripts
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (governance surface — ADR-0017 SAST gate; public-interface change — shipped pack scripts installed into adopter repos)
@@ -9,7 +9,7 @@
   - `packs/core/.apm/skills/work-loop/scripts/check-spec-status.py:72–80` — the in-repo exemplar of the target pattern
   - `tools/semgrep/env-path-taint.yml` — existing custom taint rule; this spec adds a sibling, does not modify it
 - **Contract:** none (script-internal; CLI surface unchanged)
-- **Shape:** fix
+- **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -21,10 +21,24 @@ Make the shipped `work-loop` scripts read CLI path arguments through a
 taint-based SAST engines running in *adopter* repositories stop reporting
 CWE-22/23 path-traversal findings against code we ship.
 
-This is a **scanner-legibility fix, not a vulnerability fix**. The scripts are
-already safe: every read under `--root` is re-confined through `_within()` /
-`_confined()`. The defect is that the confinement is *interprocedural and
-shaped as a list-comprehension filter*, which no taint engine follows.
+This is **mostly** a scanner-legibility fix, plus one genuine vulnerability
+found during review.
+
+`lint-traceability.py` was already safe: every read under `--root` is
+re-confined through `_within()` / `_confined()`, and the only defect is that
+the confinement is *interprocedural and shaped as a comprehension filter*,
+which no taint engine follows.
+
+**`lint-spec-status.py` had no confinement at all** — `grep -c "_within\|_confined"`
+returned 0 against 25 in its sibling. An earlier draft of this spec asserted the
+control covered both scripts; that was wrong and unverified. Review caught it,
+and it concealed a real traversal: `_CONTRACT_TOKEN_RE` admitted `.` and `/`, so
+a `- **Contract:** contracts/../../secret.json` header in an untrusted `spec.md`
+resolved outside `--root` and was read. Reproduced end-to-end — the target's
+presence changed the warning text, giving an existence oracle, plus a
+content-substring oracle via `"x-spec" in ctext`. `docs/architecture/security.md`
+declares `filesystem_read_untrusted` a boundary, so hostile repo content is in
+scope. This spec now also closes that.
 
 ## Why suppression is not available
 
@@ -163,19 +177,22 @@ The validator normalises and asserts directory-ness; it does not restrict
 
 ## Acceptance criteria
 
-- [ ] **AC1** — `lint-traceability.py` reads `--root` through `_validated_root()`; the resolve-and-check is in the same function as `parse_args()`.
-- [ ] **AC2** — `lint-spec-status.py` likewise.
-- [ ] **AC3** — `loop-cohort.py` reads `--report` through an equivalent boundary validator at both sites (1083, 1147).
-- [ ] **AC4** — `check-spec-status.py` is **unmodified**; its existing pattern is cited in the new helpers' docstrings as the reference.
-- [ ] **AC5** — CLI behaviour is unchanged for every valid input: same exit codes, same stdout, for a valid `--root`, an omitted `--root`, and a relative `--root`.
-- [ ] **AC6** — An invalid `--root` (nonexistent path, or a file rather than a directory) exits non-zero with a diagnostic naming the offending path, rather than raising a traceback.
-- [ ] **AC7** — A new Semgrep rule `tools/semgrep/argv-path-boundary.yml` fires on the pre-fix form and is silent on the post-fix form, proven by committed positive **and** negative fixtures.
-- [ ] **AC8** — That rule is scoped (`paths.include`) to the fixed scripts only — a ratchet, not a repo-wide sweep — with the 73-site figure and the expansion condition recorded in a rule comment.
-- [ ] **AC9** — `make sast` passes with the new rule loaded; no new findings in the existing gate.
-- [ ] **AC10** — Full existing test suite for `packs/core` work-loop scripts passes unchanged.
-- [ ] **AC11** — `packs/core` version bumped in all three required files (`pack.toml`, `plugin.json`, `marketplace.json`); projections re-synced via `make build-self`.
-- [ ] **AC12** — CHANGELOG `[Unreleased]` records the skill-script change.
-- [ ] **AC13** — Deferred items recorded in `workspace.toml [backlog].open`: `pack-argv-path-boundary-sweep`, `agentbundle-install-yaml-merge`, `codeql-required-check`, `sast-javascript-coverage`, `sast-cwe-delta-review`; and the `web/` decline recorded with its reason.
+- [x] **AC1** — `lint-traceability.py` reads `--root` through `_validated_root()`. **Corrected during review:** the helper is called *from* the function holding `parse_args()`, not inlined into it. The original wording ("in the same function") was not met and would not have been, since a module-local helper is the readable form. What matters is that the normalise-and-check is a single hop from the argv read rather than scattered across the call graph — but note this means OSS Semgrep still cannot connect them, and the check is existence/type, not containment. Assumption 2's confidence rests on Snyk being interprocedural, which it is.
+- [x] **AC2** — `lint-spec-status.py` likewise, **plus** the confinement it never had: `_within()`, `_confined()` and a size-guarded `_read()` ported from `lint-traceability.py`, applied at the spec glob, the contract join, and both reads; and `_CONTRACT_TOKEN_RE` tightened to reject `.`/`..` segments.
+- [x] **AC3** — `loop-cohort.py` reads `--report` through a shared boundary helper at both sites. **Amended during EXECUTE:** this helper is *normalise-only* (`_resolved_report()` — `Path(...).resolve()`), not a raising validator as originally drafted. `_classify_report` returns `invalid` for an unreadable report, and `SKILL.md` defines `invalid` as a Surface signal with `review inspect` exiting 0 for every report-content outcome; raising would convert a defined outcome into an operational error. The normalise still meets the spec's actual goal — putting the boundary next to the argv read, where a taint analyser can see it.
+- [x] **AC4** — `check-spec-status.py` is **unmodified**; its existing pattern is cited in the new helpers' docstrings as the reference.
+- [x] **AC5** — CLI behaviour is unchanged for every valid input: same exit codes, same stdout, for a valid `--root`, an omitted `--root`, and a relative `--root`.
+- [x] **AC6** — An invalid `--root` (nonexistent path, or a file rather than a directory) exits non-zero with a diagnostic naming the offending path, rather than raising a traceback.
+- [x] **AC7** — A new Semgrep rule `tools/semgrep/argv-path-boundary.yml` fires on the pre-fix form and is silent on the post-fix form, proven by committed positive **and** negative fixtures.
+- [x] **AC8** — That rule is scoped (`paths.include`) to the fixed scripts only — a ratchet, not a repo-wide sweep — with the 73-site figure and the expansion condition recorded in a rule comment.
+- [x] **AC9** — `make sast` passes with the new rule loaded; no new findings in the existing gate.
+- [x] **AC10** — Full existing test suite for `packs/core` work-loop scripts passes unchanged.
+- [x] **AC11** — `packs/core` version bumped in all three required files (`pack.toml`, `plugin.json`, `marketplace.json`); projections re-synced via `make build-self`.
+- [x] **AC12** — CHANGELOG `[Unreleased]` records the skill-script change.
+- [x] **AC13** — Deferred items recorded in `workspace.toml [backlog].open`: `pack-argv-path-boundary-sweep`, `agentbundle-install-yaml-merge`, `codeql-required-check`, `sast-javascript-coverage`, `sast-cwe-delta-review`, `loop-cohort-shell-suite-to-python`; and the `web/` decline recorded with its reason.
+- [x] **AC14** — *(added during review)* The `lint-spec-status.py` path traversal is closed: `_within()` / `_confined()` / size-guarded `_read()` ported in and applied at the spec glob, the contract join, and both read sites; `_CONTRACT_TOKEN_RE` rejects `.` and `..` segments while still accepting every legitimate `contracts/<type>/<name>.<ext>` form. Proven by re-running the reproduction: the existence oracle and the symlink escape both produce no output, and invariant (v) still fires on real contracts.
+- [x] **AC15** — *(folded in on request)* Review fingerprints use SHA-256. `_RE_FINGERPRINT` accepts **both** 64-hex and 40-hex so a cohort mid-review at upgrade time does not hard-fail on its stored SHA-1 values; `state-schema.md` and the `--fingerprint` help text updated. Stasis detection is unaffected — fingerprints are opaque tokens compared set-wise between rounds computed by the same binary; a straddling run misses one match and self-heals.
+- [x] **AC16** — *(added during review)* Both new suites gate in CI. `tools/test-all.py` is executed by no workflow (`docs.yml:102`), so `test-root-validation.py` and `test-fingerprint-width.py` get explicit `docs.yml` steps plus path triggers, and `test-semgrep-argv-boundary.py` is chained into `make sast` where semgrep is guaranteed present (in `docs.yml` it would skip silently and gate nothing).
 
 ## Testing strategy
 
@@ -183,7 +200,7 @@ The validator normalises and asserts directory-ness; it does not restrict
 |---|---|---|
 | AC1–AC4 | Goal-based | `grep` for `_validated_root` at each site; `git diff --exit-code` on `check-spec-status.py` |
 | AC5 | Visual / manual QA | Invoke each script for real — valid `--root`, omitted, relative — and record exit code + stdout |
-| AC6 | TDD | Test asserting non-zero exit + diagnostic on a nonexistent and a file-valued `--root` |
+| AC6 | TDD | Test asserting non-zero exit + diagnostic on a nonexistent and a file-valued `--root`. For `--report` (per amended AC3) the assertion is instead `classification == "invalid"` at exit 0 — and the fixture must initialise a **real cohort**, since an empty spec dir exits non-zero on the missing `state.json` before the report path is read, i.e. green for a reason unrelated to the feature |
 | AC7 | TDD | Semgrep run over committed `positive.py` / `negative.py` fixtures; assert 1 finding then 0 |
 | AC8 | Goal-based | Assert `paths.include` present; assert rule comment records the figure |
 | AC9 | Goal-based | `make sast` exit 0 |

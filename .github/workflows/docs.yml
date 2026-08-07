@@ -35,6 +35,12 @@ on:
       - 'packs/core/tests/skills/work-loop/test-loop-cohort.py'
       - 'packs/core/tests/skills/work-loop/test-loop-engine.py'
       - 'packs/core/tests/skills/work-loop/test-loop-cohort.sh'
+      - 'packs/core/tests/skills/work-loop/test-root-validation.py'
+      - 'packs/core/tests/skills/work-loop/test-fingerprint-width.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/lint-traceability.py'
+      - 'tools/semgrep/**'
+      - 'tools/test-semgrep-argv-boundary.py'
       - 'tools/hooks/**'
       - 'tools/test-all.py'
       - 'tools/lint-pack-test-boundary.py'
@@ -95,6 +101,10 @@ jobs:
         run: python3 packs/core/tests/skills/work-loop/test-loop-cohort.py
       - name: Python test suite — loop-engine FSM (84 unit/integration tests)
         run: python3 packs/core/tests/skills/work-loop/test-loop-engine.py
+      - name: Python test suite — CLI path-argument boundary validators
+        run: python3 packs/core/tests/skills/work-loop/test-root-validation.py
+      - name: Python test suite — review-fingerprint algorithm + width contract
+        run: python3 packs/core/tests/skills/work-loop/test-fingerprint-width.py
       - name: Pack runtime boundary (no pack's .apm/ carries tests; projection is clean)
         run: python3 tools/lint-pack-test-boundary.py
       - name: Pack runtime boundary — self-test (falsified in both directions)

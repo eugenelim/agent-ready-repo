@@ -149,9 +149,15 @@ build-check:
 # These four Semgrep rules are excluded as duplicates of findings already
 # dispositioned for Bandit, with no coverage loss (Bandit still flags new
 # instances of each class):
-#   - sha1   → the two sites are documented non-security digests annotated
-#              `usedforsecurity=False`; Bandit B324 is satisfied, Semgrep's rule
-#              can't read the kwarg. Bandit B324 still flags any new sha1.
+#   - sha1   → ONE remaining site (packages/agentbundle/agentbundle/config.py —
+#              an 8-char derivation cache key), a documented non-security digest
+#              annotated `usedforsecurity=False`; Bandit B324 is satisfied,
+#              Semgrep's rule can't read the kwarg. Bandit B324 still flags any
+#              new sha1. The second site (loop-cohort.py's review fingerprint)
+#              was FIXED in core 2.3.0 rather than suppressed — a real fix
+#              satisfies Bandit, Semgrep and the org's Snyk scan, which no
+#              exclusion here can reach. Retire this exclusion entirely once
+#              config.py's digest is migrated too.
 #   - urllib → constant/operator-configured bases, line-precise `# nosec B310`.
 #   - xml    → stdlib ElementTree (no external entities/DTDs), `# nosec B314`.
 #   - chmod  → the one hit is a restrictive 0o700 (secure); Bandit B103 is
@@ -224,6 +230,13 @@ sast:
 	# explicitly. Mirror packages/credbroker/pyproject.toml [crypto].
 	@printf 'cryptography>=42\nargon2-cffi>=23\n' | pip-audit -r /dev/stdin
 	semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet --metrics off $(SEMGREP_EXCLUDE) $(SAST_DIRS)
+	# Prove the custom rules still fire. The scan above is silent both when the
+	# rules work and when they have been broken into no-ops, so it cannot tell
+	# the two apart — this self-test asserts the exact finding count on a
+	# deliberately-vulnerable fixture and on its fixed twin. It lives here, not
+	# in docs.yml, because it needs semgrep on PATH: there it would skip
+	# silently and gate nothing.
+	python3 tools/test-semgrep-argv-boundary.py
 
 build-scaffold:
 	@test -n "$(OUTPUT)" || (echo "make build-scaffold OUTPUT=<dir> required" >&2; exit 1)
