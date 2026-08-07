@@ -8,7 +8,7 @@
 |---|---|---|---|
 | D1 | Renderer-independent compiler with a neutral resolved index | Only shape where a producing pack participates with `tomllib` alone | The ecosystem seam goes unused for a year — then option 2 is cheaper |
 | D2 | `binder-index.json` is a public versioned contract | Invariant 3 gives it a second consumer by definition | Never |
-| D3 | Quarto Book as first renderer | Verified fit on structure, navigation, search, theming, Mermaid; no viable Python-native alternative without a plugin surface | Binary weight blocks adoption, or gate V1 fails in its worst form → reopen MkDocs/Zensical |
+| D3 | ~~Quarto Book as first renderer~~ — **SUPERSEDED BY D40**. Retained as the reasoning a future PDF adapter inherits | Verified fit on structure, navigation, search, theming, Mermaid; no viable Python-native alternative without a plugin surface | Binary weight blocks adoption, or gate V1 fails in its worst form → reopen MkDocs/Zensical |
 | D4 | One skill, all script verbs; no second skill | Self-containment forbids cross-skill imports and bars `shared-libs/` for skill code | U11 resolves the other way |
 | D5 | Editorial pass is a reference, not a shipped agent; dispatched subagent restricted to `Read`/`Grep`/`Glob` | Skill wins 4 of 6 decision properties; withholding `Bash` is what makes "cannot render" mechanical | Measured context pressure justifies a named agent |
 | D6 | Editor-generated prose in separate files, referenced by path | Reviewable in a diff; TOML should not hold paragraphs | Never |
@@ -46,3 +46,17 @@
 | D38 | Consent is an explicit version-matched token, not a TTY test | The pack's primary surface is an agent subprocess with non-TTY stdin, so a TTY test would have made rung 2 and the PEP 668 fallback unreachable exactly where they are needed | A harness offers a real consent channel |
 
 ---
+
+## Post-review decisions
+
+These two reshaped the design after eight review rounds and are the authority
+where any earlier row disagrees.
+
+| # | Decision | Rationale | Supersedes |
+|---|---|---|---|
+| D39 | **Collapse the trust surface rather than route it.** Cut the `trusted` profile, `binder-policy.toml` at every tier, and six flags (`--profile`, `--quarto`, `--out`, `--replace-foreign-dir`, `--force-unlock`, `--from-index`). Strict-only, no grants. | Five review rounds each found a *different* unrouted surface, and each was answered with another lattice rule. A router that must wrap nine surfaces is evidence the surface is too large. The pack does not need to support every combination — a caller wanting arbitrary renderer configuration should drive the renderer directly. | D7, D8, D30, D35 |
+| D40 | **Zensical replaces Quarto as the v1 renderer**, established by spike rather than by paper comparison. | 12.2 MB pip wheel against a 236 MB external CLI — and more decisively, Zensical reads portable ` ```mermaid ` fences directly and does not interpret `{{< … >}}`, which deletes the Mermaid staging transformation *and* the shortcode attack surface. Both existed only to work around Quarto. Takes the install ladder, consent tokens, digest verification, PEP 668 handling and the toolchain cache with it. | D3, D9, D11 (partly), D16, D17, D18, D31 |
+
+**Retained as Quarto-adapter evidence, not live design:** D9 (shortcode escaping),
+D16–D18 (the install ladder), D31 (version-range procedure). A future PDF adapter
+goes through Quarto and inherits all of them.

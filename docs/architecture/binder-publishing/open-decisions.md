@@ -26,7 +26,7 @@ is outside scope and should drive the renderer directly.
 | Surface | Verdict |
 |---|---|
 | `--root` | **Keep.** It is what decouples "where the script lives" from "what it operates on", and it is the reason the contract survives seven adapter layouts. |
-| `[policy] shortcodes` | **Keep.** Both values are safe; it exists because documents *about* Quarto are a real corpus. |
+| `[policy] shortcodes` | **Cut** — moot under D-B. Zensical does not interpret `{{< … >}}`, so there is no surface to govern. (An earlier version of this row said Keep; that predated D-B.) |
 | `--keep-stage`, `--no-wait`, `--yes`, `--allow-unknown-fields` | **Keep.** None can reach trust or a path. |
 | `--profile` / `trusted` profile | **Cut from v1.** Strict-only. |
 | `binder-policy.toml` (all tiers) | **Cut from v1** — with no relaxation to grant, there is nothing for a policy file to say. |

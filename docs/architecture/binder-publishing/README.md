@@ -37,25 +37,31 @@ fixed here rather than patched:
 
 ## Read in this order
 
-| File | What it settles |
-|---|---|
-| [`open-decisions.md`](open-decisions.md) | **Read first.** Two shape-level questions raised after the review rounds: collapsing the trust surface, and whether Quarto is the right renderer at all. The rest of the tree is written against the pre-reshape answers. |
-| [`renderer-choice.md`](renderer-choice.md) | **Measured** applied survey resolving D-B: Quarto vs mkdocs-material vs Zensical vs owning it. |
-| [`outline-and-templates.md`](outline-and-templates.md) | `binder outline` — drafting a recipe from a folder — and how packs ship reusable recipe templates. |
-| [`overview.md`](overview.md) | Problem, goals and non-goals, product boundary, the alternatives and why this shape won |
-| [`trust-model.md`](trust-model.md) | **One sentence, and why it got that small.** Everything outside the pack is untrusted, the profile is strict, and nothing can relax it |
-| [`security-profile.md`](security-profile.md) | What the scanner rejects, how it detects it, and the corpus it is tested against |
-| [`binder-recipe.md`](binder-recipe.md) | `binder.toml` — the authored contract, its complete surface, and how it evolves |
-| [`resolved-index.md`](resolved-index.md) | `binder-index.json` and `renderer-plan.json` — the two output contracts and the invariant that separates them |
-| [`resolution.md`](resolution.md) | Discovery, identity, ordering, conflicts, diagnostics, explainability |
-| [`zensical-adapter.md`](zensical-adapter.md) | Staging, the per-file transformation, the generated `zensical.toml`, and the required offline hardening |
-| [`dependency-contract.md`](dependency-contract.md) | One pinned pip package. Reduced from 211 lines to a manifest block and an install command. |
-| [`runtime.md`](runtime.md) | Storage layout, locks, concurrency, publication replacement |
-| [`invocation.md`](invocation.md) | The command contract, exit codes, and entry-point resolution |
-| [`verified-findings.md`](verified-findings.md) | **Evidence.** Every Quarto claim with source and confidence; the gates, including which have been run |
-| [`rollout.md`](rollout.md) | Phases, testing strategy, CI wiring, unresolved questions |
-| [`decisions.md`](decisions.md) | The decision log |
-| [`review-history.md`](review-history.md) | Non-normative record of the eight review rounds |
+> **⚠ The tree is mid-propagation.** Decisions D-A (collapse the trust surface)
+> and D-B (Zensical replaces Quarto) reached the files marked ✓. Files marked
+> ⚠ still describe the pre-decision shape — a Quarto adapter, a `trusted`
+> profile, a policy file. **`open-decisions.md` is authoritative** wherever they
+> disagree. Do not write a specification from a ⚠ file.
+
+| File | Status | What it settles |
+|---|---|---|
+| [`open-decisions.md`](open-decisions.md) | **authority** | **Read first.** Two shape-level questions raised after the review rounds: collapsing the trust surface, and whether Quarto is the right renderer at all. The rest of the tree is written against the pre-reshape answers. |
+| [`renderer-choice.md`](renderer-choice.md) | evidence | **Measured** applied survey resolving D-B: Quarto vs mkdocs-material vs Zensical vs owning it. |
+| [`outline-and-templates.md`](outline-and-templates.md) | ✓ new | `binder outline` — drafting a recipe from a folder — and how packs ship reusable recipe templates. |
+| [`overview.md`](overview.md) | ⚠ not propagated | Problem, goals and non-goals, product boundary, the alternatives and why this shape won |
+| [`trust-model.md`](trust-model.md) | ✓ D-A | **One sentence, and why it got that small.** Everything outside the pack is untrusted, the profile is strict, and nothing can relax it |
+| [`security-profile.md`](security-profile.md) | ✓ D-A/D-B | What the scanner rejects, how it detects it, and the corpus it is tested against |
+| [`binder-recipe.md`](binder-recipe.md) | ⚠ not propagated | `binder.toml` — the authored contract, its complete surface, and how it evolves |
+| [`resolved-index.md`](resolved-index.md) | ⚠ not propagated | `binder-index.json` and `renderer-plan.json` — the two output contracts and the invariant that separates them |
+| [`resolution.md`](resolution.md) | ⚠ not propagated | Discovery, identity, ordering, conflicts, diagnostics, explainability |
+| [`zensical-adapter.md`](zensical-adapter.md) | ✓ D-B | Staging, the per-file transformation, the generated `zensical.toml`, and the required offline hardening |
+| [`dependency-contract.md`](dependency-contract.md) | ✓ D-B | One pinned pip package. Reduced from 211 lines to a manifest block and an install command. |
+| [`runtime.md`](runtime.md) | ⚠ not propagated | Storage layout, locks, concurrency, publication replacement |
+| [`invocation.md`](invocation.md) | ⚠ not propagated | The command contract, exit codes, and entry-point resolution |
+| [`verified-findings.md`](verified-findings.md) | Quarto evidence | **Evidence.** Every Quarto claim with source and confidence; the gates, including which have been run |
+| [`rollout.md`](rollout.md) | ⚠ not propagated | Phases, testing strategy, CI wiring, unresolved questions |
+| [`decisions.md`](decisions.md) | ⚠ not propagated | The decision log |
+| [`review-history.md`](review-history.md) | historical | Non-normative record of the eight review rounds |
 
 ## The one-paragraph version
 
