@@ -7,8 +7,9 @@ directly. To propagate changes to new adopters, also update `packs/core/seeds/AG
   **Read [`packs/AGENTS.md`](packs/AGENTS.md) and [`packs/AGENTS.local.md`](packs/AGENTS.local.md) before acting** whenever any file under `packs/` is in scope.
 - **Python package development and release coupling** (install-test rules, Windows compatibility, test conventions, PyPI release requirements, version bump workflow):
   **Read [`packages/AGENTS.md`](packages/AGENTS.md) and [`packages/AGENTS.local.md`](packages/AGENTS.local.md) before acting** whenever any file under `packages/` is in scope.
-- **Marketing site** (Astro build, Node.js deps, dev server, mobile viewport, link rules):
-  [`web/AGENTS.md`](web/AGENTS.md).
+- **Sites and guides** (Astro/Starlight builds, deps, publication routing, frontmatter contract, link rules):
+  **Read [`guides/AGENTS.md`](guides/AGENTS.md) before acting** whenever any file under `guides/` is in scope;
+  [`web/AGENTS.md`](web/AGENTS.md) and [`docs-site/AGENTS.md`](docs-site/AGENTS.md) for the two sites themselves.
 - **Catalogue CI** (portable commands, publication ordering, exit codes, responsibility boundary):
   [`guides/_shared/reference/catalogue-ci-contract.md`](guides/_shared/reference/catalogue-ci-contract.md).
 

@@ -213,6 +213,13 @@ jobs:
       - name: pytest make-free gate chains (windows-build-gate-chain)
         run: python -m pytest tools/test_build_gate_chain.py
 
+      # The generated guides sidebar: sidebar-config.json is gitignored, so
+      # these set-equality, label-parity and determinism guards are the only
+      # thing standing between a generator regression and a broken published
+      # navigation. make build-check runs no pytest — wire them explicitly.
+      - name: pytest guides sidebar generation
+        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
+
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with

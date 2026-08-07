@@ -654,6 +654,29 @@ project page and the swept docstrings actually reach installers.
 - Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
 
 ## [Unreleased]
+### Added
+
+- **58 guide pages that were published but unreachable now appear in the docs
+  site navigation.** The sidebar was a hand-maintained list in
+  `docs-site/astro.config.ts` carrying 119 entries against 177 navigable files,
+  so adding a page and forgetting the config edit was the default outcome. It is
+  now generated from the guides tree on every build — writing the file is all
+  that navigation requires. Group labels and order are declared in `site.toml`'s
+  new `[[guide_groups]]` table.
+
+- **Guides can now be read as a sequence rather than a taxonomy.** A page's
+  `order` frontmatter sorts it within its pack group *across* Diátaxis kinds, so
+  a tutorial, a how-to and an explanation can form one reading path. The
+  `iac-terraform` pack ships the first: a three-part explanation of how
+  infrastructure work runs through the release loop.
+
+### Changed
+
+- **Diátaxis buckets now render in a consistent Tutorials → How-to → Reference →
+  Explanation order** in every guide group. Bucket order previously varied by
+  pack; 11 of 17 groups change. Page labels are unchanged — the pre-generation
+  labels are frozen in `guide-nav-baseline.toml` so none regressed.
+
 ### Fixed
 
 - **Installing a pack from the marketplace now delivers its skills, agents and

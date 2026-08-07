@@ -34,3 +34,110 @@ packs = ["experience-design", "product-documentation", "converters"]
 [[groups]]
 label = "Catalogue operations"
 packs = ["catalogue-curation", "credential-brokers"]
+
+# ---------------------------------------------------------------------------
+# Guide sidebar groups.
+#
+# Deliberately separate from [[groups]] above: that table is routed through
+# discover_packs(), which skips underscore-prefixed slugs and warns on any slug
+# without a packs/<slug>/pack.toml — so it structurally cannot express _shared
+# or _reference. This table maps a directory under guides/ to its group label.
+#
+# Table order is group order. An entry is required for every directory under
+# guides/; an undeclared directory falls back to a title-cased group appended
+# last. Labels here are curated editorial names that no path or pack.toml field
+# derives ("The Build Loop (core)" where pack.toml says "Core").
+#
+# See docs/specs/guides-sidebar-generation/spec.md section Layer 2.
+# ---------------------------------------------------------------------------
+
+[[guide_groups]]
+dir = "core"
+label = "The Build Loop (core)"
+
+[[guide_groups]]
+dir = "product-strategy"
+label = "Product Strategy"
+
+[[guide_groups]]
+dir = "product-engineering"
+label = "Product Discovery"
+
+[[guide_groups]]
+dir = "release-engineering"
+label = "Release Engineering"
+
+[[guide_groups]]
+dir = "desk-research"
+label = "Desk Research"
+
+[[guide_groups]]
+dir = "architect"
+label = "Architect"
+
+[[guide_groups]]
+dir = "experience-design"
+label = "Experience Design"
+
+[[guide_groups]]
+dir = "frontend-engineering"
+label = "Frontend Engineering"
+
+[[guide_groups]]
+dir = "contracts"
+label = "Contracts"
+
+[[guide_groups]]
+dir = "converters"
+label = "Converters"
+
+[[guide_groups]]
+dir = "atlassian"
+label = "Atlassian"
+
+[[guide_groups]]
+dir = "figma"
+label = "Figma"
+
+[[guide_groups]]
+dir = "governance-extras"
+label = "Governance Extras"
+
+[[guide_groups]]
+dir = "monorepo-extras"
+label = "Monorepo Extras"
+
+[[guide_groups]]
+dir = "credential-brokers"
+label = "Credential Brokers"
+
+[[guide_groups]]
+dir = "product-documentation"
+label = "Product Documentation"
+
+[[guide_groups]]
+dir = "_shared"
+label = "Cross-cutting"
+
+# Undeclared in the pre-change hand tree — their pages published but never
+# appeared in navigation. Appended so no existing group moves.
+
+[[guide_groups]]
+dir = "iac-terraform"
+label = "IaC (Terraform)"
+
+[[guide_groups]]
+dir = "catalogue-curation"
+label = "Catalogue Curation"
+
+[[guide_groups]]
+dir = "github"
+label = "GitHub"
+
+[[guide_groups]]
+dir = "linear"
+label = "Linear"
+
+[[guide_groups]]
+dir = "_reference"
+label = "Reference material"

@@ -202,6 +202,241 @@ def _make_redirect_stub(target_url: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Guide inventory — the collate step that precedes projection.
+# Contract: docs/specs/guides-sidebar-generation/spec.md § Layer 1
+# ---------------------------------------------------------------------------
+
+VALID_GUIDE_KINDS = frozenset({"tutorial", "how-to", "reference", "explanation"})
+
+# The on-disk directory is plural; contracts/guide.schema.json's enum is
+# singular. Without this, the first page under tutorials/ to gain frontmatter
+# splits its pack into a "Tutorial" bucket and a "Tutorials" bucket.
+_KIND_DIR_ALIASES = {"tutorials": "tutorial"}
+
+# Maintainer context. Still mirrored — so still reachable by URL — but never
+# surfaced in reader navigation.
+_NAV_INELIGIBLE_NAMES = frozenset({"AGENTS.md"})
+
+
+def guide_slug_for(rel_parts: list[str]) -> str:
+    """Starlight slug of the file ``mirror_guides`` writes for these parts.
+
+    ``mirror_guides`` renames ``README.md`` to ``index.md`` before deriving its
+    ``canonical_slug``, so a pack README's canonical slug is
+    ``guides/<pack>/index``. Starlight serves that at ``guides/<pack>``, which
+    is the value navigation needs — hence the trailing ``/index`` strip.
+    """
+    parts = list(rel_parts)
+    if parts[-1] == "README.md":
+        parts[-1] = "index.md"
+    if parts[-1].endswith(".md"):
+        parts[-1] = parts[-1][:-3]
+    if parts[-1] == "index":
+        parts.pop()
+    return "guides/" + "/".join(parts) if parts else "guides"
+
+
+def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
+    """Collate every ``.md`` file under ``guides_root`` into one record each.
+
+    Path structure is the source and frontmatter refines it: most guides carry
+    no frontmatter, so a frontmatter-sourced inventory would omit them.
+
+    ``enumerator`` is the determinism seam — a callable taking the root and
+    returning an iterable of paths. Output order does not depend on it; the
+    records are sorted by slug before returning.
+    """
+    paths = enumerator(guides_root) if enumerator else guides_root.rglob("*.md")
+
+    records: list[dict] = []
+    for path in paths:
+        if path.suffix != ".md" or not path.is_file():
+            continue
+        rel_parts = list(path.relative_to(guides_root).parts)
+        fm = _parse_frontmatter(path.read_text(encoding="utf-8"))
+
+        # A file directly under guides/ has no pack segment — the root README
+        # belongs to the tree itself, not to a pack called "README.md".
+        pack = rel_parts[0] if len(rel_parts) > 1 else None
+
+        kind = fm.get("kind") if fm.get("kind") in VALID_GUIDE_KINDS else None
+        if kind is None and len(rel_parts) >= 3:
+            candidate = _KIND_DIR_ALIASES.get(rel_parts[1], rel_parts[1])
+            kind = candidate if candidate in VALID_GUIDE_KINDS else None
+
+        # bool is an int subclass; a YAML `order: true` must not sort as 1.
+        raw_order = fm.get("order")
+        is_int = isinstance(raw_order, int) and not isinstance(raw_order, bool)
+        order = raw_order if is_int else None
+
+        # Frontmatter is adopter-authored: a non-string here must degrade to the
+        # derived value, not crash the build with an AttributeError naming no
+        # file. `order` is coerced the same way a few lines above.
+        override = fm.get("slug")
+        if override is not None and not isinstance(override, str):
+            print(f"  warn  {_relpath(path)}: non-string 'slug' ignored", file=sys.stderr)
+            override = None
+        if override and override.endswith("/index"):
+            override = override[: -len("/index")]
+
+        title = fm.get("title") or None
+        if title is not None and not isinstance(title, str):
+            print(f"  warn  {_relpath(path)}: non-string 'title' ignored", file=sys.stderr)
+            title = None
+
+        # Every navigation exclusion is announced — a silently missing page is
+        # the defect this whole change exists to remove.
+        is_section_index = path.name == "README.md" and len(rel_parts) >= 3
+        nav_eligible = path.name not in _NAV_INELIGIBLE_NAMES and not is_section_index
+        if not nav_eligible:
+            why = ("section index (README more than one directory below guides/)"
+                   if is_section_index else "maintainer context")
+            print(f"  note  {_relpath(path)}: {why}; mirrored but not in navigation",
+                  file=sys.stderr)
+
+        records.append({
+            "source_path": path,
+            "pack": pack,
+            "kind": kind,
+            "order": order,
+            "title": title,
+            "slug": override or guide_slug_for(rel_parts),
+            "is_index": path.name == "README.md",
+            # A README below kind level is a section-authoring template
+            # ("Writing a how-to"), addressed to whoever writes the guides — not
+            # to the adopter this tree serves. None was in the pre-change
+            # sidebar, so keeping them out preserves the status quo.
+            "nav_eligible": nav_eligible,
+        })
+
+    # Secondary key on the path: a duplicate slug would otherwise resolve by
+    # enumerator arrival order, breaking determinism.
+    records.sort(key=lambda r: (r["slug"], str(r["source_path"])))
+
+    # A repeated slug renders twice and orders by enumerator arrival, which
+    # would break determinism. Set-equality tests cannot see it.
+    seen: dict[str, Path] = {}
+    for rec in records:
+        if rec["slug"] in seen:
+            print(
+                f"  warn  duplicate guide slug '{rec['slug']}':"
+                f" {_relpath(rec['source_path'])} also claimed by"
+                f" {_relpath(seen[rec['slug']])}",
+                file=sys.stderr,
+            )
+        seen[rec["slug"]] = rec["source_path"]
+
+    return records
+
+
+# ---------------------------------------------------------------------------
+# Guide sidebar projection — inventory becomes Starlight groups.
+# Contract: docs/specs/guides-sidebar-generation/spec.md § Layer 2
+# ---------------------------------------------------------------------------
+
+# Reader-visible bucket labels, in the canonical sequence.
+_KIND_BUCKETS = (
+    ("tutorial", "Tutorials"),
+    ("how-to", "How-to"),
+    ("reference", "Reference"),
+    ("explanation", "Explanation"),
+)
+
+
+def _guide_label(record: dict, baseline: dict) -> str:
+    """Resolve a sidebar label: frozen baseline, then the page's own title,
+    then the filename.
+
+    Baseline first is deliberate. Thirteen pages carry a ``title:`` that differs
+    from the label they show in navigation today, so putting frontmatter first
+    would rewrite them silently. Removing a baseline entry is the reviewable act
+    that adopts a page's own title.
+    """
+    if record["slug"] in baseline:
+        return baseline[record["slug"]]
+    if record["title"]:
+        return record["title"]
+    if record["is_index"]:
+        # Filename derivation would read "Readme"; every index entry in the
+        # pre-change tree reads "Overview".
+        return "Overview"
+    return record["slug"].rsplit("/", 1)[-1].replace("-", " ").title()
+
+
+def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
+                          baseline: dict) -> dict:
+    """Project inventory records into the Starlight ``Guides`` sidebar group.
+
+    Emission order within a pack group is fixed: index pages, then records
+    declaring ``order`` (ascending, across kinds), then kind-less non-index
+    records, then the kind buckets in canonical sequence.
+    """
+    eligible = [r for r in records if r["nav_eligible"]]
+
+    # Warn and skip on a malformed entry rather than raising a bare KeyError
+    # mid-build, matching discover_packs()'s handling of the sibling table.
+    valid_groups = []
+    for i, g in enumerate(guide_groups):
+        if not g.get("dir") or not g.get("label"):
+            print(
+                f"  warn  site.toml [[guide_groups]] entry {i} missing 'dir' or"
+                " 'label' — skipping",
+                file=sys.stderr,
+            )
+            continue
+        valid_groups.append(g)
+
+    declared = [g["dir"] for g in valid_groups]
+    labels = {g["dir"]: g["label"] for g in valid_groups}
+    # An undeclared directory still gets a group rather than vanishing.
+    extra = sorted({r["pack"] for r in eligible if r["pack"] and r["pack"] not in labels})
+    for d in extra:
+        labels[d] = d.replace("-", " ").replace("_", " ").strip().title()
+
+    items: list[dict] = []
+
+    # Files directly under guides/ belong to the tree itself, not to any pack.
+    # Index first, then any other loose page — otherwise a future
+    # guides/CONTRIBUTING.md would be eligible and emitted nowhere.
+    root_level = [r for r in eligible if r["pack"] is None]
+    for rec in sorted(root_level, key=lambda r: (not r["is_index"], r["slug"])):
+        items.append({"label": _guide_label(rec, baseline), "slug": rec["slug"]})
+
+    for pack in [d for d in declared if d in {r["pack"] for r in eligible}] + extra:
+        members = [r for r in eligible if r["pack"] == pack]
+        group_items: list[dict] = []
+
+        def entry(r):
+            return {"label": _guide_label(r, baseline), "slug": r["slug"]}
+
+        for rec in sorted((r for r in members if r["is_index"]), key=lambda r: r["slug"]):
+            group_items.append(entry(rec))
+        for rec in sorted((r for r in members if r["order"] is not None and not r["is_index"]),
+                          key=lambda r: (r["order"], r["slug"])):
+            group_items.append(entry(rec))
+        for rec in sorted((r for r in members
+                           if r["order"] is None and not r["is_index"] and r["kind"] is None),
+                          key=lambda r: r["slug"]):
+            group_items.append(entry(rec))
+
+        for kind, bucket_label in _KIND_BUCKETS:
+            bucket = [r for r in members
+                      if r["kind"] == kind and r["order"] is None and not r["is_index"]]
+            if not bucket:
+                continue
+            bucket.sort(key=lambda r: (_guide_label(r, baseline).casefold(), r["slug"]))
+            group_items.append({
+                "label": bucket_label,
+                "items": [entry(r) for r in bucket],
+            })
+
+        if group_items:
+            items.append({"label": labels[pack], "items": group_items})
+
+    return {"label": "Guides", "items": items}
+
+
+# ---------------------------------------------------------------------------
 # Guide-aware mirror (replaces the bare mirror_dir call for guides/)
 # ---------------------------------------------------------------------------
 
@@ -665,7 +900,55 @@ def sync_pack_journeys(
     return count
 
 
-def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False) -> None:
+def load_guide_baseline(path: Path) -> dict:
+    """Read the frozen pre-change ``(slug, label)`` navigation baseline.
+
+    Missing file returns ``{}`` — the generator still produces a sidebar, it
+    just derives every label instead of preserving the curated ones.
+    """
+    if not path.exists():
+        return {}
+    with path.open("rb") as f:
+        data = tomllib.load(f)
+    baseline = {}
+    for i, e in enumerate(data.get("entry", [])):
+        if not e.get("slug") or not e.get("label"):
+            print(
+                f"  warn  {path.name} entry {i} missing 'slug' or 'label' — skipping",
+                file=sys.stderr,
+            )
+            continue
+        baseline[e["slug"]] = e["label"]
+    return baseline
+
+
+def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> dict | None:
+    """Collate the guides tree and project it into the ``Guides`` sidebar group."""
+    guides_root = repo_root / "guides"
+    if not guides_root.exists():
+        return None
+    with site_toml.open("rb") as f:
+        guide_groups = tomllib.load(f).get("guide_groups", [])
+    records = build_guide_inventory(guides_root)
+    baseline = load_guide_baseline(repo_root / "guide-nav-baseline.toml")
+    group = project_guide_sidebar(records, guide_groups, baseline)
+
+    # The failure this change removes — pages published but unreachable — was
+    # invisible precisely because nothing counted. Report on every run.
+    eligible = sum(1 for r in records if r["nav_eligible"])
+    declared = {g.get("dir") for g in guide_groups}
+    fallback = sorted({r["pack"] for r in records
+                       if r["nav_eligible"] and r["pack"] and r["pack"] not in declared})
+    n_groups = sum(1 for i in group["items"] if "items" in i)
+    print(f"  guides  {eligible} navigable page(s) in {n_groups} group(s)")
+    if fallback:
+        print(f"  warn    undeclared in site.toml [[guide_groups]]: {', '.join(fallback)}",
+              file=sys.stderr)
+    return group
+
+
+def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False,
+                            guides_group: dict | None = None) -> None:
     """Write docs-site/src/sidebar-config.json — an array of Starlight sidebar groups."""
     groups_seen: list[str] = []
     groups_map: dict[str, list[dict]] = {}
@@ -681,6 +964,9 @@ def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False)
     ]
     for g in groups_seen:
         sidebar.append({"label": g, "items": groups_map[g]})
+
+    if guides_group:
+        sidebar.append(guides_group)
 
     payload = json.dumps(sidebar, indent=2)
     if dry_run:
@@ -762,7 +1048,9 @@ def main() -> None:
 
     print("build-site: generating sidebar-config.json …")
     sidebar_out = REPO_ROOT / "docs-site" / "src" / "sidebar-config.json"
-    generate_sidebar_config(packs, sidebar_out, dry_run=args.dry_run)
+    guides_group = build_guides_sidebar_group(REPO_ROOT, site_toml)
+    generate_sidebar_config(packs, sidebar_out, dry_run=args.dry_run,
+                            guides_group=guides_group)
 
     print("build-site: mirroring guides …")
     n = mirror_guides(guides_src, SITE_DOCS, dry_run=args.dry_run)

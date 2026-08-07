@@ -12,6 +12,7 @@ on:
       - 'apps/**/AGENTS.md'
       - 'docs-site/AGENTS.md'
       - 'docs-site/**/AGENTS.md'
+      - 'guides/AGENTS.md'
       - 'web/AGENTS.md'
       - 'web/**/AGENTS.md'
       - '.claude/**'
