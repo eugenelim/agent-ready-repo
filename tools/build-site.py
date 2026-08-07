@@ -839,7 +839,33 @@ def sync_pack_journeys(
     return count
 
 
-def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False) -> None:
+def load_guide_baseline(path: Path) -> dict:
+    """Read the frozen pre-change ``(slug, label)`` navigation baseline.
+
+    Missing file returns ``{}`` — the generator still produces a sidebar, it
+    just derives every label instead of preserving the curated ones.
+    """
+    if not path.exists():
+        return {}
+    with path.open("rb") as f:
+        data = tomllib.load(f)
+    return {e["slug"]: e["label"] for e in data.get("entry", [])}
+
+
+def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> dict | None:
+    """Collate the guides tree and project it into the ``Guides`` sidebar group."""
+    guides_root = repo_root / "guides"
+    if not guides_root.exists():
+        return None
+    with site_toml.open("rb") as f:
+        guide_groups = tomllib.load(f).get("guide_groups", [])
+    records = build_guide_inventory(guides_root)
+    baseline = load_guide_baseline(repo_root / "guide-nav-baseline.toml")
+    return project_guide_sidebar(records, guide_groups, baseline)
+
+
+def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False,
+                            guides_group: dict | None = None) -> None:
     """Write docs-site/src/sidebar-config.json — an array of Starlight sidebar groups."""
     groups_seen: list[str] = []
     groups_map: dict[str, list[dict]] = {}
@@ -855,6 +881,9 @@ def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False)
     ]
     for g in groups_seen:
         sidebar.append({"label": g, "items": groups_map[g]})
+
+    if guides_group:
+        sidebar.append(guides_group)
 
     payload = json.dumps(sidebar, indent=2)
     if dry_run:
@@ -936,7 +965,9 @@ def main() -> None:
 
     print("build-site: generating sidebar-config.json …")
     sidebar_out = REPO_ROOT / "docs-site" / "src" / "sidebar-config.json"
-    generate_sidebar_config(packs, sidebar_out, dry_run=args.dry_run)
+    guides_group = build_guides_sidebar_group(REPO_ROOT, site_toml)
+    generate_sidebar_config(packs, sidebar_out, dry_run=args.dry_run,
+                            guides_group=guides_group)
 
     print("build-site: mirroring guides …")
     n = mirror_guides(guides_src, SITE_DOCS, dry_run=args.dry_run)
