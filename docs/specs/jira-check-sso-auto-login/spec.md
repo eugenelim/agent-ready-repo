@@ -134,7 +134,15 @@ to read. Safety rests on destination pinning instead.
 **Out of scope**
 
 - The token path's credential resolution; every `jira.py` subcommand but
-  `check` — **with one carve-out, AC18's `--insecure` warning.** That warning
+  `check` — **with two carve-outs, both recorded at implementation
+  (2026-08-06).** The second: AC11 requires `_cmd_check`'s display fallback and
+  the cookie path's expired-session guard to use the *identical* selector, so
+  `check` on the **token** path now also reads `key` and `accountId`. A token
+  response carrying only one of those prints `as <value>` where it printed
+  `as ?`. That is the point of single-sourcing — two lists that happened to
+  agree would drift — but it is a token-path output change, so it is named here
+  rather than left implied. The first carve-out is AC18's `--insecure`
+  warning. That warning
   lives in `_run`'s shared client construction (`jira.py:722`), which every
   subcommand reaches, because `docs/CONVENTIONS.md:1197,1214` require it
   *whenever the flag fires* and scoping it to `check` would leave the violation
@@ -630,7 +638,21 @@ fix, so the pack bumps and the change is named in the changelog.
       So the guard is a feature-detect (`hasattr(credbroker,
       "refresh_sso_session")`) placed **in the sso-cookie branch of `_run`,
       before `_cmd_check_sso`** — never in the shared bootstrap, which would
-      break every token-path subcommand and contradict AC19. It exits 2 with an
+      break every token-path subcommand and contradict AC19.
+
+      **Corrected at implementation (2026-08-06): the guard has two sites, not
+      one, and the second is in the shared bootstrap.** The analysis above is
+      right that the loader's `ImportError` already lands on exit 2 — but it
+      lands there carrying the raw `cannot import name … from 'credbroker'
+      (/path/to/site-packages/…)`, with no upgrade command, and it fires
+      *first*: a real 0.4.1 install never reaches the feature-detect, because
+      `_sso_config.py` imports `validate_sso_profile` by name. So `_run` also
+      catches a credbroker `ImportError` around `_select_auth_path()` and routes
+      it to the same remediation. That does not gate the token path: the loader
+      returns before its credbroker import when `auth_default` is absent or
+      `creds`, so no token-path subcommand can reach the handler. Both sites are
+      tested, the second against a stub built from the real module minus every
+      0.5.0 addition. It exits 2 with an
       upgrade remediation naming the required version. `requirements.txt` pins
       `credbroker>=0.5.0` in **both** consuming skills (`confluence-crawler` is
       at `>=0.1.0` today and inherits the mirrored files); a test asserts the
@@ -684,8 +706,12 @@ fix, so the pack bumps and the change is named in the changelog.
       operator escape (AC23).
       4. **None** → cannot-derive.
 
-      Only the **scheme+host** is compared; every tier's URL carries per-request
-      `state` / `SAMLRequest` / `nonce` values that change on each call.
+      Only the **scheme and authority** — host *and port* — are compared; every
+      tier's URL carries per-request `state` / `SAMLRequest` / `nonce` values
+      that change on each call. (Implementation note, 2026-08-06: an earlier
+      draft said "scheme+host", which would have accepted a derived
+      `https://idp:8443` against a configured `https://idp:9999` — a different
+      origin, and often a different service.)
 
       The same spike recorded that `jira.atlassian.com` answers its REST `401`
       with the **legacy** `WWW-Authenticate: OAuth realm="…"` form, *not* RFC
@@ -1065,7 +1091,7 @@ fix, so the pack bumps and the change is named in the changelog.
       the refresh call. Wired into `.github/workflows/build-check.yml` and
       `self_host_windows.py`.
 
-- [x] **AC28 (existing suites green).** `test_sso_config.py`,
+- [ ] **AC28 (existing suites green).** *(deferred: credbroker-050-requirements-pin)* `test_sso_config.py`,
       `test_sso_client.py`, `test_setup_sso.py`, `test_auth_selector.py` and
       `test_exit_codes.py` pass in **both** skills' `scripts/`;
       `python tools/test-lint-sso-config.py` passes; `pytest packages/credbroker`
@@ -1126,7 +1152,7 @@ fix, so the pack bumps and the change is named in the changelog.
 | AC26, AC27 | Goal-based | grep the new filenames in `build-check.yml` and `self_host_windows.py`. |
 | AC28 | Goal-based | the plan's canonical command block. |
 | AC29 | Goal-based | `make build-self` then `make build-check` (drift-gated); version grep across every site. |
-| whole change | Visual / manual QA | `python scripts/jira.py check` against the shipped `sso-config.toml` (`auth_default = "creds"`) — token path untouched, no browser. Then `check --insecure` on the token path to observe AC18's warning. Record observed stdout, stderr and exit code for both. |
+| whole change | Visual / manual QA | `python scripts/jira.py check` against the shipped `sso-config.toml` (`auth_default = "creds"`) — token path untouched, no browser. Then `--insecure check` on the token path to observe AC18's warning (`--insecure` is global and precedes the subcommand). Observed stdout, stderr and exit code recorded in [`manual-qa.md`](./manual-qa.md), together with an SSO-path end-to-end run against the real engine and an explicit list of what the session did not exercise. |
 
 **Named limitation.** A live corporate SSO sign-in is not reachable in this loop
 — no Data Center instance and no identity provider. The fake-broker rung proves

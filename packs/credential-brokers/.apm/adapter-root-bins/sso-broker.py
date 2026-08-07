@@ -388,12 +388,24 @@ def _file_floor_write(profile: str, serialized: bytes) -> None:
     protocol with its own design, tracked as ``sso-materialisation-ordering``.
     """
     _SSO_COOKIE_FILE_FLOOR.mkdir(parents=True, exist_ok=True, mode=0o700)
+    if os.name == "posix":
+        # `mkdir(mode=...)` does not repair an existing directory, and this now
+        # runs on every consumer call rather than once per profile.
+        with contextlib.suppress(OSError):
+            _SSO_COOKIE_FILE_FLOOR.chmod(0o700)
     path = _cookie_floor_path(profile)
     tmp = path.with_name(f"{path.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
     try:
-        tmp.write_bytes(serialized)
-        if os.name == "posix":
-            tmp.chmod(0o600)
+        # Created *with* the mode, not chmod'd afterwards: `write_bytes` would
+        # create at the umask default, leaving the cookie jar world-readable for
+        # the length of the write — a window that used to open once per profile
+        # and now opens on every `get-cookies`.
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
+        fd = os.open(tmp, flags, 0o600)
+        try:
+            os.write(fd, serialized)
+        finally:
+            os.close(fd)
         tmp.replace(path)
     except OSError:
         # Never leave a partial temp behind for the next glob to trip over.
@@ -544,6 +556,17 @@ def _capture(
     validation_endpoint: str = args.validation_endpoint or ""
     ttl_hint_minutes: int = int(args.ttl_hint_minutes or 480)
 
+    # AC35's matrix has exactly three legal rows. `persist=False, headless=True`
+    # would run an ephemeral *headless* capture and then seed a standing profile
+    # from a session no human established — refused by construction rather than
+    # left unreachable-by-convention. (Collapsing the pair into a named mode is
+    # the better shape and is deferred: `sso-capture-mode-enum`.)
+    if not persist and headless:
+        raise AssertionError(
+            "internal bug: an ephemeral capture is never headless — no human "
+            "could have established the session it would seed"
+        )
+
     # Names the verb the operator actually ran: `refresh` reaches here too, via
     # the stored profile, and a message telling them to pass `--login-url` to
     # `register` when they typed `refresh` sends them the wrong way.
@@ -621,9 +644,16 @@ def _capture(
                 if not persist:
                     storage_state = context.storage_state()
         finally:
-            context.close()
+            # Suppressed independently: if closing the context raises, the
+            # browser must still be closed, or the ephemeral Chromium survives
+            # holding whatever the capture context had. The parent's tree kill
+            # only fires on timeout or interrupt, not on a clean-but-erroring
+            # engine exit, so nothing else would reclaim it.
+            with contextlib.suppress(Exception):  # noqa: BLE001
+                context.close()
             if browser is not None:
-                browser.close()
+                with contextlib.suppress(Exception):  # noqa: BLE001
+                    browser.close()
 
         if success and not persist:
             _seed_persistent_profile(pw, profile, storage_state, env_for_browser)
@@ -696,12 +726,18 @@ def _seed_persistent_profile(
         return False
     user_data_dir = _browser_state_dir(profile)
     user_data_dir.mkdir(parents=True, exist_ok=True)
+    # One guard over the launch *and* the write. Seeding runs before the profile
+    # TOML and the jar are stored, so anything escaping here throws away a
+    # sign-in the human has already completed — which is the opposite of this
+    # function's contract.
+    context = None
     try:
         context = pw.chromium.launch_persistent_context(
             user_data_dir=str(user_data_dir),
             headless=True,
             env=env_for_browser,
         )
+        context.add_cookies(cookies)
     except Exception as exc:  # noqa: BLE001 — a failed seed must not fail capture
         sys.stderr.write(
             f"sso-broker register: could not seed browser-state for {profile!r} "
@@ -709,10 +745,10 @@ def _seed_persistent_profile(
             f"re-register\n"
         )
         return False
-    try:
-        context.add_cookies(cookies)
     finally:
-        context.close()
+        if context is not None:
+            with contextlib.suppress(Exception):  # noqa: BLE001
+                context.close()
     return True
 
 
@@ -749,6 +785,16 @@ def _do_get_cookies(profile: str) -> int:
         sys.stderr.write(
             f"sso-broker get-cookies: profile {profile!r} not registered; "
             f"run 'sso-broker register {profile} ...'\n"
+        )
+        return 2
+    except (OSError, ValueError) as exc:
+        # Unparseable or unreadable TOML — including the state `_write_profile`'s
+        # escaping exists to stop *creating*, but which a profile written before
+        # that landed can already be in. Uncaught this is a traceback and exit 1
+        # on stdio the consumer inherits.
+        sys.stderr.write(
+            f"sso-broker get-cookies: profile {profile!r} is unreadable "
+            f"({type(exc).__name__}); re-register it\n"
         )
         return 2
 
@@ -795,6 +841,12 @@ def _do_test(profile: str) -> int:
     except FileNotFoundError:
         sys.stderr.write(
             f"sso-broker test: profile {profile!r} not registered\n"
+        )
+        return 2
+    except (OSError, ValueError) as exc:
+        sys.stderr.write(
+            f"sso-broker test: profile {profile!r} is unreadable "
+            f"({type(exc).__name__}); re-register it\n"
         )
         return 2
 
@@ -907,6 +959,15 @@ def _do_refresh(profile: str, args: argparse.Namespace) -> int:
         # playwright absent, sign-in not completed, a corrupt jar — so a consumer
         # reading it as "not registered" would attempt a browser recapture on
         # every internal failure. Not-registered gets a code of its own.
+        return 4
+    except (OSError, ValueError) as exc:
+        # An unreadable profile is not refreshable, and the remediation is the
+        # same as never-registered: capture a new one. Same code, so the
+        # consumer routes it to the same message.
+        sys.stderr.write(
+            f"sso-broker refresh: profile {profile!r} is unreadable "
+            f"({type(exc).__name__}); re-register it\n"
+        )
         return 4
 
     # The destination is the stored one, unconditionally: nothing was supplied.

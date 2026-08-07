@@ -56,12 +56,14 @@ class _FakeOpener:
     def __init__(self, routes: dict[str, _Canned]):
         self.routes = routes
         self.fetched: list[str] = []
+        self.allow_internal: list[bool] = []
 
     def install(self, monkeypatch):
         outer = self
 
-        def _open(url, budget):
+        def _open(url, budget, *, allow_internal=False):
             outer.fetched.append(url)
+            outer.allow_internal.append(allow_internal)
             canned = outer.routes.get(url)
             if canned is None:
                 raise _sso._DerivationAbort(f"no route for {url}")
@@ -238,7 +240,7 @@ def test_body_is_capped_before_parsing():                       # STUB: AC32
             pass
 
     with pytest.raises(_sso._DerivationAbort):
-        _sso._read_capped(_Fp())
+        _sso._read_capped(_Fp(), _sso._DerivationBudget(15.0))
 
 
 def test_a_drip_feeding_server_cannot_outrun_the_budget():      # STUB: AC32
@@ -249,13 +251,26 @@ def test_a_drip_feeding_server_cannot_outrun_the_budget():      # STUB: AC32
     import time as _time
 
     class _Drip:
+        """Models `read1`, which is what the production path calls.
+
+        Modelling `read` instead would have let the old one-shot implementation
+        pass: a real `HTTPResponse.read(n)` blocks until it has *all* n bytes,
+        so a fake returning one byte per `read` call understates the hazard by
+        the chunk size.
+        """
+
         def __init__(self):
             self.reads = 0
+            self.read_calls = 0
 
-        def read(self, n):
+        def read1(self, n):
             self.reads += 1
             _time.sleep(0.001)   # a byte at a time, slowly — forever
             return b"x"
+
+        def read(self, n):      # pragma: no cover — must not be preferred
+            self.read_calls += 1
+            return self.read1(n)
 
         def close(self):
             pass
@@ -269,6 +284,9 @@ def test_a_drip_feeding_server_cannot_outrun_the_budget():      # STUB: AC32
     # It gave up on the clock, not on the cap — and promptly.
     assert drip.reads < _sso._DERIVE_BODY_CAP_BYTES
     assert elapsed < 5, f"read ran {elapsed:.1f}s past a 0.2s budget"
+    # And it used the non-blocking read: `read` would have let one call sit for
+    # chunk-size x socket-timeout with the budget never consulted.
+    assert drip.read_calls == 0, "must call read1, not read"
 
 
 def test_a_healthy_body_still_reads_whole():                    # STUB: AC32
@@ -312,10 +330,31 @@ def test_total_budget_is_enforced():                            # STUB: AC32
         _sso._derive_open(f"{BASE}/x", budget)
 
 
-def test_budget_and_socket_timeouts_match_the_spec():           # STUB: AC32
-    assert _sso._DERIVE_TOTAL_BUDGET_S == 15.0
-    assert _sso._DERIVE_SOCKET_TIMEOUT_S == 5.0
-    assert _sso._DERIVE_BODY_CAP_BYTES == 64 * 1024
+def test_socket_timeout_reaches_the_opener_and_tracks_the_budget():   # STUB: AC32
+    # Behavioural, not a constant mirror: the total budget and the body cap
+    # already have real tests above, but nothing observed the per-hop socket
+    # timeout actually reaching `opener.open` — deleting `timeout=timeout` left
+    # the suite green while the connect/read bound silently disappeared.
+    seen: list = []
+
+    class _Opener:
+        def open(self, req, timeout=None):
+            seen.append(timeout)
+            raise urllib.error.URLError("stop here")
+
+    import credbroker._sso as m
+    real = m._derivation_opener
+    m._derivation_opener = lambda: _Opener()
+    try:
+        with pytest.raises(_sso._DerivationAbort):
+            _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(15.0), allow_internal=True)
+        assert 0 < seen[-1] <= _sso._DERIVE_SOCKET_TIMEOUT_S
+        # It shrinks with the shared budget, so a late hop cannot outlive it.
+        with pytest.raises(_sso._DerivationAbort):
+            _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(1.0), allow_internal=True)
+        assert seen[-1] <= 1.0
+    finally:
+        m._derivation_opener = real
 
 
 def test_no_auth_headers_on_the_wire(monkeypatch):              # STUB: AC32
@@ -328,7 +367,9 @@ def test_no_auth_headers_on_the_wire(monkeypatch):              # STUB: AC32
 
     monkeypatch.setattr(_sso, "_derivation_opener", lambda: _Opener())
     with pytest.raises(_sso._DerivationAbort):
-        _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(15.0))
+        _sso._derive_open(
+            f"{BASE}/x", _sso._DerivationBudget(15.0), allow_internal=True
+        )
 
     lowered = {k.lower() for k in seen["headers"]}
     for banned in ("authorization", "cookie", "proxy-authorization"):
@@ -391,3 +432,84 @@ def test_real_opener_does_not_follow_redirects():               # STUB: AC32
         thread.join(timeout=5)
 
     assert hits == ["/login.jsp"], f"the redirect was followed: {hits}"
+
+
+# ----------------------------------------------------------------------
+# The hop *address*, not just its scheme. Tier 1 fetches a URL read out of a
+# response header and then a second read out of that document — so a hostile or
+# compromised instance can otherwise steer the operator's machine at loopback,
+# the cloud metadata endpoint, or anything on the corporate LAN, and learn the
+# outcome from the refusal message.
+# ----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("internal", [
+    "https://127.0.0.1/authorize",           # loopback
+    "https://169.254.169.254/latest/meta-data/",  # cloud instance metadata
+    "https://10.1.2.3/authorize",            # RFC 1918
+    "https://192.168.1.1/authorize",
+    "https://[::1]/authorize",               # IPv6 loopback
+])
+def test_header_derived_hops_cannot_reach_internal_addresses(internal, monkeypatch):
+    # STUB: AC32 — asserted on "no connection was attempted", not merely on the
+    # abort: a refused connection to 127.0.0.1:443 raises `_DerivationAbort`
+    # too, so an exception-type-only assertion stays green with the guard
+    # removed (verified by mutation).
+    class _MustNotOpen:
+        def open(self, req, timeout=None):
+            raise AssertionError(f"a request was made to {req.full_url}")
+
+    monkeypatch.setattr(_sso, "_derivation_opener", lambda: _MustNotOpen())
+    with pytest.raises(_sso._DerivationAbort, match="internal address"):
+        _sso._derive_open(internal, _sso._DerivationBudget(15.0))
+
+
+def test_the_configured_base_url_may_be_internal():             # STUB: AC32
+    # A corporate instance legitimately lives on an RFC 1918 host, so the guard
+    # applies only to hops whose target came from a server response. Asserted on
+    # the flag the tiers pass, since the request itself would need a listener.
+    assert _sso._resolves_to_internal_address("127.0.0.1") is True
+    assert _sso._resolves_to_internal_address("10.0.0.1") is True
+
+
+def test_first_hop_of_every_tier_allows_an_internal_base(monkeypatch):   # STUB: AC32
+    opener = _FakeOpener({
+        BASE: _Canned(200),
+        f"{BASE}/.well-known/openid-configuration": _Canned(404),
+        f"{BASE}/login.jsp": _Canned(200),
+    }).install(monkeypatch)
+    credbroker.derive_sso_destination(BASE, strategies=("atlassian-seraph",))
+    assert all(opener.allow_internal), (
+        "each tier's first hop is the operator's own base_url and must not be "
+        f"address-filtered; got {opener.allow_internal}"
+    )
+
+
+@pytest.mark.parametrize("malformed", ["https://[", "https://[::1", "https://a]b"])
+def test_a_malformed_url_is_an_abort_not_a_valueerror(malformed):   # STUB: AC32
+    # `urlsplit("https://[")` raises ValueError. Every string reaching these two
+    # functions is server-supplied, and neither `derive_sso_destination` nor the
+    # consumer catches ValueError — so uncaught it lands in the CLI's catch-all
+    # as exit 1, outside the exit-2 credential band.
+    with pytest.raises(_sso._DerivationAbort):
+        _sso._derive_open(malformed, _sso._DerivationBudget(15.0))
+    assert _sso._scheme_and_host(malformed) is None
+
+
+@pytest.mark.parametrize("tier_route", [
+    ("authorization_endpoint", "https://["),
+    ("authorization_servers", ["https://["]),
+])
+def test_a_malformed_url_in_a_document_degrades_to_cannot_derive(monkeypatch, tier_route):
+    # STUB: AC32 — end to end: the public entry point returns None rather than
+    # raising, whichever tier the malformed value arrives in.
+    key, value = tier_route
+    _FakeOpener({
+        BASE: _Canned(
+            401,
+            {"WWW-Authenticate": f'Bearer resource_metadata="{BASE}/.well-known/oauth-protected-resource"'},
+        ),
+        f"{BASE}/.well-known/oauth-protected-resource": _Canned.json({key: value}),
+        f"{BASE}/.well-known/openid-configuration": _Canned.json({key: value}),
+    }).install(monkeypatch)
+    assert credbroker.derive_sso_destination(BASE) is None

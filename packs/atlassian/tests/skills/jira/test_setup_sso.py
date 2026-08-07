@@ -54,13 +54,20 @@ def never_registers(monkeypatch):
     monkeypatch.setattr(credbroker, "register_sso_session", _boom)
 
 
-def test_no_subprocess_or_broker_path_left_in_the_skill():   # STUB: AC2
-    # The whole point of moving the operation into credbroker: no skill script
-    # resolves a broker path, builds a broker argv, or calls subprocess.
+def test_no_subprocess_or_broker_path_left_in_any_skill_script():   # STUB: AC2
+    # The spec's *Never do* is "any skill script", not just this one — and
+    # `jira.py` / `_client.py` are the files a future contributor will regress.
+    # Verified: none of them contains a banned token today, so the wider sweep
+    # passes now and fails the day one reappears.
     from pathlib import Path
-    src = Path(setup_sso.__file__).read_text(encoding="utf-8")
-    for banned in ("subprocess", "sso-broker.py", "build_register_argv", "_broker_path"):
-        assert banned not in src, f"{banned} still present in setup_sso.py"
+    scripts = Path(setup_sso.__file__).resolve().parent
+    banned = ("subprocess", "sso-broker.py", "build_register_argv", "_broker_path")
+    for path in sorted(scripts.glob("*.py")):
+        if path.name.startswith("test_"):
+            continue
+        src = path.read_text(encoding="utf-8")
+        for token in banned:
+            assert token not in src, f"{token} present in {path.name}"
 
 
 def test_connection_params_forwarded_no_cookie(monkeypatch, registered):  # STUB: AC2

@@ -155,10 +155,12 @@ def load_sso_config(config_path: Path | None = None) -> SsoConfig | None:
             continue
         _reject_unforwardable(value, field=field, error=SsoConfigError)
     for index, domain in enumerate(sso.get("cookie_domains") or []):
-        if isinstance(domain, str):
-            _reject_unforwardable(
-                domain, field=f"cookie_domains[{index}]", error=SsoConfigError
-            )
+        # No isinstance guard: `_reject_unforwardable` already reports a
+        # non-string with the offending index, which beats falling through to
+        # the generic "must be a non-empty list of strings" forty lines later.
+        _reject_unforwardable(
+            domain, field=f"cookie_domains[{index}]", error=SsoConfigError
+        )
 
     # `int | None` in the annotation but passed through untyped, so a string
     # reached the argv builder and then `--ttl-hint-minutes`. `bool` is excluded

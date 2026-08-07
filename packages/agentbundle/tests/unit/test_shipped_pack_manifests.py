@@ -110,24 +110,40 @@ def test_credentialed_packs_require_credential_brokers(pack_name, expected_range
     )
 
 
-def test_declared_broker_ranges_are_satisfiable():
-    """Each declared range admits the version `credential-brokers` actually ships.
+@pytest.mark.parametrize("pack_name", sorted(CREDENTIALED_PACK_BROKER_RANGE))
+def test_the_install_gate_refuses_without_the_broker_and_admits_it_with(pack_name):
+    """Drive the real resolver, not a second implementation of its rules.
 
     `verify.py`'s dependency step is a pass-through, so an unsatisfiable range —
-    declaring `^0.3` while the pack ships `0.2.2` — would not be caught until an
-    adopter tried to install.
+    declaring `^0.3` while the pack ships `0.2.2` — surfaces only when an
+    adopter tries to install. Re-deriving caret-minor semantics here would be a
+    second copy of the rule this test exists to protect, free to drift from the
+    resolver without either side going red.
     """
+    from agentbundle.commands.install import validate_dependencies_required
+    from agentbundle.config import PackState, State
+
+    manifest = _load(pack_name)
     shipped = _load("credential-brokers")["pack"]["version"]
-    major, minor, *_ = (int(part) for part in shipped.split("."))
-    for pack_name, declared in CREDENTIALED_PACK_BROKER_RANGE.items():
-        assert declared.startswith("^"), f"{pack_name}: expected a caret range"
-        want_major, want_minor = (int(p) for p in declared[1:].split("."))
-        # `^X.Y` means `>= X.Y.0, < (X+1).0.0`.
-        satisfied = major == want_major and minor >= want_minor
-        assert satisfied, (
-            f"{pack_name} declares credential-brokers {declared}, which the "
-            f"shipped {shipped} does not satisfy"
+    empty = State()
+    with_broker = State(
+        packs={
+            ("credential-brokers", "claude-code"): PackState(
+                installed_version=shipped
+            )
+        }
+    )
+
+    with pytest.raises(RuntimeError) as exc:
+        validate_dependencies_required(
+            manifest, repo_state=empty, user_state=State()
         )
+    assert "credential-brokers" in str(exc.value), exc.value
+
+    # And the declared range admits the version the pack actually ships.
+    validate_dependencies_required(
+        manifest, repo_state=empty, user_state=with_broker
+    )
 
 
 def test_shim_requires_product_documentation():

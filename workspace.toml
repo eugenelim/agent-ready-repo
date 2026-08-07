@@ -443,6 +443,13 @@ open = [
     # IdP session; this change makes replaying it agent-triggered. No lifetime management
     # today. Fix: bound/expire it in sso-broker.py. Unblocks: after
     # jira-check-sso-auto-login ships.
+  # The two consuming skills pin `credbroker>=0.5.0` (AC30), but `pip-audit`
+  # resolves every requirements pin against PyPI, so the SCA leg of
+  # `make build-check` fails until credbroker 0.5.0 is published. Resolves the
+  # moment it is: re-run the gate and re-check AC28. The alternative — carving
+  # those two files out of pip-audit — would remove SCA coverage from exactly
+  # the dependency this change introduced.
+  {slug = "credbroker-050-requirements-pin", source = "spec/jira-check-sso-auto-login AC28"},
   {slug = "browser-state-lifetime", source = "spec/jira-check-sso-auto-login"},
     # confluence-crawler inherits the shared _sso_config/setup_sso files but not check
     # auto-recovery. Fix: adopt the same _probe/recapture flow now that it lives in

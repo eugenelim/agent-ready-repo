@@ -60,6 +60,11 @@ class AuthError(JiraError):
     pass
 
 
+# The one place this command is spelled. `jira.py` imports it rather than
+# repeating the literal — renaming the flag should be one edit, not three.
+REGISTER_COMMAND = "python scripts/jira.py check --register"
+
+
 class SsoSessionUnavailable(AuthError):
     """No usable SSO session — and re-authenticating could fix it.
 
@@ -408,7 +413,7 @@ class JiraClient:
                         raise SsoSessionUnavailable(
                             f"401 Unauthorized — SSO session expired for profile "
                             f"{self._profile}; run "
-                            f"'python scripts/jira.py check --register' to re-authenticate"
+                            f"{REGISTER_COMMAND!r} to re-authenticate"
                         )
                     raise AuthError(
                         "401 Unauthorized — Jira credentials are missing, "
@@ -423,7 +428,7 @@ class JiraClient:
                     raise SsoSessionUnavailable(
                         f"SSO session may have expired for profile {self._profile} "
                         f"(HTTP {resp.status_code} redirect, not followed); run "
-                        f"'python scripts/jira.py check --register' to re-authenticate"
+                        f"{REGISTER_COMMAND!r} to re-authenticate"
                     )
                 if resp.status_code == 403:
                     # On Cloud, 403 with X-Seraph-LoginReason often means

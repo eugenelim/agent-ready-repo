@@ -733,12 +733,9 @@ def test_insecure_warns_ignored_on_sso_path(sso_path, recapture, responses, caps
 
 
 def test_insecure_is_never_forwarded_to_the_engine(sso_path, recapture, responses):
-    # STUB: AC18 — asserted on the argv `credbroker` actually composes, not on
-    # the skill-side stub's kwargs (which cannot carry the flag whatever the
-    # implementation does, so asserting there would be a tautology).
-    import inspect
-    src = inspect.getsource(credbroker._sso.refresh_sso_session)
-    assert "insecure" not in src
+    # STUB: AC18 — the observable assertion. `refresh_sso_session`'s own argv is
+    # pinned by `test_refresh_argv_carries_no_destination` in the credbroker
+    # suite; here what matters is that `check` passes nothing extra.
     responses(_EXPIRED, _OK)
     args = jira._build_parser().parse_args(["--insecure", "check"])
     import asyncio
@@ -750,31 +747,40 @@ def test_insecure_is_never_forwarded_to_the_engine(sso_path, recapture, response
 # --- AC30: the credbroker version floor --------------------------------
 
 
-# `credbroker` 0.4.1's entire public SSO surface, transcribed from
-# `origin/main:packages/credbroker/credbroker/__init__.py`. Deleting one
-# attribute off the real 0.5.0 module would not reproduce the failure an adopter
-# actually hits: the *loader* imports `validate_sso_profile` by name, so on a
-# real 0.4.1 the ImportError fires long before any feature-detect.
-_CREDBROKER_041_SSO_SURFACE = (
-    "SsoError", "SsoBrokerNotInstalledError", "SsoSessionUnavailableError",
-    "SsoConfigError", "load_sso_cookies", "validate_https_url",
-    "validate_root_relative_endpoint", "domain_in_cookie_domains",
-    "filter_jar_to_domains", "require_host_in_cookie_domains",
+# Everything 0.5.0 added. A faithful 0.4.1 is the *real* module minus exactly
+# these — transcribing only the SSO names would drop the whole `creds` family
+# and force the token-path test to monkeypatch `load_credentials`, i.e. to stub
+# out the very call site a real old pin would exercise.
+_CREDBROKER_050_ADDITIONS = (
+    "validate_sso_profile", "refresh_sso_session", "register_sso_session",
+    "derive_sso_destination", "SsoBrokerUnavailableError",
+    "SsoProfileNotRegisteredError", "SsoRecaptureFailedError",
+    "SsoInteractionRequiredError",
 )
 
 
 @pytest.fixture
 def credbroker_041(monkeypatch):
-    """Replace `credbroker` with a module exporting exactly 0.4.1's surface."""
+    """Replace `credbroker` with the real module minus every 0.5.0 addition.
+
+    Deleting one attribute off the real 0.5.0 module would not reproduce what an
+    adopter hits: the *loader* imports `validate_sso_profile` by name, so on a
+    real 0.4.1 the ImportError fires long before any feature-detect.
+    """
     import types
     stub = types.ModuleType("credbroker")
-    stub.__version__ = "0.4.1"
-    for name in _CREDBROKER_041_SSO_SURFACE:
+    for name in dir(credbroker):
+        if name.startswith("__") or name in _CREDBROKER_050_ADDITIONS:
+            continue
         setattr(stub, name, getattr(credbroker, name))
+    stub.__version__ = "0.4.1"
+    stub.__all__ = [
+        n for n in credbroker.__all__ if n not in _CREDBROKER_050_ADDITIONS
+    ]
     monkeypatch.setitem(sys.modules, "credbroker", stub)
     monkeypatch.setattr(jira, "credbroker", stub)
-    # The loader imports from `credbroker` at call time, so the sys.modules
-    # swap above is what it resolves against.
+    # The loader imports from `credbroker` at call time, so the sys.modules swap
+    # is what it resolves against.
     return stub
 
 
@@ -792,13 +798,13 @@ def test_real_041_install_gets_the_upgrade_remediation(sso_path, credbroker_041,
 
 def test_041_stub_does_not_break_the_token_path(token_path, credbroker_041, monkeypatch):
     # STUB: AC30/AC19 — the loader returns before its credbroker import on the
-    # token path, so an old pin must not gate any token-path subcommand.
+    # token path, so an old pin must not gate any token-path subcommand. The
+    # stub keeps the whole `creds` family, so `_client.load_credentials` resolves
+    # through it for real; only the environment is stubbed.
     import asyncio
-    creds = _client.Credentials(
-        base_url="https://jira.corp.example.com", token="t",
-        flavor=_client.FLAVOR_SERVER, email=None,
-    )
-    monkeypatch.setattr(jira, "load_credentials", lambda: creds)
+    monkeypatch.setenv("JIRA_BASE_URL", "https://jira.corp.example.com")
+    monkeypatch.setenv("JIRA_API_TOKEN", "t")  # noqa: S105 — test literal
+    monkeypatch.setenv("JIRA_FLAVOR", "server")
     real_init = _client.JiraClient.__init__
 
     def _init(self, credentials, **kwargs):
@@ -959,3 +965,33 @@ def test_bare_check_never_derives(sso_path, recapture, responses, derives):   # 
     responses(_EXPIRED, _OK)
     assert _check() == jira.EXIT_OK
     assert calls == []
+
+
+def test_a_port_only_mismatch_is_refused_and_named(sso_path, recapture, responses, derives, capsys):
+    # STUB: AC32 — the comparison includes the port, so a derived
+    # `https://sso.corp.example.com:8443` must not satisfy a configured
+    # `:443`, and the refusal must name the two origins rather than printing
+    # the same hostname twice.
+    derives("https://sso.corp.example.com:8443")
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_USER_ACTION
+    err = capsys.readouterr().err
+    assert "8443" in err, f"the refusal did not name what differed: {err}"
+    assert recapture.register_calls == []
+
+
+def test_a_matching_port_is_accepted(tmp_path, monkeypatch, recapture, responses, derives):
+    # STUB: AC32 — and the port is not a new way to refuse a correct config.
+    cfg = tmp_path / "sso-config.toml"
+    cfg.write_text(
+        _SSO_CONFIG_TOML.replace(
+            "https://sso.corp.example.com/login",
+            "https://sso.corp.example.com:8443/login",
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(_sso_config, "_DEFAULT_CONFIG_PATH", cfg)
+    derives("https://sso.corp.example.com:8443")
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_OK
+    assert len(recapture.register_calls) == 1

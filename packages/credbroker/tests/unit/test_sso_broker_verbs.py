@@ -1002,3 +1002,101 @@ def test_browser_state_dir_is_contained(broker):                  # STUB: AC7
     mod, _ = broker
     with pytest.raises(mod.ProfileConfinementError):
         mod._browser_state_dir("../escape")
+
+
+# ----------------------------------------------------------------------
+# Failure paths that used to escape as a traceback and exit 1, on stdio the
+# consumer inherits.
+# ----------------------------------------------------------------------
+
+
+def _fail_seed(mod, monkeypatch, where):
+    """Make the seeding launch or its add_cookies raise."""
+    calls = _PlaywrightRecorder([_SUCCESS_URL])
+    calls.install(mod, monkeypatch)
+    real = mod._seed_persistent_profile
+
+    def _boom(pw, profile, storage_state, env):
+        if where == "launch":
+            class _Pw:
+                class chromium:
+                    @staticmethod
+                    def launch_persistent_context(**kw):
+                        raise RuntimeError("profile locked")
+            return real(_Pw(), profile, storage_state, env)
+
+        class _Ctx:
+            def add_cookies(self, cookies):
+                raise RuntimeError("write refused")
+
+            def close(self):
+                pass
+
+        class _Pw2:
+            class chromium:
+                @staticmethod
+                def launch_persistent_context(**kw):
+                    return _Ctx()
+        return real(_Pw2(), profile, storage_state, env)
+
+    monkeypatch.setattr(mod, "_seed_persistent_profile", _boom)
+    return calls
+
+
+@pytest.mark.parametrize("where", ["launch", "add_cookies"])
+def test_a_failed_seed_does_not_discard_the_capture(broker, monkeypatch, where, capsys):
+    # STUB: AC35 — seeding runs *before* the profile TOML and the jar are
+    # stored, so anything escaping it throws away a sign-in the human has
+    # already completed. The docstring promises the opposite.
+    mod, _ = broker
+    _fail_seed(mod, monkeypatch, where)
+
+    assert mod.main(_register_argv("jira", "--ephemeral")) == 0
+    assert mod._profile_path("jira").exists(), "the capture was discarded"
+    assert mod._load_cookie_jar("jira") is not None
+    assert "re-register" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("verb,expected", [
+    ("get-cookies", 2), ("test", 2), ("refresh", 4),
+])
+def test_an_unreadable_profile_is_a_coded_exit(broker, verb, expected):
+    # STUB: AC6 — `_load_profile` can raise TOMLDecodeError or ValueError, not
+    # just FileNotFoundError. Uncaught those are a traceback and exit 1.
+    mod, _ = broker
+    mod._SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    mod._profile_path("broken").write_text('[profile\nname = "broken', encoding="utf-8")
+    assert mod.main([verb, "broken"]) == expected
+
+
+def test_the_jar_temp_file_is_never_world_readable(broker, monkeypatch):
+    # STUB: AC6a — `write_bytes` creates at the umask default and chmods after,
+    # leaving the jar readable for the length of the write. That window used to
+    # open once per profile; the unconditional rewrite opens it every call.
+    mod, _ = broker
+    seen: list[int] = []
+    real_open = os.open
+
+    def _record(path, flags, mode=0o777, *a, **k):
+        if str(path).endswith(".tmp"):
+            seen.append(mode)
+        return real_open(path, flags, mode, *a, **k)
+
+    monkeypatch.setattr(os, "open", _record)
+    mod._file_floor_write("jira", b"[]")
+    assert seen and all(m == 0o600 for m in seen), seen
+    if os.name == "posix":
+        assert (mod._SSO_COOKIE_FILE_FLOOR / "jira.jar").stat().st_mode & 0o077 == 0
+
+
+def test_an_ephemeral_headless_capture_is_refused(broker):
+    # STUB: AC35 — the fourth combination of the two booleans. It would seed a
+    # standing profile from a session no human established.
+    mod, _ = broker
+    args = argparse_namespace(
+        login_url="https://idp.example", success_url_pattern="https://x/ok",
+        cookie_domain=None, session_filename="", validation_endpoint="",
+        ttl_hint_minutes=0, ephemeral=True,
+    )
+    with pytest.raises(AssertionError, match="never headless"):
+        mod._capture("jira", args, persist=False, headless=True)

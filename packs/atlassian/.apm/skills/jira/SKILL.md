@@ -104,8 +104,15 @@ the token (`creds`) path above. On the SSO-cookie path:
 - **`jira.py check` self-heals an expired session — that is the whole
   carve-out, and it applies to `jira.py check` only.** On the SSO-cookie path
   bare `check` re-establishes an expired session *headlessly*: no browser is
-  shown, and the call takes no sign-in destination, so nothing you do can
-  choose where it goes. Run bare `check` as you would any other command.
+  shown, and the call carries no sign-in destination — it comes from the
+  engine's stored profile, which only a completed, user-authorised capture
+  writes. Run bare `check` as you would any other command.
+- **Two files are the exception, and you must never write either.**
+  `references/sso-config.toml` and `~/.agentbundle/sso-profiles/` are the only
+  places a sign-in destination lives. Editing them is how a destination would
+  get changed, so treat both as read-only: if `check --register` refuses because
+  the destination cannot be confirmed, surface the refusal to the user — never
+  edit the config to clear it.
 - **Everything that opens a browser stays with the user.** When `check` reports
   that a new capture is needed, **relay `python scripts/jira.py check --register`
   to the user as text** and let them run it — it opens a browser for interactive

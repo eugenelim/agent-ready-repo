@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import ast
 import contextlib
+import functools
 import importlib.util
 import inspect
 import json
@@ -30,6 +31,14 @@ from pathlib import Path
 import credbroker
 import pytest
 from credbroker import _sso
+
+# The names without which a child CPython (and Chromium) fails to start. Tests
+# assert these as real passthroughs rather than overwriting them with sentinels.
+_PLATFORM_BASE_ENV = frozenset({
+    "PATH", "PATHEXT", "COMSPEC", "SYSTEMROOT", "SYSTEMDRIVE", "WINDIR",
+    "TEMP", "TMP", "TMPDIR", "HOME", "USERPROFILE", "HOMEDRIVE", "HOMEPATH",
+    "APPDATA", "LOCALAPPDATA", "PROGRAMFILES",
+})
 
 
 def _write_fake_broker(tmp_path: Path, body: str, *, name: str = "sso-broker.py") -> Path:
@@ -86,12 +95,22 @@ def _process_alive(pid: int) -> bool:
         except PermissionError:  # pragma: no cover — alive, owned elsewhere
             return True
         return True
-    # Windows: tasklist is the portable probe without a third-party dep.
-    out = subprocess.run(  # noqa: S603, S607
-        ["tasklist", "/FI", f"PID eq {pid}", "/NH"],
-        capture_output=True, text=True, check=False,
-    ).stdout
-    return str(pid) in out
+    # Windows: tasklist is the portable probe without a third-party dep. CSV so
+    # the pid is matched in its own field — a bare substring also hits the
+    # memory and session columns. A missing tasklist (Server Core) raises
+    # FileNotFoundError, which `check=False` does not cover.
+    try:
+        out = subprocess.run(  # noqa: S603, S607
+            ["tasklist", "/FI", f"PID eq {pid}", "/NH", "/FO", "CSV"],
+            capture_output=True, text=True, check=False,
+        ).stdout
+    except OSError:  # pragma: no cover — tasklist absent
+        pytest.skip("tasklist unavailable; cannot probe process liveness")
+    import csv as _csv
+    for row in _csv.reader(out.splitlines()):
+        if len(row) > 1 and row[1].strip() == str(pid):
+            return True
+    return False
 
 
 def test_spawn_kills_process_tree(tmp_path):       # STUB: AC3
@@ -189,7 +208,11 @@ def test_spawn_env_is_allowlisted(monkeypatch, tmp_path):  # STUB: AC3
     monkeypatch.setenv("JIRA_API_TOKEN", "secret-should-not-cross")
     monkeypatch.setenv("ANTHROPIC_API_KEY", "also-should-not-cross")
     monkeypatch.setenv("REQUESTS_CA_BUNDLE", "/etc/ssl/corp.pem")
-    for name in _sso._BROWSER_ENV_ALLOWLIST:
+    # Sentinels only for the network/browser names. Overwriting the platform
+    # base — SYSTEMROOT, COMSPEC, PATH, TEMP — is how you make the child fail to
+    # start at all, which would fail the AC26 parity run for a harness reason on
+    # the one platform it exists to prove.
+    for name in _sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
         monkeypatch.setenv(name, f"value-of-{name}")
 
     dump = tmp_path / "env.json"
@@ -206,8 +229,12 @@ def test_spawn_env_is_allowlisted(monkeypatch, tmp_path):  # STUB: AC3
 
     assert "JIRA_API_TOKEN" not in env
     assert "ANTHROPIC_API_KEY" not in env
-    for name in _sso._BROWSER_ENV_ALLOWLIST:
+    for name in _sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
         assert env.get(name) == f"value-of-{name}", f"{name} not forwarded"
+    # The platform base is asserted as a real passthrough instead.
+    for name in _PLATFORM_BASE_ENV & _sso._BROWSER_ENV_ALLOWLIST:
+        if name in os.environ:
+            assert env.get(name) == os.environ[name], f"{name} not forwarded"
 
 
 def test_engine_env_profile_drops_the_browser_variables(monkeypatch, tmp_path):  # STUB: AC3
@@ -215,7 +242,7 @@ def test_engine_env_profile_drops_the_browser_variables(monkeypatch, tmp_path): 
     # get-cookies never launches a browser.
     browser_only = _sso._BROWSER_ENV_ALLOWLIST - _sso._ENGINE_ENV_ALLOWLIST
     assert "PLAYWRIGHT_BROWSERS_PATH" in browser_only
-    for name in _sso._BROWSER_ENV_ALLOWLIST:
+    for name in _sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
         monkeypatch.setenv(name, f"value-of-{name}")
 
     dump = tmp_path / "env.json"
@@ -231,7 +258,7 @@ def test_engine_env_profile_drops_the_browser_variables(monkeypatch, tmp_path): 
     env = json.loads(dump.read_text())
     for name in browser_only:
         assert name not in env, f"{name} must not reach the non-browser spawn"
-    for name in _sso._ENGINE_ENV_ALLOWLIST:
+    for name in _sso._ENGINE_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
         assert env.get(name) == f"value-of-{name}", f"{name} not forwarded"
 
 
@@ -619,14 +646,22 @@ def test_the_two_implementations_agree_per_vector(profile):    # STUB: AC10
     )
 
 
+@functools.lru_cache(maxsize=1)
 def _load_engine_module():
-    """Import the engine from its real path (it is outside the package tree)."""
+    """Import the engine from its real path (it is outside the package tree).
+
+    Cached: the engine's own bootstrap does `sys.path.insert` and nothing here
+    undoes it, so re-executing it once per parametrised case accumulates
+    duplicate entries pointing at `adapter-root-bins/`, from which
+    `_sso_keychain_macos` can then shadow imports for later tests.
+    """
     spec = importlib.util.spec_from_file_location("_sso_broker_parity", BROKER_PY)
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
+    before = list(sys.path)
     sys.path.insert(0, str(BROKER_PY.parent))
     try:
         spec.loader.exec_module(mod)
     finally:
-        sys.path.remove(str(BROKER_PY.parent))
+        sys.path[:] = before
     return mod

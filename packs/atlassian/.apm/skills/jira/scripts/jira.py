@@ -45,7 +45,7 @@ import logging
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 # Bootstrap when invoked as ``python scripts/jira.py`` so the
 # relative imports of sibling modules (e.g. ``_client``) resolve
@@ -82,6 +82,7 @@ try:
     from urllib.parse import urlsplit  # noqa: E402
 
     from ._client import (  # noqa: E402
+        REGISTER_COMMAND,
         AuthError,
         JiraClient,
         JiraError,
@@ -107,8 +108,16 @@ except ModuleNotFoundError as _import_exc:  # noqa: E402
 # than refusing every subcommand.
 try:
     import credbroker  # noqa: E402
-except ModuleNotFoundError:  # pragma: no cover — the no-floor, no-pip install
+except ImportError:  # pragma: no cover — absent, or a half-projected floor
+    # `ImportError`, not `ModuleNotFoundError`: a partially-projected
+    # `~/.agentbundle/lib/credbroker` raises the parent class, and killing
+    # `jira.py` at import time would refuse `get-issue` as readily as `check`.
+    # `_credbroker_floor_error()` already produces the right remediation for the
+    # None state.
     credbroker = None  # type: ignore[assignment]
+
+if TYPE_CHECKING:  # pragma: no cover — annotations only
+    from ._sso_config import SsoConfig
 
 log = logging.getLogger("jira.cli")
 
@@ -452,7 +461,7 @@ _CREDBROKER_FLOOR = "0.5.0"
 
 # Addressed to the *user*, not to the agent: the agent relays this command, it
 # does not run it.
-_REGISTER_REMEDIATION = "ask the user to run: python scripts/jira.py check --register"
+_REGISTER_REMEDIATION = f"ask the user to run: {REGISTER_COMMAND}"
 
 
 def _credbroker_floor_error() -> str | None:
@@ -478,7 +487,7 @@ def _credbroker_floor_error() -> str | None:
     return None
 
 
-async def _probe(sso_config: object) -> int:
+async def _probe(sso_config: SsoConfig) -> int:
     """Build the cookie-path client, ask who we are, and close it.
 
     Calls ``whoami()`` **directly** rather than routing through `_cmd_check`,
@@ -500,7 +509,7 @@ def _origin_of(url: str) -> str:
     return f"{parts.scheme.lower()}://{parts.netloc.lower()}"
 
 
-def _attest_sign_in_destination(sso_config: object) -> str | None:
+def _attest_sign_in_destination(sso_config: SsoConfig) -> str | None:
     """``None`` to proceed; a stderr-ready refusal otherwise.
 
     Asks the instance where it sends users to sign in, rather than trusting
@@ -552,15 +561,18 @@ def _attest_sign_in_destination(sso_config: object) -> str | None:
     if _origin_of(derived) == login_origin:
         return None
 
-    derived_host = (urlsplit(derived).hostname or "").lower()
+    # Reported as the origins that were compared, not bare hostnames: the
+    # comparison includes the port, so a port-only mismatch would otherwise
+    # print the same host twice and name nothing actionable.
+    derived_origin = _origin_of(derived)
     return (
-        f"error: {base_host} sends users to sign in at {derived_host}, but "
-        f"sso-config.toml points at {login_host}. Refusing to open a browser. "
-        f"If {login_host} is correct, register with: python scripts/setup_sso.py"
+        f"error: {base_host} sends users to sign in at {derived_origin}, but "
+        f"sso-config.toml points at {login_origin}. Refusing to open a browser. "
+        f"If {login_origin} is correct, register with: python scripts/setup_sso.py"
     )
 
 
-def _register_session(sso_config: object) -> int:
+def _register_session(sso_config: SsoConfig) -> int:
     """Operator-typed first capture. Attested where it can be, then disclosed."""
     refusal = _attest_sign_in_destination(sso_config)
     if refusal is not None:
@@ -592,7 +604,7 @@ def _register_session(sso_config: object) -> int:
     return EXIT_OK
 
 
-async def _cmd_check_sso(sso_config: object, args: argparse.Namespace) -> int:
+async def _cmd_check_sso(sso_config: SsoConfig, args: argparse.Namespace) -> int:
     """`check` on the SSO-cookie path: probe, recapture once, re-probe."""
     if args.insecure:
         # Inert here — `from_sso_cookies` builds its own SSL context and this
@@ -653,7 +665,7 @@ async def _cmd_check_sso(sso_config: object, args: argparse.Namespace) -> int:
         # makes an automated recapture structurally unable to choose one.
         credbroker.refresh_sso_session(sso_config.profile)
     except credbroker.SsoProfileNotRegisteredError:
-        log.info("recapture refused for profile %s: never registered", sso_config.profile)
+        log.warning("recapture refused for profile %s: never registered", sso_config.profile)
         print(
             f"error: no SSO session has ever been captured for profile "
             f"{sso_config.profile} on this machine — {_REGISTER_REMEDIATION}",
@@ -661,7 +673,7 @@ async def _cmd_check_sso(sso_config: object, args: argparse.Namespace) -> int:
         )
         return EXIT_USER_ACTION
     except credbroker.SsoInteractionRequiredError:
-        log.info(
+        log.warning(
             "recapture failed for profile %s: a human must sign in",
             sso_config.profile,
         )
@@ -675,7 +687,7 @@ async def _cmd_check_sso(sso_config: object, args: argparse.Namespace) -> int:
     except credbroker.SsoError as exc:
         # The engine's own stderr already reached the caller (its stdio is
         # inherited), so this adds no guessed remediation.
-        log.info(
+        log.error(
             "recapture failed for profile %s (%s)",
             sso_config.profile, type(exc).__name__,
         )
@@ -1005,7 +1017,18 @@ async def _run(args: argparse.Namespace) -> int:
         # its credbroker import when `auth_default` is absent or `creds`, so the
         # token path cannot land here.
         if "credbroker" in str(exc) or getattr(exc, "name", "") == "credbroker":
-            print(_credbroker_floor_error() or f"error: {exc}", file=sys.stderr)
+            # Fixed text, cause chained rather than interpolated: the raw
+            # ImportError names an installed-package path.
+            log.debug("credbroker import failed", exc_info=exc)
+            print(
+                _credbroker_floor_error()
+                or (
+                    "error: the installed credbroker does not provide the SSO "
+                    f"surface this skill needs; run: python -m pip install "
+                    f"--upgrade 'credbroker>={_CREDBROKER_FLOOR}'"
+                ),
+                file=sys.stderr,
+            )
         else:
             print(f"error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION
@@ -1026,6 +1049,15 @@ async def _run(args: argparse.Namespace) -> int:
 
     try:
         if auth_path == "sso-cookie":
+            if args.insecure:
+                # The boundary is "warn whenever it fires *or is ignored*", so
+                # the notice cannot be scoped to `check`: every subcommand on
+                # this path ignores the flag.
+                print(
+                    "warning: --insecure is ignored on the SSO-cookie path (the "
+                    "session cookie is a bearer secret; TLS verification stays on).",
+                    file=sys.stderr,
+                )
             client = JiraClient.from_sso_cookies(sso_config)
         else:
             if args.insecure:
