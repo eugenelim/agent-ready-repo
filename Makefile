@@ -232,7 +232,7 @@ zipapp:
 	$(PYTHON) tools/build_zipapp.py $(OUTPUT_DIR)
 
 release-preflight: lint-packs
-	@bash tools/release-check.sh
+	@bash tools/repo/release_check.sh
 
 # ── Static analysis + tests ──────────────────────────────────────────────────
 # Requires: python -m pip install -e packages/agentbundle ruff mypy pytest
