@@ -1,7 +1,7 @@
 {
   "name": "architect",
   "version": "0.14.3",
-  "description": "Go from a fuzzy technical problem to a reviewed design doc. Shapes the concept first, then produces a Google-style design doc or a Mermaid diagram, and critiques an existing one against a rubric.",
+  "description": "Sketch a system, write it up, then have it torn apart. You get a Google-style design doc or a Mermaid diagram, and a reviewer that never saw you write it.",
   "hooks": {
     "SessionStart": [
       {

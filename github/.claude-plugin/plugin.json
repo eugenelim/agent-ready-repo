@@ -1,7 +1,7 @@
 {
   "name": "github",
   "version": "0.1.3",
-  "description": "Turn a GitHub Milestone into a product brief. Reads the milestone and its issues and hands off a structured brief ready to decompose into specs.",
+  "description": "Point it at a GitHub Milestone and get a product brief back, issues and all.",
   "hooks": {
     "SessionStart": [
       {

@@ -1,7 +1,7 @@
 {
   "name": "frontend-engineering",
   "version": "0.1.3",
-  "description": "Build, audit, and ship production-quality web surfaces. Covers design handoff through shipped component: CSS token architecture, WCAG 2.2 AA accessibility, Core Web Vitals, rendering strategy, and component API design, plus a reviewer for HTML, CSS, and JS diffs.",
+  "description": "Build the web surface, then prove it holds up. HTML, CSS, and JS with a real token system, WCAG 2.2 AA, and Core Web Vitals measured rather than asserted. A reviewer reads the diff for the regressions those three tend to hide.",
   "hooks": {
     "SessionStart": [
       {

@@ -1,7 +1,7 @@
 [pack]
 name = "monorepo-extras"
 version = "0.1.6"
-description = "Add a new package to a monorepo without hand-wiring it. A new-package skill plus a seed README and package template to scaffold from."
+description = "Add a package to the monorepo without hand-wiring the build."
 readme = "README.md"
 display_name = "Monorepo Extras"
 license = "Apache-2.0 OR MIT"

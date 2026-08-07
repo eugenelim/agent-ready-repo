@@ -1,7 +1,7 @@
 {
   "name": "user-guide-diataxis",
   "version": "0.3.0",
-  "description": "Deprecated compatibility pack; install product-documentation instead. Kept so existing installs keep working, and exposes a new-guide shim that routes to the current authoring skill.",
+  "description": "Deprecated. Install product-documentation instead; this exists so older installs keep working.",
   "hooks": {
     "SessionStart": [
       {
