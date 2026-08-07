@@ -11,8 +11,10 @@ loop vs. surfaced to the human, per the work-loop self-coverage gate.
   governance surface — `catalogue-authoring-standards.md` § 4 ships as normative
   MUST-level rules, and the change crosses two guard-protected trees
   (`packages/agentbundle/**`, `packs/credential-brokers/**`). Not the published
-  wheel: `pyproject.toml` sets `include = ["agentbundle*"]`, so `tests/` was never
-  in it. Authority: the mode-selection rule in `work-loop`.
+  wheel: the three suites that moved lived in `packages/agentbundle/tests/`, a
+  sibling of the package, so `include = ["agentbundle*"]` never picked them up.
+  (`agentbundle/build/tests/` is inside the package and does ship — nothing moved
+  out of there.) Authority: the mode-selection rule in `work-loop`.
 - **Destination layout and anchor depth.** `packs/<pack>/tests/skills/<skill>/`
   with `parents[3]` is fixed by ADR-0071 and demonstrated by the shipped
   `packs/core/tests/` tree. No judgement left to make.

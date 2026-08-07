@@ -475,7 +475,10 @@ stated there once and not restated here.
       `packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py`,
       which `check_release_impact.py` lists as release-impacting. (AC4's file
       removal is *not* the trigger: `pyproject.toml` sets
-      `include = ["agentbundle*"]`, so `tests/` was never in the wheel.)
+      `include = ["agentbundle*"]`, and the three suites AC4 moves lived in
+      `packages/agentbundle/tests/`, a sibling of the package — so they were
+      never in the wheel. `agentbundle/build/tests/` *is* inside the package and
+      does ship; nothing moved out of it.)
       `pyproject.toml` and the hardcoded `CLI_VERSION` twin in `version.py` are
       bumped together, `packages/agentbundle/CHANGELOG.md` **and**
       `docs/product/changelog.md` each carry an entry (the latter is what
