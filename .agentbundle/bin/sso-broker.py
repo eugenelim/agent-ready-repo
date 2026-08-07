@@ -1416,7 +1416,11 @@ def _do_test(profile: str) -> int:
         )
         return 3
 
-    jar = _load_cookie_jar(profile)
+    # The load only. The validation request below is bounded by its own 15 s
+    # timeout and has nothing to do with the store; holding the lock across it
+    # would block every writer on a network round-trip.
+    with _profile_lock(profile):
+        jar = _load_cookie_jar(profile)
     if jar is None:
         sys.stderr.write(
             f"sso-broker test: no cookie jar for profile {profile!r}\n"
@@ -1583,14 +1587,23 @@ def _do_show_tier2_backend() -> int:
 
 
 def _do_rm(profile: str) -> int:
+    # `_profile_path` composes *before* the lock so a rejected profile still
+    # raises ProfileConfinementError ahead of any lock code — `rm` is
+    # deliberately exempt from the profile grammar (a profile registered under a
+    # now-invalid name must stay deletable), and containment is what guards it.
     path = _profile_path(profile)
-    if not path.exists():
-        sys.stderr.write(
-            f"sso-broker rm: profile {profile!r} not registered\n"
-        )
-        return 0
-    _delete_cookie_jar(profile)
-    path.unlink()
+    # The lock covers the existence check too. Outside it, `rm` racing a first
+    # `register` reads "not registered", says so, and exits 0 while the capture
+    # then stores a jar — a check-then-act gap in a verb that claims to
+    # serialise.
+    with _profile_lock(profile):
+        if not path.exists():
+            sys.stderr.write(
+                f"sso-broker rm: profile {profile!r} not registered\n"
+            )
+            return 0
+        _delete_cookie_jar(profile)
+        path.unlink()
     sys.stderr.write(f"sso-broker rm: profile {profile!r} removed\n")
     return 0
 
