@@ -1237,7 +1237,17 @@ def _validated_root(candidate: Path | None) -> Path:
     control remains `_within()`: every path *derived* from this root is
     re-checked against it before being read.
     """
-    root = (candidate if candidate is not None else _repo_root()).resolve()
+    raw = candidate if candidate is not None else _repo_root()
+    # `_within()` in the sibling script already catches this trio; resolve()
+    # raises ValueError on an embedded null and OSError on a Windows reserved
+    # name, neither of which is an OSError-only case. Letting them through
+    # would produce the traceback this function exists to replace.
+    try:
+        root = raw.resolve()
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise SystemExit(
+            f"lint-traceability: --root is not a usable path: {raw!r} ({exc})"
+        ) from exc
     if not root.exists():
         raise SystemExit(f"lint-traceability: --root does not exist: {root}")
     if not root.is_dir():
