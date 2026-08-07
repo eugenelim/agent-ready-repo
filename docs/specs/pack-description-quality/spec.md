@@ -56,8 +56,12 @@ costs no findability.
 - [x] AC3. Nothing under `packages/agentbundle/` changes — not
       `pack.schema.json`, not the packaged `lint_packs`. Both run against
       adopter catalogues, so neither may carry this repository's house style.
-- [x] AC4. Every pack in `packs/` has a description that is ≤400 characters and
-      whose first sentence names an adopter outcome, not a component inventory.
+- [x] AC4. Every pack in `packs/` has a description ≤400 characters, and every
+      rewritten one opens on an adopter outcome rather than a component
+      inventory. One pack is deliberately not rewritten —
+      `credential-brokers`, whose tree the catalogue-curation guard protects
+      with no carve-out and whose description is already inside the ceiling at
+      241 chars (deferred: credential-brokers-description-rewrite).
 - [x] AC5. No pack description contains a cross-pack reference, a bare component
       inventory as its opening clause, or an internal file path.
 - [x] AC6. For every pack whose description changed, `pack.toml`,

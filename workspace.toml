@@ -439,6 +439,19 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # Every other pack description was rewritten outcome-first; credential-brokers
+  # still opens "User-scope credential brokering: the credbroker library
+  # (pip-installed, in-process resolver...)" and names an internal path
+  # (~/.agentbundle/bin/), so it reads as the odd one out in the marketplace
+  # listing. Left alone deliberately: packs/credential-brokers/** is a protected
+  # tree under the catalogue-curation guard (RFC-0059 D6) with no carve-out, so
+  # editing it needs an `Engine-Change-RFC:` trailer naming a real RFC, and none
+  # covers display copy. It is already inside the 400-char ceiling (241), so this
+  # is polish, not a gate failure. Fix: fold the rewrite into whatever RFC next
+  # touches that pack. Note `test_credential_brokers_pack_install.py` pins the
+  # substrings credbroker / sso-broker / credential-setup / LLM-cooperative, so
+  # any rewrite must keep them.
+  {slug = "credential-brokers-description-rewrite", source = "spec/pack-description-quality AC4"},
     # converters ships two skills whose documented invocation cannot work from an agent
     # session: mermaid-renderer says `python scripts/render_mermaid.py` and markdown-to-html
     # says `node scripts/render.js`, both bare-relative. Gate V6 measured the agent CWD as
