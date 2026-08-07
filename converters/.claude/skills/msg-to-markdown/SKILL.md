@@ -133,9 +133,6 @@ attachment or MIME-part payload is parsed as XML.
 - `scripts/contract.py`, `scripts/safe_io.py` — **vendored verbatim** from
   `file-to-markdown` (a drift-guard test keeps them byte-identical; edit the
   originals, then re-sync — do not edit these copies).
-- `scripts/msg_fixtures.py`, `scripts/test_*.py`, `scripts/testdata/` — the test
-  corpus generator, tests, and the independent-reader (Node `msgreader`) oracle
-  baseline.
 
 ## Relationship to `file-to-markdown`
 
