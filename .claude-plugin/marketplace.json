@@ -166,7 +166,7 @@
         "name": "eugenelim"
       },
       "category": "credentials",
-      "description": "Give credentialed skills their secrets without putting secrets in a repo. Resolves credentials in-process at user scope, with a separate broker for SSO-cookie flows and a guided setup skill.",
+      "description": "Give credentialed skills their secrets without putting secrets in a repo. Ships credbroker for in-process resolution at user scope, sso-broker for SSO-cookie flows, and an LLM-cooperative credential-setup skill.",
       "displayName": "Credential Brokers",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [

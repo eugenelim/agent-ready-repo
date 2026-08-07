@@ -1,6 +1,6 @@
 # Spec: pack-description-quality
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Contract:** none — this spec changes no published schema or adapter contract.
@@ -45,26 +45,29 @@ costs no findability.
 
 ## Acceptance criteria
 
-- [ ] AC1. `build/lint_packs.py` refuses a `[pack].description` longer than
+- [x] AC1. `build/lint_packs.py` refuses a `[pack].description` longer than
       `_PACK_DESCRIPTION_MAX` (400), with a finding naming the pack, the actual
       length, and the ceiling.
-- [ ] AC2. The new check uses its own constant and does **not** read, reuse, or
+- [x] AC2. The new check uses its own constant and does **not** read, reuse, or
       mutate `Constraints.description_max` — the target-derived skill/agent cap.
       A test asserts the two are independent.
-- [ ] AC3. `pack.schema.json` is unchanged. A test asserts no `maxLength` was
+- [x] AC3. `pack.schema.json` is unchanged. A test asserts no `maxLength` was
       added under `properties.pack.properties.description`.
-- [ ] AC4. Every pack in `packs/` has a description that is ≤400 characters and
+- [x] AC4. Every pack in `packs/` has a description that is ≤400 characters and
       whose first sentence names an adopter outcome, not a component inventory.
-- [ ] AC5. No pack description contains a cross-pack reference, a bare component
+- [x] AC5. No pack description contains a cross-pack reference, a bare component
       inventory as its opening clause, or an internal file path.
-- [ ] AC6. For every pack whose description changed, `pack.toml`,
+- [x] AC6. For every pack whose description changed, `pack.toml`,
       `packs/<pack>/.claude-plugin/plugin.json`, and the root
       `.claude-plugin/marketplace.json` all carry the identical new string.
-- [ ] AC7. No pack version is bumped, and every pack's version remains identical
+- [x] AC7. No pack version is bumped, and every pack's version remains identical
       across `pack.toml`, `plugin.json`, and `marketplace.json`. See
       Assumption 2 for why a bump is not warranted here.
-- [ ] AC8. `make build-check` and the `agentbundle` test suite pass.
-- [ ] AC9. `CHANGELOG.md` records the description rewrite under `[Unreleased]`.
+- [x] AC8. `make build-check` and the `agentbundle` test suite pass.
+- [x] AC9. Both changelogs record the change under `[Unreleased]`:
+      `docs/product/changelog.md` (the user-visible description rewrite) and
+      `packages/agentbundle/CHANGELOG.md` (the new lint ceiling). This repo has
+      no root `CHANGELOG.md`.
 
 ## Boundaries
 
@@ -98,10 +101,15 @@ costs no findability.
 
 ## Assumptions
 
-1. The root `.claude-plugin/marketplace.json` is regenerated from per-pack
-   `plugin.json` by `make build-self`. **To be verified empirically in T3** —
-   prior session notes claim `build-self` syncs none of the three files, which
-   contradicts `self_host.py:609`. Whichever is true, AC6 is the binding contract.
+1. ~~The root `.claude-plugin/marketplace.json` is regenerated from per-pack
+   `plugin.json` by `make build-self`.~~ **Confirmed empirically in T3.** Editing
+   the 22 per-pack `plugin.json` files and running `make build-self` rewrote
+   exactly 21 lines of `.claude-plugin/marketplace.json` (one per shipped pack;
+   `_example` is not listed), all of them `description` values and nothing else.
+   The prior session note claiming `build-self` syncs none of the three files is
+   wrong for `description` — it holds only for `version`, which this change does
+   not touch. `build-self` refuses to run against a dirty tree, so the sequence
+   is: edit → commit → `make build-self` → commit the regenerated marketplace.
 2. ~~A description change is adopter-visible and therefore earns a patch bump.~~
    **Resolved during T4 — no version bump.** Three findings moved this:
    - No gate requires one. No test pins a real catalogue pack version (the

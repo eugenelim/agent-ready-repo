@@ -15,6 +15,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [Unreleased]
+
+### Changed
+
+- **Every pack now says what it is *for* in its first sentence.** Pack
+  descriptions are what you read in a marketplace browser while deciding whether
+  to install, and ours had drifted into component inventories — `core` opened
+  with a list of thirteen skill names, and the longest ran to 1122 characters
+  against a 177-character median in the marketplace we are listed alongside.
+
+  All 22 now lead with the job you accomplish: *"Supervised coding from brief to
+  merged PR"*, *"Run Jira and Confluence from a conversation"*, *"Validate a
+  release the way production will"*. Median length drops from 227 characters to
+  188, the longest from 1122 to 263. Cross-pack references, internal file paths,
+  and framework name-drops are gone; what each pack contains still follows, just
+  after the point rather than instead of it.
+
+  Nothing about a pack's behaviour changed, and no skill or agent description
+  was touched — those drive activation and are a different contract. Five packs
+  (`architect`, `contracts`, `core`, `experience-design`, `product-strategy`)
+  also had descriptions that disagreed between their manifest and the
+  marketplace listing; all three copies now match.
+
 ## [agentbundle][0.29.7] — 2026-08-06
 
 ### Changed

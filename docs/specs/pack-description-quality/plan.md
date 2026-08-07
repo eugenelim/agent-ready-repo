@@ -1,6 +1,6 @@
 # Plan: pack-description-quality
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Assumption trio

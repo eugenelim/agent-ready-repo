@@ -468,6 +468,17 @@ open = [
     # so it fails the bundled-fixes carve-out. Fix: rewrite the README's skill
     # table against SKILL.md's actual stage sequence. Unblocks: now.
   {slug = "iac-guides-readme-stage-drift", source = "spec/guides-sidebar-generation (out of scope)"},
+  # Codex renders skill descriptions into a ~2% context budget and truncates to
+  # fit, warning "Skill descriptions were shortened to fit the 2% skills context
+  # budget" (observed on Codex CLI 0.146.0). The catalogue ships 122 skills whose
+  # descriptions total ~72,000 chars (~18k tokens), roughly 3x that budget, so the
+  # longest descriptions — long precisely to drive activation — are cut hardest,
+  # and activation degrades exactly where it was tuned hardest. Distinct from the
+  # pack-description ceiling (that is marketplace display copy; this is
+  # activation text). Fix direction: measure activation loss under truncation
+  # before shortening anything, since the per-target 1024 cap was set to help
+  # activation, not hurt it. Needs an eval-backed pass, not a prose sweep.
+  {slug = "codex-skill-description-budget", source = "spec/pack-description-quality"},
     # ~/.agentbundle/browser-state/<profile> holds a standing, silently-replayable corporate
     # IdP session; this change makes replaying it agent-triggered. No lifetime management
     # today. Fix: bound/expire it in sso-broker.py. Unblocks: after
