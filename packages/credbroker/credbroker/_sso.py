@@ -444,6 +444,8 @@ def load_sso_cookies(profile: str) -> Path:
     :raises SsoBrokerNotInstalledError: the engine is absent at its expected path.
     :raises SsoSessionUnavailableError: the profile is unregistered, no jar
         exists, or the jar path is unreadable.
+    :raises SsoStoreContendedError: engine exit 6 — another process holds this
+        profile's store lock; retry the same call after a short back-off.
     :raises SsoBrokerUnavailableError: the engine could not be run to a
         conclusion, or failed internally.
     """
@@ -515,6 +517,7 @@ def refresh_sso_session(profile: str) -> None:
     :raises SsoProfileNotRegisteredError: engine exit 4 — nothing to refresh;
         the caller should route the operator to a first capture. **Recoverable.**
     :raises SsoInteractionRequiredError: engine exit 5 — a human is needed.
+    :raises SsoStoreContendedError: engine exit 6 — the store is busy; retry.
     :raises SsoRecaptureFailedError: engine exit 3 or any unrecognised code.
     :raises SsoBrokerUnavailableError: timeout or spawn failure.
     """
@@ -574,6 +577,7 @@ def register_sso_session(
 
     :raises SsoConfigError: *profile* violates the grammar.
     :raises SsoBrokerNotInstalledError: the engine is absent.
+    :raises SsoStoreContendedError: engine exit 6 — the store is busy; retry.
     :raises SsoRecaptureFailedError: engine exit 3 or any unrecognised code —
         including the ordinary "the operator did not finish signing in".
     :raises SsoBrokerUnavailableError: timeout or spawn failure.

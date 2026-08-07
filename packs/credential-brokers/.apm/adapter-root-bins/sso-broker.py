@@ -13,7 +13,8 @@ Linux (the documented Tier-2 deferred path).
 
 Exit codes: 0 ok · 2 no usable session (``get-cookies`` / ``test``) ·
 3 engine failure · 4 profile not registered (``refresh``) ·
-5 headless refresh needs a human (``refresh``).
+5 headless refresh needs a human (``refresh``) ·
+6 another process holds this profile's store lock (any store-touching verb).
 
 Reserved keychain target-name prefix: ``agentbundle:sso:<profile>``
 and ``agentbundle:sso:<profile>:<n>`` for continuation slots.
