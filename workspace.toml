@@ -678,25 +678,6 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "curation-guard-silent-base-skip", source = "spec/local-gate-ci-parity review"},
 
-  # `package.py` defines `_IMPLICIT_DENY_DIRS` (including `__pycache__`) and then
-  # never references it, so compiled caches reach the packaged archive. Only
-  # `.apm/` scripts cached before; pytest suites under `packs/<pack>/tests/`
-  # cache on every run, so anyone running `make test` before `make package`
-  # now ships `.pyc` routinely. The boundary policy this PR adds says caches are
-  # "neither committed nor packaged" — currently untrue for packaging.
-  # `node_modules/` is the same hole and it is much bigger. `render-proof` has a
-  # package.json; `npm install` there puts ~10k files under `packs/` that the
-  # walk collects. Measured during pack-test-boundary-remaining-packs: with that
-  # directory present, agentbundle's own suite slowed by more than an order of
-  # magnitude, because its tests copy `packs/` into temp dirs and build. The
-  # directory is gitignored, so nothing catches it — the walk reads the
-  # filesystem, not the index.
-  # Fix: prune `_IMPLICIT_DENY_DIRS` from `dirnames` in package.py's three
-  #   os.walk loops, add `node_modules` to that set, and add an archive-contents
-  #   assertion. Needs an agentbundle release.
-  # Unblocks when: picked up — no dependency.
-  {slug = "package-archive-carries-pycache", source = "spec/pack-test-boundary review"},
-
   # `verify.py:_step_version_parity` probes `pack_dir / "plugin.json"`, but
   # every pack keeps it at `pack_dir / ".claude-plugin" / "plugin.json"`, so the
   # CAT-V-005 parity check silently no-ops. A pack.toml bump without the
@@ -746,9 +727,9 @@ open = [
   # Then drop the two render-proof entries from `_NO_RUNNER` in
   #   tools/lint-pack-test-boundary.py — the lint fails on a stale exemption, so
   #   it will tell you.
-  # Unblocks when: `package-archive-carries-pycache` lands. Until the archive
-  #   walk prunes build residue, CI installing node_modules under `packs/` feeds
-  #   ~10k files to it.
+  # Unblocks when: picked up. The archive-walk blocker is gone — agentbundle
+  #   0.29.5 prunes node_modules and the cache dirs from both packaging flavours,
+  #   so CI may install node_modules under `packs/` without feeding it.
   {slug = "pack-js-ci-workflow", source = "spec/pack-test-boundary-remaining-packs disposition"},
 
   # lint-spec-status.py matches `^##\s+Acceptance Criteria\b` case-sensitively, so

@@ -20,7 +20,7 @@ copies — the moves had already landed when the dependencies were installed.
 **`node_modules/` was removed again once the JS suites were measured**, and that
 is not just tidying. `render-proof`'s dependency tree is ~10,300 files under
 `packs/`, and `package.py`'s `packs/**` walk applies no deny-list — the same hole
-as `package-archive-carries-pycache`, but far larger. With the directory present,
+as the `__pycache__` leak, but far larger. With the directory present,
 agentbundle's own suite slowed by more than an order of magnitude, because its
 tests copy `packs/` into temp directories and build. The directory is gitignored,
 so nothing in review would have caught it. Folded into that backlog entry.

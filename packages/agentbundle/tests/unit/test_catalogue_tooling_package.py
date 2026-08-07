@@ -466,7 +466,13 @@ def test_archive_layout_no_wrapper_directory(tmp_path: Path) -> None:
 
 
 def test_denied_dirs_not_in_archive(tmp_path: Path) -> None:
-    """Denied directories are excluded even if present in root."""
+    """Denied directories are excluded even if present in root.
+
+    Note what this does *not* prove: these names are excluded because
+    `_DEFAULT_INCLUDE_DIRS` is an allowlist that never walks them, not because
+    any deny-set is applied. Build residue *nested inside* an included root is a
+    separate question — see `test_transient_dirs_pruned_inside_included_roots`.
+    """
     root = _make_catalogue(tmp_path)
     # Add stub files at denied paths
     for denied in [".git", "tools", "packages", "dist", "__pycache__"]:
@@ -489,6 +495,59 @@ def test_denied_dirs_not_in_archive(tmp_path: Path) -> None:
     for denied in [".git/", "tools/", "packages/", "dist/", "__pycache__/"]:
         for name in names:
             assert not name.startswith(denied), f"denied path found in archive: {name}"
+
+
+def test_transient_dirs_pruned_inside_included_roots(tmp_path: Path) -> None:
+    """Build residue nested inside a walked root never reaches the archive.
+
+    The root-level check above passes on the allowlist alone. This is the case
+    that was open: `packs/**` is walked recursively, so a `__pycache__` from any
+    `pytest` run and a `node_modules` from any `npm install` were collected
+    verbatim. `catalogue-authoring-standards.md` § 4 tells adopters caches are
+    "neither committed nor packaged"; this is what makes the second half true.
+    """
+    root = _make_catalogue(tmp_path)
+    pack = root / "packs" / "core"
+
+    (pack / "__pycache__").mkdir()
+    (pack / "__pycache__" / "convert.cpython-313.pyc").write_bytes(b"\x00")
+    (pack / "node_modules" / "dompurify").mkdir(parents=True)
+    (pack / "node_modules" / "dompurify" / "index.js").write_text(
+        "module.exports = {}\n", encoding="utf-8", newline="\n")
+    (pack / ".pytest_cache" / "v").mkdir(parents=True)
+    (pack / ".pytest_cache" / "v" / "lastfailed").write_text(
+        "{}\n", encoding="utf-8", newline="\n")
+    # A stray artefact beside authored content, not inside a cache directory.
+    (pack / "scripts").mkdir()
+    (pack / "scripts" / "convert.py").write_text(
+        "x = 1\n", encoding="utf-8", newline="\n")
+    (pack / "scripts" / "convert.pyc").write_bytes(b"\x00")
+    (pack / "scripts" / ".DS_Store").write_bytes(b"\x00")
+
+    # A real directory whose *name* collides with a repo-root deny name. Pruning
+    # the old `_IMPLICIT_DENY_DIRS` at every level — the obvious fix — would have
+    # silently dropped this; `packs/monorepo-extras/seeds/packages/` is the live
+    # instance.
+    (pack / "seeds" / "packages").mkdir(parents=True)
+    (pack / "seeds" / "packages" / "README.md").write_text(
+        "# seeded\n", encoding="utf-8", newline="\n")
+
+    rels = {p.relative_to(root).as_posix() for p in _scan_content(root)}
+
+    for gone in (
+        "packs/core/__pycache__/convert.cpython-313.pyc",
+        "packs/core/node_modules/dompurify/index.js",
+        "packs/core/.pytest_cache/v/lastfailed",
+        "packs/core/scripts/convert.pyc",
+        "packs/core/scripts/.DS_Store",
+    ):
+        assert gone not in rels, f"build residue reached the archive: {gone}"
+
+    assert "packs/core/scripts/convert.py" in rels
+    assert "packs/core/seeds/packages/README.md" in rels, (
+        "a real directory named `packages` was pruned — the deny set must not be "
+        "applied below the repository root"
+    )
 
 
 # ---------------------------------------------------------------------------

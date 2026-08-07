@@ -345,9 +345,9 @@ stated there once and not restated here.
 
       The guard does **not** assert the absence of cache directories:
       `Makefile`'s pack-test line runs without `-B`, so `__pycache__` exists under
-      `packs/*/tests/` on any machine that ran `make test`, and the packaging
-      defect is owned by the existing `package-archive-carries-pycache` backlog
-      entry, whose fix is a `package.py` deny-list and an agentbundle release.
+      `packs/*/tests/` on any machine that ran `make test`. The packaging half —
+      those caches reaching the archive — is fixed in this PR rather than
+      deferred, since the release was already being cut: see AC17.
 
 ### Workstream C — widen and rehome the guard
 
@@ -493,6 +493,22 @@ stated there once and not restated here.
       gate is changeset-scoped, so one trailer in the PR satisfies it; the trailer
       goes on each of those commits anyway, so a later rebase or cherry-pick does
       not silently drop it.
+- [x] **AC17** — `catalogue package` stops collecting build residue. Both
+      packaging flavours walk `packs/**` recursively and the deny-set intended to
+      prevent this (`_IMPLICIT_DENY_DIRS`) was referenced nowhere, so every
+      `__pycache__` and any `node_modules` under a pack reached the archive — 104
+      files on this catalogue. Added late and deliberately: the relocation moved
+      pytest suites *into* `packs/`, which turns an occasional leak into one that
+      happens on every `make test`, and § 4 tells adopters caches are "neither
+      committed nor packaged". The fix rides this PR because the agentbundle
+      release was already being cut for AC14.
+      - The old set could not be applied as written. It also named `.git`,
+        `tools`, `packages` and `dist` — *repository-root* names already excluded
+        by the include allowlist — and pruning those at every level would have
+        silently dropped real content. `packs/monorepo-extras/seeds/packages/` is
+        the live instance, and it has a regression test.
+      - Both flavours are covered, with an archive-contents assertion each,
+        falsified by neutering the prune and confirming both fail.
 - [x] **AC16** — The two SAST/secret-scanning coverage changes this move causes
       are decided explicitly rather than absorbed.
       - `bandit.yaml`'s `*/tests/*` exclusion drops the relocated files out of

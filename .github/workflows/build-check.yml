@@ -511,10 +511,9 @@ jobs:
         # that fails to land reduces the collected count and the step still exits
         # 0 — assert a floor. PYTHONDONTWRITEBYTECODE + -p no:cacheprovider are
         # retained with a new reason: the tests no longer sit under .apm/, so the
-        # self-host drift gate is no longer what they protect. `package.py` walks
-        # `packs/**` with no deny-list, so __pycache__ under packs/*/tests/ would
-        # be collected into the catalogue archive (see the
-        # `package-archive-carries-pycache` backlog entry).
+        # self-host drift gate is no longer what they protect. They keep a CI
+        # runner from leaving caches in the checkout at all — belt to the braces
+        # of agentbundle 0.29.5, which prunes them from the archive walk.
         # export-catalogue removed in 0.2.0 (superseded by agentbundle catalogue
         # init --preset self-hosted).
         env:

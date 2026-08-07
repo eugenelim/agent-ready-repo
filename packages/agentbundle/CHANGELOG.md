@@ -22,7 +22,27 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   tests that use a pack as fixture data are unaffected — the distinction is
   subject, not mention.
 
-No flag, verb, exit code, schema, or output changed.
+### Fixed
+
+- **`catalogue package` no longer puts build residue in the archive.** Both
+  flavours walk `packs/**` recursively, and the deny-set that was meant to stop
+  this was referenced nowhere — so `__pycache__` from any `pytest` run, and
+  `node_modules` from any `npm install` in a skill that ships a `package.json`,
+  were collected verbatim. On this repository that is 104 files. The walks now
+  prune `__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`,
+  `node_modules`, `.venv`, `venv` and `htmlcov` at every level, plus stray
+  `.pyc`/`.pyo`, `.DS_Store` and `.coverage` files.
+
+  The old set could not simply be applied: it also listed `.git`, `tools`,
+  `packages` and `dist`, which are *repository-root* names already excluded by
+  the include allowlist. Pruning those at every level would have dropped real
+  content — `packs/monorepo-extras/seeds/packages/` is exactly that case, and
+  there is a regression test for it.
+
+No flag, verb, exit code, or schema changed. Archive *contents* do change: an
+archive built from a tree that has been tested or npm-installed is now smaller,
+and matches what `catalogue-authoring-standards.md` § 4 has always told adopters
+it contains.
 
 ## [Unreleased]
 

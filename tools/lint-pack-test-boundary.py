@@ -78,10 +78,10 @@ _TEST_FILE = re.compile(
 _TEST_DIR = frozenset({"tests", "test", "__tests__", "spec"})
 _SKIP_DIR = frozenset({"evals"})
 
-# `__pycache__` and friends are gitignored build residue, not authored content.
-# They are a real packaging problem — `package.py` walks `packs/**` and applies
-# no denylist — but that belongs to `package-archive-carries-pycache` in the
-# backlog, not to the source-tree boundary this lint owns.
+# `__pycache__` and friends are gitignored build residue, not authored content,
+# so they are not a boundary violation. They were also a packaging problem —
+# `package.py` walked `packs/**` and collected them — fixed in agentbundle
+# 0.29.5, which prunes the same shapes from both archive flavours.
 _TRANSIENT = frozenset({"__pycache__", ".pytest_cache", ".mypy_cache",
                         ".ruff_cache", "node_modules"})
 

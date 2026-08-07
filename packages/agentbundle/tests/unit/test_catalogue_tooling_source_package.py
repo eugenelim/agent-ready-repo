@@ -295,3 +295,40 @@ def test_install_refuses_source_distribution_local_path(tmp_path: Path) -> None:
     assert rc == 1
     assert "agentbundle-self-hosted-source" in stderr
     assert "source distribution" in stderr
+
+
+def test_transient_dirs_pruned_from_source_archive(tmp_path: Path) -> None:
+    """Build residue under `packs/` never reaches the source archive either.
+
+    The source flavour walks `packs/` and `profiles/` with its own loops, so it
+    needs its own assertion — fixing only the default flavour would leave the
+    distribution enterprises self-host with the caches in it.
+    """
+    root = tmp_path / "cat"
+    root.mkdir()
+    _make_source_catalogue(root)
+    pack = root / "packs" / "core"
+    (pack / "__pycache__").mkdir()
+    (pack / "__pycache__" / "x.pyc").write_bytes(b"\x00")
+    (pack / "node_modules" / "dompurify").mkdir(parents=True)
+    (pack / "node_modules" / "dompurify" / "index.js").write_text(
+        "module.exports = {}\n", encoding="utf-8")
+    (pack / "scripts").mkdir()
+    (pack / "scripts" / "keep.py").write_text("x = 1\n", encoding="utf-8")
+    (pack / "scripts" / "stray.pyc").write_bytes(b"\x00")
+
+    result = package_source_flavour(
+        root=root, bundle="b", release="0.1.0", output=tmp_path / "out"
+    )
+    assert result.ok, result
+
+    archive = (tmp_path / "out" / "catalogue-sources" / "b" / "releases" / "0.1.0"
+               / "catalogue-source-0.1.0.tar.gz")
+    with tarfile.open(archive, mode="r:gz") as tf:
+        names = set(tf.getnames())
+
+    for gone in ("packs/core/__pycache__/x.pyc",
+                 "packs/core/node_modules/dompurify/index.js",
+                 "packs/core/scripts/stray.pyc"):
+        assert gone not in names, f"build residue in source archive: {gone}"
+    assert "packs/core/scripts/keep.py" in names

@@ -26,8 +26,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a machine without them, both suites skipped silently and the step went green.
 - Three suites whose subject was pack content moved out of the package's test
   tree to the packs that own them. A pack edit could otherwise turn the
-  published package's suite red. No flag, verb, exit code, schema, or output
-  changed.
+  published package's suite red.
+
+### Fixed
+
+- **`catalogue package` stops shipping build residue.** If you had ever run the
+  tests or an `npm install` in a skill before packaging, the archive carried the
+  resulting `__pycache__`, `.pytest_cache` and `node_modules` — the deny-set
+  meant to prevent it was never applied. 104 files on this catalogue. Your
+  archives get smaller and match what the authoring standards say they contain.
+  No flag, verb, exit code, or schema changed.
 
 ## [architect][0.14.3] — 2026-08-06
 

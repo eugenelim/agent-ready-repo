@@ -89,9 +89,9 @@ loop vs. surfaced to the human, per the work-loop self-coverage gate.
   suites be gated", it is a missing capability. `web/` and `docs-site/` are
   covered (pages.yml and pack-evals.yml run npm, both ship committed lockfiles);
   the two skill `package.json`s have neither a lockfile nor a workflow, and no
-  `npm audit` reaches them. Filed as `pack-js-ci-workflow`, blocked on
-  `package-archive-carries-pycache` — until the archive walk prunes build
-  residue, CI installing `node_modules` under `packs/` feeds it ~10k files.
+  `npm audit` reaches them. Filed as `pack-js-ci-workflow`, and no longer blocked: the archive-walk defect
+  that would have made CI's `node_modules` a packaging problem is fixed in this
+  PR (AC17).
 - **`.gitleaksignore` cannot be settled in advance.** Whether the range scan
   flags the relocated fixtures at their new paths is not knowable here — gitleaks
   is not installed locally. AC16 fixes the policy (keep the historical
@@ -119,8 +119,13 @@ loop vs. surfaced to the human, per the work-loop self-coverage gate.
   rest — and deciding whether the matcher should be case-insensitive, or should
   fail loudly when a spec has no criteria section — is a separate change.
 - **Deferred out of this PR, pre-existing:** `test-all-dangling-entries`,
-  `version-parity-probes-wrong-path`, `package-archive-carries-pycache`, and the
-  several relocated suites that have never had a CI runner. This loop documents
+  `version-parity-probes-wrong-path`, and the several relocated suites that have
+  never had a CI runner.
+- **Resolved late rather than deferred: the archive walk.** It was filed as a
+  deferral and then fixed here on user direction, once it was clear the
+  agentbundle release was already being cut for the test removal. Recorded
+  because the reasoning is the transferable part: a defect worth deferring
+  changes cost when the release it needs is already in the diff. This loop documents
   each where it bites rather than closing it — but a reader of the PR should know
   that `tools/test-all.py` is red before this change and after it, and that the
   pack version-parity gate does not work.
@@ -150,8 +155,8 @@ fifth case that enforces it from the tree.
 **Resolved late, on user direction:** `render-proof`'s JavaScript suites. PLAN
 recorded them as unverifiable; installing the dependencies locally made all three
 a real before/after run. That also surfaced the archive-walk hole
-(`node_modules/` under `packs/`), which is folded into
-`package-archive-carries-pycache`.
+(`node_modules/` under `packs/`), which was then fixed here rather than
+deferred (AC17), on the reasoning that the release was already being cut.
 
 **Surfaced, not decided here:** whether `render-proof`'s suites should gain a CI
 runner (needs an `npm install` step and a committed lockfile for nine

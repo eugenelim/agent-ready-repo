@@ -644,7 +644,7 @@ Five changes beyond the pack iteration:
 Keep the deliberate non-matches and say why in the source: `evals/` is
 runtime-adjacent by decision; a bare `test` substring would false-positive on
 reference material *about* testing; `__pycache__`/`.pytest_cache` are gitignored
-residue tracked separately as `package-archive-carries-pycache`.
+residue, and since 0.29.5 the archive walk prunes it too.
 
 Repoint `tools/test-all.py`'s `pack-runtime-boundary` entry — the path moves in
 *this* task, so this is where it changes, or the runner gains a third dangling
