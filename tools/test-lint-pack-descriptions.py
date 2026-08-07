@@ -113,7 +113,7 @@ def test_backstop_sits_clear_of_real_copy() -> None:
         if isinstance(description, str):
             longest = max(longest, len(description))
     assert longest, "no pack descriptions found — this test would be vacuous"
-    assert CEILING >= longest * 2, (
+    assert longest * 2 <= CEILING, (
         f"backstop {CEILING} is too close to the longest shipped description "
         f"({longest}); it would start adjudicating style rather than drift"
     )
