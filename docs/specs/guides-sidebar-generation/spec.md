@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** `contracts/guide.schema.json` (frontmatter contract), `site.toml` (site recipe — sidebar grouping and pack ordering), [`docs-site/AGENTS.md`](../../../docs-site/AGENTS.md) (build order), [`guides/AGENTS.md`](../../../guides/AGENTS.md) (publication routing)
+- **Constrained by:** [ADR-0020](../../adr/0020-per-pack-diataxis-hierarchy-for-guides.md) (per-pack Diátaxis hierarchy), [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md) (Starlight), [`guide-source-model`](../guide-source-model/spec.md) (frontmatter declares kind), `contracts/guide.schema.json`, `site.toml` (site recipe), [`docs-site/AGENTS.md`](../../../docs-site/AGENTS.md) (build order), [`guides/AGENTS.md`](../../../guides/AGENTS.md) (publication routing)
 - **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -20,9 +20,9 @@ goal.
 
 Two things block the intent today.
 
-**Pages are missing.** The sidebar is a 460-line literal tree in
-`docs-site/astro.config.ts` (lines 86–544) listing 118 guide entries by hand.
-181 navigable guide files exist on disk, so **67 published pages are absent from
+**Pages are missing.** The sidebar is a hand-maintained literal tree in
+`docs-site/astro.config.ts` (lines 86–544) carrying 119 guide entries. 181
+navigable guide files exist on disk, so **62 published pages are absent from
 navigation** — reachable only by search or a direct link. Adding a page and
 forgetting the config edit is the default outcome, not the exception.
 
@@ -31,124 +31,141 @@ pack → Diátaxis kind, which sorts by what a page *is* rather than what a read
 should read next. `contracts/guide.schema.json` already defines `order` as
 "sort weight within a pack group," and four `atlassian` pages already use it as
 a cross-kind reading order (`tutorial → how-to → reference → explanation`, 1–4).
-That sequence works only because someone hand-placed it in the config; nothing
-generates it, and nothing protects it.
+That sequence works only because someone hand-placed it; nothing generates it
+and nothing protects it.
 
 ## Context
 
-This spec was shaped in-session (2026-08-06) from a walkthrough of the
-`iac-terraform` flow. The request that produced it: an organization adopting
-central infrastructure practice needs a narrative arc in human language that
-navigates well, and a journey page is a preview that does not carry the process.
+Shaped in-session (2026-08-06) from a walkthrough of the `iac-terraform` flow.
+The request that produced it: an organization adopting central infrastructure
+practice needs a narrative arc in human language that navigates well, and a
+journey page is a preview that does not carry the process.
 
 ## Approach: collate before you project
 
-The change is a translation, and it is specified as one. Source material is
-collated into a **predictable inventory** first; the sidebar is projected from
-that inventory second. The inventory is a real artifact — dumpable, diffable,
-and testable on its own — not an intermediate hidden inside a generator.
+The change is a translation and is specified as one. Source material is collated
+into a **predictable inventory** first; the sidebar is projected from that
+inventory second. The inventory is a real artifact — dumpable, diffable, and
+testable on its own — not an intermediate hidden inside a generator.
 
 This split is load-bearing. Every awkward fact about the source material
-(curated group labels, index-page slug normalization, files that must never
-appear to readers, `slug:` overrides, cross-kind ordering) becomes a **declared
-field on a record** instead of a branch buried in projection logic. It also
-makes the change reviewable: the before/after navigation diff is computable from
-the inventory, so "no page regressed" is proven rather than asserted.
+(curated labels, index-page slug normalization, files that must never reach
+readers, `slug:` overrides, cross-kind ordering) becomes a **declared field on a
+record** instead of a branch buried in projection logic. It also makes the
+change reviewable: the before/after navigation diff is computable, so "no page
+regressed" is proven rather than asserted.
 
 ### Layer 1 — Inventory
 
-One deterministic pass over `guides/` produces one record per file:
+One deterministic pass over `guides/**/*.md` produces one record per file:
 
 | Field | Source |
 | --- | --- |
 | `source_path` | the file |
 | `pack` | first path segment (`_shared`, `_reference` included) |
 | `kind` | `kind:` frontmatter when present, else the kind directory, else none |
-| `order` | `order:` frontmatter; integer or absent |
-| `title` | `title:` frontmatter, else derived from the filename |
-| `slug` | `slug:` frontmatter when present, else derived — **must equal what `mirror_guides()` writes** |
+| `order` | `order:` frontmatter; integer, else absent |
+| `title` | `title:` frontmatter, else the frozen baseline label, else derived from the filename |
+| `slug` | `slug:` frontmatter when present, else derived — **must equal the Starlight slug of the file `mirror_guides()` writes** |
+| `is_index` | true for `README.md` at any depth |
 | `nav_eligible` | false for `AGENTS.md`; true otherwise |
-| `in_nav_today` | whether the slug appears in the current hand tree |
 
-Measured against the tree at spec time: 182 files, 1 nav-ineligible
-(`guides/AGENTS.md`), 181 eligible, 181 distinct slugs (zero collisions), 118 in
-navigation, **67 absent**. These are the spec's single statement of the
-measurements; the plan references them rather than restating them.
+**On the `kind` directory fallback.** `guide-source-model` AC3 (shipped) states
+that the physical directory does not determine kind. This spec relaxes that
+**only for pages carrying no `kind:` frontmatter** — 162 of 182 files. Where
+frontmatter declares a kind it always wins. The relaxation is deliberate and
+scoped: the alternative is 162 uncategorized pages, and the long-term fix is
+frontmatter migration, not a different fallback.
+
+**Measurements** (single statement; the plan references this section rather than
+restating): 182 `.md` files, 1 nav-ineligible (`guides/AGENTS.md`), 181
+eligible, 181 distinct slugs (zero collisions), 119 entries in the hand tree,
+**62 absent**. Extract nav slugs with the pattern `slug: '(guides(/…)?)'` — a
+`guides/`-prefixed match silently drops the root `guides` entry and yields 118.
 
 ### Layer 2 — Projection
 
-The inventory becomes sidebar groups. Group labels and group order come from
-`site.toml`, which already exists as the site recipe and already owns "sidebar
-grouping and pack ordering" for the pack catalogue. Guide group labels are
-curated editorial names that no path or `pack.toml` field can derive —
-`'The Build Loop (core)'` where `pack.toml` says `"Core"`, `'Product Discovery'`
-where it says `"Product Engineering"` — so they are declared, not inferred.
+The inventory becomes sidebar groups.
 
-Within a pack group, `order` sorts **across kinds**, matching the schema's
-definition and the existing `atlassian` sequence. Pages without `order` fall
-into their kind buckets beneath the ordered run.
+**Group labels and order** come from a `[[guide_groups]]` table in `site.toml`,
+**separate from the existing `[[groups]]` table**. The existing table is routed
+through `discover_packs()`, which skips `_`-prefixed slugs and warns on any slug
+without a `packs/<slug>/pack.toml` — so it structurally cannot express `_shared`
+(39 pages) or `_reference` (1). A distinct table gives both a declared home.
+Guide groups render as a **flat list of pack groups** under "Guides", matching
+today's shape; `site.toml`'s six super-group labels are not inherited, which
+avoids a five-level nesting Starlight has never been asked to render.
+
+**Labels** resolve `title:` frontmatter → frozen baseline → filename-derived.
+The frozen baseline is required: filename derivation alone changes **90 of the
+119 existing labels** (`'Plan and Execute'` → `'Plan And Execute Non Trivial
+Work'`, `'Foundation vs Map'` → `'Foundation Vs Map'`, every `'Overview'` →
+`'Guides'`/`'Core'`). The baseline is transitional — a page gains `title:`
+frontmatter and drops out of it, so the registry shrinks rather than becoming
+permanent furniture.
+
+**Ordering:** within a pack group, `order` sorts **across kinds**, matching the
+schema and the existing `atlassian` sequence. Pages without `order` fall into
+kind buckets beneath the ordered run.
 
 ## Boundaries
 
 ### Always do
 
-- Produce the inventory from path structure so a page with no frontmatter still
-  appears. Only 20 of 182 guide files carry frontmatter; a frontmatter-sourced
-  inventory would omit the rest.
-- Derive a slug that equals `mirror_guides()`'s output, including its
-  `README.md` → parent-directory normalization (`guides/core/README.md` →
-  `guides/core`, never `guides/core/index`) and its `slug:` override handling.
+- Build the inventory from path structure so a page with no frontmatter still
+  appears. Only 20 of 182 files carry frontmatter.
+- Derive a slug equal to the **Starlight slug of the file `mirror_guides()`
+  writes** — its written path with a trailing `/index` stripped.
 - Treat `order` as a pack-group-wide, cross-kind sort weight.
 - Coerce a non-integer `order` to absent rather than raising.
-- Declare group labels and group order in `site.toml`.
+- Declare guide group labels and order in `site.toml`'s `[[guide_groups]]`.
 - Keep generation deterministic across filesystem enumeration order.
 
 ### Ask first
 
 - Adding a field to `contracts/guide.schema.json`. It is
-  `additionalProperties: false`; `order` already exists and needs no change.
+  `additionalProperties: false`; `order` already exists.
 - Removing or renaming any published URL.
-- Changing a reader-visible group label beyond what `site.toml` declares.
+- Changing a reader-visible label beyond what the baseline and `site.toml`
+  declare.
 
 ### Never do
 
-- Drop a page that appears in the current hand-maintained tree.
+- Drop a page or change a label that appears in the pre-change hand tree.
 - Require frontmatter for a page to appear.
 - Surface a `nav_eligible: false` file to readers.
+- Modify `mirror_guides()`'s `canonical_slug`. It feeds alias redirect stubs;
+  changing it is a routing change, which this spec forbids.
 - Hand-edit `docs-site/src/sidebar-config.json`; it is generated and gitignored.
-- Change what `mirror_guides()` publishes or where. This spec changes navigation
-  only, never routing.
 
 ## Testing Strategy
 
-`tools/build-site.py` is stdlib plus PyYAML, with an existing test module
-(`tools/test_build_site_routing.py`), so both layers are unit-testable against a
-synthetic tree without invoking Astro.
+`tools/build-site.py` is stdlib plus PyYAML, with an existing test module, so
+both layers are unit-testable against a synthetic tree without invoking Astro.
 
-- **Inventory (TDD)** — records built from fixture trees covering: no
-  frontmatter, `title` override, `slug` override, `README.md` at pack and
-  nested depth, `_shared`/`_reference`, non-`.md` files, malformed frontmatter,
-  and non-integer `order`.
-- **Slug parity (TDD)** — for every real file under `guides/`, the inventory
-  slug equals the slug `mirror_guides()` derives. This is the guard against
-  navigation pointing where the page is not.
-- **Projection (TDD)** — cross-kind `order` sorting, unordered fallback,
-  `site.toml` label and order application, and a group for a pack absent from
-  `site.toml`.
-- **No-regression (goal-based)** — every slug in the current hand tree appears
-  in the generated output. This is the real guard against the 67-missing defect;
-  count parity alone would let a page satisfy the test while sitting in the
-  wrong group.
-- **Determinism (TDD)** — shuffle the discovered-file list before a second run
-  and assert byte-identical output, so the test cannot pass merely because
-  Python's `sorted()` is stable.
+- **Inventory (TDD)** — fixture trees covering no frontmatter, `title`/`slug`
+  override, `README.md` at pack and nested depth, `_shared`/`_reference`,
+  non-`.md` files, malformed frontmatter, non-integer `order`.
+- **Slug parity (TDD)** — for every real file, the inventory slug equals the
+  Starlight slug of what `mirror_guides()` writes. Guards against navigation
+  pointing where the page is not.
+- **Projection (TDD)** — cross-kind `order`, unordered fallback,
+  `[[guide_groups]]` labels and order, and a pack absent from the table.
+- **No-regression (goal-based)** — every `(slug, label)` pair in the frozen
+  baseline appears unchanged in the generated output. Pairs, not slugs: a
+  slug-only guard is blind to the 90 label regressions by construction.
+- **Bijection (TDD)** — set equality between `nav_eligible` inventory slugs and
+  generated sidebar slugs. A subset check passes while silently dropping pages.
+- **Determinism (TDD)** — the inventory function accepts an injectable path
+  enumerator; the test shuffles it and asserts byte-identical output. Without
+  the seam the test re-globs and asserts nothing.
 - **Live integration** — the `iac-terraform` arc below, plus the existing
   `atlassian` sequence as an independent regression witness.
 
 ## The live test: the infrastructure explanation arc
 
 The generator is unproven until a real threaded sequence navigates in reading
-order. This spec ships one, and inherits a second.
+order. This spec ships one and inherits a second.
 
 The arc is not new doctrine. `iac-terraform` is the only pack declaring both
 global gates G4 and G5, so it is the release loop specialized to infrastructure,
@@ -164,67 +181,74 @@ creates a second copy to drift.
 | Deciding before generating | 2 | Recorded decisions before generation; the index as lookup, not library; why inventing a policy is the expensive failure |
 | What the preview cannot tell you | 3 | Grounding against live provider schemas; why a preview is not a data-plane probe; the unmanaged-resource blind spot |
 
-The `atlassian` pages (`order` 1–4, four different kinds) are the witness that
-cross-kind ordering already works and must not regress.
+The `atlassian` pages are the witness that cross-kind ordering works.
 
 ## Acceptance Criteria
 
-- [ ] AC1 — An inventory pass emits one record per file under `guides/` carrying
-      every field in the Layer 1 table.
-- [ ] AC2 — Every `nav_eligible` file yields exactly one sidebar entry;
-      `guides/AGENTS.md` yields none.
-- [ ] AC3 — For every file under `guides/`, the inventory slug equals the slug
-      `mirror_guides()` derives, including `README.md` → parent-directory
-      normalization and `slug:` overrides.
-- [ ] AC4 — A page with no frontmatter appears, labelled from its path.
-- [ ] AC5 — Frontmatter `title` overrides the path-derived label.
+- [ ] AC1 — An inventory pass emits one record per `.md` file under `guides/`,
+      each carrying every key in the Layer 1 table.
+- [ ] AC2 — The set of generated sidebar slugs equals the set of `nav_eligible`
+      inventory slugs exactly; `guides/AGENTS.md` appears in neither.
+- [ ] AC3 — For every file, the inventory slug equals the Starlight slug of the
+      file `mirror_guides()` writes (its path with trailing `/index` stripped),
+      including `slug:` overrides. `mirror_guides()` is unmodified.
+- [ ] AC4 — A page with no frontmatter appears in the projected sidebar,
+      labelled from the baseline or its filename.
+- [ ] AC5 — Label precedence in the projected sidebar is `title:` frontmatter →
+      frozen baseline → filename-derived.
 - [ ] AC6 — Within a pack group, entries declaring `order` sort ascending across
       kinds, ahead of undeclared siblings, which follow in kind buckets.
 - [ ] AC7 — A non-integer `order` is treated as absent and does not raise.
-- [ ] AC8 — Group labels and group order come from `site.toml`; a pack absent
-      from `site.toml` still produces a group.
-- [ ] AC9 — Every slug present in the pre-change hand tree is present in the
-      generated output. No page regresses.
-- [ ] AC10 — Shuffling the discovered-file order produces byte-identical output.
+- [ ] AC8 — Guide group labels and order come from `site.toml`'s
+      `[[guide_groups]]` table; groups render as a flat list under "Guides"
+      without inheriting the six `[[groups]]` super-groups; `_shared` and
+      `_reference` have declared entries; a pack absent from the table still
+      produces a group.
+- [ ] AC9 — Every `(slug, label)` pair in the frozen baseline appears unchanged
+      in the generated output. No page and no label regresses.
+- [ ] AC10 — Shuffling the injected path enumerator produces byte-identical
+      output.
 - [ ] AC11 — The hand-maintained guides block (lines 86–544) is removed from
-      `docs-site/astro.config.ts`; the surviving sidebar is Home, Get Started,
-      the `sidebar-config.json` spread, Changelog, and Contributing.
+      `docs-site/astro.config.ts`; the surviving sidebar is exactly Home, Get
+      Started, the `sidebar-config.json` spread, Changelog, and Contributing.
 - [ ] AC12 — Three explanation pages exist under
-      `guides/iac-terraform/explanation/` declaring `order` 1–3, each containing
-      a link to `guides/release-engineering/explanation/the-release-loop` in its
-      opening section.
-- [ ] AC13 — The IaC arc renders in `order` in the built sidebar, and the
-      `atlassian` sequence still renders 1–4 across its four kinds.
-- [ ] AC14 — The documented build sequence completes and the rendered sidebar
-      was inspected; observed result recorded.
+      `guides/iac-terraform/explanation/` declaring `order` 1–3, each linking to
+      `release-engineering/explanation/the-release-loop` in its opening section
+      via the relative form the tree uses.
+- [ ] AC13 — In the built sidebar the IaC arc renders 1–3, and the four ordered
+      `atlassian` pages render as a flat run ahead of their kind buckets — the
+      post-change shape, not the hand-placed one.
+- [ ] AC14 — The documented build sequence completes; the rendered sidebar was
+      inspected and the observation recorded in
+      `docs/specs/guides-sidebar-generation/notes/rendered-check.md`.
 - [ ] AC15 — `guides/AGENTS.md` § Traps states the generated contract, `order`
-      semantics, and the `site.toml` group declaration instead of claiming the
-      sidebar is hand-maintained.
+      semantics, the `[[guide_groups]]` declaration, and the transitional label
+      baseline instead of claiming the sidebar is hand-maintained.
 
 ## Assumptions
 
 - `tools/build-site.py` runs before both site builds in
-  `.github/workflows/pages.yml`, so a generated guides sidebar needs no CI change.
-- Starlight accepts the same `{label, slug}` and `{label, items}` shapes for
-  guides groups that the pack-catalogue groups already use.
-- Kind-bucket labels keep their current words ("Explanation", "How-to",
-  "Reference", "Tutorials").
+  `.github/workflows/pages.yml`, so no CI change is needed.
+- Starlight accepts the `{label, slug}` and `{label, items}` shapes the
+  pack-catalogue groups already use.
+- Kind-bucket labels keep their current words.
 - No published guide URL changes. This spec touches navigation only.
-- Reusing `site.toml`'s existing group order for guides is acceptable and
-  desirable — it makes the two sidebar sections consistent. It is a visible
-  reordering of guide groups relative to today's hand tree.
+- **Guide group order changes visibly.** Declaring order in `[[guide_groups]]`
+  is an opportunity to fix today's ad-hoc sequence; the initial table reproduces
+  today's order exactly, so this PR ships zero group reordering. Reordering is a
+  later, separate, reviewable edit to one table.
 
 ## Out of scope
 
 - **Migrating the 161 other frontmatter-less guides.** Confirmed with the user
-  2026-08-06. The path-derived inventory makes it unnecessary; migration can
-  proceed incrementally later with no further code change.
+  2026-08-06. The path-derived inventory and the frozen baseline make it
+  unnecessary; migration proceeds incrementally with no further code change.
 - **The `guides/iac-terraform/README.md` stage-count drift.** It claims an
-  "8-stage generation loop" and "Stages 2–7" where
-  `packs/iac-terraform/.apm/skills/generate-iac/SKILL.md` defines Stage 0–6.
-  Pre-existing, user-visible, and invisible to the generator — it fails the
-  bundled-fixes carve-out. Recorded in `workspace.toml [backlog].open`.
-- **Whether `docsUrl` resolves.** The marketing site renders
-  `withBase('/guides/<pack>/')` while guides publish under `/docs/guides/<pack>/`.
-  If broken it affects all packs and is a routing fix, not a navigation one.
-  Verify during the rendered check; record a backlog entry if confirmed.
+  "8-stage generation loop" and "Stages 2–7" where `generate-iac/SKILL.md`
+  defines Stage 0–6. Pre-existing, user-visible, invisible to the generator — it
+  fails the bundled-fixes carve-out. This PR **will record** it in
+  `workspace.toml [backlog].open` as `iac-guides-readme-stage-drift`.
+- **`docsUrl` routing.** Already correct (`/docs/guides/<pack>/`) as of
+  2026-08-06. Two register entries already cover the area —
+  `web-docs-link-check-gate` and `phase4b-docsurl-instruction-stale`. Do not
+  re-open; the same fix has landed and reverted twice (#852 → #854).

@@ -3,162 +3,186 @@
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 
+> Measurements are stated once in [`spec.md` § Layer 1](spec.md#layer-1--inventory).
+> This plan references them; it does not restate the numbers.
+
 ## Assumption trio
 
 **Files I will touch**
 - `tools/build-site.py` — inventory pass, projection, extended
   `generate_sidebar_config()`.
-- `tools/test_build_site_routing.py` (or a sibling test module) — tests for both
-  layers.
-- `site.toml` — declare guide group labels (spec Layer 2).
+- `tools/test_build_site_routing.py` (or a sibling module) — tests for both layers.
+- `site.toml` — new `[[guide_groups]]` table.
+- `docs-site/guide-nav-baseline.toml` — frozen `(slug, label)` pairs.
 - `docs-site/astro.config.ts` — delete the hand-maintained guides block.
 - `guides/iac-terraform/explanation/*.md` — three new pages, the live test.
 - `guides/AGENTS.md` — replace the hand-maintained-sidebar trap.
-- `workspace.toml` — `[backlog].open` entries for the two out-of-scope findings.
+- `workspace.toml` — one `[backlog].open` entry.
+- `docs/specs/guides-sidebar-generation/notes/rendered-check.md` — the AC14 record.
 
 **Tests that demonstrate done**
 - Inventory unit tests over fixture trees.
-- Slug parity against `mirror_guides()` for every real file.
-- Projection tests for cross-kind `order` and `site.toml` labels.
-- No-regression against the frozen pre-change slug baseline.
-- Determinism under shuffled enumeration order.
-- The IaC arc and the existing `atlassian` sequence rendering in order.
+- Slug parity against what `mirror_guides()` writes, for every real file.
+- Projection tests for cross-kind `order`, label precedence, `[[guide_groups]]`.
+- Bijection (set equality) between eligible inventory slugs and sidebar slugs.
+- No-regression on frozen `(slug, label)` pairs.
+- Determinism under a shuffled injected enumerator.
+- The IaC arc and the existing `atlassian` sequence rendering correctly.
 
 **What I am NOT changing**
-- `mirror_guides()` — routing and published URLs stay as they are.
+- `mirror_guides()` — including its `canonical_slug`, which feeds alias
+  redirect stubs. Routing and published URLs stay as they are.
 - `contracts/guide.schema.json` — `order` already exists.
 - Kind-bucket label vocabulary.
+- `site.toml`'s existing `[[groups]]` table or `discover_packs()`.
 - `.github/workflows/pages.yml` — the generator already runs there.
-- The 161 other frontmatter-less guides (confirmed with the user 2026-08-06).
+- The other frontmatter-less guides (confirmed with the user 2026-08-06).
 - `the-release-loop.md` and `release-engineering` — the arc cites, never edits.
+- Guide group *order* — the initial `[[guide_groups]]` table reproduces today's
+  sequence exactly, so this PR ships zero reordering.
 
-**Dependency note:** `tools/build-site.py` imports `yaml`, so the test
-environment needs PyYAML (already in `tools/requirements.txt`).
+**Dependency note:** `tools/build-site.py` imports `yaml`; the test environment
+needs PyYAML (already in `tools/requirements.txt`).
 
 ## Declined patterns
 
-- **Migrating all 161 frontmatter-less guides first.** Declined: the
-  path-derived inventory makes it unnecessary, and it would swamp a
+- **Migrating all frontmatter-less guides first.** Declined: the path-derived
+  inventory plus the frozen baseline make it unnecessary, and it would swamp a
   build-system change with a bulk content edit.
 - **Adding a `next:` frontmatter field.** Declined: the schema is
-  `additionalProperties: false`, so it needs a schema change, and plain markdown
-  links do the job today.
-- **Walking the filesystem directly in `astro.config.ts`.** Declined: it splits
-  sidebar knowledge across two languages and duplicates the slug rules
+  `additionalProperties: false`, and plain markdown links do the job today.
+- **Walking the filesystem directly in `astro.config.ts`.** Declined: splits
+  sidebar knowledge across two languages and duplicates slug rules
   `build-site.py` already owns.
-- **A new config file for group labels.** Declined after discovering `site.toml`
-  already exists and is titled "Site recipe — controls docs-site sidebar
-  grouping and pack ordering." Extending it beats inventing a sibling.
+- **Reusing `site.toml`'s existing `[[groups]]` table for guides.** Declined
+  after discovering `discover_packs()` skips `_`-prefixed slugs and warns on
+  slugs without a `pack.toml` — it structurally cannot express `_shared` (39
+  pages) or `_reference`. A separate table costs one table and covers the corpus.
+- **Inheriting `site.toml`'s six super-groups as guide super-groups.** Declined:
+  it yields five-level nesting (Guides → Foundation → pack → kind → page), a
+  depth Starlight has never been asked to render here, for no reader benefit.
+- **Deriving labels from filenames alone.** Declined: it changes 90 of 119
+  existing labels. The frozen baseline preserves them at zero migration cost.
+- **A permanent label registry.** Declined: the baseline is transitional —
+  `title:` frontmatter takes precedence, so a page gains a title and drops out,
+  and the registry shrinks instead of calcifying.
+- **Asserting no-regression via slug subset or entry count.** Declined: a subset
+  check passes while dropping pages, and neither sees a label change. Set
+  equality on slugs plus pair equality on labels are the real guards.
 - **Writing the IaC arc as a self-contained process narrative.** Tempting, and
-  the drafted version did exactly this. Declined: it would restate the two-loop
-  split, reversibility, and rehearse-then-release that `the-release-loop`
-  already owns. The arc cites upward — which is why it is three pages, not six.
-- **Asserting no-regression via entry-count parity.** Declined: a page can
-  satisfy a count while sitting in the wrong group or pointing at a dead slug.
-  The frozen slug baseline (T1) is the real guard.
+  the first draft did exactly this. Declined: it would restate doctrine
+  `the-release-loop` already owns. The arc cites upward — three pages, not six.
 
 ## Tasks
 
 ### T1: Freeze the pre-change navigation baseline
 
 Mode: goal-based check
-Tests: no stub (goal-based); this task *produces* the fixture the later
-no-regression test consumes.
-Approach: extract the 118 `slug:` values from the current
-`docs-site/astro.config.ts` guides block into a committed fixture file. **This
-must happen before T8 deletes the block** — the baseline's only source is the
-tree we are removing.
-Done when: the fixture exists, contains 118 slugs, and is committed.
+Tests: no stub; this task *produces* the fixture T6 and T7 consume.
+Approach: extract every `(slug, label)` pair from the current
+`docs-site/astro.config.ts` guides block into `docs-site/guide-nav-baseline.toml`.
+Use the `slug: '(guides(/…)?)'` pattern — a `guides/`-prefixed match drops the
+root entry. **Must precede T8**, which deletes the only source.
+Done when: the file exists, its pair count equals the count in spec § Layer 1,
+and it is committed.
 Depends on: none
 
 ### T2: Inventory derivation
 
 Mode: TDD
-Tests: `test_inventory_record_fields` (all Layer 1 fields populated);
-`test_no_frontmatter_still_yields_record`; `test_title_override`;
-`test_shared_and_reference_packs`; `test_non_md_excluded`;
-`test_agents_md_not_nav_eligible`; `test_malformed_frontmatter_falls_back`;
-`test_non_integer_order_coerced_to_absent` (AC7).
-Approach: one pass over `guides/`, reusing the existing `_parse_frontmatter()`.
-Pure derivation, no projection concerns. Return records; never raise on bad
-input.
-Done when: tests pass; inventory over the real tree yields 182 records, 181
-`nav_eligible`.
+Tests: `test_record_has_all_layer1_keys` (assert key presence, not truthiness —
+`order` and `kind` are legitimately absent); `test_no_frontmatter_still_yields_record`;
+`test_title_override`; `test_shared_and_reference_packs`; `test_non_md_excluded`;
+`test_agents_md_not_nav_eligible`; `test_is_index_for_readme_at_any_depth`;
+`test_malformed_frontmatter_falls_back`; `test_non_integer_order_coerced_to_absent`.
+Approach: one pass over `guides/**/*.md`, reusing `_parse_frontmatter()`. Pure
+derivation, no projection concerns. Accept an **injectable path enumerator** so
+T7's determinism test has a seam. Never raise on bad input.
+Done when: tests pass; over the real tree `len(records) == len(list(guides.rglob("*.md")))`
+and `nav_eligible == total - 1` — relational, not hard-coded, since T5 adds files.
 Depends on: none
 
-### T3: Slug parity with `mirror_guides()`
+### T3: Slug parity with what `mirror_guides()` writes
 
 Mode: TDD
-Tests: `test_slug_matches_mirror_for_every_real_file` — iterate every file under
-`guides/`, assert inventory slug equals the slug `mirror_guides()` derives;
-`test_readme_normalizes_to_parent` (`guides/core/README.md` → literal
-`guides/core`, not `guides/core/index`); `test_slug_frontmatter_override`
-(the four `atlassian` pages).
-Approach: factor the slug rule into one function both call, so parity is
-structural rather than two implementations kept in sync by hand.
-Done when: parity holds for all 182 files (AC3).
+Tests: `test_slug_matches_written_path_for_every_real_file` — for every file
+under `guides/`, the inventory slug equals the Starlight slug of the file
+`mirror_guides()` writes (written path, trailing `/index` stripped);
+`test_readme_resolves_to_parent` (`guides/core/README.md` → literal `guides/core`);
+`test_slug_frontmatter_override` (the `atlassian` pages).
+Approach: read `mirror_guides()`'s output path; do **not** modify its
+`canonical_slug` variable — that feeds alias redirect stubs and changing it is a
+routing change the spec forbids.
+Done when: parity holds for every file; `mirror_guides()` is byte-unchanged.
 Depends on: T2
 
-### T4: Declare guide group labels in `site.toml`
+### T4: Declare `[[guide_groups]]` in `site.toml`
 
 Mode: goal-based check
 Tests: no stub (goal-based).
-Approach: add the curated guide group labels that no path or `pack.toml` field
-can derive — `'The Build Loop (core)'` for `core`, `'Product Discovery'` for
-`product-engineering`, and the rest read off the current hand tree. Reuse the
-existing `[[groups]]` ordering.
-Done when: every pack appearing in the current hand tree has a declared label;
-`site.toml` parses; a pack absent from it still resolves to a fallback.
+Approach: a table separate from `[[groups]]`, not routed through
+`discover_packs()`. Carry the curated labels no path can derive
+(`'The Build Loop (core)'`, `'Product Discovery'`, `'Cross-cutting'` for
+`_shared`) and reproduce today's group sequence exactly.
+Done when: every pack group in the current hand tree has an entry, including
+`_shared` and `_reference`; `site.toml` parses; `discover_packs()` emits no new
+warnings; a pack absent from the table resolves to a fallback.
 Depends on: none
 
 ### T5: Write the infrastructure arc — the live test
 
 Mode: goal-based check
 Tests: no stub; the arc is T6/T7's test input.
-Approach: use `author-product-docs` in create mode. Read canonical sources
-before any product claim — `generate-iac/SKILL.md`, `reconcile-iac/SKILL.md`,
+Approach: `author-product-docs` in create mode. Read canonical sources before
+any product claim — `generate-iac/SKILL.md`, `reconcile-iac/SKILL.md`,
 `pack.toml`, `JOURNEY.md`. Anchor each page in the release loop and cite upward;
 do not restate inherited doctrine.
-Done when: three pages exist with `order` 1–3, each containing a link to
-`guides/release-engineering/explanation/the-release-loop` in its opening section
-(AC12, greppable); `python3 tools/validate_guides.py` passes.
+Done when: three pages exist with `order` 1–3; each contains a relative link
+matching `release-engineering/explanation/the-release-loop` in its opening
+section (greppable — the tree uses relative links, so an absolute
+`guides/…` form would rewrite to a dead GitHub URL); `python3
+tools/validate_guides.py` passes.
 Depends on: none
 
-### T6: Projection — grouping, labels, cross-kind ordering
+### T6: Projection — grouping, label precedence, cross-kind ordering
 
 Mode: TDD
-Tests: `test_order_sorts_across_kinds` (the `atlassian` 1–4 sequence spanning
-four kinds stays 1–4); `test_unordered_fall_into_kind_buckets`;
-`test_site_toml_labels_applied`; `test_pack_absent_from_site_toml_gets_group`;
-`test_iac_arc_orders_1_2_3`.
+Tests: `test_order_sorts_across_kinds` (the `atlassian` 1–4 run spanning four
+kinds); `test_unordered_fall_into_kind_buckets`;
+`test_label_precedence_title_then_baseline_then_derived` (AC5);
+`test_no_frontmatter_page_is_projected` (AC4);
+`test_guide_groups_labels_and_order_applied`;
+`test_pack_absent_from_table_gets_group`; `test_iac_arc_orders_1_2_3`.
 Approach: sort within a pack group by `(order is None, order, label)` so
 declared order wins across kinds and undeclared siblings stay alphabetical
-inside their kind buckets.
+inside their kind buckets. Resolve labels via the spec's precedence chain.
 Done when: tests pass, including both real ordered sequences.
-Depends on: T3, T4, T5
+Depends on: T1, T3, T4, T5
 
 ### T7: Wire into `generate_sidebar_config()`
 
 Mode: TDD
 Tests: `test_sidebar_includes_pack_catalogue_and_guides`;
-`test_no_baseline_slug_regressed` (every slug in T1's fixture appears — AC9);
-`test_shuffled_enumeration_is_byte_identical` (AC10 — shuffle the discovered
-list before the second run, so stable `sorted()` cannot make this pass on its
-own).
-Approach: append guides groups after the existing pack-catalogue groups; leave
-the JSON serialization path unchanged.
+`test_eligible_slugs_and_sidebar_slugs_are_equal_sets` (AC2 — set equality, not
+subset); `test_no_baseline_pair_regressed` (AC9 — `(slug, label)` pairs, so a
+label change fails);
+`test_shuffled_enumerator_is_byte_identical` (AC10 — shuffle the *injected*
+enumerator from T2, so the test cannot pass by re-globbing).
+Approach: append guides groups after the pack-catalogue groups; leave the JSON
+serialization path unchanged.
 Done when: tests pass; `python3 tools/build-site.py --dry-run` reports the
 generated group count (the count prints only under `--dry-run`).
-Depends on: T6
+Depends on: T1, T6
 
 ### T8: Remove the hand-maintained block
 
 Mode: goal-based check
 Tests: no stub (goal-based).
-Done when: lines 86–544 of `docs-site/astro.config.ts` are gone; the surviving
-sidebar is Home, Get Started, the `sidebar-config.json` spread, Changelog, and
-Contributing (AC11); `! grep -q "slug: 'guides/" docs-site/astro.config.ts`
-succeeds; `npm run build --prefix docs-site` completes.
+Done when: lines 86–544 of `docs-site/astro.config.ts` are gone;
+`! grep -qE "slug: 'guides('\|/)"` succeeds (the `guides/`-only pattern misses a
+surviving root entry); the surviving top-level sidebar entries are exactly Home,
+Get Started, the spread, Changelog, and Contributing — asserted, not eyeballed;
+`npm run build --prefix docs-site` completes.
 Depends on: T7
 
 ### T9: Rendered verification
@@ -166,53 +190,56 @@ Depends on: T7
 Mode: visual / manual QA
 Tests: no stub (manual QA).
 Approach: run the load-bearing sequence from `docs-site/AGENTS.md` —
-`build-site.py`, then the `web` build, then the `docs-site` build. Inspect the
-rendered sidebar.
-Done when: the IaC arc renders 1–3; the `atlassian` sequence still renders 1–4
-across four kinds (AC13); a page absent from the old tree now appears; observed
-state recorded (AC14). Also check whether `docsUrl` resolves and record a
-backlog entry if it does not.
+`build-site.py`, then the `web` build, then the `docs-site` build.
+**Scope — inspected:** guide group presence and order, the IaC arc rendering
+1–3, the `atlassian` flat ordered run ahead of its kind buckets, one
+previously-absent page, and one `_shared` page. **Not inspected:** styling,
+contrast, mobile viewport, search — unchanged by this spec.
+Done when: the above are confirmed and written to
+`docs/specs/guides-sidebar-generation/notes/rendered-check.md` (AC14).
 Depends on: T8
 
-### T10: Update `guides/AGENTS.md` and record deferrals
+### T10: Update `guides/AGENTS.md` and record the deferral
 
 Mode: goal-based check
 Tests: no stub (goal-based).
-Done when: § Traps states the generated contract, `order` semantics, and the
-`site.toml` declaration (AC15); `workspace.toml [backlog].open` carries entries
-for the README stage drift and (if confirmed) the `docsUrl` routing gap;
-`python3 tools/lint-agents-md.py` passes with the file under 150 lines.
+Done when: § Traps states the generated contract, `order` semantics, the
+`[[guide_groups]]` declaration, and the transitional label baseline (AC15);
+`workspace.toml [backlog].open` carries `iac-guides-readme-stage-drift` with a
+cold-start-sufficient comment; `python3 tools/lint-agents-md.py` passes.
 Depends on: T9
 
 ## Risks
 
-- **Reusing `site.toml`'s group order visibly reorders guide groups** relative
-  to today's hand tree. Called out as an assumption in the spec; if the human
-  rejects it at the gate, T4 declares a guides-specific order instead.
+- **The no-regression baseline is only extractable before T8.** T1 exists to
+  remove that hazard, and T7 declares the edge so the scheduler cannot reorder
+  them.
 - **Starlight may reject a nesting depth the pack-catalogue path never
-  exercises.** T9 is a real build, so a shape failure surfaces there; mitigation
-  is flattening one level.
-- **The no-regression baseline is only extractable before T8.** T1 exists solely
-  to remove that ordering hazard.
+  exercises.** Mitigated by declining super-group inheritance (flat pack groups,
+  same depth as today) and by T9 being a real build.
 - **`sidebar-config.json` is gitignored**, so a generator regression is invisible
-  in review. The no-regression and determinism tests are the compensating
-  control.
-- **`tools/validate_guides.py` is not run over `guides/` in CI**, so the schema's
-  integer-typed `order` is not an enforced boundary. T2's coercion test is the
+  in review. Set-equality, pair-equality, and determinism tests are the
   compensating control.
+- **`tools/validate_guides.py` is not run over `guides/` in CI**, so the schema's
+  integer `order` is not an enforced boundary. T2's coercion test compensates.
+- **The label baseline can rot** if a page is renamed without updating it. It is
+  a fixture consumed by an assertion, so a stale entry fails T7 loudly rather
+  than degrading silently.
 
 ## Changelog
 
 - 2026-08-06 — initial draft.
-- 2026-08-06 — design corrected at PLAN after measuring frontmatter coverage:
-  20 of 182 files carry frontmatter, so path structure is the source and
-  frontmatter the refinement.
+- 2026-08-06 — design corrected at PLAN: most guides carry no frontmatter, so
+  path structure is the source and frontmatter the refinement.
 - 2026-08-06 — user direction: ship the IaC arc as the live integration test.
 - 2026-08-06 — restructured intent-first with an explicit inventory layer after
-  adversarial review returned six blockers. Corrected: `order` is already in use
-  (four `atlassian` pages, cross-kind, pack-level); the config block is lines
-  86–544 not 87–547; group labels are curated and underivable; README slugs
-  normalize to the parent directory; `guides/AGENTS.md` must not reach readers;
-  the absent-page count is 67. Group labels resolved to `site.toml`, which
-  already owns sidebar grouping. Dropped the README stage-drift fix as failing
-  the bundled-fixes carve-out.
+  round-1 adversarial review (six blockers).
+- 2026-08-06 — round-2 review folded in. Corrected the nav count (the extraction
+  pattern dropped the root entry) and the absent count. Added the frozen
+  `(slug, label)` baseline after finding filename derivation regresses 90 of 119
+  labels. Moved guide groups to a separate `[[guide_groups]]` table after
+  finding `discover_packs()` cannot express `_shared`. Restated slug parity
+  against what `mirror_guides()` writes rather than its `canonical_slug`. Named
+  the `kind` directory fallback as a scoped relaxation of `guide-source-model`
+  AC3 and cited the governing ADRs. Dropped the stale `docsUrl` item — already
+  correct, with two register entries already covering it.
