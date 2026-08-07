@@ -202,6 +202,89 @@ def _make_redirect_stub(target_url: str) -> str:
 
 
 # ---------------------------------------------------------------------------
+# Guide inventory — the collate step that precedes projection.
+# Contract: docs/specs/guides-sidebar-generation/spec.md § Layer 1
+# ---------------------------------------------------------------------------
+
+VALID_GUIDE_KINDS = frozenset({"tutorial", "how-to", "reference", "explanation"})
+
+# The on-disk directory is plural; contracts/guide.schema.json's enum is
+# singular. Without this, the first page under tutorials/ to gain frontmatter
+# splits its pack into a "Tutorial" bucket and a "Tutorials" bucket.
+_KIND_DIR_ALIASES = {"tutorials": "tutorial"}
+
+# Maintainer context. Still mirrored — so still reachable by URL — but never
+# surfaced in reader navigation.
+_NAV_INELIGIBLE_NAMES = frozenset({"AGENTS.md"})
+
+
+def guide_slug_for(rel_parts: list[str]) -> str:
+    """Starlight slug of the file ``mirror_guides`` writes for these parts.
+
+    ``mirror_guides`` renames ``README.md`` to ``index.md`` before deriving its
+    ``canonical_slug``, so a pack README's canonical slug is
+    ``guides/<pack>/index``. Starlight serves that at ``guides/<pack>``, which
+    is the value navigation needs — hence the trailing ``/index`` strip.
+    """
+    parts = list(rel_parts)
+    if parts[-1] == "README.md":
+        parts[-1] = "index.md"
+    if parts[-1].endswith(".md"):
+        parts[-1] = parts[-1][:-3]
+    if parts[-1] == "index":
+        parts.pop()
+    return "guides/" + "/".join(parts) if parts else "guides"
+
+
+def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
+    """Collate every ``.md`` file under ``guides_root`` into one record each.
+
+    Path structure is the source and frontmatter refines it: most guides carry
+    no frontmatter, so a frontmatter-sourced inventory would omit them.
+
+    ``enumerator`` is the determinism seam — a callable taking the root and
+    returning an iterable of paths. Output order does not depend on it; the
+    records are sorted by slug before returning.
+    """
+    paths = enumerator(guides_root) if enumerator else guides_root.rglob("*.md")
+
+    records: list[dict] = []
+    for path in paths:
+        if path.suffix != ".md" or not path.is_file():
+            continue
+        rel_parts = list(path.relative_to(guides_root).parts)
+        fm = _parse_frontmatter(path.read_text(encoding="utf-8"))
+
+        # A file directly under guides/ has no pack segment — the root README
+        # belongs to the tree itself, not to a pack called "README.md".
+        pack = rel_parts[0] if len(rel_parts) > 1 else None
+
+        kind = fm.get("kind") if fm.get("kind") in VALID_GUIDE_KINDS else None
+        if kind is None and len(rel_parts) >= 3:
+            candidate = _KIND_DIR_ALIASES.get(rel_parts[1], rel_parts[1])
+            kind = candidate if candidate in VALID_GUIDE_KINDS else None
+
+        # bool is an int subclass; a YAML `order: true` must not sort as 1.
+        raw_order = fm.get("order")
+        is_int = isinstance(raw_order, int) and not isinstance(raw_order, bool)
+        order = raw_order if is_int else None
+
+        records.append({
+            "source_path": path,
+            "pack": pack,
+            "kind": kind,
+            "order": order,
+            "title": fm.get("title") or None,
+            "slug": fm.get("slug") or guide_slug_for(rel_parts),
+            "is_index": path.name == "README.md",
+            "nav_eligible": path.name not in _NAV_INELIGIBLE_NAMES,
+        })
+
+    records.sort(key=lambda r: r["slug"])
+    return records
+
+
+# ---------------------------------------------------------------------------
 # Guide-aware mirror (replaces the bare mirror_dir call for guides/)
 # ---------------------------------------------------------------------------
 
