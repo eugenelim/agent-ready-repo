@@ -606,7 +606,14 @@ def test_authored_symlink_still_refused(tmp_path: Path) -> None:
 
 
 def test_symlinked_dir_below_root_is_pruned(tmp_path: Path) -> None:
-    """A symlinked directory nested below the walk root is not descended into."""
+    """A symlinked directory nested below the walk root is not descended into.
+
+    Collection prunes it; validation still *rejects* it — see
+    `test_package_catalogue.py::test_validate_content_symlink_dir_rejected`.
+    Both must hold, and the order inside the validation walk is what makes that
+    possible: the symlink check runs before `_prune` removes the entry, or the
+    rejection silently stops firing.
+    """
     root = _make_catalogue(tmp_path)
     pack = root / "packs" / "core"
     (pack / "real").mkdir()

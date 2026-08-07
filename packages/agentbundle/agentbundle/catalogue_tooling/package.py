@@ -281,14 +281,16 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
             continue
         for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
             dp = Path(dirpath)
-            transient = [dn for dn in dirnames if dn in _TRANSIENT_DIRS]
-            _prune(dp, dirnames)
+            # Check *before* pruning: `_prune` drops symlinked directories, and
+            # a symlinked directory in authored content is precisely what this
+            # step exists to reject. Only build residue is skipped.
             for entry in list(dirnames) + list(filenames):
                 full = dp / entry
-                if entry in transient or _is_transient_file(full):
+                if entry in _TRANSIENT_DIRS or _is_transient_file(full):
                     continue
                 if full.is_symlink():
                     return f"error: symlink not allowed: {full}"
+            _prune(dp, dirnames)
 
     # 5. Hard-link detection (POSIX only)
     for p in content_paths:
