@@ -234,6 +234,8 @@ def test_slug_override_ending_in_index_is_stripped(tmp_path):
     assert rec["slug"] == "guides/a/deep"
 
 
+# --- Degradation (not real-tree) ---------------------------------------------
+
 def test_malformed_guide_group_entry_is_skipped_not_raised():
     """A missing `dir` or `label` previously raised a bare KeyError mid-build,
     after packs had already been mirrored. discover_packs() warns and skips on

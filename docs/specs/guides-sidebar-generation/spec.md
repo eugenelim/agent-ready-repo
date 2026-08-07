@@ -96,11 +96,11 @@ page under `guides/core/tutorials/` to gain frontmatter splits `core` into a
 from the directory and 4 declare `tutorial` in frontmatter, so nothing trips it
 yet — which is exactly why it must be pinned before migration begins.
 
-**Pre-change-sidebar measurements** (2026-08-06; single statement, the plan
-references this section rather than restating). Taken against this branch's
-tree before the three arc pages — `guides/AGENTS.md` included, which is
-nav-ineligible either way, so every load-bearing number below is unchanged
-against `origin/main`: 182 `.md` files, **5 nav-ineligible**
+**Pre-change-sidebar measurements** (single statement; the plan references this
+section rather than restating). Measured on this branch's tree at `61ef7831`
+plus `guides/AGENTS.md`, before the three arc pages. Stated with that basis
+rather than as an invariant: `origin/main` moves independently, and any
+comparison to it goes stale on the next rebase: 182 `.md` files, **5 nav-ineligible**
 (`guides/AGENTS.md` plus the four `_shared/<kind>/README.md` section indexes),
 **177 eligible**, 177 distinct slugs (zero collisions), 119 entries in the hand
 tree, **58 absent**. An earlier draft said 1/181/62 — that predated the

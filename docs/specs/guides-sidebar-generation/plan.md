@@ -199,8 +199,11 @@ invariants added at REVIEW — `test_nav_ineligible_set_is_exactly_the_declared_
 `test_no_sibling_label_collision_anywhere_in_the_real_tree`,
 `test_every_guides_directory_is_declared_in_site_toml`,
 `test_atlassian_cross_kind_run_survives`,
-`test_duplicate_slug_resolves_deterministically`, and the two malformed-config
-cases. Full set: `tools/test_build_site_sidebar.py`.
+`test_duplicate_slug_resolves_deterministically`, plus
+`test_malformed_baseline_entry_is_skipped_not_raised` (a degradation case, not
+a real-tree invariant). The sibling `[[guide_groups]]` degradation case lives
+with T6 in `tools/test_build_site_projection.py`. Full set:
+`tools/test_build_site_sidebar.py`.
 Approach: append guides groups after the pack-catalogue groups; leave the JSON
 serialization path unchanged.
 Done when: tests pass; `python3 tools/build-site.py --dry-run` reports the
