@@ -59,6 +59,23 @@ def _env_view(dumped: dict[str, str]) -> dict[str, str]:
     return {_env_key(name): value for name, value in dumped.items()}
 
 
+def _distinct_env_names(names: "set[str]") -> list[str]:
+    """One representative per *distinct* environment variable on this platform.
+
+    The allowlist carries both `HTTP_PROXY` and `http_proxy` so POSIX honours
+    either spelling. On Windows those are the **same variable**, so a test that
+    sets a per-name sentinel for both overwrites its own value and then asserts
+    two different values for one variable — which is how this suite first went
+    red on the parity runner. Sorted so the representative is deterministic.
+    """
+    if os.name != "nt":
+        return sorted(names)
+    chosen: dict[str, str] = {}
+    for name in sorted(names):
+        chosen.setdefault(name.upper(), name)
+    return list(chosen.values())
+
+
 def _write_fake_broker(tmp_path: Path, body: str, *, name: str = "sso-broker.py") -> Path:
     """Write an executable stand-in for the engine and return its path.
 
@@ -230,7 +247,8 @@ def test_spawn_env_is_allowlisted(monkeypatch, tmp_path):  # STUB: AC3
     # base — SYSTEMROOT, COMSPEC, PATH, TEMP — is how you make the child fail to
     # start at all, which would fail the AC26 parity run for a harness reason on
     # the one platform it exists to prove.
-    for name in _sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
+    sentinels = _distinct_env_names(_sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV)
+    for name in sentinels:
         monkeypatch.setenv(name, f"value-of-{name}")
 
     dump = tmp_path / "env.json"
@@ -247,7 +265,7 @@ def test_spawn_env_is_allowlisted(monkeypatch, tmp_path):  # STUB: AC3
 
     assert _env_key("JIRA_API_TOKEN") not in env
     assert _env_key("ANTHROPIC_API_KEY") not in env
-    for name in _sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
+    for name in sentinels:
         assert env.get(_env_key(name)) == f"value-of-{name}", f"{name} not forwarded"
     # The platform base is asserted as a real passthrough instead.
     for name in _PLATFORM_BASE_ENV & _sso._BROWSER_ENV_ALLOWLIST:
@@ -260,7 +278,8 @@ def test_engine_env_profile_drops_the_browser_variables(monkeypatch, tmp_path): 
     # get-cookies never launches a browser.
     browser_only = _sso._BROWSER_ENV_ALLOWLIST - _sso._ENGINE_ENV_ALLOWLIST
     assert "PLAYWRIGHT_BROWSERS_PATH" in browser_only
-    for name in _sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
+    sentinels = _distinct_env_names(_sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV)
+    for name in sentinels:
         monkeypatch.setenv(name, f"value-of-{name}")
 
     dump = tmp_path / "env.json"
@@ -274,12 +293,21 @@ def test_engine_env_profile_drops_the_browser_variables(monkeypatch, tmp_path): 
     )
     import json
     env = _env_view(json.loads(dump.read_text()))
-    for name in browser_only:
-        assert _env_key(name) not in env, (
-            f"{name} must not reach the non-browser spawn"
-        )
-    for name in _sso._ENGINE_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
-        assert env.get(_env_key(name)) == f"value-of-{name}", f"{name} not forwarded"
+    # One pass over the same sentinels that were set, so every variable is
+    # judged exactly once: forwarded when the engine profile allows it, absent
+    # when only the browser profile does. Membership is tested in normalised
+    # space — on Windows a browser-only name whose case-variant is an engine
+    # name is not browser-only at all.
+    engine_keys = {_env_key(n) for n in _sso._ENGINE_ENV_ALLOWLIST}
+    for name in sentinels:
+        if _env_key(name) in engine_keys:
+            assert env.get(_env_key(name)) == f"value-of-{name}", (
+                f"{name} not forwarded"
+            )
+        else:
+            assert _env_key(name) not in env, (
+                f"{name} must not reach the non-browser spawn"
+            )
 
 
 def test_spawn_failure_is_broker_unavailable(tmp_path):    # STUB: AC3
