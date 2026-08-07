@@ -50,6 +50,7 @@ __all__ = [
     "SsoBrokerNotInstalledError",
     "SsoBrokerUnavailableError",
     "SsoSessionUnavailableError",
+    "SsoStoreContendedError",
     "SsoProfileNotRegisteredError",
     "SsoRecaptureFailedError",
     "SsoInteractionRequiredError",
@@ -107,6 +108,27 @@ class SsoBrokerUnavailableError(SsoError):
     auto-recovery keys on that type, and a slow or locked keychain holding a
     perfectly valid session must not trigger a browser recapture. A timeout is
     not an expired session.
+    """
+
+
+class SsoStoreContendedError(SsoError):
+    """Another process held this profile's store lock and did not release in time.
+
+    Engine exit ``6``. **Recoverable, and recoverable in a way no other error
+    here is:** the condition is transient and clears on its own, so the right
+    response is to back off and retry the same call.
+
+    Deliberately subclasses :class:`SsoError` directly and *neither*
+    :class:`SsoSessionUnavailableError` nor :class:`SsoBrokerUnavailableError`.
+    Under the first, a consumer's auto-recovery would launch a browser recapture
+    over a perfectly valid session that was merely busy; under the second it
+    would be treated as an engine failure and not retried at all.
+
+    One caveat the caller should know: on a Windows ``%USERPROFILE%`` redirected
+    to SMB, the engine cannot distinguish "someone holds it" from "this
+    filesystem does not support locking" — both surface as the same errno — so
+    this error can be *permanent* on such a machine rather than transient. A
+    retry policy needs a bound.
     """
 
 
@@ -442,6 +464,11 @@ def load_sso_cookies(profile: str) -> Path:
 
     if result.returncode == 2:
         raise SsoSessionUnavailableError(remediation)
+    if result.returncode == 6:
+        raise SsoStoreContendedError(
+            f"the cookie store for {profile} is locked by another process; "
+            f"retry after a short back-off"
+        )
     if result.returncode != 0:
         raise SsoBrokerUnavailableError(
             f"sso-broker get-cookies failed for profile {profile} "
@@ -508,6 +535,11 @@ def refresh_sso_session(profile: str) -> None:
             f"no SSO profile registered for {profile}; first capture has not "
             f"happened on this machine"
         )
+    if code == 6:
+        raise SsoStoreContendedError(
+            f"the cookie store for {profile} is locked by another process; "
+            f"retry after a short back-off"
+        )
     if code == 5:
         raise SsoInteractionRequiredError(
             f"the stored browser session for {profile} could not re-authenticate "
@@ -571,6 +603,14 @@ def register_sso_session(
     )
     if result.returncode == 0:
         return
+    if result.returncode == 6:
+        # `_capture` serves both capture verbs, so `register` reaches the lock
+        # too. Without this branch a contended register collapses into the
+        # non-recoverable recapture-failed type.
+        raise SsoStoreContendedError(
+            f"the cookie store for {profile} is locked by another process; "
+            f"retry after a short back-off"
+        )
     raise SsoRecaptureFailedError(
         f"sso-broker register failed for profile {profile} "
         f"(exit {result.returncode}); see the engine's output above"

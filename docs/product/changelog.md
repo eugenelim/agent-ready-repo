@@ -15,6 +15,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+
+## Unreleased
+
+### Fixed
+
+- **Concurrent SSO operations on one profile no longer corrupt its cookie jar.**
+  Two agent turns touching the same profile at once — a `jira check` resolving
+  cookies while a prior turn's recapture is still committing — could previously
+  leave a jar assembled from both, or none at all. Each profile's store
+  transition is now serialised behind an exclusive interprocess lock, so a
+  reader always sees one whole jar.
+
+  When a profile is busy, commands exit `6` and `credbroker` raises
+  `SsoStoreContendedError` rather than waiting indefinitely or reporting a
+  false expiry. Every wait is bounded well inside the caller's timeout.
+
 ## [Unreleased]
 
 ### Changed

@@ -6,6 +6,28 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.6.0] — 2026-08-07
+
+### Added
+
+- **`SsoStoreContendedError`.** The engine now serialises each profile's cookie
+  store behind an exclusive interprocess lock, and returns a new exit code `6`
+  when another process holds it. `load_sso_cookies`, `refresh_sso_session`, and
+  `register_sso_session` raise this type on that code.
+
+  It subclasses `SsoError` directly and **neither** `SsoSessionUnavailableError`
+  nor `SsoBrokerUnavailableError`, deliberately: under the first, a consumer's
+  auto-recovery would launch a browser recapture over a session that was merely
+  busy; under the second it would be treated as an engine failure and never
+  retried. The condition is transient — back off and retry the same call.
+
+  One caveat for retry policies: on a Windows `%USERPROFILE%` redirected to SMB,
+  the engine cannot distinguish "another process holds it" from "this filesystem
+  does not support locking" — both surface as the same errno — so the error can
+  be permanent on such a machine. Bound your retries.
+
+  No existing export or signature changes.
+
 ## [0.5.0] — 2026-08-06
 
 ### Added

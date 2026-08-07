@@ -713,3 +713,71 @@ def _load_engine_module():
     finally:
         sys.path[:] = before
     return mod
+
+
+# ----------------------------------------------------------------------
+# AC24 — the typed contended error (spec/sso-store-transition-serialization T6).
+# ----------------------------------------------------------------------
+
+
+def test_exit_6_maps_to_the_contended_type_on_every_verb(monkeypatch, tmp_path):
+    """AC24: `_capture` serves both capture verbs, so `register` reaches it too.
+
+    Without the register branch a contended capture collapses into the
+    non-recoverable recapture-failed type.
+    """
+    import credbroker
+    from credbroker import _sso
+
+    broker = tmp_path / "sso-broker.py"
+    broker.write_text("")
+    monkeypatch.setattr(_sso, "_broker_path", lambda: broker)
+
+    class _R:
+        returncode = 6
+        stdout = ""
+        stderr = ""
+
+    monkeypatch.setattr(_sso, "_spawn_broker", lambda *a, **k: _R())
+
+    for call in (
+        lambda: credbroker.load_sso_cookies("jira"),
+        lambda: credbroker.refresh_sso_session("jira"),
+        lambda: credbroker.register_sso_session(
+            "jira", login_url="https://example.com/l",
+            success_url_pattern="d", cookie_domains=["example.com"],
+            validation_endpoint="/rest/api/2/myself",
+        ),
+    ):
+        with pytest.raises(credbroker.SsoStoreContendedError):
+            call()
+
+
+def test_contended_is_caught_by_ssoerror_but_not_by_the_recovery_types():
+    """AC24: the placement in the hierarchy is the whole point.
+
+    Under session-unavailable a consumer's auto-recovery would launch a browser
+    recapture over a session that was merely busy; under broker-unavailable it
+    would be treated as an engine failure and never retried.
+    """
+    import credbroker
+
+    exc = credbroker.SsoStoreContendedError("busy")
+    assert isinstance(exc, credbroker.SsoError)
+    assert not isinstance(exc, credbroker.SsoSessionUnavailableError)
+    assert not isinstance(exc, credbroker.SsoBrokerUnavailableError)
+
+
+def test_contended_type_is_exported_and_nothing_else_changed():
+    """AC24: additive — no existing export disappears."""
+    import credbroker
+
+    assert "SsoStoreContendedError" in credbroker.__all__
+    for name in (
+        "SsoError", "SsoBrokerNotInstalledError", "SsoBrokerUnavailableError",
+        "SsoSessionUnavailableError", "SsoProfileNotRegisteredError",
+        "SsoRecaptureFailedError", "SsoInteractionRequiredError",
+        "SsoConfigError", "load_sso_cookies", "refresh_sso_session",
+        "register_sso_session", "validate_sso_profile",
+    ):
+        assert name in credbroker.__all__, name
