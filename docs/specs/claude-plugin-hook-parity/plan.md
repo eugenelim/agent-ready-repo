@@ -140,36 +140,9 @@ impossible.
 
 ## Tasks
 
-### T0 — Scope predicate, three writers, blast radius
-**Depends on:** none · **Mode:** TDD
-
-**Tests:** `stub: true` — `packages/agentbundle/tests/unit/test_plugin_scope_filter.py`.
-The predicate over an `allowed-scopes` matrix including the absent-table case;
-the seven named packs absent from `dist/claude-plugins/` and from **both**
-`marketplace.json` files; a user-capable pack still present; radius-1 tests
-re-pinned in this task.
-
-**Approach:** one predicate reusing `validate._allowed_scopes`, applied at the
-recipe, `_run_aggregate`, and `_aggregate_marketplace`. `publish_claude_plugins.py`
-keeps `catalogue-curation` for its operator-only reason and gains the derived
-filter beside it; its check is a **fail-loud assertion**, not a silent skip, so a
-stale `dist/` is caught rather than republished (nothing clears `dist/` before a
-build).
-
-### T1 — Docs and site
-**Depends on:** T0 · **Mode:** Goal-based check + site build
-
-**Done when:** a fresh grep for `plugin install` / `plugin marketplace add`
-across `README.md`, `docs-site/`, `guides/`, and `web/` returns no instance
-offering the route for a repo-only pack; the built site shows no plugin-install
-command on a repo-only pack's page and still shows one for a user-capable pack.
-
-**Approach:** re-derive the file list by grep. Add a derived user-capability
-field to `web/src/content.config.ts`, `tools/build-site.py`, and the 21 pack
-markdown files; gate both Astro pages on it, **not** on `scope`. State the rule
-once in `install-routes.md`'s route table (both the table row and its
-marker-writer paragraph) and reference it elsewhere. Changelog entries naming
-the removal, the packs, and `claude plugin uninstall` as step one of the remedy.
+> **Moved.** The scope predicate and the docs/site work are
+> `../claude-plugin-route-scope/plan.md` T0-T3. This plan starts at the
+> contract change and assumes that spec has landed.
 
 ### T2 — Contract: route-scoped hook targets
 **Depends on:** none · **Mode:** Goal-based check

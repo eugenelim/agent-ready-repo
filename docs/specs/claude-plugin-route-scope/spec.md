@@ -101,7 +101,17 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
   predicate, not replaced by it — it drops today for a different reason, and
   folding the two would silently re-publish it if its scopes were widened.
 
-- [ ] **AC5 — The publish-side check fails loud.** `publish_claude_plugins.py`
+- [ ] **AC5 — The publish-side check fails loud, and reads the source tree.**
+  Scope resolution for both the predicate and this check reads
+  `packs/<slug>/pack.toml`, **not** the projected `dist/claude-plugins/<pack>/pack.toml`.
+  `_run_aggregate` reads the projected copy today and `make build` has no
+  dependency on `clean`, so narrowing a pack's scopes and rebuilding leaves a
+  stale dist directory carrying the *old* declaration — which would resolve
+  user-capable and publish contrary to the pack's current intent. A
+  `dist/claude-plugins/<name>/` with no corresponding source pack is itself a
+  fail-loud error.
+
+  Original text: `publish_claude_plugins.py`
   exits non-zero naming the pack if a repo-only pack is present in `dist/`,
   rather than skipping it silently. Nothing clears `dist/` before a build, so a
   stale directory must be caught, not republished.
@@ -114,13 +124,26 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
   field is added and **a test reads each `packs/<slug>/pack.toml` and asserts the
   corresponding `web/` frontmatter matches**, so 21 hand-copied values cannot
   drift. `[pack].astro` and `catalogue/index.astro` gate the plugin-install
-  command on it.
+  command on it. Separately from the consistency test, **a built-output
+  assertion**: a repo-only pack's rendered page emits no
+  `claude plugin install` command and a user-capable pack's does. The
+  consistency test guards the data; only the built-output assertion guards the
+  user-visible outcome.
 
-- [ ] **AC7 — The site assertion runs in CI.** `npm run test --prefix web`
-  appears in no workflow and `make ci` never touches `web/`, so AC6's test must
-  either be wired into `.github/workflows/pages.yml` beside the build or be
-  written as a Python test under `packages/agentbundle/tests/` that `make ci`
-  runs. A criterion whose check never executes is not a criterion.
+- [ ] **AC7 — The site assertion runs in the one gate that always runs.**
+  AC6's check is reachable from **`make build-check`**. That is the only required
+  status check on `main` and the only path-unfiltered one. The alternatives all
+  fail: `make ci` is a local target no workflow invokes; the full pytest suite
+  runs only in `catalogue-tooling-ci-gates.yml` Gate A, which is not required
+  *and* carries `paths-ignore: 'web/**'` — so a PR editing only
+  `web/src/content/packs/*.md`, exactly the drift AC6 exists to catch, skips it;
+  and `pages.yml` is path-filtered away from `packs/**/pack.toml`, missing the
+  mirror-image edit. A criterion whose check never executes is not a criterion,
+  and that applies to this one.
+
+  The same requirement covers AC3's tripwire: after this spec, editing one line
+  of `allowed-scopes` publishes a pack's code to a public marketplace, and a
+  non-blocking red X in an unrequired workflow is not a control.
 
 - [ ] **AC8 — Prose docs stop advertising the route for repo-only packs.**
   Re-derived by grep, not from a list. Known sites: `README.md:32-35`;
@@ -193,6 +216,11 @@ in the same task: `tests/unit/test_render.py:33-34`,
 `build/tests/test_end_to_end_build.py:51,64`,
 `tests/integration/test_install_repo_scope_per_adapter.py:238-241`,
 `tests/integration/test_install_core_smoke.py:60`, and
+`tests/integration/test_build_check_drift_gates.py:104,158` — the real gate at
+`build/self_host.py:1374-1405` builds `expected_packs` from **every** pack
+carrying `.claude-plugin/plugin.json` and hard-fails on a missing derived
+`install-marker.py`, so it produces seven failures after the filter and needs the
+same predicate — and
 `tests/integration/test_build_derivation_claude_plugins.py`, which derives
 `FIXTURE_PACK_NAMES` by `iterdir()` over five repo-only build fixtures and
 parametrises four assertions on them. Plus any test asserting a marketplace entry

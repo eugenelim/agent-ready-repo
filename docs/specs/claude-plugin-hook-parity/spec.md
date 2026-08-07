@@ -176,60 +176,10 @@ AC7's quoting discipline is what makes shell form safe.
 
 ## Acceptance Criteria
 
-### Scope correctness
-
-- [ ] **AC1 — The route publishes only user-capable packs.** A pack reaches
-  `dist/claude-plugins/` and either `marketplace.json` only when its
-  `[pack.install] allowed-scopes` contains `"user"`. Derived from the
-  declaration, not a name list.
-
-  `catalogue-curation`'s existing operator-only exclusion is **retained
-  alongside** the derived predicate, not replaced by it. It drops today for a
-  different reason than being repo-only, and folding the two would silently
-  re-publish it if its scopes were ever widened.
-
-- [ ] **AC2 — The seven excluded packs are named, so the set cannot drift.**
-  `core`, `catalogue-curation`, `governance-extras`, `iac-terraform`,
-  `monorepo-extras`, `release-engineering`, `user-guide-diataxis` appear in
-  neither `dist/claude-plugins/` nor either `marketplace.json`. Asserted by name.
-
-- [ ] **AC3 — The filter is enforced where the artifact is built, not only where
-  it is published.** A repo-only pack reaching the `per-pack-claude-plugin`
-  recipe is skipped with a build-time log naming the pack and its declared
-  scopes. A filter living only in the publish script leaves `render`,
-  `install --emit-install-routes`, `diff`, and `init-state` emitting artifacts
-  the route will not carry.
-
-### Documentation and site
-
-- [ ] **AC4 — The site offers the plugin route only where it applies.**
-  `web/src/pages/packs/[pack].astro` and `web/src/pages/catalogue/index.astro`
-  gate the `claude plugin install` command on the pack's scope admitting `user`.
-  Both files already carry `scope` on the same object; neither reads it. A
-  repo-only pack's page shows the `agentbundle install` route only, with a
-  one-line reason.
-
-- [ ] **AC5 — Prose docs stop advertising the route for repo-only packs.**
-  At minimum: `README.md:32-35` (front door — currently
-  `claude plugin install core@agent-ready-repo`);
-  `docs-site/src/content/docs/getting-started/install.md:64-71` (same, for
-  `core`); `guides/_shared/explanation/install-routes.md:7` (presents the plugin
-  route with no scope caveat);
-  `guides/_shared/explanation/pack-catalogue.md:60` (claims "the same pack
-  content reaches you via … `/plugin install`" — now false for seven packs);
-  `guides/core/how-to/adapt-to-project.md:53` (lists `/plugin install` as a
-  route for `core` itself).
-
-  The route table in `install-routes.md` gains the scope precondition, so the
-  rule is stated once where adopters choose a route. The implementing task
-  re-derives this list by grep rather than trusting it.
-
-- [ ] **AC6 — Adopter-facing disclosure of a breaking change.** Six packs
-  disappear from a marketplace they are in today; adopters who installed any of
-  them find it gone on their next marketplace update. `[Unreleased]` entries in
-  `packages/agentbundle/CHANGELOG.md` and `docs/product/changelog.md` name the
-  removal, name the packs, and state the remedy — install at repo scope with
-  `agentbundle install`, the route they were always scoped for.
+> **Moved.** Scope correctness (AC1-AC3) and the documentation/site fix
+> (AC4-AC6) now live in `../claude-plugin-route-scope/spec.md` as its
+> one-predicate-three-writers, site-gating, and prose-docs criteria. They
+> are not restated here; that spec must land first.
 
 ### Hook parity
 
@@ -374,20 +324,6 @@ AC7's quoting discipline is what makes shell form safe.
 
 ### Round-4 additions
 
-- [ ] **AC24 — All three marketplace/artifact writers share one predicate.**
-  AC1's filter applies at the recipe, at the dist aggregation, **and at
-  `build/self_host.py:_aggregate_marketplace`**, which writes the repo-root
-  `.claude-plugin/marketplace.json` that `claude plugin marketplace add
-  eugenelim/agent-ready-repo` actually resolves. That function carries a contrary
-  design note ("intentionally ignores the pack filter — the catalogue advertises
-  every pack"); this spec overturns it, and says so at the note.
-
-  The two writers have **already drifted**: `catalogue-curation` is listed in the
-  repo-root marketplace today and is absent from `origin/claude-plugins-dist`.
-  Leaving an entry whose `source.path` no longer exists on the branch turns a
-  clean "not offered" into a dangling fetch. ADR-0072 records this same function
-  as the writer missed last time.
-
 - [ ] **AC25 — The predicate's absent-declaration rule is explicit.** A pack with
   no `[pack.install]` table resolves to `["repo"]`, matching
   `commands/validate.py:_allowed_scopes`, which is **reused, not re-derived**.
@@ -403,13 +339,6 @@ AC7's quoting discipline is what makes shell form safe.
   fail `agentbundle validate`. The flag is the author's explicit "yes, my hooks
   land on the adopter's machine outside per-project isolation" — exactly the
   consent this route needs.
-
-- [ ] **AC27 — The site gates on a field derived from `allowed-scopes`.** The
-  existing `scope` field in `web/src/content.config.ts` is populated from
-  `default-scope` (`tools/build-site.py:67`), not `allowed-scopes` — so gating on
-  it would hide `product-documentation` (`default-scope = "repo"`,
-  `allowed-scopes = ["repo","user"]`), which AC1 publishes. A new derived field
-  carries user-capability, and AC4 gates on that.
 
 - [ ] **AC28 — Authored command strings are mechanically constrained.** The
   shared validator raises on a `command` containing `` ` ``, `$(`, `;`, `&`,
@@ -447,15 +376,6 @@ AC7's quoting discipline is what makes shell form safe.
   `^Bash|Edit$` parses as `(^Bash)|(Edit$)`, which matches `BashTool` and
   `MyEdit` and misses `EditFile`, firing a hook on tools it was not scoped to.
   AC14's widening procedure applies to this grammar too.
-
-- [ ] **AC32 — Delisting is not revocation.** AC6's remedy names
-  `claude plugin uninstall <pack>@agent-ready-repo` as step one: the filter
-  removes the marketplace entry and the branch directory but uninstalls nothing,
-  so an adopter keeps running a pinned, permanently-unmaintained copy whose
-  install-marker hook keeps firing — and following the remedy without
-  uninstalling leaves two unrelated copies of the pack's skills. AC18 gains an
-  install-then-delist run recording what the client actually does to an
-  installed-but-delisted plugin.
 
 - [ ] **AC33 — The install-marker hook ships only when a reader exists.** The
   synthetic `SessionStart` install-marker entry is emitted into a pack's manifest

@@ -51,9 +51,9 @@ into no workflow.
 ## Tasks
 
 ### T0 — The predicate and its three writers
-**Depends on:** none · **Mode:** TDD
+**Depends on:** T1 · **Mode:** TDD
 
-**Tests:** `stub: true` — `packages/agentbundle/tests/unit/test_plugin_scope_filter.py`.
+**Tests:** `stub: pending` (materialise before EXECUTE) — `packages/agentbundle/tests/unit/test_plugin_scope_filter.py`.
 The predicate over an `allowed-scopes` × `adapter-contract.version` matrix
 including the absent-table case; the seven named packs absent from
 `dist/claude-plugins/` and from **both** `marketplace.json` files; a
@@ -72,7 +72,7 @@ republished.
 `make build-check` are green with the regenerated marketplace committed.
 
 ### T1 — Fixture scope declarations
-**Depends on:** none · **Mode:** Goal-based check
+**Depends on:** none · *(runs first — the five build fixtures carry only a `[pack]` table, so the predicate resolves them to `["repo"]` and reddens the derivation, pipeline, end-to-end and drift-gate suites the moment T0 lands)* · **Mode:** Goal-based check
 
 **Done when:** every fixture whose tests assert claude-plugins output declares
 both `[pack.adapter-contract] version` and `[pack.install] allowed-scopes`
@@ -88,7 +88,7 @@ rely on defaults.
 ### T2 — Site gating, with a consistency test
 **Depends on:** T0 · **Mode:** TDD
 
-**Tests:** `stub: true` — a test reading each `packs/<slug>/pack.toml` and
+**Tests:** `stub: pending` (materialise before EXECUTE) — a test reading each `packs/<slug>/pack.toml` and
 asserting `web/src/content/packs/<slug>.md`'s user-capability field equals
 `"user" in allowed-scopes`. Written under `packages/agentbundle/tests/` so
 `make ci` runs it, since `npm run test --prefix web` is in no workflow.
@@ -110,7 +110,7 @@ offering the route for a repo-only pack.
 `docs/architecture/agentbundle.md`.
 
 ### T4 — Errata and the QA matrix
-**Depends on:** none · **Mode:** Goal-based check
+**Depends on:** T0 · **Mode:** Goal-based check
 
 **Approach:** errata on the three frozen specs assuming `core` is
 plugin-installable (bodies not edited). Re-point or retire the manual-QA-matrix
