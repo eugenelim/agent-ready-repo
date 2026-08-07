@@ -65,7 +65,7 @@ def partition(lines: list[str], first_party: set[str]) -> tuple[list[str], list[
     skipped: list[str] = []
     for line in lines:
         stripped = line.strip()
-        if not stripped or stripped.startswith("#") or stripped.startswith("-"):
+        if not stripped or stripped.startswith(("#", "-")):
             audited.append(line)
             continue
         match = _NAME.match(stripped)
