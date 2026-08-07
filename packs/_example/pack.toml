@@ -1,7 +1,7 @@
 [pack]
 name            = "example-pack"
 version         = "0.1.0"
-description     = "A minimal example pack demonstrating the standard authoring layout."
+description     = "The skeleton to copy when you start a new pack."
 display_name    = "Example Pack"
 categories      = ["productivity"]
 keywords        = ["example", "template"]

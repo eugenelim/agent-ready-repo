@@ -1,5 +1,5 @@
 {
   "name": "core",
   "version": "2.2.1",
-  "description": "Supervised coding from brief to merged PR. A plan, execute, verify, review loop with spec-driven development, adversarial and security reviewers, and pre-commit gates."
+  "description": "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look."
 }

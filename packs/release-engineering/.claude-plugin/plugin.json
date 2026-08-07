@@ -1,5 +1,5 @@
 {
   "name": "release-engineering",
   "version": "0.1.9",
-  "description": "Validate a release the way production will. Deploy to an ephemeral environment, run end-to-end tests, read telemetry, and feed findings back until the deployed whole converges, stopping at a human gate before anything irreversible."
+  "description": "Ship it the way production will see it. Deploy to a throwaway environment, run the tests, read the telemetry, and go round again until it holds. Then it stops and asks, because the next step is the one you cannot undo."
 }

@@ -1,9 +1,14 @@
 {
   "name": "example-pack",
   "version": "0.1.0",
-  "description": "A minimal example pack demonstrating the standard authoring layout.",
+  "description": "The skeleton to copy when you start a new pack.",
   "displayName": "Example Pack",
   "category": "productivity",
-  "keywords": ["example", "template"],
-  "skills": ["example-skill"]
+  "keywords": [
+    "example",
+    "template"
+  ],
+  "skills": [
+    "example-skill"
+  ]
 }

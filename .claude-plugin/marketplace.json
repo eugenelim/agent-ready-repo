@@ -11,7 +11,7 @@
         "name": "eugenelim"
       },
       "category": "architecture",
-      "description": "Go from a fuzzy technical problem to a reviewed design doc. Shapes the concept first, then produces a Google-style design doc or a Mermaid diagram, and critiques an existing one against a rubric.",
+      "description": "Sketch a system, write it up, then have it torn apart. You get a Google-style design doc or a Mermaid diagram, and a reviewer that never saw you write it.",
       "displayName": "Architect",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -37,7 +37,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Run Jira and Confluence from a conversation. Credentialed CLIs for Jira, Jira Align, and Confluence, plus workflows for flow metrics, defect analysis, brief intake, story triage, and team status.",
+      "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, and it queries the real API and answers.",
       "displayName": "Atlassian",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -63,7 +63,7 @@
         "name": "eugenelim"
       },
       "category": "governance",
-      "description": "Grow and maintain an agent-skill catalogue. Assimilate external primitives, survey candidate repos, and propose new packs, portable against any catalogue's own contracts.",
+      "description": "For the person who runs a catalogue, not the people installing from it. Bring in an outside skill, survey a repo worth borrowing from, or draft the case for a new pack.",
       "displayName": "Catalogue Curation",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -87,7 +87,7 @@
         "name": "eugenelim"
       },
       "category": "api-design",
-      "description": "Design the API before the implementation. Authoring skills for OpenAPI 3.1 request/response contracts and AsyncAPI event contracts, portable across projects.",
+      "description": "Write the OpenAPI or AsyncAPI contract before anyone writes a handler.",
       "displayName": "Contracts",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -113,7 +113,7 @@
         "name": "eugenelim"
       },
       "category": "file-conversion",
-      "description": "Convert files without leaving the conversation. Documents and images to Markdown; Markdown to styled HTML and to branded Word, PowerPoint, and Excel; Outlook and MIME email to Markdown.",
+      "description": "Say \"convert this PDF to Markdown\" or \"turn this into a branded deck\" and it happens. Documents, images, and Outlook email go in; Markdown, HTML, Word, PowerPoint, and Excel come out.",
       "displayName": "Converters",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -140,7 +140,7 @@
         "name": "eugenelim"
       },
       "category": "governance",
-      "description": "Supervised coding from brief to merged PR. A plan, execute, verify, review loop with spec-driven development, adversarial and security reviewers, and pre-commit gates.",
+      "description": "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look.",
       "displayName": "Core",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -166,7 +166,7 @@
         "name": "eugenelim"
       },
       "category": "credentials",
-      "description": "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill.",
+      "description": "Your credentials stay out of the repo and out of the agent's context. credbroker resolves them in-process, sso-broker handles the browser cookie dance, and an LLM-cooperative credential-setup skill walks you through the first time.",
       "displayName": "Credential Brokers",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -192,7 +192,7 @@
         "name": "eugenelim"
       },
       "category": "research",
-      "description": "Research a question and get back evidence you can cite. Scoping, source curation, synthesis, adversarial review, and decision support, plus a project mode for sustained multi-week investigations.",
+      "description": "Ask a question, get an answer with citations you can check. It runs from a two-minute lookup to a multi-week investigation with its own folder, and argues against its own findings before handing them over.",
       "displayName": "Desk Research",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -218,7 +218,7 @@
         "name": "eugenelim"
       },
       "category": "design",
-      "description": "Walk a design from outcome to realization. Customer journey, content and copy direction, screen flows, visual craft, and independent design review, all held to one accessibility and quality floor.",
+      "description": "Start from what the customer is trying to do and end at a screen someone could build. Journey, copy, flows, visual craft \u2014 and a reviewer that asks about the empty state and the focus ring you forgot.",
       "displayName": "Experience Design",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -245,7 +245,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Work with Figma files from a normal share URL. Reads files, nodes, metadata, versions, comments, and variables, renders frame images, posts comments, and turns FigJam connector graphs into Mermaid.",
+      "description": "Paste a Figma share URL and the agent can read the file. It pulls nodes, variables, and version history, renders frames as images, leaves comments, and turns a FigJam connector graph into Mermaid.",
       "displayName": "Figma",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -271,7 +271,7 @@
         "name": "eugenelim"
       },
       "category": "engineering",
-      "description": "Build, audit, and ship production-quality web surfaces. Covers design handoff through shipped component: CSS token architecture, WCAG 2.2 AA accessibility, Core Web Vitals, rendering strategy, and component API design, plus a reviewer for HTML, CSS, and JS diffs.",
+      "description": "Build the web surface, then prove it holds up. HTML, CSS, and JS with a real token system, WCAG 2.2 AA, and Core Web Vitals measured rather than asserted. A reviewer reads the diff for the regressions those three tend to hide.",
       "displayName": "Frontend Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -298,7 +298,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Turn a GitHub Milestone into a product brief. Reads the milestone and its issues and hands off a structured brief ready to decompose into specs.",
+      "description": "Point it at a GitHub Milestone and get a product brief back, issues and all.",
       "displayName": "GitHub",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -325,7 +325,7 @@
         "name": "eugenelim"
       },
       "category": "governance",
-      "description": "Keep decisions and proposals on the record. Author RFCs and ADRs, track their status, and update conventions, with templates and seed READMEs to start from.",
+      "description": "Write the RFC, record the ADR, and keep track of which ones are still open. Templates come with it, so nobody argues about format.",
       "displayName": "Governance Extras",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -350,7 +350,7 @@
         "name": "eugenelim"
       },
       "category": "infrastructure",
-      "description": "Turn a plain-language intent into governed Terraform. Produces cloud-agnostic Terraform or OpenTofu plus a human-gated CI/CD pipeline, gated on a recorded decision and stopping short of apply.",
+      "description": "Describe the infrastructure you want; get Terraform you would be willing to review. Cloud-agnostic, gated on a written decision, and it stops at the plan \u2014 applying is still yours.",
       "displayName": "IaC (Terraform)",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -377,7 +377,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Turn a Linear Issue into a product brief, and keep the two in sync. A credentialed GraphQL CLI plus intake and sync workflows over it.",
+      "description": "Pull a Linear issue into a product brief, and push the status back when it moves.",
       "displayName": "Linear",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -403,7 +403,7 @@
         "name": "eugenelim"
       },
       "category": "devops",
-      "description": "Add a new package to a monorepo without hand-wiring it. A new-package skill plus a seed README and package template to scaffold from.",
+      "description": "Add a package to the monorepo without hand-wiring the build.",
       "displayName": "Monorepo Extras",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -428,7 +428,7 @@
         "name": "eugenelim"
       },
       "category": "documentation",
-      "description": "Create, revise, retrofit, audit, and verify product documentation. Covers pack READMEs, user guides, and journeys, held to Di\u00e1taxis as a page contract.",
+      "description": "Documentation that matches what actually shipped. Write, restructure, or audit pack READMEs and user guides, with Di\u00e1taxis deciding what each page is allowed to do.",
       "displayName": "Product Documentation",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -455,7 +455,7 @@
         "name": "eugenelim"
       },
       "category": "product-management",
-      "description": "Turn a raw product idea into build-ready specs. Frame the outcome, test the riskiest assumption before building it, then decompose into the briefs a delivery loop can consume, plus UI copy and an upstream discovery loop.",
+      "description": "The messy part, before there is anything to build. Name the outcome, find the assumption that would sink it, and test that one first. What survives gets cut into specs a delivery loop can pick up.",
       "displayName": "Product Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -481,7 +481,7 @@
         "name": "eugenelim"
       },
       "category": "product-management",
-      "description": "Answer the strategic questions upstream of any product initiative. Market and competitive analysis (SWOT, Five Forces, PESTLE, BCG, OKRs, PRFAQ), UX strategy, and content strategy, each producing a committed artifact rather than a slide.",
+      "description": "The questions someone will ask before they fund the work. SWOT, Five Forces, PESTLE, BCG, OKRs, a PRFAQ \u2014 each one ending in a committed document rather than a deck.",
       "displayName": "Product Strategy",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -508,7 +508,7 @@
         "name": "eugenelim"
       },
       "category": "devops",
-      "description": "Validate a release the way production will. Deploy to an ephemeral environment, run end-to-end tests, read telemetry, and feed findings back until the deployed whole converges, stopping at a human gate before anything irreversible.",
+      "description": "Ship it the way production will see it. Deploy to a throwaway environment, run the tests, read the telemetry, and go round again until it holds. Then it stops and asks, because the next step is the one you cannot undo.",
       "displayName": "Release Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -535,7 +535,7 @@
         "name": "eugenelim"
       },
       "category": "documentation",
-      "description": "Deprecated compatibility pack; install product-documentation instead. Kept so existing installs keep working, and exposes a new-guide shim that routes to the current authoring skill.",
+      "description": "Deprecated. Install product-documentation instead; this exists so older installs keep working.",
       "displayName": "User Guide (Di\u00e1taxis) \u2014 Deprecated",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [

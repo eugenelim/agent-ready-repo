@@ -46,12 +46,31 @@ model reads to decide whether to **activate** the primitive. Length is load-bear
 there and shortening it degrades activation; per-target caps in
 `contracts/target-vocab.toml` govern it. Do not carry habits from one to the other.
 
-**Shape.** First sentence names the job the adopter accomplishes — verb-first, and
-readable on its own. An optional second sentence carries a compressed capability list
-or the one thing that distinguishes this pack. Then stop.
+**Shape.** Open on the job the adopter accomplishes, in their words. Say what they
+get. Then stop.
 
-> Supervised coding from brief to merged PR. A plan, execute, verify, review loop with
-> spec-driven development, adversarial and security reviewers, and pre-commit gates.
+Beyond that, let the pack decide the shape. Some need one sentence:
+
+> Write the OpenAPI or AsyncAPI contract before anyone writes a handler.
+
+Others earn three:
+
+> Ship it the way production will see it. Deploy to a throwaway environment, run
+> the tests, read the telemetry, and go round again until it holds. Then it stops
+> and asks, because the next step is the one you cannot undo.
+
+**Do not run every description through one mould.** An earlier pass here applied a
+single shape — verb-first sentence, then a comma-list of capabilities — to all
+22 packs. The result measured as 20 of 22 at exactly two sentences, 14 with a
+comma-list second sentence, four opening on the identical "Turn X into Y" frame.
+Every fact was right and the set still read as machine-written, because uniform
+rhythm and symmetrical construction are themselves the tell. Vary sentence count
+and length to match what each pack actually is.
+
+Reach for the concrete. A real thing the user says (`"convert this PDF to
+Markdown"`), a real artifact (`a Google-style design doc`), or a real check
+(`the empty state and the focus ring you forgot`) all beat an abstract capability
+noun.
 
 **Anti-patterns**, each of which has shipped here before:
 

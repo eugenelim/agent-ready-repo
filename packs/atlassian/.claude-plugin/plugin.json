@@ -1,5 +1,5 @@
 {
   "name": "atlassian",
   "version": "0.8.0",
-  "description": "Run Jira and Confluence from a conversation. Credentialed CLIs for Jira, Jira Align, and Confluence, plus workflows for flow metrics, defect analysis, brief intake, story triage, and team status."
+  "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, and it queries the real API and answers."
 }

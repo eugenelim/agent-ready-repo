@@ -1,7 +1,7 @@
 [pack]
 name = "desk-research"
 version = "1.1.4"
-description = "Research a question and get back evidence you can cite. Scoping, source curation, synthesis, adversarial review, and decision support, plus a project mode for sustained multi-week investigations."
+description = "Ask a question, get an answer with citations you can check. It runs from a two-minute lookup to a multi-week investigation with its own folder, and argues against its own findings before handing them over."
 readme = "README.md"
 display_name = "Desk Research"
 license = "Apache-2.0 OR MIT"

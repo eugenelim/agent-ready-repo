@@ -1,7 +1,7 @@
 [pack]
 name = "product-strategy"
 version = "0.2.3"
-description = "Answer the strategic questions upstream of any product initiative. Market and competitive analysis (SWOT, Five Forces, PESTLE, BCG, OKRs, PRFAQ), UX strategy, and content strategy, each producing a committed artifact rather than a slide."
+description = "The questions someone will ask before they fund the work. SWOT, Five Forces, PESTLE, BCG, OKRs, a PRFAQ — each one ending in a committed document rather than a deck."
 readme = "README.md"
 display_name = "Product Strategy"
 license = "Apache-2.0 OR MIT"
