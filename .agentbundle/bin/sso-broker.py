@@ -13,7 +13,8 @@ Linux (the documented Tier-2 deferred path).
 
 Exit codes: 0 ok · 2 no usable session (``get-cookies`` / ``test``) ·
 3 engine failure · 4 profile not registered (``refresh``) ·
-5 headless refresh needs a human (``refresh``).
+5 headless refresh needs a human (``refresh``) ·
+6 another process holds this profile's store lock (any store-touching verb).
 
 Reserved keychain target-name prefix: ``agentbundle:sso:<profile>``
 and ``agentbundle:sso:<profile>:<n>`` for continuation slots.
@@ -26,17 +27,45 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import errno
 import json
 import os
 import pathlib
 import re
 import secrets
 import sys
+import threading
 import time
 import tomllib
 import urllib.error
 import urllib.parse
 import urllib.request
+
+# Per-profile interprocess locking. Stdlib on both platforms, imported
+# conditionally because neither module exists on the other.
+if os.name == "posix":
+    import fcntl
+else:  # pragma: no cover - exercised on the Windows runner
+    import msvcrt
+
+# ``errno.EDEADLOCK`` is absent on macOS: BSD headers omit it, glibc aliases it
+# to ``EDEADLK``, and MSVC defines it. Referencing it directly is an
+# ``AttributeError`` on Darwin, so resolve it once here.
+_EDEADLK = getattr(errno, "EDEADLOCK", errno.EDEADLK)
+
+# Errnos that mean "this filesystem cannot lock" rather than "someone else
+# holds it". POSIX-only names — ``msvcrt`` never produces them, which is why a
+# Windows home redirected to SMB surfaces unsupported locking as the same
+# ``EACCES`` that means contention, and is documented rather than detected.
+_LOCK_UNSUPPORTED_ERRNOS = frozenset(
+    code
+    for code in (
+        getattr(errno, "ENOLCK", None),
+        getattr(errno, "EOPNOTSUPP", None),
+        getattr(errno, "ENOSYS", None),
+    )
+    if code is not None
+)
 
 # Bootstrap when invoked as ``python ~/.agentbundle/bin/sso-broker.py``
 # so the ``from . import _sso_keychain_macos`` dispatch below resolves
@@ -114,6 +143,29 @@ _ARGV_REFUSAL_STDERR = "tokens cannot be passed via argv"
 _AGENTBUNDLE_HOME = pathlib.Path.home() / ".agentbundle"
 _SSO_PROFILE_DIR = _AGENTBUNDLE_HOME / "sso-profiles"
 _SSO_COOKIE_FILE_FLOOR = _AGENTBUNDLE_HOME / "sso-cookies"
+# Lockfiles live in their own directory, never beside the jars. Windows
+# byte-range locks are *mandatory* — they deny other processes read as well as
+# write on the locked region — so locking a file the engine also reads would
+# turn serialisation into EACCES. The cookie floor is additionally scanned for
+# stale ``.tmp`` files, and a second filename shape there invites a future glob
+# to trip over it.
+_SSO_LOCK_DIR = _AGENTBUNDLE_HOME / "sso-locks"
+
+# How long a verb waits for a contended profile before giving up. Uniform
+# across verbs, and well under the tightest caller timeout in
+# ``credbroker._sso`` (30 s for get-cookies).
+#
+# **Provisional.** This was chosen on the premise that the critical section is
+# uniformly short, and that premise has since been measured false on macOS: a
+# four-slot ``rm`` reaches 2 s and a forty-slot one 20 s at the recorded
+# worst-case ``/usr/bin/security`` spawn cost, so a single queued waiter barely
+# fits. Re-derive it once the hold is bounded — tracked as
+# ``sso-keychain-call-timeouts``.
+_LOCK_WAIT_BUDGET_S = 10.0
+
+# Retry backoff bounds for the non-blocking acquire loop.
+_LOCK_BACKOFF_MIN_S = 0.025
+_LOCK_BACKOFF_MAX_S = 0.100
 
 
 # ----------------------------------------------------------------------
@@ -318,6 +370,28 @@ class StoreTransitionError(RuntimeError):
     """
 
 
+class StoreContendedError(RuntimeError):
+    """Another process holds this profile's lock and did not release in time.
+
+    **Recoverable.** Maps to engine exit ``6`` and to a typed contended error in
+    ``credbroker``, so a caller can back off and retry rather than re-register.
+    Distinct from `LockUnavailableError` on purpose: reporting a permanent fault
+    as retryable produces an infinite retry loop, and reporting contention as
+    permanent sends an operator to re-authenticate over a condition that clears
+    in under a second.
+    """
+
+
+class LockUnavailableError(RuntimeError):
+    """The lock could not be used at all — an engine fault, not contention.
+
+    Maps to exit ``3``. Raised for a lock path that cannot be composed or
+    opened, a filesystem that refuses locking outright, and a nested acquire in
+    one thread (a deterministic defect, which must never be reported to callers
+    as a transient condition).
+    """
+
+
 class _HeaderUnreadable(RuntimeError):
     """The committed continuation header could not be read.
 
@@ -401,6 +475,9 @@ def _delete_cookie_jar_tier2(profile: str) -> bool:
 def _fall_back_to_floor(profile: str, serialized: bytes) -> str:
     """Move authority from Tier-2 to the file floor, in a safe order.
 
+    **The caller holds this profile's lock** — reached only from inside
+    `_store_cookie_jar`, which asserts it.
+
     Floor **first**, invalidate **second**, verify **third**:
 
     * writing the floor before deleting means a failed floor write leaves the
@@ -437,7 +514,17 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
 
     Returns one of: "keychain" / "keychain-continuation" /
     "file-floor" / "file-floor-overflow" — for stderr announcement.
+
+    **The caller holds this profile's lock.** Asserted, not assumed: the whole
+    transition — generation choice, chunk staging, header commit, reap — has to
+    be one critical section, and a caller that acquired for a *different*
+    profile is the likeliest wiring mistake in a four-site design.
     """
+    if not _thread_holds(profile):
+        raise LockUnavailableError(
+            f"internal bug: _store_cookie_jar called for profile "
+            f"{profile!r} without holding that profile's lock"
+        )
     threshold = CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES
 
     if not _tier2_capable():
@@ -556,7 +643,11 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
 def _load_cookie_jar(profile: str) -> bytes | None:
     """Read the serialised jar from Tier-2 (with continuation
     reassembly) or fall back to file-floor read. Returns ``None`` when
-    no jar is present."""
+    no jar is present.
+
+    **The caller holds this profile's lock.** Reassembly reads the header and
+    then each slot; a concurrent commit-and-reap in between returns ``None``
+    from a jar that exists, which is what the lock prevents."""
     if _tier2_capable():
         ns, key = _profile_target(profile)
         header = read_credential(ns, key)
@@ -595,6 +686,9 @@ def _load_cookie_jar(profile: str) -> bytes | None:
 
 
 def _delete_cookie_jar(profile: str) -> None:
+    """Remove a profile's jar from both surfaces.
+
+    **The caller holds this profile's lock.**"""
     if _tier2_capable():
         # Best-effort: delete header + any continuation slots up to a
         # reasonable cap (the count is in the header but if reading
@@ -627,6 +721,229 @@ def _delete_cookie_jar(profile: str) -> None:
         floor_path.unlink()
 
 
+def _sso_lock_path(profile: str) -> pathlib.Path:
+    """The lockfile for *profile*, guarded like every other composed path.
+
+    Two independent controls, same as `_cookie_floor_path`: grammar via
+    `_profile_component`, resolved-path containment via `_contained`.
+    """
+    return _contained(
+        _SSO_LOCK_DIR / f"{_profile_component(profile)}.lock",
+        _SSO_LOCK_DIR,
+    )
+
+
+# Which ``(thread, profile)`` pairs this process currently holds.
+#
+# Keyed by *both* deliberately. The thread component keeps concurrent writers
+# in one process contending on the real primitive rather than tripping a guard —
+# a process-global set would make the reproduction harness raise instead of
+# contend, disabling the test the whole change turns on. The profile component
+# is what makes the held-ness assertion real: keyed by thread alone, a caller
+# holding profile ``a``'s lock would satisfy the check while mutating ``b``.
+_HELD_LOCKS: set[tuple[int, str]] = set()
+
+
+def _errno_detail(exc: BaseException) -> str:
+    """`OSError(ENOLCK)`-style detail an operator can act on.
+
+    The bare exception class is not enough: `ENOLCK`, `EOPNOTSUPP` and `ENOSYS`
+    all arrive as `OSError` and mean different things, and the errno is exactly
+    what the architecture note tells the operator to check.
+    """
+    code = getattr(exc, "errno", None)
+    if code is None:
+        return type(exc).__name__
+    # `os.strerror` raises ValueError for a code the platform does not know,
+    # and TypeError if a stub set a non-integer errno. Either would escape as a
+    # traceback on the one path whose contract is "one line, no traceback".
+    try:
+        return f"{type(exc).__name__} errno={code} ({os.strerror(code)})"
+    except (ValueError, TypeError):
+        return f"{type(exc).__name__} errno={code}"
+
+
+def _thread_holds_any_lock() -> bool:
+    # Snapshot before iterating. Production is single-threaded, but the
+    # reproduction harness this change exists to satisfy runs acquiring threads
+    # concurrently, and a bare iteration over a set another thread is mutating
+    # raises `RuntimeError: Set changed size during iteration`.
+    #
+    # `tuple(set)` is atomic here because the elements are C-level scalars, so
+    # no Python-level code runs during the build and the GIL is not released
+    # mid-copy. That is the assumption; a `threading.Lock` would be the
+    # assumption-free version if the element type ever stops being trivial.
+    ident = threading.get_ident()
+    return any(t == ident for t, _ in tuple(_HELD_LOCKS))
+
+
+def _thread_holds(profile: str) -> bool:
+    return (threading.get_ident(), profile) in _HELD_LOCKS
+
+
+def _acquire_once(fd: int) -> None:
+    """One **non-blocking** acquire attempt. Raises on refusal.
+
+    Non-blocking is not a preference. ``flock(LOCK_EX)`` waits forever and
+    ``msvcrt.locking(LK_LOCK)`` caps itself at ten one-second attempts; neither
+    honours a caller's budget, so the only bound either platform respects is the
+    one this engine keeps itself in `_profile_lock`.
+    """
+    if os.name == "posix":
+        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    else:  # pragma: no cover - exercised on the Windows runner
+        # Locks from the *current file position* — `os.open` leaves it at 0 and
+        # nothing seeks in between, but the invariant is load-bearing.
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+
+
+def _release_once(fd: int) -> None:
+    """Release the lock held on *fd*."""
+    if os.name == "posix":
+        fcntl.flock(fd, fcntl.LOCK_UN)
+    else:  # pragma: no cover - exercised on the Windows runner
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+
+
+def _is_contention(exc: BaseException) -> bool:
+    """Whether a refusal from the *acquire call* means "someone else holds it".
+
+    Read `exc.errno`, never the class. Two traps, in opposite directions:
+
+    * ``BlockingIOError`` — how POSIX signals a refused ``LOCK_NB`` — is a
+      **subclass of OSError**, so a broad ``except OSError`` around the acquire
+      swallows every POSIX contention and makes exit 6 unreachable;
+    * Windows signals contention with ``EACCES``, the same errno ``os.open``
+      returns for an unwritable directory, so errno alone cannot disambiguate —
+      which is why only refusals from the acquire call reach this function.
+    """
+    if isinstance(exc, BlockingIOError):
+        return True
+    code = getattr(exc, "errno", None)
+    if code in _LOCK_UNSUPPORTED_ERRNOS:
+        # The filesystem cannot lock. Fail closed rather than proceed
+        # unserialised — an acquire that "succeeds" while serialising nothing
+        # is the one outcome worse than refusing.
+        return False
+    # EACCES and the deadlock code only. `EPERM` is deliberately absent: a
+    # policy or mount denial is permanent, and calling it contention would
+    # spin the whole budget and then tell the caller to retry forever.
+    return code in (errno.EACCES, _EDEADLK)
+
+
+@contextlib.contextmanager
+def _profile_lock(profile: str, budget_s: float | None = None):
+    """Hold *profile*'s exclusive store lock, or fail within *budget_s*.
+
+    *budget_s* defaults to `_LOCK_WAIT_BUDGET_S`, resolved **at call time**
+    rather than bound as a default argument — a default argument is evaluated
+    once when the function is defined, which would make the module constant
+    unreadable to anything that changes it later.
+
+    :raises StoreContendedError: another holder did not release in time.
+    :raises LockUnavailableError: the lock is unusable — bad path, unopenable
+        file, a filesystem that refuses locking, or a nested acquire.
+    :raises ProfileConfinementError: the composed path escaped the lock dir.
+    """
+    if _thread_holds_any_lock():
+        # Deterministic defect, not a transient condition — `flock` is
+        # per-open-file-description, so a second acquire on a new descriptor
+        # would self-deadlock until the budget expired and present as an
+        # intermittent stall. Raise now, and as a *fault* so no caller retries.
+        raise LockUnavailableError(
+            f"internal bug: nested lock acquisition for profile "
+            f"{profile!r} while this thread already holds one"
+        )
+
+    if budget_s is None:
+        budget_s = _LOCK_WAIT_BUDGET_S
+
+    path = None
+    try:
+        path = _sso_lock_path(profile)
+        _SSO_LOCK_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if os.name == "posix":
+            # `mkdir(mode=...)` does not repair an existing directory, and a
+            # 0755 lock dir lists every SSO profile the user holds to any local
+            # reader. Same lesson as `_file_floor_write`.
+            with contextlib.suppress(OSError):
+                _SSO_LOCK_DIR.chmod(0o700)
+        fd = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
+    except ProfileConfinementError:
+        # A rejected profile is its own signal and its own exit code; never
+        # relabel it as a lock fault.
+        raise
+    except (OSError, RuntimeError) as exc:
+        # RuntimeError included: `Path.resolve()` raises it, not OSError, for
+        # symlink loops on 3.11-3.12 (CPython #109187).
+        # `path` is None only when `_sso_lock_path` itself raised, in which
+        # case there is no confined path to name — and recomposing one by hand
+        # would bypass `_profile_component` / `_contained`, which is exactly
+        # what those helpers exist to prevent.
+        where = f" at {path}" if path is not None else ""
+        raise LockUnavailableError(
+            f"could not open the lock for profile {profile!r}{where}: "
+            f"{_errno_detail(exc)}"
+        ) from exc
+
+    acquired = False
+    try:
+        deadline = time.monotonic() + budget_s
+        backoff = _LOCK_BACKOFF_MIN_S
+        while True:
+            # Only the acquire is wrapped. Widening this `try` is what makes
+            # `BlockingIOError` look like a fault.
+            try:
+                _acquire_once(fd)
+                acquired = True
+                break
+            except Exception as exc:  # noqa: BLE001 — re-raised as one of two types
+                if not _is_contention(exc):
+                    raise LockUnavailableError(
+                        f"the lock for profile {profile!r} at {path} is "
+                        f"unusable: {_errno_detail(exc)}. If this home directory "
+                        f"is network-mounted, see the credentials architecture "
+                        f"note on locking over SMB/NFS"
+                    ) from exc
+                if time.monotonic() >= deadline:
+                    raise StoreContendedError(
+                        f"profile {profile!r} is locked by another "
+                        f"process and did not free within {budget_s:g}s"
+                    ) from exc
+            time.sleep(min(backoff, max(0.0, deadline - time.monotonic())))
+            backoff = min(
+                _LOCK_BACKOFF_MAX_S,
+                backoff * 2 + secrets.randbelow(10) / 1000.0,
+            )
+
+        _HELD_LOCKS.add((threading.get_ident(), profile))
+        try:
+            yield
+        finally:
+            _HELD_LOCKS.discard((threading.get_ident(), profile))
+    finally:
+        if acquired:
+            # Suppress the *raise* so an unlock failure never replaces an
+            # in-flight StoreTransitionError — that message names which keychain
+            # keys still hold cookie bytes, and losing it costs the operator the
+            # only instruction they get. Suppressing the raise must not suppress
+            # the evidence, though: an unlock reporting the region was never
+            # locked is the one runtime sign the acquire silently did not take.
+            try:
+                _release_once(fd)
+            except Exception as exc:  # noqa: BLE001 — never mask the real error
+                if getattr(exc, "errno", None) == errno.EACCES:
+                    sys.stderr.write(
+                        f"sso-broker: the lock for profile {profile!r} reported "
+                        f"it was not locked on release; the store transition may "
+                        f"have run unserialised\n"
+                    )
+        with contextlib.suppress(OSError):
+            os.close(fd)
+
+
 def _cookie_floor_path(profile: str) -> pathlib.Path:
     return _contained(
         _SSO_COOKIE_FILE_FLOOR / f"{_profile_component(profile)}.jar",
@@ -653,8 +970,11 @@ def _file_floor_write(profile: str, serialized: bytes) -> None:
     (see ``_do_get_cookies``), so this fires on every consumer call rather than
     at most once per profile, and two concurrent calls for one profile would
     otherwise collide on the same temp path. Ordering between concurrent
-    materialisers is deliberately *not* specified here — that is a concurrency
-    protocol with its own design, tracked as ``sso-materialisation-ordering``.
+    materialisers **is** now specified, where it once deliberately was not:
+    every caller holds the profile's lock across the load and this write
+    together, so the last writer to ``replace`` is the last one to have read.
+
+    **The caller holds this profile's lock.**
     """
     _SSO_COOKIE_FILE_FLOOR.mkdir(parents=True, exist_ok=True, mode=0o700)
     if os.name == "posix":
@@ -955,20 +1275,30 @@ def _capture(
     if not cookie_domains:
         cookie_domains = sorted({c["domain"].lstrip(".") for c in captured_cookies})
 
-    # Persist profile TOML.
-    _write_profile(profile, {
-        "name": profile,
-        "login_url": login_url,
-        "success_url_pattern": success_pattern,
-        "cookie_domains": cookie_domains,
-        "session_filename": session_filename,
-        "validation_endpoint": validation_endpoint,
-        "ttl_hint_minutes": ttl_hint_minutes,
-    })
-
-    # Persist cookie jar.
+    # One lock across the profile TOML *and* the jar, taken here — after all the
+    # browser work, before anything durable is written.
+    #
+    # The placement is the whole point. Taking it inside `_store_cookie_jar`
+    # would let a contended capture return "failed" having already overwritten
+    # the destination-pinning anchor that only a completed, operator-authorised
+    # register is supposed to write. Taking it *before* the browser would hold it
+    # across a capture bounded in minutes, starving every reader.
+    #
+    # `browser-state/<profile>` is already written by `launch_persistent_context`
+    # before we get here, so a contended exit leaves that directory changed. That
+    # is stated in the spec rather than papered over — the lock cannot unwind it.
     serialized = json.dumps(captured_cookies, separators=(",", ":")).encode("utf-8")
-    storage_label = _store_cookie_jar(profile, serialized)
+    with _profile_lock(profile):
+        _write_profile(profile, {
+            "name": profile,
+            "login_url": login_url,
+            "success_url_pattern": success_pattern,
+            "cookie_domains": cookie_domains,
+            "session_filename": session_filename,
+            "validation_endpoint": validation_endpoint,
+            "ttl_hint_minutes": ttl_hint_minutes,
+        })
+        storage_label = _store_cookie_jar(profile, serialized)
     sys.stderr.write(
         f"sso-broker register: profile {profile!r} registered "
         f"({len(captured_cookies)} cookies, stored via {storage_label})\n"
@@ -1078,13 +1408,12 @@ def _do_get_cookies(profile: str) -> int:
         )
         return 2
 
-    jar = _load_cookie_jar(profile)
-    if jar is None:
-        sys.stderr.write(
-            f"sso-broker get-cookies: no cookie jar for profile {profile!r}; "
-            f"re-auth required (run 'sso-broker register {profile} ...')\n"
-        )
-        return 2
+    # One lock across the load *and* the materialisation. Splitting them would
+    # leave the two halves of the original finding open: a load that races a
+    # commit-and-reap reads `None` from a jar that exists, and two materialisers
+    # can land their `os.replace` out of order so a stale reader overwrites a
+    # fresher file.
+    materialised = _cookie_floor_path(profile)
 
     # Materialise the jar to a 0600 file under sso-cookies/ and print its path.
     # Consumer skills read the file and never see cookie values via argv/stdout.
@@ -1095,15 +1424,29 @@ def _do_get_cookies(profile: str) -> int:
     # jar after every successful re-capture: the consumer's retry 401s and the
     # recapture was for nothing. It looked correct only on Linux, where the two
     # surfaces are the same file — which is where CI runs.
-    materialised = _cookie_floor_path(profile)
-    try:
-        _file_floor_write(profile, jar)
-    except OSError as exc:
-        sys.stderr.write(
-            f"sso-broker get-cookies: could not materialise the jar for "
-            f"profile {profile!r}: {type(exc).__name__}\n"
-        )
-        return 3
+    with _profile_lock(profile):
+        jar = _load_cookie_jar(profile)
+        if jar is None:
+            sys.stderr.write(
+                f"sso-broker get-cookies: no cookie jar for profile {profile!r}; "
+                f"re-auth required (run 'sso-broker register {profile} ...')\n"
+            )
+            return 2
+        try:
+            _file_floor_write(profile, jar)
+        except OSError as exc:
+            sys.stderr.write(
+                f"sso-broker get-cookies: could not materialise the jar for "
+                f"profile {profile!r}: {type(exc).__name__}\n"
+            )
+            return 3
+
+    # Only the announcement is outside. Releasing between the load and the
+    # write would leave the second half of the original finding wide open: two
+    # readers could each load under the lock, release, and land their
+    # `os.replace` in the opposite order, so a stale reader overwrites a fresher
+    # materialisation. On Linux the floor *is* the primary store, which makes
+    # that a destroyed recapture rather than a cosmetic staleness.
     sys.stdout.write(f"{materialised}\n")
     return 0
 
@@ -1138,7 +1481,11 @@ def _do_test(profile: str) -> int:
         )
         return 3
 
-    jar = _load_cookie_jar(profile)
+    # The load only. The validation request below is bounded by its own 15 s
+    # timeout and has nothing to do with the store; holding the lock across it
+    # would block every writer on a network round-trip.
+    with _profile_lock(profile):
+        jar = _load_cookie_jar(profile)
     if jar is None:
         sys.stderr.write(
             f"sso-broker test: no cookie jar for profile {profile!r}\n"
@@ -1305,14 +1652,23 @@ def _do_show_tier2_backend() -> int:
 
 
 def _do_rm(profile: str) -> int:
+    # `_profile_path` composes *before* the lock so a rejected profile still
+    # raises ProfileConfinementError ahead of any lock code — `rm` is
+    # deliberately exempt from the profile grammar (a profile registered under a
+    # now-invalid name must stay deletable), and containment is what guards it.
     path = _profile_path(profile)
-    if not path.exists():
-        sys.stderr.write(
-            f"sso-broker rm: profile {profile!r} not registered\n"
-        )
-        return 0
-    _delete_cookie_jar(profile)
-    path.unlink()
+    # The lock covers the existence check too. Outside it, `rm` racing a first
+    # `register` reads "not registered", says so, and exits 0 while the capture
+    # then stores a jar — a check-then-act gap in a verb that claims to
+    # serialise.
+    with _profile_lock(profile):
+        if not path.exists():
+            sys.stderr.write(
+                f"sso-broker rm: profile {profile!r} not registered\n"
+            )
+            return 0
+        _delete_cookie_jar(profile)
+        path.unlink()
     sys.stderr.write(f"sso-broker rm: profile {profile!r} removed\n")
     return 0
 
@@ -1419,6 +1775,33 @@ def main(argv: list[str] | None = None) -> int:
         # `main` as exit 1 with a traceback, putting a real storage failure in
         # the functional band instead of the engine-failure one.
         sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        return 3
+    except StoreContendedError as exc:
+        # Its own code, not 3. Contention is *recoverable* — the caller should
+        # back off and retry — while 3 is documented non-recoverable, so
+        # collapsing the two would mean auto-recovery could never retry a
+        # condition that clears in under a second.
+        sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        return 6
+    except LockUnavailableError as exc:
+        # The mirror of the above: a nested acquire, an unopenable lock path, or
+        # a filesystem that refuses locking are all permanent. Reporting them as
+        # 6 would send a caller into an unbounded retry loop.
+        sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        if verb == "rm":
+            # With no unserialised fallback, an operator whose lock environment
+            # is permanently unusable cannot revoke a stored session through the
+            # tool. This line is the only place they learn how to do it by hand.
+            # Composing a path inside an error handler can itself raise, which
+            # would replace this operator instruction with a traceback on the
+            # one path whose whole purpose is to give a clean instruction.
+            with contextlib.suppress(ProfileConfinementError):
+                sys.stderr.write(
+                    f"sso-broker rm: to remove the session manually, delete the "
+                    f"{_SSO_NAMESPACE!r} entries whose account begins "
+                    f"{args.profile!r} from your OS credential store, and remove "
+                    f"{_cookie_floor_path(args.profile)}\n"
+                )
         return 3
 
     raise AssertionError(f"unreachable verb: {verb}")  # pragma: no cover

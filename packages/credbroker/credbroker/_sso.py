@@ -50,6 +50,7 @@ __all__ = [
     "SsoBrokerNotInstalledError",
     "SsoBrokerUnavailableError",
     "SsoSessionUnavailableError",
+    "SsoStoreContendedError",
     "SsoProfileNotRegisteredError",
     "SsoRecaptureFailedError",
     "SsoInteractionRequiredError",
@@ -110,6 +111,27 @@ class SsoBrokerUnavailableError(SsoError):
     """
 
 
+class SsoStoreContendedError(SsoError):
+    """Another process held this profile's store lock and did not release in time.
+
+    Engine exit ``6``. **Recoverable, and recoverable in a way no other error
+    here is:** the condition is transient and clears on its own, so the right
+    response is to back off and retry the same call.
+
+    Deliberately subclasses :class:`SsoError` directly and *neither*
+    :class:`SsoSessionUnavailableError` nor :class:`SsoBrokerUnavailableError`.
+    Under the first, a consumer's auto-recovery would launch a browser recapture
+    over a perfectly valid session that was merely busy; under the second it
+    would be treated as an engine failure and not retried at all.
+
+    One caveat the caller should know: on a Windows ``%USERPROFILE%`` redirected
+    to SMB, the engine cannot distinguish "someone holds it" from "this
+    filesystem does not support locking" — both surface as the same errno — so
+    this error can be *permanent* on such a machine rather than transient. A
+    retry policy needs a bound.
+    """
+
+
 class SsoProfileNotRegisteredError(SsoSessionUnavailableError):
     """``refresh`` found no profile to refresh — first capture never happened.
 
@@ -135,6 +157,14 @@ class SsoInteractionRequiredError(SsoError):
     Terminal, not recoverable: retrying cannot help, and the engine deliberately
     did **not** put a login page on screen.
     """
+
+
+def _contended(profile: str) -> SsoStoreContendedError:
+    """The one contended message, so three call sites cannot drift apart."""
+    return SsoStoreContendedError(
+        f"the cookie store for {profile} is locked by another process; "
+        f"retry after a short back-off"
+    )
 
 
 def _broker_path() -> Path:
@@ -422,6 +452,8 @@ def load_sso_cookies(profile: str) -> Path:
     :raises SsoBrokerNotInstalledError: the engine is absent at its expected path.
     :raises SsoSessionUnavailableError: the profile is unregistered, no jar
         exists, or the jar path is unreadable.
+    :raises SsoStoreContendedError: engine exit 6 — another process holds this
+        profile's store lock; retry the same call after a short back-off.
     :raises SsoBrokerUnavailableError: the engine could not be run to a
         conclusion, or failed internally.
     """
@@ -442,6 +474,8 @@ def load_sso_cookies(profile: str) -> Path:
 
     if result.returncode == 2:
         raise SsoSessionUnavailableError(remediation)
+    if result.returncode == 6:
+        raise _contended(profile)
     if result.returncode != 0:
         raise SsoBrokerUnavailableError(
             f"sso-broker get-cookies failed for profile {profile} "
@@ -488,6 +522,7 @@ def refresh_sso_session(profile: str) -> None:
     :raises SsoProfileNotRegisteredError: engine exit 4 — nothing to refresh;
         the caller should route the operator to a first capture. **Recoverable.**
     :raises SsoInteractionRequiredError: engine exit 5 — a human is needed.
+    :raises SsoStoreContendedError: engine exit 6 — the store is busy; retry.
     :raises SsoRecaptureFailedError: engine exit 3 or any unrecognised code.
     :raises SsoBrokerUnavailableError: timeout or spawn failure.
     """
@@ -508,6 +543,8 @@ def refresh_sso_session(profile: str) -> None:
             f"no SSO profile registered for {profile}; first capture has not "
             f"happened on this machine"
         )
+    if code == 6:
+        raise _contended(profile)
     if code == 5:
         raise SsoInteractionRequiredError(
             f"the stored browser session for {profile} could not re-authenticate "
@@ -542,6 +579,7 @@ def register_sso_session(
 
     :raises SsoConfigError: *profile* violates the grammar.
     :raises SsoBrokerNotInstalledError: the engine is absent.
+    :raises SsoStoreContendedError: engine exit 6 — the store is busy; retry.
     :raises SsoRecaptureFailedError: engine exit 3 or any unrecognised code —
         including the ordinary "the operator did not finish signing in".
     :raises SsoBrokerUnavailableError: timeout or spawn failure.
@@ -571,6 +609,11 @@ def register_sso_session(
     )
     if result.returncode == 0:
         return
+    if result.returncode == 6:
+        # `_capture` serves both capture verbs, so `register` reaches the lock
+        # too. Without this branch a contended register collapses into the
+        # non-recoverable recapture-failed type.
+        raise _contended(profile)
     raise SsoRecaptureFailedError(
         f"sso-broker register failed for profile {profile} "
         f"(exit {result.returncode}); see the engine's output above"

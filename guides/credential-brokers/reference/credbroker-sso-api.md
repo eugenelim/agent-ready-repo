@@ -111,8 +111,16 @@ All derive from `SsoError`.
 | `SsoBrokerUnavailableError` | timeout, spawn failure, materialisation write failure | no |
 | `SsoBrokerNotInstalledError` | the engine is absent | no |
 | `SsoConfigError` | a config value or profile violates the confinement contract | no |
+| `SsoStoreContendedError` | another process holds the profile's store lock (exit 6) | **yes, by retrying** |
 
-**Only the two recoverable rows may trigger a recapture.** A timeout is not an
+`SsoStoreContendedError` is recoverable in a different sense from the rest: by
+*retrying the same call* after a short back-off, never by re-authenticating —
+the session is valid and the store is merely busy.
+Bound the retries — on a Windows `%USERPROFILE%` redirected to SMB the engine
+cannot tell a held lock from a filesystem that does not support locking, so the
+error can be permanent there.
+
+**Only the two re-authenticating rows may trigger a recapture.** A timeout is not an
 expired session: mapping it to the recoverable type would open a browser
 whenever a keychain was slow. `SsoProfileNotRegisteredError` subclasses
 `SsoSessionUnavailableError` so handlers written before it existed keep working.

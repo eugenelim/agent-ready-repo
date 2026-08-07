@@ -1916,6 +1916,29 @@ On acceptance:
 This RFC is Accepted: the body above is preserved as the original decision
 record. Corrections are appended here, Approver-signed.
 
+- **2026-08-07 (Approver: eugenelim) — the per-verb exit-code table gains `6`
+  (contended), a third recoverable code.** The table in § 2 enumerates `0`, `2`,
+  `3`, `4`, `5`. `sso-broker.py` now serialises each profile's store transition
+  behind an exclusive interprocess lock, and a verb that cannot take that lock
+  within its budget exits **`6`**, raising `credbroker.SsoStoreContendedError`.
+
+  It needed a code of its own rather than reusing `3`. `3` is documented
+  non-recoverable, so folding contention into it would mean a consumer could
+  never retry a condition that clears in under a second; folding it into `2`
+  would be worse, because `2` means *re-authenticate* and would open a browser
+  over a session that is perfectly valid and merely busy. `6` is recoverable in
+  a third way — retry the same call after a back-off — which is why the
+  "only the two recoverable rows" sentence beneath the table now reads three,
+  with the distinction spelled out.
+
+  One property a retry policy must respect: on a Windows `%USERPROFILE%`
+  redirected to SMB, the engine cannot distinguish a held lock from a filesystem
+  that does not support locking — both surface as the same errno — so `6` can be
+  permanent on such a machine rather than transient.
+
+  Recorded in `docs/specs/sso-store-transition-serialization/spec.md` (AC23) and
+  `docs/architecture/credentials.md` § *The `sso-cookie` broker*.
+
 - **2026-05-31 (Approver: eugenelim) — § 9's two teaching skills are
   retired; § 5 / § 7's author-skill framing is superseded by the how-to.**
   § 9 ("Migration scope — commitment, not construction") committed two

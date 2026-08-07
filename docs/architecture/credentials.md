@@ -309,8 +309,12 @@ never read one generically.
 | `3` | any | engine failure — playwright absent, a sign-in not completed, a rejected profile, a corrupt store | recapture-failed / broker-unavailable | no |
 | `4` | `refresh` | the profile was never registered | profile-not-registered | **yes** |
 | `5` | `refresh` | the flow needs a human, and no browser was shown | interaction-required | no |
+| `6` | `get-cookies`, `test`, `rm`, `refresh`, `register` | another process holds this profile's store lock | store-contended | **yes** |
 
-Only the two recoverable rows may reach a consumer's auto-recovery. `3` is
+Only the three recoverable rows may reach a consumer's auto-recovery, and
+`6` recovers differently from the other two: `2` and `4` mean re-authenticate,
+while `6` means the session is fine and the store is merely busy — back off and
+retry the same call. `3` is
 returned from a dozen distinct sites, which is why not-registered has a code of
 its own: without the split, an internal engine failure would trigger a browser
 recapture while the stored session is perfectly valid. `4` and `5` are new —
@@ -367,6 +371,44 @@ Two storage surfaces, and conflating them hides real bugs:
   macOS/Windows they are not — which is why the materialisation must be
   unconditional. A `get-cookies` that skips the rewrite when the file already
   exists serves a stale jar after every keychain-backed re-capture.
+
+### Serialising the store transition
+
+Every path that mutates a profile's jar runs under one exclusive interprocess
+lock, taken on a dedicated lockfile at `~/.agentbundle/sso-locks/<profile>.lock`
+— never on the jar itself, because Windows byte-range locks are *mandatory* and
+would deny readers outright. Four verbs acquire it (`register`/`refresh` via
+`_capture`, `get-cookies`, `rm`, `test`); `_store_cookie_jar` asserts it is held
+rather than acquiring, so a forgotten wrap fails loudly.
+
+Three things about it are easy to get wrong and are settled here:
+
+- **`list-profiles` is deliberately unserialised.** It is advisory display, it
+  sits outside `_GRAMMAR_GUARDED_VERBS`, and it may briefly report `no-jar` for a
+  profile mid-transition. That is an accepted cosmetic race, not a missed wiring
+  site.
+- **Lockfiles are never deleted — including by `rm`.** Unlinking a locked file
+  lets one process hold a lock on the unlinked inode while another creates a
+  fresh file and locks that: two simultaneous holders, which is the failure the
+  lock exists to prevent. So an empty `<profile>.lock` outlives the profile it
+  named. It holds no credential material. On POSIX the directory is `0700` and
+  repaired to `0700` on every acquisition; on Windows the confidentiality of that
+  profile-name list rests on `%USERPROFILE%` ACLs and on no control this
+  subsystem adds.
+- **An untimed keychain call inside the lock amplifies.** The macOS Tier-2
+  backend shells out to `/usr/bin/security` with no timeout, so a holder blocked
+  on a keychain prompt now stalls *every* concurrent invocation for that profile
+  until each burns its budget and exits `6` — where before this lock existed it
+  stalled only itself. Measured cost is linear in continuation slots; see
+  `sso-keychain-call-timeouts`.
+- **The guarantee is asserted for a local filesystem**, and the two ways a
+  network home breaks it are opposites. On POSIX, `flock` over CIFS or some NFS
+  configurations may be emulated per-host or silently ignored: no error is
+  reported, and the serialisation quietly degrades to the pre-lock behaviour.
+  On Windows, a `%USERPROFILE%` redirected to SMB surfaces *unsupported locking*
+  as the same `EACCES` that means *contended*, so every store-touching verb
+  returns a permanent exit `6` on that machine. Neither is engine-detectable —
+  this paragraph is the only operator-facing explanation of either.
 
 ### Confinement controls
 
