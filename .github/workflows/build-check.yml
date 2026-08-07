@@ -519,15 +519,20 @@ jobs:
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
-          run_with_floor() {
+          # Subshell body, so `cd` is scoped to the call and the caller's cwd is
+          # untouched. `|| n=0` rather than `... || true` inside the substitution:
+          # grep exits 1 on no match, and the A && B || C form would also swallow
+          # a failed `cd`, leaving `n` empty and the comparison broken.
+          run_with_floor() (
             dir=$1; floor=$2
-            n=$(cd "$dir" && python -m pytest -q -p no:cacheprovider --collect-only | grep -c '::' || true)
+            cd "$dir" || exit 1
+            n=$(python -m pytest -q -p no:cacheprovider --collect-only | grep -c '::') || n=0
             if [ "$n" -lt "$floor" ]; then
               echo "::error::$dir collected $n tests, expected at least $floor — did a suite fail to land?"
               exit 1
             fi
-            (cd "$dir" && python -m pytest -q -p no:cacheprovider)
-          }
+            python -m pytest -q -p no:cacheprovider
+          )
           run_with_floor packs/catalogue-curation/tests/skills/assimilate-primitive 30
           run_with_floor packs/catalogue-curation/tests/skills/assimilate-repo 7
 
