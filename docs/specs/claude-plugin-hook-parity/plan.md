@@ -30,23 +30,30 @@ while rewriting paths and rejecting shapes.
 becomes marker-entry-first, then the compiled block appended.
 
 **D — scope, resolved by not fighting it.** The route is user-scope
-distribution. A Claude plugin's code lives in the adopter's global cache; the
-`project`/`local` install scopes record an enablement pointer in a repo file
-rather than placing anything in the repo, so a repo-scoped install has no
-repo-local artifact to authenticate against — `~/.claude.json` carries 53
-project entries and none records plugin enablement. A runtime guard would be
-reading a repo-tracked file to decide whether to execute, which a hostile repo
-controls.
+distribution: a plugin's code lives in the adopter's global cache, and
+`project`/`local` record an enablement pointer in a repo file rather than placing
+anything in the repo. So the fix is a *filter*, not a guard — publish only packs
+whose `allowed-scopes` admits `user`, derived from the declaration. No pack
+scopes change; no runtime guard is built; `templates/install-marker.py` is not
+touched (three drift gates pin its bytes, and #890 already made its own rail
+correct).
 
-So there is no guard, no lifted rail, and no edit to
-`templates/install-marker.py` (three drift gates pin its bytes, and #890 already
-made its own rail correct). `packs/core` widens `allowed-scopes` to admit
-`user`, and the safety property the guard was standing in for moves to AC22 —
-delimiting repo-read content as untrusted data, which holds at every scope on
-every route including the direct one.
+That filter also disposes of the prompt-injection path earlier rounds chased:
+`packs/core` is the only pack shipping hooks and it is repo-only, so it leaves
+the route entirely. No delimiting of `session-start.py`'s knowledge output is
+needed on this route, and core's hook body is not touched.
 
-The APM route needs nothing: #890 records that `_apm_detect_scope` resolves by
-projected-path containment and never reads `enabledPlugins`.
+`catalogue-curation`'s operator-only exclusion is retained alongside the derived
+predicate rather than folded into it — different rationale, and folding would
+re-publish it if its scopes were ever widened.
+
+**D2 — the docs follow the filter.** Two Astro pages build a
+`claude plugin install` command for every pack with `scope` present and unread
+(`web/src/pages/packs/[pack].astro:24`, `web/src/pages/catalogue/index.astro:54`),
+and five prose docs advertise the route without a scope caveat — including
+`README.md:32-35`, which names `core` specifically. The route table in
+`guides/_shared/explanation/install-routes.md` is where the rule gets stated
+once; the rest reference it.
 
 **E — the schema.** The derived `hooks` block becomes
 `{additionalProperties: <entry-array schema>}` — shape only. Event-name
@@ -128,129 +135,130 @@ build their own pack, so fixture rewrites do not reach them.
 
 ## Tasks
 
-### T0 — Fixtures + red integration test
+### T0 — Scope predicate + the seven exclusions
 **Depends on:** none · **Mode:** TDD
 
-**Tests:** `test_build_derivation_claude_plugins.py::test_authored_wiring_reaches_manifest`
-— red here.
+**Tests:** the predicate over a matrix of `allowed-scopes` values; an integration
+assertion that the seven named packs reach neither `dist/claude-plugins/` nor
+either `marketplace.json`, and that a user-capable pack still does.
 
-**Approach:** glob every fixture `.apm/hook-wiring/*.toml`, rewrite each to the
-real nested shape per the table above, wiring to a **non-`SessionStart`** event
-so AC1 and AC2 stay distinguishable. Leave unit tests that build their own pack
-alone.
+**Approach:** one predicate, read from `[pack.install] allowed-scopes`, applied
+at the recipe (AC3) and at publish (AC1). `publish_claude_plugins.py`'s
+`EXCLUDE` keeps `catalogue-curation` for its operator-only reason and gains the
+derived filter beside it. This task alone is shippable and is the deliverable.
 
-### T1 — Contract + version re-pins
+### T1 — Docs and site
+**Depends on:** T0 · **Mode:** Goal-based check + site build
+
+**Done when:** a grep for `plugin install` / `plugin marketplace add` across
+`README.md`, `docs-site/`, `guides/`, and `web/` returns no instance offering the
+route for a repo-only pack; and the built site shows no plugin-install command on
+a repo-only pack's page while still showing one for a user-capable pack.
+
+**Approach:** re-derive the file list by grep rather than trusting the spec's.
+Gate both Astro pages on the `scope` field each already carries. State the rule
+once in `install-routes.md`'s route table and reference it from the others.
+Changelog entries per AC6.
+
+### T2 — Contract: route-scoped hook targets
 **Depends on:** none · **Mode:** Goal-based check
 
 **Done when:** a parse of `contracts/adapter.toml` asserts the `hook-body`
 entry's `plugin-target-path == "hooks/"` **and** the `hook-wiring` entry's
 `plugin-mode == "dropped"`; `diff` against `_data/adapter.toml` is empty;
-`validate` exits 0; and the six contract-version pins are green again.
+`validate` exits 0; the six contract-version pins are green again.
 
 The value assertions are the point — the projection-array item schema has no
 `additionalProperties: false`, so `validate` exits 0 with either key misspelled
 or omitted.
 
 **Approach:** add both keys, bump `[contract].version`, record it in the
-version-history block, extend `adapter.schema.json` (`plugin-mode` under the
-`mode` enum), mirror both files. Update `overview.md`, `pack-layout.md`,
-`agentbundle.md`, `DESIGN.md` (×2), and `test_contract_scope.py:99`'s comment.
+version-history block, extend `adapter.schema.json`, mirror both files. Update
+`overview.md`, `pack-layout.md`, `agentbundle.md`, `DESIGN.md` (×2), and the
+version prose in the six pinning tests plus `test_contract_scope.py:99`'s
+comment.
 
-### T2 — Derived schema
+### T3 — Derived schema
 **Depends on:** none · **Mode:** TDD
 
-**Tests:** accepts a compiled two-event block with and without `matcher`;
-rejects `type: "http"`, an unknown key in a hook object, an unknown key in an
-entry.
+**Tests:** accepts a compiled two-event block with and without `matcher`; rejects
+`type: "http"`, an unknown key in a hook object, an unknown key in an entry.
 
 **Approach:** replace the single `SessionStart` property with
 `additionalProperties: <entry-array schema>`; **add `matcher`** to the entry
-object (absent today, and `additionalProperties: false` would reject it);
-retain `additionalProperties: false` inside entry and hook objects. Mirror.
+object (absent today, and `additionalProperties: false` would reject it). Mirror.
 
-### T3 — Hook-wiring rules (neutral module)
+### T4 — Hook-wiring rules (neutral module)
 **Depends on:** none · **Mode:** TDD
 
 **Approach:** `build/hook_wiring_rules.py` — neutral validation shared by the
-compiler and the pack lint so the two gates cannot disagree. Exposes
-`KNOWN_EVENTS` (frozenset) and
-`validate_wiring_entry(entry, *, pack_name, wiring_file) -> None`. Neutral
-module rather than importing `projections/` from `lint_packs.py`, which today
-imports only `agentbundle.pack_inventory` / `agentbundle.safety`.
+compiler and the pack lint so the two cannot disagree. Exposes `KNOWN_EVENTS`,
+`is_claude_shaped(entry)` (the per-adapter skip of AC14), and
+`validate_wiring_entry(entry, *, pack_name, wiring_file) -> None`. Neutral module
+rather than importing `projections/` from `lint_packs.py`, which today imports
+only `agentbundle.pack_inventory` / `agentbundle.safety`.
 
 **Tests:** each raise — unknown event, non-`command` type, non-string command,
-timeout out of range, entry/hook count caps, matcher shape. Every message
+timeout out of range, matcher failing the AC15 grammar, basename failing AC12 —
+and each *skip*: Kiro lowercase events, flat user-scope shape. Every message
 asserts pack + file + command.
 
 ### T5 — The hook compiler
-**Depends on:** T3 · **Mode:** TDD
+**Depends on:** T4 · **Mode:** TDD
 
 **Approach:** `build/projections/plugin_hooks.py` exposing
 `compile_plugin_hooks(pack_path, *, repo_hook_prefix, plugin_hook_prefix,
 hook_source_path, wiring_source_path, pack_name) -> dict`. **All four paths are
-parameters read off the contract by the caller** — `tools/hooks/` and `hooks/`
-are `target-path`/`plugin-target-path`; `.apm/hooks/` and `.apm/hook-wiring/`
-are `[primitive.*] source-path`. A module constant for any of them is a second
-copy that drifts the day the contract changes. This departs from the
+parameters read off the contract by the caller** — a module constant for any is a
+second copy that drifts the day the contract changes. This departs from the
 gemini/cursor/copilot convention of a private prefix constant, because those
 adapters hardcode a destination this route reads from the contract.
 
 Structure and error wording mirror `gemini.py`'s `_translate_hook_entry`. The
-**mechanism** diverges per AC4: positional splice with a double-quoted
-replacement, **anchored** (start-of-string, whitespace, `=`, or quote on the
-left) and **quote-context-aware** (an occurrence already inside a double-quoted
-region is emitted bare, or raises — round 3 showed `sh -c "python
-tools/hooks/x.py"` otherwise closes the outer quote and reintroduces word
-splitting).
+**mechanism** diverges per AC10: anchored, quote-aware positional splice.
 
-**Tests:** the AC4 case list — multi-occurrence, leading `./`, `--flag=path`,
-`sh -c "…"` nesting, an embedded `vendor/tools/hooks/…` that must raise, trailing
-args, a command with no hook path; the `sh -c` execution assertion with a
-space-and-`$` root; AC5 both predicates, evaluated per fragment; ordering; empty
-block when no `hook-wiring/`.
+**Tests:** the AC10 case list — multi-occurrence, leading `./`, `--flag=path`,
+`sh -c "…"` nesting (emitted bare), an embedded `vendor/tools/hooks/…` that must
+raise, trailing args, a command with no hook path; the `sh -c` execution
+assertion with a space-and-`$` root; AC11 both predicates per fragment; ordering;
+empty block when no `hook-wiring/`.
 
 ### T6 — Wire into the derivation
-**Depends on:** T0, T1, T2, T5 · **Mode:** TDD (T0 goes green)
+**Depends on:** T2, T3, T5 · **Mode:** TDD
 
 **Approach:** extend `_resolve_contract_for_route` to require both new keys and
 **swap `mode` ← `plugin-mode` alongside the existing `target-path` swap** —
-requiring is not applying. Route `_project_direct_file`'s `target_prefix`
-through `_resolve_target` (AC21). Replace the `derived["hooks"]` assignment with
-marker-first-then-compiled. Re-pin the artifact-layout anchors.
+requiring is not applying; today it swaps only `target-path`, and
+`_iter_primitives` skips a primitive only when its `mode` is `"dropped"`. Replace
+the `derived["hooks"]` assignment with marker-first-then-compiled. Re-pin the
+artifact-layout anchors **in this task**, since this is what breaks them.
 
 ### T7 — Pack-source gate
-**Depends on:** T3 · **Mode:** TDD
+**Depends on:** T4 · **Mode:** TDD
 
-**Approach:** `build/lint_packs.py` calls `hook_wiring_rules.validate_wiring_entry`.
-The compiler's validators are the single source; the lint restates nothing.
+**Approach:** `build/lint_packs.py` calls `hook_wiring_rules.validate_wiring_entry`,
+wrapping each call and converting the exception to a finding string so one bad
+pack does not abort the sweep. Test that two violating packs both report.
 
-### T8 — Publish-time validation
-**Depends on:** T6 · **Mode:** TDD
-
-**Approach:** `tools/catalogue/publish_claude_plugins.py` re-validates each
-`plugin.json` against the derived schema and `KNOWN_EVENTS` before pushing
-(AC20).
-
-### T9 — Other-route regression
+### T8 — Other-route regression
 **Depends on:** T6 · **Mode:** TDD
 
 **Approach:** assert per projection that a non-plugins build still writes
-`.claude/settings.local.json` and `tools/hooks/`; assert each of the five
-`render_pack` consumers for its expected new output.
+`.claude/settings.local.json` and `tools/hooks/`; assert each of the six
+`render_pack` consumers for its expected new output, `init_state.py` included.
 
-### T10 — Real client, docs, erratum, changelog
-**Depends on:** T7, T8, T9 · **Mode:** Visual / manual QA
+### T9 — Real client, erratum, snapshot
+**Depends on:** T1, T7, T8 · **Mode:** Visual / manual QA
 
-**Done when:** `claude plugin validate` passes; `claude plugin details` reports
-the exact hook set; an authored hook is observed firing at `--scope project` and
-observed refusing at `--scope user`; the execution model for AC12 is recorded;
-transcripts pasted below.
+**Done when:** `claude plugin validate` passes on a built user-capable pack;
+`claude plugin details` reports the exact hook set; an authored hook is observed
+firing; the execution model is recorded; a dropped pack is confirmed absent from
+the marketplace; transcripts pasted below.
 
 Then: erratum on `docs/specs/wire-session-start-hook/spec.md` (frozen — body not
-edited); `packs/core/README.md` + plugin `description` per AC17, including the
-default-scope refusal; `[Unreleased]` entries in
-`packages/agentbundle/CHANGELOG.md` and `docs/product/changelog.md`; fix the two
-stale-prose sites.
+edited); land the hook-event documentation snapshot under the spec dir; fix the
+two stale-prose sites (`commands/upgrade.py:1672`,
+`test_tier_invariants.py:315-317`).
 
 ## Risks
 
@@ -301,3 +309,14 @@ _(AC13 transcripts land here during T10.)_
   already confinement-checks before `_project_direct_file`); AC17 drops the
   plugin `description` per #888 and gains the three-file pack version bump; the
   fixture table is regenerated by glob rather than by grep.
+- **2026-08-07** — round 3 → 4. Reframed on the owner's rule: **the route
+  publishes only packs whose `allowed-scopes` admits `user`, and no pack scope
+  changes.** Seven packs drop, including `core`. That replaces the whole
+  guard/widen line of thinking — both reviewers had shown the runtime guard was
+  unsatisfiable, and excluding repo-only packs removes the prompt-injection path
+  without touching `packs/core` at all. Docs and site join the spec: two Astro
+  pages build a plugin-install command for every pack with `scope` present and
+  unread, and five prose docs advertise the route without the precondition,
+  `README.md` naming `core` by name. Stated plainly that the hook-compile half
+  ships no activation today, since core is the only pack with hooks and it is one
+  of the seven.

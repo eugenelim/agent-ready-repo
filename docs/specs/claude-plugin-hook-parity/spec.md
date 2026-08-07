@@ -1,13 +1,10 @@
-# Spec: Claude-plugin hook parity
+# Spec: Claude-plugin route — scope correctness, docs, and hook parity
 
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md),
-  [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md) (Accepted — the
-  plugin-route scope taxonomy and the `allowed-scopes` refusal rail this spec extends)
-- **Contract:** `contracts/adapter.toml`, `contracts/adapter.schema.json`,
-  `contracts/plugin-manifest.derived.schema.json`
+- **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md), [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md)
+- **Contract:** `contracts/adapter.toml`, `contracts/adapter.schema.json`, `contracts/plugin-manifest.derived.schema.json`
 - **Shape:** integration
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -15,411 +12,358 @@
 
 ## Objective
 
-A pack that ships hook bodies and hook wiring gets working hooks on the
-Claude-plugin route, the same way it does on the direct Claude adapter — and no
-hook runs at a scope the pack forbids.
+**The Claude-plugin route is a user-scope distribution channel. It should
+publish only packs that permit user-scope install, say so in the docs, and carry
+their hooks correctly.** Today it does none of the three.
 
-**The Claude-plugin route is a user-scope distribution channel, and this spec
-treats it as one.** A Claude plugin's code always lives in the adopter's global
-cache (`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>`); `--scope
-project` and `--scope local` record an *enablement pointer* in a repo file, they
-do not place the plugin in the repo. There is therefore nothing repo-local to
-authenticate a repo-scoped install against — confirmed: `~/.claude.json` carries
-53 project entries and none records plugin enablement.
+A Claude plugin's code always lives in the adopter's global cache
+(`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>`). The `project` and
+`local` install scopes record an *enablement pointer* in a repo settings file;
+they do not place the plugin in the repo. `claude plugin install` defaults to
+`--scope user`. There is no repo-scoped plugin install in the sense agentbundle
+means by `repo` — confirmed: `~/.claude.json` carries 53 project entries and
+none records plugin enablement.
 
-That is a property of the plugin model, not a gap to work around. This spec does
-not attempt to make the route honour agentbundle's `repo` scope. Adopters who
-want repo-scoped, repo-visible hooks use the direct adapter, which is the route
-built for it.
+Three defects follow.
 
-Today it does not. The claude-plugins route publishes a plugin whose hook
-surface is one synthetic install-marker `SessionStart` entry. The pack's own
-hooks are shipped as *inert files*:
+**1 — the route publishes packs that forbid the only install it offers.**
+Seven packs declare `allowed-scopes = ["repo"]`: `core`, `catalogue-curation`,
+`governance-extras`, `iac-terraform`, `monorepo-extras`, `release-engineering`,
+`user-guide-diataxis`. Six are published to `claude-plugins-dist` today
+(`catalogue-curation` is already excluded, but by a hardcoded name, for an
+unrelated operator-only reason). ADR-0002 defines `allowed-scopes` as a refusal
+contract — a scope outside the set "is refused with stderr naming the pack and
+the declared set". The route installs them at user scope anyway.
 
-```
-dist/claude-plugins/core/
-├── .claude-plugin/plugin.json    hooks: install-marker SessionStart only
-├── .claude/settings.local.json   ← the plugin loader never reads this
-└── tools/hooks/{session-start,work-loop-check,pre-pr}.py   ← bodies, unwired
-```
+**2 — the docs and the site offer the route for packs that cannot use it.**
+`README.md:32-35`, the repo's front door, tells adopters to run
+`claude plugin install core@agent-ready-repo`. `web/src/pages/packs/[pack].astro:24`
+and `web/src/pages/catalogue/index.astro:54` each build a
+`claude plugin install <slug>@<marketplace>` command for **every** pack, with
+`scope` available on the same object and unused — so the site currently offers a
+plugin install for all seven repo-only packs.
 
-Reproduced against the real `packs/core`, not only the fixtures. Claude Code
-discovers plugin hooks from `hooks/hooks.json` at the plugin root or from the
-manifest's `hooks` field; `.claude/settings.local.json` is a direct-install
-destination and inside a plugin directory it is dead weight.
+**3 — authored hooks are published inert.** A pack shipping
+`.apm/hook-wiring/` gets its wiring written to `<pack>/.claude/settings.local.json`
+(a direct-install destination the plugin loader never reads) and its bodies to
+`<pack>/tools/hooks/`, named by a command relative to the adopter's working
+directory rather than the plugin root. `build/main.py` *assigns*
+`derived["hooks"]` rather than merging, and the derived schema admits one event.
 
-Four separable defects, each sufficient on its own:
+### What this ships, stated plainly
 
-1. **Wiring is never compiled.** `build/main.py:585` *assigns* `derived["hooks"]`,
-   overwriting rather than merging, and the source manifest schema forbids
-   authored hooks outright.
-2. **Bodies land at a path the wiring cannot name.** `hook-body` has no
-   `plugin-target-path`, so it keeps the repo-scope target `tools/hooks/` and
-   the authored command `python tools/hooks/session-start.py` resolves against
-   the adopter's working directory, not the plugin root. A verbatim copy of the
-   wiring would ship a broken command.
-3. **The derived schema cannot express the result.** It admits one event
-   (`SessionStart`) under `additionalProperties: false`. `packs/core`'s
-   `UserPromptSubmit` entry fails validation before it can be written.
-4. **The scope rail does not cover compiled hooks.** RFC-0008 enforces a pack's
-   `allowed-scopes` on this route, but the enforcement lives in the
-   install-marker writer (`templates/install-marker.py:797,849`) and gates only
-   *marker writing*. `packs/core` declares `allowed-scopes = ["repo"]`;
-   `claude plugin install` defaults to `--scope user`. Compiling core's hooks
-   into the same manifest as sibling entries would have them execute in every
-   repo the adopter opens, unrefused, while the marker beside them correctly
-   refuses. **This defect does not exist today only because defect 1 exists** —
-   closing 1 without closing 4 ships a scope violation.
+Defects 1 and 2 are adopter-visible and are the deliverable: seven packs stop
+being published and stop being advertised as plugins.
 
-`packs/core` is the pack this bites: `session-start.py` (knowledge and
-orientation injection) and `work-loop-check.py` (the work-loop nudge) are inert
-for every adopter who installed core as a Claude plugin.
+Defect 3's fix ships **no hook activation today**. `packs/core` is the only pack
+that ships `.apm/hook-wiring/`, and it is repo-only, so it is one of the seven
+that drop. The hook work makes the route correct for the next user-capable pack
+that ships hooks; it does not light anything up now. It belongs in the same
+change — fixing 1 without 3 leaves a route that silently drops hooks the day a
+user-capable pack authors them — but it is not worth overstating.
 
-The out-of-scope note in the `claude-plugins-manifest-correctness` spec —
-*"Hook wiring … is out of scope and unchanged"* (AC2) — is the deferral this
-spec closes. RFC-0080 named the same area *"a separate, untriggered problem"*;
-this spec is what triggers it.
+Pack scopes are **not** changed to make any of this work. `packs/core` stays
+`allowed-scopes = ["repo"]`; repo-scoped packs are repo-scoped deliberately, and
+adopters reach them through the direct adapter, which is the route built for it.
 
 ## Boundaries
 
 ### Always do
 
-- Fix the generator and the contract, then regenerate. Never hand-edit
-  projected output.
-- Keep the derived manifest inside what Claude Code documents. ADR-0072
-  governs: upstream wins, and a local departure must be *restrictive* — it may
-  narrow what we emit, never widen it past what the client accepts.
+- Fix the generator, the contract, the publish filter, and the docs; never
+  hand-edit projected output.
+- Derive the publish filter from `allowed-scopes`, not from a name list.
+- Keep the derived manifest inside what Claude Code documents (ADR-0072:
+  upstream wins; a local departure must be *restrictive*).
 - Fail loud at build time, naming pack, wiring file, and command.
-- Verify with the real `claude` client (2.1.223), not only the hermetic schema.
-
-### Ask first
-
-- Changing what `packs/core` authors — which events it wires, or the
-  interpreter its commands invoke. This spec relocates and rewrites *paths*.
-  **Two exceptions authorised:** AC22's untrusted-content delimiting in
-  `session-start.py`, and AC8's `allowed-scopes` widening in `pack.toml`.
-- Moving repo-scope hook-wiring off `.claude/settings.local.json`. That is the
-  cross-adapter question RFC-0005's `user-merge-json` machinery makes
-  tractable; it is **out of scope here and routed to a follow-on RFC**.
+- Verify with the real `claude` client (2.1.223).
 
 ### Never do
 
-- Emit a hook the pack did not author. The install-marker entry is the sole
-  synthetic hook.
-- Register the same hook twice. Authored wiring lands in exactly one place.
+- **Change any pack's `default-scope` or `allowed-scopes`.** If a pack's reach
+  is wrong, that is a separate, owner-approved decision. Not a lever this spec
+  pulls.
+- Change what `packs/core` authors — events, interpreters, or hook bodies.
+- Emit a hook the pack did not author, or register one twice.
 - Widen `additionalProperties: false` on a manifest schema to make a new shape
   validate.
-- Change the direct, self-host, or APM routes' *projections*.
+- Change the direct, self-host, or APM routes' projections.
 - Add a third-party dependency (`pyproject.toml` `dependencies = []`).
 
-### Precondition — satisfied
+### Precondition — partially satisfied
 
 ADR-0072 records branch protection on `claude-plugins-dist` as a precondition
-of publishing live code to adopters. It did not exist. It was applied before
-this spec's approval: force-push denied, deletion denied, admins exempt for
-recovery, no PR requirement (the branch is machine-published and
-`publish_claude_plugins.py:119` is a plain fast-forward push, so CI is
-unaffected).
+for publishing live code. Force-push and deletion are now denied (applied
+2026-08-07; `enforce_admins: false` for owner recovery; no PR requirement, as the
+branch is machine-published and `publish_claude_plugins.py` does a plain
+fast-forward push). **Ordinary pushes remain unrestricted**, so ADR-0072's named
+threat — anyone with repo write, or any workflow holding `contents: write` — is
+narrowed, not closed. Tracked in `plan.md` Risks.
 
 ## Decision — where compiled hooks land
 
-Claude Code accepts plugin hooks in `hooks/hooks.json` at the plugin root or
-inline in the manifest's `hooks` field. Hooks from every source *accumulate* —
-"a plugin's or skill's copy of the same handler stays separate" — so emitting
-to both would register each authored hook twice.
+Claude Code accepts plugin hooks in `hooks/hooks.json` or inline in the
+manifest's `hooks` field, and hooks from every source *accumulate* — so emitting
+both would register each hook twice.
 
 **Chosen: inline in the manifest**, merged with the install-marker entry. It is
-the mechanism already shipping and already real-client-verified on this route;
-one registration site makes double-fire structurally impossible; the pre-write
-and post-write validation at `build/main.py:616,625` already guards it.
+the mechanism already shipping and real-client-verified on this route; one
+registration site makes double-fire structurally impossible; the pre- and
+post-write validation in `build/main.py` already guards it.
 
-Rejected: **`hooks/hooks.json`** — better-documented and checked by name by
-`claude plugin validate`, but it splits the hook surface across two files whose
+Rejected: `hooks/hooks.json` — better-documented and checked by name by
+`claude plugin validate`, but it splits the surface across two files whose
 combination rule the docs state only as "own merge rules".
 
-Not weighed and now recorded: **exec form** (`args` array) instead of
-shell form. AC4 uses shell form because the pack-authored `command` is a single
-string and `args` would require pack authors to restructure their wiring; the
-quoting discipline AC4 mandates is what makes shell form safe.
+Not chosen, recorded: exec form (`args` array). The pack-authored `command` is a
+single string; `args` would require pack authors to restructure their wiring.
+AC7's quoting discipline is what makes shell form safe.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Authored wiring reaches the manifest.** For every pack shipping
-  `.apm/hook-wiring/*.toml`, the derived `<pack>/.claude-plugin/plugin.json`
-  `hooks` object contains every authored event and entry. Asserted on
-  `packs/core`: `UserPromptSubmit` present, and `SessionStart` carrying both the
-  authored `session-start.py` entry and the install-marker entry.
+### Scope correctness
 
-- [ ] **AC2 — Merge, not overwrite, in both directions.** The install-marker
+- [ ] **AC1 — The route publishes only user-capable packs.** A pack reaches
+  `dist/claude-plugins/` and either `marketplace.json` only when its
+  `[pack.install] allowed-scopes` contains `"user"`. Derived from the
+  declaration, not a name list.
+
+  `catalogue-curation`'s existing operator-only exclusion is **retained
+  alongside** the derived predicate, not replaced by it. It drops today for a
+  different reason than being repo-only, and folding the two would silently
+  re-publish it if its scopes were ever widened.
+
+- [ ] **AC2 — The seven excluded packs are named, so the set cannot drift.**
+  `core`, `catalogue-curation`, `governance-extras`, `iac-terraform`,
+  `monorepo-extras`, `release-engineering`, `user-guide-diataxis` appear in
+  neither `dist/claude-plugins/` nor either `marketplace.json`. Asserted by name.
+
+- [ ] **AC3 — The filter is enforced where the artifact is built, not only where
+  it is published.** A repo-only pack reaching the `per-pack-claude-plugin`
+  recipe is skipped with a build-time log naming the pack and its declared
+  scopes. A filter living only in the publish script leaves `render`,
+  `install --emit-install-routes`, `diff`, and `init-state` emitting artifacts
+  the route will not carry.
+
+### Documentation and site
+
+- [ ] **AC4 — The site offers the plugin route only where it applies.**
+  `web/src/pages/packs/[pack].astro` and `web/src/pages/catalogue/index.astro`
+  gate the `claude plugin install` command on the pack's scope admitting `user`.
+  Both files already carry `scope` on the same object; neither reads it. A
+  repo-only pack's page shows the `agentbundle install` route only, with a
+  one-line reason.
+
+- [ ] **AC5 — Prose docs stop advertising the route for repo-only packs.**
+  At minimum: `README.md:32-35` (front door — currently
+  `claude plugin install core@agent-ready-repo`);
+  `docs-site/src/content/docs/getting-started/install.md:64-71` (same, for
+  `core`); `guides/_shared/explanation/install-routes.md:7` (presents the plugin
+  route with no scope caveat);
+  `guides/_shared/explanation/pack-catalogue.md:60` (claims "the same pack
+  content reaches you via … `/plugin install`" — now false for seven packs);
+  `guides/core/how-to/adapt-to-project.md:53` (lists `/plugin install` as a
+  route for `core` itself).
+
+  The route table in `install-routes.md` gains the scope precondition, so the
+  rule is stated once where adopters choose a route. The implementing task
+  re-derives this list by grep rather than trusting it.
+
+- [ ] **AC6 — Adopter-facing disclosure of a breaking change.** Six packs
+  disappear from a marketplace they are in today; adopters who installed any of
+  them find it gone on their next marketplace update. `[Unreleased]` entries in
+  `packages/agentbundle/CHANGELOG.md` and `docs/product/changelog.md` name the
+  removal, name the packs, and state the remedy — install at repo scope with
+  `agentbundle install`, the route they were always scoped for.
+
+### Hook parity
+
+- [ ] **AC7 — Authored wiring reaches the manifest.** For a user-capable pack
+  shipping `.apm/hook-wiring/*.toml`, the derived `plugin.json` `hooks` object
+  contains every authored event and entry, merged with the synthetic
+  install-marker entry — marker first, then authored entries in sorted
+  wiring-filename order. Asserted against a fixture pack, since no shipped pack
+  qualifies today.
+
+- [ ] **AC8 — Merge, not overwrite, in both directions.** The install-marker
   entry is present whether or not the pack authors `SessionStart`; authored
-  `SessionStart` entries survive the merge. A pack with no `hook-wiring/`
-  produces a manifest byte-identical to today's.
+  `SessionStart` entries survive. A pack with no `hook-wiring/` produces a
+  manifest byte-identical to today's.
 
-- [ ] **AC3 — Bodies at a plugin-root path.** On the claude-plugins route
-  `hook-body` projects to `<pack>/hooks/<name>.{sh,py}` via a new
-  `plugin-target-path`; `<pack>/tools/hooks/` is not emitted. The direct route's
-  `tools/hooks/` target is unchanged.
+- [ ] **AC9 — Bodies at a plugin-root path.** `hook-body` projects to
+  `<pack>/hooks/<name>.{sh,py}` via a new `plugin-target-path`;
+  `<pack>/tools/hooks/` is not emitted. The direct route is unchanged.
 
-- [ ] **AC4 — Commands resolve against the plugin root, by positional splice.**
-  Rewriting replaces each occurrence of `<repo-hook-prefix><name>` **in place in
-  the original command string** with a double-quoted
-  `"${CLAUDE_PLUGIN_ROOT}/<plugin-hook-prefix><name>"`, leaving every other byte
-  — operators, pipes, redirections, surrounding arguments — untouched. An
-  optional leading `./` is absorbed. `packs/core`'s wiring compiles to
-  `python "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.py"`.
+- [ ] **AC10 — Commands resolve against the plugin root, by anchored,
+  quote-aware positional splice.** Each occurrence of
+  `<repo-hook-prefix><name>` is replaced **in place in the original command
+  string** by a double-quoted `"${CLAUDE_PLUGIN_ROOT}/<plugin-hook-prefix><name>"`,
+  leaving operators, pipes, and redirections untouched. An optional leading `./`
+  is absorbed.
 
-  Two mechanisms are **forbidden**, each having been shown to corrupt the
-  command:
-  - `str.replace` on the prefix (the gemini/cursor/copilot precedent) cannot
-    emit the closing quote; the half-quoted result re-pairs quotes across a
-    `&&` and silently turns two commands into one.
-  - `shlex.split` + rejoin destroys shell operators, and `shlex.quote` emits
-    **single** quotes, inside which `sh` does not expand `${CLAUDE_PLUGIN_ROOT}`
-    at all — verified: the hook would resolve to a literal directory named
-    `${CLAUDE_PLUGIN_ROOT}`.
+  - **Anchored.** Rewritten only when preceded by start-of-string, whitespace,
+    `=`, or a quote. `vendor/tools/hooks/x.py` raises under AC11 rather than
+    splicing into a broken path.
+  - **Quote-aware.** An occurrence already inside a double-quoted region — as in
+    `sh -c "python tools/hooks/x.py"` — is emitted *without* added quotes;
+    inserting them closes the outer quote and reintroduces word splitting.
+  - **Double quotes, not single.** `shlex.quote` emits single quotes, inside
+    which `sh` does not expand `${CLAUDE_PLUGIN_ROOT}` at all.
 
-  Double quotes are required, not incidental: they are what makes the variable
-  expand while still surviving a space in the install path.
+  Two mechanisms are forbidden, each shown by execution to corrupt the command:
+  `str.replace` on the prefix (cannot emit the closing quote; the half-quoted
+  result re-pairs across `&&`), and `shlex.split` + rejoin (destroys operators).
 
-  **Verification is execution, not shape.** The emitted command is run through
-  `sh -c` with `CLAUDE_PLUGIN_ROOT` set to a path containing both a space and a
-  `$`, and the hook's observed `argv` must show the path as exactly one
-  argument. A `shlex.split`-based round-trip assertion is not acceptable
-  evidence — it returns one token for the broken single-quoted form too, so it
-  cannot fail.
+  **Verification is execution.** The emitted command runs through `sh -c` with
+  `CLAUDE_PLUGIN_ROOT` set to a path containing a space and a `$`, and the hook's
+  observed `argv` must show the path as exactly one argument. A `shlex.split`
+  round-trip assertion is not acceptable evidence — it cannot fail.
 
-- [ ] **AC5 — Fail closed on an unrewritable or dangling command.** Two
-  predicates, each stated at the depth that makes it checkable:
-  (a) **basename scan over the whole command** — if any whitespace- or
-  `=`-delimited fragment contains the basename of a hook body the pack ships and
-  the command does not carry `${CLAUDE_PLUGIN_ROOT}`, raise. A basename scan,
-  not token equality: `--script=tools/hooks/x.py` and a path nested inside
-  `sh -c "python tools/hooks/x.py"` are not standalone tokens, and publishing
-  either with a relative path is the failure class ADR-0072 exists to prevent.
-  (b) **confinement, not existence** — each rewritten
-  `${CLAUDE_PLUGIN_ROOT}/<prefix><name>` must correspond to a path that, after
-  `resolve()`, is `relative_to` the pack's hook-body source directory. A bare
-  `exists()` check would accept a `..`-bearing or symlinked name.
+- [ ] **AC11 — Fail closed on an unrewritable or dangling command**, evaluated
+  **per fragment**: every whitespace- or `=`-delimited fragment naming the
+  basename of a shipped hook body must itself carry `${CLAUDE_PLUGIN_ROOT}` after
+  rewriting, else raise. A per-command check passes a command where only one of
+  two paths matched. Separately, each rewritten path must `resolve()` to a
+  location `relative_to` the pack's hook-body source directory — confinement, not
+  `exists()`.
 
-- [ ] **AC6 — Only `command` hooks are published.** A hook object whose `type`
-  is not `"command"` raises with the same locating detail.
+- [ ] **AC12 — Hook-body basenames are validated, not escaped.** Each basename
+  must `fullmatch` `^[A-Za-z0-9][A-Za-z0-9._-]*$`. Inside the double quotes AC10
+  mandates, `sh` still interprets `` ` ``, `$(`, `\`, and `"`, so a body named
+  ``a`id`.py`` would run command substitution on every hook fire. Mirrors the
+  existing `install-marker.py` `_assert_portable_name` precedent.
 
-  This is the house convention for every adapter that *transforms* wiring:
-  `copilot` (`projections/copilot_hooks_json.py:119`) and `gemini`
-  (`adapters/gemini.py:406`) both raise on this condition; `cursor`
-  (`adapters/cursor.py:332`) is the fail-open outlier that drops with a stderr
-  log. This route transforms, so it joins the fail-closed cohort, and takes the
-  raise over the drop because a dropped hook on a *published* artifact is
-  invisible to the adopter. `claude-code` (direct) and `codex` pass
-  non-`command` types through unvalidated — both use the shared verbatim
-  `merge-json` projection and rewrite nothing. That inconsistency is real and
-  out of scope; see `Deferred` in the PR description.
+- [ ] **AC13 — Only `command` hooks are published.** A hook whose `type` is not
+  `"command"` raises with the same locating detail. House convention for every
+  adapter that *transforms* wiring: `copilot` and `gemini` both raise; `cursor`
+  is the fail-open outlier that drops with a log. This route transforms, so it
+  fails closed, and raises rather than drops because a dropped hook on a
+  published artifact is invisible.
 
-- [ ] **AC7 — Event names validated in the compiler, not the schema.** The
-  compiler holds the documented Claude Code event set and raises on an unknown
-  event, naming pack, wiring file, and event.
+- [ ] **AC14 — Event names validated in the compiler; the schema validates
+  shape.** The compiler holds the documented event set and raises on an unknown
+  event, naming pack, file, and event. The schema uses
+  `hooks: {additionalProperties: <entry-array schema>}` — `build/validate.py`
+  supports neither `$ref` nor `propertyNames`, so a closed enum there would mean
+  one longhand copy per documented event across two mirrored files.
 
-  The schema validates *shape* only, via `hooks: {additionalProperties:
-  <entry-array schema>}`. This is deliberate: `build/validate.py` supports
-  neither `$ref` nor `propertyNames`, so a closed event enum in the schema
-  would mean 31 longhand copies of one subschema kept byte-identical across two
-  mirrored files. One compiler-side frozenset is one source of truth, and it
-  produces a locating error message where the schema would produce
-  `$.hooks: additional property 'X' not allowed`.
+  **Per-adapter scoping:** `.apm/hook-wiring/` is shared by every adapter.
+  Kiro's lowercase `agent-event-vocabulary` (`agentSpawn`, `userPromptSubmit`, …)
+  and the flat user-scope Claude shape (top-level `command`, no `type`) are
+  contract-supported and must be **skipped, not raised on** — this compiler
+  validates only entries in the Claude PascalCase nested shape.
 
-  **Widening procedure:** an event joins the set only when it is present in
-  Claude Code's published hook documentation at a named client version **and**
-  an AC13 real-client run is recorded. Widening is mirror maintenance, never a
-  local extension.
+  **Widening procedure:** an event joins the set only when present in Claude
+  Code's published hook documentation at a named client version *and* an AC18
+  real-client run is recorded.
 
-- [ ] **AC8 — The route declares itself user-scope, and `packs/core` allows it.**
-  The claude-plugins route is documented as user-scope distribution. `packs/core`
-  today declares `allowed-scopes = ["repo"]`, which predates any user-scope
-  consumer; publishing its hooks on this route requires that declaration to admit
-  `user`. That is a pack-metadata decision made explicitly here, not a guard
-  bolted onto the route.
+- [ ] **AC15 — Bounded hook cost.** The compiler raises on a `timeout` outside
+  1–60s (60 is Claude Code's documented default; a lower ceiling is a
+  *restriction*, permitted under ADR-0072) and on a `matcher` that does not
+  `fullmatch` `^\^?[A-Za-z0-9_-]+(\|[A-Za-z0-9_-]+)*\$?$` — literal tool names,
+  optional anchors, no quantifiers.
 
-  No runtime scope guard is specified, and none should be: the permit for a
-  repo-scoped install would have to be read from a repo-tracked file, so a cloned
-  hostile repo and a legitimate `--scope project` install are byte-identical
-  inputs. A guard reading them cannot distinguish the two, and one that pretends
-  to is worse than none.
+  An allowlist grammar, not a shape heuristic: deciding "nested unbounded
+  quantifiers" needs a regex AST, `agentbundle` is stdlib-only, and a textual
+  heuristic is evaded by `(?:a+)+` and `(a|ab)*$`. A bypassable check that reads
+  as a control is worse than none.
 
-  The safety property that guard was a proxy for is carried instead by AC22.
+- [ ] **AC16 — A pack with wiring but no source manifest raises.**
+  `build/main.py` gates manifest synthesis on `plugin.json` existing; such a pack
+  must raise naming the pack, not silently drop its hooks.
 
-- [ ] **AC9 — Bounded hook cost.** The compiler raises, with the AC5 locating
-  detail, on: a `timeout` outside 1–60s (60 is Claude Code's documented default
-  for command hooks; a lower ceiling is a local *restriction*, permitted under
-  ADR-0072); more than 8 entries per event or 32 compiled hooks per pack; and a
-  `matcher` whose **shape** is unbounded — anchored literals and alternations
-  over tool names are admitted, nested unbounded quantifiers are not.
+- [ ] **AC17 — No dead artifact.** The route emits no `<pack>/.claude/`.
 
-  A length cap is explicitly *not* the control for matcher cost: catastrophic
-  backtracking is a complexity property, not a length one — `(a+)+$` is seven
-  characters and burns the adopter's client. None of these bounds is expressible
-  in the schema (`build/validate.py` has no numeric or length keywords), so all
-  three live in the compiler.
+### Verification and hygiene
 
-- [ ] **AC10 — A pack with wiring but no source manifest raises.**
-  `build/main.py:571` gates manifest synthesis on `plugin.json` existing. A
-  pack shipping `.apm/hook-wiring/` with no `.claude-plugin/plugin.json` must
-  raise naming the pack, not silently drop its hooks once `hook-wiring`
-  resolves to `dropped`.
+- [ ] **AC18 — Real-client verification.** `claude plugin validate` passes on a
+  built user-capable pack; `claude plugin details` reports the exact registered
+  hook set — event names, entry count, command strings — plus one observed side
+  effect of an authored hook firing, and the observed execution model (parallel
+  or sequential) for AC7's ordering rationale. Separately, a dropped pack is
+  confirmed absent from the marketplace. Transcripts recorded in `plan.md`.
 
-- [ ] **AC11 — No dead artifact.** The claude-plugins route emits no
-  `<pack>/.claude/` directory.
+- [ ] **AC19 — Idempotent.** Warm and cold rebuilds produce byte-identical
+  `plugin.json`.
 
-- [ ] **AC12 — Idempotent and order-stable.** Warm and cold rebuilds produce
-  byte-identical `plugin.json`. Within an event: the install-marker entry first,
-  then authored entries in sorted wiring-filename order.
-
-  Marker-first is for **determinism**, not suppression-resistance. Claude Code
-  documents matching hooks running in parallel, so ordering does not protect the
-  marker from a pack hook that blocks or exits non-zero; AC13 records the
-  observed execution model rather than assuming one.
-
-- [ ] **AC13 — Real-client verification, on the exact hook set.**
-  `claude plugin validate` passes on the built `core` plugin, and
-  `claude plugin details` reports the **exact** registered hook set — event
-  names, entry count, and command strings — with no extra or missing
-  registration. Plus one observed side effect of an authored hook firing, and
-  the observed execution model for AC12. Registration alone does not discharge
-  this AC: a hook whose command points at a nonexistent path registers fine,
-  which is the failure class ADR-0072 exists to prevent. The same test asserts
-  AC17's documented hook enumeration against the compiled `hooks` block, so
-  prose and artifact cannot drift. Transcripts recorded in `plan.md`.
-
-- [ ] **AC14 — Other routes unchanged; every changed consumer named.**
+- [ ] **AC20 — Other routes unchanged; every changed consumer named.**
   `build/self_host.py` (direct via `project_packs`), `commands/pack_evals.py`,
-  and the APM recipe emit output byte-identical to pre-change.
+  and the APM recipe emit output byte-identical to pre-change. **Six consumers
+  run the `per-pack-claude-plugin` recipe via `render_pack` and change by
+  design:** `commands/render.py`, `commands/install.py --emit-install-routes`,
+  `commands/upgrade.py`, `commands/diff.py`, `commands/validate.py`, and
+  `commands/init_state.py` — the last writes rendered relpaths into the state
+  file, so every `init-state` run records a different set after this change.
+  Asserted per projection.
 
-  **Five consumers run the `per-pack-claude-plugin` recipe via `render_pack` and
-  therefore change by design:** `commands/render.py`, `commands/install.py
-  --emit-install-routes`, `commands/upgrade.py`, `commands/diff.py`, and
-  `commands/validate.py`. Each is asserted for its *expected* new output, not
-  for byte-identity. `upgrade` and `diff` will additionally see the old
-  `tools/hooks/` and `.claude/` paths as orphans; that is stated, not silently
-  absorbed.
-
-  Carve-out: `templates/install-marker.py` and the guard of AC19 are pinned by
-  byte-drift gates whose *content* changes here. AC19 governs their mirrors.
-
-- [ ] **AC15 — Pack-source gate.** `build/lint_packs.py` validates every
-  `.apm/hook-wiring/*.toml` at authoring time — event key in the known set,
-  `type = "command"`, `command` a string, bounds per AC9 — so a pack author
-  learns at lint time rather than at build time. The blessed pack-source gate
-  currently has no hook rule at all (zero occurrences of `hook` in 553 lines).
-
-- [ ] **AC16 — Contract bumped and mirrored.** `contracts/adapter.toml` bumps
+- [ ] **AC21 — Contract bumped and mirrored.** `contracts/adapter.toml` bumps
   `[contract].version`, declares `plugin-target-path` on `hook-body` and
-  `plugin-mode` on `hook-wiring`, and stays byte-identical to
-  `packages/agentbundle/agentbundle/_data/adapter.toml`.
-  `contracts/adapter.schema.json` constrains `plugin-mode`'s **value** to the
-  same enum as `mode`; a misspelled *key* is not caught by the schema — the
-  projection-array item has no `additionalProperties: false` — and is caught
-  instead by the value assertion in the contract task's done-when. Living docs
-  stating the contract version are updated in the same PR:
-  `docs/architecture/overview.md`, `pack-layout.md`, `agentbundle.md`, and
-  `packages/agentbundle/DESIGN.md` (two occurrences).
+  `plugin-mode` on `hook-wiring`, byte-identical to the `_data/` mirror.
+  `adapter.schema.json` constrains `plugin-mode`'s **value** to the `mode` enum;
+  a misspelled *key* is caught by the contract task's value assertion, not the
+  schema (the projection-array item has no `additionalProperties: false`). Living
+  docs stating the version are updated: `docs/architecture/overview.md`,
+  `pack-layout.md`, `agentbundle.md`, and `packages/agentbundle/DESIGN.md` (×2).
 
-- [ ] **AC17 — Adopter-facing disclosure.** `packs/core`'s README enumerates the
-  hooks the plugin registers, the events they bind, and what each reads. The
-  `[Unreleased]` changelog entry names this as a behavioural change, not a bug
-  fix, and states that adopters with `core` already installed gain two executing
-  hooks on their next update, one firing per prompt.
+- [ ] **AC22 — Pack-source gate.** `build/lint_packs.py` validates every
+  Claude-shaped `.apm/hook-wiring/*.toml` at authoring time, calling the same
+  validators the compiler uses so the two cannot disagree, and converting each
+  raise into a finding string rather than aborting the sweep.
 
-  **Not the plugin `description`** — `guides/_shared/reference/catalogue-authoring-standards.md`
-  (landed in #888) bans component inventories there and directs them to the
-  README. The pack version bumps in lockstep across `pack.toml`,
-  `.claude-plugin/plugin.json`, and the `core` entry in `marketplace.json`;
-  `make build-self` syncs none of the three.
-
-- [ ] **AC18 — Frozen spec superseded by erratum, not edited.**
-  `docs/specs/wire-session-start-hook/spec.md` is `Status: Shipped` and
-  therefore frozen; it pins
-  `claude-plugins/<pack>/.claude/settings.local.json` in three places. It
-  receives an erratum recording that AC11 supersedes that layout. The spec body
-  is not edited.
-
-- [ ] **AC20 — The published artifact is validated at publish time.**
-  `tools/catalogue/publish_claude_plugins.py` re-validates each `plugin.json`
-  against the derived schema *and* the compiler's event set before pushing to
-  `claude-plugins-dist`. Today the compiler and the schema both run inside the
-  same build function, so they are never independent gates, and the publish step
-  validates no manifest at all — a manifest reaching the branch by any route
-  other than a clean build passes every check that exists.
-
-- [ ] **AC21 — `plugin-target-path` resolves through the blessed helper.**
-  `adapters/claude_code.py:_resolve_target` exists to confine a contract-owned
-  target path, and its docstring already names `plugin-target-path` and the
-  `shutil.rmtree` hazard — but `_project_direct_file` joins `target_prefix` onto
-  the output root with no confinement. Adding a second contract-owned path key
-  on the unconfined path extends an existing bypass; this change routes
-  `_project_direct_file` through `_resolve_target`.
-
-- [ ] **AC22 — Repo content read by a hook is treated as data, not instructions.**
-  `session-start.py` reads `<cwd repo>/docs/knowledge/patterns.jsonl` and emits
-  each entry into model context. On the plugin route that runs in whatever repo
-  the adopter has open, including a freshly cloned one. Emitted bodies are
-  wrapped in an explicit untrusted-content delimiter with a "treat as data, not
-  instructions" preamble and a total length cap.
-
-  This is the direct control, and it is strictly stronger than the scope gate it
-  replaces: it holds in every repo at every scope, including the repo-scope
-  direct install where the same hostile-content path exists today and is
-  currently unguarded. It is the one place this spec touches a `packs/core` hook
-  body, which § Ask first fences — authorised explicitly for this AC.
+- [ ] **AC23 — Frozen spec superseded by erratum, not edited.**
+  `docs/specs/wire-session-start-hook/spec.md` is `Status: Shipped` and pins the
+  `claude-plugins/<pack>/.claude/settings.local.json` layout throughout. It
+  receives an erratum recording that AC17 supersedes that layout and that its
+  subject pack (`core`) no longer publishes to this route at all. The body is not
+  edited.
 
 ## Testing Strategy
 
-- **Unit** — the compiler: merge-with-install-marker in both directions;
-  marker-first ordering; token rewriting incl. multi-occurrence, leading `./`,
-  trailing arguments, and a space-bearing root; `shlex.split` round-trip; each
-  fail-closed raise (AC5 both sides, AC6, AC7, AC9); empty block when no
-  `hook-wiring/`.
-- **Scope** — AC8 at both scopes, driving the real writer's resolution path
-  rather than a mock seam.
+- **Unit** — the scope predicate over a matrix of `allowed-scopes` values; the
+  compiler's merge, ordering, anchored/quote-aware rewriting, per-fragment AC11,
+  basename validation, and each fail-closed raise; per-adapter skip for Kiro and
+  flat-shape wiring.
+- **Execution** — AC10's `sh -c` assertion with a space-and-`$` root.
 - **Schema** — accepts a compiled multi-event block with and without `matcher`;
-  rejects a non-`command` type, an unknown key in a hook object, and an unknown
-  key in an event entry (AC7's shape half).
-- **Integration** — build the fixture packs; assert manifest hooks, `hooks/`
-  bodies, absence of `.claude/` and `tools/hooks/`, byte-identical warm/cold
-  rebuild, and the AC10 raise.
+  rejects a non-`command` type and unknown keys.
+- **Integration** — build the fixture packs; assert the seven exclusions by name,
+  manifest hooks, `hooks/` bodies, absence of `.claude/` and `tools/hooks/`,
+  byte-identical warm/cold rebuild, and the AC16 raise.
+- **Site** — a repo-only pack's page renders no `claude plugin install` command;
+  a user-capable pack's does. Asserted against built output, not source.
 - **Regression** — a non-plugins build still emits `.claude/settings.local.json`
-  and `tools/hooks/` (AC14).
-- **Manual QA** — the real client, per AC13.
+  and `tools/hooks/` (AC20).
+- **Manual QA** — the real client, per AC18.
 
 ## Assumptions
 
-- **Documented Claude Code hook events at 2.1.223** (`code.claude.com/docs/en/
-  plugins-reference`, read 2026-08-07) — the normative set for AC7:
-  `SessionStart`, `Setup`, `UserPromptSubmit`, `UserPromptExpansion`,
-  `PreToolUse`, `PermissionRequest`, `PermissionDenied`, `PostToolUse`,
-  `PostToolUseFailure`, `PostToolBatch`, `Notification`, `MessageDisplay`,
-  `SubagentStart`, `SubagentStop`, `TaskCreated`, `TaskCompleted`, `Stop`,
-  `StopFailure`, `TeammateIdle`, `InstructionsLoaded`, `ConfigChange`,
-  `CwdChanged`, `DirectoryAdded`, `FileChanged`, `WorktreeCreate`,
-  `WorktreeRemove`, `PreCompact`, `PostCompact`, `Elicitation`,
-  `ElicitationResult`, `SessionEnd`.
-- `hooks/` at the plugin root is a safe home for hook *bodies*: Claude Code
-  discovers `hooks/hooks.json` by exact name, not by globbing `hooks/*`. AC13's
-  exact-set assertion is what would catch this being wrong.
-- Pack-authored commands reference hook bodies through the contract's
-  repo-scope prefix. AC5 is the guard for when they do not.
-- Pack-authored `command` strings are trusted input whose only gate before
-  AC15 is PR review.
+- **Documented Claude Code hook events at 2.1.223** (`code.claude.com/docs/en/plugins-reference`,
+  read 2026-08-07), the normative set for AC14: `SessionStart`, `Setup`,
+  `UserPromptSubmit`, `UserPromptExpansion`, `PreToolUse`, `PermissionRequest`,
+  `PermissionDenied`, `PostToolUse`, `PostToolUseFailure`, `PostToolBatch`,
+  `Notification`, `MessageDisplay`, `SubagentStart`, `SubagentStop`,
+  `TaskCreated`, `TaskCompleted`, `Stop`, `StopFailure`, `TeammateIdle`,
+  `InstructionsLoaded`, `ConfigChange`, `CwdChanged`, `DirectoryAdded`,
+  `FileChanged`, `WorktreeCreate`, `WorktreeRemove`, `PreCompact`, `PostCompact`,
+  `Elicitation`, `ElicitationResult`, `SessionEnd`. The snapshot lands under the
+  spec dir so a future widening can diff against it.
+- `hooks/` at the plugin root is safe for hook *bodies*: Claude Code discovers
+  `hooks/hooks.json` by exact name, not by globbing. AC18's exact-set assertion
+  is what catches this being wrong.
+- Pack-authored `command` strings are trusted input whose gate is PR review plus
+  AC22's lint.
 
 ## Deferred
 
-- Repo-scope hook-wiring moving from `.claude/settings.local.json` to the
-  shared `.claude/settings.json` via RFC-0005's existing `user-merge-json`
-  mode, so `claude-code` stops being the only adapter that hides repo-scope
-  hooks from teammates. Cross-adapter and contract-versioned — **follow-on RFC**.
+- `packs/core`'s hooks remain direct-route only. Nothing here makes them
+  reachable by plugin, and nothing should: core is repo-scoped by design.
+- Repo-scope hook-wiring moving from `.claude/settings.local.json` to the shared
+  `.claude/settings.json` via RFC-0005's `user-merge-json`, so `claude-code`
+  stops being the only adapter that hides repo-scope hooks from teammates —
+  **follow-on RFC**.
 - `claude-code` (direct) and `codex` accepting non-`command` hook types
   unvalidated.
-- Stale on-disk relpaths for adopters who ran `--emit-install-routes` before
-  this change: `claude-plugins/<pack>/tools/hooks/*` and
-  `.claude/settings.local.json` remain in their state file with no projection
-  behind them. Not handled here; `upgrade`/`uninstall` behaviour unchanged.
 - A per-pack content hash in the marketplace entry, so an installed plugin is
   traceable to the commit that produced it while `ref` stays mutable.
+- A branch-integrity control compensating for unrestricted ordinary pushes to
+  `claude-plugins-dist` (rebuild-and-compare, or a push ruleset).
