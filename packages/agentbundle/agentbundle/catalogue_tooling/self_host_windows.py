@@ -110,19 +110,9 @@ def run_windows_compat(root: Path) -> int:
             [
                 py, "-m", "pytest",
                 "test_sso_config.py", "test_sso_client.py", "test_setup_sso.py",
+                "test_check_sso_login.py",
             ],
             root / "packs" / "atlassian" / "tests" / "skills" / "jira",
-        ),
-        # Pack-owned, so it sits at the pack test boundary rather than under
-        # `.apm/` (ADR-0071) and runs from the repo root.
-        (
-            "atlassian pack tests (jira-check-sso-auto-login)",
-            [
-                py, "-m", "pytest",
-                str(root / "packs" / "atlassian" / "tests" / "skills" / "jira"
-                    / "test_check_sso_login.py"),
-            ],
-            root,
         ),
         (
             "confluence-crawler SSO suites (atlassian-sso-cookie)",
