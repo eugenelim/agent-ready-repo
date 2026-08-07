@@ -36,8 +36,9 @@ into the sidebar. Writing the file is all that navigation requires — there is
 no config to edit.
 
 - **Group labels and order** are declared in `site.toml`'s `[[guide_groups]]`
-  (`dir` + `label`). **An entry is required for every directory** — a test
-  enforces it. The title-cased fallback is a safety net, not a supported path:
+  (`dir` + `label`). **An entry is required for every directory, and an entry
+  with no directory fails the same test** — delete a pack's entry when you
+  delete the pack. The title-cased fallback is a safety net, not a supported path:
   it would render `iac-terraform` as "Iac Terraform" rather than its curated
   label.
 - **`order`** sorts a page within its pack group **across kinds** — that is how

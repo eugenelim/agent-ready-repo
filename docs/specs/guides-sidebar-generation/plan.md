@@ -105,7 +105,9 @@ Tests: `test_record_has_all_layer1_keys` (assert key presence, not truthiness �
 `test_agents_md_not_nav_eligible`; `test_is_index_for_readme_at_any_depth`;
 `test_malformed_frontmatter_falls_back`; `test_non_integer_order_coerced_to_absent`;
 `test_tutorials_dir_normalizes_to_kind_tutorial` (AC7's second half);
-`test_frontmatter_kind_wins_over_directory` (the mixed `tutorial`/`tutorials/` case).
+`test_frontmatter_kind_wins_over_directory` (the mixed `tutorial`/`tutorials/` case);
+`test_section_index_is_not_nav_eligible`; `test_non_string_slug_falls_back_to_derived`;
+`test_non_string_title_coerced_to_absent`. Full set: `tools/test_build_site_inventory.py`.
 Approach: one pass over `guides/**/*.md`, reusing `_parse_frontmatter()`. Pure
 derivation, no projection concerns. Accept an **injectable path enumerator** so
 T7's determinism test has a seam. Never raise on bad input.
@@ -192,7 +194,13 @@ Guides groups only, not the whole sidebar, and not a subset check);
 change fails); `test_guides_nesting_is_one_group_level` (AC8 — no `[[groups]]`
 super-group label appears under "Guides");
 `test_shuffled_enumerator_is_byte_identical` (AC10 — shuffle the *injected*
-enumerator from T2, so the test cannot pass by re-globbing).
+enumerator from T2, so the test cannot pass by re-globbing). Plus the real-tree
+invariants added at REVIEW — `test_nav_ineligible_set_is_exactly_the_declared_exceptions`,
+`test_no_sibling_label_collision_anywhere_in_the_real_tree`,
+`test_every_guides_directory_is_declared_in_site_toml`,
+`test_atlassian_cross_kind_run_survives`,
+`test_duplicate_slug_resolves_deterministically`, and the two malformed-config
+cases. Full set: `tools/test_build_site_sidebar.py`.
 Approach: append guides groups after the pack-catalogue groups; leave the JSON
 serialization path unchanged.
 Done when: tests pass; `python3 tools/build-site.py --dry-run` reports the

@@ -96,9 +96,11 @@ page under `guides/core/tutorials/` to gain frontmatter splits `core` into a
 from the directory and 4 declare `tutorial` in frontmatter, so nothing trips it
 yet — which is exactly why it must be pinned before migration begins.
 
-**Pre-change measurements** (2026-08-06; single statement, the plan references
-this section rather than restating — the shipped tree is larger, since this PR
-adds the three arc pages): 182 `.md` files, **5 nav-ineligible**
+**Pre-change-sidebar measurements** (2026-08-06; single statement, the plan
+references this section rather than restating). Taken against this branch's
+tree before the three arc pages — `guides/AGENTS.md` included, which is
+nav-ineligible either way, so every load-bearing number below is unchanged
+against `origin/main`: 182 `.md` files, **5 nav-ineligible**
 (`guides/AGENTS.md` plus the four `_shared/<kind>/README.md` section indexes),
 **177 eligible**, 177 distinct slugs (zero collisions), 119 entries in the hand
 tree, **58 absent**. An earlier draft said 1/181/62 — that predated the
@@ -329,7 +331,7 @@ The `atlassian` pages are the witness that cross-kind ordering works.
 
 ## Out of scope
 
-- **Migrating the 161 other frontmatter-less guides.** Confirmed with the user
+- **Migrating the 157 other frontmatter-less guides.** Confirmed with the user
   2026-08-06. The path-derived inventory and the frozen baseline make it
   unnecessary; migration proceeds incrementally with no further code change.
 - **The `guides/iac-terraform/README.md` stage-count drift.** It claims an

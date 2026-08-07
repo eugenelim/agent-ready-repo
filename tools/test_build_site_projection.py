@@ -232,3 +232,13 @@ def test_slug_override_ending_in_index_is_stripped(tmp_path):
                  "slug: guides/a/deep/index\n---\n", encoding="utf-8")
     rec = build_site.build_guide_inventory(root)[0]
     assert rec["slug"] == "guides/a/deep"
+
+
+def test_malformed_guide_group_entry_is_skipped_not_raised():
+    """A missing `dir` or `label` previously raised a bare KeyError mid-build,
+    after packs had already been mirrored. discover_packs() warns and skips on
+    the sibling table; this matches it."""
+    records = [_rec("guides/a/how-to/x", pack="a", kind="how-to")]
+    groups = [{"label": "no dir"}, {"dir": "a", "label": "Ay"}, {"dir": "b"}]
+    out = build_site.project_guide_sidebar(records, groups, {})
+    assert [i["label"] for i in out["items"]] == ["Ay"]

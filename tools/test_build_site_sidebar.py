@@ -213,17 +213,7 @@ def test_duplicate_slug_resolves_deterministically(tmp_path):
     assert [r["title"] for r in forward] == [r["title"] for r in reverse]
 
 
-def test_malformed_guide_group_entry_is_skipped_not_raised():
-    """A missing `dir` or `label` previously raised a bare KeyError mid-build,
-    after packs had already been mirrored. discover_packs() warns and skips on
-    the sibling table; this matches it."""
-    records = [{"source_path": Path("x.md"), "pack": "a", "kind": "how-to",
-                "order": None, "title": None, "slug": "guides/a/how-to/x",
-                "is_index": False, "nav_eligible": True}]
-    groups = [{"label": "no dir"}, {"dir": "a", "label": "Ay"}, {"dir": "b"}]
-    out = build_site.project_guide_sidebar(records, groups, {})
-    assert [i["label"] for i in out["items"]] == ["Ay"]
-
+# --- Degradation (not real-tree) ---------------------------------------------
 
 def test_malformed_baseline_entry_is_skipped_not_raised(tmp_path):
     p = tmp_path / "baseline.toml"
