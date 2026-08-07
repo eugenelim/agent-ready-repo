@@ -89,7 +89,9 @@ loop vs. surfaced to the human, per the work-loop self-coverage gate.
   `build-check.yml` and a committed lockfile for nine floating-caret dependencies
   including the `dompurify` the sanitizer assertions test. That is a supply-chain
   and CI-cost decision, not a repoint, so this PR records `none (pre-existing)`
-  and leaves it to you.
+  and files it as `render-proof-js-suites-ungated` — blocked on
+  `package-archive-carries-pycache`, since CI installing `node_modules` under
+  `packs/` would feed the unfiltered archive walk.
 - **`.gitleaksignore` cannot be settled in advance.** Whether the range scan
   flags the relocated fixtures at their new paths is not knowable here — gitleaks
   is not installed locally. AC16 fixes the policy (keep the historical
