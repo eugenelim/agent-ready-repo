@@ -503,10 +503,34 @@ async def _probe(sso_config: SsoConfig) -> int:
         await client.__aexit__(None, None, None)
 
 
+# The port a scheme implies when a URL omits it, so `https://host` and
+# `https://host:443` compare equal — they are the same origin, and a server is
+# free to spell either.
+_DEFAULT_PORTS = {"https": 443, "http": 80}
+
+
 def _origin_of(url: str) -> str:
-    """`scheme://host[:port]`, lower-cased — the unit both sides are compared in."""
+    """`scheme://host:port` with the port made explicit — the comparison unit.
+
+    Normalised rather than compared raw: the configured `login_url` usually
+    omits `:443` while a derived `authorization_endpoint` is free to include
+    it, and refusing that would push the operator onto the unattested
+    `setup_sso.py` escape for a destination that was correct.
+    """
     parts = urlsplit(url)
-    return f"{parts.scheme.lower()}://{parts.netloc.lower()}"
+    scheme = parts.scheme.lower()
+    host = (parts.hostname or "").lower()
+    try:
+        port = parts.port
+    except ValueError:  # a malformed port; compare it verbatim rather than crash
+        return f"{scheme}://{parts.netloc.lower()}"
+    # `port is None`, not `port or …`: an explicit `:0` is a port, and treating
+    # it as absent would make `https://h:0` and `https://h` compare equal.
+    if port is None:
+        port = _DEFAULT_PORTS.get(scheme, 0)
+    if ":" in host:          # IPv6 literal — `hostname` strips the brackets
+        host = f"[{host}]"
+    return f"{scheme}://{host}:{port}"
 
 
 def _attest_sign_in_destination(sso_config: SsoConfig) -> str | None:
@@ -528,9 +552,6 @@ def _attest_sign_in_destination(sso_config: SsoConfig) -> str | None:
     # different service.
     login_origin = _origin_of(sso_config.login_url)
     base_origin = _origin_of(sso_config.base_url)
-    login_host = (urlsplit(sso_config.login_url).hostname or "").lower()
-    base_host = (urlsplit(sso_config.base_url).hostname or "").lower()
-
     # Branch 2, evaluated first and short-circuiting: where the configured
     # sign-in host *is* the instance host, no derivation request is made.
     # It attests nothing — an attacker who writes base_url, cookie_domains and
@@ -553,9 +574,10 @@ def _attest_sign_in_destination(sso_config: SsoConfig) -> str | None:
         # escape, and is safe only because it too is operator-typed — a refusal
         # with no remedy gets worked around by editing the config.
         return (
-            f"error: could not confirm where {base_host} sends users to sign in, "
-            f"so the configured destination {login_host} cannot be attested. "
-            f"If it is correct, register with: python scripts/setup_sso.py"
+            f"error: could not confirm where {base_origin} sends users to sign "
+            f"in, so the configured destination {login_origin} cannot be "
+            f"attested. If it is correct, register with: "
+            f"python scripts/setup_sso.py"
         )
 
     if _origin_of(derived) == login_origin:
@@ -566,7 +588,7 @@ def _attest_sign_in_destination(sso_config: SsoConfig) -> str | None:
     # print the same host twice and name nothing actionable.
     derived_origin = _origin_of(derived)
     return (
-        f"error: {base_host} sends users to sign in at {derived_origin}, but "
+        f"error: {base_origin} sends users to sign in at {derived_origin}, but "
         f"sso-config.toml points at {login_origin}. Refusing to open a browser. "
         f"If {login_origin} is correct, register with: python scripts/setup_sso.py"
     )
@@ -1034,6 +1056,19 @@ async def _run(args: argparse.Namespace) -> int:
         return EXIT_USER_ACTION
     except Exception as exc:  # noqa: BLE001 — malformed SSO config → fail closed
         print(f"error: {exc}", file=sys.stderr)
+        return EXIT_USER_ACTION
+
+    # `--register` only means anything on the SSO-cookie path. On the token
+    # path it parsed and was ignored, so the operator got `ok: connected …` and
+    # exit 0 with no capture — a silent no-op on the one command whose whole
+    # purpose is capturing a session.
+    if getattr(args, "register", False) and auth_path != "sso-cookie":
+        print(
+            "error: --register applies to SSO-cookie auth only; this instance "
+            "is on the token path. Set auth_default = \"sso-cookie\" in "
+            "references/sso-config.toml first.",
+            file=sys.stderr,
+        )
         return EXIT_USER_ACTION
 
     # `check` on the SSO-cookie path routes to its own handler *before* the

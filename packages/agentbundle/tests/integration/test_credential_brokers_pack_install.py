@@ -60,11 +60,14 @@ class PackManifestShapeTests(unittest.TestCase):
         # consumer family: load_sso_cookies + confinement primitives)
         # → 0.2.1 (first-value adoption contract)
         # → 0.2.2 (ruff/mypy violation fixes, de41a345)
-        # → 0.2.3 (tests moved out of .apm/ to packs/credential-brokers/tests/,
-        #          ADR-0071 — the projected surface loses the test files the
-        #          installer was writing into an adopter's skills tree);
+        # → 0.3.0 (jira-check-sso-auto-login: `refresh` returns exit 4 for
+        #   not-registered and exit 5 when a human is needed, rejects every
+        #   connection argument, and goes headless; `register` gains
+        #   `--ephemeral`. Two observable contract changes, so a minor, not the
+        #   crash-fix patch precedent. Supersedes the 0.2.3 that moved the tests
+        #   out of `.apm/` to packs/credential-brokers/tests/, ADR-0071);
         # adapter-contract unchanged.
-        self.assertEqual(pack["version"], "0.2.3")
+        self.assertEqual(pack["version"], "0.3.0")
 
     def test_description_names_the_three_artefacts(self) -> None:
         # The description names the artefacts the pack ships. Since the

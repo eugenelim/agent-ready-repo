@@ -108,7 +108,11 @@ to read. Safety rests on destination pinning instead.
   `docs/CONVENTIONS.md:1197,1214` violation in a file this change already edits).
 - `sso-broker.py`: independent profile guard plus path containment.
 - `packages/agentbundle`: add `packages/credbroker`'s suite to the Windows
-  parity list. This is the **only** agentbundle change, and it is warranted
+  parity list, plus the two test files that pin this change's own
+  behaviour — `tests/unit/test_self_host_windows.py` (the parity list's own
+  test) and `tests/unit/test_shipped_pack_manifests.py` (AC33's
+  dependency-declaration and install-gate tests). No `agentbundle`
+  *source* change beyond the parity list, and it is warranted
   because Shape D puts the cross-platform kill logic in credbroker, whose tests
   run Linux-only today (`self_host_windows.py` lists agentbundle suites and the
   two skill script dirs, not credbroker). No agentbundle version bump — the
@@ -142,7 +146,10 @@ to read. Safety rests on destination pinning instead.
   `as ?`. That is the point of single-sourcing — two lists that happened to
   agree would drift — but it is a token-path output change, so it is named here
   rather than left implied. The first carve-out is AC18's `--insecure`
-  warning. That warning
+  warning, on **both** paths: every token-path subcommand gains the
+  "verification disabled" line, and every SSO-cookie subcommand gains the
+  "ignored" line. Both follow from the *Always do* boundary's "fires **or is
+  ignored**", which no scoping to `check` could satisfy. That warning
   lives in `_run`'s shared client construction (`jira.py:722`), which every
   subcommand reaches, because `docs/CONVENTIONS.md:1197,1214` require it
   *whenever the flag fires* and scoping it to `check` would leave the violation
@@ -594,9 +601,17 @@ fix, so the pack bumps and the change is named in the changelog.
 - [x] **AC18 (`--insecure` is honest on both paths).** On the **token** path it
       emits a stderr warning whenever it fires — `docs/CONVENTIONS.md:1197` and
       `:1214` require it and `jira.py:722` is silent today. On the **SSO-cookie**
-      path the flag is inert (`from_sso_cookies` hardcodes `_sso_ssl_context()`);
-      `check` warns that it is ignored, scoped to `check` so no other subcommand
-      changes, and it is never forwarded to the engine.
+      path the flag is inert (`from_sso_cookies` hardcodes `_sso_ssl_context()`),
+      and it is never forwarded to the engine.
+
+      **Corrected at implementation (2026-08-06): the ignored-notice is *not*
+      scoped to `check`.** This AC first said it was, which contradicts the
+      *Always do* boundary — "emit a stderr warning whenever `--insecure` fires
+      **or is ignored**". Scoped to `check`, `jira.py --insecure whoami` on the
+      cookie path would ignore the flag in silence, which is the case the
+      boundary exists to prevent. The notice therefore fires on every
+      SSO-cookie subcommand, exactly as the token-path warning fires on every
+      token-path subcommand.
 
 - [x] **AC19 (blast radius).** No `jira.py` path other than `check` invokes
       recapture. On the token path `check` behaves exactly as today apart from
@@ -677,8 +692,9 @@ fix, so the pack bumps and the change is named in the changelog.
       — the keying parameter is explicit, because
       the broker is meant to serve any vendor with this shape (an on-prem
       Confluent admin console, any corporate tool behind SSO), not just
-      Atlassian. It tries, in order, and returns the first **scheme+host** it
-      resolves:
+      Atlassian. It tries, in order, and returns the first **origin** it
+      resolves — `scheme://host:port`, the port always explicit and an IPv6 host
+      bracketed:
 
       1. **RFC 9728 — OAuth 2.0 Protected Resource Metadata.** Unauthenticated
          request → `401` carrying `WWW-Authenticate: … resource_metadata="…"` →
@@ -775,7 +791,29 @@ fix, so the pack bumps and the change is named in the changelog.
       budget; a 64 KiB body cap before `json.loads`; strict certificate
       verification that never honours `--insecure` and never reuses the token
       path's SSL context; no `Authorization`, `Cookie`, or proxy-auth header on
-      any derivation request. The same bounds are recorded in
+      any derivation request.
+
+      **Plus an address bound, added at implementation (2026-08-06) — this AC
+      first enumerated every constraint except the one that matters most.**
+      Bounding the scheme, the hops and the clock still leaves the *target* free:
+      a hostile or compromised instance can answer the first probe with a
+      `resource_metadata` URL naming `https://169.254.169.254/…`, loopback, or
+      any corporate-LAN host, and the operator's machine issues the request. So
+      every hop whose origin is **not** the configured `base_url` origin is
+      refused when the host resolves to a loopback, link-local, unique-local,
+      RFC 1918, reserved, multicast or unspecified address — checked against the
+      *resolved* address, not the literal.
+
+      The exemption is keyed to the **origin**, not to "the first request":
+      RFC 9728 puts `/.well-known/oauth-protected-resource` on the resource
+      server itself, so tier 1's second hop is normally the same origin as its
+      first, and a first-request-only exemption would silently kill tier 1 for
+      every internally-hosted instance — the deployment this broker exists to
+      serve. A resolver failure is refused rather than allowed, because
+      `_derivation_opener` installs the environment's proxies and a proxy
+      resolves the hostname itself. **Named limit:** it resolves and then
+      connects, so it does not close DNS rebinding; a pinned-address connection
+      would, and `urllib` does not offer one. The same bounds are recorded in
       `credentials.md`'s derivation table.
 
       **Named degradation, verified for the Atlassian tier.** Derivation is
@@ -839,6 +877,20 @@ fix, so the pack bumps and the change is named in the changelog.
       installing the pack has a working `creds` install today and will be refused
       at upgrade. The gate message names the fix. This makes `figma` and `linear`
       minor bumps.
+
+      **Named limit, found at implementation (2026-08-06): the gate is
+      scope-blind.** `validate_dependencies_required` resolves the union of repo
+      and user state and discards scope, so a **repo**-scoped
+      `credential-brokers` satisfies a **user**-scope install of a credentialed
+      pack — while the skill resolves the broker only under `~/.agentbundle/`.
+      The declaration is still strictly better than none (it catches the common
+      case, and `credential-brokers` defaults to user scope), and the
+      consequence of the gap is the pre-declaration behaviour: exit 2 with
+      "install the credential-brokers pack". Closing it needs a scope qualifier
+      in the dependency entry, which `pack.schema.json` forbids today
+      (`additionalProperties: false`), so it is a schema change with its own
+      review rather than a ride-along.
+      *(deferred: pack-dependency-scope-qualifier)*
 
 - [x] **AC34 (engine-change governance — RFC-0035, amended).** The changeset
       edits `packs/credential-brokers/**` (AC6, AC6a, AC6b, AC35) and
@@ -965,7 +1017,7 @@ fix, so the pack bumps and the change is named in the changelog.
       reserved for exactly two cases and named only there: scripted pre-bake, and
       AC32's mismatch / cannot-derive escape where attestation is unavailable —
       routing an ordinary unregistered first run through it would bypass AC32's
-      attestation even when derivation would have succeeded. And **two** negative eval cases are
+      attestation even when derivation would have succeeded. And **three** negative eval cases are
       added: (i) the agent still refuses to run `credential-setup` or
       `setup_sso.py`; (ii) driven by a prompt in which `check` has already emitted
       AC14's `ask the user to run: python scripts/jira.py check --register`
@@ -1072,8 +1124,13 @@ fix, so the pack bumps and the change is named in the changelog.
       exercised on Windows; until that run is green the `taskkill` arm is a
       named limitation, not a verified control.
 
-- [x] **AC27 (jira skill suite).** A new `test_check_sso_login.py` covers
-      AC11–AC20. It imports via `sys.path.insert(0, <skill root>)` +
+- [x] **AC27 (jira skill suite).** A new
+      `packs/atlassian/tests/skills/jira/test_check_sso_login.py` covers
+      AC11–AC20. It lives at the pack test boundary rather than under `.apm/`
+      (ADR-0071 — `.apm/` is the runtime export boundary, so a suite there
+      ships into every adopter's tree), and therefore resolves the skill by an
+      absolute path from the repo root. It imports via
+      `sys.path.insert(0, <skill root>)` +
       `import scripts.jira` — flat `import jira` raises `ImportError: attempted
       relative import with no known parent package` because the bootstrap block
       at `jira.py:54` is gated on `__spec__ is None` while the relative imports
@@ -1147,7 +1204,7 @@ fix, so the pack bumps and the change is named in the changelog.
 | AC32 | TDD | `packages/credbroker/tests/unit/test_sso_derivation.py` — a fake resource server per tier, plus bounds assertions: non-`https` at any hop rejected, redirect not followed, connect/read timeouts, ≤15 s budget, 64 KiB cap, no auth headers on the wire. |
 | AC35 | TDD | `test_sso_broker_verbs.py` — `register` ephemeral / `refresh` persistent; `refresh` rejects every connection argument; the seeding step. |
 | AC34 | Goal-based | `git log --format=%B` on the branch contains `Engine-Change-RFC:`; grep **both** RFC-0035's and RFC-0013's `## Errata` for the `2026-08-05 (Approver: eugenelim)` entries; confirm neither file has an `## Amendments` heading. |
-| AC21 | Goal-based | `make build-check` (runs the normalized pinned-phrase lint); both negative eval cases in `evals.json`. |
+| AC21 | Goal-based | `make build-check` (runs the normalized pinned-phrase lint); all three negative eval cases in `evals.json`. |
 | AC22–AC25 | Goal-based | grep the new heading + anchor in `credentials.md`; grep `--register` in the how-to; grep both bracketed changelog headings; grep all four function names in the reference guide; grep each slug in `workspace.toml`; `lint-spec-status.py --root .`. |
 | AC26, AC27 | Goal-based | grep the new filenames in `build-check.yml` and `self_host_windows.py`. |
 | AC28 | Goal-based | the plan's canonical command block. |

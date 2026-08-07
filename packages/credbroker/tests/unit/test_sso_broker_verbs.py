@@ -10,6 +10,7 @@ the broker against an isolated backend.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
 import json
 import os
@@ -175,9 +176,12 @@ def test_ac12_large_jar_splits_into_continuation_credentials(broker):
     header = backend.store[(mod._SSO_NAMESPACE, "big")]
     meta = json.loads(header)
     assert meta["continuation_count"] == 2
-    # Two continuation slots at agentbundle:sso:big:0 and :1.
-    assert (mod._SSO_NAMESPACE, "big:0") in backend.store
-    assert (mod._SSO_NAMESPACE, "big:1") in backend.store
+    # Two continuation slots, under the header's generation. Slot keys carry a
+    # generation so a new write never lands on the keys the committed header
+    # still points at.
+    gen = meta["generation"]
+    assert (mod._SSO_NAMESPACE, f"big:{gen}:0") in backend.store
+    assert (mod._SSO_NAMESPACE, f"big:{gen}:1") in backend.store
 
 
 def test_ac12_overflow_to_file_when_backend_refuses_continuation(broker, monkeypatch):
@@ -1016,6 +1020,16 @@ def _fail_seed(mod, monkeypatch, where):
     calls.install(mod, monkeypatch)
     real = mod._seed_persistent_profile
 
+    if where == "mkdir":
+        # No stub at all: `browser-state/<profile>` is pre-created as a *file*
+        # so the real `mkdir` raises FileExistsError. Stubbing the seed would
+        # make this arm pass whether or not the mkdir is inside the guard —
+        # verified by mutation.
+        root = mod._AGENTBUNDLE_HOME / "browser-state"
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "jira").write_text("not a directory", encoding="utf-8")
+        return calls
+
     def _boom(pw, profile, storage_state, env):
         if where == "launch":
             class _Pw:
@@ -1043,7 +1057,7 @@ def _fail_seed(mod, monkeypatch, where):
     return calls
 
 
-@pytest.mark.parametrize("where", ["launch", "add_cookies"])
+@pytest.mark.parametrize("where", ["launch", "add_cookies", "mkdir"])
 def test_a_failed_seed_does_not_discard_the_capture(broker, monkeypatch, where, capsys):
     # STUB: AC35 — seeding runs *before* the profile TOML and the jar are
     # stored, so anything escaping it throws away a sign-in the human has
@@ -1100,3 +1114,447 @@ def test_an_ephemeral_headless_capture_is_refused(broker):
     )
     with pytest.raises(AssertionError, match="never headless"):
         mod._capture("jira", args, persist=False, headless=True)
+
+
+def test_a_floored_fallback_is_not_overwritten_by_the_stale_keychain(broker, monkeypatch):
+    # STUB: AC6a — when a Tier-2 write fails the jar is floored to file, but
+    # `_load_cookie_jar` prefers *any* readable keychain value. Leaving the
+    # stale entry behind made the floor write invisible, and the now-
+    # unconditional materialisation then overwrote the fresh file with the old
+    # session: a capture the operator had just completed, silently discarded.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+
+    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+
+    original_write = backend.write_credential
+
+    def _refuse(namespace, key, value):
+        raise RuntimeError("keychain write refused")
+
+    backend.write_credential = _refuse
+    assert mod._store_cookie_jar("jira", b'[{"name":"new"}]') == "file-floor-overflow"
+    backend.write_credential = original_write
+
+    assert mod._load_cookie_jar("jira") == b'[{"name":"new"}]', (
+        "the stale keychain entry still wins on read"
+    )
+    path = _get_cookies_path(mod, monkeypatch, "jira")
+    assert b"new" in path.read_bytes()
+    assert b"old" not in path.read_bytes()
+
+
+def test_a_failed_continuation_leaves_the_new_jar_durable(broker):   # STUB: AC6a
+    # Chunks are written first and the header last, so the header is the single
+    # commit point. A chunk failure therefore falls back to the floor with the
+    # new jar, and the fallback's floor-first ordering makes that durable.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+
+    big = ('[{"name":"new","value":"' + "y" * 3000 + '"}]').encode("utf-8")
+    backend.refuse_after = 2        # some chunks land, a later one is refused
+    assert mod._store_cookie_jar("jira", big) == "file-floor-overflow"
+    backend.refuse_after = None
+
+    assert mod._load_cookie_jar("jira") == big, "the new jar is not loadable"
+
+
+def test_the_header_is_the_commit_point(broker, monkeypatch):        # STUB: AC6a
+    # Until the header is switched, the *old* jar is still the stored one. If
+    # the header were written first, a later chunk failure would leave the
+    # profile holding a continuation header whose slots do not exist — and the
+    # old session would already be gone.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+
+    big = ('[{"name":"new","value":"' + "y" * 3000 + '"}]').encode("utf-8")
+    seen: list[str] = []
+    real = backend.write_credential
+
+    def _fail_a_later_chunk(namespace, key, value):
+        seen.append(key)
+        # Fail a *chunk*, not the header: refusing the header would leave the
+        # old jar intact whichever order the writes happen in, so the test
+        # would pass against the very ordering it exists to reject.
+        if key.endswith(":1"):
+            raise RuntimeError("refused mid-continuation")
+        return real(namespace, key, value)
+
+    # Also make the floor unwritable, so the fallback cannot rescue it either
+    # and the only thing that can preserve the old session is the write order.
+    monkeypatch.setattr(backend, "write_credential", _fail_a_later_chunk)
+    monkeypatch.setattr(
+        mod, "_file_floor_write",
+        lambda profile, serialized: (_ for _ in ()).throw(OSError("no space")),
+    )
+    with pytest.raises(mod.StoreTransitionError):
+        mod._store_cookie_jar("jira", big)
+
+    assert seen and all(":" in k for k in seen), (
+        f"every write before the failure must be a chunk, not the header; got {seen}"
+    )
+    assert mod._load_cookie_jar("jira") == b'[{"name":"old"}]', (
+        "the old session was destroyed before the new one was committed"
+    )
+
+
+def test_a_floor_write_failure_is_exit_3_not_a_traceback(broker, monkeypatch, capsys):
+    # STUB: AC6a — `_file_floor_write` re-raises OSError deliberately, and the
+    # fallback reaches it on a Tier-2-capable platform too. Uncaught it is a
+    # traceback and exit 1, putting a storage failure in the functional band.
+    mod, backend = broker
+    _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
+
+    def _refuse_write(namespace, key, value):
+        raise RuntimeError("keychain write refused")
+
+    monkeypatch.setattr(backend, "write_credential", _refuse_write)
+    monkeypatch.setattr(
+        mod, "_file_floor_write",
+        lambda profile, serialized: (_ for _ in ()).throw(OSError("no space")),
+    )
+    assert mod.main(_register_argv("jira")) == 3
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    assert "cookie-jar floor" in err
+    assert "not changed" in err
+
+
+def test_rm_does_not_claim_an_unchanged_session(broker, monkeypatch, capsys):
+    # STUB: AC6a — a global `except OSError` at the verb boundary reported
+    # "could not write the cookie-jar store; the stored session was not
+    # changed" for *every* verb. `rm` deletes the jar before unlinking the
+    # profile, so that claim is materially false there.
+    mod, _ = broker
+    _seed_profile(mod, "jira")
+    mod._store_cookie_jar("jira", b'[{"name":"sid","value":"v","domain":"x"}]')
+
+    real_unlink = pathlib.Path.unlink
+
+    def _fail_profile_unlink(self, *a, **k):
+        if self.name.endswith(".toml"):
+            raise OSError("read-only file system")
+        return real_unlink(self, *a, **k)
+
+    monkeypatch.setattr(pathlib.Path, "unlink", _fail_profile_unlink)
+    with contextlib.suppress(OSError):
+        mod.main(["rm", "jira"])
+    err = capsys.readouterr().err
+    assert "the stored session was not changed" not in err, (
+        "rm deletes the jar first, so this claim is false"
+    )
+
+
+def test_a_failed_floor_write_leaves_the_old_jar_intact(broker, monkeypatch):  # STUB: AC6a
+    # The floor write is the first fallible step, so if it fails nothing has
+    # been destroyed yet.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+
+    def _refuse_write(namespace, key, value):
+        raise RuntimeError("keychain write refused")
+
+    def _refuse_floor(profile, serialized):
+        raise OSError("no space left on device")
+
+    monkeypatch.setattr(backend, "write_credential", _refuse_write)
+    monkeypatch.setattr(mod, "_file_floor_write", _refuse_floor)
+    # Translated at the storage boundary, where "nothing was invalidated yet"
+    # is actually true — see `_fall_back_to_floor`.
+    with pytest.raises(mod.StoreTransitionError):
+        mod._store_cookie_jar("jira", b'[{"name":"new"}]')
+
+    assert mod._load_cookie_jar("jira") == b'[{"name":"old"}]', (
+        "the previously usable session was destroyed for nothing"
+    )
+
+
+def test_an_unverifiable_invalidation_is_exit_3_not_a_traceback(broker, monkeypatch, capsys):
+    # STUB: AC6a — `StoreTransitionError` is newly raised by the store
+    # fallback; without a handler at the verb boundary it escapes `main` as
+    # exit 1 with a traceback, putting a storage failure in the functional band.
+    mod, backend = broker
+    calls = _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
+    del calls
+
+    def _refuse_write(namespace, key, value):
+        raise RuntimeError("keychain write refused")
+
+    def _refuse_delete(namespace, key):
+        pass  # silently does nothing, as a policy-restricted keychain would
+
+    monkeypatch.setattr(backend, "write_credential", _refuse_write)
+    monkeypatch.setattr(backend, "delete_credential", _refuse_delete)
+    backend.store[(mod._SSO_NAMESPACE, "jira")] = '[{"name":"old"}]'
+
+    assert mod.main(_register_argv("jira")) == 3
+    err = capsys.readouterr().err
+    assert "Traceback" not in err
+    assert "invalidate" in err
+
+
+def test_a_shrinking_jar_reaps_its_orphaned_slots(broker):      # STUB: AC6a
+    # Reads were always correct — the header names the count — but a jar that
+    # shrinks from 5 continuation slots to 3 left slots 3 and 4 holding the
+    # *previous* session's cookie bytes in the keychain indefinitely. The
+    # captured jar is deliberately over-broad, so that is real credential
+    # material at rest.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    big = ("x" * 9000).encode("utf-8")     # 5 slots at the 2048 threshold
+    small = ("y" * 5000).encode("utf-8")   # 3 slots
+
+    assert mod._store_cookie_jar("jira", big) == "keychain-continuation"
+    assert mod._store_cookie_jar("jira", small) == "keychain-continuation"
+
+    count, gen = mod._continuation_meta("jira")
+    slots = sorted(k for _ns, k in backend.store if ":" in k)
+    assert slots == [f"jira:{gen}:0", f"jira:{gen}:1", f"jira:{gen}:2"], (
+        f"the superseded generation still holds the previous session: {slots}"
+    )
+    assert count == 3
+    assert mod._load_cookie_jar("jira") == small
+
+
+def test_a_refused_delete_does_not_leave_the_old_session_readable(broker, monkeypatch):
+    # STUB: AC6a — generation-scoped writes stopped *overwriting* the superseded
+    # chunks, so removing them became a delete. `_delete_credential` suppresses
+    # every backend error, and a policy-restricted keychain that accepts writes
+    # while ignoring deletes is a condition the fallback tests already model. On
+    # such a backend the reap is a no-op and a complete previous session stays
+    # readable under its old generation while the store reports success.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    old_jar = ("[" + '{"name":"old"},' * 400 + "{}]").encode("utf-8")
+    new_jar = ("[" + '{"name":"new"},' * 400 + "{}]").encode("utf-8")
+    assert mod._store_cookie_jar("jira", old_jar) == "keychain-continuation"
+
+    _count, old_gen = mod._continuation_meta("jira")
+    assert old_gen is not None
+    monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
+
+    assert mod._store_cookie_jar("jira", new_jar) == "keychain-continuation"
+    assert mod._load_cookie_jar("jira") == new_jar
+
+    survivors = {
+        key: value
+        for (_ns, key), value in backend.store.items()
+        if key.startswith(f"jira:{old_gen}:")
+    }
+    assert not any(survivors.values()), (
+        f"the superseded session's cookie bytes are still at rest: {survivors}"
+    )
+
+
+def test_an_unpurgeable_superseded_slot_is_exit_3_not_a_silent_success(
+    broker, monkeypatch, capsys
+):
+    # STUB: AC6a — when neither the delete nor the scrub can remove the bytes,
+    # the operation must say so rather than return a success label over a
+    # complete previous session left at rest.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    calls = _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
+    del calls
+    old_jar = ("[" + '{"name":"old"},' * 400 + "{}]").encode("utf-8")
+    assert mod._store_cookie_jar("jira", old_jar) == "keychain-continuation"
+    _count, old_gen = mod._continuation_meta("jira")
+
+    real_write = backend.write_credential
+    monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
+    monkeypatch.setattr(
+        backend,
+        "write_credential",
+        lambda ns, key, value: (
+            None
+            if key.startswith(f"jira:{old_gen}:")
+            else real_write(ns, key, value)
+        ),
+    )
+
+    with pytest.raises(mod.StoreTransitionError) as caught:
+        mod._store_cookie_jar("jira", ("z" * 9000).encode("utf-8"))
+    assert "superseded" in str(caught.value)
+    # Accurate about what did happen: the new session *was* stored.
+    assert "stored the new session" in str(caught.value)
+
+
+def test_an_emptied_header_is_absent_not_an_empty_jar(broker, monkeypatch):
+    # STUB: AC6a — `_purge_credential` scrubs to "" when a backend ignores
+    # deletes. A readable "" header would otherwise satisfy `header is not
+    # None`, so `get-cookies` would materialise an empty file and exit 0 where
+    # the contract calls for exit 2. A captured jar is JSON, never "".
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    assert mod._store_cookie_jar("jira", b'[{"name":"only"}]') == "keychain"
+    monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
+
+    mod._delete_cookie_jar("jira")
+
+    assert backend.store.get((mod._SSO_NAMESPACE, "jira")) == "", (
+        "this test is only meaningful while the scrub leaves a readable empty "
+        "header behind"
+    )
+    assert mod._load_cookie_jar("jira") is None
+    assert mod.main(["get-cookies", "jira"]) == 2
+
+
+def test_a_rejected_header_does_not_strand_the_staged_chunks(broker, monkeypatch):
+    # STUB: AC6a — chunks are written before the header, so a backend that
+    # accepts every chunk, rejects the header write, and ignores deletes strands
+    # a *complete* over-broad jar under keys no header enumerates. Neither a
+    # later replacement nor `rm` can discover it.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    real_write = backend.write_credential
+
+    def _reject_the_header(namespace, key, value):
+        if key == "jira" and value:
+            raise RuntimeError("simulated header rejection")
+        return real_write(namespace, key, value)
+
+    monkeypatch.setattr(backend, "write_credential", _reject_the_header)
+    monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
+
+    assert mod._store_cookie_jar(
+        "jira", ("z" * 9000).encode("utf-8")
+    ) == "file-floor-overflow"
+
+    stranded = {
+        key: value for (_ns, key), value in backend.store.items() if ":" in key
+    }
+    assert not any(stranded.values()), (
+        f"a complete captured jar is stranded in the keychain: {stranded}"
+    )
+
+
+def test_unscrubbable_staged_chunks_are_exit_3_not_a_success_label(
+    broker, monkeypatch, capsys
+):
+    # STUB: AC6a — when the staged chunks can be neither deleted nor scrubbed,
+    # the floor write succeeding is not enough to call the operation clean.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    calls = _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
+    del calls
+    real_write = backend.write_credential
+
+    def _reject_header_and_scrubs(namespace, key, value):
+        if key == "jira" and value:
+            raise RuntimeError("simulated header rejection")
+        if not value:                      # the scrub
+            raise RuntimeError("simulated scrub refusal")
+        return real_write(namespace, key, value)
+
+    monkeypatch.setattr(backend, "write_credential", _reject_header_and_scrubs)
+    monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
+
+    with pytest.raises(mod.StoreTransitionError) as caught:
+        mod._store_cookie_jar("jira", ("z" * 9000).encode("utf-8"))
+    assert "staged keychain chunks" in str(caught.value)
+    assert "stored the new session" in str(caught.value)
+
+
+def test_an_unreadable_header_never_stages_over_the_committed_generation(
+    broker, monkeypatch
+):
+    # STUB: AC6a — `_continuation_meta` used to fold a read failure into
+    # "nothing is stored", which selects the first generation. If the committed
+    # jar occupies that generation, the replacement writes over its live chunks
+    # before the header switch — exactly the corruption the generation exists to
+    # prevent, reachable through a transient keychain read error.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    old_jar = ("[" + '{"name":"old"},' * 400 + "{}]").encode("utf-8")
+    assert mod._store_cookie_jar("jira", old_jar) == "keychain-continuation"
+    _count, old_gen = mod._continuation_meta("jira")
+    assert old_gen == mod._GENERATIONS[0], (
+        "the first write must land on the generation a failed read would pick, "
+        "or this test cannot reach the defect"
+    )
+    before = dict(backend.store)
+
+    real_read = backend.read_credential
+
+    def _fail_the_header_read(namespace, key):
+        if key == "jira":
+            raise RuntimeError("simulated transient keychain read failure")
+        return real_read(namespace, key)
+
+    monkeypatch.setattr(backend, "read_credential", _fail_the_header_read)
+
+    # The floor is the only safe destination while the live generation is
+    # unknown; the Tier-2 invalidation cannot be verified through the same
+    # failing read, so this surfaces rather than reporting a capture.
+    with pytest.raises(mod.StoreTransitionError):
+        mod._store_cookie_jar("jira", ("z" * 9000).encode("utf-8"))
+
+    monkeypatch.setattr(backend, "read_credential", real_read)
+    slots = {k: v for k, v in backend.store.items() if f":{old_gen}:" in k[1]}
+    assert slots == {k: v for k, v in before.items() if f":{old_gen}:" in k[1]}, (
+        "the committed generation's slots were written over"
+    )
+
+
+def test_a_committed_continuation_jar_survives_a_failed_replacement(broker, monkeypatch):
+    # STUB: AC6a — the case the single-key commit-point test cannot reach. When
+    # the *previous* jar is itself a continuation, its header points at
+    # `<profile>:…:0..N`. Writing the new jar's chunks over those same keys
+    # corrupts a readable jar before the header switch, and a concurrent reader
+    # combines the old count with half-new chunks. Generation-scoped slot keys
+    # are what make the header a real commit point.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    old_jar = ("[" + '{"name":"old"},' * 400 + "{}]").encode("utf-8")
+    assert len(old_jar) > mod.CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES
+    assert mod._store_cookie_jar("jira", old_jar) == "keychain-continuation"
+
+    new_jar = ("[" + '{"name":"new"},' * 400 + "{}]").encode("utf-8")
+    real = backend.write_credential
+    written: list[str] = []
+
+    def _fail_a_later_chunk(namespace, key, value):
+        written.append(key)
+        if key.endswith(":2"):
+            raise RuntimeError("refused mid-continuation")
+        return real(namespace, key, value)
+
+    monkeypatch.setattr(backend, "write_credential", _fail_a_later_chunk)
+    monkeypatch.setattr(
+        mod, "_file_floor_write",
+        lambda profile, serialized: (_ for _ in ()).throw(OSError("no space")),
+    )
+    with pytest.raises(mod.StoreTransitionError):
+        mod._store_cookie_jar("jira", new_jar)
+
+    assert mod._load_cookie_jar("jira") == old_jar, (
+        "the committed jar was corrupted before the header switch"
+    )
+
+
+def test_a_legacy_ungenerationed_header_still_loads(broker):    # STUB: AC6a
+    # Headers written before generations existed carry no `generation` key, and
+    # their slots use the legacy `<profile>:<n>` shape. They must keep loading.
+    mod, backend = broker
+    payload = "z" * 3000
+    threshold = mod.CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES
+    chunks = [payload[i:i + threshold] for i in range(0, len(payload), threshold)]
+    backend.store[(mod._SSO_NAMESPACE, "legacy")] = json.dumps(
+        {"continuation_count": len(chunks)}
+    )
+    for n, chunk in enumerate(chunks):
+        backend.store[(mod._SSO_NAMESPACE, f"legacy:{n}")] = chunk
+
+    assert mod._load_cookie_jar("legacy") == payload.encode("utf-8")
+
+    # And a replacement reaps the legacy slots rather than orphaning them.
+    _seed_profile(mod, "legacy")
+    assert mod._store_cookie_jar("legacy", ("w" * 5000).encode("utf-8")) == (
+        "keychain-continuation"
+    )
+    leftovers = [k for _ns, k in backend.store if k.startswith("legacy:")
+                 and k.count(":") == 1]
+    assert leftovers == [], f"legacy slots orphaned: {leftovers}"

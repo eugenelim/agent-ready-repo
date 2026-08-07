@@ -63,9 +63,15 @@ Only connection parameters cross argv; no cookie value, cookie name, jar path or
 ### `derive_sso_destination(base_url, *, strategies=()) -> str | None`
 
 Ask the resource server where it sends users to sign in. Returns the first
-`scheme://host` a chain resolves — RFC 9728 protected resource metadata, then
-OIDC discovery / RFC 8414, then any *named* vendor probe the caller opted into
+**origin** a chain resolves — RFC 9728 protected resource metadata, then OIDC
+discovery / RFC 8414, then any *named* vendor probe the caller opted into
 (`"atlassian-seraph"` today) — or `None`.
+
+The origin is `scheme://host:port` with the port **always explicit** and an
+IPv6 host bracketed: `https://idp.example:443`, not `https://idp.example`.
+Normalise your own configured destination the same way before comparing — a
+server is free to spell the default port either way, and comparing raw strings
+refuses a destination that is in fact correct.
 
 `None` is a real outcome, not an unhandled failure: SAML-only SPs expose no
 discovery at all. A consumer that cannot derive must **refuse**, never fall back
@@ -76,6 +82,17 @@ are partly attacker-influenceable: https-only at every hop, redirects not
 followed, a 5 s socket timeout under a 15 s total budget, a 64 KiB body cap
 before parsing, strict TLS that no `--insecure`-style flag reaches, and no
 `Authorization` / `Cookie` / proxy-auth header on any request.
+
+**And an address bound.** Any hop whose origin is not `base_url`'s is refused
+when its host resolves to loopback, link-local (where cloud instance metadata
+lives), unique-local, RFC 1918, reserved, multicast or unspecified — otherwise a
+compromised resource server could point the first probe's `resource_metadata`
+at an internal service and have the operator's machine fetch it. The exemption
+is keyed to the *origin*, not to the first request, because RFC 9728 puts the
+metadata document on the resource server itself; an internally-hosted instance
+must still be able to complete tier 1. A resolver failure is refused, not
+allowed — a configured proxy resolves names local DNS cannot. It does not close
+DNS rebinding, which would need a pinned-address connection.
 
 **Defence in depth, not a control.** The derivation target lives in the same
 adopter- and agent-writable config file as the value being attested, so one

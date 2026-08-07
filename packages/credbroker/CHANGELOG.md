@@ -26,7 +26,10 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 - **`derive_sso_destination(base_url, *, strategies=())`** — ask a resource
   server where it sends users to sign in, via RFC 9728 protected resource
   metadata, then OIDC discovery / RFC 8414, then an opt-in named vendor probe.
-  Returns `scheme://host` or `None`; `None` is a real outcome, since SAML-only
+  Returns an **origin** — `scheme://host:port`, the port always explicit and an
+  IPv6 host bracketed (`https://idp.example:443`) — or `None`. Normalise your
+  own configured destination the same way before comparing; a server is free to
+  spell the default port either way. `None` is a real outcome, since SAML-only
   SPs expose no discovery. Bounded: https-only at every hop, redirects not
   followed, 5 s socket timeout under a 15 s budget, a 64 KiB body cap, strict
   TLS, and no auth headers.

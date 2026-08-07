@@ -27,6 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   it sends users to sign in (RFC 9728, then OIDC discovery, then an opt-in
   vendor probe). All four are additive.
 
+  Derivation is an outbound fetch whose later targets come out of the server's
+  own responses, so it is bounded hard: https-only at every hop, redirects not
+  followed, a 5 s socket timeout under a 15 s budget, a 64 KiB body cap, strict
+  TLS, no auth headers, and — for any hop that is not on your configured
+  `base_url`'s origin — a refusal when the host resolves to loopback,
+  link-local, RFC 1918 or another internal range.
+
   `refresh_sso_session` takes **only a profile**, deliberately: the signature is
   structurally incapable of forwarding a sign-in destination, so an automated
   caller cannot choose where the browser goes. `register_sso_session` is the sole

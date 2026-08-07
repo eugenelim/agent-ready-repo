@@ -394,7 +394,9 @@ API above), so it needs no derivation. Derivation exists for the one path that
 *does* accept one — an operator-typed first capture — where
 `credbroker.derive_sso_destination(base_url, *, strategies=())` asks the
 **resource server** where to authenticate, in a vendor-agnostic strategy chain,
-returning the first scheme+host it resolves:
+returning the first **origin** it resolves — `scheme://host:port`, the port
+always explicit and an IPv6 host bracketed, so an implicit and an explicit
+`:443` compare equal:
 
 | Tier | Mechanism | Applies to |
 |---|---|---|
@@ -423,8 +425,9 @@ is accepted **and short-circuits — no derivation request is made** — so it
 verifies nothing, and within-host path and query are unconstrained. A
 re-register command therefore *attempts* attestation and only achieves it on
 IdP-host topologies; describe it that way rather than as "the attested path". A
-vendor's own setup helper performs none at all. Only scheme+host is compared;
-every tier's URL carries per-request `state` / `SAMLRequest` / `nonce`.
+vendor's own setup helper performs none at all. Only the origin is compared —
+scheme, host and port, never the path or query; every tier's URL carries
+per-request `state` / `SAMLRequest` / `nonce`.
 
 **Bounds — this is an outbound fetch on the credential path.** Every hop is
 `https` only (including URLs read from a `resource_metadata` header or an

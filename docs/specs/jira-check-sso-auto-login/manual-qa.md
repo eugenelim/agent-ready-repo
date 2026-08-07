@@ -57,10 +57,13 @@ was corrected.
 Not in the Testing Strategy's row, but run because the fake-broker rung cannot
 prove the wiring. A temporary `sso-config.toml` with `auth_default =
 "sso-cookie"`, the **real** projected engine copied to a throwaway
-`HOME/.agentbundle/bin/`, and no registered profile:
+`HOME/.agentbundle/bin/`, and no registered profile. Re-captured against the
+current tree on 2026-08-06 after the origin-comparison change; the shipped
+`sso-config.toml` was restored immediately and `git status` confirms it
+unmodified.
 
 ```console
-$ HOME=/tmp/sso-e2e python scripts/jira.py check
+$ HOME=/tmp/qa python scripts/jira.py check
 ```
 
 **stderr:**
@@ -71,6 +74,7 @@ INFO jira.cli: SSO session unavailable for profile jira: SSO session unavailable
 notice: the SSO session for profile jira has expired. Re-establishing it headlessly — no browser will be shown, and the sign-in destination comes from the engine's stored profile, not from sso-config.toml.
 INFO jira.cli: recapture attempt for profile jira
 sso-broker refresh: profile 'jira' not registered; run 'register' first
+WARNING jira.cli: recapture refused for profile jira: never registered
 error: no SSO session has ever been captured for profile jira on this machine — ask the user to run: python scripts/jira.py check --register
 ```
 
@@ -82,23 +86,32 @@ That is the whole chain through real artifacts: the real config loader, real
 recapture attempt; no retry; no browser.
 
 ```console
-$ HOME=/tmp/sso-e2e python scripts/jira.py whoami
-```
-
-**stderr:** `error: SSO session unavailable for profile jira; run 'sso-broker
-register jira'` — and **no** recapture attempt, which is AC19/AC31's point.
-
-```console
-$ HOME=/tmp/sso-e2e python scripts/jira.py check --register
+$ HOME=/tmp/qa python scripts/jira.py whoami
 ```
 
 **stderr:**
 
 ```
-error: could not confirm where jira.corp.example.com sends users to sign in, so the configured destination https://sso.corp.example.com cannot be attested. If it is correct, register with: python scripts/setup_sso.py
+sso-broker get-cookies: profile 'jira' not registered; run 'sso-broker register jira ...'
+error: SSO session unavailable for profile jira; run 'sso-broker register jira'
+```
+
+**exit:** `2` — and **no** recapture attempt, which is AC19/AC31's point.
+
+```console
+$ HOME=/tmp/qa python scripts/jira.py check --register
+```
+
+**stderr:**
+
+```
+error: could not confirm where https://jira.corp.example.com:443 sends users to sign in, so the configured destination https://sso.corp.example.com:443 cannot be attested. If it is correct, register with: python scripts/setup_sso.py
 ```
 
 **exit:** `2`. Derivation ran and refused **before** any browser could open.
+Both refusal branches report the *origins* that were compared, with the port
+made explicit, so a port- or scheme-only difference is visible instead of
+printing the same hostname twice.
 
 ## What this session did not exercise
 

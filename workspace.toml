@@ -450,6 +450,22 @@ open = [
   # those two files out of pip-audit — would remove SCA coverage from exactly
   # the dependency this change introduced.
   {slug = "credbroker-050-requirements-pin", source = "spec/jira-check-sso-auto-login AC28"},
+  # `_capture(persist=, headless=)` is keyed on two booleans whose fourth
+  # combination is meaningless; it is refused by construction today. A named
+  # three-value mode (operator-register / ephemeral-register / automatic-refresh)
+  # deriving both flags is the better shape, together with splitting the
+  # drive-the-browser half from the write-the-profile half.
+  {slug = "sso-capture-mode-enum", source = "spec/jira-check-sso-auto-login AC35"},
+  # `validate_dependencies_required` resolves the union of repo + user state
+  # and discards scope, so a repo-scoped `credential-brokers` satisfies a
+  # user-scope install of a credentialed pack — while the skill resolves the
+  # broker only under `~/.agentbundle/`. The gate passes and the runtime is
+  # still absent. Closing it needs a scope qualifier in the dependency entry,
+  # which `pack.schema.json` forbids today (`additionalProperties: false`), so
+  # it is a schema change with its own review rather than a ride-along.
+  # Consequence is bounded: the consumer already exits 2 with
+  # "install the credential-brokers pack", i.e. the pre-declaration behaviour.
+  {slug = "pack-dependency-scope-qualifier", source = "spec/jira-check-sso-auto-login AC33"},
   {slug = "browser-state-lifetime", source = "spec/jira-check-sso-auto-login"},
     # confluence-crawler inherits the shared _sso_config/setup_sso files but not check
     # auto-recovery. Fix: adopt the same _probe/recapture flow now that it lives in

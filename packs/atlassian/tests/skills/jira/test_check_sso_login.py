@@ -3,6 +3,11 @@
 Covers AC11–AC20, AC30 and AC31 of
 ``docs/specs/jira-check-sso-auto-login/spec.md``.
 
+**Location.** Under the pack's test boundary (ADR-0071), not under ``.apm/`` —
+that directory is the runtime export boundary, so a suite living there ships
+into every adopter's tree. The skill source is therefore reached by an absolute
+path from the repo root rather than by a relative walk up from the test.
+
 **Import route.** ``sys.path.insert(0, <skill root>)`` then ``import
 scripts.jira``. A flat ``import jira`` raises ``ImportError: attempted relative
 import with no known parent package`` — the bootstrap block at the top of
@@ -28,7 +33,8 @@ from pathlib import Path
 
 import pytest
 
-_SKILL_ROOT = Path(__file__).resolve().parents[1]
+_REPO_ROOT = Path(__file__).resolve().parents[5]
+_SKILL_ROOT = _REPO_ROOT / "packs/atlassian/.apm/skills/jira"
 if str(_SKILL_ROOT) not in sys.path:
     sys.path.insert(0, str(_SKILL_ROOT))
 
@@ -858,7 +864,7 @@ def test_version_floor_guard_does_not_gate_the_token_path(token_path, monkeypatc
 def test_requirements_pin_the_floor_in_both_skills():         # STUB: AC30
     # Both consuming skills: confluence-crawler inherits the mirrored files, so
     # a pin on only one side leaves it importing an API its loader now needs.
-    skills_dir = Path(__file__).resolve().parents[2]
+    skills_dir = _REPO_ROOT / "packs/atlassian/.apm/skills"
     for skill in ("jira", "confluence-crawler"):
         text = (skills_dir / skill / "requirements.txt").read_text(encoding="utf-8")
         assert "credbroker>=0.5.0" in text, f"{skill} does not pin the floor"
@@ -902,8 +908,10 @@ def test_register_refuses_on_host_mismatch(sso_path, recapture, responses, deriv
     responses(_OK)
     assert _check("--register") == jira.EXIT_USER_ACTION
     err = capsys.readouterr().err
-    assert "sso.corp.example.com" in err
-    assert "attacker.example.com" in err
+    # Both sides reported as the origins that were compared, so a port- or
+    # scheme-only difference is visible rather than printing one host twice.
+    assert "https://sso.corp.example.com:443" in err
+    assert "https://attacker.example.com:443" in err
     assert "setup_sso.py" in err
     assert recapture.register_calls == [], "no browser on a mismatch"
 
@@ -992,6 +1000,29 @@ def test_a_matching_port_is_accepted(tmp_path, monkeypatch, recapture, responses
     )
     monkeypatch.setattr(_sso_config, "_DEFAULT_CONFIG_PATH", cfg)
     derives("https://sso.corp.example.com:8443")
+    responses(_OK)
+    assert _check("--register") == jira.EXIT_OK
+    assert len(recapture.register_calls) == 1
+
+
+@pytest.mark.parametrize("configured,derived", [
+    ("https://sso.corp.example.com/login", "https://sso.corp.example.com:443"),
+    ("https://sso.corp.example.com:443/login", "https://sso.corp.example.com"),
+])
+def test_implicit_and_explicit_443_are_the_same_origin(
+    tmp_path, monkeypatch, recapture, responses, derives, configured, derived
+):
+    # STUB: AC32 — `https://host` and `https://host:443` are one origin, and a
+    # server is free to spell either. Comparing raw netloc refused a correct
+    # destination and pushed the operator onto the unattested setup_sso.py
+    # escape.
+    cfg = tmp_path / "sso-config.toml"
+    cfg.write_text(
+        _SSO_CONFIG_TOML.replace("https://sso.corp.example.com/login", configured),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(_sso_config, "_DEFAULT_CONFIG_PATH", cfg)
+    derives(derived)
     responses(_OK)
     assert _check("--register") == jira.EXIT_OK
     assert len(recapture.register_calls) == 1

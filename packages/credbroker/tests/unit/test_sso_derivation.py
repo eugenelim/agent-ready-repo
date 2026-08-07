@@ -27,6 +27,7 @@ import json
 import ssl
 import threading
 import urllib.error
+import urllib.parse
 import urllib.request
 
 import credbroker
@@ -35,6 +36,10 @@ from credbroker import _sso
 
 BASE = "https://jira.corp.example.com"
 IDP = "https://idp.corp.example.com"
+# What derivation *returns*: the origin with the port made explicit, so an
+# implicit and an explicit `:443` compare equal. The consumer normalises its own
+# side the same way before comparing.
+IDP_ORIGIN = "https://idp.corp.example.com:443"
 
 
 class _Canned:
@@ -56,14 +61,22 @@ class _FakeOpener:
     def __init__(self, routes: dict[str, _Canned]):
         self.routes = routes
         self.fetched: list[str] = []
-        self.allow_internal: list[bool] = []
+        self.trusted_origin: list[str | None] = []
 
     def install(self, monkeypatch):
         outer = self
+        # Hermetic: without this the chain tests hit live DNS through
+        # `_resolves_to_internal_address` before the fake opener is consulted.
+        # They pass here only because `corp.example.com` NXDOMAINs quickly; on a
+        # resolver that wildcards NXDOMAIN to a captive-portal address — routine
+        # on the corporate networks this code ships to — the guard would fire
+        # and the chain tests would fail for an environment reason. The guard
+        # keeps its own real-resolution tests below.
+        monkeypatch.setattr(_sso, "_resolves_to_internal_address", lambda host: False)
 
-        def _open(url, budget, *, allow_internal=False):
+        def _open(url, budget, *, trusted_origin=None):
             outer.fetched.append(url)
-            outer.allow_internal.append(allow_internal)
+            outer.trusted_origin.append(trusted_origin)
             canned = outer.routes.get(url)
             if canned is None:
                 raise _sso._DerivationAbort(f"no route for {url}")
@@ -94,7 +107,7 @@ def test_tier1_protected_resource_metadata(monkeypatch):        # STUB: AC32
         ),
     }).install(monkeypatch)
 
-    assert credbroker.derive_sso_destination(BASE) == IDP
+    assert credbroker.derive_sso_destination(BASE) == IDP_ORIGIN
     assert f"{IDP}/.well-known/oauth-authorization-server" in opener.fetched
 
 
@@ -107,7 +120,7 @@ def test_tier2_oidc_discovery(monkeypatch):                     # STUB: AC32
         ),
     }).install(monkeypatch)
 
-    assert credbroker.derive_sso_destination(BASE) == IDP
+    assert credbroker.derive_sso_destination(BASE) == IDP_ORIGIN
 
 
 def test_derives_login_host_from_login_jsp(monkeypatch):        # STUB: AC32
@@ -121,7 +134,7 @@ def test_derives_login_host_from_login_jsp(monkeypatch):        # STUB: AC32
 
     assert credbroker.derive_sso_destination(
         BASE, strategies=("atlassian-seraph",)
-    ) == IDP
+    ) == IDP_ORIGIN
 
 
 def test_vendor_probe_is_opt_in(monkeypatch):                   # STUB: AC32
@@ -165,7 +178,7 @@ def test_only_scheme_and_host_are_returned(monkeypatch):        # STUB: AC32
         ),
     }).install(monkeypatch)
 
-    assert credbroker.derive_sso_destination(BASE) == IDP
+    assert credbroker.derive_sso_destination(BASE) == IDP_ORIGIN
 
 
 def test_a_failing_tier_does_not_abort_the_chain(monkeypatch):  # STUB: AC32
@@ -176,7 +189,7 @@ def test_a_failing_tier_does_not_abort_the_chain(monkeypatch):  # STUB: AC32
         ),
     }).install(monkeypatch)
 
-    assert credbroker.derive_sso_destination(BASE) == IDP
+    assert credbroker.derive_sso_destination(BASE) == IDP_ORIGIN
 
 
 # ----------------------------------------------------------------------
@@ -233,7 +246,7 @@ def test_a_non_https_authorization_endpoint_is_dropped(monkeypatch):  # STUB: AC
 
 def test_body_is_capped_before_parsing():                       # STUB: AC32
     class _Fp:
-        def read(self, n):
+        def read1(self, n):
             return b"x" * n
 
         def close(self):
@@ -296,7 +309,7 @@ def test_a_healthy_body_still_reads_whole():                    # STUB: AC32
         def __init__(self):
             self.rest = payload
 
-        def read(self, n):
+        def read1(self, n):
             head, self.rest = self.rest[:n], self.rest[n:]
             return head
 
@@ -347,11 +360,11 @@ def test_socket_timeout_reaches_the_opener_and_tracks_the_budget():   # STUB: AC
     m._derivation_opener = lambda: _Opener()
     try:
         with pytest.raises(_sso._DerivationAbort):
-            _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(15.0), allow_internal=True)
+            _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(15.0), trusted_origin=_sso._origin(BASE))
         assert 0 < seen[-1] <= _sso._DERIVE_SOCKET_TIMEOUT_S
         # It shrinks with the shared budget, so a late hop cannot outlive it.
         with pytest.raises(_sso._DerivationAbort):
-            _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(1.0), allow_internal=True)
+            _sso._derive_open(f"{BASE}/x", _sso._DerivationBudget(1.0), trusted_origin=_sso._origin(BASE))
         assert seen[-1] <= 1.0
     finally:
         m._derivation_opener = real
@@ -368,7 +381,8 @@ def test_no_auth_headers_on_the_wire(monkeypatch):              # STUB: AC32
     monkeypatch.setattr(_sso, "_derivation_opener", lambda: _Opener())
     with pytest.raises(_sso._DerivationAbort):
         _sso._derive_open(
-            f"{BASE}/x", _sso._DerivationBudget(15.0), allow_internal=True
+            f"{BASE}/x", _sso._DerivationBudget(15.0),
+            trusted_origin=_sso._origin(BASE),
         )
 
     lowered = {k.lower() for k in seen["headers"]}
@@ -443,6 +457,19 @@ def test_real_opener_does_not_follow_redirects():               # STUB: AC32
 # ----------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("spelling", [
+    "https://jira.corp.example.com",
+    "https://jira.corp.example.com:443",
+    "https://JIRA.CORP.EXAMPLE.COM",
+])
+def test_default_and_explicit_443_are_one_origin(spelling):     # STUB: AC32
+    # An RFC 9728 header is free to spell the explicit port. Without
+    # normalisation the resource server's own metadata hop looks off-origin,
+    # resolves private for an internally hosted instance, and is refused —
+    # reintroducing exactly the tier-1 failure the exemption exists to prevent.
+    assert _sso._scheme_and_host(spelling) == "https://jira.corp.example.com:443"
+
+
 @pytest.mark.parametrize("internal", [
     "https://127.0.0.1/authorize",           # loopback
     "https://169.254.169.254/latest/meta-data/",  # cloud instance metadata
@@ -460,7 +487,7 @@ def test_header_derived_hops_cannot_reach_internal_addresses(internal, monkeypat
             raise AssertionError(f"a request was made to {req.full_url}")
 
     monkeypatch.setattr(_sso, "_derivation_opener", lambda: _MustNotOpen())
-    with pytest.raises(_sso._DerivationAbort, match="internal address"):
+    with pytest.raises(_sso._DerivationAbort, match="internal or could not be verified"):
         _sso._derive_open(internal, _sso._DerivationBudget(15.0))
 
 
@@ -472,17 +499,64 @@ def test_the_configured_base_url_may_be_internal():             # STUB: AC32
     assert _sso._resolves_to_internal_address("10.0.0.1") is True
 
 
-def test_first_hop_of_every_tier_allows_an_internal_base(monkeypatch):   # STUB: AC32
+def test_every_tier_passes_the_configured_origin_as_trusted(monkeypatch):  # STUB: AC32
     opener = _FakeOpener({
         BASE: _Canned(200),
         f"{BASE}/.well-known/openid-configuration": _Canned(404),
         f"{BASE}/login.jsp": _Canned(200),
     }).install(monkeypatch)
     credbroker.derive_sso_destination(BASE, strategies=("atlassian-seraph",))
-    assert all(opener.allow_internal), (
-        "each tier's first hop is the operator's own base_url and must not be "
-        f"address-filtered; got {opener.allow_internal}"
+    assert all(o == _sso._origin(BASE) for o in opener.trusted_origin), (
+        "every hop must carry the operator's configured origin as trusted; "
+        f"got {opener.trusted_origin}"
     )
+
+
+def test_tier1_still_works_when_the_instance_is_internally_hosted(monkeypatch):
+    # STUB: AC32 — the regression an exemption keyed to "the first call" causes.
+    # RFC 9728 puts /.well-known/oauth-protected-resource on the resource server
+    # itself, so tier 1's *second* hop is the same origin as its first. With
+    # every address treated as internal, that hop must still be made.
+    monkeypatch.setattr(_sso, "_resolves_to_internal_address", lambda host: True)
+    opener = _FakeOpener({
+        BASE: _Canned(
+            401,
+            {"WWW-Authenticate": f'Bearer resource_metadata="{BASE}/.well-known/oauth-protected-resource"'},
+        ),
+        f"{BASE}/.well-known/oauth-protected-resource": _Canned.json(
+            {"authorization_servers": [IDP]}
+        ),
+        f"{IDP}/.well-known/oauth-authorization-server": _Canned.json(
+            {"authorization_endpoint": f"{IDP}/authorize"}
+        ),
+    })
+    # Install the routes but keep the *real* address guard for this one.
+    outer = opener
+    real_open = _sso._derive_open
+
+    def _open(url, budget, *, trusted_origin=None):
+        # Records what was actually *fetched*, so the guard's refusals do not
+        # count as requests.
+        parts = urllib.parse.urlsplit(url)
+        origin = _sso._origin(url)
+        if origin != trusted_origin and _sso._resolves_to_internal_address(parts.hostname or ""):
+            raise _sso._DerivationAbort("internal or could not be verified")
+        outer.fetched.append(url)
+        canned = outer.routes.get(url)
+        if canned is None:
+            raise _sso._DerivationAbort(f"no route for {url}")
+        return _sso._DerivationResponse(canned.status, canned.headers, canned.body)
+
+    monkeypatch.setattr(_sso, "_derive_open", _open)
+    del real_open
+
+    credbroker.derive_sso_destination(BASE)
+    assert f"{BASE}/.well-known/oauth-protected-resource" in opener.fetched, (
+        "the same-origin resource-metadata hop was refused; tier 1 is dead for "
+        f"every internally-hosted instance. fetched={opener.fetched}"
+    )
+    # ...and the off-origin issuer hop is still refused.
+    assert f"{IDP}/.well-known/oauth-authorization-server" not in opener.fetched
 
 
 @pytest.mark.parametrize("malformed", ["https://[", "https://[::1", "https://a]b"])
@@ -513,3 +587,134 @@ def test_a_malformed_url_in_a_document_degrades_to_cannot_derive(monkeypatch, ti
         f"{BASE}/.well-known/openid-configuration": _Canned.json({key: value}),
     }).install(monkeypatch)
     assert credbroker.derive_sso_destination(BASE) is None
+
+
+def test_read_capped_works_against_real_response_objects():     # STUB: AC32
+    # The two fakes above model `read1`; this drives the real objects the
+    # production path sees. Without it, `read1` disappearing from either would
+    # be an AttributeError in production while the suite stayed green — and the
+    # old `or fp.read` fallback would have made it a silent return to the
+    # unbounded read this whole guard removed.
+    payload = b'{"authorization_endpoint": "https://idp.example/authorize"}'
+
+    class _Handler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):                       # noqa: N802 — stdlib contract
+            status = 401 if self.path == "/401" else 200
+            self.send_response(status)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def log_message(self, *a):
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), _Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    budget = _sso._DerivationBudget(15.0)
+    try:
+        base = f"http://127.0.0.1:{server.server_port}"
+        # A real HTTPResponse...
+        with urllib.request.urlopen(f"{base}/ok", timeout=5) as resp:
+            assert _sso._read_capped(resp, budget) == payload
+        # ...and a real HTTPError, which is what tier 1's 401 arrives as.
+        try:
+            urllib.request.urlopen(f"{base}/401", timeout=5)
+        except urllib.error.HTTPError as exc:
+            assert _sso._read_capped(exc, budget) == payload
+        else:  # pragma: no cover
+            pytest.fail("expected an HTTPError")
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+def test_rfc8414_inserts_the_wellknown_before_the_issuer_path():  # STUB: AC32
+    # RFC 8414 §3 puts the well-known segment between the authority and the
+    # path, so a multi-tenant issuer publishes at
+    # `https://idp/.well-known/oauth-authorization-server/tenant`. Appending
+    # both suffixes misses every such deployment and reports cannot-derive.
+    urls = _sso._authorization_server_metadata_urls("https://idp.example/tenant")
+    assert urls[0] == "https://idp.example/.well-known/oauth-authorization-server/tenant"
+    # OIDC Discovery appends, and is kept as the second attempt.
+    assert urls[1] == "https://idp.example/tenant/.well-known/openid-configuration"
+    # A path-less issuer is unaffected.
+    plain = _sso._authorization_server_metadata_urls("https://idp.example")
+    assert plain[0] == "https://idp.example/.well-known/oauth-authorization-server"
+
+
+def test_a_multitenant_issuer_is_discovered(monkeypatch):       # STUB: AC32
+    tenant = "https://idp.example/tenant"
+    _FakeOpener({
+        BASE: _Canned(
+            401,
+            {"WWW-Authenticate": f'Bearer resource_metadata="{BASE}/.well-known/oauth-protected-resource"'},
+        ),
+        f"{BASE}/.well-known/oauth-protected-resource": _Canned.json(
+            {"authorization_servers": [tenant]}
+        ),
+        "https://idp.example/.well-known/oauth-authorization-server/tenant":
+            _Canned.json({"authorization_endpoint": "https://idp.example/tenant/authorize"}),
+    }).install(monkeypatch)
+    assert credbroker.derive_sso_destination(BASE) == "https://idp.example:443"
+
+
+def test_every_read_is_bounded_by_the_remaining_budget():       # STUB: AC32
+    # The socket timeout is set once when the hop opens, so a server emitting a
+    # byte just before each timeout could keep `read1` returning while the
+    # shared deadline expired — overrunning the advertised total by nearly a
+    # full socket timeout. Each read now re-arms the socket to what is left.
+    import time as _time
+
+    class _Sock:
+        def __init__(self):
+            self.timeouts: list[float] = []
+
+        def settimeout(self, value):
+            self.timeouts.append(value)
+
+    class _Raw:
+        def __init__(self, sock):
+            self._sock = sock
+
+    class _Fp:
+        def __init__(self, sock):
+            self.raw = _Raw(sock)
+
+    class _Drip:
+        """Mirrors a real `HTTPResponse`: `.fp.raw._sock` is the socket."""
+
+        def __init__(self):
+            self.sock = _Sock()
+            self.fp = _Fp(self.sock)
+
+        def read1(self, n):
+            _time.sleep(0.02)
+            return b"x"
+
+        def close(self):
+            pass
+
+    drip = _Drip()
+    with pytest.raises(_sso._DerivationAbort):
+        _sso._read_capped(drip, _sso._DerivationBudget(0.2))
+
+    assert drip.sock.timeouts, "the socket timeout was never re-armed per read"
+    # Monotonically shrinking toward the deadline, never above the per-hop cap.
+    assert all(t <= _sso._DERIVE_SOCKET_TIMEOUT_S for t in drip.sock.timeouts)
+    assert drip.sock.timeouts[-1] < drip.sock.timeouts[0]
+
+
+@pytest.mark.parametrize("url,expected", [
+    # An explicit :0 is a port, not an omission — `port or default` made
+    # `https://h:0` and `https://h` compare equal.
+    ("https://idp.example:0/authorize", "https://idp.example:0"),
+    ("https://idp.example/authorize", "https://idp.example:443"),
+    # `urlsplit(...).hostname` strips IPv6 brackets; re-serialising without
+    # them yields `https://::1:443`, which is neither a URL nor comparable.
+    ("https://[2001:db8::1]:8443/authorize", "https://[2001:db8::1]:8443"),
+    ("https://[2001:db8::1]/authorize", "https://[2001:db8::1]:443"),
+])
+def test_origin_serialisation_is_exact(url, expected):          # STUB: AC32
+    assert _sso._scheme_and_host(url) == expected

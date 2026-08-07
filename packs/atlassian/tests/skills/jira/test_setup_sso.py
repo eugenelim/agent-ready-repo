@@ -115,3 +115,37 @@ def test_every_broker_refusal_is_exit_2(monkeypatch, error):   # STUB: AC2
 
     monkeypatch.setattr(credbroker, "register_sso_session", _raise)
     assert setup_sso.main() == 2
+
+
+def test_an_old_credbroker_is_exit_2_not_a_traceback(monkeypatch, capsys):
+    # STUB: AC30 — this helper is the documented escape when `check --register`
+    # refuses, so it must honour the same exit-2 contract. `register_sso_session`
+    # is absent below 0.5.0 and the resulting AttributeError is not an SsoError,
+    # so before the feature-detect it escaped `main` as exit 1 with a traceback.
+    import types
+    monkeypatch.setattr(setup_sso, "load_sso_config", lambda: CFG)
+    stub = types.ModuleType("credbroker")
+    stub.__version__ = "0.4.1"
+    stub.SsoError = credbroker.SsoError
+    monkeypatch.setitem(__import__("sys").modules, "credbroker", stub)
+
+    assert setup_sso.main() == 2
+    err = capsys.readouterr().err
+    assert "0.5.0" in err
+    assert "Traceback" not in err
+
+
+def test_a_missing_credbroker_is_exit_2(monkeypatch, capsys):
+    # STUB: AC30 — same contract when the module is absent entirely.
+    import builtins
+    monkeypatch.setattr(setup_sso, "load_sso_config", lambda: CFG)
+    real_import = builtins.__import__
+
+    def _no_credbroker(name, *a, **k):
+        if name == "credbroker":
+            raise ImportError("No module named 'credbroker'")
+        return real_import(name, *a, **k)
+
+    monkeypatch.setattr(builtins, "__import__", _no_credbroker)
+    assert setup_sso.main() == 2
+    assert "credbroker" in capsys.readouterr().err

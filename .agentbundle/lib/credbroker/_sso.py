@@ -708,6 +708,35 @@ def _derivation_opener() -> urllib.request.OpenerDirector:
 _DERIVE_READ_CHUNK_BYTES = 8 * 1024
 
 
+def _arm_socket_timeout(fp, seconds: float) -> None:  # noqa: ANN001
+    """Best-effort: set the underlying socket's timeout to *seconds*.
+
+    ``urllib`` fixes the timeout when the request is made, so it cannot shrink
+    as a shared deadline drains. Reaching the socket is the only way to bound a
+    late read by the time actually left. Guarded throughout: the attribute chain
+    is an implementation detail, and losing it costs the tightening, not the
+    read.
+    """
+    # Walk the `.fp` chain, bounded. The depth differs by object:
+    #   HTTPResponse -> .fp (BufferedReader) -> .raw (SocketIO) -> ._sock
+    #   HTTPError    -> .fp (HTTPResponse)   -> .fp -> .raw -> ._sock
+    # Tier 1's expected 401 arrives as the second shape, so stopping at one
+    # level left exactly that path on the original timeout.
+    sock = None
+    candidate = fp
+    for _ in range(4):
+        if candidate is None:
+            break
+        sock = getattr(getattr(candidate, "raw", None), "_sock", None)
+        if sock is not None:
+            break
+        candidate = getattr(candidate, "fp", None)
+    if sock is None:
+        return
+    with contextlib.suppress(OSError, ValueError, AttributeError):
+        sock.settimeout(max(0.001, seconds))
+
+
 def _read_capped(fp, budget: _DerivationBudget) -> bytes:  # noqa: ANN001
     """Read at most the cap, re-checking *budget* between reads.
 
@@ -725,9 +754,18 @@ def _read_capped(fp, budget: _DerivationBudget) -> bytes:  # noqa: ANN001
     """
     chunks: list[bytes] = []
     total = 0
-    reader = getattr(fp, "read1", None) or fp.read
+    # No `or fp.read` fallback: `read` is the unbounded call this function
+    # exists to avoid, so its absence must be loud rather than a silent
+    # reinstatement. Both `HTTPResponse` and `HTTPError` provide `read1`.
+    reader = fp.read1
     while total <= _DERIVE_BODY_CAP_BYTES:
         budget.check()
+        # Re-arm the socket to what is *left*, not to the per-hop cap. The
+        # timeout is set once when the hop opens, so a server emitting one byte
+        # just before each expiry keeps `read1` returning while the shared
+        # deadline passes — overrunning the advertised total by nearly a full
+        # socket timeout on the last read.
+        _arm_socket_timeout(fp, min(_DERIVE_SOCKET_TIMEOUT_S, budget.remaining()))
         chunk = reader(min(_DERIVE_READ_CHUNK_BYTES, _DERIVE_BODY_CAP_BYTES + 1 - total))
         if not chunk:
             break
@@ -746,16 +784,27 @@ def _resolves_to_internal_address(host: str) -> bool:
     Loopback, link-local (which is where cloud instance-metadata lives),
     unique-local and every RFC 1918 range. Checked against **resolved**
     addresses, not the literal, so a hostname pointing at ``127.0.0.1`` is
-    caught too. Fails closed: a name that will not resolve is treated as
-    unreachable and refused.
+    caught too.
+
+    Fails closed on a resolver error, and that is not merely conservative:
+    ``_derivation_opener`` installs the environment's proxies, and a proxy
+    resolves the hostname itself — so a name local DNS cannot see may still be
+    reachable through it.
+
+    **Known limit:** this resolves and then connects, so it does not close DNS
+    rebinding. Closing that needs a pinned-address connection, which urllib
+    does not offer.
     """
     try:
         infos = socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)
     except OSError:
-        # Unresolvable: no connection can happen, so there is nothing to refuse.
-        # Let the request fail on its own rather than reporting a misleading
-        # "internal address" for a transient resolver problem.
-        return False
+        # Fail **closed**. "Unresolvable locally" does not mean "unreachable":
+        # `_derivation_opener` installs the environment's proxies, and a proxy
+        # resolves the hostname itself — so a name local DNS cannot see is still
+        # reachable through it. Treating a resolver failure as safe would let an
+        # attacker-supplied hop reach proxy-visible internal services, which is
+        # exactly what this guard exists to stop.
+        return True
     for info in infos:
         try:
             address = ipaddress.ip_address(info[4][0])
@@ -774,16 +823,24 @@ def _resolves_to_internal_address(host: str) -> bool:
 
 
 def _derive_open(
-    url: str, budget: _DerivationBudget, *, allow_internal: bool = False
+    url: str, budget: _DerivationBudget, *, trusted_origin: str | None = None
 ) -> _DerivationResponse:
     """One bounded, https-only, unfollowed hop.
 
-    :param allow_internal: permit an internal address. True **only** for the
-        first hop, which is the consumer's own configured ``base_url`` — a
-        corporate instance legitimately lives on an RFC 1918 host. Every later
-        hop's target is read out of a response header or body, so it is
-        attacker-influenceable and must not be able to steer the operator's
-        machine at loopback or the cloud metadata endpoint.
+    :param trusted_origin: the ``scheme://authority`` the *operator configured*
+        (``base_url``). Hops on that origin skip the internal-address check,
+        because a corporate instance legitimately lives on an RFC 1918 host.
+
+        Keyed to the origin rather than to "the first request", deliberately:
+        RFC 9728 puts ``/.well-known/oauth-protected-resource`` on the resource
+        server itself, so tier 1's *second* hop is normally the same origin as
+        its first. Exempting only the first call would refuse that hop and
+        silently kill tier 1 for every internally-hosted instance — the
+        deployment this broker exists to serve.
+
+        Every other hop's target is read out of a response header or body, so it
+        is attacker-influenceable and must not be able to steer the operator's
+        machine at loopback, the cloud metadata endpoint, or the corporate LAN.
     """
     try:
         parts = urlsplit(url)
@@ -800,10 +857,12 @@ def _derive_open(
         raise _DerivationAbort(
             f"refusing a non-https derivation hop (scheme {scheme or '(none)'})"
         )
-    if not allow_internal and _resolves_to_internal_address(parts.hostname or ""):
+    origin = _origin(url)
+    if origin != trusted_origin and _resolves_to_internal_address(parts.hostname or ""):
         raise _DerivationAbort(
-            "refusing a derivation hop to an internal address; the target came "
-            "from a server response, not from your configuration"
+            "refusing a derivation hop whose address is internal or could not "
+            "be verified; the target came from a server response, not from "
+            "your configuration"
         )
     budget.check()
     request = urllib.request.Request(url, headers=dict(_DERIVE_HEADERS), method="GET")
@@ -829,26 +888,86 @@ def _derive_open(
         raise _DerivationAbort(f"derivation hop failed: {type(exc).__name__}") from exc
 
 
-def _scheme_and_host(url: object) -> str | None:
-    """``https://host[:port]`` from *url*, or ``None`` if it is not https.
+# The port a scheme implies when a URL omits it, so `https://host` and
+# `https://host:443` are one origin. A server is free to spell either, and an
+# RFC 9728 header spelling the explicit form would otherwise make the resource
+# server's own metadata hop look off-origin.
+_DEFAULT_PORTS = {"https": 443, "http": 80}
 
-    Only scheme+host is ever compared: every tier's URL carries per-request
-    ``state`` / ``SAMLRequest`` / ``nonce`` values that change on each call.
+
+def _origin(url: str) -> str | None:
+    """``scheme://host:port`` with the port made explicit, or ``None``.
+
+    Two details that a naive `f"{scheme}://{hostname}:{port}"` gets wrong:
+
+    * ``urlsplit(...).hostname`` **strips the brackets** from an IPv6 literal, so
+      re-serialising without them produces ``https://::1:443`` — not a URL, and
+      not comparable. They are put back.
+    * ``port or default`` treats an explicit ``:0`` as absent, so
+      ``https://h:0`` and ``https://h`` would compare equal. Only ``None``
+      means "omitted".
     """
-    if not isinstance(url, str):
-        return None
     try:
         parts = urlsplit(url)
     except ValueError:
-        # Remote-supplied: a `Location` header or a JSON field. Unparseable is
-        # "did not resolve a destination", never an exception out of derivation.
         return None
-    if parts.scheme.lower() != "https" or not parts.netloc:
+    scheme = parts.scheme.lower()
+    host = (parts.hostname or "").lower()
+    if not host:
         return None
-    return f"https://{parts.netloc.lower()}"
+    try:
+        port = parts.port
+    except ValueError:
+        return None
+    if port is None:
+        port = _DEFAULT_PORTS.get(scheme, 0)
+    if ":" in host:          # IPv6 literal
+        host = f"[{host}]"
+    return f"{scheme}://{host}:{port}"
+
+
+def _scheme_and_host(url: object) -> str | None:
+    """The https origin of *url* as ``https://host:port``, or ``None``.
+
+    Only the origin is ever compared: every tier's URL carries per-request
+    ``state`` / ``SAMLRequest`` / ``nonce`` values that change on each call. The
+    port is normalised so an implicit and an explicit ``:443`` compare equal.
+    """
+    if not isinstance(url, str):
+        # Remote-supplied: a `Location` header or a JSON field. Unparseable, or
+        # not a string, is "did not resolve a destination" — never an exception
+        # out of derivation.
+        return None
+    origin = _origin(url)
+    if origin is None or not origin.startswith("https://"):
+        return None
+    return origin
 
 
 _RESOURCE_METADATA_RE = re.compile(r'resource_metadata\s*=\s*"([^"]+)"', re.IGNORECASE)
+
+
+def _authorization_server_metadata_urls(issuer: str) -> list[str]:
+    """The metadata URLs to try for an authorization-server *issuer*.
+
+    The two standards build the URL differently, and appending both suffixes
+    would miss every multi-tenant deployment:
+
+    * **RFC 8414 § 3** inserts the well-known segment *between the authority and
+      the path*, so issuer ``https://idp.example/tenant`` publishes at
+      ``https://idp.example/.well-known/oauth-authorization-server/tenant``.
+    * **OIDC Discovery** appends, giving
+      ``https://idp.example/tenant/.well-known/openid-configuration``.
+
+    Both are tried, in that order.
+    """
+    parts = urlsplit(issuer)
+    path = parts.path.rstrip("/")
+    authority = f"{parts.scheme}://{parts.netloc}"
+    return [
+        f"{authority}/.well-known/oauth-authorization-server{path}",
+        f"{issuer.rstrip('/')}/.well-known/openid-configuration",
+    ]
 
 
 def _tier_protected_resource_metadata(
@@ -860,25 +979,25 @@ def _tier_protected_resource_metadata(
     on: a live spike found Jira answering its REST 401 with the legacy
     ``WWW-Authenticate: OAuth realm="…"`` form instead.
     """
-    resp = _derive_open(base_url, budget, allow_internal=True)
+    trusted = _scheme_and_host(base_url)
+    resp = _derive_open(base_url, budget, trusted_origin=trusted)
     if resp.status != 401:
         return None
     match = _RESOURCE_METADATA_RE.search(resp.header("WWW-Authenticate"))
     if not match:
         return None
-    document = _derive_open(match.group(1), budget).json()
+    document = _derive_open(match.group(1), budget, trusted_origin=trusted).json()
     servers = document.get("authorization_servers")
     if not isinstance(servers, list):
         return None
     for issuer in servers:
         if _scheme_and_host(issuer) is None:
             continue
-        for suffix in (
-            "/.well-known/oauth-authorization-server",
-            "/.well-known/openid-configuration",
-        ):
+        for metadata_url in _authorization_server_metadata_urls(issuer):
             try:
-                metadata = _derive_open(issuer.rstrip("/") + suffix, budget).json()
+                metadata = _derive_open(
+                    metadata_url, budget, trusted_origin=trusted
+                ).json()
             except _DerivationAbort:
                 continue
             found = _scheme_and_host(metadata.get("authorization_endpoint"))
@@ -891,7 +1010,7 @@ def _tier_oidc_discovery(base_url: str, budget: _DerivationBudget) -> str | None
     """OIDC Discovery / RFC 8414 — older than tier 1, far more widely deployed."""
     document = _derive_open(
         base_url.rstrip("/") + "/.well-known/openid-configuration",
-        budget, allow_internal=True,
+        budget, trusted_origin=_scheme_and_host(base_url),
     ).json()
     return _scheme_and_host(document.get("authorization_endpoint"))
 
@@ -909,7 +1028,8 @@ def _strategy_atlassian_seraph(base_url: str, budget: _DerivationBudget) -> str 
     no ``Location``. Those adopters land on the cannot-derive branch.
     """
     resp = _derive_open(
-        base_url.rstrip("/") + "/login.jsp", budget, allow_internal=True
+        base_url.rstrip("/") + "/login.jsp", budget,
+        trusted_origin=_scheme_and_host(base_url),
     )
     if not 300 <= resp.status < 400:
         return None
@@ -928,7 +1048,14 @@ _DERIVATION_STRATEGIES = {
 def derive_sso_destination(
     base_url: str, *, strategies: Sequence[str] = ()
 ) -> str | None:
-    """Where does *base_url* send users to sign in? ``scheme://host`` or ``None``.
+    """Where does *base_url* send users to sign in? An **origin**, or ``None``.
+
+    The origin is ``scheme://host:port`` with the port always explicit and an
+    IPv6 host bracketed — ``https://idp.example:443``, not
+    ``https://idp.example``. Compare it against a normalised form of your own
+    configured destination, never against a raw string: a server is free to
+    spell the default port either way, and treating the two as different
+    refuses a correct destination.
 
     Tries, in order, and returns the first host it resolves: RFC 9728 protected
     resource metadata, OIDC discovery, then any *named* vendor strategies the

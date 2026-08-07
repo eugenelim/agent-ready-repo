@@ -41,6 +41,9 @@ if _floor.is_dir() and str(_floor) not in sys.path:
 
 from _sso_config import load_sso_config  # noqa: E402
 
+# Matches `jira.py`'s floor. The recapture verbs landed in 0.5.0.
+_CREDBROKER_REQUIREMENT = "credbroker>=0.5.0"
+
 
 def main(argv: list[str] | None = None) -> int:
     """Register the configured profile. ``0`` on success, ``2`` on any refusal.
@@ -52,7 +55,32 @@ def main(argv: list[str] | None = None) -> int:
     """
     # Imported here, not at module top: the credbroker floor is only on
     # sys.path after the bootstrap above.
-    import credbroker
+    #
+    # `ImportError`, not just `ModuleNotFoundError`: a half-projected floor
+    # raises the parent class. And the *feature* detect matters as much as the
+    # import — the pip layer precedes the vendored floor on `sys.path`, so an
+    # adopter pinned below 0.5.0 imports a module that lacks
+    # `register_sso_session`. Calling it would raise `AttributeError`, which is
+    # not an `SsoError`, so it would escape `main` as exit 1 with a traceback
+    # instead of this helper's exit-2 contract.
+    try:
+        import credbroker
+    except ImportError:
+        print(
+            "error: credbroker is not installed — install the credential-brokers "
+            f"pack, or run: python -m pip install '{_CREDBROKER_REQUIREMENT}'",
+            file=sys.stderr,
+        )
+        return 2
+    if not hasattr(credbroker, "register_sso_session"):
+        found = getattr(credbroker, "__version__", "an older release")
+        print(
+            f"error: registering a session needs {_CREDBROKER_REQUIREMENT}, found "
+            f"{found}. Run: python -m pip install --upgrade "
+            f"'{_CREDBROKER_REQUIREMENT}'",
+            file=sys.stderr,
+        )
+        return 2
 
     try:
         cfg = load_sso_config()  # validates before we touch the broker

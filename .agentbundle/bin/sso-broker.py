@@ -213,17 +213,40 @@ def _tier2_capable() -> bool:
     return _tier2_backend is not None
 
 
-def _profile_target(profile: str, *, chunk: int | None = None) -> tuple[str, str]:
+def _profile_target(
+    profile: str, *, chunk: int | None = None, generation: str | None = None
+) -> tuple[str, str]:
     """Return (namespace, key) suitable for Tier-2 backend dispatch.
 
-    Tier-2 backends accept ``(namespace, key)`` and join with ``:``;
-    we squat ``_SSO_NAMESPACE`` as the namespace and use ``profile``
-    (or ``profile:<n>``) as the key. Net wire shape:
-    ``agentbundle:sso:<profile>`` or ``agentbundle:sso:<profile>:<n>``.
+    Tier-2 backends accept ``(namespace, key)`` and join with ``:``; we squat
+    ``_SSO_NAMESPACE`` as the namespace and use ``profile`` (or
+    ``profile:[<generation>:]<n>``) as the key. Net wire shape:
+    ``agentbundle:sso:<profile>``, ``agentbundle:sso:<profile>:<n>`` (legacy),
+    or ``agentbundle:sso:<profile>:<generation>:<n>``.
+
+    **The generation is what makes a continuation write non-destructive.** Slot
+    keys are otherwise identical across writes, so a new jar's chunks land on
+    the keys the *currently committed* header still points at — corrupting a
+    readable jar before the header switch, and leaving a concurrent reader
+    combining the old count with half-new chunks. Writing under a fresh
+    generation and switching the header last makes the header a real commit
+    point. ``None`` reads the legacy layout, so headers written before this
+    change keep working.
     """
     if chunk is None:
         return _SSO_NAMESPACE, profile
-    return _SSO_NAMESPACE, f"{profile}:{chunk}"
+    if generation is None:
+        return _SSO_NAMESPACE, f"{profile}:{chunk}"
+    return _SSO_NAMESPACE, f"{profile}:{generation}:{chunk}"
+
+
+# Two generations are enough: a write only ever needs to avoid the one that is
+# currently committed, and alternating bounds the keys a profile can occupy.
+_GENERATIONS = ("a", "b")
+
+
+def _next_generation(current: str | None) -> str:
+    return _GENERATIONS[1] if current == _GENERATIONS[0] else _GENERATIONS[0]
 
 
 def write_credential(namespace: str, key: str, value: str) -> None:
@@ -256,6 +279,153 @@ def _delete_credential(namespace: str, key: str) -> None:
             _tier2_backend.delete_credential(namespace, key)
 
 
+def _purge_credential(namespace: str, key: str) -> bool:
+    """Remove a credential's **bytes**, not merely its entry.
+
+    `_delete_credential` suppresses backend errors, and a policy-restricted
+    keychain can accept writes while silently ignoring deletes — the case
+    `_delete_cookie_jar_tier2` already has to defend against. Generation-scoped
+    slots make that matter more than it used to: a replacement no longer
+    overwrites the superseded session's chunks, so if the delete is a no-op the
+    old jar's cookie bytes stay readable under their old keys indefinitely.
+
+    Delete first and verify; overwrite only if the entry survived, so the
+    ordinary path stays a single delete and never opens a window in which the
+    key reads back empty.
+
+    :returns: whether the key verifiably holds no credential material.
+    """
+    _delete_credential(namespace, key)
+    try:
+        if not read_credential(namespace, key):
+            return True
+    except Exception:  # noqa: BLE001 — unreadable is not "empty"
+        return False
+    with contextlib.suppress(Exception):  # noqa: BLE001 — scrub is best-effort
+        write_credential(namespace, key, "")
+    try:
+        return not read_credential(namespace, key)
+    except Exception:  # noqa: BLE001
+        return False
+
+
+class StoreTransitionError(RuntimeError):
+    """A jar could not be stored under a single authority.
+
+    Raised rather than returning a success label, because the alternative is
+    reporting a capture stored while a *stale* copy still wins on read — or
+    while a superseded copy's cookie bytes are still at rest in the store.
+    """
+
+
+class _HeaderUnreadable(RuntimeError):
+    """The committed continuation header could not be read.
+
+    Distinct from *absent*, and the distinction is load-bearing: a generation
+    cannot be chosen safely without knowing which one the committed jar
+    occupies. Treating a transient read failure as "nothing is stored" selects
+    the first generation and writes over a live jar's slots — reintroducing the
+    corruption the generation exists to prevent.
+    """
+
+
+def _continuation_meta(profile: str) -> tuple[int, str | None]:
+    """``(slot_count, generation)`` for the currently stored jar.
+
+    ``(0, None)`` when nothing is stored or the header is a plain jar. An
+    unreadable header raises `_HeaderUnreadable` instead — see that class.
+    A legacy header carries no generation, which is why the slot-key builder
+    still accepts ``None``.
+    """
+    try:
+        header = read_credential(*_profile_target(profile))
+    except Exception as exc:  # noqa: BLE001 — unreadable is not "absent"
+        raise _HeaderUnreadable(
+            f"could not read the stored continuation header for profile "
+            f"{profile!r} ({type(exc).__name__})"
+        ) from exc
+    if header is None:
+        return 0, None
+    try:
+        meta = json.loads(header)
+    except json.JSONDecodeError:
+        return 0, None
+    if not isinstance(meta, dict) or "continuation_count" not in meta:
+        return 0, None
+    generation = meta.get("generation")
+    if not isinstance(generation, str):
+        generation = None
+    with contextlib.suppress(TypeError, ValueError):
+        return int(meta["continuation_count"]), generation
+    return 0, generation
+
+
+def _delete_cookie_jar_tier2(profile: str) -> bool:
+    """Drop the Tier-2 header (and any continuation slots it names).
+
+    :returns: whether Tier-2 **verifiably** holds no credential material for
+        this profile. `_delete_credential` suppresses backend errors — a
+        read-only or policy-restricted keychain deletes nothing and says
+        nothing — so the caller must not treat the call as having worked.
+        `_load_cookie_jar` prefers any readable Tier-2 header, so a surviving
+        header silently outranks the floor; a surviving *slot* cannot be read
+        without one, but is still the previous session's cookie bytes at rest.
+        Absence, not emptiness, is the bar for the header: an emptied header
+        still shadows the floor.
+    """
+    header = None
+    with contextlib.suppress(Exception):  # noqa: BLE001
+        header = read_credential(*_profile_target(profile))
+    purged = _purge_credential(*_profile_target(profile))
+    if header is not None:
+        with contextlib.suppress(json.JSONDecodeError, ValueError, TypeError):
+            meta = json.loads(header)
+            if isinstance(meta, dict) and "continuation_count" in meta:
+                gen = meta.get("generation")
+                if not isinstance(gen, str):
+                    gen = None
+                for n in range(int(meta["continuation_count"])):
+                    purged &= _purge_credential(
+                        *_profile_target(profile, chunk=n, generation=gen)
+                    )
+    # Verify, rather than assume.
+    try:
+        return purged and read_credential(*_profile_target(profile)) is None
+    except Exception:  # noqa: BLE001 — unreadable is not "absent"
+        return False
+
+
+def _fall_back_to_floor(profile: str, serialized: bytes) -> str:
+    """Move authority from Tier-2 to the file floor, in a safe order.
+
+    Floor **first**, invalidate **second**, verify **third**:
+
+    * writing the floor before deleting means a failed floor write leaves the
+      previous session intact rather than destroying a usable jar in exchange
+      for nothing;
+    * verifying the delete means a keychain that refuses deletion is a loud
+      failure, not a success label over a stale entry that will win the next
+      read and overwrite the fresh floor.
+    """
+    try:
+        _file_floor_write(profile, serialized)
+    except OSError as exc:
+        # Nothing has been invalidated yet, so this statement is true — which
+        # is exactly why the translation belongs here and not in a handler
+        # wrapping every verb, where it would also be claimed for `rm`.
+        raise StoreTransitionError(
+            f"could not write the cookie-jar floor for profile {profile!r} "
+            f"({type(exc).__name__}); the stored session was not changed"
+        ) from exc
+    if not _delete_cookie_jar_tier2(profile):
+        raise StoreTransitionError(
+            f"could not invalidate the stored keychain session for profile "
+            f"{profile!r}; refusing to report a capture while the superseded "
+            f"entry could still shadow it or leave its cookie bytes at rest"
+        )
+    return "file-floor-overflow"
+
+
 def _store_cookie_jar(profile: str, serialized: bytes) -> str:
     """Write the serialised jar via Tier-2 (with continuation chunking
     when > CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES); fall back to a 0600
@@ -268,7 +438,13 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
     threshold = CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES
 
     if not _tier2_capable():
-        _file_floor_write(profile, serialized)
+        try:
+            _file_floor_write(profile, serialized)
+        except OSError as exc:
+            raise StoreTransitionError(
+                f"could not write the cookie-jar floor for profile {profile!r} "
+                f"({type(exc).__name__}); the session was not stored"
+            ) from exc
         return "file-floor"
 
     if len(serialized) <= threshold:
@@ -276,28 +452,102 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
             ns, key = _profile_target(profile)
             write_credential(ns, key, serialized.decode("utf-8"))
             return "keychain"
-        except Exception:  # noqa: BLE001 — backend refused; floor
-            _file_floor_write(profile, serialized)
-            return "file-floor-overflow"
+        except StoreTransitionError:
+            raise
+        except Exception:  # noqa: BLE001 — backend refused; move to the floor
+            return _fall_back_to_floor(profile, serialized)
 
-    # Split into header + continuation slots.
+    # Split into continuation slots + header.
+    #
+    # **Chunks first, header last.** The header lives at `<profile>` — the same
+    # key the previous jar occupies — while chunks live at `<profile>:<n>`, so
+    # writing the header first destroys the old session before the new one is
+    # complete, and a later chunk failure leaves nothing. Writing every chunk
+    # first and switching the header once, at the end, makes the header the
+    # single commit point: a chunk failure leaves the old header (and its jar)
+    # exactly as it was.
+    #
+    # This also removes the previous design's reliance on the *live* cookie
+    # floor as transition staging. `_file_floor_write` deliberately specifies no
+    # ordering against concurrent materialisers, so a concurrent `get-cookies`
+    # could overwrite staged bytes — depending on that would have turned a
+    # documented-undefined area into a correctness requirement.
     text = serialized.decode("utf-8")
     chunks = [text[i:i + threshold] for i in range(0, len(text), threshold)]
     try:
-        ns, key = _profile_target(profile)
-        # Header credential stores the count.
-        write_credential(ns, key, json.dumps({"continuation_count": len(chunks)}))
+        previous_slots, previous_generation = _continuation_meta(profile)
+    except _HeaderUnreadable:
+        # Which generation the committed jar occupies is unknown, so *every*
+        # slot key is potentially live and there is no safe one to stage under.
+        # The floor writes first and verifies the Tier-2 invalidation, so a
+        # persistent read failure surfaces as a loud transition error rather
+        # than as slots written over a jar that may still be in use.
+        return _fall_back_to_floor(profile, serialized)
+    generation = _next_generation(previous_generation)
+    try:
+        # Under a *fresh* generation, so nothing the committed header points at
+        # is touched. Until the header switches, the old jar is still whole.
         for n, chunk in enumerate(chunks):
-            ns_n, key_n = _profile_target(profile, chunk=n)
+            ns_n, key_n = _profile_target(profile, chunk=n, generation=generation)
             write_credential(ns_n, key_n, chunk)
-        return "keychain-continuation"
-    except Exception:  # noqa: BLE001 — backend refused continuation
-        # Roll back any partial writes and floor to file.
-        _delete_credential(*_profile_target(profile))
+        # Commit point.
+        ns, key = _profile_target(profile)
+        write_credential(ns, key, json.dumps({
+            "continuation_count": len(chunks),
+            "generation": generation,
+        }))
+    except StoreTransitionError:
+        raise
+    except Exception as refusal:  # noqa: BLE001 — backend refused continuation
+        # Roll back only *this* generation's slots; the committed jar is
+        # untouched. Then move authority to the floor in the safe order:
+        # floor first, invalidate second, verify third.
+        #
+        # Verified, for the same reason the reap below is: chunks are written
+        # before the header, so a backend that accepts every chunk, rejects the
+        # header, and ignores deletes would strand a *complete* jar under keys
+        # no header enumerates — invisible to every later replacement and `rm`.
+        retained: list[str] = []
         for n in range(len(chunks)):
-            _delete_credential(*_profile_target(profile, chunk=n))
-        _file_floor_write(profile, serialized)
-        return "file-floor-overflow"
+            ns_n, key_n = _profile_target(
+                profile, chunk=n, generation=generation
+            )
+            if not _purge_credential(ns_n, key_n):
+                retained.append(key_n)
+        label = _fall_back_to_floor(profile, serialized)
+        if retained:
+            raise StoreTransitionError(
+                f"stored the new session for profile {profile!r} on the "
+                f"cookie-jar floor, but could not remove the staged keychain "
+                f"chunks ({', '.join(retained)}); remove those entries before "
+                f"relying on this profile"
+            ) from refusal
+        return label
+
+    # Committed. Reap the superseded generation — and any legacy un-generationed
+    # slots — so a shrinking or rotating jar does not leave the previous
+    # session's cookie bytes in the keychain indefinitely. The captured jar is
+    # deliberately over-broad, so those are real credential material at rest.
+    #
+    # Verified, not best-effort. Generation-scoped writes no longer overwrite
+    # the old chunks, so a backend that accepts writes and ignores deletes would
+    # otherwise keep a *complete* previous session readable under its old keys
+    # while this returns success.
+    unpurged: list[str] = []
+    for n in range(previous_slots):
+        ns_n, key_n = _profile_target(
+            profile, chunk=n, generation=previous_generation
+        )
+        if not _purge_credential(ns_n, key_n):
+            unpurged.append(key_n)
+    if unpurged:
+        raise StoreTransitionError(
+            f"stored the new session for profile {profile!r}, but could not "
+            f"remove the superseded session's cookie bytes from the keychain "
+            f"({', '.join(unpurged)}); remove those entries before relying on "
+            f"this profile"
+        )
+    return "keychain-continuation"
 
 
 def _load_cookie_jar(profile: str) -> bytes | None:
@@ -307,7 +557,11 @@ def _load_cookie_jar(profile: str) -> bytes | None:
     if _tier2_capable():
         ns, key = _profile_target(profile)
         header = read_credential(ns, key)
-        if header is not None:
+        # Empty is absent, not a jar. `_purge_credential` scrubs to `""` when a
+        # backend ignores deletes, and a captured jar is always JSON — `[]` at
+        # minimum — so treating `""` as a raw jar would hand the caller an empty
+        # file and exit 0 where the contract calls for exit 2.
+        if header:
             # Distinguish continuation-header (JSON with count) from
             # a single-credential value (raw cookie-jar text).
             try:
@@ -315,9 +569,14 @@ def _load_cookie_jar(profile: str) -> bytes | None:
             except json.JSONDecodeError:
                 meta = None
             if isinstance(meta, dict) and "continuation_count" in meta:
+                # `generation` is absent on headers written before it existed,
+                # and `_profile_target` then falls back to the legacy key shape.
+                gen = meta.get("generation")
+                if not isinstance(gen, str):
+                    gen = None
                 parts: list[str] = []
                 for n in range(int(meta["continuation_count"])):
-                    ns_n, key_n = _profile_target(profile, chunk=n)
+                    ns_n, key_n = _profile_target(profile, chunk=n, generation=gen)
                     part = read_credential(ns_n, key_n)
                     if part is None:
                         return None  # corrupted; treat as missing
@@ -343,13 +602,20 @@ def _delete_cookie_jar(profile: str) -> None:
             header = read_credential(ns, key)
         except Exception:  # noqa: BLE001
             pass
-        _delete_credential(*_profile_target(profile))
+        # Purge rather than delete: `rm` is asked to remove a session, and a
+        # backend that ignores deletes would otherwise leave its cookie bytes.
+        _purge_credential(*_profile_target(profile))
         if header is not None:
             try:
                 meta = json.loads(header)
                 if isinstance(meta, dict) and "continuation_count" in meta:
+                    gen = meta.get("generation")
+                    if not isinstance(gen, str):
+                        gen = None
                     for n in range(int(meta["continuation_count"])):
-                        _delete_credential(*_profile_target(profile, chunk=n))
+                        _purge_credential(
+                            *_profile_target(profile, chunk=n, generation=gen)
+                        )
             except json.JSONDecodeError:
                 pass
 
@@ -403,7 +669,16 @@ def _file_floor_write(profile: str, serialized: bytes) -> None:
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL
         fd = os.open(tmp, flags, 0o600)
         try:
-            os.write(fd, serialized)
+            # `os.write` may write fewer bytes than asked — permitted when
+            # storage is constrained or the call is interrupted after partial
+            # progress. Ignoring the count and promoting the temp file would
+            # publish a truncated jar over the authoritative one.
+            view = memoryview(serialized)
+            while view:
+                written = os.write(fd, view)
+                if written <= 0:
+                    raise OSError("short write to the cookie-jar floor")
+                view = view[written:]
         finally:
             os.close(fd)
         tmp.replace(path)
@@ -724,14 +999,16 @@ def _seed_persistent_profile(
             f"{profile!r}; the next automatic refresh will need a re-register\n"
         )
         return False
-    user_data_dir = _browser_state_dir(profile)
-    user_data_dir.mkdir(parents=True, exist_ok=True)
-    # One guard over the launch *and* the write. Seeding runs before the profile
-    # TOML and the jar are stored, so anything escaping here throws away a
-    # sign-in the human has already completed — which is the opposite of this
-    # function's contract.
+    # One guard over the directory, the launch *and* the write. Seeding runs
+    # before the profile TOML and the jar are stored, so anything escaping here
+    # throws away a sign-in the human has already completed — the opposite of
+    # this function's contract. `mkdir` is inside it because it raises
+    # FileExistsError when `browser-state/<profile>` is a regular file, and
+    # PermissionError or NotADirectoryError otherwise.
     context = None
     try:
+        user_data_dir = _browser_state_dir(profile)
+        user_data_dir.mkdir(parents=True, exist_ok=True)
         context = pw.chromium.launch_persistent_context(
             user_data_dir=str(user_data_dir),
             headless=True,
@@ -1134,6 +1411,13 @@ def main(argv: list[str] | None = None) -> int:
     except ProfileConfinementError as exc:
         sys.stderr.write(f"sso-broker {verb}: {exc}\n")
         return 3
+    except StoreTransitionError as exc:
+        # Newly raised by the store fallback. Without a handler here it escapes
+        # `main` as exit 1 with a traceback, putting a real storage failure in
+        # the functional band instead of the engine-failure one.
+        sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        return 3
+
     raise AssertionError(f"unreachable verb: {verb}")  # pragma: no cover
 
 
