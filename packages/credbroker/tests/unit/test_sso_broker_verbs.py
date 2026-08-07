@@ -1402,6 +1402,35 @@ def test_an_emptied_header_is_absent_not_an_empty_jar(broker, monkeypatch):
     assert mod.main(["get-cookies", "jira"]) == 2
 
 
+def test_a_scrubbed_old_header_is_a_completed_transition_not_a_failure(
+    broker, monkeypatch
+):
+    # STUB: AC6a — once a falsy header counts as absent on read, an emptied one
+    # shadows nothing and its bytes are verifiably gone. Demanding *physical*
+    # absence would report exit 3 for a capture that is durable on the floor and
+    # resolves correctly on the next read.
+    mod, backend = broker
+    _seed_profile(mod, "jira")
+    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+
+    real_write = backend.write_credential
+
+    def _refuse_nonempty_header(namespace, key, value):
+        if key == "jira" and value:
+            raise RuntimeError("simulated header write refusal")
+        return real_write(namespace, key, value)
+
+    monkeypatch.setattr(backend, "write_credential", _refuse_nonempty_header)
+    monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
+
+    new_jar = b'[{"name":"new"}]'
+    assert mod._store_cookie_jar("jira", new_jar) == "file-floor-overflow"
+    assert backend.store.get((mod._SSO_NAMESPACE, "jira")) == "", (
+        "this test is only meaningful while the scrub leaves an empty header"
+    )
+    assert mod._load_cookie_jar("jira") == new_jar
+
+
 def test_a_rejected_header_does_not_strand_the_staged_chunks(broker, monkeypatch):
     # STUB: AC6a — chunks are written before the header, so a backend that
     # accepts every chunk, rejects the header write, and ignores deletes strands

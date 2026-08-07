@@ -370,8 +370,11 @@ def _delete_cookie_jar_tier2(profile: str) -> bool:
         `_load_cookie_jar` prefers any readable Tier-2 header, so a surviving
         header silently outranks the floor; a surviving *slot* cannot be read
         without one, but is still the previous session's cookie bytes at rest.
-        Absence, not emptiness, is the bar for the header: an emptied header
-        still shadows the floor.
+        An **emptied** header is acceptable, though: `_load_cookie_jar` treats a
+        falsy header as absent, so it shadows nothing, and its credential bytes
+        are verifiably gone. Demanding physical absence would turn a safely
+        completed transition into a reported failure on any backend that ignores
+        deletes but honours overwrites. Unreadable and non-empty both still fail.
     """
     header = None
     with contextlib.suppress(Exception):  # noqa: BLE001
@@ -390,7 +393,7 @@ def _delete_cookie_jar_tier2(profile: str) -> bool:
                     )
     # Verify, rather than assume.
     try:
-        return purged and read_credential(*_profile_target(profile)) is None
+        return purged and not read_credential(*_profile_target(profile))
     except Exception:  # noqa: BLE001 — unreadable is not "absent"
         return False
 
