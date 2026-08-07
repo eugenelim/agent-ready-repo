@@ -729,26 +729,27 @@ open = [
   # in one commit. Unblocks when: picked up.
   {slug = "test-fixture-domain-normalisation", source = "spec/pack-test-boundary-remaining-packs AC5a"},
 
-  # `packs/converters/tests/skills/render-proof/` holds three JavaScript suites
-  # that no workflow has ever run — `pack-test-boundary-remaining-packs` recorded
-  # them `none (pre-existing)` in its runner manifest and declared them in
-  # `tools/lint-pack-test-boundary.py`'s `_NO_RUNNER`. They are not dead: all
-  # three pass locally after `npm install` in the skill (pipeline, renderer,
-  # security — the last covers `validateInputPath`/`validateOutputPath` path
-  # confinement, which is a security control with no other coverage).
-  # Enabling them is a supply-chain decision, not a repoint. It needs an
-  # `npm install` step in build-check.yml and a committed lockfile: the skill's
-  # package.json declares nine floating-caret dependencies, one of them the
-  # `dompurify` the sanitizer assertions test, and the repo runs no `npm audit`
-  # and has no dependabot config for `packs/**/package.json`.
-  # It also needs `package-archive-carries-pycache` fixed first, or CI installing
-  # node_modules under `packs/` feeds ~10k files to `package.py`'s unfiltered
-  # walk — measured to slow agentbundle's own suite by more than an order of
-  # magnitude, because its tests copy `packs/` into temp dirs and build.
-  # Fix: decide whether the security suite alone earns a runner (it is the one
-  #   with no substitute), then wire install + lockfile + `npm audit`.
-  # Unblocks when: `package-archive-carries-pycache` lands.
-  {slug = "render-proof-js-suites-ungated", source = "spec/pack-test-boundary-remaining-packs disposition"},
+  # The repo has no CI for JavaScript that lives in a pack. `web/` and
+  # `docs-site/` are covered — pages.yml and pack-evals.yml run npm, and both
+  # ship committed lockfiles — but `packs/converters/.apm/skills/render-proof/`
+  # and `.../markdown-to-html/` each declare dependencies with no lockfile and no
+  # workflow. So the three suites at
+  # `packs/converters/tests/skills/render-proof/` have never run in CI. They are
+  # not dead: all three pass locally after `npm install` in the skill, and
+  # security.test.js covers validateInputPath/validateOutputPath path
+  # confinement, which nothing else asserts.
+  # Deliver: a JS workflow for pack skills — setup-node, `npm ci` per skill
+  #   package.json, run the suites; committed lockfiles for both skills;
+  #   `npm audit` wired, since neither has any supply-chain gate today
+  #   (render-proof declares nine floating-caret deps, one being the `dompurify`
+  #   its own sanitizer assertions test).
+  # Then drop the two render-proof entries from `_NO_RUNNER` in
+  #   tools/lint-pack-test-boundary.py — the lint fails on a stale exemption, so
+  #   it will tell you.
+  # Unblocks when: `package-archive-carries-pycache` lands. Until the archive
+  #   walk prunes build residue, CI installing node_modules under `packs/` feeds
+  #   ~10k files to it.
+  {slug = "pack-js-ci-workflow", source = "spec/pack-test-boundary-remaining-packs disposition"},
 
   # lint-spec-status.py matches `^##\s+Acceptance Criteria\b` case-sensitively, so
   # eight specs whose heading reads `## Acceptance criteria` collect zero criteria

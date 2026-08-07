@@ -87,7 +87,7 @@ Permitted values: one or more runner names, `none (pre-existing)`, or
 | `packs/converters/tests/skills/markdown-to-pptx/` | `build-check.yml` "pytest markdown-to-pptx renderer" |
 | `packs/converters/tests/skills/markdown-to-xlsx/` | `build-check.yml` "pytest markdown-to-xlsx renderer" |
 | `packs/converters/tests/skills/msg-to-markdown/` | `build-check.yml` "pytest msg-to-markdown extraction" |
-| `packs/converters/tests/skills/render-proof/` | none (pre-existing) — no workflow has ever run these; enabling them needs an `npm install` step and a lockfile, which is a scope decision, not a repoint |
+| `packs/converters/tests/skills/render-proof/` | none (pre-existing) — the repo has no CI for pack-level JavaScript at all; filed as `pack-js-ci-workflow` |
 | `packs/atlassian/tests/skills/jira/` | `build-check.yml` "pytest jira SSO suites" (probed: `credbroker, httpx`) · `self_host_windows.py` "jira SSO suites" (probed) — names 3 of its 5 suites |
 | ↳ `test_auth_selector.py` | none (pre-existing) — self-skips on `credbroker` |
 | ↳ `test_exit_codes.py` | none (pre-existing) |

@@ -84,14 +84,14 @@ loop vs. surfaced to the human, per the work-loop self-coverage gate.
   real before/after run and all three pass. What remains open is a *scope*
   question, not a verification one: they have never had a CI runner, and giving
   them one needs an `npm install` step and a committed lockfile — see below.
-- **Should `render-proof`'s JavaScript suites gain a CI runner?** They pass, and
-  nothing runs them. Enabling them means an `npm install` step in
-  `build-check.yml` and a committed lockfile for nine floating-caret dependencies
-  including the `dompurify` the sanitizer assertions test. That is a supply-chain
-  and CI-cost decision, not a repoint, so this PR records `none (pre-existing)`
-  and files it as `render-proof-js-suites-ungated` — blocked on
-  `package-archive-carries-pycache`, since CI installing `node_modules` under
-  `packs/` would feed the unfiltered archive walk.
+- **The repo has no CI for JavaScript that lives in a pack.** `render-proof`'s
+  three suites pass and nothing runs them — but the gap is not "should these
+  suites be gated", it is a missing capability. `web/` and `docs-site/` are
+  covered (pages.yml and pack-evals.yml run npm, both ship committed lockfiles);
+  the two skill `package.json`s have neither a lockfile nor a workflow, and no
+  `npm audit` reaches them. Filed as `pack-js-ci-workflow`, blocked on
+  `package-archive-carries-pycache` — until the archive walk prunes build
+  residue, CI installing `node_modules` under `packs/` feeds it ~10k files.
 - **`.gitleaksignore` cannot be settled in advance.** Whether the range scan
   flags the relocated fixtures at their new paths is not knowable here — gitleaks
   is not installed locally. AC16 fixes the policy (keep the historical
