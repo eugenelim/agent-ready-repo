@@ -99,6 +99,17 @@ def broker(request, tmp_path, monkeypatch):
     yield mod, backend
 
 
+def _store_locked(mod, profile, payload):
+    """Drive `_store_cookie_jar` the way production does — under the lock.
+
+    The function is assumes-held: it asserts `(thread, profile)` is in the
+    engine's held-set and raises otherwise, so a test that called it bare would
+    be exercising a path no verb can reach.
+    """
+    with mod._profile_lock(profile):
+        return mod._store_cookie_jar(profile, payload)
+
+
 # ----------------------------------------------------------------------
 # byte-equivalence of bundled Tier-2 helpers (filename rename only).
 # ----------------------------------------------------------------------
@@ -158,7 +169,7 @@ def test_ac12_constant_is_2048(broker):
 def test_ac12_small_jar_stored_in_single_credential(broker):
     mod, backend = broker
     payload = b'[{"name":"sid","value":"abc"}]'
-    label = mod._store_cookie_jar("acme", payload)
+    label = _store_locked(mod, "acme", payload)
     assert label == "keychain"
     assert (mod._SSO_NAMESPACE, "acme") in backend.store
     # Header is the raw jar, not a continuation-meta JSON.
@@ -170,7 +181,7 @@ def test_ac12_large_jar_splits_into_continuation_credentials(broker):
     mod, backend = broker
     # 3 KB payload — exceeds the 2048 threshold; should split into 2 chunks.
     payload = ("x" * 3000).encode("utf-8")
-    label = mod._store_cookie_jar("big", payload)
+    label = _store_locked(mod, "big", payload)
     assert label == "keychain-continuation"
     # Header at agentbundle:sso:big stores {"continuation_count": 2}
     header = backend.store[(mod._SSO_NAMESPACE, "big")]
@@ -188,7 +199,7 @@ def test_ac12_overflow_to_file_when_backend_refuses_continuation(broker, monkeyp
     mod, backend = broker
     backend.refuse_after = 1  # accept header, refuse continuation slots
     payload = ("y" * 3000).encode("utf-8")
-    label = mod._store_cookie_jar("overflow", payload)
+    label = _store_locked(mod, "overflow", payload)
     assert label == "file-floor-overflow"
     # File-floor jar exists.
     floor = mod._SSO_COOKIE_FILE_FLOOR / "overflow.jar"
@@ -199,7 +210,7 @@ def test_ac12_overflow_to_file_when_backend_refuses_continuation(broker, monkeyp
 def test_ac12_jar_reassembly_from_continuation_credentials(broker):
     mod, _ = broker
     payload = ("z" * 3000).encode("utf-8")
-    mod._store_cookie_jar("reass", payload)
+    _store_locked(mod, "reass", payload)
     loaded = mod._load_cookie_jar("reass")
     assert loaded == payload
 
@@ -214,7 +225,7 @@ def test_ac11_linux_floors_to_file(broker, monkeypatch):
     # Simulate Linux: no Tier-2 backend.
     mod._tier2_backend = None
     payload = b'[{"name":"sid","value":"abc"}]'
-    label = mod._store_cookie_jar("acme", payload)
+    label = _store_locked(mod, "acme", payload)
     assert label == "file-floor"
     floor = mod._SSO_COOKIE_FILE_FLOOR / "acme.jar"
     assert floor.read_bytes() == payload
@@ -399,7 +410,7 @@ def test_ac9_get_cookies_emits_path_not_value(broker, monkeypatch):
         "validation_endpoint": "/v", "ttl_hint_minutes": 10,
     })
     jar = b'[{"name":"sid","value":"SECRET-NOT-PRINTED","domain":"x"}]'
-    mod._store_cookie_jar("p1", jar)
+    _store_locked(mod, "p1", jar)
 
     # Capture stdout via redirect.
     import io
@@ -440,7 +451,7 @@ def test_ac9_rm_removes_profile_and_jar(broker):
         "cookie_domains": ["x"], "session_filename": "x",
         "validation_endpoint": "/v", "ttl_hint_minutes": 10,
     })
-    mod._store_cookie_jar("p3", b'[{"name":"sid","value":"v","domain":"x"}]')
+    _store_locked(mod, "p3", b'[{"name":"sid","value":"v","domain":"x"}]')
 
     rc = mod._do_rm("p3")
     assert rc == 0
@@ -457,7 +468,7 @@ def test_ac9_list_profiles_lists_registered(broker, monkeypatch):
             "cookie_domains": ["x"], "session_filename": "x",
             "validation_endpoint": "/v", "ttl_hint_minutes": 10,
         })
-    mod._store_cookie_jar("alpha", b'[]')
+    _store_locked(mod, "alpha", b'[]')
 
     import io
     buf = io.StringIO()
@@ -521,7 +532,7 @@ def test_do_test_rejects_non_http_url_scheme(broker):
         encoding="utf-8",
     )
     # A cookie jar must exist so _do_test reaches the scheme check.
-    mod._store_cookie_jar("evil", b'[{"name":"sid","value":"v"}]')
+    _store_locked(mod, "evil", b'[{"name":"sid","value":"v"}]')
     assert mod._do_test("evil") == 3
 
 
@@ -534,7 +545,7 @@ def test_do_test_accepts_https_url_scheme(broker, monkeypatch):
         '[profile]\nlogin_url = "https://acme.example.com"\nvalidation_endpoint = "/whoami"\n',
         encoding="utf-8",
     )
-    mod._store_cookie_jar("acme", b'[{"name":"sid","value":"v"}]')
+    _store_locked(mod, "acme", b'[{"name":"sid","value":"v"}]')
 
     class _Resp:
         status = 200
@@ -556,7 +567,7 @@ def test_do_test_rejects_schemeless_url(broker):
         '[profile]\nlogin_url = "acme.example.com"\nvalidation_endpoint = "//evil.example/x"\n',
         encoding="utf-8",
     )
-    mod._store_cookie_jar("bare", b'[{"name":"sid","value":"v"}]')
+    _store_locked(mod, "bare", b'[{"name":"sid","value":"v"}]')
     assert mod._do_test("bare") == 3
 
 
@@ -610,9 +621,9 @@ def test_get_cookies_rewrites_stale_materialised_jar(store_backend, monkeypatch)
     mod = store_backend
     _seed_profile(mod, "jira")
 
-    mod._store_cookie_jar("jira", b'[{"name":"old","value":"v","domain":"x"}]')
+    _store_locked(mod, "jira", b'[{"name":"old","value":"v","domain":"x"}]')
     p1 = _get_cookies_path(mod, monkeypatch, "jira")
-    mod._store_cookie_jar("jira", b'[{"name":"new","value":"v","domain":"x"}]')
+    _store_locked(mod, "jira", b'[{"name":"new","value":"v","domain":"x"}]')
     p2 = _get_cookies_path(mod, monkeypatch, "jira")
 
     assert p1 == p2                            # same path…
@@ -728,7 +739,7 @@ def test_rm_still_deletes_legacy_invalid_name(broker):           # STUB: AC8
     # cannot remove.
     mod, _ = broker
     _seed_profile(mod, "legacy name")
-    mod._store_cookie_jar("legacy name", b'[{"name":"sid","value":"v","domain":"x"}]')
+    _store_locked(mod, "legacy name", b'[{"name":"sid","value":"v","domain":"x"}]')
     mod._file_floor_write("legacy name", b'[{"name":"sid","value":"v","domain":"x"}]')
 
     assert mod.main(["rm", "legacy name"]) == 0
@@ -1125,7 +1136,7 @@ def test_a_floored_fallback_is_not_overwritten_by_the_stale_keychain(broker, mon
     mod, backend = broker
     _seed_profile(mod, "jira")
 
-    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+    assert _store_locked(mod, "jira", b'[{"name":"old"}]') == "keychain"
 
     original_write = backend.write_credential
 
@@ -1133,7 +1144,7 @@ def test_a_floored_fallback_is_not_overwritten_by_the_stale_keychain(broker, mon
         raise RuntimeError("keychain write refused")
 
     backend.write_credential = _refuse
-    assert mod._store_cookie_jar("jira", b'[{"name":"new"}]') == "file-floor-overflow"
+    assert _store_locked(mod, "jira", b'[{"name":"new"}]') == "file-floor-overflow"
     backend.write_credential = original_write
 
     assert mod._load_cookie_jar("jira") == b'[{"name":"new"}]', (
@@ -1150,11 +1161,11 @@ def test_a_failed_continuation_leaves_the_new_jar_durable(broker):   # STUB: AC6
     # new jar, and the fallback's floor-first ordering makes that durable.
     mod, backend = broker
     _seed_profile(mod, "jira")
-    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+    assert _store_locked(mod, "jira", b'[{"name":"old"}]') == "keychain"
 
     big = ('[{"name":"new","value":"' + "y" * 3000 + '"}]').encode("utf-8")
     backend.refuse_after = 2        # some chunks land, a later one is refused
-    assert mod._store_cookie_jar("jira", big) == "file-floor-overflow"
+    assert _store_locked(mod, "jira", big) == "file-floor-overflow"
     backend.refuse_after = None
 
     assert mod._load_cookie_jar("jira") == big, "the new jar is not loadable"
@@ -1167,7 +1178,7 @@ def test_the_header_is_the_commit_point(broker, monkeypatch):        # STUB: AC6
     # old session would already be gone.
     mod, backend = broker
     _seed_profile(mod, "jira")
-    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+    assert _store_locked(mod, "jira", b'[{"name":"old"}]') == "keychain"
 
     big = ('[{"name":"new","value":"' + "y" * 3000 + '"}]').encode("utf-8")
     seen: list[str] = []
@@ -1190,7 +1201,7 @@ def test_the_header_is_the_commit_point(broker, monkeypatch):        # STUB: AC6
         lambda profile, serialized: (_ for _ in ()).throw(OSError("no space")),
     )
     with pytest.raises(mod.StoreTransitionError):
-        mod._store_cookie_jar("jira", big)
+        _store_locked(mod, "jira", big)
 
     assert seen and all(":" in k for k in seen), (
         f"every write before the failure must be a chunk, not the header; got {seen}"
@@ -1229,7 +1240,7 @@ def test_rm_does_not_claim_an_unchanged_session(broker, monkeypatch, capsys):
     # profile, so that claim is materially false there.
     mod, _ = broker
     _seed_profile(mod, "jira")
-    mod._store_cookie_jar("jira", b'[{"name":"sid","value":"v","domain":"x"}]')
+    _store_locked(mod, "jira", b'[{"name":"sid","value":"v","domain":"x"}]')
 
     real_unlink = pathlib.Path.unlink
 
@@ -1252,7 +1263,7 @@ def test_a_failed_floor_write_leaves_the_old_jar_intact(broker, monkeypatch):  #
     # been destroyed yet.
     mod, backend = broker
     _seed_profile(mod, "jira")
-    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+    assert _store_locked(mod, "jira", b'[{"name":"old"}]') == "keychain"
 
     def _refuse_write(namespace, key, value):
         raise RuntimeError("keychain write refused")
@@ -1265,7 +1276,7 @@ def test_a_failed_floor_write_leaves_the_old_jar_intact(broker, monkeypatch):  #
     # Translated at the storage boundary, where "nothing was invalidated yet"
     # is actually true — see `_fall_back_to_floor`.
     with pytest.raises(mod.StoreTransitionError):
-        mod._store_cookie_jar("jira", b'[{"name":"new"}]')
+        _store_locked(mod, "jira", b'[{"name":"new"}]')
 
     assert mod._load_cookie_jar("jira") == b'[{"name":"old"}]', (
         "the previously usable session was destroyed for nothing"
@@ -1307,8 +1318,8 @@ def test_a_shrinking_jar_reaps_its_orphaned_slots(broker):      # STUB: AC6a
     big = ("x" * 9000).encode("utf-8")     # 5 slots at the 2048 threshold
     small = ("y" * 5000).encode("utf-8")   # 3 slots
 
-    assert mod._store_cookie_jar("jira", big) == "keychain-continuation"
-    assert mod._store_cookie_jar("jira", small) == "keychain-continuation"
+    assert _store_locked(mod, "jira", big) == "keychain-continuation"
+    assert _store_locked(mod, "jira", small) == "keychain-continuation"
 
     count, gen = mod._continuation_meta("jira")
     slots = sorted(k for _ns, k in backend.store if ":" in k)
@@ -1330,13 +1341,13 @@ def test_a_refused_delete_does_not_leave_the_old_session_readable(broker, monkey
     _seed_profile(mod, "jira")
     old_jar = ("[" + '{"name":"old"},' * 400 + "{}]").encode("utf-8")
     new_jar = ("[" + '{"name":"new"},' * 400 + "{}]").encode("utf-8")
-    assert mod._store_cookie_jar("jira", old_jar) == "keychain-continuation"
+    assert _store_locked(mod, "jira", old_jar) == "keychain-continuation"
 
     _count, old_gen = mod._continuation_meta("jira")
     assert old_gen is not None
     monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
 
-    assert mod._store_cookie_jar("jira", new_jar) == "keychain-continuation"
+    assert _store_locked(mod, "jira", new_jar) == "keychain-continuation"
     assert mod._load_cookie_jar("jira") == new_jar
 
     survivors = {
@@ -1360,7 +1371,7 @@ def test_an_unpurgeable_superseded_slot_is_exit_3_not_a_silent_success(
     calls = _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
     del calls
     old_jar = ("[" + '{"name":"old"},' * 400 + "{}]").encode("utf-8")
-    assert mod._store_cookie_jar("jira", old_jar) == "keychain-continuation"
+    assert _store_locked(mod, "jira", old_jar) == "keychain-continuation"
     _count, old_gen = mod._continuation_meta("jira")
 
     real_write = backend.write_credential
@@ -1376,7 +1387,7 @@ def test_an_unpurgeable_superseded_slot_is_exit_3_not_a_silent_success(
     )
 
     with pytest.raises(mod.StoreTransitionError) as caught:
-        mod._store_cookie_jar("jira", ("z" * 9000).encode("utf-8"))
+        _store_locked(mod, "jira", ("z" * 9000).encode("utf-8"))
     assert "superseded" in str(caught.value)
     # Accurate about what did happen: the new session *was* stored.
     assert "stored the new session" in str(caught.value)
@@ -1389,7 +1400,7 @@ def test_an_emptied_header_is_absent_not_an_empty_jar(broker, monkeypatch):
     # the contract calls for exit 2. A captured jar is JSON, never "".
     mod, backend = broker
     _seed_profile(mod, "jira")
-    assert mod._store_cookie_jar("jira", b'[{"name":"only"}]') == "keychain"
+    assert _store_locked(mod, "jira", b'[{"name":"only"}]') == "keychain"
     monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
 
     mod._delete_cookie_jar("jira")
@@ -1411,7 +1422,7 @@ def test_a_scrubbed_old_header_is_a_completed_transition_not_a_failure(
     # resolves correctly on the next read.
     mod, backend = broker
     _seed_profile(mod, "jira")
-    assert mod._store_cookie_jar("jira", b'[{"name":"old"}]') == "keychain"
+    assert _store_locked(mod, "jira", b'[{"name":"old"}]') == "keychain"
 
     real_write = backend.write_credential
 
@@ -1424,7 +1435,7 @@ def test_a_scrubbed_old_header_is_a_completed_transition_not_a_failure(
     monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
 
     new_jar = b'[{"name":"new"}]'
-    assert mod._store_cookie_jar("jira", new_jar) == "file-floor-overflow"
+    assert _store_locked(mod, "jira", new_jar) == "file-floor-overflow"
     assert backend.store.get((mod._SSO_NAMESPACE, "jira")) == "", (
         "this test is only meaningful while the scrub leaves an empty header"
     )
@@ -1448,7 +1459,7 @@ def test_a_rejected_header_does_not_strand_the_staged_chunks(broker, monkeypatch
     monkeypatch.setattr(backend, "write_credential", _reject_the_header)
     monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
 
-    assert mod._store_cookie_jar(
+    assert _store_locked(mod,
         "jira", ("z" * 9000).encode("utf-8")
     ) == "file-floor-overflow"
 
@@ -1482,7 +1493,7 @@ def test_unscrubbable_staged_chunks_are_exit_3_not_a_success_label(
     monkeypatch.setattr(backend, "delete_credential", lambda namespace, key: None)
 
     with pytest.raises(mod.StoreTransitionError) as caught:
-        mod._store_cookie_jar("jira", ("z" * 9000).encode("utf-8"))
+        _store_locked(mod, "jira", ("z" * 9000).encode("utf-8"))
     assert "staged keychain chunks" in str(caught.value)
     assert "stored the new session" in str(caught.value)
 
@@ -1498,7 +1509,7 @@ def test_an_unreadable_header_never_stages_over_the_committed_generation(
     mod, backend = broker
     _seed_profile(mod, "jira")
     old_jar = ("[" + '{"name":"old"},' * 400 + "{}]").encode("utf-8")
-    assert mod._store_cookie_jar("jira", old_jar) == "keychain-continuation"
+    assert _store_locked(mod, "jira", old_jar) == "keychain-continuation"
     _count, old_gen = mod._continuation_meta("jira")
     assert old_gen == mod._GENERATIONS[0], (
         "the first write must land on the generation a failed read would pick, "
@@ -1519,7 +1530,7 @@ def test_an_unreadable_header_never_stages_over_the_committed_generation(
     # unknown; the Tier-2 invalidation cannot be verified through the same
     # failing read, so this surfaces rather than reporting a capture.
     with pytest.raises(mod.StoreTransitionError):
-        mod._store_cookie_jar("jira", ("z" * 9000).encode("utf-8"))
+        _store_locked(mod, "jira", ("z" * 9000).encode("utf-8"))
 
     monkeypatch.setattr(backend, "read_credential", real_read)
     slots = {k: v for k, v in backend.store.items() if f":{old_gen}:" in k[1]}
@@ -1539,7 +1550,7 @@ def test_a_committed_continuation_jar_survives_a_failed_replacement(broker, monk
     _seed_profile(mod, "jira")
     old_jar = ("[" + '{"name":"old"},' * 400 + "{}]").encode("utf-8")
     assert len(old_jar) > mod.CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES
-    assert mod._store_cookie_jar("jira", old_jar) == "keychain-continuation"
+    assert _store_locked(mod, "jira", old_jar) == "keychain-continuation"
 
     new_jar = ("[" + '{"name":"new"},' * 400 + "{}]").encode("utf-8")
     real = backend.write_credential
@@ -1557,7 +1568,7 @@ def test_a_committed_continuation_jar_survives_a_failed_replacement(broker, monk
         lambda profile, serialized: (_ for _ in ()).throw(OSError("no space")),
     )
     with pytest.raises(mod.StoreTransitionError):
-        mod._store_cookie_jar("jira", new_jar)
+        _store_locked(mod, "jira", new_jar)
 
     assert mod._load_cookie_jar("jira") == old_jar, (
         "the committed jar was corrupted before the header switch"
@@ -1581,7 +1592,7 @@ def test_a_legacy_ungenerationed_header_still_loads(broker):    # STUB: AC6a
 
     # And a replacement reaps the legacy slots rather than orphaning them.
     _seed_profile(mod, "legacy")
-    assert mod._store_cookie_jar("legacy", ("w" * 5000).encode("utf-8")) == (
+    assert _store_locked(mod, "legacy", ("w" * 5000).encode("utf-8")) == (
         "keychain-continuation"
     )
     leftovers = [k for _ns, k in backend.store if k.startswith("legacy:")

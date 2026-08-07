@@ -467,6 +467,9 @@ def _delete_cookie_jar_tier2(profile: str) -> bool:
 def _fall_back_to_floor(profile: str, serialized: bytes) -> str:
     """Move authority from Tier-2 to the file floor, in a safe order.
 
+    **The caller holds this profile's lock** — reached only from inside
+    `_store_cookie_jar`, which asserts it.
+
     Floor **first**, invalidate **second**, verify **third**:
 
     * writing the floor before deleting means a failed floor write leaves the
@@ -503,7 +506,17 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
 
     Returns one of: "keychain" / "keychain-continuation" /
     "file-floor" / "file-floor-overflow" — for stderr announcement.
+
+    **The caller holds this profile's lock.** Asserted, not assumed: the whole
+    transition — generation choice, chunk staging, header commit, reap — has to
+    be one critical section, and a caller that acquired for a *different*
+    profile is the likeliest wiring mistake in a four-site design.
     """
+    if not _thread_holds(profile):
+        raise LockUnavailableError(
+            f"sso-broker: internal bug: _store_cookie_jar called for profile "
+            f"{profile!r} without holding that profile's lock"
+        )
     threshold = CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES
 
     if not _tier2_capable():
@@ -622,7 +635,11 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
 def _load_cookie_jar(profile: str) -> bytes | None:
     """Read the serialised jar from Tier-2 (with continuation
     reassembly) or fall back to file-floor read. Returns ``None`` when
-    no jar is present."""
+    no jar is present.
+
+    **The caller holds this profile's lock.** Reassembly reads the header and
+    then each slot; a concurrent commit-and-reap in between returns ``None``
+    from a jar that exists, which is what the lock prevents."""
     if _tier2_capable():
         ns, key = _profile_target(profile)
         header = read_credential(ns, key)
@@ -661,6 +678,9 @@ def _load_cookie_jar(profile: str) -> bytes | None:
 
 
 def _delete_cookie_jar(profile: str) -> None:
+    """Remove a profile's jar from both surfaces.
+
+    **The caller holds this profile's lock.**"""
     if _tier2_capable():
         # Best-effort: delete header + any continuation slots up to a
         # reasonable cap (the count is in the header but if reading
@@ -1197,20 +1217,30 @@ def _capture(
     if not cookie_domains:
         cookie_domains = sorted({c["domain"].lstrip(".") for c in captured_cookies})
 
-    # Persist profile TOML.
-    _write_profile(profile, {
-        "name": profile,
-        "login_url": login_url,
-        "success_url_pattern": success_pattern,
-        "cookie_domains": cookie_domains,
-        "session_filename": session_filename,
-        "validation_endpoint": validation_endpoint,
-        "ttl_hint_minutes": ttl_hint_minutes,
-    })
-
-    # Persist cookie jar.
+    # One lock across the profile TOML *and* the jar, taken here — after all the
+    # browser work, before anything durable is written.
+    #
+    # The placement is the whole point. Taking it inside `_store_cookie_jar`
+    # would let a contended capture return "failed" having already overwritten
+    # the destination-pinning anchor that only a completed, operator-authorised
+    # register is supposed to write. Taking it *before* the browser would hold it
+    # across a capture bounded in minutes, starving every reader.
+    #
+    # `browser-state/<profile>` is already written by `launch_persistent_context`
+    # before we get here, so a contended exit leaves that directory changed. That
+    # is stated in the spec rather than papered over — the lock cannot unwind it.
     serialized = json.dumps(captured_cookies, separators=(",", ":")).encode("utf-8")
-    storage_label = _store_cookie_jar(profile, serialized)
+    with _profile_lock(profile):
+        _write_profile(profile, {
+            "name": profile,
+            "login_url": login_url,
+            "success_url_pattern": success_pattern,
+            "cookie_domains": cookie_domains,
+            "session_filename": session_filename,
+            "validation_endpoint": validation_endpoint,
+            "ttl_hint_minutes": ttl_hint_minutes,
+        })
+        storage_label = _store_cookie_jar(profile, serialized)
     sys.stderr.write(
         f"sso-broker register: profile {profile!r} registered "
         f"({len(captured_cookies)} cookies, stored via {storage_label})\n"
@@ -1320,13 +1350,19 @@ def _do_get_cookies(profile: str) -> int:
         )
         return 2
 
-    jar = _load_cookie_jar(profile)
-    if jar is None:
-        sys.stderr.write(
-            f"sso-broker get-cookies: no cookie jar for profile {profile!r}; "
-            f"re-auth required (run 'sso-broker register {profile} ...')\n"
-        )
-        return 2
+    # One lock across the load *and* the materialisation. Splitting them would
+    # leave the two halves of the original finding open: a load that races a
+    # commit-and-reap reads `None` from a jar that exists, and two materialisers
+    # can land their `os.replace` out of order so a stale reader overwrites a
+    # fresher file.
+    with _profile_lock(profile):
+        jar = _load_cookie_jar(profile)
+        if jar is None:
+            sys.stderr.write(
+                f"sso-broker get-cookies: no cookie jar for profile {profile!r}; "
+                f"re-auth required (run 'sso-broker register {profile} ...')\n"
+            )
+            return 2
 
     # Materialise the jar to a 0600 file under sso-cookies/ and print its path.
     # Consumer skills read the file and never see cookie values via argv/stdout.
