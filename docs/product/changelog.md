@@ -482,13 +482,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `append-knowledge.py` now allocates the next id, writes raw UTF-8, confines
   its target, and lints the candidate before installing it, so a rejected entry
   never reaches the file. `lint-knowledge.py` rejects a `\uXXXX` escape for any
-  character that should have been literal — keeping the escaped form legal
-  where it is the only one that survives (`U+0085`, `U+2028`, `U+2029`, which
-  `str.splitlines()` treats as line breaks, plus the five C0 characters JSON
-  genuinely needs). Every other C0 escape is refused: the writer already
-  refused a literal `ESC` — `session-start` replays it as an ANSI sequence —
-  and a gate that accepted the escaped spelling would leave the hand-edit
-  path this rule exists for wide open.
+  character that should have been literal. Every C0 character and every line
+  separator (`U+0085`, `U+2028`, `U+2029`) is refused in **both** spellings:
+  the literal form splits `str.splitlines()`, which is how the linter and
+  `session-start` read the file, and the escaped form is worse — it survives
+  the round trip intact, so it forges a line inside the block replayed into
+  every session. The escape rule still exempts the three separators, but only
+  so an entry carrying one gets a single clear error rather than two.
+- **The knowledge-base guidance points at the privacy rule.** Capturing a
+  learning is now a routine agent-authored commit into a permanent git
+  artifact, and the author holds session context full of paths and identities,
+  so all three authoring surfaces name `AGENTS.md` § Privacy alongside the
+  encoding convention.
 
 ### Upgrading
 

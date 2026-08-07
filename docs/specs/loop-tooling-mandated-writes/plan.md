@@ -75,7 +75,7 @@ dependency; both scripts stay pure-stdlib.
 | 11 | Is a `schema_version` cutover safe? | **Resolved (round-2 review)** — no; see spec Assumption 1 for the sites. Decisively, it would break *this run* mid-flight. Withdrawn. The legacy-hash diagnostic that replaced it was itself withdrawn in round 3 — see row 16. |
 | 12 | Can AC9's status assertion turn a green pre-guard red? | **Resolved, then widened** — plan fixtures carry no status line, so the skip-on-absent rule is what makes it safe. A draft scoped it to `plan check-current` only; post-EXECUTE security review showed a compensating control covering one of three sites is not one, so it now runs at all three. |
 | 13 | Does `lint-knowledge.py` accept a `--` separator? | **Resolved (round-2 review)** — no; verified it resolves `--` as the target path. Dropped from AC18. |
-| 14 | Does the new self-test actually gate? | **Resolved (round-2 review)** — not via `test-all.py` alone, which `build_gate_chain.py:205-212` says is hand-run, and the hyphenated name blocks pytest collection. Now also wired into `docs.yml`. |
+| 14 | Does the new self-test actually gate? | **Resolved (round-2 review)** — not via `test-all.py` alone, which `build_gate_chain.py` says is hand-run, beside its `test-test-all` step, and the hyphenated name blocks pytest collection. Now also wired into `docs.yml`. |
 | 15 | Do the stubs pass after the described implementation? | **Resolved (round-2 review)** — one would not have: the confinement stub pointed *inside* the root. Fixed, plus symlink-escape and decoy-`GIT_DIR` cases added. |
 | 16 | Does the legacy-hash diagnostic actually fire? | **Resolved (round-3 review)** — no. It compares the *current* bytes' legacy hash, but a run past `plan-locked` has already had `Status: Implementing` written, so that mismatches too and the branch stays silent exactly for the wedged population. Withdrawn; AC10 is now an unconditional both-causes message, which deletes the mechanism. |
 | 17 | Is there a rollback window in the writer? | **Resolved (round-3 review)** — the snapshot/restore design had one. Reordered to lint the temp file *before* installing it, so the target is never replaced by unvalidated content. Simpler and strictly safer. |
@@ -168,8 +168,8 @@ per-line rstrip:
   wrong, in opposite directions, and the current fixtures would hide it:
 
   - `str.replace(token, ...)` also rewrites the token where it occurs **inside
-    the vocabulary comment** on the same line. 158 spec/plan files in this repo
-    carry `- **Status:** X <!-- Draft | Approved | Implementing | ... -->`, so
+    the vocabulary comment** on the same line. Every spec and plan the template
+    emits carries `- **Status:** X <!-- Draft | Approved | Implementing | ... -->`, so
     `Draft` normalizes to `<T> <!-- <T> | Approved | ...` and `Implementing` to
     `<T> <!-- Draft | Approved | <T> | ...` — different digests, AC4 broken on
     every real spec.
@@ -443,7 +443,7 @@ workflow's `paths:` list (`:23-25`) for explicitness parity with the
 `'packs/**'` at `:27` already matches the new file, so the job would trigger
 regardless — the entry is consistency, not coverage. The
 filename is hyphenated so `pytest packs/core/tests/` never collects it, and
-`tools/test-all.py` is hand-run (`tools/repo/build_gate_chain.py:205-212`
+`tools/test-all.py` is hand-run (`tools/repo/build_gate_chain.py`'s `_script_step` comment
 states this), so `test-all.py` alone would be a gate that does not gate.
 
 **Manual QA:** invoke the script for real, read the produced bytes, record them

@@ -28,6 +28,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import unicodedata
 from pathlib import Path
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
@@ -201,10 +202,14 @@ def layer_validation_rules(tmp: Path) -> None:
     # AC20a — the writer refuses a literal ESC because session-start replays it
     # as an ANSI sequence; the gate must refuse the escaped spelling too, or the
     # hand-edit path this rule exists for stays open.
+    # One error, from the decoded pass. The escape rule deliberately stays quiet
+    # for anything the decoded pass already refuses — otherwise an escaped ESC
+    # fires twice and the escape rule's advice ("write it literally") points at
+    # a form that is also refused.
     run_case(tmp, "stub-escaped-esc-rejected",
              '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
              '"body": "pre \\u001b[31mRED post", "source": "s"}\n',
-             1, "\\u001b")
+             1, "control character U+001B")
     # AC16 — three adjacent zero-width characters is an alphabet, not text.
     # The run spans joiners AND presentation selectors: counting joiners only
     # left an alternating VS15/VS16 sequence invisible to every check.
@@ -610,6 +615,16 @@ def layer_default_ignorable_property() -> None:
     spec = importlib.util.spec_from_file_location("_lk", str(LINTER))
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
+    # The range list below is a *mirror* of the linter's table, so on its own it
+    # only catches a one-sided edit. Pinning the UCD version is what makes a
+    # Unicode revision fail here: when this assertion trips, re-derive both
+    # tables from DerivedCoreProperties for the new version rather than bumping
+    # the string.
+    if unicodedata.unidata_version != "15.1.0":
+        fail("default-ignorable-property",
+             f"UCD moved to {unicodedata.unidata_version}; re-derive "
+             f"Default_Ignorable_Code_Point and update both tables")
+        return
     DEFAULT_IGNORABLE = (
         (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C), (0x115F, 0x1160),
         (0x17B4, 0x17B5), (0x180B, 0x180F), (0x200B, 0x200F), (0x202A, 0x202E),

@@ -159,7 +159,10 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
     for m in _ESCAPE_RE.finditer(raw):
         cp = int(m.group(2), 16)
-        if cp in _LINE_BREAKERS:
+        # Skip anything the decoded pass refuses outright. Otherwise an escaped
+        # C0 fires twice, and the escape rule's advice — "write it literally" —
+        # points at a form that is also refused.
+        if cp in _LINE_BREAKERS or cp < 0x20:
             continue
         found.append((f"\\u{m.group(2)}", chr(cp)))
     return found

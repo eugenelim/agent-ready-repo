@@ -298,8 +298,10 @@ unparseable lines.
       legal.
 - [x] AC21. `SKILL.md`, `docs/knowledge/README.md`, and
       `packs/core/seeds/docs/knowledge/README.md` name the script as the way to
-      append, state the raw-UTF-8 convention, and state the trust posture from
-      AC16. The two READMEs' `## Verify before committing` sections stay
+      append, state the raw-UTF-8 convention, state the trust posture from
+      AC16, and point at `AGENTS.md` § Privacy — this change makes knowledge
+      capture a routine agent-authored commit into a permanent git artifact,
+      and that rule covers all of them. The two READMEs' `## Verify before committing` sections stay
       byte-identical.
 - [x] AC22. A self-test covers the writer: id allocation over a gap;
       confinement refusal for both an out-of-root path and a symlink that
@@ -312,7 +314,7 @@ unparseable lines.
 - [x] AC23. The self-test actually gates. `tools/test-all.py` lists it, **and**
       a step running it is added to the `lint-knowledge` job in
       `.github/workflows/docs.yml` — `tools/test-all.py` is hand-run
-      (`tools/repo/build_gate_chain.py:205-212` says so), so listing it there
+      (`tools/repo/build_gate_chain.py` says so beside its `test-test-all` step), so listing it there
       alone would be a gate that does not gate.
 
 **Both**

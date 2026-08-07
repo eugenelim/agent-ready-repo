@@ -217,7 +217,12 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
         try:
             if lock.read_text(encoding="utf-8") == token:
                 lock.unlink()
-        except OSError:
+        except (OSError, ValueError):
+            # ValueError catches UnicodeDecodeError, which is not an OSError: a
+            # lock overwritten with binary made release raise *after*
+            # `tmp.replace(target)` had installed the entry, so the caller saw a
+            # traceback and never saw the id — the tool reporting wrongly about
+            # what reached disk, which is the failure this lock exists to stop.
             pass
 
 

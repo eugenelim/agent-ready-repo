@@ -265,9 +265,9 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
         if token:
             # Span-bounded splice of the token only. A str.replace would also
             # rewrite the token where it recurs inside the trailing vocabulary
-            # comment (`<!-- Draft | Approved | Implementing | ... -->`), which
-            # 158 spec/plan files in this repo carry — making each status
-            # normalize differently. Splicing _STATUS_RE's whole group(1) span
+            # comment (`<!-- Draft | Approved | Implementing | ... -->`) that
+            # every spec and plan the template emits carries — making each
+            # status normalize differently. Splicing _STATUS_RE's whole group(1) span
             # would swallow appended free text and defeat the pin.
             start = m.start(1)
             lines[i] = raw[:start] + _STATUS_PLACEHOLDER + raw[start + len(token):]
@@ -276,7 +276,8 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
     # Which checkboxes count as bookkeeping depends on the artifact, so the
     # caller says. A spec's progress marks live in its Acceptance Criteria
     # section; a checkbox under `## Boundaries` is a `Never do` item, which is
-    # precisely the scope the pin protects — two specs in this repo have one.
+    # precisely the scope the pin protects. This is a forward invariant: no
+    # spec carries such a checkbox today.
     # A plan has no such section: every checkbox in it is task progress, and
     # four plans here carry them, so a plan is normalized file-wide.
     #

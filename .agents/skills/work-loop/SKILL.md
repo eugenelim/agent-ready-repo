@@ -466,7 +466,7 @@ Write the **generalizable lesson**, not the incident report. Strip PR details; w
     --scope 'packages/auth/**' --title '...' --body '...' --source 'PR#42'
   ```
 
-  If you do write a line by hand: entries are **raw UTF-8, never `\uXXXX`-escaped**. Both forms are valid JSON, so `json.dumps(entry)` — `ensure_ascii` defaults to `True` — drifts the file to escapes while still passing every other rule. Pass `ensure_ascii=False`. Entries are replayed verbatim into every future session, so never paste content from an untrusted source into one; characters that render as nothing — bidi overrides, the Unicode Tag block, the variation selectors — are refused outright for the same reason.
+  If you do write a line by hand: entries are **raw UTF-8, never `\uXXXX`-escaped**. Both forms are valid JSON, so `json.dumps(entry)` — `ensure_ascii` defaults to `True` — drifts the file to escapes while still passing every other rule. Pass `ensure_ascii=False`. Entries are replayed verbatim into every future session, so never paste content from an untrusted source into one; characters that render as nothing — bidi overrides, the Unicode Tag block, the variation selectors — are refused outright for the same reason. Entries are committed and permanent, so they follow `AGENTS.md` § Privacy: no real names, emails, org hostnames, or user-specific filesystem paths — use the placeholders listed there.
 
   **Verify before committing.** `lint-knowledge.py` ships beside this skill and `pre-pr.py` runs it for you; run it directly to check as you write — **unfiltered**, reading its exit code:
 
