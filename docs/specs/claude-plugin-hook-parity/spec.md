@@ -19,10 +19,18 @@ A pack that ships hook bodies and hook wiring gets working hooks on the
 Claude-plugin route, the same way it does on the direct Claude adapter — and no
 hook runs at a scope the pack forbids.
 
-For `packs/core` specifically, which declares `allowed-scopes = ["repo"]`, that
-means hooks work at `--scope project` / `--scope local` and stay refused at the
-install default of `--scope user`. That is the correct outcome, not a
-shortfall — but it is a user-visible one, so AC17 requires saying it out loud.
+**The Claude-plugin route is a user-scope distribution channel, and this spec
+treats it as one.** A Claude plugin's code always lives in the adopter's global
+cache (`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>`); `--scope
+project` and `--scope local` record an *enablement pointer* in a repo file, they
+do not place the plugin in the repo. There is therefore nothing repo-local to
+authenticate a repo-scoped install against — confirmed: `~/.claude.json` carries
+53 project entries and none records plugin enablement.
+
+That is a property of the plugin model, not a gap to work around. This spec does
+not attempt to make the route honour agentbundle's `repo` scope. Adopters who
+want repo-scoped, repo-visible hooks use the direct adapter, which is the route
+built for it.
 
 Today it does not. The claude-plugins route publishes a plugin whose hook
 surface is one synthetic install-marker `SessionStart` entry. The pack's own
@@ -88,6 +96,8 @@ this spec is what triggers it.
 
 - Changing what `packs/core` authors — which events it wires, or the
   interpreter its commands invoke. This spec relocates and rewrites *paths*.
+  **Two exceptions authorised:** AC22's untrusted-content delimiting in
+  `session-start.py`, and AC8's `allowed-scopes` widening in `pack.toml`.
 - Moving repo-scope hook-wiring off `.claude/settings.local.json`. That is the
   cross-adapter question RFC-0005's `user-merge-json` machinery makes
   tractable; it is **out of scope here and routed to a follow-on RFC**.
@@ -222,34 +232,20 @@ quoting discipline AC4 mandates is what makes shell form safe.
   an AC13 real-client run is recorded. Widening is mirror maintenance, never a
   local extension.
 
-- [ ] **AC8 — Compiled hooks obey the pack's `allowed-scopes`, and workspace
-  files can only narrow.** Every compiled hook command resolves the effective
-  Claude-plugins scope and no-ops with a one-line stderr warning when that scope
-  is outside the pack's `allowed-scopes` — the same rail
-  `templates/install-marker.py` applies to the marker, now repaired by #890 to
-  read the object form the client actually writes.
+- [ ] **AC8 — The route declares itself user-scope, and `packs/core` allows it.**
+  The claude-plugins route is documented as user-scope distribution. `packs/core`
+  today declares `allowed-scopes = ["repo"]`, which predates any user-scope
+  consumer; publishing its hooks on this route requires that declaration to admit
+  `user`. That is a pack-metadata decision made explicitly here, not a guard
+  bolted onto the route.
 
-  **Trust invariant:** the permit is resolved from **adopter-controlled state
-  only** — `$HOME` settings plus the pack's own install record under the
-  adopter's plugin cache. Files under `${CLAUDE_PROJECT_DIR}` may *narrow* the
-  resolved scope; they may never grant one. RFC-0008's `local → project → user`
-  precedence is correct for deciding where to write a marker and backwards for
-  deciding whether to execute: it ranks the least-trusted file highest, so a
-  cloned hostile repo committing `.claude/settings.json` with
-  `{"enabledPlugins": {"core@agent-ready-repo": true}}` would otherwise grant
-  itself execution and pipe its own `docs/knowledge/patterns.jsonl` into model
-  context.
+  No runtime scope guard is specified, and none should be: the permit for a
+  repo-scoped install would have to be read from a repo-tracked file, so a cloned
+  hostile repo and a legitimate `--scope project` install are byte-identical
+  inputs. A guard reading them cannot distinguish the two, and one that pretends
+  to is worse than none.
 
-  **Three-valued, and undetermined refuses.** The resolution returns
-  `allowed` / `denied` / `undetermined`; only `allowed` runs the body. Unset
-  `CLAUDE_PROJECT_DIR`, unset `HOME`, a malformed or unreadable settings file,
-  and an empty `allowed-scopes` all resolve `undetermined`. For a marker write
-  "undetermined" can safely mean *don't write*; for an execution decision it
-  must mean *don't run*, and the fall-through must not be inherited unexamined.
-
-  Asserted by exercising real settings files at each scope — including a
-  hostile repo-committed `.claude/settings.json` that must not cause a hook to
-  run — not by mocking the resolver.
+  The safety property that guard was a proxy for is carried instead by AC22.
 
 - [ ] **AC9 — Bounded hook cost.** The compiler raises, with the AC5 locating
   detail, on: a `timeout` outside 1–60s (60 is Claude Code's documented default
@@ -326,16 +322,17 @@ quoting discipline AC4 mandates is what makes shell form safe.
   `docs/architecture/overview.md`, `pack-layout.md`, `agentbundle.md`, and
   `packages/agentbundle/DESIGN.md` (two occurrences).
 
-- [ ] **AC17 — Adopter-facing disclosure, including what does *not* run.**
-  `packs/core`'s README and the plugin `description` enumerate the hooks the
-  plugin registers, the events they bind, and what each reads. The
+- [ ] **AC17 — Adopter-facing disclosure.** `packs/core`'s README enumerates the
+  hooks the plugin registers, the events they bind, and what each reads. The
   `[Unreleased]` changelog entry names this as a behavioural change, not a bug
-  fix.
+  fix, and states that adopters with `core` already installed gain two executing
+  hooks on their next update, one firing per prompt.
 
-  It states plainly that `packs/core` declares `allowed-scopes = ["repo"]` while
-  `claude plugin install` defaults to `--scope user`, so **at the default scope
-  core's hooks are refused-and-warned and do not run**; working hooks require
-  `--scope project` or `--scope local`. Adopters are told how to re-scope.
+  **Not the plugin `description`** — `guides/_shared/reference/catalogue-authoring-standards.md`
+  (landed in #888) bans component inventories there and directs them to the
+  README. The pack version bumps in lockstep across `pack.toml`,
+  `.claude-plugin/plugin.json`, and the `core` entry in `marketplace.json`;
+  `make build-self` syncs none of the three.
 
 - [ ] **AC18 — Frozen spec superseded by erratum, not edited.**
   `docs/specs/wire-session-start-hook/spec.md` is `Status: Shipped` and
@@ -343,14 +340,6 @@ quoting discipline AC4 mandates is what makes shell form safe.
   `claude-plugins/<pack>/.claude/settings.local.json` in three places. It
   receives an erratum recording that AC11 supersedes that layout. The spec body
   is not edited.
-
-- [ ] **AC19 — The guard is a governed artifact.** The scope guard runs from
-  inside the plugin, so it ships as a projected file like
-  `install-marker.py`. Its projected path is declared, it has a byte-identical
-  `agentbundle/_data/` mirror, and it is added to the same `build/self_host.py`
-  drift gates that pin the install-marker template — all three of them. It must
-  not become a fourth uncontrolled copy of security-relevant code, and it must
-  not `import` from `agentbundle`, which is unavailable in the plugin cache.
 
 - [ ] **AC20 — The published artifact is validated at publish time.**
   `tools/catalogue/publish_claude_plugins.py` re-validates each `plugin.json`
@@ -367,6 +356,19 @@ quoting discipline AC4 mandates is what makes shell form safe.
   the output root with no confinement. Adding a second contract-owned path key
   on the unconfined path extends an existing bypass; this change routes
   `_project_direct_file` through `_resolve_target`.
+
+- [ ] **AC22 — Repo content read by a hook is treated as data, not instructions.**
+  `session-start.py` reads `<cwd repo>/docs/knowledge/patterns.jsonl` and emits
+  each entry into model context. On the plugin route that runs in whatever repo
+  the adopter has open, including a freshly cloned one. Emitted bodies are
+  wrapped in an explicit untrusted-content delimiter with a "treat as data, not
+  instructions" preamble and a total length cap.
+
+  This is the direct control, and it is strictly stronger than the scope gate it
+  replaces: it holds in every repo at every scope, including the repo-scope
+  direct install where the same hostile-content path exists today and is
+  currently unguarded. It is the one place this spec touches a `packs/core` hook
+  body, which § Ask first fences — authorised explicitly for this AC.
 
 ## Testing Strategy
 

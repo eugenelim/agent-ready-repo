@@ -29,18 +29,24 @@ while rewriting paths and rejecting shapes.
 **C — the merge.** `build/main.py` currently *assigns* `derived["hooks"]`. It
 becomes marker-entry-first, then the compiled block appended.
 
-**D — the scope guard.** #890 repaired the `enabledPlugins` walk, so the rail
-`templates/install-marker.py` applies to the marker now actually resolves. The
-guard reuses that resolution but **not** its precedence: per spec AC8 the permit
-comes from adopter-controlled state only, and workspace files may narrow but
-never grant. The guard ships as its own projected file with its own mirror and
-drift gates (AC19) rather than as an edit to the install-marker template, which
-three gates pin byte-for-byte and which is projected standalone into the plugin
-cache where it cannot import from `agentbundle`.
+**D — scope, resolved by not fighting it.** The route is user-scope
+distribution. A Claude plugin's code lives in the adopter's global cache; the
+`project`/`local` install scopes record an enablement pointer in a repo file
+rather than placing anything in the repo, so a repo-scoped install has no
+repo-local artifact to authenticate against — `~/.claude.json` carries 53
+project entries and none records plugin enablement. A runtime guard would be
+reading a repo-tracked file to decide whether to execute, which a hostile repo
+controls.
 
-The APM route needs nothing: #890 records that `_apm_detect_scope` resolves
-scope by projected-path containment and never reads `enabledPlugins`, so its
-copy of the rail has been enforcing all along.
+So there is no guard, no lifted rail, and no edit to
+`templates/install-marker.py` (three drift gates pin its bytes, and #890 already
+made its own rail correct). `packs/core` widens `allowed-scopes` to admit
+`user`, and the safety property the guard was standing in for moves to AC22 —
+delimiting repo-read content as untrusted data, which holds at every scope on
+every route including the direct one.
+
+The APM route needs nothing: #890 records that `_apm_detect_scope` resolves by
+projected-path containment and never reads `enabledPlugins`.
 
 **E — the schema.** The derived `hooks` block becomes
 `{additionalProperties: <entry-array schema>}` — shape only. Event-name
@@ -176,49 +182,32 @@ imports only `agentbundle.pack_inventory` / `agentbundle.safety`.
 timeout out of range, entry/hook count caps, matcher shape. Every message
 asserts pack + file + command.
 
-### T4 — The scope guard
-**Depends on:** none · **Mode:** TDD
-
-**Tests:** the trust invariant, driven through real settings files —
-a hostile repo-committed `.claude/settings.json` granting the pack must **not**
-cause a hook to run; unset `CLAUDE_PROJECT_DIR`, unset `HOME`, malformed JSON,
-and empty `allowed-scopes` each resolve `undetermined` → refuse; a legitimate
-`project`-scope install of a repo-only pack runs. Object-form `enabledPlugins`
-throughout — the array form is what hid #890's bug.
-
-**Approach:** a standalone projected script (AC19), self-contained, stdlib-only,
-no `agentbundle` import. Reuses #890's repaired reading of `enabledPlugins` but
-resolves the permit per AC8's trust invariant, returning three values. Register
-its projected path and `_data/` mirror in all three `build/self_host.py` drift
-gates. **Do not edit `templates/install-marker.py`** — its behaviour is correct
-after #890 and three gates pin its bytes.
-
-### T5 — Guard emission in the compiler
-**Depends on:** T3, T4 · **Mode:** TDD
+### T5 — The hook compiler
+**Depends on:** T3 · **Mode:** TDD
 
 **Approach:** `build/projections/plugin_hooks.py` exposing
 `compile_plugin_hooks(pack_path, *, repo_hook_prefix, plugin_hook_prefix,
-hook_source_path, wiring_source_path, guard_path, pack_name) -> dict`. **All
-five paths are parameters read off the contract by the caller** — `tools/hooks/`
-and `hooks/` are `target-path`/`plugin-target-path`, and `.apm/hooks/` /
-`.apm/hook-wiring/` are `[primitive.*] source-path`. A module-level constant for
-any of them would be a second copy that drifts the day the contract changes.
-This departs from the gemini/cursor/copilot sibling convention of a private
-prefix constant, because those adapters hardcode a destination this route reads
-from the contract.
+hook_source_path, wiring_source_path, pack_name) -> dict`. **All four paths are
+parameters read off the contract by the caller** — `tools/hooks/` and `hooks/`
+are `target-path`/`plugin-target-path`; `.apm/hooks/` and `.apm/hook-wiring/`
+are `[primitive.*] source-path`. A module constant for any of them is a second
+copy that drifts the day the contract changes. This departs from the
+gemini/cursor/copilot convention of a private prefix constant, because those
+adapters hardcode a destination this route reads from the contract.
 
-Structure and error wording mirror `gemini.py`'s `_translate_hook_entry` so the
-four read alike. The **mechanism** diverges per AC4: positional regex splice
-with a double-quoted replacement.
+Structure and error wording mirror `gemini.py`'s `_translate_hook_entry`. The
+**mechanism** diverges per AC4: positional splice with a double-quoted
+replacement, **anchored** (start-of-string, whitespace, `=`, or quote on the
+left) and **quote-context-aware** (an occurrence already inside a double-quoted
+region is emitted bare, or raises — round 3 showed `sh -c "python
+tools/hooks/x.py"` otherwise closes the outer quote and reintroduces word
+splitting).
 
-The compiler emits the guard invocation as part of each compiled command, so
-AC4's expected string for `packs/core` is the guarded form — stated in AC4, and
-the same string AC13 asserts against the real client.
-
-**Tests:** the AC4 case list (multi-occurrence, leading `./`, `--flag=path`,
-`sh -c "…"` nesting, trailing args, a command with no hook path); the `sh -c`
-execution assertion with a space-and-`$` root; AC5 both predicates; ordering;
-empty block when no `hook-wiring/`.
+**Tests:** the AC4 case list — multi-occurrence, leading `./`, `--flag=path`,
+`sh -c "…"` nesting, an embedded `vendor/tools/hooks/…` that must raise, trailing
+args, a command with no hook path; the `sh -c` execution assertion with a
+space-and-`$` root; AC5 both predicates, evaluated per fragment; ordering; empty
+block when no `hook-wiring/`.
 
 ### T6 — Wire into the derivation
 **Depends on:** T0, T1, T2, T5 · **Mode:** TDD (T0 goes green)
@@ -299,3 +288,16 @@ _(AC13 transcripts land here during T10.)_
   moved into T1. (7) New AC20 (publish-time validation) and AC21 (`_resolve_target`
   confinement). Unblocked by **#890**, which repaired the `enabledPlugins` walk
   this spec's scope rail depends on.
+- **2026-08-07** — round 3. The scope guard is **removed**, not repaired. Both
+  reviewers independently showed AC8's trust invariant was unsatisfiable, and
+  the empirical check settled it: no `$HOME`-side artifact records per-project
+  plugin enablement, so a legitimate `--scope project` install and a hostile
+  repo-committed `.claude/settings.json` are byte-identical inputs. The route is
+  user-scope distribution by design; `packs/core` widens `allowed-scopes`, and
+  the safety property moves to AC22 (untrusted-content delimiting), which is
+  stronger — it holds on the direct route too, where the same exposure exists
+  today unguarded. Also: AC20's and AC21's premises were wrong and are corrected
+  (`catalogue verify` already validates manifests pre-publish; `claude_code.py`
+  already confinement-checks before `_project_direct_file`); AC17 drops the
+  plugin `description` per #888 and gains the three-file pack version bump; the
+  fixture table is regenerated by glob rather than by grep.
