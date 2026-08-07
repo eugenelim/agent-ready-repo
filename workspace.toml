@@ -526,6 +526,44 @@ open = [
     # RFC-0077, which currently keeps patterns.jsonl as the canonical surface.
     # Sequenced after loop-cohort-state-rmw-unlocked.
   {slug = "knowledge-capture-replay-trust-separation", source = "spec/loop-tooling-mandated-writes"},
+    # agentbundle/statelock.py:74-78 hot-spins forever on a dangling-symlink lock path:
+    # open(O_CREAT|O_EXCL) fails EEXIST on a symlink while Path.stat() follows it and raises
+    # FileNotFoundError, whose handler `continue`s with no deadline check and no sleep, so
+    # StateLockTimeout never fires. Confirmed against the SHIPPED package: 98.4% CPU, still
+    # spinning after 6s with timeout=2.0. One planted file wedges every state-mutating verb.
+    # loop-cohort-state-lock adds a hardened statelock_core.exclusive() but deliberately does
+    # not rewire this module, so the package transiently carries two lock implementations.
+    # Fix: point persist_state_locked at statelock_core.exclusive and delete state_lock — a
+    # de-duplication, not a patch. Needs an agentbundle release. Unblocks: after
+    # loop-cohort-state-lock ships.
+  {slug = "agentbundle-statelock-symlink-spin", source = "spec/loop-cohort-state-lock", needs = "work:spec/loop-cohort-state-lock"},
+    # loop-engine's _recover_pending reads the repo-global .loop-run/events.pending and then
+    # calls _recover_engine_state_tmp(pending_spec_dir) for whatever spec that record names,
+    # so a transition on spec A — holding only A's per-spec lock — can promote or delete spec
+    # B's in-flight engine-state tmp while B holds B's own lock. The two outbox writers
+    # (_write_events_pending, _append_events_jsonl) touch single repo-global paths on the same
+    # terms. A per-spec lock cannot serialise any of it. Fix: either skip a pending record
+    # naming another spec (leaving it for that spec's next transition) or add a repo-scoped
+    # lock with a documented acquisition order relative to the per-spec lock. Unblocks: needs
+    # design — a second lock scope risks deadlock without an ordering rule.
+  {slug = "loop-outbox-cross-spec-rmw", source = "spec/loop-cohort-state-lock"},
+    # append-knowledge.py reads docs/knowledge/patterns.jsonl, computes next_id as
+    # max(existing)+1, writes a temp file, lints it, then os.replace — the same unguarded
+    # read-modify-write, so two concurrent appends collide on an id or lose an entry. Not
+    # covered by loop-cohort-state-lock, which scopes to state.json and engine-state.json.
+    # Fix: wrap the read-through-replace in statelock's exclusive(); the open question is
+    # where the lock sits relative to the lint-the-candidate step. Unblocks: after
+    # loop-cohort-state-lock ships (reuses its projected lock module).
+  {slug = "append-knowledge-rmw-unlocked", source = "spec/loop-cohort-state-lock", needs = "work:spec/loop-cohort-state-lock"},
+    # loop-cohort.py's _resolve_spec_dir (:110) only rejects a literal '..'; it does not
+    # confine the resolved path under the repo root the way loop-engine.py's twin (:514) does,
+    # and it follows a symlinked spec_dir because resolve() runs before any check. So an
+    # absolute or symlinked --spec-dir reaches file operations unconfined (CWE-73).
+    # loop-cohort-state-lock declines to widen the gap (its lock creates no directory) but
+    # does not close it. Fix: route both resolvers through the blessed canonicalize-then-
+    # verify-prefix helper, append-knowledge.py's confine(). Unblocks: now — but it narrows
+    # the CLI's accepted inputs, so it needs a compatibility call.
+  {slug = "loop-cohort-resolve-spec-dir-confinement", source = "spec/loop-cohort-state-lock"},
     # ~/.agentbundle/browser-state/<profile> holds a standing, silently-replayable corporate
     # IdP session; this change makes replaying it agent-triggered. No lifetime management
     # today. Fix: bound/expire it in sso-broker.py. Unblocks: after

@@ -474,6 +474,30 @@ if [[ -f "$PYTEST_ENGINE" ]]; then
   fi
 fi
 
+PYTEST_STATELOCK="$REPO_ROOT/packs/core/tests/skills/work-loop/test-statelock.py"
+if [[ -f "$PYTEST_STATELOCK" ]]; then
+  ran=$((ran + 1))
+  if python3 "$PYTEST_STATELOCK" > /dev/null 2>&1; then
+    ok "python-test-statelock-suite"
+  else
+    fail "python-test-statelock-suite" "test-statelock.py reported failures (run it directly for details)"
+  fi
+fi
+
+# Concurrency regressions. Slower than its siblings (~45s: it spawns barriered
+# child processes across ~20 throwaway git repos), and the reason it earns that
+# is that nothing cheaper reproduces a lost update — see
+# docs/specs/loop-cohort-state-lock/notes/reproduction.md.
+PYTEST_CONCURRENCY="$REPO_ROOT/packs/core/tests/skills/work-loop/test-loop-concurrency.py"
+if [[ -f "$PYTEST_CONCURRENCY" ]]; then
+  ran=$((ran + 1))
+  if python3 "$PYTEST_CONCURRENCY" > /dev/null 2>&1; then
+    ok "python-test-loop-concurrency-suite"
+  else
+    fail "python-test-loop-concurrency-suite" "test-loop-concurrency.py reported failures (run it directly for details)"
+  fi
+fi
+
 PYTEST_FRESHNESS="$REPO_ROOT/packs/core/tests/skills/work-loop/test-check-base-freshness.py"
 if [[ -f "$PYTEST_FRESHNESS" ]]; then
   ran=$((ran + 1))

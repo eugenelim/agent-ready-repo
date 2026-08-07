@@ -424,6 +424,37 @@ detection loses its baseline.
 
 - **Installing `linear` now requires the `credential-brokers` pack.** Same
   change, same reason, same upgrade-time refusal as `figma` above.
+## [core][2.3.0] — 2026-08-07
+
+### Fixed
+
+- **Concurrent work-loop verbs no longer lose state silently.** Every verb that
+  mutates `state.json` or `engine-state.json` wrote atomically but *decided*
+  unguardedly, so two of them at once — a supervisor and a hand-run verb, or two
+  agents in one workspace — overwrote each other with both callers exiting 0.
+  Measured on the old code: two concurrent `record-attempt` calls lost an
+  increment in 20 of 20 trials, so a retry cap could never fire; two concurrent
+  `transition` calls were **both** admitted in 10 of 10 trials, where the second
+  must fail `illegal transition`, leaving duplicate `(spec, seq)` records in the
+  `.loop-run/events.jsonl` audit log; and six concurrent `init` calls all
+  succeeded. Each verb now decides and writes while holding a lockfile beside
+  the state file, so concurrent callers either both take effect or the loser is
+  told why it did not.
+
+- **A verb that cannot be sure its write landed now says so.** If a verb's lock
+  is reclaimed while it is running, it exits non-zero naming the state file
+  instead of reporting success — the one case where "it worked" would have been
+  a lie.
+
+### Changed
+
+- Waiting for a busy state file is bounded and reported: a verb that cannot take
+  the lock within 10 seconds refuses, naming the lock path and the process
+  holding it. A lock left by a killed process is reclaimed automatically after
+  **5 minutes**; to clear one sooner, delete the `.lock` file beside the state
+  file it names. A lock path that is not a regular file (a stray directory or
+  symlink) is refused immediately rather than waited on. Lockfiles and their
+  reclaim residue are gitignored, including for new adopters.
 
 ## [agentbundle][0.29.5] — 2026-08-06
 

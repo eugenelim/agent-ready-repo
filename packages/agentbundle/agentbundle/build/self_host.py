@@ -60,6 +60,10 @@ from agentbundle.build.adapter_root_bins import (
     apply_projection as _adapter_root_bins_apply,
     check_drift as _adapter_root_bins_check_drift,
 )
+from agentbundle.build.skill_libs import (
+    apply_projection as _skill_libs_apply,
+    check_drift as _skill_libs_check_drift,
+)
 from agentbundle.build.user_libs import (
     apply_projection as _user_libs_apply,
     check_drift as _user_libs_check_drift,
@@ -1212,6 +1216,11 @@ def run_self_host(
     # and the catalogue-visible pack copy (`.apm/user-libs/credbroker/`). No-op
     # outside the monorepo (package source absent — see user_libs docstring).
     _user_libs_apply(working_tree, packs_dir)
+    # ADR-0074 T3: project stdlib-only package modules into their skill's
+    # scripts/ dir (statelock_core.py -> work-loop/scripts/_statelock.py). Must
+    # run BEFORE _project_all_adapters, which copies skills into .claude/ and
+    # .agents/ — otherwise those trees carry the previous revision.
+    _skill_libs_apply(packs_dir)
     _project_all_adapters(working_tree, packs_dir, contract, preferred_adapter)
     # Compose AGENTS.md BEFORE seed projection — see dry-run branch for
     # rationale (the body-only seed at packs/core/seeds/AGENTS.md must
@@ -1582,6 +1591,17 @@ def run_build_check_drift_gates(
     # monorepo (package source absent).
     # ------------------------------------------------------------------
     for msg in _user_libs_check_drift(output_dir, packs_dir):
+        failures.append(msg)
+
+    # ------------------------------------------------------------------
+    # skill-libs drift gate (ADR-0074)
+    #
+    # Same three outcomes, for the stdlib-only package modules projected
+    # into a skill's scripts/ dir. A hand-edit to the projected copy is a
+    # build failure here rather than a silent fork. No-op outside the
+    # monorepo (package source absent).
+    # ------------------------------------------------------------------
+    for msg in _skill_libs_check_drift(packs_dir):
         failures.append(msg)
 
     if failures:

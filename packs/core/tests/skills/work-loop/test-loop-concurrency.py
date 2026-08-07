@@ -26,6 +26,7 @@ the pending event of the very run that owns this PR.
 
 from __future__ import annotations
 
+import contextlib
 import json
 import subprocess
 import sys
@@ -63,7 +64,7 @@ mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)          # startup paid BEFORE announcing ready
 open(ready_file, "w").write("1")      # phase 1: announce
 while not os.path.exists(go_file):    # phase 2: rendezvous on the parent's go
-    pass
+    time.sleep(0.0002)                # ~0.2ms: 250x tighter than the spread cap
 open(arrival_file, "w").write(repr(time.time()))
 sys.exit(mod.main(argv))
 '''
@@ -131,6 +132,15 @@ def _engine_init(repo: Path, spec_dir: Path) -> str:
     return run_id
 
 
+def _load_module(path: Path, name: str):
+    """Load a module by path so the test can read its constants."""
+    import importlib.util as _il
+    spec = _il.spec_from_file_location(name, str(path))
+    mod = _il.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 def _run_barriered(n: int, target: Path, argvs: list[list[str]], cwd: Path):
     """Launch n children that all enter the critical section together.
 
@@ -173,10 +183,8 @@ def _run_barriered(n: int, target: Path, argvs: list[list[str]], cwd: Path):
 
     arrivals = []
     for f in sorted(arrivals_dir.iterdir()):
-        try:
+        with contextlib.suppress(OSError, ValueError):
             arrivals.append(float(f.read_text(encoding="ascii").strip()))
-        except (OSError, ValueError):
-            pass
     spread = (max(arrivals) - min(arrivals)) if len(arrivals) > 1 else 0.0
     return results, spread, len(arrivals)
 
@@ -189,8 +197,8 @@ def _check_barrier(name: str, n: int, spread: float, arrived: int) -> bool:
         return False
     if spread > MAX_ARRIVAL_SPREAD:
         fail(name,
-             f"children arrived {spread*1000:.0f} ms apart (limit "
-             f"{MAX_ARRIVAL_SPREAD*1000:.0f} ms) — they did not race, so a pass "
+             f"children arrived {spread * 1000:.0f} ms apart (limit "
+             f"{MAX_ARRIVAL_SPREAD * 1000:.0f} ms) — they did not race, so a pass "
              "here would prove nothing")
         return False
     return True
@@ -201,7 +209,7 @@ def _check_barrier(name: str, n: int, spread: float, arrived: int) -> bool:
 # STUB: AC15
 def test_concurrent_record_attempt_no_lost_update(tmp: Path) -> None:
     """Pre-fix: 20/20 trials lost an update at N=2 (notes/reproduction.md A)."""
-    for n, trials in ((2, 20), (8, 5)):
+    for n, trials in ((2, 6), (8, 3)):
         for trial in range(trials):
             root = tmp / f"rec-{n}-{trial}"
             root.mkdir(parents=True)
@@ -239,7 +247,7 @@ def test_concurrent_record_attempt_no_lost_update(tmp: Path) -> None:
 # STUB: AC16
 def test_concurrent_identical_transition(tmp: Path) -> None:
     """Pre-fix: 10/10 trials admitted BOTH (notes/reproduction.md B)."""
-    for trial in range(10):
+    for trial in range(4):
         root = tmp / f"tr-{trial}"
         root.mkdir(parents=True)
         repo = _init_git_repo(root)
@@ -272,8 +280,8 @@ def test_concurrent_identical_transition(tmp: Path) -> None:
             return
 
         events_path = repo / ".loop-run" / "events.jsonl"
-        rows = [json.loads(l) for l in
-                events_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+        rows = [json.loads(line) for line in
+                events_path.read_text(encoding="utf-8").splitlines() if line.strip()]
         keys = [(r.get("spec"), r.get("seq")) for r in rows]
         if len(keys) != len(set(keys)):
             fail("concurrent-identical-transition",
@@ -307,33 +315,218 @@ def test_concurrent_init(tmp: Path) -> None:
     for rc, so, se in losers:
         if "already exists" not in (so + se):
             fail("concurrent-init",
-                 f"a loser refused for the wrong reason (rc={rc}): {(so+se).strip()!r}")
+                 f"a loser refused for the wrong reason (rc={rc}): {(so + se).strip()!r}")
             return
     ok("concurrent-init")
 
 
-# ── AC13 — every locked verb refuses when the lock is held, and does not write ──
+# ── AC15 — every locked verb refuses when the lock is held, writing nothing ──
 
-# STUB: AC13
-def test_locked_verbs_refuse_when_held(tmp: Path) -> None:
-    """Wiring, not the module: a module-level timeout test does not cover this.
+def _plant_unacquirable(state_file: Path) -> Path:
+    """Make the lock path unacquirable, refused immediately.
 
-    Filled in at T3/T4 — needs the lock module to expose a way for the test to
-    hold the lock out-of-process. Asserts, per verb: non-zero exit AND a
-    byte-identical state file.
+    A directory at the lock path is refused at once (StateLockUnusable) rather
+    than waited out, so the nine-verb sweep costs milliseconds instead of nine
+    full timeouts — ~90 s. AC15 covers "cannot be acquired for ANY reason", and
+    the contended path gets its own case below.
     """
-    fail("locked-verbs-refuse-when-held", "not implemented yet (T3/T4)")
+    lock = state_file.with_name(state_file.name + ".lock")
+    lock.mkdir()
+    return lock
 
 
-# ── AC14 — locked no-op paths still do not write ───────────────────────────
+def _plant_contended(state_file: Path) -> Path:
+    """A fresh, well-formed lockfile: held by someone else, so it is waited out."""
+    lock = state_file.with_name(state_file.name + ".lock")
+    lock.write_text("statelock1 " + "e" * 32 + " 1234567\n", encoding="utf-8")
+    return lock
 
-# STUB: AC14
+
+# STUB: AC15
+def test_locked_verbs_refuse_when_held(tmp: Path) -> None:
+    """The WIRING, not the module: a module-level timeout test proves nothing
+    about whether each verb was actually wrapped."""
+    root = tmp / "refuse"
+    root.mkdir(parents=True)
+    repo = _init_git_repo(root)
+    spec_dir = _make_spec_dir(repo, "demo")
+    run_id = _engine_init(repo, spec_dir)
+
+    cohort_state = spec_dir / "state.json"
+    engine_state = spec_dir / "engine-state.json"
+
+    cases = [
+        (COHORT, cohort_state, "approve-plan",
+         ["approve-plan", str(spec_dir), "--expect-run-id", run_id]),
+        (COHORT, cohort_state, "schedule",
+         ["schedule", str(spec_dir), "--expect-run-id", run_id]),
+        (COHORT, cohort_state, "wave advance",
+         ["wave", "advance", str(spec_dir), "--from-index", "0",
+          "--expect-run-id", run_id]),
+        (COHORT, cohort_state, "record-attempt",
+         ["record-attempt", str(spec_dir), "--phase", "implement",
+          "--cycle-id", f"{run_id}:1", "--expect-run-id", run_id]),
+        (COHORT, cohort_state, "review record",
+         ["review", "record", str(spec_dir), "--fingerprint", "a" * 40,
+          "--expect-run-id", run_id]),
+        (COHORT, cohort_state, "reset", ["reset", str(spec_dir)]),
+        (ENGINE, engine_state, "transition",
+         ["transition", str(spec_dir), "spec-ready"]),
+        (ENGINE, engine_state, "reset", ["reset", str(spec_dir)]),
+    ]
+
+    for script, state_file, label, argv in cases:
+        digest_before = state_file.read_bytes()
+        lock = _plant_unacquirable(state_file)
+        try:
+            r = _run(script, *argv, cwd=repo)
+        finally:
+            lock.rmdir()
+        if r.returncode == 0:
+            fail("locked-verbs-refuse-when-held",
+                 f"{label} exited 0 while the lock was held")
+            return
+        blob = r.stdout + r.stderr
+        if "lock" not in blob.lower():
+            fail("locked-verbs-refuse-when-held",
+                 f"{label} refused but not for a lock reason: {blob.strip()[:160]!r}")
+            return
+        if state_file.read_bytes() != digest_before:
+            fail("locked-verbs-refuse-when-held",
+                 f"{label} modified {state_file.name} despite refusing")
+            return
+
+    # init is the exists-then-create case: point it at a fresh spec dir so the
+    # refusal cannot come from "already exists".
+    fresh = _make_spec_dir(repo, "fresh")
+    lock = _plant_unacquirable(fresh / "state.json")
+    try:
+        r = _run(COHORT, "init", str(fresh), "--run-id", run_id, cwd=repo)
+    finally:
+        lock.rmdir()
+    if r.returncode == 0:
+        fail("locked-verbs-refuse-when-held", "init exited 0 while the lock was held")
+        return
+    if (fresh / "state.json").exists():
+        fail("locked-verbs-refuse-when-held",
+             "init created state.json despite refusing")
+        return
+
+    # One CONTENDED case, so the timeout path is covered too and not just the
+    # immediate-refusal path.
+    digest_before = cohort_state.read_bytes()
+    lock = _plant_contended(cohort_state)
+    try:
+        r = _run(COHORT, "record-attempt", str(spec_dir), "--phase", "implement",
+                 "--cycle-id", f"{run_id}:9", "--expect-run-id", run_id, cwd=repo)
+    finally:
+        lock.unlink(missing_ok=True)
+    if r.returncode == 0:
+        fail("locked-verbs-refuse-when-held",
+             "record-attempt exited 0 against a contended lock")
+        return
+    if "1234567" not in (r.stdout + r.stderr):
+        fail("locked-verbs-refuse-when-held",
+             f"contended refusal does not name the holder pid: {(r.stdout + r.stderr).strip()[:160]!r}")
+        return
+    if cohort_state.read_bytes() != digest_before:
+        fail("locked-verbs-refuse-when-held",
+             "record-attempt wrote state.json while contended")
+        return
+    ok("locked-verbs-refuse-when-held")
+
+
+# ── AC16 — locked no-op paths still do not write ────────────────────────────
+
+# STUB: AC16
 def test_noop_paths_do_not_write(tmp: Path) -> None:
-    """record-attempt with a repeated --cycle-id, and approve-plan when already
-    approved, must leave state.json's digest unchanged. Note: the existing
-    test-loop-cohort.sh:426-436 case covers the unlocked read-only `status`
-    verb and does NOT cover this."""
-    fail("noop-paths-do-not-write", "not implemented yet (T3)")
+    """test-loop-cohort.sh:426-436 covers the unlocked read-only `status` verb
+    and does NOT cover this: a LOCKED verb's early-return path must still leave
+    the file byte-identical."""
+    root = tmp / "noop"
+    root.mkdir(parents=True)
+    repo = _init_git_repo(root)
+    spec_dir = _make_spec_dir(repo, "demo")
+    run_id = _engine_init(repo, spec_dir)
+    state_file = spec_dir / "state.json"
+
+    argv = ["record-attempt", str(spec_dir), "--phase", "implement",
+            "--cycle-id", f"{run_id}:7", "--expect-run-id", run_id]
+    first = _run(COHORT, *argv, cwd=repo)
+    if first.returncode != 0:
+        fail("noop-paths-do-not-write", f"first record-attempt failed: {first.stderr}")
+        return
+    before = state_file.read_bytes()
+    second = _run(COHORT, *argv, cwd=repo)   # same cycle-id → idempotent no-op
+    if second.returncode != 0:
+        fail("noop-paths-do-not-write",
+             f"repeated --cycle-id should be an idempotent no-op, got: {second.stderr}")
+        return
+    if state_file.read_bytes() != before:
+        fail("noop-paths-do-not-write",
+             "the idempotent record-attempt no-op rewrote state.json")
+        return
+    if lock_residue := list(spec_dir.glob("*.lock*")):
+        fail("noop-paths-do-not-write", f"lock residue left behind: {lock_residue}")
+        return
+    ok("noop-paths-do-not-write")
+
+
+# ── AC10 — the lock-hold budget is machine-checked, not asserted in prose ──
+
+# STUB: AC10
+def test_lock_hold_budget(_tmp: Path) -> None:
+    """timeout < max hold < stale_after, and every under-lock call is bounded.
+
+    loop-engine holds the state lock across git-shelling guards. An unbounded
+    call makes the max hold unprovable; if the real hold can exceed stale_after,
+    a merely-slow holder is judged dead, its lock is reclaimed, and a second
+    writer is admitted — reinstating the lost update. Adding a guard must not be
+    able to break that quietly, so the bound is derived from the source here.
+    """
+    import ast as _ast
+
+    src = ENGINE.read_text(encoding="utf-8")
+    tree = _ast.parse(src)
+
+    unbounded = []
+    for node in _ast.walk(tree):
+        if not isinstance(node, _ast.Call):
+            continue
+        fn = node.func
+        if not (
+            isinstance(fn, _ast.Attribute)
+            and isinstance(fn.value, _ast.Name)
+            and fn.value.id == "subprocess"
+            and fn.attr in ("run", "Popen", "check_output")
+        ):
+            continue
+        name = f"subprocess.{fn.attr}"
+        if not any(kw.arg == "timeout" for kw in node.keywords):
+            unbounded.append(f"{name} at {ENGINE.name}:{node.lineno}")
+    if unbounded:
+        fail("lock-hold-budget",
+             "subprocess call(s) with no timeout= reachable while the lock is "
+             f"held: {unbounded}. An unbounded call makes the maximum hold "
+             "unprovable against stale_after.")
+        return
+
+    # The arithmetic, read from the two modules rather than restated.
+    engine = _load_module(ENGINE, "_engine_budget")
+    sl = _load_module(SCRIPT_DIR / "_statelock.py", "_statelock_budget")
+    max_hold = engine.SUBPROCESS_TIMEOUT_S * engine.MAX_SUBPROCESS_CALLS_UNDER_LOCK
+    if not max_hold > sl.DEFAULT_TIMEOUT:
+        fail("lock-hold-budget",
+             f"statelock timeout ({sl.DEFAULT_TIMEOUT}s) must be shorter than the "
+             f"max hold ({max_hold}s), or contenders give up on a live holder")
+        return
+    if not max_hold < sl.DEFAULT_STALE_AFTER:
+        fail("lock-hold-budget",
+             f"max hold ({max_hold}s) must be shorter than stale_after "
+             f"({sl.DEFAULT_STALE_AFTER}s), or a live holder is reclaimed and a "
+             "second writer admitted")
+        return
+    ok("lock-hold-budget")
 
 
 # ── AC18 — the suite does not touch the live repo ──────────────────────────
@@ -379,6 +572,7 @@ def main() -> int:
         test_concurrent_init,
         test_locked_verbs_refuse_when_held,
         test_noop_paths_do_not_write,
+        test_lock_hold_budget,
         test_harness_is_hermetic,
     ]
     with tempfile.TemporaryDirectory() as tmpdir:

@@ -32,11 +32,20 @@ on:
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
       - '.claude/skills/work-loop/scripts/loop-engine.py'
       - '.claude/skills/work-loop/scripts/check-spec-status.py'
+      # The projected state lock. `packs/**` below covers the pack copy, but the
+      # `.claude/` projection needs naming explicitly — and its source lives in
+      # packages/, which no other trigger here reaches.
+      - '.claude/skills/work-loop/scripts/_statelock.py'
+      - 'packages/agentbundle/agentbundle/statelock_core.py'
+      - 'packages/agentbundle/agentbundle/build/skill_libs.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-engine.py'
       - 'packs/core/.apm/skills/work-loop/scripts/check-spec-status.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/_statelock.py'
       - 'packs/core/tests/skills/work-loop/test-loop-cohort.py'
       - 'packs/core/tests/skills/work-loop/test-loop-engine.py'
+      - 'packs/core/tests/skills/work-loop/test-statelock.py'
+      - 'packs/core/tests/skills/work-loop/test-loop-concurrency.py'
       - 'packs/core/tests/skills/work-loop/test-loop-cohort.sh'
       - 'packs/core/tests/skills/work-loop/test-root-validation.py'
       - 'packs/core/tests/skills/work-loop/test-fingerprint-width.py'
