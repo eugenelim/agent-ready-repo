@@ -637,9 +637,10 @@ above. Verification runs `make ci` without `SKIP_SAST=1`,
 `tools/lint-catalogue-curation-guard.py --root . --base origin/main`, the full
 `agentbundle` suite, and every moved suite from its new home.
 
-`tools/test-all.py` is run for its `pack-runtime-boundary` and
-`lint-sso-config` entries specifically, **not** for a green aggregate: two of its
-entries name files that do not exist (`tools/test-check-xd-chain.py`,
-`tools/test-llm-judge-cross-pack-eval.py`), so the runner has reported permanent
-failures for some time — the open `test-all-dangling-entries` backlog item. An
-assertion of "`test-all.py` green" would be unsatisfiable and is not made.
+`tools/test-all.py` is run **for a green aggregate**. That changed mid-loop:
+this spec was written when two of its entries named files that did not exist, so
+the runner had reported permanent failures and only its individual entries could
+be asserted. #874 retired those entries upstream and closed
+`test-all-dangling-entries`, so after the rebase the whole runner is green —
+including this change's two new entries, `pack-test-boundary` and
+`pack-test-boundary-self-test`. Verified: `TESTALL_EXIT=0`, nine checks.

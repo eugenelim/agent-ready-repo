@@ -592,11 +592,10 @@ present at all three cache-hardening sites and nowhere else was given one it
 never had; AC5's two evals checks pass
 (`git diff --stat origin/main -- 'packs/*/.apm/skills/*/evals/**'` empty and
 `catalogue verify`'s eval linter green); `tools/test-all.py`'s
-`pack-runtime-boundary` and `lint-sso-config` entries pass. Not "`test-all.py`
-green": two of its entries name files that do not exist
-(`tools/test-check-xd-chain.py`, `tools/test-llm-judge-cross-pack-eval.py`), the
-open `test-all-dangling-entries` backlog item, so the aggregate has been red for
-some time and this PR does not adopt it.
+`tools/test-all.py` is green as a whole. When this plan was written it was not —
+two entries named files that did not exist — so it only claimed the individual
+entries. #874 retired those upstream and closed `test-all-dangling-entries`
+before this branch rebased, so the aggregate is now a real assertion.
 
 ### T7 — widen the guard and move it out of `core`
 
