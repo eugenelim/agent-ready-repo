@@ -134,6 +134,13 @@ Produces a deterministic, reproducible gzip archive (versioned) and a mutable ch
 descriptor JSON (`stable.json`), ready to upload to Artifactory. Identical inputs
 produce byte-identical archives (honors `SOURCE_DATE_EPOCH`).
 
+Build residue is excluded, so it does not matter whether you packaged a working
+tree you had just tested or npm-installed in. Pruned at every level of a pack:
+`__pycache__`, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.tox`,
+`.hypothesis`, `htmlcov`, `node_modules`, `.venv`, `venv` — plus `*.pyc`,
+`*.pyo`, `.DS_Store`, `coverage.xml` and `.coverage*` shards. The drop is
+silent, so do not name a directory you mean to ship after one of those.
+
 **Source distribution for air-gapped or self-hosted catalogues:**
 
 ```bash
@@ -145,7 +152,7 @@ agentbundle catalogue package \
   --output dist/
 ```
 
-Produces a `catalogue-source-<release>.tar.gz` from a positive allowlist (packs, profiles, guides, marketplace manifest, legal files). Includes a `self-hosted-source-manifest.json` with per-file SHA-256 digests and provenance fields. `agentbundle install` refuses to install a source archive, preventing accidental misuse.
+Produces a `catalogue-source-<release>.tar.gz` from a positive allowlist (packs, profiles, guides, marketplace manifest, legal files), with the same build-residue exclusions as the default flavour. Includes a `self-hosted-source-manifest.json` with per-file SHA-256 digests and provenance fields. `agentbundle install` refuses to install a source archive, preventing accidental misuse.
 
 **Org bootstrap — ship the default channel in your fork:**
 
