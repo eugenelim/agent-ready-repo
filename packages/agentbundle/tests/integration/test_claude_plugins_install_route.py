@@ -1521,3 +1521,271 @@ def test_hash_file_write_failure_self_heals(tmp_path, pack_root_factory):
     data = tomllib.loads(marker_path.read_text(encoding="utf-8"))
     core_entries = [e for e in data.get("packs-installed", []) if e["name"] == "core"]
     assert len(core_entries) == 1, f"Expected exactly 1 entry for 'core', got {len(core_entries)}"
+
+
+# ---------------------------------------------------------------------------
+# `enabledPlugins` shapes the real client writes
+#
+# The fixtures above hand-write the JSON-array form. Claude Code 2.1.223 writes
+# an OBJECT keyed by `name@marketplace` with boolean values, so every test above
+# exercises a shape the client does not produce. These cases pin the shapes the
+# client actually writes, plus the hardening rails on the settings read.
+# ---------------------------------------------------------------------------
+
+
+def _cache_shaped_root(
+    tmp_path: Path,
+    *,
+    marketplace: str,
+    name: str = "core",
+    version: str = "0.1.0",
+    allowed_scopes: list | None = None,
+) -> Path:
+    """Build a pack root at the client's install layout and return it.
+
+    The client installs to ``<config>/plugins/cache/<marketplace>/<plugin>/
+    <version>`` — the layout the writer reads its own marketplace identity
+    back out of. Tests that care about marketplace matching need this shape;
+    ``pack_root_factory`` deliberately does not have it.
+    """
+    if allowed_scopes is None:
+        allowed_scopes = ["repo"]
+    root = tmp_path / "cfg" / "plugins" / "cache" / marketplace / name / version
+    root.mkdir(parents=True)
+    (root / "pack.toml").write_text(
+        textwrap.dedent(f"""
+            [pack]
+            name = {json.dumps(name)}
+            version = {json.dumps(version)}
+            description = "Test pack."
+
+            [pack.install]
+            default-scope = {json.dumps(allowed_scopes[0])}
+            allowed-scopes = {json.dumps(allowed_scopes)}
+        """).lstrip(),
+        encoding="utf-8",
+        newline="\n",
+    )
+    return root
+
+
+def _write_project_settings(project_dir: Path, payload) -> Path:
+    """Write ``<project>/.claude/settings.json`` with a raw ``enabledPlugins``."""
+    settings_dir = project_dir / ".claude"
+    settings_dir.mkdir(parents=True, exist_ok=True)
+    path = settings_dir / "settings.json"
+    path.write_text(
+        json.dumps({"enabledPlugins": payload}), encoding="utf-8", newline="\n"
+    )
+    return path
+
+
+def test_object_form_enabled_plugins_opts_in(pack_root_factory):
+    """The object form the real client writes counts as opted in.
+
+    Regression for the shipped detector, which tested ``isinstance(enabled,
+    list)`` and fell through for every settings file the client produces —
+    so no marker was ever written on the claude-plugins route.
+    """
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core", allowed_scopes=["repo"], opt_in_at=[]
+    )
+    _write_project_settings(project_dir, {"core@agent-ready-repo": True})
+
+    result = _run_writer(
+        _make_env(
+            plugin_root=plugin_root,
+            plugin_data=plugin_data,
+            home=home,
+            project_dir=project_dir,
+        )
+    )
+
+    assert result.returncode == 0, result.stderr
+    marker = project_dir / ".adapt-install-marker.toml"
+    assert marker.exists(), (
+        "Object-form enabledPlugins must opt the pack in; "
+        f"stderr={result.stderr!r}"
+    )
+    assert _read_marker(marker)["packs-installed"][0]["name"] == "core"
+
+
+def test_object_form_false_value_is_not_opted_in(pack_root_factory):
+    """``false`` means the adopter disabled the plugin — not opted in."""
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core", allowed_scopes=["repo"], opt_in_at=[]
+    )
+    _write_project_settings(project_dir, {"core@agent-ready-repo": False})
+
+    result = _run_writer(
+        _make_env(
+            plugin_root=plugin_root,
+            plugin_data=plugin_data,
+            home=home,
+            project_dir=project_dir,
+        )
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not (project_dir / ".adapt-install-marker.toml").exists()
+
+
+def test_array_form_enabled_plugins_still_opts_in(pack_root_factory):
+    """Older clients wrote a JSON array of bare names — still accepted."""
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core", allowed_scopes=["repo"], opt_in_at=[]
+    )
+    _write_project_settings(project_dir, ["core"])
+
+    result = _run_writer(
+        _make_env(
+            plugin_root=plugin_root,
+            plugin_data=plugin_data,
+            home=home,
+            project_dir=project_dir,
+        )
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (project_dir / ".adapt-install-marker.toml").exists()
+
+
+def test_foreign_marketplace_does_not_opt_in(tmp_path):
+    """``core@other-marketplace`` must not satisfy a check for our ``core``.
+
+    The shipped matcher took ``entry.split("@")[0]``, so any marketplace's
+    pack of the same name opted ours in.
+    """
+    plugin_root = _cache_shaped_root(tmp_path, marketplace="agent-ready-repo")
+    plugin_data = tmp_path / "data"
+    plugin_data.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    _write_project_settings(project_dir, {"core@other-marketplace": True})
+
+    result = _run_writer(
+        _make_env(
+            plugin_root=plugin_root,
+            plugin_data=plugin_data,
+            home=home,
+            project_dir=project_dir,
+        )
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not (project_dir / ".adapt-install-marker.toml").exists(), (
+        "A different marketplace's same-named pack must not opt this one in"
+    )
+
+
+def test_own_marketplace_opts_in(tmp_path):
+    """The positive half of the pair: our own ``name@marketplace`` matches."""
+    plugin_root = _cache_shaped_root(tmp_path, marketplace="agent-ready-repo")
+    plugin_data = tmp_path / "data"
+    plugin_data.mkdir()
+    home = tmp_path / "home"
+    home.mkdir()
+    project_dir = tmp_path / "project"
+    project_dir.mkdir()
+    _write_project_settings(project_dir, {"core@agent-ready-repo": True})
+
+    result = _run_writer(
+        _make_env(
+            plugin_root=plugin_root,
+            plugin_data=plugin_data,
+            home=home,
+            project_dir=project_dir,
+        )
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (project_dir / ".adapt-install-marker.toml").exists(), result.stderr
+
+
+def test_oversized_settings_file_falls_through(pack_root_factory):
+    """A settings file past the read cap is "not opted in", not a hang.
+
+    The cap must bound the READ; the shipped code read the whole file first
+    and measured afterwards.
+    """
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core", allowed_scopes=["repo"], opt_in_at=[]
+    )
+    settings = _write_project_settings(project_dir, {"core@agent-ready-repo": True})
+    # Pad past the 1 MiB cap with JSON-legal whitespace so the file stays
+    # parseable — only the cap can reject it.
+    with settings.open("a", encoding="utf-8", newline="\n") as fh:
+        fh.write(" " * 1_100_000)
+
+    result = _run_writer(
+        _make_env(
+            plugin_root=plugin_root,
+            plugin_data=plugin_data,
+            home=home,
+            project_dir=project_dir,
+        )
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not (project_dir / ".adapt-install-marker.toml").exists()
+
+
+def test_invalid_utf8_settings_file_falls_through(pack_root_factory):
+    """Undecodable bytes fall through as "not opted in" rather than raising.
+
+    ``read_text(encoding="utf-8")`` raises ``UnicodeDecodeError``, which is
+    not an ``OSError`` and was not caught.
+    """
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core", allowed_scopes=["repo"], opt_in_at=[]
+    )
+    settings_dir = project_dir / ".claude"
+    settings_dir.mkdir(parents=True, exist_ok=True)
+    (settings_dir / "settings.json").write_bytes(b'{"enabledPlugins": {"\xff\xfe": true}}')
+
+    result = _run_writer(
+        _make_env(
+            plugin_root=plugin_root,
+            plugin_data=plugin_data,
+            home=home,
+            project_dir=project_dir,
+        )
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "Traceback" not in result.stderr
+    assert not (project_dir / ".adapt-install-marker.toml").exists()
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX FIFOs only")
+def test_fifo_settings_path_falls_through(pack_root_factory):
+    """A non-regular settings path must be refused, not opened.
+
+    Opening a FIFO for reading blocks until a writer appears; the shipped
+    code gated on ``.exists()``, which is true for a FIFO.
+    """
+    plugin_root, plugin_data, home, project_dir = pack_root_factory(
+        name="core", allowed_scopes=["repo"], opt_in_at=[]
+    )
+    settings_dir = project_dir / ".claude"
+    settings_dir.mkdir(parents=True, exist_ok=True)
+    os.mkfifo(settings_dir / "settings.json")
+
+    result = subprocess.run(
+        [sys.executable, str(WRITER), "--install-route", "claude-plugins"],
+        env=_make_env(
+            plugin_root=plugin_root,
+            plugin_data=plugin_data,
+            home=home,
+            project_dir=project_dir,
+        ),
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=30,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not (project_dir / ".adapt-install-marker.toml").exists()

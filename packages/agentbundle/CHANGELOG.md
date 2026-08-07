@@ -6,6 +6,31 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.29.8] — 2026-08-07
+
+### Fixed
+
+- **Packs installed with `claude plugin install` now complete their install.**
+  The bundled install-marker script decided whether you had opted a pack in by
+  reading `enabledPlugins` from your Claude Code settings, and expected a JSON
+  array. Current clients write an object keyed by `name@marketplace` — so the
+  script read every settings file as "not opted in", wrote no marker, and exited
+  quietly. Two things silently did nothing as a result: the hand-off that offers
+  to adapt a freshly installed pack to your repository, and the `allowed-scopes`
+  check that refuses to install a repo-only pack at user scope. Both work now.
+  The array form older clients wrote is still accepted.
+
+- **A pack of the same name from another marketplace no longer counts as this
+  one.** The identifier match compared only the part before the `@`, so
+  `core@some-other-marketplace` in your settings satisfied a check for our
+  `core`. Qualified identifiers now have to agree on the marketplace too.
+
+- **A hostile or oversized settings file can no longer hang or crash the
+  script.** The 1 MiB limit is applied to the read itself rather than measured
+  after the whole file is in memory, non-regular paths (a FIFO, a symlink to a
+  device) are refused rather than opened, and undecodable bytes fall through as
+  "not opted in" instead of raising.
+
 ## [0.29.7] — 2026-08-06
 
 ### Changed
