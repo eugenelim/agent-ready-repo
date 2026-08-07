@@ -795,8 +795,13 @@ def _is_contention(exc: BaseException) -> bool:
 
 
 @contextlib.contextmanager
-def _profile_lock(profile: str, budget_s: float = _LOCK_WAIT_BUDGET_S):
+def _profile_lock(profile: str, budget_s: float | None = None):
     """Hold *profile*'s exclusive store lock, or fail within *budget_s*.
+
+    *budget_s* defaults to `_LOCK_WAIT_BUDGET_S`, resolved **at call time**
+    rather than bound as a default argument — a default argument is evaluated
+    once when the function is defined, which would make the module constant
+    unreadable to anything that changes it later.
 
     :raises StoreContendedError: another holder did not release in time.
     :raises LockUnavailableError: the lock is unusable — bad path, unopenable
@@ -812,6 +817,9 @@ def _profile_lock(profile: str, budget_s: float = _LOCK_WAIT_BUDGET_S):
             f"sso-broker: internal bug: nested lock acquisition for profile "
             f"{profile!r} while this thread already holds one"
         )
+
+    if budget_s is None:
+        budget_s = _LOCK_WAIT_BUDGET_S
 
     try:
         path = _sso_lock_path(profile)
@@ -1710,6 +1718,29 @@ def main(argv: list[str] | None = None) -> int:
         # `main` as exit 1 with a traceback, putting a real storage failure in
         # the functional band instead of the engine-failure one.
         sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        return 3
+    except StoreContendedError as exc:
+        # Its own code, not 3. Contention is *recoverable* — the caller should
+        # back off and retry — while 3 is documented non-recoverable, so
+        # collapsing the two would mean auto-recovery could never retry a
+        # condition that clears in under a second.
+        sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        return 6
+    except LockUnavailableError as exc:
+        # The mirror of the above: a nested acquire, an unopenable lock path, or
+        # a filesystem that refuses locking are all permanent. Reporting them as
+        # 6 would send a caller into an unbounded retry loop.
+        sys.stderr.write(f"sso-broker {verb}: {exc}\n")
+        if verb == "rm":
+            # With no unserialised fallback, an operator whose lock environment
+            # is permanently unusable cannot revoke a stored session through the
+            # tool. This line is the only place they learn how to do it by hand.
+            sys.stderr.write(
+                f"sso-broker rm: to remove the session manually, delete the "
+                f"{_SSO_NAMESPACE!r} entries whose account begins "
+                f"{args.profile!r} from your OS credential store, and remove "
+                f"{_cookie_floor_path(args.profile)}\n"
+            )
         return 3
 
     raise AssertionError(f"unreachable verb: {verb}")  # pragma: no cover

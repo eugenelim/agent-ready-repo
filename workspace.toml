@@ -611,6 +611,17 @@ open = [
     # invariants are per-spec, so a scoped run is sound; only the repo-wide dangling-reference
     # warn-only pass would narrow. Unblocks: now.
   {slug = "lint-spec-status-scope-to-changed-specs", source = "spec/sso-store-transition-serialization"},
+    # AC10 measured the longest-held critical section on macOS: /usr/bin/security spawns at a
+    # 53.8 ms median, and rm's _delete_cookie_jar runs _purge_credential per continuation slot at
+    # up to four spawns each. Four slots is 0.86 s (passes the 2 s bar); ten slots is 2.15 s and
+    # forty is 8.6 s. With CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES = 2048 that is a ~20 KB and ~80 KB
+    # jar respectively, and a captured corporate jar is deliberately over-broad, so realistic
+    # profiles exceed the bar. The security calls also carry no timeout, so a locked login keychain
+    # blocks the holder indefinitely. Fix: give the _sso_keychain_macos.py subprocess calls their own
+    # timeout, or batch the per-slot purge. Behaviour change on a projected file — a timeout turns
+    # "the operator is typing their keychain password" into a store failure — so it needs a decision,
+    # not a ride-along. Unblocks: needs design. See docs/specs/sso-store-transition-serialization/manual-qa.md.
+  {slug = "sso-keychain-call-timeouts", source = "spec/sso-store-transition-serialization AC10"},
     # AC17's at-most-once bound is per-process and each agent turn is a new process, so a retry
     # loop can spawn a HEADLESS recapture on every invocation - no browser is shown (AC14a),
     # but each spawn still costs up to refresh's 180 s and re-exercises the engine.

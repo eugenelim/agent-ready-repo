@@ -25,6 +25,7 @@ import json
 import pathlib
 import sys
 import threading
+import time
 import types
 
 import pytest
@@ -355,3 +356,122 @@ def test_stale_reader_never_overwrites_a_fresher_materialisation(broker):
     for t in threads:
         t.join(20)
     assert _tags_present(mod._cookie_floor_path("jira").read_bytes()) == {"b"}
+
+
+# ----------------------------------------------------------------------
+# AC8 / AC9 / AC12 / AC13 — the exit-code contract (T5).
+#
+# This module carries the contended-acquire case rather than
+# test_sso_broker_verbs.py, so it sits behind the same Windows execution guard
+# AC20 requires: `self_host_windows.py` judges its steps by return code alone,
+# so a wholly-skipped module would exit 0 and read as coverage.
+# ----------------------------------------------------------------------
+
+
+def _run_verb(mod, argv, hold_profile=None, budget=0.3):
+    """Drive `main` with the profile's lock optionally held by another thread."""
+    if hold_profile is None:
+        return mod.main(argv)
+    holding = threading.Event()
+    release = threading.Event()
+
+    def hold():
+        with mod._profile_lock(hold_profile):
+            holding.set()
+            release.wait(10)
+
+    mod._LOCK_WAIT_BUDGET_S = budget  # read at call time, not bound at def time
+    t = threading.Thread(target=hold, daemon=True)
+    t.start()
+    assert holding.wait(5)
+    try:
+        return mod.main(argv)
+    finally:
+        release.set()
+        t.join(5)
+
+
+def _registered(mod, profile="jira"):
+    mod._SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
+    mod._write_profile(profile, {
+        "name": profile,
+        "login_url": "https://example.com/login",
+        "success_url_pattern": "dash",
+        "cookie_domains": ["example.com"],
+        "session_filename": f"{profile}.jar",
+        "validation_endpoint": "/rest/api/2/myself",
+        "ttl_hint_minutes": 60,
+    })
+
+
+@pytest.mark.parametrize("verb", ["get-cookies", "test", "rm"])
+def test_a_contended_verb_exits_6_not_3(broker, verb, capsys):
+    """AC8, AC12: contention gets its own recoverable code.
+
+    The end-to-end form of T1's `BlockingIOError` regression test. On Windows
+    this is the case that matters most — `EACCES` rather than `BlockingIOError`
+    signals contention there, and this repo has never executed that path.
+    """
+    mod, _ = broker
+    _registered(mod)
+    assert _run_verb(mod, [verb, "jira"], hold_profile="jira") == 6
+    err = capsys.readouterr().err
+    assert "jira" in err and "0.3" in err, err
+
+
+def test_a_contended_verb_leaves_the_store_untouched(broker):
+    """AC8: exit 6 means nothing happened, not something half-happened."""
+    mod, _ = broker
+    _registered(mod)
+    with mod._profile_lock("jira"):
+        mod._store_cookie_jar("jira", _jar("a"))
+    before = dict(mod._tier2_backend.store)
+    toml_before = mod._profile_path("jira").read_bytes()
+
+    assert _run_verb(mod, ["rm", "jira"], hold_profile="jira") == 6
+    assert dict(mod._tier2_backend.store) == before
+    assert mod._profile_path("jira").read_bytes() == toml_before
+
+
+def test_contention_is_bounded_from_process_entry(broker):
+    """AC9: under 15 s for the verbs that reach the lock immediately."""
+    mod, _ = broker
+    _registered(mod)
+    started = time.monotonic()
+    assert _run_verb(mod, ["get-cookies", "jira"], hold_profile="jira") == 6
+    assert time.monotonic() - started < 15.0
+
+
+def test_an_unusable_lock_exits_3_with_no_traceback(broker, capsys, monkeypatch):
+    """AC13: a permanent fault is never reported as retryable.
+
+    Two-argument OSError deliberately: `OSError(errno.ENOLCK).errno` is `None`,
+    so a single-argument stub would pass by falling through to the fault default
+    rather than by classifying, and would stay green against an implementation
+    that wrongly called ENOLCK contention.
+    """
+    import errno as _errno
+
+    mod, _ = broker
+    _registered(mod)
+    exc = OSError(_errno.ENOLCK, "no locks available")
+    assert exc.errno == _errno.ENOLCK
+    monkeypatch.setattr(mod, "_acquire_once", lambda fd: (_ for _ in ()).throw(exc))
+    assert mod.main(["get-cookies", "jira"]) == 3
+    err = capsys.readouterr().err
+    assert "Traceback" not in err, err
+
+
+def test_rm_exit_3_names_the_manual_recourse(broker, capsys, monkeypatch):
+    """AC14: with no unserialised fallback, this line is the operator's only out."""
+    import errno as _errno
+
+    mod, _ = broker
+    _registered(mod)
+    monkeypatch.setattr(
+        mod, "_acquire_once",
+        lambda fd: (_ for _ in ()).throw(OSError(_errno.ENOLCK, "no locks")),
+    )
+    assert mod.main(["rm", "jira"]) == 3
+    err = capsys.readouterr().err
+    assert "manually" in err and "sso-cookies" in err, err
