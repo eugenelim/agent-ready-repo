@@ -72,6 +72,30 @@ reads it at session open.
 <!-- Keep this section in sync with packs/core/seeds/docs/knowledge/README.md
      — the seed is what an adopter reads, and the two must not drift. -->
 
+## Appending an entry
+
+Use the writer that ships beside the linter — it allocates the next free `id`,
+writes the line, and refuses anything the linter would reject, so a bad entry
+never reaches the file:
+
+```bash
+python3 .claude/skills/work-loop/scripts/append-knowledge.py \
+  --kind gotcha --scope 'packages/auth/**' \
+  --title 'Token cache survives a role change' \
+  --body 'The auth middleware caches tokens for 15 minutes — invalidate it manually after a role change.' \
+  --source 'PR#42'
+```
+
+Hand-editing works too, with one rule the writer enforces for you: **entries are
+raw UTF-8, never `\uXXXX`-escaped.** Both forms are valid JSON, so a file written
+with `json.dumps(entry)` — whose `ensure_ascii` defaults to `True` — drifts to
+escapes silently while still linting clean under every other rule. Write `—`,
+not `\u2014`; if you serialize with Python, pass `ensure_ascii=False`.
+
+Entries are read back verbatim into every future session by the session-start
+hook, so treat the body as durable instruction: keep it to lessons about this
+repo, and never paste content from an untrusted source into one.
+
 ## Verify before committing
 
 `lint-knowledge.py` ships with the `work-loop` skill, so there is

@@ -1,0 +1,378 @@
+#!/usr/bin/env python3
+"""Self-test for append-knowledge.py — the canonical knowledge-base writer.
+
+Run: python3 test-append-knowledge.py
+Exit 0 = all pass; exit non-zero = at least one failure.
+
+STUB: docs/specs/loop-tooling-mandated-writes, task T4 (AC13-AC19).
+Red until `append-knowledge.py` exists. The cases below are the contract
+surface the script must satisfy, not placeholders: each asserts on observable
+bytes or exit codes rather than on the script's internals.
+"""
+
+# STUB: AC13..AC19 — red until append-knowledge.py exists (spec
+# docs/specs/loop-tooling-mandated-writes, task T4).
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+# Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
+_SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
+SCRIPT = _SKILL_DIR / "scripts" / "append-knowledge.py"
+
+FAILURES: list[str] = []
+RAN = 0
+
+
+def ok(name: str) -> None:
+    global RAN
+    RAN += 1
+    print(f"  ✓ {name}")
+
+
+def fail(name: str, reason: str) -> None:
+    global RAN
+    RAN += 1
+    FAILURES.append(name)
+    print(f"  ✖ {name}: {reason}", file=sys.stderr)
+
+
+# The subject resolves its confinement root from `git rev-parse` against the
+# child's cwd, so every case runs inside a throwaway git repo rather than the
+# real one — otherwise a passing test would be writing to the repo's own
+# knowledge base, and the confinement case could not be expressed at all.
+CWD: Path | None = None
+
+
+def run(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), *args],
+        capture_output=True, text=True, encoding="utf-8", check=False,
+        cwd=str(CWD) if CWD else None,
+    )
+
+
+def entry(**over: object) -> str:
+    base = {"id": "K-0001", "kind": "pattern", "scope": "x",
+            "title": "t", "body": "b", "source": "s"}
+    base.update(over)
+    return json.dumps(base, ensure_ascii=False)
+
+
+def _append_args(target: Path, **over: str) -> list[str]:
+    fields = {"--kind": "gotcha", "--scope": "packs/core/**",
+              "--title": "A title", "--body": "A body", "--source": "PR#1"}
+    fields.update(over)
+    args: list[str] = []
+    for flag, value in fields.items():
+        args += [flag, value]
+    return args + ["--file", str(target)]
+
+
+def test_non_ascii_body_lands_raw(target: Path) -> None:
+    """AC13. The whole point: a non-ASCII body must reach disk as UTF-8 bytes,
+    not as a \\uXXXX escape. Asserted on bytes — a decoded-string comparison
+    passes for both forms and would not catch the drift."""
+    name = "non-ascii-body-lands-raw"
+    target.write_text("", encoding="utf-8")
+    proc = run(*_append_args(target, **{"--body": "an em dash — and café"}))
+    if proc.returncode != 0:
+        fail(name, f"exit {proc.returncode}: {proc.stderr}")
+        return
+    raw = target.read_bytes()
+    if b"\\u2014" in raw:
+        fail(name, "em dash was written as a \\u2014 escape")
+    elif "—".encode() not in raw or "café".encode() not in raw:
+        fail(name, f"raw UTF-8 not found in output: {raw!r}")
+    else:
+        ok(name)
+
+
+def test_id_allocation_tolerates_gaps(target: Path) -> None:
+    """AC13. Ids are unique, not dense — the README says gaps are fine."""
+    name = "id-allocation-tolerates-gaps"
+    target.write_text(entry(id="K-0001") + "\n" + entry(id="K-0007") + "\n",
+                      encoding="utf-8")
+    proc = run(*_append_args(target))
+    if proc.returncode != 0:
+        fail(name, f"exit {proc.returncode}: {proc.stderr}")
+        return
+    ids = [json.loads(ln)["id"] for ln in
+           target.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    if ids[-1] != "K-0008":
+        fail(name, f"expected K-0008, got {ids[-1]}")
+    else:
+        ok(name)
+
+
+def test_missing_trailing_newline_does_not_join(target: Path) -> None:
+    """AC13. Appending to a file with no final newline must not fuse two
+    entries into one unparseable line."""
+    name = "missing-trailing-newline-does-not-join"
+    target.write_text(entry(id="K-0001"), encoding="utf-8")  # no newline
+    proc = run(*_append_args(target))
+    if proc.returncode != 0:
+        fail(name, f"exit {proc.returncode}: {proc.stderr}")
+        return
+    lines = [ln for ln in target.read_text(encoding="utf-8").splitlines()
+             if ln.strip()]
+    if len(lines) != 2:
+        fail(name, f"expected 2 lines, got {len(lines)}")
+        return
+    try:
+        for ln in lines:
+            json.loads(ln)
+    except json.JSONDecodeError as exc:
+        fail(name, f"line did not parse: {exc.msg}")
+        return
+    ok(name)
+
+
+def test_out_of_root_target_refused(target: Path) -> None:
+    """AC14. --file is argv-controlled and so is the content written through
+    it; the target must be confined to docs/knowledge after resolution.
+
+    The decoy sits at the repo root, NOT in `target.parent` — that directory is
+    the confinement root itself, so a path inside it is supposed to be
+    accepted."""
+    name = "out-of-root-target-refused"
+    assert CWD is not None
+    outside = CWD / "escaped.jsonl"
+    proc = run(*_append_args(outside))
+    if proc.returncode == 0:
+        fail(name, f"accepted an out-of-root target: {outside}")
+    elif outside.exists():
+        fail(name, "refused but created the out-of-root file anyway")
+    else:
+        ok(name)
+
+
+def test_symlink_escape_refused(target: Path) -> None:
+    """AC14. The containment check runs after resolve(), so a link that lives
+    inside the root but points outside it is still refused."""
+    name = "symlink-escape-refused"
+    assert CWD is not None
+    real = CWD / "outside-target.jsonl"
+    real.write_text("", encoding="utf-8")
+    link = target.parent / "sneaky.jsonl"
+    if link.exists() or link.is_symlink():
+        link.unlink()
+    try:
+        link.symlink_to(real)
+    except (OSError, NotImplementedError):
+        ok(f"{name} (skipped — no symlink support)")
+        return
+    proc = run(*_append_args(link))
+    if proc.returncode == 0:
+        fail(name, "accepted a symlink resolving outside the root")
+    elif real.read_bytes() != b"":
+        fail(name, "refused but wrote through the symlink anyway")
+    else:
+        ok(name)
+
+
+def test_decoy_git_dir_does_not_move_the_root(target: Path) -> None:
+    """AC15. The confinement root comes from `git rev-parse`; if the child
+    inherits GIT_DIR / GIT_WORK_TREE the root is attacker-steerable and the
+    confinement of AC14 is anchored to a moved goalpost."""
+    name = "decoy-git-dir-does-not-move-the-root"
+    assert CWD is not None
+    target.write_text("", encoding="utf-8")
+    decoy = CWD / "decoy"
+    decoy.mkdir(exist_ok=True)
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), *_append_args(target)],
+        capture_output=True, text=True, encoding="utf-8", check=False,
+        cwd=str(CWD), env={**os.environ, "GIT_WORK_TREE": str(decoy),
+                           "GIT_DIR": str(decoy / ".git")},
+    )
+    if proc.returncode != 0:
+        fail(name, f"a decoy GIT_WORK_TREE changed the outcome: {proc.stderr}")
+    elif not target.read_bytes().strip():
+        fail(name, "wrote nothing — the root was steered by the decoy")
+    else:
+        ok(name)
+
+
+def test_control_character_refused_before_write(target: Path) -> None:
+    """AC16. Entries are replayed verbatim into every future agent session by
+    session-start.py, so ESC and the line separators never reach the file."""
+    name = "control-character-refused-before-write"
+    target.write_text(entry(id="K-0001") + "\n", encoding="utf-8")
+    before = target.read_bytes()
+    for label, payload in (("ESC", "a\x1b[31mb"), ("U+2028", "a b")):
+        proc = run(*_append_args(target, **{"--body": payload}))
+        if proc.returncode == 0:
+            fail(name, f"{label} in --body was accepted")
+            return
+        if target.read_bytes() != before:
+            fail(name, f"{label} rejected but the file changed")
+            return
+    ok(name)
+
+
+def test_rejected_entry_leaves_file_byte_identical(target: Path) -> None:
+    """AC17. A failed append is a no-op, not a partial write."""
+    name = "rejected-entry-leaves-file-byte-identical"
+    target.write_text(entry(id="K-0001") + "\n", encoding="utf-8")
+    before = target.read_bytes()
+    proc = run(*_append_args(target, **{"--kind": "not-a-kind"}))
+    if proc.returncode == 0:
+        fail(name, "invalid --kind was accepted")
+    elif target.read_bytes() != before:
+        fail(name, "file was modified despite the rejection")
+    else:
+        ok(name)
+
+
+def test_preexisting_lint_failure_is_named(target: Path) -> None:
+    """AC19. A knowledge base that was already broken must not be reported as
+    the caller's entry failing lint."""
+    name = "preexisting-lint-failure-is-named"
+    target.write_text('{"id": "nope"}\n', encoding="utf-8")
+    before = target.read_bytes()
+    proc = run(*_append_args(target))
+    out = proc.stdout + proc.stderr
+    if proc.returncode == 0:
+        fail(name, "appended onto an already-failing knowledge base")
+    elif "already fails lint" not in out:
+        fail(name, f"message did not name the pre-existing failure: {out!r}")
+    elif target.read_bytes() != before:
+        fail(name, "file was modified")
+    else:
+        ok(name)
+
+
+def test_absent_target_is_created(target: Path) -> None:
+    """AC19's other half. A non-existent file is an empty knowledge base, not a
+    broken one — pre-linting it unconditionally would make a fresh base
+    uncreatable and misreport it as already failing."""
+    name = "absent-target-is-created"
+    if target.exists():
+        target.unlink()
+    proc = run(*_append_args(target))
+    if proc.returncode != 0:
+        fail(name, f"exit {proc.returncode}: {proc.stderr}")
+    elif not target.is_file():
+        fail(name, "target was not created")
+    elif json.loads(target.read_text(encoding="utf-8").strip())["id"] != "K-0001":
+        fail(name, "first entry in a fresh file should be K-0001")
+    else:
+        ok(name)
+
+
+def test_post_lint_failure_leaves_target_identical(target: Path) -> None:
+    """AC17's install path — the branch that used to need a rollback.
+
+    Driven by `--scope ','`: the writer's own validation only requires a
+    non-empty string, but the linter requires at least one non-empty glob
+    segment after splitting on commas, so this is a candidate that passes every
+    pre-write check and fails the *post* lint. Distinct from the argparse
+    rejections above, which never reach the temp file.
+    """
+    name = "post-lint-failure-leaves-target-identical"
+    target.write_text(entry(id="K-0001") + "\n", encoding="utf-8")
+    before = target.read_bytes()
+    proc = run(*_append_args(target, **{"--scope": ","}))
+    out = proc.stdout + proc.stderr
+    if proc.returncode == 0:
+        fail(name, "a candidate the linter rejects was installed")
+    elif target.read_bytes() != before:
+        fail(name, "target changed on a failed post-lint")
+    elif "scope" not in out:
+        fail(name, f"failure did not surface the linter's reason: {out!r}")
+    elif list(target.parent.glob(".append-*.jsonl.tmp")):
+        fail(name, "temp file left behind")
+    else:
+        ok(name)
+
+
+def test_lint_runs_out_of_process(target: Path) -> None:
+    """AC18. lint-knowledge.py chdirs at module scope, so importing it would
+    relocate this writer's relative paths. Proven by driving the writer from a
+    cwd whose relative resolution would differ, and asserting the write still
+    lands where --file said."""
+    name = "lint-runs-out-of-process"
+    assert CWD is not None
+    target.write_text("", encoding="utf-8")
+    sub = CWD / "docs"
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), *_append_args(target)],
+        capture_output=True, text=True, encoding="utf-8", check=False, cwd=str(sub),
+    )
+    if proc.returncode != 0:
+        fail(name, f"exit {proc.returncode}: {proc.stderr}")
+    elif not target.read_bytes().strip():
+        fail(name, "nothing written — the linter's chdir leaked into the writer")
+    else:
+        ok(name)
+
+
+def test_length_caps_enforced_at_the_boundary(target: Path) -> None:
+    """AC16. A cap with no test is not a contract."""
+    name = "length-caps-enforced-at-the-boundary"
+    for field, cap in (("--title", 120), ("--body", 2000)):
+        target.write_text("", encoding="utf-8")
+        at = run(*_append_args(target, **{field: "x" * cap}))
+        if at.returncode != 0:
+            fail(name, f"{field} at exactly {cap} was refused: {at.stderr}")
+            return
+        over = run(*_append_args(target, **{field: "x" * (cap + 1)}))
+        if over.returncode == 0:
+            fail(name, f"{field} at {cap + 1} was accepted")
+            return
+        if str(cap) not in (over.stdout + over.stderr):
+            fail(name, f"{field} refusal did not name the limit {cap}")
+            return
+    ok(name)
+
+
+def main() -> int:
+    global CWD
+    if not SCRIPT.is_file():
+        print(f"✖ test-append-knowledge: subject not found at {SCRIPT}",
+              file=sys.stderr)
+        return 1
+    with tempfile.TemporaryDirectory() as td:
+        CWD = Path(td)
+        subprocess.run(["git", "init", "-q", str(CWD)],
+                       capture_output=True, check=True)
+        root = CWD / "docs" / "knowledge"
+        root.mkdir(parents=True)
+        for case in (
+            test_non_ascii_body_lands_raw,
+            test_id_allocation_tolerates_gaps,
+            test_missing_trailing_newline_does_not_join,
+            test_out_of_root_target_refused,
+            test_symlink_escape_refused,
+            test_decoy_git_dir_does_not_move_the_root,
+            test_control_character_refused_before_write,
+            test_rejected_entry_leaves_file_byte_identical,
+            test_preexisting_lint_failure_is_named,
+            test_absent_target_is_created,
+            test_post_lint_failure_leaves_target_identical,
+            test_lint_runs_out_of_process,
+            test_length_caps_enforced_at_the_boundary,
+        ):
+            case(root / "patterns.jsonl")
+
+    print()
+    if FAILURES:
+        print(f"✖ test-append-knowledge: {len(FAILURES)} of {RAN} cases failed",
+              file=sys.stderr)
+        return 1
+    print(f"✓ test-append-knowledge: passed ({RAN} cases).")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

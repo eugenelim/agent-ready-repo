@@ -47,6 +47,35 @@ ALLOWED_KINDS = {"pattern", "gotcha", "antipattern"}
 ALLOWED_TIERS = {"invariant", "observation"}
 ID_PATTERN = re.compile(r"^K-\d{4,}$")
 
+# Entries must be raw UTF-8, not `\uXXXX`-escaped. Both forms are valid JSON, so
+# an author reaching for json.dumps' default (ensure_ascii=True) silently drifts
+# the file's encoding — and for a non-BMP character the default emits a
+# *surrogate pair* (😀 → 😀), which is valid JSON but not a valid
+# TOML/YAML scalar downstream. `append-knowledge.py` writes the correct form;
+# this rule catches everything else.
+_ESCAPE_RE = re.compile(r"(\\+)u([0-9a-fA-F]{4})")
+# Escapes that must stay legal:
+#   < 0x20  — JSON requires escaping these.
+#   U+0085 / U+2028 / U+2029 — str.splitlines() (used by this linter and by
+#   tools/hooks/session-start.py) breaks on them, so the escaped form is the
+#   *only* representation that survives a round trip.
+_LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
+
+
+def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
+    """Return (escape, character) for each `\\uXXXX` that should have been literal."""
+    found: list[tuple[str, str]] = []
+    for m in _ESCAPE_RE.finditer(raw):
+        # An escape is real only when the backslash run ending at the matched
+        # `\` is odd; an even run is a literal backslash followed by "u1234".
+        if len(m.group(1)) % 2 == 0:
+            continue
+        cp = int(m.group(2), 16)
+        if cp < 0x20 or cp in _LINE_BREAKERS:
+            continue
+        found.append((f"\\u{m.group(2)}", chr(cp)))
+    return found
+
 
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
@@ -79,6 +108,19 @@ def main(argv: list[str] | None = None) -> int:
     ):
         if not raw.strip():
             continue
+
+        # Checked on the raw line, before parsing: json.loads decodes the escape
+        # away, so the drift is invisible to any check on the parsed object.
+        # Reported through err() — a lone surrogate cannot be printed to this
+        # script's stdout, which is configured errors="strict".
+        for escape, char in gratuitous_escapes(raw):
+            err(
+                line_no,
+                f"{escape} escapes a character that should be written literally "
+                f"({char!r}) — write raw UTF-8 "
+                f"(json.dumps(..., ensure_ascii=False)), or append via "
+                f"append-knowledge.py",
+            )
 
         try:
             entry = json.loads(raw)

@@ -124,6 +124,44 @@ def _entry(**over: object) -> str:
 
 
 def layer_validation_rules(tmp: Path) -> None:
+    # STUB: AC20 — docs/specs/loop-tooling-mandated-writes, task T3.
+    # Red until the linter rejects a `\uXXXX` escape for a character that
+    # should have been written literally. `_entry` serializes with json.dumps'
+    # default ensure_ascii=True, so it produces exactly the drift being closed.
+    run_case(tmp, "stub-gratuitous-escape-rejected",
+             _entry(body="an em dash — here") + "\n", 1, "\\u2014")
+    # The raw character is the correct form and stays clean.
+    run_case(tmp, "stub-raw-utf8-accepted",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "an em dash — here",
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             0, "Knowledge lint: passed")
+    # U+2028/U+2029/U+0085 split str.splitlines(), which both this linter and
+    # session-start.py use to read the file — so the *escaped* form is the only
+    # representation that survives, and must stay legal.
+    run_case(tmp, "stub-line-separator-escape-stays-legal",
+             '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
+             '"body": "a\\u2028b", "source": "s"}\n',
+             0, "Knowledge lint: passed")
+    # A literal backslash-u in body text is not an escape.
+    run_case(tmp, "stub-literal-backslash-u-accepted",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "write \\u2014 to escape",
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             0, "Knowledge lint: passed")
+    # Below U+0020 JSON *requires* the escape. This case is what pins the
+    # >= 0x20 threshold — without it, a linter that rejected every \uXXXX
+    # escape would pass the whole stub.
+    run_case(tmp, "stub-control-escape-stays-legal",
+             '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
+             '"body": "a\\u0009b", "source": "s"}\n',
+             0, "Knowledge lint: passed")
+    # Non-BMP characters become surrogate PAIRS under ensure_ascii=True — the
+    # half of the drift that is not merely cosmetic, since U+D800-U+DFFF are
+    # not valid TOML/YAML scalars.
+    run_case(tmp, "stub-surrogate-pair-rejected",
+             _entry(body="ship it 😀") + "\n", 1, "\\ud83d")
+
     # Empty file (no learnings yet) is valid.
     run_case(tmp, "empty", "", 0, "Knowledge lint: passed")
 
