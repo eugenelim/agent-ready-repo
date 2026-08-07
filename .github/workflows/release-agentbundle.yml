@@ -122,7 +122,7 @@ jobs:
           python-version: ${{ matrix.python }}
 
       - name: Install agentbundle (editable) + optional extras + pytest
-        run: pip install -e 'packages/agentbundle[lint]' -e packages/credbroker pytest
+        run: python -m pip install -e 'packages/agentbundle[lint]' -e packages/credbroker pytest
 
       - name: Full agentbundle test suite (Gate H pre-publish)
         working-directory: packages/agentbundle

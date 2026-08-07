@@ -19,7 +19,7 @@ Three peer loops span the full SDLC. Discovery takes a raw idea to a ratified br
 `core` is the flagship pack — the build loop, in one command:
 
 ```bash
-pip install agentbundle
+python -m pip install agentbundle
 agentbundle install --pack core
 ```
 
@@ -42,7 +42,7 @@ claude plugin install core@agent-ready-repo
 
 ```bash
 # Install the CLI (one-time)
-pip install agentbundle
+python -m pip install agentbundle
 
 # See the catalogue
 agentbundle list-packs

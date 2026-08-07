@@ -18,7 +18,7 @@ You need:
 - The `init-project` skill, which ships in the `core` pack. If you haven't installed `core` into this repo yet, do that first:
 
   ```bash
-  pip install agentbundle
+  python -m pip install agentbundle
   agentbundle install --pack core git+https://github.com/<owner>/<catalogue>
   ```
 

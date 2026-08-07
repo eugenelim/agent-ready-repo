@@ -8,7 +8,7 @@ Install a role's whole toolkit, or a repo's full governance setup, in one comman
 
 ## Prerequisites
 
-- The `agentbundle` CLI on your PATH (`pip install agentbundle`, or the [clone-and-pip route](install-agentbundle-from-clone.md)).
+- The `agentbundle` CLI on your PATH (`python -m pip install agentbundle`, or the [clone-and-pip route](install-agentbundle-from-clone.md)).
 - A catalogue URI — a local checkout path or `git+https://github.com/<owner>/<catalogue>`.
 
 ## Discover what's available

@@ -10,7 +10,7 @@ Four ways to get packs into your agent. Pick the one that matches your workflow.
 The standard route. Installs into the current repo (repo scope) or your home directory (user scope).
 
 ```bash
-pip install agentbundle
+python -m pip install agentbundle
 agentbundle install --pack core
 ```
 
@@ -98,7 +98,7 @@ For catalogue contributors or teams building their own fork:
 ```bash
 git clone https://github.com/eugenelim/agent-ready-repo
 cd agent-ready-repo
-pip install -e packages/agentbundle
+python -m pip install -e packages/agentbundle
 agentbundle install --pack core
 ```
 

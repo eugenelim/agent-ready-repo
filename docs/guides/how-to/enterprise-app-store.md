@@ -105,7 +105,7 @@ The base CI job verifies the catalogue and packages it for distribution. Run on
 
 ```yaml
 - name: Install agentbundle
-  run: pip install agentbundle
+  run: python -m pip install agentbundle
 
 - name: Package catalogue
   run: |
@@ -140,7 +140,7 @@ build-check-windows:
         python-version: "3.11"
 
     - name: Install agentbundle
-      run: pip install agentbundle
+      run: python -m pip install agentbundle
 
     - name: Verify catalogue (Windows)
       run: agentbundle catalogue verify --root .

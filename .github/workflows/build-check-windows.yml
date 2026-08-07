@@ -83,8 +83,8 @@ jobs:
         # --check --windows` resolves. credbroker + httpx are required by the
         # atlassian SSO suites that the Windows compat suite drives.
         run: |
-          pip install -e packages/agentbundle/ pytest -r tools/requirements.txt
-          pip install -e ./packages/credbroker "httpx>=0.27"
+          python -m pip install -e packages/agentbundle/ pytest -r tools/requirements.txt
+          python -m pip install -e ./packages/credbroker "httpx>=0.27"
 
       - name: Windows compat build-check
         # Drives agentbundle/catalogue_tooling/self_host_windows.py:

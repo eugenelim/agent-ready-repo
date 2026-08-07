@@ -67,7 +67,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install agentbundle with lint extra
-        run: pip install -e 'packages/agentbundle/[lint]' pytest
+        run: python -m pip install -e 'packages/agentbundle/[lint]' pytest
       - name: Run skill-spec linter (projection + seeds)
         run: agentbundle catalogue lint --root . --deep
       - name: Self-test the linter (every failure mode + happy path)

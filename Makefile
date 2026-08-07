@@ -235,8 +235,8 @@ release-preflight: lint-packs
 	@bash tools/release-check.sh
 
 # ── Static analysis + tests ──────────────────────────────────────────────────
-# Requires: pip install -e packages/agentbundle ruff mypy pytest
-#           pip install -e 'packages/credbroker[crypto]'
+# Requires: python -m pip install -e packages/agentbundle ruff mypy pytest
+#           python -m pip install -e 'packages/credbroker[crypto]'
 #           pip install -r tools/requirements-sast.txt  (for build-check SAST leg; or SKIP_SAST=1)
 
 lint-ruff:

@@ -7,7 +7,7 @@ does not require any files from `tools/`.
 ## Prerequisites
 
 - Python 3.11+
-- AgentBundle ≥ 0.14.0: `pip install agentbundle`
+- AgentBundle ≥ 0.14.0: `python -m pip install agentbundle`
 
 ## Step 1 — Create the layout
 

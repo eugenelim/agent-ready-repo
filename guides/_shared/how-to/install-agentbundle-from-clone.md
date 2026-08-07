@@ -6,7 +6,7 @@
 
 You're here because the `agentbundle` CLI drives pack install, validation, adapt, and build. All four [README install routes](../../../../README.md#install) ship pack content — skills, agents, hooks — but not the CLI, so every route converges here for the pip install.
 
-> **Credentialed skills don't resolve credentials through the `agentbundle` wheel.** Since 0.2.0 (RFC-0013) they no longer import from `agentbundle.credentials`, and since [RFC-0023](../../../rfc/0023-credential-manager-broker.md) the `auth: creds` resolver is the standalone, pip-installable [`credbroker`](../../../../packages/credbroker) library, imported in-process (`from credbroker import …`) — it replaced the build-projected `credentials_shim` sibling. From a clone, install it alongside the CLI: `pip install -e ./packages/credbroker`. (The no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of the [credentialed-skill how-to](../../credential-brokers/how-to/add-a-credentialed-skill.md).) The CLI itself remains pip-installed from this clone; what changed is that the *Python skill bodies* resolve credentials through `credbroker`, not the agentbundle wheel.
+> **Credentialed skills don't resolve credentials through the `agentbundle` wheel.** Since 0.2.0 (RFC-0013) they no longer import from `agentbundle.credentials`, and since [RFC-0023](../../../rfc/0023-credential-manager-broker.md) the `auth: creds` resolver is the standalone, pip-installable [`credbroker`](../../../../packages/credbroker) library, imported in-process (`from credbroker import …`) — it replaced the build-projected `credentials_shim` sibling. From a clone, install it alongside the CLI: `python -m pip install -e ./packages/credbroker`. (The no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of the [credentialed-skill how-to](../../credential-brokers/how-to/add-a-credentialed-skill.md).) The CLI itself remains pip-installed from this clone; what changed is that the *Python skill bodies* resolve credentials through `credbroker`, not the agentbundle wheel.
 
 Smoke test for the install:
 
@@ -26,14 +26,14 @@ That import has to resolve against the interpreter's `sys.path` at the time you 
 From the clone root, use the editable install:
 
 ```bash
-pip install -e packages/agentbundle/
+python -m pip install -e packages/agentbundle/
 ```
 
 This writes a finder hook into your active interpreter's `site-packages` pointing back at `packages/agentbundle/agentbundle/`. `from agentbundle.cli import main` succeeds from anywhere that interpreter runs, and any `git pull` against the clone is picked up by importers without re-running `pip install`.
 
 **Editable is the right default** for both contributors and adopters working from a clone — the clone is already on disk, the finder-hook shape costs nothing, and source updates land transparently. The [`how to add a credentialed skill`](../../credential-brokers/how-to/add-a-credentialed-skill.md) walkthrough uses the same idiom.
 
-> **Snapshot install — narrow exception.** `pip install ./packages/agentbundle` (no `-e`) copies the package as it exists at install time. Edits or `git pull`s to the clone are *not* seen by importers until you re-run `pip install`. Use this only if you cloned to a pinned tag, never intend to update or edit, and want install isolation from the clone directory.
+> **Snapshot install — narrow exception.** `python -m pip install ./packages/agentbundle` (no `-e`) copies the package as it exists at install time. Edits or `git pull`s to the clone are *not* seen by importers until you re-run `python -m pip install`. Use this only if you cloned to a pinned tag, never intend to update or edit, and want install isolation from the clone directory.
 
 ## Step 2 — Smoke-check the install
 
@@ -63,7 +63,7 @@ your-clone/
         └── build/                  (recipe loader, adapters, projections)
 ```
 
-`pip install -e packages/agentbundle/` exposes two surfaces on your active interpreter:
+`python -m pip install -e packages/agentbundle/` exposes two surfaces on your active interpreter:
 
 1. **Importable module** — `from agentbundle.cli import main` succeeds anywhere that interpreter runs. The CLI is the surface; credentialed skill scripts no longer import this module.
 2. **`agentbundle` console script on PATH** — verbs like `install`, `validate`, `adapt`, `build`, now running directly from the live source instead of from a frozen archive.

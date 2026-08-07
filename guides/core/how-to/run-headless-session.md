@@ -8,7 +8,7 @@ A control harness drives Claude Code sessions programmatically — no human watc
 
 ## Prerequisites
 
-- `agentbundle >= 0.29.1` installed (`pip install 'agentbundle>=0.29.1'`) — earlier versions lack the FSM git guard and will push the startup branch if `git_push` is pre-approved
+- `agentbundle >= 0.29.1` installed (`python -m pip install 'agentbundle>=0.29.1'`) — earlier versions lack the FSM git guard and will push the startup branch if `git_push` is pre-approved
 - `agentbundle install --pack core` run in the target repo
 - Python 3.11+ on the machine running the harness
 - An ACP-capable control harness — Claude Code via the `claude-agent-acp` bridge or native Agent SDK

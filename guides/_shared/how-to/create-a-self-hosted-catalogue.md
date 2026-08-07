@@ -5,7 +5,7 @@ catalogue from an existing source catalogue — for example, rebranding a public
 for your organization or customizing a set of packs for a restricted environment.
 
 **Prerequisites:**
-- `agentbundle` installed (`pip install agentbundle`)
+- `agentbundle` installed (`python -m pip install agentbundle`)
 - A source catalogue accessible at a local path
 - An empty (or nonexistent) target directory
 
@@ -59,7 +59,7 @@ agentbundle catalogue init my-catalogue \
 Then install from the vendored copy:
 
 ```bash
-pip install -e my-catalogue/.agentbundle/tooling/agentbundle/
+python -m pip install -e my-catalogue/.agentbundle/tooling/agentbundle/
 ```
 
 ---

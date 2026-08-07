@@ -20,7 +20,7 @@ For the greenfield case — starting a brand-new project from scratch — see [F
   If the directory is absent, install the pack:
 
   ```bash
-  pip install agentbundle
+  python -m pip install agentbundle
   agentbundle install --pack core git+https://github.com/<org>/<repo>
   ```
 

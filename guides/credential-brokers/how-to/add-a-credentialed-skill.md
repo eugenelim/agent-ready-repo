@@ -312,7 +312,7 @@ credbroker
 python -m pip install -r requirements.txt
 ```
 
-[RFC-0023](../../../rfc/0023-credential-manager-broker.md) replaced the build-projected `credentials_shim` sibling with the pip-installable `credbroker` library, imported in-process — so there is no `make build-self` projection step for the resolver, and no `scripts/`-vendored shim to keep in sync. In a fresh repo checkout, before either the floor or a pip install is in place, `from credbroker import …` fails with `ModuleNotFoundError: credbroker`. For local development, install from the repo path: `pip install -e ./packages/credbroker`. For locked-down sites, see *Installing without PyPI (corporate)* just below.
+[RFC-0023](../../../rfc/0023-credential-manager-broker.md) replaced the build-projected `credentials_shim` sibling with the pip-installable `credbroker` library, imported in-process — so there is no `make build-self` projection step for the resolver, and no `scripts/`-vendored shim to keep in sync. In a fresh repo checkout, before either the floor or a pip install is in place, `from credbroker import …` fails with `ModuleNotFoundError: credbroker`. For local development, install from the repo path: `python -m pip install -e ./packages/credbroker`. For locked-down sites, see *Installing without PyPI (corporate)* just below.
 
 ### How `credbroker` reaches `sys.path` — the layered model
 
@@ -331,8 +331,8 @@ Because the bootstrap **appends** (never prepends) the floor, a pip-installed `c
 - **From an internal package index** (Artifactory, Nexus, a private mirror):
 
   ```bash
-  pip install credbroker --index-url https://pypi.example.corp/simple
-  pip install "credbroker[crypto]" --index-url https://pypi.example.corp/simple   # + encrypted-at-rest vault
+  python -m pip install credbroker --index-url https://pypi.example.corp/simple
+  python -m pip install "credbroker[crypto]" --index-url https://pypi.example.corp/simple   # + encrypted-at-rest vault
   ```
 
 - **From a local `.whl`**:

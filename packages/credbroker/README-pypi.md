@@ -11,8 +11,8 @@
 ## Install
 
 ```bash
-pip install credbroker              # stdlib-only core
-pip install 'credbroker[crypto]'    # + encrypted-at-rest vault
+python -m pip install credbroker              # stdlib-only core
+python -m pip install 'credbroker[crypto]'    # + encrypted-at-rest vault
 ```
 
 ## Use
@@ -93,6 +93,6 @@ The confinement helpers that keep a captured jar from over-reaching ship alongsi
 
 ## Learn more
 
-For local development, install from a repo clone: `pip install -e ./packages/credbroker`.
+For local development, install from a repo clone: `python -m pip install -e ./packages/credbroker`.
 
 See the [full contract](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/credbroker/spec.md) and the [broker design](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0023-credential-manager-broker.md) for the rationale.

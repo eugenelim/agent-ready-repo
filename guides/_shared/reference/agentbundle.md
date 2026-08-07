@@ -5,7 +5,7 @@
 ## Install `agentbundle`
 
 ```bash
-pip install agentbundle
+python -m pip install agentbundle
 ```
 
 To install from a clone instead — for repo contributors or for users on an offline / corporate network — see [`../how-to/install-agentbundle-from-clone.md`](../how-to/install-agentbundle-from-clone.md).
