@@ -433,9 +433,11 @@ def _register_profile(mod, profile="jira"):
     mod._SSO_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
     mod._write_profile(profile, {
         "name": profile,
-        "login_url": "https://example.com/login",
-        "success_url_pattern": "dash",
-        "cookie_domains": ["example.com"],
+        "login_url": "https://idp.example.com/login",
+        # Must match `_SUCCESS_URL` from the verb suite, or a driven `refresh`
+        # exits 5 (interaction required) before it ever reaches the lock.
+        "success_url_pattern": r"https://jira\.example\.com/secure/.*",
+        "cookie_domains": ["jira.example.com"],
         "session_filename": f"{profile}.jar",
         "validation_endpoint": "/rest/api/2/myself",
         "ttl_hint_minutes": 60,
@@ -705,38 +707,41 @@ def test_rm_exit_3_names_the_manual_recourse(broker, capsys, monkeypatch):
     assert "manually" in err and "sso-cookies" in err, err
 
 
-def test_a_contended_capture_exits_6_and_leaves_the_profile_toml_intact(broker):
+def test_a_contended_capture_exits_6_and_leaves_the_profile_toml_intact(
+    broker, monkeypatch, capsys
+):
     """AC8/AC9 for the capture verbs — the arm the lock does the most work on.
 
-    `_capture` is the one site where a *profile TOML write* was deliberately
-    pulled inside the lock, because taking it inside `_store_cookie_jar` would
+    Drives `mod.main(["refresh", ...])` through the real `_capture`, with the
+    browser faked by the same `_PlaywrightRecorder` the verb suite uses. An
+    earlier version of this test hand-copied `_capture`'s lock scope into the
+    test body, which meant moving `_write_profile` above the `with` in
+    production would have left it green — the same defect class as the
+    `_materialise` helper that let the get-cookies bug ship.
+
+    `_capture` is the one site where a profile TOML write was deliberately
+    pulled inside the lock: taking it inside `_store_cookie_jar` instead would
     let a contended capture report failure having already overwritten the
     destination-pinning anchor that only a completed, operator-authorised
-    register is supposed to write. Nothing else asserts that behaviourally —
-    the four-acquisition-site check proves only that `_write_profile` sits
-    inside the scope, not what a contended run leaves behind.
-
-    This is also the operator-costliest outcome in the spec: a contended
-    capture discards a sign-in that already completed. The contract is that it
-    discards it *cleanly*.
+    register is supposed to write. This is also the operator-costliest outcome
+    in the spec — a contended capture discards a sign-in that already
+    completed — so the contract is that it discards it *cleanly*.
     """
     import time as _time
 
+    from test_sso_broker_verbs import _SUCCESS_URL, _PlaywrightRecorder
+
     mod, _ = broker
     _register_profile(mod)
-    toml_before = mod._profile_path("jira").read_bytes()
-
-    # Reach `_capture`'s store step with the browser work stubbed out entirely;
-    # a contended capture must never have written anything durable.
-    captured = [{"name": "sid", "value": "v", "domain": "example.com"}]
-
-    def fake_capture(profile, **kwargs):
-        with mod._profile_lock(profile):
-            mod._write_profile(profile, {"name": profile, "login_url": "x"})
-            mod._store_cookie_jar(
-                profile, json.dumps(captured, separators=(",", ":")).encode()
-            )
-        return 0
+    _PlaywrightRecorder([_SUCCESS_URL]).install(mod, monkeypatch)
+    toml_path = mod._profile_path("jira")
+    toml_before = toml_path.read_bytes()
+    # Byte-comparison alone cannot detect the regression this test exists to
+    # catch: `refresh` writes the stored values straight back, so a
+    # `_write_profile` hoisted out of the lock produces identical *content*.
+    # `_write_profile` stages to a temp and `replace`s it, so the inode changes
+    # on any write — that is the signal that the anchor was touched at all.
+    inode_before = toml_path.stat().st_ino
 
     mod._LOCK_WAIT_BUDGET_S = 0.3
     holding = threading.Event()
@@ -745,24 +750,34 @@ def test_a_contended_capture_exits_6_and_leaves_the_profile_toml_intact(broker):
     def hold():
         with mod._profile_lock("jira"):
             holding.set()
-            release.wait(10)
+            release.wait(15)
 
     t = threading.Thread(target=hold, daemon=True)
     t.start()
     assert holding.wait(5)
     try:
         started = _time.monotonic()
-        with pytest.raises(mod.StoreContendedError):
-            fake_capture("jira")
+        code = mod.main(["refresh", "jira"])
         elapsed = _time.monotonic() - started
     finally:
         release.set()
         t.join(5)
 
-    # AC9's capture-verb clause: bounded from the first acquire attempt.
+    # AC8: the exit code, not merely the exception type.
+    assert code == 6, code
+    err = capsys.readouterr().err
+    assert "jira" in err and "0.3" in err, err
+    # AC9's capture-verb clause: bounded from the first acquire attempt. The
+    # browser work precedes the lock, so this cannot be measured from process
+    # start — which is why AC9 states a separate bound for these two verbs.
     assert elapsed <= mod._LOCK_WAIT_BUDGET_S + 2.0, elapsed
-    # AC8: the profile TOML is byte-identical — the anchor was not overwritten.
-    assert mod._profile_path("jira").read_bytes() == toml_before
+    # AC8: the destination-pinning anchor is untouched — same bytes *and* the
+    # same inode, so a rewrite with identical content still fails this.
+    assert toml_path.read_bytes() == toml_before
+    assert toml_path.stat().st_ino == inode_before, (
+        "the profile TOML was rewritten during a contended capture; the "
+        "destination-pinning anchor must not be touched when the capture fails"
+    )
     # AC8: and no jar was stored.
     with mod._profile_lock("jira"):
         assert mod._load_cookie_jar("jira") is None

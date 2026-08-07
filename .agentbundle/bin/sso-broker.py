@@ -152,8 +152,15 @@ _SSO_COOKIE_FILE_FLOOR = _AGENTBUNDLE_HOME / "sso-cookies"
 _SSO_LOCK_DIR = _AGENTBUNDLE_HOME / "sso-locks"
 
 # How long a verb waits for a contended profile before giving up. Uniform
-# across verbs because the critical section is uniformly short, and well under
-# the tightest caller timeout in ``credbroker._sso`` (30 s for get-cookies).
+# across verbs, and well under the tightest caller timeout in
+# ``credbroker._sso`` (30 s for get-cookies).
+#
+# **Provisional.** This was chosen on the premise that the critical section is
+# uniformly short, and that premise has since been measured false on macOS: a
+# four-slot ``rm`` reaches 2 s and a forty-slot one 20 s at the recorded
+# worst-case ``/usr/bin/security`` spawn cost, so a single queued waiter barely
+# fits. Re-derive it once the hold is bounded — tracked as
+# ``sso-keychain-call-timeouts``.
 _LOCK_WAIT_BUDGET_S = 10.0
 
 # Retry backoff bounds for the non-blocking acquire loop.
@@ -747,7 +754,13 @@ def _errno_detail(exc: BaseException) -> str:
     code = getattr(exc, "errno", None)
     if code is None:
         return type(exc).__name__
-    return f"{type(exc).__name__} errno={code} ({os.strerror(code)})"
+    # `os.strerror` raises ValueError for a code the platform does not know,
+    # and TypeError if a stub set a non-integer errno. Either would escape as a
+    # traceback on the one path whose contract is "one line, no traceback".
+    try:
+        return f"{type(exc).__name__} errno={code} ({os.strerror(code)})"
+    except (ValueError, TypeError):
+        return f"{type(exc).__name__} errno={code}"
 
 
 def _thread_holds_any_lock() -> bool:
@@ -847,6 +860,7 @@ def _profile_lock(profile: str, budget_s: float | None = None):
     if budget_s is None:
         budget_s = _LOCK_WAIT_BUDGET_S
 
+    path = None
     try:
         path = _sso_lock_path(profile)
         _SSO_LOCK_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -864,9 +878,14 @@ def _profile_lock(profile: str, budget_s: float | None = None):
     except (OSError, RuntimeError) as exc:
         # RuntimeError included: `Path.resolve()` raises it, not OSError, for
         # symlink loops on 3.11-3.12 (CPython #109187).
+        # `path` is None only when `_sso_lock_path` itself raised, in which
+        # case there is no confined path to name — and recomposing one by hand
+        # would bypass `_profile_component` / `_contained`, which is exactly
+        # what those helpers exist to prevent.
+        where = f" at {path}" if path is not None else ""
         raise LockUnavailableError(
-            f"could not open the lock for profile {profile!r} at "
-            f"{_SSO_LOCK_DIR / (profile + '.lock')}: {_errno_detail(exc)}"
+            f"could not open the lock for profile {profile!r}{where}: "
+            f"{_errno_detail(exc)}"
         ) from exc
 
     acquired = False
@@ -1744,7 +1763,7 @@ def main(argv: list[str] | None = None) -> int:
             return _do_refresh(args.profile, args)
         if verb == "list-profiles":
             return _do_list_profiles()
-        if verb == "rm":  # noqa: SIM102 — the suppress below is the point
+        if verb == "rm":
             return _do_rm(args.profile)
         if verb == "show-tier2-backend":
             return _do_show_tier2_backend()
@@ -1769,7 +1788,7 @@ def main(argv: list[str] | None = None) -> int:
         # a filesystem that refuses locking are all permanent. Reporting them as
         # 6 would send a caller into an unbounded retry loop.
         sys.stderr.write(f"sso-broker {verb}: {exc}\n")
-        if verb == "rm":  # noqa: SIM102 — the suppress below is the point
+        if verb == "rm":
             # With no unserialised fallback, an operator whose lock environment
             # is permanently unusable cannot revoke a stored session through the
             # tool. This line is the only place they learn how to do it by hand.
