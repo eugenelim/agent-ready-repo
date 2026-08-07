@@ -159,6 +159,14 @@ class SsoInteractionRequiredError(SsoError):
     """
 
 
+def _contended(profile: str) -> SsoStoreContendedError:
+    """The one contended message, so three call sites cannot drift apart."""
+    return SsoStoreContendedError(
+        f"the cookie store for {profile} is locked by another process; "
+        f"retry after a short back-off"
+    )
+
+
 def _broker_path() -> Path:
     """Resolve the engine path under the user's home (``~/.agentbundle/bin``)."""
     return Path.home().joinpath(*_BROKER_TAIL)
@@ -467,10 +475,7 @@ def load_sso_cookies(profile: str) -> Path:
     if result.returncode == 2:
         raise SsoSessionUnavailableError(remediation)
     if result.returncode == 6:
-        raise SsoStoreContendedError(
-            f"the cookie store for {profile} is locked by another process; "
-            f"retry after a short back-off"
-        )
+        raise _contended(profile)
     if result.returncode != 0:
         raise SsoBrokerUnavailableError(
             f"sso-broker get-cookies failed for profile {profile} "
@@ -539,10 +544,7 @@ def refresh_sso_session(profile: str) -> None:
             f"happened on this machine"
         )
     if code == 6:
-        raise SsoStoreContendedError(
-            f"the cookie store for {profile} is locked by another process; "
-            f"retry after a short back-off"
-        )
+        raise _contended(profile)
     if code == 5:
         raise SsoInteractionRequiredError(
             f"the stored browser session for {profile} could not re-authenticate "
@@ -611,10 +613,7 @@ def register_sso_session(
         # `_capture` serves both capture verbs, so `register` reaches the lock
         # too. Without this branch a contended register collapses into the
         # non-recoverable recapture-failed type.
-        raise SsoStoreContendedError(
-            f"the cookie store for {profile} is locked by another process; "
-            f"retry after a short back-off"
-        )
+        raise _contended(profile)
     raise SsoRecaptureFailedError(
         f"sso-broker register failed for profile {profile} "
         f"(exit {result.returncode}); see the engine's output above"

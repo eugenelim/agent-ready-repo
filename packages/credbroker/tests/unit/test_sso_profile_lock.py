@@ -123,7 +123,9 @@ def test_contended_acquire_raises_after_the_budget(broker):
             pass
         elapsed = time.monotonic() - started
         assert elapsed >= 0.5, f"gave up before the budget ({elapsed:.3f}s)"
-        assert elapsed < 5.0, f"overran the budget badly ({elapsed:.3f}s)"
+        # Tight enough to catch an inverted clamp in the backoff loop; a 5 s
+        # ceiling against a 0.5 s budget tolerated a 10x overshoot.
+        assert elapsed < 0.5 + 0.5, f"overran the budget ({elapsed:.3f}s)"
     finally:
         release.set()
         t.join(5)
@@ -224,7 +226,9 @@ def test_nested_acquire_same_profile_raises_immediately(broker):
         started = time.monotonic()
         with pytest.raises(broker.LockUnavailableError), broker._profile_lock("jira", budget_s=5):
             pass
-        assert time.monotonic() - started < 0.1
+        # The property is "the 5 s budget was not consumed". 1 s keeps 5x
+        # headroom while surviving a throttled runner.
+        assert time.monotonic() - started < 1.0
 
 
 def test_nested_acquire_different_profile_also_raises(broker):
@@ -233,7 +237,9 @@ def test_nested_acquire_different_profile_also_raises(broker):
         started = time.monotonic()
         with pytest.raises(broker.LockUnavailableError), broker._profile_lock("confluence", budget_s=5):
             pass
-        assert time.monotonic() - started < 0.1
+        # The property is "the 5 s budget was not consumed". 1 s keeps 5x
+        # headroom while surviving a throttled runner.
+        assert time.monotonic() - started < 1.0
 
 
 def test_different_thread_contends_rather_than_faulting(broker):

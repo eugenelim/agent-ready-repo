@@ -114,20 +114,37 @@ def test_no_lock_scope_encloses_the_browser_or_the_validation_request():
         assert not overlap, f"lock scope at line {scope.lineno} encloses {overlap}"
 
 
-def test_exactly_four_acquisition_sites():
-    """AC5: four acquisition sites plus one assumes-held function.
+# What each lock scope must *enclose*, not merely which function owns one.
+# The name-only version of this check is exactly what the original
+# `_do_get_cookies` defect passed through: the function acquired a lock, so it
+# was counted, while the materialisation sat outside the scope.
+_REQUIRED_WITHIN_LOCK = {
+    "_capture": {"_write_profile", "_store_cookie_jar"},
+    "_do_get_cookies": {"_load_cookie_jar", "_file_floor_write"},
+    "_do_rm": {"exists", "_delete_cookie_jar", "unlink"},
+    "_do_test": {"_load_cookie_jar"},
+}
 
-    A fifth would mean a verb acquired somewhere the spec did not authorise;
-    a third would mean one is missing.
+
+def test_exactly_four_acquisition_sites_each_enclosing_its_whole_transition():
+    """AC5: four acquisition sites, and each one covers the right region.
+
+    A fifth site would mean a verb acquired somewhere the spec did not
+    authorise; a third would mean one is missing; a scope that stops short of
+    its own mutation is the defect this test exists to catch.
     """
     tree = ast.parse(BROKER_PY.read_text(encoding="utf-8"))
-    owners = set()
+    owners = {}
     for fn in ast.walk(tree):
         if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
-        if _enclosing_lock_scopes(fn):
-            owners.add(fn.name)
-    assert owners == {"_capture", "_do_get_cookies", "_do_rm", "_do_test"}, owners
+        scopes = _enclosing_lock_scopes(fn)
+        if scopes:
+            owners[fn.name] = set().union(*(_calls_within(s) for s in scopes))
+    assert set(owners) == set(_REQUIRED_WITHIN_LOCK), set(owners)
+    for name, required in _REQUIRED_WITHIN_LOCK.items():
+        missing = required - owners[name]
+        assert not missing, f"{name}'s lock scope does not enclose {missing}"
 
 
 def test_rm_takes_the_lock_before_its_existence_check(broker):
@@ -160,8 +177,12 @@ def test_rm_on_an_unregistered_profile_is_a_no_op(broker):
     assert broker._do_rm("ghost") == 0
 
 
-def test_get_cookies_materialises_under_the_lock(broker):
-    """AC4: the verb still works end to end with one lock across both halves."""
+def test_get_cookies_still_materialises_end_to_end(broker):
+    """A smoke check that the verb works with the lock in place.
+
+    Not the AC4 artifact — that is the negative-control pair in
+    `test_sso_store_concurrency.py`. This only shows the happy path still runs.
+    """
     _register(broker)
     assert broker._do_get_cookies("jira") == 0
     assert broker._cookie_floor_path("jira").exists()
@@ -189,13 +210,18 @@ def _child_source(home: pathlib.Path, profile: str, hold_s: float) -> str:
     """)
 
 
-@pytest.mark.skipif(os.name != "posix", reason="SIGKILL semantics")
 def test_a_second_process_contends_with_a_real_holder(broker, tmp_path):
     """AC7: the lock crosses a process boundary, not just a thread boundary.
 
-    The thread harness cannot prove this: if a refactor moved the lock to a
-    per-process singleton, every thread test would still pass while interprocess
-    serialisation was gone.
+    **The load-bearing interprocess test**, and deliberately not `skipif`-ed:
+    it sends no signal (the `child.kill()` below is cleanup), so it is
+    platform-neutral, and Windows is the one platform where the contended path
+    is reached through `EACCES` rather than `BlockingIOError`. Skipping it there
+    would remove the only evidence on the platform that needs it most.
+
+    The thread harness cannot stand in for this: if a refactor moved the lock to
+    a per-process singleton, every thread test would still pass while
+    interprocess serialisation was gone.
     """
     home = pathlib.Path(os.environ["HOME"])
     child = subprocess.Popen(

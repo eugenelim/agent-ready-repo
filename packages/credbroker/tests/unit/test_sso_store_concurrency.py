@@ -41,7 +41,10 @@ if os.name == "posix":
     import fcntl as _lock_mod
 else:  # pragma: no cover - the Windows runner
     import msvcrt as _lock_mod
-assert _lock_mod is not None, (
+# The import above *is* the guard — it binds or raises at collection. Assert on
+# the attribute the engine actually calls, so a stubbed or renamed module fails
+# here rather than deep inside a test.
+assert hasattr(_lock_mod, "flock" if os.name == "posix" else "locking"), (
     "the lock primitive is unavailable on this platform; this module must fail "
     "rather than skip, or a wholly-skipped Windows run would read as coverage"
 )
@@ -192,8 +195,10 @@ def _run_two_writers(mod, backend, park_index: int, lock_enabled: bool = True):
             store(mod, "jira", _jar("a"))
         except BaseException as exc:  # noqa: BLE001 — asserted by the caller
             errors.append(exc)
-        finally:
-            reached.set()
+        # Deliberately no `finally: reached.set()`. Setting it on the completion
+        # path would make `wait_parked` true for a writer that died before ever
+        # parking — which is the exact degradation the guard exists to catch.
+        del reached
 
     a = threading.Thread(target=writer_a, daemon=True)
     a.start()
@@ -437,13 +442,18 @@ def _register_profile(mod, profile="jira"):
     })
 
 
-def _stale_reader_wins(mod) -> bool:
+def _stale_reader_outcome(mod) -> str:
     """Force the stale-reader interleaving and report whether it corrupted.
 
     A reader is parked between its jar load and its materialisation; while it
     is parked, a writer commits a fresher jar and a second reader materialises
     that. If the parked reader then lands its `os.replace` last, the fresher
     materialisation is destroyed.
+
+    Returns a *discriminated* outcome, not a bool — "the harness never parked",
+    "the writer was correctly blocked", and "no corruption occurred" are three
+    different facts and collapsing them to False would let a broken harness read
+    as a passing lock.
 
     **Under the fix this interleaving is unreachable** — load and materialise
     are one critical section, so there is no window to park in, and the second
@@ -473,14 +483,19 @@ def _stale_reader_wins(mod) -> bool:
     s.start()
     try:
         if not parked.wait(5):
-            return False  # never parked: the window does not exist
+            # No window to park in — which under the fix is the *expected*
+            # shape, but is also what a harness that stopped calling
+            # `_file_floor_write` would produce. Named, not conflated.
+            return "no-window"
         try:
             # Under the lock the parked reader still *holds* it, so this writer
             # is contended out — that refusal is the property, not a failure.
             with mod._profile_lock("jira", budget_s=0.5):
                 mod._store_cookie_jar("jira", _jar("b"))
         except mod.StoreContendedError:
-            return False
+            # The parked reader still holds the lock, so the writer is refused.
+            # This is the property.
+            return "contended"
         fresh = threading.Thread(
             target=lambda: mod._do_get_cookies("jira"), daemon=True
         )
@@ -492,11 +507,17 @@ def _stale_reader_wins(mod) -> bool:
         release.set()
         mod._file_floor_write = real_write
         s.join(5)
-    return _tags_present(mod._cookie_floor_path("jira").read_bytes()) == {"a"}
+    stale_won = _tags_present(mod._cookie_floor_path("jira").read_bytes()) == {"a"}
+    return "corrupted" if stale_won else "clean"
 
 
-def test_a_stale_reader_never_overwrites_a_fresher_materialisation(broker):
-    """AC4: two concurrent `get-cookies` leave the later-completing call's jar."""
+def test_two_concurrent_get_cookies_both_succeed(broker):
+    """Neither concurrent reader is contended out, and the floor holds the jar.
+
+    Deliberately *not* the AC4 artifact: there is only one jar version here, so
+    no reader can be stale and this assertion holds with the lock removed. AC4
+    is pinned by the negative-control pair below.
+    """
     mod, _ = broker
     _register_profile(mod)
     with mod._profile_lock("jira"):
@@ -519,7 +540,7 @@ def test_a_stale_reader_never_overwrites_a_fresher_materialisation(broker):
 
 
 def test_negative_control_stale_reader_wins_without_the_lock(broker, monkeypatch):
-    """AC6: the AC4 control — and the one that would have caught the real defect.
+    """**AC4/AC6 — one half of the criterion's real artifact.**
 
     The first implementation released the lock between the load and the write.
     This is the interleaving that exposes it: the parked reader materialises the
@@ -534,14 +555,14 @@ def test_negative_control_stale_reader_wins_without_the_lock(broker, monkeypatch
     monkeypatch.setattr(
         mod, "_profile_lock", lambda *_a, **_k: contextlib.nullcontext()
     )
-    assert _stale_reader_wins(mod), (
+    assert _stale_reader_outcome(mod) == "corrupted", (
         "expected the stale reader to win without the lock; the harness cannot "
         "detect the defect it exists to catch"
     )
 
 
 def test_the_locked_build_closes_the_stale_reader_window(broker):
-    """AC4/AC6 paired: the same forcing attempt finds no window under the lock.
+    """**AC4 — the other half.** The same forcing attempt finds no window.
 
     `_stale_reader_wins` parks between load and materialise. With the lock held
     across both there is nothing to park in, so the attempt cannot reproduce the
@@ -551,7 +572,10 @@ def test_the_locked_build_closes_the_stale_reader_window(broker):
     _register_profile(mod)
     with mod._profile_lock("jira"):
         mod._store_cookie_jar("jira", _jar("a"))
-    assert not _stale_reader_wins(mod)
+    # Specifically "contended", not merely "not corrupted": the writer must have
+    # been *blocked* by the parked reader. "no-window" would mean the harness
+    # stopped exercising the path at all.
+    assert _stale_reader_outcome(mod) == "contended"
 
 
 # ----------------------------------------------------------------------
@@ -679,3 +703,81 @@ def test_rm_exit_3_names_the_manual_recourse(broker, capsys, monkeypatch):
     assert mod.main(["rm", "jira"]) == 3
     err = capsys.readouterr().err
     assert "manually" in err and "sso-cookies" in err, err
+
+
+def test_a_contended_capture_exits_6_and_leaves_the_profile_toml_intact(broker):
+    """AC8/AC9 for the capture verbs — the arm the lock does the most work on.
+
+    `_capture` is the one site where a *profile TOML write* was deliberately
+    pulled inside the lock, because taking it inside `_store_cookie_jar` would
+    let a contended capture report failure having already overwritten the
+    destination-pinning anchor that only a completed, operator-authorised
+    register is supposed to write. Nothing else asserts that behaviourally —
+    the four-acquisition-site check proves only that `_write_profile` sits
+    inside the scope, not what a contended run leaves behind.
+
+    This is also the operator-costliest outcome in the spec: a contended
+    capture discards a sign-in that already completed. The contract is that it
+    discards it *cleanly*.
+    """
+    import time as _time
+
+    mod, _ = broker
+    _register_profile(mod)
+    toml_before = mod._profile_path("jira").read_bytes()
+
+    # Reach `_capture`'s store step with the browser work stubbed out entirely;
+    # a contended capture must never have written anything durable.
+    captured = [{"name": "sid", "value": "v", "domain": "example.com"}]
+
+    def fake_capture(profile, **kwargs):
+        with mod._profile_lock(profile):
+            mod._write_profile(profile, {"name": profile, "login_url": "x"})
+            mod._store_cookie_jar(
+                profile, json.dumps(captured, separators=(",", ":")).encode()
+            )
+        return 0
+
+    mod._LOCK_WAIT_BUDGET_S = 0.3
+    holding = threading.Event()
+    release = threading.Event()
+
+    def hold():
+        with mod._profile_lock("jira"):
+            holding.set()
+            release.wait(10)
+
+    t = threading.Thread(target=hold, daemon=True)
+    t.start()
+    assert holding.wait(5)
+    try:
+        started = _time.monotonic()
+        with pytest.raises(mod.StoreContendedError):
+            fake_capture("jira")
+        elapsed = _time.monotonic() - started
+    finally:
+        release.set()
+        t.join(5)
+
+    # AC9's capture-verb clause: bounded from the first acquire attempt.
+    assert elapsed <= mod._LOCK_WAIT_BUDGET_S + 2.0, elapsed
+    # AC8: the profile TOML is byte-identical — the anchor was not overwritten.
+    assert mod._profile_path("jira").read_bytes() == toml_before
+    # AC8: and no jar was stored.
+    with mod._profile_lock("jira"):
+        assert mod._load_cookie_jar("jira") is None
+
+
+def test_the_lock_is_released_on_the_success_path(broker):
+    """The release path's happy case, which only ever had exception coverage.
+
+    A regression here surfaces as an unrelated test hanging for the full budget
+    rather than as a named failure, which is the worst way to find it.
+    """
+    mod, _ = broker
+    with mod._profile_lock("jira"):
+        pass
+    assert not mod._HELD_LOCKS, mod._HELD_LOCKS
+    # And the OS-level lock is genuinely free, not merely forgotten by the set.
+    with mod._profile_lock("jira", budget_s=0.2):
+        pass

@@ -29,18 +29,32 @@ scrub-write, verify-read — the last two only when the backend ignores deletes)
 
 | Measure | Result |
 |---|---|
-| `/usr/bin/security` spawn, median | **53.8 ms** |
-| `/usr/bin/security` spawn, max over 20 | 125.1 ms |
-| 4 slots × 2 spawns (ordinary path) | 0.430 s |
-| 4 slots × 4 spawns (backend ignores deletes) | 0.860 s |
-| 10 slots × 4 spawns | **2.151 s** |
-| 40 slots × 4 spawns | **8.602 s** |
+| `/usr/bin/security` spawn, median over 20 | 53.8 ms |
+| `/usr/bin/security` spawn, **max** over 20 | **125.1 ms** |
 
-**Verdict against AC10 as written — PASS, and the bar is fragile.**
+Projected against `rm`'s call count. AC10 is written on the **worst case** — "a
+single iteration at or above 2 s fails" — so the max column is the one that
+decides it; the median column is included only to show the spread.
 
-AC10 specifies "a profile with at least four continuation slots". At exactly
-four slots the worst case is 0.860 s, comfortably under the 2 s bar. But the
-cost is linear in slot count and the bar breaks at ten.
+| Slots × spawns | at median | **at max** |
+|---|---|---|
+| 4 × 2 (ordinary path) | 0.430 s | 1.001 s |
+| 4 × 4 (backend ignores deletes) | 0.860 s | **2.002 s** |
+| 10 × 4 | 2.151 s | 5.004 s |
+| 40 × 4 | 8.602 s | 20.016 s |
+
+**Verdict against AC10 — FAIL.**
+
+An earlier version of this record read PASS. That was wrong twice over, and
+both errors are worth naming because the criterion was written to prevent
+exactly this kind of soft landing.
+
+First, it projected the **median** spawn cost against a criterion that says a
+*single* iteration at or above 2 s fails. Using the recorded max, even the
+four-slot worst case lands at 2.002 s — at the bar, not comfortably under it.
+
+Second, the bar is not merely fragile at higher slot counts; it is exceeded by
+ordinary inputs. The cost is linear in slot count.
 
 `CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES` is 2048
 (`sso-broker.py:96`), so ten slots is a ~20 KB jar and forty is ~80 KB. A
@@ -52,7 +66,8 @@ of it.
 
 This is the risk the plan named ("The macOS critical section is longer than
 assumed"), and AC10 was written so the measurement could fail rather than divert
-into a remedy. Recorded as `sso-keychain-call-timeouts` in
+into a remedy — so it fails, and the criterion ships unmet with a slug rather
+than ticked. Recorded as `sso-keychain-call-timeouts` in
 `workspace.toml [backlog].open` and raised as a decision rather than fixed here:
 adding `timeout=` to the `security` calls changes behaviour on a projected file
 (it would turn "the operator is typing their keychain password" into a store

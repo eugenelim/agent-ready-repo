@@ -395,6 +395,12 @@ Three things about it are easy to get wrong and are settled here:
   repaired to `0700` on every acquisition; on Windows the confidentiality of that
   profile-name list rests on `%USERPROFILE%` ACLs and on no control this
   subsystem adds.
+- **An untimed keychain call inside the lock amplifies.** The macOS Tier-2
+  backend shells out to `/usr/bin/security` with no timeout, so a holder blocked
+  on a keychain prompt now stalls *every* concurrent invocation for that profile
+  until each burns its budget and exits `6` — where before this lock existed it
+  stalled only itself. Measured cost is linear in continuation slots; see
+  `sso-keychain-call-timeouts`.
 - **The guarantee is asserted for a local filesystem**, and the two ways a
   network home breaks it are opposites. On POSIX, `flock` over CIFS or some NFS
   configurations may be emulated per-host or silently ignored: no error is

@@ -515,7 +515,7 @@ def _store_cookie_jar(profile: str, serialized: bytes) -> str:
     """
     if not _thread_holds(profile):
         raise LockUnavailableError(
-            f"sso-broker: internal bug: _store_cookie_jar called for profile "
+            f"internal bug: _store_cookie_jar called for profile "
             f"{profile!r} without holding that profile's lock"
         )
     threshold = CRED_MAX_CREDENTIAL_BLOB_SIZE_BYTES
@@ -737,11 +737,29 @@ def _sso_lock_path(profile: str) -> pathlib.Path:
 _HELD_LOCKS: set[tuple[int, str]] = set()
 
 
+def _errno_detail(exc: BaseException) -> str:
+    """`OSError(ENOLCK)`-style detail an operator can act on.
+
+    The bare exception class is not enough: `ENOLCK`, `EOPNOTSUPP` and `ENOSYS`
+    all arrive as `OSError` and mean different things, and the errno is exactly
+    what the architecture note tells the operator to check.
+    """
+    code = getattr(exc, "errno", None)
+    if code is None:
+        return type(exc).__name__
+    return f"{type(exc).__name__} errno={code} ({os.strerror(code)})"
+
+
 def _thread_holds_any_lock() -> bool:
     # Snapshot before iterating. Production is single-threaded, but the
     # reproduction harness this change exists to satisfy runs acquiring threads
     # concurrently, and a bare iteration over a set another thread is mutating
     # raises `RuntimeError: Set changed size during iteration`.
+    #
+    # `tuple(set)` is atomic here because the elements are C-level scalars, so
+    # no Python-level code runs during the build and the GIL is not released
+    # mid-copy. That is the assumption; a `threading.Lock` would be the
+    # assumption-free version if the element type ever stops being trivial.
     ident = threading.get_ident()
     return any(t == ident for t, _ in tuple(_HELD_LOCKS))
 
@@ -847,8 +865,8 @@ def _profile_lock(profile: str, budget_s: float | None = None):
         # RuntimeError included: `Path.resolve()` raises it, not OSError, for
         # symlink loops on 3.11-3.12 (CPython #109187).
         raise LockUnavailableError(
-            f"could not open the lock for profile {profile!r} "
-            f"({type(exc).__name__})"
+            f"could not open the lock for profile {profile!r} at "
+            f"{_SSO_LOCK_DIR / (profile + '.lock')}: {_errno_detail(exc)}"
         ) from exc
 
     acquired = False
@@ -865,8 +883,10 @@ def _profile_lock(profile: str, budget_s: float | None = None):
             except Exception as exc:  # noqa: BLE001 — re-raised as one of two types
                 if not _is_contention(exc):
                     raise LockUnavailableError(
-                        f"the lock for profile {profile!r} is "
-                        f"unusable ({type(exc).__name__})"
+                        f"the lock for profile {profile!r} at {path} is "
+                        f"unusable: {_errno_detail(exc)}. If this home directory "
+                        f"is network-mounted, see the credentials architecture "
+                        f"note on locking over SMB/NFS"
                     ) from exc
                 if time.monotonic() >= deadline:
                     raise StoreContendedError(
@@ -1724,7 +1744,7 @@ def main(argv: list[str] | None = None) -> int:
             return _do_refresh(args.profile, args)
         if verb == "list-profiles":
             return _do_list_profiles()
-        if verb == "rm":
+        if verb == "rm":  # noqa: SIM102 — the suppress below is the point
             return _do_rm(args.profile)
         if verb == "show-tier2-backend":
             return _do_show_tier2_backend()
@@ -1749,16 +1769,20 @@ def main(argv: list[str] | None = None) -> int:
         # a filesystem that refuses locking are all permanent. Reporting them as
         # 6 would send a caller into an unbounded retry loop.
         sys.stderr.write(f"sso-broker {verb}: {exc}\n")
-        if verb == "rm":
+        if verb == "rm":  # noqa: SIM102 — the suppress below is the point
             # With no unserialised fallback, an operator whose lock environment
             # is permanently unusable cannot revoke a stored session through the
             # tool. This line is the only place they learn how to do it by hand.
-            sys.stderr.write(
-                f"sso-broker rm: to remove the session manually, delete the "
-                f"{_SSO_NAMESPACE!r} entries whose account begins "
-                f"{args.profile!r} from your OS credential store, and remove "
-                f"{_cookie_floor_path(args.profile)}\n"
-            )
+            # Composing a path inside an error handler can itself raise, which
+            # would replace this operator instruction with a traceback on the
+            # one path whose whole purpose is to give a clean instruction.
+            with contextlib.suppress(ProfileConfinementError):
+                sys.stderr.write(
+                    f"sso-broker rm: to remove the session manually, delete the "
+                    f"{_SSO_NAMESPACE!r} entries whose account begins "
+                    f"{args.profile!r} from your OS credential store, and remove "
+                    f"{_cookie_floor_path(args.profile)}\n"
+                )
         return 3
 
     raise AssertionError(f"unreachable verb: {verb}")  # pragma: no cover

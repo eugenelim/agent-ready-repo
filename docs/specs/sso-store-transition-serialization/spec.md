@@ -230,7 +230,12 @@ new concurrency module must be collected by that step rather than skipped.
       and shows the same single-whole-jar outcome for the file-floor transition.
       Its docstring names the coverage limit — the Tier-2 chunked-generation path
       is thread-verified only — so a later reader does not mistake the test's
-      scope for the property's scope.
+      scope for the property's scope. **The load-bearing artifact for this
+      criterion is `test_a_second_process_contends_with_a_real_holder`**, which
+      shows a second process genuinely blocked by the first; the two-writer test
+      is a smoke check whose assertion would hold with the lock removed, because
+      `_file_floor_write` is atomic. Named here so a later reader retires the
+      right one.
 
 ### Bounding and failure
 
@@ -251,7 +256,12 @@ new concurrency module must be collected by that step rather than skipped.
       start: measured elapsed from the first acquire attempt to exit `6` is at
       most `_LOCK_WAIT_BUDGET_S` plus 2 s. There is one budget constant; no
       verb gets a longer wait.
-- [ ] **AC10.** (deferred: sso-ac10-end-to-end-timing) The uncontended critical section is measured by hand on macOS
+- [ ] **AC10.** (deferred: sso-keychain-call-timeouts) **Measured and FAILED** — the
+      recorded worst-case spawn cost puts even a four-slot `rm` at 2.002 s, and a
+      realistic ~20 KB jar at 5 s. The criterion did its job: it was written so
+      the measurement could fail rather than divert into a remedy, and it did.
+      See `manual-qa.md`; the end-to-end confirmation is separately owed as
+      `sso-ac10-end-to-end-timing`. The uncontended critical section is measured by hand on macOS
       for the verb that holds it longest — `rm` on a profile with at least four
       continuation slots, where `_delete_cookie_jar` runs `_purge_credential`
       per slot and each is up to four `/usr/bin/security` spawns. **Twenty
@@ -264,12 +274,17 @@ new concurrency module must be collected by that step rather than skipped.
       model the 2 s bar was not derived from. The run is recorded in
       [`manual-qa.md`](./manual-qa.md) with the machine, the OS version, and the
       twenty timings.
-- [x] **AC11.** A process killed with `SIGKILL` (POSIX) while holding the lock
-      leaves the profile usable: a subsequent invocation acquires the lock and
-      completes. The Windows `TerminateProcess` equivalent is asserted as
-      eventual acquisition within the retry budget, and is `skipif`-guarded
-      where the runner cannot drive it, with the skip stated here rather than
-      discovered in a log. No lockfile is deleted, recreated, or aged out.
+- [ ] **AC11.** (deferred: sso-ac11-windows-kill-arm) A process killed with
+      `SIGKILL` (POSIX) while holding the lock leaves the profile usable: a
+      subsequent invocation acquires the lock and completes. No lockfile is
+      deleted, recreated, or aged out to achieve this. The POSIX arm is
+      implemented and passing. The Windows `TerminateProcess` equivalent —
+      eventual acquisition within the retry budget — is **not**: the kill tests
+      are `skipif`-ed on `os.name != "posix"`, which this spec records as a gap
+      rather than a justified skip, since `Popen.kill()` *is*
+      `TerminateProcess` and nothing establishes the runner cannot drive it.
+      The contention test is deliberately not skipped — it sends no signal and
+      runs everywhere, including the platform that needs it most.
 - [x] **AC12.** Contention is classified by **which call raised and on
       `exc.errno`** — never by exception type. A refusal from the acquire call
       itself is contention and retries toward the budget, then exits `6`:
@@ -402,8 +417,10 @@ new concurrency module must be collected by that step rather than skipped.
       projections match their sources: `sso-broker.py` under `.agentbundle/bin/`,
       and `credbroker/_sso.py` against
       `packs/credential-brokers/.apm/user-libs/credbroker/_sso.py`, which
-      `packages/AGENTS.local.md` pins byte-identical. The `broker` fixture's
-      `projected` parameterisation passes for every new test.
+      `packages/AGENTS.local.md` pins byte-identical. `test_sso_broker_verbs.py`'s
+      `projected` parameterisation still passes; the three new lock modules load
+      the pack source only, which is coverage this spec does not add and does not
+      claim.
 - [x] **AC28.** `python3 .claude/skills/work-loop/scripts/lint-spec-status.py
       --root .` exits 0, with `sso-contended-consumer-backoff` resolving in
       `workspace.toml [backlog].open`.
