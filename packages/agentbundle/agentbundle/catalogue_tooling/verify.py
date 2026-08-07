@@ -647,10 +647,12 @@ def _step_plugin_manifests(
         for plugin_entry in payload.get("plugins", []):
             name = plugin_entry.get("name", "unknown")
             if "source" not in plugin_entry:
-                # Actionable: the schema cannot require `source`, because
-                # `[pack.links].repository` is optional and the shipped
-                # scaffold pack omits it. Name the cause, not the symptom.
-                diags.append(_err(
+                # WARN, not ERROR. `[pack.links].repository` is optional, the
+                # shipped scaffold pack omits it, and an external catalogue may
+                # legitimately hold packs it does not publish for marketplace
+                # install. That is a choice, not a defect — so surface the
+                # consequence and name the cause, but do not fail the build.
+                diags.append(_warn(
                     "CAT-V-013",
                     f"marketplace entry '{name}' has no 'source' — set "
                     f"[pack.links].repository in that pack's pack.toml so the "

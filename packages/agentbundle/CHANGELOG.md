@@ -52,6 +52,44 @@ it contains.
 
 ## [Unreleased]
 
+## [0.29.5] — 2026-08-06
+
+### Fixed
+
+- **Marketplace entries emit a resolvable plugin source.**
+  `derive_projectable_subset` produced a `github` source carrying `branch` and
+  `directory`; Claude Code's `github` source supports neither, so both were
+  silently dropped and the installer cloned the repository's default branch at
+  its root — every published plugin installed empty. Entries now emit a
+  `git-subdir` source (`url`, `path`, and one of `ref`/`sha`). The GitHub URL
+  matcher is HTTPS-only and raises on an `http://` repository link rather than
+  upgrading it silently. The dist marketplace envelope now derives its
+  `name`/`owner` from `source.url`, since `git-subdir` carries no `repo`.
+
+- **Claude-plugin components project to the plugin root.** The claude-plugins
+  route emitted `<pack>/.claude/{skills,agents,commands}`, but plugins load
+  those directories from the plugin root. A route-scoped `plugin-target-path`
+  on the claude-code projection entries moves them for that recipe only; the
+  repo- and user-scope install routes are unchanged. Hook wiring stays at
+  `.claude/settings.local.json`.
+
+- **`catalogue verify` validates marketplace entries.** Step 13 previously
+  checked `marketplace.json` for a stray `hooks` key and nothing else — a
+  plugin `source` reached adopters unvalidated. It now validates every
+  `plugins[]` entry in both the dist and repo-root marketplaces against the new
+  bundled `marketplace-entry.schema.json`, and fails closed with a diagnostic
+  when a schema cannot be resolved instead of silently skipping the step.
+
+- **Contract `target-path` values are confined.** An absolute or `..`-bearing
+  `target-path` escaped the output root on join, and the orphan sweep resolves
+  the same value — so an escaped target became the root of a `rmtree`. The
+  adapter now canonicalises and prefix-checks before writing.
+
+### Added
+
+- `marketplace-entry.schema.json` ships in the wheel alongside the other
+  bundled contracts.
+
 ## [0.29.4] — 2026-08-06
 
 ### Changed

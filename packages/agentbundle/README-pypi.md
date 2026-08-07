@@ -247,7 +247,10 @@ ignore them there; the separation is structural, not incidental.
 `keywords` once; the build projects the cleanly-mappable subset — plus the
 pack's `README.md` — into each distribution route's manifest (the `plugin.json`
 / `marketplace.json` entry), so the catalogue describes each pack richly rather
-than with a single sentence. Extra fields stay in `pack.toml`; the projection
+than with a single sentence. A marketplace entry's `source` is a `git-subdir`
+object (`url`, `path`, and one of `ref`/`sha`) pointing at the pack's directory
+on the published distribution branch, and every entry is schema-validated at
+build time against `marketplace-entry.schema.json`. Extra fields stay in `pack.toml`; the projection
 is deliberately lossy per tool.
 
 Point a catalogue URI (a git URL or a local path) at the repo that holds your packs. Then `validate` a pack against the adapter contract, `render` it to preview the projection, and `install` it into a target repo. `scaffold` drops a pack's seeds into a fresh directory to start from. The build pipeline (`agentbundle.build`) is the same engine `make build` runs.
@@ -263,8 +266,9 @@ The org hint fires after the user-config but before the on-disk IDE probe — so
 
 **Bundled contracts** — the wheel ships the machine contracts used for offline validation:
 `pack.schema.json`, `skill.schema.json`, `guide.schema.json`, `skill-manifest.schema.json`,
-`profile.schema.json`, `catalogue.schema.json`, `target-vocab.toml`, and the adapter
-contract files. All are available without network access via `importlib.resources`.
+`profile.schema.json`, `catalogue.schema.json`, `plugin-manifest.schema.json`,
+`plugin-manifest.derived.schema.json`, `marketplace-entry.schema.json`,
+`target-vocab.toml`, and the adapter contract files. All are available without network access via `importlib.resources`.
 
 **Lint your catalogue** — shallow structural checks run without extra dependencies:
 

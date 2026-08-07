@@ -318,8 +318,15 @@ def test_missing_source_names_the_cause(tmp_path: Path) -> None:
     _write_marketplace(root / ".claude-plugin" / "marketplace.json",
                        [{"name": "nosrc", "version": "1.0.0", "description": "d"}])
     diags = _step_plugin_manifests(root, None, None, tmp_path / "no-dist")
-    assert any("pack.links" in d.message for d in diags), (
-        "missing-source diagnostic must name [pack.links].repository"
+    hits = [d for d in diags if "pack.links" in d.message]
+    assert hits, "missing-source diagnostic must name [pack.links].repository"
+    # Severity is load-bearing: an external catalogue may legitimately hold a
+    # pack it does not publish for marketplace install (the Gate B smoke does
+    # exactly that), so this must not hard-fail their build.
+    from agentbundle.catalogue_tooling.results import Severity
+
+    assert all(d.severity == Severity.WARN for d in hits), (
+        "a pack without [pack.links].repository is a choice, not a defect"
     )
 
 
