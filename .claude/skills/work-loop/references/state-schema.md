@@ -96,7 +96,10 @@ the status-regression detection the byte hash used to provide incidentally.
 approved*, not the loop's own **bookkeeping**. **Canonical form** = CRLF→LF +
 strip trailing whitespace per line + normalize the preamble `**Status:**`
 *token* (a span-bounded splice of the token only) + normalize checkbox bracket
-contents (`[x]`→`[ ]`) inside the Acceptance Criteria section. The preamble status token and
+contents (`[x]`→`[ ]`). Checkbox scope follows the artifact: in `spec.md` only
+inside the Acceptance Criteria section, since a checkbox elsewhere would be a
+`Never do` item; in `plan.md` file-wide, because a plan has no such section and
+its checkboxes are task progress. The preamble status token and
 progress checkboxes are normalized out, because this skill mandates writing
 them after approval (`Status: Implementing` before code, `Shipped` and every
 AC `[x]` at finish, plan `Done`) — pinning them made these verbs fail by

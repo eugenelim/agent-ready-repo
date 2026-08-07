@@ -2511,6 +2511,27 @@ def test_ac7_fenced_ac_heading_does_not_open_the_region(tmp: Path) -> None:
         name, "a Boundaries checkbox was un-pinned by a fenced AC heading")
 
 
+def test_ac5_prose_ac_lead_in_opens_the_region(tmp: Path) -> None:
+    """AC5. Two specs here head their criteria with a bold prose lead-in rather
+    than a heading. Missing it leaves them with no normalization at all — AC5
+    failing by construction for exactly the specs this change is meant to serve."""
+    name = "ac5-prose-ac-lead-in-opens-the-region"
+    body = ("# S\n\n- **Status:** Approved\n\n"
+            "**Acceptance Criteria**\n\n- [{m}] AC1 first\n")
+    ok(name) if canonical_contract(body.format(m=" ")) == canonical_contract(body.format(m="x")) \
+        else fail(name, "a prose AC lead-in did not open the region")
+
+
+def test_ac1_h1_closes_the_ac_region(tmp: Path) -> None:
+    """AC1. An H1 ends the criteria section as surely as an H2; closing only on
+    `##` leaves a later checkbox inside the region and un-pinned."""
+    name = "ac1-h1-closes-the-ac-region"
+    body = ("# S\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n"
+            "- [ ] AC1\n\n# Appendix\n\n- [{m}] Never force-push\n")
+    ok(name) if canonical_contract(body.format(m=" ")) != canonical_contract(body.format(m="x")) \
+        else fail(name, "a checkbox after an H1 was still treated as a criterion")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
@@ -2534,6 +2555,8 @@ def main() -> int:
             test_ac9_approve_plan_replay_checks_status,
             test_ac5_plan_task_checkbox_is_bookkeeping,
             test_ac5_lowercase_ac_heading_still_normalizes,
+            test_ac5_prose_ac_lead_in_opens_the_region,
+            test_ac1_h1_closes_the_ac_region,
             test_ac7_fenced_ac_heading_does_not_open_the_region,
             test_stub_lifecycle_status_bump_keeps_pin,
             test_stub_lifecycle_bump_with_vocabulary_comment,

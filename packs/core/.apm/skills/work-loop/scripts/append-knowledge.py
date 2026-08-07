@@ -145,14 +145,23 @@ def exclusive(target: Path, timeout: float = 10.0, stale_after: float = 120.0):
         try:
             fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
         except FileExistsError:
+            # Every path through here must reach the deadline check and the
+            # sleep. A `continue` that skips them turns "bounded wait" into a
+            # busy-spin — reachable with a dangling symlink at the lock path
+            # (stat raises) or a directory there (unlink raises).
             try:
                 age = time.time() - lock.stat().st_mtime
             except OSError:
-                continue  # vanished between our open and our stat — retry
-            if age > stale_after:
-                with contextlib.suppress(OSError):
-                    lock.unlink()
-                continue
+                age = 0.0  # vanished, or not stat-able — treat as fresh
+            else:
+                if age > stale_after:
+                    try:
+                        lock.unlink()
+                    except OSError as exc:
+                        raise LockUnavailable(
+                            f"{lock} looks abandoned ({age:.0f}s old) but cannot "
+                            f"be removed: {exc}"
+                        ) from None
             if time.monotonic() >= deadline:
                 raise LockUnavailable(
                     f"{lock} is held (for {age:.0f}s) and did not free within "

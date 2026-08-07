@@ -67,6 +67,11 @@ _MAX_LINE = 8192
 #   tools/hooks/session-start.py) breaks on them, so the escaped form is the
 #   *only* representation that survives a round trip.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
+# The C0 characters JSON actually needs an escape for. The rest of C0 has no
+# business in a knowledge entry in *either* form — the writer refuses a
+# literal ESC because session-start replays it as an ANSI sequence, so the
+# gate must refuse the escaped spelling too or the hand-edit path is open.
+_JSON_NEEDS_ESCAPE = frozenset({0x08, 0x09, 0x0A, 0x0C, 0x0D})
 # Zero-width carriers. The rule is **default-ignorable code point**, not any one
 # Unicode category — a first version refused only `Cf` and was bypassed by
 # variation selectors, which are `Mn`. Framing it this way means the next
@@ -75,6 +80,10 @@ _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
 # ZWJ / ZWNJ and the two emoji presentation selectors are the legitimate
 # exceptions: they shape neighbouring characters rather than carry payload.
 _ALLOWED_FORMAT_CHARS = frozenset("\u200c\u200d\ufe0e\ufe0f")
+# Only the joiners form a run worth counting. The presentation selectors sit
+# adjacent to a joiner in ordinary emoji — ❤️\u200d🔥 is VS16 then ZWJ — so
+# counting them too refuses text people actually write.
+_JOINERS = frozenset("\u200c\u200d")
 # (first, last) inclusive. Cf is category-detected; these are the ranges whose
 # category (Mn, Lo) does not distinguish them from ordinary text.
 _HIDDEN_RANGES = (
@@ -110,7 +119,7 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
     for m in _ESCAPE_RE.finditer(raw):
         cp = int(m.group(2), 16)
-        if cp < 0x20 or cp in _LINE_BREAKERS:
+        if cp in _LINE_BREAKERS or cp in _JSON_NEEDS_ESCAPE:
             continue
         found.append((f"\\u{m.group(2)}", chr(cp)))
     return found
@@ -133,7 +142,7 @@ def hidden_characters(raw: str) -> list[tuple[int, str]]:
         # The allowed joiners shape the characters on either side of them, so a
         # legitimate one is always singular. Two in a row is a zero-width
         # alphabet with extra steps.
-        run = run + 1 if ch in _ALLOWED_FORMAT_CHARS else 0
+        run = run + 1 if ch in _JOINERS else 0
         if run == 2:
             found.append((ord(ch), f"{unicodedata.name(ch, 'unnamed')} (consecutive)"))
     return found

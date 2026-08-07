@@ -731,16 +731,19 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     # crash-window scenario (a file reverted to an earlier status while
     # plan_review_status was still "pending") but does NOT detect content
     # changes that leave the Status token unchanged.
-    spec_status = _read_md_status(spec_path)
+    try:
+        spec_status = _read_md_status(spec_path)
+        plan_status_now = _read_md_status(plan_path)
+    except UnreadableArtifact as exc:
+        return stop(f"approve-plan: {exc}")
     if spec_status != "Approved":
         return stop(
             f"approve-plan: spec.md Status is {spec_status!r}; expected Approved "
             "(files may have changed in the crash window after plan-approved)"
         )
-    plan_status = _read_md_status(plan_path)
-    if plan_status != "Approved":
+    if plan_status_now != "Approved":
         return stop(
-            f"approve-plan: plan.md Status is {plan_status!r}; expected Approved "
+            f"approve-plan: plan.md Status is {plan_status_now!r}; expected Approved "
             "(files may have changed in the crash window after plan-approved)"
         )
 

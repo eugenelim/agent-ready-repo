@@ -188,6 +188,26 @@ def layer_validation_rules(tmp: Path) -> None:
              '"body": "' + "\\\\" * 5000 + '", "source": "s"}\n',
              1, "the limit is")
 
+    # AC20a — the writer refuses a literal ESC because session-start replays it
+    # as an ANSI sequence; the gate must refuse the escaped spelling too, or the
+    # hand-edit path this rule exists for stays open.
+    run_case(tmp, "stub-escaped-esc-rejected",
+             '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
+             '"body": "pre \\u001b[31mRED post", "source": "s"}\n',
+             1, "\\u001b")
+    # AC16 — two joiners in a row are a zero-width alphabet...
+    run_case(tmp, "stub-consecutive-joiners-rejected",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "a\u200d\u200db", "source": "s"},
+                        ensure_ascii=False) + "\n",
+             1, "consecutive")
+    # ...but a presentation selector next to a joiner is ordinary emoji.
+    run_case(tmp, "stub-emoji-zwj-sequence-accepted",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "love \u2764\ufe0f\u200d\U0001f525",
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             0, "Knowledge lint: passed")
+
     # Empty file (no learnings yet) is valid.
     run_case(tmp, "empty", "", 0, "Knowledge lint: passed")
 

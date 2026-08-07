@@ -544,6 +544,57 @@ def test_non_utf8_target_reports_not_tracebacks(target: Path) -> None:
         ok(name)
 
 
+def test_lock_release_only_unlinks_what_it_owns(target: Path) -> None:
+    """AC17a's second rule, and the one that made the first version cascade.
+    After a stale takeover the displaced holder must NOT remove its successor's
+    lock — otherwise every waiter behind it acquires at once."""
+    name = "lock-release-only-unlinks-what-it-owns"
+    spec = importlib.util.spec_from_file_location("_ak2", str(SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    target.write_text("", encoding="utf-8")
+    lock = target.with_name(target.name + ".lock")
+    # Enter, then let a "takeover" replace our lock with a foreign token.
+    cm = mod.exclusive(target, timeout=5.0, stale_after=0.01)
+    cm.__enter__()
+    lock.write_text("someone-elses-token", encoding="utf-8")
+    cm.__exit__(None, None, None)
+    if not lock.exists():
+        fail(name, "release removed a lock it no longer owned — this is the cascade")
+        return
+    lock.unlink()
+    ok(name)
+
+
+def test_lock_reports_on_an_unremovable_lock(target: Path) -> None:
+    """AC17a. A lock path that cannot be unlinked must report, not busy-spin —
+    both `continue` paths in the retry loop used to skip the deadline."""
+    name = "lock-reports-on-an-unremovable-lock"
+    target.write_text("", encoding="utf-8")
+    lock = target.with_name(target.name + ".lock")
+    lock.mkdir()  # a directory here: O_EXCL fails, and so does unlink
+    # Backdate it past `stale_after`, or the takeover branch — the one that
+    # discovers the path is unremovable — is never reached at all.
+    old = time.time() - 10_000
+    os.utime(lock, (old, old))
+    try:
+        started = time.monotonic()
+        proc = run(*_append_args(target))
+        elapsed = time.monotonic() - started
+        out = proc.stdout + proc.stderr
+        if proc.returncode == 0:
+            fail(name, "appended despite an unusable lock path")
+        elif elapsed > 30:
+            fail(name, f"took {elapsed:.0f}s — it should report at once, not wait out "
+                       f"the deadline or busy-spin")
+        elif "cannot be removed" not in out:
+            fail(name, f"did not name the unremovable lock: {out!r}")
+        else:
+            ok(name)
+    finally:
+        lock.rmdir()
+
+
 def main() -> int:
     global CWD
     if not SCRIPT.is_file():
@@ -570,6 +621,8 @@ def main() -> int:
             test_post_lint_failure_leaves_target_identical,
             test_lint_runs_out_of_process,
             test_exclusive_lock_actually_excludes,
+            test_lock_release_only_unlinks_what_it_owns,
+            test_lock_reports_on_an_unremovable_lock,
             test_lock_timeout_reports_instead_of_hanging,
             test_zero_width_carriers_beyond_cf_refused,
             test_non_regular_file_target_refused,

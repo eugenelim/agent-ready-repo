@@ -69,9 +69,6 @@ array) so it grows by append and reads line-by-line.
 `lint-knowledge.py` validates the file; `tools/hooks/session-start.py`
 reads it at session open.
 
-<!-- Keep this section in sync with packs/core/seeds/docs/knowledge/README.md
-     — the seed is what an adopter reads, and the two must not drift. -->
-
 ## Appending an entry
 
 Use the writer that ships beside the linter — it allocates the next free `id`,
@@ -100,6 +97,9 @@ that render as nothing — bidi overrides, zero-width joiners in runs, the
 Unicode Tag block, the variation selectors — are refused outright, by the
 writer and by the linter, because a payload you cannot see in a diff would be
 replayed into every session.
+
+<!-- Keep this section in sync with packs/core/seeds/docs/knowledge/README.md
+     — the seed is what an adopter reads, and the two must not drift. -->
 
 ## Verify before committing
 

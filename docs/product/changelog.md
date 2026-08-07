@@ -440,17 +440,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the replacement assertion was only wired into `plan check-current`, so
   `approve-plan`'s already-approved branch and `schedule check-current` still
   passed such a spec.
-- **Checkbox normalization is scoped to the Acceptance Criteria section.** It
-  applied file-wide, so ticking a checkbox under `## Boundaries` — including a
-  `Never do` item, precisely the scope the pin protects — collided with the
-  approved digest.
+- **Checkbox normalization is scoped by artifact.** It applied file-wide, so
+  ticking a checkbox under a spec's `## Boundaries` — a `Never do` item,
+  precisely the scope the pin protects — collided with the approved digest.
+  A spec is now normalized inside its Acceptance Criteria section only; a plan,
+  which has no such section and whose checkboxes are task progress, stays
+  file-wide.
 - **The hash-mismatch message no longer prescribes a recovery that fails.** It
   said to run `loop-cohort reset` and re-run the G-plan sequence, but that
   sequence has no `init` step, so `approve-plan` immediately refused; and it
-  omitted that `loop-engine reset` must *not* be run. It now points at the
-  Upgrading note below.
+  omitted that `loop-engine reset` must *not* be run. The five recovery steps
+  are now spelled out in the message itself — an installed skill cannot point
+  at this file, which adopters own as their own product's changelog.
 
-### Fixed
 
 - **The approval pin no longer breaks on the writes the loop itself mandates.**
   `loop-cohort approve-plan` pinned the raw bytes of `spec.md`, but `work-loop`
@@ -498,6 +500,7 @@ approver's call to re-affirm them, not something to self-serve. And the reset
 returns `implementation_retry_count`, `review_round_count`, `review_retry_count`
 and the recorded finding fingerprints to zero, so retry caps restart and stasis
 detection loses its baseline.
+
 ## [agentbundle][0.29.4] — 2026-08-06
 
 ### Changed

@@ -181,7 +181,7 @@ per-line rstrip:
   visible to the existing fixtures — the realistic-shape case below exists for
   exactly this. Everything else on the line, and every `**Status:**` after the
   first `##` heading, stays hashed verbatim.
-- **Checkbox marks.** Import `_AC_OPEN_RE` / `_AC_DONE_RE` rather than
+- **Checkbox marks.** Import `_AC_DONE_RE` rather than
   restating them; they pin a hyphen bullet and a required trailing space, and a
   divergent regex means one tool normalizes a line the other does not
   recognize as an AC. Rewrite **the bracket contents only** — substituting the
@@ -229,10 +229,10 @@ Two rename traps: `_schedule_run_impl:685` binds a **local** variable
 `canonical_plan = spec_dir / "plan.md"` that is unrelated to the function — a
 blind sweep would rewrite it and its message into nonsense; leave it or rename
 it `plan_path_canonical`. And cite `test_canonical_plan_normalization` by
-symbol, not line number, since the stubs already shifted it. `schedule check-current` gets none: it is the
-pre-guard on every `CODE-*` transition, its fixtures carry no status line
-(`test-loop-engine.py:93-97`), and giving it a new way to go red is how this
-defect happened the first time.
+symbol, not line number, since the stubs already shifted it. The skip-on-absent rule is what makes this safe on
+`schedule check-current`, whose fixtures carry no status line
+(`test-loop-engine.py:93-97`) and which is the pre-guard on every `CODE-*`
+transition.
 
 `schema_version` stays at `1` — see the declined-pattern register.
 
@@ -503,14 +503,14 @@ cannot be the only check.
 ## Risks
 
 - **The checkbox rule over-matches.** A fenced block documenting Markdown
-  checkbox syntax inside a spec would have that block normalized. Accepted, with the surface stated honestly: the canonicalizer applies those
-  regexes **file-wide to both artifacts**, unlike `lint-spec-status.py:272-279`,
-  which gates the same regexes behind `in_ac` (the Acceptance-criteria section
-  of `spec.md` only). So a checkbox in a spec's Boundaries list, or in any
-  plan section, is also unpinned. That is the intended reading of "progress
-  marks are bookkeeping" — and it must not be "fixed" by adding `in_ac`
-  gating, which would silently stop normalizing plan-task checkboxes, since
-  `plan.md` has no such heading.
+  checkbox syntax inside a spec would have that block normalized. Resolved by scoping to the artifact rather than picking one surface: a spec is
+  normalized inside its Acceptance Criteria section only, a plan file-wide.
+  A first version was file-wide for both, which un-pinned a spec's Boundaries
+  checkboxes — the scope the pin protects; the correction to section-only then
+  stopped normalizing plan-task checkboxes, which four plans here carry. The
+  over-match risk that motivated the original wording is handled by the scan
+  skipping fenced blocks and closing on an H1 as well as an H2, so a documented
+  example cannot move the boundary.
 - **In-flight runs still reset.** AC10 makes the failure message accurate but
   does not make the old pin valid — that is deliberate. Spec Assumption 1 is
   the canonical statement; T6 reproduces it in the CHANGELOG.

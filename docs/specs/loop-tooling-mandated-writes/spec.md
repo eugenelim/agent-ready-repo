@@ -90,11 +90,12 @@ unparseable lines.
       what the list contains — still moves the digest.
 
       Checkbox scope depends on the artifact. A spec's progress marks live in
-      its Acceptance Criteria section only: a checkbox under `## Boundaries` is
-      a `Never do` item, which is the scope the pin protects, and two specs
-      here have one. A plan has no such section — every checkbox in it is task
-      progress, and four plans here carry them — so a plan is normalized
-      file-wide. The section scan skips fenced blocks and closes on an H1 as
+      its Acceptance Criteria section only: a checkbox under `## Boundaries`
+      would be a `Never do` item, which is the scope the pin protects. No spec
+      in the tree has one today — the scoping is a forward invariant, not a
+      response to an existing instance. A plan has no Acceptance Criteria
+      section and its checkboxes are task progress, which four plans here do
+      carry, so a plan is normalized file-wide. The section scan skips fenced blocks and closes on an H1 as
       well as an H2, so a documented example cannot move the boundary.
 - [x] AC2. Status and checkbox recognition reuse the shared canonical parsers
       from `lint-spec-status.py` — `parse_status`, `extract_status_token`,
@@ -254,9 +255,6 @@ unparseable lines.
       first" message rather than appending and blaming the caller's entry. A
       **non-existent** target is not a pre-existing failure — it is treated as
       an empty file and created, so a fresh knowledge base is reachable. A
-      target that exists but is not a regular file, and one whose parent
-      directory is missing, are each refused with their own message rather
-      than a traceback. A
       target that exists but is not a regular file, and one whose parent
       directory is missing, are each refused with their own message rather
       than a traceback.
