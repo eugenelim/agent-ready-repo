@@ -22,6 +22,7 @@ from __future__ import annotations
 import contextlib
 import importlib.util
 import json
+import os
 import pathlib
 import sys
 import threading
@@ -29,6 +30,21 @@ import time
 import types
 
 import pytest
+
+# AC20 — this module must *execute* on the Windows runner, not merely be
+# collected there. `self_host_windows.py` judges each step by return code alone,
+# so a wholly-skipped module exits 0 and reads as coverage. Windows is also the
+# only place `EACCES`-means-contention is exercised at all; every other platform
+# signals it with `BlockingIOError`. So: fail, never skip, if the lock primitive
+# is not importable on the platform we are running on.
+if os.name == "posix":
+    import fcntl as _lock_mod
+else:  # pragma: no cover - the Windows runner
+    import msvcrt as _lock_mod
+assert _lock_mod is not None, (
+    "the lock primitive is unavailable on this platform; this module must fail "
+    "rather than skip, or a wholly-skipped Windows run would read as coverage"
+)
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]
 BROKER_PY = (

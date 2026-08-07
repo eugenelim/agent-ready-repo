@@ -622,6 +622,16 @@ open = [
     # "the operator is typing their keychain password" into a store failure — so it needs a decision,
     # not a ride-along. Unblocks: needs design. See docs/specs/sso-store-transition-serialization/manual-qa.md.
   {slug = "sso-keychain-call-timeouts", source = "spec/sso-store-transition-serialization AC10"},
+    # AC10's bar was evaluated by measuring /usr/bin/security spawn cost directly (53.8 ms median)
+    # and multiplying by rm's per-slot call count, rather than by driving twenty end-to-end rm
+    # invocations through the projected broker. The literal procedure writes throwaway
+    # agentbundle:sso:* entries into the operator's login keychain and can prompt for keychain
+    # access, so it was not run unattended. The spawn measurement bounds the same quantity — the
+    # cost is dominated by process spawns, the in-process work being a dict update and a file
+    # replace — so the verdict stands, but the end-to-end confirmation is owed. Fix: run it on a
+    # macOS box with operator consent and append the twenty timings to
+    # docs/specs/sso-store-transition-serialization/manual-qa.md. Unblocks: now, with a human present.
+  {slug = "sso-ac10-end-to-end-timing", source = "spec/sso-store-transition-serialization AC10"},
     # AC17's at-most-once bound is per-process and each agent turn is a new process, so a retry
     # loop can spawn a HEADLESS recapture on every invocation - no browser is shown (AC14a),
     # but each spawn still costs up to refresh's 180 s and re-exercises the engine.
