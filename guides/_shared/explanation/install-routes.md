@@ -7,7 +7,7 @@ Four ways to install a pack from this catalogue:
 | **Claude plugins** | `/plugin marketplace add <owner>/<catalogue>` then `/plugin install <pack>@<catalogue>` | You're on Claude Code and want one-line install with auto-update. |
 | **APM** | `apm install <owner>/<catalogue>/<pack>` | You're in any other IDE harness with the [APM](https://github.com/agent-package-manager) CLI. |
 | **Reference CLI** | `agentbundle install --pack <name> git+https://github.com/<owner>/<catalogue>` | You want a pinned, scriptable install with state tracking from day one. |
-| **Local clone** | `git clone … && pip install -e packages/agentbundle/ && agentbundle install --pack <name> . --output <target>` | Network-constrained environment, or you want both the catalogue and the runtime library editable. |
+| **Local clone** | `git clone … && python -m pip install -e packages/agentbundle/ && agentbundle install --pack <name> . --output <target>` | Network-constrained environment, or you want both the catalogue and the runtime library editable. |
 
 > **Already added the marketplace before 2026-08?** Run
 > `/plugin marketplace update <catalogue>` and reinstall your packs. Entries
@@ -18,7 +18,7 @@ Four ways to install a pack from this catalogue:
 
 The same pack content lands every way; the differences are in mechanics (state tracking, where the marker drops, how upgrades work). This page explains *why* there are four and how to pick.
 
-> **Caveat — route 3 still requires route 4's pip install today.** [RFC-0003](../../../rfc/0003-spec-and-cli.md) § F-cli-dist's release artifact (zipapp / wheel / Homebrew) hasn't shipped yet, so until it does, getting `agentbundle` onto `$PATH` means running route 4's `pip install -e packages/agentbundle/` step against a local clone. Route 3's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
+> **Caveat — route 3 still requires route 4's pip install today.** [RFC-0003](../../../rfc/0003-spec-and-cli.md) § F-cli-dist's release artifact (zipapp / wheel / Homebrew) hasn't shipped yet, so until it does, getting `agentbundle` onto `$PATH` means running route 4's `python -m pip install -e packages/agentbundle/` step against a local clone. Route 3's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
 
 ## The install→adapt chain
 
@@ -48,7 +48,7 @@ The writer template at [`packages/agentbundle/templates/install-marker.py`](../.
 
 **You want pinned versions and full state tracking.** Use the reference CLI. `agentbundle install` hashes every projected file into `.agentbundle-state.toml` at install time, so upgrade-time safety is exact from day one. The other routes need a one-shot `agentbundle init-state` after install to reach the same baseline.
 
-**You're network-constrained or want the runtime library editable.** Clone and `pip install -e packages/agentbundle/`. This is the only route where `packages/agentbundle/` and `packs/` come together in your filesystem — useful when you're also developing primitives, or when your network can fetch a git clone but not a pip package.
+**You're network-constrained or want the runtime library editable.** Clone and `python -m pip install -e packages/agentbundle/`. This is the only route where `packages/agentbundle/` and `packs/` come together in your filesystem — useful when you're also developing primitives, or when your network can fetch a git clone but not a pip package.
 
 ## The state-tracking nuance
 

@@ -74,7 +74,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install agentbundle
-        run: pip install -e packages/agentbundle
+        run: python -m pip install -e packages/agentbundle
 
       - name: Verify catalogue (source)
         run: agentbundle catalogue verify --root .

@@ -44,7 +44,7 @@ jobs:
           python-version: "3.11"
 
       - name: Install agentbundle (projection path)
-        run: pip install -e packages/agentbundle/
+        run: python -m pip install -e packages/agentbundle/
 
       - name: Install the claude CLI (activation detector)
         # Pinned: the activation event's stream shape is version-sensitive, so

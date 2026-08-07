@@ -177,7 +177,7 @@ You need:
      the file). The explicit-argument, user-config, and editable-clone
      resolution layers still work — only the upstream fallback is gone.
    - **Use the editable install.** Each team clones your fork and runs
-     `pip install -e packages/agentbundle/` once (see
+     `python -m pip install -e packages/agentbundle/` once (see
      [install from a clone](install-agentbundle-from-clone.md)). After that,
      `agentbundle` resolves the catalogue source to *their clone of your fork*,
      so the install command needs no catalogue argument:

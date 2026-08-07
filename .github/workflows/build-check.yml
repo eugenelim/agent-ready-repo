@@ -106,7 +106,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y ripgrep
 
       - name: Install agentbundle (editable) + pytest
-        run: pip install -e packages/agentbundle/ pytest
+        run: python -m pip install -e packages/agentbundle/ pytest
 
       - name: Install ruff + mypy
         run: pip install ruff mypy
@@ -219,7 +219,7 @@ jobs:
         # cryptography/argon2 present, the subprocess still proves the base
         # import never reaches them (credbroker AC4). The vault tests that need
         # the extra arrive with task T4.
-        run: pip install -e './packages/credbroker[crypto]'
+        run: python -m pip install -e './packages/credbroker[crypto]'
 
       - name: pytest credbroker (RFC-0023 Phase 1)
         working-directory: packages/credbroker

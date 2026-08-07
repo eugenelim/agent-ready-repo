@@ -128,7 +128,7 @@ tasks, not most — the work-loop skill covers when it's the right tool.
 <!-- Keep this short. Detailed command reference goes in docs/. -->
 
 ```bash
-pip install -e packages/agentbundle 'packages/credbroker[crypto]' ruff mypy pytest  # one-time
+python -m pip install -e packages/agentbundle 'packages/credbroker[crypto]' ruff mypy pytest  # one-time
 pip install -r tools/requirements.txt          # jsonschema, pyyaml — one-time
 python3 -m pytest packages/<pkg>/tests/ -q    # test the package you're editing
 make lint-ruff                                 # lint + format

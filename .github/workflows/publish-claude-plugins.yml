@@ -47,7 +47,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install agentbundle (dev editable)
-        run: pip install -e packages/agentbundle
+        run: python -m pip install -e packages/agentbundle
 
       - name: Build claude-plugin artifacts
         run: make build

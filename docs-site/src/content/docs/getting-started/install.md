@@ -98,7 +98,7 @@ For catalogue contributors or teams building their own fork:
 ```bash
 git clone https://github.com/eugenelim/agent-ready-repo
 cd agent-ready-repo
-pip install -e packages/agentbundle
+python -m pip install -e packages/agentbundle
 agentbundle install --pack core
 ```
 

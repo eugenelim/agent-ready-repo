@@ -59,7 +59,7 @@ agentbundle catalogue init my-catalogue \
 Then install from the vendored copy:
 
 ```bash
-pip install -e my-catalogue/.agentbundle/tooling/agentbundle/
+python -m pip install -e my-catalogue/.agentbundle/tooling/agentbundle/
 ```
 
 ---

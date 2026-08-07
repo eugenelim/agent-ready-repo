@@ -81,7 +81,7 @@ agentbundle config unset source          # clear it; fall back to layers 3–5
 agentbundle install core git+https://github.com/acme/agent-kit
 
 # Bind to a working clone (layer 4) — no config needed.
-pip install -e /abs/path/to/your/catalogue
+python -m pip install -e /abs/path/to/your/catalogue
 ```
 
 The config value is stored in your OS config directory
