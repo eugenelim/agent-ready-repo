@@ -54,6 +54,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a repository policy lint, not a packaged one: `pack.schema.json` and the
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
+## [core][2.3.0] — 2026-08-07
+
+### Fixed
+
+- **A mistyped `--root` no longer reports success.** `lint-spec-status` and
+  `lint-traceability` accepted any path you gave them. Point either at a
+  directory that does not exist and it scanned an empty tree and announced
+  "spec metadata clean" — a green result that meant nothing. Both now refuse
+  an unusable `--root` and name the offending path. A valid root, an omitted
+  root, and a relative root all behave exactly as before.
+
+### Changed
+
+- **Path arguments are validated where they enter.** The work-loop scripts
+  already confined every file they read to within `--root`; that check now
+  also happens at the point the argument is read. This is a legibility change
+  for security scanners: the existing confinement runs across several
+  functions, which taint analysers cannot follow, so scanners in adopter
+  repositories reported path-traversal against code that was never vulnerable.
+  No file the scripts would previously read is now out of reach.
+
+  **Upgrade note:** an invocation that passed a nonexistent or non-directory
+  `--root` used to exit 0 and now exits non-zero. If CI depends on that
+  false pass, fix the path — the previous result was not a real check.
 
 ## [agentbundle][0.29.7] — 2026-08-06
 

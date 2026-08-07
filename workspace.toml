@@ -1517,6 +1517,80 @@ open = [
   {slug = "starlight-migration-rfc", summary = "Open RFC for the docs-site/ top-level directory (mirrors RFC-0061 precedent)", source = "spec/starlight-migration"},
 
   # catalogue-init-sh-phase2: shipped in 0.26.0 — all deferred ACs resolved.
+
+  # ── Adopter-SAST follow-ons (spec/pack-script-root-boundary-validation) ────
+  # An adopter's org Snyk Code scan reports CWE-23 path-traversal against the
+  # work-loop scripts we ship, at the adapter-projection path
+  # (.kiro/skills/...). All findings are false positives: the confinement via
+  # _within()/_confined() is interprocedural, so no taint engine follows it.
+  # CodeQL's py/path-injection (security-extended) independently clears them.
+  # The parent spec fixes the four work-loop scripts by moving the
+  # normalize-and-check to the argv boundary. These are the leftovers.
+  #
+  # ~68 further argv->path boundary sites exist across the other packs and
+  # packages/agentbundle (measured this session: 73 repo-wide, 5 fixed by the
+  # parent spec). Same class, same fix. Not swept in the parent PR because a
+  # 73-site rewrite is a migration, not a fix, and the pattern should be proven
+  # on one skill first. Expand tools/semgrep/argv-path-boundary.yml's
+  # paths.include as each pack adopts the validator.
+  {slug = "pack-argv-path-boundary-sweep", summary = "Apply the argv->path boundary validator to the remaining ~68 sites across converters/atlassian/workspace-status/receive-brief packs and packages/agentbundle", source = "spec/pack-script-root-boundary-validation"},
+
+  # Suppression cannot be shipped to adopters today: `agentbundle install` has
+  # no YAML-merge mode, so two packs each shipping a .snyk would clobber one
+  # another (self_host.py's merge-json / managed-block-inline do not apply --
+  # that is the self-hosting projection path, not the install path). Until this
+  # exists, fixing the source is the only remediation that reaches an adopter.
+  # Note: Snyk Code ignores additionally require the org to enable "Consistent
+  # Ignores", so this unblocks the vehicle but not the policy.
+  {slug = "agentbundle-install-yaml-merge", summary = "Add a YAML-merge conflict mode to `agentbundle install` so packs can ship mergeable .snyk (and other YAML) policy files without clobbering each other", source = "spec/pack-script-root-boundary-validation"},
+
+  # CodeQL runs security-extended on every PR and is the only lens we have with
+  # Snyk-Code-class interprocedural taint (Bandit has no dataflow; OSS Semgrep
+  # taint cannot cross a function boundary -- both verified this session). It is
+  # currently advisory: branch protection requires only "make build-check", so a
+  # genuine taint finding would annotate and still merge. Making it blocking is
+  # a branch-protection setting, not a workflow change (ADR-0017, codeql.yml:10).
+  {slug = "codeql-required-check", summary = "Make the CodeQL check required in branch protection so interprocedural taint findings block a merge instead of only annotating", source = "spec/pack-script-root-boundary-validation"},
+
+  # We ship JavaScript to adopters and scan it with nothing. Measured this
+  # session: Bandit is Python-only by construction; codeql.yml:51 sets
+  # `languages: python`; and our Semgrep config (p/python + p/security-audit)
+  # parses the JS but carries none of the JS security rules. Proof: current
+  # gate config over render.js + render-proof.js = 0 findings, while
+  # p/default + p/owasp-top-ten over the same two files = 5
+  # (path-join-resolve-traversal x4, detect-non-literal-regexp x1).
+  #
+  # Two production files ship: packs/converters/.apm/skills/markdown-to-html/
+  # scripts/render.js and .../render-proof/scripts/render-proof.js.
+  #
+  # Split out of the parent spec because enabling coverage is the small half —
+  # the real cost is triaging the findings it turns on. The 5 known ones all
+  # look like sanitizer-blindness (they sit inside render-proof.js's own
+  # validateOutputPath), but that must be confirmed per-finding, and new rules
+  # will surface more. Do both scanners in one pass so the triage happens once.
+  {slug = "sast-javascript-coverage", summary = "Give shipped JS real SAST coverage: add JS security rulesets to the Semgrep gate config and add javascript-typescript to codeql.yml languages, then triage and fix the findings both turn on", source = "spec/pack-script-root-boundary-validation"},
+
+  # CWE-delta review against Snyk Code's published rule tables. Measured
+  # 2026-08-07: Snyk Python = 43 rules/43 CWEs, Snyk JS+TS = 53 rules/42 CWEs;
+  # ours = 376 Semgrep rules (74 CWEs) + Bandit (24 CWEs), union 84. Residual
+  # gap is 10 CWEs for Python and 13 for JS/TS -- enumerated in the parent
+  # spec's "CWE coverage vs. Snyk Code" table.
+  #
+  # Deliberately scoped as a REVIEW, not "add all missing rules". We already
+  # nominally cover ~2x Snyk's CWE count; the CWE-23 finding got through on
+  # analysis depth (no dataflow in Bandit, no cross-function taint in OSS
+  # Semgrep), not on a missing rule. CWE tags are a coverage proxy, not proof
+  # of equivalent detection. Judge each of the 23 on whether the class is real
+  # for this codebase before adding anything -- several (CWE-347 signature
+  # verification, CWE-312 cleartext secret storage, CWE-640 password recovery)
+  # have no corresponding surface here.
+  {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
+
+  # Deliberately NOT backlogged: extending SAST_DIRS to web/ (62 JS/TS/Astro
+  # files). Decided 2026-08-07 — web/ is the platform site, built and deployed
+  # from this repo only; it is never installed into an adopter repo, so it
+  # carries none of the shipped-artifact exposure that motivates the entries
+  # above. Revisit only if web/ ever gains a server-side runtime.
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

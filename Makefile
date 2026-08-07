@@ -178,7 +178,14 @@ print-sast-dirs:
 
 print-sast-config:
 	@echo $(SAST_CONFIG)
+# Deliberately-vulnerable rule fixtures. tools/semgrep/fixtures/**/positive.py
+# exists to PROVE a custom rule fires; if the gate scanned it, every custom rule
+# with a positive fixture would red the build by design. Mirrors bandit.yaml's
+# `*/tests/*` exclusion, for the same reason. The fixtures are still scanned —
+# by tools/test-semgrep-argv-boundary.py, which asserts the exact finding count
+# on each. Excluding them here removes them from the gate, not from coverage.
 SEMGREP_EXCLUDE := \
+	--exclude tools/semgrep/fixtures \
 	--exclude-rule python.lang.security.insecure-hash-algorithms.insecure-hash-algorithm-sha1 \
 	--exclude-rule python.lang.security.audit.dynamic-urllib-use-detected.dynamic-urllib-use-detected \
 	--exclude-rule python.lang.security.use-defused-xml.use-defused-xml \

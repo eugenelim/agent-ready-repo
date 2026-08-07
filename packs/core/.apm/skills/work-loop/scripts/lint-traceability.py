@@ -1221,6 +1221,30 @@ def _drift_check(root: Path, layout: dict, sidecar_g: Graph) -> list[str]:
             for missing in sorted(loc - side)]
 
 
+def _validated_root(candidate: Path | None) -> Path:
+    """Resolve the CLI-supplied scan root, or fall back to `_repo_root()`.
+
+    The normalise-then-check is deliberately kept *in one function, adjacent to
+    the argv read*. Taint analysers recognise that shape; they do not follow
+    the `_within()` / `_confined()` confinement applied to every path derived
+    from this root, because that check is interprocedural and expressed as a
+    comprehension filter. Same pattern as `check-spec-status.py:72-80`.
+
+    This normalises and asserts directory-ness; it deliberately does **not**
+    confine the root to a fixed prefix. `--root` *is* the caller-supplied scan
+    scope of a repo linter (see the module docstring), so restricting which
+    directory may be scanned would break the tool's purpose. The security
+    control remains `_within()`: every path *derived* from this root is
+    re-checked against it before being read.
+    """
+    root = (candidate if candidate is not None else _repo_root()).resolve()
+    if not root.exists():
+        raise SystemExit(f"lint-traceability: --root does not exist: {root}")
+    if not root.is_dir():
+        raise SystemExit(f"lint-traceability: --root is not a directory: {root}")
+    return root
+
+
 def _repo_root() -> Path:
     """Best-effort root for a bare manual run (git toplevel, else the script's
     grandparent). The CI gate and self-tests always pass `--root` explicitly."""
@@ -1248,7 +1272,7 @@ def main(argv: list[str] | None = None) -> int:
              "dangling edges and cycles exit 1 in every mode.",
     )
     args = parser.parse_args(argv)
-    root = (args.root.resolve() if args.root else _repo_root()).resolve()
+    root = _validated_root(args.root)
 
     try:
         out, hard, exit_hint = check(root, args.strict)
