@@ -110,8 +110,9 @@ Approach: one pass over `guides/**/*.md`, reusing `_parse_frontmatter()`. Pure
 derivation, no projection concerns. Accept an **injectable path enumerator** so
 T7's determinism test has a seam. Never raise on bad input.
 Done when: tests pass; over the real tree `len(records) == len(list(guides.rglob("*.md")))`
-and `nav_eligible == total - 1 - <READMEs more than one directory below
-`guides/`>` — relational, not hard-coded, since T5 adds files.
+and `nav_eligible` equals total minus `AGENTS.md` minus every README more than
+one directory below the guides root — relational, not hard-coded, since T5 adds
+files.
 Depends on: none
 
 ### T3: Slug parity with what `mirror_guides()` writes

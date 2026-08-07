@@ -1,4 +1,4 @@
-"""Tests for guide sidebar projection in tools/build-site.py (11 tests).
+"""Tests for guide sidebar projection in tools/build-site.py.
 
 Covers T6 of docs/specs/guides-sidebar-generation: inventory records become
 Starlight sidebar groups.

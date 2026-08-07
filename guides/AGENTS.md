@@ -36,8 +36,10 @@ into the sidebar. Writing the file is all that navigation requires — there is
 no config to edit.
 
 - **Group labels and order** are declared in `site.toml`'s `[[guide_groups]]`
-  (`dir` + `label`). A directory with no entry still gets a group, labelled from
-  its title-cased name and appended last.
+  (`dir` + `label`). **An entry is required for every directory** — a test
+  enforces it. The title-cased fallback is a safety net, not a supported path:
+  it would render `iac-terraform` as "Iac Terraform" rather than its curated
+  label.
 - **`order`** sorts a page within its pack group **across kinds** — that is how
   a tutorial, a how-to, and an explanation form one reading sequence. Pages
   without it fall into kind buckets below the ordered run.
@@ -57,6 +59,10 @@ no config to edit.
   are mirrored but never enter navigation — today that is the four
   `_shared/<kind>/` authoring templates, which address guide *authors*, not
   adopters. They stay reachable by URL. Each prints a `note` at build time.
+- **The nav-ineligible set is pinned by a test.** Adding a section index below
+  kind level (`<pack>/how-to/README.md`) fails
+  `test_nav_ineligible_set_is_exactly_the_declared_exceptions`; update it and
+  the spec's § Intent carve-out in the same change.
 - **Renaming or deleting a page requires deleting its
   `guide-nav-baseline.toml` entry** in the same change, or the no-regression
   test fails with `labels or pages regressed: {'…': ('Label', '<ABSENT>')}`.

@@ -33,8 +33,8 @@ goal.
 Two things block the intent today.
 
 **Pages are missing.** The sidebar is a hand-maintained literal tree in
-`docs-site/astro.config.ts` (lines 86–544) carrying 119 guide entries. 181
-navigable guide files exist on disk, so **62 published pages are absent from
+`docs-site/astro.config.ts` (lines 86–544) carrying 119 guide entries. 177
+navigable guide files exist on disk, so **58 published pages are absent from
 navigation** — reachable only by search or a direct link. Adding a page and
 forgetting the config edit is the default outcome, not the exception.
 
@@ -84,9 +84,9 @@ One deterministic pass over `guides/**/*.md` produces one record per file:
 
 **On the `kind` directory fallback.** `guide-source-model` AC3 (shipped) states
 that the physical directory does not determine kind. This spec relaxes that
-**only for pages carrying no `kind:` frontmatter** — 162 files carry none, 161
+**only for pages carrying no `kind:` frontmatter** — 162 files carry none, 157
 of them nav-eligible. Where frontmatter declares a kind it always wins. The
-relaxation is deliberate and scoped: the alternative is 161 uncategorized pages,
+relaxation is deliberate and scoped: the alternative is 157 uncategorized pages,
 and the long-term fix is frontmatter migration, not a different fallback.
 
 **The directory fallback normalizes to the schema enum.** The on-disk directory
@@ -98,9 +98,11 @@ yet — which is exactly why it must be pinned before migration begins.
 
 **Pre-change measurements** (2026-08-06; single statement, the plan references
 this section rather than restating — the shipped tree is larger, since this PR
-adds the three arc pages): 182 `.md` files, 1 nav-ineligible (`guides/AGENTS.md`), 181
-eligible, 181 distinct slugs (zero collisions), 119 entries in the hand tree,
-**62 absent**. Extract nav slugs with the pattern `slug: '(guides(/…)?)'` — a
+adds the three arc pages): 182 `.md` files, **5 nav-ineligible**
+(`guides/AGENTS.md` plus the four `_shared/<kind>/README.md` section indexes),
+**177 eligible**, 177 distinct slugs (zero collisions), 119 entries in the hand
+tree, **58 absent**. An earlier draft said 1/181/62 — that predated the
+section-index carve-out, and the difference is exactly those four files. Extract nav slugs with the pattern `slug: '(guides(/…)?)'` — a
 `guides/`-prefixed match silently drops the root `guides` entry and yields 118.
 
 ### Layer 2 — Projection
@@ -251,8 +253,8 @@ The `atlassian` pages are the witness that cross-kind ordering works.
 - [x] AC1 — An inventory pass emits one record per `.md` file under `guides/`,
       each carrying every key in the Layer 1 table.
 - [x] AC2 — The set of slugs under the generated **Guides** groups equals the set
-      of `nav_eligible` inventory slugs exactly; `guides/AGENTS.md` and the
-      kind-directory authoring templates appear in neither. Pack-catalogue and
+      of `nav_eligible` inventory slugs exactly; `guides/AGENTS.md` and every `README.md`
+      more than one directory below `guides/` appear in neither. Pack-catalogue and
       top-level slugs are outside this set. No two siblings of one group share a
       label — pages and kind buckets alike.
 - [x] AC3 — For every file, the inventory slug equals the Starlight slug of the

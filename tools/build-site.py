@@ -284,15 +284,15 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
             print(f"  warn  {_relpath(path)}: non-string 'title' ignored", file=sys.stderr)
             title = None
 
-        # A README below kind level is dropped from navigation (see nav_eligible
-        # below). Say so — a silently missing page is the defect this whole
-        # change exists to remove.
-        if path.name == "README.md" and len(rel_parts) >= 3:
-            print(
-                f"  note  {_relpath(path)}: section index, mirrored but not in"
-                " navigation (README more than one directory below guides/)",
-                file=sys.stderr,
-            )
+        # Every navigation exclusion is announced — a silently missing page is
+        # the defect this whole change exists to remove.
+        is_section_index = path.name == "README.md" and len(rel_parts) >= 3
+        nav_eligible = path.name not in _NAV_INELIGIBLE_NAMES and not is_section_index
+        if not nav_eligible:
+            why = ("section index (README more than one directory below guides/)"
+                   if is_section_index else "maintainer context")
+            print(f"  note  {_relpath(path)}: {why}; mirrored but not in navigation",
+                  file=sys.stderr)
 
         records.append({
             "source_path": path,
@@ -302,14 +302,11 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
             "title": title,
             "slug": override or guide_slug_for(rel_parts),
             "is_index": path.name == "README.md",
-            # A README inside a kind directory is a section-authoring template
+            # A README below kind level is a section-authoring template
             # ("Writing a how-to"), addressed to whoever writes the guides — not
             # to the adopter this tree serves. None was in the pre-change
             # sidebar, so keeping them out preserves the status quo.
-            "nav_eligible": (
-                path.name not in _NAV_INELIGIBLE_NAMES
-                and not (path.name == "README.md" and len(rel_parts) >= 3)
-            ),
+            "nav_eligible": nav_eligible,
         })
 
     # Secondary key on the path: a duplicate slug would otherwise resolve by
@@ -942,7 +939,8 @@ def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> dict | None:
     declared = {g.get("dir") for g in guide_groups}
     fallback = sorted({r["pack"] for r in records
                        if r["nav_eligible"] and r["pack"] and r["pack"] not in declared})
-    print(f"  guides  {eligible} navigable page(s) in {len(group['items'])} group(s)")
+    n_groups = sum(1 for i in group["items"] if "items" in i)
+    print(f"  guides  {eligible} navigable page(s) in {n_groups} group(s)")
     if fallback:
         print(f"  warn    undeclared in site.toml [[guide_groups]]: {', '.join(fallback)}",
               file=sys.stderr)

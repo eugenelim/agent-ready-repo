@@ -1,4 +1,4 @@
-"""Tests for generated sidebar assembly in tools/build-site.py (6 tests).
+"""Tests for generated sidebar assembly in tools/build-site.py.
 
 Covers T7 of docs/specs/guides-sidebar-generation. These are the criteria that
 actually deliver the feature, asserted against the real tree:
@@ -176,7 +176,9 @@ def test_every_guides_directory_is_declared_in_site_toml():
     dirs = {p.name for p in (REPO_ROOT / "guides").iterdir() if p.is_dir()}
     with (REPO_ROOT / "site.toml").open("rb") as f:
         declared = {g["dir"] for g in tomllib.load(f).get("guide_groups", [])}
-    assert dirs == declared, f"undeclared: {sorted(dirs - declared)}"
+    assert dirs == declared, (
+        f"undeclared: {sorted(dirs - declared)}; "
+        f"stale: {sorted(declared - dirs)}")
 
 
 def test_atlassian_cross_kind_run_survives():
@@ -209,3 +211,22 @@ def test_duplicate_slug_resolves_deterministically(tmp_path):
     reverse = build_site.build_guide_inventory(
         root, enumerator=lambda _r: list(reversed(paths)))
     assert [r["title"] for r in forward] == [r["title"] for r in reverse]
+
+
+def test_malformed_guide_group_entry_is_skipped_not_raised():
+    """A missing `dir` or `label` previously raised a bare KeyError mid-build,
+    after packs had already been mirrored. discover_packs() warns and skips on
+    the sibling table; this matches it."""
+    records = [{"source_path": Path("x.md"), "pack": "a", "kind": "how-to",
+                "order": None, "title": None, "slug": "guides/a/how-to/x",
+                "is_index": False, "nav_eligible": True}]
+    groups = [{"label": "no dir"}, {"dir": "a", "label": "Ay"}, {"dir": "b"}]
+    out = build_site.project_guide_sidebar(records, groups, {})
+    assert [i["label"] for i in out["items"]] == ["Ay"]
+
+
+def test_malformed_baseline_entry_is_skipped_not_raised(tmp_path):
+    p = tmp_path / "baseline.toml"
+    p.write_text('[[entry]]\nslug = "guides/a"\n\n'
+                 '[[entry]]\nslug = "guides/b"\nlabel = "Bee"\n', encoding="utf-8")
+    assert build_site.load_guide_baseline(p) == {"guides/b": "Bee"}

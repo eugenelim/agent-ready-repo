@@ -1,4 +1,4 @@
-"""Tests for the guide inventory pass in tools/build-site.py (14 tests).
+"""Tests for the guide inventory pass in tools/build-site.py.
 
 Covers T2 (inventory derivation) and T3 (slug parity with what mirror_guides
 writes) of docs/specs/guides-sidebar-generation.
@@ -224,3 +224,38 @@ def test_inventory_accepts_injected_enumerator(tmp_path):
     forward = build_site.build_guide_inventory(root, enumerator=lambda _: paths)
     reverse = build_site.build_guide_inventory(root, enumerator=lambda _: list(reversed(paths)))
     assert [r["slug"] for r in forward] == [r["slug"] for r in reverse]
+
+
+# ---------------------------------------------------------------------------
+# Degradation — adopter-authored frontmatter must never crash the build
+# ---------------------------------------------------------------------------
+
+def test_non_string_slug_falls_back_to_derived(tmp_path):
+    """`slug: 123` previously raised AttributeError naming no file."""
+    root = _tree(tmp_path, {
+        "core/how-to/x.md": "---\ntitle: X\nsummary: s\npack: core\nkind: how-to\nslug: 123\n---\n",
+    })
+    assert build_site.build_guide_inventory(root)[0]["slug"] == "guides/core/how-to/x"
+
+
+def test_non_string_title_coerced_to_absent(tmp_path):
+    """`title: [a, b]` survived the inventory and raised in the bucket sort, or
+    landed in sidebar-config.json as a non-string label."""
+    root = _tree(tmp_path, {
+        "core/how-to/x.md": "---\ntitle: [a, b]\nsummary: s\npack: core\nkind: how-to\n---\n",
+    })
+    assert build_site.build_guide_inventory(root)[0]["title"] is None
+
+
+def test_section_index_is_not_nav_eligible(tmp_path):
+    """The rule is depth-based, not kind-name-based: any README more than one
+    directory below guides/ is a section-authoring template."""
+    root = _tree(tmp_path, {
+        "core/README.md": "# Core\n",
+        "core/how-to/README.md": "# Writing a how-to\n",
+        "core/notakind/README.md": "# Deep\n",
+    })
+    records = build_site.build_guide_inventory(root)
+    assert _by_path(records, "core/README.md")["nav_eligible"] is True
+    assert _by_path(records, "core/how-to/README.md")["nav_eligible"] is False
+    assert _by_path(records, "core/notakind/README.md")["nav_eligible"] is False
