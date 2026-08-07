@@ -3,9 +3,9 @@
 > Every renderer claim with source and confidence; the gates and their results.
 > Part of [binder publishing architecture](README.md).
 
-**Two renderers appear here, and only one of them is live.** Z1–Z4 are the
-**Zensical** gates — the v1 renderer under D-B — and they are the ones a spec
-author builds against. Q1–Q28 are **Quarto** findings, retained because a future
+**Two renderers appear here, and only one of them is live.** Z1–Z6 are the
+**Zensical** gates — the v1 renderer under D-B — and they, with the
+renderer-independent V6, are the ones a spec author builds against. Q1–Q28 are **Quarto** findings, retained because a future
 PDF or EPUB adapter would go through Quarto and would be built against them.
 Where the two disagree about a behaviour, they are not in conflict: they describe
 different renderers.
@@ -14,15 +14,26 @@ different renderers.
 
 ## Zensical findings and the Z-gates
 
-Run **2026-08-06** against `zensical==0.0.53` in a clean virtualenv on
-macOS/arm64, using the same discipline V1 established: **a real fixture and the
-real emitted `zensical.toml`**, not a hand-written config the pack never emits.
-The fixture is a five-chapter binder with a nested `nav`, a `custom_dir` theme, a
-generated cover, fresh per-file frontmatter, a portable ` ```mermaid ` fence with
-a `<br/>` node label, a class diagram using `<|--`, a literal `{{< env … >}}`, a
-`${HOME}`, an admonition, and a cross-document `.md` link.
+Run against `zensical==0.0.53` in a clean virtualenv on macOS/arm64 — **Z1–Z4 on
+2026-08-06, Z5 and Z6 on 2026-08-07** — using the same discipline V1 established:
+**a real fixture and the real emitted `zensical.toml`**, not a hand-written config
+the pack never emits. The fixture is a five-chapter binder with a nested `nav`, a
+`custom_dir` theme, a generated cover, fresh per-file frontmatter, a portable
+` ```mermaid ` fence with a `<br/>` node label, a class diagram using `<|--`, a
+literal `{{< env … >}}`, a `${HOME}`, an admonition, and a cross-document `.md`
+link. The Z5/Z6 run extended it with the vendored `mermaid.min.js` delivered
+through `main.html`'s `{% block extrahead %}`, which is what Z6 needed a browser
+for.
 
 `[high]` throughout means direct execution against that fixture.
+
+> **The emitted config is transcribed, not generated, and that is the one soft
+> spot in this evidence.** `binder.py` does not exist yet, so "the real emitted
+> `zensical.toml`" means the block in
+> [`zensical-adapter.md`](zensical-adapter.md#generated-zensicaltoml) transcribed
+> byte-faithfully. It is still far better than a config invented for the test, but
+> the gates become genuinely airtight only once the adapter emits the file and CI
+> runs them against it.
 
 ### Z1 — invocation, version probe, and where output lands
 
@@ -72,7 +83,58 @@ a `<br/>` node label, a class diagram using `<|--`, a literal `{{< env … >}}`,
 | Z4d | **V2b as previously written is unsatisfiable.** "Zero `https://` references anywhere in `_output/`, CSS included" cannot pass against a licence comment and an attribution anchor. Restated below as zero remote **subresource** references, which is the property that actually matters and is testable. | **High — VERIFIED** |
 | Z4e | **Search is local and offline** — `site/search.json`, 1.7 KB for the fixture — and every asset reference is document-relative (`./assets/…`, `../assets/…`), so a published binder opens from `file://` with no server. | **High — VERIFIED** |
 
-### The four findings that changed the design
+### Z5 — telemetry: does `zensical build` reach the network?
+
+> **No — and the stronger form of no.** Not "the build survives offline": **no
+> outbound operation is attempted on any path this build exercises**, native or
+> Python. Z5a states the scope precisely and it is the row to quote.
+
+| # | Finding | Confidence |
+|---|---|---|
+| Z5a | **No code path exercised by a build of the emitted config attempts an outbound request.** Measured with `sandbox-exec` denying `network-outbound` **and sending `SIGKILL` on any attempt**, so an attempt is fatal rather than merely failed: the build exits **0** on both a cold and a warm cache. A kernel-level detector was chosen precisely because a Python-level one cannot see the compiled extension. Stated that way deliberately — the instrument is indifferent to *which* code path attempts egress, but it can only speak for the paths this fixture executes, so it is evidence about `build` on the emitted config, not a proof that no fetching code exists in the package. | **High — VERIFIED** |
+| Z5b | **The isolation was validated before it was trusted, four ways** — DNS resolution blocked, IP-literal `connect` refused with `EPERM`, the same request succeeding unsandboxed, and local file IO still permitted. And the kill-on-egress profile was validated three ways: a trivial process survives (no false positive), an IP-literal `create_connection` is killed, a DNS-based `urlopen` is killed. **A gate whose negative control was never run proves nothing**, which is the discipline Z4a's failure argues for. | **High — VERIFIED** |
+| Z5c | **A Python-level tracer over `getaddrinfo`, `create_connection`, `socket.connect`, `socket.connect_ex`, `urllib.request.urlopen`, and `http.client.HTTPConnection.request` logged zero calls during the build** — injected via `PYTHONPATH` so the real `python -m zensical build` argv was preserved. Its self-test logged 9 hits for a known request, so the zero is a measurement rather than a broken probe. | **High — VERIFIED** |
+| Z5d | **The output is byte-identical with and without network access.** `diff -r` over the two `site/` trees from a network-allowed build and a network-denied build reports no difference, so nothing fetched contributes to the artifact. `--clean` also exits 0 under denial. | **High — VERIFIED** |
+| Z5e | **`zensical` ships a compiled `zensical.abi3.so`, and it does link `_socket`, `_getaddrinfo`, and `_recv` from libSystem** — so network *capability* is present and a source-only grep would have missed it. The capability is consistent with the `serve` verb, which needs a listening socket; `serve` is never invoked. There are no hardcoded remote URL strings in the extension and no telemetry, analytics, or update-check code in the Python sources; **the extension itself is covered by Z5a rather than by inspection**, which is the honest split given that this row's whole point is that a source grep cannot see into it. **Z5a is what covers this**, and it is the reason the gate needed a kernel-level instrument rather than a library-level one. | **High — VERIFIED** |
+| Z5f | **`zensical/extensions/macros.py` shells out to `git log` and `git rev-parse` via `subprocess.check_output`.** It registers as the `macros` extension, which is **outside the closed allowlist**, so it is inert under the emitted config — independent support for the allowlist being a replacement (Z2b) rather than an addition. Not a network finding, and recorded here because a `git` subprocess in the renderer is exactly the kind of thing the design's *no path to poison* argument should be checked against. | **High — VERIFIED** |
+| Z5g | **The installed dependency set matches the design's list exactly** — `click`, `deepmerge`, `jinja2`, `markdown`, `pygments`, `pymdown-extensions`, `pyyaml`, `tomli`. `importlib.metadata.version("zensical")` returned `0.0.53`, re-confirming Z1c. | **High — VERIFIED** |
+
+### Z6 — does vendored Mermaid render in a real browser with egress blocked?
+
+> **Rendering: yes. The accessible name: no.** The vendoring mechanism
+> [`zensical-adapter.md`](zensical-adapter.md) specifies works exactly as
+> specified. The *accessibility* claim built on top of it does not, and the way it
+> fails is worse than a plain absence.
+
+Three headless-Chromium runs over the built fixture from `file://`, every
+non-`file://` request logged and aborted in the blocked runs. The positive control
+ran **first**, so both detectors were shown to work before the gate run was
+trusted:
+
+| Run | Vendored | Egress | unpkg | Diagrams | Accessible name |
+|---|---|---|---|---|---|
+| positive control | no | allowed | **2 requests** | 2 rendered | empty |
+| degraded | no | blocked | 1 attempt, `net::ERR_FAILED` | 0 | **present** |
+| **gate** | **yes** | **blocked** | **none** | **2 rendered** | **empty** |
+
+| # | Finding | Confidence |
+|---|---|---|
+| Z6a | **The vendored bundle renders the diagrams with egress blocked, and issues no request of any kind.** The gate run produced two real SVGs — `role="graphics-document document"`, `aria-roledescription="flowchart-v2"`, laid out at 423 px and 73 px — with **zero remote requests**, unpkg or otherwise. Z3c/Z3d were verified by source and by emitted HTML; this is the browser confirming them. | **High — VERIFIED** |
+| Z6b | **The guard is suppressed because mermaid's own distribution defines the global.** `mermaid@11`'s last line is `globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default`, so a plain `<script src>` satisfies `typeof mermaid == "undefined"` → false. Worth stating because the file's *first* line assigns into an esbuild namespace, and a reader checking only that would conclude vendoring cannot work. | **High — VERIFIED** |
+| Z6c | **`extrahead` places the vendored script in `<head>` and the theme bundle loads from `<body>`** — verified in the built page, so the ordering Z3d established by inspection holds at runtime. | **High — VERIFIED** |
+| Z6d | **The accessible name does NOT survive into the rendered SVG, and `attr_list` on the fence is the wrong mechanism.** The bundle mounts a diagram with `e.replaceWith(r)` where `r = A("div",{class:"mermaid"})` — **a fresh `div` carrying only `class`** — so every attribute on the `<pre>` is discarded. Measured live: `div attrs: {"class":"mermaid"}` for every diagram. The SVG then lands in `attachShadow({mode:"closed"})`, confirmed by `div.shadowRoot === null` from page script. | **High — VERIFIED** |
+| Z6e | **The failure inverts, which is why it would have shipped.** In the degraded run the name **is** in the accessibility tree — `('image', 'Diagram 3.2: ledger write path')` — because the `<pre>` is still there. Under the specified mechanism **a named diagram and a rendered diagram are mutually exclusive**: the check passes exactly when the feature is broken. A CI assertion written against the static HTML would have stayed green forever. | **High — VERIFIED** |
+| Z6f | **Three replacement routes were measured, and the adopted one names the graphic itself at zero line cost.** The compiler emits `data-a11y-name` / `data-a11y-desc` on the fence's opening delimiter via `attr_list`, and the pack's theme lifts them into the Mermaid source as `accTitle:` / `accDescr:` before the bundle mounts. Measured: `role='graphics-document'` with **name** `'Diagram 3.1 — ledger write path (RFC-0091)'` **and description** `'Client calls the API gateway, …'`, real `<title>`/`<desc>` inside the shadow SVG, diagram rendered, **zero remote requests**. This is D46. | **High — VERIFIED** |
+| Z6g | **Both rejected routes work and both cost something the adopted one does not.** *Injecting `accTitle:` into the staged fence body* names the graphic identically but writes into the body, which is the transformation this adapter does not do. *A `<figure role="group" aria-label>` wrapper* survives `replaceWith` and was measured naming a region (`role='group'` with the right name, diagram rendered) — but it names a **container, not the graphic**, has no `accDescr` equivalent, needs a duplicate literal in the `<figcaption>`, and **inserts lines around every diagram**, which breaks the single-integer `line-offset` the whole per-file transformation rests on. | **High — VERIFIED** |
+| Z6h | **An unescaped `attr_list` value is an HTML-injection channel; escaping closes it completely.** A value containing `"` **terminates the attribute** and the remainder becomes markup — a label of `Diagram & "3.1" <script>x</script>` emitted a **live `<script>x</script>`** into the published page. HTML-escaping the value (`&`, `<`, `>`, `"`, `'`) closes it and **round-trips exactly**: `Ledger & payments "3.1" — l'architecture réseau` reached the accessible name character-for-character, ampersand, quotes, em dash, apostrophe and accents intact. | **High — VERIFIED** |
+| Z6i | **The hazard that escaping does *not* close is the value's real sink: Mermaid source.** The theme lifts the value into an `accTitle:` line, so the value is evaluated by Mermaid, not only by an HTML parser. Measured with escaping applied throughout: international text is safe — `Diagram 3.1 — Réseau : l'architecture 漢字` round-trips exactly, and so does `<b>angle</b>`, which does **not** truncate. But **`%%{init:{"theme":"dark"}}%%` was consumed as a Mermaid directive** — stripped from the accessible name and processed by the renderer, which is precisely the construct the scanner rejects in *authored* fence bodies. And **an embedded newline destroyed the diagram** — that fence produced no `graphics-document` at all while its siblings rendered. So the control is escape-for-HTML **plus reject-for-Mermaid** on `%%{` and newlines, and **an ASCII allowlist is the wrong control** — it would mangle `Réseau` and drop 漢字 to nothing for no gain, in the one kind of string that exists to be read aloud. | **High — VERIFIED** |
+| Z6j | **The theme step has no ordering race, and its failure mode is a missing name rather than a missing diagram.** A `MutationObserver` registered in `<head>` processes each `pre.mermaid` as the parser inserts it — strictly before `DOMContentLoaded`, so strictly before any mount. **Re-measured with the `DOMContentLoaded` fallback removed**, so the result is attributable to the observer alone and not to a belt-and-braces pair, and on a **sixty-edge fence** as well as a two-line one, so it is not an artifact of a diagram small enough to arrive in a single parse chunk. Both named, both rendered, no page errors, zero remote requests. With the step absent the diagram still renders, unnamed (Z6a is that case). | **High — VERIFIED** |
+| Z6k | **The graceful degradation is confirmed, not merely hoped.** With the bundle unreachable the reader sees the diagram's own source as visible preformatted text — measured `flowchart TD\n    A[Client] --> B[API gateway]\n …` — because the mount strips the `mermaid` class before awaiting the loader and never reaches the replacement. | **High — VERIFIED** |
+| Z6l | **The vendored file is copied verbatim into `site/assets/javascripts/`, merging with Zensical's own asset directory, and adds 3.5 MB to every published binder.** A consequence of Z2d's "the theme directory is a publication surface", now measured. Not a defect — it is the price of offline Mermaid — but it belongs in the size expectations rather than being discovered by an adopter. | **High — VERIFIED** |
+| Z6m | **The version the bundle asks for is the floating `mermaid@11` tag**, which resolved to 11.16.1 during this run. An unpinned input, recorded as a risk rather than a cost: the guard-suppression mechanism (Z6b) is a property of the esbuild distribution, not of a patch version, but the pack should vendor a pinned version with a recorded digest. | **High — VERIFIED** |
+| Z6n | **D46 rests on two upstream behaviours that are neither documented contracts nor stability promises, and they are named here rather than left implicit.** (i) Mermaid's `accTitle:` / `accDescr:` directives and the `<title>`/`<desc>` they generate; (ii) the theme bundle mounting diagrams *after* parse, which is what lets a `<head>`-registered observer precede it. Both are verified against `zensical==0.0.53` and `mermaid@11.16.1`, both sit under an alpha pin, and **a change in either breaks the accessible name while leaving the diagram rendering perfectly** — the Z6e failure shape again. This is the specific reason Z6 has regression duty rather than retiring green. | **High — VERIFIED** as behaviour; **explicitly not** a stability guarantee |
+
+### The findings that changed the design
 
 **Z3b deletes a simplification that had been assumed.** The renderer-choice spike
 recorded Mermaid as "renders from the portable fence" and stopped there; it did
@@ -93,6 +155,30 @@ genuinely gone rather than shadowed.
 it.** A nav entry pointing at a file that was never staged is silently rendered as
 a working-looking sidebar link. The adapter asserts nav-target existence itself.
 
+**Z6d is the most instructive of the corrected controls, because it is the only one
+that was wrong about a *runtime*.** Z1c and Z4a were both wrong about a
+*configuration surface* — the design read a key's shape and inferred its behaviour.
+Z6d is a different mistake: the design reasoned about the HTML the compiler emits
+and never asked what the client-side bundle does to it. It replaces the element the
+attributes are on. And Z6e is the part that earns the gate its cost — the mechanism
+fails in the direction that *passes* a static check, so the only instrument that
+could have caught it is the browser this gate finally ran.
+
+**Z6h and Z6i have the widest reach, and neither was what the gate went looking
+for.** Chasing a replacement for Z6d turned up that unescaped `attr_list` values
+terminate on a quote, so any compiler-emitted attribute is an HTML-injection channel
+— and `attr_list` is how this design emits `data-ordinal` (D44) and its badge and
+marker spans too. **The first control drafted for it was wrong, and re-measuring is
+what caught that**: escaping was dismissed as double-encoding and an ASCII allowlist
+specified instead, when in fact a single escape round-trips the value exactly,
+accents and CJK included, and the allowlist would have silently mangled the one class
+of string that exists to be read aloud. The hazard escaping genuinely cannot reach is
+the *second* hop — the value becomes a line of Mermaid source — where `%%{init:}%%`
+is consumed as a **directive**, arriving through a channel the scanner never
+inspects. Escape for HTML, reject for Mermaid. **A control asserted from the shape of
+a pipeline rather than run through it: the Q26 class of error, committed while
+documenting a gate whose whole subject is that class of error.**
+
 ### Z-gate status
 
 | Gate | Claim | Status | Result |
@@ -101,14 +187,26 @@ a working-looking sidebar link. The adapter asserts nav-target existence itself.
 | **Z2** | The emitted config — nav, `custom_dir`, `features`, `markdown_extensions` | **PASSED** 2026-08-06 | All four accepted as specified. **Settled the open question:** extensions replace, not merge (Z2b). **Surfaced Z2g and Z2h.** |
 | **Z3** | Mermaid from the portable fence, and whether it is bundled | **PASSED with a finding** 2026-08-06 | Fence read directly; **Mermaid is not bundled** (Z3b). Vendoring mechanism verified (Z3c/Z3d). |
 | **Z4** | Offline hardening | **RUN, FAILED, then FIXED** 2026-08-06 | The specified font form is wrong (Z4a); the correct one is verified (Z4b). V2b restated (Z4d). |
-| **Z5** | Telemetry — does `zensical build` make any outbound request during the build? | **NOT RUN** | Requires a network-isolated runner. Same shape as V2 was for Quarto. Fallback: document any fetch and name its suppressing key. |
-| **Z6** | Vendored Mermaid actually renders a diagram in a browser with egress blocked | **NOT RUN** | Z3c/Z3d verify the guard and the injection point by source and by emitted HTML; that a real browser then renders the diagram needs a headless run. Fallback: if the guard misbehaves, the diagram degrades to a readable `<pre>` of its own source rather than disappearing. |
-| **V6** | Whether an agent's process working directory is the skill directory | **NOT RUN** | **Renderer-independent, and the one pre-D-B gate still live.** Invoke `python scripts/binder.py check` from a live session on each adapter and record the CWD. Until it returns, content-root resolution is specified defensively both ways and `--root` is effectively required on the agent surface — see [`invocation.md`](invocation.md) and [`overview.md`](overview.md). |
+| **Z5** | Telemetry — does `zensical build` make any outbound request during the build? | **PASSED** 2026-08-07 | **No attempt is made at all**, not merely "the build survives offline": exits 0 with `SIGKILL` armed on any outbound operation, cold and warm cache, and the output is byte-identical to a network-allowed build (Z5a, Z5d). Isolation validated by seven controls before the result was accepted (Z5b). No fallback was needed. **Surfaced Z5e** (the compiled extension links network symbols — capability present, unused) **and Z5f** (`macros` shells to `git`, and is outside the allowlist). |
+| **Z6** | Vendored Mermaid actually renders a diagram in a browser with egress blocked | **PASSED on rendering; FALSIFIED the accessible-name claim** 2026-08-07 | The vendoring mechanism works: two diagrams render from the vendored copy with **zero remote requests** (Z6a–Z6c), and the degradation fallback is confirmed benign rather than assumed (Z6j). **Corrected the design:** attributes on the `<pre>` are destroyed at render time, so the specified `attr_list` accessible name never reaches the SVG (Z6d) — and it survives only when the diagram *fails* (Z6e). A replacement that names the graphic itself, adds no lines, and leaves the fence body untouched is verified and adopted as **D46** (Z6f, Z6i), with the two rejected routes and their costs recorded (Z6g). **Surfaced Z6h** — `attr_list` values terminate on a quote, which is an injection channel wider than this gate's subject. |
+| **V6** | Whether an agent's process working directory is the skill directory | **ANSWERED — no** 2026-08-07 | **It is the session's project root, which is the content root.** Measured on `claude-code` — the shipped `mermaid-renderer` skill's own documented `python scripts/render_mermaid.py --check` **fails** with the skill actively loaded, while the same script via the harness-supplied absolute base directory succeeds — and on `codex`, whose session header prints `workdir: <project-root>` and whose `pwd` returns it. **Unmeasured: `copilot`, `cursor`, `gemini`** (not installed) **and `kiro-ide` / `kiro-cli`** (the `kiro` binary is the IDE launcher; no headless agent CLI). So rules 2–4 are not skipped in practice, rule 4 does the work, and **`--root` is no longer effectively required** — see [`invocation.md`](invocation.md) and [`overview.md`](overview.md). The self-realpath guard is retained for the unmeasured adapters. |
 
-**Regression duty.** Z1–Z4 become CI assertions in
+**Regression duty.** Z1–Z6 become CI assertions in
 `tests/skills/publish-binder/integration/` once implemented, on every PR — they
 need a 12.2 MB pip install, not a 236 MB toolchain, so there is no path filter to
-argue about.
+argue about. **Z5 and Z6 need more than the others, and Z5's instrument does not
+port.** Z5 was measured with `sandbox-exec`, which is macOS-only — a Linux runner
+needs a network namespace or a seccomp filter instead, **and its own negative
+control**, because a denial mechanism that silently fails open turns this gate into
+a green light. Z6 needs a headless browser, the one dependency the design otherwise
+avoids. Both are worth it, and Z6e is the argument: the mechanism it caught fails in
+the direction a static assertion reads as green.
+
+**What the executed Z5/Z6 run cost, since the gates were nearly deferred to
+implementation.** Under two hours, and it closed the last renderer question,
+falsified a specified accessibility control, and replaced it with a verified
+mechanism. The alternative was discovering Z6d when a reader with a screen reader
+opened a published binder.
 
 ---
 
@@ -194,8 +292,9 @@ gated (V1) rather than assumed**, with a named fallback.
 > **Historical.** V1–V6 gated *Quarto* claims. D-B retired the renderer, and with
 > it V2 (render-time network), V4 (the install-command platform matrix), and V5
 > (shortcode expansion in metadata) — none of which has a subject any more. V2b's
-> *concern* survives as **Z4**, restated; V6 (agent CWD) is renderer-independent
-> and is still open. The rest is kept as the record a PDF adapter inherits.
+> *concern* survives as **Z4**, restated; V2's own concern survives as **Z5**, run
+> and closed; V6 (agent CWD) is renderer-independent and was answered on
+> 2026-08-07. The rest is kept as the record a PDF adapter inherits.
 
 **Three of these have been run, not deferred.** V1, V3, and V4-on-macOS were
 executed against Quarto 1.10.18 on 2026-08-06, because a renderer decision resting
@@ -216,11 +315,11 @@ precisely what broke.
 | **V1b** | The **exact v1 Mermaid emission** — `%%\| label:` with no `fig-cap:` | **PASSED** 2026-08-06 | Renders as a numbered figure (`Figure 2.1`) with class `quarto-uncaptioned` and no crossref warning. This corrected the design: numbering does **not** require a caption, as an earlier draft claimed. |
 | **V1c** | Q28 — `<br/>` in a Mermaid node label | **PASSED** 2026-08-06 | Survives and renders; a literal-newline rewrite does not. Drove the label allowlist. |
 | **V3** | Q20 — fenced divs and attributed spans survive the reader toggles | **PASSED** 2026-08-06 | `callout-note` and `<span class="badge">` render under every `from:` variant tested. Badges and editorial markers use callouts and fenced divs as planned; the plain-label fallback is not needed. |
-| **V4** | Q24 — the printed rung-1 command installs a working `quarto` | **PARTIAL** — macOS passed 2026-08-06 | `python -m pip install --no-deps --user quarto-cli==1.10.18` produced `~/.local/bin/quarto` reporting `1.10.18`. **Still to run:** a PEP 668 externally-managed interpreter, and Windows. Fallback unchanged: surface the interpreter's own message, never add `--break-system-packages`, fall through to rung 2. |
-| **V2** | Q19 — no network access *during* render | **NOT RUN** | Requires a network-isolated runner. Fallback: document the specific fetch and name the suppressing configuration key if one exists. |
+| **V4** | Q24 — the printed rung-1 command installs a working `quarto` | **RETIRED by D-B** (was PARTIAL — macOS passed 2026-08-06) | `python -m pip install --no-deps --user quarto-cli==1.10.18` produced `~/.local/bin/quarto` reporting `1.10.18`. **Still to run:** a PEP 668 externally-managed interpreter, and Windows. Fallback unchanged: surface the interpreter's own message, never add `--break-system-packages`, fall through to rung 2. **The residue is retired, not outstanding:** the PEP 668 and Windows runs would have gated a *Quarto* install command that no longer exists on any code path. A future PDF adapter inherits both the finding and the unrun cases. |
+| **V2** | Q19 — no network access *during* render | **NOT RUN against Quarto; SUPERSEDED by Z5** | Never run against `quarto render`, and it will not be — D-B retired the renderer. The question itself was renderer-independent, moved to **Z5**, and answered there on 2026-08-07. Recorded this way for the same reason V2b is: a row reading only `NOT RUN` invites a reader to think the concern is still open. |
 | **V2b** | Q27 — no network access *at read time*, from the published tree | **RUN, FAILED** 2026-08-06 | The rendered HTML carries zero absolute `src=`/`href=` references — but the stock Bootstrap CSS contains `@import url("https://fonts.googleapis.com/…Source+Sans+Pro…")`, so a reader's browser phones out. **This is a design requirement, not a gate failure to accept:** a binder for an air-gapped review board or a privacy-sensitive client cannot fetch a typeface from a third party. **Superseded by Z4** under Zensical, which found the same class of leak, a different suppression key, and that the "zero `https://` anywhere" form of the assertion is unsatisfiable (Z4d). |
 | **V5** | Q25 — shortcode expansion in `title` / `book.title` metadata | **NOT RUN** | Render the fixture with a `book.title` containing a literal `{{< env HOME >}}`, injected by the test to bypass the validator, and assert the value does not appear in the output. No fallback needed — the emitted-string validator (D36) rejects this input on every real path; V5 tells us whether the validator is the only thing standing between a title and an environment variable. |
-| **V6** | Whether an agent's process working directory is the skill directory | **MOVED** — see the Z-gate status table above | Renderer-independent, so it did not retire with Quarto. Listed with the live gates rather than under this section's "not live design" heading. |
+| **V6** | Whether an agent's process working directory is the skill directory | **MOVED, then ANSWERED** 2026-08-07 — see the Z-gate status table above | Renderer-independent, so it did not retire with Quarto. Listed with the live gates rather than under this section's "not live design" heading, and answered there. |
 
 **What the executed gates changed.** V1 was expected to confirm a fact and instead
 produced Q26, which removed a security layer the design had claimed and forced the

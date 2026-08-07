@@ -28,17 +28,42 @@ This is why `--root` exists. It is the mechanism that decouples "where the scrip
 lives" from "what it operates on", and it is what makes the contract independent
 of both the current shell and the adapter layout.
 
-> **Whether the agent's working directory *is* the skill directory is gate V6,
-> still open.** Nothing in `author-a-skill.md`, the skill-script conventions, or
-> the adapter contract states it, and `markdown-to-html`'s shipped interface
-> implies the opposite. Until V6 returns, `binder.py` resolves its own realpath and
-> **skips content-root inference when its CWD is beneath the installed pack** — so
-> `--root` is effectively **required** on the agent surface for `build`, `resolve`,
-> `explain`, `inventory`, and `check --published`, and optional only for a human or
-> CI caller invoking from inside the content root. A missing `--root` in the
-> skipped case is exit 4 with that message.
+> **Gate V6 answered this, and the answer is no.** The agent's working directory
+> is **not** the skill directory — measured 2026-08-07 on `claude-code` and
+> `codex`, both of which run a script with the CWD of the session's project root.
+> That is the content root, so rule 4 of content-root resolution does the work and
+> **`--root` is not required** on the agent surface.
+>
+> It stays in every example above, because *not required* and *not wanted* are
+> different: an explicit root is what makes the invocation reproducible outside the
+> session that produced it, and it is the only form a `Makefile` or CI step should
+> use. `binder.py` still resolves its own realpath and skips content-root inference
+> when its CWD is beneath the installed pack, exiting 4 with the message naming
+> `--root` — retained for the adapters V6 could not measure.
 > [`overview.md`](overview.md#what-repository-scope-means-outside-git) carries the
-> full four-rule resolution order.
+> full four-rule resolution order and the coverage caveat;
+> [`verified-findings.md`](verified-findings.md) carries the measurement.
+>
+> **What V6 found on the way is a caution for this file's own conventions.** The
+> bare-relative form that `converters` ships was measured failing from an agent
+> session in both skills — `python scripts/render_mermaid.py` and
+> `node scripts/render.js` each resolve against the *project root*. **The exit codes
+> differ, and only one of them collides:** CPython exits **2**, which is also what
+> `mermaid-renderer`'s own `SKILL.md` reads as *dependency missing*, so a wrong path
+> there reports itself as a missing `mmdc`; `node` exits **1** with
+> `MODULE_NOT_FOUND`, which collides with nothing.
+>
+> **`binder.py` inherits that collision and cannot close it from inside**, which is
+> the honest statement: the interpreter exits 2 before any line of `binder.py` runs,
+> so no in-process guard can distinguish the two. What the design can do is not
+> *rely* on a bare-relative path — hence the skill-relative-plus-`--root` form above
+> — and keep exit 2 meaning exactly one thing when it is `binder.py` that emits it.
+> **The collision is not this pack's to settle, and it is wider than one skill.** The
+> same exit-2-means-the-user-must-act contract is shipped by `mermaid-renderer` and by
+> every credentialed skill in `atlassian`, `figma` and `linear` — where a path failure
+> therefore reports itself as *absent credentials* and sends the user to
+> re-authenticate against a problem that is not theirs. Tracked as
+> `skill-script-exit-2-collision` in `workspace.toml [backlog].open`.
 
 **Non-agent invocation (CI, `Makefile`, cron).** A caller outside an agent session
 resolves the script path once, by either:
@@ -61,7 +86,7 @@ guess. Examples below use `$BINDER_SCRIPT` for non-agent callers and
 flags use `=` form throughout, per `skill-script-conventions.md`.
 
 ```
-python scripts/binder.py outline   <dir>... --root=DIR [--depth=N]
+python scripts/binder.py outline   <dir>... [--root=DIR] [--depth=N]
 python scripts/binder.py templates [<name>] [--root=DIR]
 python scripts/binder.py check     [--root=DIR]
 python scripts/binder.py check     --published=DIR <recipe> [--root=DIR] [--param=K=V]...
@@ -129,11 +154,18 @@ contract.
 
 ### Path resolution
 
-A relative `<recipe>` is resolved against `--root`, never against the process
-working directory — because the agent's working directory is the *skill*
-directory, so CWD-relative resolution would look for the recipe inside the
-installed pack. An absolute `<recipe>` is used as given and must still resolve
-beneath the content root.
+A relative `<recipe>` is resolved against the **resolved content root**, never
+against the process working directory. An absolute `<recipe>` is used as given and
+must still resolve beneath the content root.
+
+**The reason is no longer the one this file used to give.** It said CWD-relative
+resolution would look inside the installed pack, *because the agent's working
+directory is the skill directory* — which V6 measured as false. The rule survives
+its premise: CWD-relative resolution happens to be correct on both adapters V6
+measured and would be wrong on any adapter that runs a script from the installed
+pack, and **a resolution rule must not depend on which adapter is driving it.**
+Anchoring to the resolved root is the same told-not-asked relationship the `nav`
+and the read accessor have.
 
 ---
 

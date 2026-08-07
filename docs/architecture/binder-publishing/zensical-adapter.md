@@ -3,13 +3,14 @@
 > The v1 renderer adapter, and the whole of the dependency contract. The renderer
 > decision and its evidence are
 > **[ADR-0073](../../adr/0073-zensical-as-the-v1-binder-renderer.md)**; **every
-> assertion in this file is gated by Z1–Z4 in
+> assertion in this file is gated by Z1–Z6 in
 > [`verified-findings.md`](verified-findings.md)**.
 >
-> **Three claims in the first version of this file were wrong, and the Z-gates
-> found them:** `zensical.__version__` does not exist (Z1c), the font-suppression
-> form emitted a request for a typeface named `False` (Z4a), and Mermaid is **not**
-> bundled — the theme fetches it from unpkg at read time (Z3b). All three are
+> **Claims in earlier versions of this file were wrong, and the Z-gates found
+> them:** `zensical.__version__` does not exist (Z1c), the font-suppression form
+> emitted a request for a typeface named `False` (Z4a), Mermaid is **not** bundled —
+> the theme fetches it from unpkg at read time (Z3b) — and the diagram accessible
+> name was emitted onto an element the theme bundle throws away (Z6d). All are
 > corrected below.
 
 ## What the adapter is given, and what it may do
@@ -33,7 +34,7 @@ areas do not exist here:
 
 | Quarto needed | Zensical |
 |---|---|
-| ` ```mermaid ` → `` ```{mermaid} `` transformation, label injection, caption binding, `line-map` | **Reads the portable fence directly.** No transformation, so no line-count change, so no line map |
+| ` ```mermaid ` → `` ```{mermaid} `` transformation, label injection, caption binding, `line-map` | **Reads the portable fence directly.** The fence *body* is never rewritten and the opening delimiter gains attributes on its own line (step 5, D46) — so no line-count change, so no line map |
 | Shortcode neutralization (Q11) | **Does not interpret `{{< … >}}`.** Passes it through as text |
 | A reader-toggle layer that broke diagrams (Q26) | Not applicable |
 
@@ -62,9 +63,11 @@ not survive.
 
 ## Per-file transformation
 
-Four steps, down from eight. **Only steps 1–2 change line counts**, and they change
+Five steps, down from eight. **Only steps 1–3 change line counts**, and they change
 it by a fixed amount per file — so the `line-map` breakpoint array the Quarto
-adapter needed collapses to a single integer offset.
+adapter needed collapses to a single integer offset. Steps 4 and 5 rewrite *within*
+a line and never add or remove one, which is the property that keeps the offset a
+scalar.
 
 | Step | Operation | Δ |
 |---|---|---|
@@ -72,6 +75,7 @@ adapter needed collapses to a single integer offset.
 | 2 | **Emit a fresh frontmatter block** containing only `title`, written through the YAML-safe scalar emitter | Δ |
 | 3 | **Heading normalization** — drop a duplicate H1, or shift headings down one so the chapter title is the only H1. Clamps at H6, warning on collision | Δ¹ |
 | 4 | **Rewrite internal links and asset references** from the index's pre-resolved `links` and `assets`. In-binder targets become relative `.md` page links; out-of-binder relative targets become plain text with a footnote naming the original path. Assets are rewritten to `assets/<node-id>/<basename>`, hash-disambiguated on collision | — |
+| 5 | **Annotate each Mermaid fence's opening delimiter** with `data-a11y-name` (and `data-a11y-desc` once there is a source for one), allowlist-reduced, derived from values the compiler owns — in v1 that is `Diagram <chapter-ordinal>.<n>` (D46). A same-line rewrite of ` ```mermaid ` to ` ```{.mermaid …} ` — **the fence body is not read and not touched** | — |
 
 ¹ Heading normalization changes line count only when it drops a duplicate H1 — a
 fixed −1 or −2 per file, known before the write. Combined with steps 1–2 the total
@@ -83,9 +87,13 @@ rewrites a `[text](006-rfc-0091-payments-migration.md)` link to the pretty URL
 filename and lets the renderer do the URL shape — which is the same
 told-not-asked relationship the `nav` has.
 
-**Mermaid fences are untouched.** They pass through as authored (Z3a), which is
-what makes the source-is-never-modified invariant cheap here rather than
-elaborate.
+**Mermaid fence *bodies* are untouched.** Every line between the delimiters passes
+through as authored (Z3a) — the adapter neither parses nor rewrites diagram source
+— which is what makes the source-is-never-modified invariant cheap here rather than
+elaborate. **The opening delimiter is rewritten**, to carry the accessibility
+attributes D46 needs (step 5), and that is a same-line edit: no line is added, so
+the scalar `line-offset` is unaffected and the scanner still sees the author's own
+bytes in the body.
 
 **Numbering is compiler-emitted, and presentational** (D44). Zensical numbers
 nothing — no chapter numbers, no appendix lettering, no `.unnumbered` equivalent
@@ -274,12 +282,161 @@ assets/theme/
 
 `extrahead` renders inside `<head>`, ahead of the bundle — verified (Z2d, Z3d).
 
-**What is verified and what is not.** Z3c confirms the guard exists in the bundle's
-source; Z3d confirms the script lands in `<head>` before it. That a real browser
-then renders the diagram from the vendored copy with egress blocked is **Z6, not
-yet run** — it needs a headless browser the design does not otherwise require. The
-fallback if the guard misbehaves is benign: the reader sees the diagram's own
-Mermaid source as preformatted text, not a blank space.
+**Z6 ran this in a browser, and the mechanism works.** Two diagrams rendered from
+the vendored copy with egress blocked and **zero remote requests of any kind**
+(Z6a). One detail worth stating, because a reader checking the vendored file would
+otherwise conclude the opposite: mermaid's distribution *opens* by assigning into
+an esbuild namespace, but its **last line is
+`globalThis["mermaid"] = globalThis.__esbuild_esm_mermaid_nm["mermaid"].default`**
+— so a plain `<script src>` does define the global the guard tests (Z6b), and
+`extrahead` puts it in `<head>` while the theme bundle loads from `<body>` (Z6c).
+The benign fallback is confirmed rather than hoped: with the bundle unreachable the
+reader sees the diagram's own Mermaid source as preformatted text (Z6k).
+
+**A cost the run measured.** The vendored file is copied verbatim into
+`site/assets/javascripts/`, merging with Zensical's own asset directory, and adds
+**3.5 MB to every published binder** (Z6l) — the price of offline diagrams, stated
+here rather than discovered by an adopter.
+
+**And a risk it exposed.** The bundle asks for the floating `mermaid@11` tag, so
+what gets vendored is whatever that resolved to at vendoring time — 11.16.1 during
+this run (Z6m). The suppression mechanism is a property of the esbuild distribution
+rather than of a patch version, so this is not fragile, but **the pack vendors a
+pinned version with a recorded digest**, for the same reason `zensical` itself is
+pinned exactly.
+
+### The accessible name — Z6 falsified the specified mechanism
+
+**Attributes on the `<pre>` do not survive rendering.** The bundle mounts a
+diagram with `e.replaceWith(r)` where `r = A("div",{class:"mermaid"})` — **a fresh
+`div` carrying only `class`** — and puts the SVG in `attachShadow({mode:"closed"})`.
+Measured live: `div attrs: {"class":"mermaid"}` for every diagram, and
+`div.shadowRoot === null` from page script (Z6d). So an `aria-label` emitted onto
+the fence through `attr_list` is discarded before the reader ever sees the
+diagram.
+
+> **Of the specified controls the Z-gates found wrong, this is the only one that was
+> wrong about a *runtime*.** Z1c and Z4a both came from reading a key's shape; this
+> one came from reasoning about the HTML the compiler emits and never asking what
+> the client-side bundle does to it. Worse, it fails *inverted*: Z6e found the name
+> is present in the accessibility tree **only when the diagram fails to render**,
+> because the `<pre>` is still there. A named diagram and a rendered diagram were
+> mutually exclusive, and a static assertion over the built HTML would have read
+> green forever.
+
+**The mechanism is two halves that meet in the browser, and it is verified (D46).**
+The compiler emits the name and description as `attr_list` attributes on the
+fence's **opening delimiter**, and the theme lifts them into the Mermaid source
+before the bundle mounts the diagram — so Mermaid itself generates the
+`<title>`/`<desc>`, inside the shadow SVG, where nothing can strip them.
+
+Compiler side — note this changes the fence's opening line and **not a single line
+count**. This is the v1 emission; `data-a11y-desc` joins it when `figures[]` gives it
+a source (below):
+
+````markdown
+```{.mermaid data-a11y-name="Diagram 3.1"}
+flowchart TD
+    A[Client] --> B[API gateway]
+```
+````
+
+Theme side, in `main.html` beside the vendored bundle — **stated as a contract, not
+as code**, because the implementation is theme-internal:
+
+> The theme prepends `accTitle:` and `accDescr:` lines, derived from the fence's
+> allowlisted `data-a11y-*` attributes, into the fence's Mermaid source **before the
+> bundle mounts it**. The step is idempotent, and its failure mode is a missing name,
+> never a missing diagram.
+
+Verified with a `MutationObserver` registered in `<head>`, which sees each
+`pre.mermaid` as the parser inserts it and therefore always precedes the mount —
+measured with **no `DOMContentLoaded` fallback present**, so the result is
+attributable to the observer alone, and on a sixty-edge fence as well as a two-line
+one (Z6j). The spec carries the implementation.
+
+Measured with the diagram rendered and egress blocked: `role='graphics-document'`
+carrying **both** `name='Diagram 3.1 — ledger write path (RFC-0091)'` and
+`description='Client calls the API gateway, …'`, with real `<title>` and `<desc>`
+elements inside the closed shadow root, and zero remote requests (Z6f, Z6i). Four
+properties earn it the decision:
+
+- **It names the graphic, not a box around it.** The accessible name lands on the
+  `<svg>` itself — and the long description will, once Phase 2 gives `accDescr` a
+  source — which is what a text alternative for non-text content has to do.
+- **It adds no lines.** The attributes ride on the fence's existing opening
+  delimiter, so *only steps 1–3 change line counts* stays true and the single
+  integer `line-offset` survives.
+- **The fence body is untouched in the staged file.** The `accTitle:`/`accDescr:`
+  lines exist only in the reader's DOM, so *the body passes through as authored*
+  (Z3a) holds, and the trust scanner still sees exactly the bytes the author wrote.
+- **It needs no new extension.** `attr_list` is already allowlisted for
+  `data-ordinal` (D44).
+
+**What the name actually is in v1, because the index has no field for one.**
+`resolved-index.md` is explicit that **v1 emits no `figures` key at all** — ordinal,
+caption and `fence-sha256` arrive with captions in Phase 2. So the only name the
+compiler can derive in v1 is one it owns outright: **`Diagram <chapter-ordinal>.<n>`**,
+where the chapter ordinal is `emitted-ordinal` from `renderer-plan.json` (D44) and
+`n` counts fences in document order as step 5 walks them. No new index field, so
+invariant 22 is untouched.
+
+That is a real accessible name and a weak one: it identifies and distinguishes a
+diagram, and it describes nothing. **`accDescr` has no v1 source at all** and is
+therefore not emitted in v1. Both improve when `figures[]` lands — a caption becomes
+the name, and a description becomes `accDescr` — and D46's mechanism does not change
+when they do, which is the point of specifying the mechanism separately from the
+copy.
+
+> **Stated because the alternative was a decision that ships as a no-op.** An
+> earlier draft of D46 said the name comes "from index metadata", which in v1 means
+> from nothing — so every diagram would have taken the no-name branch and the Phase 1
+> static check would have asserted a property no build could produce. A mechanism
+> whose input does not exist yet is not a mechanism.
+
+**Emitted values are escaped for HTML and rejected for two Mermaid constructs, and
+both halves are measured.** Z6h found an unescaped `attr_list` value containing `"`
+**terminates the attribute**, turning the remainder into markup — a label of
+`Diagram & "3.1" <script>x</script>` put a live `<script>` in the published page.
+HTML-escaping closes that completely and preserves the value exactly, accents and
+CJK included.
+
+What escaping cannot cover is that **the value's sink is Mermaid source, not HTML**:
+the theme lifts it into an `accTitle:` line, so Mermaid evaluates it. Z6i measured
+`%%{init:{"theme":"dark"}}%%` being **consumed as a directive** — the construct the
+rule table rejects in authored fence bodies, reaching Mermaid through a channel the
+scanner never inspects — and an embedded newline destroying the diagram outright. So
+emission **rejects** a value containing `%%{` or a newline rather than stripping it:
+in a compiler-owned string either is a bug, not input.
+
+> **An allowlist was specified here first, and it was the wrong control.** Reducing
+> to `[A-Za-z0-9 …]` would mangle `Réseau : l'architecture 漢字` — which escaping
+> round-trips character for character — silently, in the one kind of string whose
+> whole purpose is to be read aloud. See [`security-profile.md`](security-profile.md)
+> control 3.
+
+The same rule binds every `attr_list` value this adapter emits, `data-ordinal`
+included.
+
+**When no name is derivable, the attributes are omitted and the diagram is
+unnamed** — the same reasoning as the `<img alt>` rule in
+[`rollout.md`](rollout.md#accessibility-smoke-checks): a fabricated description is
+worse than an honest absence. An omitted attribute is recorded in diagnostics; it
+is not a build failure, because a diagram whose only available label is its own
+node text has nothing for the compiler to add.
+
+**Two rejected routes, both of which work.** *Injecting `accTitle:` into the staged
+fence body* produces an identical result and is simpler — one place instead of two —
+but writes into the body, which forfeits the property that makes the scanner's job
+and the `line-offset` cheap. *A `<figure role="group" aria-label>` wrapper with a
+`<figcaption>`* was measured naming a region correctly, and was the first
+replacement drafted — but it names a container rather than the graphic, has no
+`accDescr` equivalent, needs the same string in two places where they can drift, and
+**inserts lines around every diagram**, which is what disqualified it: the
+single-integer `line-offset` is the reason this adapter has no `line-map` at all.
+If a future requirement wants a *visible* caption, the wrapper returns as an
+addition to D46 rather than a replacement for it, and the offset cost has to be paid
+then.
 
 **The theme directory is a publication surface.** Non-template files in
 `custom_dir` are copied verbatim into the output root (Z2d), so only pack-owned
@@ -342,6 +499,10 @@ describes the boundary and points here.
       "heading-rule": "dropped-duplicate-h1",
       "clamped-source-lines": [],
       "emitted-ordinal": "8",
+      "a11y": [
+        { "fence": 1, "name": "Diagram 8.1", "desc": null, "omitted": false },
+        { "fence": 2, "name": null,          "desc": null, "omitted": true  }
+      ],
       "assets": { "img/ledger-topology.png": "assets/n008/ledger-topology.png" },
       "links": { "../adr/0044-ledger-boundary.md": "011-docs-adr-0044-ledger-boundary.md" }
     }
@@ -355,6 +516,7 @@ describes the boundary and points here.
 | `line-offset` | single integer; add it to a source line to get the staged line |
 | `heading-rule` | which normalization ran: `none`, `dropped-duplicate-h1`, or `shifted-down` |
 | `clamped-source-lines` | source line numbers where a heading shift hit the H6 ceiling and was clamped with a warning. **The accessibility check reads this** — the clamp is a transformation record, so invariant 22 keeps it out of the index |
+| `a11y` | one entry per Mermaid fence in document order: the `data-a11y-name` and `data-a11y-desc` values emitted (D46), or `omitted: true` where no name was derivable. **The accessibility smoke check reads this** rather than asserting bare presence, so an honestly-unnamed diagram is not a build failure and a *silently* unnamed one still is. `desc` is `null` throughout v1 — there is no source for it until `figures[]` ships |
 | `emitted-ordinal` | the chapter number or appendix letter the adapter emitted **as the `data-ordinal` attribute** (D44), because Z2h established the renderer numbers nothing. **Never written into the title text or the nav label.** `null` for an unnumbered chapter |
 | `assets` | source-relative asset reference → staged asset path |
 | `links` | source-relative link target → staged filename |

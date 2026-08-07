@@ -103,6 +103,7 @@ Always on, at every profile, for every renderer.
 | 12 | Resource ceilings: 10 MB per source file, 5000 files, 200 MB total, 12 directory levels | Mechanical |
 | 13 | **No write inside the installed pack** — self-path containment | Mechanical |
 | 14 | Writes confined to the complete write set (below) | Mechanical |
+| 15 | **Every compiler-emitted HTML attribute value HTML-escaped, and rejected if it contains a newline or `%%{`** — a second emitted-string channel, into HTML and then into Mermaid source. Z6h measured an unescaped `attr_list` value admitting a live `<script>` into the published page; Z6i measured `%%{init:…}%%` surviving as a Mermaid **directive** and a newline destroying the diagram | Mechanical |
 
 **One exception, and it is scoped to two verbs.** `inventory` and `outline` do not
 fail on a violation — they report the candidate with `unsafe: true`, name the
@@ -205,7 +206,7 @@ staged frontmatter. So a recipe
 adapter allowlist rather than through it, and a control character in a title
 would corrupt the emitted config in ways the validator never sees.
 
-Three mechanical controls:
+Four mechanical controls:
 
 1. **Reject C0 control characters** in any emitted string — exit 4 for
    recipe-authored, exit 6 for source-derived. Multi-line titles have no
@@ -217,7 +218,32 @@ Three mechanical controls:
    rule is not load-bearing today. It is kept because it costs nothing and a
    future adapter — a PDF path through Quarto, where Q11 is live — reintroduces
    the surface.
-3. **Emit every string through a TOML-safe scalar emitter** — a basic string with
+3. **HTML-escape every emitted attribute value, and reject — never strip — a value
+   containing a newline or `%%{`.** This covers `data-a11y-name`,
+   `data-a11y-desc` (D46) and `data-ordinal` (D44). **A second emitted-string
+   channel, into HTML rather than into TOML**, which this file previously did not
+   name. Both halves are measured (Z6h, Z6i):
+
+   - *Escaping is necessary and sufficient for the HTML hop.* An unescaped `"`
+     terminates the `attr_list` attribute and the remainder becomes markup — a
+     label of `Diagram & "3.1" <script>x</script>` put a **live `<script>`** into
+     the published page. Escaping `&`, `<`, `>`, `"`, `'` closes it and round-trips
+     the value exactly.
+   - *Escaping is not sufficient for the second hop, because the value's sink is
+     **Mermaid source**.* The theme lifts it into an `accTitle:` line, so Mermaid
+     evaluates it: `%%{init:{"theme":"dark"}}%%` was **consumed as a directive**
+     and processed — the construct the adapter rule table rejects in authored fence
+     bodies, arriving through a channel the scanner never sees — and an embedded
+     newline **destroyed the diagram**. Both are rejected at emission, and rejected
+     rather than stripped, because in a compiler-owned string either one is a bug
+     or an attack, not input to be salvaged.
+
+   > **An ASCII allowlist was specified here first, and it was the wrong control.**
+   > It would reduce `Diagram 3.1 — Réseau : l'architecture 漢字` to mangled Latin
+   > and drop the CJK entirely — measured to round-trip **exactly** under escaping —
+   > and it would do that silently, in the one class of string that exists to be read
+   > aloud. Escaping preserves it; the two rejections cover what escaping cannot.
+4. **Emit every string through a TOML-safe scalar emitter** — a basic string with
    `"`, `\`, and every control character escaped; never a bare key, never a
    literal string spanning lines, never template-interpolated. The emitted
    `zensical.toml` is a generated file and the pack is its only author.
@@ -245,10 +271,20 @@ Three mechanical controls:
   `PATH`. Nothing on `PATH` selects what executes here: the renderer is a module of
   `sys.executable`, and Zensical shells out to nothing. The rule would now be
   guarding a channel that does not exist.
-- **Network access during the build** is **Z5, unverified**. Python cannot
-  portably sandbox a subprocess's network; we constrain the *input*, not the
-  *process*. Network access at **read time** — from the published tree, in the
-  reader's browser — is Z4, run and closed.
+- **Network access during the build: none, and Z5 measured it rather than
+  assuming it.** `zensical build` attempts no outbound operation at all — the
+  build exits 0 with `SIGKILL` armed on any egress, and its output is
+  byte-identical to a network-allowed build. The stated posture does not change:
+  **we still constrain the *input*, not the *process***, because Python cannot
+  portably sandbox a subprocess's network and a clean measurement of `0.0.53` is
+  not a guarantee about `0.0.54`. What Z5 changes is that the residual is now a
+  known-empty channel under the pin rather than an unexamined one. Two things the
+  same run found are worth carrying here: the compiled `zensical.abi3.so` **does**
+  link network symbols (capability present, consistent with the unused `serve`
+  verb, unused during `build` — Z5e), and Zensical's `macros` extension shells out
+  to `git`, which the closed allowlist makes inert (Z5f). Network access at
+  **read time** — from the published tree, in the reader's browser — is Z4, run
+  and closed.
 
 ## The complete write set
 

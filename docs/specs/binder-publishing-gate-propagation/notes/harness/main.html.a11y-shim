@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block extrahead %}
+  <script src="{{ 'assets/javascripts/mermaid.min.js' | url }}"></script>
+  <script>
+    (function () {
+      function nameIt(pre) {
+        var n = pre.getAttribute("data-a11y-name"), d = pre.getAttribute("data-a11y-desc");
+        if ((!n && !d) || pre.hasAttribute("data-a11y-done")) return;
+        pre.setAttribute("data-a11y-done", "");
+        var code = pre.querySelector("code") || pre, lines = [];
+        if (n) lines.push("  accTitle: " + n);
+        if (d) lines.push("  accDescr: " + d);
+        code.textContent = code.textContent.replace(/\n/, "\n" + lines.join("\n") + "\n");
+      }
+      new MutationObserver(function (recs) {
+        for (var i = 0; i < recs.length; i++) {
+          var added = recs[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var el = added[j];
+            if (el.nodeType !== 1) continue;
+            if (el.matches && el.matches("pre.mermaid")) nameIt(el);
+            if (el.querySelectorAll) el.querySelectorAll("pre.mermaid").forEach(nameIt);
+          }
+        }
+      }).observe(document.documentElement, { childList: true, subtree: true });
+    })();
+  </script>
+{% endblock %}

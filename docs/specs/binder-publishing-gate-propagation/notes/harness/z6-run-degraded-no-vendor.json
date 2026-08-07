@@ -1,0 +1,59 @@
+{
+  "label": "degraded-no-vendor",
+  "url": "file:///private/tmp/binder-gates-20260807/baseline/stage/site/003-docs-product-research-payments-landscape-survey/index.html",
+  "pre_mermaid_remaining": 0,
+  "div_mermaid": 0,
+  "svg_count_pierced": 7,
+  "diagram_svgs_in_shadow": 0,
+  "diagram_svg_tags": [],
+  "shadow_root_count": 1,
+  "shadow_title_desc": [],
+  "svg_with_aria": [],
+  "aria_label_in_pierced_dom": true,
+  "ax_image_nodes": [
+    {
+      "role": "image",
+      "name": "Diagram 3.2: ledger write path"
+    },
+    {
+      "role": "image",
+      "name": ""
+    },
+    {
+      "role": "image",
+      "name": ""
+    },
+    {
+      "role": "image",
+      "name": ""
+    },
+    {
+      "role": "image",
+      "name": ""
+    }
+  ],
+  "div_outer_html": [],
+  "first_pre_visible_text": "flowchart TD\n    A[Client] --> B[API gateway]\n    B --> C[Ledger<br/>service]\n    C --> D[(Postgres)]",
+  "unpkg_requests": [
+    {
+      "url": "https://unpkg.com/mermaid@11/dist/mermaid.min.js",
+      "type": "script"
+    },
+    {
+      "url": "https://unpkg.com/mermaid@11/dist/mermaid.min.js",
+      "type": "script",
+      "failed": "net::ERR_FAILED"
+    }
+  ],
+  "remote_requests": [
+    {
+      "url": "https://unpkg.com/mermaid@11/dist/mermaid.min.js",
+      "type": "script"
+    },
+    {
+      "url": "https://unpkg.com/mermaid@11/dist/mermaid.min.js",
+      "type": "script",
+      "failed": "net::ERR_FAILED"
+    }
+  ]
+}

@@ -3,9 +3,15 @@
 > Design for `binder-publishing`: a portable pack that compiles selected Markdown
 > artifacts into a coherent, reader-oriented static HTML binder.
 >
-> **Status:** Draft — pre-RFC. Ten cold-review rounds ran; the tree is internally
-> consistent and a specification can be written from any file in it.
-> [`history.md`](history.md) records what changed and why.
+> **Status:** Draft — pre-RFC, and **no live verification gate is outstanding**.
+> Ten cold-review rounds ran; the tree is internally consistent and a specification
+> can be written from any file in it. Z1–Z4 executed 2026-08-06, Z5 and Z6 on
+> 2026-08-07, and V6 — the last renderer-independent gate — was answered the same
+> day. (`verified-findings.md` still carries unrun **V2** and **V5** rows and a
+> part-run **V4**; all three are retained *Quarto* evidence for a future PDF adapter,
+> and none gates anything here.) Between them the gates corrected several specified controls, the last of
+> which — the diagram accessible name (Z6d/Z6e) — **would have passed CI while the
+> feature was broken**, and is replaced by **D46**. [`history.md`](history.md) records what changed and why.
 
 ## The one-paragraph version
 
@@ -34,9 +40,9 @@ later addition rather than a later redesign.
 | [`editorial-model.md`](editorial-model.md) | Pack and skill shape, `pack.toml`, the chief-editor procedure, the three content classes |
 | [`examples.md`](examples.md) | Worked recipes, the staged tree, and an end-to-end scenario |
 | [`rollout.md`](rollout.md) | Phases, testing strategy, CI wiring, unresolved questions |
-| [`verified-findings.md`](verified-findings.md) | **Evidence.** Z1–Z4 (Zensical, executed) are the live gates; Q1–Q28 (Quarto) are retained for a future PDF adapter |
-| [`decisions.md`](decisions.md) | The decision log. **D39–D45 are the post-review authority** |
-| [`history.md`](history.md) | Non-normative: the ten review rounds, the two shape decisions, and the alternatives that lost |
+| [`verified-findings.md`](verified-findings.md) | **Evidence.** Z1–Z6 and V6 (all executed — **no live gate is outstanding**); Q1–Q28 and the unrun V2/V5 rows are retained *Quarto* evidence for a future PDF adapter |
+| [`decisions.md`](decisions.md) | The decision log. **The post-review rows, D39 onward, are the authority** |
+| [`history.md`](history.md) | Non-normative: the ten review rounds, the gate runs, the two shape decisions, and the alternatives that lost |
 
 **Decided elsewhere:**
 [**ADR-0073**](../../adr/0073-zensical-as-the-v1-binder-renderer.md) — why
