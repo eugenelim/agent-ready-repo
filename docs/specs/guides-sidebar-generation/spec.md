@@ -1,6 +1,6 @@
 # Spec: guides-sidebar-generation
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0020](../../adr/0020-per-pack-diataxis-hierarchy-for-guides.md) (per-pack Diátaxis hierarchy), [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md) (Starlight), [`guide-source-model`](../guide-source-model/spec.md) (frontmatter declares kind), `contracts/guide.schema.json`, `site.toml` (site recipe), [`docs-site/AGENTS.md`](../../../docs-site/AGENTS.md) (build order), [`guides/AGENTS.md`](../../../guides/AGENTS.md) (publication routing)
