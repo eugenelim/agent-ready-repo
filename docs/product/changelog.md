@@ -15,6 +15,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [agentbundle][0.29.7] — 2026-08-06
+
+### Changed
+
+- **`catalogue init` stops handing you a `packs/AGENTS.md` full of dead links.**
+  Six of its references pointed at files that exist only in the upstream
+  catalogue, so the pack-authoring rules arrived without the means to follow
+  them — including a test-layout rule credited to a linter you do not have.
+  Every rule now stands on its own or points at a guide the scaffold ships, and
+  a new gate fails the build if a future edit cites something unshipped.
+
 ## [credbroker][0.5.0] — 2026-08-06
 
 ### Added
