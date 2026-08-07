@@ -1,4 +1,4 @@
-# Spec: Claude-plugin route — scope correctness, docs, and hook parity
+# Spec: Claude-plugin route — hook parity
 
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
@@ -6,6 +6,42 @@
 - **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md), [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md)
 - **Contract:** `contracts/adapter.toml`, `contracts/adapter.schema.json`, `contracts/plugin-manifest.derived.schema.json`
 - **Shape:** integration
+- **Blocked on:** a spike. Five review rounds produced three successive
+  command-rewrite mechanisms, each broken in a way only execution revealed
+  (`str.replace` cannot close a quote; `shlex.quote` emits single quotes that
+  suppress `${CLAUDE_PLUGIN_ROOT}` expansion; positional splice corrupts
+  `sh -c "…"` and unanchored matches). The remaining open questions are the same
+  shape and will not be settled in prose.
+- **Depends on:** [`../claude-plugin-route-scope/spec.md`](../claude-plugin-route-scope/spec.md),
+  which split out the scope filter and the docs fix — those were shippable and
+  survived rounds 4 and 5 unchallenged. Scope correctness must land first: it
+  determines which packs the compiler ever runs for.
+
+> **Split note (2026-08-07).** Scope correctness (the publish filter) and the
+> documentation fix moved to the sibling spec above and are no longer criteria
+> here. What remains is the hook compiler. Open design questions carried from
+> round 5, none yet resolved:
+>
+> - **The marker-emission gate.** Gating on "the published set contains a reader"
+>   is undetectable without executing pack code, fires on any pack that merely
+>   *mentions* the marker filename, and tests the wrong predicate (marketplace
+>   composition, not what the adopter installed). Candidate: an explicit
+>   `[pack.install] marker-reader = true` declaration, so a manifest stays a pure
+>   function of its own pack.
+> - **Publishable decision-events.** The event set admits `PreToolUse`,
+>   `PermissionRequest`, `PermissionDenied`, and `Setup`, which return
+>   allow/deny decisions — a published plugin could silently auto-approve tool
+>   calls, and the marketplace entry structurally cannot disclose that a plugin
+>   registers hooks at all (`verify.py` asserts `hooks` absent from entries).
+>   Candidate: restrict the publishable set to non-decision events.
+> - **Command constraint shape.** The metacharacter denylist is the wrong shape —
+>   `python3 -c "exec(...)"` carries none of the banned characters. The matcher
+>   criterion already adopted an allowlist grammar for this exact reason; the
+>   command criterion should match it.
+> - **Direct-route residual.** An adopter running `agentbundle install` on a
+>   third-party catalogue pack reaches `merge_json` with the authored command
+>   copied verbatim and no validator in the path. `lint_packs.py` is a repo gate
+>   that never runs on an adopter's machine.
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
