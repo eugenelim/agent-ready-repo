@@ -27,10 +27,12 @@ from __future__ import annotations
 
 import contextlib
 import http.client
+import ipaddress
 import json
 import os
 import re
 import signal
+import socket
 import ssl
 import subprocess
 import sys
@@ -339,7 +341,7 @@ def _spawn_broker(
     """
     env = _compose_env(env_profile)
     try:
-        proc = subprocess.Popen(  # noqa: S603 — argv is composed, never shell
+        popen = subprocess.Popen(  # noqa: S603 — argv is composed, never shell
             argv,
             stdout=subprocess.PIPE if capture else None,
             env=env,
@@ -356,21 +358,26 @@ def _spawn_broker(
             f"could not run the sso-broker engine: {type(exc).__name__}"
         ) from exc
 
-    try:
-        stdout, _ = proc.communicate(timeout=timeout)
-    except subprocess.TimeoutExpired as exc:
-        _kill_process_tree(proc)
-        raise SsoBrokerUnavailableError(
-            f"sso-broker {_verb_of(argv)} exceeded its {timeout:g}s bound and was "
-            f"terminated; the stored session was not changed"
-        ) from exc
-    except BaseException:
-        # KeyboardInterrupt included, deliberately: a Ctrl-C must not leave a
-        # headed Chromium holding the browser-state lock.
-        _kill_process_tree(proc)
-        raise
+    # The context manager closes the pipe and reaps on *every* exit path,
+    # including the two below. Without it a consumer that retries after a
+    # timeout leaks a file descriptor per attempt.
+    with popen as proc:
+        try:
+            stdout, _ = proc.communicate(timeout=timeout)
+        except subprocess.TimeoutExpired as exc:
+            _kill_process_tree(proc)
+            raise SsoBrokerUnavailableError(
+                f"sso-broker {_verb_of(argv)} exceeded its {timeout:g}s bound and "
+                f"was terminated; the stored session was not changed"
+            ) from exc
+        except BaseException:
+            # KeyboardInterrupt included, deliberately: a Ctrl-C must not leave a
+            # headed Chromium holding the browser-state lock.
+            _kill_process_tree(proc)
+            raise
+        returncode = proc.returncode
 
-    return subprocess.CompletedProcess(argv, proc.returncode, stdout, None)
+    return subprocess.CompletedProcess(argv, returncode, stdout, None)
 
 
 def _verb_of(argv: list[str]) -> str:
@@ -701,23 +708,27 @@ def _derivation_opener() -> urllib.request.OpenerDirector:
 _DERIVE_READ_CHUNK_BYTES = 8 * 1024
 
 
-def _read_capped(fp, budget: _DerivationBudget | None = None) -> bytes:  # noqa: ANN001
-    """Read at most the cap, and refuse anything larger — before parsing.
+def _read_capped(fp, budget: _DerivationBudget) -> bytes:  # noqa: ANN001
+    """Read at most the cap, re-checking *budget* between reads.
 
-    Read **in chunks with the budget re-checked between them**, not in one
-    ``read(cap + 1)``. A single large read loops inside the socket layer, and the
-    socket timeout applies per ``recv`` — so a server drip-feeding one byte at a
-    time resets the clock on every byte and the read is bounded only by
-    cap × timeout. On the credential path, reached from a URL taken out of an
-    attacker-influenceable response header, that is a hang, and
-    ``check --register`` calls it synchronously.
+    Uses ``read1``, not ``read``, and that is the whole point.
+    ``HTTPResponse.read(n)`` delegates to a ``BufferedReader`` which blocks until
+    it has *exactly* n bytes or EOF, while the socket timeout applies per
+    ``recv`` — so one read can sit for chunk-size x timeout with no deadline
+    consulted. Measured against a server sending one byte per 20 ms:
+    ``read(8192)`` returned after 2.57 s, ``read1(8192)`` immediately. Chunking
+    alone only divides that worst case by the chunk size; ``read1`` returns
+    after a single ``recv``, which is what makes the budget an actual bound.
+
+    It matters because the target can come out of an attacker-influenceable
+    response header and ``check --register`` calls this synchronously.
     """
     chunks: list[bytes] = []
     total = 0
+    reader = getattr(fp, "read1", None) or fp.read
     while total <= _DERIVE_BODY_CAP_BYTES:
-        if budget is not None:
-            budget.check()
-        chunk = fp.read(min(_DERIVE_READ_CHUNK_BYTES, _DERIVE_BODY_CAP_BYTES + 1 - total))
+        budget.check()
+        chunk = reader(min(_DERIVE_READ_CHUNK_BYTES, _DERIVE_BODY_CAP_BYTES + 1 - total))
         if not chunk:
             break
         chunks.append(chunk)
@@ -729,14 +740,70 @@ def _read_capped(fp, budget: _DerivationBudget | None = None) -> bytes:  # noqa:
     return b"".join(chunks)
 
 
-def _derive_open(url: str, budget: _DerivationBudget) -> _DerivationResponse:
-    """One bounded, https-only, unfollowed hop."""
-    scheme = urlsplit(url).scheme.lower()
+def _resolves_to_internal_address(host: str) -> bool:
+    """True when *host* resolves to any address a probe must not reach.
+
+    Loopback, link-local (which is where cloud instance-metadata lives),
+    unique-local and every RFC 1918 range. Checked against **resolved**
+    addresses, not the literal, so a hostname pointing at ``127.0.0.1`` is
+    caught too. Fails closed: a name that will not resolve is treated as
+    unreachable and refused.
+    """
+    try:
+        infos = socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)
+    except OSError:
+        # Unresolvable: no connection can happen, so there is nothing to refuse.
+        # Let the request fail on its own rather than reporting a misleading
+        # "internal address" for a transient resolver problem.
+        return False
+    for info in infos:
+        try:
+            address = ipaddress.ip_address(info[4][0])
+        except ValueError:  # pragma: no cover — getaddrinfo returned a non-IP
+            return True
+        if (
+            address.is_loopback
+            or address.is_link_local
+            or address.is_private
+            or address.is_reserved
+            or address.is_multicast
+            or address.is_unspecified
+        ):
+            return True
+    return False
+
+
+def _derive_open(
+    url: str, budget: _DerivationBudget, *, allow_internal: bool = False
+) -> _DerivationResponse:
+    """One bounded, https-only, unfollowed hop.
+
+    :param allow_internal: permit an internal address. True **only** for the
+        first hop, which is the consumer's own configured ``base_url`` — a
+        corporate instance legitimately lives on an RFC 1918 host. Every later
+        hop's target is read out of a response header or body, so it is
+        attacker-influenceable and must not be able to steer the operator's
+        machine at loopback or the cloud metadata endpoint.
+    """
+    try:
+        parts = urlsplit(url)
+    except ValueError as exc:
+        # `urlsplit("https://[::1")` raises. Every caller past the first hop
+        # passes a remote-controlled string, and this sits outside the request
+        # try-block, so uncaught it escapes derivation entirely and surfaces as
+        # exit 1 rather than the credential band.
+        raise _DerivationAbort(f"derivation hop is not a parseable URL: {exc}") from exc
+    scheme = parts.scheme.lower()
     if scheme != "https":
         # urllib honours file:// and ftp://, and tier 1's targets come out of an
         # attacker-influenceable header and document.
         raise _DerivationAbort(
             f"refusing a non-https derivation hop (scheme {scheme or '(none)'})"
+        )
+    if not allow_internal and _resolves_to_internal_address(parts.hostname or ""):
+        raise _DerivationAbort(
+            "refusing a derivation hop to an internal address; the target came "
+            "from a server response, not from your configuration"
         )
     budget.check()
     request = urllib.request.Request(url, headers=dict(_DERIVE_HEADERS), method="GET")
@@ -770,7 +837,12 @@ def _scheme_and_host(url: object) -> str | None:
     """
     if not isinstance(url, str):
         return None
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        # Remote-supplied: a `Location` header or a JSON field. Unparseable is
+        # "did not resolve a destination", never an exception out of derivation.
+        return None
     if parts.scheme.lower() != "https" or not parts.netloc:
         return None
     return f"https://{parts.netloc.lower()}"
@@ -788,7 +860,7 @@ def _tier_protected_resource_metadata(
     on: a live spike found Jira answering its REST 401 with the legacy
     ``WWW-Authenticate: OAuth realm="…"`` form instead.
     """
-    resp = _derive_open(base_url, budget)
+    resp = _derive_open(base_url, budget, allow_internal=True)
     if resp.status != 401:
         return None
     match = _RESOURCE_METADATA_RE.search(resp.header("WWW-Authenticate"))
@@ -818,7 +890,8 @@ def _tier_protected_resource_metadata(
 def _tier_oidc_discovery(base_url: str, budget: _DerivationBudget) -> str | None:
     """OIDC Discovery / RFC 8414 — older than tier 1, far more widely deployed."""
     document = _derive_open(
-        base_url.rstrip("/") + "/.well-known/openid-configuration", budget
+        base_url.rstrip("/") + "/.well-known/openid-configuration",
+        budget, allow_internal=True,
     ).json()
     return _scheme_and_host(document.get("authorization_endpoint"))
 
@@ -835,7 +908,9 @@ def _strategy_atlassian_seraph(base_url: str, budget: _DerivationBudget) -> str 
     mode; under SSO-with-local-fallback it answers 200 with a sign-in button and
     no ``Location``. Those adopters land on the cannot-derive branch.
     """
-    resp = _derive_open(base_url.rstrip("/") + "/login.jsp", budget)
+    resp = _derive_open(
+        base_url.rstrip("/") + "/login.jsp", budget, allow_internal=True
+    )
     if not 300 <= resp.status < 400:
         return None
     return _scheme_and_host(resp.header("Location"))
