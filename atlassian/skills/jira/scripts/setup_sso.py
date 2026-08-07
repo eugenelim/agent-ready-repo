@@ -1,15 +1,25 @@
 #!/usr/bin/env python3
 """Seed the sso-broker profile from references/sso-config.toml.
 
-Reads and **validates** the ``[sso]`` config through the loader (which applies the
-credbroker scheme / root-relative primitives *before* the broker is
-touched), then drives ``sso-broker register <profile>`` with the connection
-parameters from the file. No cookie value is ever passed on argv — only validated
-connection parameters (path-not-value). The headed-browser
-capture and at-rest storage are the unchanged broker's job.
+Reads and **validates** the ``[sso]`` config through the loader (which applies
+the credbroker grammar / scheme / root-relative primitives *before* the broker
+is touched), then hands the validated connection parameters to
+``credbroker.register_sso_session``. No cookie value is ever passed on argv —
+only validated connection parameters (path-not-value). The headed-browser
+capture and at-rest storage are the broker's job.
 
-Run once after an enterprise pre-bakes ``references/sso-config.toml`` with
-``auth_default = "sso-cookie"``::
+**This helper is the escape hatch, not the ordinary path.** Two cases, and only
+two:
+
+1. a scripted pre-bake, where an enterprise has already written
+   ``references/sso-config.toml`` and no operator is present to answer a prompt;
+2. the case where ``jira.py check --register`` refuses because it cannot attest
+   the sign-in destination against the instance — a host mismatch, or a topology
+   where derivation resolves nothing.
+
+An ordinary first run belongs in ``python scripts/jira.py check --register``,
+which is one command and *attempts* destination attestation. This helper
+attempts none, and is safe only because an operator types it::
 
     python scripts/setup_sso.py
 """
@@ -29,42 +39,49 @@ _floor = Path("~/.agentbundle/lib").expanduser()
 if _floor.is_dir() and str(_floor) not in sys.path:
     sys.path.append(str(_floor))
 
-import subprocess  # noqa: E402
+from _sso_config import load_sso_config  # noqa: E402
 
-from _sso_config import SsoConfig, load_sso_config  # noqa: E402
-
-
-def _broker_path() -> Path:
-    return Path.home() / ".agentbundle" / "bin" / "sso-broker.py"
-
-
-def build_register_argv(broker: Path, cfg: SsoConfig) -> list[str]:
-    """Translate a validated SsoConfig into a ``sso-broker register`` argv.
-
-    Only connection parameters cross argv — never a cookie value.
-    """
-    argv = [
-        sys.executable,
-        str(broker),
-        "register",
-        cfg.profile,
-        "--login-url",
-        cfg.login_url,
-        "--success-url-pattern",
-        cfg.success_url_pattern,
-        "--validation-endpoint",
-        cfg.validation_endpoint,
-    ]
-    for domain in cfg.cookie_domains:
-        argv += ["--cookie-domain", domain]
-    if cfg.session_filename:
-        argv += ["--session-filename", cfg.session_filename]
-    if cfg.ttl_hint_minutes:
-        argv += ["--ttl-hint-minutes", str(cfg.ttl_hint_minutes)]
-    return argv
+# Matches `jira.py`'s floor. The recapture verbs landed in 0.5.0.
+_CREDBROKER_REQUIREMENT = "credbroker>=0.5.0"
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Register the configured profile. ``0`` on success, ``2`` on any refusal.
+
+    The exit contract is the skill's credential band: every failure a human can
+    act on is ``2``. Previously this returned the broker's own exit code
+    verbatim, so an engine ``3`` surfaced as a functional error rather than a
+    credential one.
+    """
+    # Imported here, not at module top: the credbroker floor is only on
+    # sys.path after the bootstrap above.
+    #
+    # `ImportError`, not just `ModuleNotFoundError`: a half-projected floor
+    # raises the parent class. And the *feature* detect matters as much as the
+    # import — the pip layer precedes the vendored floor on `sys.path`, so an
+    # adopter pinned below 0.5.0 imports a module that lacks
+    # `register_sso_session`. Calling it would raise `AttributeError`, which is
+    # not an `SsoError`, so it would escape `main` as exit 1 with a traceback
+    # instead of this helper's exit-2 contract.
+    try:
+        import credbroker
+    except ImportError:
+        print(
+            "error: credbroker is not installed — install the credential-brokers "
+            f"pack, or run: python -m pip install '{_CREDBROKER_REQUIREMENT}'",
+            file=sys.stderr,
+        )
+        return 2
+    if not hasattr(credbroker, "register_sso_session"):
+        found = getattr(credbroker, "__version__", "an older release")
+        print(
+            f"error: registering a session needs {_CREDBROKER_REQUIREMENT}, found "
+            f"{found}. Run: python -m pip install --upgrade "
+            f"'{_CREDBROKER_REQUIREMENT}'",
+            file=sys.stderr,
+        )
+        return 2
+
     try:
         cfg = load_sso_config()  # validates before we touch the broker
     except Exception as exc:  # noqa: BLE001 — malformed config → don't register
@@ -79,22 +96,34 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 0
 
-    broker = _broker_path()
-    if not broker.is_file():
-        print(
-            f"error: sso-broker not installed at {broker}; install the "
-            "credential-brokers pack first.",
-            file=sys.stderr,
-        )
-        return 2
-
     print(
         f"running: sso-broker register {cfg.profile} "
         "(opens a headed browser for SSO sign-in; the cookie jar is captured and "
-        "stored by the broker — no cookie value passes through this helper).",
+        "stored by the broker — no cookie value passes through this helper). "
+        "This helper performs no destination attestation; "
+        "the jira skill's 'check --register' is the capture path that "
+        "attempts it.",
         file=sys.stderr,
     )
-    return subprocess.run(build_register_argv(broker, cfg)).returncode
+
+    try:
+        credbroker.register_sso_session(
+            cfg.profile,
+            login_url=cfg.login_url,
+            success_url_pattern=cfg.success_url_pattern,
+            cookie_domains=cfg.cookie_domains,
+            validation_endpoint=cfg.validation_endpoint,
+            session_filename=cfg.session_filename,
+            ttl_hint_minutes=cfg.ttl_hint_minutes,
+        )
+    except credbroker.SsoError as exc:
+        # Every branch is a credential-band failure the operator must act on:
+        # the engine is missing, playwright is missing, or the sign-in was not
+        # completed. The engine's own stderr has already reached them.
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+
+    return 0
 
 
 if __name__ == "__main__":
