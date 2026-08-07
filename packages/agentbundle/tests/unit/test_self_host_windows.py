@@ -21,8 +21,8 @@ def fake_root(tmp_path: Path) -> Path:
     """Minimal directory structure run_windows_compat expects."""
     (tmp_path / "packages" / "agentbundle").mkdir(parents=True)
     (tmp_path / "packages" / "credbroker").mkdir(parents=True)
-    # Pack tests live outside the runtime payload (ADR-0071), so the SSO steps'
-    # cwds are the pack's test tree, not the skill's scripts/.
+    # Pack tests live outside the runtime payload, so the SSO steps' cwds are
+    # the pack's test tree, not the skill's scripts/.
     (tmp_path / "packs" / "atlassian" / "tests" / "skills" / "jira").mkdir(parents=True)
     (
         tmp_path / "packs" / "atlassian" / "tests" / "skills" / "confluence-crawler"
@@ -51,15 +51,15 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
     #
     # `packages/credbroker` is here because the cross-platform process-tree kill
     # lives in that suite; the `taskkill` arm is only verified once this run is
-    # green (jira-check-sso-auto-login AC26).
+    # green.
     #
     # The dependency probe is here because both SSO trios `importorskip`
     # `credbroker` at module scope and the step runner judges by return code
     # alone — without it, a machine missing the dependency skips both suites
     # and the step reports pass.
     #
-    # Pack tests live outside the runtime payload (ADR-0071), so the SSO cwds
-    # are the pack's test tree rather than the skill's `scripts/`.
+    # Pack tests live outside the runtime payload, so the SSO cwds are the
+    # pack's test tree rather than the skill's `scripts/`.
     expected = {
         ("", "catalogue"),
         ("", "import credbroker, httpx"),

@@ -399,6 +399,66 @@ def test_tls_verification_is_strict_and_not_borrowed():         # STUB: AC32
     assert ctx.check_hostname is True
 
 
+# A throwaway self-signed CA, inline so the fixture needs no key material on
+# disk and no `openssl` at test time. Expired by design: `load_verify_locations`
+# parses and stores it regardless, which is all these tests observe.
+_SELF_SIGNED_CA_PEM = b"""-----BEGIN CERTIFICATE-----
+MIICujCCAaICCQDyQE8uwXYQMDANBgkqhkiG9w0BAQsFADAfMR0wGwYDVQQDDBRF
+eGFtcGxlIENvcnAgVGVzdCBDQTAeFw0yNjA4MDcwNDE1MjRaFw0yNjA4MDgwNDE1
+MjRaMB8xHTAbBgNVBAMMFEV4YW1wbGUgQ29ycCBUZXN0IENBMIIBIjANBgkqhkiG
+9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzAksis87QaM63tutallFABfzbREdVlzAtgck
+WSbtcV9jp1jiKBMgrfw85sNoH1/F1fDsgzwPa5uUC4OMsoivu6VGibMyy6AeF/CD
+s3nX5W2RPgdZDk/6MpgHe+Sc2zOAP8Bx75pKA+2tC4eonh5GWqmBWmOkWWUnPrpC
+R98VyzD5JWUUhJYsqu1gFFCB1ieSnmArloVlxU18wLCfRGEA9+Ail1vVCt90uxjo
+hqBhTKvJ2q7pAV3yxlxHhPIBbOkrkXWFuyAnIHlGBIE0sN4sQ1Fudkk95Nv0cldI
+eETAKntBKhDy7k0tc/qnHDAtby71u0/m0MfO7Ht2/c1YMb1hNwIDAQABMA0GCSqG
+SIb3DQEBCwUAA4IBAQCfQa1YwOIymROSMeg+elpyXDFYQqafzI23mZ781z7S21N2
+RVxCoGbWXijPtXmSYKHBRa4GaSzMbrmG214Hwu2ohLIzdk/GrvZarw44kMqmzvLq
+IGIlHuBqZuv0X1LQL9wqGKefVp38GLTkKyoVQ1qg4y8egqPZVIbpd2U+S6CgYpUs
+xvhoNj4yg8YjuVAwtJqi7hF4FTxOFqfBHMFKM3eoQWqgoR0Fb9B4ojjZzobo/WP8
+kAp2xTiHVPkyeF0/HfNhweQ2YgWT75fHa7MTuiowdOR7zs3tU3+quhAA49hrFv25
+cdwlTrT9JsOE6IJn7oldP6oAC0o+97ncSv/LZAl6
+-----END CERTIFICATE-----
+"""
+
+
+def test_corporate_ca_bundle_is_loaded(monkeypatch, tmp_path):   # STUB: AC32
+    # `create_default_context()` reads SSL_CERT_FILE/SSL_CERT_DIR through
+    # OpenSSL's default paths but knows nothing of REQUESTS_CA_BUNDLE, which is
+    # where a corporate MITM CA usually lands. Without it every derivation hop
+    # fails verification on the laptops this feature exists for — and the
+    # failure looks like "cannot derive", not "your CA was ignored".
+    #
+    # Asserted by loading a real CA into the context and comparing cert counts,
+    # rather than by patching load_verify_locations: the point is that the
+    # anchor is actually trusted, not that a call was made.
+    ca = tmp_path / "corp-ca.pem"
+    ca.write_bytes(_SELF_SIGNED_CA_PEM)
+
+    monkeypatch.delenv("SSL_CERT_FILE", raising=False)
+    monkeypatch.delenv("SSL_CERT_DIR", raising=False)
+    monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
+    before = len(_sso._derivation_ssl_context().get_ca_certs())
+
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(ca))
+    after = _sso._derivation_ssl_context()
+    assert len(after.get_ca_certs()) == before + 1, (
+        "REQUESTS_CA_BUNDLE was not loaded into the derivation trust store"
+    )
+    # Strictness is unchanged — this adds an anchor, it never removes one.
+    assert after.verify_mode == ssl.CERT_REQUIRED
+    assert after.check_hostname is True
+
+
+def test_an_unreadable_ca_bundle_does_not_break_derivation(monkeypatch, tmp_path):
+    # STUB: AC32 — a stale REQUESTS_CA_BUNDLE pointing at a deleted file is a
+    # common corporate-laptop state. It must not turn every derivation into a
+    # traceback; the platform trust store still applies.
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path / "gone.pem"))
+    ctx = _sso._derivation_ssl_context()
+    assert ctx.verify_mode == ssl.CERT_REQUIRED
+
+
 def test_proxy_credentials_are_stripped():                      # STUB: AC32
     stripped = _sso._proxies_without_credentials({
         "https": "http://user:secret@proxy.corp.example.com:8080",
@@ -495,8 +555,26 @@ def test_the_configured_base_url_may_be_internal():             # STUB: AC32
     # A corporate instance legitimately lives on an RFC 1918 host, so the guard
     # applies only to hops whose target came from a server response. Asserted on
     # the flag the tiers pass, since the request itself would need a listener.
-    assert _sso._resolves_to_internal_address("127.0.0.1") is True
-    assert _sso._resolves_to_internal_address("10.0.0.1") is True
+    budget = _sso._DerivationBudget(_sso._DERIVE_TOTAL_BUDGET_S)
+    assert _sso._resolves_to_internal_address("127.0.0.1", budget) is True
+    assert _sso._resolves_to_internal_address("10.0.0.1", budget) is True
+
+
+def test_a_stalled_resolver_cannot_outrun_the_budget(monkeypatch):   # STUB: AC32
+    # `getaddrinfo` takes no timeout, so an unanswered lookup would otherwise
+    # add the OS resolver's own wait to the derivation's advertised bound.
+    # Fails closed: an unanswered lookup is not evidence the host is external.
+    import time as _time
+
+    def _never_answers(*_a, **_k):
+        _time.sleep(30)
+        raise AssertionError("resolver should have been abandoned")
+
+    monkeypatch.setattr(_sso.socket, "getaddrinfo", _never_answers)
+    budget = _sso._DerivationBudget(_sso._DERIVE_TOTAL_BUDGET_S)
+    started = _time.monotonic()
+    assert _sso._resolves_to_internal_address("stalls.example", budget) is True
+    assert _time.monotonic() - started < _sso._DERIVE_SOCKET_TIMEOUT_S + 2
 
 
 def test_every_tier_passes_the_configured_origin_as_trusted(monkeypatch):  # STUB: AC32

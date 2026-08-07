@@ -41,6 +41,24 @@ _PLATFORM_BASE_ENV = frozenset({
 })
 
 
+def _env_key(name: str) -> str:
+    """Look an environment name up the way the running platform does.
+
+    Windows environment names are case-insensitive and `os.environ` normalises
+    them to upper case, so a child handed `http_proxy` dumps `HTTP_PROXY`. Both
+    spellings are in the allowlist and the forward is correct; only a
+    case-sensitive assertion is wrong. This matters in *both* directions — a
+    case-sensitive `not in` would let a variable that really did reach the child
+    under another case pass as absent.
+    """
+    return name.upper() if os.name == "nt" else name
+
+
+def _env_view(dumped: dict[str, str]) -> dict[str, str]:
+    """The child's environment, keyed the way `_env_key` looks names up."""
+    return {_env_key(name): value for name, value in dumped.items()}
+
+
 def _write_fake_broker(tmp_path: Path, body: str, *, name: str = "sso-broker.py") -> Path:
     """Write an executable stand-in for the engine and return its path.
 
@@ -225,16 +243,16 @@ def test_spawn_env_is_allowlisted(monkeypatch, tmp_path):  # STUB: AC3
         timeout=30.0, env_profile="browser", capture=False,
     )
     import json
-    env = json.loads(dump.read_text())
+    env = _env_view(json.loads(dump.read_text()))
 
-    assert "JIRA_API_TOKEN" not in env
-    assert "ANTHROPIC_API_KEY" not in env
+    assert _env_key("JIRA_API_TOKEN") not in env
+    assert _env_key("ANTHROPIC_API_KEY") not in env
     for name in _sso._BROWSER_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
-        assert env.get(name) == f"value-of-{name}", f"{name} not forwarded"
+        assert env.get(_env_key(name)) == f"value-of-{name}", f"{name} not forwarded"
     # The platform base is asserted as a real passthrough instead.
     for name in _PLATFORM_BASE_ENV & _sso._BROWSER_ENV_ALLOWLIST:
         if name in os.environ:
-            assert env.get(name) == os.environ[name], f"{name} not forwarded"
+            assert env.get(_env_key(name)) == os.environ[name], f"{name} not forwarded"
 
 
 def test_engine_env_profile_drops_the_browser_variables(monkeypatch, tmp_path):  # STUB: AC3
@@ -255,11 +273,13 @@ def test_engine_env_profile_drops_the_browser_variables(monkeypatch, tmp_path): 
         timeout=30.0, env_profile="engine", capture=True,
     )
     import json
-    env = json.loads(dump.read_text())
+    env = _env_view(json.loads(dump.read_text()))
     for name in browser_only:
-        assert name not in env, f"{name} must not reach the non-browser spawn"
+        assert _env_key(name) not in env, (
+            f"{name} must not reach the non-browser spawn"
+        )
     for name in _sso._ENGINE_ENV_ALLOWLIST - _PLATFORM_BASE_ENV:
-        assert env.get(name) == f"value-of-{name}", f"{name} not forwarded"
+        assert env.get(_env_key(name)) == f"value-of-{name}", f"{name} not forwarded"
 
 
 def test_spawn_failure_is_broker_unavailable(tmp_path):    # STUB: AC3

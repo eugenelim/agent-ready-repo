@@ -36,6 +36,7 @@ import socket
 import ssl
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -196,7 +197,7 @@ def validate_sso_profile(profile: object) -> None:
 # guarantee, none of which a per-consumer ``subprocess.run`` reliably gets right:
 #
 # * a **wall-clock bound**, per operation (the three differ by an order of
-#   magnitude — derivations are in the spec's AC3 table);
+#   magnitude — see the per-operation timeout table below);
 # * a **whole-tree kill** on timeout or interrupt, so playwright's Chromium
 #   cannot survive holding a live corporate session and the ``browser-state``
 #   lock;
@@ -662,10 +663,23 @@ def _derivation_ssl_context() -> ssl.SSLContext:
     TLS context. Constructed here rather than left to urllib's default so a
     process-wide ``ssl._create_default_https_context`` override cannot weaken
     the one request that decides where a human will type their password.
+
+    Corporate trust stores are honoured the same way the cookie client honours
+    them. ``create_default_context`` picks up ``SSL_CERT_FILE`` / ``SSL_CERT_DIR``
+    through OpenSSL's default paths but knows nothing of ``REQUESTS_CA_BUNDLE``,
+    which is where a MITM CA most often lands — and without it every derivation
+    hop fails verification on exactly the corporate laptop this feature exists
+    for. ``SSL_CERT_FILE`` wins when both are set, matching the cookie client.
+    Strictness is unchanged: this adds a trust anchor, it never removes one.
     """
     ctx = ssl.create_default_context()
     ctx.check_hostname = True
     ctx.verify_mode = ssl.CERT_REQUIRED
+    cafile = os.environ.get("SSL_CERT_FILE") or os.environ.get("REQUESTS_CA_BUNDLE")
+    capath = os.environ.get("SSL_CERT_DIR")
+    if cafile or capath:
+        with contextlib.suppress(OSError, ssl.SSLError):
+            ctx.load_verify_locations(cafile=cafile or None, capath=capath or None)
     return ctx
 
 
@@ -778,7 +792,7 @@ def _read_capped(fp, budget: _DerivationBudget) -> bytes:  # noqa: ANN001
     return b"".join(chunks)
 
 
-def _resolves_to_internal_address(host: str) -> bool:
+def _resolves_to_internal_address(host: str, budget: _DerivationBudget) -> bool:
     """True when *host* resolves to any address a probe must not reach.
 
     Loopback, link-local (which is where cloud instance-metadata lives),
@@ -795,8 +809,30 @@ def _resolves_to_internal_address(host: str) -> bool:
     rebinding. Closing that needs a pinned-address connection, which urllib
     does not offer.
     """
+    # `getaddrinfo` is synchronous and takes no timeout, so a stalled resolver
+    # would blow the derivation's advertised wall-clock bound by however long the
+    # OS waits. Run it on a daemon thread and abandon it at the deadline — the
+    # thread cannot be cancelled, but the caller stops waiting on it.
+    resolved: list[list] = []
+    failed: list[BaseException] = []
+
+    def _resolve() -> None:
+        try:
+            resolved.append(socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP))
+        except OSError as exc:
+            failed.append(exc)
+
+    worker = threading.Thread(target=_resolve, daemon=True)
+    worker.start()
+    worker.join(max(0.0, min(_DERIVE_SOCKET_TIMEOUT_S, budget.remaining())))
+    if worker.is_alive():
+        # Fail **closed**, for the same reason an `OSError` does below: an
+        # unanswered lookup is not evidence the host is external.
+        return True
     try:
-        infos = socket.getaddrinfo(host, 443, proto=socket.IPPROTO_TCP)
+        if failed:
+            raise failed[0]
+        infos = resolved[0]
     except OSError:
         # Fail **closed**. "Unresolvable locally" does not mean "unreachable":
         # `_derivation_opener` installs the environment's proxies, and a proxy
@@ -858,7 +894,8 @@ def _derive_open(
             f"refusing a non-https derivation hop (scheme {scheme or '(none)'})"
         )
     origin = _origin(url)
-    if origin != trusted_origin and _resolves_to_internal_address(parts.hostname or ""):
+    if origin != trusted_origin and _resolves_to_internal_address(
+            parts.hostname or "", budget):
         raise _DerivationAbort(
             "refusing a derivation hop whose address is internal or could not "
             "be verified; the target came from a server response, not from "

@@ -65,7 +65,7 @@ class PackManifestShapeTests(unittest.TestCase):
         #   connection argument, and goes headless; `register` gains
         #   `--ephemeral`. Two observable contract changes, so a minor, not the
         #   crash-fix patch precedent. Supersedes the 0.2.3 that moved the tests
-        #   out of `.apm/` to packs/credential-brokers/tests/, ADR-0071);
+        #   out of `.apm/` to packs/credential-brokers/tests/);
         # adapter-contract unchanged.
         self.assertEqual(pack["version"], "0.3.0")
 

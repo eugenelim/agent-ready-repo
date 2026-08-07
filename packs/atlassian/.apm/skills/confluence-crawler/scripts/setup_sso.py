@@ -101,7 +101,8 @@ def main(argv: list[str] | None = None) -> int:
         "(opens a headed browser for SSO sign-in; the cookie jar is captured and "
         "stored by the broker — no cookie value passes through this helper). "
         "This helper performs no destination attestation; "
-        "'python scripts/jira.py check --register' does.",
+        "the jira skill's 'check --register' is the capture path that "
+        "attempts it.",
         file=sys.stderr,
     )
 
