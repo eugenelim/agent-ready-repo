@@ -588,8 +588,29 @@ open = [
     # routine; ordering between concurrent materialisers is deliberately unspecified - a write-guard
     # permits reversal, lock vs generation-check is not distinguishable by any single test, and a
     # generation check is racy unless compare-and-replace is atomic. Fix: design an ordering protocol
-    # with its own tests. Unblocks: needs design.
+    # with its own tests. DESIGN DONE — absorbed by spec/sso-store-transition-serialization AC4, which
+    # serialises get-cookies' load+materialisation under the same per-profile lock as the store
+    # transition. Retained in .open rather than removed: the frozen spec/jira-check-sso-auto-login
+    # defers against this slug at spec.md:368 and lint-spec-status invariant (iv) requires it to
+    # resolve; the register has no closed-item section. Remove only alongside a register convention
+    # for closed items.
   {slug = "sso-materialisation-ordering", source = "spec/jira-check-sso-auto-login"},
+    # sso-broker.py's new contended exit code 6 is documented recoverable, but no consumer backs off
+    # on it: jira.py:709's bare `except credbroker.SsoError` routes it to EXIT_USER_ACTION, telling
+    # the operator to re-register over a condition that clears in under a second. Fix: catch
+    # SsoStoreContendedError in jira.py's check path and retry once with backoff before falling
+    # through to the user-action exit. Unblocks: after spec/sso-store-transition-serialization ships.
+  {slug = "sso-contended-consumer-backoff", source = "spec/sso-store-transition-serialization AC24"},
+    # lint-spec-status.py lints all 277 dirs under docs/specs/ on every run, spawning one
+    # `git show <base>:<path>` subprocess per spec for the base-comparison. Measured 2m16s wall at
+    # 5% CPU in libreville on 2026-08-07 — I/O-bound on subprocess spawn, not on git itself
+    # (`git status --porcelain` is 0.67s). It runs at every work-loop finish checklist, so the
+    # cost is paid per loop, and it grows with every spec added. Fix: scope the run to the specs
+    # touched in the current session — default to the specs changed against --base-ref (the script
+    # already resolves one, and already shells out to git), with an --all escape for CI. The
+    # invariants are per-spec, so a scoped run is sound; only the repo-wide dangling-reference
+    # warn-only pass would narrow. Unblocks: now.
+  {slug = "lint-spec-status-scope-to-changed-specs", source = "spec/sso-store-transition-serialization"},
     # AC17's at-most-once bound is per-process and each agent turn is a new process, so a retry
     # loop can spawn a HEADLESS recapture on every invocation - no browser is shown (AC14a),
     # but each spawn still costs up to refresh's 180 s and re-exercises the engine.
