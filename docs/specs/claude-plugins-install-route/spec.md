@@ -838,3 +838,34 @@ taxonomy.
   contract at v0.8 with `install-routes` including
   `"claude-plugins"`, schemas, skill amendment, and sibling-spec
   amendments all present); no deferrals.
+
+## Errata
+
+- 2026-08-07 (eugenelim): **AC2's `enabledPlugins` shape was wrong, so scope
+  detection never matched.** AC2's body treats "`enabledPlugins` present but
+  not a JSON array of plugin identifiers" as fall-through. Claude Code writes
+  an **object** keyed by `name@marketplace` whose boolean value is the enabled
+  state — confirmed on 2.1.223 — so the writer fell through at every scope and
+  the claude-plugins route wrote no marker at all. Corrected in `agentbundle`
+  0.29.8: the object form counts as opted in when the value is `true` (`false`
+  is an adopter who disabled the pack, and stays fall-through), and the array
+  form older clients wrote is still accepted. AC2's seven unit tests were green
+  throughout because each fixture hand-wrote the array form; the correction
+  adds cases driving the object form and is verified end-to-end against the
+  client, not by the unit gate alone.
+
+- 2026-08-07 (eugenelim): **AC2's identifier match compared only the part
+  before `@`.** Any marketplace's same-named pack satisfied the check, so
+  `core@other-marketplace` in a settings file opted in a `core` installed from
+  somewhere else. Corrected in `agentbundle` 0.29.8: a qualified identifier
+  must agree on the marketplace as well, read from the pack's own install path
+  (`<config>/plugins/cache/<marketplace>/<plugin>/<version>`). A bare `name`
+  makes no marketplace claim and still matches on name alone.
+
+- 2026-08-07 (eugenelim): **AC2's settings read is now bounded and
+  type-checked.** The 1 MiB limit was measured after the whole file had been
+  read, and the path was gated on existence rather than on being a regular
+  file — so a settings path that is a FIFO or a symlink to a character device
+  hung the writer, and undecodable bytes raised rather than falling through.
+  Corrected in `agentbundle` 0.29.8. The fall-through contract AC2 states is
+  unchanged; it now holds for these inputs too.

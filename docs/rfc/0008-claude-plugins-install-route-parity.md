@@ -739,3 +739,39 @@ On acceptance:
   marketplace; close trigger = end-to-end demonstration of marker
   write + nudge fire + `/adapt-to-project` run per
   [Unresolved questions § Q5](#unresolved-questions).
+
+## Errata
+
+Corrections below are Approver-signed. The RFC body above is preserved
+unchanged; errata supersede where noted. (Approver: eugenelim, 2026-08-07.)
+
+- **2026-08-07 — the claude-plugins route wrote no marker, and the
+  `allowed-scopes` rail never fired, from first ship until `agentbundle`
+  0.29.8.** This RFC's design is unchanged; the erratum records that two
+  specified behaviours were inert in the shipped writer.
+
+  `install-marker.py` resolved the install scope by reading `enabledPlugins`
+  from the three settings files and required a JSON array. Claude Code writes
+  an object keyed by `name@marketplace` — confirmed on 2.1.223. The parse fell
+  through for every settings file the client produces, scope resolved to
+  `None`, and the writer exited 0 without writing.
+
+  Two consequences, both named in the body above:
+
+  1. **The install→adapt chain (§ Proposal, "Who writes the marker") never
+     started.** No marker was written on this route, so `core`'s session-start
+     nudge had nothing to read and never offered `/adapt-to-project`.
+  2. **The `allowed-scopes` refusal rail (§ Proposal step 2; § Scope mapping,
+     "defence in depth") could not refuse.** It compares a detected scope
+     against the pack's declaration, and no scope was ever detected. The
+     worked example in the body — an adopter installing a repo-only pack at
+     Claude-plugins user scope — was unprotected for the rail's whole life.
+
+  The integration suite was green throughout because every fixture hand-wrote
+  the array form, so the tests pinned the parser against a shape the client
+  does not emit. Verification for the fix is therefore end-to-end against the
+  real client, per Q5's close trigger, not the unit gate alone.
+
+  The APM route is unaffected: `_apm_detect_scope` resolves scope by the
+  writer's projected-path containment and never reads `enabledPlugins`, so
+  RFC-0010's copy of the rail has been enforcing all along.
