@@ -2532,6 +2532,27 @@ def test_ac1_h1_closes_the_ac_region(tmp: Path) -> None:
         else fail(name, "a checkbox after an H1 was still treated as a criterion")
 
 
+def test_unreadable_artifact_reports_from_every_verb(tmp: Path) -> None:
+    """A gate that stack-traces on its own input is not a gate. Both branches of
+    `approve-plan` reach the artifacts — the pending branch through the
+    crash-window guard, the already-approved branch through the hash — and each
+    was fixed one round apart, so both need pinning."""
+    name = "unreadable-artifact-reports-from-every-verb"
+    spec_dir, run_id = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_bytes(
+        b"# Spec\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n- [ ] AC1 \xff\xfe\n")
+    for verb in (("approve-plan", str(spec_dir), "--expect-run-id", run_id),
+                 ("plan", "check-current", str(spec_dir), "--require-schedule")):
+        rc, out, err = run_cohort(*verb)
+        if rc == 0:
+            fail(name, f"{verb[0]} accepted an undecodable spec.md")
+            return
+        if "Traceback" in err or "Traceback" in out:
+            fail(name, f"{verb[0]} tracebacked instead of reporting:\n{err[:200]}")
+            return
+    ok(name)
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
@@ -2546,6 +2567,7 @@ def main() -> int:
             test_ac6_changed_task_text_is_scope,
             test_ac6_changed_depends_on_is_scope,
             test_ac9_regressed_spec_status_stops,
+            test_unreadable_artifact_reports_from_every_verb,
             test_ac9_absent_plan_status_is_skipped,
             test_ac9_pending_sentinel_survives,
             test_ac10_mismatch_names_both_causes,

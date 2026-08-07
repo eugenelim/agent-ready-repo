@@ -703,8 +703,11 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     # Idempotency: if already approved, verify hashes before writing.
     current_status = state.get("plan_review_status", "pending")
     if current_status == "approved":
-        spec_hash = sha256_canonical_contract(spec_path)
-        plan_hash = sha256_canonical_contract(plan_path)
+        try:
+            spec_hash = sha256_canonical_contract(spec_path)
+            plan_hash = sha256_canonical_contract(plan_path)
+        except (OSError, UnicodeDecodeError) as exc:
+            return stop(f"approve-plan: cannot read the approved artifacts: {exc}")
         stored_spec_hash = state.get("approved_spec_hash", "")
         stored_plan_hash = state.get("approved_plan_hash", "")
         if spec_hash == stored_spec_hash and plan_hash == stored_plan_hash:

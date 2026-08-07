@@ -88,11 +88,6 @@ BODY_CAP = 2000
 # has no business carrying a line separator mid-field.
 _LINE_BREAKERS = frozenset("  ")
 
-# The only `Cf` characters with a legitimate reason to appear in prose: the
-# zero-width joiner and non-joiner, which are text-shaping (Indic and Arabic
-# scripts, emoji sequences) rather than a way to hide payload.
-_ALLOWED_FORMAT_CHARS = frozenset("‌‍")
-
 # Environment that steers `git rev-parse --show-toplevel` away from the cwd.
 _GIT_ENV_OVERRIDES = (
     "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES",
@@ -152,20 +147,23 @@ def exclusive(target: Path, timeout: float = 10.0, stale_after: float = 120.0):
             try:
                 age = time.time() - lock.stat().st_mtime
             except OSError:
-                age = 0.0  # vanished, or not stat-able — treat as fresh
+                age = None  # vanished, or not stat-able
             else:
-                if age > stale_after:
+                if age is not None and age > stale_after:
                     try:
                         lock.unlink()
+                    except FileNotFoundError:
+                        pass  # another waiter won the break — just retry
                     except OSError as exc:
                         raise LockUnavailable(
                             f"{lock} looks abandoned ({age:.0f}s old) but cannot "
                             f"be removed: {exc}"
                         ) from None
             if time.monotonic() >= deadline:
+                held = "could not be inspected" if age is None else f"held for {age:.0f}s"
                 raise LockUnavailable(
-                    f"{lock} is held (for {age:.0f}s) and did not free within "
-                    f"{timeout:.0f}s; if no other append is running, remove it"
+                    f"{lock} ({held}) did not free within {timeout:.0f}s; "
+                    "if no other append is running, remove it"
                 ) from None
             time.sleep(0.05)
         except OSError as exc:
@@ -237,7 +235,17 @@ def confine(raw: str, base: Path) -> Path | None:
 
 def validate_value(field: str, value: str) -> str | None:
     """Return an error string, or None when *value* is safe to write."""
+    lint = _linter()
+    run = 0
     for ch in value:
+        # Run check here as well as in the linter, so the refusal names the
+        # field. Caught only by the post-lint, it would name a temp file that
+        # no longer exists.
+        run = run + 1 if ch in lint._RUN_CHARS else 0
+        if run > lint._MAX_ADJACENT_INVISIBLE:
+            return (f"{field} contains a run of {run} zero-width characters; "
+                    "real text never needs more than "
+                    f"{lint._MAX_ADJACENT_INVISIBLE} adjacent")
         if ch in _LINE_BREAKERS:
             return (f"{field} contains U+{ord(ch):04X}, which str.splitlines() "
                     "treats as a line break — it would split this entry in two")
@@ -246,7 +254,7 @@ def validate_value(field: str, value: str) -> str | None:
             return (f"{field} contains the control character U+{ord(ch):04X}; "
                     "knowledge entries are replayed verbatim into every future "
                     "session, so control sequences are refused")
-        if _linter().is_hidden_char(ch):
+        if lint.is_hidden_char(ch):
             # Zero-width carriers: bidi overrides, the Unicode Tag block, and
             # the variation selectors — the last of which are `Mn`, so a
             # `Cf`-only check missed 240 of them. session-start replays

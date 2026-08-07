@@ -220,8 +220,12 @@ unparseable lines.
       only `Cf` and was bypassed by variation selectors, which are `Mn` and
       whose supplement block is a 240-symbol invisible alphabet. ZWJ, ZWNJ and
       the two emoji presentation selectors are the exceptions, since they shape
-      neighbouring characters; two joiners in a row are refused, because a
-      legitimate one is always singular. The predicate lives in
+      neighbouring characters. A **run** of three or more adjacent zero-width
+      characters is refused regardless: the run spans joiners and presentation
+      selectors together, because counting joiners alone leaves an alternating
+      VS15/VS16 sequence invisible. Three is the threshold because real emoji
+      cap at two adjacent — heart-on-fire is VS16 then ZWJ, as are the flag and
+      bouncing-ball forms — while a usable alphabet needs many more. The predicate lives in
       `lint-knowledge.py` and the writer imports it, so the gate and the writer
       cannot disagree about what is invisible.
       Knowledge entries are injected verbatim into every future agent session,
@@ -265,12 +269,15 @@ unparseable lines.
       the input it exists to reject; and reports an undecodable file as a lint
       error instead of tracebacking.
 - [x] AC20. `lint-knowledge.py` fails an entry that escapes a character as
-      `\uXXXX` when that codepoint is `>= 0x20` and is not one of `U+0085`,
-      `U+2028`, `U+2029`, naming the character and the fix. Escapes JSON
-      requires (below `U+0020`) stay legal, as does a literal backslash-u
-      sequence in body text, as do the three line-separator codepoints — for
-      which the escaped form is the *only* representation that survives
-      `splitlines()`.
+      `\uXXXX` when that character should have been written literally, naming
+      the character and the fix. Legal escapes are exactly: the five C0
+      characters JSON needs (`\b \t \n \f \r`), and `U+0085` / `U+2028` /
+      `U+2029`, for which the escaped form is the *only* representation that
+      survives `splitlines()`. Every other C0 escape is refused — the writer
+      refuses a literal `ESC` because `session-start.py` replays it as an ANSI
+      sequence, so the gate must refuse the escaped spelling or the hand-edit
+      path stays open. A literal backslash-u sequence in body text is not an
+      escape and stays legal.
 - [x] AC21. `SKILL.md`, `docs/knowledge/README.md`, and
       `packs/core/seeds/docs/knowledge/README.md` name the script as the way to
       append, state the raw-UTF-8 convention, and state the trust posture from

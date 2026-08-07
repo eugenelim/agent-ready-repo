@@ -452,8 +452,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   omitted that `loop-engine reset` must *not* be run. The five recovery steps
   are now spelled out in the message itself — an installed skill cannot point
   at this file, which adopters own as their own product's changelog.
-
-
 - **The approval pin no longer breaks on the writes the loop itself mandates.**
   `loop-cohort approve-plan` pinned the raw bytes of `spec.md`, but `work-loop`
   requires writing `Status: Implementing` before any code and `Shipped` plus a
@@ -478,7 +476,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   never reaches the file. `lint-knowledge.py` rejects a `\uXXXX` escape for any
   character that should have been literal — keeping the escaped form legal
   where it is the only one that survives (`U+0085`, `U+2028`, `U+2029`, which
-  `str.splitlines()` treats as line breaks, and everything below `U+0020`).
+  `str.splitlines()` treats as line breaks, plus the five C0 characters JSON
+  genuinely needs). Every other C0 escape is refused: the writer already
+  refused a literal `ESC` — `session-start` replays it as an ANSI sequence —
+  and a gate that accepted the escaped spelling would leave the hand-edit
+  path this rule exists for wide open.
 
 ### Upgrading
 

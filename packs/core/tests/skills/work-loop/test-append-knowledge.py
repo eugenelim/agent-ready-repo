@@ -52,12 +52,24 @@ def fail(name: str, reason: str) -> None:
 CWD: Path | None = None
 
 
-def run(*args: str) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, str(SCRIPT), *args],
-        capture_output=True, text=True, encoding="utf-8", check=False,
-        cwd=str(CWD) if CWD else None,
-    )
+def run(*args: str, timeout: float = 90.0) -> subprocess.CompletedProcess[str]:
+    """Invoke the writer.
+
+    `timeout` is not politeness: several cases exist to prove the lock's wait
+    is bounded, and without it a regression there hangs the whole suite instead
+    of failing the case that watches for it.
+    """
+    try:
+        return subprocess.run(
+            [sys.executable, str(SCRIPT), *args],
+            capture_output=True, text=True, encoding="utf-8", check=False,
+            cwd=str(CWD) if CWD else None, timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return subprocess.CompletedProcess(
+            args, returncode=124, stdout="",
+            stderr=f"TIMEOUT: no exit within {timeout:.0f}s (unbounded wait)",
+        )
 
 
 def entry(**over: object) -> str:
@@ -595,6 +607,53 @@ def test_lock_reports_on_an_unremovable_lock(target: Path) -> None:
         lock.rmdir()
 
 
+def test_dangling_symlink_lock_is_bounded(target: Path) -> None:
+    """AC17a. `O_EXCL` raises FileExistsError for a dangling symlink while
+    `stat` raises FileNotFoundError — the branch that used to `continue` past
+    both the deadline and the sleep, busy-spinning a core forever."""
+    name = "dangling-symlink-lock-is-bounded"
+    target.write_text("", encoding="utf-8")
+    lock = target.with_name(target.name + ".lock")
+    try:
+        lock.symlink_to(target.parent / "does-not-exist")
+    except (OSError, NotImplementedError):
+        ok(f"{name} (skipped — no symlink support)")
+        return
+    try:
+        started = time.monotonic()
+        proc = run(*_append_args(target))
+        elapsed = time.monotonic() - started
+        if proc.returncode == 0:
+            fail(name, "appended through a dangling-symlink lock")
+        elif elapsed > 60:
+            fail(name, f"busy-spun for {elapsed:.0f}s")
+        elif "did not free" not in (proc.stdout + proc.stderr):
+            fail(name, f"no bounded-wait message: {(proc.stdout + proc.stderr)!r}")
+        else:
+            ok(name)
+    finally:
+        lock.unlink(missing_ok=True)
+
+
+def test_zero_width_run_refused_by_the_writer(target: Path) -> None:
+    """AC16. The linter refuses a run too, so a bare non-zero cannot tell the
+    layers apart — pin the writer's pre-write refusal, which names the field.
+    Caught only by the post-lint, the message points at a temp file that no
+    longer exists."""
+    name = "zero-width-run-refused-by-the-writer"
+    target.write_text("", encoding="utf-8")
+    proc = run(*_append_args(target, **{"--body": "a\u200d\u200d\u200db"}))
+    out = proc.stdout + proc.stderr
+    if proc.returncode == 0:
+        fail(name, "a three-joiner run was accepted")
+    elif "does not lint" in out:
+        fail(name, "reached the post-lint; the writer's own validation did not refuse it")
+    elif "body" not in out:
+        fail(name, f"refusal did not name the field: {out!r}")
+    else:
+        ok(name)
+
+
 def main() -> int:
     global CWD
     if not SCRIPT.is_file():
@@ -623,8 +682,10 @@ def main() -> int:
             test_exclusive_lock_actually_excludes,
             test_lock_release_only_unlinks_what_it_owns,
             test_lock_reports_on_an_unremovable_lock,
+            test_dangling_symlink_lock_is_bounded,
             test_lock_timeout_reports_instead_of_hanging,
             test_zero_width_carriers_beyond_cf_refused,
+            test_zero_width_run_refused_by_the_writer,
             test_non_regular_file_target_refused,
             test_missing_parent_dir_refused,
             test_non_utf8_target_reports_not_tracebacks,

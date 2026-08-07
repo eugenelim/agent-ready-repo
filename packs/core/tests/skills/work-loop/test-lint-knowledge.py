@@ -195,13 +195,20 @@ def layer_validation_rules(tmp: Path) -> None:
              '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
              '"body": "pre \\u001b[31mRED post", "source": "s"}\n',
              1, "\\u001b")
-    # AC16 — two joiners in a row are a zero-width alphabet...
-    run_case(tmp, "stub-consecutive-joiners-rejected",
+    # AC16 — three adjacent zero-width characters is an alphabet, not text.
+    # The run spans joiners AND presentation selectors: counting joiners only
+    # left an alternating VS15/VS16 sequence invisible to every check.
+    run_case(tmp, "stub-zero-width-run-rejected",
              json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
-                         "title": "t", "body": "a\u200d\u200db", "source": "s"},
+                         "title": "t", "body": "a\u200d\u200d\u200db", "source": "s"},
                         ensure_ascii=False) + "\n",
-             1, "consecutive")
-    # ...but a presentation selector next to a joiner is ordinary emoji.
+             1, "run of 3")
+    run_case(tmp, "stub-alternating-selectors-rejected",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "a" + "\ufe0e\ufe0f" * 8 + "b",
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             1, "run of"),
+    # ...but two adjacent is ordinary emoji: heart-on-fire is VS16 then ZWJ.
     run_case(tmp, "stub-emoji-zwj-sequence-accepted",
              json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
                          "title": "t", "body": "love \u2764\ufe0f\u200d\U0001f525",

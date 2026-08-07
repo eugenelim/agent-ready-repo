@@ -80,10 +80,15 @@ _JSON_NEEDS_ESCAPE = frozenset({0x08, 0x09, 0x0A, 0x0C, 0x0D})
 # ZWJ / ZWNJ and the two emoji presentation selectors are the legitimate
 # exceptions: they shape neighbouring characters rather than carry payload.
 _ALLOWED_FORMAT_CHARS = frozenset("\u200c\u200d\ufe0e\ufe0f")
-# Only the joiners form a run worth counting. The presentation selectors sit
-# adjacent to a joiner in ordinary emoji — ❤️\u200d🔥 is VS16 then ZWJ — so
-# counting them too refuses text people actually write.
-_JOINERS = frozenset("\u200c\u200d")
+# All four allowed characters count toward a run. Excluding the presentation
+# selectors reopened the channel this rule exists to close: an alternating
+# VS15/VS16 or ZWJ/VS16 sequence is then invisible to every check, and 80 of
+# them landed in a real file during review. The threshold is what separates
+# payload from text — measured across six real sequences, emoji cap at two
+# adjacent (heart-on-fire is VS16 then ZWJ; so do the flag and bouncing-ball
+# forms), while a usable alphabet needs many more.
+_RUN_CHARS = _ALLOWED_FORMAT_CHARS
+_MAX_ADJACENT_INVISIBLE = 2
 # (first, last) inclusive. Cf is category-detected; these are the ranges whose
 # category (Mn, Lo) does not distinguish them from ordinary text.
 _HIDDEN_RANGES = (
@@ -139,12 +144,10 @@ def hidden_characters(raw: str) -> list[tuple[int, str]]:
     for ch in raw:
         if is_hidden_char(ch):
             found.append((ord(ch), unicodedata.name(ch, "unnamed")))
-        # The allowed joiners shape the characters on either side of them, so a
-        # legitimate one is always singular. Two in a row is a zero-width
-        # alphabet with extra steps.
-        run = run + 1 if ch in _JOINERS else 0
-        if run == 2:
-            found.append((ord(ch), f"{unicodedata.name(ch, 'unnamed')} (consecutive)"))
+        run = run + 1 if ch in _RUN_CHARS else 0
+        if run == _MAX_ADJACENT_INVISIBLE + 1:
+            found.append((ord(ch), f"{unicodedata.name(ch, 'unnamed')} "
+                                   f"(run of {run} zero-width characters)"))
     return found
 
 

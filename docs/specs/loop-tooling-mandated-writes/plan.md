@@ -332,8 +332,9 @@ matches nothing today, so it passed whether or not the task was done.)
 **Verification mode:** TDD
 **Touches:** `.../scripts/lint-knowledge.py`, `.../test-lint-knowledge.py`
 
-Per-line rule: an escape `\uXXXX` whose codepoint is `>= 0x20` and is not
-`U+0085` / `U+2028` / `U+2029` is a character written the wrong way. An escape is
+Per-line rule: an escape `\uXXXX` is a character written the wrong way unless
+it is one of the five C0 characters JSON needs (`\b \t \n \f \r`) or one of
+`U+0085` / `U+2028` / `U+2029`. An escape is
 real when the run of consecutive backslashes ending at (and including) the
 matched `\` is **odd**; skip it when the run is even, so a literal `\\u2014`
 in body text is not a false positive. The `>= 0x20` threshold catches surrogate pairs — verified,
@@ -353,7 +354,7 @@ still lint clean under the new rule (layer 3 `_check_examples` runs them).
 **Tests:** `stub: true` — red stub in
 `packs/core/tests/skills/work-loop/test-lint-knowledge.py`'s layer 1,
 `# STUB: AC20`. Entry with `—` → exit 1 naming the escape; raw `—` → 0;
-body containing a literal `\\u2014` → 0; `` control escape → 0;
+body containing a literal `\\u2014` → 0; `\u0009` (a C0 JSON needs) accepted; `\u001b` (any other C0) refused;
 ` ` → 0 (the only representation that survives `splitlines()`);
 surrogate-pair `😀` → exit 1.
 
