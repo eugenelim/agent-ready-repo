@@ -1,7 +1,7 @@
 [pack]
 name = "product-documentation"
 version = "0.1.0"
-description = "Create, revise, retrofit, audit, and verify product documentation. Covers pack READMEs, user guides, and journeys, held to Diátaxis as a page contract."
+description = "Documentation that matches what actually shipped. Write, restructure, or audit pack READMEs and user guides, with Diátaxis deciding what each page is allowed to do."
 readme = "README.md"
 display_name = "Product Documentation"
 license = "Apache-2.0 OR MIT"

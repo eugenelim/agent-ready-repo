@@ -1,7 +1,7 @@
 [pack]
 name = "figma"
 version = "0.3.0"
-description = "Work with Figma files from a normal share URL. Reads files, nodes, metadata, versions, comments, and variables, renders frame images, posts comments, and turns FigJam connector graphs into Mermaid."
+description = "Paste a Figma share URL and the agent can read the file. It pulls nodes, variables, and version history, renders frames as images, leaves comments, and turns a FigJam connector graph into Mermaid."
 readme = "README.md"
 display_name = "Figma"
 license = "Apache-2.0 OR MIT"

@@ -1,5 +1,5 @@
 {
   "name": "catalogue-curation",
   "version": "0.2.3",
-  "description": "Grow and maintain an agent-skill catalogue. Assimilate external primitives, survey candidate repos, and propose new packs, portable against any catalogue's own contracts."
+  "description": "For the person who runs a catalogue, not the people installing from it. Bring in an outside skill, survey a repo worth borrowing from, or draft the case for a new pack."
 }

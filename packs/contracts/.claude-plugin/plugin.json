@@ -1,5 +1,5 @@
 {
   "name": "contracts",
   "version": "0.3.5",
-  "description": "Design the API before the implementation. Authoring skills for OpenAPI 3.1 request/response contracts and AsyncAPI event contracts, portable across projects."
+  "description": "Write the OpenAPI or AsyncAPI contract before anyone writes a handler."
 }

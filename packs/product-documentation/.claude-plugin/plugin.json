@@ -1,5 +1,5 @@
 {
   "name": "product-documentation",
   "version": "0.1.0",
-  "description": "Create, revise, retrofit, audit, and verify product documentation. Covers pack READMEs, user guides, and journeys, held to Di\u00e1taxis as a page contract."
+  "description": "Documentation that matches what actually shipped. Write, restructure, or audit pack READMEs and user guides, with Di\u00e1taxis deciding what each page is allowed to do."
 }

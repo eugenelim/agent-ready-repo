@@ -1,7 +1,7 @@
 [pack]
 name = "governance-extras"
 version = "0.9.6"
-description = "Keep decisions and proposals on the record. Author RFCs and ADRs, track their status, and update conventions, with templates and seed READMEs to start from."
+description = "Write the RFC, record the ADR, and keep track of which ones are still open. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Governance Extras"
 license = "Apache-2.0 OR MIT"

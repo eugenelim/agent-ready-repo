@@ -1,7 +1,7 @@
 [pack]
 name = "credential-brokers"
 version = "0.3.0"
-description = "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill."
+description = "Your credentials stay out of the repo and out of the agent's context. credbroker resolves them in-process, sso-broker handles the browser cookie dance, and an LLM-cooperative credential-setup skill walks you through the first time."
 readme = "README.md"
 display_name = "Credential Brokers"
 license = "Apache-2.0 OR MIT"
