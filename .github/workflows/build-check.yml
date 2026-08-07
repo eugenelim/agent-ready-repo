@@ -559,3 +559,21 @@ jobs:
           python3 tools/test-lint-experience-agnostic.py
           python3 tools/lint-experience-agnostic.py
 
+      - name: pack description drift backstop + self-test
+        # A pack's `[pack].description` is display copy — what a person reads in
+        # a listing while deciding whether to install. The quality bar is
+        # catalogue-authoring-standards.md § 2; this lint is only a runaway-drift
+        # backstop (a long description is not necessarily a bad one, and a short
+        # one is not necessarily good). Deliberately separate from the
+        # per-target `description-max-length` in contracts/target-vocab.toml,
+        # which caps skill/agent frontmatter: that text is read by the model to
+        # decide activation, and shortening it degrades activation. The lint
+        # lives in tools/ rather than in the agentbundle package because both
+        # pack.schema.json and lint_packs run against *adopter* catalogues, and
+        # a house-style rule there would become a third party's build break.
+        # Python, invoked directly (not via bash), so the same step works on
+        # the Windows runner.
+        run: |
+          python3 tools/test-lint-pack-descriptions.py
+          python3 tools/lint-pack-descriptions.py
+

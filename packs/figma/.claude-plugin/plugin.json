@@ -1,5 +1,5 @@
 {
   "name": "figma",
   "version": "0.3.0",
-  "description": "Figma REST API primitive (credentialed CLI). Reads files / nodes / metadata / versions / comments / variables / dev resources, renders frame images, posts comments, and converts FigJam connector graphs to Mermaid."
+  "description": "Work with Figma files from a normal share URL. Reads files, nodes, metadata, versions, comments, and variables, renders frame images, posts comments, and turns FigJam connector graphs into Mermaid."
 }

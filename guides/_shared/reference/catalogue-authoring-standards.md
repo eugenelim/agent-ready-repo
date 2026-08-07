@@ -36,6 +36,43 @@ and `version`; `[pack.adapter-contract]` with `version`.
 - [packs/README.md](../../../packs/README.md) — pack layout, versioning rules, lint commands.
 - [packs/AGENTS.md](../../../packs/AGENTS.md) — agent-facing schema map and primary workflow.
 
+### `[pack].description` — display copy
+
+`[pack].description` is read by a **person** deciding whether to install: in a
+marketplace browser, a catalogue listing, or CLI output. It is not read by the model.
+
+That makes it a different artifact from a skill's or agent's `description`, which the
+model reads to decide whether to **activate** the primitive. Length is load-bearing
+there and shortening it degrades activation; per-target caps in
+`contracts/target-vocab.toml` govern it. Do not carry habits from one to the other.
+
+**Shape.** First sentence names the job the adopter accomplishes — verb-first, and
+readable on its own. An optional second sentence carries a compressed capability list
+or the one thing that distinguishes this pack. Then stop.
+
+> Supervised coding from brief to merged PR. A plan, execute, verify, review loop with
+> spec-driven development, adversarial and security reviewers, and pre-commit gates.
+
+**Anti-patterns**, each of which has shipped here before:
+
+| Anti-pattern | Instead |
+| --- | --- |
+| Opening with a component inventory (`Core: work-loop, new-spec, bug-fix, …`) | Lead with the outcome; the inventory belongs in the README |
+| Repo-insider vocabulary (`forked-context`, `the grown-up successor to X`) | Words a first-time reader resolves without this repo |
+| Cross-pack references (`co-installs with X`, `feeds Y's queue`) | Nothing that assumes another pack is known |
+| Provenance name-drops (`(STORM, PRISMA, ACH, GRADE)`) | Name a framework only when the reader is buying it |
+| Negative space (`no stack, no values tables, no pixel comps`) | Say what it does; the README can scope what it doesn't |
+| Internal paths (`~/.agentbundle/bin/`) | Nothing an adopter cannot act on from a listing |
+
+**Discoverability is carried elsewhere** — `[pack].keywords` and `[pack].categories`
+— so prose does not need to be keyword-dense to stay findable.
+
+There is no target-imposed length limit. `tools/lint-pack-descriptions.py` fails the
+build past a deliberately loose backstop, which exists only to stop runaway drift (the
+field once reached 1122 characters); it is not the quality bar. **This section is.** A
+description inside the backstop can still be bad, and a length check cannot tell —
+review against the shape and the table above.
+
 ---
 
 ## 3. Pack README standard

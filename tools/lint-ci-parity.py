@@ -361,6 +361,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         ),
     "experience framework-agnosticism lint + self-test (design-craft-pack AC8)":
         LOCAL("build-check"),
+    "pack description drift backstop + self-test":
+        LOCAL("build-check"),
 }
 
 

@@ -116,6 +116,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-catalogue-curation-guard.py",
     "tools/test-lint-experience-agnostic.py",
     "tools/lint-experience-agnostic.py",
+    "tools/test-lint-pack-descriptions.py",
+    "tools/lint-pack-descriptions.py",
     "tools/test-lint-ci-parity.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",

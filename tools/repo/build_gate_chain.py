@@ -195,7 +195,17 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-experience-agnostic",
             "tools", "lint-experience-agnostic.py",
         ),
-        # The standing check that the four steps above do not become stale
+        # Drift backstop only — the pack-description quality bar is
+        # guides/_shared/reference/catalogue-authoring-standards.md § 2.
+        _script_step(
+            "test-lint-pack-descriptions",
+            "tools", "test-lint-pack-descriptions.py",
+        ),
+        _script_step(
+            "lint-pack-descriptions",
+            "tools", "lint-pack-descriptions.py",
+        ),
+        # The standing check that the repo-lint steps above do not become stale
         # again: lint-ci-parity fails when build-check.yml gains a gate with no
         # local counterpart and no declared exemption.
         _script_step(

@@ -15,6 +15,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 > [Common Changelog guidance](https://common-changelog.org/) — the audience
 > is humans who use the software, not humans who wrote it.
 
+## [Unreleased]
+
+### Changed
+
+- **Every pack now says what it is *for* in its first sentence.** Pack
+  descriptions are what you read in a marketplace browser while deciding whether
+  to install, and ours had drifted into component inventories — `core` opened
+  with a list of thirteen skill names, and the longest ran to 1122 characters
+  against a 177-character median in the marketplace we are listed alongside.
+
+  All 22 now lead with the job you accomplish: *"Supervised coding from brief to
+  merged PR"*, *"Run Jira and Confluence from a conversation"*, *"Validate a
+  release the way production will"*. Median length drops from 227 characters to
+  188, the longest from 1122 to 263. Cross-pack references, internal file paths,
+  and framework name-drops are gone; what each pack contains still follows, just
+  after the point rather than instead of it.
+
+  Nothing about a pack's behaviour changed, and no skill or agent description
+  was touched — those drive activation and are a different contract. Five packs
+  (`architect`, `contracts`, `core`, `experience-design`, `product-strategy`)
+  also had descriptions that disagreed between their manifest and the
+  marketplace listing; all three copies now match.
+
+### Added
+
+- **A written standard for pack descriptions.**
+  `catalogue-authoring-standards.md` § 2 now says what a `[pack].description`
+  is for — display copy a person reads while deciding whether to install — and
+  names the anti-patterns that made ours drift: component-inventory openings,
+  repo-insider vocabulary, cross-pack references, framework name-drops, and
+  internal paths. It also separates this field from a *skill's* description,
+  which the model reads to decide activation and where length is load-bearing.
+
+  `tools/lint-pack-descriptions.py` backs it with a deliberately loose 800-char
+  drift backstop — enough to stop another 1122-character entry, not enough to
+  adjudicate style, because a length check cannot tell good copy from bad. It is
+  a repository policy lint, not a packaged one: `pack.schema.json` and the
+  packaged pack lint both run against *adopter* catalogues, so a rule in either
+  would turn this catalogue's house style into someone else's build break.
+
 ## [agentbundle][0.29.7] — 2026-08-06
 
 ### Changed

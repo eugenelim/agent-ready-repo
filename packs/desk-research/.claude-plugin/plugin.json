@@ -1,5 +1,5 @@
 {
   "name": "desk-research",
   "version": "1.1.4",
-  "description": "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE)."
+  "description": "Research a question and get back evidence you can cite. Scoping, source curation, synthesis, adversarial review, and decision support, plus a project mode for sustained multi-week investigations."
 }
