@@ -1,7 +1,7 @@
 {
   "name": "core",
   "version": "2.2.1",
-  "description": "Core: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
+  "description": "Supervised coding from brief to merged PR. A plan, execute, verify, review loop with spec-driven development, adversarial and security reviewers, and pre-commit gates.",
   "hooks": {
     "SessionStart": [
       {

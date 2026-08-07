@@ -1,7 +1,7 @@
 {
   "name": "linear",
   "version": "0.2.0",
-  "description": "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief.",
+  "description": "Turn a Linear Issue into a product brief, and keep the two in sync. A credentialed GraphQL CLI plus intake and sync workflows over it.",
   "hooks": {
     "SessionStart": [
       {

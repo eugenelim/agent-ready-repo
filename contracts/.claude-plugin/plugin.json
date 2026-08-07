@@ -1,7 +1,7 @@
 {
   "name": "contracts",
   "version": "0.3.5",
-  "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract).",
+  "description": "Design the API before the implementation. Authoring skills for OpenAPI 3.1 request/response contracts and AsyncAPI event contracts, portable across projects.",
   "hooks": {
     "SessionStart": [
       {

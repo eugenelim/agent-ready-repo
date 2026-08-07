@@ -1,7 +1,7 @@
 [pack]
 name = "user-guide-diataxis"
 version = "0.3.0"
-description = "Deprecated compatibility pack. Installs product-documentation and exposes a new-guide shim that routes to author-product-docs. Install product-documentation directly going forward."
+description = "Deprecated compatibility pack; install product-documentation instead. Kept so existing installs keep working, and exposes a new-guide shim that routes to the current authoring skill."
 readme = "README.md"
 display_name = "User Guide (Diátaxis) — Deprecated"
 license = "Apache-2.0 OR MIT"
