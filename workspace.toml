@@ -1368,6 +1368,30 @@ open = [
   #   adapt-to-project behavior/parity rows.
   {slug = "claude-clean-room-plugin-smoke"},
 
+  # Repository-settings action, not a code change, so it cannot land in the PR
+  # that makes it necessary. `claude-plugins-dist` has no branch protection
+  # (protection API returns 404 for it; `main` blocks force-pushes). While that
+  # branch shipped empty plugins the exposure was theoretical. Once
+  # spec/claude-plugins-manifest-correctness merges it delivers skills, agents,
+  # and a SessionStart hook that execute on every adopter's machine, published
+  # automatically by publish-claude-plugins.yml on each push to main — so anyone
+  # with repo write, or any workflow holding `contents: write`, can push
+  # executable content straight to adopters unreviewed.
+  # Done: force-push and deletion blocked on claude-plugins-dist, pushes
+  #   restricted to the publish workflow.
+  # Owner: repo owner. Sequenced FIRST in that spec's plan.md § Rollout.
+  # AC10, deferred from the implementing PR. The claude-plugins recipe writes
+  # pack.toml, README.md, .claude-plugin/ and seeds/ to the plugin root AFTER
+  # the projection lands skills/, agents/ and commands/ there. Nothing fails the
+  # build if a future pack ships a top-level skills/ dir in its own source tree
+  # and silently clobbers a projected component. Not live: no pack does today,
+  # and seeds/ lands at <pack>/seeds/ so it cannot collide.
+  # Done: build fails when a non-projection write targets a name in the
+  #   reserved set derived from the three claude-code component target-paths.
+  {slug = "plugin-root-name-collision-guard", source = "spec/claude-plugins-manifest-correctness AC10"},
+
+  {slug = "dist-branch-protection", source = "spec/claude-plugins-manifest-correctness Assumption 4"},
+
   # RFC-0068 D4 (deferred follow-on). After linear-brief-intake ships, PE
   # manually pastes spec ACs back into the Linear Issue for a review round.
   # push-acs-to-linear would automate that: read derived spec ACs, format as

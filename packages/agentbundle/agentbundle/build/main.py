@@ -46,8 +46,15 @@ _MARKETPLACE_DESCRIPTION = (
 )
 
 # Match https://github.com/owner/repo (optional trailing .git and slash).
+# HTTPS only: an `http://` link is rejected outright rather than upgraded,
+# because `git-subdir` moves the fetch host from the schema into data.
 _GITHUB_URL_RE = re.compile(
-    r"^https?://github\.com/([^/]+/[^/]+?)(?:\.git)?/?$"
+    r"^https://github\.com/([^/]+/[^/]+?)(?:\.git)?/?$"
+)
+# Matched separately so an insecure link raises instead of silently falling
+# through the "not a GitHub URL" branch, which emits no `source` at all.
+_INSECURE_GITHUB_URL_RE = re.compile(
+    r"^http://github\.com/([^/]+/[^/]+?)(?:\.git)?/?$"
 )
 
 
@@ -206,9 +213,17 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
 
       - ``author``      ← first ``[[pack.maintainers]]``, as object
         ``{"name": ..., "email": ...}`` (email omitted when absent).
-      - ``source``      ← derived from ``[pack.links].repository`` when it is a
-        GitHub URL: ``{"source": "github", "repo": "owner/name",
-        "branch": _DIST_BRANCH, "directory": pack.name}``.
+      - ``source``      ← derived from ``[pack.links].repository`` when it is an
+        **https** GitHub URL: ``{"source": "git-subdir",
+        "url": "https://github.com/owner/name.git", "path": pack.name,
+        "ref": _DIST_BRANCH}``. Claude Code's ``github`` source accepts only
+        ``repo``/``ref``/``sha`` and has no subdirectory support, so the former
+        ``branch``/``directory`` keys were silently dropped and the installer
+        cloned the default branch at repo root — every adopter received an
+        empty plugin. An ``http://`` repository link **raises**: silently
+        upgrading it to ``https`` would fabricate a URL the author did not
+        write, and silently omitting ``source`` would reintroduce the same
+        class of quiet failure.
       - ``license``     ← ``[pack].license`` (verbatim).
       - ``homepage``    ← ``[pack.links].homepage`` (verbatim).
       - ``repository``  ← ``[pack.links].repository`` (verbatim).
@@ -255,13 +270,20 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
             # from the canonical distribution branch.
             pack_name = pack.get("name", "")
             if isinstance(pack_name, str) and pack_name:
+                if _INSECURE_GITHUB_URL_RE.match(repository):
+                    raise ValueError(
+                        f"[pack.links].repository must be https, got "
+                        f"{repository!r}. Refusing to upgrade it silently: the "
+                        f"emitted url is what an adopter's client clones and "
+                        f"then executes."
+                    )
                 m = _GITHUB_URL_RE.match(repository)
                 if m:
                     out["source"] = {
-                        "source": "github",
-                        "repo": m.group(1),
-                        "branch": _DIST_BRANCH,
-                        "directory": pack_name,
+                        "source": "git-subdir",
+                        "url": f"https://github.com/{m.group(1)}.git",
+                        "path": pack_name,
+                        "ref": _DIST_BRANCH,
                     }
 
     keywords = pack.get("keywords")
@@ -485,6 +507,49 @@ def _run_per_pack(
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}
 
 
+def _resolve_contract_for_route(contract: dict, recipe: Recipe) -> dict:
+    """Return the contract with route-scoped projection targets applied.
+
+    Claude Code *plugins* load ``skills/``, ``agents/`` and ``commands/`` from
+    the plugin root; a repo or user install lands the same primitives under
+    ``.claude/``. Rather than widen every adapter's ``project`` signature with a
+    route argument, the dispatcher swaps ``target-path`` for the entry's
+    ``plugin-target-path`` on the claude-plugins recipe only. The adapter keeps
+    reading ``target-path``, so the orphan sweep
+    (``_skill_direct_directory_target``) resolves the same route-correct target
+    for free — had the route reached the projection but not the sweep, the sweep
+    would silently target a nonexistent directory.
+    """
+    if recipe.name != "per-pack-claude-plugin" or recipe.adapter != "claude-code":
+        return contract
+    entries = contract["adapter"]["claude-code"].get("projection", [])
+    missing = [
+        e["primitive"] for e in entries
+        if e.get("primitive") in ("skill", "agent", "command")
+        and "plugin-target-path" not in e
+    ]
+    if missing:
+        # Fail loud. Returning the un-rerouted contract here would silently
+        # restore the `.claude/` layout — the empty-plugin defect this exists
+        # to prevent — for a typo'd key or a stale bundled adapter.toml.
+        raise ValueError(
+            "claude-plugins recipe: claude-code contract is missing "
+            f"'plugin-target-path' for {missing}; components would be "
+            "published under .claude/ where the plugin loader cannot see them"
+        )
+    rerouted = [
+        {**entry, "target-path": entry["plugin-target-path"]}
+        if "plugin-target-path" in entry
+        else entry
+        for entry in entries
+    ]
+    adapters = dict(contract["adapter"])
+    adapters["claude-code"] = {
+        **contract["adapter"]["claude-code"], "projection": rerouted
+    }
+    return {**contract, "adapter": adapters}
+
+
 def _run_per_pack_single(
     pack: Pack,
     recipe: Recipe,
@@ -494,6 +559,7 @@ def _run_per_pack_single(
     produced: dict[str, str],
 ) -> None:
     """Execute the derivation pipeline for a single pack."""
+    contract = _resolve_contract_for_route(contract, recipe)
     per_pack_output = output_dir / recipe.output_subdir / pack.name
     _assert_under(per_pack_output, output_dir)
     # Transactional cleanup (Blocker-4): remove any prior partial or
@@ -700,19 +766,25 @@ def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
     _assert_under(output_path, output_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Derive marketplace name and owner from the first entry that carries a
-    # source.repo field (populated above from pack.toml via derive_projectable_subset).
+    # Derive marketplace name and owner from the first entry's `source.url`
+    # (populated above from pack.toml via derive_projectable_subset). This
+    # reads `url` rather than the former `repo`: a `git-subdir` source carries
+    # no `repo`, so leaving the old split in place would silently drop the
+    # envelope's `name`, `owner` and `description` — the same defect the
+    # 2026-07 "marketplace missing top-level name" fix already corrected once.
     marketplace_name: str | None = None
     marketplace_owner: dict | None = None
     for entry in entries:
         src = entry.get("source")
         if isinstance(src, dict):
-            repo = src.get("repo", "")
-            if isinstance(repo, str) and "/" in repo:
-                owner_part, name_part = repo.split("/", 1)
-                marketplace_name = name_part
-                marketplace_owner = {"name": owner_part}
-                break
+            url = src.get("url", "")
+            if isinstance(url, str):
+                m = _GITHUB_URL_RE.match(url)
+                if m:
+                    owner_part, name_part = m.group(1).split("/", 1)
+                    marketplace_name = name_part
+                    marketplace_owner = {"name": owner_part}
+                    break
 
     payload: dict = {}
     if marketplace_name:

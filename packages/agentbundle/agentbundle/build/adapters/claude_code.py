@@ -62,11 +62,33 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
 # Mirror of kiro.py:_skill_direct_directory_target — keep in sync.
 # A shared helper is barred by the spec's `Never do` boundary (no
 # expansion of projections/direct_directory.py beyond `sweep_orphans`).
+def _resolve_target(output_root: Path, target_path: str) -> Path:
+    """Join a contract ``target-path`` onto ``output_root``, confined.
+
+    ``target-path`` (and its route-scoped sibling ``plugin-target-path``) are
+    contract *data*. An absolute value discards the base entirely on join
+    (``Path("/a/b") / "/etc/x"`` is ``/etc/x``) and a ``..``-bearing one walks
+    out of it — and because the orphan sweep resolves the same value, an
+    escaped target becomes the root of a ``shutil.rmtree``. Confine after
+    resolution rather than trusting the string (CWE-73, not just CWE-22).
+    """
+    candidate = output_root / target_path.rstrip("/")
+    root_resolved = output_root.resolve()
+    try:
+        candidate.resolve().relative_to(root_resolved)
+    except ValueError:
+        raise ValueError(
+            f"claude-code: target-path {target_path!r} escapes the output root "
+            f"{output_root}"
+        ) from None
+    return candidate
+
+
 def _skill_direct_directory_target(contract: dict, output_root: Path) -> Path | None:
     adapter_block = contract["adapter"]["claude-code"]
     for entry in adapter_block.get("projection", []):
         if entry.get("primitive") == "skill" and entry.get("mode") == "direct-directory":
-            return output_root / entry["target-path"].rstrip("/")
+            return _resolve_target(output_root, entry["target-path"])
     return None
 
 
@@ -128,8 +150,11 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
             continue
 
         if mode == "direct-directory":
-            _project_direct_directory(source_dir, output_root / rule["target-path"].rstrip("/"))
+            _project_direct_directory(
+                source_dir, _resolve_target(output_root, rule["target-path"])
+            )
         elif mode == "direct-file":
+            _resolve_target(output_root, rule["target-path"])  # confinement check
             _project_direct_file(source_dir, output_root, rule["target-path"])
         elif mode == "merge-json":
             project_merge_json(source_dir, output_root, rule)

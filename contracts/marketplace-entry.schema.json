@@ -61,6 +61,9 @@
     "displayName": {
       "type": "string"
     },
+    "category": {
+      "type": "string"
+    },
     "source": {
       "type": "object",
       "required": [
@@ -101,46 +104,6 @@
         "required": [
           "sha"
         ]
-      }
-    },
-    "hooks": {
-      "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "SessionStart": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "hooks": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "required": [
-                    "type",
-                    "command"
-                  ],
-                  "additionalProperties": false,
-                  "properties": {
-                    "type": {
-                      "type": "string",
-                      "enum": [
-                        "command"
-                      ]
-                    },
-                    "command": {
-                      "type": "string"
-                    },
-                    "timeout": {
-                      "type": "integer"
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
       }
     }
   }

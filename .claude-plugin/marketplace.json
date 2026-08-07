@@ -24,10 +24,10 @@
       "name": "architect",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "architect",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "architect",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.14.3"
     },
@@ -50,10 +50,10 @@
       "name": "atlassian",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "atlassian",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "atlassian",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.7.1"
     },
@@ -74,10 +74,10 @@
       "name": "catalogue-curation",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "catalogue-curation",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "catalogue-curation",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.2.3"
     },
@@ -100,10 +100,10 @@
       "name": "contracts",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "contracts",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "contracts",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.3.5"
     },
@@ -127,10 +127,10 @@
       "name": "converters",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "converters",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "converters",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.9.4"
     },
@@ -153,10 +153,10 @@
       "name": "core",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "core",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "core",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "2.2.1"
     },
@@ -179,10 +179,10 @@
       "name": "credential-brokers",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "credential-brokers",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "credential-brokers",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.2.3"
     },
@@ -205,10 +205,10 @@
       "name": "desk-research",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "desk-research",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "desk-research",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "1.1.4"
     },
@@ -232,10 +232,10 @@
       "name": "experience-design",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "experience-design",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "experience-design",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "2.0.0"
     },
@@ -258,10 +258,10 @@
       "name": "figma",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "figma",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "figma",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.2.3"
     },
@@ -285,10 +285,10 @@
       "name": "frontend-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "frontend-engineering",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "frontend-engineering",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.1.3"
     },
@@ -312,10 +312,10 @@
       "name": "github",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "github",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "github",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.1.3"
     },
@@ -337,10 +337,10 @@
       "name": "governance-extras",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "governance-extras",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "governance-extras",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.9.6"
     },
@@ -364,10 +364,10 @@
       "name": "iac-terraform",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "iac-terraform",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "iac-terraform",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.1.6"
     },
@@ -390,10 +390,10 @@
       "name": "linear",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "linear",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "linear",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.1.6"
     },
@@ -415,10 +415,10 @@
       "name": "monorepo-extras",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "monorepo-extras",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "monorepo-extras",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.1.6"
     },
@@ -442,10 +442,10 @@
       "name": "product-documentation",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "product-documentation",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "product-documentation",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.1.0"
     },
@@ -468,10 +468,10 @@
       "name": "product-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "product-engineering",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "product-engineering",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.13.3"
     },
@@ -495,10 +495,10 @@
       "name": "product-strategy",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "product-strategy",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "product-strategy",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.2.3"
     },
@@ -522,10 +522,10 @@
       "name": "release-engineering",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "release-engineering",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "release-engineering",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.1.9"
     },
@@ -548,10 +548,10 @@
       "name": "user-guide-diataxis",
       "repository": "https://github.com/eugenelim/agent-ready-repo",
       "source": {
-        "branch": "claude-plugins-dist",
-        "directory": "user-guide-diataxis",
-        "repo": "eugenelim/agent-ready-repo",
-        "source": "github"
+        "path": "user-guide-diataxis",
+        "ref": "claude-plugins-dist",
+        "source": "git-subdir",
+        "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.3.0"
     }

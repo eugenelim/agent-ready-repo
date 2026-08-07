@@ -494,6 +494,32 @@ project page and the swept docstrings actually reach installers.
 - Updated core dependency constraint from `^1.0` to `^2.0`. No skill or agent changes.
 
 ## [Unreleased]
+### Fixed
+
+- **Installing a pack from the marketplace now delivers its skills, agents and
+  commands.** Previously `claude plugin install <pack>@agent-ready-repo`
+  reported success and installed an empty plugin — `claude plugin details`
+  showed `Skills (0) Agents (0) Hooks (0)`. Two defects caused it. The
+  marketplace entry used a `github` source with `branch` and `directory` keys,
+  which Claude Code's `github` source does not support: both were silently
+  dropped and the installer cloned the repository's default branch at its root.
+  Entries now use a `git-subdir` source with an explicit clone URL, `path` and
+  `ref`. Separately, components were published under `<pack>/.claude/`, but
+  plugins load `skills/`, `agents/` and `commands/` from the plugin root; they
+  are now published there. Verified against Claude Code 2.1.223: `core` reports
+  Skills (13), Agents (4), Hooks (1). The install commands are unchanged.
+
+  **If you already added this marketplace**, run
+  `claude plugin marketplace update agent-ready-repo` and reinstall your packs —
+  a cached catalogue keeps serving the old entries.
+
+- **Marketplace entries are now validated in CI.** Nothing checked them before:
+  the build strips `source` from `plugin.json` before validation, and the
+  verifier inspected `marketplace.json` only for a stray `hooks` key. Both the
+  published and the repo-root marketplace now validate every entry against a
+  dedicated schema, so a malformed `source` fails the build instead of reaching
+  adopters.
+
 
 ### Added
 

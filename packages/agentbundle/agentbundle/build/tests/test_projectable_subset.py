@@ -67,10 +67,10 @@ class DeriveProjectableSubsetTests(unittest.TestCase):
                 "category": "research",
                 "displayName": "Research",
                 "source": {
-                    "source": "github",
-                    "repo": "example/repo",
-                    "branch": "claude-plugins-dist",
-                    "directory": "research",
+                    "source": "git-subdir",
+                    "url": "https://github.com/example/repo.git",
+                    "path": "research",
+                    "ref": "claude-plugins-dist",
                 },
             },
         )

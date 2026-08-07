@@ -592,7 +592,12 @@ def _step_plugin_manifests(
 ) -> list[Diagnostic]:
     """Step 13: validate generated claude-plugin manifests against schema."""
     dist_dir = tmpdir / "dist" / "claude-plugins"
-    if not dist_dir.exists():
+    root_marketplace = root / ".claude-plugin" / "marketplace.json"
+    # No early return on `dist_dir` alone: the ROOT marketplace is checked
+    # independently, so gating both on a built dist tree would make the root
+    # check unreachable whenever `dist/` is absent — a gate that only looks
+    # like a gate.
+    if not dist_dir.exists() and not root_marketplace.exists():
         return []
 
     try:
@@ -601,14 +606,75 @@ def _step_plugin_manifests(
     except ImportError:
         return []
 
-    try:
-        schema = json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
-    except Exception:
-        return []
-
     diags: list[Diagnostic] = []
 
-    for manifest_path in sorted(dist_dir.rglob("*.claude-plugin/plugin.json")):
+    # Fail CLOSED on an unresolvable schema. Loading both in one `try` with a
+    # bare `return []` meant a single missing file silently disabled the whole
+    # step — including the plugin.json validation that already worked — and
+    # `catalogue verify` still reported ok. That is the looks-like-a-gate
+    # failure this spec exists to remove, so a missing schema is a diagnostic,
+    # never a quiet pass.
+    def _load(name: str) -> dict | None:
+        try:
+            return json.loads(_read_bundled(name))
+        except Exception as exc:
+            diags.append(_err(
+                "CAT-V-013",
+                f"{name} unavailable — cannot validate plugin manifests: {exc}",
+            ))
+            return None
+
+    schema = _load("plugin-manifest.derived.schema.json")
+    entry_schema = _load("marketplace-entry.schema.json")
+    if schema is None or entry_schema is None:
+        return diags
+
+    def _check_marketplace(path: Path, label: str) -> None:
+        """Validate every ``plugins[]`` entry in a marketplace file.
+
+        Entries need their own schema: ``plugin.json`` must *not* carry
+        ``source`` (``build/main.py`` pops it) while an entry must require it,
+        and entries carry ``category``, which the derived schema forbids under
+        ``additionalProperties: false``. Until this ran, marketplace entries
+        were validated by nothing at all.
+        """
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            diags.append(_err("CAT-V-013", f"{label} parse error: {exc}",
+                              path=label))
+            return
+        for plugin_entry in payload.get("plugins", []):
+            name = plugin_entry.get("name", "unknown")
+            if "source" not in plugin_entry:
+                # WARN, not ERROR. `[pack.links].repository` is optional, the
+                # shipped scaffold pack omits it, and an external catalogue may
+                # legitimately hold packs it does not publish for marketplace
+                # install. That is a choice, not a defect — so surface the
+                # consequence and name the cause, but do not fail the build.
+                diags.append(_warn(
+                    "CAT-V-013",
+                    f"marketplace entry '{name}' has no 'source' — set "
+                    f"[pack.links].repository in that pack's pack.toml so the "
+                    f"build can emit one, or adopters cannot install it",
+                    path=label,
+                ))
+            if "hooks" in plugin_entry:
+                diags.append(_err(
+                    "CAT-V-013",
+                    f"plugin '{name}' contains 'hooks' — "
+                    "hooks must not appear in marketplace entries",
+                    path=label,
+                ))
+            for error in _validate_manifest(plugin_entry, entry_schema):
+                diags.append(_err(
+                    "CAT-V-013",
+                    f"marketplace entry '{name}': {error}",
+                    path=label,
+                ))
+
+    for manifest_path in sorted(dist_dir.rglob("*.claude-plugin/plugin.json")) \
+            if dist_dir.exists() else []:
         try:
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         except Exception as exc:
@@ -620,24 +686,17 @@ def _step_plugin_manifests(
             diags.append(_err("CAT-V-013", f"plugin manifest schema: {error}",
                                path=str(manifest_path.relative_to(tmpdir))))
 
-    marketplace_path = dist_dir / "marketplace.json"
-    if marketplace_path.exists():
-        try:
-            marketplace = json.loads(marketplace_path.read_text(encoding="utf-8"))
-        except Exception as exc:
-            diags.append(_err("CAT-V-013", f"marketplace.json parse error: {exc}",
-                              path=str(marketplace_path.relative_to(tmpdir))))
-        else:
-            for plugin_entry in marketplace.get("plugins", []):
-                if "hooks" in plugin_entry:
-                    name = plugin_entry.get("name", "unknown")
-                    diags.append(_err(
-                        "CAT-V-013",
-                        f"plugin '{name}' contains 'hooks' — "
-                        "hooks must not appear in marketplace entries",
-                        path=str(marketplace_path.relative_to(tmpdir)),
-                    ))
-                    break
+    # Both marketplace files, not just dist: the ROOT `.claude-plugin/
+    # marketplace.json` is the file `claude plugin marketplace add <owner>/<repo>`
+    # actually reads, and it is written by a second writer
+    # (`build/self_host.py:_aggregate_marketplace`).
+    dist_marketplace = dist_dir / "marketplace.json"
+    if dist_marketplace.exists():
+        _check_marketplace(dist_marketplace,
+                           str(dist_marketplace.relative_to(tmpdir)))
+
+    if root_marketplace.exists():
+        _check_marketplace(root_marketplace, ".claude-plugin/marketplace.json")
 
     return diags
 

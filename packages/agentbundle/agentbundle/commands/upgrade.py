@@ -1664,7 +1664,7 @@ def _filter_for_primitive(
 
     For example, skill ``work-loop`` under source dir ``skills`` matches:
       - ``apm/core/.apm/skills/work-loop/SKILL.md``
-      - ``claude-plugins/core/.claude/skills/work-loop/SKILL.md``
+      - ``claude-plugins/core/skills/work-loop/SKILL.md``
 
     Hook ``pre-commit`` under source dir ``hooks`` matches:
       - ``apm/core/.apm/hooks/pre-commit.sh``
