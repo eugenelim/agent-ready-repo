@@ -163,15 +163,28 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
                 # it did, reintroducing the lost update this manager exists to
                 # prevent.
                 if age is not None and not -stale_after <= age <= stale_after:
+                    # Break by rename, not unlink. Unlinking the path directly
+                    # lets a second breaker delete a lock the *winner* has since
+                    # created: B stats an abandoned lock, is descheduled, A
+                    # breaks it and acquires, then B's unlink removes A's live
+                    # lock and a third process enters. `os.replace` is atomic,
+                    # so exactly one breaker moves the file it saw.
+                    stale = lock.with_name(f"{lock.name}.stale-{token}")
                     try:
-                        lock.unlink()
+                        lock.replace(stale)
                     except FileNotFoundError:
                         pass  # another waiter won the break — just retry
                     except OSError as exc:
                         raise LockUnavailable(
                             f"{lock} looks abandoned ({age:.0f}s old) but cannot "
-                            f"be removed: {exc}"
+                            f"be moved aside: {exc}"
                         ) from None
+                    else:
+                        # The rename is what frees the path and what decides the
+                        # race; clearing the renamed file is tidiness. It is
+                        # gitignored, so failing here is not worth refusing over.
+                        with contextlib.suppress(OSError):
+                            stale.unlink()
             if time.monotonic() >= deadline:
                 held = "could not be inspected" if age is None else f"held for {age:.0f}s"
                 raise LockUnavailable(

@@ -587,33 +587,31 @@ def test_lock_release_only_unlinks_what_it_owns(target: Path) -> None:
     ok(name)
 
 
-def test_lock_reports_on_an_unremovable_lock(target: Path) -> None:
-    """AC17a. A lock path that cannot be unlinked must report, not busy-spin —
-    both `continue` paths in the retry loop used to skip the deadline."""
-    name = "lock-reports-on-an-unremovable-lock"
+def test_stale_directory_lock_is_broken_not_fatal(target: Path) -> None:
+    """AC17a. A directory at the lock path used to be unbreakable and reported.
+    Breaking by rename makes it recoverable instead: the rename frees the path,
+    which is the whole point, and clearing the renamed entry is best-effort."""
+    name = "stale-directory-lock-is-broken-not-fatal"
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
-    lock.mkdir()  # a directory here: O_EXCL fails, and so does unlink
-    # Backdate it past `stale_after`, or the takeover branch — the one that
-    # discovers the path is unremovable — is never reached at all.
-    old = time.time() - 10_000
+    lock.mkdir()
+    old = time.time() - 10_000          # backdate past stale_after
     os.utime(lock, (old, old))
     try:
-        started = time.monotonic()
         proc = run(*_append_args(target))
-        elapsed = time.monotonic() - started
-        out = proc.stdout + proc.stderr
-        if proc.returncode == 0:
-            fail(name, "appended despite an unusable lock path")
-        elif elapsed > 30:
-            fail(name, f"took {elapsed:.0f}s — it should report at once, not wait out "
-                       f"the deadline or busy-spin")
-        elif "cannot be removed" not in out:
-            fail(name, f"did not name the unremovable lock: {out!r}")
+        if proc.returncode != 0:
+            fail(name, f"an abandoned directory lock was fatal: "
+                       f"{(proc.stdout + proc.stderr)[:160]}")
+        elif lock.exists():
+            fail(name, "the lock path was not freed")
         else:
             ok(name)
     finally:
-        lock.rmdir()
+        for leftover in target.parent.glob(f"{lock.name}*"):
+            if leftover.is_dir():
+                leftover.rmdir()
+            else:
+                leftover.unlink(missing_ok=True)
 
 
 def test_dangling_symlink_lock_is_bounded(target: Path) -> None:
@@ -741,7 +739,7 @@ def main() -> int:
             test_exclusive_lock_actually_excludes,
             test_lock_release_only_unlinks_what_it_owns,
             test_losing_a_stale_break_race_is_a_retry_not_a_refusal,
-            test_lock_reports_on_an_unremovable_lock,
+            test_stale_directory_lock_is_broken_not_fatal,
             test_dangling_symlink_lock_is_bounded,
             test_lock_timeout_reports_instead_of_hanging,
             test_zero_width_carriers_beyond_cf_refused,

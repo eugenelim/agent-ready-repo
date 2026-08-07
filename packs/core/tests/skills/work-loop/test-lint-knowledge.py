@@ -246,6 +246,19 @@ def layer_validation_rules(tmp: Path) -> None:
                          "source": "s"}, ensure_ascii=False) + "\n",
              1, "zero-width characters in")
 
+    # Every value is content, whatever its key. A non-string slipped past every
+    # `isinstance(...) and ...` branch without firing an error and carried 80
+    # invisible characters through the gate inside a list and a dict.
+    run_case(tmp, "stub-non-string-value-rejected",
+             '{"id": ["K-0001", "x"], "kind": "pattern", "scope": "x", '
+             '"title": "t", "body": "b", "source": "s"}\n',
+             1, "must be a string")
+    run_case(tmp, "stub-payload-in-id-rejected",
+             json.dumps({"id": "K-0001" + "\U000e0100" * 8, "kind": "pattern",
+                         "scope": "x", "title": "t", "body": "b", "source": "s"},
+                        ensure_ascii=False) + "\n",
+             1, "U+E0100")
+
     # Empty file (no learnings yet) is valid.
     run_case(tmp, "empty", "", 0, "Knowledge lint: passed")
 
@@ -578,6 +591,38 @@ def layer_production_file() -> None:
              f"{proc.stdout}{proc.stderr}")
 
 
+def layer_default_ignorable_property() -> None:
+    """The hidden-character rule is a Unicode *property*, so assert the property.
+
+    Two rounds were lost to spot-checks: `Cf` alone missed the variation
+    selectors, and adding those missed the Mongolian ones. This walks the whole
+    Default_Ignorable_Code_Point set from DerivedCoreProperties, so a future UCD
+    bump that adds a member fails here rather than in a review.
+    """
+    global RAN
+    RAN += 1
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_lk", str(LINTER))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    DEFAULT_IGNORABLE = (
+        (0x00AD, 0x00AD), (0x034F, 0x034F), (0x061C, 0x061C), (0x115F, 0x1160),
+        (0x17B4, 0x17B5), (0x180B, 0x180F), (0x200B, 0x200F), (0x202A, 0x202E),
+        (0x2060, 0x206F), (0x3164, 0x3164), (0xFE00, 0xFE0F), (0xFEFF, 0xFEFF),
+        (0xFFA0, 0xFFA0), (0xFFF0, 0xFFF8), (0x1BCA0, 0x1BCA3),
+        (0x1D173, 0x1D17A), (0xE0000, 0xE0FFF),
+    )
+    # The four deliberate exceptions: they shape neighbouring characters.
+    allowed = set("\u200c\u200d\ufe0e\ufe0f")
+    escaped = [f"U+{cp:04X}" for lo, hi in DEFAULT_IGNORABLE for cp in range(lo, hi + 1)
+               if chr(cp) not in allowed and not mod.is_hidden_char(chr(cp))]
+    if escaped:
+        fail("default-ignorable-property",
+             f"{len(escaped)} property member(s) not caught, e.g. {escaped[:6]}")
+    else:
+        ok("default-ignorable-property")
+
+
 def main() -> int:
     required, optional, kinds = _enforced_sets()
     with tempfile.TemporaryDirectory() as td:
@@ -586,6 +631,7 @@ def main() -> int:
         layer_schema_drift(required, optional, kinds)
         layer_guidance_drift(tmp, required, optional)
         layer_production_file()
+        layer_default_ignorable_property()
 
     print()
     if FAILURES:

@@ -288,6 +288,23 @@ def main(argv: list[str] | None = None) -> int:
         # — surface every problem on the line in one lint pass rather than
         # making the author re-run the linter per fix.
 
+        # Every value is content: session-start replays `id` and `kind` into the
+        # session block alongside the prose. A non-string slipped past every
+        # `isinstance(...) and ...` branch below without firing an error, and
+        # carried 80 invisible characters through the gate in a list and a dict.
+        for key, value in entry.items():
+            if not isinstance(value, str):
+                err(line_no, f"{key!r} must be a string, got "
+                             f"{type(value).__name__!r}")
+                continue
+            for problem in field_problems(value):
+                err(
+                    line_no,
+                    f"{key!r} contains a {problem} — entries are replayed "
+                    f"verbatim into every session, so these are refused; "
+                    f"write entries with append-knowledge.py",
+                )
+
         id_val = entry.get("id")
         if isinstance(id_val, str) and not ID_PATTERN.match(id_val):
             err(line_no, f"id {id_val!r} must match ^K-\\d{{4,}}$ (e.g. K-0001)")
@@ -315,13 +332,6 @@ def main(argv: list[str] | None = None) -> int:
             if not isinstance(v, str) or not v.strip():
                 err(line_no, f"{k!r} must be a non-empty string")
                 continue
-            for problem in field_problems(v):
-                err(
-                    line_no,
-                    f"{k!r} contains a {problem} — entries are replayed verbatim "
-                    f"into every session, so these are refused; write entries "
-                    f"with append-knowledge.py",
-                )
             if k == "scope":
                 segments = [g.strip() for g in v.split(",") if g.strip()]
                 if not segments:
