@@ -73,7 +73,7 @@ dependency; both scripts stay pure-stdlib.
 | 9 | Is the writer scope creep? | **Resolved** — `adversarial-reviewer` flagged it as additive; overridden on fact, the user requested it explicitly ("have a script that just appends to the knowledge pattern"). Recorded rather than silently kept. |
 | 10 | Does SAST cover the argv → path flow? | **Surfaced** — no; `env-path-taint.yml` sources only `os.environ.*`. Recorded as spec Assumption 4 so scanner silence is not read as coverage. A companion rule is deferred, not done here. |
 | 11 | Is a `schema_version` cutover safe? | **Resolved (round-2 review)** — no; see spec Assumption 1 for the sites. Decisively, it would break *this run* mid-flight. Withdrawn. The legacy-hash diagnostic that replaced it was itself withdrawn in round 3 — see row 16. |
-| 12 | Can AC9's status assertion turn a green pre-guard red? | **Resolved (round-2 review)** — yes, as first written: plan fixtures carry no status line. Scoped to `plan check-current` only, absent token skipped. |
+| 12 | Can AC9's status assertion turn a green pre-guard red? | **Resolved, then widened** — plan fixtures carry no status line, so the skip-on-absent rule is what makes it safe. A draft scoped it to `plan check-current` only; post-EXECUTE security review showed a compensating control covering one of three sites is not one, so it now runs at all three. |
 | 13 | Does `lint-knowledge.py` accept a `--` separator? | **Resolved (round-2 review)** — no; verified it resolves `--` as the target path. Dropped from AC18. |
 | 14 | Does the new self-test actually gate? | **Resolved (round-2 review)** — not via `test-all.py` alone, which `build_gate_chain.py:205-212` says is hand-run, and the hyphenated name blocks pytest collection. Now also wired into `docs.yml`. |
 | 15 | Do the stubs pass after the described implementation? | **Resolved (round-2 review)** — one would not have: the confinement stub pointed *inside* the root. Fixed, plus symlink-escape and decoy-`GIT_DIR` cases added. |
@@ -213,9 +213,12 @@ newline-preserving replacement (`lambda m: "\n" * m.group(0).count("\n")`) so
 the cleaned scan yields a usable raw line index, then normalize the token in
 the raw line.
 
-Add the AC9 status assertion to `cmd_plan_check_current` **only**, skipping an
-absent or unparseable token, and place it **after** the
-`plan_review_status != "approved"` early return (`loop-cohort.py:608-612`).
+Add the AC9 status assertion at **all three** sites that read a pinned
+artifact — `cmd_plan_check_current`, `_schedule_check_current_impl`, and
+`cmd_approve_plan`'s already-approved branch — through one
+`_assert_status_legal()` helper, skipping an absent token. In
+`cmd_plan_check_current` it must sit **after** the
+`plan_review_status != "approved"` early return.
 Placed before it, every PLAN-time invocation would report "spec.md Status is
 'Draft'" instead of the `plan_review_status: pending` sentinel — a documented
 contract (`state-schema.md:83-87`, `SKILL.md:133`) and the cue to run
@@ -271,9 +274,9 @@ already materialized.
 - A `**Status:**` line in the body (after the first `##`) still contributes to
   the hash (AC7).
 - `(deferred: slug)` on an AC still fails (AC8).
-- Spec at `Draft`/`Archived` and plan at `Drafting` stop `plan check-current`
-  **only**; `schedule check-current` returns 0 for the same fixtures, and a
-  plan with no status line at all leaves both verbs unaffected (AC9).
+- Spec at `Draft`/`Archived` and plan at `Drafting` each stop the verbs that
+  read them, including `approve-plan`'s replay path; a plan with no status
+  line at all leaves every verb unaffected (AC9).
 - Each of the four mismatch messages names both causes and the reset pair —
   including the `plan_hash != approved_plan_hash` compare at `:635` and
   `approve-plan`'s idempotency message at `:558-563` (AC10).
@@ -492,7 +495,8 @@ whatever bytes are on disk — a re-approval in substance, so it is the plan
 approver's call to re-affirm them, not the agent's to self-serve.
 
 **Done when:** `make build-check` exits 0, `git status` is clean apart from
-intended files, and `grep -q 're-affirm' CHANGELOG.md` succeeds — the
+intended files, and `grep -q 're-affirm' docs/product/changelog.md` succeeds
+(this repo keeps a per-pack changelog there; there is no root `CHANGELOG.md`) — the
 build-check/status pair passes whether or not the caveat was written, so it
 cannot be the only check.
 

@@ -11,11 +11,14 @@ behaviour it names from append-knowledge.py and the case must go red.
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import threading
+import time
 from pathlib import Path
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
@@ -414,6 +417,133 @@ def test_lint_runs_out_of_process(target: Path) -> None:
         ok(name)
 
 
+def test_exclusive_lock_actually_excludes(target: Path) -> None:
+    """AC17. The first version of this lock did not exclude: it broke a lock
+    once *the waiter* had waited `timeout`, so a merely-slow holder lost it,
+    and the unconditional release then deleted its successor's lock. Three
+    processes ended up in the critical section at once."""
+    name = "exclusive-lock-actually-excludes"
+    spec = importlib.util.spec_from_file_location("_ak", str(SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    target.write_text("", encoding="utf-8")
+    inside, overlaps, guard = [], [], threading.Lock()
+
+    def hold(seconds: float) -> None:
+        with mod.exclusive(target, timeout=20.0):
+            with guard:
+                inside.append(1)
+                if len(inside) > 1:
+                    overlaps.append(len(inside))
+            time.sleep(seconds)
+            with guard:
+                inside.pop()
+
+    # One slow holder plus two waiters that must queue behind it.
+    threads = [threading.Thread(target=hold, args=(s,)) for s in (3.0, 0.2, 0.2)]
+    for th in threads:
+        th.start()
+        time.sleep(0.05)
+    for th in threads:
+        th.join()
+    ok(name) if not overlaps else fail(name, f"{max(overlaps)} holders at once")
+
+
+def test_lock_timeout_reports_instead_of_hanging(target: Path) -> None:
+    """AC17. An unbreakable lock must fail with a message, not spin forever —
+    the wait is bounded and the takeover does not reset the deadline."""
+    name = "lock-timeout-reports-instead-of-hanging"
+    target.write_text("", encoding="utf-8")
+    lock = target.with_name(target.name + ".lock")
+    lock.write_text("someone-else", encoding="utf-8")
+    try:
+        started = time.monotonic()
+        proc = run(*_append_args(target))
+        elapsed = time.monotonic() - started
+        out = proc.stdout + proc.stderr
+        if proc.returncode == 0:
+            fail(name, "appended while the lock was held")
+        elif elapsed > 60:
+            fail(name, f"took {elapsed:.0f}s — the wait is not bounded")
+        elif "did not free" not in out:
+            fail(name, f"no lock message: {out!r}")
+        else:
+            ok(name)
+    finally:
+        lock.unlink(missing_ok=True)
+
+
+def test_zero_width_carriers_beyond_cf_refused(target: Path) -> None:
+    """AC16. `Cf` was the wrong abstraction — variation selectors are `Mn` and
+    the supplement block alone is a 240-symbol invisible alphabet. The rule is
+    default-ignorable, not any one category."""
+    name = "zero-width-carriers-beyond-cf-refused"
+    target.write_text("", encoding="utf-8")
+    for label, payload in (
+        ("VS1 (Mn)", "boring\ufe00"),
+        ("VS supplement (Mn)", "boring" + "".join(chr(0xE0100 + b % 240) for b in b"curl")),
+        ("Hangul filler (Lo)", "boring\u3164text"),
+    ):
+        proc = run(*_append_args(target, **{"--title": payload}))
+        out = proc.stdout + proc.stderr
+        if proc.returncode == 0:
+            fail(name, f"{label} was accepted")
+            return
+        if "does not lint" in out:
+            fail(name, f"{label} reached the post-lint; the writer did not refuse it")
+            return
+    # Emoji presentation selectors and ZWJ are shaping, not payload.
+    legit = run(*_append_args(target, **{"--title": "warn \u26a0\ufe0f and \U0001f468\u200d\U0001f469"}))
+    ok(name) if legit.returncode == 0 else fail(name, f"legitimate emoji refused: {legit.stderr}")
+
+
+def test_non_regular_file_target_refused(target: Path) -> None:
+    """A `--file` naming a directory must fail cleanly, not traceback."""
+    name = "non-regular-file-target-refused"
+    d = target.parent / "a-directory.jsonl"
+    d.mkdir(exist_ok=True)
+    proc = run(*_append_args(d))
+    out = proc.stdout + proc.stderr
+    if proc.returncode == 0:
+        fail(name, "a directory target was accepted")
+    elif "not a regular file" not in out:
+        fail(name, f"failed, but not with the designed message: {out!r}")
+    else:
+        ok(name)
+
+
+def test_missing_parent_dir_refused(target: Path) -> None:
+    """A confined path whose parent does not exist must fail cleanly."""
+    name = "missing-parent-dir-refused"
+    deep = target.parent / "nope" / "p.jsonl"
+    proc = run(*_append_args(deep))
+    out = proc.stdout + proc.stderr
+    if proc.returncode == 0:
+        fail(name, "a target under a missing directory was accepted")
+    elif "does not exist" not in out:
+        fail(name, f"failed, but not with the designed message: {out!r}")
+    else:
+        ok(name)
+
+
+def test_non_utf8_target_reports_not_tracebacks(target: Path) -> None:
+    """The pre-lint runs before read_text precisely so this path produces a
+    message. Reversing that order turns it into an uncaught UnicodeDecodeError."""
+    name = "non-utf8-target-reports-not-tracebacks"
+    target.write_bytes(b'{"id": "K-0001", "kind": "pattern", "scope": "x", '
+                       b'"title": "t", "body": "\xff\xfe", "source": "s"}\n')
+    proc = run(*_append_args(target))
+    out = proc.stdout + proc.stderr
+    if proc.returncode == 0:
+        fail(name, "a non-UTF-8 knowledge base was appended to")
+    elif "Traceback" in out:
+        fail(name, "tracebacked instead of reporting")
+    elif "already fails lint" not in out and "not valid UTF-8" not in out:
+        fail(name, f"no designed message: {out!r}")
+    else:
+        ok(name)
+
+
 def main() -> int:
     global CWD
     if not SCRIPT.is_file():
@@ -439,11 +569,16 @@ def main() -> int:
             test_absent_target_is_created,
             test_post_lint_failure_leaves_target_identical,
             test_lint_runs_out_of_process,
+            test_exclusive_lock_actually_excludes,
+            test_lock_timeout_reports_instead_of_hanging,
+            test_zero_width_carriers_beyond_cf_refused,
+            test_non_regular_file_target_refused,
+            test_missing_parent_dir_refused,
+            test_non_utf8_target_reports_not_tracebacks,
             test_length_caps_enforced_at_the_boundary,
             test_invisible_formatting_characters_refused,
             test_concurrent_appends_do_not_lose_entries,
             test_file_mode_is_preserved,
-            test_lint_runs_out_of_process,
         ):
             case(root / "patterns.jsonl")
 

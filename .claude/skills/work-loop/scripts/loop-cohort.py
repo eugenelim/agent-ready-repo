@@ -206,24 +206,32 @@ def _sha256_bytes(data: bytes) -> str:
 # Everything else stays pinned, including anything else on the status line: a
 # `- **Status:** Implementing — scope now also covers X` still moves the digest.
 _STATUS_PLACEHOLDER = "<loop-cohort:status>"
-_AC_HEADING_RE = re.compile(r"^##\s+Acceptance\s+Criteria\b", re.IGNORECASE)
-_ANY_SECTION_RE = re.compile(r"^##\s+")
+# A heading, or the bold prose lead-in two specs here use instead. Missing the
+# latter would leave those specs with no normalization at all — i.e. AC5
+# failing for them by construction, the defect this spec exists to fix.
+_AC_HEADING_RE = re.compile(
+    r"^ {0,3}(?:#{2,3}\s+|\*\*)Acceptance\s+Criteria\b", re.IGNORECASE
+)
+_ANY_SECTION_RE = re.compile(r"^ {0,3}#{1,2}[ \t]")
 
 # AC10: a mismatch has two possible causes and the verb cannot tell them apart,
 # so it names both rather than asserting the one that is usually wrong.
 _BOTH_CAUSES = (
     "either the approved scope changed, or this baseline was pinned before "
-    "canonical hashing landed. For the second case recover the cohort only — "
-    "`loop-cohort reset`, then `init` with the engine's existing run_id, then "
-    "`approve-plan` + `schedule`. Do NOT run `loop-engine reset`: `plan-locked` "
-    "is legal only from SPEC-PLAN-APPROVED and the engine has no state-setting "
-    "verb, so resetting it strands the run. Full procedure, including the "
-    "Status restores it needs first: the [core] Upgrading note in "
-    "docs/product/changelog.md"
+    "canonical hashing landed. For the second case, recover the cohort only: "
+    "(1) restore `Status: Approved` in BOTH spec.md and plan.md — approve-plan "
+    "refuses unless both read Approved; (2) `loop-cohort reset`; "
+    "(3) `loop-cohort init <spec-dir> --run-id <the engine's existing run_id>`, "
+    "read from `loop-engine status --json`; (4) `approve-plan` then `schedule`; "
+    "(5) restore the Status you were on. Do NOT run `loop-engine reset` — "
+    "`plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no "
+    "state-setting verb, so resetting it strands the run. Note the reset clears "
+    "the retry counters and the stasis baseline, and re-running approve-plan "
+    "re-pins whatever is on disk, so it is a re-approval in substance"
 )
 
 
-def canonical_contract(text: str) -> str:
+def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
     """Canonical form of spec.md / plan.md for approval pinning.
 
     Normalizes exactly four things: CRLF/CR → LF; per-line trailing whitespace;
@@ -265,23 +273,29 @@ def canonical_contract(text: str) -> str:
             lines[i] = raw[:start] + _STATUS_PLACEHOLDER + raw[start + len(token):]
         break
 
-    # Scoped to the Acceptance Criteria section, matching what the skill
-    # actually mandates ticking. File-wide would also un-pin a checkbox under
-    # `## Boundaries` — including a `Never do` item, which is precisely the
-    # scope surface the pin exists to protect. plan.md has no such section, so
-    # its checkboxes stay pinned; nothing mandates ticking them.
+    # Which checkboxes count as bookkeeping depends on the artifact, so the
+    # caller says. A spec's progress marks live in its Acceptance Criteria
+    # section; a checkbox under `## Boundaries` is a `Never do` item, which is
+    # precisely the scope the pin protects — two specs in this repo have one.
+    # A plan has no such section: every checkbox in it is task progress, and
+    # four plans here carry them, so a plan is normalized file-wide.
     #
-    # Case-insensitive on purpose: `lint-spec-status.py:274` matches
-    # `Acceptance Criteria` exactly, and ten specs in this repo spell it with a
-    # lowercase `c`, so its own AC extraction silently returns nothing for
-    # them. Inheriting that bug here would un-pin nothing in those specs and
-    # break AC5 for them. Tracked as `lint-spec-status-ac-heading-case`.
-    in_ac = False
+    # Case-insensitive on purpose: `lint-spec-status.py` matches `Acceptance
+    # Criteria` exactly, so its own AC extraction silently returns nothing for
+    # the specs that spell it with a lowercase `c`. Inheriting that bug here
+    # would break this normalization for exactly those specs. Tracked as
+    # `spec-ac-heading-casing-silent-gate`.
+    in_ac = not ac_section_only
+    fenced = False
     for i, line in enumerate(lines):
-        if _AC_HEADING_RE.match(line):
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+        if fenced:
+            continue
+        if ac_section_only and _AC_HEADING_RE.match(line):
             in_ac = True
             continue
-        if in_ac and _ANY_SECTION_RE.match(line):
+        if ac_section_only and in_ac and _ANY_SECTION_RE.match(line):
             in_ac = False
         if in_ac and lint._AC_DONE_RE.match(line):
             # Bracket contents only — leading whitespace and the bullet run stay
@@ -295,7 +309,10 @@ def canonical_contract(text: str) -> str:
 def sha256_canonical_contract(path: Path) -> str:
     """SHA-256 of canonical_contract(<spec.md | plan.md>)."""
     return _sha256_bytes(
-        canonical_contract(path.read_text(encoding="utf-8")).encode("utf-8")
+        canonical_contract(
+            path.read_text(encoding="utf-8"),
+            ac_section_only=(path.name != "plan.md"),
+        ).encode("utf-8")
     )
 
 
@@ -608,12 +625,25 @@ def cmd_reset(args: argparse.Namespace) -> int:
 
 # ── approve-plan ──────────────────────────────────────────────────────────
 
+class UnreadableArtifact(Exception):
+    """The artifact exists but could not be read as UTF-8 markdown."""
+
+
 def _read_md_status(path: Path) -> str | None:
-    """Return the canonical status token from a markdown file, or None."""
+    """Return the canonical status token, or None when the file has none.
+
+    None means "no status line", which callers legitimately skip. A file that
+    cannot be *read* is a different thing and must not be silently skipped —
+    it raises, so the caller stops with a reason instead of proceeding on a
+    guard that quietly did nothing.
+    """
     try:
         text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise UnreadableArtifact(f"{path.name}: {exc}") from exc
+    try:
         return _lint_spec_status().parse_status(text)
-    except (OSError, ImportError, UnicodeDecodeError):
+    except ImportError:
         return None
 
 
@@ -638,7 +668,10 @@ def _assert_status_legal(verb: str, *paths: Path) -> int | None:
         allowed = _LEGAL_AFTER_APPROVAL.get(path.name)
         if allowed is None or not path.exists():
             continue
-        token = _read_md_status(path)
+        try:
+            token = _read_md_status(path)
+        except UnreadableArtifact as exc:
+            return stop(f"{verb}: {exc}")
         if token is not None and token not in allowed:
             return stop(
                 f"{verb}: {path.name} Status is {token!r}; expected one of "

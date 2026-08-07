@@ -394,27 +394,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no skill, script, command, hook, reference or eval was removed, renamed, or
   edited. If you have an older install, the stale `test_*.py` files under your
   installed skills are safe to delete.
-## [core][2.2.3] — 2026-08-07
+
+## [core][2.2.2] — 2026-08-07
 
 ### Security
 
-- **The knowledge writer refuses invisible formatting characters.** It rejected
-  `Cc` controls but not `Cf` — the category holding bidi overrides, zero-width
-  characters, and the Unicode Tag block, which encodes arbitrary ASCII at zero
-  visual width. Since `session-start` replays every entry's title, scope and
-  body verbatim into an agent's context (and a `tier: invariant` entry goes in
-  regardless of scope), that was a durable prompt-injection channel invisible
-  in a diff. Both the writer and `lint-knowledge.py` now refuse them, the
-  latter because the file is hand-editable. ZWJ and ZWNJ stay legal — they are
-  text shaping, not a way to hide payload.
+- **The knowledge writer refuses invisible characters.** It rejected `Cc`
+  controls only, so bidi overrides, the Unicode Tag block, and the variation
+  selectors all passed — the last of those being 240 code points that encode
+  arbitrary text at zero visual width. Since `session-start` replays every
+  entry's title, scope and body verbatim into an agent's context (and a
+  `tier: invariant` entry goes in regardless of scope), that was a durable
+  prompt-injection channel invisible both in a diff and on screen. The rule is
+  now **default-ignorable code point** rather than any single Unicode category,
+  so the next carrier class is covered by construction; a first attempt keyed
+  on `Cf` alone and was bypassed by variation selectors, which are `Mn`. Both
+  the writer and `lint-knowledge.py` enforce it from one shared predicate,
+  because the file is hand-editable too. ZWJ, ZWNJ and the two emoji
+  presentation selectors stay legal — they shape neighbouring characters — but
+  two joiners in a row do not, since a legitimate one is always singular.
 
 ### Fixed
 
 - **Concurrent appends no longer lose entries while reporting success.**
   Allocating `max(id) + 1` and then replacing the file is a read-modify-write;
   unlocked, six concurrent appends landed two entries and told all six callers
-  their learning was recorded. The read-through-replace window is now serialized
-  with a cross-platform lock that a killed process cannot wedge.
+  their learning was recorded. The window is now serialized with a
+  cross-platform lock. Note what makes it correct, since a first version got
+  both halves wrong and did not exclude at all: a lock is broken only on
+  evidence it is abandoned — its own age, never how long the waiter has waited,
+  because a merely-slow holder still holds it — and it is released only if
+  still owned, since a stale-breaker may have taken it over. The wait is
+  bounded and reports rather than spinning on a lock it cannot remove.
 - **Appending no longer narrows the knowledge file's permissions.**
   `mkstemp` creates `0600` and `os.replace` carried that onto the target, taking
   a committed world-readable file to owner-only. Git tracks only the exec bit,
@@ -438,8 +449,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sequence has no `init` step, so `approve-plan` immediately refused; and it
   omitted that `loop-engine reset` must *not* be run. It now points at the
   Upgrading note below.
-
-## [core][2.2.2] — 2026-08-06
 
 ### Fixed
 
@@ -489,7 +498,6 @@ approver's call to re-affirm them, not something to self-serve. And the reset
 returns `implementation_retry_count`, `review_round_count`, `review_retry_count`
 and the recorded finding fingerprints to zero, so retry caps restart and stasis
 detection loses its baseline.
-
 ## [agentbundle][0.29.4] — 2026-08-06
 
 ### Changed

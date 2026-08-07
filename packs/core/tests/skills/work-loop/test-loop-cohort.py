@@ -2214,11 +2214,6 @@ def test_ac5_checkbox_outside_the_ac_section_is_scope(tmp: Path) -> None:
     """AC5's boundary. A checkbox under `## Boundaries` is not progress
     bookkeeping — `Never do` items are exactly the scope the pin protects."""
     name = "ac5-checkbox-outside-ac-section-is-scope"
-    spec_dir, _ = _approved_run(tmp, name)
-    base = (spec_dir / "spec.md").read_text(encoding="utf-8")
-    (spec_dir / "spec.md").write_text(
-        base + "\n## Boundaries\n\n- [ ] Never delete the database\n", encoding="utf-8")
-    run_cohort("reset", str(spec_dir))
     spec_dir2, _ = _approved_run(tmp, name + "-2")
     (spec_dir2 / "spec.md").write_text(
         (spec_dir2 / "spec.md").read_text(encoding="utf-8")
@@ -2396,6 +2391,126 @@ def test_ac10_mismatch_names_both_causes(tmp: Path) -> None:
     fail(name, f"sites missing the both-causes wording: {missing}") if missing else ok(name)
 
 
+def test_ac10_plan_compare_names_both_causes(tmp: Path) -> None:
+    """AC10, plan side. The spec compare runs first and returns, so a
+    spec-and-plan mismatch never reaches this branch — it needs a plan-only
+    change."""
+    name = "ac10-plan-compare-names-both-causes"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, content="# Plan\n\n- **Status:** Approved\n\n"
+               "### T1 different\n\n**Depends on:** none\n")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "a plan-only change passed")
+    elif "canonical hashing" not in err:
+        fail(name, f"plan compare omits the both-causes wording: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac10_plan_hash_desync_names_both_causes(tmp: Path) -> None:
+    """AC10, the state-vs-state site. Re-running `schedule` against a legacy
+    approved_plan_hash reaches a compare that touches no file."""
+    name = "ac10-plan-hash-desync-names-both-causes"
+    spec_dir, run_id = _approved_run(tmp, name)
+    state = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    state["plan_hash"] = "0" * 64
+    (spec_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    if rc == 0:
+        fail(name, "a desynced plan_hash passed")
+    elif "canonical hashing" not in err:
+        fail(name, f"the plan_hash compare omits the both-causes wording: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac9_regressed_plan_status_stops(tmp: Path) -> None:
+    """AC9, plan side. Deleting plan.md's entry from the legal-status table
+    leaves every other case green."""
+    name = "ac9-regressed-plan-status-stops"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, status="Drafting")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "a plan regressed to Drafting passed")
+    elif "Status is 'Drafting'" not in err:
+        fail(name, f"stopped, but not on the plan status: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac9_approve_plan_replay_checks_status(tmp: Path) -> None:
+    """AC9's third site. The already-approved branch returns a clean no-op
+    before the crash-window guard, so without its own assertion it reports
+    success against a spec that no longer claims to be approved."""
+    name = "ac9-approve-plan-replay-checks-status"
+    spec_dir, run_id = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- **Status:** Approved <!--", "- **Status:** Draft <!--"),
+        encoding="utf-8")
+    rc, out, err = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    if rc == 0:
+        fail(name, f"replay reported success against a Draft spec: {out!r}")
+    elif "Status is 'Draft'" not in err:
+        fail(name, f"stopped, but not on the status: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac5_plan_task_checkbox_is_bookkeeping(tmp: Path) -> None:
+    """AC5, plan side. A plan has no Acceptance Criteria section, so its
+    checkboxes are task progress and are normalized file-wide — four plans in
+    this repo carry them."""
+    name = "ac5-plan-task-checkbox-is-bookkeeping"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    plan = ("# Plan\n\n- **Status:** Approved\n\n### T1\n\n"
+            "**Depends on:** none\n\n- [{m}] wire the thing\n")
+    write_plan(spec_dir, content=plan.format(m=" "))
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    write_plan(spec_dir, content=plan.format(m="x"))
+    rc, _, err = run_cohort("schedule", "check-current", str(spec_dir))
+    ok(name) if rc == 0 else fail(name, f"ticking a plan task broke the pin: {err!r}")
+
+
+def test_ac5_lowercase_ac_heading_still_normalizes(tmp: Path) -> None:
+    """AC5. The AC-section scan is case-insensitive on purpose: the shared
+    linter matches `Acceptance Criteria` exactly, so specs spelling it with a
+    lowercase `c` would otherwise get no normalization at all."""
+    name = "ac5-lowercase-ac-heading-still-normalizes"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    body = ("# Spec\n\n- **Status:** Approved\n\n"
+            "## Acceptance criteria\n\n- [{m}] AC1 first\n")
+    (spec_dir / "spec.md").write_text(body.format(m=" "), encoding="utf-8")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    (spec_dir / "spec.md").write_text(body.format(m="x"), encoding="utf-8")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
+    ok(name) if rc == 0 else fail(name, f"lowercase heading was not recognized: {err!r}")
+
+
+def test_ac7_fenced_ac_heading_does_not_open_the_region(tmp: Path) -> None:
+    """AC7. A `## Acceptance Criteria` inside a fenced example is documentation,
+    not a section boundary — without fence tracking it would open the region
+    and un-pin a Boundaries checkbox below it."""
+    name = "ac7-fenced-ac-heading-does-not-open-the-region"
+    head = "# S\n\n- **Status:** Approved\n\n## Boundaries\n\n"
+    fence = "```markdown\n## Acceptance Criteria\n```\n\n"
+    never = "- [{m}] Never force-push to main\n"
+    unticked = canonical_contract(head + fence + never.format(m=" "))
+    ticked = canonical_contract(head + fence + never.format(m="x"))
+    ok(name) if unticked != ticked else fail(
+        name, "a Boundaries checkbox was un-pinned by a fenced AC heading")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
@@ -2413,6 +2528,13 @@ def main() -> int:
             test_ac9_absent_plan_status_is_skipped,
             test_ac9_pending_sentinel_survives,
             test_ac10_mismatch_names_both_causes,
+            test_ac10_plan_compare_names_both_causes,
+            test_ac10_plan_hash_desync_names_both_causes,
+            test_ac9_regressed_plan_status_stops,
+            test_ac9_approve_plan_replay_checks_status,
+            test_ac5_plan_task_checkbox_is_bookkeeping,
+            test_ac5_lowercase_ac_heading_still_normalizes,
+            test_ac7_fenced_ac_heading_does_not_open_the_region,
             test_stub_lifecycle_status_bump_keeps_pin,
             test_stub_lifecycle_bump_with_vocabulary_comment,
             test_stub_status_line_smuggling_still_caught,

@@ -67,9 +67,38 @@ _MAX_LINE = 8192
 #   tools/hooks/session-start.py) breaks on them, so the escaped form is the
 #   *only* representation that survives a round trip.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
-# ZWJ / ZWNJ are text-shaping (Indic, Arabic, emoji sequences); every other
-# `Cf` character is a way to carry text no reader can see.
-_ALLOWED_FORMAT_CHARS = frozenset("\u200c\u200d")
+# Zero-width carriers. The rule is **default-ignorable code point**, not any one
+# Unicode category — a first version refused only `Cf` and was bypassed by
+# variation selectors, which are `Mn`. Framing it this way means the next
+# carrier class is covered by construction rather than by another round.
+#
+# ZWJ / ZWNJ and the two emoji presentation selectors are the legitimate
+# exceptions: they shape neighbouring characters rather than carry payload.
+_ALLOWED_FORMAT_CHARS = frozenset("\u200c\u200d\ufe0e\ufe0f")
+# (first, last) inclusive. Cf is category-detected; these are the ranges whose
+# category (Mn, Lo) does not distinguish them from ordinary text.
+_HIDDEN_RANGES = (
+    (0xFE00, 0xFE0D),    # variation selectors 1-14 (Mn)
+    (0xE0100, 0xE01EF),  # variation selector supplement, 240 of them (Mn)
+    (0x115F, 0x1160),    # Hangul choseong/jungseong fillers (Lo)
+    (0x3164, 0x3164),    # Hangul filler (Lo)
+    (0xFFA0, 0xFFA0),    # halfwidth Hangul filler (Lo)
+)
+
+
+def is_hidden_char(ch: str) -> bool:
+    """True when *ch* renders as nothing and can therefore carry payload.
+
+    Shared with `append-knowledge.py`, which imports this module — one
+    definition, so the writer and the gate cannot disagree about what is
+    invisible.
+    """
+    if ch in _ALLOWED_FORMAT_CHARS:
+        return False
+    if unicodedata.category(ch) == "Cf":
+        return True
+    cp = ord(ch)
+    return any(lo <= cp <= hi for lo, hi in _HIDDEN_RANGES)
 
 
 def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
@@ -97,9 +126,16 @@ def hidden_characters(raw: str) -> list[tuple[int, str]]:
     diff, so the gate has to see it too.
     """
     found: list[tuple[int, str]] = []
+    run = 0
     for ch in raw:
-        if unicodedata.category(ch) == "Cf" and ch not in _ALLOWED_FORMAT_CHARS:
+        if is_hidden_char(ch):
             found.append((ord(ch), unicodedata.name(ch, "unnamed")))
+        # The allowed joiners shape the characters on either side of them, so a
+        # legitimate one is always singular. Two in a row is a zero-width
+        # alphabet with extra steps.
+        run = run + 1 if ch in _ALLOWED_FORMAT_CHARS else 0
+        if run == 2:
+            found.append((ord(ch), f"{unicodedata.name(ch, 'unnamed')} (consecutive)"))
     return found
 
 
@@ -129,9 +165,20 @@ def main(argv: list[str] | None = None) -> int:
 
     seen_ids: dict[str, int] = {}
 
-    for line_no, raw in enumerate(
-        knowledge_file.read_text(encoding="utf-8").splitlines(), start=1
-    ):
+    # A gate that tracebacks on its own input is not a gate: report the
+    # undecodable file as the error it is, so the caller (and the writer that
+    # shells out to this script) gets a message instead of a stack trace.
+    try:
+        content = knowledge_file.read_text(encoding="utf-8")
+    except UnicodeDecodeError as exc:
+        print(
+            f"✖ {knowledge_file}: not valid UTF-8 — byte 0x{exc.object[exc.start]:02x} "
+            f"at position {exc.start} ({exc.reason})",
+            file=sys.stderr,
+        )
+        return 1
+
+    for line_no, raw in enumerate(content.splitlines(), start=1):
         if not raw.strip():
             continue
 

@@ -88,6 +88,14 @@ unparseable lines.
       or task checkbox (`[x]` → `[ ]`). Leading whitespace and the bullet run
       are preserved byte-for-byte, so re-indenting a criterion — which changes
       what the list contains — still moves the digest.
+
+      Checkbox scope depends on the artifact. A spec's progress marks live in
+      its Acceptance Criteria section only: a checkbox under `## Boundaries` is
+      a `Never do` item, which is the scope the pin protects, and two specs
+      here have one. A plan has no such section — every checkbox in it is task
+      progress, and four plans here carry them — so a plan is normalized
+      file-wide. The section scan skips fenced blocks and closes on an H1 as
+      well as an H2, so a documented example cannot move the boundary.
 - [x] AC2. Status and checkbox recognition reuse the shared canonical parsers
       from `lint-spec-status.py` — `parse_status`, `extract_status_token`,
       `_AC_DONE_RE` (only ticked boxes are normalized), and the three that *locate* the preamble
@@ -102,8 +110,12 @@ unparseable lines.
 - [x] AC4. Bumping spec `Status:` through `Approved → Implementing → Shipped`,
       and plan `Status:` through `Approved → Done`, leaves `plan check-current
       --require-schedule` and `schedule check-current` at exit 0.
-- [x] AC5. Ticking an acceptance-criterion or plan-task checkbox leaves both
-      checks at exit 0.
+- [x] AC5. Ticking an acceptance-criterion (in a spec's Acceptance Criteria
+      section) or a plan-task checkbox leaves both checks at exit 0. The
+      section match is case-insensitive and also accepts the bold prose
+      lead-in two specs here use, because the shared linter matches only
+      `## Acceptance Criteria` exactly and those specs would otherwise get no
+      normalization at all.
 - [x] AC6. A substantive edit still fails both checks and still makes
       `approve-plan` refuse with `spec_changed=True` / `plan_changed=True`:
       changed AC text, added or removed AC, changed task text, changed
@@ -199,10 +211,30 @@ unparseable lines.
 - [x] AC16. Field values are validated **before** the file is opened: refused
       if they contain a C0 control character (including `ESC`, which would be
       replayed as an ANSI sequence by `session-start.py`), `U+0085`, `U+2028`,
-      or `U+2029`, or a lone surrogate; and `title` is capped at 120
-      codepoints and `body` at 2000, a refusal naming the field and its limit.
+      or `U+2029`, a lone surrogate, or any **default-ignorable code point**;
+      and `title` is capped at 120 codepoints and `body` at 2000, a refusal
+      naming the field and its limit.
+
+      Default-ignorable, not any one Unicode category — a first version refused
+      only `Cf` and was bypassed by variation selectors, which are `Mn` and
+      whose supplement block is a 240-symbol invisible alphabet. ZWJ, ZWNJ and
+      the two emoji presentation selectors are the exceptions, since they shape
+      neighbouring characters; two joiners in a row are refused, because a
+      legitimate one is always singular. The predicate lives in
+      `lint-knowledge.py` and the writer imports it, so the gate and the writer
+      cannot disagree about what is invisible.
       Knowledge entries are injected verbatim into every future agent session,
       so the writer is a durable-instruction channel and validates like one.
+- [x] AC17a. The read-allocate-write window is serialized against concurrent
+      appends to the same target. The id is derived from the file's contents,
+      so without it two callers allocate the same id, the second replace
+      discards the first entry, and **both** are told their learning was
+      recorded. Cross-platform (`O_CREAT|O_EXCL`, not `fcntl.flock`). A lock is
+      broken only on evidence it is abandoned — its own age, never the waiter's
+      patience — and released only if still owned; the wait is bounded and
+      reports rather than spinning. The target's file mode survives the
+      replace, since `mkstemp`'s `0600` would otherwise narrow a committed
+      world-readable file invisibly to git.
 - [x] AC17. The candidate is **linted before it is installed**: the new
       content is written to a temp file in the same directory, that temp path
       is linted, and only on success is it `os.replace`d over the target
@@ -221,7 +253,19 @@ unparseable lines.
       writer exits with a distinct "knowledge base already fails lint; fix it
       first" message rather than appending and blaming the caller's entry. A
       **non-existent** target is not a pre-existing failure — it is treated as
-      an empty file and created, so a fresh knowledge base is reachable.
+      an empty file and created, so a fresh knowledge base is reachable. A
+      target that exists but is not a regular file, and one whose parent
+      directory is missing, are each refused with their own message rather
+      than a traceback. A
+      target that exists but is not a regular file, and one whose parent
+      directory is missing, are each refused with their own message rather
+      than a traceback.
+- [x] AC20a. `lint-knowledge.py` applies the AC16 default-ignorable rule to
+      **literal** characters too, because the file is hand-editable and
+      `session-start.py` replays every entry verbatim; refuses a line longer
+      than 8192 characters before any regex runs, so the gate cannot be hung by
+      the input it exists to reject; and reports an undecodable file as a lint
+      error instead of tracebacking.
 - [x] AC20. `lint-knowledge.py` fails an entry that escapes a character as
       `\uXXXX` when that codepoint is `>= 0x20` and is not one of `U+0085`,
       `U+2028`, `U+2029`, naming the character and the fix. Escapes JSON

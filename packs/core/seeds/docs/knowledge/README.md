@@ -92,9 +92,11 @@ not `\u2014`; if you serialize with Python, pass `ensure_ascii=False`.
 
 Entries are read back verbatim into every future session by the session-start
 hook, so treat the body as durable instruction: keep it to lessons about this
-repo, and never paste content from an untrusted source into one. Invisible
-formatting characters — bidi overrides, zero-width characters, the Unicode Tag
-block — are refused for the same reason.
+repo, and never paste content from an untrusted source into one. Characters
+that render as nothing — bidi overrides, zero-width joiners in runs, the
+Unicode Tag block, the variation selectors — are refused outright, by the
+writer and by the linter, because a payload you cannot see in a diff would be
+replayed into every session.
 
 ## Verify before committing
 
