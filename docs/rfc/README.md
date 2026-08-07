@@ -82,6 +82,7 @@
 | [0074](0074-pack-config-and-oplog.md) | Pack config and operation log — per-pack user config (`pack_dir`, `load_pack_config`), three-source cascade via `install-defaults.toml` baking, atomic JSONL oplog (`write_entry`), new `catalogue.toml` `[pack-defaults.*]` and `user-dir`, two new CLI subcommand groups. | Accepted | 2026-07-27 | 2026-07-28 |
 | [0079](0079-codebase-context-pack.md) | `codebase-context` pack — optional user-scope pack wrapping `codebase-memory-mcp` (C/tree-sitter, stdio subprocess) and `serena` (Python/LSP) as semantic graph MCP backends; `CBM_ALLOWED_ROOT` path confinement; three-tier freshness (file watcher / git hook `touch` / PLAN-time check); `agentbundle install` only. | Draft | 2026-08-03 | — |
 | [0080](0080-local-scope-install.md) | Local scope install — `--scope local` installs pack files into the working tree and excludes them via `.git/info/exclude` so they never appear in `git status` or get committed. | Accepted | 2026-08-04 | 2026-08-04 |
+| [0082](0082-engine-export-boundary-and-test-inclusion.md) | Engine export boundary and per-surface test inclusion — `packages/<pkg>/<pkg>/` is the runtime export boundary; the sdist carries the complete test tree while the wheel, zipapp, and vendored copy carry none. | Draft | 2026-08-07 | — |
 
 ## Adding a new RFC
 
@@ -90,5 +91,8 @@
 N=$(python3 .claude/skills/new-rfc/scripts/next-ordinal.py docs/rfc)
 cp .claude/skills/new-rfc/assets/rfc.md docs/rfc/${N}-<kebab-title>.md
 ```
+
+> **Note:** RFC-0081 is reserved for an in-flight draft authored outside this
+> repository; the gap in the sequence is intentional, not a lost document.
 
 Or, in Claude Code, run `/new-rfc "<title>"` (defined in `.claude/skills/new-rfc/SKILL.md`).
