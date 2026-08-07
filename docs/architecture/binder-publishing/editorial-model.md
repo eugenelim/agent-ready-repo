@@ -39,8 +39,12 @@ packs/binder-publishing/
 │   ├── assets/
 │   │   ├── binder.schema.json
 │   │   ├── binder-index.schema.json
-│   │   ├── quarto-releases.json         # pinned versions + SHA-256 per platform
-│   │   ├── theme/binder.scss
+│   │   ├── theme/
+│   │   │   ├── main.html                # extends base.html; injects the line below
+│   │   │   ├── assets/javascripts/mermaid.min.js   # vendored — Zensical does NOT
+│   │   │   │                                       # bundle Mermaid (Z3b)
+│   │   │   └── assets/stylesheets/binder.css       # system-font stack
+│   │   ├── binders/*.binder.toml        # the pack's own recipe templates
 │   │   └── examples/*.binder.toml
 │   └── evals/eval_queries.json
 ├── tests/skills/publish-binder/
@@ -55,25 +59,35 @@ packs/binder-publishing/
 table already scores this option ○ on both maintenance burden and new machinery
 without ever putting a number on it. The v1 surface is: a hand-written TOML
 validator with edit-distance suggestions, a JSON-Schema parity harness, the
-resolver with Kahn ordering and cycle detection, the trust lattice, the source
-scanner, an eight-step Markdown transformer with line mapping, link rewriting,
-the Quarto adapter and its YAML emitter, a digest-verified downloader with tar and
-zip extraction, three lock protocols, near-atomic publication, and seven verbs.
+resolver with Kahn ordering and cycle detection, the source scanner, a four-step
+Markdown transformer with a line offset, link rewriting, the Zensical adapter and
+its TOML emitter, two lock protocols, near-atomic publication, and nine verbs.
+
+**D-A and D-B took real code out of that list, not just prose.** Gone: the trust
+lattice and its grant matching, the eight-step transformer's four Quarto-specific
+steps and the breakpoint `line-map` they required, the digest-verified downloader
+with tar and zip extraction, the toolchain lock, and the consent-token machinery.
+Added: nothing. This is the clearest available measure of what the two decisions
+bought.
 
 So the decomposition is stated up front rather than discovered. `scripts/` holds
 sibling modules at one level — permitted, since the depth rule is about *nesting*,
 not file count, and none of them is a cross-skill import:
 
 ```
-scripts/binder.py        # argv, verb dispatch, exit codes
-scripts/schema.py        # validation, unknown/not-yet-implemented classes, params
-scripts/discover.py      # content root, bounded scan, identity, metadata, sidecars
-scripts/scan.py          # the trust profile: all mechanical source controls
-scripts/resolve.py       # selection, ordering, supersession, diagnostics, index
-scripts/render_zensical.py        # staging, transformation, _quarto.yml, invocation, plan
-scripts/toolchain.py     # detection, version range, the install ladder
-scripts/fsutil.py        # confinement, locks, near-atomic publish
+scripts/binder.py            # argv, verb dispatch, exit codes
+scripts/schema.py            # validation, unknown/not-yet-implemented classes, params
+scripts/discover.py          # content root, bounded scan, identity, metadata, sidecars
+scripts/scan.py              # the strict profile: all mechanical source controls
+scripts/resolve.py           # selection, ordering, supersession, diagnostics, index
+scripts/render_zensical.py   # staging, transformation, zensical.toml, invocation, plan
+scripts/fsutil.py            # confinement, locks, near-atomic publish
 ```
+
+`scripts/toolchain.py` — detection, version range, and the install ladder — is
+gone. What survives of it is two lines inside `render_zensical.py`:
+`importlib.util.find_spec("zensical")` and
+`importlib.metadata.version("zensical")` (Z1c).
 
 **Two things move out of v1 outright**, because the earlier draft protected every
 optional mechanism while scoring itself ○ on new machinery — which is not a
@@ -92,12 +106,16 @@ circular. D13's earlier "two named consumers" framing invented one of them.
 
 **The v1 cut-line, if Phase 1 still overruns:**
 
-1. `install-quarto` (rung 2) — already contingent on U5, and `pip` covers the
-   common case without it.
-2. `explain` — the index is readable JSON and `explain` is a presentation layer
+1. `explain` — the index is readable JSON and `explain` is a presentation layer
    over `selection.reason` and `selection.rule`, which are recorded regardless.
    The brief's explainability requirement is met by those fields with or without
    the verb; cutting it costs ergonomics, not a contract.
+2. `outline` — `templates` covers the "I don't want to start from nothing" case
+   for the shapes the pack ships, and a hand-written Level-0 recipe is four lines.
+
+The previous first entry was `install-quarto`, contingent on U5. D-B removed the
+verb, which removes the cut — so the line is shorter and it now costs one more
+thing to reach it.
 
 Neither cut changes a contract, which is the property that makes them safe.
 `resolve`, `build`, `check`, and the scanner are not cuttable: they are the
@@ -181,7 +199,7 @@ readme       = "README.md"
 display_name = "Binder Publishing"
 license      = "Apache-2.0 OR MIT"
 categories   = ["documentation", "publishing"]
-keywords     = ["binder", "quarto", "markdown", "publishing", "mermaid"]
+keywords     = ["binder", "zensical", "markdown", "publishing", "mermaid"]
 
 # v0.17: the manifest uses enriched-pack-manifest fields (v0.14) and
 # [pack.layout] (v0.16), and the skill primitive's shared-prefix routing for
@@ -206,18 +224,22 @@ skills = ["publish-binder"]
 
 # The schema has carried `[[pack.runtime-dependencies]]` (ecosystem ∈ pypi/npm/
 # cargo/go/homebrew/apt/system, plus version/optional/skills/install/note) since
-# the enriched manifest, and no shipped pack uses it yet. Quarto is exactly what
-# it describes, so this pack is the one that should: a machine-readable external
-# dependency is worth more than a prose prerequisite when an adopter is deciding
-# whether a pack will work in their environment.
+# the enriched manifest, and no shipped pack uses it yet. This pack is still the
+# one that should declare one: a machine-readable external dependency is worth
+# more than a prose prerequisite when an adopter is deciding whether a pack will
+# work in their environment.
+#
+# D-B changed ecosystem from "system" to "pypi" and package from "quarto" to
+# "zensical" — which is the entire dependency contract now. See
+# zensical-adapter.md.
 [[pack.runtime-dependencies]]
-ecosystem = "system"
-package   = "quarto"
-version   = ">=1.10.0,<1.11.0"
-optional  = false   # required to *render*; see note
+ecosystem = "pypi"
+package   = "zensical"
+version   = "==0.0.53"   # exact pin; alpha upstream
+optional  = false        # required to *render*; see note
 skills    = ["publish-binder"]
-install   = "python -m pip install --no-deps quarto-cli==1.10.18"
-note      = "External CLI, ~236 MB. Required only by `build`: `resolve`, `explain`, `inventory` and `check --published` all work without it. Never installed silently. The `install` line is the minimal form — run `python scripts/binder.py check --renderer=quarto` for the hash-pinned command and the --user/virtualenv guidance."
+install   = "python -m pip install zensical==0.0.53"
+note      = "12.2 MB wheel. Required only by `build`: `outline`, `templates`, `resolve`, `explain`, `inventory` and `check --published` all work without it. Never installed silently."
 
 [pack.links]
 homepage      = "https://github.com/eugenelim/agent-ready-repo"
@@ -231,9 +253,9 @@ email = "eugenelim@users.noreply.github.com"
 [pack.first-value]
 audience-posture = "mixed"
 surfaces         = ["claude-code"]
-prerequisites    = ["Python >= 3.11 (tomllib)", "Quarto >= 1.10.0, < 1.11.0 (the skill detects it and offers a pip or digest-verified install)"]
+prerequisites    = ["Python >= 3.11 (tomllib)", "zensical == 0.0.53 (the skill detects it and offers a one-line pip install)"]
 verification     = "Ask the agent to publish two Markdown files as a binder; confirm an index.html is produced and neither source file changed."
-recovery         = "If rendering reports a missing Quarto, the resolved binder-index.json is still written — accept the offered install, or install Quarto from quarto.org and re-run the build."
+recovery         = "If rendering reports a missing renderer, the resolved binder-index.json is still written — accept the offered install, or run `python -m pip install zensical==0.0.53` and re-run the build."
 level-b          = true
 starter-task     = "Publish two related Markdown notes as one navigable document"
 starter-prompt   = "Create a binder.toml listing my two Markdown notes in reading order and publish it as an HTML binder."
@@ -253,15 +275,27 @@ uses only the agentskills.io keys"*):
 
 ```yaml
 metadata:
-  boundaries: [filesystem_read_untrusted, filesystem_write, network_fetch]
+  boundaries: [filesystem_read_untrusted, filesystem_write]
 ```
 
  — the vocabulary is defined in `docs/architecture/security.md` § *Security metadata
-convention*, which carries all five values including `network_fetch`;
-`converters`' `file-to-markdown` and `msg-to-markdown` are the shipped precedent
-for the `filesystem_read_untrusted` token — `filesystem_read_untrusted` because source
-Markdown is untrusted by construction, and `network_fetch` because the consented
-toolchain install downloads.
+convention*; `converters`' `file-to-markdown` and `msg-to-markdown` are the shipped
+precedent for the `filesystem_read_untrusted` token, which applies because source
+Markdown is untrusted by construction.
+
+**`network_fetch` is dropped, and the reason is a real change rather than a
+tidy-up.** It was declared because the consented toolchain install downloaded a
+236 MB binary. D-B removed that: `binder.py` now makes no outbound request on any
+code path, and the renderer install is an ordinary `pip install` the *user* runs
+outside the skill. Declaring a boundary the code does not cross would devalue the
+declaration everywhere else it appears.
+
+Two things sit just outside that claim and are named rather than elided. **Z5 is
+open** — whether `zensical build` itself reaches the network during a build is
+unverified, and a subprocess's egress is not `binder.py`'s boundary to declare.
+And the *published output* fetched from four CDNs by default until the hardening
+in [`zensical-adapter.md`](zensical-adapter.md) closed it — a read-time property
+of the artifact, not a runtime property of the skill, and the reason Z4 exists.
 
 ---
 
@@ -297,12 +331,19 @@ annotate unresolved questions.
 
 | Class | Origin | In the recipe | In the index | In the output |
 |---|---|---|---|---|
-| **Source-authored** | canonical artifact | `path` / `select` | `type: "source"` | badge showing kind, status, and source path |
+| **Source-authored** | canonical artifact | `path` / `select` | `type: "source"` | badge showing artifact kind and lifecycle status — never the repository-relative path |
 | **Editor-generated** | executive summaries, intros, transitions, comparisons | `kind = "editorial"` items and `intro =` keys | `type: "editorial"`, `authored-by`, `review-state` | visually distinct block, labelled "Editorial — written for this binder" |
 | **Compiler-generated** | cover, part pages, source inventory, provenance | `kind = "generated"` appendices; otherwise implicit | `type: "generated"`, `generator` | plain, unbadged; contains no substantive claims |
 
-Badge and marker rendering uses Quarto callouts and fenced divs, **subject to
-gate V3**; on V3 failure they degrade to a plain leading label string.
+Badge and marker rendering uses **`admonition` blocks and `attr_list` spans**,
+both in the emitted extension allowlist and both verified rendering from that
+allowlist alone (Z2b — a `!!! note "Editorial — written for this binder"` produced
+`<div class="admonition note">` with no scaffold defaults in play). No gate is
+outstanding on the mechanism.
+
+This replaces Quarto callouts and fenced divs, which were gated by V3 with a
+plain-label fallback. The fallback is retired along with the gate: the mechanism
+is verified, so a degraded path with no failure mode to serve is dead code.
 
 **Editor-generated prose is stored as separate Markdown files referenced by
 path**, not embedded in the recipe. Four reasons: it is reviewable in a normal
@@ -324,27 +365,35 @@ sequenceDiagram
   actor U as User
   participant S as publish-binder (skill)
   participant B as binder.py
-  participant Q as quarto (external CLI)
+  participant Z as zensical (pip package)
   participant W as Caller workspace
 
   U->>S: "publish the payments architecture-review binder"
-  S->>B: binder check --renderer=quarto
-  B-->>S: exit 0 (quarto 1.10.18, supported)
+  S->>B: binder check
+  B-->>S: exit 0 (zensical 0.0.53, pinned)
   S->>B: binder resolve binders/payments-review.binder.toml
-  B->>B: validate → discover → resolve → order
+  B->>B: validate → discover → scan → resolve → order
   B->>W: write binder-index.json
   B-->>S: 12 nodes, 1 optional gap
   S->>U: summary + gap; proceed?
   U->>S: yes
-  S->>B: binder build --from-index
-  B->>B: scan sources (strict profile)
-  B->>W: stage .qmd + _quarto.yml + theme
-  B->>Q: quarto render <staging> --to html
-  Q-->>B: exit 0
+  S->>B: binder build binders/payments-review.binder.toml
+  Note over B: re-resolves; invariant 21 makes the<br/>index byte-identical to the approved one
+  B->>W: stage docs/*.md + zensical.toml + theme
+  B->>B: assert every nav target exists (Z2g)
+  B->>Z: python -m zensical build -f stage/zensical.toml --strict
+  Z-->>B: exit 0
   B->>W: near-atomic publish → build/binders/payments-review/
   B-->>S: build summary
   S->>U: path, node count, gaps
 ```
+
+**The `--from-index` step is gone and the diagram is honest about what replaced
+it.** D-A cut the flag; the resolve → review → "proceed?" → build interaction it
+served is preserved by invariant 21 instead, because identical inputs give a
+byte-identical index. The user still approves the thing that gets built — the
+guarantee just comes from reproducibility rather than from a flag that had to
+re-resolve and compare anyway.
 
 ### Sequence: editor-generated recipe
 
@@ -362,7 +411,9 @@ sequenceDiagram
   S->>E: brief + inventory + editorial-pass.md
   Note over E: reads candidates, judges,<br/>drafts prose. No Bash, no Write —<br/>cannot render, cannot bypass.
   E-->>S: recipe + editorial prose (as return value)
-  S->>W: write binders/payments-board.binder.toml<br/>+ binders/editorial/*.md
+  S->>B: binder recipe write payments-board<br/>(recipe + prose on stdin)
+  Note over B: destinations derived, never supplied;<br/>the write set governs this path
+  B->>W: binders/payments-board.binder.toml<br/>+ binders/editorial/*.md
   S->>U: show recipe + editorial prose for review
   U->>S: approve (or edit and re-run)
   S->>B: binder build binders/payments-board.binder.toml

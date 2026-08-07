@@ -11,63 +11,87 @@ Tests live at `packs/binder-publishing/tests/skills/publish-binder/`, outside th
 ### Unit
 
 Schema parsing · `schema-version` behaviour · unknown-field error and
-`--allow-unknown-fields` · **not-yet-implemented key class, per phase** ·
-`[x-vendor]` passthrough · content-root resolution in all four branches ·
-configuration precedence · **the trust lattice** (recipe cannot grant; repo policy
-cannot grant; `--profile trusted` without a grant exits 6; a `--quarto` path
-beneath the content root is refused; grant matching is realpath-containment and
-resists a planted symlink) · identity normalization and case collision ·
+`--allow-unknown-fields` · **`[policy] profile` and `[policy] shortcodes` are
+unknown fields (exit 4), not deprecated keys** · **not-yet-implemented key class,
+per phase** · `[x-vendor]` passthrough · content-root resolution in all four
+branches · **content-root refusal list — home, filesystem root, an ancestor of
+`~/.agentbundle/` or of the pack itself, each exit 6** · **every node read is
+extension-checked, explicit `path` included** · configuration precedence ·
+identity normalization and case collision ·
 status-map normalization and unknown status · stable ordering · weight sorting ·
 `before`/`after` topological order · **cross-section constraint is exit 4** ·
 cycle detection · ambiguity · missing required vs optional · duplicate handling ·
 supersession · exclusion beating inclusion · excluded-required erroring ·
 **duplicate `id` and colliding publication dir** · child-binder cycle detection ·
-frontmatter discard-and-rebuild · fence transformation (mermaid and non-mermaid) ·
-**shortcode reject and escape modes, including that `escape` emits the
-brace-tripled form** · Mermaid directive/click/callback/label rejection at both
-profiles · link rewriting · **`line-map` accuracy across all five
-length-changing steps, property-tested against randomly generated sources** ·
-staged-name determinism and hash disambiguation · path traversal · absolute paths
-· symlink escape · asset allowlist · resource ceilings · self-path write refusal ·
-argv construction (never a shell string, never `publish`) · **environment
-allowlist construction — assert a planted `AWS_SECRET_ACCESS_KEY` is absent from
-the child env** · **`--quarto` beneath the content root is refused (control 25a)** ·
-**YAML injection — a recipe `title` of `"X\nfilters:\n  - evil.lua"` is rejected at
+frontmatter discard-and-rebuild · **executable-cell fence neutralization, with a
+` ```mermaid ` fence asserted byte-identical to its source** · Mermaid
+directive/click/callback rejection and the `<br>`/`<|--`/`<-->` label allowlist ·
+link rewriting to staged `.md` filenames · **`line-offset` accuracy, property-tested
+against randomly generated sources, including the CRLF and BOM cases** ·
+staged-name determinism and hash disambiguation · **`emitted-ordinal` numbering,
+including that an unnumbered chapter emits `null` and that the ordinal appears as
+a `data-ordinal` attribute and never inside a title string or the search index** · path traversal · absolute
+paths · symlink escape · asset allowlist · resource ceilings · self-path write
+refusal · **argv construction — a list, never a shell string, `-f` the only path
+element, `--strict` always present** · **environment allowlist construction —
+assert a planted `AWS_SECRET_ACCESS_KEY` is absent from the child env** · **TOML
+injection — a recipe `title` containing `"` and a newline is rejected at
 validation, and with the validator stubbed out the emitter still yields a
-`_quarto.yml` whose parsed form has no `filters` key** · **shortcode syntax in an
-emitted string — a recipe `title` of `"{{< env HOME >}}"` is exit 4, the same as a
-source H1 is exit 6 with fallback to the file stem** · **label resolution across
-all four rules, including a source H1 carrying a control character falling through
-to the file stem** · **parameter substitution confined to the closed key list,
-single-pass, erroring on an unresolved `${name}`** · **`escape` mode idempotent on
-already-escaped shortcodes** · **publication-ownership check — a foreign directory is exit 4 and is not
-renamed** · **`--out` outside workspace/publication/temp is exit 6** · **heading shift clamps at H6 and warns** ·
-**scan exclusions warned, `scan-exclusions-override` re-admits** · **invariant 22 —
-a golden index from `resolve` is byte-identical to the index after `build`** ·
-**cross-device publication detected at validation** · exit-code mapping including
-9 and 130.
+`zensical.toml` whose parsed form has no injected sibling key** · **renderer-
+interpretable syntax in an emitted string — a recipe `title` of `"{{< env HOME >}}"`
+is exit 4, the same as a source H1 is exit 6 with fallback to the file stem** ·
+**label resolution across all four rules, including a source H1 carrying a control
+character falling through to the file stem** · **parameter substitution confined
+to the closed key list, single-pass, erroring on an unresolved `${name}`** ·
+**publication-ownership check — a foreign directory is exit 4 and is not renamed**
+· **`publication-dir` absolute or `..`-escaping is exit 6** · **heading shift
+clamps at H6 and warns** · **scan exclusions warned,
+`scan-exclusions-override` re-admits** · **invariant 22 — a golden index from
+`resolve` is byte-identical to the index after `build`** · **the index carries no
+`profile` key** · **cross-device publication detected at validation** ·
+**version probe — `importlib.metadata.version` is used and a stubbed
+`zensical.__version__` is never read (Z1c)** · exit-code mapping including 9 and 130.
+
+**Deleted from this list, and worth naming rather than silently shortening:** the
+trust-lattice suite (recipe cannot grant, repo policy cannot grant,
+`--profile trusted` exits 6, grant matching resists a planted symlink), the
+`--quarto`-beneath-the-content-root test, the shortcode
+reject/escape/idempotence tests, the `--out` confinement test, and the
+`_quarto.yml` two-profile golden files. Each tested a mechanism D-A or D-B
+removed. **A test suite that outlives its mechanism is how a design keeps paying
+for a decision it already reversed.**
 
 ### Integration
 
-**Gates V1, V2, V2b, V3, V5 against the single shared fixture, and V4 on the
-platform matrix** (all required in CI as regression assertions once passed) ·
-**V2b's zero-`https://`-in-`_output/` assertion, CSS included** · Quarto detection
-present/absent/wrong-version · generated `_quarto.yml` against golden files **for both profiles** (they differ only in the `from:` string) ·
-successful HTML render · parts and chapters present · search index generated ·
-previous/next present · Mermaid rendered as SVG · invalid Mermaid mapped to the
-source line · idempotent rebuild produces a byte-identical index · `check --published` returns 0 fresh / 9 stale · interrupted
-build leaves no corrupt state · **two concurrent different binders both succeed**
-· two concurrent identical builds serialize on the workspace lock · **two
-different recipes targeting the same publication dir are rejected at validation,
-and the publication lock serializes the case that slips through** · near-atomic
-publication replacement, **including the cross-device copy path** ·
-**`binder-stamp.json` present in the published tree while `binder-index.json` is
-absent from it, the stamp carrying no `diagnostics` key, and `check --published`
-returning 9 after a source edit** · **two concurrent `install-quarto` runs
-serializing on the toolchain lock** · `clean` confinement.
+**Gates Z1–Z4 against the single shared fixture** (all required in CI as
+regression assertions) · **Z4's zero-remote-*subresource* assertion over the built
+tree — no `src=`, stylesheet or preconnect `href=`, `@import`, or off-host `url()`;
+NOT a zero-`https://` string match, which Z4d showed unsatisfiable** · renderer
+detection present/absent/wrong-version, **including that the probe is
+`importlib.metadata.version`** · generated `zensical.toml` against a golden file
+(**one file — there is no second profile to differ from**) · successful HTML render
+· parts render as nested nav groups · search index generated and local · prev/next
+present · **Mermaid renders from an untransformed portable fence, and the vendored
+`mermaid.min.js` is referenced from `<head>` ahead of the theme bundle** · invalid
+Mermaid mapped to the source line through `line-offset`, **with ANSI stripped
+first (Z1f)** · **a `nav` entry with no staged file is exit 7 before the renderer
+is invoked (Z2g)** · **a `--strict` build reporting issues is exit 7, and a build
+without `--strict` is never trusted to have succeeded (Z1b)** · idempotent rebuild
+produces a byte-identical index · `check --published` returns 0 fresh / 9 stale /
+10 on a pack-version change · interrupted build leaves no corrupt state · **two
+concurrent different binders both succeed** · two concurrent identical builds
+serialize on the workspace lock · **two different recipes targeting the same
+publication dir are rejected at validation, and the publication lock serializes
+the case that slips through** · near-atomic publication replacement, **including
+the cross-device copy path** · **`binder-stamp.json` present in the published tree
+while `binder-index.json` is absent from it, the stamp carrying no `diagnostics`
+key, and `check --published` returning 9 after a source edit** · **nothing is
+written outside `stage/`, the publication, and its three named siblings — asserted
+by a recursive hash of the content root before and after, which is what catches
+`site/` or `.cache/` landing somewhere unexpected** · `clean` confinement.
 
-Renderer-dependent tests skip with a clear reason when Quarto is absent and are
-**required** in CI, where Quarto is provisioned by the pipeline.
+Renderer-dependent tests skip with a clear reason when `zensical` is absent and
+are **required** in CI, where the pipeline installs it.
 
 ### CI provisioning — the wiring this needs, named
 
@@ -80,14 +104,20 @@ to a file, not a property that arrives by itself:
 | Change | Where |
 |---|---|
 | Add `packs/binder-publishing/tests/` to the pytest invocation | `catalogue-tooling-ci-gates.yml` |
-| Add a Quarto provisioning step (`quarto-dev/quarto-actions/setup`, pinned to 1.10.18) gated on a path filter for `packs/binder-publishing/**` | same workflow |
-| Add the V4 platform matrix — macOS, Linux with an externally-managed interpreter, Windows | a separate job; it needs no Quarto |
+| Add `python -m pip install zensical==0.0.53` as an ordinary step | same workflow |
 
-**Cost, stated rather than discovered:** Quarto provisioning is a ~236 MB download
-per job, so the render gates (V1, V2, V2b, V3, V5) run **on a path filter**, not on every PR. Unit tests — which
-are the bulk of the suite and need no renderer — run always. V4 runs on the path
-filter too, since an install-command regression only matters when the pack
-changes.
+**Two rows, where the previous version had three and an argument.** Quarto
+provisioning was a ~236 MB download per job, which forced the render gates behind
+a path filter, split the suite into "runs always" and "runs when the pack
+changes", and needed a separate V4 platform-matrix job to prove an install command
+worked verbatim on three operating systems.
+
+**All of that is gone.** A 12.2 MB wheel with 12 platform wheels — including
+Windows, musl, and armv7 — is an ordinary pipeline dependency. The Z-gates run on
+**every PR**, alongside the unit tests, because there is no longer a cost worth
+optimising against. The path filter was never a good property; it meant the render
+gates did not run when a *shared* change broke them, and it existed only because
+the renderer was expensive.
 
 ### The portability acceptance test — the most important one
 
@@ -98,12 +128,19 @@ changes.
 3. Expose the pack from a read-only copy of its projected form.
 4. `resolve` → assert `binder-index.json` exists and matches a golden file byte
    for byte.
-5. `build` → assert `index.html`, per-chapter HTML, a search index, and an SVG
-   Mermaid diagram exist.
+5. `build` → assert `index.html`, per-chapter HTML, a local `search.json`, and a
+   `<pre class="mermaid">` block whose content is byte-identical to the source
+   fence all exist.
 6. **Assert every source file's SHA-256 is unchanged.**
 7. **Assert the pack directory tree is unchanged** — recursive hash before and
    after.
-8. Assert nothing was written outside the temp directory and the toolchain cache.
+8. **Assert nothing was written outside the temp directory at all.** The previous
+   version said "outside the temp directory *and the toolchain cache*"; D-B
+   deleted the cache, so the assertion is now unqualified — which is a strictly
+   stronger test and a better headline for the acceptance case.
+9. **Assert the built tree makes no remote subresource request** — the Z4
+   assertion, run here too, because an air-gapped adopter is exactly the person
+   the clean-directory case is for.
 
 ### The multi-pack fixture
 
@@ -111,20 +148,47 @@ A fixture repository combining: a `desk-research`-shaped `<slug>-survey.md` with
 YAML frontmatter; an RFC and an ADR in this repository's **frontmatter-free**
 bold-marker style, each with a `.binder.toml` sidecar; an `architect-design`
 design doc containing Mermaid; a `new-spec` spec and plan; and two hand-written
-Markdown files with no metadata at all. One producing pack ships the recipe
-template; the publication pack consumes it **without importing anything from it**.
-Level-0, Level-1, and sidecar items resolve in the same run.
+Markdown files with no metadata at all. A producing pack **writes** a recipe
+template into the fixture's `recipes_dir`, and `binder build` resolves it as an
+ordinary recipe — **importing nothing from it and reading nothing inside its skill
+directory**, which is the seam as redesigned in
+[`outline-and-templates.md`](outline-and-templates.md). Level-0, Level-1, and
+sidecar items resolve in the same run.
+
+**One assertion is added and it is the point of the fixture:** that
+`binder.py` opens no path beneath any other skill's directory during the whole
+run. Without it, the self-containment property is a claim the fixture illustrates
+rather than tests — and the previous seam is proof that the claim can drift.
 
 ### Accessibility smoke checks
 
 Parsed from the rendered HTML: every `<img>` carries an `alt` attribute — **present, possibly empty**, since a source `![](x.png)` gives the compiler nothing to invent and a fabricated description is worse than an explicit null; a missing attribute is a failure, an empty one is recorded in diagnostics; heading levels never skip
 **except where a clamped H6 shift was warned, which the check reads from
 `renderer-plan.json` — the clamp is transformation step 3, so recording it in the
-index would violate invariant 22**; `<html lang>` present; **each Mermaid SVG has an
-accessible name** — satisfiable by construction because the compiler emits a
-fallback name from the node label and diagram ordinal when no caption exists; skip-link present; focus-visible
-styling present in the theme CSS. Not a full audit — a regression net for the
-theme.
+index would violate invariant 22**; `<html lang>` present; skip-link present;
+focus-visible styling present in the theme CSS. Not a full audit — a regression
+net for the theme.
+
+**The Mermaid accessible-name check moves out of the HTML parse, because there is
+no SVG to parse.** Quarto rendered diagrams server-side into the output; Zensical
+emits `<pre class="mermaid"><code>…` and the vendored bundle renders it in the
+reader's browser (Z3a, Z3c). A static check over the built tree therefore cannot
+see an `<svg>` at all, and a check asserting one would have failed on every build
+— or worse, been quietly deleted.
+
+Two checks replace it, and between them they cover the same concern honestly:
+
+- **Static:** every `<pre class="mermaid">` block carries an accessible name in
+  its `attr_list` attributes, emitted by the compiler from the node label and
+  diagram ordinal. This is assertable over the built HTML and is the part the
+  compiler actually controls.
+- **Z6, not yet run:** that the rendered SVG carries the name through. This needs
+  a headless browser, which the design does not otherwise require, so it is a
+  gate rather than a smoke check.
+
+The graceful-degradation property is worth stating because it is unusually good
+here: if the vendored bundle fails to load, the reader sees the diagram's own
+Mermaid source as preformatted text rather than a blank space.
 
 ### Activation evals
 
@@ -143,28 +207,40 @@ positives, because three neighbouring skills already exist in `converters`.
 **Phase 0 — the architectural seam. No renderer.**
 Schema v1 + JSON Schema files (in the skill's `assets/`; **not** mirrored to `contracts/` — see *Canonical schema publication*) ·
 validator including the unknown-field and not-yet-implemented classes ·
-**the trust scanner's core floor *and the Quarto rule table*** — both belong here,
-not in Phase 1: D34 makes the rule set declarative so registering Quarto's rules
-needs no adapter, and Phase 0 ships `resolve` and `inventory`, which read source
-bodies. Shipping the floor alone would let a Phase-0 `resolve` of a
-`renderer = "quarto"` recipe admit content Phase 1 then rejects · Level-0
-resolver (explicit paths, sections, parts, weight, before/after, exclusions,
-dedup) · `binder-index.json` v1 · `check`, `resolve`, `explain`, `inventory` ·
-configuration precedence and the trust lattice · path confinement · unit tests.
+**the trust scanner's core floor *and the Zensical rule table*** — both belong
+here, not in Phase 1: D34 makes the rule set declarative so registering a
+renderer's rules needs no adapter, and Phase 0 ships `resolve` and `inventory`,
+which read source bodies. Shipping the floor alone would let a Phase-0 `resolve`
+admit content Phase 1 then rejects · Level-0 resolver (explicit paths, sections,
+parts, weight, before/after, exclusions, dedup) · `binder-index.json` v1 ·
+`outline`, `templates`, `check`, `resolve`, `explain`, `inventory` ·
+configuration precedence · path confinement and the content-root refusal list ·
+unit tests.
 
 *Ships nothing a user can read — and establishes every contract that is expensive
 to change later.* Independently valuable: the index is consumable by anyone who
 wants to write a renderer.
 
+**The Zensical rule table is three rows**, against Quarto's much longer one: the
+`%%{init:}%%` directive, `click … callback`/`call`, and the Mermaid node-label
+allowlist. Everything the Quarto table carried about shortcodes and raw pandoc
+blocks has no subject here.
+
 **Phase 1 — v1 completes. First readable binder.**
-The remaining gates (V2, V2b, V4-other-platforms, V5, V6) · Quarto staging adapter · the strict-profile scanner · Mermaid
-normalization and constraints · theme and brand assets · cover, part pages, source
-inventory, provenance · link rewriting and asset copying · diagnostics mapping ·
-`build`, `clean`, `install-quarto`, `check --published` · the dependency ladder ·
-three locks, concurrency, near-atomic publication · **the clean-directory
-portability fixture and the multi-pack fixture** · activation evals · guides.
+The remaining gates (**Z5, Z6**, and the renderer-independent **V6**) · Zensical
+staging adapter · the strict scanner · Mermaid constraints and the vendored
+bundle · theme assets and the offline hardening · compiler-emitted numbering ·
+cover, part pages, source inventory, provenance · link rewriting and asset
+copying · diagnostics mapping · `build`, `recipe write`, `clean`,
+`check --published` · **two** locks, concurrency, near-atomic publication ·
+**the clean-directory portability fixture and the multi-pack fixture** ·
+activation evals · guides.
 
 **Phase 0 + Phase 1 = v1.**
+
+Z1–Z4 are already run, so Phase 1 opens with its renderer questions settled rather
+than gated — which is the difference between the two decisions being made and
+being merely written down.
 
 **Phase 2 — metadata and refinement.** Frontmatter and sidecar ingestion ·
 **`sidecar init`** · `select` queries · status maps · `pick = "one"`
@@ -173,23 +249,33 @@ disambiguation · richer conflict presentation · **Mermaid captions and
 
 **Phase 3 — composition.** Overlays and `extends` · child binders ·
 `pick = "latest"` · producer conventions (`[pack.metadata.binder]`) · the named
-`binder-editor` subagent if measurement justifies it · profile libraries.
+`binder-editor` subagent if measurement justifies it · recipe-template libraries.
 
 **Phase 4 — more consumers.** A second renderer · site mounting or index
 consumption · PDF/Typst.
 
 ### Decisions required before implementation
 
-Charter fit, domain fit, and pack placement (U1, U2, U3) · the Tier-2 policy
-amendment (U5) · **`binders/` and `.binder-work/` as new top-level directories in
-this repository, which `AGENTS.md` § *Check before acting* requires be proposed
-via RFC** · pack
-and skill names · the `binder.toml` schema and its version-1 surface · the index
-schema and its stability guarantee · identity rules · the trust lattice and its CI
-mechanism · the security control set and which are mechanical · Quarto version
-range and the install ladder ordering · configuration precedence · workspace and
-publication layout · the three-lock concurrency model · exit codes · the outcome
-of the remaining gates V2, V2b, V4-on-other-platforms, V5, and V6.
+**U1 is resolved (D45), so nothing on this list is a stop-or-go.** Everything
+below is a shaping decision for the RFC.
+
+Domain fit and pack placement (U2, U3) · **`binders/` and
+`.binder-work/` as new top-level directories in this repository, which
+`AGENTS.md` § *Check before acting* requires be proposed via RFC** · **taking a
+runtime dependency on an alpha-versioned package (`zensical==0.0.53`), which
+`AGENTS.md` § *Check before acting* requires be recorded in the pack's `AGENTS.md`
+or an ADR before it is added** · pack and skill names · the `binder.toml` schema
+and its version-1 surface · the index schema and its stability guarantee ·
+identity rules · the security control set and which are mechanical · the renderer
+pin and its upgrade procedure · configuration precedence · workspace and
+publication layout · the two-lock concurrency model · exit codes · the outcome of
+Z5, Z6, and V6.
+
+**Three items left this list, and one joined it.** The Tier-2 policy amendment
+(U5), the Quarto version range, and the install-ladder ordering all went with D-B.
+The alpha-dependency record is new: `zensical` at `0.0.53` is a dependency the
+repository's own rules say must be argued for before it is added, and burying that
+in a rollout list would be exactly the omission those rules exist to prevent.
 
 ### Safe as extension points
 
@@ -202,15 +288,15 @@ customization surface.
 
 ## Unresolved questions
 
-**U1 — Charter Principle 3: is this a habit or a tool?** *"A habit, not a tool.
-Captures a way of working, not a piece of infrastructure."* The habit case:
-publishing a dossier for a decision forum is a recurring SDLC act, and the
-compiler stands to that habit as `work-loop`'s scripts stand to the work loop. The
-tool case: a document compiler with two schemas, a resolver, and a renderer
-adapter is infrastructure by any ordinary reading, and this catalogue has declined
-additions on exactly this ground before. Principles 1, 2, and 4 are assessed in
-*Pack placement and charter fit* and clear. **This one is the RFC's decision, and
-it is a stop-or-go rather than a reshape.**
+**U1 — RESOLVED (D45): the pack clears Charter Principle 3.** Its *subject* is a
+habit — assembling a decision dossier for a review forum; the machinery makes that
+habit reproducible and reviewable. The reasoning, including the counter-reading
+that was weighed and the accelerator-pack carve-out that does **not** apply, is in
+[`overview.md`](overview.md#principle-3-resolved).
+
+Note that D-A and D-B did not decide this. They make the pack materially smaller,
+but "smaller infrastructure" is still infrastructure and Principle 3 is about
+*kind*, not size. The decision turns on which one the pack is *about*.
 
 **U2 — does the pack sit inside the Charter's Domain?** Distinct from U1 and
 decided on different evidence. `docs/CHARTER.md` § Domain is the *"machine-readable
@@ -222,7 +308,8 @@ release readiness, incident review, implementation handoff — and none of the
 excluded categories is served. The reason to name it separately is that a generic
 "compile Markdown into a publication" framing would read as PKM, and the pack must
 be positioned against project governance to stay inside the anchor. If reviewers
-read it the other way, that decides U1 without needing the Principle-3 argument.
+read it the other way, D45's Principle-3 argument does not save the placement —
+a pack outside the Domain anchor fails regardless of which principle it clears.
 
 **U3 — new pack versus a ninth `converters` skill.** Argued in *Pack placement*;
 the fallback costs nothing but the pack boundary. Named separately from U1 because
@@ -235,25 +322,36 @@ catalogue that may later publish other things, and `binder` names the noun rathe
 than the capability. The skill name `publish-binder` follows the verb-noun
 convention and is not in the banned label set.
 
-**U5 — the Tier-2 policy amendment for rung 2.** Rung 1 (`pip`) is already
-sanctioned by `author-a-skill.md` § *What counts as a dependency*, so the ordinary
-case is not blocked. **But the consequence of refusal is larger than an earlier
-draft claimed.** PEP 668 externally-managed interpreters — Debian/Ubuntu system
-Python, Homebrew Python — refuse `pip install --user`, and rung 2 is the only
-remaining *in-pack* route for that population. If the amendment is refused, those
-users have no in-pack install path and must use the official installer or build a
-virtualenv themselves.
+**U5 — WITHDRAWN by D-B.** *Was: the Tier-2 policy amendment for the
+digest-verified Quarto install.* It asked the catalogue to sanction a pack
+fetching and extracting a 236 MB third-party binary, and round 6 escalated it to
+"a blocking dependency for a named platform segment" because PEP 668
+externally-managed interpreters refuse `pip install --user` and the managed
+install was that population's only in-pack route.
 
-That makes U5 **a blocking dependency for a named platform segment**, not a
-nice-to-have. **Recommendation: seek it**, and if refused, say so in the pack's
-prerequisites rather than letting a Debian user discover it at first run.
+**There is no longer anything to amend.** `zensical` is an ordinary pip package
+that `author-a-skill.md` § *What counts as a dependency* already sanctions in its
+own words. PEP 668 does not bite: a system-Python user creates a virtualenv or
+uses `pipx`/`uv`, which is the normal answer for any pip dependency and needs no
+policy change. Withdrawn, not deferred — the amendment is not wanted later either.
 
-**U6 (gate V1) — Mermaid under execution-off.** Empirically gated; fallback named.
+**U6 — WITHDRAWN by D-B.** *Was: gate V1, Mermaid under execution-off.* A Quarto
+question. Zensical executes nothing, and Z3a settles diagram rendering directly.
 
-**U7 (gate V2) — render-time network access.** Empirically gated.
+**U7 — SUPERSEDED by Z5.** *Was: gate V2, render-time network access.* The
+question is renderer-independent and still open; it is now tracked as **Z5**
+against `zensical build` rather than against `quarto render`.
 
-**U8 (gate V3) — fenced divs under `-raw_attribute`.** Empirically gated; cosmetic
-fallback.
+**U8 — WITHDRAWN by D-B.** *Was: gate V3, fenced divs under `-raw_attribute`.* A
+pandoc reader-toggle question with no counterpart here. The badge and editorial-
+marker mechanism is `admonition` plus `attr_list`, verified by Z2b, and its
+plain-label fallback is retired with the gate.
+
+> **Four questions closed by one decision, and none by argument.** U5–U8 were each
+> live enough to need a gate or a policy amendment; all four turned out to be
+> questions *about Quarto* rather than about binder publishing. That is the
+> clearest measure available of how much of the design was renderer management
+> wearing the shape of architecture.
 
 **U9 — default publication directory.** `build/binders` collides with the generic
 `build/` gitignore in many repositories, which is convenient (ignored by default)
@@ -273,6 +371,27 @@ nobody asked for.
 fix. If it resolves the *other* way, the two-skill shape becomes viable and this
 pack shape should be revisited.
 
+**U13 — alpha dependency, newly raised.** `zensical` is
+`Development Status :: 3 - Alpha` at `0.0.53`, and the pack would ship a
+*published, versioned* binder contract on top of it. Three things bound the risk
+and one does not.
+
+Bounded: the dependency surface is narrow (`nav`, theme, `superfences`, search —
+not the plugin API); invariant 22 makes swapping renderers a one-file change; and
+Z1–Z4 are CI regression assertions, so an upgrade that changes any of the four
+behaviours the adapter relies on fails loudly rather than silently.
+
+Not bounded: **the Z-gates found three wrong assertions in one afternoon**, two of
+them about behaviour that looked settled (the version attribute, the font key).
+That is what an alpha renderer feels like, and it is an argument for the pin being
+exact and for the gates being required rather than for the choice being wrong.
+**The recording obligation is discharged:
+[ADR-0073](../../adr/0073-zensical-as-the-v1-binder-renderer.md) is Accepted and
+records the dependency**, per `AGENTS.md` § *Check before acting*. What remains
+for the RFC is ratifying the alpha pin itself — and the ADR carries a standing
+revisit cadence rather than a one-off condition, because a project shipping three
+releases a month is not a decision that stays made.
+
 **U12 — `[pack.layout]` schema versus installer behaviour, and a data-loss half.**
 The schema accepts `output_dir`; `_append_layout_section` reads only `parent`, so
 five shipped packs declare `output_dir` and get a silent no-op. **Worse than a
@@ -281,8 +400,8 @@ no-op:** when the appender *does* fire — the moment any pack declares
 only `parent` per section and dropping every off-schema key, which would silently
 delete an adopter's hand-written `[binder] output_dir / workspace_dir /
 recipes_dir` block. Pre-existing and out of scope to fix here, but it bears
-directly on this design: either binder paths move to `binder-policy.toml` or a
-dedicated file, or the pack's guide must tell adopters to re-add `[binder]` after
+directly on this design: either binder paths move to a
+dedicated adopter-owned config file (**not** a policy file — D39 removed that concept), or the pack's guide must tell adopters to re-add `[binder]` after
 such an upgrade. **Recommendation: raise it with the RFC** rather than design
 around a bug.
 

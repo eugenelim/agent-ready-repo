@@ -1,8 +1,62 @@
-# Security profile
+# Trust model and security profile
 
 > **What the scanner rejects, how it detects it, and the corpus that proves the
-> rules are right.** Authority — who may relax any of this — is in
-> [`trust-model.md`](trust-model.md).
+> rules are right** — plus the trust model, which is one sentence.
+
+## The trust model, in one sentence
+
+> **Everything outside the installed pack is untrusted, the profile is strict,
+> and there is no way to relax it.**
+
+That is the whole of it. No policy file, no grant, no `trusted` profile, no origin
+classification, no authority tiers — because with nothing to grant, there is
+nothing for an authority to decide. It replaced a four-tier lattice routing nine
+input surfaces (D39; the reasoning is in [`history.md`](history.md)).
+
+**`--root` is the one surface that needs a rule**, because it selects the boundary
+every path control is measured against:
+
+- **Refusal list, always on.** A resolved content root that is the user home, a
+  filesystem root, or an ancestor of `~/.agentbundle/` or the pack itself is exit 6.
+- **Every node read is extension-checked** — `*.md`, `*.markdown`, `*.mmd` —
+  explicit paths included. Without this, `path = ".aws/credentials"` beneath a
+  permitted root would publish a secret.
+- **Everything is confined beneath the resolved root** by realpath + path-*component*
+  containment, so `root-evil` is rejected against `root`.
+
+**This is refusal-grade, not lattice-grade, and the design says so.** A user who
+deliberately points the tool at a directory gets what they pointed it at; the
+rules stop the paths that could only be abuse. `binder.py` runs with the caller's
+own privileges, so `--root` grants nothing the caller lacks — which is what makes
+the residual acceptable at this scale and would not at a hosted one.
+
+### What this model defends, and what it does not
+
+**It defends against repository content and the invocation string** — source
+Markdown, recipes, committed config, committed `Makefile`s. No mechanism lets any
+of them widen what the scanner accepts, because no such mechanism exists for
+anything.
+
+**It does not defend against a compromised build environment.** An adversary who
+controls the process can replace `python`. Naming this is the point: repository
+content and build environment are genuinely different trust levels in CI and in
+`git clone`, which is why the confinement rules are worth having — not because
+they are a sandbox.
+
+**It does not claim skill scanning is runtime sandboxing.** The subagent tool
+restriction in the editorial pass is a **dispatch convention** interpreted by an
+orchestrating model, not a mechanism. The load-bearing guarantee there is write
+confinement in the script, which holds however the editor is run.
+
+### The cost, stated
+
+A team whose repository legitimately contains raw HTML in prose cannot publish
+those files without editing or excluding them. That is exactly what the `trusted`
+profile was designed for, and cutting it is a real loss. Accepted for v1 because
+the corpus gate below will say empirically how often it bites; because `<br/>` in
+Mermaid labels — the case that actually appeared — is verified to work under
+strict; and because **a profile added later on evidence is a better profile than
+one designed against a hypothetical.**
 
 ## Why this file leads with a corpus
 
@@ -49,6 +103,13 @@ Always on, at every profile, for every renderer.
 | 12 | Resource ceilings: 10 MB per source file, 5000 files, 200 MB total, 12 directory levels | Mechanical |
 | 13 | **No write inside the installed pack** — self-path containment | Mechanical |
 | 14 | Writes confined to the complete write set (below) | Mechanical |
+
+**One exception, and it is scoped to two verbs.** `inventory` and `outline` do not
+fail on a violation — they report the candidate with `unsafe: true`, name the
+construct, and skip it. Both are triage verbs whose output feeds a human or the
+editorial pass, and one that dies on a single bad document cannot do the job it
+exists for. Neither verb stages, renders, or publishes anything, so a reported-and-
+skipped file never reaches an output. Every other verb fails closed.
 
 ## Adapter-declared rules
 
@@ -138,10 +199,11 @@ check is nil.
 
 The scanner reads source *bodies*. Titles do not go through it — and
 `binder.title`, every section and part title, every node `label`, and any
-source-H1 promoted by label resolution are all emitted into `_quarto.yml` and
-staged frontmatter. So a recipe `title = "{{< env HOME >}}"` would be an unscanned
-path into the renderer, and `title = "X\nfilters:\n  - evil.lua"` would inject a
-top-level key around the adapter allowlist rather than through it.
+source-H1 promoted by label resolution are all emitted into `zensical.toml` and
+staged frontmatter. So a recipe
+`title = "X\"\ncustom_dir = \"/tmp/evil"` would inject a sibling key around the
+adapter allowlist rather than through it, and a control character in a title
+would corrupt the emitted config in ways the validator never sees.
 
 Three mechanical controls:
 
@@ -150,50 +212,68 @@ Three mechanical controls:
    legitimate use.
 2. **Reject renderer-interpretable syntax** — `{{<`, `{{{<`, `${` — in emitted
    strings, on the same exit split. A source H1 carrying one falls through to the
-   file stem with a warning.
-3. **Emit every string through a YAML-safe scalar emitter** — single-quoted,
-   internal quotes doubled, never bare, never template-interpolated.
-
-Whether Quarto expands shortcodes in `title` metadata at all is **Q25, unverified**
-and gated by V5. The controls do not wait on the answer: they are cheap, and a
-claim of absoluteness resting on an unverified renderer behaviour is what Q10a
-exists to prevent.
+   file stem with a warning. **Zensical interprets none of these** (Z3f verified
+   `{{< env … >}}` and `${HOME}` pass through as literal escaped text), so this
+   rule is not load-bearing today. It is kept because it costs nothing and a
+   future adapter — a PDF path through Quarto, where Q11 is live — reintroduces
+   the surface.
+3. **Emit every string through a TOML-safe scalar emitter** — a basic string with
+   `"`, `\`, and every control character escaped; never a bare key, never a
+   literal string spanning lines, never template-interpolated. The emitted
+   `zensical.toml` is a generated file and the pack is its only author.
 
 ## The subprocess
 
-- **argv is a constructed list**, never a shell string, never user-supplied.
-  `quarto publish` is never in it.
+- **argv is a constructed list**, never a shell string, never user-supplied:
+  `[sys.executable, "-m", "zensical", "build", "-f", <stage>/zensical.toml,
+  "--strict"]`. There is no deployment verb in Zensical's CLI to exclude —
+  `build`, `serve`, and `new` are the whole surface — and `serve` is never
+  invoked.
+- **The renderer is invoked as a module of the running interpreter**, not as a
+  discovered binary. `sys.executable` is the process's own Python; no `PATH`
+  lookup selects what executes. This is what D-B deleted: with Quarto there was a
+  binary to find, hence `--quarto`, `$BINDER_QUARTO`, and the binary-path-beneath-the-root rule. There is no
+  path to poison here because there is no path.
 - **The child environment is built from an explicit allowlist**, not a filtered
   copy of `os.environ`: `PATH`, `HOME`, `TMPDIR`/`TEMP`/`TMP`, `LANG`, `LC_*`,
-  `SYSTEMROOT`, `USERPROFILE`, `APPDATA`/`LOCALAPPDATA`, plus named `QUARTO_*`
-  keys the adapter sets. `AWS_SECRET_ACCESS_KEY` — the Q11 exfiltration target —
-  is absent by construction.
-- **`PATH` entries whose realpath resolves beneath the content root are stripped**,
-  because `quarto render` invokes helper binaries and a committed `Makefile` could
-  otherwise supply them. Residual: a hostile entry elsewhere on the filesystem is
-  the compromised-environment case the model already disclaims.
-- **Network access during render** is Q19, unverified, gated by V2. Python cannot
+  `SYSTEMROOT`, `USERPROFILE`, `APPDATA`/`LOCALAPPDATA`. `AWS_SECRET_ACCESS_KEY`
+  is absent by construction. The allowlist survives the renderer change intact,
+  which is the property that made it worth having.
+- **The `PATH`-stripping rule — removing `PATH` entries that resolve beneath the content root —
+  is retired, not forgotten.** It existed because `quarto render` invoked helper
+  binaries, so a committed `Makefile` could supply them by putting a directory on
+  `PATH`. Nothing on `PATH` selects what executes here: the renderer is a module of
+  `sys.executable`, and Zensical shells out to nothing. The rule would now be
+  guarding a channel that does not exist.
+- **Network access during the build** is **Z5, unverified**. Python cannot
   portably sandbox a subprocess's network; we constrain the *input*, not the
-  *process*.
+  *process*. Network access at **read time** — from the published tree, in the
+  reader's browser — is Z4, run and closed.
 
 ## The complete write set
 
 Stating it as a closed list is the point — an allowlist the implementation must
 violate is not an allowlist.
 
-1. The workspace directory.
+1. The workspace directory — which includes everything Zensical writes, since
+   `site/` and `.cache/` are config-file-relative and the config lives in
+   `stage/` (Z1e).
 2. The publication directory, plus exactly three siblings in its parent: the
    publish lock, `<name>.trash-<content-key>`, and on the cross-device path
    `<name>.incoming-<content-key>`.
-3. `recipes_dir` and `binders/editorial/` — reached only through the
-   `binder recipe write` verb, so control 14 actually governs the editorial path.
-4. The toolchain cache.
-5. `<content-root>/.gitignore`, on explicit consent only.
-6. A temporary requirements file under the platform temp directory, deleted after
-   use.
-7. `--out`, itself confined to (1), (2), or platform temp.
+3. `<recipes_dir>/` and `<recipes_dir>/editorial/` — reached only through the
+   `binder recipe write` and `binder templates <name>` verbs, both of which
+   **derive** their destinations (D41), so this entry is a closed pair of
+   directories rather than a confinement rule over a caller-supplied path.
+4. `<content-root>/.gitignore`, on explicit consent only.
 
 Anything else is exit 6.
+
+**Three entries shorter than the previous version**, and every deletion is a
+decision rather than an omission: the toolchain cache went with the external CLI
+(D-B), the temporary requirements file went with the digest-verified install
+(D-B), and `--out` went with the flag (D-A). Nothing writes to a caller-named
+path any more — the only destinations are derived.
 
 ## Prompt injection into the editorial pass
 
@@ -206,11 +286,12 @@ It is survivable for three structural reasons, and the design names them rather
 than claiming a control it does not have:
 
 - The editorial write goes through **`binder recipe write`**, so the write set
-  above governs it — the editor cannot reach a source, a binary, a policy file, or
-  the publication.
-- It **cannot grant trust** (O2 is the only grant authority), **cannot name the
-  renderer binary**, and **cannot render** — the dispatched subagent is briefed
-  with `Read`, `Grep`, `Glob` and no `Bash`.
+  above governs it — the editor cannot reach a source or the publication.
+- It **has no trust to grant** — D-A removed every grant, so the strongest
+  statement available is also the simplest one: there is no relaxation for a
+  prompt-injected editor to request. It **cannot name the renderer** (there is no
+  binary to name) and **cannot render** — the dispatched subagent is briefed with
+  `Read`, `Grep`, `Glob` and no `Bash`.
 - The recipe and every editorial paragraph are **surfaced for human approval**
   before `build`, and `review-state: unreviewed` renders visibly if that approval
   is skipped.
@@ -225,7 +306,6 @@ asserts the controls hold regardless of what the editor returns.
 
 - Which artifacts belong in a binder for a given audience — editorial judgment.
 - Whether editor-generated prose is accurate — plus the visible `unreviewed` marker.
-- When a `trusted` profile is appropriate — though *authorizing* it is mechanical.
 - The subagent's tool set — that is a **dispatch convention** interpreted by an
   orchestrating model, not a mechanism. Labelling it mechanical would be the
   category error this document polices elsewhere; the load-bearing guarantee is
