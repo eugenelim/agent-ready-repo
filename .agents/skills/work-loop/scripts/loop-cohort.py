@@ -1029,6 +1029,22 @@ def parse_findings(report_text: str) -> list[str]:
     return fingerprints
 
 
+def _resolved_report(candidate: str) -> Path:
+    """Normalise the CLI-supplied `--report` path at the argv boundary.
+
+    Normalise-only, deliberately. The two `--root` linters in this skill raise
+    on an unusable path, but `--report` must not: `review inspect` classifies an
+    unreadable report as `invalid`, which the work-loop SKILL documents as a
+    Surface signal rather than a crash. Raising here would convert a defined
+    outcome into an operational error.
+
+    The `resolve()` still does the job it is here for — it puts the
+    normalisation adjacent to the argv read, where a taint analyser can see it,
+    instead of leaving a raw `Path(args.report)` as the boundary.
+    """
+    return Path(candidate).resolve()
+
+
 def _classify_report(report_path: Path, state: dict) -> dict:
     """Classify a reviewer report. Exits 0 for all report-content outcomes.
 
@@ -1080,7 +1096,7 @@ def cmd_review_inspect(args: argparse.Namespace) -> int:
         # Operational error (spec-dir unresolvable or state.json unreadable)
         return stop(str(exc))
 
-    report_path = Path(args.report)
+    report_path = _resolved_report(args.report)
     result = _classify_report(report_path, state)
 
     if args.json:
@@ -1144,7 +1160,7 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     # Clean branch: --report <path>
     if not args.report:
         return stop("review record: one of --report or --fingerprint is required")
-    report_path = Path(args.report)
+    report_path = _resolved_report(args.report)
     result = _classify_report(report_path, state)
     if result["classification"] != "clean":
         cls = result["classification"]

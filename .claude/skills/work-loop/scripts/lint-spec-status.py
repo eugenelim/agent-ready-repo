@@ -309,6 +309,26 @@ def base_spec_text(root: Path, relpath: str, base_ref: str) -> str | None:
     return r.stdout if r.returncode == 0 else None
 
 
+def _validated_root(candidate: Path | None) -> Path:
+    """Resolve the CLI-supplied root, or fall back to `_repo_root()`.
+
+    The normalise-then-check is deliberately kept *in one function, adjacent to
+    the argv read*, because that is the shape taint analysers recognise. Same
+    pattern as `check-spec-status.py:72-80`.
+
+    Normalises and asserts directory-ness only — it does not confine the root
+    to a fixed prefix, since `--root` is the caller-supplied scan scope. Note
+    this also fixes a real usability trap: before the check, a typo'd `--root`
+    scanned an empty tree and reported "spec metadata clean".
+    """
+    root = (candidate if candidate is not None else _repo_root()).resolve()
+    if not root.exists():
+        raise SystemExit(f"lint-spec-status: --root does not exist: {root}")
+    if not root.is_dir():
+        raise SystemExit(f"lint-spec-status: --root is not a directory: {root}")
+    return root
+
+
 def _repo_root() -> Path:
     try:
         r = subprocess.run(
@@ -439,7 +459,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-ref", default=None)
     args = parser.parse_args(argv)
 
-    root = args.root.resolve() if args.root else _repo_root()
+    root = _validated_root(args.root)
     base_ref = args.base_ref if args.base_ref else resolve_default_base_ref(root)
 
     hard, warn = check(root, base_ref)
