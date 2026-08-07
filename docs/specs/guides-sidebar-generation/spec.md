@@ -15,11 +15,15 @@
 and no reader-facing page is unreachable.**
 
 ("Reader-facing" excludes two kinds of page, both still mirrored and so still
-reachable by URL: `guides/AGENTS.md`, which is maintainer context, and the four
-`guides/_shared/<kind>/README.md` section-authoring templates ("Writing a
-how-to"), which address whoever writes the guides rather than the adopter who
-reads them. Neither was in the pre-change sidebar, so keeping them out preserves
-the status quo. Excluding them from the *mirror* would be a routing change,
+reachable by URL: `guides/AGENTS.md`, which is maintainer context, and any `README.md` more than one
+directory below `guides/` — today the four `guides/_shared/<kind>/README.md`
+section-authoring templates ("Writing a how-to"), which address whoever writes
+the guides rather than the adopter who reads them. Neither was in the
+pre-change sidebar, so keeping them out preserves the status quo. The rule is
+stated by depth rather than by "kind directory" because that is what the code
+enforces, and because a nested index that *were* included would derive the
+label `Overview` and collide with its pack index. Each exclusion prints a
+`note` at build time, so a future one is never silent. Excluding them from the *mirror* would be a routing change,
 which this spec forbids.)
 
 That is the outcome. A generated sidebar is one mechanism serving it — named
@@ -76,7 +80,7 @@ One deterministic pass over `guides/**/*.md` produces one record per file:
 | `title` | `title:` frontmatter, or absent — the page's own title only. The label chain that consumes it is stated once, in § Layer 2 |
 | `slug` | `slug:` frontmatter when present, else derived — **must equal the Starlight slug of the file `mirror_guides()` writes** |
 | `is_index` | true for `README.md` at any depth |
-| `nav_eligible` | false for `AGENTS.md` and for a `README.md` inside a kind directory; true otherwise |
+| `nav_eligible` | false for `AGENTS.md` and for any `README.md` more than one directory below `guides/`; true otherwise |
 
 **On the `kind` directory fallback.** `guide-source-model` AC3 (shipped) states
 that the physical directory does not determine kind. This spec relaxes that

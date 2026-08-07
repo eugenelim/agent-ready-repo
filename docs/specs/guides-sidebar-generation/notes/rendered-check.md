@@ -1,7 +1,7 @@
 # Rendered check — T9
 
-Observation record for AC14. Run on 2026-08-07 against the working tree at
-commit `81744e5c1`.
+Observation record for AC14. Re-rendered at HEAD after the review fixes;
+the defect section below records what changed and why.
 
 ## Build
 
@@ -98,23 +98,41 @@ reachable by URL, absent from reader navigation.
 Out of scope for this spec and unchanged by it: styling, contrast, mobile
 viewport, search behaviour, and the marketing site at `/`.
 
-## Defect found and fixed during review
+## Defects found and fixed during review
 
-The first rendered pass shipped five items labelled "Overview" in the
-Cross-cutting group — `guides/_shared` plus its four kind-directory READMEs,
-none of which were in the pre-change tree and so none in the frozen baseline.
-Filename derivation would have read "Readme", so the constant "Overview" was
-the fallback, and four indistinguishable siblings was the result. Neither AC9
-(baseline pairs only) nor AC2 (slugs only) could see it.
+**Five identical "Overview" siblings.** The first rendered pass shipped
+`guides/_shared` plus its four kind-directory READMEs all labelled "Overview" —
+none was in the pre-change tree, so none was in the frozen baseline, and all
+fell back to the same constant. Neither AC9 (baseline pairs) nor AC2 (slugs)
+could see it.
 
-A kind-directory index now takes its bucket's label. Re-verified in the built
-output:
+The first fix gave each its bucket's label, which traded five identical labels
+for three duplicated *pairs*: a page named "How-to" beside the "How-to" bucket.
+The test written to prevent that compared only slug-bearing items, so it was
+blind to a page colliding with a bucket.
+
+The actual fix was to exclude them. All four are section-authoring templates —
+`guides/_shared/how-to/README.md` opens *"Writing a how-to"* — addressed to
+whoever writes the guides, not to the adopter this tree serves. None was in the
+pre-change sidebar, so excluding them preserves the status quo and including
+them was the change. They remain mirrored: `build/docs/guides/_shared/how-to/`
+renders and is reachable by URL.
+
+Re-rendered at HEAD after the fix:
 
 ```
 Cross-cutting
-  Overview      → /docs/guides/_shared/
-  Explanation   → /docs/guides/_shared/explanation/
-  How-to        → /docs/guides/_shared/how-to/
-  Reference     → /docs/guides/_shared/reference/
-  Tutorials     → /docs/guides/_shared/tutorials/
+  Overview
+  How-to  (18 pages)
+  Reference  (10 pages)
+  Explanation  (6 pages)
 ```
+
+**Tests that documented rather than constrained.** Two reviewers independently
+showed by mutation that deleting the eligibility rule, or the duplicate-slug
+tie-break, left every test green while the real tree regressed. Real-tree
+invariants were added — the nav-ineligible set pinned against an independent
+expectation, sibling-label uniqueness asserted recursively over every generated
+group, every `guides/` directory required to be declared, and the `atlassian`
+cross-kind run asserted as a witness this PR did not author. Both mutations now
+fail.

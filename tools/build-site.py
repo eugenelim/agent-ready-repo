@@ -269,18 +269,37 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
         is_int = isinstance(raw_order, int) and not isinstance(raw_order, bool)
         order = raw_order if is_int else None
 
-        # An override is a slug like any other: Starlight serves `.../index` at
-        # `...`, so navigation must point at the stripped form or 404.
+        # Frontmatter is adopter-authored: a non-string here must degrade to the
+        # derived value, not crash the build with an AttributeError naming no
+        # file. `order` is coerced the same way a few lines above.
         override = fm.get("slug")
+        if override is not None and not isinstance(override, str):
+            print(f"  warn  {_relpath(path)}: non-string 'slug' ignored", file=sys.stderr)
+            override = None
         if override and override.endswith("/index"):
             override = override[: -len("/index")]
+
+        title = fm.get("title") or None
+        if title is not None and not isinstance(title, str):
+            print(f"  warn  {_relpath(path)}: non-string 'title' ignored", file=sys.stderr)
+            title = None
+
+        # A README below kind level is dropped from navigation (see nav_eligible
+        # below). Say so — a silently missing page is the defect this whole
+        # change exists to remove.
+        if path.name == "README.md" and len(rel_parts) >= 3:
+            print(
+                f"  note  {_relpath(path)}: section index, mirrored but not in"
+                " navigation (README more than one directory below guides/)",
+                file=sys.stderr,
+            )
 
         records.append({
             "source_path": path,
             "pack": pack,
             "kind": kind,
             "order": order,
-            "title": fm.get("title") or None,
+            "title": title,
             "slug": override or guide_slug_for(rel_parts),
             "is_index": path.name == "README.md",
             # A README inside a kind directory is a section-authoring template
@@ -357,8 +376,21 @@ def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
     """
     eligible = [r for r in records if r["nav_eligible"]]
 
-    declared = [g["dir"] for g in guide_groups]
-    labels = {g["dir"]: g["label"] for g in guide_groups}
+    # Warn and skip on a malformed entry rather than raising a bare KeyError
+    # mid-build, matching discover_packs()'s handling of the sibling table.
+    valid_groups = []
+    for i, g in enumerate(guide_groups):
+        if not g.get("dir") or not g.get("label"):
+            print(
+                f"  warn  site.toml [[guide_groups]] entry {i} missing 'dir' or"
+                " 'label' — skipping",
+                file=sys.stderr,
+            )
+            continue
+        valid_groups.append(g)
+
+    declared = [g["dir"] for g in valid_groups]
+    labels = {g["dir"]: g["label"] for g in valid_groups}
     # An undeclared directory still gets a group rather than vanishing.
     extra = sorted({r["pack"] for r in eligible if r["pack"] and r["pack"] not in labels})
     for d in extra:
@@ -881,7 +913,16 @@ def load_guide_baseline(path: Path) -> dict:
         return {}
     with path.open("rb") as f:
         data = tomllib.load(f)
-    return {e["slug"]: e["label"] for e in data.get("entry", [])}
+    baseline = {}
+    for i, e in enumerate(data.get("entry", [])):
+        if not e.get("slug") or not e.get("label"):
+            print(
+                f"  warn  {path.name} entry {i} missing 'slug' or 'label' — skipping",
+                file=sys.stderr,
+            )
+            continue
+        baseline[e["slug"]] = e["label"]
+    return baseline
 
 
 def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> dict | None:
@@ -893,7 +934,19 @@ def build_guides_sidebar_group(repo_root: Path, site_toml: Path) -> dict | None:
         guide_groups = tomllib.load(f).get("guide_groups", [])
     records = build_guide_inventory(guides_root)
     baseline = load_guide_baseline(repo_root / "guide-nav-baseline.toml")
-    return project_guide_sidebar(records, guide_groups, baseline)
+    group = project_guide_sidebar(records, guide_groups, baseline)
+
+    # The failure this change removes — pages published but unreachable — was
+    # invisible precisely because nothing counted. Report on every run.
+    eligible = sum(1 for r in records if r["nav_eligible"])
+    declared = {g.get("dir") for g in guide_groups}
+    fallback = sorted({r["pack"] for r in records
+                       if r["nav_eligible"] and r["pack"] and r["pack"] not in declared})
+    print(f"  guides  {eligible} navigable page(s) in {len(group['items'])} group(s)")
+    if fallback:
+        print(f"  warn    undeclared in site.toml [[guide_groups]]: {', '.join(fallback)}",
+              file=sys.stderr)
+    return group
 
 
 def generate_sidebar_config(packs: list[dict], out: Path, dry_run: bool = False,

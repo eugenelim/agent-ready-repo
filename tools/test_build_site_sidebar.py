@@ -120,3 +120,92 @@ def test_shuffled_enumerator_is_byte_identical():
 
 def test_missing_baseline_degrades_without_raising(tmp_path):
     assert build_site.load_guide_baseline(tmp_path / "absent.toml") == {}
+
+
+# ---------------------------------------------------------------------------
+# Real-tree invariants.
+#
+# The synthetic fixtures below/elsewhere document intent; these constrain it.
+# Two reviewers independently showed that deleting the nav-eligibility rule or
+# the duplicate-slug tie-break left every other test green while the published
+# sidebar regressed — a test that only moves with the code cannot catch the
+# code being wrong.
+# ---------------------------------------------------------------------------
+
+def _all_groups(node):
+    """Yield every group node (anything carrying `items`), depth-first."""
+    for item in node.get("items", []):
+        if "items" in item:
+            yield item
+            yield from _all_groups(item)
+
+
+def test_nav_ineligible_set_is_exactly_the_declared_exceptions():
+    """Pinned against an independent expectation, not against the projection —
+    AC2's set equality compares the generator with itself, so it moves with an
+    eligibility bug rather than catching one."""
+    records = build_site.build_guide_inventory(REPO_ROOT / "guides")
+    ineligible = {
+        r["source_path"].relative_to(REPO_ROOT / "guides").as_posix()
+        for r in records if not r["nav_eligible"]
+    }
+    assert ineligible == {
+        "AGENTS.md",
+        "_shared/explanation/README.md",
+        "_shared/how-to/README.md",
+        "_shared/reference/README.md",
+        "_shared/tutorials/README.md",
+    }, "the reader-facing carve-out changed — update spec § Intent in the same PR"
+
+
+def test_no_sibling_label_collision_anywhere_in_the_real_tree():
+    """The collision that shipped twice was a kind-index page named "How-to"
+    sitting beside the "How-to" bucket. It only arises in the real tree, so a
+    synthetic fixture cannot reproduce it."""
+    guides = _guides_group()
+    for group in [guides, *_all_groups(guides)]:
+        labels = [i["label"] for i in group.get("items", [])]
+        assert len(labels) == len(set(labels)), (
+            f"sibling label collision in {group.get('label')!r}: {labels}")
+
+
+def test_every_guides_directory_is_declared_in_site_toml():
+    """AC8. An undeclared directory silently takes the title-cased fallback and
+    is appended last — `iac-terraform` would read "Iac Terraform" rather than
+    its curated "IaC (Terraform)"."""
+    dirs = {p.name for p in (REPO_ROOT / "guides").iterdir() if p.is_dir()}
+    with (REPO_ROOT / "site.toml").open("rb") as f:
+        declared = {g["dir"] for g in tomllib.load(f).get("guide_groups", [])}
+    assert dirs == declared, f"undeclared: {sorted(dirs - declared)}"
+
+
+def test_atlassian_cross_kind_run_survives():
+    """The independent regression witness — a threaded sequence this PR did not
+    author, so it cannot be tautological with the arc it added."""
+    guides = _guides_group()
+    atlassian = next(g for g in guides["items"] if g.get("label") == "Atlassian")
+    direct = [i["slug"] for i in atlassian["items"] if "slug" in i]
+    assert direct[:5] == [
+        "guides/atlassian",
+        "guides/atlassian/tutorials/review-your-team-backlog",
+        "guides/atlassian/how-to/work-with-jira",
+        "guides/atlassian/reference/atlassian-skills",
+        "guides/atlassian/explanation/atlassian-pack",
+    ], "the ordered run must stay flat and ahead of the kind buckets"
+
+
+def test_duplicate_slug_resolves_deterministically(tmp_path):
+    """The tie-break AC10 depends on. The real tree has no duplicates, so the
+    shuffled-enumerator test exercises nothing about it."""
+    root = tmp_path / "guides"
+    for name, title in (("a.md", "A"), ("b.md", "B")):
+        p = root / "pack" / "how-to" / name
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(f"---\ntitle: {title}\nsummary: s\npack: pack\nkind: how-to\n"
+                     f"slug: guides/pack/how-to/same\n---\n", encoding="utf-8")
+
+    paths = sorted(root.rglob("*.md"))
+    forward = build_site.build_guide_inventory(root, enumerator=lambda _r: paths)
+    reverse = build_site.build_guide_inventory(
+        root, enumerator=lambda _r: list(reversed(paths)))
+    assert [r["title"] for r in forward] == [r["title"] for r in reverse]

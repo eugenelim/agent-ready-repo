@@ -53,9 +53,13 @@ no config to edit.
   links. Verify targets exist before linking.
 - Links out of `guides/` become GitHub blob URLs — they send the reader off the
   site. Prefer an in-tree target.
-- `AGENTS.md` and the `_shared/<kind>/README.md` authoring templates are
-  mirrored but never enter navigation. They stay reachable by URL; that is
-  deliberate, not a gap — they address guide *authors*, not adopters.
+- `AGENTS.md`, and any `README.md` more than one directory below `guides/`,
+  are mirrored but never enter navigation — today that is the four
+  `_shared/<kind>/` authoring templates, which address guide *authors*, not
+  adopters. They stay reachable by URL. Each prints a `note` at build time.
+- **Renaming or deleting a page requires deleting its
+  `guide-nav-baseline.toml` entry** in the same change, or the no-regression
+  test fails with `labels or pages regressed: {'…': ('Label', '<ABSENT>')}`.
 
 ## Verify
 

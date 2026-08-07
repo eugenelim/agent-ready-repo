@@ -110,13 +110,14 @@ Approach: one pass over `guides/**/*.md`, reusing `_parse_frontmatter()`. Pure
 derivation, no projection concerns. Accept an **injectable path enumerator** so
 T7's determinism test has a seam. Never raise on bad input.
 Done when: tests pass; over the real tree `len(records) == len(list(guides.rglob("*.md")))`
-and `nav_eligible == total - 1` — relational, not hard-coded, since T5 adds files.
+and `nav_eligible == total - 1 - <READMEs more than one directory below
+`guides/`>` — relational, not hard-coded, since T5 adds files.
 Depends on: none
 
 ### T3: Slug parity with what `mirror_guides()` writes
 
 Mode: TDD
-Tests: `test_slug_matches_written_path_for_every_real_file` — for every file
+Tests: `test_slug_matches_what_mirror_guides_actually_writes` — for every file
 under `guides/`, the inventory slug equals the Starlight slug of the file
 `mirror_guides()` writes (written path, trailing `/index` stripped);
 `test_readme_resolves_to_parent` (`guides/core/README.md` → literal `guides/core`);
