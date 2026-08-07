@@ -213,11 +213,66 @@ def _assert_portable_name(component: str) -> None:
 # ---------------------------------------------------------------------------
 
 
+# Settings files are read under an adopter's ``${CLAUDE_PROJECT_DIR}``, whose
+# contents a cloned repo controls. Bound the read itself — measuring after
+# `read_text()` has already pulled the whole file in is no bound at all.
+_SETTINGS_READ_CAP = 1_048_576  # 1 MiB
+
+
+def _plugin_marketplace(
+    plugin_root: pathlib.Path,
+    plugin_name: str,
+) -> "str | None":
+    """Return the marketplace this pack was installed from, or ``None``.
+
+    The Claude-plugins client installs into
+    ``<config>/plugins/cache/<marketplace>/<plugin>/<version>``, so the pack
+    can read its own marketplace identity back out of ``${CLAUDE_PLUGIN_ROOT}``.
+    Verified against Claude Code 2.1.223.
+
+    Returns ``None`` when ``plugin_root`` does not have that shape. The caller
+    then matches on bare pack name alone — a layout we do not recognise must
+    degrade to the historical behaviour, not to "never opted in" (that is the
+    very failure this function's caller exists to fix).
+    """
+    parts = plugin_root.parts
+    if len(parts) < 4:
+        return None
+    if parts[-4] != "cache" or parts[-2] != plugin_name:
+        return None
+    return parts[-3] or None
+
+
+def _entry_matches(
+    entry: str,
+    plugin_name: str,
+    marketplace: "str | None",
+) -> bool:
+    """Does one ``enabledPlugins`` identifier name *this* pack?
+
+    Current clients write a qualified ``name@marketplace``; older ones wrote a
+    bare ``name``. A qualified identifier must agree on *both* halves whenever
+    we know our own marketplace, so another vendor's ``core@other-marketplace``
+    does not opt in a ``core`` that came from somewhere else.
+    """
+    name, sep, entry_marketplace = entry.strip().partition("@")
+    if name.strip() != plugin_name:
+        return False
+    if not sep:
+        # Bare name — the identifier makes no marketplace claim to check.
+        return True
+    if marketplace is None:
+        # Our own identity is unknown; the name is all there is to compare.
+        return True
+    return entry_marketplace.strip() == marketplace
+
+
 def _detect_origin(
     *,
     plugin_name: str,
     home: pathlib.Path,
     project_dir: pathlib.Path | None,
+    marketplace: "str | None",
 ) -> str | None:
     """Walk the three ``enabledPlugins`` settings files in precedence order.
 
@@ -226,9 +281,17 @@ def _detect_origin(
     (pack is not enabled at any scope).
 
     Precedence: local → project → user (most-specific wins).
-    Missing file, malformed JSON, absent ``enabledPlugins`` key, or
-    ``enabledPlugins`` present but not a JSON array are each treated as
-    "not opted in at that scope" and fall through.
+
+    ``enabledPlugins`` carries two shapes. Current clients write an **object**
+    keyed by plugin identifier whose boolean value is the enabled state — only
+    ``true`` counts as opted in, since ``false`` is an adopter who deliberately
+    disabled the pack. Older clients wrote a **JSON array** of identifiers;
+    both are accepted.
+
+    Every other outcome is "not opted in at that scope" and falls through: a
+    missing file, a non-regular path, a file past ``_SETTINGS_READ_CAP``,
+    undecodable bytes, malformed JSON, an absent ``enabledPlugins`` key, or a
+    value of any other type. A hostile settings file must never raise.
     """
     candidates: list[tuple[str, pathlib.Path]] = []
 
@@ -239,32 +302,38 @@ def _detect_origin(
     candidates.append(("user", home / ".claude" / "settings.json"))
 
     for origin, settings_path in candidates:
-        if not settings_path.exists():
+        # `.is_file()` where the old code used `.exists()`: a FIFO exists, and
+        # opening one for reading blocks until a writer appears. A character
+        # device such as /dev/zero exists too, and reads forever.
+        if not settings_path.is_file():
             continue
         try:
-            read_text = settings_path.read_text(encoding="utf-8")
+            with settings_path.open("rb") as fh:
+                blob = fh.read(_SETTINGS_READ_CAP + 1)
         except OSError:
             continue
-        # Cap read size to 1 MiB to guard against DoS via giant file.
-        if len(read_text) > 1_048_576:
+        if len(blob) > _SETTINGS_READ_CAP:
             continue
         try:
-            raw = json.loads(read_text)
-        except (json.JSONDecodeError, OSError):
+            # `json.loads` decodes UTF-8 itself; undecodable bytes raise
+            # UnicodeDecodeError and malformed JSON raises JSONDecodeError,
+            # both subclasses of ValueError.
+            raw = json.loads(blob)
+        except ValueError:
             continue
         if not isinstance(raw, dict):
             continue
         enabled = raw.get("enabledPlugins")
-        if not isinstance(enabled, list):
+        if isinstance(enabled, dict):
+            entries: list = [key for key, value in enabled.items() if value is True]
+        elif isinstance(enabled, list):
+            entries = enabled
+        else:
             continue
-        # Check whether this pack is in the list; compare by name prefix
-        # since installed plugins may appear as "name@marketplace-url".
-        for entry in enabled:
-            if not isinstance(entry, str):
-                continue
-            # Match by pack name as a prefix component (before '@').
-            entry_name = entry.split("@")[0].strip()
-            if entry_name == plugin_name:
+        for entry in entries:
+            if isinstance(entry, str) and _entry_matches(
+                entry, plugin_name, marketplace
+            ):
                 return origin
 
     return None
@@ -837,6 +906,7 @@ def _main_claude_plugins(args: argparse.Namespace) -> int:
         plugin_name=pack_name,
         home=home,
         project_dir=project_dir,
+        marketplace=_plugin_marketplace(plugin_root, pack_name),
     )
 
     if origin is None:
