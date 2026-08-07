@@ -1,18 +1,28 @@
 #!/usr/bin/env python3
-"""Repo-policy lint: cap `[pack].description` at an editorially readable length.
+"""Repo-policy lint: a runaway-drift backstop on `[pack].description`.
 
-A pack's `description` is **display copy**. It is what a person reads in a
-marketplace browser or catalogue listing while deciding whether to install, so
-what constrains it is how much prose someone will read in a list — not any
-tool's ingest limit.
+**This lint is not the quality bar, and cannot be.** The authoring standard is —
+`guides/_shared/reference/catalogue-authoring-standards.md` § 2. A pack
+description fails review when it opens on a component inventory, leans on
+repo-insider vocabulary, references sibling packs, name-drops frameworks, or
+cites internal paths. None of those is a length, so no length check detects any
+of them: a 799-character component inventory passes this lint and is still
+wrong, and a rich 900-character description would fail it while being fine.
 
-This is deliberately NOT the same ceiling as the per-target
-`description-max-length` in `contracts/target-vocab.toml`, which caps *skill and
-agent* frontmatter. That text is read by the **model**, which uses it to decide
-whether to activate a primitive; length there is load-bearing and shortening it
-degrades activation. Two fields named `description`, two audiences, two rules.
-Sharing one number would let a target vocabulary that permits a 1024-character
-skill description silently permit a 1024-character pack description.
+What this catches is the one thing that *is* objective — a field that has run
+away. It reached 1122 characters here before anything governed it, at which
+point no reviewer was reading it as display copy any more. The ceiling is set
+deliberately loose (see `MAX_DESCRIPTION`) so it only ever fires on an outlier,
+never on a judgment call. Treat a failure as "this drifted", not "this is bad
+copy"; treat passing as nothing at all.
+
+This is deliberately NOT the per-target `description-max-length` in
+`contracts/target-vocab.toml`, which caps *skill and agent* frontmatter. That
+text is read by the **model** to decide whether to activate a primitive; length
+there is load-bearing and shortening it degrades activation. Two fields named
+`description`, two audiences, two rules. Sharing one number would let a target
+vocabulary that permits a 1024-character skill description silently permit a
+1024-character pack description.
 
 **Why this lives in `tools/` and not in the `agentbundle` package.** Both
 `pack.schema.json` and `agentbundle.build.lint_packs` ship inside the published
@@ -37,15 +47,18 @@ import sys
 import tomllib
 from pathlib import Path
 
-# The ceiling. Calibrated against the marketplace this catalogue is listed
-# alongside, whose 280 plugin descriptions run to a 177-character median and a
-# 665-character maximum. 400 leaves generous room for a two-sentence entry while
-# refusing the component-inventory paragraphs this lint was added to stop.
-MAX_DESCRIPTION = 400
+# The backstop, deliberately set ABOVE the observed range of good copy rather
+# than at the edge of it. The marketplace this catalogue is listed alongside
+# runs to a 177-character median and a 665-character maximum across 280 plugin
+# descriptions; this catalogue's own rewritten set tops out at 263. 800 clears
+# both, so a description has to be a genuine outlier — not merely long — to
+# trip it. Raising the number is the correct response to a false positive; the
+# authoring standard, not this constant, is what makes a description good.
+MAX_DESCRIPTION = 800
 
 
 def find_violations(packs_dir: Path) -> list[str]:
-    """Return one message per pack whose description exceeds the ceiling.
+    """Return one message per pack whose description passes the drift backstop.
 
     A pack with no `pack.toml`, no `[pack].description`, or an unparseable
     `pack.toml` is not this lint's business — the first two are legitimate and
@@ -68,11 +81,14 @@ def find_violations(packs_dir: Path) -> list[str]:
             continue
         if len(description) > MAX_DESCRIPTION:
             violations.append(
-                f"lint-pack-descriptions: {pack_dir.name}: [pack].description is "
-                f"{len(description)} chars (max {MAX_DESCRIPTION}). A pack "
-                f"description is marketplace display copy — lead with the "
-                f"outcome an adopter gets, and move the component list to "
-                f"{pack_dir.name}/README.md."
+                f"lint-pack-descriptions: {pack_dir.name}: [pack].description has "
+                f"run away — {len(description)} chars, past the "
+                f"{MAX_DESCRIPTION}-char drift backstop. This is display copy a "
+                f"person reads while deciding whether to install, so rewrite it "
+                f"against catalogue-authoring-standards.md § 2 (lead with the "
+                f"adopter outcome; the component list belongs in "
+                f"{pack_dir.name}/README.md). Passing this check is not a sign "
+                f"the copy is good — only that it is not runaway."
             )
     return violations
 
@@ -89,12 +105,15 @@ def main(argv: list[str] | None = None) -> int:
         print(violation, file=sys.stderr)
     if violations:
         print(
-            f"lint-pack-descriptions: {len(violations)} pack(s) over the "
-            f"{MAX_DESCRIPTION}-char ceiling.",
+            f"lint-pack-descriptions: {len(violations)} pack(s) past the "
+            f"{MAX_DESCRIPTION}-char drift backstop.",
             file=sys.stderr,
         )
         return 1
-    print("lint-pack-descriptions: all pack descriptions within the ceiling.")
+    print(
+        "lint-pack-descriptions: no pack description has run away (drift backstop "
+        "only — the quality bar is catalogue-authoring-standards.md § 2)."
+    )
     return 0
 
 

@@ -559,10 +559,12 @@ jobs:
           python3 tools/test-lint-experience-agnostic.py
           python3 tools/lint-experience-agnostic.py
 
-      - name: pack description ceiling lint + self-test
-        # A pack's `[pack].description` is marketplace display copy — what a
-        # person reads in a listing while deciding whether to install — so it
-        # carries an editorial ceiling. Deliberately separate from the
+      - name: pack description drift backstop + self-test
+        # A pack's `[pack].description` is display copy — what a person reads in
+        # a listing while deciding whether to install. The quality bar is
+        # catalogue-authoring-standards.md § 2; this lint is only a runaway-drift
+        # backstop (a long description is not necessarily a bad one, and a short
+        # one is not necessarily good). Deliberately separate from the
         # per-target `description-max-length` in contracts/target-vocab.toml,
         # which caps skill/agent frontmatter: that text is read by the model to
         # decide activation, and shortening it degrades activation. The lint

@@ -26,8 +26,15 @@ characters and a maximum of 1122, against a 177-character median in the referenc
 marketplace we are listed alongside; six exceed 400 characters, and the worst read
 as component inventories rather than descriptions.
 
-Success: every pack description leads with the job the adopter accomplishes, fits
-inside a mechanically-enforced ceiling, and a regression cannot land silently.
+Success: every pack description leads with the job the adopter accomplishes, and
+the standard that says so is written down where authors will find it.
+
+**A length check is not that standard, and this spec does not pretend otherwise.**
+The defect is *shape* — inventory-first openings, insider vocabulary, cross-pack
+references, provenance dumps, internal paths — and none of those is a length. A
+799-character component inventory would pass any ceiling and still be wrong. The
+lint here exists only to stop the field running away again (it reached 1122
+characters ungoverned); the authoring standard carries the actual bar.
 
 ### The two-audience distinction this spec depends on
 
@@ -37,7 +44,7 @@ conflate them:
 | Field | Audience | Job | Governed by |
 | --- | --- | --- | --- |
 | **Skill/agent** `description` (frontmatter) | The *model* | Drives **activation** — the agent decides whether to load the skill | `lint_packs.Constraints.description_max`, a strictest-cap snapshot of `contracts/target-vocab.toml` (a technical ingest cap, 1024) |
-| **Pack** `[pack].description` | A *human* | **Display copy** in a marketplace browser or catalogue listing | `tools/lint-pack-descriptions.py` (repo-only), added by this spec |
+| **Pack** `[pack].description` | A *human* | **Display copy** in a marketplace browser, catalogue listing, or CLI output | `catalogue-authoring-standards.md` § 2 (the bar) + a repo-only drift backstop, both added by this spec |
 
 Keyword density is *correct* in a skill description and *noise* in a pack
 description. Pack discoverability is already carried by the separate
@@ -46,21 +53,26 @@ costs no findability.
 
 ## Acceptance criteria
 
-- [x] AC1. `tools/lint-pack-descriptions.py` refuses a `[pack].description`
-      longer than `MAX_DESCRIPTION` (400), with a finding naming the pack, the
-      actual length, and the ceiling, and is wired into both the local build
-      gate chain and `build-check.yml`.
+- [x] AC1. `guides/_shared/reference/catalogue-authoring-standards.md` § 2
+      carries the authoring standard: the outcome-first shape and the named
+      anti-patterns. **This is the quality bar.**
+- [x] AC1b. `tools/lint-pack-descriptions.py` is a *drift backstop*, not the
+      quality bar: it refuses a `[pack].description` past `MAX_DESCRIPTION`
+      (800 — more than double the longest shipped description, so it fires only
+      on an outlier), names the pack and points at the standard, and is wired
+      into both the local gate chain and `build-check.yml`. A test asserts the
+      backstop stays clear of real copy.
 - [x] AC2. The new check uses its own constant and does **not** read, reuse, or
       mutate the target-derived skill/agent cap. A test asserts the two are
       independent.
 - [x] AC3. Nothing under `packages/agentbundle/` changes — not
       `pack.schema.json`, not the packaged `lint_packs`. Both run against
       adopter catalogues, so neither may carry this repository's house style.
-- [x] AC4. Every pack in `packs/` has a description ≤400 characters, and every
+- [x] AC4. Every pack in `packs/` has a description inside the backstop, and every
       rewritten one opens on an adopter outcome rather than a component
       inventory. One pack is deliberately not rewritten —
       `credential-brokers`, whose tree the catalogue-curation guard protects
-      with no carve-out and whose description is already inside the ceiling at
+      with no carve-out and whose description is already inside the backstop at
       241 chars (deferred: credential-brokers-description-rewrite).
 - [x] AC5. No pack description contains a cross-pack reference, a bare component
       inventory as its opening clause, or an internal file path.
@@ -88,7 +100,7 @@ costs no findability.
 
 - **Never touch a skill or agent `description`.** Those drive activation; this
   spec is display copy only. A shortened skill description is a regression.
-- Never put the ceiling anywhere inside `packages/agentbundle/` — neither
+- Never put the backstop anywhere inside `packages/agentbundle/` — neither
   `pack.schema.json` (adopter-facing via `agentbundle validate`) nor the packaged
   `lint_packs` (adopter-facing via `agentbundle catalogue lint`). An editorial
   rule in either converts our house style into someone else's build break. It
@@ -97,15 +109,16 @@ costs no findability.
 
 ## Testing strategy
 
-- **AC1–AC3 — TDD.** `tools/test-lint-pack-descriptions.py`: a pack fixture over
-  the ceiling produces a finding; one at the ceiling does not; absent, malformed,
-  and non-pack directories are ignored; the editorial ceiling is asserted distinct
+- **AC1–AC3 — TDD.** `tools/test-lint-pack-descriptions.py`: a pack fixture past
+  the backstop produces a finding; one exactly at it does not; absent, malformed,
+  and non-pack directories are ignored; the backstop is asserted distinct
   from the target-vocab ingest cap; the in-tree catalogue satisfies its own lint;
   and both exit codes are exercised. Backed by a real-tree negative control —
   restoring `core`'s 439-char description makes the lint exit 1, and reverting it
   returns exit 0, so the gate is proven capable of failing.
-- **AC4–AC5 — goal-based.** `Done when:` a repo-wide script reports every pack
-  ≤400 chars, and the lint added in AC1 exits clean across `packs/`.
+- **AC4–AC5 — goal-based.** `Done when:` the backstop exits clean across `packs/`
+  and every rewritten description satisfies the § 2 shape on review. AC5 is a
+  human-review criterion by construction — no length check can assert it.
 - **AC6–AC7 — goal-based.** `Done when:` a script confirms the three files agree
   per pack, and `make build-check` passes.
 - **AC8 — goal-based.** `Done when:` `make build-check` and `python3 -m pytest

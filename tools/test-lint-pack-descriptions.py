@@ -80,8 +80,8 @@ def test_missing_packs_dir_is_not_a_crash() -> None:
         assert lint.find_violations(Path(tmp) / "nope") == []
 
 
-def test_ceiling_is_not_the_target_vocab_cap() -> None:
-    """The editorial ceiling must stay independent of the ingest cap.
+def test_backstop_is_not_the_target_vocab_cap() -> None:
+    """The backstop must stay independent of the ingest cap.
 
     `contracts/target-vocab.toml` caps skill/agent descriptions — text the model
     reads to decide activation. If this assert ever fails because someone set
@@ -93,6 +93,30 @@ def test_ceiling_is_not_the_target_vocab_cap() -> None:
         assert f"description-max-length = {CEILING}" not in vocab.read_text(
             encoding="utf-8"
         )
+
+
+def test_backstop_sits_clear_of_real_copy() -> None:
+    """The backstop must fire on outliers only, never on judgment calls.
+
+    A backstop set at the edge of good copy becomes a de-facto style rule — the
+    thing this lint deliberately is not. Assert it clears the longest shipped
+    description by a real margin, so tripping it means the field ran away rather
+    than that an author wrote one sentence too many.
+    """
+    packs = _HERE.parent / "packs"
+    if not packs.is_dir():
+        return
+    longest = 0
+    for manifest in sorted(packs.glob("*/pack.toml")):
+        parsed = lint.tomllib.loads(manifest.read_text(encoding="utf-8"))
+        description = parsed.get("pack", {}).get("description")
+        if isinstance(description, str):
+            longest = max(longest, len(description))
+    assert longest, "no pack descriptions found — this test would be vacuous"
+    assert CEILING >= longest * 2, (
+        f"backstop {CEILING} is too close to the longest shipped description "
+        f"({longest}); it would start adjudicating style rather than drift"
+    )
 
 
 def test_real_packs_are_clean() -> None:

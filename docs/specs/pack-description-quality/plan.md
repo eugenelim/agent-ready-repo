@@ -16,10 +16,11 @@
 - `docs/product/changelog.md`, `workspace.toml` (`[backlog].open` entry only).
 
 **Tests that demonstrate done**
-- New unit tests for the ceiling, the independence of the two caps, and the
-  absence of a `pack.schema.json` change.
+- New unit tests for the drift backstop, its independence from the target-vocab
+  cap, its clearance above real copy, and the absence of any
+  `packages/agentbundle/` change.
 - `make build-check` + `python3 -m pytest packages/agentbundle/tests/ -q`.
-- A repo-wide script asserting every pack ≤400 chars and the three files agree.
+- The backstop exits clean across `packs/`, and the three files agree per pack.
 
 **What I am NOT changing**
 - Any skill or agent `description` (activation-bearing — see spec § two-audience).
@@ -52,14 +53,16 @@
 
 ## Tasks
 
-### T1 — Pack-description ceiling as a repo policy lint (TDD)
+### T1 — Authoring standard + drift backstop (TDD)
 
 **Depends on:** none
 
 **Tests:** `tools/test-lint-pack-descriptions.py`
-- `test_description_over_ceiling_is_flagged` — 401-char description → one finding
-  naming pack, actual length, ceiling.
-- `test_description_at_ceiling_passes` — exactly 400 chars → no finding.
+- `test_over_ceiling_is_flagged` — a description one char past the backstop → one
+  finding naming the pack, the actual length, and the backstop.
+- `test_backstop_sits_clear_of_real_copy` — the backstop is at least 2x the longest
+  shipped description, so it adjudicates drift and never style.
+- `test_at_ceiling_passes` — exactly at the backstop → no finding.
 - `test_absent_description_is_not_flagged` — no `[pack].description` → no finding.
 - `test_pack_ceiling_independent_of_target_cap` — `_PACK_DESCRIPTION_MAX` is not
   `Constraints.description_max`, and changing one does not move the other.
@@ -84,8 +87,9 @@ lint`. That is the same adopter-imposition objection already raised against
 **Depends on:** T1
 
 **Tests:** no stub (goal-based).
-**Done when:** the T1 lint exits clean across `packs/`, and a script reports every
-description ≤400 chars with a verb-or-outcome opening clause.
+**Done when:** the T1 backstop exits clean across `packs/`, and every description
+opens on a verb-or-outcome clause per the § 2 standard (a review criterion, not a
+mechanical one — length cannot assert it).
 
 **Approach:** rewrite each to the formula — sentence 1 = the job, verb-first,
 ≤ ~90 chars, standalone; optional sentence 2 = compressed capability list or the

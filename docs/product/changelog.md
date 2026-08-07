@@ -40,13 +40,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **A repo lint keeps pack descriptions readable.**
-  `tools/lint-pack-descriptions.py` fails the build on a `[pack].description`
-  over 400 characters and tells you to lead with the adopter outcome. It is a
-  repository policy lint, not a packaged one: `pack.schema.json` and the
-  packaged pack lint both run against *adopter* catalogues, so an editorial
-  rule in either would turn this catalogue's house style into someone else's
-  build break.
+- **A written standard for pack descriptions.**
+  `catalogue-authoring-standards.md` § 2 now says what a `[pack].description`
+  is for — display copy a person reads while deciding whether to install — and
+  names the anti-patterns that made ours drift: component-inventory openings,
+  repo-insider vocabulary, cross-pack references, framework name-drops, and
+  internal paths. It also separates this field from a *skill's* description,
+  which the model reads to decide activation and where length is load-bearing.
+
+  `tools/lint-pack-descriptions.py` backs it with a deliberately loose 800-char
+  drift backstop — enough to stop another 1122-character entry, not enough to
+  adjudicate style, because a length check cannot tell good copy from bad. It is
+  a repository policy lint, not a packaged one: `pack.schema.json` and the
+  packaged pack lint both run against *adopter* catalogues, so a rule in either
+  would turn this catalogue's house style into someone else's build break.
 
 ## [agentbundle][0.29.7] — 2026-08-06
 
