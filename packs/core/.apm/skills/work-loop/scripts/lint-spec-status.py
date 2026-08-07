@@ -95,7 +95,13 @@ _CODE_EXTS = (".py", ".toml", ".sh", ".json")
 # Header contract line (invariant v), e.g. `- **Contract:** `contracts/openapi/orders.yaml``.
 _CONTRACT_HEADER_RE = re.compile(r"\*\*Contract:\*\*\s*(.+?)\s*$")
 # A repo-relative contract path token under the `contracts/` tree.
-_CONTRACT_TOKEN_RE = re.compile(r"contracts/[A-Za-z0-9._/-]+")
+# Segments may not be `.` or `..`: the token is joined onto `--root` and read,
+# so a permissive class containing `.` and `/` let `contracts/../../secret.json`
+# escape the tree. `_within()` at the join site is the actual control; this
+# rejects the traversal earlier so the warning text stays honest. Each segment
+# must therefore start with an alphanumeric.
+_CONTRACT_SEGMENT = r"[A-Za-z0-9][A-Za-z0-9._-]*"
+_CONTRACT_TOKEN_RE = re.compile(rf"contracts/(?:{_CONTRACT_SEGMENT}/)*{_CONTRACT_SEGMENT}")
 # Vendor-extension-bearing contract formats (carry `x-spec` inline); other
 # formats (e.g. .proto, .graphql) use the REGISTRY.md back-ref channel.
 _XSPEC_FORMATS = (".yaml", ".yml", ".json")
@@ -309,6 +315,81 @@ def base_spec_text(root: Path, relpath: str, base_ref: str) -> str | None:
     return r.stdout if r.returncode == 0 else None
 
 
+# Skip implausibly large files — an untrusted repo could ship a multi-GB
+# spec.md or contract; reading it whole is a memory-exhaustion DoS. Mirrors
+# lint-traceability.py's guard of the same name.
+_MAX_FILE_BYTES = 8 * 1024 * 1024
+
+
+def _read(path: Path) -> str | None:
+    """Size-guarded read. Returns None when the file is too large or unreadable."""
+    try:
+        if path.stat().st_size > _MAX_FILE_BYTES:
+            return None
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+
+
+def _within(path: Path, root: Path) -> bool:
+    """True when `path` is inside `root` after symlink resolution.
+
+    Ported from lint-traceability.py, which has carried this confinement since
+    it was written. This file did not, and that was a real gap, not a stylistic
+    one: `Contract:` header tokens are matched by `_CONTRACT_TOKEN_RE`, whose
+    character class contains `.` and `/`, so a header reading
+    `contracts/../../secret.json` in an untrusted spec.md resolved outside
+    `--root` and was read. That produced both an existence oracle (two distinct
+    warnings depending on whether the target existed) and a content-substring
+    oracle. `docs/architecture/security.md` declares `filesystem_read_untrusted`
+    a boundary, so hostile repo content is in scope.
+    """
+    try:
+        return path.resolve().is_relative_to(root)
+    except (OSError, ValueError, RuntimeError):
+        return False
+
+
+def _confined(paths, root: Path) -> list[Path]:
+    """Globbed / iterated paths filtered to those within `root`.
+
+    `pathlib.glob` follows symlinked directories, so each result is re-checked
+    before it is read — a symlinked `docs/specs/<slug>` cannot pull in a
+    spec.md from outside the tree.
+    """
+    return [p for p in paths if _within(p, root)]
+
+
+def _validated_root(candidate: Path | None) -> Path:
+    """Resolve the CLI-supplied root, or fall back to `_repo_root()`.
+
+    The normalise-then-check is deliberately kept *in one function, adjacent to
+    the argv read*, because that is the shape taint analysers recognise. Same
+    pattern as `check-spec-status.py:72-80`.
+
+    Normalises and asserts directory-ness only — it does not confine the root
+    to a fixed prefix, since `--root` is the caller-supplied scan scope. Note
+    this also fixes a real usability trap: before the check, a typo'd `--root`
+    scanned an empty tree and reported "spec metadata clean".
+    """
+    raw = candidate if candidate is not None else _repo_root()
+    # `_within()` in the sibling script already catches this trio; resolve()
+    # raises ValueError on an embedded null and OSError on a Windows reserved
+    # name, neither of which is an OSError-only case. Letting them through
+    # would produce the traceback this function exists to replace.
+    try:
+        root = raw.resolve()
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise SystemExit(
+            f"lint-spec-status: --root is not a usable path: {raw!r} ({exc})"
+        ) from exc
+    if not root.exists():
+        raise SystemExit(f"lint-spec-status: --root does not exist: {root}")
+    if not root.is_dir():
+        raise SystemExit(f"lint-spec-status: --root is not a directory: {root}")
+    return root
+
+
 def _repo_root() -> Path:
     try:
         r = subprocess.run(
@@ -340,9 +421,11 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
         )
 
     specs_dir = root / "docs" / "specs"
-    for spec_path in sorted(specs_dir.glob("*/spec.md")):
+    for spec_path in sorted(_confined(specs_dir.glob("*/spec.md"), root)):
         rel = spec_path.relative_to(root).as_posix()
-        text = spec_path.read_text(encoding="utf-8", errors="replace")
+        text = _read(spec_path)
+        if text is None:
+            continue
 
         # (i) status vocabulary
         token = parse_status(text)
@@ -412,7 +495,9 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
             )
             for lineno, token in contract_refs:
                 contract_file = root / token
-                if not contract_file.is_file():
+                # Confinement precedes the existence probe: an unconfined
+                # is_file() is itself an existence oracle for files outside root.
+                if not _within(contract_file, root) or not contract_file.is_file():
                     warn.append(
                         f"{rel}:{lineno}: invariant (v) — Contract: '{token}' does "
                         f"not resolve to a file (warn-only)"
@@ -420,7 +505,7 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                     continue
                 backward = False
                 if token.endswith(_XSPEC_FORMATS):
-                    ctext = contract_file.read_text(encoding="utf-8", errors="replace")
+                    ctext = _read(contract_file) or ""
                     backward = "x-spec" in ctext and feature_dir in ctext
                 if not backward:
                     backward = token in registry_text and feature_dir in registry_text
@@ -439,7 +524,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base-ref", default=None)
     args = parser.parse_args(argv)
 
-    root = args.root.resolve() if args.root else _repo_root()
+    root = _validated_root(args.root)
     base_ref = args.base_ref if args.base_ref else resolve_default_base_ref(root)
 
     hard, warn = check(root, base_ref)

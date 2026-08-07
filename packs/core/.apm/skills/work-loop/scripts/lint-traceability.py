@@ -221,6 +221,12 @@ def load_layout(root: Path) -> dict:
         return {}
     for cfg in (root / "agentbundle-layout.toml",
                 Path.home() / ".agentbundle" / "agentbundle-layout.toml"):
+        # Confine the root-relative candidate only: a symlink planted at
+        # `<root>/agentbundle-layout.toml` in an untrusted tree would otherwise
+        # be followed. The user-scope candidate is deliberately outside `root`
+        # and is operator-owned, so it is exempt by design, not by oversight.
+        if cfg.parent == root and not _within(cfg, root):
+            continue
         text = _read(cfg)  # stat-size-guarded; None if absent/oversized/unreadable
         if text is None:
             continue
@@ -257,7 +263,12 @@ def resolve_base(layer: str, root: Path, layout: dict) -> tuple[Path | None, str
     # Tier 3: discover by marker. Only reached when the default is absent — the
     # common case is "this layer is simply unpopulated", so a miss is not an
     # error. A bounded search keeps it from walking vendored trees.
-    candidates = _discover_layer_dirs(root, layer)
+    # `_confined` completes the control here: on Windows `os.path.islink()` is
+    # False for NTFS junctions, so `_iter_dirs`' `followlinks=False` does not
+    # stop `os.walk` descending one, and a discovered candidate can resolve
+    # outside `root`. Every downstream read is `_confined` already, so this is
+    # the one asymmetry rather than an exploit path — closed for consistency.
+    candidates = _confined(_discover_layer_dirs(root, layer), root)
     if not candidates:
         return None, None
     if len(candidates) > 1:
@@ -1221,6 +1232,40 @@ def _drift_check(root: Path, layout: dict, sidecar_g: Graph) -> list[str]:
             for missing in sorted(loc - side)]
 
 
+def _validated_root(candidate: Path | None) -> Path:
+    """Resolve the CLI-supplied scan root, or fall back to `_repo_root()`.
+
+    The normalise-then-check is deliberately kept *in one function, adjacent to
+    the argv read*. Taint analysers recognise that shape; they do not follow
+    the `_within()` / `_confined()` confinement applied to every path derived
+    from this root, because that check is interprocedural and expressed as a
+    comprehension filter. Same pattern as `check-spec-status.py:72-80`.
+
+    This normalises and asserts directory-ness; it deliberately does **not**
+    confine the root to a fixed prefix. `--root` *is* the caller-supplied scan
+    scope of a repo linter (see the module docstring), so restricting which
+    directory may be scanned would break the tool's purpose. The security
+    control remains `_within()`: every path *derived* from this root is
+    re-checked against it before being read.
+    """
+    raw = candidate if candidate is not None else _repo_root()
+    # `_within()` in the sibling script already catches this trio; resolve()
+    # raises ValueError on an embedded null and OSError on a Windows reserved
+    # name, neither of which is an OSError-only case. Letting them through
+    # would produce the traceback this function exists to replace.
+    try:
+        root = raw.resolve()
+    except (OSError, ValueError, RuntimeError) as exc:
+        raise SystemExit(
+            f"lint-traceability: --root is not a usable path: {raw!r} ({exc})"
+        ) from exc
+    if not root.exists():
+        raise SystemExit(f"lint-traceability: --root does not exist: {root}")
+    if not root.is_dir():
+        raise SystemExit(f"lint-traceability: --root is not a directory: {root}")
+    return root
+
+
 def _repo_root() -> Path:
     """Best-effort root for a bare manual run (git toplevel, else the script's
     grandparent). The CI gate and self-tests always pass `--root` explicitly."""
@@ -1248,7 +1293,7 @@ def main(argv: list[str] | None = None) -> int:
              "dangling edges and cycles exit 1 in every mode.",
     )
     args = parser.parse_args(argv)
-    root = (args.root.resolve() if args.root else _repo_root()).resolve()
+    root = _validated_root(args.root)
 
     try:
         out, hard, exit_hint = check(root, args.strict)

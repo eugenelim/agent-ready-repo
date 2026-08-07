@@ -1,0 +1,107 @@
+# Custom Semgrep boundary rule for the SAST gate (ADR-0017).
+#
+# WHY THIS IS NOT A TAINT RULE
+# ---------------------------
+# The obvious shape for "argv reaches a filesystem path" is `mode: taint` with
+# an argv source and a Path/os.walk sink. That shape was built and measured
+# (spec/pack-script-root-boundary-validation), and it does not work here:
+#
+#   * OSS Semgrep taint is INTRAPROCEDURAL. A control with the source in
+#     `main()` and the sink in a function it calls — same file — returns zero
+#     findings. Interprocedural/interfile taint is a Semgrep Pro feature.
+#   * Against the real `lint-traceability.py`, whose source is at :1251 and
+#     whose sinks are hundreds of lines away in other functions, it therefore
+#     returned 0 findings — while an adopter's Snyk Code (which *is*
+#     interprocedural) reported 18.
+#   * Run repo-wide it produced 20 findings, every one an operator-supplied
+#     scan root. That is the false-positive flood ADR-0017 rejected Semgrep's
+#     default rulesets for.
+#
+# So this rule guards the BOUNDARY instead of tracking the flow: it fires where
+# argv first becomes a Path, which is intraprocedural by construction and is
+# the one line a fix can address. It is a regression guard for the validator
+# pattern, NOT an attempt to reproduce Snyk's reach. CodeQL
+# (.github/workflows/codeql.yml, security-extended / py/path-injection) remains
+# the only interprocedural lens in the stack.
+#
+# SCOPE IS A RATCHET, NOT A SWEEP
+# -------------------------------
+# `paths.include` below lists only scripts that have already adopted the
+# validator. Measured at authoring time, an unrestricted scope over
+# `tools packs packages` yields 73 findings — nearly every Python CLI in the
+# repo does `Path(args.x)`, so a repo-wide blocking rule is untenable.
+#
+# KNOWN LIMITATIONS — do not over-trust this rule
+# ----------------------------------------------
+# It guards the CONVERSION site (`args.x` becoming a Path), so two shapes slip
+# past it, both verified:
+#   * An intermediate binding. `raw = args.root` then `raw.resolve()` yields 0
+#     findings — the match needs the attribute access and the call adjacent.
+#   * Argv handed to a helper. `_validated_root(args.root)` is an argument, not
+#     a conversion, so a helper that validates NOTHING is indistinguishable
+#     from one that validates correctly. That is why the behavioural test
+#     (packs/core/tests/skills/work-loop/test-root-validation.py, wired into
+#     docs.yml) is the real guard and this rule is only the tripwire.
+# Treat a green result here as "the obvious regression did not happen", never
+# as "the boundary is validated".
+#
+# EXPANSION CONDITION: add a path here as its script adopts a boundary
+# validator (`_validated_root` / `_resolved_report` or equivalent). Do not add
+# a path before the fix lands, or the gate goes red on unrelated work. The
+# remaining ~68 sites are tracked in workspace.toml [backlog].open under
+# `pack-argv-path-boundary-sweep`.
+
+rules:
+  - id: argv-path-without-boundary-validator
+    languages: [python]
+    severity: WARNING
+    message: >-
+      A CLI path argument is converted to a Path without a boundary validator.
+      Route it through the script's `_validated_root(...)` / `_resolved_report(...)`
+      helper so the normalise-and-check sits next to the argv read, where a
+      taint analyser can see it (CWE-22/23). The downstream `_within()` /
+      `_confined()` confinement is the real control, but it is interprocedural
+      and no taint engine follows it.
+    metadata:
+      cwe:
+        - "CWE-22: Improper Limitation of a Pathname to a Restricted Directory"
+        - "CWE-23: Relative Path Traversal"
+      category: security
+      confidence: HIGH
+      references:
+        - https://docs.snyk.io/scan-with-snyk/snyk-code
+    paths:
+      include:
+        - "packs/core/.apm/skills/work-loop/scripts/lint-traceability.py"
+        - "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py"
+        - "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+        - "tools/semgrep/fixtures/argv-path-boundary/**"
+    patterns:
+      - pattern-either:
+          - pattern: $ARGS.$FIELD.resolve()
+          - pattern: pathlib.Path($ARGS.$FIELD)
+          - pattern: Path($ARGS.$FIELD)
+      # `check-spec-status.py:72-80` is the in-repo reference pattern: resolve,
+      # then assert containment with is_relative_to in the same function. That
+      # shape is already legible to a taint analyser, so it must not fire —
+      # without this clause the rule false-positives on its own exemplar.
+      #
+      # The `<... ... ...>` deep-expression operator is load-bearing. A plain
+      # `$P.is_relative_to(...)` only matches the call in statement position,
+      # so it misses the idiomatic `if not target.is_relative_to(base):` where
+      # the call sits inside the condition — which is exactly how
+      # check-spec-status.py writes it. Verified: the plain form leaves the
+      # negative fixture firing; the deep form silences it while the positive
+      # fixture still fires.
+      - pattern-not-inside: |
+          $P = Path($ARGS.$FIELD).resolve()
+          ...
+          <... $Q.is_relative_to($P) ...>
+      # NOTE: there is deliberately no `def _validated_root(...)` /
+      # `def _resolved_report(...)` exemption. Name-based exemptions certify a
+      # function's NAME, not that it validates anything — verified that
+      # `def _validated_root(c): return Path(c)`, with no check at all, scanned
+      # to zero findings under the old form. They are also unnecessary: both
+      # helpers take a plain parameter, so their bodies read `Path(candidate)`
+      # rather than `Path(args.x)`, and `$ARGS.$FIELD` requires an attribute
+      # access. The rule cannot fire inside them regardless.

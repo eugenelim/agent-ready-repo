@@ -67,7 +67,14 @@ CLEAN_SUBSTRING = "Clean — ready to commit."
 # Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
 # on its own line as their clean verdict instead of CLEAN_SUBSTRING.
 _SHIP_IT_RE = re.compile(r"^SHIP IT\s*$", re.MULTILINE)
-_RE_SHA1 = re.compile(r"^[0-9a-f]{40}$")
+# Fingerprints are SHA-256 (64 hex). The 40-hex SHA-1 form is still accepted
+# so a cohort that was mid-review when core upgraded can finish: its
+# state.json holds SHA-1 values and `review record --fingerprint` would
+# otherwise hard-reject them. Stasis detection compares sets computed by the
+# same binary, so a straddling run misses a match for exactly one round and
+# self-heals on the next. Drop the 40-hex alternative once no in-flight
+# cohort predates core 2.3.0.
+_RE_FINGERPRINT = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 
 
 def _template_max_implementation_retries(fallback: int = 5) -> int:
@@ -969,10 +976,10 @@ FINDING_LINE_RE_WHERE = re.compile(
 
 
 def parse_findings(report_text: str) -> list[str]:
-    """Return SHA1 fingerprints for findings in a reviewer report.
+    """Return SHA-256 fingerprints for findings in a reviewer report.
 
     Algorithm pinned by the work-loop SKILL §REVIEW:
-        sha1("<file>|<line>|<title>")
+        sha256("<file>|<line>|<title>")
     where <file> is the cited path exactly as written, <line> is the first
     integer after the first colon in the citation, and <title> is the
     bolded heading including the surrounding `**` markers.
@@ -1000,7 +1007,7 @@ def parse_findings(report_text: str) -> list[str]:
                 continue
             key = f"{file_part}|{line_match.group(0)}|{title}"
             fingerprints.append(
-                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+                hashlib.sha256(key.encode("utf-8")).hexdigest()
             )
             continue
         # Try Where: <location> (experience-reviewer)
@@ -1010,7 +1017,7 @@ def parse_findings(report_text: str) -> list[str]:
             location = m.group("location").strip()
             key = f"{location}|0|{title}"
             fingerprints.append(
-                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+                hashlib.sha256(key.encode("utf-8")).hexdigest()
             )
             continue
         # Try unquoted file:line (frontend-reviewer)
@@ -1024,9 +1031,33 @@ def parse_findings(report_text: str) -> list[str]:
                 continue
             key = f"{file_part}|{line_match.group(0)}|{title}"
             fingerprints.append(
-                hashlib.sha1(key.encode("utf-8"), usedforsecurity=False).hexdigest()
+                hashlib.sha256(key.encode("utf-8")).hexdigest()
             )
     return fingerprints
+
+
+def _resolved_report(candidate: str) -> Path:
+    """Normalise the CLI-supplied `--report` path at the argv boundary.
+
+    Normalise-only, deliberately. The two `--root` linters in this skill raise
+    on an unusable path, but `--report` must not: `review inspect` classifies an
+    unreadable report as `invalid`, which the work-loop SKILL documents as a
+    Surface signal rather than a crash. Raising here would convert a defined
+    outcome into an operational error.
+
+    The `resolve()` still does the job it is here for — it puts the
+    normalisation adjacent to the argv read, where a taint analyser can see it,
+    instead of leaving a raw `Path(args.report)` as the boundary.
+    """
+    try:
+        return Path(candidate).resolve()
+    except (OSError, ValueError, RuntimeError):
+        # resolve() raises on an embedded null (ValueError) and on Windows
+        # reserved names (OSError). Falling back to the unresolved path keeps
+        # the value flowing to _classify_report, which classifies it `invalid`
+        # at exit 0 — the defined outcome. Raising here would reintroduce
+        # exactly the operational error this helper's docstring rules out.
+        return Path(candidate)
 
 
 def _classify_report(report_path: Path, state: dict) -> dict:
@@ -1080,7 +1111,7 @@ def cmd_review_inspect(args: argparse.Namespace) -> int:
         # Operational error (spec-dir unresolvable or state.json unreadable)
         return stop(str(exc))
 
-    report_path = Path(args.report)
+    report_path = _resolved_report(args.report)
     result = _classify_report(report_path, state)
 
     if args.json:
@@ -1123,10 +1154,11 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     if args.fingerprint:
         # Findings branch: --fingerprint <hex> ...
         fingerprints = sorted(set(args.fingerprint))
-        bad = [fp for fp in fingerprints if not _RE_SHA1.match(fp)]
+        bad = [fp for fp in fingerprints if not _RE_FINGERPRINT.match(fp)]
         if bad:
             return stop(
-                f"review record: --fingerprint must be lowercase 40-char SHA-1 hex; "
+                f"review record: --fingerprint must be lowercase 64-char SHA-256 hex "
+                f"(40-char SHA-1 still accepted for a run that predates core 2.3.0); "
                 f"invalid: {bad!r}"
             )
         state["previous_finding_fingerprints"] = list(state.get("finding_fingerprints", []))
@@ -1144,7 +1176,7 @@ def cmd_review_record(args: argparse.Namespace) -> int:
     # Clean branch: --report <path>
     if not args.report:
         return stop("review record: one of --report or --fingerprint is required")
-    report_path = Path(args.report)
+    report_path = _resolved_report(args.report)
     result = _classify_report(report_path, state)
     if result["classification"] != "clean":
         cls = result["classification"]
@@ -1349,7 +1381,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--fingerprint",
         action="append",
         default=None,
-        help="explicit fingerprint (hex sha1); use for findings rounds",
+        help="explicit fingerprint (hex sha256); use for findings rounds",
     )
     _rr_grp.add_argument(
         "--all-skipped",

@@ -54,6 +54,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a repository policy lint, not a packaged one: `pack.schema.json` and the
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
+## [core][2.3.0] — 2026-08-07
+
+### Fixed
+
+- **A nonexistent or non-directory `--root` no longer reports success.** `lint-spec-status` and
+  `lint-traceability` accepted any path you gave them. Point either at a
+  directory that does not exist and it scanned an empty tree and announced
+  "spec metadata clean" — a green result that meant nothing. Both now refuse
+  an unusable `--root` and name the offending path. A valid root, an omitted
+  root, and a relative root all behave exactly as before.
+
+- **A crafted `Contract:` header can no longer read files outside the repo.**
+  `lint-spec-status` matched contract paths with a pattern that allowed `.` and
+  `/`, so a spec file containing `- **Contract:** contracts/../../secret.json`
+  made the linter read that file from outside the directory it was scanning and
+  reveal, through which warning it printed, whether the file existed and roughly
+  what it contained. A symlinked spec directory could escape the same way. Both
+  are closed, and files are now size-capped before reading.
+
+### Changed
+
+- **Review fingerprints now use SHA-256** instead of SHA-1. These are internal
+  markers used to notice when a review round returns the same findings twice;
+  they are never shown to you. A run already in progress when you upgrade keeps
+  working — its older markers stay valid.
+
+- **Path arguments are validated where they enter.** The work-loop scripts
+  already confined every file they read to within `--root`; that check now
+  also happens at the point the argument is read. This is a legibility change
+  for security scanners: the existing confinement runs across several
+  functions, which taint analysers cannot follow, so scanners in adopter
+  repositories reported path-traversal against code that was never vulnerable.
+  No file the scripts would previously read is now out of reach.
+
+  **Upgrade note:** an invocation that passed a nonexistent or non-directory
+  `--root` used to exit 0 and now exits non-zero. If CI depends on that
+  false pass, fix the path — the previous result was not a real check.
 
 ## [agentbundle][0.29.7] — 2026-08-06
 
