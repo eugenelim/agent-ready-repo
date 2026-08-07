@@ -35,7 +35,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   resulting `__pycache__`, `.pytest_cache` and `node_modules` — the deny-set
   meant to prevent it was never applied. 104 files on this catalogue. Your
   archives get smaller and match what the authoring standards say they contain.
-  No flag, verb, exit code, or schema changed.
+  Packaging also no longer *fails* on a tree with a real `node_modules` in it —
+  the symlink check refused its `.bin/` entries. No flag, verb, exit code, or
+  schema changed.
 
 ## [architect][0.14.3] — 2026-08-06
 

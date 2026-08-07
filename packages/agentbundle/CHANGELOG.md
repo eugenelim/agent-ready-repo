@@ -33,6 +33,12 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   `node_modules`, `.venv`, `venv` and `htmlcov` at every level, plus stray
   `.pyc`/`.pyo`, `.DS_Store` and `.coverage` files.
 
+  Validation was fixed alongside collection. The symlink check walked the same
+  trees and refused the first symlink anywhere, and a real `node_modules/.bin/`
+  is entirely symlinks — so pruning collection alone would have left
+  `catalogue package` aborting on exactly the tree it was meant to handle. The
+  pack-discovery step no longer treats a `packs/__pycache__/` as a pack either.
+
   The old set could not simply be applied: it also listed `.git`, `tools`,
   `packages` and `dist`, which are *repository-root* names already excluded by
   the include allowlist. Pruning those at every level would have dropped real

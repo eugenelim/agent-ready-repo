@@ -727,9 +727,14 @@ open = [
   # Then drop the two render-proof entries from `_NO_RUNNER` in
   #   tools/lint-pack-test-boundary.py — the lint fails on a stale exemption, so
   #   it will tell you.
-  # Unblocks when: picked up. The archive-walk blocker is gone — agentbundle
-  #   0.29.5 prunes node_modules and the cache dirs from both packaging flavours,
-  #   so CI may install node_modules under `packs/` without feeding it.
+  # Unblocks when: picked up — but read this first. agentbundle 0.29.5 fixed the
+  #   packaging half: both archive flavours now prune node_modules and the cache
+  #   dirs, and `catalogue package` no longer aborts on a real node_modules
+  #   (whose .bin/ is all symlinks). The *cost* half is untouched — agentbundle's
+  #   integration tests `shutil.copytree` the whole `packs/` tree into temp dirs,
+  #   so ~10k installed files still slow that suite by an order of magnitude.
+  #   Either scope the install to a CI job that does not run those tests, or fix
+  #   the copytree to prune too.
   {slug = "pack-js-ci-workflow", source = "spec/pack-test-boundary-remaining-packs disposition"},
 
   # lint-spec-status.py matches `^##\s+Acceptance Criteria\b` case-sensitively, so

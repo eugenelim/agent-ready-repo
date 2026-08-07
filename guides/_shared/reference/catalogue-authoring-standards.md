@@ -156,6 +156,19 @@ credentials or private data, prefer synthetic data, stay modest in size, and
 name their licence when sourced externally. Fuzzing corpora, generated output,
 coverage reports, and caches are neither committed nor packaged.
 
+The packager enforces the second half. It prunes these directory names at every
+level of a pack, and never descends into them:
+
+```
+__pycache__  .pytest_cache  .mypy_cache  .ruff_cache  .tox
+.hypothesis  htmlcov  node_modules  .venv  venv
+```
+
+plus `*.pyc`, `*.pyo`, `.DS_Store`, `coverage.xml`, and any `.coverage*` shard.
+A directory you mean to ship must not be named one of those — the drop is
+silent. Note this is matched by name at any depth, so it is deliberately *not*
+the same list as the repository-root exclusions.
+
 ### Repository-root tests
 
 A test concerning one pack stays inside that pack. Behaviour no single pack

@@ -86,16 +86,23 @@ _TRANSIENT_DIRS: frozenset[str] = frozenset({
     ".venv",
     "venv",
     "htmlcov",
+    ".hypothesis",
 })
 
 # Same idea, for files that sit beside authored content rather than in a cache
 # directory of their own.
 _TRANSIENT_FILE_SUFFIXES: tuple[str, ...] = (".pyc", ".pyo")
-_TRANSIENT_FILE_NAMES: frozenset[str] = frozenset({".DS_Store", ".coverage"})
+_TRANSIENT_FILE_NAMES: frozenset[str] = frozenset({".DS_Store", "coverage.xml"})
 
 
 def _is_transient_file(p: Path) -> bool:
-    return p.name in _TRANSIENT_FILE_NAMES or p.suffix in _TRANSIENT_FILE_SUFFIXES
+    # `.coverage` by prefix, not equality: `coverage combine` writes shards named
+    # `.coverage.<host>.<pid>.<random>`, whose suffix is the random component.
+    return (
+        p.name in _TRANSIENT_FILE_NAMES
+        or p.name.startswith(".coverage")
+        or p.suffix in _TRANSIENT_FILE_SUFFIXES
+    )
 
 
 def _prune(dp: Path, dirnames: list[str]) -> None:
@@ -150,9 +157,14 @@ def _scan_content(root: Path, pack_include: list[str] | None = None) -> list[Pat
                     f"contain path traversal components"
                 )
             d = root / entry
-            if not d.is_dir():
+            if not d.is_dir() or d.is_symlink():
                 raise ValueError(
                     f"pack_include entry {entry!r} does not exist on disk at {d}"
+                )
+            if Path(entry).name in _TRANSIENT_DIRS:
+                raise ValueError(
+                    f"pack_include entry {entry!r} names build residue; "
+                    f"it is never packaged"
                 )
             for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
                 dp = Path(dirpath)
@@ -258,15 +270,23 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
             if candidate.exists() and candidate.is_symlink():
                 return f"error: symlink not allowed: {candidate}"
 
-    # 4. Symlink walk inside allowlisted dirs
+    # 4. Symlink walk inside allowlisted dirs.
+    #    Scoped to what the archive actually collects. Build residue is pruned
+    #    the same way `_scan_content` prunes it — otherwise a real `node_modules`
+    #    (whose `.bin/` is always symlinks) or a virtualenv aborts packaging for
+    #    files that were never going to ship.
     for dir_parts in _DEFAULT_INCLUDE_DIRS:
         d = root.joinpath(*dir_parts)
         if not d.is_dir() or d.is_symlink():
             continue
         for dirpath, dirnames, filenames in os.walk(str(d), followlinks=False):
             dp = Path(dirpath)
+            transient = [dn for dn in dirnames if dn in _TRANSIENT_DIRS]
+            _prune(dp, dirnames)
             for entry in list(dirnames) + list(filenames):
                 full = dp / entry
+                if entry in transient or _is_transient_file(full):
+                    continue
                 if full.is_symlink():
                     return f"error: symlink not allowed: {full}"
 
@@ -292,6 +312,8 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
             continue
         if pack_dir.name.startswith("_"):
             continue
+        if pack_dir.name in _TRANSIENT_DIRS:
+            continue  # build residue, not a pack — and not in the archive
         pack_toml_path = pack_dir / "pack.toml"
         try:
             pack_data = load_pack_toml(pack_toml_path)
