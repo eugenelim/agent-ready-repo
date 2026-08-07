@@ -13,7 +13,9 @@
   `generate_sidebar_config()`.
 - `tools/test_build_site_routing.py` (or a sibling module) — tests for both layers.
 - `site.toml` — new `[[guide_groups]]` table.
-- `docs-site/guide-nav-baseline.toml` — frozen `(slug, label)` pairs.
+- `guide-nav-baseline.toml` — frozen `(slug, label)` pairs. Repo root, beside
+  `site.toml`: it is a hand-curated build *input* read by `tools/build-site.py`,
+  and `docs-site/` otherwise holds generated output.
 - `docs-site/astro.config.ts` — delete the hand-maintained guides block.
 - `guides/iac-terraform/explanation/*.md` — three new pages, the live test.
 - `guides/AGENTS.md` — replace the hand-maintained-sidebar trap.
@@ -56,16 +58,20 @@ needs PyYAML (already in `tools/requirements.txt`).
   `build-site.py` already owns.
 - **Reusing `site.toml`'s existing `[[groups]]` table for guides.** Declined
   after discovering `discover_packs()` skips `_`-prefixed slugs and warns on
-  slugs without a `pack.toml` — it structurally cannot express `_shared` (39
-  pages) or `_reference`. A separate table costs one table and covers the corpus.
+  slugs without a `pack.toml` — it structurally cannot express `_shared` or
+  `_reference`. A separate table costs one table and covers the corpus.
 - **Inheriting `site.toml`'s six super-groups as guide super-groups.** Declined:
   it yields five-level nesting (Guides → Foundation → pack → kind → page), a
   depth Starlight has never been asked to render here, for no reader benefit.
-- **Deriving labels from filenames alone.** Declined: it changes 90 of 119
-  existing labels. The frozen baseline preserves them at zero migration cost.
-- **A permanent label registry.** Declined: the baseline is transitional —
-  `title:` frontmatter takes precedence, so a page gains a title and drops out,
-  and the registry shrinks instead of calcifying.
+- **Deriving labels from filenames alone.** Declined: it changes most existing
+  labels (count in spec § Layer 2). The frozen baseline preserves them at zero
+  migration cost.
+- **Putting `title:` frontmatter ahead of the baseline.** Tempting — it reads as
+  the "cleaner" precedence and lets pages own their labels. Declined: 13 pages
+  already carry a `title:` differing from their nav label, so frontmatter-first
+  silently rewrites 13 reader-facing labels and puts AC5 in direct conflict with
+  AC9. Baseline-first keeps the registry transitional while making its shrinkage
+  a deliberate act rather than a side effect.
 - **Asserting no-regression via slug subset or entry count.** Declined: a subset
   check passes while dropping pages, and neither sees a label change. Set
   equality on slugs plus pair equality on labels are the real guards.
@@ -80,7 +86,7 @@ needs PyYAML (already in `tools/requirements.txt`).
 Mode: goal-based check
 Tests: no stub; this task *produces* the fixture T6 and T7 consume.
 Approach: extract every `(slug, label)` pair from the current
-`docs-site/astro.config.ts` guides block into `docs-site/guide-nav-baseline.toml`.
+`docs-site/astro.config.ts` guides block into `guide-nav-baseline.toml`.
 Use the `slug: '(guides(/…)?)'` pattern — a `guides/`-prefixed match drops the
 root entry. **Must precede T8**, which deletes the only source.
 Done when: the file exists, its pair count equals the count in spec § Layer 1,
@@ -120,13 +126,15 @@ Depends on: T2
 
 Mode: goal-based check
 Tests: no stub (goal-based).
-Approach: a table separate from `[[groups]]`, not routed through
-`discover_packs()`. Carry the curated labels no path can derive
+Approach: `dir` + `label` entries in a table separate from `[[groups]]`, not
+routed through `discover_packs()`. Carry the curated labels no path can derive
 (`'The Build Loop (core)'`, `'Product Discovery'`, `'Cross-cutting'` for
-`_shared`) and reproduce today's group sequence exactly.
-Done when: every pack group in the current hand tree has an entry, including
-`_shared` and `_reference`; `site.toml` parses; `discover_packs()` emits no new
-warnings; a pack absent from the table resolves to a fallback.
+`_shared`) and reproduce today's pack-group sequence exactly.
+Done when: an entry exists for **every** directory under `guides/` — not merely
+those in the hand tree, which omits `_reference`, `catalogue-curation`,
+`github`, `linear`, and `iac-terraform` (the pack carrying this spec's live
+test); `site.toml` parses; `discover_packs()` emits no new warnings. The
+undeclared-directory fallback is projection behaviour and is verified in T6.
 Depends on: none
 
 ### T5: Write the infrastructure arc — the live test
@@ -148,14 +156,19 @@ Depends on: none
 
 Mode: TDD
 Tests: `test_order_sorts_across_kinds` (the `atlassian` 1–4 run spanning four
-kinds); `test_unordered_fall_into_kind_buckets`;
-`test_label_precedence_title_then_baseline_then_derived` (AC5);
+kinds); `test_index_records_are_direct_group_items`;
+`test_root_readme_is_direct_item_of_guides_group`;
+`test_kind_buckets_use_canonical_sequence`;
+`test_label_precedence_baseline_then_title_then_derived` (AC5 — assert the 13
+`title:`-bearing pages keep their baseline label);
 `test_no_frontmatter_page_is_projected` (AC4);
 `test_guide_groups_labels_and_order_applied`;
-`test_pack_absent_from_table_gets_group`; `test_iac_arc_orders_1_2_3`.
-Approach: sort within a pack group by `(order is None, order, label)` so
-declared order wins across kinds and undeclared siblings stay alphabetical
-inside their kind buckets. Resolve labels via the spec's precedence chain.
+`test_undeclared_dir_gets_titlecased_group_appended_last`;
+`test_iac_arc_orders_1_2_3`.
+Approach: within a pack group emit `is_index` records first, then
+`order`-declaring records sorted ascending across kinds, then the remainder in
+kind buckets ordered `Tutorials, How-to, Reference, Explanation`, alphabetical
+within each. Resolve labels via the spec's precedence chain — baseline first.
 Done when: tests pass, including both real ordered sequences.
 Depends on: T1, T3, T4, T5
 
@@ -163,9 +176,11 @@ Depends on: T1, T3, T4, T5
 
 Mode: TDD
 Tests: `test_sidebar_includes_pack_catalogue_and_guides`;
-`test_eligible_slugs_and_sidebar_slugs_are_equal_sets` (AC2 — set equality, not
-subset); `test_no_baseline_pair_regressed` (AC9 — `(slug, label)` pairs, so a
-label change fails);
+`test_guides_group_slugs_equal_eligible_slugs` (AC2 — set equality over the
+Guides groups only, not the whole sidebar, and not a subset check);
+`test_no_baseline_pair_regressed` (AC9 — `(slug, label)` pairs, so a label
+change fails); `test_guides_nesting_is_one_group_level` (AC8 — no `[[groups]]`
+super-group label appears under "Guides");
 `test_shuffled_enumerator_is_byte_identical` (AC10 — shuffle the *injected*
 enumerator from T2, so the test cannot pass by re-globbing).
 Approach: append guides groups after the pack-catalogue groups; leave the JSON
@@ -178,11 +193,15 @@ Depends on: T1, T6
 
 Mode: goal-based check
 Tests: no stub (goal-based).
-Done when: lines 86–544 of `docs-site/astro.config.ts` are gone;
-`! grep -qE "slug: 'guides('\|/)"` succeeds (the `guides/`-only pattern misses a
-surviving root entry); the surviving top-level sidebar entries are exactly Home,
-Get Started, the spread, Changelog, and Contributing — asserted, not eyeballed;
-`npm run build --prefix docs-site` completes.
+Done when: the `{ label: 'Guides', items: [...] }` entry identified in AC11 is
+gone; `! grep -qE "slug: 'guides('|/)" docs-site/astro.config.ts` succeeds —
+**pre-verify this pattern exits 1 against the pre-change file**, since under
+`-E` a backslash-escaped pipe is a literal and silently matches nothing, making
+the negation vacuously true; the surviving top-level sidebar entries are exactly
+Home, Get Started, the spread, Changelog, and Contributing — asserted, not
+eyeballed; `python3 tools/build-site.py` (no `--dry-run`, so
+`sidebar-config.json` is actually written) then `npm run build --prefix
+docs-site` completes with the guides groups present in the built output.
 Depends on: T7
 
 ### T9: Rendered verification
@@ -206,7 +225,7 @@ Tests: no stub (goal-based).
 Done when: § Traps states the generated contract, `order` semantics, the
 `[[guide_groups]]` declaration, and the transitional label baseline (AC15);
 `workspace.toml [backlog].open` carries `iac-guides-readme-stage-drift` with a
-cold-start-sufficient comment; `python3 tools/lint-agents-md.py` passes.
+cold-start-sufficient comment (AC16); `python3 tools/lint-agents-md.py` passes.
 Depends on: T9
 
 ## Risks
@@ -234,6 +253,16 @@ Depends on: T9
 - 2026-08-06 — user direction: ship the IaC arc as the live integration test.
 - 2026-08-06 — restructured intent-first with an explicit inventory layer after
   round-1 adversarial review (six blockers).
+- 2026-08-06 — round-3 review folded in. Measurements re-verified independently
+  and all held. Inverted label precedence to baseline-first after finding 13
+  pages whose `title:` differs from their nav label, which made AC5 and AC9
+  mutually unsatisfiable. Pinned the `[[guide_groups]]` entry schema and
+  required an entry for every directory — the hand tree has no group for five
+  packs, including `iac-terraform`, where the live test lands. Pinned kind
+  normalization (`tutorials/` → `tutorial`), `is_index` placement, and canonical
+  kind-bucket order, and corrected the assumption that claimed zero reordering.
+  Fixed a vacuous `grep -E` pattern whose escaped pipe matched nothing, making
+  the removal check always pass.
 - 2026-08-06 — round-2 review folded in. Corrected the nav count (the extraction
   pattern dropped the root entry) and the absent count. Added the frozen
   `(slug, label)` baseline after finding filename derivation regresses 90 of 119

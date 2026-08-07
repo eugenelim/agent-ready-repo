@@ -12,7 +12,12 @@
 ## Intent
 
 **A reader can follow an argument through the docs from one page to the next,
-and no published page is unreachable.**
+and no reader-facing page is unreachable.**
+
+("Reader-facing" excludes `guides/AGENTS.md`, which is maintainer context. It is
+mirrored by `mirror_guides()` and so remains reachable by direct URL; keeping it
+out of navigation is the declared exception, not an oversight. Excluding it from
+the mirror would be a routing change, which this spec forbids.)
 
 That is the outcome. A generated sidebar is one mechanism serving it — named
 here so the spec is honest about what it builds, not because the sidebar is the
@@ -63,7 +68,7 @@ One deterministic pass over `guides/**/*.md` produces one record per file:
 | --- | --- |
 | `source_path` | the file |
 | `pack` | first path segment (`_shared`, `_reference` included) |
-| `kind` | `kind:` frontmatter when present, else the kind directory, else none |
+| `kind` | `kind:` frontmatter when present, else the kind directory **normalized to the schema enum**, else none |
 | `order` | `order:` frontmatter; integer, else absent |
 | `title` | `title:` frontmatter, else the frozen baseline label, else derived from the filename |
 | `slug` | `slug:` frontmatter when present, else derived — **must equal the Starlight slug of the file `mirror_guides()` writes** |
@@ -72,10 +77,17 @@ One deterministic pass over `guides/**/*.md` produces one record per file:
 
 **On the `kind` directory fallback.** `guide-source-model` AC3 (shipped) states
 that the physical directory does not determine kind. This spec relaxes that
-**only for pages carrying no `kind:` frontmatter** — 162 of 182 files. Where
-frontmatter declares a kind it always wins. The relaxation is deliberate and
-scoped: the alternative is 162 uncategorized pages, and the long-term fix is
-frontmatter migration, not a different fallback.
+**only for pages carrying no `kind:` frontmatter** — 162 files carry none, 161
+of them nav-eligible. Where frontmatter declares a kind it always wins. The
+relaxation is deliberate and scoped: the alternative is 161 uncategorized pages,
+and the long-term fix is frontmatter migration, not a different fallback.
+
+**The directory fallback normalizes to the schema enum.** The on-disk directory
+is `tutorials/`; the schema enum is `tutorial`. Without normalization, the first
+page under `guides/core/tutorials/` to gain frontmatter splits `core` into a
+`Tutorial` bucket and a `Tutorials` bucket. Today 13 packs derive `tutorials`
+from the directory and 4 declare `tutorial` in frontmatter, so nothing trips it
+yet — which is exactly why it must be pinned before migration begins.
 
 **Measurements** (single statement; the plan references this section rather than
 restating): 182 `.md` files, 1 nav-ineligible (`guides/AGENTS.md`), 181
@@ -91,22 +103,48 @@ The inventory becomes sidebar groups.
 **separate from the existing `[[groups]]` table**. The existing table is routed
 through `discover_packs()`, which skips `_`-prefixed slugs and warns on any slug
 without a `packs/<slug>/pack.toml` — so it structurally cannot express `_shared`
-(39 pages) or `_reference` (1). A distinct table gives both a declared home.
+or `_reference`. A distinct table gives both a declared home.
+
+Each entry is `dir` (a directory name under `guides/`) plus `label`. Table order
+is group order. **An entry is required for every directory under `guides/`**,
+not merely those the hand tree happens to carry — five real packs
+(`_reference`, `catalogue-curation`, `github`, `iac-terraform`, `linear`) have
+no group today, and `iac-terraform` is where this spec's own live test lands.
+An undeclared directory falls back to a group labelled from its title-cased
+directory name, appended after all declared groups.
+
 Guide groups render as a **flat list of pack groups** under "Guides", matching
 today's shape; `site.toml`'s six super-group labels are not inherited, which
 avoids a five-level nesting Starlight has never been asked to render.
 
-**Labels** resolve `title:` frontmatter → frozen baseline → filename-derived.
-The frozen baseline is required: filename derivation alone changes **90 of the
-119 existing labels** (`'Plan and Execute'` → `'Plan And Execute Non Trivial
-Work'`, `'Foundation vs Map'` → `'Foundation Vs Map'`, every `'Overview'` →
-`'Guides'`/`'Core'`). The baseline is transitional — a page gains `title:`
-frontmatter and drops out of it, so the registry shrinks rather than becoming
-permanent furniture.
+**Labels** resolve **frozen baseline → `title:` frontmatter → filename-derived**.
+The baseline wins while an entry exists. This ordering matters: 13 pages already
+carry a `title:` differing from their hand-tree label
+(`guides/atlassian/work-with-jira.md` is `'Work with Jira'` in nav and
+`'Work with Jira from a conversation'` in frontmatter), so putting frontmatter
+first would silently rewrite 13 reader-facing labels and put AC5 in direct
+conflict with AC9. Baseline-first makes *removing* an entry the deliberate,
+reviewable act that adopts a page's own title — so the registry still shrinks,
+but only on purpose.
 
-**Ordering:** within a pack group, `order` sorts **across kinds**, matching the
-schema and the existing `atlassian` sequence. Pages without `order` fall into
-kind buckets beneath the ordered run.
+The baseline is required at all: filename derivation alone changes 90 of the 119
+existing labels (`'Foundation vs Map'` → `'Foundation Vs Map'`, every
+`'Overview'` → `'Guides'`/`'Core'`).
+
+**Ordering.** Within a pack group:
+
+1. `is_index` records are direct items of the group, ahead of everything else —
+   preserving today's `{ label: 'Overview', slug: 'guides/core' }` shape. The
+   root `guides/README.md` is a direct item of the "Guides" group itself; it has
+   no pack path segment, so `pack` resolves to the tree root, not `README.md`.
+2. Records declaring `order` follow, sorted ascending **across kinds**, matching
+   the schema and the existing `atlassian` sequence.
+3. Remaining records fall into kind buckets, alphabetical within each. Bucket
+   sequence is the canonical `Tutorials, How-to, Reference, Explanation`.
+   Today's tree is not uniform — 15 packs run `Explanation, How-to, Reference,
+   Tutorials` while `frontend-engineering` and `atlassian` differ — so pinning
+   one sequence visibly reorders buckets in most packs. That is an accepted,
+   named consequence, not an accident.
 
 ## Boundaries
 
@@ -159,8 +197,11 @@ both layers are unit-testable against a synthetic tree without invoking Astro.
 - **Determinism (TDD)** — the inventory function accepts an injectable path
   enumerator; the test shuffles it and asserts byte-identical output. Without
   the seam the test re-globs and asserts nothing.
-- **Live integration** — the `iac-terraform` arc below, plus the existing
-  `atlassian` sequence as an independent regression witness.
+- **Nesting depth (TDD)** — the guides portion has exactly one level of pack
+  groups under "Guides", and none of the six `[[groups]]` super-group labels
+  appears there.
+- **Live integration (visual / manual QA)** — the `iac-terraform` arc below,
+  plus the existing `atlassian` sequence as an independent regression witness.
 
 ## The live test: the infrastructure explanation arc
 
@@ -187,34 +228,47 @@ The `atlassian` pages are the witness that cross-kind ordering works.
 
 - [ ] AC1 — An inventory pass emits one record per `.md` file under `guides/`,
       each carrying every key in the Layer 1 table.
-- [ ] AC2 — The set of generated sidebar slugs equals the set of `nav_eligible`
-      inventory slugs exactly; `guides/AGENTS.md` appears in neither.
+- [ ] AC2 — The set of slugs under the generated **Guides** groups equals the set
+      of `nav_eligible` inventory slugs exactly; `guides/AGENTS.md` appears in
+      neither. Pack-catalogue and top-level slugs are outside this set.
 - [ ] AC3 — For every file, the inventory slug equals the Starlight slug of the
       file `mirror_guides()` writes (its path with trailing `/index` stripped),
       including `slug:` overrides. `mirror_guides()` is unmodified.
 - [ ] AC4 — A page with no frontmatter appears in the projected sidebar,
       labelled from the baseline or its filename.
-- [ ] AC5 — Label precedence in the projected sidebar is `title:` frontmatter →
-      frozen baseline → filename-derived.
-- [ ] AC6 — Within a pack group, entries declaring `order` sort ascending across
-      kinds, ahead of undeclared siblings, which follow in kind buckets.
-- [ ] AC7 — A non-integer `order` is treated as absent and does not raise.
-- [ ] AC8 — Guide group labels and order come from `site.toml`'s
-      `[[guide_groups]]` table; groups render as a flat list under "Guides"
-      without inheriting the six `[[groups]]` super-groups; `_shared` and
-      `_reference` have declared entries; a pack absent from the table still
-      produces a group.
+- [ ] AC5 — Label precedence in the projected sidebar is frozen baseline →
+      `title:` frontmatter → filename-derived, so the 13 pages whose `title:`
+      differs from their baseline label keep the baseline label.
+- [ ] AC6 — Within a pack group the sequence is: `is_index` records as direct
+      items, then `order`-declaring records ascending across kinds, then the
+      remainder in kind buckets ordered `Tutorials, How-to, Reference,
+      Explanation`, alphabetical within each. The root `guides/README.md` is a
+      direct item of the "Guides" group.
+- [ ] AC7 — A non-integer `order` is treated as absent and does not raise; a
+      `tutorials/` directory normalizes to kind `tutorial`.
+- [ ] AC8 — `site.toml`'s `[[guide_groups]]` entries are `dir` + `label`, table
+      order is group order, and an entry exists for **every** directory under
+      `guides/` — including `_shared`, `_reference`, `iac-terraform`,
+      `catalogue-curation`, `github`, and `linear`. An undeclared directory
+      produces a group labelled from its title-cased directory name, appended
+      after all declared groups. Groups render as a flat list under "Guides"
+      with no `[[groups]]` super-group label present.
 - [ ] AC9 — Every `(slug, label)` pair in the frozen baseline appears unchanged
-      in the generated output. No page and no label regresses.
+      in the generated output. No page and no label regresses. (Pair equality is
+      order-insensitive by design; AC6 governs sequence.)
 - [ ] AC10 — Shuffling the injected path enumerator produces byte-identical
       output.
-- [ ] AC11 — The hand-maintained guides block (lines 86–544) is removed from
-      `docs-site/astro.config.ts`; the surviving sidebar is exactly Home, Get
-      Started, the `sidebar-config.json` spread, Changelog, and Contributing.
+- [ ] AC11 — The hand-maintained `{ label: 'Guides', items: [...] }` entry —
+      lines 86–544 at spec time, but identified by content, not line number — is
+      removed from `docs-site/astro.config.ts`; the surviving top-level sidebar
+      entries are exactly Home, Get Started, the `sidebar-config.json` spread,
+      Changelog, and Contributing. This is the canonical statement of the range;
+      Intent and the plan reference it.
 - [ ] AC12 — Three explanation pages exist under
-      `guides/iac-terraform/explanation/` declaring `order` 1–3, each linking to
-      `release-engineering/explanation/the-release-loop` in its opening section
-      via the relative form the tree uses.
+      `guides/iac-terraform/explanation/` declaring `order` 1–3, each containing
+      the literal `](../../release-engineering/explanation/the-release-loop.md)`
+      within its first 40 lines. The relative form matters: an absolute
+      `guides/…` path rewrites to a dead GitHub URL.
 - [ ] AC13 — In the built sidebar the IaC arc renders 1–3, and the four ordered
       `atlassian` pages render as a flat run ahead of their kind buckets — the
       post-change shape, not the hand-placed one.
@@ -224,6 +278,8 @@ The `atlassian` pages are the witness that cross-kind ordering works.
 - [ ] AC15 — `guides/AGENTS.md` § Traps states the generated contract, `order`
       semantics, the `[[guide_groups]]` declaration, and the transitional label
       baseline instead of claiming the sidebar is hand-maintained.
+- [ ] AC16 — `workspace.toml [backlog].open` carries
+      `iac-guides-readme-stage-drift` with a cold-start-sufficient comment.
 
 ## Assumptions
 
@@ -233,10 +289,14 @@ The `atlassian` pages are the witness that cross-kind ordering works.
   pack-catalogue groups already use.
 - Kind-bucket labels keep their current words.
 - No published guide URL changes. This spec touches navigation only.
-- **Guide group order changes visibly.** Declaring order in `[[guide_groups]]`
-  is an opportunity to fix today's ad-hoc sequence; the initial table reproduces
-  today's order exactly, so this PR ships zero group reordering. Reordering is a
-  later, separate, reviewable edit to one table.
+- **Pack-group order does not change; kind-bucket order does.** The initial
+  `[[guide_groups]]` table reproduces today's pack-group sequence exactly, so no
+  pack group moves — except the five that had no group at all and are now
+  declared. Kind buckets *do* move: pinning `Tutorials, How-to, Reference,
+  Explanation` reorders buckets in the 15 packs currently running
+  `Explanation, How-to, Reference, Tutorials`, and in `frontend-engineering`.
+  `atlassian` already matches the canonical sequence. This is a visible,
+  intentional change and the approver is approving it.
 
 ## Out of scope
 
