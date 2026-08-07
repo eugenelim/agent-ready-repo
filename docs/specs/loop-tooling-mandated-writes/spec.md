@@ -1,6 +1,6 @@
 # Spec: loop-tooling-mandated-writes
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, `docs/specs/loop-approved-spec-state/spec.md`
@@ -81,7 +81,7 @@ unparseable lines.
 
 **Defect 1 — lifecycle-tolerant contract hashing**
 
-- [x] AC1. `loop-cohort.py` canonicalizes both contract artifacts identically
+- [ ] AC1. `loop-cohort.py` canonicalizes both contract artifacts identically
       before hashing, normalizing exactly four things: CRLF/CR → LF; per-line
       trailing whitespace; the **status token only**, on the preamble status
       line only; and the **bracket contents only** of an acceptance-criterion
@@ -102,22 +102,22 @@ unparseable lines.
 - [x] AC4. Bumping spec `Status:` through `Approved → Implementing → Shipped`,
       and plan `Status:` through `Approved → Done`, leaves `plan check-current
       --require-schedule` and `schedule check-current` at exit 0.
-- [x] AC5. Ticking an acceptance-criterion or plan-task checkbox leaves both
+- [ ] AC5. Ticking an acceptance-criterion or plan-task checkbox leaves both
       checks at exit 0.
-- [x] AC6. A substantive edit still fails both checks and still makes
+- [ ] AC6. A substantive edit still fails both checks and still makes
       `approve-plan` refuse with `spec_changed=True` / `plan_changed=True`:
       changed AC text, added or removed AC, changed task text, changed
       `Depends on:`, **and free text appended after the status token on the
       status line** (`- **Status:** Implementing — scope now also covers X`).
-- [x] AC7. A `**Status:**` occurrence in the document *body* — after the first
+- [ ] AC7. A `**Status:**` occurrence in the document *body* — after the first
       `##` heading, as in a table row or fenced example — is hashed verbatim,
       not normalized. Only the preamble field is bookkeeping.
-- [x] AC8. Appending `(deferred: <slug>)` to an AC still fails `plan
+- [ ] AC8. Appending `(deferred: <slug>)` to an AC still fails `plan
       check-current`. Deferring an AC is a scope change, not bookkeeping. So is
       a `Shipped (2026-01-01)`-style annotation after the token: 
       `extract_status_token` truncates at `" ("`, so the annotation is not part
       of the token and stays hashed.
-- [x] AC9. `plan check-current` asserts spec.md's status token is in
+- [ ] AC9. `plan check-current` asserts spec.md's status token is in
       {`Approved`, `Implementing`, `Shipped`} and plan.md's is in {`Approved`,
       `Executing`, `Done`}, and stops otherwise — replacing the regression
       detection the raw-byte hash provided incidentally. **An absent or
@@ -126,7 +126,7 @@ unparseable lines.
       (`test-loop-engine.py:93-97`). `schedule check-current` gains no status
       assertion at all — it is a pre-guard on every `CODE-*` transition and
       must not acquire a new way to go red.
-- [x] AC10. Every hash-mismatch message names **both** possible causes
+- [ ] AC10. Every hash-mismatch message names **both** possible causes
       unconditionally — approved scope changed, *or* this baseline predates
       canonical hashing — and points at the reset pair. This covers all four
       mismatch sites: `plan check-current`'s spec and plan compares, its
@@ -186,14 +186,14 @@ unparseable lines.
       from the child environment, and a non-git cwd is a refusal rather than a
       `cwd` fallback — otherwise the confinement root of AC14 is itself
       environment-steerable.
-- [x] AC16. Field values are validated **before** the file is opened: refused
+- [ ] AC16. Field values are validated **before** the file is opened: refused
       if they contain a C0 control character (including `ESC`, which would be
       replayed as an ANSI sequence by `session-start.py`), `U+0085`, `U+2028`,
       or `U+2029`, or a lone surrogate; and `title` is capped at 120
       codepoints and `body` at 2000, a refusal naming the field and its limit.
       Knowledge entries are injected verbatim into every future agent session,
       so the writer is a durable-instruction channel and validates like one.
-- [x] AC17. The candidate is **linted before it is installed**: the new
+- [ ] AC17. The candidate is **linted before it is installed**: the new
       content is written to a temp file in the same directory, that temp path
       is linted, and only on success is it `os.replace`d over the target
       (matching `loop-cohort.py:write_state_atomic`). A failed lint, or any
@@ -201,7 +201,7 @@ unparseable lines.
       never replaced. There is no rollback window in which a bad entry is live
       on disk, and no partial line. `lint-knowledge.py` accepts an arbitrary
       path argument, so linting the candidate costs nothing extra.
-- [x] AC18. The post-write lint runs `lint-knowledge.py` as a **subprocess**,
+- [ ] AC18. The post-write lint runs `lint-knowledge.py` as a **subprocess**,
       so its `os.chdir` stays in the child, passing the resolved absolute path
       as the sole argument. No `--` separator: `lint-knowledge.py` has no
       argparse and would take `--` as the target path, failing every append.
@@ -212,7 +212,7 @@ unparseable lines.
       first" message rather than appending and blaming the caller's entry. A
       **non-existent** target is not a pre-existing failure — it is treated as
       an empty file and created, so a fresh knowledge base is reachable.
-- [x] AC20. `lint-knowledge.py` fails an entry that escapes a character as
+- [ ] AC20. `lint-knowledge.py` fails an entry that escapes a character as
       `\uXXXX` when that codepoint is `>= 0x20` and is not one of `U+0085`,
       `U+2028`, `U+2029`, naming the character and the fix. Escapes JSON
       requires (below `U+0020`) stay legal, as does a literal backslash-u
@@ -224,7 +224,7 @@ unparseable lines.
       append, state the raw-UTF-8 convention, and state the trust posture from
       AC16. The two READMEs' `## Verify before committing` sections stay
       byte-identical.
-- [x] AC22. A self-test covers the writer: id allocation over a gap;
+- [ ] AC22. A self-test covers the writer: id allocation over a gap;
       confinement refusal for both an out-of-root path and a symlink that
       escapes after resolution; the git-env-stripping of AC15 (a decoy
       `GIT_DIR` does not move the root); the out-of-process lint of AC18; the
@@ -240,12 +240,12 @@ unparseable lines.
 
 **Both**
 
-- [x] AC24. These pass: `test-loop-cohort.py`, `test-loop-cohort.sh`,
+- [ ] AC24. These pass: `test-loop-cohort.py`, `test-loop-cohort.sh`,
       `test-loop-engine.py`, `test_loop_cohort_schedule.py`,
       `test-lint-knowledge.py`, `test-append-knowledge.py`, `tools/test-all.py`,
       and `make build-check`. `.claude/` and `.agents/` projections are
       regenerated and committed.
-- [x] AC25. Core pack version bumped in `pack.toml`, `plugin.json`, and
+- [ ] AC25. Core pack version bumped in `pack.toml`, `plugin.json`, and
       `marketplace.json`; CHANGELOG `[Unreleased]` records both fixes and the
       migration note whose canonical statement is Assumption 1.
 
