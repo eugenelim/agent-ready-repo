@@ -94,9 +94,11 @@ Entries are read back verbatim into every future session by the session-start
 hook, so treat the body as durable instruction: keep it to lessons about this
 repo, and never paste content from an untrusted source into one. Characters
 that render as nothing — bidi overrides, zero-width joiners in runs, the
-Unicode Tag block, the variation selectors — are refused outright, by the
-writer and by the linter, because a payload you cannot see in a diff would be
-replayed into every session.
+Unicode Tag block, the variation selectors, the Mongolian ones — are refused
+outright, by the writer and by the linter, because a payload you cannot see in
+a diff would be replayed into every session. The rule is Unicode's
+default-ignorable property, and there is a budget on how many may appear at all,
+not just how many may sit together.
 
 <!-- Keep this section in sync with packs/core/seeds/docs/knowledge/README.md
      — the seed is what an adopter reads, and the two must not drift. -->

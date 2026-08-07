@@ -62,7 +62,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import unicodedata
 import uuid
 from pathlib import Path
 
@@ -104,7 +103,7 @@ class LockUnavailable(Exception):
 
 
 @contextlib.contextmanager
-def exclusive(target: Path, timeout: float = 10.0, stale_after: float = 120.0):
+def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
     """Serialize the read-allocate-write window against the same target.
 
     Allocating `max(existing) + 1` and then replacing the whole file is a
@@ -116,6 +115,12 @@ def exclusive(target: Path, timeout: float = 10.0, stale_after: float = 120.0):
 
     `O_CREAT | O_EXCL` rather than `fcntl.flock`, which Windows lacks; this
     repo's scripts are stdlib-only and cross-platform.
+
+    `timeout` is a *wait* budget, not a hold budget: the critical section runs
+    two lint subprocesses, so a holder legitimately takes about a second and a
+    queue of six tips a 10s budget over. 60s tolerates realistic contention
+    while still being bounded — the point is that it reports rather than
+    spinning, not that it gives up quickly.
 
     Two rules make the takeover safe, and a first version of this got both
     wrong — it broke a lock once *the waiter* had waited `timeout`, and then
@@ -149,7 +154,15 @@ def exclusive(target: Path, timeout: float = 10.0, stale_after: float = 120.0):
             except OSError:
                 age = None  # vanished, or not stat-able
             else:
-                if age is not None and age > stale_after:
+                # Stale in either direction, but only *grossly* so. A lock
+                # whose mtime is far in the future is a bogus timestamp (clock
+                # skew, NFS, a lock committed and checked out) and must not pin
+                # the lock forever; a lock a few milliseconds "in the future"
+                # is just timer granularity against a live holder, and treating
+                # that as abandoned breaks the mutual exclusion outright —
+                # it did, reintroducing the lost update this manager exists to
+                # prevent.
+                if age is not None and not -stale_after <= age <= stale_after:
                     try:
                         lock.unlink()
                     except FileNotFoundError:
@@ -169,8 +182,16 @@ def exclusive(target: Path, timeout: float = 10.0, stale_after: float = 120.0):
         except OSError as exc:
             raise LockUnavailable(f"cannot create {lock}: {exc}") from exc
     try:
-        os.write(fd, token.encode())
-        os.close(fd)
+        try:
+            os.write(fd, token.encode())
+        finally:
+            os.close(fd)
+    except BaseException:
+        # An orphaned lock blocks every later append for `stale_after`.
+        with contextlib.suppress(OSError):
+            lock.unlink()
+        raise
+    try:
         yield
     finally:
         try:
@@ -234,40 +255,22 @@ def confine(raw: str, base: Path) -> Path | None:
 
 
 def validate_value(field: str, value: str) -> str | None:
-    """Return an error string, or None when *value* is safe to write."""
+    """Return an error string, or None when *value* is safe to write.
+
+    The per-character rules live in `lint-knowledge.py` and are applied here to
+    the same decoded value the gate will see, so the writer and the gate cannot
+    disagree about what is refused. Only the field-shaped rules — emptiness and
+    the length caps — are the writer's own.
+    """
     lint = _linter()
-    run = 0
+    problems = lint.field_problems(value)
+    if problems:
+        return (f"{field} contains a {problems[0]}; entries are replayed "
+                "verbatim into every future session, so these are refused")
     for ch in value:
-        # Run check here as well as in the linter, so the refusal names the
-        # field. Caught only by the post-lint, it would name a temp file that
-        # no longer exists.
-        run = run + 1 if ch in lint._RUN_CHARS else 0
-        if run > lint._MAX_ADJACENT_INVISIBLE:
-            return (f"{field} contains a run of {run} zero-width characters; "
-                    "real text never needs more than "
-                    f"{lint._MAX_ADJACENT_INVISIBLE} adjacent")
         if ch in _LINE_BREAKERS:
             return (f"{field} contains U+{ord(ch):04X}, which str.splitlines() "
                     "treats as a line break — it would split this entry in two")
-        category = unicodedata.category(ch)
-        if category == "Cc":
-            return (f"{field} contains the control character U+{ord(ch):04X}; "
-                    "knowledge entries are replayed verbatim into every future "
-                    "session, so control sequences are refused")
-        if lint.is_hidden_char(ch):
-            # Zero-width carriers: bidi overrides, the Unicode Tag block, and
-            # the variation selectors — the last of which are `Mn`, so a
-            # `Cf`-only check missed 240 of them. session-start replays
-            # `title`/`scope`/`body` verbatim into every agent's context, so an
-            # invisible payload here is a durable prompt injection no reviewer
-            # reading the diff would see. Predicate lives in the linter so the
-            # writer and the gate cannot disagree.
-            return (f"{field} contains the invisible character "
-                    f"U+{ord(ch):04X} ({unicodedata.name(ch, 'unnamed')}); "
-                    "these are refused because entries are replayed verbatim "
-                    "into every future session")
-        if 0xD800 <= ord(ch) <= 0xDFFF:
-            return f"{field} contains a lone surrogate U+{ord(ch):04X}"
     cap = {"title": TITLE_CAP, "body": BODY_CAP}.get(field)
     if cap is not None and len(value) > cap:
         return f"{field} is {len(value)} characters; the limit is {cap}"
@@ -298,8 +301,10 @@ def next_id(text: str) -> str:
 def run_linter(target: Path) -> subprocess.CompletedProcess:
     """Lint *target* out of process.
 
-    A subprocess, not an import: lint-knowledge.py chdirs to the repo root at
-    module scope, which would relocate this process's relative paths. The
+    A subprocess, not an import: lint-knowledge.py chdirs to the repo root
+    inside `main()`, so calling it in-process would relocate this process's
+    relative paths. Importing the module is safe and is what `_load_linter()`
+    does for the shared predicate and the enum sets. The
     absolute path is passed as the sole argument — no ``--`` separator, which
     that script (which has no argparse) would take as the target path.
     """

@@ -149,13 +149,18 @@ def layer_validation_rules(tmp: Path) -> None:
                          "title": "t", "body": "write \\u2014 to escape",
                          "source": "s"}, ensure_ascii=False) + "\n",
              0, "Knowledge lint: passed")
-    # Below U+0020 JSON *requires* the escape. This case is what pins the
-    # >= 0x20 threshold — without it, a linter that rejected every \uXXXX
-    # escape would pass the whole stub.
-    run_case(tmp, "stub-control-escape-stays-legal",
+    # No C0 belongs in a field value in *either* spelling: the decoded pass
+    # refuses category Cc, so an escaped tab is refused exactly like a literal
+    # one. That equivalence is the point — checking the raw line alone is how
+    # the gate once accepted control characters the writer refused.
+    run_case(tmp, "stub-escaped-control-rejected",
              '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
              '"body": "a\\u0009b", "source": "s"}\n',
-             0, "Knowledge lint: passed")
+             1, "control character U+0009")
+    run_case(tmp, "stub-literal-control-rejected-too",
+             '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
+             '"body": "a\\u007fb", "source": "s"}\n',
+             1, "control character U+007F")
     # Non-BMP characters become surrogate PAIRS under ensure_ascii=True — the
     # half of the drift that is not merely cosmetic, since U+D800-U+DFFF are
     # not valid TOML/YAML scalars.
@@ -214,6 +219,32 @@ def layer_validation_rules(tmp: Path) -> None:
                          "title": "t", "body": "love \u2764\ufe0f\u200d\U0001f525",
                          "source": "s"}, ensure_ascii=False) + "\n",
              0, "Knowledge lint: passed")
+
+    # AC16 — the rule is the Default_Ignorable property, not a sampled set of
+    # blocks. Sampling failed twice: `Cf` alone missed the variation selectors
+    # (Mn), and adding those missed the Mongolian free variation selectors —
+    # the identical construct one block over. Walk the property, don't spot-check.
+    run_case(tmp, "stub-mongolian-variation-selector-rejected",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "real\u180btext", "source": "s"},
+                        ensure_ascii=False) + "\n",
+             1, "U+180B")
+    run_case(tmp, "stub-combining-grapheme-joiner-rejected",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "real\u034ftext", "source": "s"},
+                        ensure_ascii=False) + "\n",
+             1, "U+034F")
+    # AC16 — a run cap bounds adjacency, not volume. Two joiners after every
+    # visible character never trips the run cap and still carries an arbitrary
+    # instruction; 608 invisible characters hid a 76-character payload inside
+    # ordinary-looking advice during review.
+    run_case(tmp, "stub-interleaved-zero-width-volume-rejected",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t",
+                         "body": "".join(c + "\u200d\u200c" for c in
+                                         "Use ripgrep instead of grep for repo-wide searches"),
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             1, "zero-width characters in")
 
     # Empty file (no learnings yet) is valid.
     run_case(tmp, "empty", "", 0, "Knowledge lint: passed")

@@ -71,7 +71,12 @@ _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
 # business in a knowledge entry in *either* form — the writer refuses a
 # literal ESC because session-start replays it as an ANSI sequence, so the
 # gate must refuse the escaped spelling too or the hand-edit path is open.
-_JSON_NEEDS_ESCAPE = frozenset({0x08, 0x09, 0x0A, 0x0C, 0x0D})
+# No C0 character is permitted in a field value at all — `field_problems`
+# refuses category `Cc` on the decoded string, which covers the literal and the
+# escaped spelling together. So there is no "JSON needs this escape" carve-out
+# to make: an escaped C0 is refused by the decoded pass, and the escape rule
+# below only has to exempt the three line separators, whose escaped form is the
+# one representation that survives `splitlines()`.
 # Zero-width carriers. The rule is **default-ignorable code point**, not any one
 # Unicode category — a first version refused only `Cf` and was bypassed by
 # variation selectors, which are `Mn`. Framing it this way means the next
@@ -89,15 +94,46 @@ _ALLOWED_FORMAT_CHARS = frozenset("\u200c\u200d\ufe0e\ufe0f")
 # forms), while a usable alphabet needs many more.
 _RUN_CHARS = _ALLOWED_FORMAT_CHARS
 _MAX_ADJACENT_INVISIBLE = 2
-# (first, last) inclusive. Cf is category-detected; these are the ranges whose
-# category (Mn, Lo) does not distinguish them from ordinary text.
+# Unicode's Default_Ignorable_Code_Point property, verbatim (DerivedCoreProperties).
+# Hand-listed because `unicodedata` does not expose the property, and enumerated
+# rather than sampled because sampling is what failed twice: the first version
+# keyed on `Cf` and was bypassed by the variation selectors (Mn), the second
+# added those five ranges and was bypassed by the Mongolian free variation
+# selectors — the identical construct in a different block. The unassigned
+# ranges are included deliberately: a code point with no glyph today is still a
+# carrier, and future assignments inherit the property.
 _HIDDEN_RANGES = (
-    (0xFE00, 0xFE0D),    # variation selectors 1-14 (Mn)
-    (0xE0100, 0xE01EF),  # variation selector supplement, 240 of them (Mn)
-    (0x115F, 0x1160),    # Hangul choseong/jungseong fillers (Lo)
-    (0x3164, 0x3164),    # Hangul filler (Lo)
-    (0xFFA0, 0xFFA0),    # halfwidth Hangul filler (Lo)
+    (0x00AD, 0x00AD),    # soft hyphen
+    (0x034F, 0x034F),    # combining grapheme joiner
+    (0x061C, 0x061C),    # Arabic letter mark
+    (0x115F, 0x1160),    # Hangul choseong/jungseong fillers
+    (0x17B4, 0x17B5),    # Khmer inherent vowels
+    (0x180B, 0x180F),    # Mongolian free variation selectors + vowel separator
+    (0x200B, 0x200F),    # zero-width space .. RTL mark
+    (0x202A, 0x202E),    # bidi embedding/override
+    (0x2060, 0x206F),    # word joiner .. nominal digit shapes (incl. unassigned 2065)
+    (0x3164, 0x3164),    # Hangul filler
+    (0xFE00, 0xFE0F),    # variation selectors 1-16
+    (0xFEFF, 0xFEFF),    # zero-width no-break space / BOM
+    (0xFFA0, 0xFFA0),    # halfwidth Hangul filler
+    (0xFFF0, 0xFFF8),    # unassigned, default-ignorable
+    (0x1BCA0, 0x1BCA3),  # shorthand format controls
+    (0x1D173, 0x1D17A),  # musical format controls
+    (0xE0000, 0xE0FFF),  # tag block + variation selector supplement + unassigned
 )
+
+# A run cap bounds *adjacency*; it does not bound *volume*. Interleaving two
+# legal joiners after every visible character stays under any adjacency limit
+# and still carries an arbitrary instruction — 608 invisible characters hid a
+# 76-character payload inside ordinary-looking advice during review. So cap the
+# total too: 2% of the field, floor 4, which passes every emoji sequence
+# measured and every realistic body.
+_MAX_INVISIBLE_FRACTION = 50
+_MIN_INVISIBLE_ALLOWANCE = 4
+
+
+def invisible_budget(value: str) -> int:
+    return max(_MIN_INVISIBLE_ALLOWANCE, len(value) // _MAX_INVISIBLE_FRACTION)
 
 
 def is_hidden_char(ch: str) -> bool:
@@ -124,31 +160,45 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
     for m in _ESCAPE_RE.finditer(raw):
         cp = int(m.group(2), 16)
-        if cp in _LINE_BREAKERS or cp in _JSON_NEEDS_ESCAPE:
+        if cp in _LINE_BREAKERS:
             continue
         found.append((f"\\u{m.group(2)}", chr(cp)))
     return found
 
 
-def hidden_characters(raw: str) -> list[tuple[int, str]]:
-    """Return (codepoint, name) for each invisible formatting character.
+def field_problems(value: str) -> list[str]:
+    r"""Every per-character rule, applied to a *decoded* field value.
 
-    `append-knowledge.py` refuses these at write time, but the file is also
-    hand-edited, and `tools/hooks/session-start.py` replays every entry
-    verbatim into an agent's context. A bidi override or a Unicode Tag-block
-    character carries text that is live in every session and invisible in a
-    diff, so the gate has to see it too.
+    Decoded on purpose: `json.loads` has already collapsed `\u001b` and a
+    literal ESC to the same character, so one pass here covers both spellings.
+    Checking the raw line instead is how the gate ended up accepting control
+    characters the writer refused — the escape regex only ever saw the
+    `\uXXXX` form, and the short escapes (`\b \t \n \f \r`) were never
+    inspected at all.
     """
-    found: list[tuple[int, str]] = []
-    run = 0
-    for ch in raw:
-        if is_hidden_char(ch):
-            found.append((ord(ch), unicodedata.name(ch, "unnamed")))
-        run = run + 1 if ch in _RUN_CHARS else 0
-        if run == _MAX_ADJACENT_INVISIBLE + 1:
-            found.append((ord(ch), f"{unicodedata.name(ch, 'unnamed')} "
-                                   f"(run of {run} zero-width characters)"))
-    return found
+    problems: list[str] = []
+    run = invisible = 0
+    for ch in value:
+        cp = ord(ch)
+        if unicodedata.category(ch) == "Cc":
+            problems.append(f"control character U+{cp:04X}")
+        elif is_hidden_char(ch):
+            problems.append(f"invisible character U+{cp:04X} "
+                            f"({unicodedata.name(ch, 'unnamed')})")
+        if 0xD800 <= cp <= 0xDFFF:
+            problems.append(f"lone surrogate U+{cp:04X}")
+        if ch in _RUN_CHARS:
+            run += 1
+            invisible += 1
+            if run == _MAX_ADJACENT_INVISIBLE + 1:
+                problems.append(f"run of {run} adjacent zero-width characters")
+        else:
+            run = 0
+    budget = invisible_budget(value)
+    if invisible > budget:
+        problems.append(f"{invisible} zero-width characters in {len(value)} "
+                        f"(budget {budget}) — adjacency alone does not bound volume")
+    return problems
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -201,14 +251,6 @@ def main(argv: list[str] | None = None) -> int:
         if len(raw) > _MAX_LINE:
             err(line_no, f"line is {len(raw)} characters; the limit is {_MAX_LINE}")
             continue
-
-        for cp, name in hidden_characters(raw):
-            err(
-                line_no,
-                f"contains the invisible formatting character U+{cp:04X} "
-                f"({name}) — entries are replayed verbatim into every session, "
-                f"so these are refused; use append-knowledge.py to write entries",
-            )
 
         for escape, char in gratuitous_escapes(raw):
             err(
@@ -273,6 +315,13 @@ def main(argv: list[str] | None = None) -> int:
             if not isinstance(v, str) or not v.strip():
                 err(line_no, f"{k!r} must be a non-empty string")
                 continue
+            for problem in field_problems(v):
+                err(
+                    line_no,
+                    f"{k!r} contains a {problem} — entries are replayed verbatim "
+                    f"into every session, so these are refused; write entries "
+                    f"with append-knowledge.py",
+                )
             if k == "scope":
                 segments = [g.strip() for g in v.split(",") if g.strip()]
                 if not segments:

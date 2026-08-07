@@ -406,9 +406,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   entry's title, scope and body verbatim into an agent's context (and a
   `tier: invariant` entry goes in regardless of scope), that was a durable
   prompt-injection channel invisible both in a diff and on screen. The rule is
-  now **default-ignorable code point** rather than any single Unicode category,
-  so the next carrier class is covered by construction; a first attempt keyed
-  on `Cf` alone and was bypassed by variation selectors, which are `Mn`. Both
+  now Unicode's **Default_Ignorable_Code_Point** property, enumerated from
+  `DerivedCoreProperties` rather than sampled by block. Sampling failed twice —
+  `Cf` alone was bypassed by the variation selectors (`Mn`), and adding those
+  was bypassed by the Mongolian free variation selectors, the same construct one
+  block over. A total-volume budget sits beside the adjacency cap, since two
+  joiners after every visible character never trip a run limit and still carry
+  an arbitrary instruction. Both
   the writer and `lint-knowledge.py` enforce it from one shared predicate,
   because the file is hand-editable too. ZWJ, ZWNJ and the two emoji
   presentation selectors stay legal — they shape neighbouring characters — but a

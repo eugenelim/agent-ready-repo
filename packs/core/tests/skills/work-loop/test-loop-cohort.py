@@ -2586,6 +2586,28 @@ def test_ac9_schedule_check_current_stops_on_regressed_plan(tmp: Path) -> None:
         ok(name)
 
 
+def test_ac2_multiline_preamble_comment_keeps_line_indices(tmp: Path) -> None:
+    """AC2's comment-stripping bridge. `parse_status` strips HTML comments with
+    a plain `sub("", text)` under re.DOTALL, which collapses a multiline comment
+    to nothing and shifts every later line index. The canonicalizer needs the
+    index to map back to the raw line it rewrites, so it substitutes a
+    newline-preserving replacement instead.
+
+    18 spec/plan files in this tree carry a multiline preamble comment — the
+    exact population this fix serves — and no fixture emitted that shape, so
+    the plain-sub mutation survived every other case.
+    """
+    name = "ac2-multiline-preamble-comment-keeps-line-indices"
+    body = ("# Spec\n\n"
+            "<!--\n  a preamble note\n  spanning three lines\n-->\n\n"
+            "- **Status:** {t}\n\n## Acceptance Criteria\n\n- [ ] AC1\n")
+    if canonical_contract(body.format(t="Approved")) == canonical_contract(body.format(t="Shipped")):
+        ok(name)
+    else:
+        fail(name, "a status bump moved the digest when a multiline comment "
+                   "preceded the status line — the line index did not map back")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
@@ -2613,6 +2635,7 @@ def main() -> int:
             test_ac5_lowercase_ac_heading_still_normalizes,
             test_ac5_prose_ac_lead_in_opens_the_region,
             test_ac1_h1_closes_the_ac_region,
+            test_ac2_multiline_preamble_comment_keeps_line_indices,
             test_ac7_fenced_ac_heading_does_not_open_the_region,
             test_stub_lifecycle_status_bump_keeps_pin,
             test_stub_lifecycle_bump_with_vocabulary_comment,

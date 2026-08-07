@@ -462,25 +462,34 @@ def test_exclusive_lock_actually_excludes(target: Path) -> None:
 
 
 def test_lock_timeout_reports_instead_of_hanging(target: Path) -> None:
-    """AC17. An unbreakable lock must fail with a message, not spin forever —
-    the wait is bounded and the takeover does not reset the deadline."""
+    """AC17a. An unbreakable lock must report, not spin.
+
+    Unit-level with a short budget on purpose: the production budget is a
+    *wait* budget sized for real contention (the critical section runs two lint
+    subprocesses), so driving this through the CLI would mean sitting out that
+    budget to prove a property that has nothing to do with its length.
+    """
     name = "lock-timeout-reports-instead-of-hanging"
+    spec = importlib.util.spec_from_file_location("_ak4", str(SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
     lock.write_text("someone-else", encoding="utf-8")
     try:
         started = time.monotonic()
-        proc = run(*_append_args(target))
-        elapsed = time.monotonic() - started
-        out = proc.stdout + proc.stderr
-        if proc.returncode == 0:
-            fail(name, "appended while the lock was held")
-        elif elapsed > 60:
-            fail(name, f"took {elapsed:.0f}s — the wait is not bounded")
-        elif "did not free" not in out:
-            fail(name, f"no lock message: {out!r}")
-        else:
-            ok(name)
+        try:
+            with mod.exclusive(target, timeout=2.0):
+                fail(name, "acquired a lock held by someone else")
+                return
+        except mod.LockUnavailable as exc:
+            elapsed = time.monotonic() - started
+            if elapsed > 20:
+                fail(name, f"took {elapsed:.0f}s for a 2s budget — not bounded")
+            elif "did not free" not in str(exc):
+                fail(name, f"unexpected message: {exc}")
+            else:
+                ok(name)
     finally:
         lock.unlink(missing_ok=True)
 
@@ -609,9 +618,12 @@ def test_lock_reports_on_an_unremovable_lock(target: Path) -> None:
 
 def test_dangling_symlink_lock_is_bounded(target: Path) -> None:
     """AC17a. `O_EXCL` raises FileExistsError for a dangling symlink while
-    `stat` raises FileNotFoundError — the branch that used to `continue` past
-    both the deadline and the sleep, busy-spinning a core forever."""
+    `stat` raises FileNotFoundError — the branch that once `continue`d past both
+    the deadline and the sleep, busy-spinning a core forever."""
     name = "dangling-symlink-lock-is-bounded"
+    spec = importlib.util.spec_from_file_location("_ak5", str(SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
     try:
@@ -621,19 +633,18 @@ def test_dangling_symlink_lock_is_bounded(target: Path) -> None:
         return
     try:
         started = time.monotonic()
-        proc = run(*_append_args(target))
-        elapsed = time.monotonic() - started
-        if proc.returncode == 0:
-            fail(name, "appended through a dangling-symlink lock")
-        elif elapsed > 60:
-            fail(name, f"busy-spun for {elapsed:.0f}s")
-        elif "could not be inspected" not in (proc.stdout + proc.stderr):
-            # Not just "bounded" — the message must not claim an age of 0s for a
-            # lock whose stat failed.
-            fail(name, f"message did not name the un-inspectable lock: "
-                       f"{(proc.stdout + proc.stderr)!r}")
-        else:
-            ok(name)
+        try:
+            with mod.exclusive(target, timeout=2.0):
+                fail(name, "acquired through a dangling-symlink lock")
+                return
+        except mod.LockUnavailable as exc:
+            elapsed = time.monotonic() - started
+            if elapsed > 20:
+                fail(name, f"busy-spun for {elapsed:.0f}s on a 2s budget")
+            elif "could not be inspected" not in str(exc):
+                fail(name, f"message did not name the un-inspectable lock: {exc}")
+            else:
+                ok(name)
     finally:
         lock.unlink(missing_ok=True)
 

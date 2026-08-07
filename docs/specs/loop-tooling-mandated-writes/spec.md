@@ -216,16 +216,25 @@ unparseable lines.
       and `title` is capped at 120 codepoints and `body` at 2000, a refusal
       naming the field and its limit.
 
-      Default-ignorable, not any one Unicode category — a first version refused
-      only `Cf` and was bypassed by variation selectors, which are `Mn` and
-      whose supplement block is a 240-symbol invisible alphabet. ZWJ, ZWNJ and
+      Default-ignorable is the Unicode property, enumerated from
+      `DerivedCoreProperties` rather than sampled — sampling failed twice, first
+      keying on `Cf` (bypassed by the variation selectors, which are `Mn`) and
+      then adding those five ranges (bypassed by the Mongolian free variation
+      selectors, the identical construct one block over). The unassigned ranges
+      are included deliberately: a code point with no glyph today is still a
+      carrier, and future assignments inherit the property. ZWJ, ZWNJ and
       the two emoji presentation selectors are the exceptions, since they shape
-      neighbouring characters. A **run** of three or more adjacent zero-width
-      characters is refused regardless: the run spans joiners and presentation
-      selectors together, because counting joiners alone leaves an alternating
-      VS15/VS16 sequence invisible. Three is the threshold because real emoji
-      cap at two adjacent — heart-on-fire is VS16 then ZWJ, as are the flag and
-      bouncing-ball forms — while a usable alphabet needs many more. The predicate lives in
+      neighbouring characters. Two limits apply beyond that, because either
+      alone is insufficient. A **run** of three or more adjacent zero-width
+      characters is refused — the run spans joiners and presentation selectors
+      together, since counting joiners alone leaves an alternating VS15/VS16
+      sequence invisible, and three is the threshold because real emoji cap at
+      two adjacent (heart-on-fire is VS16 then ZWJ, as are the flag and
+      bouncing-ball forms). And a **volume** budget of 2% of the field (floor 4)
+      is refused past, because a run cap bounds adjacency and not volume: two
+      joiners placed after every visible character never trip it and still
+      carried a 76-character instruction in 608 invisible characters during
+      review. The predicate lives in
       `lint-knowledge.py` and the writer imports it, so the gate and the writer
       cannot disagree about what is invisible.
       Knowledge entries are injected verbatim into every future agent session,
@@ -262,9 +271,12 @@ unparseable lines.
       target that exists but is not a regular file, and one whose parent
       directory is missing, are each refused with their own message rather
       than a traceback.
-- [x] AC20a. `lint-knowledge.py` applies the AC16 default-ignorable rule to
-      **literal** characters too, because the file is hand-editable and
-      `session-start.py` replays every entry verbatim; refuses a line longer
+- [x] AC20a. `lint-knowledge.py` applies every AC16 per-character rule to the
+      **decoded** field values, so the literal and `\uXXXX` spellings are
+      covered by one pass and the writer and the gate cannot diverge — checking
+      the raw line alone is how the gate came to accept control characters the
+      writer refused. No C0 is permitted in either spelling, which leaves the
+      escape rule exempting only the three line separators; refuses a line longer
       than 8192 characters before any regex runs, so the gate cannot be hung by
       the input it exists to reject; and reports an undecodable file as a lint
       error instead of tracebacking.
