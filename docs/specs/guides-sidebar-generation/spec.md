@@ -1,6 +1,6 @@
 # Spec: guides-sidebar-generation
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0020](../../adr/0020-per-pack-diataxis-hierarchy-for-guides.md) (per-pack Diátaxis hierarchy), [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md) (Starlight), [`guide-source-model`](../guide-source-model/spec.md) (frontmatter declares kind), `contracts/guide.schema.json`, `site.toml` (site recipe), [`docs-site/AGENTS.md`](../../../docs-site/AGENTS.md) (build order), [`guides/AGENTS.md`](../../../guides/AGENTS.md) (publication routing)
@@ -236,60 +236,60 @@ The `atlassian` pages are the witness that cross-kind ordering works.
 
 ## Acceptance Criteria
 
-- [ ] AC1 — An inventory pass emits one record per `.md` file under `guides/`,
+- [x] AC1 — An inventory pass emits one record per `.md` file under `guides/`,
       each carrying every key in the Layer 1 table.
-- [ ] AC2 — The set of slugs under the generated **Guides** groups equals the set
+- [x] AC2 — The set of slugs under the generated **Guides** groups equals the set
       of `nav_eligible` inventory slugs exactly; `guides/AGENTS.md` appears in
       neither. Pack-catalogue and top-level slugs are outside this set.
-- [ ] AC3 — For every file, the inventory slug equals the Starlight slug of the
+- [x] AC3 — For every file, the inventory slug equals the Starlight slug of the
       file `mirror_guides()` writes (its path with trailing `/index` stripped),
       including `slug:` overrides. `mirror_guides()` is unmodified.
-- [ ] AC4 — A page with no frontmatter appears in the projected sidebar,
+- [x] AC4 — A page with no frontmatter appears in the projected sidebar,
       labelled from the baseline or its filename.
-- [ ] AC5 — Label precedence in the projected sidebar is frozen baseline →
+- [x] AC5 — Label precedence in the projected sidebar is frozen baseline →
       `title:` frontmatter → filename-derived, so the 13 pages whose `title:`
       differs from their baseline label keep the baseline label.
-- [ ] AC6 — Within a pack group the emission order is exactly: (1) `is_index`
+- [x] AC6 — Within a pack group the emission order is exactly: (1) `is_index`
       records as direct items, (2) `order`-declaring records ascending across
       kinds, (3) kind-less non-index records as direct items, (4) the remainder
       in kind buckets ordered `Tutorials, How-to, Reference, Explanation`,
       alphabetical within each. The root `guides/README.md` is a direct item of
       the "Guides" group.
-- [ ] AC7 — A non-integer `order` is treated as absent and does not raise; a
+- [x] AC7 — A non-integer `order` is treated as absent and does not raise; a
       `tutorials/` directory normalizes to kind `tutorial`.
-- [ ] AC8 — `site.toml`'s `[[guide_groups]]` entries are `dir` + `label`, table
+- [x] AC8 — `site.toml`'s `[[guide_groups]]` entries are `dir` + `label`, table
       order is group order, and an entry exists for **every** directory under
       `guides/` — including `_shared`, `_reference`, `iac-terraform`,
       `catalogue-curation`, `github`, and `linear`. An undeclared directory
       produces a group labelled from its title-cased directory name, appended
       after all declared groups. Groups render as a flat list under "Guides"
       with no `[[groups]]` super-group label present.
-- [ ] AC9 — Every `(slug, label)` pair in the frozen baseline appears unchanged
+- [x] AC9 — Every `(slug, label)` pair in the frozen baseline appears unchanged
       in the generated output. No page and no label regresses. (Pair equality is
       order-insensitive by design; AC6 governs sequence.)
-- [ ] AC10 — Shuffling the injected path enumerator produces byte-identical
+- [x] AC10 — Shuffling the injected path enumerator produces byte-identical
       output.
-- [ ] AC11 — The hand-maintained `{ label: 'Guides', items: [...] }` entry —
+- [x] AC11 — The hand-maintained `{ label: 'Guides', items: [...] }` entry —
       lines 86–544 at spec time, but identified by content, not line number — is
       removed from `docs-site/astro.config.ts`; the surviving top-level sidebar
       entries are exactly Home, Get Started, the `sidebar-config.json` spread,
       Changelog, and Contributing. This is the canonical statement of the range;
       Intent and the plan reference it.
-- [ ] AC12 — Three explanation pages exist under
+- [x] AC12 — Three explanation pages exist under
       `guides/iac-terraform/explanation/` declaring `order` 1–3, each containing
       the literal `](../../release-engineering/explanation/the-release-loop.md)`
       within its first 40 lines. The relative form matters: an absolute
       `guides/…` path rewrites to a dead GitHub URL.
-- [ ] AC13 — In the built sidebar the IaC arc renders 1–3, and the four ordered
+- [x] AC13 — In the built sidebar the IaC arc renders 1–3, and the four ordered
       `atlassian` pages render as a flat run ahead of their kind buckets — the
       post-change shape, not the hand-placed one.
-- [ ] AC14 — The documented build sequence completes; the rendered sidebar was
+- [x] AC14 — The documented build sequence completes; the rendered sidebar was
       inspected and the observation recorded in
       `docs/specs/guides-sidebar-generation/notes/rendered-check.md`.
-- [ ] AC15 — `guides/AGENTS.md` § Traps states the generated contract, `order`
+- [x] AC15 — `guides/AGENTS.md` § Navigation is generated states the generated contract, `order`
       semantics, the `[[guide_groups]]` declaration, and the transitional label
       baseline instead of claiming the sidebar is hand-maintained.
-- [ ] AC16 — `workspace.toml [backlog].open` carries
+- [x] AC16 — `workspace.toml [backlog].open` carries
       `iac-guides-readme-stage-drift` with a cold-start-sufficient comment.
 
 ## Assumptions

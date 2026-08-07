@@ -13,12 +13,18 @@ npm run build --prefix docs-site     # exit 0
 
 `214 page(s) built in 36.75s`, pagefind indexed 214 HTML files.
 
-**Deviation from the documented sequence:** the `web/` build was not run first.
-The documented order exists because the `web/` build cleans `build/` at the repo
-root, so running it after would wipe `build/docs/`. Running only `docs-site`
-leaves `build/` without the marketing site but produces `build/docs/` intact,
-which is what this check inspects. No conclusion here depends on the marketing
-site being present.
+**Re-run after review (2026-08-07).** The first pass skipped the `web/` build,
+which is the load-bearing first step. Adversarial review flagged that as not
+satisfying AC14, so the full sequence was re-run end to end:
+
+```
+npm run build --prefix web       # 45 pages
+python3 tools/build-site.py
+npm run build --prefix docs-site # 214 pages
+```
+
+Both `build/index.html` and `build/docs/index.html` are present, so the
+documented ordering was exercised as CI runs it.
 
 ## Inspected
 
@@ -91,3 +97,24 @@ reachable by URL, absent from reader navigation.
 
 Out of scope for this spec and unchanged by it: styling, contrast, mobile
 viewport, search behaviour, and the marketing site at `/`.
+
+## Defect found and fixed during review
+
+The first rendered pass shipped five items labelled "Overview" in the
+Cross-cutting group — `guides/_shared` plus its four kind-directory READMEs,
+none of which were in the pre-change tree and so none in the frozen baseline.
+Filename derivation would have read "Readme", so the constant "Overview" was
+the fallback, and four indistinguishable siblings was the result. Neither AC9
+(baseline pairs only) nor AC2 (slugs only) could see it.
+
+A kind-directory index now takes its bucket's label. Re-verified in the built
+output:
+
+```
+Cross-cutting
+  Overview      → /docs/guides/_shared/
+  Explanation   → /docs/guides/_shared/explanation/
+  How-to        → /docs/guides/_shared/how-to/
+  Reference     → /docs/guides/_shared/reference/
+  Tutorials     → /docs/guides/_shared/tutorials/
+```

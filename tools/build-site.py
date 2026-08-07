@@ -269,18 +269,38 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
         is_int = isinstance(raw_order, int) and not isinstance(raw_order, bool)
         order = raw_order if is_int else None
 
+        # An override is a slug like any other: Starlight serves `.../index` at
+        # `...`, so navigation must point at the stripped form or 404.
+        override = fm.get("slug")
+        if override and override.endswith("/index"):
+            override = override[: -len("/index")]
+
         records.append({
             "source_path": path,
             "pack": pack,
             "kind": kind,
             "order": order,
             "title": fm.get("title") or None,
-            "slug": fm.get("slug") or guide_slug_for(rel_parts),
+            "slug": override or guide_slug_for(rel_parts),
             "is_index": path.name == "README.md",
             "nav_eligible": path.name not in _NAV_INELIGIBLE_NAMES,
         })
 
     records.sort(key=lambda r: r["slug"])
+
+    # A repeated slug renders twice and orders by enumerator arrival, which
+    # would break determinism. Set-equality tests cannot see it.
+    seen: dict[str, Path] = {}
+    for rec in records:
+        if rec["slug"] in seen:
+            print(
+                f"  warn  duplicate guide slug '{rec['slug']}':"
+                f" {_relpath(rec['source_path'])} also claimed by"
+                f" {_relpath(seen[rec['slug']])}",
+                file=sys.stderr,
+            )
+        seen[rec["slug"]] = rec["source_path"]
+
     return records
 
 
@@ -311,11 +331,17 @@ def _guide_label(record: dict, baseline: dict) -> str:
         return baseline[record["slug"]]
     if record["title"]:
         return record["title"]
+    tail = record["slug"].rsplit("/", 1)[-1]
     if record["is_index"]:
-        # Filename derivation would read "Readme"; every index entry in the
-        # pre-change tree reads "Overview".
+        # Filename derivation would read "Readme". A pack (or tree) index reads
+        # "Overview", matching the pre-change tree. A kind-directory index takes
+        # its bucket's label instead — otherwise a group shows several identical
+        # "Overview" siblings; guides/_shared alone has four.
+        if record["slug"].count("/") > 1:
+            kind = _KIND_DIR_ALIASES.get(tail, tail)
+            return dict(_KIND_BUCKETS).get(kind, tail.replace("-", " ").title())
         return "Overview"
-    return record["slug"].rsplit("/", 1)[-1].replace("-", " ").title()
+    return tail.replace("-", " ").title()
 
 
 def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
@@ -337,8 +363,11 @@ def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
 
     items: list[dict] = []
 
-    # The root README belongs to the tree itself, not to any pack.
-    for rec in (r for r in eligible if r["pack"] is None and r["is_index"]):
+    # Files directly under guides/ belong to the tree itself, not to any pack.
+    # Index first, then any other loose page — otherwise a future
+    # guides/CONTRIBUTING.md would be eligible and emitted nowhere.
+    root_level = [r for r in eligible if r["pack"] is None]
+    for rec in sorted(root_level, key=lambda r: (not r["is_index"], r["slug"])):
         items.append({"label": _guide_label(rec, baseline), "slug": rec["slug"]})
 
     for pack in [d for d in declared if d in {r["pack"] for r in eligible}] + extra:
@@ -363,7 +392,7 @@ def project_guide_sidebar(records: list[dict], guide_groups: list[dict],
                       if r["kind"] == kind and r["order"] is None and not r["is_index"]]
             if not bucket:
                 continue
-            bucket.sort(key=lambda r: _guide_label(r, baseline))
+            bucket.sort(key=lambda r: (_guide_label(r, baseline).casefold(), r["slug"]))
             group_items.append({
                 "label": bucket_label,
                 "items": [entry(r) for r in bucket],

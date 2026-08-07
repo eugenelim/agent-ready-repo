@@ -1,6 +1,6 @@
 # Plan: guides-sidebar-generation
 
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 
 > Measurements are stated once in [`spec.md` § Layer 1](spec.md#layer-1--inventory).
@@ -20,6 +20,10 @@
 - `guides/iac-terraform/explanation/*.md` — three new pages, the live test.
 - `guides/AGENTS.md` — replace the hand-maintained-sidebar trap.
 - `workspace.toml` — one `[backlog].open` entry.
+- `Makefile`, `.github/workflows/{build-check,pages,docs}.yml` — wire the new
+  tests into a gate and add the new build inputs to the path triggers.
+- `AGENTS.local.md` — route agents to `guides/AGENTS.md`; agreed with the
+  user before EXECUTE, listed here rather than as a bundled fix.
 - `docs/specs/guides-sidebar-generation/notes/rendered-check.md` — the AC14 record.
 
 **Tests that demonstrate done**
@@ -37,7 +41,6 @@
 - `contracts/guide.schema.json` — `order` already exists.
 - Kind-bucket label vocabulary.
 - `site.toml`'s existing `[[groups]]` table or `discover_packs()`.
-- `.github/workflows/pages.yml` — the generator already runs there.
 - The other frontmatter-less guides (confirmed with the user 2026-08-06).
 - `the-release-loop.md` and `release-engineering` — the arc cites, never edits.
 - Guide group *order* — the initial `[[guide_groups]]` table reproduces today's

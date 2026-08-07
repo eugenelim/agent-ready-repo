@@ -206,3 +206,30 @@ def test_iac_arc_orders_1_2_3():
         "guides/iac-terraform/explanation/deciding-before-generating",
         "guides/iac-terraform/explanation/what-the-preview-cannot-tell-you",
     ]
+
+
+def test_nested_index_takes_its_bucket_label():
+    """A kind-directory README must not read "Overview" — guides/_shared has
+    four of them, and they would render as indistinguishable siblings."""
+    records = [
+        _rec("guides/_shared", pack="_shared", is_index=True),
+        _rec("guides/_shared/how-to", pack="_shared", kind="how-to", is_index=True),
+        _rec("guides/_shared/tutorials", pack="_shared", kind="tutorial", is_index=True),
+    ]
+    out = build_site.project_guide_sidebar(
+        records, [{"dir": "_shared", "label": "Cross-cutting"}], {})
+    labels = [i["label"] for i in _group(out, "Cross-cutting")["items"] if "slug" in i]
+    assert labels == ["Overview", "How-to", "Tutorials"]
+    assert len(labels) == len(set(labels)), "sibling labels must be distinguishable"
+
+
+def test_slug_override_ending_in_index_is_stripped(tmp_path):
+    """mirror_guides writes the override verbatim; Starlight serves .../index
+    at ..., so an unstripped override points navigation at a 404."""
+    root = tmp_path / "guides"
+    p = root / "a" / "x.md"
+    p.parent.mkdir(parents=True)
+    p.write_text("---\ntitle: X\nsummary: s\npack: a\nkind: how-to\n"
+                 "slug: guides/a/deep/index\n---\n", encoding="utf-8")
+    rec = build_site.build_guide_inventory(root)[0]
+    assert rec["slug"] == "guides/a/deep"

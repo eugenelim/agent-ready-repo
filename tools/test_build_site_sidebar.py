@@ -24,8 +24,10 @@ sys.modules["build_site"] = build_site
 _spec.loader.exec_module(build_site)  # type: ignore[union-attr]
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-SUPER_GROUP_LABELS = {"Foundation", "Agent workflows", "Engineering",
-                      "Integrations", "Content and design", "Catalogue operations"}
+with (REPO_ROOT / "site.toml").open("rb") as _f:
+    # Read rather than hand-copy: a seventh super-group must not leave the
+    # AC8 nesting guard silently blind to it.
+    SUPER_GROUP_LABELS = {g["label"] for g in tomllib.load(_f).get("groups", [])}
 
 
 def _pairs(node) -> list[tuple[str, str]]:
@@ -68,7 +70,10 @@ def test_guides_group_slugs_equal_eligible_slugs():
 def test_no_baseline_pair_regressed():
     """Every frozen (slug, label) pair survives generation unchanged."""
     baseline = build_site.load_guide_baseline(REPO_ROOT / "guide-nav-baseline.toml")
-    assert len(baseline) == 119, "baseline should carry the full pre-change tree"
+    # No count assertion: guides/AGENTS.md documents the registry as
+    # shrinking as pages adopt `title:`, so pinning its size would forbid
+    # the workflow. The pair loop below is the actual guard.
+    assert baseline
     projected = dict(_pairs(_guides_group()))
     regressed = {
         slug: (label, projected.get(slug, "<ABSENT>"))
