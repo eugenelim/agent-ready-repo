@@ -411,8 +411,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   on `Cf` alone and was bypassed by variation selectors, which are `Mn`. Both
   the writer and `lint-knowledge.py` enforce it from one shared predicate,
   because the file is hand-editable too. ZWJ, ZWNJ and the two emoji
-  presentation selectors stay legal — they shape neighbouring characters — but
-  two joiners in a row do not, since a legitimate one is always singular.
+  presentation selectors stay legal — they shape neighbouring characters — but a
+  **run** of three or more adjacent zero-width characters is not, counting
+  joiners and selectors together. Three is the threshold because real emoji cap
+  at two adjacent (heart-on-fire is VS16 then ZWJ, as are the flag and
+  bouncing-ball forms) while an alphabet needs many more; counting joiners alone
+  left an alternating VS15/VS16 run invisible.
 
 ### Fixed
 

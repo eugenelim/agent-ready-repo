@@ -2538,9 +2538,25 @@ def test_unreadable_artifact_reports_from_every_verb(tmp: Path) -> None:
     crash-window guard, the already-approved branch through the hash — and each
     was fixed one round apart, so both need pinning."""
     name = "unreadable-artifact-reports-from-every-verb"
+    BAD = b"# Spec\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n- [ ] AC1 \xff\xfe\n"
+    # The *pending* branch: a fresh cohort, so approve-plan reaches the
+    # crash-window guard rather than the already-approved hash compare. The two
+    # were fixed a round apart, so each needs driving.
+    pend_id = str(uuid.uuid4())
+    pend = make_spec_dir(tmp, name + "-pending")
+    run_cohort("init", str(pend), "--run-id", pend_id)
+    (pend / "spec.md").write_bytes(BAD)
+    write_plan(pend)
+    rc, out, err = run_cohort("approve-plan", str(pend), "--expect-run-id", pend_id)
+    if rc == 0:
+        fail(name, "approve-plan (pending) accepted an undecodable spec.md")
+        return
+    if "Traceback" in err or "Traceback" in out:
+        fail(name, f"approve-plan (pending) tracebacked:\n{err[:200]}")
+        return
+
     spec_dir, run_id = _approved_run(tmp, name)
-    (spec_dir / "spec.md").write_bytes(
-        b"# Spec\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n- [ ] AC1 \xff\xfe\n")
+    (spec_dir / "spec.md").write_bytes(BAD)
     for verb in (("approve-plan", str(spec_dir), "--expect-run-id", run_id),
                  ("plan", "check-current", str(spec_dir), "--require-schedule")):
         rc, out, err = run_cohort(*verb)
@@ -2551,6 +2567,23 @@ def test_unreadable_artifact_reports_from_every_verb(tmp: Path) -> None:
             fail(name, f"{verb[0]} tracebacked instead of reporting:\n{err[:200]}")
             return
     ok(name)
+
+
+def test_ac9_schedule_check_current_stops_on_regressed_plan(tmp: Path) -> None:
+    """AC9's third site, and the one it argues hardest for. Normalizing the
+    status token out means a `Drafting` plan no longer moves the hash, so if
+    this verb does not assert the token nothing catches it — and this is the
+    verb wired into every `CODE-*` pre-guard."""
+    name = "ac9-schedule-check-current-stops-on-regressed-plan"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, status="Drafting")
+    rc, _, err = run_cohort("schedule", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "schedule check-current passed a plan regressed to Drafting")
+    elif "Status is 'Drafting'" not in err:
+        fail(name, f"stopped, but not on the plan status: {err!r}")
+    else:
+        ok(name)
 
 
 def main() -> int:
@@ -2574,6 +2607,7 @@ def main() -> int:
             test_ac10_plan_compare_names_both_causes,
             test_ac10_plan_hash_desync_names_both_causes,
             test_ac9_regressed_plan_status_stops,
+            test_ac9_schedule_check_current_stops_on_regressed_plan,
             test_ac9_approve_plan_replay_checks_status,
             test_ac5_plan_task_checkbox_is_bookkeeping,
             test_ac5_lowercase_ac_heading_still_normalizes,

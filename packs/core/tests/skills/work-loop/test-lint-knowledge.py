@@ -207,7 +207,7 @@ def layer_validation_rules(tmp: Path) -> None:
              json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
                          "title": "t", "body": "a" + "\ufe0e\ufe0f" * 8 + "b",
                          "source": "s"}, ensure_ascii=False) + "\n",
-             1, "run of"),
+             1, "run of")
     # ...but two adjacent is ordinary emoji: heart-on-fire is VS16 then ZWJ.
     run_case(tmp, "stub-emoji-zwj-sequence-accepted",
              json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",

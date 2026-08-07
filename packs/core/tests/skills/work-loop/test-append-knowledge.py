@@ -627,8 +627,11 @@ def test_dangling_symlink_lock_is_bounded(target: Path) -> None:
             fail(name, "appended through a dangling-symlink lock")
         elif elapsed > 60:
             fail(name, f"busy-spun for {elapsed:.0f}s")
-        elif "did not free" not in (proc.stdout + proc.stderr):
-            fail(name, f"no bounded-wait message: {(proc.stdout + proc.stderr)!r}")
+        elif "could not be inspected" not in (proc.stdout + proc.stderr):
+            # Not just "bounded" — the message must not claim an age of 0s for a
+            # lock whose stat failed.
+            fail(name, f"message did not name the un-inspectable lock: "
+                       f"{(proc.stdout + proc.stderr)!r}")
         else:
             ok(name)
     finally:
@@ -650,6 +653,51 @@ def test_zero_width_run_refused_by_the_writer(target: Path) -> None:
         fail(name, "reached the post-lint; the writer's own validation did not refuse it")
     elif "body" not in out:
         fail(name, f"refusal did not name the field: {out!r}")
+    else:
+        ok(name)
+
+
+def test_losing_a_stale_break_race_is_a_retry_not_a_refusal(target: Path) -> None:
+    """AC17a. When several waiters cross `stale_after` together they all try to
+    break the same abandoned lock; the losers get FileNotFoundError from their
+    unlink. That is "someone else already removed it — retry", not "cannot be
+    removed", which is how a won race turned into a spurious refusal.
+
+    Threaded rather than subprocess: the window between one waiter's unlink and
+    the next one's is microseconds, and ~26ms of process spawn per waiter is far
+    too coarse to land in it — a subprocess version of this ran 24 attempts
+    without once reproducing.
+    """
+    name = "losing-a-stale-break-race-is-a-retry-not-a-refusal"
+    spec = importlib.util.spec_from_file_location("_ak3", str(SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    target.write_text("", encoding="utf-8")
+    lock = target.with_name(target.name + ".lock")
+    refusals: list[str] = []
+
+    def contend(barrier: threading.Barrier) -> None:
+        barrier.wait()
+        try:
+            with mod.exclusive(target, timeout=20.0, stale_after=0.001):
+                time.sleep(0.001)
+        except mod.LockUnavailable as exc:
+            refusals.append(str(exc))
+
+    for _ in range(40):
+        lock.write_text("abandoned", encoding="utf-8")
+        old = time.time() - 10_000          # backdate past stale_after
+        os.utime(lock, (old, old))
+        barrier = threading.Barrier(6)
+        threads = [threading.Thread(target=contend, args=(barrier,)) for _ in range(6)]
+        for th in threads:
+            th.start()
+        for th in threads:
+            th.join()
+        lock.unlink(missing_ok=True)
+    if refusals:
+        fail(name, f"{len(refusals)} waiter(s) refused after losing a break race; "
+                   f"first: {refusals[0][:120]}")
     else:
         ok(name)
 
@@ -681,6 +729,7 @@ def main() -> int:
             test_lint_runs_out_of_process,
             test_exclusive_lock_actually_excludes,
             test_lock_release_only_unlinks_what_it_owns,
+            test_losing_a_stale_break_race_is_a_retry_not_a_refusal,
             test_lock_reports_on_an_unremovable_lock,
             test_dangling_symlink_lock_is_bounded,
             test_lock_timeout_reports_instead_of_hanging,

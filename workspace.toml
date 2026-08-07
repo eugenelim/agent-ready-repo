@@ -492,15 +492,6 @@ open = [
   # before shortening anything, since the per-target 1024 cap was set to help
   # activation, not hurt it. Needs an eval-backed pass, not a prose sweep.
   {slug = "codex-skill-description-budget", source = "spec/pack-description-quality"},
-    # lint-spec-status.py:274 gates AC extraction on `^##\s+Acceptance Criteria\b` —
-    # case-sensitive. Ten specs under docs/specs/ use `## Acceptance criteria` (lowercase
-    # c), so acceptance_criteria_lines() returns nothing for them and the ACs-checked-or-
-    # deferred invariant passes vacuously: the gate reports clean having examined zero
-    # criteria. Found when this spec's own 25 ACs turned out to be invisible to it.
-    # Fix: case-insensitive match, or a warning when a spec has no AC section at all.
-    # Not folded into loop-tooling-mandated-writes: relaxing the match may newly fail
-    # those ten specs, which is a CI-red change that deserves its own PR.
-  {slug = "lint-spec-status-ac-heading-case", source = "spec/loop-tooling-mandated-writes"},
     # Every loop-cohort verb does read_state() -> mutate -> write_state_atomic() with no
     # lock. write_state_atomic (loop-cohort.py:138) makes each *write* atomic via
     # mkstemp+replace, but the read-modify-write around it is unguarded, so two concurrent

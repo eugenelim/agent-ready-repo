@@ -84,7 +84,7 @@ dependency; both scripts stay pure-stdlib.
 | 20 | Are the T2 and T5 Done-whens real checks? | **Resolved (round-4 review)** — T5's was vacuous (layer 3 passes whether or not the task happened) and T2's omitted the shipped guide entirely. Both replaced with per-surface greps. |
 | 21 | Is AC16's cap a contract? | **Resolved (round-4 review)** — it was not: no number, no test. Pinned at `title` ≤ 120 / `body` ≤ 2000 codepoints with a boundary case. |
 | 22 | Did every accepted round-3 fix actually land? | **Resolved (round-4 review)** — no. The C15 Risks correction was lost when a batch edit aborted on an earlier non-match and wrote nothing. Re-applied, and subsequent batches now report per-substitution results instead of failing silently. |
-| 23 | Were the ticked criteria actually verified? | **Resolved (post-EXECUTE review)** — no. Mutation testing showed AC1/AC5/AC7/AC9/AC10 had no verification artifact at all: disabling checkbox normalization, or the bracket-only splice, left the suite 91/91 green. 14 criteria were reopened and the spec returned to Implementing. Every case added since was written against a mutation and confirmed to die when the behaviour is removed. |
+| 23 | Were the ticked criteria actually verified? | **Resolved (post-EXECUTE review)** — no. Mutation testing showed AC1/AC5/AC7/AC9/AC10 had no verification artifact at all: disabling checkbox normalization, or the bracket-only splice, left the suite 91/91 green. 14 criteria were reopened and the spec returned to Implementing. Every case added since is written against a mutation and confirmed to die when the behaviour is removed — and the claim has been audited twice by review, which each time found cases that did not. Two recurring shapes: a case that passes on an earlier guard (an unticked box the normalizer never reaches; a spec `approve-plan` rejects outright, so the pending sentinel answers instead), and a case too coarse to hit its window (a subprocess race at ~26ms per spawn never landed in a microsecond unlink gap — rewritten threaded, it reproduces 8 refusals). Mutation, not a green suite, is the bar. |
 | 24 | Is `Cc`-only validation enough for a channel replayed into every session? | **Resolved (post-EXECUTE security pass)** — no. `Cf` carries bidi overrides and the Unicode Tag block; the full chain (writes clean, lints clean, replayed verbatim) was demonstrated. Refused at both the writer and the linter; ZWJ/ZWNJ kept legal. |
 | 25 | Does the escape regex have a resource bound? | **Resolved (post-EXECUTE security pass)** — no; measured quadratic (1.1s at 20k backslashes) in a gate CI runs unfiltered. Non-backtracking pattern plus a line cap. |
 | 26 | Are this spec's own ACs visible to `lint-spec-status.py`? | **Resolved** — they were not. It matches `^##\s+Acceptance Criteria\b` case-sensitively and this spec used a lowercase `c`, so its AC-completeness invariant passed having examined zero criteria. Heading conformed to the 262-file convention. The wider gap was already known — `spec-ac-heading-casing-silent-gate` in `[backlog].open` and knowledge entry K-0028, both landed on main during this session — so no duplicate entry was added. |
@@ -337,9 +337,10 @@ it is one of the five C0 characters JSON needs (`\b \t \n \f \r`) or one of
 `U+0085` / `U+2028` / `U+2029`. An escape is
 real when the run of consecutive backslashes ending at (and including) the
 matched `\` is **odd**; skip it when the run is even, so a literal `\\u2014`
-in body text is not a false positive. The `>= 0x20` threshold catches surrogate pairs — verified,
-`json.dumps("\U0001F600")` yields `😀`, both halves above the
-threshold — which is the non-BMP half of the drift.
+in body text is not a false positive. Surrogate pairs are caught because neither half is in
+either allow-list — `json.dumps("\U0001F600")` yields `\ud83d\ude00`, and
+`0xd83d` / `0xde00` are neither C0-that-JSON-needs nor line separators. That is
+the non-BMP half of the drift.
 
 Error text names the offending escape, its character, and the fix
 (`ensure_ascii=False`, or use `append-knowledge.py`). Emit it through `err()`
