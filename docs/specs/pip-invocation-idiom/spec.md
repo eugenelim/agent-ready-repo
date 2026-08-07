@@ -48,12 +48,12 @@ installs (AC1–AC3) and the front-door PyPI one-liners (AC8) — in
   This is a documentation change and must not force a release.
 - [x] AC7 — `make build-check` and `make lint-ruff` pass, and `make build-self`
   produces no projection drift.
-- [ ] AC8 — Every runnable **front-door** install command — `pip install
+- [x] AC8 — Every runnable **front-door** install command — `pip install
   agentbundle` / `pip install credbroker` and their pinned and extra-bearing
   variants — reads `python -m pip install …` across `README.md`,
   `CONTRIBUTING.md`, `web/`, `docs-site/`, `docs/guides/`, `guides/**`, and
   `packages/credbroker/README-pypi.md`, subject to the AC6 and AC9 exclusions.
-- [ ] AC9 — `guides/_shared/reference/catalogue-ci-contract.md` is **unchanged**.
+- [x] AC9 — `guides/_shared/reference/catalogue-ci-contract.md` is **unchanged**.
   `tools/catalogue/sync_authoring_scaffold.py` holds it byte-identical to a copy
   inside `packages/agentbundle/agentbundle/_data/catalogue-scaffold/`, enforced
   by `test_scaffold_projection.py`, so editing it forces a write into the

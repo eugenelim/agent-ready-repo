@@ -44,8 +44,15 @@ records); the AC4 descriptive-prose lines; every shipped artifact under
   sites of the same command untouched, which is the cross-file drift the sweep
   exists to remove. Either all of them or none; scoped out as none.
 - **Widening to the front-door `pip install agentbundle` one-liners.**
-  Declined: a decision about the public entry line, not about editable local
-  development. Surfaced to the user rather than folded in.
+  Surfaced rather than folded in — then **taken** in T5 once the decision came
+  back. Recorded here because surfacing it was the right call even though the
+  answer was yes: the argument for it (interpreter binding) and the argument
+  against (it is the public entry line, optimised for brevity) were genuinely
+  in tension, and that is a human's call, not a sweep's.
+- **Carving a docs exception into the RFC-0059 curation guard** so
+  `packages/agentbundle/README-pypi.md` could be swept. Declined on
+  instruction, and correctly: the guard is RFC-governed, and loosening a gate
+  to make a doc PR pass is how gates stop meaning anything.
 
 ## Resolve-vs-surface disposition record
 
@@ -84,6 +91,27 @@ concrete evidence that the change is release-shaped, not doc-shaped.
 Handed off to a separate session.
 
 ### T4 — Gates — **done**
+
+### T5 — Front-door one-liners (second pass) — **done**
+
+Taken after the open decision was resolved in favour of sweeping. 18 files:
+`README.md`, `CONTRIBUTING.md`, `web/src/components/marketing/InstallTerminal.astro`,
+three `docs-site/` pages, two `docs/guides/` maintainer guides, nine `guides/**`
+adopter guides, and `packages/credbroker/README-pypi.md`.
+
+**Pre-flight finding that changed the file list.**
+`guides/_shared/reference/catalogue-ci-contract.md` looked like an ordinary
+guide. It is not: `tools/catalogue/sync_authoring_scaffold.py` holds it
+byte-identical to a copy under
+`packages/agentbundle/agentbundle/_data/catalogue-scaffold/`, and
+`test_scaffold_projection.py` fails on drift. Editing the guide therefore
+*requires* writing into the curation-guarded tree. Excluded, along with its
+sibling `catalogue-authoring-standards.md`. The `_SYNC_PAIRS` list was read from
+the tool itself rather than assumed — it names 13 pairs, two of which are guides.
+
+**Verified:** `git status` shows no `packages/agentbundle/**` or `packs/**`
+entry; `test_scaffold_projection.py` passes; `make build-check` (full, SAST
+included) exits 0 **after** the commit; `make lint-ruff` exits 0.
 
 ## Anchor-test sweep
 
