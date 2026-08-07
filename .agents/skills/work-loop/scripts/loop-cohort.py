@@ -168,9 +168,9 @@ def write_state_atomic(spec_dir: Path, state: dict) -> None:
 # callers exiting 0. Reproduced at 20/20 trials; see
 # docs/specs/loop-cohort-state-lock/notes/reproduction.md.
 #
-# `_statelock.py` is a generated projection of
-# packages/agentbundle/agentbundle/statelock_core.py (ADR-0074) — edit the
-# source, never the copy; `make build-check` gates it.
+# `_statelock.py` is a work-loop script owned by this skill (ADR-0074):
+# stdlib-only, so it works where `agentbundle` is not installed. `agentbundle`
+# has its own, separate lock for the installer's state.toml.
 _statelock_module: object | None = None
 
 

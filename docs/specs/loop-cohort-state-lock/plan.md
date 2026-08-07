@@ -10,11 +10,7 @@
 
 | File | Why |
 |---|---|
-| `packages/agentbundle/agentbundle/statelock_core.py` | **new — the one authored lock** |
-| `packages/agentbundle/agentbundle/build/skill_libs.py` | new — projection primitive (`apply_projection` + `check_drift`) |
-| `packages/agentbundle/agentbundle/build/self_host.py` | wire both halves, mirroring the `user_libs` call sites |
-| `packages/agentbundle/tests/unit/test_skill_libs.py` | new — projection + drift-gate suite |
-| `packs/core/.apm/skills/work-loop/scripts/_statelock.py` | **generated** — never hand-edited |
+| `packs/core/.apm/skills/work-loop/scripts/_statelock.py` | **new — the lock, a work-loop script** |
 | `.../scripts/loop-cohort.py` | wire 7 verbs |
 | `.../scripts/loop-engine.py` | wire `transition`/`init`/`reset`; bound under-lock subprocesses |
 | `packs/core/tests/skills/work-loop/test-statelock.py` | lock unit suite (written at PLAN, red) |
@@ -43,10 +39,9 @@ which is why "exit codes" is not on this list.
 
 | Tempted to | Declined because |
 |---|---|
-| Hand-copy the lock into the skill | ADR-0074 — two implementations drift, and a fix to one is not a fix to the other. This was round 1's decision and it was wrong: the repo already had a projection mechanism. |
+| Share the lock with `agentbundle` — by import, by projection, or via its own package | ADR-0074. Import breaks for adopters; projection inverts ownership (a work-loop concern authored inside the installer) and, because any projection primitive lives in the RFC-gated build pipeline, costs an engine RFC for a single-source benefit we do not want. |
 | Project into `.apm/user-libs/` like credbroker | That target is a lowest-precedence, existence-guarded `sys.path` floor — it degrades to *absent*, and an absent lock fails open. |
-| Rewire `persist_state_locked` onto the new core here | Changes installer behaviour and needs an agentbundle release. Separate PR, hard `needs` edge. |
-| Generalise `user_libs.py` to take a source/target table | It is credbroker-shaped throughout (`PACKAGE_SUBPATH`, `VENDORED_MODULE`, two fixed roots). A sibling module with one entry is the boring option; generalise when a second entry exists. |
+| Rewire `persist_state_locked` onto a shared core | Changes installer behaviour and needs an agentbundle release. Its own PR, hard `needs` edge. |
 | `fcntl.flock` | Windows CI. |
 | Reclaim by `unlink` after an mtime check | Two contenders both unlink and delete a third's fresh lock. Even rename-then-unlink is unsafe without an inode re-check — see LLD. |
 | A heartbeat thread to keep a long hold fresh | Adds concurrency to a concurrency fix. A machine-checked hold bound (AC10) gives the same guarantee statically. |
@@ -62,7 +57,7 @@ which is why "exit codes" is not on this list.
 | Does `engine-state.json` share the shape | **Resolved** — yes, and worse. Reproduced. |
 | Precedent hot-spins on a dangling symlink | **Resolved for the new core** (AC8); **surfaced** for the shipped package → user chose a separate PR. |
 | Port vs project | **Surfaced** → user chose **project**. ADR-0074 rewritten. |
-| Decisions 1 and 2 collide (projecting would auto-fix the shipped bug) | **Resolved** — new `statelock_core.py` alongside the untouched `state_lock`, so the follow-up PR is a de-duplication. Flagged to the user. |
+| Where the lock should be authored | **Surfaced twice.** Round 1 chose a hand-copy, then the user chose projection; on review the projection put a work-loop concern inside the installer and tripped RFC-0059's engine path gate. The user's call: the lock is a work-loop script and the duplication with `agentbundle` is accepted (ADR-0074). |
 | Reclaimed holder still writes and exits 0 | **Resolved** — AC9's lost-lock report; also makes the residual reclaim race fail-loud instead of fail-silent. |
 | Cross-spec `_recover_pending` reach | **Surfaced** — `loop-outbox-cross-spec-rmw`, which now names the engine-state reach, not just the outbox. |
 | `append-knowledge.py`, `_resolve_spec_dir` confinement | **Surfaced** — tracked with `needs` edges. |
@@ -138,21 +133,13 @@ opens. `loop-cohort.py:155`'s `run_git` is currently uncalled. A test AST-walks
 the locked call graph and fails when a new unbounded call appears, so the budget
 cannot rot as guards are added.
 
-### Projection
+### Where it lives
 
-Source `packages/agentbundle/agentbundle/statelock_core.py` → target
-`packs/core/.apm/skills/work-loop/scripts/_statelock.py`, then onward to
-`.claude/` and `.agents/` by the existing skill projection.
-
-`build/skill_libs.py` mirrors `user_libs.py`'s contract exactly —
-`compute_projections` / `apply_projection` / `check_drift`, resolving **modified
-/ missing / orphaned**, deterministic order, each message ending in
-`run: make build-self FORCE=1`, and a no-op when the package source is absent
-(non-monorepo). Single-file rather than a tree walk, so no `EXCLUDED_DIR_NAMES`
-and no orphan scan beyond the one declared target. Wired at the two
-`user_libs` call sites in `self_host.py` (`:1214` apply, `:1584` drift).
-
-The generated file carries a header naming its source and forbidding hand-edits.
+`_statelock.py` sits beside `lint-spec-status.py` in the skill's `scripts/`, and
+the ordinary skill projection carries it into `.claude/` and `.agents/` along
+with every other script there — no new build primitive, no drift gate, no engine
+change. `agentbundle` keeps its own lock; ADR-0074 records why they are separate
+and that this copy is the stricter one.
 
 ### Module loading
 
@@ -185,7 +172,7 @@ holding only this spec's lock. A comment at the call site says so, and
 
 ## Tasks
 
-### T1 — `statelock_core.py`
+### T1 — `_statelock.py`
 
 **Depends on:** none · **Mode:** TDD · `stub: true`
 **Tests:** `packs/core/tests/skills/work-loop/test-statelock.py`, markers
@@ -215,14 +202,6 @@ invoking each verb and asserting non-zero plus an unchanged digest.
 **Approach:** already written and red at PLAN. Remaining: replace the two
 placeholder cases with the planted-lockfile stubs, and strengthen AC21's
 baseline per above.
-
-### T3 — Projection primitive
-
-**Depends on:** T1 · **Mode:** TDD · `stub: true`
-**Tests:** `packages/agentbundle/tests/unit/test_skill_libs.py` — projection
-writes the target byte-identically; drift gate reports modified / missing /
-orphaned; no-op when the source is absent; idempotent.
-**Approach:** `build/skill_libs.py` per the LLD; wire both `self_host.py` sites.
 
 ### T4 — Wire `loop-cohort.py`
 
@@ -280,8 +259,7 @@ present.
 | Flaky timing in CI | Assert invariants, not windows. The rendezvous replaces the guessed lead, which also cut runtime 48 s → 15 s. |
 | A slow-but-live holder reclaimed → two writers | AC10's machine-checked budget; AC9 makes the residual window fail-loud. |
 | Suite pollutes the live repo | AC21, from an import-time baseline. |
-| Hand-edit to the projected copy | AC4's drift gate; header on the generated file. |
-| `agentbundle` carries two locks until the follow-up | ADR-0074 Consequences; hard `needs` edge on the backlog item. |
+| Two lock implementations drift | ADR-0074 names the separation as deliberate; the module docstring points at the other; `agentbundle-statelock-symlink-spin` carries a hard `needs` edge. |
 | Added CI wall-clock — measured **~46 s** warm (a cold-cache first run was 2:17), 52 barriered child launches across 17 `git init`s | Recorded here so a trial-count increase is measured against a true baseline. The earlier "~15 s" was the fail-fast path, before the cases passed. |
 
 ## Rollout

@@ -492,16 +492,6 @@ open = [
   # before shortening anything, since the per-target 1024 cap was set to help
   # activation, not hurt it. Needs an eval-backed pass, not a prose sweep.
   {slug = "codex-skill-description-budget", source = "spec/pack-description-quality"},
-    # Every loop-cohort verb does read_state() -> mutate -> write_state_atomic() with no
-    # lock. write_state_atomic makes each *write* atomic via
-    # mkstemp+replace, but the read-modify-write around it is unguarded, so two concurrent
-    # verbs (a supervisor and a hand-run status, two agents in one workspace) silently lose
-    # one update — last writer wins, no error. No flock/fcntl/O_EXCL anywhere under the
-    # work-loop skill's scripts/. Blessed precedent exists: agentbundle routes install state
-    # RMW through statelock.persist_state_locked. Fix: adopt that pattern for state.json and
-    # engine-state.json. Needs its own spec — out of scope for loop-tooling-mandated-writes,
-    # which only changes what gets hashed, not how state is written.
-  {slug = "loop-cohort-state-rmw-unlocked", source = "spec/loop-tooling-mandated-writes"},
     # docs/knowledge/patterns.jsonl is replayed into every session in full, and
     # append-knowledge.py makes appending frictionless with no ratchet: the linter
     # counts entries but caps neither count nor bytes, and every tier="invariant"
@@ -527,6 +517,7 @@ open = [
     # Sequenced after loop-cohort-state-rmw-unlocked.
   {slug = "knowledge-capture-replay-trust-separation", source = "spec/loop-tooling-mandated-writes"},
     # statelock_core.exclusive() unlinks the lockfile and fails closed when the token write
+    # _statelock.exclusive() unlinks the lockfile and fails closed when the token write
     # fails after O_CREAT|O_EXCL, so a torn create cannot wedge a spec. The path is reasoned
     # and read, not exercised: forcing an os.write failure needs an injection seam the module
     # deliberately lacks (a fault-injection hook in a lock is its own hazard). Fix: drive it
@@ -538,12 +529,13 @@ open = [
     # FileNotFoundError, whose handler `continue`s with no deadline check and no sleep, so
     # StateLockTimeout never fires. Confirmed against the SHIPPED package: 98.4% CPU, still
     # spinning after 6s with timeout=2.0. One planted file wedges every state-mutating verb.
-    # loop-cohort-state-lock adds a hardened statelock_core.exclusive() but deliberately does
-    # not rewire this module, so the package transiently carries two lock implementations.
-    # Fix: point persist_state_locked at statelock_core.exclusive and delete state_lock — a
-    # de-duplication, not a patch. Needs an agentbundle release. Unblocks: after
-    # loop-cohort-state-lock ships.
-  {slug = "agentbundle-statelock-symlink-spin", source = "spec/loop-cohort-state-lock", needs = "work:spec/loop-cohort-state-lock"},
+    # The work-loop now has its own hardened lock (ADR-0074: deliberately separate, since the
+    # two guard different files for different consumers), so this module keeps the defect on its
+    # own. Fix: port the four hardening items from
+    # packs/core/.apm/skills/work-loop/scripts/_statelock.py — deadline check on every retry
+    # path, os.lstat + refuse a non-regular lock path, inode+token ownership, link-based reclaim
+    # restore. Needs an agentbundle release. Unblocks: now — it does not depend on the skill.
+  {slug = "agentbundle-statelock-symlink-spin", source = "spec/loop-cohort-state-lock"},
     # loop-engine's _recover_pending reads the repo-global .loop-run/events.pending and then
     # calls _recover_engine_state_tmp(pending_spec_dir) for whatever spec that record names,
     # so a transition on spec A — holding only A's per-spec lock — can promote or delete spec
@@ -560,7 +552,7 @@ open = [
     # covered by loop-cohort-state-lock, which scopes to state.json and engine-state.json.
     # Fix: wrap the read-through-replace in statelock's exclusive(); the open question is
     # where the lock sits relative to the lint-the-candidate step. Unblocks: after
-    # loop-cohort-state-lock ships (reuses its projected lock module).
+    # loop-cohort-state-lock ships (reuses its sibling _statelock.py).
   {slug = "append-knowledge-rmw-unlocked", source = "spec/loop-cohort-state-lock", needs = "work:spec/loop-cohort-state-lock"},
     # loop-cohort.py's _resolve_spec_dir (:110) only rejects a literal '..'; it does not
     # confine the resolved path under the repo root the way loop-engine.py's twin (:514) does,

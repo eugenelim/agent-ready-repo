@@ -80,20 +80,20 @@ proceeding; *Never do* is a hard rule, even under time pressure.
 Observable outcomes. Mechanism and technique live in the plan's `## Design (LLD)`
 and each task's `Tests:`.
 
-**One authored source (ADR-0074)**
+**The lock is a work-loop script (ADR-0074)**
 
-- [x] **AC1** — The lock is authored once, at
-      `packages/agentbundle/agentbundle/statelock_core.py`, and imports only the
-      standard library — no `agentbundle` import, so the projected copy is
-      importable standalone.
+- [x] **AC1** — The lock lives at
+      `packs/core/.apm/skills/work-loop/scripts/_statelock.py`, owned by this
+      skill, and imports only the standard library — no `agentbundle` import,
+      direct or lazy, so it runs where nothing else is on the path.
 - [x] **AC2** — It behaves identically on every platform: no platform branch and
       no `fcntl` / `msvcrt` import.
-- [x] **AC3** — `packs/core/.apm/skills/work-loop/scripts/_statelock.py` is a
-      byte-identical projection of that source, written by `make build-self`.
-- [x] **AC4** — `make build-check` fails when the projected copy is **modified**,
-      **missing**, or **orphaned**, each message naming the source and the
-      regeneration command. Projection is a documented no-op outside the
-      monorepo; the committed copy is what adopters receive.
+- [x] **AC3** — Nothing in the work-loop requires `agentbundle` at runtime:
+      with `agentbundle` made unimportable, the locked verbs still take the lock,
+      write, release, and exit 0.
+- [x] **AC4** — No engine code changes. `packages/agentbundle/**` is untouched by
+      this change, so RFC-0059's path gate does not fire and no
+      `Engine-Change-RFC` exemption is needed.
 
 **The lock primitive**
 

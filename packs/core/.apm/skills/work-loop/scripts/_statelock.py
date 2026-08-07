@@ -1,17 +1,17 @@
 """Cross-process advisory lock for a state-file read-modify-write.
 
-**One authored source, projected — do not edit a copy** (ADR-0074).
+A work-loop script, owned by this skill. Stdlib only — no ``agentbundle``
+import, direct or lazy — so it works in adopter trees and user-scope installs
+where nothing else is on the path. Its siblings load it by path
+(``importlib.util.spec_from_file_location`` against ``SCRIPT_DIR``), not by
+``import``, because a plain import does not resolve under the importlib-based
+test harnesses.
 
-The source of truth is ``packages/agentbundle/agentbundle/statelock_core.py``.
-Every copy that appears under a skill's ``scripts/`` directory — for example
-``packs/core/.apm/skills/work-loop/scripts/_statelock.py``, and the ``.claude/``
-and ``.agents/`` projections of it — is **generated** by ``make build-self`` via
-``agentbundle.build.skill_libs``. If you are reading this from any of those
-paths, edit the source instead; ``make build-check`` fails on a modified copy.
-
-Because the copies must be importable standalone, this module imports **only the
-standard library** — no ``agentbundle`` import, direct or lazy. The skills run in
-adopter trees where this package is not installed.
+``agentbundle`` has its own lock (``agentbundle/statelock.py``) for the
+installer's ``state.toml``. That one is deliberately **not** shared with this
+one: see ADR-0074. The two guard different files for different consumers, and
+this copy is the stricter of the two — the hardening below is what the older one
+lacks.
 
 The problem it solves: writing a state file atomically (``mkstemp`` +
 ``os.replace``) does not make the *command-level* read-modify-write atomic. Two
@@ -20,7 +20,7 @@ first's update — a lost update, not file corruption, but corruption of intent.
 Worse for a state machine: both callers validate against the same snapshot, so
 one is admitted a transition that should have been refused.
 
-Hardening over ``statelock.state_lock``, which this supersedes for new callers:
+Hardening, each item a defect the older implementation still has:
 
 * **Every** retry path checks the deadline and sleeps. The older loop's
   ``except FileNotFoundError: continue`` does neither, and ``Path.stat()``
@@ -40,17 +40,17 @@ Hardening over ``statelock.state_lock``, which this supersedes for new callers:
   unlinking a successor's file and exiting quietly. This is what protects the
   *state* rather than the file: a holder reclaimed mid-body must not report
   success, or the lost update is back with a green exit code.
-* **No ``mkdir``.** The older helper creates the lock's parent, which is safe
-  only for a confined state path. A caller whose path is unconfined would gain an
-  arbitrary-directory-creation side effect on a path it then refuses.
-* **Errors do not derive from ``OSError``.** Both consumers of the projected copy
-  carry broad ``except OSError`` / ``except Exception`` handlers around the
-  regions that take this lock, so an ``OSError``-derived lock failure is one
-  boundary-drift away from being swallowed into an unlocked write.
+* **No ``mkdir``.** Creating the lock's parent is safe only for a confined state
+  path, and ``loop-cohort.py``'s spec-dir resolver does not confine to the repo
+  root — so it would gain an arbitrary-directory-creation side effect on a path
+  it then refuses.
+* **Errors do not derive from ``OSError``.** Both callers carry broad
+  ``except OSError`` / ``except Exception`` handlers around the regions that take
+  this lock, so an ``OSError``-derived failure is one boundary-drift away from
+  being swallowed into an unlocked write.
 
 No symlink is created (the repo's no-symlink posture), no daemon, no heartbeat,
-no third-party import.
-"""
+no third-party import."""
 
 from __future__ import annotations
 
