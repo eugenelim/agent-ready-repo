@@ -1,5 +1,5 @@
 {
   "name": "frontend-engineering",
   "version": "0.1.3",
-  "description": "The implementation layer for product web surfaces — HTML, CSS, and JS. Nine skills covering the build journey from design handoff to shipped component: the full create/retrofit/audit/verify workflow, CSS token system architecture, deep accessibility engineering (WCAG 2.2 AA, focus management, ARIA role correctness), Core Web Vitals measurement and remediation, rendering strategy selection (SSR/SSG/RSC/CSR), component API design, responsive layout craft, CSS architecture at scale, and a surface-orient skill. A forked-context `frontend-reviewer` provides a diff-level review for HTML/CSS/JS diffs, covering token drift, ARIA mutation completeness, state coverage regression, and CWV regression signals. Co-installs with `experience-design` for full genre routing in the frontend pre-flight."
+  "description": "Build, audit, and ship production-quality web surfaces. Covers design handoff through shipped component: CSS token architecture, WCAG 2.2 AA accessibility, Core Web Vitals, rendering strategy, and component API design, plus a reviewer for HTML, CSS, and JS diffs."
 }

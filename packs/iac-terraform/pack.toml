@@ -1,7 +1,7 @@
 [pack]
 name = "iac-terraform"
 version = "0.1.6"
-description = "Opt-in Terraform/OpenTofu IaC generator: turn a plain-language intent into governed, best-practice, cloud-agnostic Terraform plus a human-gated CI/CD pipeline. Decision-record-gated; stops at `terraform plan`; reuses core's infra-verification + operational-safety depth."
+description = "Turn a plain-language intent into governed Terraform. Produces cloud-agnostic Terraform or OpenTofu plus a human-gated CI/CD pipeline, gated on a recorded decision and stopping short of apply."
 readme = "README.md"
 display_name = "IaC (Terraform)"
 license = "Apache-2.0 OR MIT"

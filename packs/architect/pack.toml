@@ -1,7 +1,7 @@
 [pack]
 name = "architect"
 version = "0.14.3"
-description = "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration. Mermaid for diagrams; Google-style design docs; rubric-routed critique."
+description = "Go from a fuzzy technical problem to a reviewed design doc. Shapes the concept first, then produces a Google-style design doc or a Mermaid diagram, and critiques an existing one against a rubric."
 readme = "README.md"
 display_name = "Architect"
 license = "Apache-2.0 OR MIT"

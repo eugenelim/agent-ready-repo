@@ -11,7 +11,7 @@
         "name": "eugenelim"
       },
       "category": "architecture",
-      "description": "Solution-architecture skills (architect-design, architect-diagram, architect-review) plus a forked-context design-reviewer subagent. Workspace-agnostic, user-scope by default, no required configuration.",
+      "description": "Go from a fuzzy technical problem to a reviewed design doc. Shapes the concept first, then produces a Google-style design doc or a Mermaid diagram, and critiques an existing one against a rubric.",
       "displayName": "Architect",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -37,7 +37,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Atlassian primitives: jira / jira-align / confluence-crawler (credentialed CLI), plus the flow-metrics, ai-adoption-report, jira-defect-flow, jira-brief-intake, jira-align-brief-intake, jira-story-triage, and jira-team-status workflows that compose them.",
+      "description": "Run Jira and Confluence from a conversation. Credentialed CLIs for Jira, Jira Align, and Confluence, plus workflows for flow metrics, defect analysis, brief intake, story triage, and team status.",
       "displayName": "Atlassian",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -63,7 +63,7 @@
         "name": "eugenelim"
       },
       "category": "governance",
-      "description": "Catalogue-operator skills: assimilate external primitives, survey repos, and propose new packs \u2014 portable against any catalogue's own contracts.",
+      "description": "Grow and maintain an agent-skill catalogue. Assimilate external primitives, survey candidate repos, and propose new packs, portable against any catalogue's own contracts.",
       "displayName": "Catalogue Curation",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -87,7 +87,7 @@
         "name": "eugenelim"
       },
       "category": "api-design",
-      "description": "Contract-authoring skills: OpenAPI 3.1 (api-contract) and AsyncAPI events (event-contract).",
+      "description": "Design the API before the implementation. Authoring skills for OpenAPI 3.1 request/response contracts and AsyncAPI event contracts, portable across projects.",
       "displayName": "Contracts",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -113,7 +113,7 @@
         "name": "eugenelim"
       },
       "category": "file-conversion",
-      "description": "File-format conversion skills: documents and images \u2192 Markdown; Markdown \u2192 styled HTML and to branded Word, PowerPoint, and Excel; Outlook .msg and MIME .eml email \u2192 Markdown.",
+      "description": "Convert files without leaving the conversation. Documents and images to Markdown; Markdown to styled HTML and to branded Word, PowerPoint, and Excel; Outlook and MIME email to Markdown.",
       "displayName": "Converters",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -140,7 +140,7 @@
         "name": "eugenelim"
       },
       "category": "governance",
-      "description": "Core: work-loop, new-spec, bug-fix, frontend-engineering, contract-acquisition, workspace-status, capture-work skills; reviewer/implementer agents; pre-pr, session-start + work-loop-check hooks; conventions-check command; AGENTS.md / CHARTER / CONVENTIONS seeds.",
+      "description": "Supervised coding from brief to merged PR. A plan, execute, verify, review loop with spec-driven development, adversarial and security reviewers, and pre-commit gates.",
       "displayName": "Core",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -166,7 +166,7 @@
         "name": "eugenelim"
       },
       "category": "credentials",
-      "description": "User-scope credential brokering: the credbroker library (pip-installed, in-process resolver for auth: creds skills), sso-broker (subprocess at ~/.agentbundle/bin/ for auth: sso-cookie skills), plus one LLM-cooperative credential-setup skill.",
+      "description": "Give credentialed skills their secrets without putting secrets in a repo. Resolves credentials in-process at user scope, with a separate broker for SSO-cookie flows and a guided setup skill.",
       "displayName": "Credential Brokers",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -192,7 +192,7 @@
         "name": "eugenelim"
       },
       "category": "research",
-      "description": "Evidence-grounded research portable across every repo. Eleven skills (scoping, source curation, synthesis, adversarial review, decision support, rationale reconstruction, plus a four-skill project-mode lifecycle for sustained multi-week investigations) plus two retrieval subagents; methodology grounded in seven convergent disciplines (STORM, PRISMA, ACH, Wikipedia V/RS/NPOV, OSINT, GIJN, GRADE).",
+      "description": "Research a question and get back evidence you can cite. Scoping, source curation, synthesis, adversarial review, and decision support, plus a project mode for sustained multi-week investigations.",
       "displayName": "Desk Research",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -218,7 +218,7 @@
         "name": "eugenelim"
       },
       "category": "design",
-      "description": "The design/UX seat for product teams \u2014 the grown-up successor to design-craft. Connective skills walk the thread from outcome to realization (journey-mapping \u2192 user-flow \u2192 service-blueprint) and map the inside-out sibling (process-mapping); copy and content skills name per-surface copy goals (copy-direction), brand-level register (tone-of-voice), and content structure (content-design); craft skills design each screen (creative-direction, design-token-taxonomy, design-system-foundations, information-architecture, interaction-design) and critique it (design-review), all held to one shared quality-floor (handle-all-states, accessibility floor, reduced-motion). A forked-context experience-reviewer gives the design step an independent design-time review. Pure method: no stack, no values tables, no pixel comps \u2014 points to WCAG / Design Tokens Community Group (DTCG) / Apple HIG / Material 3 / APQC / BPMN, never reprints them.",
+      "description": "Design method that walks from outcome to realization: customer journey, content and copy direction, screen flows, visual craft, and independent design review, all held to one accessibility and quality floor.",
       "displayName": "Experience Design",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -245,7 +245,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Figma REST API primitive (credentialed CLI). Reads files / nodes / metadata / versions / comments / variables / dev resources, renders frame images, posts comments, and converts FigJam connector graphs to Mermaid.",
+      "description": "Work with Figma files from a normal share URL. Reads files, nodes, metadata, versions, comments, and variables, renders frame images, posts comments, and turns FigJam connector graphs into Mermaid.",
       "displayName": "Figma",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -271,7 +271,7 @@
         "name": "eugenelim"
       },
       "category": "engineering",
-      "description": "The implementation layer for product web surfaces \u2014 HTML, CSS, and JS. Nine skills covering the build journey from design handoff to shipped component: the full create/retrofit/audit/verify workflow, CSS token system architecture, deep accessibility engineering (WCAG 2.2 AA, focus management, ARIA role correctness), Core Web Vitals measurement and remediation, rendering strategy selection (SSR/SSG/RSC/CSR), component API design, responsive layout craft, CSS architecture at scale, and a surface-orient skill. A forked-context `frontend-reviewer` provides a diff-level review for HTML/CSS/JS diffs, covering token drift, ARIA mutation completeness, state coverage regression, and CWV regression signals. Co-installs with `experience-design` for full genre routing in the frontend pre-flight.",
+      "description": "Build, audit, and ship production-quality web surfaces. Covers design handoff through shipped component: CSS token architecture, WCAG 2.2 AA accessibility, Core Web Vitals, rendering strategy, and component API design, plus a reviewer for HTML, CSS, and JS diffs.",
       "displayName": "Frontend Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -298,7 +298,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "GitHub integration: `github-brief-intake` \u2014 turn a GitHub Milestone into a product brief and hand off to `receive-brief`.",
+      "description": "Turn a GitHub Milestone into a product brief. Reads the milestone and its issues and hands off a structured brief ready to decompose into specs.",
       "displayName": "GitHub",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -325,7 +325,7 @@
         "name": "eugenelim"
       },
       "category": "governance",
-      "description": "Governance skills (new-rfc, new-adr, update-conventions, rfc-status) and RFC/ADR templates + seed READMEs.",
+      "description": "Keep decisions and proposals on the record. Author RFCs and ADRs, track their status, and update conventions, with templates and seed READMEs to start from.",
       "displayName": "Governance Extras",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -350,7 +350,7 @@
         "name": "eugenelim"
       },
       "category": "infrastructure",
-      "description": "Opt-in Terraform/OpenTofu IaC generator: turn a plain-language intent into governed, best-practice, cloud-agnostic Terraform plus a human-gated CI/CD pipeline. Decision-record-gated; stops at `terraform plan`; reuses core's infra-verification + operational-safety depth.",
+      "description": "Turn a plain-language intent into governed Terraform. Produces cloud-agnostic Terraform or OpenTofu plus a human-gated CI/CD pipeline, gated on a recorded decision and stopping short of apply.",
       "displayName": "IaC (Terraform)",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -377,7 +377,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Linear primitives: linear (credentialed GraphQL CLI), plus the linear-brief-intake and linear-brief-sync workflows that compose it with receive-brief.",
+      "description": "Turn a Linear Issue into a product brief, and keep the two in sync. A credentialed GraphQL CLI plus intake and sync workflows over it.",
       "displayName": "Linear",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -403,7 +403,7 @@
         "name": "eugenelim"
       },
       "category": "devops",
-      "description": "Monorepo scaffolding: new-package skill, packages/ seed README, packages/_example/ template.",
+      "description": "Add a new package to a monorepo without hand-wiring it. A new-package skill plus a seed README and package template to scaffold from.",
       "displayName": "Monorepo Extras",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -428,7 +428,7 @@
         "name": "eugenelim"
       },
       "category": "documentation",
-      "description": "Product documentation authoring: create, revise, retrofit, audit, and verify catalogue-facing guides, pack READMEs, and journeys using Di\u00e1taxis as a page contract.",
+      "description": "Create, revise, retrofit, audit, and verify product documentation: pack READMEs, user guides, and journeys, held to Di\u00e1taxis as a page contract.",
       "displayName": "Product Documentation",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -455,7 +455,7 @@
         "name": "eugenelim"
       },
       "category": "product-management",
-      "description": "Shape product intent into shippable specs \u2014 and into the words users read. Habits \u2014 frame-intent, de-risk-intent, decompose-intent \u2014 over a recursive, level-tagged `intent` (product-vision, product-strategy, capability, and feature intents are the same artifact at different levels \u2014 Level is an open recognized set decoupled from Scale): outcome+opportunity framing, a choosable prototype-approach to de-risk the riskiest assumption, and decomposition into the briefs/specs your delivery loop already builds \u2014 at app scale, or sliced per component across a business-unit value stream coordinated by `align-value-stream`. `ux-writing` adds the content layer: characterize the product's UI copy voice and write blame-free, actionable UI copy. Upstream of the build loop, the `discovery-loop` (run by the `discovery-lead` agent) turns a raw idea into a build-ready decision brief \u2014 diverging across candidate product shapes, converging through a lens roster with two discovery reviewers, and emitting a connected hypothesis with validation hooks \u2014 no engine. Markdown skills + agent definitions, user-scope.",
+      "description": "Turn a raw product idea into build-ready specs. Frame the outcome, test the riskiest assumption before building it, then decompose into the briefs a delivery loop can consume, plus UI copy and an upstream discovery loop.",
       "displayName": "Product Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -481,7 +481,7 @@
         "name": "eugenelim"
       },
       "category": "product-management",
-      "description": "The strategy seat upstream of product engineering and experience design \u2014 SWOT, Porter's Five Forces, PESTLE, BCG Matrix, OKR cascade, PRFAQ, stakeholder-research synthesis (Pillar 1); UX strategy with NN/g three-layer model, Jaime Levy four tenets, and Gothelf/Seiden OKR-linked UX framing (Pillar 2); content strategy via the Halvorson quad: Purpose + Process + Structure + Governance (Pillar 3). Pure method: no growth tooling, no primary research production, no stack tokens.",
+      "description": "Answer the strategic questions upstream of any product initiative. Market and competitive analysis (SWOT, Five Forces, PESTLE, BCG, OKRs, PRFAQ), UX strategy, and content strategy, each producing a committed artifact rather than a slide.",
       "displayName": "Product Strategy",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -508,7 +508,7 @@
         "name": "eugenelim"
       },
       "category": "devops",
-      "description": "The SRE/ops outer loop \u2014 deployed end-to-end validation above work-loop's inner build loop. Ships the `release-lead` agent and the `release-loop` skill: deploy the integrated whole to an ephemeral environment, run e2e, observe telemetry, feed deployed findings back to the inner loop (no human relay), redeploy, and iterate until the deployed whole converges \u2014 then stop at the human consent gate for the prod ship (G5), surfaced as a release-readiness record to ratify rather than a bare go/no-go. Autonomy is carved by minimum-regret: the agent runs the inner and outer loops on reversible ephemeral envs unwatched; humans gate the irreversible exits (first real users or data, data migrations, spend over threshold, security/auth-boundary changes, anything irreversible, and the prod ship). Reuses core's operational-safety depth modules + quality-engineer + security-reviewer, consumes the discovery sidecar schema by convention, and ships no new runtime engine and no new reviewer. Completes the company OS: product (discovery) \u2192 engineering (build) \u2192 SRE/ops (release). Markdown skill + agent definition, repo-scope.",
+      "description": "Validate a release the way production will. Deploy to an ephemeral environment, run end-to-end tests, read telemetry, and feed findings back until the deployed whole converges, stopping at a human gate before anything irreversible.",
       "displayName": "Release Engineering",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -535,7 +535,7 @@
         "name": "eugenelim"
       },
       "category": "documentation",
-      "description": "Deprecated compatibility pack. Installs product-documentation and exposes a new-guide shim that routes to author-product-docs. Install product-documentation directly going forward.",
+      "description": "Deprecated compatibility pack; install product-documentation instead. Kept so existing installs keep working, and exposes a new-guide shim that routes to the current authoring skill.",
       "displayName": "User Guide (Di\u00e1taxis) \u2014 Deprecated",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
