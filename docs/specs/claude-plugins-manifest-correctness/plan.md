@@ -1,7 +1,7 @@
 # Plan: Claude-plugins manifest correctness
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -397,3 +397,105 @@ Rollback: revert the PR; the next push to `main` republishes the prior shape.
   layout-consumer table added. A false ride-along dropped — the `category`
   comments stay accurate under a separate entry schema. Citation anchors
   normalised repo-wide.
+
+## Execution record
+
+- **T3 decided, and refined during T4.** The plan recommended option (b), a
+  route-scoped key on the `projection[]` entry. Implementation kept the key
+  (`plugin-target-path`) but resolved it in the **dispatcher**
+  (`_resolve_contract_for_route`) rather than in the adapter: the adapter still
+  reads `target-path`, so no signature widens, and — the reason this is better
+  than what was planned — the orphan sweep reads the same contract and becomes
+  route-correct *by construction*. Concern 18's hazard (sweep targeting a
+  nonexistent `.claude/skills/` on the plugins route) cannot arise.
+
+  Verified per route:
+  `per-pack-overlay → .claude/skills|agents|commands`;
+  `per-pack-claude-plugin → skills|agents|commands`.
+
+- **T0 shipped the defect it was fixing, and the negative probe caught it.**
+  The first wiring passed `catalogue verify: ok`, but a probe with three
+  malformed entries returned **0 diagnostics**: the early return
+  `if not dist_dir.exists(): return []` sat above the root-marketplace check,
+  making it unreachable whenever `dist/` is absent — which is how CI runs. After
+  the fix the same probe returns 6 diagnostics. A gate is not a gate until you
+  have watched it reject something.
+
+- **T7 — AC11 observed output** (Claude Code 2.1.223, throwaway
+  `CLAUDE_CONFIG_DIR`, marketplace built from locally regenerated output because
+  the published branch still carries the old layout):
+
+  ```
+  Core (core) 2.2.0
+    Skills (13)  adapt-to-project, author-brief, bug-fix, capture-work,
+                 contract-acquisition, conventions-check, init-project, new-spec,
+                 operational-safety, receive-brief, security-checklists,
+                 work-loop, workspace-status
+    Agents (4)   security-reviewer, adversarial-reviewer, quality-engineer, implementer
+    Hooks (1)    SessionStart
+  ```
+
+  The client reports the `conventions-check` command under Skills, so 13 = 12
+  skills + 1 command and there is no separate Commands field — as Assumption 2
+  predicted. `converters` spot-checked for `scripts/` integrity after the move:
+  `skills/mermaid-renderer/scripts/render_mermaid.py` present, Skills (8).
+
+- **Anchor tests.** The layout move broke four, exactly as T5 predicted:
+  `test_pipeline` (2), `test_self_host_check` (1), `test_end_to_end_build` (1),
+  plus `test_install_adapt_chain` in wave 1. All re-pointed; the end-to-end test
+  additionally gained negative assertions so a half-applied move now fails.
+
+- **Tooling tension found.** `loop-cohort plan check-current` exits 1 with
+  "spec.md has changed since approve-plan" — caused by the work-loop's own
+  mandated `Status: Implementing` bump, which necessarily happens *after*
+  `approve-plan` pins the spec hash. `check --phase implement` stays green, so
+  EXECUTE is unblocked, but the two mechanisms contradict each other by
+  construction. Worth a fix in the loop tooling.
+
+### Post-GATES review round (adversarial + security)
+
+Both reviewers found real defects. The most serious were self-inflicted and of
+one kind, now captured as `docs/knowledge/patterns.jsonl` **K-0017**:
+
+- **ACs were marked `[x]` before the work existed.** AC10's reserved-name guard
+  was never implemented, and AC3's decoy test and AC9's negative gate tests did
+  not exist. AC10 is now un-checked and deferred
+  (`plugin-root-name-collision-guard`); the missing tests were written. The
+  AC-checking pass ran ahead of the implementation — a bookkeeping habit that
+  produced a spec claiming more than the diff delivered.
+
+- **The new gate failed open.** Both schemas loaded in one `try` with a bare
+  `return []`, so one unresolvable file silently disabled the whole step —
+  including the `plugin.json` validation that already worked. Verified against
+  an installed wheel, which has `plugin-manifest.derived.schema.json` but not
+  the new `marketplace-entry.schema.json`. Now emits a diagnostic and fails
+  closed, pinned by `test_gate_fails_closed_when_a_schema_is_unresolvable`.
+
+- **`source` as a required property broke adopters.**
+  `[pack.links].repository` is optional and the shipped scaffold `_example`
+  pack omits it, so requiring `source` turned every scaffold-derived adopter's
+  `catalogue verify` red. It is now constrained-when-present, with an
+  actionable diagnostic naming `[pack.links].repository` when absent.
+
+- **`target-path` reached a filesystem join unconfined.** An absolute value
+  discards the base on join and a `..` value walks out of it — and the orphan
+  sweep resolves the same value, so an escaped target becomes the root of a
+  `rmtree`. `_resolve_target` now canonicalises and prefix-checks (CWE-73
+  depth, not just CWE-22).
+
+- **`_resolve_contract_for_route` failed open**, silently restoring the
+  `.claude/` layout on a typo'd or stale contract key. It now raises.
+
+- **The site-packages trap bit again.** `make build-self` resolves
+  `agentbundle` from site-packages, not this workspace, and silently
+  regenerated all 21 marketplace entries with the *old* generator. Only
+  `PYTHONPATH=packages/agentbundle` produces a correct artifact locally. Any
+  local gate on this pipeline must pin `PYTHONPATH` or it verifies someone
+  else's code.
+
+**Still open, deliberately:** branch protection on `claude-plugins-dist`
+(`dist-branch-protection`) remains the merge precondition; AC10 is deferred;
+the reviewers' remaining Concerns (contract-schema declaration of
+`plugin-target-path`, `adapter.toml` version-history line, a meta-check
+forbidding unsupported JSON-Schema keywords, `\Z` vs `$` in patterns) are
+recorded here and not yet actioned.

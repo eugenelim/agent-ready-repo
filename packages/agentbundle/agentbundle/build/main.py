@@ -523,8 +523,20 @@ def _resolve_contract_for_route(contract: dict, recipe: Recipe) -> dict:
     if recipe.name != "per-pack-claude-plugin" or recipe.adapter != "claude-code":
         return contract
     entries = contract["adapter"]["claude-code"].get("projection", [])
-    if not any("plugin-target-path" in entry for entry in entries):
-        return contract
+    missing = [
+        e["primitive"] for e in entries
+        if e.get("primitive") in ("skill", "agent", "command")
+        and "plugin-target-path" not in e
+    ]
+    if missing:
+        # Fail loud. Returning the un-rerouted contract here would silently
+        # restore the `.claude/` layout — the empty-plugin defect this exists
+        # to prevent — for a typo'd key or a stale bundled adapter.toml.
+        raise ValueError(
+            "claude-plugins recipe: claude-code contract is missing "
+            f"'plugin-target-path' for {missing}; components would be "
+            "published under .claude/ where the plugin loader cannot see them"
+        )
     rerouted = [
         {**entry, "target-path": entry["plugin-target-path"]}
         if "plugin-target-path" in entry

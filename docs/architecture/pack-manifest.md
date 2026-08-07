@@ -47,13 +47,14 @@ is a pure function that maps `pack.toml` to the manifest subset:
 
 | Manifest key | Source | Rule |
 | --- | --- | --- |
-| `author` | `[[pack.maintainers]][0]` | `"Name <email>"`, or `"Name"` when no email |
+| `author` | `[[pack.maintainers]][0]` | object `{"name": ..., "email": ...}`; `email` omitted when absent |
 | `license` | `[pack].license` | verbatim |
 | `homepage` | `[pack.links].homepage` | verbatim |
 | `repository` | `[pack.links].repository` | verbatim |
 | `keywords` | `[pack].keywords` | string entries, verbatim |
 | `category` | `[pack].categories[0]` | first category only |
 | `displayName` | `[pack].display_name` | verbatim |
+| `source` | `[pack.links].repository` + `[pack].name` | `git-subdir`: `{"source", "url": "https://github.com/<owner>/<name>.git", "path": <pack>, "ref": <dist branch>}`. HTTPS only — an `http://` link raises. Marketplace entries only; stripped from `plugin.json` |
 
 **Emit-only-when-present** is the load-bearing invariant: a key appears in the
 output only when its source field is present and non-empty. The subset is
@@ -65,10 +66,16 @@ merged into:
   (built by `_aggregate_marketplace` in
   [`self_host.py`](../../packages/agentbundle/agentbundle/build/self_host.py)).
 
-Both outputs validate against
+The two outputs validate against *different* schemas, because one schema
+cannot serve both: `plugin.json` must not carry `source` (the build strips it),
+while a marketplace entry must require it. `plugin.json` validates against
 [`plugin-manifest.derived.schema.json`](../../contracts/plugin-manifest.derived.schema.json);
-the source-shape [`plugin-manifest.schema.json`](../../contracts/plugin-manifest.schema.json)
-admits the same named subset. Both keep `additionalProperties: false` — a
+each `marketplace.json` entry validates against
+[`marketplace-entry.schema.json`](../../contracts/marketplace-entry.schema.json)
+(the derived schema plus required `source` and permitted `category`). The
+source-shape [`plugin-manifest.schema.json`](../../contracts/plugin-manifest.schema.json)
+admits the same named subset. Until 2026-08, marketplace entries were validated
+by nothing at all — which is how an invalid `source` shape reached adopters. Both keep `additionalProperties: false` — a
 genuinely unknown key is still rejected.
 
 The pack's `README.md` is copied verbatim into both the claude-plugins and APM

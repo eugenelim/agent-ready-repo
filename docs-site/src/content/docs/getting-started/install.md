@@ -71,6 +71,15 @@ claude plugin install core@agent-ready-repo
 claude plugin install desk-research@agent-ready-repo
 ```
 
+:::caution[Added this marketplace before 2026-08?]
+Run `claude plugin marketplace update agent-ready-repo`, then reinstall your
+packs. Entries published before then used a plugin source Claude Code could not
+resolve to a subdirectory, so `claude plugin install` reported success but
+delivered nothing. Check with `claude plugin details <pack>@agent-ready-repo` —
+a healthy pack reports a non-zero skill count. A cached catalogue keeps serving
+the old entries until you update it.
+:::
+
 Available for all 20 packs (catalogue-curation is an operator-only pack not published to the marketplace). Pack names match the directory names under `packs/`.
 
 ## Route 3: APM (Agent Package Manager)

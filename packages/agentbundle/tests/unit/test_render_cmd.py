@@ -77,11 +77,14 @@ def test_render_produces_expected_primitives_for_fixture_core(tmp_path):
     tree = _tree(out_dir)
     assert tree, "output tree is empty"
 
-    # skill — projects as a directory under .claude/skills/
-    assert any(".claude/skills/" in k for k in tree), \
+    # skill — on the claude-plugins route components land at the PLUGIN ROOT
+    # (`claude-plugins/<pack>/skills/`), because Claude Code plugins load
+    # skills/, agents/ and commands/ from there. `render` runs that recipe, so
+    # its output moved with it; the repo/user `.claude/` routes did not.
+    assert any("claude-plugins/core/skills/" in k for k in tree), \
         f"no skill in tree; keys={sorted(tree)}"
-    # agent — projects as .claude/agents/<name>.md
-    assert any(".claude/agents/" in k and k.endswith(".md") for k in tree), \
+    # agent — projects as <plugin root>/agents/<name>.md
+    assert any("claude-plugins/core/agents/" in k and k.endswith(".md") for k in tree), \
         f"no agent in tree; keys={sorted(tree)}"
     # hook-body — projects as tools/hooks/<name>.{sh,py}
     assert any("tools/hooks/" in k for k in tree), \
@@ -89,9 +92,12 @@ def test_render_produces_expected_primitives_for_fixture_core(tmp_path):
     # hook-wiring — projects as .claude/settings.local.json
     assert any("settings.local.json" in k for k in tree), \
         f"no hook-wiring in tree; keys={sorted(tree)}"
-    # command — projects as .claude/commands/<name>.md
-    assert any(".claude/commands/" in k and k.endswith(".md") for k in tree), \
+    # command — projects as <plugin root>/commands/<name>.md
+    assert any("claude-plugins/core/commands/" in k and k.endswith(".md") for k in tree), \
         f"no command in tree; keys={sorted(tree)}"
+    # hook wiring is the exception — it stays under .claude/
+    assert any("claude-plugins/core/.claude/settings.local.json" in k for k in tree), \
+        f"hook wiring moved; keys={sorted(tree)}"
 
 
 # ---------------------------------------------------------------------------

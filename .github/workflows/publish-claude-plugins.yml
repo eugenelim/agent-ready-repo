@@ -14,10 +14,13 @@ name: Publish Claude plugin packages
 # previous publish; cancels in-flight runs when a newer push lands.
 #
 # Validation note: the `claude` CLI binary is not available in standard CI.
-# This workflow uses the hermetic Python schema check (plugin-manifest.derived.schema.json)
-# as the build-time gate. Real-client validation (`claude plugin validate`) must be
+# This workflow uses hermetic Python schema checks as the build-time gate:
+# plugin-manifest.derived.schema.json for each plugin.json, and
+# marketplace-entry.schema.json for every marketplace entry. A green build here
+# is NECESSARY BUT NOT SUFFICIENT — the schemas mirror an upstream contract we
+# do not own, so only the real client can detect upstream drift (ADR-0072). Real-client validation (`claude plugin validate`) must be
 # run locally before merging PRs that touch the plugin build pipeline.
-# Client version used for local validation: Claude Code 2.1.209.
+# Client version used for local validation: Claude Code 2.1.223.
 
 on:
   push:

@@ -77,7 +77,7 @@ class PerPackClaudePluginTests(unittest.TestCase):
                 (output_dir / "claude-plugins" / "core" / ".claude-plugin" / "plugin.json").exists()
             )
             self.assertTrue(
-                (output_dir / "claude-plugins" / "core" / ".claude" / "skills" / "foo").exists()
+                (output_dir / "claude-plugins" / "core" / "skills" / "foo").exists()
             )
 
 
@@ -267,7 +267,7 @@ class EmptyPackEdgeCaseTests(unittest.TestCase):
                 self.contract,
             )
             self.assertFalse(
-                (output_dir / "claude-plugins" / "minimal" / ".claude" / "commands").exists()
+                (output_dir / "claude-plugins" / "minimal" / "commands").exists()
             )
 
 

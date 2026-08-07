@@ -1,10 +1,10 @@
 {
+  "x-spec": "docs/specs/claude-plugins-manifest-correctness",
   "type": "object",
   "required": [
     "name",
     "version",
-    "description",
-    "source"
+    "description"
   ],
   "additionalProperties": false,
   "properties": {

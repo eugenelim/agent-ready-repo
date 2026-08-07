@@ -606,13 +606,28 @@ def _step_plugin_manifests(
     except ImportError:
         return []
 
-    try:
-        schema = json.loads(_read_bundled("plugin-manifest.derived.schema.json"))
-        entry_schema = json.loads(_read_bundled("marketplace-entry.schema.json"))
-    except Exception:
-        return []
-
     diags: list[Diagnostic] = []
+
+    # Fail CLOSED on an unresolvable schema. Loading both in one `try` with a
+    # bare `return []` meant a single missing file silently disabled the whole
+    # step — including the plugin.json validation that already worked — and
+    # `catalogue verify` still reported ok. That is the looks-like-a-gate
+    # failure this spec exists to remove, so a missing schema is a diagnostic,
+    # never a quiet pass.
+    def _load(name: str) -> dict | None:
+        try:
+            return json.loads(_read_bundled(name))
+        except Exception as exc:
+            diags.append(_err(
+                "CAT-V-013",
+                f"{name} unavailable — cannot validate plugin manifests: {exc}",
+            ))
+            return None
+
+    schema = _load("plugin-manifest.derived.schema.json")
+    entry_schema = _load("marketplace-entry.schema.json")
+    if schema is None or entry_schema is None:
+        return diags
 
     def _check_marketplace(path: Path, label: str) -> None:
         """Validate every ``plugins[]`` entry in a marketplace file.
@@ -631,6 +646,17 @@ def _step_plugin_manifests(
             return
         for plugin_entry in payload.get("plugins", []):
             name = plugin_entry.get("name", "unknown")
+            if "source" not in plugin_entry:
+                # Actionable: the schema cannot require `source`, because
+                # `[pack.links].repository` is optional and the shipped
+                # scaffold pack omits it. Name the cause, not the symptom.
+                diags.append(_err(
+                    "CAT-V-013",
+                    f"marketplace entry '{name}' has no 'source' — set "
+                    f"[pack.links].repository in that pack's pack.toml so the "
+                    f"build can emit one, or adopters cannot install it",
+                    path=label,
+                ))
             if "hooks" in plugin_entry:
                 diags.append(_err(
                     "CAT-V-013",

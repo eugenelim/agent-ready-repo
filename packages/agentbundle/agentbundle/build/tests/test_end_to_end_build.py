@@ -62,14 +62,22 @@ class EndToEndBuildTests(unittest.TestCase):
             # primitives lands at its declared output under the `core` pack
             # — the only fixture that exercises every primitive type.
             core_plugin = tmp_path / "claude-plugins" / "core"
-            self.assertTrue((core_plugin / ".claude" / "skills" / "example").exists())
-            self.assertTrue((core_plugin / ".claude" / "agents" / "bar.md").exists())
+            # Components land at the PLUGIN ROOT on this route: Claude Code
+            # plugins load skills/, agents/ and commands/ from there, not from
+            # `.claude/`. Hook wiring is the exception — it stays at
+            # `.claude/settings.local.json`, which is where the harness reads it.
+            self.assertTrue((core_plugin / "skills" / "example").exists())
+            self.assertTrue((core_plugin / "agents" / "bar.md").exists())
             self.assertTrue((core_plugin / "tools" / "hooks" / "baz.sh").exists())
             self.assertTrue((core_plugin / "tools" / "hooks" / "baz.py").exists())
             self.assertTrue(
                 (core_plugin / ".claude" / "settings.local.json").exists()
             )
-            self.assertTrue((core_plugin / ".claude" / "commands" / "qux.md").exists())
+            self.assertTrue((core_plugin / "commands" / "qux.md").exists())
+            # …and the old locations are gone, so a half-applied move fails.
+            self.assertFalse((core_plugin / ".claude" / "skills").exists())
+            self.assertFalse((core_plugin / ".claude" / "agents").exists())
+            self.assertFalse((core_plugin / ".claude" / "commands").exists())
 
     def test_plain_build_does_not_invoke_self_host_recipes(self) -> None:
         """AC: plain `make build` produces only dist/apm, dist/claude-plugins,

@@ -1,6 +1,6 @@
 # ADR-0072: The derived plugin manifest mirrors Claude Code's schema; the real client is the oracle
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-08-06
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial-reviewer, security-reviewer

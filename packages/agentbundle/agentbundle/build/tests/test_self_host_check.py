@@ -1730,7 +1730,6 @@ class PlainBuildCopiesMarkerThroughTests(unittest.TestCase):
                 output_dir
                 / "claude-plugins"
                 / "core"
-                / ".claude"
                 / "skills"
                 / "foo"
                 / "SKILL.md"

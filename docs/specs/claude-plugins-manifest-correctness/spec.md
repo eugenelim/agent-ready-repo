@@ -1,6 +1,6 @@
 # Spec: Claude-plugins manifest correctness
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md)
@@ -63,7 +63,7 @@ correct the component layout.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — Valid plugin source type.** `derive_projectable_subset`
+- [x] **AC1 — Valid plugin source type.** `derive_projectable_subset`
   (`build/main.py:199`) emits
   `{"source": "git-subdir", "url": ..., "path": ..., "ref": ...}`; `branch` and
   `directory` appear in no emitted manifest. `url` is
@@ -75,14 +75,14 @@ correct the component layout.
   silent upgrade into a silent omission. An explicit `http://github.com/...`
   branch raises, distinct from the non-GitHub-host branch which stays silent.
 
-- [ ] **AC2 — Components at plugin root.** On the claude-plugins route each pack
+- [x] **AC2 — Components at plugin root.** On the claude-plugins route each pack
   projects skills to `<pack>/skills/<name>/`, agents to `<pack>/agents/<name>.md`,
   commands to `<pack>/commands/<name>.md`, and emits no
   `<pack>/.claude/skills|agents|commands`. Hook wiring
   (`<pack>/.claude/settings.local.json`, the `merge-json` projection) is out of
   scope and unchanged.
 
-- [ ] **AC3 — Non-plugins projections unchanged, including their deletions.**
+- [x] **AC3 — Non-plugins projections unchanged, including their deletions.**
   Scoped per *projection*, not per consumer, because two consumers emit both
   routes. `build/self_host.py` (via `project_packs`, `:323`) and
   `commands/pack_evals.py` emit byte-identical output. For their skill
@@ -96,30 +96,30 @@ correct the component layout.
   which runs `per-pack-claude-plugin`; both emit the claude-plugins route, whose
   output changes by design under AC2.
 
-- [ ] **AC4 — Both marketplace writers corrected.** The corrected shape is
+- [x] **AC4 — Both marketplace writers corrected.** The corrected shape is
   emitted by both writers, asserted on each writer's output rather than on the
   shared helper: the dist aggregation in `build/main.py`, and
   `self_host._aggregate_marketplace` (`self_host.py:602`, calling
   `derive_projectable_subset` at `:632`), which writes the root
   `.claude-plugin/marketplace.json` that adopters actually add.
 
-- [ ] **AC5 — Marketplace envelope preserved.** The **dist** `marketplace.json`
+- [x] **AC5 — Marketplace envelope preserved.** The **dist** `marketplace.json`
   still carries top-level `name`, `owner`, and `description` after `repo` leaves
   the source object, derived from the parsed clone URL — `build/main.py:705-717`
   currently splits `src["repo"]` to produce them. The self-host writer takes
   these as parameters (`self_host.py:605-607`) and is unaffected.
 
-- [ ] **AC6 — Source readers verified.** The three genuine readers of a plugin
+- [x] **AC6 — Source readers verified.** The three genuine readers of a plugin
   `source` object enumerated in `plan.md` are each shown shape-agnostic or
   updated. A bare `grep '"source"'` does not discharge this: `source` is an
   unrelated catalogue concept in `config.py`, `user_config.py`,
   `commands/upgrade.py`, and `commands/list_installed.py`.
 
-- [ ] **AC7 — Old shape unpinnable.** No assertion in the suite requires
+- [x] **AC7 — Old shape unpinnable.** No assertion in the suite requires
   `source.source == "github"`, `source.repo`, `source.branch`, or
   `source.directory`. Corrected assertions fail against the pre-fix generator.
 
-- [ ] **AC8 — Manifest contracts corrected, all five copies.**
+- [x] **AC8 — Manifest contracts corrected, all five copies.**
   `contracts/plugin-manifest.derived.schema.json`,
   `contracts/plugin-manifest.schema.json`, and their byte-equality-gated twins
   under `packages/agentbundle/agentbundle/_data/` accept the `git-subdir` source
@@ -144,7 +144,7 @@ correct the component layout.
   recorded as a named exception in ADR-0072. `url` is constrained to
   `^https://github\.com/[^/]+/[^/]+\.git$` and `path` to `^[a-z0-9][a-z0-9-]*$`.
 
-- [ ] **AC9 — Marketplace entries are actually validated, on both paths.** A
+- [x] **AC9 — Marketplace entries are actually validated, on both paths.** A
   **marketplace-entry schema** (the derived schema, plus `source` *required* and
   `category` permitted) validates every `plugins[]` entry in **both** the dist
   `marketplace.json` and the root `.claude-plugin/marketplace.json`. A single
@@ -153,7 +153,7 @@ correct the component layout.
   Negative test on each path proves a malformed `source` fails CI. This is the
   criterion that closes the gap; without it the schema work gates nothing.
 
-- [ ] **AC10 — Reserved plugin-root names (forward-looking).** The claude-plugins
+- [ ] **AC10 — Reserved plugin-root names (forward-looking).** (deferred: plugin-root-name-collision-guard) The claude-plugins
   recipe fails the build if a non-projection write would land on a projected
   component directory. The reserved set is derived from the three claude-code
   component `target-path`s, **not** from `PRIMITIVE_DIRS` (`build/main.py:93`),
@@ -163,7 +163,7 @@ correct the component layout.
   `seeds/` plus the projections (`build/main.py:504-584`), `seeds/` lands at
   `<pack>/seeds/` (`:582-584`), and no pack ships a top-level `skills/` today.
 
-- [ ] **AC13 — Layout consumers reconciled.** Every *operative* artifact asserting
+- [x] **AC13 — Layout consumers reconciled.** Every *operative* artifact asserting
   the old `claude-plugins/<pack>/.claude/...` layout is corrected in this PR,
   enumerated in `plan.md`: three assertions in
   `test_install_adapt_chain.py::test_install_marker_records_new_companions`
@@ -181,7 +181,7 @@ correct the component layout.
   `claude-plugins-publish-and-discover` AC3**; a dated one-line erratum under that
   spec's header points back here.
 
-- [ ] **AC11 — End-to-end install verified.** With a throwaway
+- [x] **AC11 — End-to-end install verified.** With a throwaway
   `CLAUDE_CONFIG_DIR` and a marketplace built from locally regenerated output,
   `claude plugin install core@<marketplace>` then `claude plugin details` reports
   **Skills ≥ 13** and **Agents ≥ 4** for `core`. The client reports commands under
@@ -190,7 +190,7 @@ correct the component layout.
   Observed output, the client version, and the actual field list are recorded in
   `plan.md`.
 
-- [ ] **AC12 — Adopter-facing docs and changelog.** Docs showing the marketplace
+- [x] **AC12 — Adopter-facing docs and changelog.** Docs showing the marketplace
   entry shape or pack layout are updated, including
   `docs/architecture/pack-manifest.md`'s derived-key table (which omits `source`
   and mistypes `author` as a string). Existing adopters are told to run
