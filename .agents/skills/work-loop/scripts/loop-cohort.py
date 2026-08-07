@@ -206,13 +206,20 @@ def _sha256_bytes(data: bytes) -> str:
 # Everything else stays pinned, including anything else on the status line: a
 # `- **Status:** Implementing — scope now also covers X` still moves the digest.
 _STATUS_PLACEHOLDER = "<loop-cohort:status>"
+_AC_HEADING_RE = re.compile(r"^##\s+Acceptance\s+Criteria\b", re.IGNORECASE)
+_ANY_SECTION_RE = re.compile(r"^##\s+")
 
 # AC10: a mismatch has two possible causes and the verb cannot tell them apart,
 # so it names both rather than asserting the one that is usually wrong.
 _BOTH_CAUSES = (
     "either the approved scope changed, or this baseline was pinned before "
-    "canonical hashing landed — in which case run `loop-cohort reset` and "
-    "re-run the G-plan sequence (spec.md and plan.md are preserved)"
+    "canonical hashing landed. For the second case recover the cohort only — "
+    "`loop-cohort reset`, then `init` with the engine's existing run_id, then "
+    "`approve-plan` + `schedule`. Do NOT run `loop-engine reset`: `plan-locked` "
+    "is legal only from SPEC-PLAN-APPROVED and the engine has no state-setting "
+    "verb, so resetting it strands the run. Full procedure, including the "
+    "Status restores it needs first: the [core] Upgrading note in "
+    "docs/product/changelog.md"
 )
 
 
@@ -258,8 +265,25 @@ def canonical_contract(text: str) -> str:
             lines[i] = raw[:start] + _STATUS_PLACEHOLDER + raw[start + len(token):]
         break
 
+    # Scoped to the Acceptance Criteria section, matching what the skill
+    # actually mandates ticking. File-wide would also un-pin a checkbox under
+    # `## Boundaries` — including a `Never do` item, which is precisely the
+    # scope surface the pin exists to protect. plan.md has no such section, so
+    # its checkboxes stay pinned; nothing mandates ticking them.
+    #
+    # Case-insensitive on purpose: `lint-spec-status.py:274` matches
+    # `Acceptance Criteria` exactly, and ten specs in this repo spell it with a
+    # lowercase `c`, so its own AC extraction silently returns nothing for
+    # them. Inheriting that bug here would un-pin nothing in those specs and
+    # break AC5 for them. Tracked as `lint-spec-status-ac-heading-case`.
+    in_ac = False
     for i, line in enumerate(lines):
-        if lint._AC_DONE_RE.match(line):
+        if _AC_HEADING_RE.match(line):
+            in_ac = True
+            continue
+        if in_ac and _ANY_SECTION_RE.match(line):
+            in_ac = False
+        if in_ac and lint._AC_DONE_RE.match(line):
             # Bracket contents only — leading whitespace and the bullet run stay
             # byte-for-byte, so re-indenting a criterion still moves the digest.
             j = line.index("[")
@@ -589,8 +613,38 @@ def _read_md_status(path: Path) -> str | None:
     try:
         text = path.read_text(encoding="utf-8")
         return _lint_spec_status().parse_status(text)
-    except (OSError, ImportError):
+    except (OSError, ImportError, UnicodeDecodeError):
         return None
+
+
+# Normalizing the status token out of the hash also removed the incidental
+# detection of a *regressed* status: an approved run whose spec.md went back to
+# Draft used to trip the byte compare. Assert it directly instead, at every verb
+# that reads a pinned artifact — a compensating control that covers one of three
+# call sites is not a compensating control.
+#
+# An absent or unparseable token is skipped, not stopped: plan fixtures
+# legitimately carry no status line, and this must not become a new way for a
+# CODE-* pre-guard to go red.
+_LEGAL_AFTER_APPROVAL = {
+    "spec.md": ("Approved", "Implementing", "Shipped"),
+    "plan.md": ("Approved", "Executing", "Done"),
+}
+
+
+def _assert_status_legal(verb: str, *paths: Path) -> int | None:
+    """Return a stop() code when a pinned artifact's status has regressed."""
+    for path in paths:
+        allowed = _LEGAL_AFTER_APPROVAL.get(path.name)
+        if allowed is None or not path.exists():
+            continue
+        token = _read_md_status(path)
+        if token is not None and token not in allowed:
+            return stop(
+                f"{verb}: {path.name} Status is {token!r}; expected one of "
+                f"{list(allowed)} after approval"
+            )
+    return None
 
 
 def cmd_approve_plan(args: argparse.Namespace) -> int:
@@ -621,6 +675,12 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         stored_spec_hash = state.get("approved_spec_hash", "")
         stored_plan_hash = state.get("approved_plan_hash", "")
         if spec_hash == stored_spec_hash and plan_hash == stored_plan_hash:
+            # The crash-window guard below sits on the pending branch only, so
+            # without this a replay after a status regression reports a clean
+            # no-op against a spec that no longer claims to be approved.
+            err = _assert_status_legal("approve-plan", spec_path, plan_path)
+            if err is not None:
+                return err
             print(
                 f"loop-cohort: approve-plan already recorded for {spec_dir.name} (no-op)"
             )
@@ -686,23 +746,9 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
     if not plan_path.exists():
         return stop(f"plan check-current: plan.md not found at {plan_path}")
 
-    # Normalizing the status token out of the hash also removed the incidental
-    # detection of a *regressed* status — an approved run whose spec.md went
-    # back to Draft used to trip the byte compare. Assert it directly instead.
-    # Runs after the plan_review_status early return above so the documented
-    # `plan_review_status: pending` cue during PLAN is not replaced by a status
-    # complaint. An absent or unparseable token is skipped, not stopped: plan
-    # fixtures legitimately carry no status line.
-    for label, path, allowed in (
-        ("spec.md", spec_path, ("Approved", "Implementing", "Shipped")),
-        ("plan.md", plan_path, ("Approved", "Executing", "Done")),
-    ):
-        token = _read_md_status(path)
-        if token is not None and token not in allowed:
-            return stop(
-                f"plan check-current: {label} Status is {token!r}; expected one "
-                f"of {list(allowed)} after approval"
-            )
+    err = _assert_status_legal("plan check-current", spec_path, plan_path)
+    if err is not None:
+        return err
 
     current_spec_hash = sha256_canonical_contract(spec_path)
     if state.get("approved_spec_hash") != current_spec_hash:
@@ -754,6 +800,10 @@ def _schedule_check_current_impl(spec_dir: Path) -> int:
     plan_path = spec_dir / "plan.md"
     if not plan_path.exists():
         return stop(f"schedule check-current: plan.md not found at {plan_path}")
+    err = _assert_status_legal("schedule check-current", plan_path)
+    if err is not None:
+        return err
+
     current_hash = sha256_canonical_contract(plan_path)
     stored = state.get("plan_hash")
     if stored != current_hash:

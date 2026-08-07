@@ -22,6 +22,7 @@ import pathlib
 import re
 import subprocess
 import sys
+import unicodedata
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -53,27 +54,52 @@ ID_PATTERN = re.compile(r"^K-\d{4,}$")
 # *surrogate pair* (😀 → 😀), which is valid JSON but not a valid
 # TOML/YAML scalar downstream. `append-knowledge.py` writes the correct form;
 # this rule catches everything else.
-_ESCAPE_RE = re.compile(r"(\\+)u([0-9a-fA-F]{4})")
+# `(?<!\\)((?:\\\\)*\\)` matches the backslash run without backtracking. The
+# obvious `(\\+)u` form is quadratic — it retries the greedy run at every start
+# offset, and this linter runs unfiltered over a repo file in CI, so a long
+# adversarial line would hang the gate that exists to reject it (CWE-1333).
+_ESCAPE_RE = re.compile(r"(?<!\\)((?:\\\\)*\\)u([0-9a-fA-F]{4})")
+# Belt and braces: refuse to regex a pathological line at all.
+_MAX_LINE = 8192
 # Escapes that must stay legal:
 #   < 0x20  — JSON requires escaping these.
 #   U+0085 / U+2028 / U+2029 — str.splitlines() (used by this linter and by
 #   tools/hooks/session-start.py) breaks on them, so the escaped form is the
 #   *only* representation that survives a round trip.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
+# ZWJ / ZWNJ are text-shaping (Indic, Arabic, emoji sequences); every other
+# `Cf` character is a way to carry text no reader can see.
+_ALLOWED_FORMAT_CHARS = frozenset("\u200c\u200d")
 
 
 def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
-    """Return (escape, character) for each `\\uXXXX` that should have been literal."""
+    """Return (escape, character) for each `\\uXXXX` that should have been literal.
+
+    The pattern's lookbehind guarantees the matched backslash run is odd-length,
+    so the match is a real escape rather than a literal `\\u` in body text.
+    """
     found: list[tuple[str, str]] = []
     for m in _ESCAPE_RE.finditer(raw):
-        # An escape is real only when the backslash run ending at the matched
-        # `\` is odd; an even run is a literal backslash followed by "u1234".
-        if len(m.group(1)) % 2 == 0:
-            continue
         cp = int(m.group(2), 16)
         if cp < 0x20 or cp in _LINE_BREAKERS:
             continue
         found.append((f"\\u{m.group(2)}", chr(cp)))
+    return found
+
+
+def hidden_characters(raw: str) -> list[tuple[int, str]]:
+    """Return (codepoint, name) for each invisible formatting character.
+
+    `append-knowledge.py` refuses these at write time, but the file is also
+    hand-edited, and `tools/hooks/session-start.py` replays every entry
+    verbatim into an agent's context. A bidi override or a Unicode Tag-block
+    character carries text that is live in every session and invisible in a
+    diff, so the gate has to see it too.
+    """
+    found: list[tuple[int, str]] = []
+    for ch in raw:
+        if unicodedata.category(ch) == "Cf" and ch not in _ALLOWED_FORMAT_CHARS:
+            found.append((ord(ch), unicodedata.name(ch, "unnamed")))
     return found
 
 
@@ -113,6 +139,18 @@ def main(argv: list[str] | None = None) -> int:
         # away, so the drift is invisible to any check on the parsed object.
         # Reported through err() — a lone surrogate cannot be printed to this
         # script's stdout, which is configured errors="strict".
+        if len(raw) > _MAX_LINE:
+            err(line_no, f"line is {len(raw)} characters; the limit is {_MAX_LINE}")
+            continue
+
+        for cp, name in hidden_characters(raw):
+            err(
+                line_no,
+                f"contains the invisible formatting character U+{cp:04X} "
+                f"({name}) — entries are replayed verbatim into every session, "
+                f"so these are refused; use append-knowledge.py to write entries",
+            )
+
         for escape, char in gratuitous_escapes(raw):
             err(
                 line_no,

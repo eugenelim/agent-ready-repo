@@ -76,7 +76,8 @@ reads it at session open.
 
 Use the writer that ships beside the linter — it allocates the next free `id`,
 writes the line, and refuses anything the linter would reject, so a bad entry
-never reaches the file:
+never reaches the file. Run it from wherever your agent tool installed the
+skill (`.claude/skills/`, `.agents/skills/`, `.kiro/skills/`, `.apm/skills/`):
 
 ```bash
 python3 .claude/skills/work-loop/scripts/append-knowledge.py \
@@ -94,7 +95,9 @@ not `\u2014`; if you serialize with Python, pass `ensure_ascii=False`.
 
 Entries are read back verbatim into every future session by the session-start
 hook, so treat the body as durable instruction: keep it to lessons about this
-repo, and never paste content from an untrusted source into one.
+repo, and never paste content from an untrusted source into one. Invisible
+formatting characters — bidi overrides, zero-width characters, the Unicode Tag
+block — are refused for the same reason.
 
 ## Verify before committing
 

@@ -2151,10 +2151,268 @@ def test_stub_status_line_smuggling_still_caught(tmp: Path) -> None:
         ok(name)
 
 
+# ── AC1/AC5-AC10: the criteria mutation testing proved unverified ───────────
+#
+# Every case below was written against a mutation: remove the behaviour it
+# names from loop-cohort.py and this case must go red. A case that survives its
+# own mutation is not coverage.
+
+def _approved_run(tmp: Path, name: str) -> tuple[Path, str]:
+    """A spec dir past approve-plan + schedule, with a realistic spec shape."""
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved "
+        "<!-- Draft | Approved | Implementing | Shipped | Archived -->\n\n"
+        "## Acceptance Criteria\n\n- [ ] AC1 first\n- [ ] AC2 second\n",
+        encoding="utf-8")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    return spec_dir, run_id
+
+
+def _check(spec_dir: Path) -> int:
+    rc, _, _ = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    return rc
+
+
+def test_ac5_ticking_a_criterion_is_bookkeeping(tmp: Path) -> None:
+    """AC5. SKILL.md:434 mandates ticking every AC at finish."""
+    name = "ac5-ticking-a-criterion-is-bookkeeping"
+    spec_dir, _ = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] AC1 first", "- [x] AC1 first")
+        .replace("- [ ] AC2 second", "- [x] AC2 second"), encoding="utf-8")
+    ok(name) if _check(spec_dir) == 0 else fail(name, "ticking an AC broke the pin")
+
+
+def test_ac1_reindenting_a_criterion_is_scope(tmp: Path) -> None:
+    """AC1. Only the bracket contents are normalized. A whole-match
+    substitution would also eat the indentation, so nesting AC2 under AC1 —
+    which changes what the list contains — would hash identically."""
+    name = "ac1-reindenting-a-criterion-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    # The box must be TICKED: the splice only fires on `[x]`, so re-indenting an
+    # unticked line would move the digest through the raw bytes and prove
+    # nothing about the splice.
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] AC2 second", "- [x] AC2 second"), encoding="utf-8")
+    if _check(spec_dir) != 0:
+        fail(name, "ticking alone broke the pin — precondition failed")
+        return
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [x] AC2 second", "  - [x] AC2 second"), encoding="utf-8")
+    fail(name, "re-indenting a ticked criterion passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac5_checkbox_outside_the_ac_section_is_scope(tmp: Path) -> None:
+    """AC5's boundary. A checkbox under `## Boundaries` is not progress
+    bookkeeping — `Never do` items are exactly the scope the pin protects."""
+    name = "ac5-checkbox-outside-ac-section-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    base = (spec_dir / "spec.md").read_text(encoding="utf-8")
+    (spec_dir / "spec.md").write_text(
+        base + "\n## Boundaries\n\n- [ ] Never delete the database\n", encoding="utf-8")
+    run_cohort("reset", str(spec_dir))
+    spec_dir2, _ = _approved_run(tmp, name + "-2")
+    (spec_dir2 / "spec.md").write_text(
+        (spec_dir2 / "spec.md").read_text(encoding="utf-8")
+        + "\n## Boundaries\n\n- [ ] Never delete the database\n", encoding="utf-8")
+    run_id2 = json.loads((spec_dir2 / "state.json").read_text())["run_id"]
+    run_cohort("reset", str(spec_dir2))
+    run_cohort("init", str(spec_dir2), "--run-id", run_id2)
+    run_cohort("approve-plan", str(spec_dir2), "--expect-run-id", run_id2)
+    run_cohort("schedule", str(spec_dir2), "--expect-run-id", run_id2)
+    (spec_dir2 / "spec.md").write_text(
+        (spec_dir2 / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] Never delete the database", "- [x] Never delete the database"),
+        encoding="utf-8")
+    fail(name, "ticking a Boundaries checkbox passed the pin") if _check(spec_dir2) == 0 else ok(name)
+
+
+def test_ac7_body_status_line_is_pinned(tmp: Path) -> None:
+    """AC7. Unit-level on purpose.
+
+    The preamble scan `break`s at the first `**Status:**`, so when a preamble
+    status exists a body occurrence is unreachable and the section guard is
+    unobservable. The shape where the guard *is* load-bearing — status only in
+    the body — cannot reach `approve-plan` at all, because its crash-window
+    guard requires a parseable `Approved` in the preamble. So the guard is
+    defense-in-depth for any caller of the pure function, and that is the level
+    it has to be tested at; a CLI round trip here passes on the pending
+    sentinel and proves nothing.
+    """
+    name = "ac7-body-status-line-is-pinned"
+    body = ("# Spec\n\n## Notes\n\nQuoting the template:\n\n"
+            "    - **Status:** {token}\n")
+    draft = canonical_contract(body.format(token="Draft"))
+    shipped = canonical_contract(body.format(token="Shipped"))
+    if draft == shipped:
+        fail(name, "a body-section Status token was normalized away")
+        return
+    # And the preamble one still is, in the same document shape.
+    pre = "# Spec\n\n- **Status:** {t}\n\n## Notes\n\n- **Status:** Draft\n"
+    if canonical_contract(pre.format(t="Approved")) != canonical_contract(pre.format(t="Shipped")):
+        fail(name, "the preamble token was not normalized")
+        return
+    ok(name)
+
+
+def test_ac1_splice_preserves_indentation(tmp: Path) -> None:
+    """AC1, unit-level. A whole-match substitution would collapse the leading
+    whitespace and the bullet run, making a re-indent invisible."""
+    name = "ac1-splice-preserves-indentation"
+    head = "# S\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n"
+    flat = canonical_contract(head + "- [x] AC1\n")
+    nested = canonical_contract(head + "  - [x] AC1\n")
+    ticked = canonical_contract(head + "- [x] AC1\n")
+    unticked = canonical_contract(head + "- [ ] AC1\n")
+    if flat == nested:
+        fail(name, "re-indenting a ticked criterion did not move the digest")
+    elif ticked != unticked:
+        fail(name, "ticking a criterion moved the digest")
+    else:
+        ok(name)
+
+
+def test_ac8_deferral_annotation_is_scope(tmp: Path) -> None:
+    """AC8. Deferring a criterion is a scope change, not progress."""
+    name = "ac8-deferral-annotation-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] AC2 second", "- [ ] AC2 second (deferred: some-slug)"),
+        encoding="utf-8")
+    fail(name, "a deferral annotation passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac8_status_annotation_is_scope(tmp: Path) -> None:
+    """AC8. extract_status_token truncates at ' (', so a dated annotation is
+    outside the token and stays hashed."""
+    name = "ac8-status-annotation-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- **Status:** Approved <!--", "- **Status:** Shipped (2026-01-01) <!--"),
+        encoding="utf-8")
+    fail(name, "a dated status annotation passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac6_changed_task_text_is_scope(tmp: Path) -> None:
+    """AC6. Task text and dependency edges are the build strategy."""
+    name = "ac6-changed-task-text-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, content="# Plan\n\n- **Status:** Approved\n\n"
+               "### T1 do something else\n\n**Depends on:** none\n\n"
+               "### T2\n\n**Depends on:** T1\n")
+    fail(name, "changed task text passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac6_changed_depends_on_is_scope(tmp: Path) -> None:
+    """AC6. Re-wiring the DAG changes what may run in parallel."""
+    name = "ac6-changed-depends-on-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, content="# Plan\n\n- **Status:** Approved\n\n"
+               "### T1\n\n**Depends on:** none\n\n"
+               "### T2\n\n**Depends on:** none\n")
+    fail(name, "a changed Depends on passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac9_regressed_spec_status_stops(tmp: Path) -> None:
+    """AC9. The byte hash used to catch a status regression incidentally;
+    normalizing the token out means it must be asserted directly."""
+    name = "ac9-regressed-spec-status-stops"
+    spec_dir, _ = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- **Status:** Approved <!--", "- **Status:** Draft <!--"),
+        encoding="utf-8")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    if rc == 0:
+        fail(name, "a spec regressed to Draft passed")
+    elif "Status is 'Draft'" not in err:
+        fail(name, f"stopped, but not for the status reason: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac9_absent_plan_status_is_skipped(tmp: Path) -> None:
+    """AC9. Plan fixtures carry no status line; the assertion must not turn a
+    CODE-* pre-guard red for them."""
+    name = "ac9-absent-plan-status-is-skipped"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir, status=None)  # no status line at all
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    rc, _, err = run_cohort("schedule", "check-current", str(spec_dir))
+    ok(name) if rc == 0 else fail(name, f"a status-less plan went red: {err!r}")
+
+
+def test_ac9_pending_sentinel_survives(tmp: Path) -> None:
+    """AC9's ordering. The `plan_review_status: pending` sentinel is the
+    documented PLAN-time cue; a status assertion placed before the early return
+    would replace it with a Draft complaint on every PLAN invocation."""
+    name = "ac9-pending-sentinel-survives"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Draft")
+    write_plan(spec_dir)
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "expected non-zero before approval")
+    elif "plan_review_status: pending" not in err:
+        fail(name, f"sentinel replaced by another message: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac10_mismatch_names_both_causes(tmp: Path) -> None:
+    """AC10. The verb cannot tell an unapproved scope change from a
+    pre-canonical baseline, so it must not assert either one."""
+    name = "ac10-mismatch-names-both-causes"
+    spec_dir, run_id = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] AC2 second", "- [ ] AC2 rewritten"), encoding="utf-8")
+    seen = []
+    _, _, e1 = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    seen.append(("plan check-current spec", e1))
+    _, _, e2 = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    seen.append(("approve-plan idempotency", e2))
+    write_plan(spec_dir, content="# Plan\n\n- **Status:** Approved\n\n### T9\n\n**Depends on:** none\n")
+    _, _, e3 = run_cohort("schedule", "check-current", str(spec_dir))
+    seen.append(("schedule check-current", e3))
+    missing = [label for label, msg in seen if "predates canonical hashing" not in msg
+               and "before canonical hashing" not in msg]
+    fail(name, f"sites missing the both-causes wording: {missing}") if missing else ok(name)
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
         tests = [
+            test_ac5_ticking_a_criterion_is_bookkeeping,
+            test_ac1_reindenting_a_criterion_is_scope,
+            test_ac5_checkbox_outside_the_ac_section_is_scope,
+            test_ac7_body_status_line_is_pinned,
+            test_ac1_splice_preserves_indentation,
+            test_ac8_deferral_annotation_is_scope,
+            test_ac8_status_annotation_is_scope,
+            test_ac6_changed_task_text_is_scope,
+            test_ac6_changed_depends_on_is_scope,
+            test_ac9_regressed_spec_status_stops,
+            test_ac9_absent_plan_status_is_skipped,
+            test_ac9_pending_sentinel_survives,
+            test_ac10_mismatch_names_both_causes,
             test_stub_lifecycle_status_bump_keeps_pin,
             test_stub_lifecycle_bump_with_vocabulary_comment,
             test_stub_status_line_smuggling_still_caught,

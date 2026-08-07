@@ -4,14 +4,10 @@
 Run: python3 test-append-knowledge.py
 Exit 0 = all pass; exit non-zero = at least one failure.
 
-STUB: docs/specs/loop-tooling-mandated-writes, task T4 (AC13-AC19).
-Red until `append-knowledge.py` exists. The cases below are the contract
-surface the script must satisfy, not placeholders: each asserts on observable
-bytes or exit codes rather than on the script's internals.
+Each case asserts on observable bytes or exit codes rather than on the
+script's internals, and each was written against a mutation: remove the
+behaviour it names from append-knowledge.py and the case must go red.
 """
-
-# STUB: AC13..AC19 — red until append-knowledge.py exists (spec
-# docs/specs/loop-tooling-mandated-writes, task T4).
 
 from __future__ import annotations
 
@@ -296,27 +292,6 @@ def test_post_lint_failure_leaves_target_identical(target: Path) -> None:
         ok(name)
 
 
-def test_lint_runs_out_of_process(target: Path) -> None:
-    """AC18. lint-knowledge.py chdirs at module scope, so importing it would
-    relocate this writer's relative paths. Proven by driving the writer from a
-    cwd whose relative resolution would differ, and asserting the write still
-    lands where --file said."""
-    name = "lint-runs-out-of-process"
-    assert CWD is not None
-    target.write_text("", encoding="utf-8")
-    sub = CWD / "docs"
-    proc = subprocess.run(
-        [sys.executable, str(SCRIPT), *_append_args(target)],
-        capture_output=True, text=True, encoding="utf-8", check=False, cwd=str(sub),
-    )
-    if proc.returncode != 0:
-        fail(name, f"exit {proc.returncode}: {proc.stderr}")
-    elif not target.read_bytes().strip():
-        fail(name, "nothing written — the linter's chdir leaked into the writer")
-    else:
-        ok(name)
-
-
 def test_length_caps_enforced_at_the_boundary(target: Path) -> None:
     """AC16. A cap with no test is not a contract."""
     name = "length-caps-enforced-at-the-boundary"
@@ -334,6 +309,109 @@ def test_length_caps_enforced_at_the_boundary(target: Path) -> None:
             fail(name, f"{field} refusal did not name the limit {cap}")
             return
     ok(name)
+
+
+def test_invisible_formatting_characters_refused(target: Path) -> None:
+    """AC16. `Cc` is only half the control. `Cf` carries bidi overrides and the
+    Unicode Tag block (U+E0000-E007F), which encodes arbitrary ASCII at zero
+    visual width — invisible in a diff, and replayed into every session by the
+    session-start hook. ZWJ/ZWNJ stay legal: they are text shaping, not a way
+    to hide payload."""
+    name = "invisible-formatting-characters-refused"
+    target.write_text("", encoding="utf-8")
+    for label, payload in (
+        ("RLO bidi override", "Prefer the boring one\u202e"),
+        ("LRI isolate", "text\u2066more"),
+        ("zero-width space", "a\u200bb"),
+        ("Tag-block letter", "helper\U000e0053\U000e0059"),
+    ):
+        proc = run(*_append_args(target, **{"--body": payload}))
+        out = proc.stdout + proc.stderr
+        if proc.returncode == 0:
+            fail(name, f"{label} was accepted")
+            return
+        if target.read_bytes():
+            fail(name, f"{label} rejected but something was written")
+            return
+        # The linter refuses these too, so a bare non-zero cannot tell the two
+        # layers apart. Pin the *writer's* pre-write refusal: a post-lint
+        # rejection is reported as "the new entry does not lint".
+        if "does not lint" in out:
+            fail(name, f"{label} reached the post-lint — the writer's own "
+                       f"validation did not refuse it")
+            return
+    zwj = run(*_append_args(target, **{"--body": "family \U0001f468\u200d\U0001f469\u200d\U0001f466 emoji"}))
+    if zwj.returncode != 0:
+        fail(name, f"a legitimate ZWJ sequence was refused: {zwj.stderr}")
+    else:
+        ok(name)
+
+
+def test_concurrent_appends_do_not_lose_entries(target: Path) -> None:
+    """AC17. `max(existing) + 1` then replace-the-file is a read-modify-write.
+    Unlocked, concurrent callers allocate the same id and one entry is silently
+    dropped — while both callers are told it was recorded, which is worse than
+    a crash."""
+    name = "concurrent-appends-do-not-lose-entries"
+    target.write_text("", encoding="utf-8")
+    n = 6
+    procs = [
+        subprocess.Popen(
+            [sys.executable, str(SCRIPT), *_append_args(target, **{"--body": f"body {i}"})],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, cwd=str(CWD),
+        )
+        for i in range(n)
+    ]
+    reported = []
+    for proc in procs:
+        out, err = proc.communicate()
+        if proc.returncode != 0:
+            fail(name, f"a concurrent append failed: {err}")
+            return
+        reported.append(out.strip())
+    lines = [ln for ln in target.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    on_disk = [json.loads(ln)["id"] for ln in lines]
+    if len(on_disk) != n:
+        fail(name, f"{n} appends reported success, {len(on_disk)} landed: {on_disk}")
+    elif sorted(reported) != sorted(on_disk):
+        fail(name, f"ids reported {sorted(reported)} != ids on disk {sorted(on_disk)}")
+    elif len(set(on_disk)) != n:
+        fail(name, f"duplicate ids allocated: {on_disk}")
+    else:
+        ok(name)
+
+
+def test_file_mode_is_preserved(target: Path) -> None:
+    """AC17. mkstemp creates 0600 and os.replace carries that onto the target,
+    silently narrowing a committed world-readable file. Git tracks only the
+    exec bit, so the change is invisible in a diff and to CI."""
+    name = "file-mode-is-preserved"
+    target.write_text(entry(id="K-0001") + "\n", encoding="utf-8")
+    target.chmod(0o644)
+    proc = run(*_append_args(target))
+    if proc.returncode != 0:
+        fail(name, f"exit {proc.returncode}: {proc.stderr}")
+        return
+    mode = target.stat().st_mode & 0o777
+    ok(name) if mode == 0o644 else fail(name, f"mode changed 0o644 -> {oct(mode)}")
+
+
+def test_lint_runs_out_of_process(target: Path) -> None:
+    """AC18. lint-knowledge.py chdirs to the repo root at module scope, so an
+    in-process import would relocate this writer's relative paths. Asserted on
+    the writer's own stdout: it prints exactly the allocated id, whereas an
+    in-process linter would also print its own `Knowledge lint: passed.` there.
+    That also pins the print-the-id contract."""
+    name = "lint-runs-out-of-process"
+    target.write_text("", encoding="utf-8")
+    proc = run(*_append_args(target))
+    if proc.returncode != 0:
+        fail(name, f"exit {proc.returncode}: {proc.stderr}")
+    elif proc.stdout.strip() != "K-0001":
+        fail(name, f"stdout was {proc.stdout.strip()!r}, expected exactly 'K-0001' "
+                   f"— linter output leaking in means it ran in-process")
+    else:
+        ok(name)
 
 
 def main() -> int:
@@ -362,6 +440,10 @@ def main() -> int:
             test_post_lint_failure_leaves_target_identical,
             test_lint_runs_out_of_process,
             test_length_caps_enforced_at_the_boundary,
+            test_invisible_formatting_characters_refused,
+            test_concurrent_appends_do_not_lose_entries,
+            test_file_mode_is_preserved,
+            test_lint_runs_out_of_process,
         ):
             case(root / "patterns.jsonl")
 

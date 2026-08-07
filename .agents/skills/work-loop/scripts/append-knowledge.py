@@ -21,17 +21,27 @@ Safety shape, in the order it happens — the order is the design:
      ``tools/hooks/session-start.py:_safe_override_path``.
   3. Validate every field value *before* anything is opened. Entries are
      replayed verbatim into every future agent session by session-start, so
-     this is a durable-instruction channel: no C0 controls (an ESC would be
-     replayed as an ANSI sequence), no U+0085/U+2028/U+2029 (they break
-     ``str.splitlines()``, which is how both readers parse the file), no lone
-     surrogates, and length caps.
-  4. Pre-lint the existing file so a knowledge base that was *already* broken
+     this is a durable-instruction channel: no ``Cc`` controls (an ESC would
+     be replayed as an ANSI sequence), no ``Cf`` formatting characters except
+     ZWJ/ZWNJ (bidi overrides and the Unicode Tag block encode arbitrary text
+     at zero visual width — invisible in a diff, live in every session), no
+     U+0085/U+2028/U+2029 (they break ``str.splitlines()``, which is how both
+     readers parse the file), no lone surrogates, and length caps.
+  4. Take an exclusive lock for the rest of the run. Steps 5-7 are a
+     read-modify-write; without the lock two concurrent appends both allocate
+     the same id and the second replace discards the first entry, while both
+     callers are told their learning was recorded.
+  5. Pre-lint the existing file so a knowledge base that was *already* broken
      is reported as such, rather than the caller's entry taking the blame. A
      non-existent target is not a failure — it is an empty file to create.
-  5. Allocate the next id as max(existing) + 1. Gaps are fine; the linter
+     Linting precedes reading so a file that is not valid UTF-8 gets the
+     designed message instead of a traceback.
+  6. Allocate the next id as max(existing) + 1. Gaps are fine; the linter
      enforces uniqueness, not density.
-  6. Write the full new content to a temp file beside the target.
-  7. Lint the *temp* file, and only ``os.replace`` it over the target on
+  7. Write the full new content to a temp file beside the target, restore the
+     target's mode onto it (``mkstemp`` creates 0600, and ``os.replace`` would
+     otherwise narrow a committed world-readable file invisibly to git).
+  8. Lint the *temp* file, and only ``os.replace`` it over the target on
      success. There is no window in which a rejected entry is live on disk, so
      there is nothing to roll back.
 
@@ -44,12 +54,14 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import importlib.util
 import json
 import os
 import subprocess
 import sys
 import tempfile
+import time
 import unicodedata
 from pathlib import Path
 
@@ -75,6 +87,11 @@ BODY_CAP = 2000
 # has no business carrying a line separator mid-field.
 _LINE_BREAKERS = frozenset("  ")
 
+# The only `Cf` characters with a legitimate reason to appear in prose: the
+# zero-width joiner and non-joiner, which are text-shaping (Indic and Arabic
+# scripts, emoji sequences) rather than a way to hide payload.
+_ALLOWED_FORMAT_CHARS = frozenset("‌‍")
+
 # Environment that steers `git rev-parse --show-toplevel` away from the cwd.
 _GIT_ENV_OVERRIDES = (
     "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES",
@@ -84,6 +101,43 @@ _GIT_ENV_OVERRIDES = (
 def fail(reason: str, code: int = 1) -> int:
     print(f"append-knowledge: {reason}", file=sys.stderr)
     return code
+
+
+@contextlib.contextmanager
+def exclusive(target: Path, timeout: float = 10.0):
+    """Serialize the read-allocate-write window against the same target.
+
+    Allocating `max(existing) + 1` and then replacing the whole file is a
+    read-modify-write. Without this, two concurrent appends both read the same
+    highest id, both write a full file, and the second replace silently
+    discards the first entry — while *both* callers are told an id was
+    recorded. That is worse than a crash: a learning is reported as captured
+    and is not on disk.
+
+    `O_CREAT | O_EXCL` rather than `fcntl.flock`, which Windows lacks; this
+    repo's scripts are stdlib-only and cross-platform. A lock left by a killed
+    process is broken after `timeout` rather than wedging the tool forever.
+    """
+    lock = target.with_name(target.name + ".lock")
+    deadline = time.monotonic() + timeout
+    fd = None
+    while fd is None:
+        try:
+            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            if time.monotonic() >= deadline:
+                # stale lock from a killed process — take it over
+                with contextlib.suppress(OSError):
+                    lock.unlink()
+                deadline = time.monotonic() + timeout
+            time.sleep(0.05)
+    try:
+        os.write(fd, str(os.getpid()).encode())
+        os.close(fd)
+        yield
+    finally:
+        with contextlib.suppress(OSError):
+            lock.unlink()
 
 
 def _load_linter():
@@ -133,10 +187,23 @@ def validate_value(field: str, value: str) -> str | None:
         if ch in _LINE_BREAKERS:
             return (f"{field} contains U+{ord(ch):04X}, which str.splitlines() "
                     "treats as a line break — it would split this entry in two")
-        if unicodedata.category(ch) == "Cc":
+        category = unicodedata.category(ch)
+        if category == "Cc":
             return (f"{field} contains the control character U+{ord(ch):04X}; "
                     "knowledge entries are replayed verbatim into every future "
                     "session, so control sequences are refused")
+        if category == "Cf" and ch not in _ALLOWED_FORMAT_CHARS:
+            # `Cf` is the half of this control that a `Cc`-only check misses.
+            # It carries bidi overrides (U+202A–202E, U+2066–2069), zero-width
+            # characters, and the Unicode Tag block (U+E0000–E007F) — which
+            # encodes arbitrary ASCII at zero visual width. Since session-start
+            # replays `title`/`scope`/`body` verbatim into every agent's
+            # context, an invisible payload here is a durable prompt injection
+            # that no reviewer reading the diff would see.
+            return (f"{field} contains the invisible formatting character "
+                    f"U+{ord(ch):04X} ({unicodedata.name(ch, 'unnamed')}); "
+                    "these are refused because entries are replayed verbatim "
+                    "into every future session")
         if 0xD800 <= ord(ch) <= 0xDFFF:
             return f"{field} contains a lone surrogate U+{ord(ch):04X}"
     cap = {"title": TITLE_CAP, "body": BODY_CAP}.get(field)
@@ -215,6 +282,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if target.exists() and not target.is_file():
         return fail(f"{target} exists but is not a regular file")
+    if not target.parent.is_dir():
+        return fail(f"{target.parent} does not exist — create it first")
 
     fields = {"kind": args.kind, "scope": args.scope, "title": args.title,
               "body": args.body, "source": args.source}
@@ -225,44 +294,64 @@ def main(argv: list[str] | None = None) -> int:
         if problem is not None:
             return fail(problem)
 
-    existing = target.read_text(encoding="utf-8") if target.is_file() else ""
+    # Everything from here to the replace is one critical section: the id is
+    # derived from the file's current contents, so a concurrent append between
+    # the read and the replace would silently drop one entry.
+    with exclusive(target):
+        # A file that does not exist yet is an empty knowledge base, not a
+        # broken one — pre-linting it would report "does not exist" and make a
+        # fresh base uncreatable. Lint before reading, so a file that is not
+        # even valid UTF-8 produces the designed message rather than a
+        # traceback out of read_text.
+        if target.is_file():
+            pre = run_linter(target)
+            if pre.returncode != 0:
+                return fail(
+                    f"{target} already fails lint; fix it first — this append "
+                    f"was not attempted.\n{pre.stdout}{pre.stderr}"
+                )
+            try:
+                existing = target.read_text(encoding="utf-8")
+            except UnicodeDecodeError as exc:
+                return fail(f"{target} is not valid UTF-8 ({exc.reason})")
+        else:
+            existing = ""
 
-    # A file that does not exist yet is an empty knowledge base, not a broken
-    # one — pre-linting it would report "does not exist" and make a fresh base
-    # uncreatable.
-    if target.is_file():
-        pre = run_linter(target)
-        if pre.returncode != 0:
-            return fail(
-                f"{target} already fails lint; fix it first — this append was "
-                f"not attempted.\n{pre.stdout}{pre.stderr}"
-            )
+        entry = {"id": next_id(existing), **fields}
+        ordered = {k: entry[k] for k in FIELD_ORDER if k in entry}
+        line = json.dumps(ordered, ensure_ascii=False, allow_nan=False)
 
-    entry = {"id": next_id(existing), **fields}
-    ordered = {k: entry[k] for k in FIELD_ORDER if k in entry}
-    line = json.dumps(ordered, ensure_ascii=False, allow_nan=False)
+        if existing and not existing.endswith("\n"):
+            existing += "\n"
+        candidate = existing + line + "\n"
 
-    if existing and not existing.endswith("\n"):
-        existing += "\n"
-    candidate = existing + line + "\n"
-
-    fd, tmp_name = tempfile.mkstemp(
-        prefix=".append-", suffix=".jsonl.tmp", dir=str(target.parent)
-    )
-    tmp = Path(tmp_name)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
-            fh.write(candidate)
-        post = run_linter(tmp)
-        if post.returncode != 0:
-            return fail(
-                f"the new entry does not lint; {target} is unchanged.\n"
-                f"{post.stdout}{post.stderr}"
-            )
-        tmp.replace(target)
-    finally:
-        if tmp.exists():
-            tmp.unlink()
+        fd, tmp_name = tempfile.mkstemp(
+            prefix=".append-", suffix=".jsonl.tmp", dir=str(target.parent)
+        )
+        tmp = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(candidate)
+            post = run_linter(tmp)
+            if post.returncode != 0:
+                return fail(
+                    f"the new entry does not lint; {target} is unchanged.\n"
+                    f"{post.stdout}{post.stderr}"
+                )
+            # mkstemp creates 0600, and os.replace carries that mode onto the
+            # target — silently narrowing a committed, world-readable file.
+            # Git tracks only the exec bit, so the change is invisible in a
+            # diff and in CI.
+            if target.is_file():
+                tmp.chmod(target.stat().st_mode & 0o7777)
+            else:
+                umask = os.umask(0)
+                os.umask(umask)
+                tmp.chmod(0o666 & ~umask)
+            tmp.replace(target)
+        finally:
+            if tmp.exists():
+                tmp.unlink()
 
     print(entry["id"])
     return 0

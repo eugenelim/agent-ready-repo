@@ -394,6 +394,51 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no skill, script, command, hook, reference or eval was removed, renamed, or
   edited. If you have an older install, the stale `test_*.py` files under your
   installed skills are safe to delete.
+## [core][2.2.3] — 2026-08-07
+
+### Security
+
+- **The knowledge writer refuses invisible formatting characters.** It rejected
+  `Cc` controls but not `Cf` — the category holding bidi overrides, zero-width
+  characters, and the Unicode Tag block, which encodes arbitrary ASCII at zero
+  visual width. Since `session-start` replays every entry's title, scope and
+  body verbatim into an agent's context (and a `tier: invariant` entry goes in
+  regardless of scope), that was a durable prompt-injection channel invisible
+  in a diff. Both the writer and `lint-knowledge.py` now refuse them, the
+  latter because the file is hand-editable. ZWJ and ZWNJ stay legal — they are
+  text shaping, not a way to hide payload.
+
+### Fixed
+
+- **Concurrent appends no longer lose entries while reporting success.**
+  Allocating `max(id) + 1` and then replacing the file is a read-modify-write;
+  unlocked, six concurrent appends landed two entries and told all six callers
+  their learning was recorded. The read-through-replace window is now serialized
+  with a cross-platform lock that a killed process cannot wedge.
+- **Appending no longer narrows the knowledge file's permissions.**
+  `mkstemp` creates `0600` and `os.replace` carried that onto the target, taking
+  a committed world-readable file to owner-only. Git tracks only the exec bit,
+  so it was invisible to review and CI. The target's mode is now preserved.
+- **The knowledge linter cannot be hung by the input it exists to reject.** Its
+  escape-detection pattern backtracked quadratically (measured 1.1s at 20k
+  backslashes) and it runs unfiltered over a repo file in CI. Replaced with a
+  non-backtracking pattern plus a line-length cap.
+- **Status-regression detection now covers every verb that reads a pinned
+  artifact**, not one of three. Normalizing the status token out of the hash
+  removed the byte-compare that used to catch a spec regressing to `Draft`;
+  the replacement assertion was only wired into `plan check-current`, so
+  `approve-plan`'s already-approved branch and `schedule check-current` still
+  passed such a spec.
+- **Checkbox normalization is scoped to the Acceptance Criteria section.** It
+  applied file-wide, so ticking a checkbox under `## Boundaries` — including a
+  `Never do` item, precisely the scope the pin protects — collided with the
+  approved digest.
+- **The hash-mismatch message no longer prescribes a recovery that fails.** It
+  said to run `loop-cohort reset` and re-run the G-plan sequence, but that
+  sequence has no `init` step, so `approve-plan` immediately refused; and it
+  omitted that `loop-engine reset` must *not* be run. It now points at the
+  Upgrading note below.
+
 ## [core][2.2.2] — 2026-08-06
 
 ### Fixed

@@ -162,6 +162,32 @@ def layer_validation_rules(tmp: Path) -> None:
     run_case(tmp, "stub-surrogate-pair-rejected",
              _entry(body="ship it 😀") + "\n", 1, "\\ud83d")
 
+    # AC20 — a literal invisible character, not an escape. The writer refuses
+    # these, but the file is hand-editable and session-start replays every
+    # entry verbatim into an agent's context, so the gate has to see them too.
+    run_case(tmp, "stub-literal-bidi-override-rejected",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "boring\u202e", "source": "s"},
+                        ensure_ascii=False) + "\n",
+             1, "U+202E")
+    run_case(tmp, "stub-literal-tag-block-rejected",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "h\U000e0053", "source": "s"},
+                        ensure_ascii=False) + "\n",
+             1, "U+E0053")
+    # ZWJ stays legal — text shaping, not hidden payload.
+    run_case(tmp, "stub-zwj-sequence-accepted",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "\U0001f468\u200d\U0001f469 family",
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             0, "Knowledge lint: passed")
+    # AC20 — a pathological line is refused before the regex sees it, so the
+    # gate cannot be hung by the input it exists to reject.
+    run_case(tmp, "stub-overlong-line-refused",
+             '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
+             '"body": "' + "\\\\" * 5000 + '", "source": "s"}\n',
+             1, "the limit is")
+
     # Empty file (no learnings yet) is valid.
     run_case(tmp, "empty", "", 0, "Knowledge lint: passed")
 

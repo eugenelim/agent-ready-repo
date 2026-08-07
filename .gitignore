@@ -92,3 +92,8 @@ docs-site/src/sidebar-config.json
 .plan.*.tmp
 .loop-run/
 .adapt-pending.md
+
+# append-knowledge.py transients — a SIGKILL between mkstemp and replace
+# would otherwise leave a partial knowledge file stageable by `git add -A`.
+docs/knowledge/.append-*.jsonl.tmp
+docs/knowledge/*.jsonl.lock

@@ -1,6 +1,6 @@
 # Spec: loop-tooling-mandated-writes
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, `docs/specs/loop-approved-spec-state/spec.md`
@@ -77,11 +77,11 @@ splits on `U+0085`, `U+2028`, and `U+2029`, and `ensure_ascii=False` emits all
 three raw. A naive "always write raw" rule would let one entry become two
 unparseable lines.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 **Defect 1 — lifecycle-tolerant contract hashing**
 
-- [ ] AC1. `loop-cohort.py` canonicalizes both contract artifacts identically
+- [x] AC1. `loop-cohort.py` canonicalizes both contract artifacts identically
       before hashing, normalizing exactly four things: CRLF/CR → LF; per-line
       trailing whitespace; the **status token only**, on the preamble status
       line only; and the **bracket contents only** of an acceptance-criterion
@@ -90,7 +90,7 @@ unparseable lines.
       what the list contains — still moves the digest.
 - [x] AC2. Status and checkbox recognition reuse the shared canonical parsers
       from `lint-spec-status.py` — `parse_status`, `extract_status_token`,
-      `_AC_OPEN_RE`, `_AC_DONE_RE`, and the three that *locate* the preamble
+      `_AC_DONE_RE` (only ticked boxes are normalized), and the three that *locate* the preamble
       line (`_STATUS_RE`, `_SECTION_HEADING_RE`, `_HTML_COMMENT_RE`) — via the
       `importlib` pattern `check-spec-status.py` already uses. The line is
       located by the same comment-stripped, heading-terminated scan
@@ -102,31 +102,41 @@ unparseable lines.
 - [x] AC4. Bumping spec `Status:` through `Approved → Implementing → Shipped`,
       and plan `Status:` through `Approved → Done`, leaves `plan check-current
       --require-schedule` and `schedule check-current` at exit 0.
-- [ ] AC5. Ticking an acceptance-criterion or plan-task checkbox leaves both
+- [x] AC5. Ticking an acceptance-criterion or plan-task checkbox leaves both
       checks at exit 0.
-- [ ] AC6. A substantive edit still fails both checks and still makes
+- [x] AC6. A substantive edit still fails both checks and still makes
       `approve-plan` refuse with `spec_changed=True` / `plan_changed=True`:
       changed AC text, added or removed AC, changed task text, changed
       `Depends on:`, **and free text appended after the status token on the
       status line** (`- **Status:** Implementing — scope now also covers X`).
-- [ ] AC7. A `**Status:**` occurrence in the document *body* — after the first
+- [x] AC7. A `**Status:**` occurrence in the document *body* — after the first
       `##` heading, as in a table row or fenced example — is hashed verbatim,
       not normalized. Only the preamble field is bookkeeping.
-- [ ] AC8. Appending `(deferred: <slug>)` to an AC still fails `plan
+- [x] AC8. Appending `(deferred: <slug>)` to an AC still fails `plan
       check-current`. Deferring an AC is a scope change, not bookkeeping. So is
       a `Shipped (2026-01-01)`-style annotation after the token: 
       `extract_status_token` truncates at `" ("`, so the annotation is not part
       of the token and stays hashed.
-- [ ] AC9. `plan check-current` asserts spec.md's status token is in
-      {`Approved`, `Implementing`, `Shipped`} and plan.md's is in {`Approved`,
-      `Executing`, `Done`}, and stops otherwise — replacing the regression
-      detection the raw-byte hash provided incidentally. **An absent or
-      unparseable token is skipped, not stopped**: `schedule check-current`
-      reads only plan.md, and plan fixtures legitimately carry no status line
-      (`test-loop-engine.py:93-97`). `schedule check-current` gains no status
-      assertion at all — it is a pre-guard on every `CODE-*` transition and
-      must not acquire a new way to go red.
-- [ ] AC10. Every hash-mismatch message names **both** possible causes
+- [x] AC9. Every verb that reads a pinned artifact asserts its status token is
+      legal after approval — spec.md in {`Approved`, `Implementing`, `Shipped`},
+      plan.md in {`Approved`, `Executing`, `Done`} — and stops otherwise. This
+      replaces the regression detection the raw-byte hash provided
+      incidentally. All three sites, via one shared helper: `plan
+      check-current`, `schedule check-current`, and `approve-plan`'s
+      already-approved branch, which is reached *before* the crash-window guard
+      and would otherwise report a clean no-op against a spec that no longer
+      claims to be approved.
+
+      **An absent or unparseable token is skipped, not stopped.** That is what
+      makes it safe on `schedule check-current`, a pre-guard on every `CODE-*`
+      transition: plan fixtures legitimately carry no status line
+      (`test-loop-engine.py:93-97`), so they are unaffected, and the three
+      statuses a plan legitimately holds after `plan-locked` are all in the
+      allowed set. A draft of this criterion excluded `schedule check-current`
+      to avoid giving it a new way to go red; secure-design review pointed out
+      that a compensating control covering one of three sites is not one, and
+      the skip rule already carries the safety.
+- [x] AC10. Every hash-mismatch message names **both** possible causes
       unconditionally — approved scope changed, *or* this baseline predates
       canonical hashing — and points at the reset pair. This covers all four
       mismatch sites: `plan check-current`'s spec and plan compares, its
@@ -186,14 +196,14 @@ unparseable lines.
       from the child environment, and a non-git cwd is a refusal rather than a
       `cwd` fallback — otherwise the confinement root of AC14 is itself
       environment-steerable.
-- [ ] AC16. Field values are validated **before** the file is opened: refused
+- [x] AC16. Field values are validated **before** the file is opened: refused
       if they contain a C0 control character (including `ESC`, which would be
       replayed as an ANSI sequence by `session-start.py`), `U+0085`, `U+2028`,
       or `U+2029`, or a lone surrogate; and `title` is capped at 120
       codepoints and `body` at 2000, a refusal naming the field and its limit.
       Knowledge entries are injected verbatim into every future agent session,
       so the writer is a durable-instruction channel and validates like one.
-- [ ] AC17. The candidate is **linted before it is installed**: the new
+- [x] AC17. The candidate is **linted before it is installed**: the new
       content is written to a temp file in the same directory, that temp path
       is linted, and only on success is it `os.replace`d over the target
       (matching `loop-cohort.py:write_state_atomic`). A failed lint, or any
@@ -201,7 +211,7 @@ unparseable lines.
       never replaced. There is no rollback window in which a bad entry is live
       on disk, and no partial line. `lint-knowledge.py` accepts an arbitrary
       path argument, so linting the candidate costs nothing extra.
-- [ ] AC18. The post-write lint runs `lint-knowledge.py` as a **subprocess**,
+- [x] AC18. The post-write lint runs `lint-knowledge.py` as a **subprocess**,
       so its `os.chdir` stays in the child, passing the resolved absolute path
       as the sole argument. No `--` separator: `lint-knowledge.py` has no
       argparse and would take `--` as the target path, failing every append.
@@ -212,7 +222,7 @@ unparseable lines.
       first" message rather than appending and blaming the caller's entry. A
       **non-existent** target is not a pre-existing failure — it is treated as
       an empty file and created, so a fresh knowledge base is reachable.
-- [ ] AC20. `lint-knowledge.py` fails an entry that escapes a character as
+- [x] AC20. `lint-knowledge.py` fails an entry that escapes a character as
       `\uXXXX` when that codepoint is `>= 0x20` and is not one of `U+0085`,
       `U+2028`, `U+2029`, naming the character and the fix. Escapes JSON
       requires (below `U+0020`) stay legal, as does a literal backslash-u
@@ -224,7 +234,7 @@ unparseable lines.
       append, state the raw-UTF-8 convention, and state the trust posture from
       AC16. The two READMEs' `## Verify before committing` sections stay
       byte-identical.
-- [ ] AC22. A self-test covers the writer: id allocation over a gap;
+- [x] AC22. A self-test covers the writer: id allocation over a gap;
       confinement refusal for both an out-of-root path and a symlink that
       escapes after resolution; the git-env-stripping of AC15 (a decoy
       `GIT_DIR` does not move the root); the out-of-process lint of AC18; the
@@ -240,14 +250,16 @@ unparseable lines.
 
 **Both**
 
-- [ ] AC24. These pass: `test-loop-cohort.py`, `test-loop-cohort.sh`,
+- [x] AC24. These pass: `test-loop-cohort.py`, `test-loop-cohort.sh`,
       `test-loop-engine.py`, `test_loop_cohort_schedule.py`,
       `test-lint-knowledge.py`, `test-append-knowledge.py`, `tools/test-all.py`,
       and `make build-check`. `.claude/` and `.agents/` projections are
       regenerated and committed.
-- [ ] AC25. Core pack version bumped in `pack.toml`, `plugin.json`, and
-      `marketplace.json`; CHANGELOG `[Unreleased]` records both fixes and the
-      migration note whose canonical statement is Assumption 1.
+- [x] AC25. Core pack version bumped in `pack.toml`, `plugin.json`, and
+      `.claude-plugin/marketplace.json`; `docs/product/changelog.md` gains a
+      `## [core][<version>]` entry recording both fixes and the migration note
+      whose canonical statement is Assumption 1. (This repo keeps a per-pack
+      changelog at that path; there is no root `CHANGELOG.md`.)
 
 ## Boundaries
 
@@ -308,12 +320,14 @@ unparseable lines.
    `lint-spec-status.py` runs at the finish checklist (`SKILL.md:434`) and
    requires every AC to be `[x]` or `(deferred: <slug>)`, so a concealed
    criterion fails there.
-3. **Concurrent invocation of `append-knowledge.py` is out of scope.** Id
-   allocation is a read-modify-write; two simultaneous appends could collide on
-   an id. Accepted: this is a single-agent-session authoring tool, the atomic
-   replace of AC17 means neither writer can produce a corrupt file, and
-   `lint-knowledge.py`'s duplicate-id rule catches a collision at the next gate.
-   Cross-platform file locking is disproportionate to the risk.
+3. **Concurrent invocation of `append-knowledge.py` is handled, not deferred.**
+   This assumption originally scoped it out as disproportionate for a
+   "single-agent-session authoring tool". That was wrong on two counts, both
+   shown by the post-EXECUTE security pass: this repo runs parallel implementers
+   in a shared worktree, so concurrency is expected rather than exotic; and the
+   failure is not a benign id collision but a repudiation — six concurrent
+   appends landed two entries while telling all six callers their learning was
+   recorded. AC17 now serializes the read-allocate-write window.
 4. **The `--file` flow is reviewer-owned, not scanner-owned.**
    `tools/semgrep/env-path-taint.yml:41-45` sources only `os.environ.*`, so an
    argv → path write sink produces no finding; a green SAST gate says nothing
