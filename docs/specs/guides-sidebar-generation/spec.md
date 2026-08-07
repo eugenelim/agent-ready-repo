@@ -1,6 +1,6 @@
 # Spec: guides-sidebar-generation
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0020](../../adr/0020-per-pack-diataxis-hierarchy-for-guides.md) (per-pack Diátaxis hierarchy), [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md) (Starlight), [`guide-source-model`](../guide-source-model/spec.md) (frontmatter declares kind), `contracts/guide.schema.json`, `site.toml` (site recipe), [`docs-site/AGENTS.md`](../../../docs-site/AGENTS.md) (build order), [`guides/AGENTS.md`](../../../guides/AGENTS.md) (publication routing)
@@ -70,7 +70,7 @@ One deterministic pass over `guides/**/*.md` produces one record per file:
 | `pack` | first path segment (`_shared`, `_reference` included) |
 | `kind` | `kind:` frontmatter when present, else the kind directory **normalized to the schema enum**, else none |
 | `order` | `order:` frontmatter; integer, else absent |
-| `title` | `title:` frontmatter, else the frozen baseline label, else derived from the filename |
+| `title` | `title:` frontmatter, or absent — the page's own title only. The label chain that consumes it is stated once, in § Layer 2 |
 | `slug` | `slug:` frontmatter when present, else derived — **must equal the Starlight slug of the file `mirror_guides()` writes** |
 | `is_index` | true for `README.md` at any depth |
 | `nav_eligible` | false for `AGENTS.md`; true otherwise |
@@ -139,12 +139,19 @@ existing labels (`'Foundation vs Map'` → `'Foundation Vs Map'`, every
    no pack path segment, so `pack` resolves to the tree root, not `README.md`.
 2. Records declaring `order` follow, sorted ascending **across kinds**, matching
    the schema and the existing `atlassian` sequence.
-3. Remaining records fall into kind buckets, alphabetical within each. Bucket
+3. Records with **no `kind` and no `is_index`** follow as direct group items.
+   Without this rule `guides/_reference/catalogue-format.md` — no frontmatter,
+   not a README, in no kind directory — falls through every other rule into a
+   bucket that does not exist, and is silently droppable. It is the only such
+   file in the tree today.
+4. Remaining records fall into kind buckets, alphabetical within each. Bucket
    sequence is the canonical `Tutorials, How-to, Reference, Explanation`.
-   Today's tree is not uniform — 15 packs run `Explanation, How-to, Reference,
-   Tutorials` while `frontend-engineering` and `atlassian` differ — so pinning
-   one sequence visibly reorders buckets in most packs. That is an accepted,
-   named consequence, not an accident.
+   Today's tree is not uniform, so pinning one sequence visibly reorders buckets
+   — see § Assumptions for exactly which groups move. That is an accepted, named
+   consequence, not an accident.
+
+Emission order within a group is therefore: `is_index` → `order`-declaring →
+kind-less non-index → kind buckets.
 
 ## Boundaries
 
@@ -183,7 +190,10 @@ both layers are unit-testable against a synthetic tree without invoking Astro.
 
 - **Inventory (TDD)** — fixture trees covering no frontmatter, `title`/`slug`
   override, `README.md` at pack and nested depth, `_shared`/`_reference`,
-  non-`.md` files, malformed frontmatter, non-integer `order`.
+  non-`.md` files, malformed frontmatter, non-integer `order`, a `tutorials/`
+  directory normalizing to kind `tutorial`, and a page carrying `kind: tutorial`
+  frontmatter inside a `tutorials/` directory (the mixed case that would
+  otherwise split one pack into two buckets).
 - **Slug parity (TDD)** — for every real file, the inventory slug equals the
   Starlight slug of what `mirror_guides()` writes. Guards against navigation
   pointing where the page is not.
@@ -239,11 +249,12 @@ The `atlassian` pages are the witness that cross-kind ordering works.
 - [ ] AC5 — Label precedence in the projected sidebar is frozen baseline →
       `title:` frontmatter → filename-derived, so the 13 pages whose `title:`
       differs from their baseline label keep the baseline label.
-- [ ] AC6 — Within a pack group the sequence is: `is_index` records as direct
-      items, then `order`-declaring records ascending across kinds, then the
-      remainder in kind buckets ordered `Tutorials, How-to, Reference,
-      Explanation`, alphabetical within each. The root `guides/README.md` is a
-      direct item of the "Guides" group.
+- [ ] AC6 — Within a pack group the emission order is exactly: (1) `is_index`
+      records as direct items, (2) `order`-declaring records ascending across
+      kinds, (3) kind-less non-index records as direct items, (4) the remainder
+      in kind buckets ordered `Tutorials, How-to, Reference, Explanation`,
+      alphabetical within each. The root `guides/README.md` is a direct item of
+      the "Guides" group.
 - [ ] AC7 — A non-integer `order` is treated as absent and does not raise; a
       `tutorials/` directory normalizes to kind `tutorial`.
 - [ ] AC8 — `site.toml`'s `[[guide_groups]]` entries are `dir` + `label`, table
@@ -289,14 +300,15 @@ The `atlassian` pages are the witness that cross-kind ordering works.
   pack-catalogue groups already use.
 - Kind-bucket labels keep their current words.
 - No published guide URL changes. This spec touches navigation only.
-- **Pack-group order does not change; kind-bucket order does.** The initial
-  `[[guide_groups]]` table reproduces today's pack-group sequence exactly, so no
-  pack group moves — except the five that had no group at all and are now
-  declared. Kind buckets *do* move: pinning `Tutorials, How-to, Reference,
-  Explanation` reorders buckets in the 15 packs currently running
-  `Explanation, How-to, Reference, Tutorials`, and in `frontend-engineering`.
-  `atlassian` already matches the canonical sequence. This is a visible,
-  intentional change and the approver is approving it.
+- **Pack-group order does not change; kind-bucket order does, in 11 of 17
+  groups.** The initial `[[guide_groups]]` table reproduces today's pack-group
+  sequence exactly, so no pack group moves — except the five that had no group
+  at all and are now declared. Kind buckets *do* move: pinning
+  `Tutorials, How-to, Reference, Explanation` reorders buckets in 11 of the 17
+  existing pack groups. Six already match the canonical sequence and do not
+  move: `frontend-engineering`, `atlassian`, `converters`, `figma`,
+  `governance-extras`, `monorepo-extras`. This is a visible, intentional change
+  and the approver is approving it.
 
 ## Out of scope
 

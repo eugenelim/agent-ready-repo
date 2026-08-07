@@ -1,6 +1,6 @@
 # Plan: guides-sidebar-generation
 
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Spec:** [`spec.md`](spec.md)
 
 > Measurements are stated once in [`spec.md` § Layer 1](spec.md#layer-1--inventory).
@@ -100,7 +100,9 @@ Tests: `test_record_has_all_layer1_keys` (assert key presence, not truthiness �
 `order` and `kind` are legitimately absent); `test_no_frontmatter_still_yields_record`;
 `test_title_override`; `test_shared_and_reference_packs`; `test_non_md_excluded`;
 `test_agents_md_not_nav_eligible`; `test_is_index_for_readme_at_any_depth`;
-`test_malformed_frontmatter_falls_back`; `test_non_integer_order_coerced_to_absent`.
+`test_malformed_frontmatter_falls_back`; `test_non_integer_order_coerced_to_absent`;
+`test_tutorials_dir_normalizes_to_kind_tutorial` (AC7's second half);
+`test_frontmatter_kind_wins_over_directory` (the mixed `tutorial`/`tutorials/` case).
 Approach: one pass over `guides/**/*.md`, reusing `_parse_frontmatter()`. Pure
 derivation, no projection concerns. Accept an **injectable path enumerator** so
 T7's determinism test has a seam. Never raise on bad input.
@@ -159,16 +161,19 @@ Tests: `test_order_sorts_across_kinds` (the `atlassian` 1–4 run spanning four
 kinds); `test_index_records_are_direct_group_items`;
 `test_root_readme_is_direct_item_of_guides_group`;
 `test_kind_buckets_use_canonical_sequence`;
+`test_kindless_non_index_record_precedes_kind_buckets` (naming
+`_reference/catalogue-format.md` — no frontmatter, not a README, no kind
+directory, so it falls through every other ordering rule; asserts position, not
+merely presence);
 `test_label_precedence_baseline_then_title_then_derived` (AC5 — assert the 13
 `title:`-bearing pages keep their baseline label);
 `test_no_frontmatter_page_is_projected` (AC4);
 `test_guide_groups_labels_and_order_applied`;
 `test_undeclared_dir_gets_titlecased_group_appended_last`;
 `test_iac_arc_orders_1_2_3`.
-Approach: within a pack group emit `is_index` records first, then
-`order`-declaring records sorted ascending across kinds, then the remainder in
-kind buckets ordered `Tutorials, How-to, Reference, Explanation`, alphabetical
-within each. Resolve labels via the spec's precedence chain — baseline first.
+Approach: emit in the four-step order stated in [`spec.md` § Layer
+2](spec.md#layer-2--projection) — it is the sole statement, deliberately not
+restated here. Resolve labels via the same section's precedence chain.
 Done when: tests pass, including both real ordered sequences.
 Depends on: T1, T3, T4, T5
 
