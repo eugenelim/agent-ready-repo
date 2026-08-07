@@ -166,7 +166,7 @@ SAST_DIRS := tools packs packages
 # validated by the gate it changes — build-check.yml's detection treats these
 # as SAST-relevant. (tools/requirements-sast.txt and tools/semgrep/ are already
 # covered by SAST_DIRS, so they need not be repeated here.)
-SAST_CONFIG := bandit.yaml .snyk Makefile .github/workflows/build-check.yml .github/workflows/codeql.yml
+SAST_CONFIG := bandit.yaml .snyk Makefile tools/audit-requirements.py .github/workflows/build-check.yml .github/workflows/codeql.yml
 
 # Single source of truth for the SAST scan scope + config surface.
 # build-check.yml's SAST-relevance detection reads these (`make -s
@@ -189,10 +189,15 @@ sast:
 	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	bandit -r $(SAST_DIRS) -c bandit.yaml --severity-level medium --confidence-level medium -q
-	@for f in tools/requirements.txt $$(find packs -name requirements.txt | sort); do \
-		echo "pip-audit -r $$f"; \
-		pip-audit -r "$$f" || exit 1; \
-	done
+	# The filter below stands in front of pip-audit, so a bug that drops a
+	# *third-party* pin would take this gate green over an unaudited dependency.
+	# Prove it before trusting it.
+	python3 tools/test-audit-requirements.py
+	# Audits every third-party pin, and skips this repo's own packages —
+	# `dependencies = []` on both, so they contribute no tree, and resolving them
+	# against the public index would couple a merge to a release that has not
+	# happened yet. Every skip is printed. See tools/audit-requirements.py.
+	python3 tools/audit-requirements.py tools/requirements.txt $$(find packs -name requirements.txt | sort)
 	# semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both carrying known CVEs
 	# (mcp: CVE-2026-52870, CVE-2026-52869, CVE-2026-59950; click: PYSEC-2026-2132).
 	# Attack surface is negligible: these packages are SAST-tooling transitive deps only,
