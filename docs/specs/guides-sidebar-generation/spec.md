@@ -14,10 +14,13 @@
 **A reader can follow an argument through the docs from one page to the next,
 and no reader-facing page is unreachable.**
 
-("Reader-facing" excludes `guides/AGENTS.md`, which is maintainer context. It is
-mirrored by `mirror_guides()` and so remains reachable by direct URL; keeping it
-out of navigation is the declared exception, not an oversight. Excluding it from
-the mirror would be a routing change, which this spec forbids.)
+("Reader-facing" excludes two kinds of page, both still mirrored and so still
+reachable by URL: `guides/AGENTS.md`, which is maintainer context, and the four
+`guides/_shared/<kind>/README.md` section-authoring templates ("Writing a
+how-to"), which address whoever writes the guides rather than the adopter who
+reads them. Neither was in the pre-change sidebar, so keeping them out preserves
+the status quo. Excluding them from the *mirror* would be a routing change,
+which this spec forbids.)
 
 That is the outcome. A generated sidebar is one mechanism serving it — named
 here so the spec is honest about what it builds, not because the sidebar is the
@@ -73,7 +76,7 @@ One deterministic pass over `guides/**/*.md` produces one record per file:
 | `title` | `title:` frontmatter, or absent — the page's own title only. The label chain that consumes it is stated once, in § Layer 2 |
 | `slug` | `slug:` frontmatter when present, else derived — **must equal the Starlight slug of the file `mirror_guides()` writes** |
 | `is_index` | true for `README.md` at any depth |
-| `nav_eligible` | false for `AGENTS.md`; true otherwise |
+| `nav_eligible` | false for `AGENTS.md` and for a `README.md` inside a kind directory; true otherwise |
 
 **On the `kind` directory fallback.** `guide-source-model` AC3 (shipped) states
 that the physical directory does not determine kind. This spec relaxes that
@@ -89,8 +92,9 @@ page under `guides/core/tutorials/` to gain frontmatter splits `core` into a
 from the directory and 4 declare `tutorial` in frontmatter, so nothing trips it
 yet — which is exactly why it must be pinned before migration begins.
 
-**Measurements** (single statement; the plan references this section rather than
-restating): 182 `.md` files, 1 nav-ineligible (`guides/AGENTS.md`), 181
+**Pre-change measurements** (2026-08-06; single statement, the plan references
+this section rather than restating — the shipped tree is larger, since this PR
+adds the three arc pages): 182 `.md` files, 1 nav-ineligible (`guides/AGENTS.md`), 181
 eligible, 181 distinct slugs (zero collisions), 119 entries in the hand tree,
 **62 absent**. Extract nav slugs with the pattern `slug: '(guides(/…)?)'` — a
 `guides/`-prefixed match silently drops the root `guides` entry and yields 118.
@@ -126,6 +130,10 @@ first would silently rewrite 13 reader-facing labels and put AC5 in direct
 conflict with AC9. Baseline-first makes *removing* an entry the deliberate,
 reviewable act that adopts a page's own title — so the registry still shrinks,
 but only on purpose.
+
+An index page with neither a baseline entry nor a `title:` reads `Overview`
+rather than the filename-derived `Readme`, matching every index entry in the
+pre-change tree.
 
 The baseline is required at all: filename derivation alone changes 90 of the 119
 existing labels (`'Foundation vs Map'` → `'Foundation Vs Map'`, every
@@ -239,8 +247,10 @@ The `atlassian` pages are the witness that cross-kind ordering works.
 - [x] AC1 — An inventory pass emits one record per `.md` file under `guides/`,
       each carrying every key in the Layer 1 table.
 - [x] AC2 — The set of slugs under the generated **Guides** groups equals the set
-      of `nav_eligible` inventory slugs exactly; `guides/AGENTS.md` appears in
-      neither. Pack-catalogue and top-level slugs are outside this set.
+      of `nav_eligible` inventory slugs exactly; `guides/AGENTS.md` and the
+      kind-directory authoring templates appear in neither. Pack-catalogue and
+      top-level slugs are outside this set. No two siblings of one group share a
+      label — pages and kind buckets alike.
 - [x] AC3 — For every file, the inventory slug equals the Starlight slug of the
       file `mirror_guides()` writes (its path with trailing `/index` stripped),
       including `slug:` overrides. `mirror_guides()` is unmodified.
@@ -248,7 +258,8 @@ The `atlassian` pages are the witness that cross-kind ordering works.
       labelled from the baseline or its filename.
 - [x] AC5 — Label precedence in the projected sidebar is frozen baseline →
       `title:` frontmatter → filename-derived, so the 13 pages whose `title:`
-      differs from their baseline label keep the baseline label.
+      differs from their baseline label keep the baseline label. An index page
+      falling through to derivation reads `Overview`.
 - [x] AC6 — Within a pack group the emission order is exactly: (1) `is_index`
       records as direct items, (2) `order`-declaring records ascending across
       kinds, (3) kind-less non-index records as direct items, (4) the remainder

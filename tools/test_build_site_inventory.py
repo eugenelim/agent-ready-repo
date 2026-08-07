@@ -192,31 +192,28 @@ def test_slug_frontmatter_override(tmp_path):
     assert rec["slug"] == "guides/atlassian/how-to/work-with-jira"
 
 
-def test_slug_matches_written_path_for_every_real_file():
-    """The parity guard, against the real tree: navigation must point where the
-    page actually lands. Compares inventory slug to the Starlight slug of the
-    file mirror_guides() writes."""
+def test_slug_matches_what_mirror_guides_actually_writes(tmp_path):
+    """The parity guard: navigation must point where the page lands.
+
+    Drives the real ``mirror_guides`` and reads the files it wrote, rather than
+    re-deriving its rules in the test body — a re-derivation would keep agreeing
+    with itself while both sides drifted away from the site.
+    """
     guides_root = REPO_ROOT / "guides"
+    site_docs = tmp_path / "docs"
+    build_site.mirror_guides(guides_root, site_docs)
+
+    written = set()
+    for p in site_docs.rglob("*.md"):
+        slug = p.relative_to(site_docs).with_suffix("").as_posix()
+        if slug.endswith("/index"):
+            slug = slug[: -len("/index")]
+        written.add(slug)
+
     records = build_site.build_guide_inventory(guides_root)
     assert len(records) > 100, "sanity: the real tree should be large"
-
-    for rec in records:
-        rel_parts = list(rec["source_path"].relative_to(guides_root).parts)
-        if rel_parts[-1] == "README.md":
-            rel_parts[-1] = "index.md"
-        text = rec["source_path"].read_text(encoding="utf-8")
-        fm = build_site._parse_frontmatter(text)
-        if fm and fm.get("slug"):
-            written = fm["slug"]
-        else:
-            parts = list(rel_parts)
-            parts[-1] = parts[-1][:-3]  # strip .md
-            written = "guides/" + "/".join(parts)
-        # Starlight serves `.../index` at `...`
-        expected = written[: -len("/index")] if written.endswith("/index") else written
-        if expected == "guides/index":
-            expected = "guides"
-        assert rec["slug"] == expected, f"{rec['source_path']}: {rec['slug']} != {expected}"
+    missing = sorted({r["slug"] for r in records} - written)
+    assert not missing, f"inventory slugs with no page written for them: {missing}"
 
 
 def test_inventory_accepts_injected_enumerator(tmp_path):

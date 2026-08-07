@@ -208,19 +208,18 @@ def test_iac_arc_orders_1_2_3():
     ]
 
 
-def test_nested_index_takes_its_bucket_label():
-    """A kind-directory README must not read "Overview" — guides/_shared has
-    four of them, and they would render as indistinguishable siblings."""
+def test_no_two_siblings_in_a_group_share_a_label():
+    """Pages AND buckets are siblings. An earlier fix compared only page
+    labels, so it could not see a page colliding with a bucket of the same
+    name — which is exactly what happened."""
     records = [
-        _rec("guides/_shared", pack="_shared", is_index=True),
-        _rec("guides/_shared/how-to", pack="_shared", kind="how-to", is_index=True),
-        _rec("guides/_shared/tutorials", pack="_shared", kind="tutorial", is_index=True),
+        _rec("guides/a", pack="a", is_index=True),
+        _rec("guides/a/how-to/x", pack="a", kind="how-to"),
+        _rec("guides/a/tutorials/y", pack="a", kind="tutorial"),
     ]
-    out = build_site.project_guide_sidebar(
-        records, [{"dir": "_shared", "label": "Cross-cutting"}], {})
-    labels = [i["label"] for i in _group(out, "Cross-cutting")["items"] if "slug" in i]
-    assert labels == ["Overview", "How-to", "Tutorials"]
-    assert len(labels) == len(set(labels)), "sibling labels must be distinguishable"
+    out = build_site.project_guide_sidebar(records, [{"dir": "a", "label": "A"}], {})
+    labels = _labels(_group(out, "A")["items"])  # pages and buckets alike
+    assert len(labels) == len(set(labels)), f"sibling label collision: {labels}"
 
 
 def test_slug_override_ending_in_index_is_stripped(tmp_path):

@@ -283,10 +283,19 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
             "title": fm.get("title") or None,
             "slug": override or guide_slug_for(rel_parts),
             "is_index": path.name == "README.md",
-            "nav_eligible": path.name not in _NAV_INELIGIBLE_NAMES,
+            # A README inside a kind directory is a section-authoring template
+            # ("Writing a how-to"), addressed to whoever writes the guides — not
+            # to the adopter this tree serves. None was in the pre-change
+            # sidebar, so keeping them out preserves the status quo.
+            "nav_eligible": (
+                path.name not in _NAV_INELIGIBLE_NAMES
+                and not (path.name == "README.md" and len(rel_parts) >= 3)
+            ),
         })
 
-    records.sort(key=lambda r: r["slug"])
+    # Secondary key on the path: a duplicate slug would otherwise resolve by
+    # enumerator arrival order, breaking determinism.
+    records.sort(key=lambda r: (r["slug"], str(r["source_path"])))
 
     # A repeated slug renders twice and orders by enumerator arrival, which
     # would break determinism. Set-equality tests cannot see it.
@@ -331,17 +340,11 @@ def _guide_label(record: dict, baseline: dict) -> str:
         return baseline[record["slug"]]
     if record["title"]:
         return record["title"]
-    tail = record["slug"].rsplit("/", 1)[-1]
     if record["is_index"]:
-        # Filename derivation would read "Readme". A pack (or tree) index reads
-        # "Overview", matching the pre-change tree. A kind-directory index takes
-        # its bucket's label instead — otherwise a group shows several identical
-        # "Overview" siblings; guides/_shared alone has four.
-        if record["slug"].count("/") > 1:
-            kind = _KIND_DIR_ALIASES.get(tail, tail)
-            return dict(_KIND_BUCKETS).get(kind, tail.replace("-", " ").title())
+        # Filename derivation would read "Readme"; every index entry in the
+        # pre-change tree reads "Overview".
         return "Overview"
-    return tail.replace("-", " ").title()
+    return record["slug"].rsplit("/", 1)[-1].replace("-", " ").title()
 
 
 def project_guide_sidebar(records: list[dict], guide_groups: list[dict],

@@ -42,8 +42,9 @@ no config to edit.
   a tutorial, a how-to, and an explanation form one reading sequence. Pages
   without it fall into kind buckets below the ordered run.
 - **Labels** resolve `guide-nav-baseline.toml` → `title:` frontmatter →
-  filename. The baseline is transitional: it froze the pre-generation labels so
-  none regressed. Add `title:` to a page and delete its baseline entry — that
+  filename. An index page falling through to derivation reads `Overview`. The
+  baseline is transitional: it froze the pre-generation labels so none
+  regressed. Add `title:` to a page and delete its baseline entry — that
   deletion is the deliberate act, and the registry shrinks.
 
 ## Traps
@@ -52,8 +53,9 @@ no config to edit.
   links. Verify targets exist before linking.
 - Links out of `guides/` become GitHub blob URLs — they send the reader off the
   site. Prefer an in-tree target.
-- `AGENTS.md` is mirrored but never enters navigation. It stays reachable by
-  URL; that is deliberate, not a gap.
+- `AGENTS.md` and the `_shared/<kind>/README.md` authoring templates are
+  mirrored but never enter navigation. They stay reachable by URL; that is
+  deliberate, not a gap — they address guide *authors*, not adopters.
 
 ## Verify
 
