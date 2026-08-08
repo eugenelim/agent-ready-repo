@@ -2662,10 +2662,14 @@ def test_ac5_bold_ac_region_terminates(tmp: Path) -> None:
                 "- [{m}] AC1\n", True),
         ("H3 subgroup inside the AC section",
          head + "## Acceptance Criteria\n\n### Group A\n\n- [{m}] AC1\n", True),
-        # An H3-opened AC section is closed by its own siblings. A fixed
-        # `#{1,2}` terminator only ever closed on H1/H2, so an `### Acceptance
-        # Criteria` ran through every later H3 to the next H2 — and un-pinned
-        # the `Never do` items underneath, the exact scope the pin protects.
+        # An H3-opened AC section is closed by its own siblings. `_AC_HEADING_RE`
+        # accepts `#{2,3}`, but the terminator was a fixed `#{1,2}`, so an
+        # `### Acceptance Criteria` ran through every later H3 to the next H2 and
+        # un-pinned the `Never do` items underneath — the exact scope the pin
+        # protects. No spec in this tree heads its criteria with H3 today (283
+        # are H2, 16 are a bold lead-in), so this is a latent defect rather than
+        # a live one: the recognizer admits a shape the terminator mishandles,
+        # and the first spec to use it would silently lose its pin.
         ("H3 AC then sibling H3 Never-do",
          head + "### Acceptance Criteria\n\n- [ ] AC1\n\n### Never do\n\n"
                 "- [{m}] never drop a table\n", False),

@@ -325,6 +325,16 @@ unparseable lines.
       those three exists only so an entry carrying one gets a single clear
       error rather than two — not to make them legal.
 
+      AC5's regions close on the next heading at their own depth or shallower,
+      never on a deeper one, and a bold lead-in — which has no depth — closes on
+      any heading or the next bold lead-in. The rule replaces a hand-cased pair
+      that fixed the terminator at `#{1,2}` while the recognizer accepted
+      `#{2,3}`: an `### Acceptance Criteria` therefore ran past every sibling H3
+      to the next H2 and un-pinned whatever sat under it. Latent, not live — no
+      spec in this tree uses that shape today, and re-canonicalizing every spec
+      under the new rule moves none of them — but the recognizer admits it, so
+      the first spec to use it would lose its pin silently.
+
       An earlier version did make the escaped form legal, on the reasoning that
       it was the only representation surviving `splitlines()`. That is precisely
       why it had to be refused: surviving intact is what lets it forge a line

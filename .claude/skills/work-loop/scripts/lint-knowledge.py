@@ -215,6 +215,13 @@ _TAB = 0x09
 _NEWLINE = 0x0A
 
 
+# An unknown field falls back to the strictest policy, not the most permissive.
+# `body` is the only multi-line field, so defaulting to it would hand a newline
+# to whatever the schema does not yet know about — an extra key is already a
+# lint error, but the fallback should not be the one that grants a capability.
+_UNKNOWN_FIELD_POLICY = {"max": 120, "multiline": False}
+
+
 def field_problems(value: str, field: str = "body") -> list[str]:
     r"""Every per-character rule, applied to a *decoded* field value.
 
@@ -225,7 +232,7 @@ def field_problems(value: str, field: str = "body") -> list[str]:
     `\uXXXX` form, and the short escapes (`\b \t \n \f \r`) were never
     inspected at all.
     """
-    policy = FIELD_POLICY.get(field, FIELD_POLICY["body"])
+    policy = FIELD_POLICY.get(field, _UNKNOWN_FIELD_POLICY)
     allowed_controls = {_TAB, _NEWLINE} if policy["multiline"] else {_TAB}
     problems: list[str] = []
     run = invisible = 0
