@@ -77,9 +77,10 @@ schema admits one event.
 
 ### Ask first
 
-- **Widening any pack's `allowed-scopes`.** After AC1 that is a decision to
-  publish that pack's code and hooks to a public marketplace, not a metadata
-  tweak. Owner approval, every time.
+- **Widening any pack's `allowed-scopes`.** That is a decision to publish the
+  pack's code *and hooks* to a public marketplace, not a metadata tweak — the
+  sibling spec's publish filter is what turns the declaration into publication.
+  Owner approval, every time.
 - Changing the interpreter a pack's hook commands invoke (`python` vs `python3`;
   bare `python` is absent on stock macOS). Pre-existing on every route.
 
@@ -126,8 +127,7 @@ AC7's quoting discipline is what makes shell form safe.
 
 ## Acceptance Criteria
 
-> **Moved.** Scope correctness (AC1-AC3) and the documentation/site fix
-> (AC4-AC6) now live in `../claude-plugin-route-scope/spec.md` as its
+> **Moved.** Scope correctness and the documentation/site fix now live in `../claude-plugin-route-scope/spec.md` as its
 > one-predicate-three-writers, site-gating, and prose-docs criteria. They
 > are not restated here; that spec must land first.
 
@@ -309,8 +309,8 @@ AC7's quoting discipline is what makes shell form safe.
 
 - [ ] **AC30 — The lint dry-runs the full compiler, on every wiring pack.**
   AC22's shared validators exclude AC10's splice and AC11's completeness and
-  confinement checks — and AC3 guarantees a repo-only pack never reaches the
-  compiler, so `packs/core`'s wiring, the only real wiring in the tree, would be
+  confinement checks — and the sibling spec's build-time filter guarantees a repo-only pack
+  never reaches the compiler, so `packs/core`'s wiring, the only real wiring in the tree, would be
   the one wiring those checks never run against. The lint therefore dry-runs
   `compile_plugin_hooks` against **every** pack shipping `.apm/hook-wiring/`,
   publishable or not, converting each raise to a finding.

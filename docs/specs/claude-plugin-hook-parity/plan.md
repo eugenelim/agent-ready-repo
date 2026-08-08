@@ -65,9 +65,10 @@ Verification anchors on the real-client criterion against `claude` 2.1.223.
 | `build/main.py` `_APM_INSTALL_MARKER_HOOK_JSON` | `hooks` into `dist/apm/.../install-marker.json` | unchanged — APM route, different artifact |
 | `adapters/claude_code.py` → `merge_json` | `.claude/settings.local.json` | unchanged code; **not reached** once `plugin-mode` resolves to `dropped` |
 
-ADR-0072 records `_aggregate_marketplace` as the writer missed last time. It was
-missed again in this plan's round-3 draft; it is listed explicitly for that
-reason.
+The two marketplace writers are the sibling spec's; ADR-0072 records
+`_aggregate_marketplace` as the writer missed last time, and it was missed again
+in this plan's earlier draft — which is why membership now lives in exactly one
+document.
 
 ## Anchor-test sweep
 
@@ -99,13 +100,13 @@ correct nested shape and need **no** change. The five `kiro-*` fixtures and
 `tests/fixtures/packs/cc-user-hooks/…/on-prompt.toml` are other adapters'
 contract-supported shapes that the compiler **skips** — they must not be
 rewritten, and `cc-user-hooks` is pinned by `test_cc_user_hooks_fixture.py` and
-`test_user_merge_json.py`. Fixtures with no `[pack.install]` table resolve to
-`["repo"]` and would stop producing plugin output; each whose tests assert that
-output declares `allowed-scopes = ["repo", "user"]` explicitly.
+`test_user_merge_json.py`. Fixture *scope* declarations are the sibling spec's
+task — and note its finding that the resolver gates on
+`[pack.adapter-contract].version`, not `[pack.install]`, so declaring
+`allowed-scopes` alone does not make a fixture publishable.
 
 **Stale prose:** `commands/upgrade.py:1672`;
-`tests/integration/test_tier_invariants.py:315-317`;
-of core at project scope" row, pinned green by
+`tests/integration/test_tier_invariants.py:315-317`.
 `tests/unit/test_manual_qa_matrix_shape.py:37-44` while the scenario becomes
 impossible.
 
