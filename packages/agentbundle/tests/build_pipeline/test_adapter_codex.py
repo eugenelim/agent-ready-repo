@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -291,7 +292,7 @@ class TestDirectDirectoryProjection(unittest.TestCase):
             projected_link = out / ".agents" / "skills" / "linker" / "references" / "shared.md"
             self.assertTrue(Path(projected_link).is_symlink())
             self.assertEqual(
-                str(Path(projected_link).readlink()),
+                os.readlink(projected_link),
                 str(Path("../../../assets/shared.md")),
             )
 

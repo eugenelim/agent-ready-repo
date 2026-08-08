@@ -33,9 +33,11 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   destructive-write guard tested whether `"tests/fixtures/"` appeared in the
   path as a substring. With the suite relocated those two segments are no longer
   adjacent, so the guard failed *open* — the command would have overwritten a
-  working tree with fixture data. It now matches path components, which also
-  preserves what the old form protected (`my-tests/fixtures-backup/` is still
-  allowed through).
+  working tree with fixture data. It now refuses on path components **or** the
+  original substring, so it refuses strictly more than before: the relocated
+  `tests/build_pipeline/fixtures/` shape is caught, and adjacent forms like
+  `mytests/fixtures/` keep the refusal they had. `my-tests/fixtures-backup/` is
+  still allowed through, which is what the original trailing slash protected.
 
 - **`catalogue init --preset self-hosted --tooling vendored` no longer copies
   test content into an adopter's tree.** The vendored copy is an install source

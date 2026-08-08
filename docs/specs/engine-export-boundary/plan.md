@@ -125,7 +125,7 @@ and is listed under *Ask first*.
 
 **Approach:**
 
-`git mv packages/agentbundle/agentbundle/build/tests packages/agentbundle/tests/build`,
+`git mv packages/agentbundle/agentbundle/build/tests packages/agentbundle/tests/build_pipeline`,
 keeping its `__init__.py`.
 
 **The moved suite inherits a fixture it does not have today.**
@@ -376,6 +376,13 @@ Wire the gate into `release-agentbundle.yml` immediately after "Build wheel +
 sdist". That job already runs on pull requests touching
 `packages/agentbundle/**` and its build step carries no tag-only condition, so
 the gate inherits PR-time coverage with no new trigger.
+
+**It blocks the release, not the merge.** `main`'s branch protection requires
+only `make build-check`, so this job runs on the PR but cannot stop a merge; a
+PR that re-includes tests in the wheel is mergeable over a red non-required
+job. `publish-pypi` needs `build-and-smoke`, so nothing reaches PyPI — but if
+merge-blocking is wanted, `build-and-smoke` has to join the required set. That
+is a repo-settings change, deliberately not made here.
 
 **The zipapp has to be built there too, with an argument, and not into `dist/`.**
 `python -m build` produces a wheel and an sdist; the zipapp comes only from

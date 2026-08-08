@@ -51,8 +51,14 @@ _EXEMPT = re.compile(r"^[^/]+/_data/catalogue-scaffold/")
 
 def offending_entries(artifact: Path) -> list[str]:
     """Return the test-content entries in *artifact*, sorted."""
-    with zipfile.ZipFile(artifact) as zf:
-        names = zf.namelist()
+    try:
+        with zipfile.ZipFile(artifact) as zf:
+            names = zf.namelist()
+    except (OSError, zipfile.BadZipFile) as exc:
+        raise SystemExit(
+            f"check-artifact-contents: {artifact.name}: not a readable zip "
+            f"archive ({exc})"
+        ) from exc
     return sorted(
         n for n in names if _TEST_ENTRY.search(n) and not _EXEMPT.search(n)
     )
@@ -67,6 +73,7 @@ def main(argv: list[str]) -> int:
         return 2
 
     failed = False
+    bad_args = False
     for raw in argv[1:]:
         artifact = Path(raw)
         if artifact.suffix not in (".whl", ".pyz"):
@@ -75,7 +82,8 @@ def main(argv: list[str]) -> int:
                 ".pyz (the sdist is deliberately not checked here)",
                 file=sys.stderr,
             )
-            return 2
+            bad_args = True
+            continue
         entries = offending_entries(artifact)
         if entries:
             failed = True
@@ -89,6 +97,8 @@ def main(argv: list[str]) -> int:
         else:
             print(f"check-artifact-contents: {artifact.name} clean")
 
+    if bad_args:
+        return 2
     if failed:
         print(
             "check-artifact-contents: tests must not ship in an installed "

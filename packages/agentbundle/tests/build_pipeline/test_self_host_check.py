@@ -1303,7 +1303,7 @@ class ClaudeSymlinkTests(unittest.TestCase):
             _recreate_claude_symlink(tree)
             link = tree / "CLAUDE.md"
             self.assertTrue(link.is_symlink())
-            self.assertEqual(str(link.readlink()), "AGENTS.md")
+            self.assertEqual(os.readlink(link), "AGENTS.md")
 
     def test_idempotent_on_correct_symlink(self) -> None:
         from agentbundle.build.self_host import _recreate_claude_symlink
@@ -1313,7 +1313,7 @@ class ClaudeSymlinkTests(unittest.TestCase):
             (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8", newline="\n")
             (tree / "CLAUDE.md").symlink_to("AGENTS.md")
             _recreate_claude_symlink(tree)  # should not raise
-            self.assertEqual(str((tree / "CLAUDE.md").readlink()), "AGENTS.md")
+            self.assertEqual(os.readlink(tree / "CLAUDE.md"), "AGENTS.md")
 
     def test_replaces_wrong_symlink(self) -> None:
         from agentbundle.build.self_host import _recreate_claude_symlink
@@ -1323,7 +1323,7 @@ class ClaudeSymlinkTests(unittest.TestCase):
             (tree / "AGENTS.md").write_text("agents\n", encoding="utf-8", newline="\n")
             (tree / "CLAUDE.md").symlink_to("other.md")
             _recreate_claude_symlink(tree)
-            self.assertEqual(str((tree / "CLAUDE.md").readlink()), "AGENTS.md")
+            self.assertEqual(os.readlink(tree / "CLAUDE.md"), "AGENTS.md")
 
     def test_creates_dangling_symlink_when_agents_md_missing_on_posix(self) -> None:
         """Historic POSIX semantic preserved: when AGENTS.md is absent
@@ -1447,7 +1447,7 @@ class ClaudeSymlinkFallbackTests(unittest.TestCase):
             _recreate_claude_symlink(tree)
             link = tree / "CLAUDE.md"
             self.assertTrue(link.is_symlink())
-            self.assertEqual(str(link.readlink()), "AGENTS.md")
+            self.assertEqual(os.readlink(link), "AGENTS.md")
 
 
 class MissingDiscoveryFailFastTests(unittest.TestCase):

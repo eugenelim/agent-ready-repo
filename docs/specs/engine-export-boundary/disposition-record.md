@@ -49,8 +49,11 @@ across the tree, forced by it entering lint scope for the first time (the ruff
 `exclude` also carries `"build"`). The second class was not anticipated by the
 spec's *Ask first* rail. It was resolved rather than surfaced because
 re-suppressing would reproduce the incidental-exclusion defect the spec exists to
-remove, and because no fix touches an assertion — but the rail was tripped, and
-saying so is the point of this record. No version bump until the release task.
+remove. Several of the fixes *are* assertion expressions, so this is not the
+cosmetic-only change an earlier draft of this record claimed: one — `os.readlink`
+to `Path.readlink` — silently normalised a link target and weakened four
+assertions, and was reverted once review caught it. The rail was tripped, the
+first account of it was wrong, and saying so is the point of this record.
 
 ## Declined-pattern register
 

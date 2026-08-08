@@ -54,7 +54,10 @@ ignore = [
 # legitimately unused when the fixture is invoked only for side effects.
 # E501 is suppressed because STUB skip messages and complex assertion
 # expressions intentionally span one line — splitting loses readability.
-"**/test_*.py" = ["ARG001", "ARG002", "ARG005", "E501"]
+# PTH115 (`os.readlink` -> `Path.readlink`) is suppressed in tests: the raw
+# link target is what these assertions compare, and `Path.readlink()`
+# normalises it ("./AGENTS.md" -> "AGENTS.md"), silently weakening them.
+"**/test_*.py" = ["ARG001", "ARG002", "ARG005", "E501", "PTH115"]
 "**/*_test.py" = ["ARG001", "ARG002", "ARG005", "E501"]
 "**/test-*.py" = ["ARG001", "ARG002", "ARG005", "E501"]
 # Adapter-root-bins are CLI entry points
