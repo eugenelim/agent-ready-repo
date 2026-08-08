@@ -281,6 +281,14 @@ detection loses its baseline.
 
 ### Removed
 
+- **The source distribution no longer carries the engine's test suite.**
+  0.29.8's sdist held 45 engine test modules; 0.30.0's holds none. They sat
+  inside the importable package, so setuptools swept them in; from their new
+  home they need an explicit `MANIFEST.in` graft, which lands with the
+  catalogue carve-out. If you build from the sdist and run the upstream
+  suite, this release has nothing for you to run — build from a git
+  checkout until the graft ships.
+
 - **`import agentbundle.build.tests` no longer resolves.** Nothing imported it;
   the module existed only to make a directory look like a package.
 
