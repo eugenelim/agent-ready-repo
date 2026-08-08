@@ -66,15 +66,11 @@ _MAX_LINE = 8192
 # error rather than two. The literal form also breaks `str.splitlines()`, which
 # is how both this linter and session-start.py read the file.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
-# The two controls that are ordinary formatting rather than display
-# manipulation. A newline inside a JSON string is escaped on disk, so it never
-# splits a JSONL line, and session-start indents multi-line bodies on purpose.
-# Everything else in Cc — ESC, DEL, the C1 block, and a bare CR, which can
-# overwrite a terminal line — has no business in a channel replayed verbatim.
-_ALLOWED_CONTROLS = frozenset({0x09, 0x0A})
-# No C0 character belongs in a field value in either spelling: `field_problems`
-# refuses category `Cc` on the *decoded* string, which covers the literal and
-# the escaped form together. The escape rule below therefore defers to that
+
+# No C0 character beyond FIELD_POLICY's tab and per-field newline carve-outs
+# belongs in a field value in either spelling: `field_problems` refuses category
+# `Cc` on the *decoded* string, which covers the literal and the escaped form
+# together. The escape rule below therefore defers to that
 # predicate rather than keeping its own exemption list — surrogates excepted,
 # because a pair decodes to a valid astral character and the escape form is the
 # only place it is ever visible.
@@ -137,8 +133,19 @@ _INVISIBLE_BUDGET_DIVISOR = 50  # i.e. 2% of the field
 _MIN_INVISIBLE_ALLOWANCE = 8
 
 
-def invisible_budget(value: str) -> int:
-    return max(_MIN_INVISIBLE_ALLOWANCE, len(value) // _INVISIBLE_BUDGET_DIVISOR)
+def invisible_budget(value: str, cap: int | None = None) -> int:
+    """Invisible characters tolerated in *value*, as a share of its length.
+
+    Clamped at the field's own `max`, because the budget is otherwise bought
+    with padding: on the hand-edit path, where no writer has enforced a cap, an
+    8000-character title buys 160 invisibles and lints clean. The cap is what a
+    legitimate value could hold, so it is the honest basis. Length itself is
+    left to `append-knowledge.py` — entries predating this gate carry titles
+    over the cap, and a gate that reddens data already on main is a broken gate,
+    not a strict one.
+    """
+    basis = len(value) if cap is None else min(len(value), cap)
+    return max(_MIN_INVISIBLE_ALLOWANCE, basis // _INVISIBLE_BUDGET_DIVISOR)
 
 
 def is_hidden_char(ch: str) -> bool:
@@ -173,7 +180,7 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
         # whole non-BMP half of the drift this rule exists for.
         # Tab and newline are legal in a value but JSON *requires* them escaped,
         # so the escaped spelling is the only legal one and must not be flagged.
-        if cp in _ALLOWED_CONTROLS:
+        if cp in (_TAB, _NEWLINE):
             continue
         if not (0xD800 <= cp <= 0xDFFF) and field_problems(chr(cp)):
             continue
@@ -181,7 +188,34 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
     return found
 
 
-def field_problems(value: str) -> list[str]:
+# ── the field policy ──────────────────────────────────────────────────────
+#
+# What may appear in a value, stated once and read by every layer: this
+# linter, `append-knowledge.py`, and — by construction — what
+# `tools/hooks/session-start.py` can safely replay. Three layers reasoned about
+# one at a time is how a newline came to be legal in `title`: `body` is printed
+# line-by-line with an indent, so a newline there is formatting, while every
+# other field lands on one unindented header line, so a newline there forges a
+# line inside the replayed block.
+#
+# `multiline` is therefore per field, not global. Tab is fine everywhere. Caps
+# are enforced here as well as in the writer, because this is the gate for the
+# hand-edit path — and a budget derived from field length is otherwise bounded
+# only by _MAX_LINE.
+FIELD_POLICY: dict[str, dict] = {
+    "id":     {"max": 32, "multiline": False},
+    "kind":   {"max": 32, "multiline": False},
+    "tier":   {"max": 32, "multiline": False},
+    "scope":  {"max": 200, "multiline": False},
+    "title":  {"max": 120, "multiline": False},
+    "body":   {"max": 2000, "multiline": True},
+    "source": {"max": 120, "multiline": False},
+}
+_TAB = 0x09
+_NEWLINE = 0x0A
+
+
+def field_problems(value: str, field: str = "body") -> list[str]:
     r"""Every per-character rule, applied to a *decoded* field value.
 
     Decoded on purpose: `json.loads` has already collapsed `\u001b` and a
@@ -191,16 +225,18 @@ def field_problems(value: str) -> list[str]:
     `\uXXXX` form, and the short escapes (`\b \t \n \f \r`) were never
     inspected at all.
     """
+    policy = FIELD_POLICY.get(field, FIELD_POLICY["body"])
+    allowed_controls = {_TAB, _NEWLINE} if policy["multiline"] else {_TAB}
     problems: list[str] = []
     run = invisible = 0
     for ch in value:
         cp = ord(ch)
-        if unicodedata.category(ch) == "Cc" and cp not in _ALLOWED_CONTROLS:
+        if unicodedata.category(ch) == "Cc" and cp not in allowed_controls:
             problems.append(f"control character U+{cp:04X}")
         elif is_hidden_char(ch):
             problems.append(f"invisible character U+{cp:04X} "
                             f"({unicodedata.name(ch, 'unnamed')})")
-        if cp in _LINE_BREAKERS:
+        elif cp in _LINE_BREAKERS:
             # U+0085 is Cc and caught above; U+2028 is Zl and U+2029 is Zp, so
             # neither falls under any other rule. They have to be named here or
             # the *escaped* spelling survives the round trip intact and forges a
@@ -218,7 +254,7 @@ def field_problems(value: str) -> list[str]:
                 problems.append(f"run of {run} adjacent zero-width characters")
         else:
             run = 0
-    budget = invisible_budget(value)
+    budget = invisible_budget(value, policy["max"])
     if invisible > budget:
         problems.append(f"{invisible} zero-width characters in {len(value)} "
                         f"(budget {budget}) — adjacency alone does not bound volume")
@@ -321,10 +357,10 @@ def main(argv: list[str] | None = None) -> int:
                 err(line_no, f"{key!r} must be a string, got "
                              f"{type(value).__name__!r}")
                 continue
-            for problem in field_problems(value):
+            for problem in field_problems(value, key):
                 err(
                     line_no,
-                    f"{key!r} contains a {problem} — entries are replayed "
+                    f"{key!r} contains {problem} — entries are replayed "
                     f"verbatim into every session, so these are refused; "
                     f"write entries with append-knowledge.py",
                 )

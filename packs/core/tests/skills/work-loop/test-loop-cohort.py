@@ -2662,6 +2662,20 @@ def test_ac5_bold_ac_region_terminates(tmp: Path) -> None:
                 "- [{m}] AC1\n", True),
         ("H3 subgroup inside the AC section",
          head + "## Acceptance Criteria\n\n### Group A\n\n- [{m}] AC1\n", True),
+        # An H3-opened AC section is closed by its own siblings. A fixed
+        # `#{1,2}` terminator only ever closed on H1/H2, so an `### Acceptance
+        # Criteria` ran through every later H3 to the next H2 — and un-pinned
+        # the `Never do` items underneath, the exact scope the pin protects.
+        ("H3 AC then sibling H3 Never-do",
+         head + "### Acceptance Criteria\n\n- [ ] AC1\n\n### Never do\n\n"
+                "- [{m}] never drop a table\n", False),
+        ("H3 AC then H2",
+         head + "### Acceptance Criteria\n\n- [ ] AC1\n\n## Boundaries\n\n"
+                "- [{m}] never force-push\n", False),
+        # ...but not by a deeper one: H4 nests inside H3 exactly as H3 nests
+        # inside H2, so the rule is depth, not a hard-coded level.
+        ("H4 subgroup inside an H3-opened AC section",
+         head + "### Acceptance Criteria\n\n#### Group A\n\n- [{m}] AC1\n", True),
     ]
     for label, body, should_be_bookkeeping in checks:
         same = canonical_contract(body.format(m=" ")) == canonical_contract(body.format(m="x"))

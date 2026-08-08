@@ -212,15 +212,18 @@ _STATUS_PLACEHOLDER = "<loop-cohort:status>"
 _AC_HEADING_RE = re.compile(
     r"^ {0,3}(?:#{2,3}\s+|\*\*)Acceptance\s+Criteria\b", re.IGNORECASE
 )
-_ANY_SECTION_RE = re.compile(r"^ {0,3}#{1,2}[ \t]")
-# A bold-lead-in region has no heading to close it, so it would run to EOF and
-# un-pin every later checkbox — including a `Never do` item, which is the scope
-# the pin exists to protect. It closes on the next bold lead-in instead.
-# H3 closes a bold-opened region but NOT an H2-opened one: H3 subheadings sit
-# inside H2-opened AC sections all over this repo and closing on them would end
-# those regions early, while no bold-opened region contains one.
+# A region closes on the next heading at its own depth or shallower — a sibling
+# or an ancestor — and never on a deeper one. That single rule replaces the
+# hand-cased pair it grew out of: H3 subheadings sit inside H2-opened AC
+# sections all over this repo and must not close them, while an H3-opened
+# section is closed by the next H3, which a fixed `#{1,2}` test missed entirely.
+# A bold lead-in has no depth, so it takes _BOLD_DEPTH — deeper than any
+# heading, so every heading closes it — and also closes on the next bold lead-in,
+# without which it would run to EOF and un-pin every later checkbox, including a
+# `Never do` item, which is the scope the pin exists to protect.
+_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})[ \t]")
 _BOLD_LEAD_RE = re.compile(r"^ {0,3}\*\*")
-_H3_RE = re.compile(r"^ {0,3}#{3,6}[ \t]")
+_BOLD_DEPTH = 7
 
 # AC10: a mismatch has two possible causes and the verb cannot tell them apart,
 # so it names both rather than asserting the one that is usually wrong.
@@ -297,7 +300,7 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
     # would break this normalization for exactly those specs. Tracked as
     # `spec-ac-heading-casing-silent-gate`.
     in_ac = not ac_section_only
-    opened_bold = False
+    opened_depth = _BOLD_DEPTH
     fence_char = fence_len = None
     for i, line in enumerate(lines):
         # CommonMark fence semantics, not a toggle. A toggle desyncs on a
@@ -322,13 +325,15 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
             continue
         if ac_section_only and _AC_HEADING_RE.match(line):
             in_ac = True
-            opened_bold = _BOLD_LEAD_RE.match(line) is not None
+            opener = _HEADING_RE.match(line)
+            opened_depth = len(opener.group(1)) if opener else _BOLD_DEPTH
             continue
-        if ac_section_only and in_ac and (
-            _ANY_SECTION_RE.match(line)
-            or (opened_bold and (_BOLD_LEAD_RE.match(line) or _H3_RE.match(line)))
-        ):
-            in_ac = False
+        if ac_section_only and in_ac:
+            closer = _HEADING_RE.match(line)
+            if (closer and len(closer.group(1)) <= opened_depth) or (
+                opened_depth == _BOLD_DEPTH and _BOLD_LEAD_RE.match(line)
+            ):
+                in_ac = False
         if in_ac and lint._AC_DONE_RE.match(line):
             # Bracket contents only — leading whitespace and the bullet run stay
             # byte-for-byte, so re-indenting a criterion still moves the digest.

@@ -332,8 +332,9 @@ matches nothing today, so it passed whether or not the task was done.)
 **Touches:** `.../scripts/lint-knowledge.py`, `.../test-lint-knowledge.py`
 
 Per-line rule: an escape `\uXXXX` is a character written the wrong way unless
-the decoded pass already refuses that character — no C0 or line separator
-belongs in a field value in either spelling, so flagging the escape too would
+the decoded pass already refuses that character — no C0 beyond tab and a
+`body` newline, and no line separator, belongs in a field value in either
+spelling, so flagging the escape too would
 just draw a second error advising a form that is also refused. Surrogates stay
 flagged here regardless, because a pair decodes to a valid character and the
 escape form is the only place it is visible. An escape is
@@ -385,8 +386,9 @@ Order of operations, which is the whole design:
    / "docs" / "knowledge")`, checked *after* resolution. Mirror
    `tools/hooks/session-start.py:_safe_override_path`'s shape and its rationale comment (AC14).
 3. **Validate every field value** before opening anything: reject C0 controls
-   (including `ESC`), `U+0085`, `U+2028`, `U+2029`, lone surrogates; cap
-   `title` and `body` length; and validate `--kind` / `--tier` against the
+   (including `ESC`) other than tab and, in `body` alone, newline; reject
+   `U+0085`, `U+2028`, `U+2029`, lone surrogates; cap `title`, `body`, `scope`
+   and `source` length; and validate `--kind` / `--tier` against the
    linter's `ALLOWED_KINDS` / `ALLOWED_TIERS` (AC16). Argparse `choices=` is
    the natural home, sourced from the linter rather than restated.
 4. **Pre-lint** the existing file; a pre-existing failure exits with its own

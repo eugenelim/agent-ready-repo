@@ -79,14 +79,6 @@ DEFAULT_FILENAME = "patterns.jsonl"
 # Field order as documented in docs/knowledge/README.md's field table.
 FIELD_ORDER = ("id", "kind", "scope", "tier", "title", "body", "source")
 
-TITLE_CAP = 120
-BODY_CAP = 2000
-# Capped too, or the invisible-character budget — which is proportional to the
-# field length — is bounded only by the linter's 8192-character line cap: a
-# 4900-character scope buys 100 zero-width characters, and session-start prints
-# scope verbatim in every entry header.
-SCOPE_CAP = 200
-SOURCE_CAP = 120
 
 # Environment that steers `git rev-parse --show-toplevel` away from the cwd.
 _GIT_ENV_OVERRIDES = (
@@ -299,15 +291,21 @@ def validate_value(field: str, value: str) -> str | None:
     disagree about what is refused. Only the field-shaped rules — emptiness and
     the length caps — are the writer's own.
     """
+    # Every per-character and length rule lives in `lint-knowledge.py`'s
+    # FIELD_POLICY and is asked of it here, so the writer and the gate cannot
+    # disagree — they were reasoned about separately once, and a newline ended
+    # up legal in `title` on one side and not the other.
     lint = _linter()
-    problems = lint.field_problems(value)
+    # Length is enforced here and not at the gate: it is an editorial norm, not
+    # a replay hazard, and entries written before either existed run longer than
+    # the cap. The cap still bounds the gate's invisible budget.
+    cap = lint.FIELD_POLICY.get(field, {}).get("max")
+    if cap is not None and len(value) > cap:
+        return f"{field} is {len(value)} characters; the limit is {cap}"
+    problems = lint.field_problems(value, field)
     if problems:
         return (f"{field} contains a {problems[0]}; entries are replayed "
                 "verbatim into every future session, so these are refused")
-    cap = {"title": TITLE_CAP, "body": BODY_CAP,
-           "scope": SCOPE_CAP, "source": SOURCE_CAP}.get(field)
-    if cap is not None and len(value) > cap:
-        return f"{field} is {len(value)} characters; the limit is {cap}"
     if not value.strip():
         return f"{field} must be a non-empty string"
     return None
@@ -357,8 +355,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--kind", required=True, choices=sorted(linter.ALLOWED_KINDS))
     ap.add_argument("--scope", required=True,
                     help="comma-separated path glob(s), e.g. 'packs/core/**'")
-    ap.add_argument("--title", required=True, help=f"one line, <= {TITLE_CAP} chars")
-    ap.add_argument("--body", required=True, help=f"the lesson, <= {BODY_CAP} chars")
+    ap.add_argument("--title", required=True,
+                    help=f"one line, <= {linter.FIELD_POLICY['title']['max']} chars")
+    ap.add_argument("--body", required=True,
+                    help=f"the lesson, <= {linter.FIELD_POLICY['body']['max']} chars")
     ap.add_argument("--source", required=True, help="provenance, e.g. PR#42")
     ap.add_argument("--tier", choices=sorted(linter.ALLOWED_TIERS), default=None)
     ap.add_argument("--file", default=None,

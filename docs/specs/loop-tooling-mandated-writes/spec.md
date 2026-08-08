@@ -221,8 +221,21 @@ unparseable lines.
       replayed as an ANSI sequence by `session-start.py`), `U+0085`, `U+2028`
       or `U+2029` **in either spelling**, a lone surrogate, or any
       **default-ignorable code point**;
-      and `title` is capped at 120 codepoints and `body` at 2000, a refusal
-      naming the field and its limit.
+      and `title` is capped at 120 codepoints, `body` at 2000, `scope` at 200
+      and `source` at 120, a refusal naming the field and its limit.
+
+      Tab and newline are the two carve-outs from the C0 rule, and newline is
+      granted **per field**, because `session-start.py`'s layout differs per
+      field: it prints `body` line-by-line under a four-space indent, so a
+      newline there is formatting, while `id`/`kind`/`scope`/`title` share one
+      unindented header line and `source` gets its own `    — ...` line — a
+      newline in any of those forges a line inside the replayed block, enough to
+      close it with a counterfeit `=== end knowledge ===` and follow it with an
+      instruction. Tab carries no layout meaning and stays legal everywhere. The
+      rule is stated once, as `FIELD_POLICY` in `lint-knowledge.py`, and read by
+      the writer rather than restated: a single global allowlist is how a
+      newline came to be legal in `title` while the same character was refused
+      in principle.
 
       Default-ignorable is the Unicode property, enumerated from
       `DerivedCoreProperties` rather than sampled — sampling failed twice, first
@@ -285,7 +298,8 @@ unparseable lines.
       **decoded** field values, so the literal and `\uXXXX` spellings are
       covered by one pass and the writer and the gate cannot diverge — checking
       the raw line alone is how the gate came to accept control characters the
-      writer refused. No C0 is permitted in either spelling, which leaves the
+      writer refused. No C0 beyond AC16's tab and newline carve-outs is
+      permitted in either spelling, which leaves the
       escape rule exempting whatever the decoded pass already refuses, so a character
       never draws two errors with the second advising a form that is also
       refused — surrogates excepted, since a pair decodes to a valid astral
@@ -294,6 +308,15 @@ unparseable lines.
       than 8192 characters before any regex runs, so the gate cannot be hung by
       the input it exists to reject; and reports an undecodable file as a lint
       error instead of tracebacking.
+
+      The gate does **not** re-check length. Three entries already on `main`
+      carry titles over the writer's cap, and a gate that reddens data already
+      committed is broken rather than strict; length is an editorial norm the
+      writer owns. The caps still bind here in the one way that matters: the
+      invisible-character budget is a share of field length, so it is computed
+      against `min(len(value), cap)` — otherwise the hand-edit path, which no
+      writer guards, lets padding buy allowance, and a 2000-character title
+      carries 20 zero-width joiners through a gate that permits 8.
 - [x] AC20. `lint-knowledge.py` fails an entry that escapes a character as
       `\uXXXX` when that character should have been written literally, naming
       the character and the fix. The decoded pass of AC20a is what makes this
@@ -321,9 +344,10 @@ unparseable lines.
       escapes after resolution; the git-env-stripping of AC15 (a decoy
       `GIT_DIR` does not move the root); the out-of-process lint of AC18; the
       pre-existing-lint-failure path and the absent-target path; a forced
-      post-lint failure leaving the target byte-identical; the AC16 caps at
-      their boundary (at-cap accepted, cap+1 refused); and a round-trip
-      proving a non-ASCII body lands raw.
+      post-lint failure leaving the target byte-identical; all four AC16 caps at
+      their boundary (at-cap accepted, cap+1 refused); a newline refused in
+      `title`, `scope` and `source` while a multi-line `body` is accepted; and a
+      round-trip proving a non-ASCII body lands raw.
 - [x] AC23. The self-test actually gates. `tools/test-all.py` lists it, **and**
       a step running it is added to the `lint-knowledge` job in
       `.github/workflows/docs.yml` — `tools/test-all.py` is hand-run

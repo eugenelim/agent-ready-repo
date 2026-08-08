@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Knowledge entries refuse control characters other than tab and newline.**
+- **Knowledge entries refuse control characters other than tab, and newline in `body`.**
   A hand-edited entry carrying `ESC`, `DEL`, a C1 character or a bare carriage
   return now fails `lint-knowledge.py`, where it previously passed — these are
   replayed verbatim into every session by the session-start hook, and a bare CR
@@ -167,7 +167,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `append-knowledge.py` now allocates the next id, writes raw UTF-8, confines
   its target, and lints the candidate before installing it, so a rejected entry
   never reaches the file. `lint-knowledge.py` rejects a `\uXXXX` escape for any
-  character that should have been literal. Every C0 character and every line
+  character that should have been literal. Every C0 character bar tab (and a
+  newline in `body`, which session-start indents) and every line
   separator (`U+0085`, `U+2028`, `U+2029`) is refused in **both** spellings:
   the literal form splits `str.splitlines()`, which is how the linter and
   `session-start` read the file, and the escaped form is worse — it survives
