@@ -135,7 +135,11 @@ Used by every criterion below. A pack is **publishable** when all hold:
 
 - [ ] **AC5 — Membership is asserted on all three surfaces, both directions.**
   The dist tree, the dist `marketplace.json`, and the repo-root
-  `marketplace.json` each equal the derived publishable set exactly. Both
+  `marketplace.json` each equal the derived publishable set exactly. **The
+  expected side is enumerated literally in the test**, never computed by calling
+  the production predicate — otherwise a predicate bug shifts both sides
+  identically and the assertion is a tautology that stays green while the
+  marketplace truncates. Both
   directions matter: AC6's by-name absences catch a fail-open bug, and only set
   equality catches a fail-*closed* one — most plausibly AC2's absent-contract
   trap — which could truncate or empty the marketplace uncaught.
@@ -151,8 +155,10 @@ Used by every criterion below. A pack is **publishable** when all hold:
   gitignored and absent under a plain `pytest` run; an absence assertion against
   a directory that does not exist is green while the feature is broken.
 
-- [ ] **AC6 — The seven excluded packs are asserted by name**, absent from all
-  three surfaces. The assertion carries a comment naming it the
+- [ ] **AC6 — Both sides of the split are asserted by name.** The seven excluded
+  packs absent from all three surfaces, **and the user-capable complement present
+  by name** — absences alone leave a fail-closed truncation that drops
+  `architect` or `product-documentation` asserted by nothing. The assertion carries a comment naming it the
   **scope-widening-equals-publication tripwire** — a future engineer must not
   "fix" it by deleting a name.
 
@@ -194,10 +200,14 @@ Used by every criterion below. A pack is **publishable** when all hold:
   forbids touching a pack's scope declaration even transiently.
 
   A **second** mutation exercises the membership tripwire, which the frontmatter
-  desync does not reach: inject a repo-only pack entry into
-  `.claude-plugin/marketplace.json`, assert `make build-check` exits non-zero,
-  revert. Without it the required gate is green while AC6's assertion may be
-  unregistered. The transcript
+  desync does not reach. It must be one the **existing** projected-path drift
+  gate cannot see: `.claude-plugin/marketplace.json` is regenerated into the
+  shadow tree and diffed (`self_host.py:1169-1193`), so hand-injecting an entry
+  there exits non-zero on *drift* whether or not the membership lint was ever
+  registered — reproducing the very defect this mutation was added to catch.
+  Instead: drive the membership lint's own `tools/test-lint-*.py`, or mutate the
+  **dist** marketplace, and require the recorded transcript to name *which* gate
+  produced the non-zero exit. The transcript
   lands in the plan's `## Verification log`. A passing target proves the target
   passes, not that the new check ran.
 
@@ -217,9 +227,24 @@ Used by every criterion below. A pack is **publishable** when all hold:
   invariant Defect 3 opens on, which no other criterion covers (AC4's check is
   one-directional).
 
-  AC6 is a declared-intent tripwire; AC10 is the enforcement boundary. Putting
-  the publish job behind a GitHub Environment with a required reviewer is
-  **Deferred** — repository settings, not a code change.
+  It additionally asserts `{names in the repo-root marketplace} ⊆ {published
+  directory names}`. AC11 leaves `catalogue-curation` un-`EXCLUDE`d at the root
+  while the publish script strips it from the branch, so
+  `published = derived − EXCLUDE` while `repo_root = derived` — Defect 3's
+  asymmetry survives structurally, dormant only because that pack happens to be
+  repo-only.
+
+  **The honest residual.** AC10 catches build/publish desync and stale-`dist/`
+  republication. It **cannot constrain an actor**: the same push that widens a
+  `pack.toml` can edit this script and the workflow, and with no `needs:`, no
+  CODEOWNERS, `enforce_admins: false` and no required review, the real trust
+  boundary for publication is push access to `main`. AC6 is a declared-intent
+  tripwire; AC10 is a consistency check, not a gate on who publishes.
+
+  The achievable in-code control is **`workflow_run` gating** — `build-check.yml`
+  already runs on `push: main`, so the publish job can require
+  `conclusion == success`. That is Deferred, not the Environment reviewer, which
+  is a non-control in a single-maintainer repo.
 
 - [ ] **AC11 — `catalogue-curation` keeps its own exclusion**, retained
   *alongside* the derived predicate, applied **first**, and exempt from AC10's
@@ -258,7 +283,8 @@ Used by every criterion below. A pack is **publishable** when all hold:
     half-projected tree. `contracts/pack.schema.json` requires only `[pack].name`
     and `[pack].version` — `[pack.adapter-contract]` is **optional** — so a
     schema-valid adopter pack resolves `["repo"]` through no fault of its own.
-    That path warns loudly and continues.
+    That path warns loudly and continues **with the filtered, possibly empty
+    set** — "continues" must not be read as "continues unfiltered".
 
 - [ ] **AC13 — The engine behaviour change is disclosed to self-hosting
   adopters.** `packages/agentbundle`'s `[Unreleased]` describes the filter as an
@@ -295,7 +321,10 @@ Used by every criterion below. A pack is **publishable** when all hold:
   state)` per site**, not one grep form — the sites do not share a pattern.
   `README.md` and `docs-site/.../install.md` carry the literal
   `claude plugin install`; `pack-catalogue.md` and `adapt-to-project.md` say
-  `/plugin install`; `install-routes.md` says `/plugin install <pack>@<catalogue>`;
+  `/plugin install`; `install-routes.md` needs **two** entries — the route-table row
+  (`/plugin install <pack>@<catalogue>`) and the marker-writer paragraph, which
+  carries no such pattern and would otherwise pass green on the half this
+  criterion calls the harder one;
   `tools/hooks/README.md` and `session-start.toml` say
   `<output>/claude-plugins/core/…`. A single `! grep -q 'claude plugin install'`
   passes green on six of the eight. Each entry also asserts the file **exists**,
@@ -430,7 +459,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
 | AC15 | Visual / manual QA | recorded transcripts: local marketplace pre-merge, `plugin update` post-delist, published post-merge |
 | AC16 | Goal-based | scripted allowlist assertion over the enumerated sites |
 | AC17, AC18 | Integration | each consumer asserted per projection; pre-change `state.json` through `upgrade` |
-| AC19, AC22 | Goal-based | grep returns nothing; agentbundle suite green after the seed edit + two-file bump; `make build-self` leaves the tree clean |
+| AC19, AC22 | Goal-based | `! grep -q <pattern>` per site (not a bare no-match grep, which exits 1); agentbundle suite green after the seed edit + two-file bump; `make build-self` leaves the tree clean |
 | AC20 | Goal-based | the trailer is present and the engine gate passes; the number is checked by review, not mechanically |
 | AC21 | Unit | property test over the synthetic matrix |
 | AC23–AC25 | Goal-based | each named artifact carries its erratum / statement; matrix row and docstring retired |
@@ -445,7 +474,10 @@ Re-derived by glob at task start, not trusted from this list. Tests asserting
 `tests/integration/test_install_core_smoke.py:60`,
 `tests/integration/test_build_derivation_claude_plugins.py` (derives
 `FIXTURE_PACK_NAMES` by `iterdir()` and parametrises on it), and
-`tests/integration/test_build_check_drift_gates.py:104,158`. Plus any test
+`tests/integration/test_build_check_drift_gates.py:104,158`. **Second re-derivation query — direct callers of `_run_aggregate` and
+`run_recipe`**, which break on arity and are not reachable from the path glob:
+`tests/integration/test_marketplace_entry_validation.py:134` and
+`tests/integration/test_marketplace_manifest_regression.py:186`. Plus any test
 asserting a marketplace entry **count**, and `catalogue_tooling/package.py` —
 `catalogue package` embeds `.claude-plugin/marketplace.json` and records a
 `marketplace_digest`, so the offline distribution artifact's content and digest
@@ -461,7 +493,14 @@ both change.
 - **An adopter self-host exemption** for the absent-`[pack.adapter-contract]`
   case. AC12 makes the failure loud; making it fail-open is a separate decision.
 - Unrestricted ordinary pushes to `claude-plugins-dist`. Force-push and deletion
-  denied 2026-08-07; the residual is the detection window, not tip integrity.
-- A per-pack content hash in the marketplace entry. Sharper than the push
-  residual: with directories removed at the same `ref`, an adopter can neither
-  prove what they installed nor re-fetch it.
+  denial protects **history**, not the tip — an ordinary fast-forward push can
+  replace every file, which is exactly what the publish script does each run, and
+  adopters resolve `ref: claude-plugins-dist` at the tip with no hash to compare
+  against. The residual is tip *content* integrity plus the detection window.
+- A per-pack content hash in the marketplace entry — the compensating control
+  for the tip-content residual above: with directories removed at the same `ref`,
+  an adopter can neither prove what they installed nor re-fetch it. Deferred
+  rather than omitted because ADR-0072 constrains the entry schema to mirror an
+  upstream contract we do not own, so a non-upstream field is a spike;
+  `catalogue_tooling/package.py` already records a whole-marketplace
+  `marketplace_digest` as a partial mitigation.

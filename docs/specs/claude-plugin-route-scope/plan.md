@@ -77,7 +77,9 @@ rely on defaults.
 **Depends on:** T1 · **Mode:** TDD
 
 **Tests:** `stub: true` — `packages/agentbundle/tests/unit/test_plugin_scope_filter.py`
-(materialised; 28 cases red) plus an
+(materialised: the `_allowed_scopes`-gate and implication assertions pass, pinning
+premises the spec depends on; the predicate, `aggregate_scope` and emptiness
+assertions fail by name until the filter lands — suite exits 1) plus an
 integration module. Covers: the predicate over an `allowed-scopes` ×
 `adapter-contract.version` matrix including the absent-table case; **set
 equality both directions on all three surfaces**, built into `tmp_path`; the
@@ -106,6 +108,22 @@ republished.
 
 **Done when:** the unit and integration tests pass and `make build-self` +
 `make build-check` are green with the regenerated marketplace committed.
+
+### T1b — The membership lint pair
+**Depends on:** T0 · **Mode:** TDD
+
+**Tests:** `stub: true` — `tools/test-lint-plugin-membership.py`, the sibling the
+gate chain requires.
+
+**Done when:** `tools/lint-plugin-membership.py` is registered in
+`tools/repo/build_gate_chain.py`, `lint-ci-parity` is green, and the
+distinguishing mutation (one the projected-path drift gate cannot see) makes
+`make build-check` exit non-zero **naming this gate** in its output.
+
+**Approach:** the membership tripwire cannot ship as a pytest — `make
+build-check` runs no pytest, so the required gate would never run it. This is
+its own task rather than a bullet in T0 because T0's Done-when ("tests pass,
+`build-check` green") is satisfied without it ever being registered.
 
 ### T2 — Site gating, with a consistency test
 **Depends on:** T0 · **Mode:** TDD
@@ -205,11 +223,14 @@ recorded, since that is the observation AC14's remedy is written against; and an
 an installed-but-delisted plugin. Transcripts below. **Scope boundary:** one
 dropped pack and one user-capable pack are exercised by hand; the other 19 are
 covered by T0's assertions. The **post-merge** re-run against the published
-marketplace is a separate recorded step. **This PR adds four
-`workspace.toml [backlog].open` slugs**, none of which exist today:
+marketplace is a separate recorded step. **This PR registers four
+`workspace.toml [backlog].open` slugs** with no `(deferred: <slug>)` AC markers —
+`docs/CONVENTIONS.md` pins that marker to an *unchecked* criterion, and AC10 and
+AC12 both ship their in-code half and will be `[x]`, while the post-merge check
+and the content hash correspond to no criterion at all, none of which exist today:
 `plugin-publish-required-reviewer`, `plugin-selfhost-scope-exemption`,
 `plugin-postmerge-marketplace-check`, and `plugin-marketplace-content-hash`.
-Each ships as a `(deferred: <slug>)` marker on the criterion it defers.
+
 
 ## Risks
 

@@ -1,69 +1,124 @@
-"""Construction stubs for the claude-plugin-route-scope spec.
+"""Construction tests for the claude-plugin-route-scope spec.
 
-STUB: every test below is intentionally red until the publish filter lands.
-Materialised at PLAN per docs/CONVENTIONS.md — a stub that will not compile or
-that cannot be written is the signal that a criterion is under-specified.
+Two kinds of assertion, deliberately:
+
+* **Green now** — pins behaviour the spec *depends on* and did not author
+  (`_allowed_scopes`' real gate; the three-resolver implication). If these ever
+  go red the spec's premises have moved.
+* **Red now** — drives the not-yet-existing publish filter by name. These fail
+  with ImportError/AttributeError until it lands, which is the point: a stub
+  that imports nothing cannot signal an under-specified criterion.
+
+No `xfail`. An unconditionally-raising body under `xfail(strict=True)` exits 0,
+can never XPASS, and stays green after the feature ships — the shape
+docs/CONVENTIONS.md forbids.
 
 Traces to docs/specs/claude-plugin-route-scope/spec.md.
 """
 
 from __future__ import annotations
 
+import tomllib
+
 import pytest
 
-
-# STUB: AC1 — one predicate, four sites
-@pytest.mark.xfail(reason="STUB: publish filter not implemented", strict=True)
-def test_predicate_applies_at_all_four_sites() -> None:
-    raise AssertionError("not implemented")
+from agentbundle.commands.validate import _allowed_scopes
 
 
-# STUB: AC2 — resolution reuses _allowed_scopes; the gate is adapter-contract
-@pytest.mark.xfail(reason="STUB: publish filter not implemented", strict=True)
+def _pack(contract_version: str | None, allowed: list[str] | None) -> dict:
+    src = '[pack]\nname = "p"\nversion = "1.0.0"\n'
+    if contract_version is not None:
+        src += f'[pack.adapter-contract]\nversion = "{contract_version}"\n'
+    if allowed is not None:
+        rendered = ", ".join(f'"{s}"' for s in allowed)
+        src += f'[pack.install]\ndefault-scope = "repo"\nallowed-scopes = [{rendered}]\n'
+    return tomllib.loads(src)
+
+
+# --- AC2: the real gate is [pack.adapter-contract].version, not [pack.install] ---
+
+
+@pytest.mark.parametrize("contract_version", [None, "0.1"])
+def test_absent_or_legacy_contract_resolves_repo_regardless_of_install_table(
+    contract_version: str | None,
+) -> None:
+    """The trap the spec names: declaring allowed-scopes is not enough."""
+    assert _allowed_scopes(_pack(contract_version, ["repo", "user"])) == ["repo"]
+
+
+def test_declared_contract_honours_the_install_table() -> None:
+    assert _allowed_scopes(_pack("0.3", ["repo", "user"])) == ["repo", "user"]
+
+
+# --- AC21: user-membership implication, NOT subset ---
+
+
+def test_subset_is_false_so_the_property_must_be_implication() -> None:
+    """Guards the disproved formulation from being reintroduced."""
+    pack = _pack(None, ["user"])
+    assert _allowed_scopes(pack) == ["repo"]
+    assert not set(_allowed_scopes(pack)) <= {"user"}
+
+
 @pytest.mark.parametrize("contract_version", [None, "0.1", "0.2", "0.3", "0.17"])
 @pytest.mark.parametrize("declared", [None, ["repo"], ["user"], ["repo", "user"]])
-def test_predicate_matrix(contract_version, declared) -> None:
-    raise AssertionError("not implemented")
+def test_user_membership_implication_holds(
+    contract_version: str | None, declared: list[str] | None
+) -> None:
+    from agentbundle.catalogue_tooling.lint import _profile_allowed_scopes
+
+    pack = _pack(contract_version, declared)
+    if "user" in _allowed_scopes(pack):
+        assert "user" in _profile_allowed_scopes(pack)
 
 
-# STUB: AC5/AC6 — three-surface equality both directions, plus the seven by name
-@pytest.mark.xfail(reason="STUB: publish filter not implemented", strict=True)
-def test_three_surfaces_equal_the_derived_set() -> None:
-    raise AssertionError("not implemented")
+# --- Red until the filter lands: driven by name, not by a raise ---
 
 
-# STUB: AC6 — scope-widening-equals-publication tripwire.
-# Do NOT "fix" a failure here by deleting a name: after this spec, widening a
-# pack's allowed-scopes publishes its code to a public marketplace, and this
-# assertion is what turns red.
-@pytest.mark.xfail(reason="STUB: publish filter not implemented", strict=True)
-def test_repo_only_packs_absent_by_name() -> None:
-    raise AssertionError("not implemented")
+def _predicate():
+    from agentbundle.build.main import is_publishable  # noqa: PLC0415
+
+    return is_publishable
 
 
-# STUB: AC7 — envelope name/owner/description survive the filter
-@pytest.mark.xfail(reason="STUB: publish filter not implemented", strict=True)
-def test_marketplace_envelope_survives() -> None:
-    raise AssertionError("not implemented")
+def test_predicate_exists_and_keys_on_the_derived_set() -> None:
+    is_publishable = _predicate()
+    assert is_publishable(_pack("0.3", ["repo", "user"]), slug="architect") is True
+    assert is_publishable(_pack("0.3", ["repo"]), slug="core") is False
+    # Derived-set condition 1: underscore-prefixed slugs are never publishable.
+    assert is_publishable(_pack("0.3", ["repo", "user"]), slug="_example") is False
 
 
-# STUB: AC12 — three-way emptiness behaviour, discriminated by aggregate_scope
-@pytest.mark.xfail(reason="STUB: publish filter not implemented", strict=True)
+def test_aggregate_scope_is_required_with_no_default() -> None:
+    """AC12's discriminator must be explicit — a default silently misclassifies
+    `render_packs_to_dir` and `cmd_build --recipe`."""
+    import inspect
+
+    from agentbundle.build.main import _run_aggregate
+
+    param = inspect.signature(_run_aggregate).parameters["aggregate_scope"]
+    assert param.default is inspect.Parameter.empty
+
+
 @pytest.mark.parametrize(
     "aggregate_scope,discovered_empty,expect_nonzero",
     [
-        ("catalogue", False, True),    # filter emptied a non-empty set
-        ("catalogue", True, False),    # blank catalogue is valid
-        ("single-pack", False, False), # empty plugins list, success
+        ("catalogue", False, True),
+        ("catalogue", True, False),
+        ("single-pack", False, False),
+        ("self-host", False, False),
     ],
 )
-def test_empty_set_behaviour(aggregate_scope, discovered_empty, expect_nonzero) -> None:
-    raise AssertionError("not implemented")
+def test_empty_set_behaviour(
+    aggregate_scope: str, discovered_empty: bool, expect_nonzero: bool
+) -> None:
+    from agentbundle.build.main import aggregate_exit_code
 
-
-# STUB: AC21 — user-membership implication, NOT subset.
-# Subset is false on schema-valid input: contract absent + allowed-scopes=["user"]
-# gives _allowed_scopes -> ["repo"] while both siblings give ["user"].
-@pytest.mark.xfail(reason="STUB: property not implemented", strict=True)
-def test_user_membership_implication_across_resolvers() -> None:
-    raise AssertionError("not implemented")
+    assert (
+        aggregate_exit_code(
+            aggregate_scope=aggregate_scope,
+            discovered_empty=discovered_empty,
+            published_empty=True,
+        )
+        != 0
+    ) is expect_nonzero
