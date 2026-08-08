@@ -65,6 +65,14 @@ _OWNERSHIP_STATE_FILE = ".agentbundle/self-host-state.json"
 # Vendored tooling root inside the target.
 _VENDORED_TOOLING_ROOT = ".agentbundle/tooling"
 
+# RFC-0082 / ADR-0075 D3: the vendored copy is wheel-class — the command tells
+# the adopter to `pip install -e` it, so it is an install source, not a source
+# tree, and carries no test content. Relative to each vendored call's own root.
+# The engine root is `packages/agentbundle/`, so its suite sits at `tests/` and
+# a root `conftest.py` sits beside the package; both are test content.
+_VENDORED_ENGINE_EXCLUDE: tuple[str, ...] = ("tests/", "conftest.py")
+_VENDORED_PACK_EXCLUDE: tuple[str, ...] = ("tests/",)
+
 
 # ---------------------------------------------------------------------------
 # Dataclasses
@@ -388,15 +396,33 @@ def _collect_dir_bytes(
     file_kinds: dict[str, str],
     *,
     kind: str = "file",
+    exclude: tuple[str, ...] = (),
 ) -> None:
-    """Recursively collect bytes from src_dir into file_bytes under dst_prefix."""
+    """Recursively collect bytes from src_dir into file_bytes under dst_prefix.
+
+    `exclude` holds paths relative to *src_dir*: a trailing-slash entry prunes
+    that subtree, a bare entry drops that exact file. It defaults to empty and
+    is passed only at the two vendored call sites — the adopter's own packs and
+    guides must keep their tests (ADR-0071), so excluding inside this routine
+    would break them with nothing going red.
+    """
+    prune = tuple(e.rstrip("/") for e in exclude if e.endswith("/"))
+    drop = frozenset(e for e in exclude if not e.endswith("/"))
     for dirpath, dirnames, filenames in os.walk(str(src_dir), followlinks=False):
         dp = Path(dirpath)
         dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
         rel_to_src = dp.relative_to(src_dir)
+        rel_dir = rel_to_src.as_posix()
+        if prune:
+            base = "" if rel_dir == "." else rel_dir + "/"
+            dirnames[:] = [dn for dn in dirnames if base + dn not in prune]
         for fname in filenames:
             src_file = dp / fname
             if src_file.is_symlink():
+                continue
+            if drop and (
+                fname if rel_dir == "." else f"{rel_dir}/{fname}"
+            ) in drop:
                 continue
             rel_path = (Path(dst_prefix) / rel_to_src / fname).as_posix()
             file_bytes[rel_path] = src_file.read_bytes()
@@ -833,6 +859,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
             file_bytes,
             file_kinds,
             kind="vendored",
+            exclude=_VENDORED_ENGINE_EXCLUDE,
         )
         src_curation = cfg.source / "packs" / "catalogue-curation"
         if src_curation.is_dir() and not src_curation.is_symlink():
@@ -842,6 +869,7 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
                 file_bytes,
                 file_kinds,
                 kind="vendored",
+                exclude=_VENDORED_PACK_EXCLUDE,
             )
         else:
             diagnostics.append(
