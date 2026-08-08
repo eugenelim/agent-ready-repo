@@ -141,8 +141,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       content, using AC1's definition of test content — no `tests/` directory, no
       `test_*.py`, **no `conftest.py`**. The last clause is load-bearing: the
       engine call site collects the whole `packages/agentbundle/` directory, and
-      a root `conftest.py` lives there beside the package; its **packs** call site and its **guides** call site (under
-      `--guides selected`) both still do. Asserted by a unit test appended to
+      a root `conftest.py` lives there beside the package. The two non-vendored
+      call sites must keep carrying test content: its **packs** call site and
+      its **guides** call site (under `--guides selected`) both still do. Asserted by a unit test appended to
       `packages/agentbundle/tests/unit/test_catalogue_tooling_self_hosted_init.py`,
       not by inspection.
 - [x] **AC5b** — Every test artifact this spec creates has a declared home and a
@@ -190,16 +191,15 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       composed fixture path. And
       an unfiltered re-sweep finds no operative reference remaining. Historical
       references under `docs/specs/**`, `docs/rfc/**`, `docs/product/changelog.md`,
-      and the package `CHANGELOG.md` are deliberately untouched — **except**
-      `docs/specs/catalogue-test-carve-out/**`, a live Draft spec pair whose
-      `tests/build_pipeline/` (formerly `agentbundle/build/tests/`) references this change invalidates.
+      and the package `CHANGELOG.md` are deliberately untouched. That leaves
+      seven warn-only dangling-reference warnings in `lint-spec-status`
+      (178 → 185) — prose in shipped specs naming the old path — which is the
+      cost of not rewriting history, not a regression. Two exceptions are
+      updated: `docs/specs/catalogue-test-carve-out/**`, a live Draft spec
+      pair this change invalidates, and `docs/specs/cursor-full-parity/spec.md`,
+      whose reference is a live markdown hyperlink rather than prose.
 - [x] **AC11** — `make ci` passes, and the Windows build-check leg passes with
       `self_host_windows.py`'s invocation paths updated.
-- [x] **AC14** — `packages/AGENTS.md` § Test conventions names the third engine
-      test root this change creates. It currently says the roots are `tests/unit/`
-      and `tests/integration/`, which T1 falsifies. Only that correction lands
-      here; the full four-owner rewrite RFC-0082 calls for belongs to the
-      carve-out spec, and AC10's literal sweep would never surface this file.
 - [x] **AC12** — A sweep of `packages/agentbundle/agentbundle/**` for other
       substring-shaped path guards over `tests`, `fixtures`, or `build`, with its
       result recorded in a committed note at
@@ -212,6 +212,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       relocating it would re-touch every file T1 has just swept, and it is a
       tools-owned test runner — precisely the ownership question the carve-out
       spec exists to decide. Its invocation paths are updated in place here.
+- [x] **AC14** — `packages/AGENTS.md` § Test conventions names the third engine
+      test root this change creates. It currently says the roots are `tests/unit/`
+      and `tests/integration/`, which T1 falsifies. Only that correction lands
+      here; the full four-owner rewrite RFC-0082 calls for belongs to the
+      carve-out spec, and AC10's literal sweep would never surface this file.
 
 ## Assumptions
 
@@ -239,7 +244,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   pre-existing violations surfaced and were fixed rather than re-suppressed:
   re-excluding would recreate exactly the incidental-exclusion pattern this spec
   exists to end. The fixes are mechanical (unused imports, `os.path` → `pathlib`,
-  a `self.fail` → `raise`, blank lines) and touch no assertion.
+  `self.fail` → `raise`, blank lines) but several *are* assertion expressions, so
+  the claim "touches no assertion" would be false. One rewrite was reverted for
+  that reason: `os.readlink()` → `Path.readlink()` normalises the link target
+  (`"./AGENTS.md"` → `"AGENTS.md"`), which weakens what the assertion compares.
+  `PTH115` is now suppressed for test files with that reason recorded.
 - **Technical:** the move removes the relocated modules from
   `tools/lint-build.py`'s stdlib-import audit, which walks
   `packages/agentbundle/agentbundle/build/**`. That is an accepted, recorded
