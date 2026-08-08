@@ -57,12 +57,18 @@ def test_real_core_install_writes_session_start_binding(tmp_path):
         rc = install.run(args)
     assert rc == 0, f"install failed: {err.getvalue()}"
 
-    settings = target / "claude-plugins" / "core" / ".claude" / "settings.local.json"
-    assert settings.exists(), (
-        f"dist-tree settings file missing at {settings}"
+    # `core` declares allowed-scopes = ["repo"], so it does not reach the
+    # user-scope claude-plugins route (docs/specs/claude-plugin-route-scope).
+    # The route emits only the marketplace envelope; core's own subtree — and
+    # therefore the dist-tree settings file this test used to read — is absent
+    # by design. The APM route is unfiltered and still carries core's wiring,
+    # which is what this test now pins.
+    plugins_dir = target / "claude-plugins"
+    assert not (plugins_dir / "core").exists(), (
+        "core is repo-only and must not reach the claude-plugins route"
     )
-    data = json.loads(settings.read_text(encoding="utf-8"))
-    assert (
-        data["hooks"]["SessionStart"][0]["hooks"][0]["command"]
-        == "python tools/hooks/session-start.py"
-    ), f"unexpected SessionStart command in {data!r}"
+    wiring = target / "apm" / "core" / ".apm" / "hook-wiring" / "session-start.toml"
+    assert wiring.exists(), f"APM-route wiring missing at {wiring}"
+    body = wiring.read_text(encoding="utf-8")
+    assert "[[hooks.SessionStart]]" in body
+    assert "tools/hooks/session-start.py" in body

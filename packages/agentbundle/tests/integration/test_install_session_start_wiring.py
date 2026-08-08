@@ -35,11 +35,12 @@ name = "test-core"
 version = "0.1.0"
 
 [pack.adapter-contract]
-version = "0.2"
+version = "0.3"
 
 [pack.install]
 default-scope = "repo"
-allowed-scopes = ["repo"]
+allowed-scopes = ["repo", "user"]
+user-scope-hooks = true
 """
 
 WIRING_TOML = """
@@ -59,6 +60,18 @@ def _stage_synthetic_pack(catalogue_root: Path) -> None:
     pack = catalogue_root / "packs" / "test-core"
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(PACK_TOML, encoding="utf-8", newline="\n")
+    # The claude-plugins route requires a source manifest as well as
+    # user-admitting scopes (docs/specs/claude-plugin-route-scope § The derived
+    # set, condition 2). Without it this pack produces no dist-tree output and
+    # the wiring assertion below has nothing to read.
+    claude_plugin = pack / ".claude-plugin"
+    claude_plugin.mkdir(parents=True)
+    (claude_plugin / "plugin.json").write_text(
+        '{\n  "name": "test-core",\n  "version": "0.1.0",\n'
+        '  "description": "wiring-shape fixture"\n}\n',
+        encoding="utf-8",
+        newline="\n",
+    )
     apm = pack / ".apm"
     (apm / "hooks").mkdir(parents=True)
     # Empty stub: hook-body projection is direct-file; content doesn't

@@ -235,10 +235,13 @@ class RepoScopeEmitInstallRoutesTests(unittest.TestCase):
                 rc, 0, f"install failed:\nstdout={stdout}\nstderr={stderr}"
             )
 
-            # Dist-tree shape present.
-            self.assertTrue(
+            # Dist-tree shape present. `core` is repo-only, so it does NOT
+            # reach the user-scope claude-plugins route; the APM route below is
+            # unfiltered and still carries it.
+            self.assertFalse(
                 (adopter / "claude-plugins" / "core").exists(),
-                f"expected claude-plugins/core/ under {adopter}",
+                f"core declares allowed-scopes without 'user' and must not "
+                f"reach claude-plugins/ under {adopter}",
             )
             self.assertTrue(
                 (adopter / "apm" / "core").exists(),

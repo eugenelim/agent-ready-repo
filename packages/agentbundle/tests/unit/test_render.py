@@ -31,7 +31,10 @@ def test_render_pack_returns_bytes_dict_for_core(tmp_path):
     assert all(isinstance(v, bytes) for v in rendered.values())
     # The three default recipes leave the marketplace + per-pack outputs.
     assert any("marketplace.json" in k for k in rendered)
-    assert any(k.startswith("claude-plugins/core/") for k in rendered)
+    # `core` declares allowed-scopes = ["repo"], so it does not reach the
+    # user-scope claude-plugins route (docs/specs/claude-plugin-route-scope).
+    # The APM route is unfiltered and still carries it.
+    assert not any(k.startswith("claude-plugins/core/") for k in rendered)
     assert any(k.startswith("apm/core/") for k in rendered)
 
 
