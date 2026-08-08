@@ -8,7 +8,7 @@ Exit 0 = all pass; exit non-zero = at least one failure.
 
 from __future__ import annotations
 
-import hashlib
+import importlib.util
 import json
 import os
 import subprocess
@@ -98,15 +98,15 @@ def write_plan(spec_dir: Path, content: str | None = None) -> Path:
     return p
 
 
-def sha256_file(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+# Load the canonicalizer from the subject rather than restating it. The two
+# copies that used to live here fed 28 state.json fixtures, so any drift in
+# loop-cohort's hashing silently invalidated every CODE-* guard test.
+_COHORT = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts" / "loop-cohort.py"
+_cohort_spec = importlib.util.spec_from_file_location("_loop_cohort_for_tests", str(_COHORT))
+_cohort = importlib.util.module_from_spec(_cohort_spec)
+_cohort_spec.loader.exec_module(_cohort)
 
-
-def sha256_canonical_plan(path: Path) -> str:
-    raw = path.read_text(encoding="utf-8", errors="replace")
-    lines = [ln.rstrip() for ln in raw.replace("\r\n", "\n").replace("\r", "\n").split("\n")]
-    canonical = "\n".join(lines)
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+sha256_canonical_contract = _cohort.sha256_canonical_contract
 
 
 def minimal_cohort_state(run_id: str, feature: str, extra: dict | None = None) -> dict:
@@ -157,9 +157,9 @@ def approved_cohort_state(spec_dir: Path, run_id: str, feature: str) -> dict:
     plan_path = spec_dir / "plan.md"
     return minimal_cohort_state(run_id, feature, extra={
         "plan_review_status": "approved",
-        "approved_spec_hash": sha256_file(spec_path) if spec_path.exists() else None,
-        "approved_plan_hash": sha256_canonical_plan(plan_path) if plan_path.exists() else None,
-        "plan_hash": sha256_canonical_plan(plan_path) if plan_path.exists() else None,
+        "approved_spec_hash": sha256_canonical_contract(spec_path) if spec_path.exists() else None,
+        "approved_plan_hash": sha256_canonical_contract(plan_path) if plan_path.exists() else None,
+        "plan_hash": sha256_canonical_contract(plan_path) if plan_path.exists() else None,
     })
 
 
@@ -647,8 +647,8 @@ def test_blocker_applied_code_human_gate(tmp: Path) -> None:
     # Pre-guard (schedule check-current) needs: plan_hash matches plan.md, schedule non-empty
     write_spec(spec_dir)
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-HUMAN-GATE"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",
@@ -735,7 +735,7 @@ def test_guard_check_spec_status_fails_non_shipped(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir, status="Draft")
     write_plan(spec_dir)
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-REVIEW"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",
@@ -760,8 +760,8 @@ def test_legal_wave_complete_to_code_verification(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir)
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-IMPLEMENTATION"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",
@@ -795,8 +795,8 @@ def test_legal_gates_clean_to_code_review(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir)
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     waves = [["T1"], ["T2"]]
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-VERIFICATION"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
@@ -829,8 +829,8 @@ def test_legal_wave_passed_to_code_implementation(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir)
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     waves = [["T1"], ["T2"], ["T3"]]
     # At wave 0, more waves remain → wave-passed --wave-index 0 should succeed
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-VERIFICATION"))
@@ -866,8 +866,8 @@ def test_legal_gates_failed_to_code_implementation(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir)
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-VERIFICATION"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",
@@ -900,8 +900,8 @@ def test_legal_findings_remain_code_mode(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir)
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-REVIEW"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",
@@ -934,8 +934,8 @@ def test_legal_reviewers_clean_code_to_human_gate(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir, status="Shipped")
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-REVIEW"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",
@@ -1037,8 +1037,8 @@ def test_guard_gates_failed_at_cap_blocks_transition(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir)
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-VERIFICATION"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",
@@ -1064,8 +1064,8 @@ def test_guard_review_at_cap_blocks_findings_remain(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir)
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-REVIEW"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",
@@ -1093,8 +1093,8 @@ def test_schedule_precheck_blocks_code_implementation_transition(tmp: Path) -> N
     write_spec(spec_dir)
     plan_path = spec_dir / "plan.md"
     plan_path.write_text("# Plan\n\n### T1\n\n**Depends on:** none\n")
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(plan_path)
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(plan_path)
 
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-IMPLEMENTATION"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
@@ -2669,8 +2669,8 @@ def test_reviewers_clean_still_requires_shipped(tmp: Path) -> None:
     spec_dir = make_spec_dir(tmp, name)
     write_spec(spec_dir, status="Approved")  # not Shipped
     write_plan(spec_dir)
-    spec_hash = sha256_file(spec_dir / "spec.md")
-    plan_hash = sha256_canonical_plan(spec_dir / "plan.md")
+    spec_hash = sha256_canonical_contract(spec_dir / "spec.md")
+    plan_hash = sha256_canonical_contract(spec_dir / "plan.md")
     write_engine_state(spec_dir, minimal_engine_state(run_id, name, "code", "CODE-REVIEW"))
     write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
         "plan_review_status": "approved",

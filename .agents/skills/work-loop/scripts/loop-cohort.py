@@ -171,26 +171,186 @@ def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPro
 
 # ── hashing helpers ───────────────────────────────────────────────────────
 
+# Lazy handle on the sibling lint-spec-status.py. Status and acceptance-criterion
+# recognition has exactly one implementation in this repo — a shipped spec
+# (docs/specs/loop-approved-spec-state, Constrained by ADR-0061) requires every
+# status read to go through its `parse_status`, and a second copy of the AC
+# regexes is how the two silently disagree about what an AC line is.
+_lint_module: object | None = None
+
+
+def _lint_spec_status():
+    global _lint_module
+    if _lint_module is None:
+        lint_path = Path(__file__).resolve().parent / "lint-spec-status.py"
+        spec = importlib.util.spec_from_file_location("_lint_spec_status", str(lint_path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"loop-cohort: cannot load {lint_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _lint_module = module
+    return _lint_module
+
 
 def _sha256_bytes(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def sha256_file(path: Path) -> str:
-    """SHA-256 of raw file bytes (for spec.md)."""
-    return _sha256_bytes(path.read_bytes())
+# The approved baseline pins the *scope a human approved*. It deliberately does
+# not pin the two field families this skill mandates writing after approval —
+# the preamble status token (SKILL.md: `Implementing` before code, `Shipped` at
+# finish, plan `Done`) and progress checkboxes (every AC to `[x]`). Pinning
+# those made `plan check-current` and `schedule check-current` fail by
+# construction, one mandated step after `approve-plan`.
+#
+# Everything else stays pinned, including anything else on the status line: a
+# `- **Status:** Implementing — scope now also covers X` still moves the digest.
+_STATUS_PLACEHOLDER = "<loop-cohort:status>"
+# A heading, or the bold prose lead-in two specs here use instead. Missing the
+# latter would leave those specs with no normalization at all — i.e. AC5
+# failing for them by construction, the defect this spec exists to fix.
+_AC_HEADING_RE = re.compile(
+    r"^ {0,3}(?:#{2,3}\s+|\*\*)Acceptance\s+Criteria\b", re.IGNORECASE
+)
+# A region closes on the next heading at its own depth or shallower — a sibling
+# or an ancestor — and never on a deeper one. That single rule replaces the
+# hand-cased pair it grew out of: H3 subheadings sit inside H2-opened AC
+# sections all over this repo and must not close them, while an H3-opened
+# section is closed by the next H3, which a fixed `#{1,2}` test missed entirely.
+# A bold lead-in has no depth, so it takes _BOLD_DEPTH — deeper than any
+# heading, so every heading closes it — and also closes on the next bold lead-in,
+# without which it would run to EOF and un-pin every later checkbox, including a
+# `Never do` item, which is the scope the pin exists to protect.
+_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})[ \t]")
+_BOLD_LEAD_RE = re.compile(r"^ {0,3}\*\*")
+_BOLD_DEPTH = 7
+
+# AC10: a mismatch has two possible causes and the verb cannot tell them apart,
+# so it names both rather than asserting the one that is usually wrong.
+_BOTH_CAUSES = (
+    "either the approved scope changed, or this baseline was pinned before "
+    "canonical hashing landed. For the second case, recover the cohort only: "
+    "(1) restore `Status: Approved` in BOTH spec.md and plan.md — approve-plan "
+    "refuses unless both read Approved; (2) `loop-cohort reset <spec-dir>`; "
+    "(3) `loop-cohort init <spec-dir> --run-id <run_id>`, taking run_id from "
+    "`loop-engine status <spec-dir> --json`; (4) `loop-cohort approve-plan "
+    "<spec-dir> --expect-run-id <run_id>` then `loop-cohort schedule <spec-dir> "
+    "--expect-run-id <run_id>`; "
+    "(5) restore the Status you were on. Do NOT run `loop-engine reset` — "
+    "`plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no "
+    "state-setting verb, so resetting it strands the run. Note the reset clears "
+    "the retry counters and the stasis baseline, and re-running approve-plan "
+    "re-pins whatever is on disk, so it is a re-approval in substance"
+)
 
 
-def canonical_plan(text: str) -> str:
-    """Canonical form of plan.md: CRLF→LF, trailing whitespace stripped per line."""
+def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
+    """Canonical form of spec.md / plan.md for approval pinning.
+
+    Normalizes exactly four things: CRLF/CR → LF; per-line trailing whitespace;
+    the preamble status *token*; and the bracket contents of a checkbox.
+    """
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    lines = [line.rstrip() for line in text.split("\n")]
-    return "\n".join(lines)
+    lines = text.split("\n")
+
+    lint = _lint_spec_status()
+    # Newline-preserving comment strip. `parse_status` uses a plain sub() with
+    # re.DOTALL, which collapses a multiline comment to nothing and shifts every
+    # later line index — fine when you only want the token, wrong here, where
+    # the index has to map back to the raw line being rewritten.
+    cleaned = lint._HTML_COMMENT_RE.sub(
+        lambda m: "\n" * m.group(0).count("\n"), text
+    ).split("\n")
+
+    for i, cleaned_line in enumerate(cleaned):
+        if lint._SECTION_HEADING_RE.match(cleaned_line):
+            break  # preamble ends at the first section heading
+        if cleaned_line.lstrip().startswith("#"):
+            continue
+        if not lint._STATUS_RE.search(cleaned_line):
+            continue
+        # Rewrite the *raw* line, not the comment-stripped one.
+        raw = lines[i]
+        m = lint._STATUS_RE.search(raw)
+        if m is None:
+            break
+        token = lint.extract_status_token(m.group(1))
+        if token:
+            # Span-bounded splice of the token only. A str.replace would also
+            # rewrite the token where it recurs inside the trailing vocabulary
+            # comment (`<!-- Draft | Approved | Implementing | ... -->`) that
+            # every spec and plan the template emits carries — making each
+            # status normalize differently. Splicing _STATUS_RE's whole group(1) span
+            # would swallow appended free text and defeat the pin.
+            start = m.start(1)
+            lines[i] = raw[:start] + _STATUS_PLACEHOLDER + raw[start + len(token):]
+        break
+
+    # Which checkboxes count as bookkeeping depends on the artifact, so the
+    # caller says. A spec's progress marks live in its Acceptance Criteria
+    # section; a checkbox under `## Boundaries` is a `Never do` item, which is
+    # precisely the scope the pin protects. This is a forward invariant: no
+    # spec carries such a checkbox today.
+    # A plan has no such section: every checkbox in it is task progress, and
+    # four plans here carry them, so a plan is normalized file-wide.
+    #
+    # Case-insensitive on purpose: `lint-spec-status.py` matches `Acceptance
+    # Criteria` exactly, so its own AC extraction silently returns nothing for
+    # the specs that spell it with a lowercase `c`. Inheriting that bug here
+    # would break this normalization for exactly those specs. Tracked as
+    # `spec-ac-heading-casing-silent-gate`.
+    in_ac = not ac_section_only
+    opened_depth = _BOLD_DEPTH
+    fence_char = fence_len = None
+    for i, line in enumerate(lines):
+        # CommonMark fence semantics, not a toggle. A toggle desyncs on a
+        # nested fence — a ```toml inside a ```markdown example flips the state
+        # back — and one real plan in this tree has an odd fence count, which
+        # left the tracker stuck open and disabled normalization for the rest of
+        # the file. Only a bare run of the opening character, at least as long,
+        # closes; a line carrying an info string always opens.
+        stripped = line.lstrip()
+        marker = stripped[:1]
+        if marker in ("`", "~"):
+            run = len(stripped) - len(stripped.lstrip(marker))
+            info = stripped[run:].strip()
+            if fence_char is None:
+                if run >= 3:
+                    fence_char, fence_len = marker, run
+                    continue
+            elif marker == fence_char and run >= fence_len and not info:
+                fence_char = fence_len = None
+                continue
+        if fence_char is not None:
+            continue
+        if ac_section_only and _AC_HEADING_RE.match(line):
+            in_ac = True
+            opener = _HEADING_RE.match(line)
+            opened_depth = len(opener.group(1)) if opener else _BOLD_DEPTH
+            continue
+        if ac_section_only and in_ac:
+            closer = _HEADING_RE.match(line)
+            if (closer and len(closer.group(1)) <= opened_depth) or (
+                opened_depth == _BOLD_DEPTH and _BOLD_LEAD_RE.match(line)
+            ):
+                in_ac = False
+        if in_ac and lint._AC_DONE_RE.match(line):
+            # Bracket contents only — leading whitespace and the bullet run stay
+            # byte-for-byte, so re-indenting a criterion still moves the digest.
+            j = line.index("[")
+            lines[i] = line[:j + 1] + " " + line[j + 2:]
+
+    return "\n".join(line.rstrip() for line in lines)
 
 
-def sha256_canonical_plan(path: Path) -> str:
-    """SHA-256 of canonical(plan.md)."""
-    return _sha256_bytes(canonical_plan(path.read_text(encoding="utf-8")).encode("utf-8"))
+def sha256_canonical_contract(path: Path) -> str:
+    """SHA-256 of canonical_contract(<spec.md | plan.md>)."""
+    return _sha256_bytes(
+        canonical_contract(
+            path.read_text(encoding="utf-8"),
+            ac_section_only=(path.name != "plan.md"),
+        ).encode("utf-8")
+    )
 
 
 # ── run_id / schema_version validation ───────────────────────────────────
@@ -502,32 +662,63 @@ def cmd_reset(args: argparse.Namespace) -> int:
 
 # ── approve-plan ──────────────────────────────────────────────────────────
 
-# Lazy reference to parse_status from the sibling lint-spec-status.py so both
-# tools share one canonical parser implementation (handles Approved<!-- -->
-# and other annotated statuses correctly).
-_parse_status_fn: object | None = None
-
-
-def _get_parse_status():
-    global _parse_status_fn
-    if _parse_status_fn is None:
-        lint_path = Path(__file__).resolve().parent / "lint-spec-status.py"
-        spec = importlib.util.spec_from_file_location("_lint_spec_status", str(lint_path))
-        if spec is None or spec.loader is None:
-            raise ImportError(f"loop-cohort: cannot load {lint_path}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        _parse_status_fn = module.parse_status
-    return _parse_status_fn
+class UnreadableArtifact(Exception):
+    """The artifact exists but could not be read as UTF-8 markdown."""
 
 
 def _read_md_status(path: Path) -> str | None:
-    """Return the canonical status token from a markdown file, or None."""
+    """Return the canonical status token, or None when the file has none.
+
+    None means "no status line", which callers legitimately skip. A file that
+    cannot be *read* is a different thing and must not be silently skipped —
+    it raises, so the caller stops with a reason instead of proceeding on a
+    guard that quietly did nothing.
+    """
     try:
         text = path.read_text(encoding="utf-8")
-        return _get_parse_status()(text)
-    except (OSError, ImportError):
+    except (OSError, UnicodeDecodeError) as exc:
+        raise UnreadableArtifact(f"{path.name}: {exc}") from exc
+    try:
+        return _lint_spec_status().parse_status(text)
+    except ImportError:
         return None
+
+
+# Normalizing the status token out of the hash also removed the incidental
+# detection of a *regressed* status: an approved run whose spec.md went back to
+# Draft used to trip the byte compare. Assert it directly instead, at every verb
+# that reads a pinned artifact — a compensating control that covers one of three
+# call sites is not a compensating control.
+#
+# An absent or unparseable token is skipped, not stopped: plan fixtures
+# legitimately carry no status line, and this must not become a new way for a
+# CODE-* pre-guard to go red.
+_LEGAL_AFTER_APPROVAL = {
+    "spec.md": ("Approved", "Implementing", "Shipped"),
+    "plan.md": ("Approved", "Executing", "Done"),
+}
+
+
+def _assert_status_legal(verb: str, *paths: Path) -> int | None:
+    """Return a stop() code when a pinned artifact's status has regressed."""
+    for path in paths:
+        allowed = _LEGAL_AFTER_APPROVAL.get(path.name)
+        if allowed is None or not path.exists():
+            continue
+        try:
+            token = _read_md_status(path)
+        except UnreadableArtifact as exc:
+            return stop(f"{verb}: {exc}")
+        # `extract_status_token` returns "" — not None — when the value is only
+        # an HTML comment, so `is not None` would stop on it. AC9's promise is
+        # that an absent *or unparseable* token is skipped, and that promise is
+        # the whole safety argument for wiring this into a CODE-* pre-guard.
+        if token and token not in allowed:
+            return stop(
+                f"{verb}: {path.name} Status is {token!r}; expected one of "
+                f"{list(allowed)} after approval"
+            )
+    return None
 
 
 def cmd_approve_plan(args: argparse.Namespace) -> int:
@@ -553,11 +744,20 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     # Idempotency: if already approved, verify hashes before writing.
     current_status = state.get("plan_review_status", "pending")
     if current_status == "approved":
-        spec_hash = sha256_file(spec_path)
-        plan_hash = sha256_canonical_plan(plan_path)
+        try:
+            spec_hash = sha256_canonical_contract(spec_path)
+            plan_hash = sha256_canonical_contract(plan_path)
+        except (OSError, UnicodeDecodeError) as exc:
+            return stop(f"approve-plan: cannot read the approved artifacts: {exc}")
         stored_spec_hash = state.get("approved_spec_hash", "")
         stored_plan_hash = state.get("approved_plan_hash", "")
         if spec_hash == stored_spec_hash and plan_hash == stored_plan_hash:
+            # The crash-window guard below sits on the pending branch only, so
+            # without this a replay after a status regression reports a clean
+            # no-op against a spec that no longer claims to be approved.
+            err = _assert_status_legal("approve-plan", spec_path, plan_path)
+            if err is not None:
+                return err
             print(
                 f"loop-cohort: approve-plan already recorded for {spec_dir.name} (no-op)"
             )
@@ -566,7 +766,8 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         plan_changed = plan_hash != stored_plan_hash
         return stop(
             f"approve-plan: artifact changed since approval — "
-            f"spec_changed={spec_changed}, plan_changed={plan_changed}"
+            f"spec_changed={spec_changed}, plan_changed={plan_changed}; "
+            + _BOTH_CAUSES
         )
 
     # Crash-window guard: verify that both spec.md and plan.md still carry
@@ -574,22 +775,25 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     # crash-window scenario (a file reverted to an earlier status while
     # plan_review_status was still "pending") but does NOT detect content
     # changes that leave the Status token unchanged.
-    spec_status = _read_md_status(spec_path)
+    try:
+        spec_status = _read_md_status(spec_path)
+        plan_status_now = _read_md_status(plan_path)
+    except UnreadableArtifact as exc:
+        return stop(f"approve-plan: {exc}")
     if spec_status != "Approved":
         return stop(
             f"approve-plan: spec.md Status is {spec_status!r}; expected Approved "
             "(files may have changed in the crash window after plan-approved)"
         )
-    plan_status = _read_md_status(plan_path)
-    if plan_status != "Approved":
+    if plan_status_now != "Approved":
         return stop(
-            f"approve-plan: plan.md Status is {plan_status!r}; expected Approved "
+            f"approve-plan: plan.md Status is {plan_status_now!r}; expected Approved "
             "(files may have changed in the crash window after plan-approved)"
         )
 
     state["plan_review_status"] = "approved"
-    state["approved_spec_hash"] = sha256_file(spec_path)
-    state["approved_plan_hash"] = sha256_canonical_plan(plan_path)
+    state["approved_spec_hash"] = sha256_canonical_contract(spec_path)
+    state["approved_plan_hash"] = sha256_canonical_contract(plan_path)
     write_state_atomic(spec_dir, state)
     print(
         f"loop-cohort: approve-plan for {spec_dir.name} "
@@ -622,19 +826,25 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
     if not plan_path.exists():
         return stop(f"plan check-current: plan.md not found at {plan_path}")
 
-    current_spec_hash = sha256_file(spec_path)
+    err = _assert_status_legal("plan check-current", spec_path, plan_path)
+    if err is not None:
+        return err
+
+    current_spec_hash = sha256_canonical_contract(spec_path)
     if state.get("approved_spec_hash") != current_spec_hash:
         return stop(
-            "plan check-current: spec.md has changed since approve-plan "
-            f"(approved={state.get('approved_spec_hash', 'null')!r} "
+            "plan check-current: spec.md no longer matches the approved baseline — "
+            + _BOTH_CAUSES
+            + f" (approved={state.get('approved_spec_hash', 'null')!r} "
             f"current={current_spec_hash!r})"
         )
 
-    current_plan_hash = sha256_canonical_plan(plan_path)
+    current_plan_hash = sha256_canonical_contract(plan_path)
     if state.get("approved_plan_hash") != current_plan_hash:
         return stop(
-            "plan check-current: plan.md has changed since approve-plan "
-            f"(approved={state.get('approved_plan_hash', 'null')!r} "
+            "plan check-current: plan.md no longer matches the approved baseline — "
+            + _BOTH_CAUSES
+            + f" (approved={state.get('approved_plan_hash', 'null')!r} "
             f"current={current_plan_hash!r})"
         )
 
@@ -642,7 +852,8 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
         if state.get("plan_hash") != state.get("approved_plan_hash"):
             return stop(
                 "plan check-current: plan_hash != approved_plan_hash "
-                "(schedule not run or run on a different plan version)"
+                "(schedule not run or run on a different plan version); "
+                + _BOTH_CAUSES
             )
         waves = state.get("schedule_waves", [])
         if not waves:
@@ -669,12 +880,17 @@ def _schedule_check_current_impl(spec_dir: Path) -> int:
     plan_path = spec_dir / "plan.md"
     if not plan_path.exists():
         return stop(f"schedule check-current: plan.md not found at {plan_path}")
-    current_hash = sha256_canonical_plan(plan_path)
+    err = _assert_status_legal("schedule check-current", plan_path)
+    if err is not None:
+        return err
+
+    current_hash = sha256_canonical_contract(plan_path)
     stored = state.get("plan_hash")
     if stored != current_hash:
         return stop(
-            f"schedule check-current: plan.md has changed since schedule "
-            f"(stored={stored!r} current={current_hash!r})"
+            "schedule check-current: plan.md no longer matches the scheduled "
+            "baseline — " + _BOTH_CAUSES
+            + f" (stored={stored!r} current={current_hash!r})"
         )
     print(f"loop-cohort: schedule check-current OK for {spec_dir.name}")
     return 0
@@ -689,13 +905,13 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     if err is not None:
         return err
 
-    canonical_plan = spec_dir / "plan.md"
-    if plan_override and Path(plan_override).resolve() != canonical_plan.resolve():
+    plan_path_canonical = spec_dir / "plan.md"
+    if plan_override and Path(plan_override).resolve() != plan_path_canonical.resolve():
         return stop(
-            f"schedule: --plan must point to {canonical_plan}; alternate paths create "
+            f"schedule: --plan must point to {plan_path_canonical}; alternate paths create "
             "unusable state because schedule check-current always hashes plan.md"
         )
-    plan_path = canonical_plan
+    plan_path = plan_path_canonical
     if not plan_path.exists():
         return stop(f"plan not found at {plan_path}")
     plan_text = plan_path.read_text(encoding="utf-8")
@@ -733,7 +949,7 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
                 "(Touches: screen — serialize-only, never a greenlight)"
             )
 
-    plan_hash = sha256_canonical_plan(plan_path)
+    plan_hash = sha256_canonical_contract(plan_path)
     state["plan_hash"] = plan_hash
     state["schedule_waves"] = waves
     state["current_wave_index"] = 0

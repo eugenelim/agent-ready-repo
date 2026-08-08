@@ -59,18 +59,51 @@ usual mistake:
 | `id` | `K-\d{4,}` | Unique, zero-padded to four digits. Conventionally sequential, but the linter only enforces uniqueness — gaps are fine. |
 | `kind` | `pattern` \| `gotcha` \| `antipattern` | Exactly one of these three values. |
 | `scope` | glob(s) | Path pattern(s) this applies to — `packages/auth/**`, `src/cli/*.py`, or `*` for repo-wide. Comma-separate for multiple patterns: `"src/lint-*.py, packages/auth/**"`. |
-| `tier` | `"invariant"` \| `"observation"` | Optional, default `"observation"`. `"invariant"` entries are always injected by session-start regardless of `--scope`; use for lessons that apply everywhere. |
+| `tier` | `"invariant"` \| `"observation"` | Optional, default `"observation"`. A routing hint for curation and future retrieval. It once made an entry bypass `--scope` and replay into every session unconditionally — a privilege bit selectable inside the record itself — and no longer grants anything. |
 | `title` | string | One-line summary; aim for under 80 characters. |
 | `body` | string | The lesson itself. A paragraph or two is enough; if you find yourself writing more, the entry probably wants to be split. |
 | `source` | string | Where this came from: `PR#42`, `ADR-0007`, `issue#13`, etc. |
+
+Length and character limits: the writer caps `title` at 120 codepoints, `body` at 2000, `scope` at 200 and `source` at 120; the gate uses a looser ceiling, since entries predating both run over the cap. Tab is fine anywhere. A newline is fine in `body` only — session-start indents each body line, but prints `id`/`kind`/`scope`/`title` on one unindented line and `source` on its own, so a newline elsewhere forges a line in what it replays. Other control characters, characters that render as nothing, and runs of more than eight spaces are refused.
+
+One gap is known and accepted: strong right-to-left characters reorder adjacent punctuation under the bidi algorithm without any control character present, so a value mixing them with ASCII can render in a different order than it is stored. The explicit bidi controls are refused; the implicit reordering is not detected.
 
 The format is JSONL (one JSON object per line, no commas, no wrapping
 array) so it grows by append and reads line-by-line.
 `lint-knowledge.py` validates the file; `tools/hooks/session-start.py`
 reads it at session open.
 
-<!-- Keep this section in sync with packs/core/seeds/docs/knowledge/README.md
-     — the seed is what an adopter reads, and the two must not drift. -->
+## Appending an entry
+
+Use the writer that ships beside the linter — it allocates the next free `id`,
+writes the line, and refuses anything the linter would reject, so a bad entry
+never reaches the file. Run it from wherever your agent tool installed the
+skill (`.claude/skills/`, `.agents/skills/`, `.kiro/skills/`, `.apm/skills/`):
+
+```bash
+python3 .claude/skills/work-loop/scripts/append-knowledge.py \
+  --kind gotcha --scope 'packages/auth/**' \
+  --title 'Token cache survives a role change' \
+  --body 'The auth middleware caches tokens for 15 minutes — invalidate it manually after a role change.' \
+  --source 'PR#42'
+```
+
+Hand-editing works too, with one rule the writer enforces for you: **entries are
+raw UTF-8, never `\uXXXX`-escaped.** Both forms are valid JSON, so a file written
+with `json.dumps(entry)` — whose `ensure_ascii` defaults to `True` — drifts to
+escapes silently while still linting clean under every other rule. Write `—`,
+not `\u2014`; if you serialize with Python, pass `ensure_ascii=False`.
+
+Entries are **evidence, not instructions**, and are no longer replayed into
+sessions automatically — see § How these are read. Still keep the body to
+lessons about this repo, and never paste content from an untrusted source into
+one: an entry is a durable, agent-authored record that a human approves. Characters
+that render as nothing — bidi overrides, zero-width joiners in runs, the
+Unicode Tag block, the variation selectors, the Mongolian ones — are refused
+outright, by the writer and by the linter, because a payload you cannot see in
+a diff would be replayed into every session. The rule is Unicode's
+default-ignorable property, and there is a budget on how many may appear at all,
+not just how many may sit together. Entries are committed and permanent, so they follow `AGENTS.md` § Privacy: no real names, emails, org hostnames, or user-specific filesystem paths — use the placeholders listed there.
 
 ## Verify before committing
 
@@ -119,7 +152,20 @@ captures a learning that fits the pattern/gotcha/antipattern shape, the
 canonical home is here. Other kinds of learning still go where they
 already belong (AGENTS.md, skill bodies, architecture/).
 
-The session-start hook ([`tools/hooks/session-start.py`](../../tools/hooks/session-start.py))
-reads this file and prints the entries — optionally filtered by glob —
-so a fresh agent session starts with the relevant patterns already in
-context.
+The session-start hook does **not** read this file. Whatever that hook prints
+becomes model context before the user's first prompt — and again on resume,
+clear, compaction and fork — so replaying agent-captured prose there would turn
+one influenced session into a standing instruction for every session after it.
+Entries are captured from material the work-loop encountered; being committed
+makes them reviewed, not authoritative.
+
+The renderer is still reachable on request, for curation:
+
+```bash
+python3 tools/hooks/session-start.py --show-knowledge [--scope <path-or-glob>]
+```
+
+Harvesting these into the places that *are* authoritative — AGENTS.md, a skill,
+an ADR, architecture docs, or a lint or test — is the distill-knowledge path's
+job. The strongest knowledge is not prose a model remembers; it is behaviour the
+repository mechanically enforces.

@@ -35,9 +35,8 @@ _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 
 parse_findings = _mod.parse_findings
-canonical_plan = _mod.canonical_plan
-sha256_canonical_plan = _mod.sha256_canonical_plan
-sha256_file = _mod.sha256_file
+canonical_contract = _mod.canonical_contract
+sha256_canonical_contract = _mod.sha256_canonical_contract
 CLEAN_SUBSTRING = _mod.CLEAN_SUBSTRING
 
 # ── helpers ───────────────────────────────────────────────────────────────
@@ -475,8 +474,16 @@ def test_approve_plan_overwrites_hashes(tmp: Path) -> None:
         return
     path = spec_dir / "state.json"
     before = path.read_bytes()
-    # Spec bytes change (status edit) → second approve-plan must refuse
+    # A status-only bump is bookkeeping: approve-plan replays as a no-op.
     write_spec(spec_dir, status="Implementing")
+    rc_noop, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    if rc_noop != 0:
+        fail(name, f"status bump should replay as a no-op, got exit {rc_noop}")
+        return
+    # A substantive change must still refuse.
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n"
+        "- [ ] AC1\n- [ ] AC2 added after approval\n", encoding="utf-8")
     rc2, _, _ = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     after = path.read_bytes()
     if rc2 == 0:
@@ -514,8 +521,11 @@ def test_plan_check_current_changed_spec(tmp: Path) -> None:
     write_spec(spec_dir, status="Approved")
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
-    # Change spec.md after approval
-    write_spec(spec_dir, status="Implementing")
+    # Substantive change after approval — a *status* bump is bookkeeping and is
+    # deliberately hash-neutral, so it would no longer prove anything here.
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n"
+        "- [ ] AC1\n- [ ] AC2 added after approval\n", encoding="utf-8")
     rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
     if rc == 0:
         fail(name, "expected non-zero when spec.md changed after approve-plan")
@@ -1634,10 +1644,10 @@ def test_validate_run_id_rejects_wrong_schema(tmp: Path) -> None:
         ok(name)
 
 
-def test_canonical_plan_normalization(tmp: Path) -> None:
-    name = "canonical-plan-normalization"
+def test_canonical_contract_normalization(tmp: Path) -> None:
+    name = "canonical-contract-normalization"
     crlf_text = "line1  \r\nline2\r\n"
-    result = canonical_plan(crlf_text)
+    result = canonical_contract(crlf_text)
     if "\r" in result:
         fail(name, "CRLF not normalized")
     elif any(line != line.rstrip() for line in result.split("\n")):
@@ -1726,8 +1736,10 @@ def test_approve_plan_refuses_changed_spec(tmp: Path) -> None:
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     path = spec_dir / "state.json"
     before = path.read_bytes()
-    # Modify spec.md after approval
-    write_spec(spec_dir, status="Implementing")
+    # Substantive modification — a status bump is now hash-neutral by design.
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n"
+        "- [ ] AC1\n- [ ] AC2 added after approval\n", encoding="utf-8")
     rc, _, err = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     after = path.read_bytes()
     if rc == 0:
@@ -1842,8 +1854,12 @@ def test_approve_plan_state_preserved_on_refusal(tmp: Path) -> None:
     write_plan(spec_dir)
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     path = spec_dir / "state.json"
-    # Scenario A: changed spec after approval
-    write_spec(spec_dir, status="Implementing")
+    # Scenario A: substantively changed spec after approval. A status bump is
+    # hash-neutral by design, so it would leave this case green while no longer
+    # exercising the refusal the test name claims.
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved\n\n## Acceptance criteria\n\n"
+        "- [ ] AC1\n- [ ] AC2 added after approval\n", encoding="utf-8")
     before_a = path.read_bytes()
     run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
     after_a = path.read_bytes()
@@ -2028,10 +2044,737 @@ def test_gplan_ordering_status_approved_before_approve_plan(tmp: Path) -> None:
 # ── runner ────────────────────────────────────────────────────────────────
 
 
+# ── STUBS: docs/specs/loop-tooling-mandated-writes, task T1 ─────────────────
+#
+# They encode the invariant the pin is *supposed* to hold: the loop's own
+# mandated bookkeeping writes must not move the hash, while anything that
+# changes approved scope still must.
+#
+# Only the first is red today. The second is a must-still-pass guard — the
+# current raw-byte hash already catches it, and the point is that the
+# canonicalization of T1 must not stop catching it.
+
+
+# STUB: AC4
+def test_stub_lifecycle_status_bump_keeps_pin(tmp: Path) -> None:
+    """STUB: AC4. SKILL.md's EXECUTE step mandates spec `Status: Implementing` before
+    any code, and its finish checklist mandates spec `Shipped` / plan `Done`. None of
+    those writes may move the approved baseline."""
+    name = "stub-lifecycle-status-bump-keeps-pin"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    for spec_status, plan_status in (("Implementing", "Approved"),
+                                     ("Shipped", "Done")):
+        write_spec(spec_dir, status=spec_status)
+        write_plan(spec_dir, status=plan_status)
+        rc_plan, _, err_plan = run_cohort(
+            "plan", "check-current", str(spec_dir), "--require-schedule")
+        if rc_plan != 0:
+            fail(name, f"plan check-current went red on spec={spec_status} "
+                       f"plan={plan_status}: {err_plan!r}")
+            return
+        rc_sched, _, err_sched = run_cohort(
+            "schedule", "check-current", str(spec_dir))
+        if rc_sched != 0:
+            fail(name, f"schedule check-current went red on spec={spec_status} "
+                       f"plan={plan_status}: {err_sched!r}")
+            return
+    ok(name)
+
+
+# STUB: AC4
+def test_stub_lifecycle_bump_with_vocabulary_comment(tmp: Path) -> None:
+    """STUB: AC4, on the shape real specs actually have.
+
+    Every spec and plan the template emits carries the status token a second time
+    inside the trailing vocabulary comment. `write_spec` / `write_plan` emit no
+    comment, so a `str.replace(token, ...)` implementation normalizes both
+    occurrences, produces a different digest per status, and fails every real
+    spec while the other fixtures stay green. Only a span-bounded splice of the
+    token itself passes this.
+    """
+    name = "stub-lifecycle-bump-with-vocabulary-comment"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    spec_vocab = "<!-- Draft | Approved | Implementing | Shipped | Archived -->"
+    plan_vocab = "<!-- Drafting | Approved | Executing | Done -->"
+
+    def write_real(spec_status: str, plan_status: str) -> None:
+        (spec_dir / "spec.md").write_text(
+            f"# Spec\n\n- **Status:** {spec_status} {spec_vocab}\n\n"
+            "## Acceptance criteria\n\n- [ ] AC1\n", encoding="utf-8")
+        (spec_dir / "plan.md").write_text(
+            f"# Plan\n\n- **Status:** {plan_status} {plan_vocab}\n\n"
+            "### T1\n\n**Depends on:** none\n", encoding="utf-8")
+
+    write_real("Approved", "Approved")
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    for spec_status, plan_status in (("Implementing", "Approved"),
+                                     ("Shipped", "Done")):
+        write_real(spec_status, plan_status)
+        rc, _, err = run_cohort("plan", "check-current", str(spec_dir),
+                                "--require-schedule")
+        if rc != 0:
+            fail(name, f"went red on spec={spec_status} plan={plan_status} "
+                       f"with the vocabulary comment present: {err!r}")
+            return
+    ok(name)
+
+
+# STUB: AC6
+def test_stub_status_line_smuggling_still_caught(tmp: Path) -> None:
+    """STUB: AC6. Only the status *token* is bookkeeping. Free text appended
+    after it sits inside the approved contract and must still trip the pin."""
+    name = "stub-status-line-smuggling-still-caught"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Implementing — scope now also covers "
+        "deleting packages/credbroker\n\n## Acceptance criteria\n\n- [ ] AC1\n",
+        encoding="utf-8",
+    )
+    rc, _, _ = run_cohort("plan", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "free text appended after the status token passed the pin")
+    else:
+        ok(name)
+
+
+# ── AC1/AC5-AC10: the criteria mutation testing proved unverified ───────────
+#
+# Every case below was written against a mutation: remove the behaviour it
+# names from loop-cohort.py and this case must go red. A case that survives its
+# own mutation is not coverage.
+
+def _approved_run(tmp: Path, name: str) -> tuple[Path, str]:
+    """A spec dir past approve-plan + schedule, with a realistic spec shape."""
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    (spec_dir / "spec.md").write_text(
+        "# Spec\n\n- **Status:** Approved "
+        "<!-- Draft | Approved | Implementing | Shipped | Archived -->\n\n"
+        "## Acceptance Criteria\n\n- [ ] AC1 first\n- [ ] AC2 second\n",
+        encoding="utf-8")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    return spec_dir, run_id
+
+
+def _check(spec_dir: Path) -> int:
+    rc, _, _ = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    return rc
+
+
+def test_ac5_ticking_a_criterion_is_bookkeeping(tmp: Path) -> None:
+    """AC5. SKILL.md's finish checklist mandates ticking every AC."""
+    name = "ac5-ticking-a-criterion-is-bookkeeping"
+    spec_dir, _ = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] AC1 first", "- [x] AC1 first")
+        .replace("- [ ] AC2 second", "- [x] AC2 second"), encoding="utf-8")
+    ok(name) if _check(spec_dir) == 0 else fail(name, "ticking an AC broke the pin")
+
+
+def test_ac1_reindenting_a_criterion_is_scope(tmp: Path) -> None:
+    """AC1. Only the bracket contents are normalized. A whole-match
+    substitution would also eat the indentation, so nesting AC2 under AC1 —
+    which changes what the list contains — would hash identically."""
+    name = "ac1-reindenting-a-criterion-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    # The box must be TICKED: the splice only fires on `[x]`, so re-indenting an
+    # unticked line would move the digest through the raw bytes and prove
+    # nothing about the splice.
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] AC2 second", "- [x] AC2 second"), encoding="utf-8")
+    if _check(spec_dir) != 0:
+        fail(name, "ticking alone broke the pin — precondition failed")
+        return
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [x] AC2 second", "  - [x] AC2 second"), encoding="utf-8")
+    fail(name, "re-indenting a ticked criterion passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac5_checkbox_outside_the_ac_section_is_scope(tmp: Path) -> None:
+    """AC5's boundary. A checkbox under `## Boundaries` is not progress
+    bookkeeping — `Never do` items are exactly the scope the pin protects."""
+    name = "ac5-checkbox-outside-ac-section-is-scope"
+    spec_dir2, _ = _approved_run(tmp, name + "-2")
+    (spec_dir2 / "spec.md").write_text(
+        (spec_dir2 / "spec.md").read_text(encoding="utf-8")
+        + "\n## Boundaries\n\n- [ ] Never delete the database\n", encoding="utf-8")
+    run_id2 = json.loads((spec_dir2 / "state.json").read_text())["run_id"]
+    run_cohort("reset", str(spec_dir2))
+    run_cohort("init", str(spec_dir2), "--run-id", run_id2)
+    run_cohort("approve-plan", str(spec_dir2), "--expect-run-id", run_id2)
+    run_cohort("schedule", str(spec_dir2), "--expect-run-id", run_id2)
+    (spec_dir2 / "spec.md").write_text(
+        (spec_dir2 / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] Never delete the database", "- [x] Never delete the database"),
+        encoding="utf-8")
+    fail(name, "ticking a Boundaries checkbox passed the pin") if _check(spec_dir2) == 0 else ok(name)
+
+
+def test_ac7_body_status_line_is_pinned(tmp: Path) -> None:
+    """AC7. Unit-level on purpose.
+
+    The preamble scan `break`s at the first `**Status:**`, so when a preamble
+    status exists a body occurrence is unreachable and the section guard is
+    unobservable. The shape where the guard *is* load-bearing — status only in
+    the body — cannot reach `approve-plan` at all, because its crash-window
+    guard requires a parseable `Approved` in the preamble. So the guard is
+    defense-in-depth for any caller of the pure function, and that is the level
+    it has to be tested at; a CLI round trip here passes on the pending
+    sentinel and proves nothing.
+    """
+    name = "ac7-body-status-line-is-pinned"
+    body = ("# Spec\n\n## Notes\n\nQuoting the template:\n\n"
+            "    - **Status:** {token}\n")
+    draft = canonical_contract(body.format(token="Draft"))
+    shipped = canonical_contract(body.format(token="Shipped"))
+    if draft == shipped:
+        fail(name, "a body-section Status token was normalized away")
+        return
+    # And the preamble one still is, in the same document shape.
+    pre = "# Spec\n\n- **Status:** {t}\n\n## Notes\n\n- **Status:** Draft\n"
+    if canonical_contract(pre.format(t="Approved")) != canonical_contract(pre.format(t="Shipped")):
+        fail(name, "the preamble token was not normalized")
+        return
+    ok(name)
+
+
+def test_ac1_splice_preserves_indentation(tmp: Path) -> None:
+    """AC1, unit-level. A whole-match substitution would collapse the leading
+    whitespace and the bullet run, making a re-indent invisible."""
+    name = "ac1-splice-preserves-indentation"
+    head = "# S\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n"
+    flat = canonical_contract(head + "- [x] AC1\n")
+    nested = canonical_contract(head + "  - [x] AC1\n")
+    ticked = canonical_contract(head + "- [x] AC1\n")
+    unticked = canonical_contract(head + "- [ ] AC1\n")
+    if flat == nested:
+        fail(name, "re-indenting a ticked criterion did not move the digest")
+    elif ticked != unticked:
+        fail(name, "ticking a criterion moved the digest")
+    else:
+        ok(name)
+
+
+def test_ac8_deferral_annotation_is_scope(tmp: Path) -> None:
+    """AC8. Deferring a criterion is a scope change, not progress."""
+    name = "ac8-deferral-annotation-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] AC2 second", "- [ ] AC2 second (deferred: some-slug)"),
+        encoding="utf-8")
+    fail(name, "a deferral annotation passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac8_status_annotation_is_scope(tmp: Path) -> None:
+    """AC8. extract_status_token truncates at ' (', so a dated annotation is
+    outside the token and stays hashed."""
+    name = "ac8-status-annotation-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- **Status:** Approved <!--", "- **Status:** Shipped (2026-01-01) <!--"),
+        encoding="utf-8")
+    fail(name, "a dated status annotation passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac6_changed_task_text_is_scope(tmp: Path) -> None:
+    """AC6. Task text and dependency edges are the build strategy."""
+    name = "ac6-changed-task-text-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, content="# Plan\n\n- **Status:** Approved\n\n"
+               "### T1 do something else\n\n**Depends on:** none\n\n"
+               "### T2\n\n**Depends on:** T1\n")
+    fail(name, "changed task text passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac6_changed_depends_on_is_scope(tmp: Path) -> None:
+    """AC6. Re-wiring the DAG changes what may run in parallel."""
+    name = "ac6-changed-depends-on-is-scope"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, content="# Plan\n\n- **Status:** Approved\n\n"
+               "### T1\n\n**Depends on:** none\n\n"
+               "### T2\n\n**Depends on:** none\n")
+    fail(name, "a changed Depends on passed the pin") if _check(spec_dir) == 0 else ok(name)
+
+
+def test_ac9_regressed_spec_status_stops(tmp: Path) -> None:
+    """AC9. The byte hash used to catch a status regression incidentally;
+    normalizing the token out means it must be asserted directly."""
+    name = "ac9-regressed-spec-status-stops"
+    spec_dir, _ = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- **Status:** Approved <!--", "- **Status:** Draft <!--"),
+        encoding="utf-8")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    if rc == 0:
+        fail(name, "a spec regressed to Draft passed")
+    elif "Status is 'Draft'" not in err:
+        fail(name, f"stopped, but not for the status reason: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac9_absent_plan_status_is_skipped(tmp: Path) -> None:
+    """AC9. Plan fixtures carry no status line; the assertion must not turn a
+    CODE-* pre-guard red for them."""
+    name = "ac9-absent-plan-status-is-skipped"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    write_plan(spec_dir, status=None)  # no status line at all
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    rc, _, err = run_cohort("schedule", "check-current", str(spec_dir))
+    ok(name) if rc == 0 else fail(name, f"a status-less plan went red: {err!r}")
+
+
+def test_ac9_pending_sentinel_survives(tmp: Path) -> None:
+    """AC9's ordering. The `plan_review_status: pending` sentinel is the
+    documented PLAN-time cue; a status assertion placed before the early return
+    would replace it with a Draft complaint on every PLAN invocation."""
+    name = "ac9-pending-sentinel-survives"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Draft")
+    write_plan(spec_dir)
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "expected non-zero before approval")
+    elif "plan_review_status: pending" not in err:
+        fail(name, f"sentinel replaced by another message: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac10_mismatch_names_both_causes(tmp: Path) -> None:
+    """AC10. The verb cannot tell an unapproved scope change from a
+    pre-canonical baseline, so it must not assert either one."""
+    name = "ac10-mismatch-names-both-causes"
+    spec_dir, run_id = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- [ ] AC2 second", "- [ ] AC2 rewritten"), encoding="utf-8")
+    seen = []
+    _, _, e1 = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    seen.append(("plan check-current spec", e1))
+    _, _, e2 = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    seen.append(("approve-plan idempotency", e2))
+    write_plan(spec_dir, content="# Plan\n\n- **Status:** Approved\n\n### T9\n\n**Depends on:** none\n")
+    _, _, e3 = run_cohort("schedule", "check-current", str(spec_dir))
+    seen.append(("schedule check-current", e3))
+    missing = [label for label, msg in seen if "predates canonical hashing" not in msg
+               and "before canonical hashing" not in msg]
+    fail(name, f"sites missing the both-causes wording: {missing}") if missing else ok(name)
+
+
+def test_ac10_plan_compare_names_both_causes(tmp: Path) -> None:
+    """AC10, plan side. The spec compare runs first and returns, so a
+    spec-and-plan mismatch never reaches this branch — it needs a plan-only
+    change."""
+    name = "ac10-plan-compare-names-both-causes"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, content="# Plan\n\n- **Status:** Approved\n\n"
+               "### T1 different\n\n**Depends on:** none\n")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "a plan-only change passed")
+    elif "canonical hashing" not in err:
+        fail(name, f"plan compare omits the both-causes wording: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac10_plan_hash_desync_names_both_causes(tmp: Path) -> None:
+    """AC10, the state-vs-state site. Re-running `schedule` against a legacy
+    approved_plan_hash reaches a compare that touches no file."""
+    name = "ac10-plan-hash-desync-names-both-causes"
+    spec_dir, run_id = _approved_run(tmp, name)
+    state = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
+    state["plan_hash"] = "0" * 64
+    (spec_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir), "--require-schedule")
+    if rc == 0:
+        fail(name, "a desynced plan_hash passed")
+    elif "canonical hashing" not in err:
+        fail(name, f"the plan_hash compare omits the both-causes wording: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac9_regressed_plan_status_stops(tmp: Path) -> None:
+    """AC9, plan side. Deleting plan.md's entry from the legal-status table
+    leaves every other case green."""
+    name = "ac9-regressed-plan-status-stops"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, status="Drafting")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "a plan regressed to Drafting passed")
+    elif "Status is 'Drafting'" not in err:
+        fail(name, f"stopped, but not on the plan status: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac9_approve_plan_replay_checks_status(tmp: Path) -> None:
+    """AC9's third site. The already-approved branch returns a clean no-op
+    before the crash-window guard, so without its own assertion it reports
+    success against a spec that no longer claims to be approved."""
+    name = "ac9-approve-plan-replay-checks-status"
+    spec_dir, run_id = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_text(
+        (spec_dir / "spec.md").read_text(encoding="utf-8")
+        .replace("- **Status:** Approved <!--", "- **Status:** Draft <!--"),
+        encoding="utf-8")
+    rc, out, err = run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    if rc == 0:
+        fail(name, f"replay reported success against a Draft spec: {out!r}")
+    elif "Status is 'Draft'" not in err:
+        fail(name, f"stopped, but not on the status: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac5_plan_task_checkbox_is_bookkeeping(tmp: Path) -> None:
+    """AC5, plan side. A plan has no Acceptance Criteria section, so its
+    checkboxes are task progress and are normalized file-wide — four plans in
+    this repo carry them."""
+    name = "ac5-plan-task-checkbox-is-bookkeeping"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    write_spec(spec_dir, status="Approved")
+    plan = ("# Plan\n\n- **Status:** Approved\n\n### T1\n\n"
+            "**Depends on:** none\n\n- [{m}] wire the thing\n")
+    write_plan(spec_dir, content=plan.format(m=" "))
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    write_plan(spec_dir, content=plan.format(m="x"))
+    rc, _, err = run_cohort("schedule", "check-current", str(spec_dir))
+    ok(name) if rc == 0 else fail(name, f"ticking a plan task broke the pin: {err!r}")
+
+
+def test_ac5_lowercase_ac_heading_still_normalizes(tmp: Path) -> None:
+    """AC5. The AC-section scan is case-insensitive on purpose: the shared
+    linter matches `Acceptance Criteria` exactly, so specs spelling it with a
+    lowercase `c` would otherwise get no normalization at all."""
+    name = "ac5-lowercase-ac-heading-still-normalizes"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    run_cohort("init", str(spec_dir), "--run-id", run_id)
+    body = ("# Spec\n\n- **Status:** Approved\n\n"
+            "## Acceptance criteria\n\n- [{m}] AC1 first\n")
+    (spec_dir / "spec.md").write_text(body.format(m=" "), encoding="utf-8")
+    write_plan(spec_dir)
+    run_cohort("approve-plan", str(spec_dir), "--expect-run-id", run_id)
+    run_cohort("schedule", str(spec_dir), "--expect-run-id", run_id)
+    (spec_dir / "spec.md").write_text(body.format(m="x"), encoding="utf-8")
+    rc, _, err = run_cohort("plan", "check-current", str(spec_dir))
+    ok(name) if rc == 0 else fail(name, f"lowercase heading was not recognized: {err!r}")
+
+
+def test_ac7_fenced_ac_heading_does_not_open_the_region(tmp: Path) -> None:
+    """AC7. A `## Acceptance Criteria` inside a fenced example is documentation,
+    not a section boundary — without fence tracking it would open the region
+    and un-pin a Boundaries checkbox below it."""
+    name = "ac7-fenced-ac-heading-does-not-open-the-region"
+    head = "# S\n\n- **Status:** Approved\n\n## Boundaries\n\n"
+    fence = "```markdown\n## Acceptance Criteria\n```\n\n"
+    never = "- [{m}] Never force-push to main\n"
+    unticked = canonical_contract(head + fence + never.format(m=" "))
+    ticked = canonical_contract(head + fence + never.format(m="x"))
+    ok(name) if unticked != ticked else fail(
+        name, "a Boundaries checkbox was un-pinned by a fenced AC heading")
+
+
+def test_ac5_prose_ac_lead_in_opens_the_region(tmp: Path) -> None:
+    """AC5. Two specs here head their criteria with a bold prose lead-in rather
+    than a heading. Missing it leaves them with no normalization at all — AC5
+    failing by construction for exactly the specs this change is meant to serve."""
+    name = "ac5-prose-ac-lead-in-opens-the-region"
+    body = ("# S\n\n- **Status:** Approved\n\n"
+            "**Acceptance Criteria**\n\n- [{m}] AC1 first\n")
+    ok(name) if canonical_contract(body.format(m=" ")) == canonical_contract(body.format(m="x")) \
+        else fail(name, "a prose AC lead-in did not open the region")
+
+
+def test_ac1_h1_closes_the_ac_region(tmp: Path) -> None:
+    """AC1. An H1 ends the criteria section as surely as an H2; closing only on
+    `##` leaves a later checkbox inside the region and un-pinned."""
+    name = "ac1-h1-closes-the-ac-region"
+    body = ("# S\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n"
+            "- [ ] AC1\n\n# Appendix\n\n- [{m}] Never force-push\n")
+    ok(name) if canonical_contract(body.format(m=" ")) != canonical_contract(body.format(m="x")) \
+        else fail(name, "a checkbox after an H1 was still treated as a criterion")
+
+
+def test_unreadable_artifact_reports_from_every_verb(tmp: Path) -> None:
+    """A gate that stack-traces on its own input is not a gate. Both branches of
+    `approve-plan` reach the artifacts — the pending branch through the
+    crash-window guard, the already-approved branch through the hash — and each
+    was fixed one round apart, so both need pinning."""
+    name = "unreadable-artifact-reports-from-every-verb"
+    BAD = b"# Spec\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n- [ ] AC1 \xff\xfe\n"
+    # The *pending* branch: a fresh cohort, so approve-plan reaches the
+    # crash-window guard rather than the already-approved hash compare. The two
+    # were fixed a round apart, so each needs driving.
+    pend_id = str(uuid.uuid4())
+    pend = make_spec_dir(tmp, name + "-pending")
+    run_cohort("init", str(pend), "--run-id", pend_id)
+    (pend / "spec.md").write_bytes(BAD)
+    write_plan(pend)
+    rc, out, err = run_cohort("approve-plan", str(pend), "--expect-run-id", pend_id)
+    if rc == 0:
+        fail(name, "approve-plan (pending) accepted an undecodable spec.md")
+        return
+    if "Traceback" in err or "Traceback" in out:
+        fail(name, f"approve-plan (pending) tracebacked:\n{err[:200]}")
+        return
+
+    spec_dir, run_id = _approved_run(tmp, name)
+    (spec_dir / "spec.md").write_bytes(BAD)
+    for verb in (("approve-plan", str(spec_dir), "--expect-run-id", run_id),
+                 ("plan", "check-current", str(spec_dir), "--require-schedule")):
+        rc, out, err = run_cohort(*verb)
+        if rc == 0:
+            fail(name, f"{verb[0]} accepted an undecodable spec.md")
+            return
+        if "Traceback" in err or "Traceback" in out:
+            fail(name, f"{verb[0]} tracebacked instead of reporting:\n{err[:200]}")
+            return
+    ok(name)
+
+
+def test_ac9_schedule_check_current_stops_on_regressed_plan(tmp: Path) -> None:
+    """AC9's third site, and the one it argues hardest for. Normalizing the
+    status token out means a `Drafting` plan no longer moves the hash, so if
+    this verb does not assert the token nothing catches it — and this is the
+    verb wired into every `CODE-*` pre-guard."""
+    name = "ac9-schedule-check-current-stops-on-regressed-plan"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, status="Drafting")
+    rc, _, err = run_cohort("schedule", "check-current", str(spec_dir))
+    if rc == 0:
+        fail(name, "schedule check-current passed a plan regressed to Drafting")
+    elif "Status is 'Drafting'" not in err:
+        fail(name, f"stopped, but not on the plan status: {err!r}")
+    else:
+        ok(name)
+
+
+def test_ac2_multiline_preamble_comment_keeps_line_indices(tmp: Path) -> None:
+    """AC2's comment-stripping bridge. `parse_status` strips HTML comments with
+    a plain `sub("", text)` under re.DOTALL, which collapses a multiline comment
+    to nothing and shifts every later line index. The canonicalizer needs the
+    index to map back to the raw line it rewrites, so it substitutes a
+    newline-preserving replacement instead.
+
+    18 spec/plan files in this tree carry a multiline preamble comment — the
+    exact population this fix serves — and no fixture emitted that shape, so
+    the plain-sub mutation survived every other case.
+    """
+    name = "ac2-multiline-preamble-comment-keeps-line-indices"
+    body = ("# Spec\n\n"
+            "<!--\n  a preamble note\n  spanning three lines\n-->\n\n"
+            "- **Status:** {t}\n\n## Acceptance Criteria\n\n- [ ] AC1\n")
+    if canonical_contract(body.format(t="Approved")) == canonical_contract(body.format(t="Shipped")):
+        ok(name)
+    else:
+        fail(name, "a status bump moved the digest when a multiline comment "
+                   "preceded the status line — the line index did not map back")
+
+
+def test_ac9_comment_only_status_is_skipped(tmp: Path) -> None:
+    """AC9. `extract_status_token` returns "" — not None — when the status value
+    is only an HTML comment, so an `is not None` guard stops on it. AC9 promises
+    absent *or unparseable* is skipped, and that promise is the whole safety
+    argument for wiring the assertion into a `CODE-*` pre-guard, so the empty
+    case has to behave like the absent one.
+    """
+    name = "ac9-comment-only-status-is-skipped"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, content="# Plan\n\n"
+               "- **Status:** <!-- Drafting | Approved | Executing | Done -->\n\n"
+               "### T1\n\n**Depends on:** none\n\n### T2\n\n**Depends on:** T1\n")
+    rc, _, err = run_cohort("schedule", "check-current", str(spec_dir))
+    if rc != 0 and "Status is" in err:
+        fail(name, f"an unparseable token stopped the pre-guard: {err!r}")
+        return
+    rc2, _, err2 = run_cohort("plan", "check-current", str(spec_dir))
+    if rc2 != 0 and "Status is" in err2:
+        fail(name, f"an unparseable token stopped plan check-current: {err2!r}")
+    else:
+        ok(name)
+
+
+def test_ac5_bold_ac_region_terminates(tmp: Path) -> None:
+    """AC5/AC1. A bold-lead-in AC region has no heading to close it, so without
+    an explicit terminator it runs to EOF and un-pins every later checkbox —
+    including a `Never do` item, which is the scope the pin protects. H3 is not
+    a terminator: 293 H3 headings sit inside AC sections across this repo, so
+    closing on them would end the region early for most specs.
+    """
+    name = "ac5-bold-ac-region-terminates"
+    head = "# S\n\n- **Status:** Approved\n\n"
+    checks = [
+        ("bold AC then bold Never-do",
+         head + "**Acceptance criteria:**\n\n- [ ] AC1\n\n**Never do**\n\n"
+                "- [{m}] never add a top-level dir\n", False),
+        ("bold AC then H2 Boundaries",
+         head + "**Acceptance criteria:**\n\n- [ ] AC1\n\n## Boundaries\n\n"
+                "- [{m}] never force-push\n", False),
+        # H3 closes a bold-opened region but not an H2-opened one: H3
+        # subheadings sit inside H2-opened AC sections all over this repo, and
+        # inside no bold-opened one.
+        ("bold AC then H3 Never-do",
+         head + "**Acceptance criteria:**\n\n- [ ] AC1\n\n### Never do\n\n"
+                "- [{m}] never add a top-level dep\n", False),
+        # A bold lead-in inside a *heading-opened* region is a group header, not
+        # a terminator — this spec's own `**Defect 1 — ...**` rows sit under
+        # `## Acceptance Criteria`, so closing on them would un-pin every
+        # criterion it has.
+        ("bold group header inside a heading-opened AC section",
+         head + "## Acceptance Criteria\n\n**Defect 1 — hashing**\n\n"
+                "- [{m}] AC1\n", True),
+        ("H3 subgroup inside the AC section",
+         head + "## Acceptance Criteria\n\n### Group A\n\n- [{m}] AC1\n", True),
+        # An H3-opened AC section is closed by its own siblings. `_AC_HEADING_RE`
+        # accepts `#{2,3}`, but the terminator was a fixed `#{1,2}`, so an
+        # `### Acceptance Criteria` ran through every later H3 to the next H2 and
+        # un-pinned the `Never do` items underneath — the exact scope the pin
+        # protects. No spec in this tree heads its criteria with H3 today (283
+        # are H2, 16 are a bold lead-in), so this is a latent defect rather than
+        # a live one: the recognizer admits a shape the terminator mishandles,
+        # and the first spec to use it would silently lose its pin.
+        ("H3 AC then sibling H3 Never-do",
+         head + "### Acceptance Criteria\n\n- [ ] AC1\n\n### Never do\n\n"
+                "- [{m}] never drop a table\n", False),
+        ("H3 AC then H2",
+         head + "### Acceptance Criteria\n\n- [ ] AC1\n\n## Boundaries\n\n"
+                "- [{m}] never force-push\n", False),
+        # ...but not by a deeper one: H4 nests inside H3 exactly as H3 nests
+        # inside H2, so the rule is depth, not a hard-coded level.
+        ("H4 subgroup inside an H3-opened AC section",
+         head + "### Acceptance Criteria\n\n#### Group A\n\n- [{m}] AC1\n", True),
+    ]
+    for label, body, should_be_bookkeeping in checks:
+        same = canonical_contract(body.format(m=" ")) == canonical_contract(body.format(m="x"))
+        if same != should_be_bookkeeping:
+            fail(name, f"{label}: un-pinned={same}, expected {should_be_bookkeeping}")
+            return
+    ok(name)
+
+
+def test_ac1_fence_tracking_follows_commonmark(tmp: Path) -> None:
+    """AC1. A fence *toggle* desyncs on a nested fence — a ```toml inside a
+    ```markdown example flips the state back — and one plan already in this tree
+    has an odd fence count, which left the tracker stuck open and disabled
+    checkbox normalization for the rest of the file. Only a bare run of the
+    opening character, at least as long, closes.
+    """
+    name = "ac1-fence-tracking-follows-commonmark"
+    head = "# S\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n"
+    checks = [
+        ("well-formed nested, 4-tick outer",
+         head + "````markdown\n```toml\nx = 1\n```\n````\n\n- [{m}] AC1\n", True),
+        ("a fence carrying an info string never closes",
+         head + "```markdown\n## Acceptance Criteria\n```\n\n- [{m}] AC1\n", True),
+        ("tilde fences",
+         head + "~~~markdown\nstuff\n~~~\n\n- [{m}] AC1\n", True),
+        ("an unclosed fence swallows what follows",
+         head + "```python\nx\n\n- [{m}] AC1\n", False),
+    ]
+    for label, body, should_be_bookkeeping in checks:
+        same = canonical_contract(body.format(m=" ")) == canonical_contract(body.format(m="x"))
+        if same != should_be_bookkeeping:
+            fail(name, f"{label}: un-pinned={same}, expected {should_be_bookkeeping}")
+            return
+    ok(name)
+
+
+def test_ac5_real_in_tree_plan_stays_normalizable(tmp: Path) -> None:
+    """AC5, against a real file rather than a fixture. `m2-frame-situation`'s
+    plan carries nested fences with an odd total count; under a toggle its tail
+    stopped normalizing, so ticking a task there would have turned
+    `schedule check-current` red mid-EXECUTE — the original defect, reintroduced
+    by the fence guard added to close a different one."""
+    name = "ac5-real-in-tree-plan-stays-normalizable"
+    # parents[5] is the repo root: work-loop/skills/tests/core/packs/<root>.
+    # A wrong depth here silently takes the skip branch and the case reports
+    # success having run nothing — which is how the toggle mutation survived.
+    real = Path(__file__).resolve().parents[5] / "docs" / "specs" / "m2-frame-situation" / "plan.md"
+    if not real.is_file():
+        fail(name, f"expected the fixture plan at {real} — wrong parents[] depth "
+                   f"would make this case pass without running")
+        return
+    # Concatenate rather than .format(): the real file contains braces, which
+    # str.format would try to interpret.
+    base = real.read_text(encoding="utf-8")
+    same = (canonical_contract(base + "\n### T9\n\n- [ ] T9 done\n", ac_section_only=False)
+            == canonical_contract(base + "\n### T9\n\n- [x] T9 done\n", ac_section_only=False))
+    ok(name) if same else fail(name, "ticking a task in a real plan moved the digest")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
         tests = [
+            test_ac5_ticking_a_criterion_is_bookkeeping,
+            test_ac1_reindenting_a_criterion_is_scope,
+            test_ac5_checkbox_outside_the_ac_section_is_scope,
+            test_ac7_body_status_line_is_pinned,
+            test_ac1_splice_preserves_indentation,
+            test_ac8_deferral_annotation_is_scope,
+            test_ac8_status_annotation_is_scope,
+            test_ac6_changed_task_text_is_scope,
+            test_ac6_changed_depends_on_is_scope,
+            test_ac9_regressed_spec_status_stops,
+            test_unreadable_artifact_reports_from_every_verb,
+            test_ac9_absent_plan_status_is_skipped,
+            test_ac9_comment_only_status_is_skipped,
+            test_ac9_pending_sentinel_survives,
+            test_ac10_mismatch_names_both_causes,
+            test_ac10_plan_compare_names_both_causes,
+            test_ac10_plan_hash_desync_names_both_causes,
+            test_ac9_regressed_plan_status_stops,
+            test_ac9_schedule_check_current_stops_on_regressed_plan,
+            test_ac9_approve_plan_replay_checks_status,
+            test_ac5_plan_task_checkbox_is_bookkeeping,
+            test_ac5_lowercase_ac_heading_still_normalizes,
+            test_ac5_prose_ac_lead_in_opens_the_region,
+            test_ac5_bold_ac_region_terminates,
+            test_ac1_h1_closes_the_ac_region,
+            test_ac2_multiline_preamble_comment_keeps_line_indices,
+            test_ac7_fenced_ac_heading_does_not_open_the_region,
+            test_ac1_fence_tracking_follows_commonmark,
+            test_ac5_real_in_tree_plan_stays_normalizable,
+            test_stub_lifecycle_status_bump_keeps_pin,
+            test_stub_lifecycle_bump_with_vocabulary_comment,
+            test_stub_status_line_smuggling_still_caught,
             test_identity_absent_state,
             test_identity_wrong_schema_version,
             test_identity_run_id_mismatch,
@@ -2104,7 +2847,7 @@ def main() -> int:
             test_parse_findings_specialist_formats,
             test_classify_report_ship_it_clean,
             test_validate_run_id_rejects_wrong_schema,
-            test_canonical_plan_normalization,
+            test_canonical_contract_normalization,
             test_schedule_accepts_level2_task_headings,
             test_gplan_ordering_status_approved_before_approve_plan,
             test_approve_plan_first_write,

@@ -492,6 +492,40 @@ open = [
   # before shortening anything, since the per-target 1024 cap was set to help
   # activation, not hurt it. Needs an eval-backed pass, not a prose sweep.
   {slug = "codex-skill-description-budget", source = "spec/pack-description-quality"},
+    # Every loop-cohort verb does read_state() -> mutate -> write_state_atomic() with no
+    # lock. write_state_atomic makes each *write* atomic via
+    # mkstemp+replace, but the read-modify-write around it is unguarded, so two concurrent
+    # verbs (a supervisor and a hand-run status, two agents in one workspace) silently lose
+    # one update — last writer wins, no error. No flock/fcntl/O_EXCL anywhere under the
+    # work-loop skill's scripts/. Blessed precedent exists: agentbundle routes install state
+    # RMW through statelock.persist_state_locked. Fix: adopt that pattern for state.json and
+    # engine-state.json. Needs its own spec — out of scope for loop-tooling-mandated-writes,
+    # which only changes what gets hashed, not how state is written.
+  {slug = "loop-cohort-state-rmw-unlocked", source = "spec/loop-tooling-mandated-writes"},
+    # docs/knowledge/patterns.jsonl is replayed into every session in full, and
+    # append-knowledge.py makes appending frictionless with no ratchet: the linter
+    # counts entries but caps neither count nor bytes, and every tier="invariant"
+    # entry is emitted regardless of scope. 45 KB / 47 entries today, growing
+    # monotonically as a per-session context and cost tax. Fix: fail the lint above
+    # a stated ceiling so growth forces a curation decision. Deliberately out of
+    # scope for loop-tooling-mandated-writes — that spec governs what may be in an
+    # entry, not how many there may be, and a ceiling is a policy call, not a
+    # security control.
+  {slug = "knowledge-replay-has-no-size-ratchet", source = "spec/loop-tooling-mandated-writes"},
+    # docs/knowledge/patterns.jsonl serves three incompatible roles at once: raw
+    # agent-generated memory, curated guidance, and ambient instructions granted
+    # prompt authority by the SessionStart hook, which is wired with no --scope and
+    # no matcher so it emits every entry on start, resume, clear, compact and fork.
+    # tier="invariant" is a privilege bit selectable inside the raw capture format:
+    # any accepted record can request unconditional repo-wide replay, and the linter
+    # sees only a valid enum. Character-level guards make review effective; they
+    # cannot make instructional prose safe to inject. Fix: split capture from policy
+    # — an untrusted append-only event log never read at session start, a reviewed
+    # active-card projection, and task-time scoped retrieval instead of startup
+    # replay; deprecate the invariant bypass. Needs its own RFC and a revision to
+    # RFC-0077, which currently keeps patterns.jsonl as the canonical surface.
+    # Sequenced after loop-cohort-state-rmw-unlocked.
+  {slug = "knowledge-capture-replay-trust-separation", source = "spec/loop-tooling-mandated-writes"},
     # ~/.agentbundle/browser-state/<profile> holds a standing, silently-replayable corporate
     # IdP session; this change makes replaying it agent-triggered. No lifetime management
     # today. Fix: bound/expire it in sso-broker.py. Unblocks: after

@@ -103,6 +103,8 @@ def _repo_root() -> Path:
 #     `make pre-pr`, `make build-check`, and `make ci`. Re-listing it here
 #     would duplicate a gated check.
 TESTS: list[tuple[str, list[str]]] = [
+    ("append-knowledge", [sys.executable,
+                          "packs/core/tests/skills/work-loop/test-append-knowledge.py"]),
     ("lint-knowledge", [sys.executable,
                         "packs/core/tests/skills/work-loop/test-lint-knowledge.py"]),
     ("lint-sso-config", [sys.executable, "tools/test-lint-sso-config.py"]),

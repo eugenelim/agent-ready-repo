@@ -36,7 +36,7 @@ run_case() {
 
   local out_stdout out_stderr
   set +e
-  out_stdout=$(KNOWLEDGE_FILE="$path" python3 "$HOOK" 2>"$TMP/$name.err")
+  out_stdout=$(KNOWLEDGE_FILE="$path" python3 "$HOOK" --show-knowledge 2>"$TMP/$name.err")
   local got_exit=$?
   out_stderr=$(< "$TMP/$name.err")
   set -e
@@ -82,7 +82,7 @@ run_case "empty-file" "" 0 "" ""
 # Missing file — silent exit 0 (hook is a no-op).
 ran=$((ran + 1))
 set +e
-out_stdout=$(KNOWLEDGE_FILE="$TMP/does-not-exist.jsonl" python3 "$HOOK" 2>"$TMP/miss.err")
+out_stdout=$(KNOWLEDGE_FILE="$TMP/does-not-exist.jsonl" python3 "$HOOK" --show-knowledge 2>"$TMP/miss.err")
 got=$?
 set -e
 out_stderr=$(< "$TMP/miss.err")
@@ -111,7 +111,7 @@ COVERAGE='{"id": "K-0001", "kind": "pattern", "scope": "packages/auth/**", "titl
 printf '%s' "$COVERAGE" > "$TMP/cov.jsonl"
 ran=$((ran + 1))
 set +e
-out=$(KNOWLEDGE_FILE="$TMP/cov.jsonl" python3 "$HOOK" --scope 'packages/auth/server.ts' 2>"$TMP/cov.err")
+out=$(KNOWLEDGE_FILE="$TMP/cov.jsonl" python3 "$HOOK" --show-knowledge --scope 'packages/auth/server.ts' 2>"$TMP/cov.err")
 got=$?
 set -e
 if [[ "$got" -eq 0 && "$out" == *"K-0001"* && "$out" != *"K-0002"* ]]; then
@@ -125,7 +125,7 @@ fi
 # --scope filter (negative): caller path NOT covered by other-package glob.
 ran=$((ran + 1))
 set +e
-out=$(KNOWLEDGE_FILE="$TMP/cov.jsonl" python3 "$HOOK" --scope 'packages/billing/charge.ts' 2>"$TMP/cov2.err")
+out=$(KNOWLEDGE_FILE="$TMP/cov.jsonl" python3 "$HOOK" --show-knowledge --scope 'packages/billing/charge.ts' 2>"$TMP/cov2.err")
 got=$?
 set -e
 if [[ "$got" -eq 0 && "$out" != *"K-0001"* && "$out" != *"K-0002"* ]]; then
@@ -134,6 +134,27 @@ else
   echo "FAIL [scope-coverage-negative]: unrelated path matched stored glob" >&2
   echo "  stdout: $out" >&2
   failures=$((failures + 1))
+fi
+
+# --- Containment: the projected hook must not replay entries by default -------
+# This file tests the copy that is actually wired. The renderer cases above pass
+# --show-knowledge; without it, nothing an author controls may reach stdout,
+# because that stdout becomes model context before the user's first prompt.
+cat > "$TMP/payload.jsonl" <<'EOF'
+{"id":"K-0001","kind":"pattern","scope":"SCOPEPAYLOAD","tier":"invariant","title":"TITLEPAYLOAD","body":"BODYPAYLOAD","source":"SOURCEPAYLOAD"}
+EOF
+out=$(KNOWLEDGE_FILE="$TMP/payload.jsonl" python3 "$HOOK" 2>/dev/null)
+leaked=""
+for needle in SCOPEPAYLOAD TITLEPAYLOAD BODYPAYLOAD SOURCEPAYLOAD K-0001 "=== knowledge ==="; do
+  case "$out" in *"$needle"*) leaked="$leaked $needle";; esac
+done
+if [[ -z "$leaked" ]]; then
+  ran=$((ran + 1))
+  echo "ok   [no-replay-by-default]"
+else
+  ran=$((ran + 1))
+  failures=$((failures + 1))
+  echo "FAIL [no-replay-by-default]: reached stdout:$leaked" >&2
 fi
 
 echo

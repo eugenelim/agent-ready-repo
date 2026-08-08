@@ -167,8 +167,10 @@ EOF
 out=$(ADAPT_REPO_MARKER="$REPO_MARKER" \
       ADAPT_USER_MARKER="$USER_MARKER" \
       KNOWLEDGE_FILE="$PATTERNS" \
-      python3 "$HOOK" 2>/dev/null)
-# Knowledge header must precede the adapt nudge.
+      python3 "$HOOK" --show-knowledge 2>/dev/null)
+# Knowledge header must precede the adapt nudge. `--show-knowledge` because the
+# hook no longer replays entries at session start — see the containment test in
+# the pytest twin.
 knowledge_pos=$(printf '%s' "$out" | grep -n "=== knowledge ===" | head -1 | cut -d: -f1)
 adapt_pos=$(printf '%s' "$out" | grep -n "=== adapt-to-project:" | head -1 | cut -d: -f1)
 if [[ -n "$knowledge_pos" && -n "$adapt_pos" && "$knowledge_pos" -lt "$adapt_pos" ]]; then
