@@ -1,5 +1,6 @@
 ---
 name: Product Engineering
+pluginInstallable: true
 scope: user
 tagline: "Raw idea → build-ready decision brief."
 skills:

@@ -1,5 +1,6 @@
 ---
 name: Contracts
+pluginInstallable: true
 scope: user
 tagline: "OpenAPI 3.1 and AsyncAPI — API-first design."
 skills:

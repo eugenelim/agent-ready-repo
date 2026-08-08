@@ -1,5 +1,6 @@
 ---
 name: Linear
+pluginInstallable: true
 scope: user
 tagline: "Turn a Linear Issue into a product brief and keep it in sync"
 skills:

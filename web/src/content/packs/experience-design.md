@@ -1,5 +1,6 @@
 ---
 name: Experience Design
+pluginInstallable: true
 scope: user
 tagline: "The design/UX seat for product teams."
 skills:

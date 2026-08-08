@@ -12,6 +12,9 @@ on:
       - 'docs/product/changelog.md'
       - 'CONTRIBUTING.md'
       - 'packs/**/README.md'
+      # Scope changes flip whether a pack may advertise the Claude-plugin
+      # route, so the site must rebuild and re-assert on them too.
+      - 'packs/**/pack.toml'
       - 'tools/build-site.py'
       - '.github/workflows/pages.yml'
   pull_request:
@@ -25,6 +28,9 @@ on:
       - 'docs/product/changelog.md'
       - 'CONTRIBUTING.md'
       - 'packs/**/README.md'
+      # Scope changes flip whether a pack may advertise the Claude-plugin
+      # route, so the site must rebuild and re-assert on them too.
+      - 'packs/**/pack.toml'
       - 'tools/build-site.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -70,6 +76,15 @@ jobs:
 
       - name: Build Astro marketing site
         run: npm run build --prefix web  # writes build/ at repo root
+
+      # Built-output half of the Claude-plugin route gate. The consistency half
+      # (site frontmatter vs pack.toml) runs in the required `make build-check`
+      # job; this half needs an Astro build, and putting Node in that job would
+      # make every PR in the repo wait on `npm ci` — see
+      # docs/specs/claude-plugin-route-scope AC8 for the decision and its
+      # accepted residual (this check is non-blocking).
+      - name: Assert the plugin route is offered only where it applies
+        run: python3 tools/check-site-plugin-offers.py --build-dir build
         env:
           ASTRO_TELEMETRY_DISABLED: "1"
 

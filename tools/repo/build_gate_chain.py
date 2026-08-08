@@ -209,6 +209,18 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-plugin-membership",
             "tools", "lint-plugin-membership.py",
         ),
+        # The site's `pluginInstallable` field is hand-copied from pack.toml —
+        # `tools/build-site.py` feeds docs-site/, not web/ — so this is what
+        # keeps the copy honest. The built-output half lives in pages.yml; see
+        # docs/specs/claude-plugin-route-scope AC8 for why it is not here.
+        _script_step(
+            "test-lint-site-scope-parity",
+            "tools", "test-lint-site-scope-parity.py",
+        ),
+        _script_step(
+            "lint-site-scope-parity",
+            "tools", "lint-site-scope-parity.py",
+        ),
         _script_step(
             "test-lint-pack-descriptions",
             "tools", "test-lint-pack-descriptions.py",

@@ -51,7 +51,11 @@ const packs = allPacks
       tagline: e.data.tagline,
       skillCount: e.data.skills.length,
       cliCmd: e.data.installCommand,
-      pluginCmd: `claude plugin install ${slug}@${MARKETPLACE}`,
+      // Only user-capable packs reach the Claude-plugin route; `null` renders
+      // no plugin block at all rather than a command the pack forbids.
+      pluginCmd: e.data.pluginInstallable
+        ? `claude plugin install ${slug}@${MARKETPLACE}`
+        : null,
       detailUrl: withBase(`/packs/${slug}/`),
     };
   });
@@ -123,26 +127,28 @@ const packs = allPacks
               </div>
             </div>
 
-            <div class="install-block install-block--plugin">
-              <div class="install-block__label">Plugin</div>
-              <div class="install-block__row">
-                <code class="install-block__cmd install-block__cmd--truncate">{pack.pluginCmd}</code>
-                <button
-                  class="copy-btn"
-                  data-cmd={pack.pluginCmd}
-                  aria-label={`Copy Claude plugin install command for ${pack.name}`}
-                  type="button"
-                >
-                  <span class="copy-btn__icon" aria-hidden="true">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
-                      <path d="M2 10V2.5A1.5 1.5 0 0 1 3.5 1H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                    </svg>
-                  </span>
-                  <span class="copy-btn__label">Copy</span>
-                </button>
+            {pack.pluginCmd && (
+              <div class="install-block install-block--plugin">
+                <div class="install-block__label">Plugin</div>
+                <div class="install-block__row">
+                  <code class="install-block__cmd install-block__cmd--truncate">{pack.pluginCmd}</code>
+                  <button
+                    class="copy-btn"
+                    data-cmd={pack.pluginCmd}
+                    aria-label={`Copy Claude plugin install command for ${pack.name}`}
+                    type="button"
+                  >
+                    <span class="copy-btn__icon" aria-hidden="true">
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
+                        <path d="M2 10V2.5A1.5 1.5 0 0 1 3.5 1H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                      </svg>
+                    </span>
+                    <span class="copy-btn__label">Copy</span>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </li>
       ))}

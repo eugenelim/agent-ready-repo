@@ -1,5 +1,6 @@
 ---
 name: Figma
+pluginInstallable: true
 scope: user
 tagline: "Read and render Figma designs — files, frames, variables."
 skills:

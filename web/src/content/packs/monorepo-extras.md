@@ -1,5 +1,6 @@
 ---
 name: Monorepo Extras
+pluginInstallable: false
 scope: repo
 tagline: "Package scaffolding for monorepos."
 skills:

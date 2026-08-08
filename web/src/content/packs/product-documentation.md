@@ -1,5 +1,6 @@
 ---
 name: Product Documentation
+pluginInstallable: true
 scope: repo
 tagline: "Create, revise, audit, and verify catalogue-facing documentation."
 skills:

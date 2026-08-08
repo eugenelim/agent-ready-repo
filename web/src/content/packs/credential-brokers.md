@@ -1,5 +1,6 @@
 ---
 name: Credential Brokers
+pluginInstallable: true
 scope: user
 tagline: "Credential resolution — env → OS keyring → dotfile. Never cleartext."
 skills:

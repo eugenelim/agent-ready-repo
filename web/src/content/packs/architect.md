@@ -1,5 +1,6 @@
 ---
 name: Architect
+pluginInstallable: true
 scope: user
 tagline: "Design docs, diagrams, and reviews — workspace-agnostic."
 skills:

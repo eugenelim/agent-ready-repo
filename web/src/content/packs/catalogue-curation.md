@@ -1,5 +1,6 @@
 ---
 name: Catalogue Curation
+pluginInstallable: false
 scope: repo
 tagline: "Grow the catalogue — assimilate, survey, propose."
 skills:
