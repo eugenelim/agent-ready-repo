@@ -47,22 +47,38 @@ to hang off `make build-check`: `web/`'s own test script is in no workflow,
   and names `_aggregate_marketplace` as the previously-missed writer.
 - `.claude-plugin/marketplace.json` is a `make build-check`-gated projected path.
 - `agentbundle` is stdlib-only.
+- **Engine path-gate.** `tools/lint-catalogue-curation-guard.py` carves out only
+  `build/recipes/` and `/tests/`; T0 edits `build/main.py` and
+  `build/self_host.py`, so the committed changeset needs an
+  `Engine-Change-RFC:` trailer. The gate fires on the *committed* range, so it
+  surfaces after the first commit, not during editing. Resolved at PLAN (AC20).
 
 ## Tasks
 
 ### T0 — The predicate and its three writers
 **Depends on:** T1 · **Mode:** TDD
 
-**Tests:** `stub: pending` (materialise before EXECUTE) — `packages/agentbundle/tests/unit/test_plugin_scope_filter.py`.
-The predicate over an `allowed-scopes` × `adapter-contract.version` matrix
-including the absent-table case; the seven named packs absent from
-`dist/claude-plugins/` and from **both** `marketplace.json` files; a
-user-capable pack still present. The by-name assertion carries the
-tripwire comment.
+**Tests:** `stub: pending` (materialise before EXECUTE) —
+`packages/agentbundle/tests/unit/test_plugin_scope_filter.py` plus an
+integration module. Covers: the predicate over an `allowed-scopes` ×
+`adapter-contract.version` matrix including the absent-table case; **set
+equality both directions on all three surfaces**, built into `tmp_path`; the
+seven absences by name with the tripwire comment; the **envelope**
+(`name`/`owner`/`description`) intact; the **property test** over the three
+resolvers (`_allowed_scopes ⊆` the other two); the **empty-set** exit; the
+publish script's predicate re-derivation and its entry-vs-directory equality;
+Gate 1's narrowed `expected_packs`.
 
-**Approach:** one predicate reusing `_allowed_scopes`, applied at the recipe,
-`_run_aggregate`, and `_aggregate_marketplace` — overturning that function's
-"advertises every pack" note at the note. Re-pin the blast-radius tests here,
+**Approach:** one predicate reusing `_allowed_scopes`, route-keyed on
+`(recipe.name, recipe.adapter)`, applied at **four** sites: the recipe,
+`_run_aggregate`, `_aggregate_marketplace` (overturning its "advertises every
+pack" note at the note), and `run_build_check_drift_gates` **Gate 1**, whose
+`expected_packs` is production code that would otherwise hard-fail seven times in
+the required gate. Gate 1c (APM) and Gate 2 (source-shape) are not narrowed.
+
+`_run_aggregate(recipe, output_dir)` gains a source-tree handle so scope resolves
+from `packs/<slug>/pack.toml` rather than the projected copy — a signature
+change; `run_recipe` already holds `packs_list`. Re-pin the blast-radius tests here,
 re-derived by glob first. `publish_claude_plugins.py` keeps `catalogue-curation`
 for its operator-only reason, gains the derived filter beside it, and its check
 becomes a fail-loud assertion so a stale `dist/` is caught rather than
@@ -75,8 +91,9 @@ republished.
 **Depends on:** none · *(runs first — the five build fixtures carry only a `[pack]` table, so the predicate resolves them to `["repo"]` and reddens the derivation, pipeline, end-to-end and drift-gate suites the moment T0 lands)* · **Mode:** Goal-based check
 
 **Done when:** every fixture whose tests assert claude-plugins output declares
-both `[pack.adapter-contract] version` and `[pack.install] allowed-scopes`
-including `"user"`, and those tests pass.
+`[pack.adapter-contract] version = "0.2"` — the lowest version that carries
+`[pack.install]`, chosen so no unrelated rail activates — and
+`[pack.install] allowed-scopes` including `"user"`, and those tests pass.
 
 **Approach:** five fixtures under `build/tests/fixtures/packs/` lack
 `[pack.adapter-contract]` and therefore resolve to `["repo"]`. `.../packs/core/`
@@ -91,9 +108,13 @@ rely on defaults.
 **Tests:** `stub: pending` (materialise before EXECUTE) — a test reading each `packs/<slug>/pack.toml` and
 asserting `web/src/content/packs/<slug>.md`'s user-capability field equals
 `"user" in allowed-scopes`, plus the built-output assertion. Reachable from
-`make build-check` — the only required, path-unfiltered gate. Not `make ci`
-(no workflow invokes it) and not Gate A (`paths-ignore: 'web/**'` skips exactly
-the edit this guards).
+**not** a bare pytest hung off `make build-check` — that target runs no pytest,
+and in `build-check.yml` it executes before pytest is installed. The tripwire
+lands as a `tools/lint-*.py` + `tools/test-lint-*.py` pair registered in
+`build_gate_chain.py`, with the `lint-ci-parity` update that requires.
+Verification is by **mutation**: desync a `web/` frontmatter value, assert
+`make build-check` exits non-zero. The built-output half needs a Node toolchain
+in the required job — an `Ask first` boundary, resolved before wiring.
 
 **Approach:** add the field to `web/src/content.config.ts` (required, no
 default, so the Astro build fails on omission) and each pack's markdown file; gate `[pack].astro` and `catalogue/index.astro` on it, **not** on `scope`
@@ -130,15 +151,19 @@ row and `test_manual_qa_matrix_shape.py:37-44`, which keeps it green while the
 scenario becomes impossible.
 
 ### T4b — `render_pack` consumers
-**Depends on:** T0 · **Mode:** TDD
+**Depends on:** T0 · **Mode:** Goal-based check (characterization)
 
-**Tests:** `stub: pending` — each of `commands/render.py`, `diff.py`,
+**Tests:** `stub: pending` (materialise before EXECUTE) — each of `commands/render.py`, `diff.py`,
 `init_state.py`, `upgrade.py`, `install.py --emit-install-routes`, and
 `validate.py` asserted for its expected output per projection; a pre-change
 `state.json` carrying old relpaths exercised through `upgrade`.
 
-**Approach:** assertions only. The recipe-level filter removes whole subtrees
-from six consumers' output; `init-state` writes those relpaths into the state
+**Approach:** assertions only — characterization of behaviour T0 ships, not
+red-green. The `render_pack`-consumer files are carved out of T0's re-pin list so
+two tasks do not claim `test_render.py` and `test_render_cmd.py`. Also covers the
+`--emit-install-routes` route-summary rail (`commands/install.py:1723-1732`),
+which prints a path that no longer exists. The recipe-level filter removes whole
+subtrees from six consumers' output; `init-state` writes those relpaths into the state
 file, so the pre-change case is the one most likely to surprise an adopter.
 
 ### T5 — Changelogs
@@ -150,11 +175,16 @@ packs, and `claude plugin uninstall` as step one of the remedy.
 ### T6 — Real client
 **Depends on:** T0, T2, T3, T5 · **Mode:** Visual / manual QA
 
-**Done when:** a dropped pack is confirmed absent from the marketplace against
-`claude` 2.1.223, and an install-then-delist run records what the client does to
+**Done when:** run against a **local marketplace path** (the repo-root
+marketplace resolves from `main` and the dist branch is written on push, so
+neither reflects the PR); a dropped pack confirmed absent against
+`claude` 2.1.223; a post-delist `claude plugin update` and marketplace refresh
+recorded, since that is the observation AC14's remedy is written against; and an install-then-delist run records what the client does to
 an installed-but-delisted plugin. Transcripts below. **Scope boundary:** one
 dropped pack and one user-capable pack are exercised by hand; the other 19 are
-covered by T0's assertions.
+covered by T0's assertions. The **post-merge** re-run against the published
+marketplace is a separate recorded step, tracked in `workspace.toml`
+`[backlog].open` rather than blocking this PR.
 
 ## Risks
 

@@ -1,4 +1,4 @@
-# Plan: Claude-plugin route — scope correctness, docs, and hook parity
+# Plan: Claude-plugin route — hook parity
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
@@ -14,32 +14,21 @@
 
 ## Approach
 
-**A — the filter.** The route is user-scope distribution: a plugin's code lives
-in the adopter's global cache, and `project`/`local` record an enablement pointer
-in a repo file rather than placing anything in the repo. So the fix is a filter,
-not a runtime guard — publish only packs whose `allowed-scopes` admits `user`,
-derived via `commands/validate.py:_allowed_scopes` (reused, not re-derived, so
-the absent-`[pack.install]` default stays single-sourced).
+> **The filter, the docs, and the three marketplace writers are
+> [`../claude-plugin-route-scope/plan.md`](../claude-plugin-route-scope/plan.md).**
+> Not restated here, and not duplicated in this plan's tasks or sweep — the
+> round-1 split left both and they drifted within a day.
 
-**Three writers, one predicate.** The recipe, the dist aggregation, and
-`build/self_host.py:_aggregate_marketplace` — the last writes the repo-root
-`.claude-plugin/marketplace.json` that `claude plugin marketplace add
-eugenelim/agent-ready-repo` resolves, and carries a contrary design note
-("intentionally ignores the pack filter — the catalogue advertises every pack")
-that this change overturns at the note. The two marketplace writers have already
-drifted once: `catalogue-curation` is listed in the repo-root file and absent
-from `origin/claude-plugins-dist`.
+**A — the seam.** `_resolve_contract_for_route` already makes the claude-plugins
+route differ from the direct route. Hooks join it: `hook-body` gains a
+`plugin-target-path`, `hook-wiring` gains a `plugin-mode` resolving to
+`dropped`. The resolver must **apply** `plugin-mode`, not merely require it —
+today it swaps only `target-path`, and `_iter_primitives` skips a primitive only
+when its `mode` is `"dropped"`.
 
-No pack scopes change. No runtime guard is built. `templates/install-marker.py`
-is untouched — three drift gates pin its bytes and #890 already made its own rail
-correct. `packs/core`'s hook bodies are untouched.
-
-**B — the marker follows its reader.** The synthetic install-marker
-`SessionStart` entry is emitted only when the published set contains a marker
-*reader*. Today none does, so published plugins ship an empty `hooks` block
-instead of running a subprocess every session to write a file nothing reads.
-Gated on reader-existence rather than on the pack's own hooks, because RFC-0008's
-writer is per-pack self-announcement while the reader is separate and singular.
+**B — the marker.** Open question, not a decision: gating the synthetic
+install-marker entry on reader-existence is undetectable without executing pack
+code and tests the wrong predicate. See the spec's split note.
 
 **C — the compiler.** `build/projections/plugin_hooks.py`, pure in / pure out,
 so the fail-closed criteria are unit-testable without a build. A sibling of
@@ -74,13 +63,11 @@ Verification anchors on the real-client criterion against `claude` 2.1.223.
   `propertyNames`, numeric bounds, or length bounds.
 - `contracts/*` mirrors to `agentbundle/_data/`.
 
-## Writers of a plugin `hooks` key or a marketplace entry
+## Writers of a plugin `hooks` key
 
 | Site | Role | Disposition |
 |---|---|---|
 | `build/main.py` synthetic-hooks assignment | assigns the block | **must change** — merge, and gate on reader-existence |
-| `build/main.py` `_run_aggregate` | dist `marketplace.json` | **must change** — apply the predicate |
-| `build/self_host.py:_aggregate_marketplace` | **repo-root** `marketplace.json`; the one adopters add | **must change** — apply the predicate; overturn its "advertises every pack" note |
 | `build/self_host.py` source-shape gate | source `plugin.json` carrying `hooks` is drift | unchanged |
 | `catalogue_tooling/verify.py` | asserts no `hooks` in a marketplace entry | unchanged |
 | `build/main.py` `_APM_INSTALL_MARKER_HOOK_JSON` | `hooks` into `dist/apm/.../install-marker.json` | unchanged — APM route, different artifact |
@@ -92,17 +79,10 @@ reason.
 
 ## Anchor-test sweep
 
-Two independent blast radii. Both re-derived by glob at task start, not trusted
-from this table.
+Re-derived by glob at task start, not trusted from this table.
 
-**Radius 1 — the scope filter.** Tests asserting `claude-plugins/<repo-only-pack>/`
-output. These go red under T0 alone, which is why T0 is not shippable in
-isolation: `tests/unit/test_render.py:33-34`, `tests/unit/test_render_cmd.py:84-96`,
-`build/tests/test_pipeline.py:77-80`, `build/tests/test_end_to_end_build.py:51,64`,
-`tests/integration/test_install_repo_scope_per_adapter.py:238-241` (asserts
-`claude-plugins/core/` exists after `--emit-install-routes` against real
-`packs/core`), `tests/integration/test_install_core_smoke.py:60`. Plus any test
-asserting a marketplace entry **count**.
+Radius 1 (the scope filter) is the sibling plan's. What follows is this
+spec's own.
 
 **Radius 2 — the hook layout.** Red under the body-relocation and
 no-`.claude/` criteria: `build/tests/test_end_to_end_build.py:67-75` (also carries

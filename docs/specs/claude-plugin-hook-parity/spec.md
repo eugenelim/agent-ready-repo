@@ -48,78 +48,28 @@
 
 ## Objective
 
-**The Claude-plugin route is a user-scope distribution channel. It should
-publish only packs that permit user-scope install, say so in the docs, and carry
-their hooks correctly.** Today it does none of the three.
+**A pack that ships hook bodies and hook wiring gets working hooks on the
+Claude-plugin route.** Today the route publishes them inert: wiring lands in
+`<pack>/.claude/settings.local.json` (a direct-install destination the plugin
+loader never reads) and bodies land at `<pack>/tools/hooks/`, named by a command
+relative to the adopter's working directory rather than the plugin root.
+`build/main.py` *assigns* `derived["hooks"]` rather than merging, and the derived
+schema admits one event.
 
-A Claude plugin's code always lives in the adopter's global cache
-(`~/.claude/plugins/cache/<marketplace>/<plugin>/<version>`). The `project` and
-`local` install scopes record an *enablement pointer* in a repo settings file;
-they do not place the plugin in the repo. `claude plugin install` defaults to
-`--scope user`. There is no repo-scoped plugin install in the sense agentbundle
-means by `repo` — confirmed: `~/.claude.json` carries 53 project entries and
-none records plugin enablement.
-
-Three defects follow.
-
-**1 — the route publishes packs that forbid the only install it offers.**
-Seven packs declare `allowed-scopes = ["repo"]`: `core`, `catalogue-curation`,
-`governance-extras`, `iac-terraform`, `monorepo-extras`, `release-engineering`,
-`user-guide-diataxis`. Six are published to `claude-plugins-dist` today
-(`catalogue-curation` is already excluded, but by a hardcoded name, for an
-unrelated operator-only reason). ADR-0002 defines `allowed-scopes` as a refusal
-contract — a scope outside the set "is refused with stderr naming the pack and
-the declared set". The route installs them at user scope anyway.
-
-**2 — the docs and the site offer the route for packs that cannot use it.**
-`README.md:32-35`, the repo's front door, tells adopters to run
-`claude plugin install core@agent-ready-repo`. `web/src/pages/packs/[pack].astro:24`
-and `web/src/pages/catalogue/index.astro:54` each build a
-`claude plugin install <slug>@<marketplace>` command for **every** pack, with
-`scope` available on the same object and unused — so the site currently offers a
-plugin install for all seven repo-only packs.
-
-**3 — authored hooks are published inert.** A pack shipping
-`.apm/hook-wiring/` gets its wiring written to `<pack>/.claude/settings.local.json`
-(a direct-install destination the plugin loader never reads) and its bodies to
-`<pack>/tools/hooks/`, named by a command relative to the adopter's working
-directory rather than the plugin root. `build/main.py` *assigns*
-`derived["hooks"]` rather than merging, and the derived schema admits one event.
-
-### What this ships, stated plainly
-
-Defects 1 and 2 are adopter-visible and are the deliverable: seven packs stop
-being published and stop being advertised as plugins.
-
-Defect 3's fix activates no hook *today*, because `packs/core` is the only pack
-shipping `.apm/hook-wiring/` and it is one of the seven. It is not speculative
-work, though — it is the precondition for two things:
-
-- **RFC-0008's install→adapt chain on this route.** The synthetic install-marker
-  hook keeps being written for the 14 published packs, unchanged. Both readers of
-  `.adapt-install-marker.toml` — `packs/core/.apm/hooks/session-start.py` and the
-  `adapt-to-project` skill — live in `core`, so on this route the *automatic
-  nudge* is reachable only for an adopter who also has `core` installed at repo
-  scope (the normal case, since `core` is the pack you install into a repo). The
-  user-scope path re-lights the moment a user-capable pack ships a session-start
-  hook, and this spec is what makes such a hook work at all.
-- **Any future user-scoped pack's hooks.** Without this, the route silently drops
-  them the day one is authored.
-
-RFC-0008 is therefore **dormant on the user-scope path, not falsified**, and
-takes no erratum. The spec records the dormancy where the route is documented.
-
-Pack scopes are **not** changed to make any of this work. `packs/core` stays
-`allowed-scopes = ["repo"]`; repo-scoped packs are repo-scoped deliberately, and
-adopters reach them through the direct adapter, which is the route built for it.
+> **Scope, docs, and the publish filter are not this spec.** They are
+> [`../claude-plugin-route-scope/spec.md`](../claude-plugin-route-scope/spec.md),
+> which must land first — it determines which packs the compiler ever runs for.
+> That spec's filter excludes every repo-only pack, and `packs/core` is the only
+> pack shipping `.apm/hook-wiring/` today, so **this spec activates no hook on
+> any currently-published pack.** It makes the route correct for the next
+> user-capable pack that ships hooks, and for the install→adapt chain's
+> user-scope path.
 
 ## Boundaries
 
 ### Always do
 
-- Fix the generator, the contract, the publish filter, and the docs; never
-  hand-edit projected output.
-- Derive the publish filter from `allowed-scopes`, not from a name list.
+- Fix the generator and the contract; never hand-edit projected output.
 - Keep the derived manifest inside what Claude Code documents (ADR-0072:
   upstream wins; a local departure must be *restrictive*).
 - Fail loud at build time, naming pack, wiring file, and command.
