@@ -81,11 +81,6 @@ FIELD_ORDER = ("id", "kind", "scope", "tier", "title", "body", "source")
 
 
 # Environment that steers `git rev-parse --show-toplevel` away from the cwd.
-_GIT_ENV_OVERRIDES = (
-    "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES",
-)
-
-
 def fail(reason: str, code: int = 1) -> int:
     print(f"append-knowledge: {reason}", file=sys.stderr)
     return code
@@ -93,6 +88,30 @@ def fail(reason: str, code: int = 1) -> int:
 
 class LockUnavailable(Exception):
     """Raised when the target's lock could not be acquired."""
+
+
+def _is_the_lock_we_saw(moved: Path, seen: os.stat_result | None,
+                       seen_token: str | None) -> bool:
+    """True when *moved* is the same file the staleness decision inspected.
+
+    `os.replace` moves whatever is at the path when it fires. Between the
+    `stat()` that judged a lock abandoned and the rename that breaks it, the
+    holder can release and a successor can acquire — so the file that moves may
+    be a live lock, and breaking it re-opens the lost update this manager
+    exists to prevent.
+    """
+    if seen is None:
+        return False
+    try:
+        now = moved.stat()
+    except OSError:
+        return False
+    if now.st_ino != seen.st_ino or now.st_mtime != seen.st_mtime:
+        return False
+    try:
+        return moved.read_text(encoding="utf-8") == seen_token
+    except (OSError, ValueError):
+        return seen_token is None
 
 
 def stale_name(lock_name: str, nonce: str) -> str:
@@ -158,10 +177,18 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
             # busy-spin — reachable with a dangling symlink at the lock path
             # (stat raises) or a directory there (unlink raises).
             try:
-                age = time.time() - lock.stat().st_mtime
+                seen = lock.stat()
+                age = time.time() - seen.st_mtime
             except OSError:
-                age = None  # vanished, or not stat-able
+                age = seen = seen_token = None  # vanished, or not stat-able
             else:
+                # Captured alongside the stat and checked again after the
+                # rename: `os.replace` is atomic but moves whatever is at the
+                # path when it fires, not the file this stat inspected.
+                try:
+                    seen_token = lock.read_text(encoding="utf-8")
+                except (OSError, ValueError):
+                    seen_token = None
                 # Stale in either direction, but only *grossly* so. A lock
                 # whose mtime is far in the future is a bogus timestamp (clock
                 # skew, NFS, a lock committed and checked out) and must not pin
@@ -175,8 +202,16 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
                     # lets a second breaker delete a lock the *winner* has since
                     # created: B stats an abandoned lock, is descheduled, A
                     # breaks it and acquires, then B's unlink removes A's live
-                    # lock and a third process enters. `os.replace` is atomic,
-                    # so exactly one breaker moves the file it saw.
+                    # lock and a third process enters.
+                    #
+                    # Rename alone is not enough, because atomicity is not
+                    # identity — the same interleaving one step later has B
+                    # renaming away the lock A created after A broke the one B
+                    # stat'ed. So the moved file is checked against the inode and
+                    # token this waiter saw, and put back if it is someone
+                    # else's. `os.link` does the putting back: it is atomic and
+                    # fails outright if the path is occupied again, which means
+                    # a successor is live and this waiter simply keeps waiting.
                     stale = lock.with_name(stale_name(lock.name, nonce))
                     try:
                         lock.replace(stale)
@@ -188,14 +223,24 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
                             f"be moved aside: {exc}"
                         ) from None
                     else:
-                        # The rename is what frees the path and what decides the
-                        # race; clearing the renamed file is tidiness. It is
-                        # gitignored, so failing here is not worth refusing over.
-                        with contextlib.suppress(OSError):
-                            if stale.is_dir():
-                                stale.rmdir()
-                            else:
+                        if not _is_the_lock_we_saw(stale, seen, seen_token):
+                            # Moved a live successor's lock. Put it back and go
+                            # on waiting; if the path is already re-taken, the
+                            # link fails and dropping our copy is correct.
+                            with contextlib.suppress(OSError):
+                                os.link(stale, lock)
+                            with contextlib.suppress(OSError):
                                 stale.unlink()
+                        else:
+                            # The rename is what frees the path and what decides
+                            # the race; clearing the renamed file is tidiness. It
+                            # is gitignored, so failing here is not worth
+                            # refusing over.
+                            with contextlib.suppress(OSError):
+                                if stale.is_dir():
+                                    stale.rmdir()
+                                else:
+                                    stale.unlink()
             if time.monotonic() >= deadline:
                 held = "could not be inspected" if age is None else f"held for {age:.0f}s"
                 raise LockUnavailable(
@@ -216,10 +261,21 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
             lock.unlink()
         raise
     try:
+        mine = lock.stat().st_ino
+    except OSError:
+        mine = None
+    try:
         yield
     finally:
         try:
-            if lock.read_text(encoding="utf-8") == token:
+            # Token *and* inode: a breaker that moved this lock aside lets a
+            # successor create a new one at the same path, and a token-only
+            # check on a fresh file that happens to be unreadable would fall
+            # through. Neither check is atomic with the unlink — a residual
+            # window remains, narrowed rather than closed, and it costs at worst
+            # one spurious break of a lock that is about to be released anyway.
+            if (lock.read_text(encoding="utf-8") == token
+                    and (mine is None or lock.stat().st_ino == mine)):
                 lock.unlink()
         except (OSError, ValueError):
             # ValueError catches UnicodeDecodeError, which is not an OSError: a
@@ -253,18 +309,12 @@ def _load_linter():
 
 
 def repo_root() -> Path | None:
-    """The git top level for the cwd, immune to GIT_* relocation."""
-    env = {k: v for k, v in os.environ.items() if k not in _GIT_ENV_OVERRIDES}
-    try:
-        proc = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, check=False, env=env,
-        )
-    except (OSError, FileNotFoundError):
-        return None
-    if proc.returncode != 0 or not proc.stdout.strip():
-        return None
-    return Path(proc.stdout.strip())
+    """The git top level for the cwd, immune to GIT_* relocation.
+
+    Delegates to the linter's definition. Two copies of a confinement root is
+    two things to keep in step, and only one of them was ever hardened.
+    """
+    return _linter().git_top_level()
 
 
 def confine(raw: str, base: Path) -> Path | None:

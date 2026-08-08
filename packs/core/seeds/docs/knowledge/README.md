@@ -64,7 +64,9 @@ usual mistake:
 | `body` | string | The lesson itself. A paragraph or two is enough; if you find yourself writing more, the entry probably wants to be split. |
 | `source` | string | Where this came from: `PR#42`, `ADR-0007`, `issue#13`, etc. |
 
-Length and character limits the writer enforces: `title` ≤ 120 codepoints, `body` ≤ 2000, `scope` ≤ 200, `source` ≤ 120. Tab and newline are fine — session-start indents multi-line bodies — but other control characters, and characters that render as nothing, are refused.
+Length and character limits: the writer caps `title` at 120 codepoints, `body` at 2000, `scope` at 200 and `source` at 120; the gate uses a looser ceiling, since entries predating both run over the cap. Tab is fine anywhere. A newline is fine in `body` only — session-start indents each body line, but prints `id`/`kind`/`scope`/`title` on one unindented line and `source` on its own, so a newline elsewhere forges a line in what it replays. Other control characters, characters that render as nothing, and runs of more than eight spaces are refused.
+
+One gap is known and accepted: strong right-to-left characters reorder adjacent punctuation under the bidi algorithm without any control character present, so a value mixing them with ASCII can render in a different order than it is stored. The explicit bidi controls are refused; the implicit reordering is not detected.
 
 The format is JSONL (one JSON object per line, no commas, no wrapping
 array) so it grows by append and reads line-by-line.

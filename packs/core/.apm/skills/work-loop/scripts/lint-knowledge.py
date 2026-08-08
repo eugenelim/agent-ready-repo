@@ -29,17 +29,32 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 
-def _repo_root() -> pathlib.Path:
+# A root the caller's environment can move is not a root. `append-knowledge.py`
+# imports `git_top_level` from here rather than keeping its own copy, so the
+# writer's confinement root and the gate's cannot drift apart — they were
+# separate, and only the writer stripped these.
+_GIT_ENV_OVERRIDES = (
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES",
+)
+
+
+def git_top_level() -> pathlib.Path | None:
+    """The git top level for the cwd, immune to GIT_* relocation."""
+    env = {k: v for k, v in os.environ.items() if k not in _GIT_ENV_OVERRIDES}
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, check=False,
+            capture_output=True, text=True, check=False, env=env,
         )
-        if result.returncode == 0 and result.stdout.strip():
-            return pathlib.Path(result.stdout.strip())
-    except FileNotFoundError:
-        pass
-    return pathlib.Path.cwd()
+    except (OSError, FileNotFoundError):
+        return None
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    return pathlib.Path(result.stdout.strip())
+
+
+def _repo_root() -> pathlib.Path:
+    return git_top_level() or pathlib.Path.cwd()
 
 
 REQUIRED_KEYS = {"id", "kind", "scope", "title", "body", "source"}
@@ -64,8 +79,9 @@ _MAX_LINE = 8192
 # `field_problems` names these; `gratuitous_escapes` then skips them because
 # that pass already refuses them, so an entry carrying one gets a single clear
 # error rather than two. The literal form also breaks `str.splitlines()`, which
-# is how both this linter and session-start.py read the file.
+# is how both this linter and the session-start hook read the file.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
+_WHITESPACE_RUN_RE = re.compile(r"[ \t]{2,}")
 
 # No C0 character beyond FIELD_POLICY's tab and per-field newline carve-outs
 # belongs in a field value in either spelling: `field_problems` refuses category
@@ -133,19 +149,28 @@ _INVISIBLE_BUDGET_DIVISOR = 50  # i.e. 2% of the field
 _MIN_INVISIBLE_ALLOWANCE = 8
 
 
-def invisible_budget(value: str, cap: int | None = None) -> int:
+def invisible_budget(value: str, cap: int | None = None, floor: int | None = None) -> int:
     """Invisible characters tolerated in *value*, as a share of its length.
 
     Clamped at the field's own `max`, because the budget is otherwise bought
     with padding: on the hand-edit path, where no writer has enforced a cap, an
     8000-character title buys 160 invisibles and lints clean. The cap is what a
-    legitimate value could hold, so it is the honest basis. Length itself is
-    left to `append-knowledge.py` — entries predating this gate carry titles
-    over the cap, and a gate that reddens data already on main is a broken gate,
-    not a strict one.
+    legitimate value could hold, so it is the honest basis.
+
+    A `floor` of 0 means none at all, not a proportional trickle: `scope` is a
+    glob and `source` a provenance string, and neither has a shaping need that
+    a zero-width character serves.
+
+    This is the *only* role `max` plays at the gate. Length is checked here
+    against the looser `lint_max`, not `max` — entries predating both run over
+    the editorial cap, and a gate that reddens data already committed is broken
+    rather than strict.
     """
+    allowance = _MIN_INVISIBLE_ALLOWANCE if floor is None else floor
+    if allowance == 0:
+        return 0
     basis = len(value) if cap is None else min(len(value), cap)
-    return max(_MIN_INVISIBLE_ALLOWANCE, basis // _INVISIBLE_BUDGET_DIVISOR)
+    return max(allowance, basis // _INVISIBLE_BUDGET_DIVISOR)
 
 
 def is_hidden_char(ch: str) -> bool:
@@ -192,25 +217,44 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
 #
 # What may appear in a value, stated once and read by every layer: this
 # linter, `append-knowledge.py`, and — by construction — what
-# `tools/hooks/session-start.py` can safely replay. Three layers reasoned about
-# one at a time is how a newline came to be legal in `title`: `body` is printed
-# line-by-line with an indent, so a newline there is formatting, while every
-# other field lands on one unindented header line, so a newline there forges a
-# line inside the replayed block.
+# `.apm/hooks/session-start.py` can safely replay. Three layers reasoned about
+# one at a time is how a newline came to be legal in `title`.
 #
-# `multiline` is therefore per field, not global. Tab is fine everywhere. Caps
-# are enforced here as well as in the writer, because this is the gate for the
-# hand-edit path — and a budget derived from field length is otherwise bounded
-# only by _MAX_LINE.
+# The hook's layout is what makes `multiline` per field rather than global:
+# `id`/`kind`/`scope`/`title` share one unindented header line, `body` is printed
+# line-by-line under a four-space indent, `source` gets its own indented `— ...`
+# line, and `tier` is not printed at all. So a newline is formatting in `body`
+# and a forged header line anywhere else. That layout is pinned by
+# `test_session_start_layout_matches_the_field_policy` — without it this table
+# is a comment about another file. Tab is fine everywhere.
+#
+# `max` is the writer's editorial cap; `lint_max` is the gate's, and it is
+# deliberately looser. Entries predating both run over `max` — `title` reaches
+# 148 on main and `body` 1524 — and a gate that reddens data already committed
+# is broken rather than strict. But dropping length here entirely leaves an 8 KB
+# channel: visible padding scales where the invisible budget no longer does, and
+# a payload sitting thousands of columns right of a spaces run is off-screen in
+# review while session-start replays it into every session. `lint_max` clears
+# main with room to spare and closes that; `_MAX_WHITESPACE_RUN` closes the run
+# that makes it work.
+#
+# `invisible` is the floor on the zero-width budget, per field rather than
+# global: 8 was calibrated for one 37-character title carrying five
+# presentation-selector emoji, and `scope` (a glob) and `source` (a provenance
+# string) have no shaping need at all. Zero means none, not a proportional
+# trickle.
 FIELD_POLICY: dict[str, dict] = {
-    "id":     {"max": 32, "multiline": False},
-    "kind":   {"max": 32, "multiline": False},
-    "tier":   {"max": 32, "multiline": False},
-    "scope":  {"max": 200, "multiline": False},
-    "title":  {"max": 120, "multiline": False},
-    "body":   {"max": 2000, "multiline": True},
-    "source": {"max": 120, "multiline": False},
+    "id":     {"max": 32, "lint_max": 64, "multiline": False, "invisible": 0},
+    "kind":   {"max": 32, "lint_max": 64, "multiline": False, "invisible": 0},
+    "tier":   {"max": 32, "lint_max": 64, "multiline": False, "invisible": 0},
+    "scope":  {"max": 200, "lint_max": 512, "multiline": False, "invisible": 0},
+    "title":  {"max": 120, "lint_max": 512, "multiline": False, "invisible": 8},
+    "body":   {"max": 2000, "lint_max": 4096, "multiline": True, "invisible": 8},
+    "source": {"max": 120, "lint_max": 512, "multiline": False, "invisible": 0},
 }
+# Longer than any legitimate value needs, and the mechanism by which a payload
+# is pushed off the right edge of a diff.
+_MAX_WHITESPACE_RUN = 8
 _TAB = 0x09
 _NEWLINE = 0x0A
 
@@ -219,7 +263,8 @@ _NEWLINE = 0x0A
 # `body` is the only multi-line field, so defaulting to it would hand a newline
 # to whatever the schema does not yet know about — an extra key is already a
 # lint error, but the fallback should not be the one that grants a capability.
-_UNKNOWN_FIELD_POLICY = {"max": 120, "multiline": False}
+_UNKNOWN_FIELD_POLICY = {"max": 120, "lint_max": 512, "multiline": False,
+                         "invisible": 0}
 
 
 def field_problems(value: str, field: str = "body") -> list[str]:
@@ -234,7 +279,17 @@ def field_problems(value: str, field: str = "body") -> list[str]:
     """
     policy = FIELD_POLICY.get(field, _UNKNOWN_FIELD_POLICY)
     allowed_controls = {_TAB, _NEWLINE} if policy["multiline"] else {_TAB}
-    problems: list[str] = []
+    if len(value) > policy["lint_max"]:
+        problems_len = [f"{len(value)} characters; the gate's ceiling is "
+                        f"{policy['lint_max']}"]
+    else:
+        problems_len = []
+    problems: list[str] = problems_len
+    space_run = max((len(m.group(0)) for m in _WHITESPACE_RUN_RE.finditer(value)),
+                    default=0)
+    if space_run > _MAX_WHITESPACE_RUN:
+        problems.append(f"a run of {space_run} whitespace characters — long "
+                        f"enough to push what follows off the side of a diff")
     run = invisible = 0
     for ch in value:
         cp = ord(ch)
@@ -248,8 +303,9 @@ def field_problems(value: str, field: str = "body") -> list[str]:
             # neither falls under any other rule. They have to be named here or
             # the *escaped* spelling survives the round trip intact and forges a
             # line into the block session-start replays — a closed
-            # `=== end knowledge ===` followed by an instruction reads as
-            # genuine to any line-oriented consumer. The writer already refuses
+            # unindented line reads as another entry's `[id] (kind, scope)
+            # title` header — the block has no closing marker to counterfeit,
+            # but it does not need one. The writer already refuses
             # all three; this is what makes that true of the gate as well.
             problems.append(f"line separator U+{cp:04X}")
         if 0xD800 <= cp <= 0xDFFF:
@@ -261,7 +317,10 @@ def field_problems(value: str, field: str = "body") -> list[str]:
                 problems.append(f"run of {run} adjacent zero-width characters")
         else:
             run = 0
-    budget = invisible_budget(value, policy["max"])
+    # Never more hidden than shown: `PR#42` with a joiner between every character
+    # is five visible and eight invisible, and cleared a floor of 8 outright.
+    visible = sum(1 for ch in value if ch not in _RUN_CHARS)
+    budget = min(invisible_budget(value, policy["max"], policy["invisible"]), visible)
     if invisible > budget:
         problems.append(f"{invisible} zero-width characters in {len(value)} "
                         f"(budget {budget}) — adjacency alone does not bound volume")

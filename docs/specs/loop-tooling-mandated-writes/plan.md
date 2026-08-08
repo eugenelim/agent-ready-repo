@@ -524,9 +524,9 @@ cannot be the only check.
   checkboxes — the scope the pin protects; the correction to section-only then
   stopped normalizing plan-task checkboxes, which four plans here carry. The
   over-match risk that motivated the original wording is handled by the scan
-  CommonMark fence tracking plus three terminators: H1/H2 for a heading-opened
-  region, and the next bold lead-in or an H3 for a bold-opened one, which has no
-  heading to close it.
+  CommonMark fence tracking plus the depth rule AC1 states: a region closes on
+  the next heading at its own depth or shallower, and a bold lead-in — which has
+  no depth — on any heading or the next bold lead-in.
 - **In-flight runs still reset.** AC10 makes the failure message accurate but
   does not make the old pin valid — that is deliberate. Spec Assumption 1 is
   the canonical statement; T6 reproduces it in the CHANGELOG.

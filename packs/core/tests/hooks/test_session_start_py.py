@@ -79,6 +79,47 @@ def test_session_start_emits_knowledge_block(tmp_path: Path) -> None:
     assert result.stderr == ""
 
 
+def test_session_start_layout_matches_the_field_policy(tmp_path: Path) -> None:
+    """The third layer of the knowledge-entry invariant.
+
+    `FIELD_POLICY` in `lint-knowledge.py` grants a newline to `body` and to no
+    other field, and that is only correct because of how this hook renders each
+    one. The coupling used to be a comment in another file: reformat the emitter
+    — drop the `body` indent, start printing `tier` — and the gate stays green
+    while `body` becomes a line-forgery channel. This test is what makes the
+    policy a fact about the code rather than a claim about it.
+    """
+    kb = tmp_path / "knowledge.jsonl"
+    kb.write_text(
+        '{"id":"K-0001","kind":"pattern","scope":"SCOPE_S","tier":"invariant",'
+        '"title":"TITLE_S","body":"BODY_ONE\\nBODY_TWO","source":"SOURCE_S"}\n',
+        encoding="utf-8",
+    )
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
+    lines = result.stdout.splitlines()
+
+    # Every single-line field shares one unindented header line, so a newline in
+    # any of them would forge a header — which is why the policy refuses it.
+    header = [ln for ln in lines if "TITLE_S" in ln]
+    assert len(header) == 1, f"title spans {len(header)} lines: {header}"
+    assert header[0] == header[0].lstrip(), f"header is indented: {header[0]!r}"
+    for sentinel in ("K-0001", "pattern", "SCOPE_S"):
+        assert sentinel in header[0], f"{sentinel} left the header line"
+
+    # `body` is the one field printed line-by-line, and every line is indented —
+    # so a newline there cannot reach column zero. That is the whole carve-out.
+    body = [ln for ln in lines if ln.strip() in ("BODY_ONE", "BODY_TWO")]
+    assert len(body) == 2, f"body did not render as two lines: {body}"
+    for ln in body:
+        assert ln.startswith("    "), f"body line not indented: {ln!r}"
+
+    # `source` gets its own indented line; `tier` is routing, never printed.
+    source = [ln for ln in lines if "SOURCE_S" in ln]
+    assert len(source) == 1 and source[0].startswith("    "), source
+    assert "invariant" not in result.stdout, "tier is now rendered — policy stale"
+
+
 def test_session_start_malformed_warns_to_stderr(tmp_path: Path) -> None:
     kb = tmp_path / "knowledge.jsonl"
     kb.write_text("{not json\n", encoding="utf-8")

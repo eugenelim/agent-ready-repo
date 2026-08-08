@@ -502,6 +502,16 @@ open = [
     # engine-state.json. Needs its own spec — out of scope for loop-tooling-mandated-writes,
     # which only changes what gets hashed, not how state is written.
   {slug = "loop-cohort-state-rmw-unlocked", source = "spec/loop-tooling-mandated-writes"},
+    # docs/knowledge/patterns.jsonl is replayed into every session in full, and
+    # append-knowledge.py makes appending frictionless with no ratchet: the linter
+    # counts entries but caps neither count nor bytes, and every tier="invariant"
+    # entry is emitted regardless of scope. 45 KB / 47 entries today, growing
+    # monotonically as a per-session context and cost tax. Fix: fail the lint above
+    # a stated ceiling so growth forces a curation decision. Deliberately out of
+    # scope for loop-tooling-mandated-writes — that spec governs what may be in an
+    # entry, not how many there may be, and a ceiling is a policy call, not a
+    # security control.
+  {slug = "knowledge-replay-has-no-size-ratchet", source = "spec/loop-tooling-mandated-writes"},
     # ~/.agentbundle/browser-state/<profile> holds a standing, silently-replayable corporate
     # IdP session; this change makes replaying it agent-triggered. No lifetime management
     # today. Fix: bound/expire it in sso-broker.py. Unblocks: after

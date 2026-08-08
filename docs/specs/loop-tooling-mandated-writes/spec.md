@@ -99,11 +99,21 @@ unparseable lines.
       carry, so a plan is normalized file-wide. The section scan tracks fences with
       CommonMark semantics — a naive toggle desyncs on a nested fence, and one
       plan already in this tree has an odd fence count — so a documented example
-      cannot move the boundary. A heading-opened region closes on an H1 or H2; a
-      bold-lead-in region has no heading to close it, so it closes on the next
-      bold lead-in **or an H3**. H3 deliberately does not close a heading-opened
-      region: H3 subheadings sit inside those all over this repo, and inside no
-      bold-opened one.
+      cannot move the boundary. A region closes on the next heading at **its own
+      depth or shallower**, never on a deeper one; a bold lead-in has no depth,
+      so it closes on any heading or on the next bold lead-in — without which it
+      would run to EOF and un-pin every later checkbox, including a `Never do`
+      item, which is the scope the pin protects.
+
+      Depth, rather than a fixed level, because the two are not the same rule. An
+      H3 subheading must not close an H2-opened section — H3s sit inside those
+      all over this repo — but an H3-opened section *is* closed by the next H3,
+      and a terminator fixed at `#{1,2}` missed that while the recognizer
+      accepted `#{2,3}`. Latent rather than live: no spec in this tree heads its
+      criteria with H3 today (283 are H2, 16 a bold lead-in), and
+      re-canonicalizing every spec under the depth rule moves none of them — but
+      the recognizer admits the shape, so the first spec to use it would lose its
+      pin silently.
 - [x] AC2. Status and checkbox recognition reuse the shared canonical parsers
       from `lint-spec-status.py` — `parse_status`, `extract_status_token`,
       `_AC_DONE_RE` (only ticked boxes are normalized), and the three that *locate* the preamble
@@ -230,12 +240,29 @@ unparseable lines.
       newline there is formatting, while `id`/`kind`/`scope`/`title` share one
       unindented header line and `source` gets its own `    — ...` line — a
       newline in any of those forges a line inside the replayed block, enough to
-      close it with a counterfeit `=== end knowledge ===` and follow it with an
-      instruction. Tab carries no layout meaning and stays legal everywhere. The
+      counterfeit an entry header — session-start prints each entry as an
+      unindented `[id] (kind, scope) title` line, so a forged one reads as
+      genuine and can carry any instruction. Tab carries no layout meaning and stays legal everywhere. The
       rule is stated once, as `FIELD_POLICY` in `lint-knowledge.py`, and read by
       the writer rather than restated: a single global allowlist is how a
       newline came to be legal in `title` while the same character was refused
-      in principle.
+      in principle. The confinement root is shared the same way — the writer's
+      `GIT_*`-stripping `git_top_level` is the gate's too, since a root the
+      environment can move is not a root, and only one of the two copies had
+      ever been hardened.
+
+      The zero-width **budget floor** is per field for the same reason the
+      newline rule is. The floor of 8 was calibrated for one 37-character title
+      carrying five presentation-selector emoji; `scope` is a glob and `source`
+      a provenance string, and neither has a shaping need a zero-width character
+      serves, so their floor is 0 — none, not a proportional trickle. And no
+      value may be more hidden than shown: the budget is capped at the count of
+      visible characters, without which `PR#42` with a joiner between every
+      character — five visible, eight invisible — clears a floor of 8 outright.
+
+      A field name absent from the table takes the **strictest** policy, not
+      `body`'s. An unknown key is already an error, but the fallback should not
+      be the branch that grants a capability.
 
       Default-ignorable is the Unicode property, enumerated from
       `DerivedCoreProperties` rather than sampled — sampling failed twice, first
@@ -309,14 +336,25 @@ unparseable lines.
       the input it exists to reject; and reports an undecodable file as a lint
       error instead of tracebacking.
 
-      The gate does **not** re-check length. Three entries already on `main`
-      carry titles over the writer's cap, and a gate that reddens data already
-      committed is broken rather than strict; length is an editorial norm the
-      writer owns. The caps still bind here in the one way that matters: the
-      invisible-character budget is a share of field length, so it is computed
-      against `min(len(value), cap)` — otherwise the hand-edit path, which no
-      writer guards, lets padding buy allowance, and a 2000-character title
-      carries 20 zero-width joiners through a gate that permits 8.
+      The gate checks length against `lint_max`, a **looser** ceiling than the
+      writer's `max`: three entries already on `main` carry titles over the cap,
+      and a gate that reddens data already committed is broken rather than
+      strict. `lint_max` still has to exist, because dropping length here
+      entirely leaves an 8 KB channel — visible padding scales where the
+      invisible budget no longer does, and a payload thousands of columns right
+      of a run of spaces is off-screen in review while the hook replays it at
+      column zero. Measured headroom on `main` is 148 (`title`) and 1524
+      (`body`); the ceilings are 512 and 4096.
+
+      A run of more than **eight** whitespace characters is refused in any
+      field: the run is the mechanism, not the length, and no legitimate value
+      needs one.
+
+      `max` binds here in one further way — the invisible-character budget is a
+      share of field length, so it is computed against `min(len(value), max)`.
+      Otherwise the hand-edit path, which no writer guards, lets padding buy
+      allowance: 2000 characters of filler carries 20 zero-width joiners
+      through a gate that permits 8.
 - [x] AC20. `lint-knowledge.py` fails an entry that escapes a character as
       `\uXXXX` when that character should have been written literally, naming
       the character and the fix. The decoded pass of AC20a is what makes this
@@ -325,30 +363,40 @@ unparseable lines.
       those three exists only so an entry carrying one gets a single clear
       error rather than two — not to make them legal.
 
-      AC5's regions close on the next heading at their own depth or shallower,
-      never on a deeper one, and a bold lead-in — which has no depth — closes on
-      any heading or the next bold lead-in. The rule replaces a hand-cased pair
-      that fixed the terminator at `#{1,2}` while the recognizer accepted
-      `#{2,3}`: an `### Acceptance Criteria` therefore ran past every sibling H3
-      to the next H2 and un-pinned whatever sat under it. Latent, not live — no
-      spec in this tree uses that shape today, and re-canonicalizing every spec
-      under the new rule moves none of them — but the recognizer admits it, so
-      the first spec to use it would lose its pin silently.
-
       An earlier version did make the escaped form legal, on the reasoning that
       it was the only representation surviving `splitlines()`. That is precisely
       why it had to be refused: surviving intact is what lets it forge a line
       inside the block `session-start.py` replays, so a closed
-      `=== end knowledge ===` followed by an instruction reads as genuine. A
+      unindented line reads as another entry's header, and can carry any
+      instruction. A
       literal backslash-u sequence in body text is not an escape and stays
       legal.
 - [x] AC21. `SKILL.md`, `docs/knowledge/README.md`, and
       `packs/core/seeds/docs/knowledge/README.md` name the script as the way to
       append, state the raw-UTF-8 convention, state the trust posture from
-      AC16, and point at `AGENTS.md` § Privacy — this change makes knowledge
+      AC16 — and the paragraph stating those limits is pinned byte-identical
+      across the pair by the self-test, because it is shipped policy rather than
+      illustration and drifted the moment one copy was corrected, leaving the
+      seed adopters install stating a rule this repo had already falsified. The
+      rest of `## Schema` is deliberately not pinned: the seed's examples name
+      generic paths where this repo's copy names its own files. The READMEs also
+      name the one residual we accept — implicit right-to-left reordering, which
+      needs no control character and is not detected — rather than leaving it to
+      read as covered. They point at `AGENTS.md` § Privacy — this change makes knowledge
       capture a routine agent-authored commit into a permanent git artifact,
       and that rule covers all of them. The two READMEs' `## Verify before committing` sections stay
       byte-identical.
+- [x] AC17b. Breaking a stale lock verifies **identity**, not just atomicity.
+      `os.replace` is atomic but moves whatever is at the path when it fires,
+      not the file the staleness `stat()` inspected — so between the two, the
+      holder can release and a successor can acquire, and the file that moves is
+      a live lock. The breaker therefore records the inode, mtime and token it
+      saw, checks them after the rename, and puts the file back with `os.link`
+      when they do not match; `link` is atomic and fails outright if the path is
+      occupied again, which means a successor is live and this waiter simply
+      keeps waiting. Release checks token **and** inode for the same reason. The
+      residual window between check and unlink is narrowed rather than closed,
+      and costs at worst one spurious break of a lock about to be released.
 - [x] AC22. A self-test covers the writer: id allocation over a gap;
       confinement refusal for both an out-of-root path and a symlink that
       escapes after resolution; the git-env-stripping of AC15 (a decoy
@@ -357,7 +405,16 @@ unparseable lines.
       post-lint failure leaving the target byte-identical; all four AC16 caps at
       their boundary (at-cap accepted, cap+1 refused); a newline refused in
       `title`, `scope` and `source` while a multi-line `body` is accepted; and a
-      round-trip proving a non-ASCII body lands raw.
+      round-trip proving a non-ASCII body lands raw; and the AC17b identity
+      check, driven by scheduling a successor's acquisition inside
+      `Path.replace` — which is the window itself.
+
+      The gate's own new rules are covered in `test-lint-knowledge.py`: the
+      `lint_max` ceiling with a legacy over-cap title still accepted, the
+      whitespace-run refusal with an ordinary double space still accepted, a
+      zero floor for `scope` and `source` with emoji shaping still accepted in
+      `title`, the visible-count clamp, and the strict unknown-field fallback.
+      Every one is mutation-verified: reverting the rule fails the case.
 - [x] AC23. The self-test actually gates. `tools/test-all.py` lists it, **and**
       a step running it is added to the `lint-knowledge` job in
       `.github/workflows/docs.yml` — `tools/test-all.py` is hand-run

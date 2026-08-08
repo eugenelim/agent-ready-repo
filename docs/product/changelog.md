@@ -79,8 +79,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   replayed verbatim into every session by the session-start hook, and a bare CR
   can overwrite a terminal line. Multi-line bodies and tabs are unaffected: a
   newline inside a JSON string is escaped on disk, so it never splits a JSONL
-  line, and the hook indents multi-line bodies on purpose. If an entry trips
-  this, rewrite the offending character out; there is no format migration.
+  line, and the hook indents multi-line bodies on purpose. A newline in `title`,
+  `scope` or `source` *is* newly refused — the hook prints those on a single
+  unindented line, where a newline forges an entry header — so fold it into the
+  `body` or remove it. Also newly refused: a run of more than eight spaces or
+  tabs in any field, which is how a payload is pushed off the side of a diff
+  while still being replayed. If an entry trips any of these, rewrite the
+  offending character out; there is no format migration.
 
 ### Security
 
