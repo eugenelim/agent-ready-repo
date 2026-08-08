@@ -6,8 +6,11 @@ from pathlib import Path
 
 import pytest
 from agentbundle.catalogue_tooling.initialise_self_hosted import (
+    _VENDORED_ENGINE_EXCLUDE,
+    _VENDORED_PACK_EXCLUDE,
     SelfHostedInitConfig,
     SelfHostOwnershipState,
+    _collect_dir_bytes,
     init_self_hosted,
     select_packs,
     validate_fields,
@@ -717,3 +720,85 @@ def test_to_dict_contains_all_phase2_fields(tmp_path: Path) -> None:
     assert "name" in d["source"]
     assert "summary" in d
     assert isinstance(d["summary"], str)
+
+
+# ---------------------------------------------------------------------------
+# RFC-0082: the vendored payload carries no test content
+# ---------------------------------------------------------------------------
+#
+# `catalogue init --preset self-hosted --tooling vendored` copies the engine's
+# source into the adopter's tree, where the emitted instruction tells them to
+# `pip install -e` it. That makes it wheel-class (ADR-0075 D3), so it carries no
+# test content — while the adopter's *own* catalogue keeps its tests, which
+# ADR-0071 explicitly wants.
+
+
+def _synthetic_source(root: Path) -> Path:
+    """A source catalogue with test content on both sides of the boundary."""
+    eng = root / "packages" / "agentbundle"
+    (eng / "agentbundle").mkdir(parents=True)
+    (eng / "agentbundle" / "cli.py").write_text("x\n", encoding="utf-8")
+    (eng / "tests" / "build_pipeline").mkdir(parents=True)
+    (eng / "tests" / "build_pipeline" / "test_x.py").write_text("x\n", encoding="utf-8")
+    (eng / "conftest.py").write_text("x\n", encoding="utf-8")
+
+    pack = root / "packs" / "catalogue-curation"
+    (pack / ".apm").mkdir(parents=True)
+    (pack / ".apm" / "s.md").write_text("x\n", encoding="utf-8")
+    (pack / "tests").mkdir()
+    (pack / "tests" / "test_y.py").write_text("x\n", encoding="utf-8")
+    return root
+
+
+def test_vendored_engine_carries_no_tests(tmp_path):
+    src = _synthetic_source(tmp_path)
+    fb: dict[str, bytes] = {}
+    fk: dict[str, str] = {}
+    _collect_dir_bytes(
+        src / "packages" / "agentbundle",
+        ".agentbundle/tooling/agentbundle",
+        fb, fk, kind="vendored", exclude=_VENDORED_ENGINE_EXCLUDE,
+    )
+    assert any("cli.py" in k for k in fb), "engine code was dropped"
+    leaked = [k for k in fb if "/tests/" in k or k.endswith("conftest.py")]
+    assert not leaked, f"vendored engine carries test content: {leaked}"
+
+
+def test_vendored_curation_pack_carries_no_tests(tmp_path):
+    src = _synthetic_source(tmp_path)
+    fb: dict[str, bytes] = {}
+    fk: dict[str, str] = {}
+    _collect_dir_bytes(
+        src / "packs" / "catalogue-curation",
+        ".agentbundle/tooling/packs/catalogue-curation",
+        fb, fk, kind="vendored", exclude=_VENDORED_PACK_EXCLUDE,
+    )
+    assert any("s.md" in k for k in fb)
+    assert not [k for k in fb if "/tests/" in k]
+
+
+def test_adopter_packs_still_carry_tests(tmp_path):
+    """The regression a careless fix causes. ADR-0071 wants catalogue archives
+    to carry pack tests, so the non-vendored callers must keep copying them —
+    which is why `exclude` defaults to empty and is passed only at the two
+    vendored call sites."""
+    src = _synthetic_source(tmp_path)
+    fb: dict[str, bytes] = {}
+    fk: dict[str, str] = {}
+    _collect_dir_bytes(
+        src / "packs" / "catalogue-curation", "packs/catalogue-curation",
+        fb, fk, kind="pack",
+    )
+    assert [k for k in fb if "/tests/" in k], "the adopter's own pack lost its tests"
+
+
+def test_guides_call_site_is_unaffected(tmp_path):
+    """The fourth caller copies shared guides under `--guides selected`. A
+    routine-level or default-on exclusion would break it with nothing red."""
+    g = tmp_path / "guides" / "_shared" / "how-to"
+    g.mkdir(parents=True)
+    (g / "a.md").write_text("x\n", encoding="utf-8")
+    fb: dict[str, bytes] = {}
+    fk: dict[str, str] = {}
+    _collect_dir_bytes(tmp_path / "guides" / "_shared", "guides/_shared", fb, fk, kind="guide")
+    assert any("a.md" in k for k in fb)

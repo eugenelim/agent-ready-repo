@@ -28,7 +28,13 @@ def main() -> None:
     shutil.copytree(
         "packages/agentbundle/agentbundle",
         stage / "agentbundle",
-        ignore=shutil.ignore_patterns("__pycache__", "tests", "*.pyc"),
+        # No "tests" entry: `ignore_patterns` matches *basenames* at any
+        # depth, and RFC-0082 moved the engine suite out of this tree
+        # entirely, so it would protect nothing while silently stripping
+        # the bundled catalogue scaffold's own `tests/` template — which
+        # is hash-verified at `catalogue init`, so the omission would
+        # surface as a scaffold-integrity abort rather than a thinner file.
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
     )
 
     zipapp.create_archive(
