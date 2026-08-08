@@ -155,14 +155,24 @@ def layer_validation_rules(tmp: Path) -> None:
                          "title": "t", "body": "write \\u2014 to escape",
                          "source": "s"}, ensure_ascii=False) + "\n",
              0, "Knowledge lint: passed")
-    # No C0 belongs in a field value in *either* spelling: the decoded pass
-    # refuses category Cc, so an escaped tab is refused exactly like a literal
-    # one. That equivalence is the point — checking the raw line alone is how
-    # the gate once accepted control characters the writer refused.
-    run_case(tmp, "stub-escaped-control-rejected",
+    # Tab and newline stay legal in both spellings: a newline inside a JSON
+    # string is escaped on disk so it never splits a JSONL line, and
+    # session-start indents multi-line bodies on purpose. Every *other* control
+    # is refused in both spellings — checking the raw line alone is how the gate
+    # once accepted control characters the writer refused.
+    run_case(tmp, "stub-escaped-tab-stays-legal",
              '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
              '"body": "a\\u0009b", "source": "s"}\n',
-             1, "control character U+0009")
+             0, "Knowledge lint: passed")
+    run_case(tmp, "stub-multiline-body-stays-legal",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "line one\nline two",
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             0, "Knowledge lint: passed")
+    run_case(tmp, "stub-escaped-cr-rejected",
+             '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
+             '"body": "a\\u000db", "source": "s"}\n',
+             1, "control character U+000D")
     run_case(tmp, "stub-escaped-del-rejected",
              '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
              '"body": "a\\u007fb", "source": "s"}\n',

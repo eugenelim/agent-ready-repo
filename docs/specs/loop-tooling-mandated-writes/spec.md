@@ -35,10 +35,10 @@ sides reproduce in a sandbox spec dir:
 ```
 $ loop-cohort plan check-current $S --require-schedule      # right after G-plan
 loop-cohort: plan check-current OK for demo                  → exit 0
-$ # apply SKILL.md:220 — bump spec Status: Approved → Implementing
+$ # apply the EXECUTE step — bump spec Status: Approved → Implementing
 $ loop-cohort plan check-current $S --require-schedule
 stop — plan check-current: spec.md has changed since approve-plan  → exit 1
-$ # apply SKILL.md:434 — bump plan Status: Approved → Done
+$ # apply the finish checklist — bump plan Status: Approved → Done
 $ loop-cohort schedule check-current $S
 stop — schedule check-current: plan.md has changed since schedule  → exit 1
 ```
@@ -242,7 +242,7 @@ unparseable lines.
       because a run cap bounds adjacency and not volume: two joiners placed
       after every visible character never trip it, and carried a 76-character
       instruction in 608 invisible characters during review. The floor is
-      calibrated rather than guessed: 4 refuses a 47-character title carrying
+      calibrated rather than guessed: 4 refuses a 37-character title carrying
       five presentation-selector emoji, which is ordinary text, while 8 is
       still only 16 bits over a 4-symbol alphabet. The predicate lives in
       `lint-knowledge.py` and the writer imports it, so the gate and the writer

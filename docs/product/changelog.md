@@ -71,6 +71,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [core][2.3.1] — 2026-08-07
 
+### Changed
+
+- **Knowledge entries refuse control characters other than tab and newline.**
+  A hand-edited entry carrying `ESC`, `DEL`, a C1 character or a bare carriage
+  return now fails `lint-knowledge.py`, where it previously passed — these are
+  replayed verbatim into every session by the session-start hook, and a bare CR
+  can overwrite a terminal line. Multi-line bodies and tabs are unaffected: a
+  newline inside a JSON string is escaped on disk, so it never splits a JSONL
+  line, and the hook indents multi-line bodies on purpose. If an entry trips
+  this, rewrite the offending character out; there is no format migration.
+
 ### Security
 
 - **The knowledge writer refuses invisible characters.** It rejected `Cc`

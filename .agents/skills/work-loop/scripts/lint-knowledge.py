@@ -66,6 +66,12 @@ _MAX_LINE = 8192
 # error rather than two. The literal form also breaks `str.splitlines()`, which
 # is how both this linter and session-start.py read the file.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
+# The two controls that are ordinary formatting rather than display
+# manipulation. A newline inside a JSON string is escaped on disk, so it never
+# splits a JSONL line, and session-start indents multi-line bodies on purpose.
+# Everything else in Cc — ESC, DEL, the C1 block, and a bare CR, which can
+# overwrite a terminal line — has no business in a channel replayed verbatim.
+_ALLOWED_CONTROLS = frozenset({0x09, 0x0A})
 # No C0 character belongs in a field value in either spelling: `field_problems`
 # refuses category `Cc` on the *decoded* string, which covers the literal and
 # the escaped form together. The escape rule below therefore defers to that
@@ -124,7 +130,7 @@ _HIDDEN_RANGES = (
 # total too: 2% of the field, floor 8, which passes every emoji sequence
 # measured and every realistic body.
 _INVISIBLE_BUDGET_DIVISOR = 50  # i.e. 2% of the field
-# Calibrated, not guessed: a floor of 4 refuses a 47-character title carrying
+# Calibrated, not guessed: a floor of 4 refuses a 37-character title carrying
 # five presentation-selector emoji, which is ordinary text. 8 clears that and
 # is still far below a channel — 8 symbols over a 4-symbol alphabet is 16 bits,
 # two ASCII characters.
@@ -159,17 +165,16 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
     for m in _ESCAPE_RE.finditer(raw):
         cp = int(m.group(2), 16)
-        # Skip anything the decoded pass refuses anyway — asked of that
-        # predicate rather than restated, so the two cannot drift. Otherwise an
-        # escaped character fires twice and the escape rule's advice ("write it
-        # literally") points at a form that is also refused; for a lone
-        # surrogate that form cannot exist in a UTF-8 file at all.
         # Skip what the decoded pass refuses anyway, so an escaped character does
         # not fire twice with advice ("write it literally") pointing at a form
         # that is also refused. Surrogates are the exception and must stay
         # flagged here: a *pair* decodes to a perfectly valid astral character,
         # so the escape rule is the only thing that ever sees it — which is the
         # whole non-BMP half of the drift this rule exists for.
+        # Tab and newline are legal in a value but JSON *requires* them escaped,
+        # so the escaped spelling is the only legal one and must not be flagged.
+        if cp in _ALLOWED_CONTROLS:
+            continue
         if not (0xD800 <= cp <= 0xDFFF) and field_problems(chr(cp)):
             continue
         found.append((f"\\u{m.group(2)}", chr(cp)))
@@ -190,7 +195,7 @@ def field_problems(value: str) -> list[str]:
     run = invisible = 0
     for ch in value:
         cp = ord(ch)
-        if unicodedata.category(ch) == "Cc":
+        if unicodedata.category(ch) == "Cc" and cp not in _ALLOWED_CONTROLS:
             problems.append(f"control character U+{cp:04X}")
         elif is_hidden_char(ch):
             problems.append(f"invisible character U+{cp:04X} "

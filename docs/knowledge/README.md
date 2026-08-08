@@ -64,6 +64,8 @@ usual mistake:
 | `body` | string | The lesson itself. A paragraph or two is enough; if you find yourself writing more, the entry probably wants to be split. |
 | `source` | string | Where this came from: `PR#42`, `ADR-0007`, `issue#13`, etc. |
 
+Length and character limits the writer enforces: `title` ≤ 120 codepoints, `body` ≤ 2000, `scope` ≤ 200, `source` ≤ 120. Tab and newline are fine — session-start indents multi-line bodies — but other control characters, and characters that render as nothing, are refused.
+
 The format is JSONL (one JSON object per line, no commas, no wrapping
 array) so it grows by append and reads line-by-line.
 `lint-knowledge.py` validates the file; `tools/hooks/session-start.py`

@@ -311,7 +311,13 @@ def test_post_lint_failure_leaves_target_identical(target: Path) -> None:
 def test_length_caps_enforced_at_the_boundary(target: Path) -> None:
     """AC16. A cap with no test is not a contract."""
     name = "length-caps-enforced-at-the-boundary"
-    for field, cap in (("--title", 120), ("--body", 2000)):
+    # scope and source are capped too, and not for tidiness: the invisible
+    # budget is proportional to field length, so an uncapped field's budget is
+    # bounded only by the linter's 8192-character line cap — a 4900-character
+    # scope buys 100 zero-width characters, and session-start prints scope
+    # verbatim in every entry header.
+    for field, cap in (("--title", 120), ("--body", 2000),
+                       ("--scope", 200), ("--source", 120)):
         target.write_text("", encoding="utf-8")
         at = run(*_append_args(target, **{field: "x" * cap}))
         if at.returncode != 0:

@@ -81,6 +81,12 @@ FIELD_ORDER = ("id", "kind", "scope", "tier", "title", "body", "source")
 
 TITLE_CAP = 120
 BODY_CAP = 2000
+# Capped too, or the invisible-character budget — which is proportional to the
+# field length — is bounded only by the linter's 8192-character line cap: a
+# 4900-character scope buys 100 zero-width characters, and session-start prints
+# scope verbatim in every entry header.
+SCOPE_CAP = 200
+SOURCE_CAP = 120
 
 # Environment that steers `git rev-parse --show-toplevel` away from the cwd.
 _GIT_ENV_OVERRIDES = (
@@ -298,7 +304,8 @@ def validate_value(field: str, value: str) -> str | None:
     if problems:
         return (f"{field} contains a {problems[0]}; entries are replayed "
                 "verbatim into every future session, so these are refused")
-    cap = {"title": TITLE_CAP, "body": BODY_CAP}.get(field)
+    cap = {"title": TITLE_CAP, "body": BODY_CAP,
+           "scope": SCOPE_CAP, "source": SOURCE_CAP}.get(field)
     if cap is not None and len(value) > cap:
         return f"{field} is {len(value)} characters; the limit is {cap}"
     if not value.strip():
