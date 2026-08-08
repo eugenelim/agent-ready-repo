@@ -265,6 +265,51 @@ detection loses its baseline.
   `--root` used to exit 0 and now exits non-zero. If CI depends on that
   false pass, fix the path — the previous result was not a real check.
 
+## [agentbundle][0.30.0] — 2026-08-08
+
+### Changed
+
+- **The wheel is about a fifth smaller, because it stops shipping the engine's
+  own test suite.** It carried 45 test entries of 184 — a quarter of the
+  uncompressed payload. The suite moved out of the importable package; the
+  package itself did not move, so every import path except one is unchanged.
+
+  The cause was not the obvious one. `setuptools`' package discovery defaults to
+  PEP 420 namespace packages, so the tree was found whether or not it carried an
+  `__init__.py` — deleting that marker would have removed exactly one entry of
+  the forty-five.
+
+### Removed
+
+- **The source distribution no longer carries the engine's test suite.**
+  0.29.8's sdist held 45 engine test modules; 0.30.0's holds none. They sat
+  inside the importable package, so setuptools swept them in; from their new
+  home they need an explicit `MANIFEST.in` graft, which lands with the
+  catalogue carve-out. If you build from the sdist and run the upstream
+  suite, this release has nothing for you to run — build from a git
+  checkout until the graft ships.
+
+- **`import agentbundle.build.tests` no longer resolves.** Nothing imported it;
+  the module existed only to make a directory look like a package.
+
+### Fixed
+
+- **`build self --packs-dir <a fixture tree>` refuses again.** The
+  destructive-write guard matched a fixed substring, so relocating the suite
+  broke it silently and the command would have overwritten a working tree with
+  fixture data. It now matches path components *and* the original substring, so
+  it refuses strictly more than before.
+
+- **`catalogue init --preset self-hosted --tooling vendored` no longer copies
+  test content into your repository.** The vendored copy is an install source —
+  the command tells you to `pip install -e` it — so it is treated like the
+  wheel. Your own packs and shared guides keep their tests, which is what
+  catalogue archives are for.
+
+  **Upgrade note:** if you vendored tooling from an earlier release, the engine
+  tests and a stray `conftest.py` are sitting in `.agentbundle/tooling/`. They
+  are inert; re-running `catalogue init` or deleting them is safe.
+
 ## [agentbundle][0.29.7] — 2026-08-06
 
 ### Changed

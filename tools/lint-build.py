@@ -120,18 +120,12 @@ def main() -> int:
         "LINT_BUILD_DIR", "packages/agentbundle/agentbundle/build"
     )
     build_path = Path(build_dir)
-    fixtures_path = Path(build_dir) / "tests" / "fixtures"
 
     py_files: list[Path] = []
     if build_path.is_dir():
-        for f in sorted(build_path.rglob("*.py")):
-            # Match bash `! -path "$FIXTURES_SUBDIR/*"` exclusion.
-            try:
-                f.relative_to(fixtures_path)
-                continue  # under fixtures — skip
-            except ValueError:
-                pass
-            py_files.append(f)
+        # The build tree holds no test fixtures since RFC-0082 moved the
+        # suite out of the package, so every .py here is engine code.
+        py_files.extend(sorted(build_path.rglob("*.py")))
 
     import_violations = _audit_imports(py_files)
 

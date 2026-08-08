@@ -19,5 +19,4 @@ exclude_dirs:
   # Test trees only. Test code legitimately uses permissive chmod (B103) and
   # hardcoded /tmp fixtures (B108); those are not shipped attack surface.
   # Globs are matched against each scanned file's path.
-  - '*/tests/*'        # packages/*/tests/, integration + unit suites
-  - '*/build/tests/*'  # packages/agentbundle/agentbundle/build/tests/ (adapter/contract)
+  - '*/tests/*'        # packages/*/tests/ — unit, integration, and build_pipeline

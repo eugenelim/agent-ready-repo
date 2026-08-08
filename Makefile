@@ -285,7 +285,7 @@ lint-mypy:
 # renderers. One process per skill test directory is a correctness requirement,
 # not a style choice; see catalogue-authoring-standards.md § 4.
 test:
-	$(PYTHON) -m pytest packages/agentbundle/tests/ packages/agentbundle/agentbundle/build/tests/ -q
+	$(PYTHON) -m pytest packages/agentbundle/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
 	$(PYTHON) -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
 	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::' || true); \
@@ -293,6 +293,7 @@ test:
 	$(PYTHON) -m pytest packs/desk-research/tests/ -q
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_build_site_routing.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
+	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
 
 # Local CI gate. Exactly one workflow is watched: build-check.yml.
 # tools/lint-ci-parity.py — chained into build-check — holds a disposition per

@@ -1,6 +1,6 @@
 # Spec: engine export boundary
 
-- **Status:** Draft
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0075, RFC-0082, ADR-0071
@@ -18,12 +18,19 @@ receives engine code and nothing else. The rule is enforced by construction: an
 artifact that regains test content fails the release build, rather than being
 caught by whoever happens to read the diff.
 
-The source distribution is the surface whose consumers *do* run tests, and it is
-deliberately left empty of them here. Its graft depends on the engine suite being
-self-contained, which is not true until the catalogue carve-out lands — grafting
-sooner would ship a packager catalogue assertions that cannot run from an archive
-with no `packs/`. That gap is intentional, bounded by the sibling spec, and
-named rather than papered over.
+The source distribution is the surface whose consumers *do* run tests, and this
+change **removes** its engine suite — it is not a pre-existing gap. The 0.29.8
+sdist carried 45 engine test modules, because they sat inside the importable
+package and `packages.find` swept them in; at `tests/build_pipeline/` they are
+outside it, and setuptools' default sdist glob reaches only `tests/test*.py` at
+the top level. So the 0.30.0 sdist carries none.
+
+That is a real, redistributor-visible regression, accepted for one release and
+recorded in both changelogs. Restoring it needs an explicit `MANIFEST.in` graft,
+which waits for the catalogue carve-out: grafting now would ship a packager the
+catalogue assertions still mixed into the engine suite, which cannot run from an
+archive containing no `packs/`. Shipping a suite that fails is worse than shipping
+none, but neither is the end state.
 
 Success is measured on the built artifacts, not on the tree that produced them.
 The wheel carries zero test entries where it currently carries 45 of 184. The
@@ -63,8 +70,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Ask first
 
-- Any change to which tests *run*, or to what they assert, beyond the two
-  pre-authorised edits named under *Always do*. A third test needing
+- Any change to which tests *run*, or to what they assert, beyond the one
+  pre-authorised edit named under *Always do*. A third test needing
   modification to survive the move is a signal to stop and surface.
 - Adopting `namespaces = false` in `[tool.setuptools.packages.find]`. It would
   work, and it changes discovery semantics for the whole package.
@@ -119,51 +126,64 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1** — `packages/agentbundle/agentbundle/` contains no test files —
+- [x] **AC1** — `packages/agentbundle/agentbundle/` contains no test files —
       no `tests/` directory, no `test_*.py`, no `conftest.py` — with one stated
       exemption: `_data/catalogue-scaffold/**` is inert template content that
       ships in the wheel by design and is never collected here.
-- [ ] **AC2** — The relocated engine suite runs green from
-      `packages/agentbundle/tests/`, with the same number of passing tests as
-      before the move.
-- [ ] **AC3** — A freshly built wheel contains zero entries matching a test
+- [x] **AC2** — The relocated engine suite runs green from
+      `packages/agentbundle/tests/build_pipeline/`, with the same number of
+      passing tests as before the move, verified **per module** rather than in
+      aggregate. The directory is `build_pipeline`, **not** `build`: pytest's
+      default `norecursedirs` skips any directory named `build`, so
+      `pytest tests/` would silently collect 587 fewer tests and still report
+      green. Naming the directory explicitly does not rescue it — only naming
+      individual files does.
+- [x] **AC3** — A freshly built wheel contains zero entries matching a test
       path outside `_data/catalogue-scaffold/**`, verified by opening the
       artifact rather than by reading config.
-- [ ] **AC4** — A freshly built zipapp contains zero engine test entries, and a
+- [x] **AC4** — A freshly built zipapp contains zero engine test entries, and a
       zipapp built from a tree containing `_data/catalogue-scaffold/**/tests/`
       retains that content. (Mechanism and rationale: `plan.md` T4.)
-- [ ] **AC5** — `_collect_dir_bytes`'s two vendored call sites emit no test
-      content; its **packs** call site and its **guides** call site (under
-      `--guides selected`) both still do. Asserted by a unit test appended to
+- [x] **AC5** — `_collect_dir_bytes`'s two vendored call sites emit no test
+      content, using AC1's definition of test content — no `tests/` directory, no
+      `test_*.py`, **no `conftest.py`**. The last clause is load-bearing: the
+      engine call site collects the whole `packages/agentbundle/` directory, and
+      a root `conftest.py` lives there beside the package. The two non-vendored
+      call sites must keep carrying test content: its **packs** call site and
+      its **guides** call site (under `--guides selected`) both still do. Asserted by a unit test appended to
       `packages/agentbundle/tests/unit/test_catalogue_tooling_self_hosted_init.py`,
       not by inspection.
-- [ ] **AC5b** — Every test artifact this spec creates has a declared home and a
+- [x] **AC5b** — Every test artifact this spec creates has a declared home and a
       runner. The gate and zipapp cases live in
       `tools/test_check_artifact_contents.py`, which is added to the `Makefile`'s
       enumerated `tools/` pytest line — that list is curated by hand, not
       globbed, so an unlisted file runs nowhere and would let AC8 and AC11 pass
       vacuously.
-- [ ] **AC6** — `pip install -e packages/agentbundle` succeeds; `import
+- [x] **AC6** — `pip install -e packages/agentbundle` succeeds; `import
       agentbundle` and `import agentbundle.build` resolve; the `agentbundle`
       console script reports the correct version; `import
       agentbundle.build.tests` raises `ModuleNotFoundError`.
-- [ ] **AC7** — `build/self_host.py`'s destructive-write guard refuses a
+- [x] **AC7** — `build/self_host.py`'s destructive-write guard refuses a
       real-write self-host targeting the relocated fixture tree
-      (`…/tests/build/fixtures/…`) as well as the unmoved one
-      (`…/tests/fixtures/…`). It matches `tests` preceding `fixtures` as **path
-      components**, which preserves the anti-over-match invariant its comment
+      (`…/tests/build_pipeline/fixtures/…`) as well as the unmoved one
+      (`…/tests/fixtures/…`). The rule is a **union**: a `tests` component
+      followed by a `fixtures` component, **or** the historical
+      `tests/fixtures/` substring. Components alone would be a *narrowing* —
+      `mytests/fixtures/` and `attests/fixtures/` would lose the refusal 0.29.8
+      gave — so both are kept and the union refuses strictly more than either.
+      Matching on components which preserves the anti-over-match invariant its comment
       names — `my-tests/fixtures-backup/` still passes, because neither is a
       component match. The helper signature is unchanged: no repo-root argument,
       no new parameter. Its covering test gains a case for the relocated shape
       and a negative case for the components in the wrong order.
-- [ ] **AC8** — The artifact gate is a pure-stdlib script in `tools/` that
+- [x] **AC8** — The artifact gate is a pure-stdlib script in `tools/` that
       accepts a `.whl` or a `.pyz`, fails on either containing test content, and
       passes a test-shaped path under `_data/catalogue-scaffold/**` — the
       exemption written into the gate, not left to a reviewer. It asserts
       **nothing** about the sdist: that surface's rule inverts from absence to
       presence when the carve-out lands its graft, and an absence assertion would
       then reject a correct artifact.
-- [ ] **AC8b** — The gate runs on both artifacts it covers, in this order:
+- [x] **AC8b** — The gate runs on both artifacts it covers, in this order:
       the existing "Build wheel + sdist" step; then a new
       `python3 tools/build_zipapp.py <scratch-dir>` step, because no workflow
       builds a zipapp today and the builder requires an output directory
@@ -172,9 +192,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       `<scratch-dir>` is **outside** `packages/agentbundle/dist/`: that directory
       is what `twine check` validates and what the publish job uploads to PyPI,
       so a stray `.pyz` there would redden the check and poison the release.
-- [ ] **AC9** — The gate script's own path is in that workflow's
+- [x] **AC9** — The gate script's own path is in that workflow's
       `pull_request.paths` filter, so a change to the gate runs the gate.
-- [ ] **AC10** — Every operative reference enumerated in `plan.md` T1 is
+- [x] **AC10** — Every operative reference enumerated in `plan.md` T1 is
       resolved — most rewritten, three **removed as dead**: `bandit.yaml`'s
       `*/build/tests/*` entry (its `*/tests/*` sibling already covers the new
       path), the root `pyproject.toml` mypy `exclude` (which falls outside
@@ -182,28 +202,33 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       composed fixture path. And
       an unfiltered re-sweep finds no operative reference remaining. Historical
       references under `docs/specs/**`, `docs/rfc/**`, `docs/product/changelog.md`,
-      and the package `CHANGELOG.md` are deliberately untouched — **except**
-      `docs/specs/catalogue-test-carve-out/**`, a live Draft spec pair whose
-      `build/tests/` references this change invalidates.
-- [ ] **AC11** — `make ci` passes, and the Windows build-check leg passes with
+      and the package `CHANGELOG.md` are deliberately untouched. That leaves
+      six new warn-only dangling-reference warnings in `lint-spec-status`,
+      with one pre-existing warning resolved (178 → 183) — prose in shipped
+      specs naming the old path — which is the
+      cost of not rewriting history, not a regression. Two exceptions are
+      updated: `docs/specs/catalogue-test-carve-out/**`, a live Draft spec
+      pair this change invalidates, and `docs/specs/cursor-full-parity/spec.md`,
+      whose reference is a live markdown hyperlink rather than prose.
+- [x] **AC11** — `make ci` passes, and the Windows build-check leg passes with
       `self_host_windows.py`'s invocation paths updated.
-- [ ] **AC14** — `packages/AGENTS.md` § Test conventions names the third engine
-      test root this change creates. It currently says the roots are `tests/unit/`
-      and `tests/integration/`, which T1 falsifies. Only that correction lands
-      here; the full four-owner rewrite RFC-0082 calls for belongs to the
-      carve-out spec, and AC10's literal sweep would never surface this file.
-- [ ] **AC12** — A sweep of `packages/agentbundle/agentbundle/**` for other
+- [x] **AC12** — A sweep of `packages/agentbundle/agentbundle/**` for other
       substring-shaped path guards over `tests`, `fixtures`, or `build`, with its
       result recorded in a committed note at
       `docs/specs/engine-export-boundary/notes/guard-sweep.md` (found and fixed,
       or none). RFC-0082's pre-mortem asks for this rather than assuming
       `self_host.py` is the only one.
-- [ ] **AC13** — `catalogue_tooling/self_host_windows.py` stays where it is, and
+- [x] **AC13** — `catalogue_tooling/self_host_windows.py` stays where it is, and
       the reason is recorded in the same committed note as AC12. This answers
       RFC-0082 open question 2 against its recommended default, deliberately:
       relocating it would re-touch every file T1 has just swept, and it is a
       tools-owned test runner — precisely the ownership question the carve-out
       spec exists to decide. Its invocation paths are updated in place here.
+- [x] **AC14** — `packages/AGENTS.md` § Test conventions names the third engine
+      test root this change creates. It currently says the roots are `tests/unit/`
+      and `tests/integration/`, which T1 falsifies. Only that correction lands
+      here; the full four-owner rewrite RFC-0082 calls for belongs to the
+      carve-out spec, and AC10's literal sweep would never surface this file.
 
 ## Assumptions
 
@@ -225,6 +250,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   into scope of that tree's autouse `_isolate_user_config_dir` fixture
   (`tests/conftest.py:26-43`), which redirects `HOME`/`XDG_CONFIG_HOME`/`APPDATA`/
   `USERPROFILE`. Modules that spawn subprocesses with `cwd=REPO_ROOT` inherit it.
+- **Technical:** the move puts the relocated modules *into* ruff's scope for the
+  first time. The repository's ruff `exclude` carries `"build"` — the same
+  collision as pytest's `norecursedirs` — so the old tree was never linted. 73
+  pre-existing violations surfaced and were fixed rather than re-suppressed:
+  re-excluding would recreate exactly the incidental-exclusion pattern this spec
+  exists to end. The fixes are mechanical (unused imports, `os.path` → `pathlib`,
+  `self.fail` → `raise`, blank lines) but several *are* assertion expressions, so
+  the claim "touches no assertion" would be false. One rewrite was reverted for
+  that reason: `os.readlink()` → `Path.readlink()` normalises the link target
+  (`"./AGENTS.md"` → `"AGENTS.md"`), which weakens what the assertion compares.
+  `PTH115` is now suppressed for test files with that reason recorded.
 - **Technical:** the move removes the relocated modules from
   `tools/lint-build.py`'s stdlib-import audit, which walks
   `packages/agentbundle/agentbundle/build/**`. That is an accepted, recorded
@@ -242,7 +278,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   immediately rather than warning on introduction. The defect it guards exists
   today, so the gate is written against a known-good post-migration state and
   has nothing to grandfather.
-- **Technical:** `packages/agentbundle/tests/build/` keeps an `__init__.py`,
+- **Technical:** `packages/agentbundle/tests/build_pipeline/` keeps an `__init__.py`,
   matching `tests/unit/` and `tests/integration/`, which both have one. The
   marker is not what puts the tree in the wheel, and dropping it would make the
   new sibling import as top-level names while its siblings do not.

@@ -69,7 +69,7 @@ jobs:
         env:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: "utf-8"
-        run: python -m pytest tests/ agentbundle/build/tests/ -q
+        run: python -m pytest tests/ -q
       - name: Run repo/pack hook suites (Linux)
         # Core-pack hook tests live with the pack they validate, outside the
         # runtime payload — they need their own step, run from the repo root.
@@ -96,10 +96,10 @@ jobs:
           PYTHONIOENCODING: "utf-8"
         run: |
           python -m pytest tests/integration/test_install_converters_user_scope.py
-          python -m pytest agentbundle/build/tests/test_shared_libs_projection.py
-          python -m pytest agentbundle/build/tests/test_self_host_recipe_config.py
-          python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
-          python -m pytest agentbundle/build/tests/test_user_libs_projection.py
+          python -m pytest tests/build_pipeline/test_shared_libs_projection.py
+          python -m pytest tests/build_pipeline/test_self_host_recipe_config.py
+          python -m pytest tests/build_pipeline/test_self_host_fixture_guard.py
+          python -m pytest tests/build_pipeline/test_user_libs_projection.py
           python -m pytest tests/integration/test_credential_brokers_pack_install.py
           python -m pytest tests/unit/test_packstate_source_provenance.py
       - name: Run pack hook suites (Windows — curated portable subset)
