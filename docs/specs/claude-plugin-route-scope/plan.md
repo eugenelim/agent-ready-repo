@@ -102,13 +102,23 @@ default, so the Astro build fails on omission) and each pack's markdown file; ga
 ### T3 — Prose docs
 **Depends on:** T0 · **Mode:** Goal-based check
 
-**Done when:** a fresh grep for `plugin install` / `plugin marketplace add`
-across `README.md`, `docs-site/`, `guides/`, and `web/` returns no instance
-offering the route for a repo-only pack.
+**Done when:** a scripted assertion — `! grep -q` form over an enumerated site
+list, not the failure-prone absence form (`grep -c` exits 1 on no-match) —
+passes. Search roots widen beyond the spec's list: also
+`.github/workflows/publish-claude-plugins.yml` (its header comment says
+"adopters can install **any pack**"), `tools/hooks/README.md`, and
+`packs/core/.apm/hook-wiring/session-start.toml`. A bare grep cannot decide
+"for a repo-only pack" — the assertion enumerates the sites and the expected
+state of each.
 
 **Approach:** re-derive the file list by grep. State the precondition once in
-`install-routes.md`'s route table; fix its marker-writer paragraph and
-`docs/architecture/catalogue.md:32`; record RFC-0008's dormancy in
+`install-routes.md`'s route table; fix its marker-writer paragraph and every
+living architecture statement the grep finds. **Sub-step:**
+`docs/CONVENTIONS.md:597` is seed-projected from
+`packs/core/seeds/docs/CONVENTIONS.md`, so it is edited in the seed, then
+`make build-self`, then a `core` version bump across `pack.toml`,
+`.claude-plugin/plugin.json`, and the `core` marketplace entry — `make
+build-self` syncs none of the three. Record RFC-0008's dormancy in
 `docs/architecture/agentbundle.md`.
 
 ### T4 — Errata and the QA matrix
@@ -118,6 +128,18 @@ offering the route for a repo-only pack.
 plugin-installable (bodies not edited). Re-point or retire the manual-QA-matrix
 row and `test_manual_qa_matrix_shape.py:37-44`, which keeps it green while the
 scenario becomes impossible.
+
+### T4b — `render_pack` consumers
+**Depends on:** T0 · **Mode:** TDD
+
+**Tests:** `stub: pending` — each of `commands/render.py`, `diff.py`,
+`init_state.py`, `upgrade.py`, `install.py --emit-install-routes`, and
+`validate.py` asserted for its expected output per projection; a pre-change
+`state.json` carrying old relpaths exercised through `upgrade`.
+
+**Approach:** assertions only. The recipe-level filter removes whole subtrees
+from six consumers' output; `init-state` writes those relpaths into the state
+file, so the pre-change case is the one most likely to surprise an adopter.
 
 ### T5 — Changelogs
 **Depends on:** T0 · **Mode:** Goal-based check

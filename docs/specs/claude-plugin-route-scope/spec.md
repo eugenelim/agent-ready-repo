@@ -101,6 +101,17 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
   predicate, not replaced by it — it drops today for a different reason, and
   folding the two would silently re-publish it if its scopes were widened.
 
+  **Evaluation order:** the name exclusion is applied *first* and is exempt from
+  AC5's fail-loud check — otherwise the two criteria give opposite instructions
+  for the one input AC5 exists for (`catalogue-curation` is itself repo-only, so
+  a stale `dist/` containing it would be both "skip" and "fail").
+
+  Its absence from the **repo-root** marketplace, though, rests entirely on its
+  `allowed-scopes` — `EXCLUDE` guards only the dist branch. Widening its scopes
+  would re-publish it at the root with only AC3's tripwire in the way. Recorded
+  rather than fixed here; operator-only is not yet pack metadata all three
+  writers honour.
+
 - [ ] **AC5 — The publish-side check fails loud, and reads the source tree.**
   Scope resolution for both the predicate and this check reads
   `packs/<slug>/pack.toml`, **not** the projected `dist/claude-plugins/<pack>/pack.toml`.
@@ -150,7 +161,8 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
   seven packs); `guides/core/how-to/adapt-to-project.md:53`. The precondition is
   stated once, in `install-routes.md`'s route table.
 
-- [ ] **AC9 — Living architecture statements the change falsifies are fixed.**
+- [ ] **AC9 — Living architecture statements the change falsifies are fixed,
+  re-derived by grep.** Not from this list — the list is the starting point.
   `docs/architecture/catalogue.md:32` states the build aggregates *each* pack's
   metadata into `marketplace.json`. `docs/CONVENTIONS.md` classes
   `architecture/*` as Living — drift is a bug.
@@ -193,16 +205,112 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
   user-scope path, not falsified, and takes no erratum —
   `docs/architecture/agentbundle.md:245-254` and `install-routes.md` say so.
 
+### Review-round additions
+
+- [ ] **AC15 — The predicate is route-scoped, and says so.** `Recipe` has no
+  pack-filter field and the per-pack loop is **shared with
+  `per-pack-apm-package`** — an unkeyed predicate would silently filter the APM
+  route, which this spec's `Never do` forbids. The filter keys on the
+  claude-plugins route explicitly (`output_subdir == "claude-plugins"`) plus the
+  two marketplace writers, and nothing else.
+
+  It also applies on **adopter self-host runs**: `_aggregate_marketplace` is what
+  an adopter's `run_self_host` calls with their own owner and name, so a legacy
+  adopter pack with no `[pack.adapter-contract]` resolves to `["repo"]` and would
+  vanish from their own marketplace. Every writer prints a named line per
+  excluded pack with the resolved scopes, so an exclusion is never silent.
+
+- [ ] **AC16 — The complement is asserted, and the envelope survives.** The
+  published set equals *exactly* the derived user-capable set, globbed from
+  `packs/`, asserted in **both** directions — AC3 covers only the seven
+  absences, so a predicate bug in the fail-*closed* direction (most plausibly
+  the absent-`[pack.adapter-contract]` trap AC2 names) could truncate or empty
+  the marketplace uncaught. `_run_aggregate` derives the envelope's `name` and
+  `owner` by scanning entries for a GitHub `source.url`, so a truncated set that
+  loses those breaks `claude plugin marketplace add` for every adopter; the
+  envelope's `name`, `owner`, and `description` are asserted intact.
+
+- [ ] **AC17 — The tripwire is reachable from the required gate.** AC3's by-name
+  assertion runs under `make build-check` — the only required, path-unfiltered
+  status check on `main`, which requires no PR review and has no CODEOWNERS
+  behind it. A non-blocking red X in an unrequired workflow is not a control for
+  "editing one line of `allowed-scopes` publishes a pack's code to a public
+  marketplace". The failure message names the publication consequence and the
+  `Ask first` boundary.
+
+- [ ] **AC18 — The user-capability field is fail-closed and checked both ways.**
+  Required in the Zod schema with **no default**, so the Astro build fails on
+  omission rather than defaulting to advertising the public install route. AC6's
+  consistency test iterates the **union** of `packs/<slug>/pack.toml` and
+  `web/src/content/packs/<slug>.md`, not just the `web/` side, so a newly added
+  pack cannot be silently skipped.
+
+- [ ] **AC19 — The six `render_pack` consumers are named.** `commands/render.py`,
+  `commands/diff.py`, `commands/init_state.py`, `commands/upgrade.py`,
+  `commands/install.py --emit-install-routes`, and `commands/validate.py` all run
+  the `per-pack-claude-plugin` recipe, so a recipe-level filter removes whole
+  subtrees from their output. `init-state` writes those relpaths into the state
+  file, so a pre-change `state.json` carries paths the render no longer
+  produces and `upgrade` reads them as removals. Each consumer is asserted for
+  its expected changed/unchanged status per projection.
+
+- [ ] **AC20 — The three `allowed-scopes` resolvers agree.**
+  `commands/validate.py:_allowed_scopes` gates on `[pack.adapter-contract].version`;
+  `commands/install.py:_resolved_allowed_scopes` and
+  `catalogue_tooling/lint.py:_profile_allowed_scopes` read `[pack.install]` with
+  no version gate. Publishing on the strictest while installing on the loosest
+  means a pack can be published to a scope `install` would refuse, or withheld
+  from one it would permit. A test asserts all three agree for every shipped
+  pack; reconciling them is out of scope.
+
+- [ ] **AC21 — AC12's finding is bound to the disclosure.** The real-client
+  install-then-delist observation does not just get recorded — it decides the
+  remedy. If the client silently retains the cached copy and stops resolving
+  updates, the adopter keeps running a permanently unmaintained user-scope copy
+  whose only notice is a changelog their client never reads. Either a one-release
+  tombstone (`description` prefixed `DEPRECATED — uninstall, then install at repo
+  scope`) ships before removal, or the observed behaviour is quoted verbatim in
+  both changelogs as an accepted risk.
+
+  AC12 also runs against a **local marketplace path pre-merge** — the repo-root
+  marketplace resolves from `main` and the dist branch is written on push to
+  `main`, so neither reflects the PR. A post-merge re-run against the published
+  marketplace is a separate recorded step.
+
+- [ ] **AC22 — The QA-matrix row gets one outcome, and its frozen owner is
+  amended.** `docs/specs/adapt-to-project/notes/manual-qa-matrix.md`'s
+  "claude-plugins install of core at project scope" row is **retired**, not
+  re-pointed. `tests/unit/test_manual_qa_matrix_shape.py` cites it as required by
+  AC19 of `docs/specs/claude-plugins-install-route/spec.md` — a frozen spec — so
+  that spec's erratum explicitly retires the matrix requirement rather than the
+  test silently dropping it.
+
+- [ ] **AC23 — The seven source `plugin.json` files are retained deliberately.**
+  `packs/<repo-only>/.claude-plugin/plugin.json` becomes consumer-less on this
+  route but still gates the source-shape drift check and still requires a version
+  bump in lockstep with `pack.toml`. Stated in the spec so the next reader does
+  not delete them as dead.
+
 ## Testing Strategy
 
-- **Unit** — the predicate over an `allowed-scopes` × `adapter-contract.version`
-  matrix, including the absent-table case AC2 names.
-- **Integration** — the seven exclusions by name in all three artifacts; a
-  user-capable pack still present; the `web/` frontmatter-vs-`pack.toml`
-  consistency test.
-- **Goal-based** — the AC8 grep returns nothing; `make build-check` passes on the
-  regenerated marketplace.
-- **Manual QA** — AC12 against the real client.
+Per criterion, with the artifact that would fail if it broke.
+
+| Criterion | Mode | Artifact |
+|---|---|---|
+| AC1, AC2, AC15, AC20 | Unit | predicate over an `allowed-scopes` × `adapter-contract.version` matrix; resolver-agreement test |
+| AC3, AC16 | Integration | build into `tmp_path`; seven absences by name + set equality both directions + envelope intact |
+| AC4, AC5 | Unit | evaluation-order test; stale-`dist/` fixture asserting non-zero exit |
+| AC6, AC18 | Integration + built output | `pack.toml` ↔ `web/` union consistency; rendered page emits/omits the install command |
+| AC7, AC17 | Goal-based | the checks are invoked by `make build-check` — asserted by running that target, not by reading the workflow |
+| AC8 | Goal-based | scripted allowlist assertion over an enumerated site list, `! grep -q` form |
+| AC9 | Goal-based | repo-wide grep for the falsified statements returns nothing; `make build-check` green after the seed edit + `core` bump |
+| AC10, AC21 | Goal-based | both `[Unreleased]` entries contain the pack names and the uninstall-first remedy |
+| AC11 | Goal-based | `make build-self` leaves the tree clean; `make build-check` green |
+| AC12, AC21 | Visual / manual QA | recorded client transcripts, pre-merge local marketplace and post-merge published |
+| AC13, AC22 | Goal-based | each named frozen spec carries an erratum; the matrix row is retired and its shape test updated |
+| AC14 | Goal-based | grep confirms the dormancy statement is present where the route is documented |
+| AC19 | Integration | each of the six consumers asserted per projection |
+| AC23 | Goal-based | the seven source manifests still present and still gated |
 
 ## Blast radius
 
