@@ -16,8 +16,9 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   declaring `[pack.install] allowed-scopes = ["repo"]` was being offered an
   install its own declaration forbids. Six packs leave the marketplace: `core`,
   `governance-extras`, `iac-terraform`, `monorepo-extras`,
-  `release-engineering`, `user-guide-diataxis` (`catalogue-curation` was
-  already excluded as operator-only).
+  `release-engineering`, `user-guide-diataxis`. `catalogue-curation` makes
+  seven: it was already excluded from the published branch, but was still
+  listed at the repo root, and that entry goes too.
 
   **If you installed any of them as a plugin**, uninstall first —
   `claude plugin uninstall <pack>@agent-ready-repo` — then install at repo

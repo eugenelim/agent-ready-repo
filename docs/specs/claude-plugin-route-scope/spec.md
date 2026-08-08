@@ -102,9 +102,10 @@ uniform `(deferred: …)` marker imply they are.
   existing `claude-plugins/<pack>/` tree is removed cleanly or leaves orphans.
   The risk is on the adopter's disk, not in what is published; the changelog now
   states the deletion explicitly, which is the interim mitigation.
-- `AC19` includes `docs/CONVENTIONS.md:597`, which is **seed-projected into
-  every adopter repo** and now states something untrue. `CONVENTIONS.md` classes
-  living-doc drift as a bug, not a follow-up.
+- `AC19` **is now done** — it was reclassified out of "additive" precisely
+  because `docs/CONVENTIONS.md` is seed-projected into every adopter repo. The
+  seed was corrected, reprojected, and `core` bumped to 2.5.1 (two files: its
+  marketplace entry is gone), along with the three architecture docs.
 
 **Gaps in this spec's own guarantee — deferred, but weakly.** `AC5`
 (three-surface equality both directions), `AC6` (the by-name tripwire with its
@@ -419,8 +420,8 @@ would be the drift this repo treats as a bug.
   render no longer produces and `upgrade` reads them as removals — exercised, not
   assumed.
 
-- [ ] **AC19 — Living statements the change falsifies are fixed, re-derived by
-  grep.** *(deferred: plugin-living-docs-sweep)* Known: `docs/architecture/catalogue.md:32`,
+- [x] **AC19 — Living statements the change falsifies are fixed, re-derived by
+  grep.** Known: `docs/architecture/catalogue.md:32`,
   `docs/architecture/pack-manifest.md:63-66`,
   `docs/architecture/pack-layout.md:113-115`, and `docs/CONVENTIONS.md:597`,
   which is **seed-projected** from `packs/core/seeds/docs/CONVENTIONS.md` — so it

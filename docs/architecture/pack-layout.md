@@ -112,7 +112,8 @@ the pack targets. Three required tables:
 - **`[pack]`** — required `name`, `version`, `description`. The build
   pipeline reads these and emits derived per-tool metadata into
   `dist/apm/<pack>/apm.yml` and
-  `dist/claude-plugins/<pack>/.claude-plugin/plugin.json`. Since
+  `dist/claude-plugins/<pack>/.claude-plugin/plugin.json` — for user-capable
+  packs only; the Claude-plugin route installs at user scope. Since
   **enriched-pack-manifest** (RFC-0031 / ADR-0021, contract v0.14),
   `[pack]` also accepts optional rich metadata — `readme`, `display_name`,
   `license`, `categories` (≤5, soft vocabulary), `keywords` (≤5),

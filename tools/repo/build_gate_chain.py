@@ -221,6 +221,8 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-site-scope-parity",
             "tools", "lint-site-scope-parity.py",
         ),
+        # Drift backstop only — the pack-description quality bar is
+        # guides/_shared/reference/catalogue-authoring-standards.md § 2.
         _script_step(
             "test-lint-pack-descriptions",
             "tools", "test-lint-pack-descriptions.py",

@@ -29,8 +29,10 @@ and it is the whole definition — there is no registry service, no manifest
 schema beyond the per-pack `pack.toml`, and no network protocol.
 
 `marketplace.json` is the catalogue-level listing consumed by
-`/plugin marketplace add`; the build aggregates each pack's version and
-metadata into it from the pack's `.claude-plugin/plugin.json`. How a pack's
+`/plugin marketplace add`; the build aggregates version and metadata into it
+from the `.claude-plugin/plugin.json` of every pack whose `allowed-scopes`
+admits `user`. The route installs at user scope, so repo-scoped packs are
+excluded — see `docs/specs/claude-plugin-route-scope`. How a pack's
 `pack.toml` projects into that entry is covered in
 [`pack-manifest.md`](pack-manifest.md).
 

@@ -685,11 +685,18 @@ def _aggregate_marketplace(
             f"user scope: {', '.join(sorted(excluded))}",
             file=sys.stderr,
         )
+    from agentbundle.build.main import aggregate_exit_code
+
+    # One function owns the emptiness policy. Self-host warns rather than
+    # exiting because it runs *after* adapters and seeds are written, so a
+    # non-zero exit would leave a half-projected tree; `aggregate_exit_code`
+    # encodes that, and routing through it keeps the three modes in one place.
+    assert aggregate_exit_code(
+        aggregate_scope="self-host",
+        discovered_empty=not excluded and not entries,
+        published_empty=not entries,
+    ) == 0, "self-host must never hard-fail on an empty set"
     if not entries and excluded:
-        # Adopter self-host runs reach here *after* adapters and seeds are
-        # written, so a non-zero exit would leave a half-projected tree. Warn
-        # loudly and continue with the filtered (possibly empty) set; the dist
-        # writer is where an emptied catalogue is an error.
         print(
             "marketplace: every discovered pack was filtered out — the "
             "marketplace will be empty. Packs installable only at repo scope "

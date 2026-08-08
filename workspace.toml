@@ -525,11 +525,6 @@ open = [
   # upgrade — the case most likely to surprise an adopter. Additive: nothing
   # published is wrong without it.
   {slug = "plugin-render-consumer-characterization", source = "spec/claude-plugin-route-scope AC18"},
-  # AC19: living statements the filter falsifies — docs/architecture/catalogue.md,
-  # pack-manifest.md, pack-layout.md, and docs/CONVENTIONS.md, the last
-  # seed-projected from packs/core/seeds/ and therefore needing make build-self
-  # plus a two-file core version bump. Additive; drift, not breakage.
-  {slug = "plugin-living-docs-sweep", source = "spec/claude-plugin-route-scope AC19"},
   # agentbundle-install-marker-importable-path — the wheel ships
   # agentbundle/_data/install-marker.py at a path that is not importable, which
   # `check-wheel-contents` reports as W004. Surfaced while measuring artifacts for

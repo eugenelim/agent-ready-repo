@@ -103,6 +103,16 @@ def main() -> int:
         _check("missing publishable entry fails",
                len(out) == 1 and "userpack" in out[0], f"got {out}")
 
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        _pack(root, "userpack", version="0.3", scopes=["repo", "user"])
+        # No marketplace written at all. Returning clean here is the
+        # "vacuously green" shape — the gate must not read a missing artifact
+        # as nothing to check.
+        out = lint.check(root)
+        _check("missing root marketplace fails when packs are publishable",
+               len(out) == 1 and "missing" in out[0], f"got {out}")
+
     if FAILURES:
         print(f"test-lint-plugin-membership: FAIL ({len(FAILURES)})", file=sys.stderr)
         return 1

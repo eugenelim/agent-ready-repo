@@ -443,6 +443,31 @@ def pack_is_publishable(pack_path: Path) -> bool:
     return is_publishable(meta, slug=pack_path.name)
 
 
+AGGREGATE_SCOPES = frozenset({"catalogue", "single-pack", "self-host"})
+
+
+def _skip_reason(pack_path: Path) -> str:
+    """Why a pack is not publishable, in the reader's terms.
+
+    Reporting a scope refusal for a pack that simply has no manifest is
+    self-contradicting — it prints `allowed-scopes=['repo', 'user'] does not
+    admit 'user'` and sends the reader to the wrong file.
+    """
+    if not (pack_path / "pack.toml").exists():
+        return "no pack.toml"
+    if not (pack_path / ".claude-plugin" / "plugin.json").exists():
+        return "no .claude-plugin/plugin.json (required on this route)"
+    from agentbundle.commands.validate import _allowed_scopes
+
+    meta = tomllib.loads((pack_path / "pack.toml").read_text(encoding="utf-8"))
+    return (
+        f"allowed-scopes={_allowed_scopes(meta)!r} does not admit 'user'"
+    )
+
+
+AGGREGATE_SCOPES = frozenset({"catalogue", "single-pack", "self-host"})
+
+
 def aggregate_exit_code(
     *,
     aggregate_scope: str,
@@ -457,6 +482,13 @@ def aggregate_exit_code(
     pack, and an adopter's self-host run must not hard-fail after adapters and
     seeds have already been written.
     """
+    if aggregate_scope not in AGGREGATE_SCOPES:
+        # Unvalidated, this reads `!= "catalogue"` and silently returns 0 — so a
+        # typo at any future call site disables the guard rather than failing.
+        raise ValueError(
+            f"aggregate_scope must be one of {sorted(AGGREGATE_SCOPES)}; "
+            f"got {aggregate_scope!r}"
+        )
     if aggregate_scope != "catalogue":
         return 0
     if discovered_empty:
@@ -584,17 +616,8 @@ def _run_per_pack(
             # Route membership, not an error: a repo-only pack forbids the only
             # install this route offers. Named on stderr so an exclusion is
             # never silent (spec § AC1, AC3).
-            from agentbundle.commands.validate import _allowed_scopes
-
-            meta_path = pack.path / "pack.toml"
-            scopes = (
-                _allowed_scopes(tomllib.loads(meta_path.read_text(encoding="utf-8")))
-                if meta_path.exists()
-                else ["repo"]
-            )
             print(
-                f"claude-plugins: skipping {pack.name} — allowed-scopes="
-                f"{scopes!r} does not admit 'user'",
+                f"claude-plugins: skipping {pack.name} — {_skip_reason(pack.path)}",
                 file=sys.stderr,
             )
             continue
@@ -1012,6 +1035,19 @@ def cmd_build(args) -> int:
             # the expected outcome for a repo-only pack, not a defect.
             aggregate_scope = "catalogue"
             if args.pack:
+                # An aggregate recipe writes ONE shared marketplace over the
+                # whole dist tree. Narrowing its pack list made it rewrite that
+                # file down to the single pack and exit 0 — a silent truncation
+                # of an artifact other packs share. Per-pack recipes are fine.
+                if recipe.type == "aggregate":
+                    print(
+                        f"build: --pack is not meaningful for the "
+                        f"{recipe.name!r} aggregate recipe, which writes one "
+                        f"marketplace over the whole dist tree; drop --pack or "
+                        f"choose a per-pack recipe",
+                        file=sys.stderr,
+                    )
+                    return 1
                 packs = [p for p in packs if p.name == args.pack]
                 aggregate_scope = "single-pack"
             run_recipe(

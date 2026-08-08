@@ -70,6 +70,12 @@ _ALL_FIXTURE_PACKS = [
 FIXTURE_PACK_NAMES = [p.name for p in _ALL_FIXTURE_PACKS if _is_publishable(p)]
 REPO_ONLY_PACK_NAMES = [p.name for p in _ALL_FIXTURE_PACKS if not _is_publishable(p)]
 
+# Both lists are computed from the production predicate, so a predicate that
+# returns a constant would empty one of them — and an empty parametrisation
+# collects zero cases and passes. Fail at collection instead.
+assert FIXTURE_PACK_NAMES, "no publishable fixture packs — the predicate is broken"
+assert REPO_ONLY_PACK_NAMES, "no repo-only fixture pack — the drop path is uncovered"
+
 
 def _run_build(packs_dir: Path, output_dir: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
