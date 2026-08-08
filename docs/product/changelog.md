@@ -68,6 +68,127 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a repository policy lint, not a packaged one: `pack.schema.json` and the
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
+## [core][2.3.1] — 2026-08-07
+
+### Security
+
+- **The knowledge writer refuses invisible characters.** It rejected `Cc`
+  controls only, so bidi overrides, the Unicode Tag block, and the variation
+  selectors all passed — the last of those being 240 code points that encode
+  arbitrary text at zero visual width. Since `session-start` replays every
+  entry's title, scope and body verbatim into an agent's context (and a
+  `tier: invariant` entry goes in regardless of scope), that was a durable
+  prompt-injection channel invisible both in a diff and on screen. The rule is
+  now Unicode's **Default_Ignorable_Code_Point** property, enumerated from
+  `DerivedCoreProperties` rather than sampled by block. Sampling failed twice —
+  `Cf` alone was bypassed by the variation selectors (`Mn`), and adding those
+  was bypassed by the Mongolian free variation selectors, the same construct one
+  block over. A total-volume budget sits beside the adjacency cap, since two
+  joiners after every visible character never trip a run limit and still carry
+  an arbitrary instruction. Both
+  the writer and `lint-knowledge.py` enforce it from one shared predicate,
+  because the file is hand-editable too. ZWJ, ZWNJ and the two emoji
+  presentation selectors stay legal — they shape neighbouring characters — but a
+  **run** of three or more adjacent zero-width characters is not, counting
+  joiners and selectors together. Three is the threshold because real emoji cap
+  at two adjacent (heart-on-fire is VS16 then ZWJ, as are the flag and
+  bouncing-ball forms) while an alphabet needs many more; counting joiners alone
+  left an alternating VS15/VS16 run invisible.
+
+### Fixed
+
+- **Concurrent appends no longer lose entries while reporting success.**
+  Allocating `max(id) + 1` and then replacing the file is a read-modify-write;
+  unlocked, six concurrent appends landed two entries and told all six callers
+  their learning was recorded. The window is now serialized with a
+  cross-platform lock. Note what makes it correct, since a first version got
+  both halves wrong and did not exclude at all: a lock is broken only on
+  evidence it is abandoned — its own age, never how long the waiter has waited,
+  because a merely-slow holder still holds it — and it is released only if
+  still owned, since a stale-breaker may have taken it over. The wait is
+  bounded and reports rather than spinning on a lock it cannot remove.
+- **Appending no longer narrows the knowledge file's permissions.**
+  `mkstemp` creates `0600` and `os.replace` carried that onto the target, taking
+  a committed world-readable file to owner-only. Git tracks only the exec bit,
+  so it was invisible to review and CI. The target's mode is now preserved.
+- **The knowledge linter cannot be hung by the input it exists to reject.** Its
+  escape-detection pattern backtracked quadratically (measured 1.1s at 20k
+  backslashes) and it runs unfiltered over a repo file in CI. Replaced with a
+  non-backtracking pattern plus a line-length cap.
+- **Status-regression detection now covers every verb that reads a pinned
+  artifact**, not one of three. Normalizing the status token out of the hash
+  removed the byte-compare that used to catch a spec regressing to `Draft`;
+  the replacement assertion was only wired into `plan check-current`, so
+  `approve-plan`'s already-approved branch and `schedule check-current` still
+  passed such a spec.
+- **Checkbox normalization is scoped by artifact.** It applied file-wide, so
+  ticking a checkbox under a spec's `## Boundaries` — a `Never do` item,
+  precisely the scope the pin protects — collided with the approved digest.
+  A spec is now normalized inside its Acceptance Criteria section only; a plan,
+  which has no such section and whose checkboxes are task progress, stays
+  file-wide.
+- **The hash-mismatch message no longer prescribes a recovery that fails.** It
+  said to run `loop-cohort reset` and re-run the G-plan sequence, but that
+  sequence has no `init` step, so `approve-plan` immediately refused; and it
+  omitted that `loop-engine reset` must *not* be run. The five recovery steps
+  are now spelled out in the message itself — an installed skill cannot point
+  at this file, which adopters own as their own product's changelog.
+- **The approval pin no longer breaks on the writes the loop itself mandates.**
+  `loop-cohort approve-plan` pinned the raw bytes of `spec.md`, but `work-loop`
+  requires writing `Status: Implementing` before any code and `Shipped` plus a
+  ticked acceptance criterion at finish — so `plan check-current` went red one
+  mandated step after approval, every run. `plan.md` had the same defect on a
+  worse path: `schedule check-current` guards every `CODE-*` transition, so a
+  plan `Status: Done` could wedge the state machine mid-EXECUTE. Both artifacts
+  are now hashed through one canonical form that normalizes the preamble status
+  *token* and checkbox bracket contents and nothing else. Substance stays
+  pinned: acceptance-criterion text, task text, `Depends on:` edges, a
+  `(deferred: <slug>)` annotation, a re-indented criterion, and any free text
+  appended after the status token all still invalidate the baseline.
+
+- **Knowledge entries have a writer, so the file stops drifting between
+  encodings.** `docs/knowledge/patterns.jsonl` is line-delimited JSON, where
+  both `\u2014` and a literal `—` are valid — so an author reaching for
+  `json.dumps(entry)` (whose `ensure_ascii` defaults to `True`) silently changed
+  the file's encoding while passing every gate, and for a non-BMP character
+  emitted a surrogate pair that is not a valid TOML/YAML scalar downstream.
+  `append-knowledge.py` now allocates the next id, writes raw UTF-8, confines
+  its target, and lints the candidate before installing it, so a rejected entry
+  never reaches the file. `lint-knowledge.py` rejects a `\uXXXX` escape for any
+  character that should have been literal. Every C0 character and every line
+  separator (`U+0085`, `U+2028`, `U+2029`) is refused in **both** spellings:
+  the literal form splits `str.splitlines()`, which is how the linter and
+  `session-start` read the file, and the escaped form is worse — it survives
+  the round trip intact, so it forges a line inside the block replayed into
+  every session. The escape rule still exempts the three separators, but only
+  so an entry carrying one gets a single clear error rather than two.
+- **The knowledge-base guidance points at the privacy rule.** Capturing a
+  learning is now a routine agent-authored commit into a permanent git
+  artifact, and the author holds session context full of paths and identities,
+  so all three authoring surfaces name `AGENTS.md` § Privacy alongside the
+  encoding convention.
+
+### Upgrading
+
+A run already in flight when this lands carries a baseline pinned by the old
+hash, which the new canonical form will not match. Recover with a **cohort-only**
+reset — do not reset the engine, whose `plan-locked` transition is legal only
+from `SPEC-PLAN-APPROVED`, so resetting it strands the run:
+
+1. Restore `Status: Approved` in **both** `spec.md` and `plan.md`; `approve-plan`
+   refuses unless both read `Approved`.
+2. `loop-cohort reset`, then `loop-cohort init` with the engine's existing
+   `run_id` (read it from `loop-engine status --json`).
+3. `approve-plan`, then `schedule`.
+4. Restore the status you were on and continue.
+
+Two things to know before you do it. Re-running `approve-plan` re-pins whatever
+bytes are on disk — that is a re-approval in substance, so it is the plan
+approver's call to re-affirm them, not something to self-serve. And the reset
+returns `implementation_retry_count`, `review_round_count`, `review_retry_count`
+and the recorded finding fingerprints to zero, so retry caps restart and stasis
+detection loses its baseline.
+
 ## [core][2.3.0] — 2026-08-07
 
 ### Fixed
@@ -394,127 +515,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no skill, script, command, hook, reference or eval was removed, renamed, or
   edited. If you have an older install, the stale `test_*.py` files under your
   installed skills are safe to delete.
-
-## [core][2.2.2] — 2026-08-07
-
-### Security
-
-- **The knowledge writer refuses invisible characters.** It rejected `Cc`
-  controls only, so bidi overrides, the Unicode Tag block, and the variation
-  selectors all passed — the last of those being 240 code points that encode
-  arbitrary text at zero visual width. Since `session-start` replays every
-  entry's title, scope and body verbatim into an agent's context (and a
-  `tier: invariant` entry goes in regardless of scope), that was a durable
-  prompt-injection channel invisible both in a diff and on screen. The rule is
-  now Unicode's **Default_Ignorable_Code_Point** property, enumerated from
-  `DerivedCoreProperties` rather than sampled by block. Sampling failed twice —
-  `Cf` alone was bypassed by the variation selectors (`Mn`), and adding those
-  was bypassed by the Mongolian free variation selectors, the same construct one
-  block over. A total-volume budget sits beside the adjacency cap, since two
-  joiners after every visible character never trip a run limit and still carry
-  an arbitrary instruction. Both
-  the writer and `lint-knowledge.py` enforce it from one shared predicate,
-  because the file is hand-editable too. ZWJ, ZWNJ and the two emoji
-  presentation selectors stay legal — they shape neighbouring characters — but a
-  **run** of three or more adjacent zero-width characters is not, counting
-  joiners and selectors together. Three is the threshold because real emoji cap
-  at two adjacent (heart-on-fire is VS16 then ZWJ, as are the flag and
-  bouncing-ball forms) while an alphabet needs many more; counting joiners alone
-  left an alternating VS15/VS16 run invisible.
-
-### Fixed
-
-- **Concurrent appends no longer lose entries while reporting success.**
-  Allocating `max(id) + 1` and then replacing the file is a read-modify-write;
-  unlocked, six concurrent appends landed two entries and told all six callers
-  their learning was recorded. The window is now serialized with a
-  cross-platform lock. Note what makes it correct, since a first version got
-  both halves wrong and did not exclude at all: a lock is broken only on
-  evidence it is abandoned — its own age, never how long the waiter has waited,
-  because a merely-slow holder still holds it — and it is released only if
-  still owned, since a stale-breaker may have taken it over. The wait is
-  bounded and reports rather than spinning on a lock it cannot remove.
-- **Appending no longer narrows the knowledge file's permissions.**
-  `mkstemp` creates `0600` and `os.replace` carried that onto the target, taking
-  a committed world-readable file to owner-only. Git tracks only the exec bit,
-  so it was invisible to review and CI. The target's mode is now preserved.
-- **The knowledge linter cannot be hung by the input it exists to reject.** Its
-  escape-detection pattern backtracked quadratically (measured 1.1s at 20k
-  backslashes) and it runs unfiltered over a repo file in CI. Replaced with a
-  non-backtracking pattern plus a line-length cap.
-- **Status-regression detection now covers every verb that reads a pinned
-  artifact**, not one of three. Normalizing the status token out of the hash
-  removed the byte-compare that used to catch a spec regressing to `Draft`;
-  the replacement assertion was only wired into `plan check-current`, so
-  `approve-plan`'s already-approved branch and `schedule check-current` still
-  passed such a spec.
-- **Checkbox normalization is scoped by artifact.** It applied file-wide, so
-  ticking a checkbox under a spec's `## Boundaries` — a `Never do` item,
-  precisely the scope the pin protects — collided with the approved digest.
-  A spec is now normalized inside its Acceptance Criteria section only; a plan,
-  which has no such section and whose checkboxes are task progress, stays
-  file-wide.
-- **The hash-mismatch message no longer prescribes a recovery that fails.** It
-  said to run `loop-cohort reset` and re-run the G-plan sequence, but that
-  sequence has no `init` step, so `approve-plan` immediately refused; and it
-  omitted that `loop-engine reset` must *not* be run. The five recovery steps
-  are now spelled out in the message itself — an installed skill cannot point
-  at this file, which adopters own as their own product's changelog.
-- **The approval pin no longer breaks on the writes the loop itself mandates.**
-  `loop-cohort approve-plan` pinned the raw bytes of `spec.md`, but `work-loop`
-  requires writing `Status: Implementing` before any code and `Shipped` plus a
-  ticked acceptance criterion at finish — so `plan check-current` went red one
-  mandated step after approval, every run. `plan.md` had the same defect on a
-  worse path: `schedule check-current` guards every `CODE-*` transition, so a
-  plan `Status: Done` could wedge the state machine mid-EXECUTE. Both artifacts
-  are now hashed through one canonical form that normalizes the preamble status
-  *token* and checkbox bracket contents and nothing else. Substance stays
-  pinned: acceptance-criterion text, task text, `Depends on:` edges, a
-  `(deferred: <slug>)` annotation, a re-indented criterion, and any free text
-  appended after the status token all still invalidate the baseline.
-
-- **Knowledge entries have a writer, so the file stops drifting between
-  encodings.** `docs/knowledge/patterns.jsonl` is line-delimited JSON, where
-  both `\u2014` and a literal `—` are valid — so an author reaching for
-  `json.dumps(entry)` (whose `ensure_ascii` defaults to `True`) silently changed
-  the file's encoding while passing every gate, and for a non-BMP character
-  emitted a surrogate pair that is not a valid TOML/YAML scalar downstream.
-  `append-knowledge.py` now allocates the next id, writes raw UTF-8, confines
-  its target, and lints the candidate before installing it, so a rejected entry
-  never reaches the file. `lint-knowledge.py` rejects a `\uXXXX` escape for any
-  character that should have been literal. Every C0 character and every line
-  separator (`U+0085`, `U+2028`, `U+2029`) is refused in **both** spellings:
-  the literal form splits `str.splitlines()`, which is how the linter and
-  `session-start` read the file, and the escaped form is worse — it survives
-  the round trip intact, so it forges a line inside the block replayed into
-  every session. The escape rule still exempts the three separators, but only
-  so an entry carrying one gets a single clear error rather than two.
-- **The knowledge-base guidance points at the privacy rule.** Capturing a
-  learning is now a routine agent-authored commit into a permanent git
-  artifact, and the author holds session context full of paths and identities,
-  so all three authoring surfaces name `AGENTS.md` § Privacy alongside the
-  encoding convention.
-
-### Upgrading
-
-A run already in flight when this lands carries a baseline pinned by the old
-hash, which the new canonical form will not match. Recover with a **cohort-only**
-reset — do not reset the engine, whose `plan-locked` transition is legal only
-from `SPEC-PLAN-APPROVED`, so resetting it strands the run:
-
-1. Restore `Status: Approved` in **both** `spec.md` and `plan.md`; `approve-plan`
-   refuses unless both read `Approved`.
-2. `loop-cohort reset`, then `loop-cohort init` with the engine's existing
-   `run_id` (read it from `loop-engine status --json`).
-3. `approve-plan`, then `schedule`.
-4. Restore the status you were on and continue.
-
-Two things to know before you do it. Re-running `approve-plan` re-pins whatever
-bytes are on disk — that is a re-approval in substance, so it is the plan
-approver's call to re-affirm them, not something to self-serve. And the reset
-returns `implementation_retry_count`, `review_round_count`, `review_retry_count`
-and the recorded finding fingerprints to zero, so retry caps restart and stasis
-detection loses its baseline.
 
 ## [agentbundle][0.29.4] — 2026-08-06
 
