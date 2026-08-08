@@ -61,10 +61,10 @@ ID_PATTERN = re.compile(r"^K-\d{4,}$")
 _ESCAPE_RE = re.compile(r"(?<!\\)((?:\\\\)*\\)u([0-9a-fA-F]{4})")
 # Belt and braces: refuse to regex a pathological line at all.
 _MAX_LINE = 8192
-# `gratuitous_escapes` exempts these so an entry carrying one gets a single
-# clear error rather than two: the decoded pass refuses the character itself, in
-# both spellings. The literal form also breaks `str.splitlines()`, which is how
-# both this linter and session-start.py read the file.
+# `field_problems` names these; `gratuitous_escapes` then skips them because
+# that pass already refuses them, so an entry carrying one gets a single clear
+# error rather than two. The literal form also breaks `str.splitlines()`, which
+# is how both this linter and session-start.py read the file.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
 # No C0 character belongs in a field value in either spelling: `field_problems`
 # refuses category `Cc` on the *decoded* string, which covers the literal and
@@ -121,7 +121,7 @@ _HIDDEN_RANGES = (
 # legal joiners after every visible character stays under any adjacency limit
 # and still carries an arbitrary instruction — 608 invisible characters hid a
 # 76-character payload inside ordinary-looking advice during review. So cap the
-# total too: 2% of the field, floor 4, which passes every emoji sequence
+# total too: 2% of the field, floor 8, which passes every emoji sequence
 # measured and every realistic body.
 _INVISIBLE_BUDGET_DIVISOR = 50  # i.e. 2% of the field
 # Calibrated, not guessed: a floor of 4 refuses a 47-character title carrying

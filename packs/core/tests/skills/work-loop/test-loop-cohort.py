@@ -2057,8 +2057,8 @@ def test_gplan_ordering_status_approved_before_approve_plan(tmp: Path) -> None:
 
 # STUB: AC4
 def test_stub_lifecycle_status_bump_keeps_pin(tmp: Path) -> None:
-    """STUB: AC4. SKILL.md:220 mandates spec `Status: Implementing` before any
-    code and :434 mandates spec `Shipped` / plan `Done` at finish. None of
+    """STUB: AC4. SKILL.md's EXECUTE step mandates spec `Status: Implementing` before
+    any code, and its finish checklist mandates spec `Shipped` / plan `Done`. None of
     those writes may move the approved baseline."""
     name = "stub-lifecycle-status-bump-keeps-pin"
     run_id = str(uuid.uuid4())
@@ -2179,7 +2179,7 @@ def _check(spec_dir: Path) -> int:
 
 
 def test_ac5_ticking_a_criterion_is_bookkeeping(tmp: Path) -> None:
-    """AC5. SKILL.md:434 mandates ticking every AC at finish."""
+    """AC5. SKILL.md's finish checklist mandates ticking every AC."""
     name = "ac5-ticking-a-criterion-is-bookkeeping"
     spec_dir, _ = _approved_run(tmp, name)
     (spec_dir / "spec.md").write_text(

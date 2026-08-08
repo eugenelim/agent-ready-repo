@@ -279,6 +279,28 @@ def layer_validation_rules(tmp: Path) -> None:
                          "source": "s"}, ensure_ascii=False) + "\n",
              1, "control character U+007F")
 
+    # AC16's budget is a contract with two numbers, and neither was pinned:
+    # every other invisible case carries either <=2 (passes under any floor) or
+    # >=16 in a short field (fails under any budget). These two discriminate.
+    run_case(tmp, "stub-short-field-five-emoji-accepted",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "Use \u26a0\ufe0f \U0001f525\ufe0f \u2705\ufe0f "
+                                  "\u2764\ufe0f \u2b50\ufe0f when flagging risk",
+                         "body": "b", "source": "s"}, ensure_ascii=False) + "\n",
+             0, "Knowledge lint: passed")   # dies at floor 4
+    run_case(tmp, "stub-long-field-proportional-budget",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t",
+                         "body": ("word " * 200) + ("x\ufe0f" * 12),
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             0, "Knowledge lint: passed")   # dies if the len//N term is removed
+    run_case(tmp, "stub-long-field-over-proportional-budget",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t",
+                         "body": ("word " * 200) + ("x\ufe0f" * 40),
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             1, "zero-width characters in")
+
     # Empty file (no learnings yet) is valid.
     run_case(tmp, "empty", "", 0, "Knowledge lint: passed")
 

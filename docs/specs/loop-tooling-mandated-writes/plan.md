@@ -448,9 +448,17 @@ filename is hyphenated so `pytest packs/core/tests/` never collects it, and
 `tools/test-all.py` is hand-run (`tools/repo/build_gate_chain.py`'s `_script_step` comment
 states this), so `test-all.py` alone would be a gate that does not gate.
 
-**Manual QA:** invoke the script for real, read the produced bytes, record them
-in the PR — a passing unit gate does not satisfy the shipped-artifact
-requirement.
+**Manual QA:** invoke the script for real and read the produced bytes — a
+passing unit gate does not satisfy the shipped-artifact requirement. Recorded
+here rather than only in the PR, because the entry this run appended (K-0047) is
+pure ASCII and therefore demonstrates nothing about the round trip that is the
+whole point. Against a scratch file under `docs/knowledge/`:
+
+```
+--title 'Manual-QA probe — em dash and café'
+observed bytes: b'em dash and caf\xc3\xa9", "body": "R'
+raw em dash present: True | escaped \u2014 absent: True | file mode: 0o644
+```
 
 ### T5 — Point the guidance at the writer
 
@@ -483,7 +491,8 @@ added or omitted, so it would pass whether or not this task happened.
 **Depends on:** T1, T2, T3, T4, T5
 **Verification mode:** Goal-based check
 **Touches:** `.claude/skills/work-loop/**`, `.agents/skills/work-loop/**`,
-`packs/core/pack.toml`, `packs/core/plugin.json`, `marketplace.json`, `CHANGELOG.md`
+`packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`,
+`.claude-plugin/marketplace.json`, `docs/product/changelog.md`
 
 `make build-self`, then read `git status` — `build-self` reverts
 projection-only edits, so this runs after every source edit rather than
