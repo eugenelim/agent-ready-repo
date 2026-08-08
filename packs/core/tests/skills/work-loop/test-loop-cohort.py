@@ -2631,6 +2631,33 @@ def test_ac9_comment_only_status_is_skipped(tmp: Path) -> None:
         ok(name)
 
 
+def test_ac5_bold_ac_region_terminates(tmp: Path) -> None:
+    """AC5/AC1. A bold-lead-in AC region has no heading to close it, so without
+    an explicit terminator it runs to EOF and un-pins every later checkbox —
+    including a `Never do` item, which is the scope the pin protects. H3 is not
+    a terminator: 293 H3 headings sit inside AC sections across this repo, so
+    closing on them would end the region early for most specs.
+    """
+    name = "ac5-bold-ac-region-terminates"
+    head = "# S\n\n- **Status:** Approved\n\n"
+    checks = [
+        ("bold AC then bold Never-do",
+         head + "**Acceptance criteria:**\n\n- [ ] AC1\n\n**Never do**\n\n"
+                "- [{m}] never add a top-level dir\n", False),
+        ("bold AC then H2 Boundaries",
+         head + "**Acceptance criteria:**\n\n- [ ] AC1\n\n## Boundaries\n\n"
+                "- [{m}] never force-push\n", False),
+        ("H3 subgroup inside the AC section",
+         head + "## Acceptance Criteria\n\n### Group A\n\n- [{m}] AC1\n", True),
+    ]
+    for label, body, should_be_bookkeeping in checks:
+        same = canonical_contract(body.format(m=" ")) == canonical_contract(body.format(m="x"))
+        if same != should_be_bookkeeping:
+            fail(name, f"{label}: un-pinned={same}, expected {should_be_bookkeeping}")
+            return
+    ok(name)
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
@@ -2658,6 +2685,7 @@ def main() -> int:
             test_ac5_plan_task_checkbox_is_bookkeeping,
             test_ac5_lowercase_ac_heading_still_normalizes,
             test_ac5_prose_ac_lead_in_opens_the_region,
+            test_ac5_bold_ac_region_terminates,
             test_ac1_h1_closes_the_ac_region,
             test_ac2_multiline_preamble_comment_keeps_line_indices,
             test_ac7_fenced_ac_heading_does_not_open_the_region,

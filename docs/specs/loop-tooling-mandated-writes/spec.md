@@ -25,9 +25,9 @@ The same skill then mandates writes to those exact files:
 
 | Mandated write | Where |
 |---|---|
-| spec `Status:` → `Implementing`, before any code | `SKILL.md:220`, `:174` |
-| spec `Status:` → `Shipped`; every AC to `[x]` | `SKILL.md:434` |
-| plan `Status:` → `Done` (full mode) | `SKILL.md:434` |
+| spec `Status:` → `Implementing`, before any code | `SKILL.md`'s EXECUTE step, `SKILL.md`'s plan-locked row |
+| spec `Status:` → `Shipped`; every AC to `[x]` | `SKILL.md`'s finish checklist |
+| plan `Status:` → `Done` (full mode) | `SKILL.md`'s finish checklist |
 
 So the pin is guaranteed to break one mandated step after it is taken. Both
 sides reproduce in a sandbox spec dir:
@@ -44,7 +44,7 @@ stop — schedule check-current: plan.md has changed since schedule  → exit 1
 ```
 
 The plan-side half is the more dangerous one: `schedule check-current` is a
-**mandatory pre-guard on every `CODE-*` transition** (`loop-engine.py:764`), so
+**mandatory pre-guard on every `CODE-*` transition** (`loop-engine.py`'s `_CODE_STATES` pre-guard), so
 a plan-side lifecycle write can wedge the state machine mid-EXECUTE.
 
 The contradiction is **encoded as intended behavior in three tests**:
@@ -59,13 +59,13 @@ own bookkeeping fields as scope.
 
 ### 2 — Knowledge capture has no writer, so its encoding drifts
 
-`SKILL.md:454` mandates promoting learnings to `docs/knowledge/patterns.jsonl`
+`SKILL.md`'s capture-learnings step mandates promoting learnings to `docs/knowledge/patterns.jsonl`
 and documents the schema — but names no way to write a line. The obvious
 `json.dumps(entry)` defaults `ensure_ascii=True`, so `—` lands as `—`;
 `ensure_ascii=False` gives the literal character. Both lint clean today.
 
 The file accumulated both forms and was rewritten by hand to uniform raw UTF-8
-(recorded at `docs/specs/local-gate-ci-parity/plan.md:436`). That fixed the
+(recorded at `docs/specs/local-gate-ci-parity/plan.md`). That fixed the
 instance, not the cause: nothing states the convention and nothing enforces it,
 so the next append re-drifts by picking the other default.
 
@@ -73,7 +73,7 @@ Two properties discovered during secure-design review shape the fix. First,
 `json.dumps` with the default emits **surrogate pairs** for non-BMP characters
 (`😀` → `😀`), which are valid JSON but invalid as TOML/YAML scalars —
 so the drift is not merely cosmetic. Second, `str.splitlines()` — which both
-`lint-knowledge.py:78` and `tools/hooks/session-start.py` use to read the file —
+`lint-knowledge.py`'s `content.splitlines()` read and `tools/hooks/session-start.py` use to read the file —
 splits on `U+0085`, `U+2028`, and `U+2029`, and `ensure_ascii=False` emits all
 three raw. A naive "always write raw" rule would let one entry become two
 unparseable lines.
@@ -144,7 +144,7 @@ unparseable lines.
       **An absent or unparseable token is skipped, not stopped.** That is what
       makes it safe on `schedule check-current`, a pre-guard on every `CODE-*`
       transition: plan fixtures legitimately carry no status line
-      (`test-loop-engine.py:93-97`), so they are unaffected, and the three
+      (`test-loop-engine.py`'s `write_plan`), so they are unaffected, and the three
       statuses a plan legitimately holds after `plan-locked` are all in the
       allowed set. A draft of this criterion excluded `schedule check-current`
       to avoid giving it a new way to go red; secure-design review pointed out
@@ -167,25 +167,25 @@ unparseable lines.
       An unconditional both-causes message is strictly more accurate and
       deletes the mechanism.
 - [x] AC11. The three tests that encode the bug are rewritten to exercise a
-      substantive change: `test_plan_check_current_changed_spec` (`:503`),
-      `test_approve_plan_refuses_changed_spec` (`:1712`), and
-      `test_approve_plan_overwrites_hashes` (`:457`), whose post-change
+      substantive change: `test_plan_check_current_changed_spec` (`test_plan_check_current_changed_spec`),
+      `test_approve_plan_refuses_changed_spec` (`test_approve_plan_refuses_changed_spec`), and
+      `test_approve_plan_overwrites_hashes` (`test_approve_plan_overwrites_hashes`), whose post-change
       contract is exit 0 no-op on a status bump and exit 1 on a substantive
-      edit. `test_approve_plan_state_preserved_on_refusal` (`:1829`) is also
+      edit. `test_approve_plan_state_preserved_on_refusal` (`test_approve_plan_state_preserved_on_refusal`) is also
       rewritten — its scenario A bumps `Status` and would stay green while no
       longer testing the refusal its name claims. New cases cover AC4–AC10,
       including a re-indented criterion (AC1) and an `approve-plan` replay
       after a lifecycle bump, which exercises the idempotency-compare site.
       `test-loop-engine.py`'s duplicated `sha256_file` /
-      `sha256_canonical_plan` helpers (`:101-105`, used by 28 fixtures) are
+      `sha256_canonical_plan` helpers (used by 28 fixtures) are
       replaced by an `importlib` load of the canonicalizer so the two cannot
       drift.
 - [x] AC12. Three documents state what the pin covers and what it deliberately
       does not: `references/state-schema.md`, `references/pre-execute-review.md`
-      (whose `:31-33` "any edit to `plan.md` after `approve-plan` causes a
+      (whose its immutability note "any edit to `plan.md` after `approve-plan` causes a
       refusal" AC4 falsifies, and which names the wrong verb), and the
       **shipped adopter guide**
-      `guides/core/how-to/plan-and-execute-non-trivial-work.md:122`, which
+      `guides/core/how-to/plan-and-execute-non-trivial-work.md`'s spec-amendment note, which
       tells adopters "the only safe post-approval edits are trailing-whitespace
       and line-ending normalization — `canonical_plan()` normalizes only those
       two". That sentence is falsified by AC4/AC5 and names a function AC1
@@ -336,7 +336,7 @@ unparseable lines.
 ### Always do
 
 - Read every status token through `parse_status` / `extract_status_token` from
-  `lint-spec-status.py`, per `docs/specs/loop-approved-spec-state/spec.md:34`.
+  `lint-spec-status.py`, per `docs/specs/loop-approved-spec-state/spec.md`.
 - Confine any caller-supplied filesystem target with canonicalize-then-
   verify-prefix, after resolution, against a named root.
 - Keep both scripts pure-stdlib, per the repo's new-tool-scripts rule.
@@ -361,15 +361,15 @@ unparseable lines.
 
 1. **Every in-flight run must be reset, not only already-wedged ones.** A run
    parked at `SPEC-PLAN-APPROVED` still carries `Status: Approved` (the
-   `Implementing` write happens *after* `plan-locked`, `SKILL.md:174`) and is
+   `Implementing` write happens *after* `plan-locked`, `SKILL.md`'s plan-locked row) and is
    healthy today; this change newly invalidates its pin. AC10's legacy-pin
    *diagnosis* is what makes that failure honest, without a schema cutover.
 
    A `schema_version: 2` bump was the first design and was withdrawn: four
    enforcement sites hardcode `!= 1` beyond the hash verbs
-   (`loop-cohort.py`'s four schema_version checks, plus a stale `help=` string at `:1221`),
-   three suites assert `== 1` (`test-loop-cohort.sh:105,131`,
-   `test_loop_cohort_schedule.py:202`, `test-loop-engine.py:114,142`). Note honestly what
+   (`loop-cohort.py`'s four schema_version checks, plus a stale `help=` string at its `--help` text),
+   three suites assert `== 1` (`test-loop-cohort.sh`,
+   `test_loop_cohort_schedule.py`, `test-loop-engine.py`). Note honestly what
    is *not* the discriminator: this run's own pin breaks either way — the hash
    change invalidates it exactly as a version bump would. The difference is
    blast radius. A version bump also stops `identity`, `status`, and `check`,
@@ -383,11 +383,11 @@ unparseable lines.
    crash-window guard (`cmd_approve_plan`'s crash-window guard) requires both files to read
    `Approved` — so re-approval means restoring `Status: Approved` in both
    files first. `state.json` is gitignored run-local state (verified:
-   `.gitignore:14-15`), so the blast radius is one developer's working copy.
+   `.gitignore`), so the blast radius is one developer's working copy.
 2. **Un-ticking a checkbox is not a scope change**, so the canonical form
    deliberately cannot detect it. Residual risk: flipping `[x]` → `[ ]` after
    approval could conceal an unmet criterion. Compensating control:
-   `lint-spec-status.py` runs at the finish checklist (`SKILL.md:434`) and
+   `lint-spec-status.py` runs at the finish checklist (`SKILL.md`'s finish checklist) and
    requires every AC to be `[x]` or `(deferred: <slug>)`, so a concealed
    criterion fails there.
 3. **Concurrent invocation of `append-knowledge.py` is handled, not deferred.**
@@ -399,7 +399,7 @@ unparseable lines.
    appends landed two entries while telling all six callers their learning was
    recorded. AC17 now serializes the read-allocate-write window.
 4. **The `--file` flow is reviewer-owned, not scanner-owned.**
-   `tools/semgrep/env-path-taint.yml:41-45` sources only `os.environ.*`, so an
+   `tools/semgrep/env-path-taint.yml` sources only `os.environ.*`, so an
    argv → path write sink produces no finding; a green SAST gate says nothing
    about AC14. Recorded so a later reader does not mistake scanner silence for
    coverage.
@@ -411,7 +411,7 @@ invariant (lifecycle writes in, identical digest out; substantive writes in,
 different digest out), and two existing tests must go red first. TDD for the
 linter rule and for the writer's allocation, confinement, validation, and
 restoration paths. Red stubs are materialized at PLAN per
-`docs/CONVENTIONS.md:397-406`, each carrying `# STUB: AC<n>` and `stub: true`
+`docs/CONVENTIONS.md`'s Stub → EXECUTE handoff, each carrying `# STUB: AC<n>` and `stub: true`
 in its task's `Tests:` subsection.
 
 Goal-based checks for the reference-doc and guidance edits.

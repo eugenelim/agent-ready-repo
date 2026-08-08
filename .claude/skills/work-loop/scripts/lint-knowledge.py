@@ -127,12 +127,12 @@ _HIDDEN_RANGES = (
 # 76-character payload inside ordinary-looking advice during review. So cap the
 # total too: 2% of the field, floor 4, which passes every emoji sequence
 # measured and every realistic body.
-_MAX_INVISIBLE_FRACTION = 50
+_INVISIBLE_BUDGET_DIVISOR = 50  # i.e. 2% of the field
 _MIN_INVISIBLE_ALLOWANCE = 4
 
 
 def invisible_budget(value: str) -> int:
-    return max(_MIN_INVISIBLE_ALLOWANCE, len(value) // _MAX_INVISIBLE_FRACTION)
+    return max(_MIN_INVISIBLE_ALLOWANCE, len(value) // _INVISIBLE_BUDGET_DIVISOR)
 
 
 def is_hidden_char(ch: str) -> bool:
@@ -162,7 +162,7 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
         # Skip anything the decoded pass refuses outright. Otherwise an escaped
         # C0 fires twice, and the escape rule's advice — "write it literally" —
         # points at a form that is also refused.
-        if cp in _LINE_BREAKERS or cp < 0x20:
+        if cp in _LINE_BREAKERS or unicodedata.category(chr(cp)) == "Cc":
             continue
         found.append((f"\\u{m.group(2)}", chr(cp)))
     return found

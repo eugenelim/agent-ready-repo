@@ -46,7 +46,7 @@ dependency; both scripts stay pure-stdlib.
 
 | Tempted to | Declined because |
 |---|---|
-| Write a fresh regex for the status line and the AC checkboxes | `docs/specs/loop-approved-spec-state/spec.md:34` (Shipped, `Constrained by: ADR-0061`) mandates the shared `parse_status`; a fourth parser is how the four copies drift. Import them the way `check-spec-status.py:17-51` already does. |
+| Write a fresh regex for the status line and the AC checkboxes | `docs/specs/loop-approved-spec-state/spec.md` (Shipped, `Constrained by: ADR-0061`) mandates the shared `parse_status`; a fourth parser is how the four copies drift. Import them the way `check-spec-status.py` already does. |
 | Normalize the whole `**Status:**` line tail, comment included | It unpins an arbitrary free-text region *inside the approved contract* — `- **Status:** Implementing — scope now also covers deleting packages/credbroker` would hash identically — and unanchored matching hits real body content (6 occurrences in `docs/specs/lint-packs-target-vocab/plan.md` alone). Normalize the token, in the preamble, only. |
 | Compare against the pre-canonical hash to detect a stale pin | Two rounds on this. Accepting the old hash was never an option — it accepts a baseline nobody re-approved. Using it only to *diagnose* survived one round and was then withdrawn too (round 3): a run past `plan-locked` has had `Status: Implementing` written, so the legacy hash of the current bytes mismatches as well and the branch is silent exactly for the runs it was for. AC10's unconditional both-causes message is more accurate and needs no legacy code at all. |
 | Bump `state.json` `schema_version` to `2` for a clean cutover | Withdrawn after round-2 review. Four enforcement sites hardcode `!= 1` beyond the hash verbs, three suites assert `== 1`, and it would have broken *this run* (`state.json` is version 1) somewhere between T1 and T6 — a cutover that cannot survive its own implementation is the wrong mechanism. Counts and line numbers: spec Assumption 1. |
@@ -62,11 +62,11 @@ dependency; both scripts stay pure-stdlib.
 
 | # | Question | Disposition |
 |---|---|---|
-| 1 | Does the plan-side pin break too? | **Resolved** — reproduced; `schedule check-current` is a pre-guard on every `CODE-*` transition (`loop-engine.py:764`). Spec widened. |
+| 1 | Does the plan-side pin break too? | **Resolved** — reproduced; `schedule check-current` is a pre-guard on every `CODE-*` transition (`loop-engine.py`'s `_CODE_STATES` pre-guard). Spec widened. |
 | 2 | Do existing tests encode the bug? | **Resolved (corrected round 4)** — *three*, not two: `test_plan_check_current_changed_spec`, `test_approve_plan_refuses_changed_spec` and `test_approve_plan_overwrites_hashes`, all bumping `Status`. A fourth, `test_approve_plan_state_preserved_on_refusal`, goes silently meaningless rather than red. All four rewritten in T1. |
-| 3 | Every writer of a contract hash rewired? | **Resolved (review finding)** — swept: `_schedule_run_impl:729` also writes `plan_hash` and was missing from the first draft. Now AC3. |
-| 4 | Does any test duplicate the canonicalizer? | **Resolved (review finding)** — `test-loop-engine.py:101-105` does, feeding 28 fixtures. Now AC11 and T1. |
-| 5 | Is ticking an AC bookkeeping or scope? | **Resolved** — bookkeeping (`SKILL.md:434` mandates it); `(deferred: <slug>)` is scope and stays detected (AC8). |
+| 3 | Every writer of a contract hash rewired? | **Resolved (review finding)** — swept: `_schedule_run_impl` also writes `plan_hash` and was missing from the first draft. Now AC3. |
+| 4 | Does any test duplicate the canonicalizer? | **Resolved (review finding)** — `test-loop-engine.py`'s duplicated helpers does, feeding 28 fixtures. Now AC11 and T1. |
+| 5 | Is ticking an AC bookkeeping or scope? | **Resolved** — bookkeeping (`SKILL.md`'s finish checklist mandates it); `(deferred: <slug>)` is scope and stays detected (AC8). |
 | 6 | Are healthy in-flight runs newly wedged? | **Resolved (review finding)** — yes: a run at `SPEC-PLAN-APPROVED` is healthy today. First draft's Assumption 1 was false. Corrected. The accurate-message half was first attempted via a `schema_version: 2` bump; that is withdrawn — see row 11. |
 | 7 | Can raw UTF-8 output break the linter's own reader? | **Resolved (review finding)** — yes, for `U+0085`/`U+2028`/`U+2029`; verified `splitlines()` splits all three and `ensure_ascii=False` emits them raw. Writer refuses them (AC16); linter exempts their escaped form (AC20). |
 | 8 | Is the writer's `--file` a security boundary? | **Resolved (review finding)** — yes; argv-controlled path *and* content. Confined per AC14/AC15 against the blessed helper's shape. |
@@ -79,7 +79,7 @@ dependency; both scripts stay pure-stdlib.
 | 15 | Do the stubs pass after the described implementation? | **Resolved (round-2 review)** — one would not have: the confinement stub pointed *inside* the root. Fixed, plus symlink-escape and decoy-`GIT_DIR` cases added. |
 | 16 | Does the legacy-hash diagnostic actually fire? | **Resolved (round-3 review)** — no. It compares the *current* bytes' legacy hash, but a run past `plan-locked` has already had `Status: Implementing` written, so that mismatches too and the branch stays silent exactly for the wedged population. Withdrawn; AC10 is now an unconditional both-causes message, which deletes the mechanism. |
 | 17 | Is there a rollback window in the writer? | **Resolved (round-3 review)** — the snapshot/restore design had one. Reordered to lint the temp file *before* installing it, so the target is never replaced by unvalidated content. Simpler and strictly safer. |
-| 18 | Is any shipped adopter doc falsified? | **Resolved (round-3 review)** — yes: `guides/core/how-to/plan-and-execute-non-trivial-work.md:122` documents the old immutability rule and names `canonical_plan()`. Added to AC12 and T2. |
+| 18 | Is any shipped adopter doc falsified? | **Resolved (round-3 review)** — yes: `guides/core/how-to/plan-and-execute-non-trivial-work.md`'s spec-amendment note documents the old immutability rule and names `canonical_plan()`. Added to AC12 and T2. |
 | 19 | Is T1→T6 executable in order, given this run's own pin? | **Resolved (round-4 review)** — no, not without an explicit step: T1 invalidates this run's pin and `schedule check-current` guards every remaining `CODE-*` transition. Sequencing now carries the four-step recovery. Also corrected Assumption 1, whose "decisive" discriminator against a `schema_version` bump did not actually discriminate — both break this run; the difference is blast radius. |
 | 20 | Are the T2 and T5 Done-whens real checks? | **Resolved (round-4 review)** — T5's was vacuous (layer 3 passes whether or not the task happened) and T2's omitted the shipped guide entirely. Both replaced with per-surface greps. |
 | 21 | Is AC16's cap a contract? | **Resolved (round-4 review)** — it was not: no number, no test. Pinned at `title` ≤ 120 / `body` ≤ 2000 codepoints with a boundary case. |
@@ -103,7 +103,7 @@ matches, and `schedule check-current` is a pre-guard on every remaining
 expected, and the most direct proof the fix is real.
 
 Recovery is **cohort-only**. Do *not* run `loop-engine reset`: `plan-locked` is
-legal only from `SPEC-PLAN-APPROVED` (`loop-engine.py:258`) and `loop-engine`
+legal only from `SPEC-PLAN-APPROVED` (`loop-engine.py`'s transition table) and `loop-engine`
 has no state-setting verb (`init` / `transition` / `status` / `reset` only), so
 resetting the engine drops it to `SPEC-PLAN-DRAFTING` and the recovery dies at
 `plan-locked` with an illegal-transition error — leaving the run *more* wedged
@@ -156,7 +156,7 @@ per-line rstrip:
 - **Status token, preamble only.** Load `parse_status`,
   `extract_status_token`, `_STATUS_RE`, `_SECTION_HEADING_RE`, and
   `_HTML_COMMENT_RE` from `lint-spec-status.py` by the `importlib` pattern at
-  `check-spec-status.py:17-51` (`loop-cohort.py`'s existing importlib load already does this for
+  `check-spec-status.py` (`loop-cohort.py`'s existing importlib load already does this for
   `parse_status`). Locate the line by the same comment-stripped,
   heading-terminated scan `parse_status` performs — a hand-rolled raw-line
   scan disagrees with it whenever a `**Status:**` sits inside a multiline
@@ -190,18 +190,18 @@ per-line rstrip:
   identically despite changing what the list contains.
 
 Rewire all four hash sites: `cmd_approve_plan` (idempotency compare **and**
-baseline write), `cmd_plan_check_current`, `_schedule_run_impl:729` (writes
+baseline write), `cmd_plan_check_current`, `_schedule_run_impl` (writes
 `plan_hash`), `_schedule_check_current_impl`. Delete `sha256_file` — nothing
 else needs it once AC10 drops the legacy compare. The three module-level bindings at the top of `test-loop-cohort.py` fail the whole
-file at import rather than at an assertion: rename `canonical_plan` (`:38`)
-and `sha256_canonical_plan` (`:39`), and **delete** the `sha256_file` binding
-(`:40`) — nothing else in that file uses it. In `test-loop-engine.py`, the
+file at import rather than at an assertion: rename `canonical_plan` (its `canonical_plan` binding)
+and `sha256_canonical_plan` (its `sha256_canonical_plan` binding), and **delete** the `sha256_file` binding
+(its `sha256_file` binding) — nothing else in that file uses it. In `test-loop-engine.py`, the
 ~12 `sha256_file(...)` call sites (`:160, 650, 763, 798, 832, 869, 903, 937,
 1040, 1067, 1096, 2672`) all become the canonical function, and rename `test_canonical_plan_normalization` and its entry in `main()`'s
 `tests` list — by symbol, not line number, which the stubs already shifted.
 
 Give every mismatch message the AC10 both-causes wording, including the
-state-vs-state compare at `:635` (`plan_hash != approved_plan_hash`), which a
+state-vs-state compare in `cmd_plan_check_current` (`plan_hash != approved_plan_hash`), which a
 re-run of `schedule` against a legacy `approved_plan_hash` reaches without
 touching a file.
 
@@ -221,22 +221,22 @@ artifact — `cmd_plan_check_current`, `_schedule_check_current_impl`, and
 `plan_review_status != "approved"` early return.
 Placed before it, every PLAN-time invocation would report "spec.md Status is
 'Draft'" instead of the `plan_review_status: pending` sentinel — a documented
-contract (`state-schema.md:83-87`, `SKILL.md:133`) and the cue to run
+contract (`state-schema.md`'s exit contract, `SKILL.md`'s pending-sentinel note) and the cue to run
 pre-EXECUTE review. The existing test writes `Approved`, so it would not
 catch the regression; the new sentinel case above does.
 
-Two rename traps: `_schedule_run_impl:685` binds a **local** variable
+Two rename traps: `_schedule_run_impl`'s local binds a **local** variable
 `canonical_plan = spec_dir / "plan.md"` that is unrelated to the function — a
 blind sweep would rewrite it and its message into nonsense; leave it or rename
 it `plan_path_canonical`. And cite `test_canonical_plan_normalization` by
 symbol, not line number, since the stubs already shifted it. The skip-on-absent rule is what makes this safe on
 `schedule check-current`, whose fixtures carry no status line
-(`test-loop-engine.py:93-97`) and which is the pre-guard on every `CODE-*`
+(`test-loop-engine.py`'s `write_plan`) and which is the pre-guard on every `CODE-*`
 transition.
 
 `schema_version` stays at `1` — see the declined-pattern register.
 
-Replace `test-loop-engine.py:101-105`'s local `sha256_file` /
+Replace `test-loop-engine.py`'s duplicated helpers's local `sha256_file` /
 `sha256_canonical_plan` with an `importlib` load of the canonicalizer, so the
 28 fixtures that fabricate `state.json` cannot drift from the subject.
 
@@ -256,13 +256,13 @@ must-still-pass guard that the current raw-byte hash already satisfies.
 rewrites and the AC5/AC7/AC8/AC9/AC10 cases. Do not read the list as
 already materialized.
 - Rewrite the three tests that assert the defect —
-  `test_plan_check_current_changed_spec` (`:503`),
-  `test_approve_plan_refuses_changed_spec` (`:1712`), and
-  `test_approve_plan_overwrites_hashes` (`:457`) — to make a *substantive*
+  `test_plan_check_current_changed_spec` (`test_plan_check_current_changed_spec`),
+  `test_approve_plan_refuses_changed_spec` (`test_approve_plan_refuses_changed_spec`), and
+  `test_approve_plan_overwrites_hashes` (`test_approve_plan_overwrites_hashes`) — to make a *substantive*
   change (add an AC). All three mutate spec.md by the `Status` bump today.
-  `:457`'s post-change contract is two-sided: exit 0 no-op on a status bump,
+  `test_approve_plan_overwrites_hashes`'s post-change contract is two-sided: exit 0 no-op on a status bump,
   exit 1 on a substantive edit.
-- Rewrite `test_approve_plan_state_preserved_on_refusal` (`:1829`) scenario A
+- Rewrite `test_approve_plan_state_preserved_on_refusal` (`test_approve_plan_state_preserved_on_refusal`) scenario A
   to a substantive edit. It bumps `Status` and asserts only that `state.json`
   is unchanged, so after T1 it stays green while no longer testing the refusal
   its name and docstring claim — a silent loss of coverage, not a failure.
@@ -278,8 +278,8 @@ already materialized.
   read them, including `approve-plan`'s replay path; a plan with no status
   line at all leaves every verb unaffected (AC9).
 - Each of the four mismatch messages names both causes and the reset pair —
-  including the `plan_hash != approved_plan_hash` compare at `:635` and
-  `approve-plan`'s idempotency message at `:558-563` (AC10).
+  including the `plan_hash != approved_plan_hash` compare in `cmd_plan_check_current` and
+  `approve-plan`'s idempotency idempotency message (AC10).
 - Re-indenting `- [ ] AC1` into a sub-bullet of its predecessor **changes**
   the digest (AC1). This is the only case pinning "bracket contents only"
   against a whole-match substitution that would also eat the indentation.
@@ -301,15 +301,15 @@ already materialized.
 Record what the pin covers and what it deliberately does not: the preamble
 status token and progress checkboxes are the loop's own bookkeeping and are
 normalized out; AC text, task text, `Depends on:` edges, deferral annotations,
-and anything else on the status line are scope and stay pinned. Fix all three falsified schema rows, not just one: `state-schema.md:27`
-(`approved_spec_hash` | `sha256(spec.md bytes)`), `:28` (`approved_plan_hash`,
+and anything else on the status line are scope and stay pinned. Fix all three falsified schema rows, not just one: `state-schema.md`'s `approved_spec_hash` row
+(`approved_spec_hash` | `sha256(spec.md bytes)`), the `approved_plan_hash` row (`approved_plan_hash`,
 whose "Canonical = CRLF→LF + strip trailing whitespace per line" is now
-incomplete), and `:29` (`plan_hash`). Fix the `plan check-current` exit
-contract at `:83-87`, which promises an exit 0 the mandated bump falsifies.
-In `pre-execute-review.md:31-33`, correct both errors: the claim that "any edit
+incomplete), and the `plan_hash` row (`plan_hash`). Fix the `plan check-current` exit
+contract at its exit contract, which promises an exit 0 the mandated bump falsifies.
+In `pre-execute-review.md`'s immutability note, correct both errors: the claim that "any edit
 to `plan.md` after `approve-plan` causes a refusal" (AC4 falsifies it) **and**
 the verb name — it says `plan check-current` guards every `CODE-*` transition,
-but the pre-guard is `schedule check-current` (`loop-engine.py:764`). Note
+but the pre-guard is `schedule check-current` (`loop-engine.py`'s `_CODE_STATES` pre-guard). Note
 there that `_resolve_spec_dir` is confinement-shallow, so a later reader does
 not cite it as the pattern.
 
@@ -344,7 +344,7 @@ the non-BMP half of the drift.
 
 Error text names the offending escape, its character, and the fix
 (`ensure_ascii=False`, or use `append-knowledge.py`). Emit it through `err()`
-— stderr, `errors="backslashreplace"` — never `print()`: `lint-knowledge.py:27`
+— stderr, `errors="backslashreplace"` — never `print()`: `lint-knowledge.py`'s stdout reconfigure
 sets stdout to `errors="strict"`, and the character for `\ud83d` is a lone
 surrogate, which raises `UnicodeEncodeError` on a strict stdout.
 
@@ -381,7 +381,7 @@ Order of operations, which is the whole design:
    the child env; a non-git cwd is a refusal, not a `cwd` fallback (AC15).
 2. **Confine the target.** `expanduser()` → `resolve()` → `is_relative_to(root
    / "docs" / "knowledge")`, checked *after* resolution. Mirror
-   `tools/hooks/session-start.py:77-107`'s shape and its rationale comment (AC14).
+   `tools/hooks/session-start.py:_safe_override_path`'s shape and its rationale comment (AC14).
 3. **Validate every field value** before opening anything: reject C0 controls
    (including `ESC`), `U+0085`, `U+2028`, `U+2029`, lone surrogates; cap
    `title` and `body` length; and validate `--kind` / `--tier` against the
@@ -389,7 +389,7 @@ Order of operations, which is the whole design:
    the natural home, sourced from the linter rather than restated.
 4. **Pre-lint** the existing file; a pre-existing failure exits with its own
    message rather than the rollback path (AC19). A **non-existent** target
-   skips this step and is created — `lint-knowledge.py:68-73` returns 1 for a
+   skips this step and is created — `lint-knowledge.py`'s missing-file branch in `main` returns 1 for a
    missing file, so pre-linting it unconditionally would make a fresh
    knowledge base uncreatable and misreport it as already broken.
 5. **Allocate** the next id as `max(existing) + 1` formatted `K-%04d`,
@@ -438,9 +438,9 @@ Add `("append-knowledge", [sys.executable,
 `tools/test-all.py`'s `TESTS`, keeping the list's alphabetical order — **and**
 a step running it in `.github/workflows/docs.yml`'s `lint-knowledge` job —
 **plus** `packs/core/tests/skills/work-loop/test-append-knowledge.py` in that
-workflow's `paths:` list (`:23-25`) for explicitness parity with the
+workflow's `paths:` list for explicitness parity with the
 `test-lint-knowledge.py` entry sitting there today. Note the honest reason:
-`'packs/**'` at `:27` already matches the new file, so the job would trigger
+the `'packs/**'` entry already matches the new file, so the job would trigger
 regardless — the entry is consistency, not coverage. The
 filename is hyphenated so `pytest packs/core/tests/` never collects it, and
 `tools/test-all.py` is hand-run (`tools/repo/build_gate_chain.py`'s `_script_step` comment

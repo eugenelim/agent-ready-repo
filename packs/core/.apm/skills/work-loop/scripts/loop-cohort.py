@@ -213,6 +213,12 @@ _AC_HEADING_RE = re.compile(
     r"^ {0,3}(?:#{2,3}\s+|\*\*)Acceptance\s+Criteria\b", re.IGNORECASE
 )
 _ANY_SECTION_RE = re.compile(r"^ {0,3}#{1,2}[ \t]")
+# A bold-lead-in region has no heading to close it, so it would run to EOF and
+# un-pin every later checkbox — including a `Never do` item, which is the scope
+# the pin exists to protect. It closes on the next bold lead-in instead.
+# H3+ is NOT a terminator: 293 H3 headings sit *inside* AC sections across this
+# repo, so closing on them would end the region early for most specs.
+_BOLD_LEAD_RE = re.compile(r"^ {0,3}\*\*")
 
 # AC10: a mismatch has two possible causes and the verb cannot tell them apart,
 # so it names both rather than asserting the one that is usually wrong.
@@ -287,6 +293,7 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
     # would break this normalization for exactly those specs. Tracked as
     # `spec-ac-heading-casing-silent-gate`.
     in_ac = not ac_section_only
+    opened_bold = False
     fenced = False
     for i, line in enumerate(lines):
         if line.lstrip().startswith("```"):
@@ -295,8 +302,12 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
             continue
         if ac_section_only and _AC_HEADING_RE.match(line):
             in_ac = True
+            opened_bold = _BOLD_LEAD_RE.match(line) is not None
             continue
-        if ac_section_only and in_ac and _ANY_SECTION_RE.match(line):
+        if ac_section_only and in_ac and (
+            _ANY_SECTION_RE.match(line)
+            or (opened_bold and _BOLD_LEAD_RE.match(line))
+        ):
             in_ac = False
         if in_ac and lint._AC_DONE_RE.match(line):
             # Bracket contents only — leading whitespace and the bullet run stay
