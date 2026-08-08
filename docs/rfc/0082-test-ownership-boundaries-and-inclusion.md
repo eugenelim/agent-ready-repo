@@ -1,10 +1,10 @@
 # RFC-0082: Test ownership boundaries and per-surface inclusion
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Approver:** eugenelim
 - **Date opened:** 2026-08-07
-- **Date closed:**
+- **Date closed:** 2026-08-08
 - **Decision weight:** heavy
 - **Related:** [ADR-0071](../adr/0071-pack-runtime-export-boundary-and-test-placement.md)
   (the pack-side companion this extends — and whose *"keeps catalogue-wide
@@ -1319,10 +1319,11 @@ vendored halves now and defer the sdist graft — by saying so against D2.
 
 ## Follow-on artifacts
 
-Filled in on acceptance.
+Accepted 2026-08-08. The ADR is authored; the two specs follow.
 
-- **ADR** recording the ownership taxonomy, its four homes, the class-level
-  granularity, and the per-surface per-owner inclusion rule. It must record its relationship to ADR-0071
+- **[ADR-0075](../adr/0075-test-ownership-taxonomy-and-per-owner-inclusion.md)** — **authored**. Records the
+  ownership taxonomy, its four homes, the class-level granularity, and the
+  per-surface per-owner inclusion rule. It must record its relationship to ADR-0071
   precisely: ADR-0071's `.apm/` boundary and `packs/<pack>/tests/` destination
   stay in force, so the new ADR carries `Related: ADR-0071` and states the
   partial supersession in prose — **not** `Supersedes: ADR-0071`, which would

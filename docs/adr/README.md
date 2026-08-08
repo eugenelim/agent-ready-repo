@@ -79,6 +79,7 @@
 | 0071 | [`.apm/` is the runtime export boundary; pack tests live at `packs/<pack>/tests/`](0071-pack-runtime-export-boundary-and-test-placement.md) | Accepted |
 | 0072 | [The derived plugin manifest mirrors Claude Code's schema; the real client is the oracle](0072-derived-plugin-manifest-mirrors-upstream-schema.md) | Accepted |
 | 0073 | [Zensical is the v1 binder renderer — chosen for foundation continuity, not footprint](0073-zensical-as-the-v1-binder-renderer.md) | Accepted |
+| 0075 | [Every test has one owner — engine, catalogue, pack, or tools — and inclusion follows the owner, not the surface alone](0075-test-ownership-taxonomy-and-per-owner-inclusion.md) | Accepted |
 
 ## Adding a new ADR
 
