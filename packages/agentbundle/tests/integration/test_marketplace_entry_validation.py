@@ -131,7 +131,9 @@ def _build_dist_marketplace(tmp_path: Path) -> dict:
                     output_subdir=None, input_subdir="claude-plugins",
                     output_file="marketplace.json", units=[],
                     fragment_path=None, manifest_path=None)
-    _run_aggregate(recipe, tmp_path)  # returns a summary; the payload is written
+    _run_aggregate(  # returns a summary; the payload is written
+        recipe, tmp_path, packs=None, aggregate_scope="catalogue"
+    )
     return json.loads((tmp_path / "marketplace.json").read_text(encoding="utf-8"))
 
 

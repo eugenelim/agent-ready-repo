@@ -101,8 +101,12 @@ TARGET_PATHS = (
 # these are used only when that recipe is missing a key or can't be read, so
 # module import stays total. This repo is the catalogue's home, not an adopter,
 # so `make build-self` only projects the in-house packs;
-# `_aggregate_marketplace` intentionally ignores the pack filter — the
-# catalogue advertises every pack. See the recipe for the full rationale.
+# `_aggregate_marketplace` applies the Claude-plugin route's publishability
+# predicate. It previously ignored the pack filter on the rationale that "the
+# catalogue advertises every pack"; docs/specs/claude-plugin-route-scope
+# overturns that. The route installs at user scope, so advertising a pack whose
+# `allowed-scopes` forbids user scope offers an install it cannot honour — and
+# once the dist branch drops the directory, the entry becomes a dangling fetch.
 # Adapters outside this list (e.g. `kiro-ide`) are handled via the
 # `preferred_adapter` override path in `_effective_adapters`.
 _DEFAULT_SELF_HOST_ADAPTERS: tuple[str, ...] = ("claude-code", "codex")
@@ -633,10 +637,25 @@ def _aggregate_marketplace(
     concrete values but `run_self_host` overrides them from
     `.adapt-discovery.toml` so adopters get their own."""
     entries: list[dict] = []
+    excluded: list[str] = []
     for pack_path in sorted(packs_dir.iterdir()):
         if pack_path.name.startswith("_"):
             continue  # reserved authoring asset
         if not pack_path.is_dir() or not (pack_path / "pack.toml").exists():
+            continue
+        # Claude-plugin route membership. This writer produces the repo-root
+        # `.claude-plugin/marketplace.json` — the file `claude plugin
+        # marketplace add <owner>/<repo>` resolves — so it must apply the same
+        # predicate as the dist writer. The prior note here said this function
+        # "intentionally ignores the pack filter — the catalogue advertises
+        # every pack"; that is overturned by
+        # docs/specs/claude-plugin-route-scope: advertising a pack whose
+        # allowed-scopes forbids user scope offers an install the route cannot
+        # honour, and leaves a dangling fetch once the branch drops it.
+        from agentbundle.build.main import pack_is_publishable
+
+        if not pack_is_publishable(pack_path):
+            excluded.append(pack_path.name)
             continue
         manifest = pack_path / ".claude-plugin" / "plugin.json"
         if manifest.exists():
@@ -660,6 +679,23 @@ def _aggregate_marketplace(
         "owner": {"name": owner},
         "plugins": entries,
     }
+    if excluded:
+        print(
+            f"marketplace: excluded {len(excluded)} pack(s) not installable at "
+            f"user scope: {', '.join(sorted(excluded))}",
+            file=sys.stderr,
+        )
+    if not entries and excluded:
+        # Adopter self-host runs reach here *after* adapters and seeds are
+        # written, so a non-zero exit would leave a half-projected tree. Warn
+        # loudly and continue with the filtered (possibly empty) set; the dist
+        # writer is where an emptied catalogue is an error.
+        print(
+            "marketplace: every discovered pack was filtered out — the "
+            "marketplace will be empty. Packs installable only at repo scope "
+            "are reached with `agentbundle install`, not the plugin route.",
+            file=sys.stderr,
+        )
     target.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8", newline="\n",
@@ -1466,6 +1502,13 @@ def run_build_check_drift_gates(
     else:
         template_hash = hashlib.sha256(template_path.read_bytes()).hexdigest()
         dist_plugins = output_dir / "dist" / "claude-plugins"
+        # Fourth predicate site (docs/specs/claude-plugin-route-scope): a
+        # repo-only pack has no derived claude-plugins projection after the
+        # filter, so expecting one here would hard-fail the required gate for
+        # every such pack. Gate 1c (APM) and Gate 2 (source-shape) are
+        # deliberately NOT narrowed — both legitimately cover every pack.
+        from agentbundle.build.main import pack_is_publishable
+
         expected_packs = [
             pack_dir
             for pack_dir in sorted(packs_dir.iterdir())
@@ -1473,6 +1516,7 @@ def run_build_check_drift_gates(
             and not pack_dir.name.startswith("_")
             and (pack_dir / "pack.toml").exists()
             and (pack_dir / ".claude-plugin" / "plugin.json").exists()
+            and pack_is_publishable(pack_dir)
         ]
         if expected_packs and not dist_plugins.is_dir():
             failures.append(

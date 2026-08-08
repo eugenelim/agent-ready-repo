@@ -49,7 +49,8 @@ def _seed_pack(root: Path, name: str = "core") -> Path:
         newline="\n",
     )
     (pack / "pack.toml").write_text(
-        f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+        f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
         encoding="utf-8",
         newline="\n",
     )
@@ -65,7 +66,8 @@ def _seed_pack_with_skill(root: Path, name: str, skill: str, description: str) -
         newline="\n",
     )
     (pack / "pack.toml").write_text(
-        f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+        f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
         encoding="utf-8",
         newline="\n",
     )
@@ -708,7 +710,8 @@ class SelfHostPackFilterTests(unittest.TestCase):
                     f"# {name}\n", encoding="utf-8", newline="\n"
                 )
                 (pack / "pack.toml").write_text(
-                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
                     encoding="utf-8",
                     newline="\n",
                 )
@@ -937,7 +940,8 @@ class SeedProjectionTests(unittest.TestCase):
                 "# Charter\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n'
+                '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             output.mkdir()
@@ -977,7 +981,8 @@ class SeedProjectionTests(unittest.TestCase):
                 "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n'
+                '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             (output / "docs" / "specs").mkdir(parents=True)
@@ -1021,7 +1026,8 @@ class SeedProjectionTests(unittest.TestCase):
                 "[backlog]\nopen = []\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n'
+                '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             output.mkdir()
@@ -1053,7 +1059,8 @@ class SeedProjectionTests(unittest.TestCase):
                 "# Specs\n\n<!-- no specs yet -->\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n'
+                '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             output.mkdir()  # No pre-existing docs/specs/README.md
@@ -1115,7 +1122,8 @@ class SeedProjectionTests(unittest.TestCase):
                     f"# {fname}\n", encoding="utf-8", newline="\n"
                 )
                 (pack / "pack.toml").write_text(
-                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
                     encoding="utf-8",
                     newline="\n",
                 )
@@ -1139,7 +1147,8 @@ class SeedProjectionTests(unittest.TestCase):
                 (pack / "seeds").mkdir(parents=True)
                 (pack / "seeds" / "AGENTS.md").write_text(content, encoding="utf-8", newline="\n")
                 (pack / "pack.toml").write_text(
-                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
                     encoding="utf-8",
                     newline="\n",
                 )
@@ -1210,7 +1219,8 @@ class SeedProjectionTests(unittest.TestCase):
                     content, encoding="utf-8", newline="\n"
                 )
                 (pack / "pack.toml").write_text(
-                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
                     encoding="utf-8",
                     newline="\n",
                 )
@@ -1270,7 +1280,8 @@ class SeedProjectionTests(unittest.TestCase):
                 "# AGENTS\n", encoding="utf-8", newline="\n"
             )
             (pack / "pack.toml").write_text(
-                '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
+                '[pack]\nname = "core"\nversion = "0.1.0"\n'
+                '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n', encoding="utf-8", newline="\n"
             )
             output = tmp_path / "out"
             output.mkdir()
@@ -1300,7 +1311,8 @@ class MarketplaceAggregationTests(unittest.TestCase):
                     newline="\n",
                 )
                 (pack / "pack.toml").write_text(
-                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
                     encoding="utf-8",
                     newline="\n",
                 )
@@ -1332,7 +1344,8 @@ class MarketplaceAggregationTests(unittest.TestCase):
                     newline="\n",
                 )
                 (pack / "pack.toml").write_text(
-                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
                     encoding="utf-8",
                     newline="\n",
                 )
@@ -1951,6 +1964,7 @@ class PlainBuildCopiesMarkerThroughTests(unittest.TestCase):
                 discover_packs(packs_dir),
                 output_dir,
                 self.contract,
+                aggregate_scope="catalogue",
             )
             text = (
                 output_dir

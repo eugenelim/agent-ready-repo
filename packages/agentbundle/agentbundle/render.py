@@ -76,7 +76,9 @@ def render_pack_to_dir(
     output_dir.mkdir(parents=True, exist_ok=True)
     for recipe_name in recipes:
         recipe = load_recipe(recipe_name)
-        run_recipe(recipe, [pack], output_dir, contract_data)
+        run_recipe(
+            recipe, [pack], output_dir, contract_data, aggregate_scope="single-pack"
+        )
 
 
 def render_pack(
@@ -109,7 +111,9 @@ def render_packs_to_dir(
     output_dir.mkdir(parents=True, exist_ok=True)
     for recipe_name in recipes:
         recipe = load_recipe(recipe_name)
-        run_recipe(recipe, packs, output_dir, contract_data)
+        run_recipe(
+            recipe, packs, output_dir, contract_data, aggregate_scope="catalogue"
+        )
 
 
 def _collect_tree(root: Path) -> dict[str, bytes]:

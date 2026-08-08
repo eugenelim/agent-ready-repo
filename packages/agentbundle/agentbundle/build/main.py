@@ -392,6 +392,78 @@ def discover_packs(packs_dir: Path) -> list[Pack]:
     return packs
 
 
+# ---------------------------------------------------------------------------
+# Claude-plugin route membership (docs/specs/claude-plugin-route-scope)
+#
+# The route is a user-scope distribution channel: a plugin's code always lives
+# in the adopter's global cache, and `claude plugin install` defaults to
+# `--scope user`. A pack declaring `allowed-scopes = ["repo"]` therefore forbids
+# the only install this route offers, and publishing it contradicts the refusal
+# contract ADR-0002 defines. One predicate decides membership; every writer that
+# can publish calls it.
+# ---------------------------------------------------------------------------
+
+# Recipes whose output this route publishes. Keyed on (name, adapter) to match
+# `_resolve_contract_for_route`'s idiom — `output_subdir` is free text on an
+# operator-supplied `--recipe` file and is not a safe key.
+_CLAUDE_PLUGIN_ROUTE = ("per-pack-claude-plugin", "claude-code")
+
+
+def is_publishable(pack_meta: dict, *, slug: str) -> bool:
+    """Does this pack belong on the Claude-plugin route?
+
+    Three conditions, all required (spec § The derived set):
+
+    1. the slug is not underscore-prefixed (reserved authoring asset);
+    2. — checked by the caller, which knows whether `.claude-plugin/plugin.json`
+       is present; `discover_packs` requires only `pack.toml` today, so this
+       function does not assume the manifest;
+    3. the resolved scopes admit ``"user"``.
+
+    Scope resolution reuses ``commands.validate._allowed_scopes`` rather than
+    re-deriving it. That helper's real gate is ``[pack.adapter-contract].version``,
+    **not** ``[pack.install]``: a pack declaring ``allowed-scopes`` with no
+    contract version resolves ``["repo"]``. Re-deriving would fork that rule.
+    """
+    if slug.startswith("_"):
+        return False
+    from agentbundle.commands.validate import _allowed_scopes
+
+    return "user" in _allowed_scopes(pack_meta)
+
+
+def pack_is_publishable(pack_path: Path) -> bool:
+    """`is_publishable` for a pack on disk, including the manifest condition."""
+    pack_toml = pack_path / "pack.toml"
+    if not pack_toml.exists():
+        return False
+    if not (pack_path / ".claude-plugin" / "plugin.json").exists():
+        return False
+    meta = tomllib.loads(pack_toml.read_text(encoding="utf-8"))
+    return is_publishable(meta, slug=pack_path.name)
+
+
+def aggregate_exit_code(
+    *,
+    aggregate_scope: str,
+    discovered_empty: bool,
+    published_empty: bool,
+) -> int:
+    """Emptiness policy for a marketplace write.
+
+    Only a *catalogue* aggregation treats an emptied set as a defect, and only
+    when the filter is what emptied it — a blank catalogue is a shipped, valid
+    state. A single-pack render legitimately yields zero entries for a repo-only
+    pack, and an adopter's self-host run must not hard-fail after adapters and
+    seeds have already been written.
+    """
+    if aggregate_scope != "catalogue":
+        return 0
+    if discovered_empty:
+        return 0
+    return 1 if published_empty else 0
+
+
 def validate_pack_metadata(pack_toml_path: Path) -> None:
     """Validate a pack.toml against pack.schema.json. Raise on errors."""
     metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
@@ -448,8 +520,16 @@ def run_recipe(
     packs: Iterable[Pack],
     output_dir: Path,
     contract: dict,
+    *,
+    aggregate_scope: str,
 ) -> dict:
-    """Execute a recipe and return a description of what it produced."""
+    """Execute a recipe and return a description of what it produced.
+
+    `aggregate_scope` is required and has no default: it decides whether an
+    emptied marketplace is a defect (see `aggregate_exit_code`), and a default
+    would let `render_packs_to_dir` and `cmd_build --recipe` inherit the wrong
+    policy silently. One of "catalogue" | "single-pack" | "self-host".
+    """
     packs_list = list(packs)
     for pack in packs_list:
         validate_pack_uniqueness(pack)
@@ -457,7 +537,9 @@ def run_recipe(
     if recipe.type == "per-pack":
         return _run_per_pack(recipe, packs_list, output_dir, contract)
     if recipe.type == "aggregate":
-        return _run_aggregate(recipe, output_dir)
+        return _run_aggregate(
+            recipe, output_dir, packs=packs_list, aggregate_scope=aggregate_scope
+        )
     if recipe.type == "overlay":
         return _run_overlay(recipe, packs_list)
     if recipe.type == "composite":
@@ -496,7 +578,26 @@ def _run_per_pack(
         )
     project = ADAPTERS[recipe.adapter]
     produced: dict[str, str] = {}
+    route_filtered = (recipe.name, recipe.adapter) == _CLAUDE_PLUGIN_ROUTE
     for pack in packs:
+        if route_filtered and not pack_is_publishable(pack.path):
+            # Route membership, not an error: a repo-only pack forbids the only
+            # install this route offers. Named on stderr so an exclusion is
+            # never silent (spec § AC1, AC3).
+            from agentbundle.commands.validate import _allowed_scopes
+
+            meta_path = pack.path / "pack.toml"
+            scopes = (
+                _allowed_scopes(tomllib.loads(meta_path.read_text(encoding="utf-8")))
+                if meta_path.exists()
+                else ["repo"]
+            )
+            print(
+                f"claude-plugins: skipping {pack.name} — allowed-scopes="
+                f"{scopes!r} does not admit 'user'",
+                file=sys.stderr,
+            )
+            continue
         try:
             _run_per_pack_single(
                 pack, recipe, project, output_dir, contract, produced
@@ -736,12 +837,29 @@ def _render_apm_yml(pack_metadata: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
+def _run_aggregate(
+    recipe: Recipe,
+    output_dir: Path,
+    *,
+    packs: list[Pack] | None = None,
+    aggregate_scope: str,
+) -> dict:
+    """Aggregate per-pack manifests into a marketplace file.
+
+    Membership is resolved from the **source** tree (`packs/<slug>/pack.toml`),
+    never from the projected copy under `dist/`: `make build` has no dependency
+    on `clean`, so a stale dist directory carries the *old* declaration and
+    would republish contrary to the pack's current intent (spec § AC4).
+    """
     input_dir = output_dir / recipe.input_subdir
     _assert_under(input_dir, output_dir)
+    source_by_name = {p.name: p for p in (packs or [])}
     entries: list[dict] = []
     if input_dir.exists():
         for plugin_dir in sorted(input_dir.iterdir()):
+            source = source_by_name.get(plugin_dir.name)
+            if source is not None and not pack_is_publishable(source.path):
+                continue
             manifest = plugin_dir / ".claude-plugin" / "plugin.json"
             if manifest.exists():
                 entry = json.loads(manifest.read_text(encoding="utf-8"))
@@ -828,7 +946,11 @@ def run_default_build(
     results: list[dict] = []
     for recipe_name in DEFAULT_RECIPES:
         recipe = load_recipe(recipe_name)
-        results.append(run_recipe(recipe, packs, output_dir, contract))
+        results.append(
+            run_recipe(
+                recipe, packs, output_dir, contract, aggregate_scope="catalogue"
+            )
+        )
     return results
 
 
@@ -853,9 +975,17 @@ def cmd_build(args) -> int:
             return 1
         try:
             packs = discover_packs(packs_dir)
+            # `--pack` narrows an explicit `--recipe` run to one pack (the
+            # `make build-recipe RECIPE=... PACK=...` form). That is a
+            # single-pack aggregate, not a catalogue: an emptied marketplace is
+            # the expected outcome for a repo-only pack, not a defect.
+            aggregate_scope = "catalogue"
             if args.pack:
                 packs = [p for p in packs if p.name == args.pack]
-            run_recipe(recipe, packs, output_dir, contract)
+                aggregate_scope = "single-pack"
+            run_recipe(
+                recipe, packs, output_dir, contract, aggregate_scope=aggregate_scope
+            )
         except ValueError as exc:
             print(f"build: {exc}", file=sys.stderr)
             return 1
