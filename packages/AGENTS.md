@@ -47,5 +47,11 @@ All new code in `packages/` must be Windows-clean.
   `unittest.mock.patch.dict` in new tests (use it only when extending existing unittest-style tests).
 - Autouse fixtures: use `tmp_path_factory.mktemp()`, not `tmp_path`, to avoid polluting test
   isolation with shared state across fixture scopes.
-- The test roots are `tests/unit/` (pure logic, no disk) and `tests/integration/` (full-stack,
-  disk writes, subprocess). New tests go in the appropriate root.
+- The engine test roots are `tests/unit/` (pure logic, no disk),
+  `tests/integration/` (full-stack, disk writes, subprocess), and
+  `tests/build_pipeline/` (build-pipeline contract, schema, and projection
+  tests — relocated out of the package by RFC-0082, which makes
+  `packages/<pkg>/<pkg>/` the runtime export boundary). New tests go in the
+  appropriate root. The directory is `build_pipeline`, not `build`: pytest's
+  default `norecursedirs` skips any directory named `build`, so the tests would
+  silently stop being collected.

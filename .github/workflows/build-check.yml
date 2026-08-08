@@ -118,7 +118,7 @@ jobs:
 
       - name: mypy type-check (typed packages only)
         # tools/lint-mypy.py scopes mypy to packages/agentbundle/agentbundle and
-        # packages/credbroker/credbroker; build/tests/ is excluded (mixin pattern).
+        # packages/credbroker/credbroker; tests/build_pipeline/ is a test tree, not library code.
         run: python3 tools/lint-mypy.py
 
       # version-drift guard: CLI_VERSION (agentbundle/version.py) must equal
@@ -193,19 +193,19 @@ jobs:
       # explicitly (make build-check runs no pytest).
       - name: pytest shared-libs projection retirement (credbroker T9)
         working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_shared_libs_projection.py
+        run: python -m pytest tests/build_pipeline/test_shared_libs_projection.py
 
       # self_host derives SELF_HOST_PACKS / SELF_HOST_ADAPTERS from the recipe;
       # make build-check runs no pytest, so wire this unit test explicitly.
       - name: pytest self-host recipe config (externalize-self-host-config)
         working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_self_host_recipe_config.py
+        run: python -m pytest tests/build_pipeline/test_self_host_recipe_config.py
 
       # The fixture-overwrite guard now lives in cmd_self (not the Makefile);
       # wire its test explicitly since make build-check runs no pytest.
       - name: pytest self-host fixture guard (windows-build-self-entry)
         working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_self_host_fixture_guard.py
+        run: python -m pytest tests/build_pipeline/test_self_host_fixture_guard.py
 
       # The make-free build-self / build-check chaining script (repo-native
       # tools/, not the agentbundle package); wire its test explicitly since
@@ -288,41 +288,41 @@ jobs:
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
-          agentbundle/build/tests/test_user_libs_projection.py
-          agentbundle/build/tests/test_contract.py
+          tests/build_pipeline/test_user_libs_projection.py
+          tests/build_pipeline/test_contract.py
           tests/integration/test_build_check_drift_gates.py
           tests/integration/test_credential_brokers_pack_install.py
 
       # cursor-full-parity (RFC-0026): the cursor adapter's unit suite lives in
-      # the build/tests root, which `make build-check` does not run. Wire it in
+      # the tests/build_pipeline root, which `make build-check` does not run. Wire it in
       # explicitly or it never gates (CI does not auto-discover package pytest).
       - name: pytest cursor adapter (cursor-full-parity)
         working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_adapter_cursor.py
+        run: python -m pytest tests/build_pipeline/test_adapter_cursor.py
 
       # gemini-full-parity (RFC-0027): the gemini adapter's unit suite lives in
-      # the build/tests root, which `make build-check` does not run. Wire it in
+      # the tests/build_pipeline root, which `make build-check` does not run. Wire it in
       # explicitly or it never gates (CI does not auto-discover package pytest).
       - name: pytest gemini adapter (gemini-full-parity)
         working-directory: packages/agentbundle
-        run: python -m pytest agentbundle/build/tests/test_adapter_gemini.py
+        run: python -m pytest tests/build_pipeline/test_adapter_gemini.py
 
       # architect-design-reviewer (RFC-0032): the design-reviewer subagent's
       # cross-adapter projection check (AC10's "fails if a future adapter change
       # drops it") and its rubric-parity guard (the verdict / severity /
       # mechanical-judgment vocabulary must stay identical across the agent and
-      # architect-review) live in the build/tests root, which `make build-check`
+      # architect-review) live in the tests/build_pipeline root, which `make build-check`
       # does not run. Wire them in explicitly or they never gate (CI does not
       # auto-discover package pytest).
       - name: pytest architect design-reviewer guards (RFC-0032)
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
-          agentbundle/build/tests/test_architect_design_reviewer_projection.py
-          agentbundle/build/tests/test_architect_design_reviewer_rubric_parity.py
+          tests/build_pipeline/test_architect_design_reviewer_projection.py
+          tests/build_pipeline/test_architect_design_reviewer_rubric_parity.py
 
       # enriched-pack-manifest (RFC-0031): the manifest layer's contract +
-      # construction tests live in the build/tests + tests/{unit,integration}
+      # construction tests live in the tests/{build_pipeline,unit,integration}
       # roots, which `make build-check` does not run. Wire them in explicitly or
       # they never gate (CI does not auto-discover package pytest) — the
       # projector mapping, the ≤5 cap, the soft-categories rail, the all-packs
@@ -332,9 +332,9 @@ jobs:
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
-          agentbundle/build/tests/test_projectable_subset.py
-          agentbundle/build/tests/test_pack_schema.py
-          agentbundle/build/tests/test_plugin_manifest_schema.py
+          tests/build_pipeline/test_projectable_subset.py
+          tests/build_pipeline/test_pack_schema.py
+          tests/build_pipeline/test_plugin_manifest_schema.py
           tests/unit/test_validate_categories.py
           tests/unit/test_enriched_pack_metadata.py
           tests/integration/test_list_packs_cmd.py

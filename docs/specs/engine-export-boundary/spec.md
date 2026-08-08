@@ -1,6 +1,6 @@
 # Spec: engine export boundary
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0075, RFC-0082, ADR-0071
@@ -63,8 +63,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ### Ask first
 
-- Any change to which tests *run*, or to what they assert, beyond the two
-  pre-authorised edits named under *Always do*. A third test needing
+- Any change to which tests *run*, or to what they assert, beyond the one
+  pre-authorised edit named under *Always do*. A third test needing
   modification to survive the move is a signal to stop and surface.
 - Adopting `namespaces = false` in `[tool.setuptools.packages.find]`. It would
   work, and it changes discovery semantics for the whole package.
@@ -124,8 +124,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       exemption: `_data/catalogue-scaffold/**` is inert template content that
       ships in the wheel by design and is never collected here.
 - [ ] **AC2** — The relocated engine suite runs green from
-      `packages/agentbundle/tests/`, with the same number of passing tests as
-      before the move.
+      `packages/agentbundle/tests/build_pipeline/`, with the same number of
+      passing tests as before the move, verified **per module** rather than in
+      aggregate. The directory is `build_pipeline`, **not** `build`: pytest's
+      default `norecursedirs` skips any directory named `build`, so
+      `pytest tests/` would silently collect 587 fewer tests and still report
+      green. Naming the directory explicitly does not rescue it — only naming
+      individual files does.
 - [ ] **AC3** — A freshly built wheel contains zero entries matching a test
       path outside `_data/catalogue-scaffold/**`, verified by opening the
       artifact rather than by reading config.
@@ -133,7 +138,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       zipapp built from a tree containing `_data/catalogue-scaffold/**/tests/`
       retains that content. (Mechanism and rationale: `plan.md` T4.)
 - [ ] **AC5** — `_collect_dir_bytes`'s two vendored call sites emit no test
-      content; its **packs** call site and its **guides** call site (under
+      content, using AC1's definition of test content — no `tests/` directory, no
+      `test_*.py`, **no `conftest.py`**. The last clause is load-bearing: the
+      engine call site collects the whole `packages/agentbundle/` directory, and
+      a root `conftest.py` lives there beside the package; its **packs** call site and its **guides** call site (under
       `--guides selected`) both still do. Asserted by a unit test appended to
       `packages/agentbundle/tests/unit/test_catalogue_tooling_self_hosted_init.py`,
       not by inspection.
@@ -149,7 +157,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       agentbundle.build.tests` raises `ModuleNotFoundError`.
 - [ ] **AC7** — `build/self_host.py`'s destructive-write guard refuses a
       real-write self-host targeting the relocated fixture tree
-      (`…/tests/build/fixtures/…`) as well as the unmoved one
+      (`…/tests/build_pipeline/fixtures/…`) as well as the unmoved one
       (`…/tests/fixtures/…`). It matches `tests` preceding `fixtures` as **path
       components**, which preserves the anti-over-match invariant its comment
       names — `my-tests/fixtures-backup/` still passes, because neither is a
@@ -184,7 +192,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       references under `docs/specs/**`, `docs/rfc/**`, `docs/product/changelog.md`,
       and the package `CHANGELOG.md` are deliberately untouched — **except**
       `docs/specs/catalogue-test-carve-out/**`, a live Draft spec pair whose
-      `build/tests/` references this change invalidates.
+      `tests/build_pipeline/` (formerly `agentbundle/build/tests/`) references this change invalidates.
 - [ ] **AC11** — `make ci` passes, and the Windows build-check leg passes with
       `self_host_windows.py`'s invocation paths updated.
 - [ ] **AC14** — `packages/AGENTS.md` § Test conventions names the third engine
@@ -242,7 +250,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   immediately rather than warning on introduction. The defect it guards exists
   today, so the gate is written against a known-good post-migration state and
   has nothing to grandfather.
-- **Technical:** `packages/agentbundle/tests/build/` keeps an `__init__.py`,
+- **Technical:** `packages/agentbundle/tests/build_pipeline/` keeps an `__init__.py`,
   matching `tests/unit/` and `tests/integration/`, which both have one. The
   marker is not what puts the tree in the wheel, and dropping it would make the
   new sibling import as top-level names while its siblings do not.

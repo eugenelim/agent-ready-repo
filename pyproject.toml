@@ -73,10 +73,3 @@ files = [
     "packages/agentbundle/agentbundle",
     "packages/credbroker/credbroker",
 ]
-# build/tests/ uses a contract-mixin test pattern where `contract` and
-# `repo_root` are injected via class-level attributes; mypy cannot see
-# through the mixin chain. Excluding avoids ~200 spurious attr-defined
-# errors without suppressing real ones in the library code itself.
-exclude = [
-    "packages/agentbundle/agentbundle/build/tests/",
-]

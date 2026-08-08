@@ -1317,6 +1317,22 @@ D2's sdist half is decided in the table above, not parked here. A reviewer who
 weighs assumption 3 lower can partially accept — take the wheel, zipapp, and
 vendored halves now and defer the sdist graft — by saying so against D2.
 
+## Errata
+
+- **2026-08-08 — the engine test destination is `tests/build_pipeline/`, not
+  `tests/build/`.** The body names `packages/agentbundle/tests/build/` as where
+  the relocated engine suite lands. Implementation showed that destination is
+  unusable: `build` is in pytest's default `norecursedirs`
+  (`*.egg .* _darcs build CVS dist node_modules venv {arch}`), so the tree is
+  skipped on recursion and `pytest tests/` collects 587 fewer tests while still
+  reporting green — the silent-loss failure this RFC exists to eliminate,
+  reintroduced by its own destination. Naming the directory as an explicit
+  argument does not rescue it; only naming individual files does. The suite
+  therefore lands at `packages/agentbundle/tests/build_pipeline/`. Everything
+  else about D1 stands: the boundary is unchanged, the source does not move, and
+  engine tests still sit beside the package rather than inside it.
+  Approved by eugenelim.
+
 ## Follow-on artifacts
 
 Accepted 2026-08-08. The ADR is authored; the two specs follow.
