@@ -11,18 +11,20 @@
   behaviour in the engine's own suite"* clause this RFC revisits),
   [`docs/specs/pack-test-boundary-remaining-packs/`](../specs/pack-test-boundary-remaining-packs/)
   (whose disposition record names the gap this closes),
-  [`0082-notes/`](0082-notes/) (promoted spike transcripts)
+  [`0082-notes/`](0082-notes/) (spike transcripts and the provisional
+  first-cut ownership mapping)
 
 ## Reviewer brief
 
 - **Decision:** who owns each test in this repository — the engine, the
-  catalogue, or a single pack — where each owner's tests live, and which
-  distribution surfaces carry them.
+  catalogue, a single pack, or a `tools/` script — where each owner's tests live,
+  and which distribution surfaces carry them.
 - **Recommended outcome:** accept.
 - **Change if accepted:**
-  - Three test owners, three homes: engine tests at `packages/<pkg>/tests/`,
+  - Four test owners, four homes: engine tests at `packages/<pkg>/tests/`,
     catalogue tests at a new repository-root `tests/`, pack tests at
-    `packs/<pack>/tests/` (already ADR-0071's rule).
+    `packs/<pack>/tests/` (already ADR-0071's rule), and tools tests at `tools/`.
+    Ownership is assigned per test **class**, because real modules are mixed.
   - Nothing testable lives inside `packages/<pkg>/<pkg>/` — the importable
     package — which is the engine's runtime export boundary.
   - Test inclusion is decided per surface *and per owner*: the sdist carries the
@@ -52,13 +54,15 @@
   leaves every shipped suite actually *runnable* where it lands.
 - **Not in scope:** any version bump *in this RFC* — the implementing changesets
   carry one; src layout; changing ADR-0071's `packs/<pack>/tests/` destination;
-  relocating `tools/test*.py`.
+  relocating the existing `tools/test*.py` files, which stay put. (Moving
+  tools-owned tests that currently sit *elsewhere* into `tools/` is in scope —
+  the first cut found three.)
 
 ## The ask
 
 **Recommendation (BLUF).** Give every test in this repository an **owner** — the
-engine, the catalogue, or one pack — put each owner's tests in its own tree, and
-decide distribution inclusion per surface *and per owner*.
+engine, the catalogue, one pack, or a `tools/` script — put each owner's tests in
+its own tree, and decide distribution inclusion per surface *and per owner*.
 
 Three terms, since a cold reader needs them up front. **The engine** is the
 `agentbundle` Python package: the CLI and build machinery published to PyPI.
@@ -107,11 +111,17 @@ cannot run; `agentbundle catalogue init --preset self-hosted --tooling vendored`
 exclusions whatsoever. Only the zipapp is correct, via an undocumented one-liner
 in `tools/build_zipapp.py`.
 
-And underneath all four surfaces sits the deeper fault: **82 test modules inside `packages/agentbundle/` do not test the engine at all.** They walk
-`REPO_ROOT / "packs"` and assert things about the *catalogue*. Relocating them
-within the engine package — the first draft of this RFC did exactly that —
-moves the problem without fixing it, and makes the sdist rule incoherent, because
-those modules can never run from an sdist that contains no `packs/`.
+And underneath all four surfaces sits the deeper fault: **82 test modules inside
+`packages/agentbundle/` reach out and assert things about the *catalogue*.** They
+walk `REPO_ROOT / "packs"`. Not all of them are catalogue-*owned* — the first-cut
+mapping shows most are still engine tests borrowing a pack as input, and that
+some are mixed, carrying catalogue-conformance classes inside an engine module.
+What none of them has is a declared owner.
+
+Relocating them within the engine package — the first draft of this RFC did
+exactly that — moves the problem without fixing it, and makes the sdist rule
+incoherent, because catalogue assertions can never run from an sdist that
+contains no `packs/`.
 
 *Question.* Who owns each test, where does each owner's tests live, and which
 surfaces carry them?
@@ -120,7 +130,7 @@ surfaces carry them?
 
 | ID | Question | Recommendation | Why | Decide by | Reviewer action |
 | --- | --- | --- | --- | --- | --- |
-| D6 | Who owns a test, and how do we tell? | Four categories — engine, engine-borrowing-the-catalogue, catalogue (rule- or roster-shaped), pack — decided by *what the test asserts*, not by what it reads | The read-based signal is the one that misleads: an adapter test reads `packs/core` but asserts nothing about it | this review | Rule on the taxonomy — it drives D1 and D2 |
+| D6 | Who owns a test, and how do we tell? | Five owners — engine (including engine-borrowing-the-catalogue), catalogue (rule- or roster-shaped), pack, and tools — decided by *what the test asserts*, not by what it reads; and applied per test **class**, since modules turn out to be mixed | The read-based signal is the one that misleads: an adapter test reads `packs/core` but asserts nothing about it | this review | Rule on the taxonomy — it drives D1 and D2 |
 | D1 | Where does each owner's tests live? | Engine → `packages/<pkg>/tests/`; catalogue → a new repository-root `tests/`; pack → `packs/<pack>/tests/` | A new top-level directory is RFC-gated here, and this is the RFC; ADR-0071's self-containment argument covers packs, not cross-catalogue conformance | this review | Approve the new top-level `tests/`; confirm relocation over the two exclusion variants |
 | D2 | What does each surface carry? | Per surface **and per owner** — sdist carries the engine suite; catalogue channels carry the catalogue and pack suites; wheel, zipapp, vendored engine carry none | PyPA: wheels never, sdists commonly. A suite must be runnable where it lands, which is what the current mixture prevents | this review | Rule on the asymmetry — or partially accept, deferring the sdist half |
 | D3 | Should the vendored copy carry tests? | Its **engine** half, no — it is wheel-class. Its **catalogue** half, yes — `catalogue init` ships catalogue and pack tests under the default preset *and* both `--preset self-hosted --tooling` modes | The vendored engine's consumption path is `pip install -e`; but a new catalogue needs to verify itself, which is ADR-0071's own "that is wanted" | this review | Confirm the split classification |
@@ -311,7 +321,10 @@ These could reasonably have been goals. They are deliberately dropped.
 
 ### The ownership taxonomy (D6)
 
-Every test module gets exactly one owner, decided by **what it asserts**:
+Every test gets exactly one owner, decided by **what it asserts**. The unit is
+the test **class**, not the module: applying this to real code found engine
+modules carrying catalogue-conformance classes, so module-granular ownership
+forces a wrong answer for some of them.
 
 | Category | Asserts | Home | Ships with |
 | --- | --- | --- | --- |
@@ -320,12 +333,36 @@ Every test module gets exactly one owner, decided by **what it asserts**:
 | **Catalogue, rule-shaped** | *any* catalogue's content is well-formed | repository-root `tests/` | catalogue archives **and** `agentbundle catalogue init` |
 | **Catalogue, roster-shaped** | *this* repository's specific content | repository-root `tests/`, marked non-shipping | nothing |
 | **Pack** | one pack's own content or behaviour | `packs/<pack>/tests/` (ADR-0071) | catalogue archives, and `catalogue init --preset self-hosted` (already true today) |
+| **Tools** | a `tools/` script's behaviour | `tools/`, co-located (D4) | nothing — `tools/` crosses no surface |
 
 The middle two rows are the ones that earn their keep. Without the
 engine-borrowing row, a mechanical "reads `packs/`" split drags adapter and
 installer tests out of the engine suite where they belong. Without the
 rule/roster distinction, shipping catalogue tests to a new catalogue hands the
 adopter a suite that fails immediately — see D7.
+
+The **Tools** row exists because applying this taxonomy to real modules produced
+one: three modules in the engine's in-package test tree turn out to test
+`tools/lint-agents-md.py`. They import no engine code and belong at `tools/` per
+D4 — which until now stated an exception to the boundary without naming a
+destination. No automated signal surfaces them; they look like ordinary engine
+tests.
+
+**A first-cut mapping exists and is deliberately provisional.**
+[`0082-notes/first-cut-ownership-mapping.md`](0082-notes/first-cut-ownership-mapping.md)
+hand-classifies the 36 candidate modules in `agentbundle/build/tests/` (36 under
+a path-form match, 29 under the quoted-directory match used in the table above —
+the mapping records the method, and four of the 36 prove to be false positives)
+— the tree spec 1 empties — and reports signals only for the other two roots,
+because an automated verdict there would be the mechanical split D6 rejects. Its shape is the argument to test this proposal against, and it corrected this
+RFC twice. Two consequences carry into the design. Spec 1's default of leaving
+unresolved modules as engine tests is safe, because most of them genuinely are
+engine tests. And **no module in that tree is a standalone rule-shaped
+conformance test** — the rule-shaped material exists, but embedded as test
+*classes* inside engine modules. So the shipped conformance suite is assembled by
+**extraction**, not by moving files, and D7's roster rewriting is the smaller
+half of the work. The mapping records four contested calls rather than smoothing
+them over.
 
 ### The boundary
 
@@ -529,7 +566,11 @@ these copies share also serves the paths that must keep carrying tests.
 
 ### `tools/` — a named exception
 
-`tools/test*.py` stays co-located with the scripts it tests. The boundary is
+`tools/test*.py` stays co-located with the scripts it tests — and, per the
+taxonomy above, *tools tests* are a destination as well as an exception: a test
+of a `tools/` script belongs at `tools/` wherever it currently lives. The
+first-cut mapping found three sitting in the engine's in-package tree.
+ The boundary is
 scoped to distribution surfaces, and `tools/` crosses none: no packaging
 configuration references it — not `[tool.setuptools.packages.find]`, not
 `[tool.setuptools.package-data]`, and not `[catalogue.package].include`, which
@@ -660,15 +701,24 @@ Steps, sequenced so each is independently verifiable:
 3. **(Spec 2) Classify, relocate, and ship the catalogue and pack suites.** The
    substantial half.
 
-   1. **Classify every catalogue-reading module against D6.** 82,
-      across all three engine test roots. This is judgement per module and does
+   1. **Classify every catalogue-reading module against D6.** Start from the
+      provisional mapping in `0082-notes/first-cut-ownership-mapping.md`, which
+      hand-classifies `agentbundle/build/tests/` and leaves the other two roots
+      to this step. Note its candidate count is method-sensitive — 82 under the
+      quoted-directory match, 103 under a path-form match — so re-derive rather
+      than inherit either. This is judgement per module and does
       not compress: the automated signal — "does it resolve `REPO_ROOT / packs`"
       — finds the candidate set but cannot separate an engine test borrowing a
       pack as input from a genuine conformance test. *Evidence* records both the
       candidate set and why the automated split is insufficient.
-   2. **Relocate by owner.** Rule-shaped conformance → `tests/conformance/`;
-      roster-shaped → `tests/roster/`; pack-owned → `packs/<pack>/tests/`,
-      following ADR-0071's existing layout. Engine tests stay put.
+   2. **Relocate by owner, extracting where a module is mixed.** Rule-shaped
+      conformance → `tests/conformance/`; roster-shaped → `tests/roster/`;
+      pack-owned → `packs/<pack>/tests/`, following ADR-0071's existing layout;
+      tools-owned → `tools/`. Engine tests stay put. Where one module carries
+      both kinds — the common case in the first cut, not the exception — split
+      the conformance classes out rather than moving the module wholesale. The
+      mapping names the three known instances in `build/tests/` and warns to
+      expect more in the other two roots.
    3. **Make the shipped ones portable (D7).** A test moving into
       `tests/conformance/` must assert a *rule* over whatever packs it finds, not
       a roster. Where an existing test pins a list — `V08_PACKS` is the worked
@@ -1128,12 +1178,23 @@ not survive inspection, and the failures are instructive rather than incidental:
   catalogue-owned, and genuinely unshippable as written — the distinction D7
   exists to make.
 
-Four modules were read end-to-end to validate the taxonomy against real code, one
-per category; they are the worked examples cited throughout. **The remaining
-classification is deliberately left to spec 2.** Publishing a machine-generated
-per-module mapping here would give it an authority the method does not have — the
-above is exactly the evidence that a mechanical split gets this wrong. What this
-RFC fixes is the *rule*; applying it is the spec's job, one module at a time.
+**A provisional first cut is published, scoped to what was actually read.**
+[`0082-notes/first-cut-ownership-mapping.md`](0082-notes/first-cut-ownership-mapping.md)
+hand-classifies every catalogue-touching module in `agentbundle/build/tests/`,
+records its discriminator, and names three contested calls. For `tests/unit/` and
+`tests/integration/` it reports signals and stops.
+
+That asymmetry is deliberate and is the point. A machine-generated verdict for
+all 103 candidates would carry an authority the method does not have — the
+failures above *are* the evidence that a mechanical split gets this wrong, and an
+early automated pass on this very RFC misfiled 24 modules into a pack named
+`contracts` that were reading the repository-root `contracts/` directory. Hand
+classification also earned its keep: it found three modules testing a `tools/`
+script, which no read-based or invoke-based signal surfaces, and which the
+taxonomy had no destination for until they appeared.
+
+What this RFC fixes is the *rule*, and it now ships a worked example of applying
+it. Applying it to the rest is spec 2's job, one module at a time.
 
 ### Enforcement tooling, tested rather than cited
 
@@ -1260,8 +1321,8 @@ vendored halves now and defer the sdist graft — by saying so against D2.
 
 Filled in on acceptance.
 
-- **ADR** recording the ownership taxonomy, the three homes, and the per-surface
-  per-owner inclusion rule. It must record its relationship to ADR-0071
+- **ADR** recording the ownership taxonomy, its four homes, the class-level
+  granularity, and the per-surface per-owner inclusion rule. It must record its relationship to ADR-0071
   precisely: ADR-0071's `.apm/` boundary and `packs/<pack>/tests/` destination
   stay in force, so the new ADR carries `Related: ADR-0071` and states the
   partial supersession in prose — **not** `Supersedes: ADR-0071`, which would
@@ -1280,8 +1341,8 @@ Filled in on acceptance.
   fixture coverage → verify by scaffolding a catalogue and running its
   materialised suite.
 - **`packages/AGENTS.md`** — extend § Test conventions to name the taxonomy, the
-  three homes, and the `tools/` exception. It currently names two roots of what
-  is now a three-owner model.
+  four homes, and the `tools/` destination. It currently names two roots of what
+  is now a four-owner model.
 - **The scaffold's authoring guidance** — a new catalogue should be told it owns
   a `tests/` tree and what belongs in it.
 
