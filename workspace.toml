@@ -131,6 +131,7 @@ shipped = [
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening
   "spec/site-design-system-spec",                        # site token spec + zone-violation lint
   "spec/jira-check-sso-auto-login",       # jira check SSO auto-recovery in credbroker; credbroker 0.5.0 + engine errata RFC-0035/0013
+  "spec/catalogue-curation-qa-coverage",   # closes the 4 deferred catalogue-curation QA paths
 ]
 queue   = [
   # RFC-0082 / ADR-0075 follow-on, in order. Spec 1 is release-blocking and lands
@@ -145,9 +146,6 @@ queue   = [
   {path = "spec/m6-astro-project-index",         needs = "research:adopter-persona"},  # Astro site: PM-facing project index from docs/product/projects/
   {path = "spec/m6-live-demo-guide",             needs = "research:adopter-persona"},  # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
   {path = "spec/m6-enterprise-rollout-playbook", needs = "research:adopter-persona"},  # champion→CTO→platform→engineers; staged rollout + retro template
-
-  # Backlog-graduated specs — Approved, independent of RFC-0064
-  "spec/catalogue-curation-qa-coverage",                 # consumes the 4 catalogue-curation-* QA backlog items
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
