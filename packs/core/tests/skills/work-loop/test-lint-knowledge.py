@@ -269,6 +269,16 @@ def layer_validation_rules(tmp: Path) -> None:
                         ensure_ascii=False) + "\n",
              1, "U+E0100")
 
+    # AC20a — a LITERAL control character. The escape rule cannot reach these
+    # (it only matches the `\uXXXX` spelling), so only the decoded pass can make
+    # this case pass. Every other C0 case uses the escaped form, which is why
+    # narrowing the decoded rule back to `cp < 0x20` survived them all.
+    run_case(tmp, "stub-literal-c1-control-rejected",
+             json.dumps({"id": "K-0001", "kind": "pattern", "scope": "x",
+                         "title": "t", "body": "pre \u007f\u009b post",
+                         "source": "s"}, ensure_ascii=False) + "\n",
+             1, "control character U+007F")
+
     # Empty file (no learnings yet) is valid.
     run_case(tmp, "empty", "", 0, "Knowledge lint: passed")
 

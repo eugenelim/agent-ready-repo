@@ -2653,6 +2653,13 @@ def test_ac5_bold_ac_region_terminates(tmp: Path) -> None:
         ("bold AC then H3 Never-do",
          head + "**Acceptance criteria:**\n\n- [ ] AC1\n\n### Never do\n\n"
                 "- [{m}] never add a top-level dep\n", False),
+        # A bold lead-in inside a *heading-opened* region is a group header, not
+        # a terminator — this spec's own `**Defect 1 — ...**` rows sit under
+        # `## Acceptance Criteria`, so closing on them would un-pin every
+        # criterion it has.
+        ("bold group header inside a heading-opened AC section",
+         head + "## Acceptance Criteria\n\n**Defect 1 — hashing**\n\n"
+                "- [{m}] AC1\n", True),
         ("H3 subgroup inside the AC section",
          head + "## Acceptance Criteria\n\n### Group A\n\n- [{m}] AC1\n", True),
     ]

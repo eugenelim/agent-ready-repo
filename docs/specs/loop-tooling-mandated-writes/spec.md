@@ -238,11 +238,13 @@ unparseable lines.
       together, since counting joiners alone leaves an alternating VS15/VS16
       sequence invisible, and three is the threshold because real emoji cap at
       two adjacent (heart-on-fire is VS16 then ZWJ, as are the flag and
-      bouncing-ball forms). And a **volume** budget of 2% of the field (floor 4)
-      is refused past, because a run cap bounds adjacency and not volume: two
-      joiners placed after every visible character never trip it and still
-      carried a 76-character instruction in 608 invisible characters during
-      review. The predicate lives in
+      bouncing-ball forms). And a **volume** budget — 2% of the field, floor 8 —
+      because a run cap bounds adjacency and not volume: two joiners placed
+      after every visible character never trip it, and carried a 76-character
+      instruction in 608 invisible characters during review. The floor is
+      calibrated rather than guessed: 4 refuses a 47-character title carrying
+      five presentation-selector emoji, which is ordinary text, while 8 is
+      still only 16 bits over a 4-symbol alphabet. The predicate lives in
       `lint-knowledge.py` and the writer imports it, so the gate and the writer
       cannot disagree about what is invisible.
       Knowledge entries are injected verbatim into every future agent session,

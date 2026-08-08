@@ -66,16 +66,12 @@ _MAX_LINE = 8192
 # both spellings. The literal form also breaks `str.splitlines()`, which is how
 # both this linter and session-start.py read the file.
 _LINE_BREAKERS = frozenset({0x85, 0x2028, 0x2029})
-# The C0 characters JSON actually needs an escape for. The rest of C0 has no
-# business in a knowledge entry in *either* form — the writer refuses a
-# literal ESC because session-start replays it as an ANSI sequence, so the
-# gate must refuse the escaped spelling too or the hand-edit path is open.
-# No C0 character is permitted in a field value at all — `field_problems`
-# refuses category `Cc` on the decoded string, which covers the literal and the
-# escaped spelling together. So there is no "JSON needs this escape" carve-out
-# to make: an escaped C0 is refused by the decoded pass, and the escape rule
-# below only has to exempt the three line separators, whose escaped form is the
-# one representation that survives `splitlines()`.
+# No C0 character belongs in a field value in either spelling: `field_problems`
+# refuses category `Cc` on the *decoded* string, which covers the literal and
+# the escaped form together. The escape rule below therefore defers to that
+# predicate rather than keeping its own exemption list — surrogates excepted,
+# because a pair decodes to a valid astral character and the escape form is the
+# only place it is ever visible.
 # Zero-width carriers. The rule is **default-ignorable code point**, not any one
 # Unicode category — a first version refused only `Cf` and was bypassed by
 # variation selectors, which are `Mn`. Framing it this way means the next
@@ -128,7 +124,11 @@ _HIDDEN_RANGES = (
 # total too: 2% of the field, floor 4, which passes every emoji sequence
 # measured and every realistic body.
 _INVISIBLE_BUDGET_DIVISOR = 50  # i.e. 2% of the field
-_MIN_INVISIBLE_ALLOWANCE = 4
+# Calibrated, not guessed: a floor of 4 refuses a 47-character title carrying
+# five presentation-selector emoji, which is ordinary text. 8 clears that and
+# is still far below a channel — 8 symbols over a 4-symbol alphabet is 16 bits,
+# two ASCII characters.
+_MIN_INVISIBLE_ALLOWANCE = 8
 
 
 def invisible_budget(value: str) -> int:

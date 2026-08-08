@@ -178,9 +178,10 @@ from `SPEC-PLAN-APPROVED`, so resetting it strands the run:
 
 1. Restore `Status: Approved` in **both** `spec.md` and `plan.md`; `approve-plan`
    refuses unless both read `Approved`.
-2. `loop-cohort reset`, then `loop-cohort init` with the engine's existing
-   `run_id` (read it from `loop-engine status --json`).
-3. `approve-plan`, then `schedule`.
+2. `loop-cohort reset <spec-dir>`, then `loop-cohort init <spec-dir> --run-id
+   <run_id>`, taking `run_id` from `loop-engine status <spec-dir> --json`.
+3. `loop-cohort approve-plan <spec-dir> --expect-run-id <run_id>`, then
+   `loop-cohort schedule <spec-dir> --expect-run-id <run_id>`.
 4. Restore the status you were on and continue.
 
 Two things to know before you do it. Re-running `approve-plan` re-pins whatever
