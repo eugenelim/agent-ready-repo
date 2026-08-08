@@ -3,3 +3,11 @@ name = "core"
 version = "0.3.0"
 description = "Core fixture pack for T12 upgrade tests."
 seeds = []
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo", "user"]
+user-scope-hooks = true

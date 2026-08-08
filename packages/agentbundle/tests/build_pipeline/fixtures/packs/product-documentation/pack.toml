@@ -2,3 +2,10 @@
 name = "product-documentation"
 version = "0.1.0"
 description = "Product documentation authoring fixture."
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo", "user"]

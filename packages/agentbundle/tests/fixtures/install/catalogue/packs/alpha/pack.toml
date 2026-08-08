@@ -3,3 +3,11 @@ name = "alpha"
 version = "0.1.0"
 description = "Alpha fixture pack for T5 install tests."
 seeds = []
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo", "user"]
+user-scope-hooks = true
