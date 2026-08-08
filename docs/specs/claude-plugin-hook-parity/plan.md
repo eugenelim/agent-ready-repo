@@ -225,7 +225,7 @@ pre-change `state.json` carrying old relpaths behaves as specified under
 `upgrade`.
 
 ### T10 — Real client, erratum, snapshot
-**Depends on:** T1, T8, T9 · **Mode:** Visual / manual QA
+**Depends on:** T8, T9 · **Mode:** Visual / manual QA
 
 **Done when:** `claude plugin validate` passes on the T6 fixture pack built
 through a local marketplace; `claude plugin details` reports the exact hook set;

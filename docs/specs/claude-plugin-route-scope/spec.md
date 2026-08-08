@@ -22,8 +22,8 @@ A Claude plugin's code always lives in the adopter's global cache
 `local` install scopes record an *enablement pointer* in a repo settings file;
 they do not place the plugin in the repo. `claude plugin install` defaults to
 `--scope user`. There is no repo-scoped plugin install in the sense agentbundle
-means by `repo` — confirmed: `~/.claude.json` carries 53 project entries and
-none records plugin enablement.
+means by `repo` — observed 2026-08-08: no entry under `~/.claude.json`'s
+`projects` table records plugin enablement at all.
 
 **Defect 1 — the route publishes packs that forbid user scope.** Seven packs
 declare `allowed-scopes = ["repo"]`: `core`, `catalogue-curation`,
@@ -140,6 +140,13 @@ Used by every criterion below. A pack is **publishable** when all hold:
   equality catches a fail-*closed* one — most plausibly AC2's absent-contract
   trap — which could truncate or empty the marketplace uncaught.
 
+  **Manifest-less packs now produce no claude-plugins output.**
+  `_run_per_pack_single` emits `dist/claude-plugins/<pack>/` for any pack with a
+  `pack.toml`, manifest or not; equality against a set that requires
+  `plugin.json` deletes that subtree for `cc-user-hooks`, `list_packs/{alpha,beta}`,
+  and `local_scope/local-test-pack`. That is a second behavioural change, named
+  here rather than discovered in a red suite.
+
   Assertions build into `tmp_path`, not against the repo's `dist/`, which is
   gitignored and absent under a plain `pytest` run; an absence assertion against
   a directory that does not exist is green while the feature is broken.
@@ -184,7 +191,13 @@ Used by every criterion below. A pack is **publishable** when all hold:
   `web/src/content/packs/<slug>.md` user-capability value from its `pack.toml`,
   assert `make build-check` exits non-zero, revert. The mutation target is a
   site frontmatter file, never a `packs/*/pack.toml` — the *Never do* boundary
-  forbids touching a pack's scope declaration even transiently. The transcript
+  forbids touching a pack's scope declaration even transiently.
+
+  A **second** mutation exercises the membership tripwire, which the frontmatter
+  desync does not reach: inject a repo-only pack entry into
+  `.claude-plugin/marketplace.json`, assert `make build-check` exits non-zero,
+  revert. Without it the required gate is green while AC6's assertion may be
+  unregistered. The transcript
   lands in the plan's `## Verification log`. A passing target proves the target
   passes, not that the new check ran.
 
@@ -194,7 +207,10 @@ Used by every criterion below. A pack is **publishable** when all hold:
   declares **no `needs:`** on the build-check job, and runs regardless of its
   result; `main` requires no PR review, `enforce_admins` is false, and there is
   no CODEOWNERS. So `publish_claude_plugins.py` re-derives the predicate before
-  `git push` and exits non-zero if the set to be published differs from it.
+  `git push` — reading `packs/<slug>/pack.toml`, **not** `dist/`, matching AC4;
+  re-deriving from `dist/` would compare `dist/` against itself and could not
+  catch the stale tree it exists for — and exits non-zero if the set to be
+  published differs.
 
   It also asserts `{plugin names in the published marketplace.json} == {published
   directory names}` and exits non-zero naming the difference — the dangling-entry
@@ -215,26 +231,34 @@ Used by every criterion below. A pack is **publishable** when all hold:
   would re-publish it at the root with only AC6's tripwire in the way. Recorded,
   not fixed: operator-only is not yet pack metadata all writers honour.
 
-- [ ] **AC12 — Emptying the set is an error in catalogue aggregation, and a
-  no-op elsewhere.** A **whole-catalogue** build whose filter leaves zero entries
-  exits non-zero; every writer prints one summary line naming how many packs were
-  dropped and why.
+- [ ] **AC12 — Emptying the set is an error only where emptiness is a defect.**
+  A build exits non-zero when **the discovered pack set was non-empty and the
+  filter emptied it**. Not when the catalogue was empty to begin with:
+  `tests/fixtures/blank_catalogue/packs/` holds only `_example`, so
+  `discover_packs` returns `[]` and the filter does nothing — a blank catalogue
+  is a shipped, valid state (`tests/integration/test_blank_catalogue.py`).
 
-  **Scoped deliberately.** `render_pack` / `render_pack_to_dir` run
-  `DEFAULT_RECIPES` — which includes `marketplace` — against a *single-pack*
-  tree, so a repo-only pack legitimately yields zero entries. An unscoped
-  non-zero exit there would break `agentbundle install --pack core`, `upgrade`,
-  `diff`, `init-state`, `validate`, and `render`. In the single-pack case the
-  writer emits an empty `plugins` list plus the summary line and returns
-  success.
+  **The caller says which mode it is.** `_run_aggregate` is the *same* function
+  under whole-catalogue (`run_default_build`) and single-pack (`render_pack_to_dir`
+  → `run_recipe(recipe, [pack], …)`), driven by the *same* `marketplace` recipe
+  with `adapter` unset — so AC3's route key cannot separate them, and
+  `len(packs_list) == 1` misclassifies the four genuine one-pack catalogues in
+  the fixtures plus `make build PACK=<x>`. AC4's signature change therefore
+  carries an explicit `aggregate_scope: "catalogue" | "single-pack"`, and each
+  caller passes its own.
 
-  **Adopter self-host is a warning, not a failure.** `_aggregate_marketplace`
-  runs on `run_self_host` *after* adapters and seeds are written, so a non-zero
-  exit there leaves a half-projected tree. `contracts/pack.schema.json` requires
-  only `[pack].name` and `[pack].version` — `[pack.adapter-contract]` is
-  **optional** in the normative contract — so a schema-valid adopter pack
-  resolves `["repo"]` and would trip this through no fault of its own. That path
-  warns loudly and continues; only the dist writer exits non-zero.
+  - **catalogue** — non-zero exit, one summary line naming how many packs were
+    dropped and why.
+  - **single-pack** — empty `plugins` list, success, summary line to **stderr**
+    so it does not become stdout noise in `diff`, `validate`, `init-state`,
+    `upgrade`, and `install --emit-install-routes`, all of which call
+    `render_pack`.
+  - **adopter self-host** — `_aggregate_marketplace` runs on `run_self_host`
+    *after* adapters and seeds are written, so a non-zero exit there leaves a
+    half-projected tree. `contracts/pack.schema.json` requires only `[pack].name`
+    and `[pack].version` — `[pack.adapter-contract]` is **optional** — so a
+    schema-valid adopter pack resolves `["repo"]` through no fault of its own.
+    That path warns loudly and continues.
 
 - [ ] **AC13 — The engine behaviour change is disclosed to self-hosting
   adopters.** `packages/agentbundle`'s `[Unreleased]` describes the filter as an
@@ -267,8 +291,17 @@ Used by every criterion below. A pack is **publishable** when all hold:
   release, which AC6 forbids in the same PR.
 
 - [ ] **AC16 — Prose docs stop advertising the route for repo-only packs.**
-  Re-derived by grep, and enforced by a scripted allowlist assertion (`! grep -q`
-  form, not `grep -c`, which exits 1 on no-match). Known sites: `README.md`;
+  Enforced by a scripted assertion enumerating **`(path, pattern, expected
+  state)` per site**, not one grep form — the sites do not share a pattern.
+  `README.md` and `docs-site/.../install.md` carry the literal
+  `claude plugin install`; `pack-catalogue.md` and `adapt-to-project.md` say
+  `/plugin install`; `install-routes.md` says `/plugin install <pack>@<catalogue>`;
+  `tools/hooks/README.md` and `session-start.toml` say
+  `<output>/claude-plugins/core/…`. A single `! grep -q 'claude plugin install'`
+  passes green on six of the eight. Each entry also asserts the file **exists**,
+  so a deleted or renamed site is not a silent pass, and the canonical
+  precondition sentence in `install-routes.md`'s route table is asserted
+  **present**. Sites: `README.md`;
   `docs-site/src/content/docs/getting-started/install.md`;
   `guides/_shared/explanation/install-routes.md` (route-table row **and** its
   marker-writer paragraph); `guides/_shared/explanation/pack-catalogue.md`;
@@ -321,7 +354,13 @@ Used by every criterion below. A pack is **publishable** when all hold:
   an `## Errata` entry per RFC-0055's convention, recording that the
   writer-layer rail is now unreachable for repo-only packs (they are never
   published, so their marker never runs) and that publish-time exclusion is the
-  primary control.
+  primary control. RFC-0008 already carries one Approver-signed erratum entry, so
+  this one crosses RFC-0055's two-entry threshold: it adds an authoritative
+  current-state layer over the existing dated entry, Approver-signed.
+
+  The guard only tests for the marker's *presence* — `Engine-Change-RFC: 9999`
+  passes identically — so the verification is the trailer's presence plus a human
+  reading the number, not a mechanical resolution.
 
 - [ ] **AC21 — The three `allowed-scopes` resolvers are pinned by a property
   test.** `validate.py:_allowed_scopes(pack_data)` gates on
@@ -392,7 +431,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
 | AC16 | Goal-based | scripted allowlist assertion over the enumerated sites |
 | AC17, AC18 | Integration | each consumer asserted per projection; pre-change `state.json` through `upgrade` |
 | AC19, AC22 | Goal-based | grep returns nothing; agentbundle suite green after the seed edit + two-file bump; `make build-self` leaves the tree clean |
-| AC20 | Goal-based | the trailer is present and names a real RFC; the engine gate passes |
+| AC20 | Goal-based | the trailer is present and the engine gate passes; the number is checked by review, not mechanically |
 | AC21 | Unit | property test over the synthetic matrix |
 | AC23–AC25 | Goal-based | each named artifact carries its erratum / statement; matrix row and docstring retired |
 

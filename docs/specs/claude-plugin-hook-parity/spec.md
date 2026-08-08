@@ -345,18 +345,15 @@ AC7's quoting discipline is what makes shell form safe.
 
 ## Testing Strategy
 
-- **Unit** — the scope predicate over a matrix of `allowed-scopes` values; the
+- **Unit** — the
   compiler's merge, ordering, anchored/quote-aware rewriting, per-fragment AC11,
   basename validation, and each fail-closed raise; per-adapter skip for Kiro and
   flat-shape wiring.
 - **Execution** — AC10's `sh -c` assertion with a space-and-`$` root.
 - **Schema** — accepts a compiled multi-event block with and without `matcher`;
   rejects a non-`command` type and unknown keys.
-- **Integration** — build the fixture packs; assert the seven exclusions by name,
-  manifest hooks, `hooks/` bodies, absence of `.claude/` and `tools/hooks/`,
+- **Integration** — build the fixture packs; manifest hooks, `hooks/` bodies, absence of `.claude/` and `tools/hooks/`,
   byte-identical warm/cold rebuild, and the AC16 raise.
-- **Site** — a repo-only pack's page renders no `claude plugin install` command;
-  a user-capable pack's does. Asserted against built output, not source.
 - **Regression** — a non-plugins build still emits `.claude/settings.local.json`
   and `tools/hooks/` (AC20).
 - **Manual QA** — the real client, per AC18.

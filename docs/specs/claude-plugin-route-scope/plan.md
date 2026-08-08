@@ -52,17 +52,40 @@ Sequencing notes not in the spec:
 
 ## Tasks
 
-### T0 — The predicate and its three writers
+### T1 — Fixture scope declarations
+**Depends on:** none · *(runs first — the five build fixtures carry only a `[pack]` table, so the predicate resolves them to `["repo"]` and reddens the derivation, pipeline, end-to-end and drift-gate suites the moment T0 lands)* · **Mode:** Goal-based check
+
+**Done when:** every fixture whose tests assert claude-plugins output carries
+`.claude-plugin/plugin.json` (the derived set's condition 2, which the recipe
+writer does not require today) and declares
+`[pack.adapter-contract] version = "0.3"` — the lowest version carrying both
+`[pack.install]` and `user-scope-hooks` (`commands/validate.py:597`) — and
+`[pack.install] allowed-scopes` including `"user"`, and those tests pass.
+
+**Approach:** derive the fixture list by **glob** over every fixture tree whose
+tests assert claude-plugins output, not from a named five — `tests/fixtures/packs/cc-user-hooks`,
+`tests/fixtures/install/catalogue/packs/alpha`, `tests/fixtures/list_packs/…`
+and `tests/fixtures/local_scope/…` also carry no `plugin.json`. Five fixtures
+under `build/tests/fixtures/packs/` lack
+`[pack.adapter-contract]` and therefore resolve to `["repo"]`. `.../packs/core/`
+additionally ships `.apm/hooks/` + `.apm/hook-wiring/`, so Rail B
+(`build/scope_rails.py:check_hooks`) also requires
+`[pack.install] user-scope-hooks = true` or `validate` refuses it. Declare, don't
+rely on defaults.
+
+### T0 — The predicate and its four sites
 **Depends on:** T1 · **Mode:** TDD
 
-**Tests:** `stub: pending` (materialise before EXECUTE) —
-`packages/agentbundle/tests/unit/test_plugin_scope_filter.py` plus an
+**Tests:** `stub: true` — `packages/agentbundle/tests/unit/test_plugin_scope_filter.py`
+(materialised; 28 cases red) plus an
 integration module. Covers: the predicate over an `allowed-scopes` ×
 `adapter-contract.version` matrix including the absent-table case; **set
 equality both directions on all three surfaces**, built into `tmp_path`; the
 seven absences by name with the tripwire comment; the **envelope**
-(`name`/`owner`/`description`) intact; the **property test** over the three
-resolvers (`_allowed_scopes ⊆` the other two); the **empty-set** exit; the
+(`name`/`owner`/`description`) intact; the **property test** over the three resolvers — user-membership
+*implication*, not subset (subset is disproved; see the criterion); all three **emptiness** modes — catalogue exits non-zero only when a
+non-empty set was filtered empty, single-pack succeeds with an empty `plugins`
+list, self-host warns and continues; the
 publish script's predicate re-derivation and its entry-vs-directory equality;
 Gate 1's narrowed `expected_packs`.
 
@@ -84,31 +107,10 @@ republished.
 **Done when:** the unit and integration tests pass and `make build-self` +
 `make build-check` are green with the regenerated marketplace committed.
 
-### T1 — Fixture scope declarations
-**Depends on:** none · *(runs first — the five build fixtures carry only a `[pack]` table, so the predicate resolves them to `["repo"]` and reddens the derivation, pipeline, end-to-end and drift-gate suites the moment T0 lands)* · **Mode:** Goal-based check
-
-**Done when:** every fixture whose tests assert claude-plugins output declares
-the lowest `[pack.adapter-contract] version` that carries **both**
-`[pack.install]` and `user-scope-hooks` (the latter recorded at v0.3 in
-`commands/validate.py`), pinned to an exact value in the task and justified in
-one clause — and
-`[pack.install] allowed-scopes` including `"user"`, and those tests pass.
-
-**Approach:** derive the fixture list by **glob** over every fixture tree whose
-tests assert claude-plugins output, not from a named five — `tests/fixtures/packs/cc-user-hooks`,
-`tests/fixtures/install/catalogue/packs/alpha`, `tests/fixtures/list_packs/…`
-and `tests/fixtures/local_scope/…` also carry no `plugin.json`. Five fixtures
-under `build/tests/fixtures/packs/` lack
-`[pack.adapter-contract]` and therefore resolve to `["repo"]`. `.../packs/core/`
-additionally ships `.apm/hooks/` + `.apm/hook-wiring/`, so Rail B
-(`build/scope_rails.py:check_hooks`) also requires
-`[pack.install] user-scope-hooks = true` or `validate` refuses it. Declare, don't
-rely on defaults.
-
 ### T2 — Site gating, with a consistency test
 **Depends on:** T0 · **Mode:** TDD
 
-**Tests:** `stub: pending` (materialise before EXECUTE) — a test reading each `packs/<slug>/pack.toml` and
+**Tests:** `stub: true` — a test reading each `packs/<slug>/pack.toml` and
 asserting `web/src/content/packs/<slug>.md`'s user-capability field equals
 `"user" in allowed-scopes`, plus the built-output assertion. Reachable from
 **not** a bare pytest hung off `make build-check` — that target runs no pytest,
@@ -118,6 +120,11 @@ lands as a `tools/lint-*.py` + `tools/test-lint-*.py` pair registered in
 Verification is by **mutation**: desync a `web/` frontmatter value, assert
 `make build-check` exits non-zero. The built-output half needs a Node toolchain
 in the required job — an `Ask first` boundary, resolved before wiring.
+
+**Done when:** the lint pair is registered in `tools/repo/build_gate_chain.py`
+with `lint-ci-parity` green; a frontmatter desync makes `make build-check` exit
+non-zero; the built site shows the command for a user-capable pack and not for a
+repo-only one.
 
 **Approach:** add the field to `web/src/content.config.ts` (required, no
 default, so the Astro build fails on omission) and each pack's markdown file; gate `[pack].astro` and `catalogue/index.astro` on it, **not** on `scope`
@@ -160,10 +167,13 @@ test cites, so the test is not silently dropping a live obligation.
 ### T4b — `render_pack` consumers
 **Depends on:** T0 · **Mode:** Integration (characterization)
 
-**Tests:** `stub: pending` (materialise before EXECUTE) — each of `commands/render.py`, `diff.py`,
+**Tests:** `stub: true` — each of `commands/render.py`, `diff.py`,
 `init_state.py`, `upgrade.py`, `install.py --emit-install-routes`, and
 `validate.py` asserted for its expected output per projection; a pre-change
 `state.json` carrying old relpaths exercised through `upgrade`.
+
+**Done when:** each of the six consumers is asserted per projection and the
+pre-change `state.json` case passes through `upgrade`.
 
 **Approach:** assertions only — characterization of behaviour T0 ships, not
 red-green. T0 owns re-pinning the existing consumer tests; this task adds only
@@ -192,9 +202,11 @@ recorded, since that is the observation AC14's remedy is written against; and an
 an installed-but-delisted plugin. Transcripts below. **Scope boundary:** one
 dropped pack and one user-capable pack are exercised by hand; the other 19 are
 covered by T0's assertions. The **post-merge** re-run against the published
-marketplace is a separate recorded step. **This PR adds the backlog slug** —
-`workspace.toml [backlog].open` has no entry for it today, so the claim would
-otherwise be false on landing.
+marketplace is a separate recorded step. **This PR adds four
+`workspace.toml [backlog].open` slugs**, none of which exist today:
+`plugin-publish-required-reviewer`, `plugin-selfhost-scope-exemption`,
+`plugin-postmerge-marketplace-check`, and `plugin-marketplace-content-hash`.
+Each ships as a `(deferred: <slug>)` marker on the criterion it defers.
 
 ## Risks
 
