@@ -133,6 +133,14 @@ shipped = [
   "spec/jira-check-sso-auto-login",       # jira check SSO auto-recovery in credbroker; credbroker 0.5.0 + engine errata RFC-0035/0013
 ]
 queue   = [
+  # RFC-0082 / ADR-0075 follow-on, in order. Spec 1 is release-blocking and lands
+  # first: it makes the engine export boundary real (the absence half of the
+  # enforcement) so spec 2's relocations cannot silently re-enter an artifact.
+  # Spec 2 does the ownership classification, extracts conformance classes out of
+  # mixed engine modules, wires the shipping channels, and lands the sdist graft.
+  "spec/engine-export-boundary",
+  {path = "spec/catalogue-test-carve-out", needs = "work:spec/engine-export-boundary"},
+
   # P5 · Adopt — gated on adopter-persona research (evidence base)
   {path = "spec/m6-astro-project-index",         needs = "research:adopter-persona"},  # Astro site: PM-facing project index from docs/product/projects/
   {path = "spec/m6-live-demo-guide",             needs = "research:adopter-persona"},  # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
@@ -439,6 +447,15 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # agentbundle-install-marker-importable-path — the wheel ships
+  # agentbundle/_data/install-marker.py at a path that is not importable, which
+  # `check-wheel-contents` reports as W004. Surfaced while measuring artifacts for
+  # RFC-0082 and deliberately excluded from its scope: it is a packaging defect,
+  # not a test-ownership one, and folding it into a release-blocking spec would
+  # muddy that spec's diff. Recorded here so it survives RFC-0082's follow-ons
+  # stalling. Fix: move the file to an importable path, or declare it data rather
+  # than a module.
+  {slug = "agentbundle-install-marker-importable-path", source = "spec/engine-export-boundary (out of scope)"},
   # Every other pack description was rewritten outcome-first; credential-brokers
   # still opens "User-scope credential brokering: the credbroker library
   # (pip-installed, in-process resolver...)" and names an internal path
