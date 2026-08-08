@@ -250,7 +250,62 @@ and the content hash correspond to no criterion at all, none of which exist toda
 
 ## Verification log
 
-_(T6 transcripts land here.)_
+Real-client run against `claude` 2.1.223, pre-merge, using a **local
+marketplace path** — the repo-root marketplace resolves from `main` and the
+dist branch is written on push, so neither reflects this PR. Throwaway
+`CLAUDE_CONFIG_DIR`.
+
+**A dropped pack is not installable.**
+
+```
+$ claude plugin install core@agent-ready-repo
+✘ Failed to install plugin "core@agent-ready-repo": Plugin "core" not found in
+  marketplace "agent-ready-repo".
+```
+
+**A user-capable pack installs, at user scope.**
+
+```
+$ claude plugin install architect@agent-ready-repo
+✔ Successfully installed plugin: architect@agent-ready-repo (scope: user)
+
+$ claude plugin details architect@agent-ready-repo
+Architect (architect) 0.14.3
+  Skills (3)  architect-design, architect-diagram, architect-review
+  Agents (1)  design-reviewer
+  Hooks (1)  SessionStart  (harness-only — no model context cost)
+
+$ claude plugin validate /tmp/t6/claude-plugins/architect
+✔ Validation passed
+```
+
+**Delist behaviour — the observation that decides the remedy.** Removed the
+entry and the directory, as a publish does, then refreshed:
+
+```
+$ claude plugin marketplace update agent-ready-repo
+✔ Successfully updated marketplace: agent-ready-repo
+
+$ claude plugin list
+  ❯ architect@agent-ready-repo
+    Scope: user
+    Status: ✘ failed to load
+    Error: Plugin architect not found in marketplace agent-ready-repo
+
+$ claude plugin update architect@agent-ready-repo
+✘ Failed to update plugin: Plugin "architect" not found
+
+$ claude plugin uninstall architect@agent-ready-repo
+✔ Successfully uninstalled plugin: architect (scope: user)
+```
+
+**What this settles.** The delisted plugin does **not** keep running an
+unmaintained copy — it fails to load, loudly, and `update` refuses. The
+enablement entry survives until uninstalled, so the residual is a broken entry
+in the adopter's plugin list, not silent execution of stale code. That is
+milder than the changelogs originally assumed, and they were corrected to state
+the observed behaviour rather than the feared one. `claude plugin uninstall`
+remains step one of the remedy — it is what clears the dead entry.
 
 ## Changelog
 

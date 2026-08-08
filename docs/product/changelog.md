@@ -52,9 +52,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   always built for.
 
   Already installed one as a plugin? Run
-  `claude plugin uninstall <pack>@agent-ready-repo` first, then reinstall at
-  repo scope. Removing a pack from the marketplace does not uninstall the copy
-  already on your machine.
+  `claude plugin uninstall <pack>@agent-ready-repo`, then install at repo scope
+  with `agentbundle install`. Verified against Claude Code 2.1.223: a delisted
+  plugin does not keep running — it shows as `failed to load` in
+  `claude plugin list` and `claude plugin update` refuses it. Uninstalling is
+  what clears the dead entry.
 
   The pack pages and the catalogue on the site now show the plugin command only
   where it applies.
