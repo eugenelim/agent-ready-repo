@@ -101,6 +101,24 @@ def test_same_path_outside_the_scaffold_still_fails(tmp_path):
     assert gate.main(["prog", str(whl)]) == 1
 
 
+def test_pytest_suffix_naming_is_caught(tmp_path):
+    """pytest's default `python_files` is `test_*.py *_test.py`, and this repo
+    carries a `**/*_test.py` per-file-ignore, so the suffix form is in use."""
+    whl = _zip(tmp_path / "p-1.0-py3-none-any.whl", ["pkg/__init__.py", "pkg/adapters_test.py"])
+    assert gate.main(["prog", str(whl)]) == 1
+
+
+def test_exemption_does_not_whitelist_a_nested_test_tree(tmp_path):
+    """The carve-out is anchored at the top-level package's own `_data/`. An
+    unanchored match would exempt a real test tree inside the package purely
+    because a directory further down is named `catalogue-scaffold`."""
+    whl = _zip(
+        tmp_path / "p-1.0-py3-none-any.whl",
+        ["pkg/__init__.py", "pkg/build/tests/_data/catalogue-scaffold/test_p.py"],
+    )
+    assert gate.main(["prog", str(whl)]) == 1
+
+
 # ── argument handling ────────────────────────────────────────────────────
 
 
@@ -156,3 +174,23 @@ def test_zipapp_retains_scaffold_test_template(tmp_path, monkeypatch):
     assert any("catalogue-scaffold/tests/conformance/test_t.py" in n for n in names), (
         "the scaffold test template was stripped from the zipapp"
     )
+
+
+# ── the wiring itself (AC9) ──────────────────────────────────────────────
+
+
+def test_gate_paths_are_in_the_workflow_trigger():
+    """AC9 as a parse assertion, not a human read. Both tools/ files are
+    load-bearing for `release-agentbundle.yml`; without them in
+    `on.pull_request.paths`, a PR changing only the gate never runs the gate."""
+    wf = (REPO_ROOT / ".github" / "workflows" / "release-agentbundle.yml").read_text(
+        encoding="utf-8"
+    )
+    # Stdlib-only: the trigger block is a flat list of quoted scalars, and
+    # depending on PyYAML here would put a third-party import in a tools/ test.
+    head = wf.split("jobs:", 1)[0]
+    for path in ("tools/check-artifact-contents.py", "tools/build_zipapp.py"):
+        assert f"'{path}'" in head or f'"{path}"' in head, (
+            f"{path} is missing from the workflow trigger; a PR touching only "
+            "it would skip the gate"
+        )

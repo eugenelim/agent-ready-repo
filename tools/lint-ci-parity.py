@@ -261,6 +261,11 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest guides sidebar generation":
         LOCAL("test"),
+    # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
+    # this step runs the gate's own tests, so a regression to always-exit-0 goes
+    # red here rather than staying silently green.
+    "pytest export-boundary gate":
+        LOCAL("test"),
     "Install credbroker (editable, with crypto extra)":
         CI_ONLY(
             "Provisioning."

@@ -220,6 +220,12 @@ jobs:
       - name: pytest guides sidebar generation
         run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
 
+      # RFC-0082's export-boundary gate runs in release-agentbundle.yml, so
+      # nothing here would catch it regressing to always-exit-0. make
+      # build-check runs no pytest — wire its tests explicitly.
+      - name: pytest export-boundary gate
+        run: python -m pytest tools/test_check_artifact_contents.py
+
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with

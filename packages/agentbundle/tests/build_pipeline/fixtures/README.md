@@ -28,8 +28,10 @@ fixtures/
 
 Fixtures are test data and the `stdlib-only` rule does **not** bind
 them — a fixture hook may import third-party packages to simulate a
-real-world payload. The lint audit at `tools/lint-build.sh`
-explicitly excludes this directory.
+real-world payload. The stdlib-only import audit in
+`tools/lint-build.py` does not reach this tree — it scans
+`packages/agentbundle/agentbundle/build/` only, and RFC-0082 moved
+these fixtures out of that root.
 
 Production-pack migration (a top-level `packs/` directory holding
 this repo's catalogue content) is **out of scope** for this spec

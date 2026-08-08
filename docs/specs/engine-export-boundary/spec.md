@@ -1,6 +1,6 @@
 # Spec: engine export boundary
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0075, RFC-0082, ADR-0071
@@ -119,11 +119,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Acceptance Criteria
 
-- [ ] **AC1** — `packages/agentbundle/agentbundle/` contains no test files —
+- [x] **AC1** — `packages/agentbundle/agentbundle/` contains no test files —
       no `tests/` directory, no `test_*.py`, no `conftest.py` — with one stated
       exemption: `_data/catalogue-scaffold/**` is inert template content that
       ships in the wheel by design and is never collected here.
-- [ ] **AC2** — The relocated engine suite runs green from
+- [x] **AC2** — The relocated engine suite runs green from
       `packages/agentbundle/tests/build_pipeline/`, with the same number of
       passing tests as before the move, verified **per module** rather than in
       aggregate. The directory is `build_pipeline`, **not** `build`: pytest's
@@ -131,13 +131,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       `pytest tests/` would silently collect 587 fewer tests and still report
       green. Naming the directory explicitly does not rescue it — only naming
       individual files does.
-- [ ] **AC3** — A freshly built wheel contains zero entries matching a test
+- [x] **AC3** — A freshly built wheel contains zero entries matching a test
       path outside `_data/catalogue-scaffold/**`, verified by opening the
       artifact rather than by reading config.
-- [ ] **AC4** — A freshly built zipapp contains zero engine test entries, and a
+- [x] **AC4** — A freshly built zipapp contains zero engine test entries, and a
       zipapp built from a tree containing `_data/catalogue-scaffold/**/tests/`
       retains that content. (Mechanism and rationale: `plan.md` T4.)
-- [ ] **AC5** — `_collect_dir_bytes`'s two vendored call sites emit no test
+- [x] **AC5** — `_collect_dir_bytes`'s two vendored call sites emit no test
       content, using AC1's definition of test content — no `tests/` directory, no
       `test_*.py`, **no `conftest.py`**. The last clause is load-bearing: the
       engine call site collects the whole `packages/agentbundle/` directory, and
@@ -145,17 +145,17 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       `--guides selected`) both still do. Asserted by a unit test appended to
       `packages/agentbundle/tests/unit/test_catalogue_tooling_self_hosted_init.py`,
       not by inspection.
-- [ ] **AC5b** — Every test artifact this spec creates has a declared home and a
+- [x] **AC5b** — Every test artifact this spec creates has a declared home and a
       runner. The gate and zipapp cases live in
       `tools/test_check_artifact_contents.py`, which is added to the `Makefile`'s
       enumerated `tools/` pytest line — that list is curated by hand, not
       globbed, so an unlisted file runs nowhere and would let AC8 and AC11 pass
       vacuously.
-- [ ] **AC6** — `pip install -e packages/agentbundle` succeeds; `import
+- [x] **AC6** — `pip install -e packages/agentbundle` succeeds; `import
       agentbundle` and `import agentbundle.build` resolve; the `agentbundle`
       console script reports the correct version; `import
       agentbundle.build.tests` raises `ModuleNotFoundError`.
-- [ ] **AC7** — `build/self_host.py`'s destructive-write guard refuses a
+- [x] **AC7** — `build/self_host.py`'s destructive-write guard refuses a
       real-write self-host targeting the relocated fixture tree
       (`…/tests/build_pipeline/fixtures/…`) as well as the unmoved one
       (`…/tests/fixtures/…`). It matches `tests` preceding `fixtures` as **path
@@ -164,14 +164,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       component match. The helper signature is unchanged: no repo-root argument,
       no new parameter. Its covering test gains a case for the relocated shape
       and a negative case for the components in the wrong order.
-- [ ] **AC8** — The artifact gate is a pure-stdlib script in `tools/` that
+- [x] **AC8** — The artifact gate is a pure-stdlib script in `tools/` that
       accepts a `.whl` or a `.pyz`, fails on either containing test content, and
       passes a test-shaped path under `_data/catalogue-scaffold/**` — the
       exemption written into the gate, not left to a reviewer. It asserts
       **nothing** about the sdist: that surface's rule inverts from absence to
       presence when the carve-out lands its graft, and an absence assertion would
       then reject a correct artifact.
-- [ ] **AC8b** — The gate runs on both artifacts it covers, in this order:
+- [x] **AC8b** — The gate runs on both artifacts it covers, in this order:
       the existing "Build wheel + sdist" step; then a new
       `python3 tools/build_zipapp.py <scratch-dir>` step, because no workflow
       builds a zipapp today and the builder requires an output directory
@@ -180,9 +180,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       `<scratch-dir>` is **outside** `packages/agentbundle/dist/`: that directory
       is what `twine check` validates and what the publish job uploads to PyPI,
       so a stray `.pyz` there would redden the check and poison the release.
-- [ ] **AC9** — The gate script's own path is in that workflow's
+- [x] **AC9** — The gate script's own path is in that workflow's
       `pull_request.paths` filter, so a change to the gate runs the gate.
-- [ ] **AC10** — Every operative reference enumerated in `plan.md` T1 is
+- [x] **AC10** — Every operative reference enumerated in `plan.md` T1 is
       resolved — most rewritten, three **removed as dead**: `bandit.yaml`'s
       `*/build/tests/*` entry (its `*/tests/*` sibling already covers the new
       path), the root `pyproject.toml` mypy `exclude` (which falls outside
@@ -193,20 +193,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       and the package `CHANGELOG.md` are deliberately untouched — **except**
       `docs/specs/catalogue-test-carve-out/**`, a live Draft spec pair whose
       `tests/build_pipeline/` (formerly `agentbundle/build/tests/`) references this change invalidates.
-- [ ] **AC11** — `make ci` passes, and the Windows build-check leg passes with
+- [x] **AC11** — `make ci` passes, and the Windows build-check leg passes with
       `self_host_windows.py`'s invocation paths updated.
-- [ ] **AC14** — `packages/AGENTS.md` § Test conventions names the third engine
+- [x] **AC14** — `packages/AGENTS.md` § Test conventions names the third engine
       test root this change creates. It currently says the roots are `tests/unit/`
       and `tests/integration/`, which T1 falsifies. Only that correction lands
       here; the full four-owner rewrite RFC-0082 calls for belongs to the
       carve-out spec, and AC10's literal sweep would never surface this file.
-- [ ] **AC12** — A sweep of `packages/agentbundle/agentbundle/**` for other
+- [x] **AC12** — A sweep of `packages/agentbundle/agentbundle/**` for other
       substring-shaped path guards over `tests`, `fixtures`, or `build`, with its
       result recorded in a committed note at
       `docs/specs/engine-export-boundary/notes/guard-sweep.md` (found and fixed,
       or none). RFC-0082's pre-mortem asks for this rather than assuming
       `self_host.py` is the only one.
-- [ ] **AC13** — `catalogue_tooling/self_host_windows.py` stays where it is, and
+- [x] **AC13** — `catalogue_tooling/self_host_windows.py` stays where it is, and
       the reason is recorded in the same committed note as AC12. This answers
       RFC-0082 open question 2 against its recommended default, deliberately:
       relocating it would re-touch every file T1 has just swept, and it is a
@@ -233,6 +233,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   into scope of that tree's autouse `_isolate_user_config_dir` fixture
   (`tests/conftest.py:26-43`), which redirects `HOME`/`XDG_CONFIG_HOME`/`APPDATA`/
   `USERPROFILE`. Modules that spawn subprocesses with `cwd=REPO_ROOT` inherit it.
+- **Technical:** the move puts the relocated modules *into* ruff's scope for the
+  first time. The repository's ruff `exclude` carries `"build"` — the same
+  collision as pytest's `norecursedirs` — so the old tree was never linted. 73
+  pre-existing violations surfaced and were fixed rather than re-suppressed:
+  re-excluding would recreate exactly the incidental-exclusion pattern this spec
+  exists to end. The fixes are mechanical (unused imports, `os.path` → `pathlib`,
+  a `self.fail` → `raise`, blank lines) and touch no assertion.
 - **Technical:** the move removes the relocated modules from
   `tools/lint-build.py`'s stdlib-import audit, which walks
   `packages/agentbundle/agentbundle/build/**`. That is an accepted, recorded

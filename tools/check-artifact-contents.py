@@ -32,13 +32,21 @@ import zipfile
 from pathlib import Path
 
 # A `tests`/`test` path component, or a test-shaped module at any depth.
-_TEST_ENTRY = re.compile(r"(^|/)tests?(/|$)|(^|/)(test_[^/]*|conftest)\.py$")
+_TEST_ENTRY = re.compile(
+    r"(^|/)tests?(/|$)"                     # a tests/ or test/ component
+    r"|(^|/)(test_[^/]*|[^/]*_test|conftest)\.py$"  # pytest's default python_files
+)
 
 # The bundled catalogue scaffold is inert template material: it ships in the
 # wheel by design (pyproject `package-data`) and is never collected or executed
 # here. Without this carve-out the carve-out spec's scaffold test template would
 # turn an already-released gate red on a correct artifact.
-_EXEMPT = re.compile(r"(^|/)_data/catalogue-scaffold/")
+#
+# Anchored at the top-level package's own `_data/`. An unanchored match would
+# exempt e.g. `pkg/build/tests/_data/catalogue-scaffold/test_p.py` — a real
+# test tree inside the importable package, whitelisted by a directory name
+# appearing further down the path.
+_EXEMPT = re.compile(r"^[^/]+/_data/catalogue-scaffold/")
 
 
 def offending_entries(artifact: Path) -> list[str]:

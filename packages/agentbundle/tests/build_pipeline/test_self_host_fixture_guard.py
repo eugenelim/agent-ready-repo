@@ -54,6 +54,15 @@ class RefuseFixturePacksDirTest(unittest.TestCase):
             rc = _refuse_fixture_packs_dir(relocated, dry_run=False)
         self.assertEqual(rc, 2)
 
+    def test_adjacent_substring_form_still_refuses(self):
+        """Component matching alone would be a *narrowing*: it lets through
+        `mytests/fixtures/`, which 0.29.8 refused. Dropping a refusal a
+        previous release gave is not something a relocation should do."""
+        for p in ("/repo/mytests/fixtures/packs", "/repo/attests/fixtures/x"):
+            with mock.patch.dict(os.environ, _ENV_UNSET):
+                rc = _refuse_fixture_packs_dir(Path(p), dry_run=False)
+            self.assertEqual(rc, 2, f"{p} lost its refusal")
+
     def test_components_in_wrong_order_proceeds(self):
         """`fixtures` before `tests` is not the shape being guarded."""
         with mock.patch.dict(os.environ, _ENV_UNSET):
