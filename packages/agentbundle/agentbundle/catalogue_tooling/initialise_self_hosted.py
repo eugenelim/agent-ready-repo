@@ -71,6 +71,20 @@ _VENDORED_TOOLING_ROOT = ".agentbundle/tooling"
 # The engine root is `packages/agentbundle/`, so its suite sits at `tests/` and
 # a root `conftest.py` sits beside the package; both are test content.
 _VENDORED_ENGINE_EXCLUDE: tuple[str, ...] = ("tests/", "conftest.py")
+
+# Build residue, matched by *name at any depth* rather than by relative path.
+# A maintainer's working tree carries all of these, and `_collect_dir_bytes`
+# walks the filesystem rather than the git index, so without this they are
+# copied into the adopter's repository and committed there. Two of them are
+# more than noise:
+#   * `__pycache__/*.pyc` embeds the absolute build path — a real username and
+#     filesystem layout — which AGENTS.md § Privacy forbids committing.
+#   * `.pytest_cache/` and `*.egg-info/SOURCES.txt` enumerate engine test node
+#     IDs and paths: test content, shipped past a control whose whole purpose
+#     is that no test content ships.
+_BUILD_RESIDUE_DIRS: frozenset[str] = frozenset(
+    {"__pycache__", ".pytest_cache", "build", "dist"}
+)
 _VENDORED_PACK_EXCLUDE: tuple[str, ...] = ("tests/",)
 
 
@@ -408,17 +422,29 @@ def _collect_dir_bytes(
     """
     prune = tuple(e.rstrip("/") for e in exclude if e.endswith("/"))
     drop = frozenset(e for e in exclude if not e.endswith("/"))
+    # Build residue is pruned by name at any depth whenever any exclusion is in
+    # force — i.e. at the vendored call sites only. The adopter's own packs and
+    # guides are copied with `exclude=()` and keep everything.
+    residue = bool(exclude)
     for dirpath, dirnames, filenames in os.walk(str(src_dir), followlinks=False):
         dp = Path(dirpath)
         dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
         rel_to_src = dp.relative_to(src_dir)
         rel_dir = rel_to_src.as_posix()
+        if residue:
+            dirnames[:] = [
+                dn
+                for dn in dirnames
+                if dn not in _BUILD_RESIDUE_DIRS and not dn.endswith(".egg-info")
+            ]
         if prune:
             base = "" if rel_dir == "." else rel_dir + "/"
             dirnames[:] = [dn for dn in dirnames if base + dn not in prune]
         for fname in filenames:
             src_file = dp / fname
             if src_file.is_symlink():
+                continue
+            if residue and fname.endswith((".pyc", ".pyo")):
                 continue
             if drop and (
                 fname if rel_dir == "." else f"{rel_dir}/{fname}"

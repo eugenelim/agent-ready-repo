@@ -445,6 +445,18 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # ruff-excludes-the-engine-build-package — the root pyproject's ruff
+  # `exclude` carries the bare name "build", which ruff matches at any depth. It
+  # was put there for build *output*; it also hides
+  # packages/agentbundle/agentbundle/build/ — shipped engine code — from every
+  # repo-root `ruff check`. Measured 2026-08-08: 66 live violations in there,
+  # including self_host.py. Surfaced by RFC-0082's quality pass, which hit the
+  # same collision in pytest's norecursedirs. Fix: anchor the exclude at the
+  # repo-root build output ("/build" or "build/" at the root) rather than the
+  # bare name, then clear what it uncovers. Deliberately not folded into
+  # spec/engine-export-boundary: fixing 66 violations in shipped code does not
+  # belong in a release-blocking diff.
+  {slug = "ruff-excludes-the-engine-build-package", source = "spec/engine-export-boundary (quality pass)"},
   # agentbundle-install-marker-importable-path — the wheel ships
   # agentbundle/_data/install-marker.py at a path that is not importable, which
   # `check-wheel-contents` reports as W004. Surfaced while measuring artifacts for

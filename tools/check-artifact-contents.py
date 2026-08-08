@@ -51,14 +51,8 @@ _EXEMPT = re.compile(r"^[^/]+/_data/catalogue-scaffold/")
 
 def offending_entries(artifact: Path) -> list[str]:
     """Return the test-content entries in *artifact*, sorted."""
-    try:
-        with zipfile.ZipFile(artifact) as zf:
-            names = zf.namelist()
-    except (OSError, zipfile.BadZipFile) as exc:
-        raise SystemExit(
-            f"check-artifact-contents: {artifact.name}: not a readable zip "
-            f"archive ({exc})"
-        ) from exc
+    with zipfile.ZipFile(artifact) as zf:
+        names = zf.namelist()
     return sorted(
         n for n in names if _TEST_ENTRY.search(n) and not _EXEMPT.search(n)
     )
@@ -84,7 +78,21 @@ def main(argv: list[str]) -> int:
             )
             bad_args = True
             continue
-        entries = offending_entries(artifact)
+        try:
+            entries = offending_entries(artifact)
+        except (OSError, zipfile.BadZipFile) as exc:
+            # An input error, not a violation — exit 2 like the other argument
+            # problems, and keep checking the rest. `release-agentbundle.yml`
+            # passes a shell glob, so an unmatched `dist/*.whl` arrives here as
+            # a literal filename; reporting it as "found tests" would send a
+            # triager hunting for entries that do not exist.
+            print(
+                f"check-artifact-contents: {artifact.name}: not a readable zip "
+                f"archive ({exc})",
+                file=sys.stderr,
+            )
+            bad_args = True
+            continue
         if entries:
             failed = True
             print(

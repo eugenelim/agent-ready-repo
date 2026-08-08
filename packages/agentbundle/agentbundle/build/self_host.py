@@ -1597,9 +1597,12 @@ def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
     unless `ALLOW_FIXTURE_PACKS` is set.
 
     This is the cross-platform home of the guard that used to live only in the
-    Makefile `build-self` recipe — so the make-free entry
-    `python -m agentbundle.build self` (the only way to run build-self on
-    Windows) is protected too. Returns a non-zero exit code to refuse, or
+    Makefile `build-self` recipe, so the make-free entry
+    `python -m agentbundle.build self` is protected too. It is reached from
+    `cmd_self` **and** from `catalogue_tooling.self_host.write_self_host`,
+    whose `packs_dir` comes from `catalogue.toml` rather than from a flag — a
+    catalogue pointing `[catalogue.paths] packs` at a fixture tree is the same
+    destructive write by a different route. Returns a non-zero exit code to refuse, or
     `None` to proceed. Dry-run writes to a shadow temp dir, so it is never
     guarded (matching the `run_self_host` dirty-tree check).
 
@@ -1620,13 +1623,20 @@ def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
     was protecting: `my-tests` is not the component `tests`, and
     `fixtures-backup` is not `fixtures`.
     """
-    if dry_run or os.environ.get("ALLOW_FIXTURE_PACKS"):
+    # An explicit allow-list, not truthiness: `ALLOW_FIXTURE_PACKS=0` reads as
+    # "off" and would otherwise disarm a destructive-write control, for every
+    # later invocation in that shell or CI job.
+    override = os.environ.get("ALLOW_FIXTURE_PACKS", "").strip().lower()
+    if dry_run or override in {"1", "true", "yes"}:
         return None
-    parts = packs_dir.parts
+    # Case-folded: `resolve()` does not canonicalise case on a case-insensitive
+    # filesystem (macOS default), so `.../tests/build_pipeline/Fixtures/packs`
+    # reaches the same on-disk tree while matching neither test.
+    parts = tuple(p.lower() for p in packs_dir.parts)
     by_component = any(
         "fixtures" in parts[i + 1 :] for i, part in enumerate(parts) if part == "tests"
     )
-    if by_component or "tests/fixtures/" in packs_dir.as_posix():
+    if by_component or "tests/fixtures/" in packs_dir.as_posix().lower():
         print(
             f"self-host: refusing — --packs-dir {packs_dir} points into a test "
             "fixture tree; this would overwrite your working tree with fixture "

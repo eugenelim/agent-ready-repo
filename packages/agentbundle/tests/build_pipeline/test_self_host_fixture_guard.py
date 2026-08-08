@@ -63,6 +63,30 @@ class RefuseFixturePacksDirTest(unittest.TestCase):
                 rc = _refuse_fixture_packs_dir(Path(p), dry_run=False)
             self.assertEqual(rc, 2, f"{p} lost its refusal")
 
+    def test_case_insensitive_filesystem_cannot_slip_past(self):
+        """`resolve()` does not canonicalise case on macOS's default APFS, so
+        `.../Fixtures/...` reaches the same on-disk tree while matching neither
+        the component test nor the substring unless both are folded."""
+        for p in (
+            "/repo/packages/agentbundle/tests/build_pipeline/Fixtures/packs",
+            "/repo/packages/agentbundle/Tests/fixtures/packs",
+        ):
+            with mock.patch.dict(os.environ, _ENV_UNSET):
+                rc = _refuse_fixture_packs_dir(Path(p), dry_run=False)
+            self.assertEqual(rc, 2, f"{p} slipped past the guard")
+
+    def test_override_requires_an_explicit_yes(self):
+        """A destructive-write control must not disarm on `=0`. Truthiness would
+        read "off" as "on", for every later invocation in that shell."""
+        for value in ("0", "false", "no", "off", ""):
+            with mock.patch.dict(os.environ, {"ALLOW_FIXTURE_PACKS": value}):
+                rc = _refuse_fixture_packs_dir(_FIXTURE_DIR, dry_run=False)
+            self.assertEqual(rc, 2, f"ALLOW_FIXTURE_PACKS={value!r} disarmed the guard")
+        for value in ("1", "true", "YES"):
+            with mock.patch.dict(os.environ, {"ALLOW_FIXTURE_PACKS": value}):
+                rc = _refuse_fixture_packs_dir(_FIXTURE_DIR, dry_run=False)
+            self.assertIsNone(rc, f"ALLOW_FIXTURE_PACKS={value!r} failed to override")
+
     def test_components_in_wrong_order_proceeds(self):
         """`fixtures` before `tests` is not the shape being guarded."""
         with mock.patch.dict(os.environ, _ENV_UNSET):

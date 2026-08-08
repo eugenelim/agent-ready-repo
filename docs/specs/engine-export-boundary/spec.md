@@ -145,8 +145,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       zipapp built from a tree containing `_data/catalogue-scaffold/**/tests/`
       retains that content. (Mechanism and rationale: `plan.md` T4.)
 - [x] **AC5** — `_collect_dir_bytes`'s two vendored call sites emit no test
-      content, using AC1's definition of test content — no `tests/` directory, no
-      `test_*.py`, **no `conftest.py`**. The last clause is load-bearing: the
+      content at the vendored root: no `tests/` subtree and no root
+      `conftest.py`. Matching is by **exact relative path**, not by name at
+      any depth — a deliberate narrowing, so the exclusion cannot over-match
+      an adopter's content. A nested `conftest.py` deeper in the engine tree
+      would still be vendored; that residue is recorded as a follow-up rather
+      than fixed with a name-anywhere pattern this spec declined. The last clause is load-bearing: the
       engine call site collects the whole `packages/agentbundle/` directory, and
       a root `conftest.py` lives there beside the package. The two non-vendored
       call sites must keep carrying test content: its **packs** call site and
@@ -252,7 +256,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   `USERPROFILE`. Modules that spawn subprocesses with `cwd=REPO_ROOT` inherit it.
 - **Technical:** the move puts the relocated modules *into* ruff's scope for the
   first time. The repository's ruff `exclude` carries `"build"` — the same
-  collision as pytest's `norecursedirs` — so the old tree was never linted. 73
+  collision as pytest's `norecursedirs` — so the old tree was never linted.
+  **The same exclude also hides the engine's own `agentbundle/build/`
+  package**, which is shipped code and carries 66 live violations a
+  repo-root `ruff check` never sees. That is a pre-existing gate hole, wider
+  than this spec, and is registered as a backlog slug rather than widened
+  into this diff. 73
   pre-existing violations surfaced and were fixed rather than re-suppressed:
   re-excluding would recreate exactly the incidental-exclusion pattern this spec
   exists to end. The fixes are mechanical (unused imports, `os.path` → `pathlib`,

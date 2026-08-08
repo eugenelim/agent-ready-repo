@@ -741,6 +741,15 @@ def _synthetic_source(root: Path) -> Path:
     (eng / "tests" / "build_pipeline").mkdir(parents=True)
     (eng / "tests" / "build_pipeline" / "test_x.py").write_text("x\n", encoding="utf-8")
     (eng / "conftest.py").write_text("x\n", encoding="utf-8")
+    # Build residue a maintainer's working tree always carries. The .pyc embeds
+    # an absolute build path — a real username — which AGENTS.md § Privacy
+    # forbids committing, and .pytest_cache lists engine test node IDs.
+    (eng / "agentbundle" / "__pycache__").mkdir()
+    (eng / "agentbundle" / "__pycache__" / "cli.cpython-311.pyc").write_bytes(b"\x00/Users/someone/x")
+    (eng / ".pytest_cache" / "v").mkdir(parents=True)
+    (eng / ".pytest_cache" / "v" / "nodeids").write_text("[]\n", encoding="utf-8")
+    (eng / "agentbundle.egg-info").mkdir()
+    (eng / "agentbundle.egg-info" / "SOURCES.txt").write_text("x\n", encoding="utf-8")
 
     pack = root / "packs" / "catalogue-curation"
     (pack / ".apm").mkdir(parents=True)
@@ -832,12 +841,20 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
 
     vendored = cfg.target / ".agentbundle" / "tooling"
     assert vendored.is_dir(), "vendored tooling was not written"
+    residue = {"__pycache__", ".pytest_cache", "build", "dist"}
     leaked = [
         p.relative_to(cfg.target).as_posix()
         for p in vendored.rglob("*")
-        if p.is_file() and ("tests" in p.parts or p.name == "conftest.py")
+        if p.is_file()
+        and (
+            "tests" in p.parts
+            or p.name == "conftest.py"
+            or residue & set(p.parts)
+            or p.suffix in {".pyc", ".pyo"}
+            or any(part.endswith(".egg-info") for part in p.parts)
+        )
     ]
-    assert not leaked, f"vendored payload carries test content: {leaked}"
+    assert not leaked, f"vendored payload carries test content or build residue: {leaked}"
 
     # ...while the adopter's own catalogue keeps its pack tests (ADR-0071).
     own = cfg.target / "packs" / "core" / "tests" / "test_own.py"

@@ -135,6 +135,24 @@ def test_no_arguments_is_usage_error():
     assert gate.main(["prog"]) == 2
 
 
+def test_unreadable_archive_is_an_input_error_not_a_violation(tmp_path):
+    """`release-agentbundle.yml` passes a shell glob, so an unmatched
+    `dist/*.whl` arrives as a literal filename. Reporting that as exit 1 sends
+    a triager hunting for offending entries that do not exist."""
+    bogus = tmp_path / "p-1.0-py3-none-any.whl"
+    bogus.write_text("not a zip\n", encoding="utf-8")
+    assert gate.main(["prog", str(bogus)]) == 2
+
+
+def test_one_bad_artifact_does_not_skip_the_rest(tmp_path):
+    bogus = tmp_path / "a-1.0-py3-none-any.whl"
+    bogus.write_text("not a zip\n", encoding="utf-8")
+    dirty = _zip(tmp_path / "b.pyz", ["pkg/__init__.py", "pkg/tests/test_x.py"])
+    # Exit is 2 (input error wins), but the second artifact was still opened —
+    # its violation appears in the output rather than being skipped.
+    assert gate.main(["prog", str(bogus), str(dirty)]) == 2
+
+
 # ── the real artifacts ───────────────────────────────────────────────────
 
 
@@ -149,6 +167,26 @@ def test_real_zipapp_carries_no_engine_tests(tmp_path):
         cwd=REPO_ROOT, check=True, capture_output=True,
     )
     assert gate.offending_entries(tmp_path / "agentbundle.pyz") == []
+
+
+@pytest.mark.skipif(
+    not (REPO_ROOT / "packages" / "agentbundle").is_dir(),
+    reason="engine package not present",
+)
+def test_real_wheel_carries_no_engine_tests(tmp_path):
+    """AC3 — the headline criterion. Its only other enforcement is the CI step,
+    so without this the claim rests entirely on a workflow nothing else pins."""
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "build", "--wheel", "--no-isolation",
+             "--outdir", str(tmp_path), str(REPO_ROOT / "packages" / "agentbundle")],
+            check=True, capture_output=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
+        pytest.skip(f"`python -m build` unavailable: {exc}")
+    wheels = list(tmp_path.glob("*.whl"))
+    assert wheels, "no wheel was produced"
+    assert gate.offending_entries(wheels[0]) == []
 
 
 def test_zipapp_retains_scaffold_test_template(tmp_path, monkeypatch):
@@ -179,18 +217,38 @@ def test_zipapp_retains_scaffold_test_template(tmp_path, monkeypatch):
 # ── the wiring itself (AC9) ──────────────────────────────────────────────
 
 
-def test_gate_paths_are_in_the_workflow_trigger():
-    """AC9 as a parse assertion, not a human read. Both tools/ files are
-    load-bearing for `release-agentbundle.yml`; without them in
-    `on.pull_request.paths`, a PR changing only the gate never runs the gate."""
-    wf = (REPO_ROOT / ".github" / "workflows" / "release-agentbundle.yml").read_text(
+def _release_workflow() -> str:
+    return (REPO_ROOT / ".github" / "workflows" / "release-agentbundle.yml").read_text(
         encoding="utf-8"
     )
-    # Stdlib-only: the trigger block is a flat list of quoted scalars, and
-    # depending on PyYAML here would put a third-party import in a tools/ test.
-    head = wf.split("jobs:", 1)[0]
+
+
+def test_gate_paths_are_in_the_pull_request_trigger():
+    """AC9 as a parse assertion, not a human read. Both tools/ files are
+    load-bearing for `release-agentbundle.yml`; without them in
+    `on.pull_request.paths`, a PR changing only the gate never runs the gate.
+
+    Scoped to the `pull_request.paths` block specifically — asserting the
+    strings appear anywhere before `jobs:` would also pass if they sat in a
+    comment or under `push:`."""
+    wf = _release_workflow()
+    trigger = wf.split("jobs:", 1)[0]
+    block = trigger.split("pull_request:", 1)[1].split("paths:", 1)[1]
     for path in ("tools/check-artifact-contents.py", "tools/build_zipapp.py"):
-        assert f"'{path}'" in head or f'"{path}"' in head, (
-            f"{path} is missing from the workflow trigger; a PR touching only "
+        assert f"'{path}'" in block or f'"{path}"' in block, (
+            f"{path} is missing from on.pull_request.paths; a PR touching only "
             "it would skip the gate"
         )
+
+
+def test_the_gate_step_is_actually_invoked():
+    """Nothing else pins this. `release-agentbundle.yml` is out of scope for
+    `lint-ci-parity`, so deleting the gate step leaves every AC checked, `make
+    ci` green, and the wheel free to regain tests on the next regression —
+    verified by mutation. This test is the only thing that goes red."""
+    wf = _release_workflow()
+    assert "tools/check-artifact-contents.py" in wf.split("jobs:", 1)[1], (
+        "the gate is never invoked in any job"
+    )
+    for artifact in ("dist/*.whl", "agentbundle.pyz"):
+        assert artifact in wf, f"the gate is not pointed at {artifact}"

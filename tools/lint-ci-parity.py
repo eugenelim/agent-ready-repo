@@ -103,7 +103,12 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "pages.yml": "Deploy workflow, not a gate.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
-    "release-agentbundle.yml": "Release workflow, not a gate.",
+    "release-agentbundle.yml":
+        "Release workflow. It carries one hard gate — RFC-0082's "
+        "export-boundary check — whose local counterpart is `make test` "
+        "(tools/test_check_artifact_contents.py) and whose presence in the "
+        "workflow is pinned by test_the_gate_step_is_actually_invoked. "
+        "Everything else here is release plumbing.",
     "release-credbroker.yml": "Release workflow, not a gate.",
     "iac-release-loop-canary.yml": "Scheduled canary against live infra.",
     "iac-staleness.yml": "Scheduled staleness probe against live infra.",

@@ -65,10 +65,18 @@ def check_self_host(root: Path) -> SelfHostResult:
 
 def write_self_host(root: Path, force: bool = False) -> SelfHostResult:
     """Write self-host projection. Returns SelfHostResult with ok=True on success."""
-    from agentbundle.build.self_host import run_self_host
+    from agentbundle.build.self_host import _refuse_fixture_packs_dir, run_self_host
 
     config = load_catalogue_config(root)
     packs_dir = root / (config.paths.packs if config else "packs")
+
+    # Same destructive write as `build self --packs-dir`, reached by a different
+    # route: here `packs_dir` comes from `catalogue.toml` rather than a flag, so
+    # a catalogue pointing `[catalogue.paths] packs` at a fixture tree would
+    # overwrite the working tree with fixture data. `check_self_host` is
+    # dry-run and needs no guard.
+    if _refuse_fixture_packs_dir(packs_dir.resolve(), dry_run=False) is not None:
+        return _make_result(ok=False, operation="write", config=config)
 
     rc = run_self_host(
         working_tree=root,
