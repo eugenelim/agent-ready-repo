@@ -21,7 +21,6 @@ from __future__ import annotations
 import tomllib
 
 import pytest
-
 from agentbundle.commands.validate import _allowed_scopes
 
 

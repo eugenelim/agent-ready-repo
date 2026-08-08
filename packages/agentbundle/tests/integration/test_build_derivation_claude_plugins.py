@@ -47,6 +47,7 @@ EXPECTED_COMMAND = (
     " --install-route claude-plugins"
 )
 
+
 # All fixture packs — parametrisation covers multi-pack derivation (Concern-5).
 def _is_publishable(pack_dir) -> bool:
     """Mirror of the route's membership predicate for parametrisation.
