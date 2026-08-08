@@ -197,6 +197,18 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         # Drift backstop only — the pack-description quality bar is
         # guides/_shared/reference/catalogue-authoring-standards.md § 2.
+        # Claude-plugin route membership. Lives here, not in pytest: this is
+        # the only required, path-unfiltered gate, and `make build-check` runs
+        # no pytest. Widening a pack's allowed-scopes publishes its code to a
+        # public marketplace — this is the tripwire for that.
+        _script_step(
+            "test-lint-plugin-membership",
+            "tools", "test-lint-plugin-membership.py",
+        ),
+        _script_step(
+            "lint-plugin-membership",
+            "tools", "lint-plugin-membership.py",
+        ),
         _script_step(
             "test-lint-pack-descriptions",
             "tools", "test-lint-pack-descriptions.py",
