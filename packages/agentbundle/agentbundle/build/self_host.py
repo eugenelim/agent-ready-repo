@@ -1592,23 +1592,31 @@ def run_build_check_drift_gates(
 
 
 def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
-    """Refuse a real-write self-host whose `packs_dir` points into
-    `tests/fixtures/` (which would overwrite the working tree with fixture
-    data), unless `ALLOW_FIXTURE_PACKS` is set.
+    """Refuse a real-write self-host whose `packs_dir` points into a test
+    fixture tree (which would overwrite the working tree with fixture data),
+    unless `ALLOW_FIXTURE_PACKS` is set.
 
     This is the cross-platform home of the guard that used to live only in the
     Makefile `build-self` recipe — so the make-free entry
     `python -m agentbundle.build self` (the only way to run build-self on
     Windows) is protected too. Returns a non-zero exit code to refuse, or
     `None` to proceed. Dry-run writes to a shadow temp dir, so it is never
-    guarded (matching the `run_self_host` dirty-tree check). `as_posix()`
-    normalises separators so the match is Windows-safe.
+    guarded (matching the `run_self_host` dirty-tree check).
+
+    Matching is on path *components*, not a substring, and `fixtures` need only
+    follow `tests` — not sit directly beneath it. RFC-0082 moved the engine
+    suite to `tests/build_pipeline/fixtures/`, where the two are no longer
+    adjacent; the previous `"tests/fixtures/" in ...` test missed that and
+    failed *open*. Component matching also preserves what the old trailing
+    slash was protecting: `my-tests` is not the component `tests`, and
+    `fixtures-backup` is not `fixtures`.
     """
     if dry_run or os.environ.get("ALLOW_FIXTURE_PACKS"):
         return None
-    # Trailing slash mirrors the historical Makefile glob `*tests/fixtures/*`
-    # exactly — so a sibling like `my-tests/fixtures-backup/` doesn't over-match.
-    if "tests/fixtures/" in packs_dir.as_posix():
+    parts = packs_dir.parts
+    if any(
+        "fixtures" in parts[i + 1 :] for i, part in enumerate(parts) if part == "tests"
+    ):
         print(
             "self-host: refusing — --packs-dir points into tests/fixtures/; "
             "this would overwrite your working tree with fixture data. Set "
