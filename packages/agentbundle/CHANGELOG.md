@@ -6,6 +6,35 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING — the Claude-plugin route now publishes only packs that permit a
+  user-scope install.** A Claude plugin's code lives in the adopter's global
+  cache and `claude plugin install` defaults to `--scope user`, so a pack
+  declaring `[pack.install] allowed-scopes = ["repo"]` was being offered an
+  install its own declaration forbids. Six packs leave the marketplace: `core`,
+  `governance-extras`, `iac-terraform`, `monorepo-extras`,
+  `release-engineering`, `user-guide-diataxis` (`catalogue-curation` was
+  already excluded as operator-only).
+
+  **If you installed any of them as a plugin**, uninstall first —
+  `claude plugin uninstall <pack>@agent-ready-repo` — then install at repo
+  scope with `agentbundle install --pack <name> …`. Delisting is not
+  revocation: the entry and the published directory go away, but nothing
+  uninstalls the copy already in your cache, and following the remedy without
+  uninstalling leaves two unrelated copies of the pack's skills.
+
+- **Engine behaviour change for self-hosting adopters.** The same predicate
+  applies on `run_self_host`, so a pack in *your* catalogue that resolves
+  repo-only no longer appears in the `.claude-plugin/marketplace.json` your
+  build writes. The resolver gates on `[pack.adapter-contract].version`, not
+  `[pack.install]` — a pack declaring `allowed-scopes` with no contract version
+  resolves `["repo"]` and will be filtered. Each exclusion prints a named line;
+  an emptied catalogue build is a hard error, an emptied self-host run is a
+  warning that does not stop the projection.
+
 ## [0.30.1] — 2026-08-09
 
 ### Fixed
@@ -215,8 +244,6 @@ No flag, verb, exit code, or schema changed. Archive *contents* do change: an
 archive built from a tree that has been tested or npm-installed is now smaller,
 and matches what `catalogue-authoring-standards.md` § 4 has always told adopters
 it contains.
-
-## [Unreleased]
 
 ## [0.29.4] — 2026-08-06
 

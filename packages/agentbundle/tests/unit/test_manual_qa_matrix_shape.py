@@ -1,10 +1,15 @@
 """T10: shape tests for docs/specs/adapt-to-project/notes/manual-qa-matrix.md.
 
-Four construction tests verify that the manual-QA matrix carries the
-three new rows required by AC19 of docs/specs/claude-plugins-install-route/spec.md.
+Construction tests verify that the manual-QA matrix carries the rows required
+by AC19 of docs/specs/claude-plugins-install-route/spec.md.
 
-AC19 (claude-plugins-install-route spec): the matrix gains three rows:
-  (a) claude-plugins install of core at project scope
+AC19 originally required three rows. Row (a) — "claude-plugins install of core
+at project scope" — was **retired** by that spec's 2026-08-08 erratum: `core`
+declares `allowed-scopes = ["repo"]` and is no longer published to the
+Claude-plugin route, so the scenario is not executable. The erratum retires the
+requirement; this test does not silently drop it.
+
+Remaining rows:
   (b) claude-plugins install of converters at user scope
   (c) proactive cache scan idempotence — marker entry present, no double-adapt
 
@@ -32,16 +37,6 @@ _MATRIX = (
 def _body() -> str:
     assert _MATRIX.exists(), f"manual-qa-matrix not found at {_MATRIX}"
     return _MATRIX.read_text(encoding="utf-8")
-
-
-def test_manual_qa_matrix_has_claude_plugins_core_row() -> None:
-    """AC19: matrix contains a row naming claude-plugins install of core at project scope."""
-    body = _body()
-    assert "claude-plugins install of core at project scope" in body, (
-        "docs/specs/adapt-to-project/notes/manual-qa-matrix.md must contain a row "
-        "naming 'claude-plugins install of core at project scope'. "
-        "Required by AC19 of docs/specs/claude-plugins-install-route/spec.md."
-    )
 
 
 def test_manual_qa_matrix_has_claude_plugins_converters_row() -> None:
@@ -73,11 +68,10 @@ def test_manual_qa_matrix_new_rows_carry_verification_transcript() -> None:
     """
     body = _body()
 
+    # Row 29 (core at project scope) retired by the claude-plugins-install-route
+    # spec's 2026-08-08 erratum — `core` is repo-only and no longer published to
+    # the Claude-plugin route, so the scenario is not executable.
     rows_and_markers = [
-        (
-            "claude-plugins install of core at project scope",
-            "Row 29 (core at project scope)",
-        ),
         (
             "claude-plugins install of converters at user scope",
             "Row 30 (converters at user scope)",

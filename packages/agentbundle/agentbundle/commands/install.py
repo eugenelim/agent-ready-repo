@@ -1726,10 +1726,21 @@ def run(args: argparse.Namespace) -> int:
             # `<repo>/apm/<pack>/`. The `marketplace` recipe doesn't
             # produce a per-pack directory and is excluded from the
             # route list for the repo-scope install-time message rail.
-            routes = [
-                f"{output_root}/claude-plugins/{pack_name}/",
-                f"{output_root}/apm/{pack_name}/",
-            ]
+            # The claude-plugins route publishes only packs whose
+            # `allowed-scopes` admits "user" (docs/specs/claude-plugin-route-scope),
+            # so a repo-only pack produces no such directory — listing one would
+            # send the adopter to a path that does not exist.
+            # The claude-plugins route publishes only packs whose
+            # `allowed-scopes` admits "user" (docs/specs/claude-plugin-route-scope),
+            # so a repo-only pack produces no such directory. Gate on what the
+            # projection actually wrote rather than re-deriving the predicate
+            # here — it has already run by this point, and a second copy of the
+            # rule would drift from the one in build/main.py.
+            routes = []
+            for subdir in ("claude-plugins", "apm"):
+                route_dir = Path(output_root) / subdir / pack_name
+                if route_dir.is_dir():
+                    routes.append(f"{output_root}/{subdir}/{pack_name}/")
             # Emit both the new route-list summary AND the legacy
             # plain-text line. Order: route-list first (the new info)
             # so adopters reading the tail see the existing

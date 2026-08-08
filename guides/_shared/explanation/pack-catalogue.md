@@ -57,7 +57,7 @@ The obvious alternative would be: ship the bundle as a template, ask adopters to
 
 1. **Granular adoption.** Take `core` + `atlassian`; skip the rest. A template forces you to inherit the whole thing.
 2. **Upgrade-safe edits.** The file-safety contract distinguishes Tier-1 (catalogue-owned) from Tier-2 (you edited it) and writes `*.upstream.<ext>` companions on collision. A template fork loses that — every upgrade is a manual merge against a moving base.
-3. **Multiple install routes.** The same pack content reaches you via `agentbundle install`, `apm install`, `/plugin install`, or the four-line clone-and-pip dance — pick the one your environment allows. A template has one shape.
+3. **Multiple install routes.** The same pack content reaches you via `agentbundle install`, `apm install`, or the four-line clone-and-pip dance — pick the one your environment allows. `/plugin install` carries the subset that permits user-scope install ([install routes](install-routes.md)). A template has one shape.
 
 The tradeoff is that a catalogue needs the machinery to support those three properties. That machinery is the `agentbundle` CLI plus the adapter contract at `contracts/adapter.toml`, both versioned independently of the packs they project.
 

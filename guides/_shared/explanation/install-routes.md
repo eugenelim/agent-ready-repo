@@ -4,10 +4,18 @@ Four ways to install a pack from this catalogue:
 
 | Route | Command | When it fits |
 | --- | --- | --- |
-| **Claude plugins** | `/plugin marketplace add <owner>/<catalogue>` then `/plugin install <pack>@<catalogue>` | You're on Claude Code and want one-line install with auto-update. |
+| **Claude plugins** | `/plugin marketplace add <owner>/<catalogue>` then `/plugin install <pack>@<catalogue>` | You're on Claude Code and want one-line install with auto-update. **Carries only packs whose `allowed-scopes` admits `user`** — see the note below. |
 | **APM** | `apm install <owner>/<catalogue>/<pack>` | You're in any other IDE harness with the [APM](https://github.com/agent-package-manager) CLI. |
 | **Reference CLI** | `agentbundle install --pack <name> git+https://github.com/<owner>/<catalogue>` | You want a pinned, scriptable install with state tracking from day one. |
 | **Local clone** | `git clone … && python -m pip install -e packages/agentbundle/ && agentbundle install --pack <name> . --output <target>` | Network-constrained environment, or you want both the catalogue and the runtime library editable. |
+
+> **The plugin route is user-scope only.** A Claude plugin's code lives in your
+> global cache and `claude plugin install` defaults to `--scope user`, so the
+> marketplace carries only packs that permit a user-scope install. A pack
+> declaring `allowed-scopes = ["repo"]` — `core`, `governance-extras`,
+> `iac-terraform`, `monorepo-extras`, `release-engineering`,
+> `user-guide-diataxis` — installs with `agentbundle install` instead. That is
+> the route they are scoped for, not a gap.
 
 > **Already added the marketplace before 2026-08?** Run
 > `/plugin marketplace update <catalogue>` and reinstall your packs. Entries

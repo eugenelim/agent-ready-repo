@@ -43,6 +43,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The Claude plugin marketplace now carries only packs you can install at
+  user scope.** Claude plugins install into a global cache, not into your
+  repository, so packs designed to live inside a repo — `core`,
+  `governance-extras`, `iac-terraform`, `monorepo-extras`,
+  `release-engineering`, `user-guide-diataxis` — are no longer offered there.
+  Install them with `agentbundle install` instead; that is the route they were
+  always built for.
+
+  Already installed one as a plugin? Run
+  `claude plugin uninstall <pack>@agent-ready-repo` first, then reinstall at
+  repo scope. Removing a pack from the marketplace does not uninstall the copy
+  already on your machine.
+
+  The pack pages and the catalogue on the site now show the plugin command only
+  where it applies.
+
 - **Every pack now says what it is *for* in its first sentence.** Pack
   descriptions are what you read in a marketplace browser while deciding whether
   to install, and ours had drifted into component inventories — `core` opened

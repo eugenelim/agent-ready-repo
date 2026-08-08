@@ -869,3 +869,13 @@ taxonomy.
   hung the writer, and undecodable bytes raised rather than falling through.
   Corrected in `agentbundle` 0.29.8. The fall-through contract AC2 states is
   unchanged; it now holds for these inputs too.
+
+- **2026-08-08 — `core` is no longer installable as a Claude plugin, and AC19's
+  QA-matrix row is retired.** `docs/specs/claude-plugin-route-scope` publishes
+  only packs whose `[pack.install] allowed-scopes` admits `"user"`; `core`
+  declares `["repo"]`. The "claude-plugins install of core at project scope"
+  row this spec's AC19 required is therefore no longer an executable scenario
+  and is removed from `docs/specs/adapt-to-project/notes/manual-qa-matrix.md`.
+  AC19's requirement is retired by this erratum rather than dropped silently by
+  the test that cited it.
+

@@ -7,6 +7,11 @@ name: Publish Claude plugin packages
 #   claude plugin marketplace add eugenelim/agent-ready-repo
 #   claude plugin install <pack>@agent-ready-repo
 #
+# Only packs whose `[pack.install] allowed-scopes` admits "user" are published:
+# the route installs at user scope, so a repo-only pack would be offered an
+# install its own declaration forbids. See
+# docs/specs/claude-plugin-route-scope.
+#
 # Excludes `catalogue-curation/` (operator-only pack) but includes
 # `marketplace.json` at the branch root for machine-readable discovery.
 #
