@@ -59,8 +59,10 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
 
 - **Widening any pack's `allowed-scopes`.** After AC1 that is a decision to
   publish that pack's code to a public marketplace, not a metadata tweak.
-- **Adding a Node toolchain to the required `make build-check` job**, if AC8's
-  built-output assertion is wired there rather than into the site build.
+- ~~Adding a Node toolchain to the required `make build-check` job.~~
+  **Asked and declined, 2026-08-08.** The built-output assertion goes to
+  `pages.yml` instead; see AC8's accepted residual. Revisiting this is a
+  separate change.
 
 ### Never do
 
@@ -178,12 +180,35 @@ Used by every criterion below. A pack is **publishable** when all hold:
 
   A user-capability field is added, **required in the Zod schema with no
   default**, so the Astro build fails on omission rather than defaulting to
-  advertising the public route. A consistency test iterates the **union** of
-  `packs/<slug>/pack.toml` and `web/src/content/packs/<slug>.md` — over
-  non-`_`-prefixed slugs per *The derived set* § 1, since `_example` has a pack
-  directory and no site page — so a newly added pack cannot be skipped. Plus a **built-output** assertion: a repo-only
-  pack's rendered page emits no `claude plugin install` command; a user-capable
-  pack's does.
+  advertising the public route.
+
+  Two checks, deliberately on **different gates** (decision recorded
+  2026-08-08):
+
+  - **Consistency — required gate.** A pure-stdlib lint iterates the **union**
+    of `packs/<slug>/pack.toml` and `web/src/content/packs/<slug>.md` over
+    non-`_`-prefixed slugs per *The derived set* § 1 (`_example` has a pack
+    directory and no site page), asserting the user-capability field matches.
+    This is the check that guards silent data drift across every pack, so it
+    runs where merge is blocked.
+  - **Built output — `pages.yml`, non-blocking.** A repo-only pack's rendered
+    page emits no `claude plugin install` command; a user-capable pack's does.
+    `packs/**/pack.toml` joins that workflow's path filter so it fires on both
+    sides of the drift, not only on `web/` edits.
+
+  **Why not both in the required gate.** The built-output half needs an Astro
+  build, and `make build-check` has no Node on either `build-check.yml` or
+  `build-check-windows.yml`. Adding it would make every PR in the repo — most
+  touching nothing near the site — wait on `npm ci` in the gate that blocks
+  merge, and inherit a registry outage as a merge blocker.
+
+  **Accepted residual.** A PR that deletes the gating conditional from
+  `[pack].astro` or `catalogue/index.astro` and changes nothing else goes red in
+  `pages.yml` but does not block merge. That failure is a visible edit to one of
+  two files in a PR a human reads; the drift the required check catches is
+  silent and spread across every pack. A third guard is already in place: the
+  Zod field is required with no default, so *omitting* it fails the Astro build
+  regardless.
 
 - [ ] **AC9 — The checks are wired into the required gate, and proven wired.**
   `make build-check` is `catalogue verify` + `tools/repo/build_gate_chain.py` +
@@ -192,6 +217,9 @@ Used by every criterion below. A pack is **publishable** when all hold:
   off `make build-check`": AC6's tripwire lands as a `tools/lint-*.py` +
   `tools/test-lint-*.py` pair registered in `build_gate_chain.py`, with the
   `lint-ci-parity` update that requires.
+
+  This covers AC8's **consistency** half and AC6's membership tripwire. AC8's
+  built-output half is out of the required gate by the decision recorded there.
 
   The verification is **mutation, not a green run**: desync a
   `web/src/content/packs/<slug>.md` user-capability value from its `pack.toml`,

@@ -137,13 +137,18 @@ and in `build-check.yml` it executes before pytest is installed. The tripwire
 lands as a `tools/lint-*.py` + `tools/test-lint-*.py` pair registered in
 `build_gate_chain.py`, with the `lint-ci-parity` update that requires.
 Verification is by **mutation**: desync a `web/` frontmatter value, assert
-`make build-check` exits non-zero. The built-output half needs a Node toolchain
-in the required job — an `Ask first` boundary, resolved before wiring.
+`make build-check` exits non-zero.
 
-**Done when:** the lint pair is registered in `tools/repo/build_gate_chain.py`
-with `lint-ci-parity` green; a frontmatter desync makes `make build-check` exit
-non-zero; the built site shows the command for a user-capable pack and not for a
-repo-only one.
+The built-output half does **not** go in the required job — the Node question
+was asked and declined (2026-08-08). It lands in `pages.yml`, with
+`packs/**/pack.toml` added to that workflow's path filter so it fires on both
+sides of the drift. The residual is recorded in the criterion.
+
+**Done when:** the consistency lint pair is registered in
+`tools/repo/build_gate_chain.py` with `lint-ci-parity` green and a frontmatter
+desync makes `make build-check` exit non-zero; `pages.yml` gains
+`packs/**/pack.toml` in its path filter and a built-output check showing the
+install command for a user-capable pack and not for a repo-only one.
 
 **Approach:** add the field to `web/src/content.config.ts` (required, no
 default, so the Astro build fails on omission) and each pack's markdown file; gate `[pack].astro` and `catalogue/index.astro` on it, **not** on `scope`
