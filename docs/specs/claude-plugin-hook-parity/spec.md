@@ -274,12 +274,6 @@ AC7's quoting discipline is what makes shell form safe.
 
 ### Round-4 additions
 
-- [ ] **AC25 — The predicate's absent-declaration rule is explicit.** A pack with
-  no `[pack.install]` table resolves to `["repo"]`, matching
-  `commands/validate.py:_allowed_scopes`, which is **reused, not re-derived**.
-  Several test fixtures omit the table; each fixture whose tests assert
-  claude-plugins output declares `allowed-scopes = ["repo", "user"]` explicitly
-  rather than relying on a default.
 
 - [ ] **AC26 — Rail B's consent gesture is part of the qualifying shape.**
   `build/scope_rails.py:check_hooks` refuses a pack declaring `"user"` while

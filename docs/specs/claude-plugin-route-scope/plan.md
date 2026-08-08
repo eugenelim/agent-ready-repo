@@ -14,32 +14,29 @@
 
 ## Approach
 
-One predicate, applied at three writers, plus the docs that advertise the route.
-Nothing here touches the hook pipeline — that split out to
-`docs/specs/claude-plugin-hook-parity/` after five review rounds showed it
-specifying a code-execution channel in prose and generating new findings each
-round. Nothing in this spec depends on it.
+One predicate, four sites, plus the docs that advertise the route. Nothing here
+touches the hook pipeline — that is
+[`../claude-plugin-hook-parity/`](../claude-plugin-hook-parity/plan.md), blocked
+on a spike. Nothing in this spec depends on it.
 
-**The predicate.** `commands/validate.py:_allowed_scopes` is the existing
-resolver and is reused. Its real gate is `[pack.adapter-contract].version`, not
-`[pack.install]` — verified by execution, a pack declaring
-`allowed-scopes = ["repo","user"]` with no `[pack.adapter-contract]` resolves to
-`["repo"]`. That surprise is why the fixtures need care and why the spec names
-it rather than leaving it to be rediscovered.
+The spec carries the substance; this plan **cites criteria by name and does not
+restate them**. Three of the four disagreements the last review round found were
+spec-vs-plan drift from restating — the two-file `core` bump, the retired-vs-
+re-pointed QA row, and the writer count. Restatement is the hazard, so it is
+gone.
 
-**Three writers.** The recipe and `_run_aggregate` are expected. The third,
-`build/self_host.py:_aggregate_marketplace`, writes the repo-root
-`.claude-plugin/marketplace.json` that adopters actually add, and carries a
-design note asserting the opposite intent. ADR-0072 records it as the writer
-missed last time; the predecessor plan missed it again. It is listed first in
-every task that touches marketplace output for that reason.
+Sequencing notes not in the spec:
 
-**The site.** `web/src/content/packs/*.md` are hand-authored frontmatter files,
-one per pack, with no generator — `tools/build-site.py` feeds `docs-site/`, not `web/`.
-So the user-capability field is another hand-copied value, and the only thing
-that keeps it honest is a test reading `pack.toml` and comparing. That test has
-to hang off `make build-check`: `web/`'s own test script is in no workflow,
-`make ci` is invoked by none, and Gate A path-ignores `web/**`.
+- **T1 before T0.** The five build fixtures carry only a `[pack]` table, so the
+  predicate resolves them to `["repo"]` and reddens the derivation, pipeline,
+  end-to-end and drift-gate suites the moment the filter lands.
+- **T0 owns every re-pin it breaks**, including the `render_pack`-consumer tests.
+  Carving them out into T4b left the tree red between tasks —
+  `tests/unit/test_render.py:33` drives a live `render_pack(packs/core)`. T4b
+  keeps only the *new* characterization assertions.
+- **The engine gate fires on the committed range**, so `Engine-Change-RFC: 0008`
+  must be on the first commit that touches `build/main.py` or
+  `build/self_host.py`, not added later.
 
 ## Constraints
 
@@ -91,11 +88,17 @@ republished.
 **Depends on:** none · *(runs first — the five build fixtures carry only a `[pack]` table, so the predicate resolves them to `["repo"]` and reddens the derivation, pipeline, end-to-end and drift-gate suites the moment T0 lands)* · **Mode:** Goal-based check
 
 **Done when:** every fixture whose tests assert claude-plugins output declares
-`[pack.adapter-contract] version = "0.2"` — the lowest version that carries
-`[pack.install]`, chosen so no unrelated rail activates — and
+the lowest `[pack.adapter-contract] version` that carries **both**
+`[pack.install]` and `user-scope-hooks` (the latter recorded at v0.3 in
+`commands/validate.py`), pinned to an exact value in the task and justified in
+one clause — and
 `[pack.install] allowed-scopes` including `"user"`, and those tests pass.
 
-**Approach:** five fixtures under `build/tests/fixtures/packs/` lack
+**Approach:** derive the fixture list by **glob** over every fixture tree whose
+tests assert claude-plugins output, not from a named five — `tests/fixtures/packs/cc-user-hooks`,
+`tests/fixtures/install/catalogue/packs/alpha`, `tests/fixtures/list_packs/…`
+and `tests/fixtures/local_scope/…` also carry no `plugin.json`. Five fixtures
+under `build/tests/fixtures/packs/` lack
 `[pack.adapter-contract]` and therefore resolve to `["repo"]`. `.../packs/core/`
 additionally ships `.apm/hooks/` + `.apm/hook-wiring/`, so Rail B
 (`build/scope_rails.py:check_hooks`) also requires
@@ -137,21 +140,25 @@ state of each.
 living architecture statement the grep finds. **Sub-step:**
 `docs/CONVENTIONS.md:597` is seed-projected from
 `packs/core/seeds/docs/CONVENTIONS.md`, so it is edited in the seed, then
-`make build-self`, then a `core` version bump across `pack.toml`,
-`.claude-plugin/plugin.json`, and the `core` marketplace entry — `make
-build-self` syncs none of the three. Record RFC-0008's dormancy in
+`make build-self`, then the `core` version bump AC19 specifies — **two** files,
+since AC6 deletes `core`'s marketplace entry in the same PR. Verification is the
+agentbundle pytest suite, not `build-check`, per AC19. Record RFC-0008's dormancy in
 `docs/architecture/agentbundle.md`.
 
 ### T4 — Errata and the QA matrix
 **Depends on:** T0 · **Mode:** Goal-based check
 
-**Approach:** errata on the three frozen specs assuming `core` is
-plugin-installable (bodies not edited). Re-point or retire the manual-QA-matrix
-row and `test_manual_qa_matrix_shape.py:37-44`, which keeps it green while the
-scenario becomes impossible.
+**Done when:** each of the three frozen specs named in AC23 carries an erratum;
+the QA-matrix row and its shape test (including the module docstring) are gone;
+and RFC-0008 carries the erratum AC20 requires.
+
+**Approach:** errata only — frozen bodies are not edited. The QA-matrix row is
+**retired**, not re-pointed (AC24), and the erratum on
+`claude-plugins-install-route` explicitly retires the AC19 requirement the shape
+test cites, so the test is not silently dropping a live obligation.
 
 ### T4b — `render_pack` consumers
-**Depends on:** T0 · **Mode:** Goal-based check (characterization)
+**Depends on:** T0 · **Mode:** Integration (characterization)
 
 **Tests:** `stub: pending` (materialise before EXECUTE) — each of `commands/render.py`, `diff.py`,
 `init_state.py`, `upgrade.py`, `install.py --emit-install-routes`, and
@@ -159,8 +166,8 @@ scenario becomes impossible.
 `state.json` carrying old relpaths exercised through `upgrade`.
 
 **Approach:** assertions only — characterization of behaviour T0 ships, not
-red-green. The `render_pack`-consumer files are carved out of T0's re-pin list so
-two tasks do not claim `test_render.py` and `test_render_cmd.py`. Also covers the
+red-green. T0 owns re-pinning the existing consumer tests; this task adds only
+the *new* assertions, so the tree is never red between the two. Also covers the
 `--emit-install-routes` route-summary rail (`commands/install.py:1723-1732`),
 which prints a path that no longer exists. The recipe-level filter removes whole
 subtrees from six consumers' output; `init-state` writes those relpaths into the state
@@ -169,8 +176,10 @@ file, so the pre-change case is the one most likely to surprise an adopter.
 ### T5 — Changelogs
 **Depends on:** T0 · **Mode:** Goal-based check
 
-**Approach:** `[Unreleased]` in both changelogs naming the removal, the seven
-packs, and `claude plugin uninstall` as step one of the remedy.
+**Done when:** both `[Unreleased]` sections carry AC14's delisting notice, and
+`packages/agentbundle`'s additionally carries AC13's engine note for
+self-hosting adopters — the filter changes `run_self_host` behaviour for anyone
+outside this repo.
 
 ### T6 — Real client
 **Depends on:** T0, T2, T3, T5 · **Mode:** Visual / manual QA
@@ -183,8 +192,9 @@ recorded, since that is the observation AC14's remedy is written against; and an
 an installed-but-delisted plugin. Transcripts below. **Scope boundary:** one
 dropped pack and one user-capable pack are exercised by hand; the other 19 are
 covered by T0's assertions. The **post-merge** re-run against the published
-marketplace is a separate recorded step, tracked in `workspace.toml`
-`[backlog].open` rather than blocking this PR.
+marketplace is a separate recorded step. **This PR adds the backlog slug** —
+`workspace.toml [backlog].open` has no entry for it today, so the claim would
+otherwise be false on landing.
 
 ## Risks
 

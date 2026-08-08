@@ -14,7 +14,7 @@
 
 ## Approach
 
-> **The filter, the docs, and the three marketplace writers are
+> **The filter, the docs, and the sibling spec's publish filter are
 > [`../claude-plugin-route-scope/plan.md`](../claude-plugin-route-scope/plan.md).**
 > Not restated here, and not duplicated in this plan's tasks or sweep — the
 > round-1 split left both and they drifted within a day.
@@ -36,14 +36,6 @@ so the fail-closed criteria are unit-testable without a build. A sibling of
 managed key and is shared with codex; this compiles TOML into an in-memory block
 while rewriting paths and rejecting shapes.
 
-**D — the docs follow the filter.** Two Astro pages build a
-`claude plugin install` command for every pack; the `scope` field they carry is
-`default-scope` (`tools/build-site.py:67`), not `allowed-scopes`, so a new
-derived field is needed — gating on the existing one would hide
-`product-documentation`. Five prose docs advertise the route without the
-precondition, `README.md` naming `core` specifically. The route table in
-`guides/_shared/explanation/install-routes.md` is where the rule gets stated
-once.
 
 **E — the schema.** The derived `hooks` block becomes
 `{additionalProperties: <entry-array schema>}` — shape only. Event-name
@@ -113,7 +105,6 @@ output declares `allowed-scopes = ["repo", "user"]` explicitly.
 
 **Stale prose:** `commands/upgrade.py:1672`;
 `tests/integration/test_tier_invariants.py:315-317`;
-`docs/specs/adapt-to-project/notes/manual-qa-matrix.md`'s "claude-plugins install
 of core at project scope" row, pinned green by
 `tests/unit/test_manual_qa_matrix_shape.py:37-44` while the scenario becomes
 impossible.
@@ -244,8 +235,7 @@ QA run exercises one user-capable pack and one dropped pack; the other 13 are
 covered by the integration assertions, not by hand.
 
 Then: erratum on `docs/specs/wire-session-start-hook/spec.md` and the other
-frozen specs carrying the dead premise; re-point or retire the manual-QA-matrix
-row and its shape test; land the hook-event documentation snapshot under the spec
+frozen specs carrying the dead premise; land the hook-event documentation snapshot under the spec
 dir; fix the stale-prose sites.
 
 ## Risks

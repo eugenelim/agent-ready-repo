@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md)
-- **Engine RFC:** required before EXECUTE — see AC20.
+- **Engine RFC:** [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md) — carried as `Engine-Change-RFC: 0008`, with an erratum. See AC20.
 - **Contract:** `contracts/marketplace-entry.schema.json`
 - **Shape:** integration
 
@@ -75,10 +75,16 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
 Used by every criterion below. A pack is **publishable** when all hold:
 
 1. it lives at `packs/<slug>/` and its slug does not start with `_` — the
-   existing guard at `build/self_host.py:528,550,616`. `_example` is
+   existing guards at `build/main.py:387` (`discover_packs`, which governs the
+   dist tree), `build/self_host.py:616` (the repo-root writer), and
+   `build/self_host.py:1380` (the drift gate). Not `self_host.py:550`, which is a
+   *seed-filename* guard inside `_project_seeds`, not a slug rule. `_example` is
    user-capable by declaration and excluded by this rule, so a naive
    set-equality assertion fails on day one;
-2. it carries `pack.toml` and `.claude-plugin/plugin.json`;
+2. it carries `pack.toml` and `.claude-plugin/plugin.json`. **The three writers
+   differ here today**: `discover_packs` requires only `pack.toml`, while the
+   repo-root writer and the drift gate require both. AC5's equality therefore
+   adds a `plugin.json` precondition at the recipe writer — stated, not implied;
 3. its resolved scopes admit `"user"`.
 
 ## Acceptance Criteria
@@ -160,8 +166,9 @@ Used by every criterion below. A pack is **publishable** when all hold:
   A user-capability field is added, **required in the Zod schema with no
   default**, so the Astro build fails on omission rather than defaulting to
   advertising the public route. A consistency test iterates the **union** of
-  `packs/<slug>/pack.toml` and `web/src/content/packs/<slug>.md`, so a newly
-  added pack cannot be skipped. Plus a **built-output** assertion: a repo-only
+  `packs/<slug>/pack.toml` and `web/src/content/packs/<slug>.md` — over
+  non-`_`-prefixed slugs per *The derived set* § 1, since `_example` has a pack
+  directory and no site page — so a newly added pack cannot be skipped. Plus a **built-output** assertion: a repo-only
   pack's rendered page emits no `claude plugin install` command; a user-capable
   pack's does.
 
@@ -173,10 +180,13 @@ Used by every criterion below. A pack is **publishable** when all hold:
   `tools/test-lint-*.py` pair registered in `build_gate_chain.py`, with the
   `lint-ci-parity` update that requires.
 
-  The verification is **mutation, not a green run**: perturb the data (widen a
-  fixture's `allowed-scopes`; desync a `web/` frontmatter value) and assert
-  `make build-check` exits non-zero. A passing target proves the target passes,
-  not that the new check ran.
+  The verification is **mutation, not a green run**: desync a
+  `web/src/content/packs/<slug>.md` user-capability value from its `pack.toml`,
+  assert `make build-check` exits non-zero, revert. The mutation target is a
+  site frontmatter file, never a `packs/*/pack.toml` — the *Never do* boundary
+  forbids touching a pack's scope declaration even transiently. The transcript
+  lands in the plan's `## Verification log`. A passing target proves the target
+  passes, not that the new check ran.
 
 - [ ] **AC10 — The publish script enforces membership itself.** AC6's tripwire is
   a *pre-merge* control that the publishing actor never consults:
@@ -205,17 +215,26 @@ Used by every criterion below. A pack is **publishable** when all hold:
   would re-publish it at the root with only AC6's tripwire in the way. Recorded,
   not fixed: operator-only is not yet pack metadata all writers honour.
 
-- [ ] **AC12 — Emptying the set is an error, not an outcome.** Both marketplace
-  writers exit non-zero if the filter would leave zero entries, and print one
-  summary line naming how many packs were dropped and why.
+- [ ] **AC12 — Emptying the set is an error in catalogue aggregation, and a
+  no-op elsewhere.** A **whole-catalogue** build whose filter leaves zero entries
+  exits non-zero; every writer prints one summary line naming how many packs were
+  dropped and why.
 
-  This matters for **adopters**, not this repo: `_aggregate_marketplace` is what
-  an adopter's `run_self_host` calls with their own owner and name.
-  `contracts/pack.schema.json` requires only `[pack].name` and `[pack].version`
-  — `[pack.adapter-contract]` is **optional** in the normative contract — so a
-  schema-valid adopter pack resolves `["repo"]` and vanishes from their own
-  marketplace. A log line inside a build that prints hundreds is not a
-  proportional signal for that.
+  **Scoped deliberately.** `render_pack` / `render_pack_to_dir` run
+  `DEFAULT_RECIPES` — which includes `marketplace` — against a *single-pack*
+  tree, so a repo-only pack legitimately yields zero entries. An unscoped
+  non-zero exit there would break `agentbundle install --pack core`, `upgrade`,
+  `diff`, `init-state`, `validate`, and `render`. In the single-pack case the
+  writer emits an empty `plugins` list plus the summary line and returns
+  success.
+
+  **Adopter self-host is a warning, not a failure.** `_aggregate_marketplace`
+  runs on `run_self_host` *after* adapters and seeds are written, so a non-zero
+  exit there leaves a half-projected tree. `contracts/pack.schema.json` requires
+  only `[pack].name` and `[pack].version` — `[pack.adapter-contract]` is
+  **optional** in the normative contract — so a schema-valid adopter pack
+  resolves `["repo"]` and would trip this through no fault of its own. That path
+  warns loudly and continues; only the dist writer exits non-zero.
 
 - [ ] **AC13 — The engine behaviour change is disclosed to self-hosting
   adopters.** `packages/agentbundle`'s `[Unreleased]` describes the filter as an
@@ -285,27 +304,46 @@ Used by every criterion below. A pack is **publishable** when all hold:
   `make build-check` stays green on a stale manifest — the agentbundle pytest
   suite is the verification, not `build-check`.
 
-- [ ] **AC20 — The engine RFC is named before EXECUTE.**
-  `tools/lint-catalogue-curation-guard.py` carves out only `build/recipes/` and
-  `/tests/`; this change edits `build/main.py` and `build/self_host.py`, so the
-  committed changeset fails `make build-check` without an `Engine-Change-RFC:`
-  trailer naming an engine-scoped RFC. ADR-0002 and ADR-0072 are ADRs, not RFCs.
-  Either an existing RFC governs this, or one is opened — decided at PLAN, not
-  discovered at EXECUTE, where the temptation is to borrow an unrelated number to
-  clear a gate that exists to force this conversation.
+- [ ] **AC20 — The engine change is carried by RFC-0008, with an erratum.**
+  `tools/lint-catalogue-curation-guard.py` protects `packages/agentbundle/`
+  (carve-outs: `build/recipes/` and `/tests/` only), so the committed changeset
+  carries `Engine-Change-RFC: 0008`. The gate reads the *committed* range, so it
+  fires after the first commit, not while editing.
 
-- [ ] **AC21 — The three `allowed-scopes` resolvers are pinned, not asserted
-  equal.** `validate.py:_allowed_scopes` gates on
-  `[pack.adapter-contract].version`; `install.py:_resolved_allowed_scopes` and
-  `catalogue_tooling/lint.py:_profile_allowed_scopes` read `[pack.install]` with
-  no version gate. Every shipped pack declares version ≥ 0.7, so "all three agree
-  for every shipped pack" would be vacuously green.
+  **RFC-0008 governs — it already owns this contract.** Its §"Enforces
+  `allowed-scopes`" says: *"an adopter could install a repo-only pack
+  (`allowed-scopes = ["repo"]`) at Claude-plugins user scope. The writer
+  refuses-and-warns in that case."* This spec strengthens that control from
+  writer-layer refusal to publish-time exclusion — the same decision, moved
+  upstream, not a new one. No new RFC is opened.
 
-  Instead: a property test over a synthetic `contract-version × install-table`
-  matrix asserting `_allowed_scopes(p) ⊆ _resolved_allowed_scopes(p)` and
-  `⊆ _profile_allowed_scopes(p)`. The reachable divergence is fail-*closed*
-  withholding, never over-publication; the property fires if a later
-  reconciliation loosens the publish resolver. Reconciling them is out of scope.
+  Because RFC-0008 is Accepted and therefore Frozen, the strengthening lands as
+  an `## Errata` entry per RFC-0055's convention, recording that the
+  writer-layer rail is now unreachable for repo-only packs (they are never
+  published, so their marker never runs) and that publish-time exclusion is the
+  primary control.
+
+- [ ] **AC21 — The three `allowed-scopes` resolvers are pinned by a property
+  test.** `validate.py:_allowed_scopes(pack_data)` gates on
+  `[pack.adapter-contract].version`; `install.py:_resolved_allowed_scopes(pack_install)`
+  and `catalogue_tooling/lint.py:_profile_allowed_scopes(pack_toml)` read
+  `[pack.install]` with no version gate — note the three take different argument
+  shapes.
+
+  The invariant is **user-membership implication**, not subset:
+
+      "user" ∈ _allowed_scopes(p)  ⇒  "user" ∈ _resolved_allowed_scopes(p)
+                                   ∧  "user" ∈ _profile_allowed_scopes(p)
+
+  Subset is false on schema-valid input — verified by execution: with
+  `[pack.adapter-contract]` absent and `[pack.install] allowed-scopes = ["user"]`,
+  `_allowed_scopes` returns `["repo"]` while both siblings return `["user"]`, so
+  `⊆` fails. Implication holds across the whole
+  `contract-version × install-table` matrix and is the property that matters:
+  the publish resolver may be *stricter* than the install gate, never looser.
+  A later reconciliation that loosens it fires the test. Every shipped pack
+  declares version ≥ 0.7, so the test runs over a synthetic matrix — asserting
+  over shipped packs alone would be vacuously green.
 
 - [ ] **AC22 — Projected artifacts regenerated and committed.**
   `.claude-plugin/marketplace.json` is a `make build-check`-gated projected path.
@@ -332,10 +370,13 @@ Used by every criterion below. A pack is **publishable** when all hold:
   adopter who also has `core` at repo scope. Dormant on the user-scope path, not
   falsified; takes no erratum.
 
-- [ ] **AC26 — The seven source `plugin.json` files are retained deliberately.**
-  They become consumer-less on this route but still feed Gate 2 (source-shape),
-  which AC1 does **not** narrow, and still require a version bump in lockstep
-  with `pack.toml`. Stated so the next reader does not delete them as dead.
+## Assumptions
+
+- **The seven source `plugin.json` files are retained deliberately.** They become
+  consumer-less on this route but still feed Gate 2 (source-shape), which AC1
+  does **not** narrow, and still require a version bump in lockstep with
+  `pack.toml`. Recorded here rather than as a criterion: nothing can fail it, and
+  the Testing Strategy should not promise an artifact that does not exist.
 
 ## Testing Strategy
 
@@ -353,7 +394,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
 | AC19, AC22 | Goal-based | grep returns nothing; agentbundle suite green after the seed edit + two-file bump; `make build-self` leaves the tree clean |
 | AC20 | Goal-based | the trailer is present and names a real RFC; the engine gate passes |
 | AC21 | Unit | property test over the synthetic matrix |
-| AC23–AC26 | Goal-based | each named artifact carries its erratum / statement; matrix row and docstring retired |
+| AC23–AC25 | Goal-based | each named artifact carries its erratum / statement; matrix row and docstring retired |
 
 ## Blast radius
 
