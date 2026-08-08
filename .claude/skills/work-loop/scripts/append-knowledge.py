@@ -102,6 +102,17 @@ class LockUnavailable(Exception):
     """Raised when the target's lock could not be acquired."""
 
 
+def stale_name(lock_name: str, nonce: str) -> str:
+    """The rename target used to break an abandoned lock.
+
+    A named helper so a test can assert the shape without reaching into the
+    lock loop: the lock's own token is `pid:nonce`, and `:` is reserved in
+    Windows filenames, so using the token here would turn an abandoned lock
+    permanently unbreakable on a platform this suite never runs on.
+    """
+    return f"{lock_name}.stale-{nonce}"
+
+
 @contextlib.contextmanager
 def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
     """Serialize the read-allocate-write window against the same target.
@@ -173,7 +184,7 @@ def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
                     # breaks it and acquires, then B's unlink removes A's live
                     # lock and a third process enters. `os.replace` is atomic,
                     # so exactly one breaker moves the file it saw.
-                    stale = lock.with_name(f"{lock.name}.stale-{nonce}")
+                    stale = lock.with_name(stale_name(lock.name, nonce))
                     try:
                         lock.replace(stale)
                     except FileNotFoundError:

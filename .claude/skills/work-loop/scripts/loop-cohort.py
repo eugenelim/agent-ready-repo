@@ -673,7 +673,11 @@ def _assert_status_legal(verb: str, *paths: Path) -> int | None:
             token = _read_md_status(path)
         except UnreadableArtifact as exc:
             return stop(f"{verb}: {exc}")
-        if token is not None and token not in allowed:
+        # `extract_status_token` returns "" — not None — when the value is only
+        # an HTML comment, so `is not None` would stop on it. AC9's promise is
+        # that an absent *or unparseable* token is skipped, and that promise is
+        # the whole safety argument for wiring this into a CODE-* pre-guard.
+        if token and token not in allowed:
             return stop(
                 f"{verb}: {path.name} Status is {token!r}; expected one of "
                 f"{list(allowed)} after approval"

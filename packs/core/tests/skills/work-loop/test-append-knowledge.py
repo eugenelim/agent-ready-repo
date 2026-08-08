@@ -402,16 +402,21 @@ def test_file_mode_is_preserved(target: Path) -> None:
     exec bit, so the change is invisible in a diff and to CI."""
     name = "file-mode-is-preserved"
     target.write_text(entry(id="K-0001") + "\n", encoding="utf-8")
-    # 0o664, not 0o644: the latter is exactly `0o666 & ~umask` under the default
-    # umask, so preservation and the new-file default are indistinguishable and
-    # the preservation branch could be deleted without failing.
-    target.chmod(0o664)
+    # Derived from the real umask, not hardcoded: any fixed mode coincides with
+    # `0o666 & ~umask` on some default (0o644 under 022, 0o664 under 002), and
+    # where it coincides the preservation branch could be deleted without
+    # failing. Flipping one bit guarantees it cannot.
+    umask = os.umask(0)
+    os.umask(umask)
+    fixture_mode = (0o666 & ~umask) ^ 0o020
+    target.chmod(fixture_mode)
     proc = run(*_append_args(target))
     if proc.returncode != 0:
         fail(name, f"exit {proc.returncode}: {proc.stderr}")
         return
     mode = target.stat().st_mode & 0o777
-    ok(name) if mode == 0o664 else fail(name, f"mode changed 0o664 -> {oct(mode)}")
+    ok(name) if mode == fixture_mode else fail(
+        name, f"mode changed {oct(fixture_mode)} -> {oct(mode)}")
 
 
 def test_lint_runs_out_of_process(target: Path) -> None:
@@ -608,13 +613,15 @@ def test_stale_directory_lock_is_broken_not_fatal(target: Path) -> None:
         elif lock.exists():
             fail(name, "the lock path was not freed")
         else:
-            # The break target must stay a legal Windows filename: the lock
-            # token is `pid:nonce`, and `:` is reserved, so using the token here
-            # would turn an abandoned lock permanently unbreakable on a platform
-            # this suite never runs on.
-            illegal = [n.name for n in target.parent.glob(f"{lock.name}.stale-*")
-                       if set(n.name) & set('<>:"/\\|?*')]
-            fail(name, f"stale name is not Windows-legal: {illegal}") if illegal else ok(name)
+            # Assert the *constructed* name, not a glob: `exclusive` always
+            # clears the renamed entry before returning, so a post-hoc glob is
+            # guaranteed empty and can never catch a reserved character.
+            spec = importlib.util.spec_from_file_location("_ak6", str(SCRIPT))
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            probe = mod.stale_name("patterns.jsonl.lock", "deadbeef" * 4)
+            bad = set(probe) & set('<>:"/\\|?*')
+            fail(name, f"stale name is not Windows-legal: {sorted(bad)}") if bad else ok(name)
     finally:
         for leftover in target.parent.glob(f"{lock.name}*"):
             if leftover.is_dir():

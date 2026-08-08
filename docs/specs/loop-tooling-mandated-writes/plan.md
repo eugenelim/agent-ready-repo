@@ -248,8 +248,8 @@ already run by the umbrella and by `tools/test-all.py`, and a new test file
 would not be wired to run at all until T4 touched `test-all.py`.
 
 **Landed:** two AC4 cases — the bare lifecycle bump and the same bump on the
-shape real specs have (trailing vocabulary comment, which 158 files carry and
-no fixture emits) — plus the AC6 status-line-smuggling guard
+shape real specs have (trailing vocabulary comment, which every template-emitted
+file carries and no fixture emits) — plus the AC6 status-line-smuggling guard
 (`test-loop-cohort.py`, two `test_stub_*` functions). AC4 is red; AC6 is a
 must-still-pass guard that the current raw-byte hash already satisfies.
 **Still to write during EXECUTE:** every other bullet below — the four

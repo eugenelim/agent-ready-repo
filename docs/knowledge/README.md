@@ -100,9 +100,6 @@ a diff would be replayed into every session. The rule is Unicode's
 default-ignorable property, and there is a budget on how many may appear at all,
 not just how many may sit together. Entries are committed and permanent, so they follow `AGENTS.md` § Privacy: no real names, emails, org hostnames, or user-specific filesystem paths — use the placeholders listed there.
 
-<!-- Keep this section in sync with packs/core/seeds/docs/knowledge/README.md
-     — the seed is what an adopter reads, and the two must not drift. -->
-
 ## Verify before committing
 
 `lint-knowledge.py` ships with the `work-loop` skill, so there is

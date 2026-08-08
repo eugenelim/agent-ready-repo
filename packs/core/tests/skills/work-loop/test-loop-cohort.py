@@ -2091,7 +2091,7 @@ def test_stub_lifecycle_status_bump_keeps_pin(tmp: Path) -> None:
 def test_stub_lifecycle_bump_with_vocabulary_comment(tmp: Path) -> None:
     """STUB: AC4, on the shape real specs actually have.
 
-    158 spec/plan files in this repo carry the status token a second time
+    Every spec and plan the template emits carries the status token a second time
     inside the trailing vocabulary comment. `write_spec` / `write_plan` emit no
     comment, so a `str.replace(token, ...)` implementation normalizes both
     occurrences, produces a different digest per status, and fails every real
