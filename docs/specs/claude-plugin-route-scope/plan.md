@@ -48,7 +48,7 @@ Sequencing notes not in the spec:
   `build/recipes/` and `/tests/`; T0 edits `build/main.py` and
   `build/self_host.py`, so the committed changeset needs an
   `Engine-Change-RFC:` trailer. The gate fires on the *committed* range, so it
-  surfaces after the first commit, not during editing. Resolved at PLAN (AC20).
+  surfaces after the first commit, not during editing. Resolved at PLAN — see the spec's *engine change is carried by RFC-0008* criterion.
 
 ## Tasks
 
@@ -112,8 +112,9 @@ republished.
 
 **Tests:** `stub: true` — a test reading each `packs/<slug>/pack.toml` and
 asserting `web/src/content/packs/<slug>.md`'s user-capability field equals
-`"user" in allowed-scopes`, plus the built-output assertion. Reachable from
-**not** a bare pytest hung off `make build-check` — that target runs no pytest,
+`"user" in allowed-scopes`, plus the built-output assertion.
+
+It is **not** a bare pytest hung off `make build-check` — that target runs no pytest,
 and in `build-check.yml` it executes before pytest is installed. The tripwire
 lands as a `tools/lint-*.py` + `tools/test-lint-*.py` pair registered in
 `build_gate_chain.py`, with the `lint-ci-parity` update that requires.
@@ -133,9 +134,11 @@ default, so the Astro build fails on omission) and each pack's markdown file; ga
 ### T3 — Prose docs
 **Depends on:** T0 · **Mode:** Goal-based check
 
-**Done when:** a scripted assertion — `! grep -q` form over an enumerated site
-list, not the failure-prone absence form (`grep -c` exits 1 on no-match) —
-passes. Search roots widen beyond the spec's list: also
+**Done when:** the scripted assertion passes. It enumerates
+`(path, pattern, expected state)` **per site** — the sites do not share a
+pattern, so one `! grep -q 'claude plugin install'` would pass green on six of
+eight — and asserts each file exists, so a rename is not a silent pass. Search
+roots widen beyond the spec's list: also
 `.github/workflows/publish-claude-plugins.yml` (its header comment says
 "adopters can install **any pack**"), `tools/hooks/README.md`, and
 `packs/core/.apm/hook-wiring/session-start.toml`. A bare grep cannot decide
