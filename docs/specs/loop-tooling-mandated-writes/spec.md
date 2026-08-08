@@ -96,8 +96,14 @@ unparseable lines.
       in the tree has one today — the scoping is a forward invariant, not a
       response to an existing instance. A plan has no Acceptance Criteria
       section and its checkboxes are task progress, which four plans here do
-      carry, so a plan is normalized file-wide. The section scan skips fenced blocks and closes on an H1 as
-      well as an H2, so a documented example cannot move the boundary.
+      carry, so a plan is normalized file-wide. The section scan tracks fences with
+      CommonMark semantics — a naive toggle desyncs on a nested fence, and one
+      plan already in this tree has an odd fence count — so a documented example
+      cannot move the boundary. A heading-opened region closes on an H1 or H2; a
+      bold-lead-in region has no heading to close it, so it closes on the next
+      bold lead-in **or an H3**. H3 deliberately does not close a heading-opened
+      region: H3 subheadings sit inside those all over this repo, and inside no
+      bold-opened one.
 - [x] AC2. Status and checkbox recognition reuse the shared canonical parsers
       from `lint-spec-status.py` — `parse_status`, `extract_status_token`,
       `_AC_DONE_RE` (only ticked boxes are normalized), and the three that *locate* the preamble
@@ -128,7 +134,7 @@ unparseable lines.
       not normalized. Only the preamble field is bookkeeping.
 - [x] AC8. Appending `(deferred: <slug>)` to an AC still fails `plan
       check-current`. Deferring an AC is a scope change, not bookkeeping. So is
-      a `Shipped (2026-01-01)`-style annotation after the token: 
+      a `Shipped (2026-01-01)`-style annotation after the token:
       `extract_status_token` truncates at `" ("`, so the annotation is not part
       of the token and stays hashed.
 - [x] AC9. Every verb that reads a pinned artifact asserts its status token is
@@ -167,11 +173,11 @@ unparseable lines.
       An unconditional both-causes message is strictly more accurate and
       deletes the mechanism.
 - [x] AC11. The three tests that encode the bug are rewritten to exercise a
-      substantive change: `test_plan_check_current_changed_spec` (`test_plan_check_current_changed_spec`),
-      `test_approve_plan_refuses_changed_spec` (`test_approve_plan_refuses_changed_spec`), and
-      `test_approve_plan_overwrites_hashes` (`test_approve_plan_overwrites_hashes`), whose post-change
+      substantive change: `test_plan_check_current_changed_spec`,
+      `test_approve_plan_refuses_changed_spec`, and
+      `test_approve_plan_overwrites_hashes`, whose post-change
       contract is exit 0 no-op on a status bump and exit 1 on a substantive
-      edit. `test_approve_plan_state_preserved_on_refusal` (`test_approve_plan_state_preserved_on_refusal`) is also
+      edit. `test_approve_plan_state_preserved_on_refusal` is also
       rewritten — its scenario A bumps `Status` and would stay green while no
       longer testing the refusal its name claims. New cases cover AC4–AC10,
       including a re-indented criterion (AC1) and an `approve-plan` replay
@@ -182,7 +188,7 @@ unparseable lines.
       drift.
 - [x] AC12. Three documents state what the pin covers and what it deliberately
       does not: `references/state-schema.md`, `references/pre-execute-review.md`
-      (whose its immutability note "any edit to `plan.md` after `approve-plan` causes a
+      (whose immutability note "any edit to `plan.md` after `approve-plan` causes a
       refusal" AC4 falsifies, and which names the wrong verb), and the
       **shipped adopter guide**
       `guides/core/how-to/plan-and-execute-non-trivial-work.md`'s spec-amendment note, which
@@ -278,7 +284,11 @@ unparseable lines.
       covered by one pass and the writer and the gate cannot diverge — checking
       the raw line alone is how the gate came to accept control characters the
       writer refused. No C0 is permitted in either spelling, which leaves the
-      escape rule exempting only the three line separators; refuses a line longer
+      escape rule exempting whatever the decoded pass already refuses, so a character
+      never draws two errors with the second advising a form that is also
+      refused — surrogates excepted, since a pair decodes to a valid astral
+      character and the escape form is the only place it is visible; refuses a
+      line longer
       than 8192 characters before any regex runs, so the gate cannot be hung by
       the input it exists to reject; and reports an undecodable file as a lint
       error instead of tracebacking.

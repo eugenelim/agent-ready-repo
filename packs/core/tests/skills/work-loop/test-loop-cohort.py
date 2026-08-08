@@ -2647,6 +2647,12 @@ def test_ac5_bold_ac_region_terminates(tmp: Path) -> None:
         ("bold AC then H2 Boundaries",
          head + "**Acceptance criteria:**\n\n- [ ] AC1\n\n## Boundaries\n\n"
                 "- [{m}] never force-push\n", False),
+        # H3 closes a bold-opened region but not an H2-opened one: H3
+        # subheadings sit inside H2-opened AC sections all over this repo, and
+        # inside no bold-opened one.
+        ("bold AC then H3 Never-do",
+         head + "**Acceptance criteria:**\n\n- [ ] AC1\n\n### Never do\n\n"
+                "- [{m}] never add a top-level dep\n", False),
         ("H3 subgroup inside the AC section",
          head + "## Acceptance Criteria\n\n### Group A\n\n- [{m}] AC1\n", True),
     ]
@@ -2656,6 +2662,56 @@ def test_ac5_bold_ac_region_terminates(tmp: Path) -> None:
             fail(name, f"{label}: un-pinned={same}, expected {should_be_bookkeeping}")
             return
     ok(name)
+
+
+def test_ac1_fence_tracking_follows_commonmark(tmp: Path) -> None:
+    """AC1. A fence *toggle* desyncs on a nested fence — a ```toml inside a
+    ```markdown example flips the state back — and one plan already in this tree
+    has an odd fence count, which left the tracker stuck open and disabled
+    checkbox normalization for the rest of the file. Only a bare run of the
+    opening character, at least as long, closes.
+    """
+    name = "ac1-fence-tracking-follows-commonmark"
+    head = "# S\n\n- **Status:** Approved\n\n## Acceptance Criteria\n\n"
+    checks = [
+        ("well-formed nested, 4-tick outer",
+         head + "````markdown\n```toml\nx = 1\n```\n````\n\n- [{m}] AC1\n", True),
+        ("a fence carrying an info string never closes",
+         head + "```markdown\n## Acceptance Criteria\n```\n\n- [{m}] AC1\n", True),
+        ("tilde fences",
+         head + "~~~markdown\nstuff\n~~~\n\n- [{m}] AC1\n", True),
+        ("an unclosed fence swallows what follows",
+         head + "```python\nx\n\n- [{m}] AC1\n", False),
+    ]
+    for label, body, should_be_bookkeeping in checks:
+        same = canonical_contract(body.format(m=" ")) == canonical_contract(body.format(m="x"))
+        if same != should_be_bookkeeping:
+            fail(name, f"{label}: un-pinned={same}, expected {should_be_bookkeeping}")
+            return
+    ok(name)
+
+
+def test_ac5_real_in_tree_plan_stays_normalizable(tmp: Path) -> None:
+    """AC5, against a real file rather than a fixture. `m2-frame-situation`'s
+    plan carries nested fences with an odd total count; under a toggle its tail
+    stopped normalizing, so ticking a task there would have turned
+    `schedule check-current` red mid-EXECUTE — the original defect, reintroduced
+    by the fence guard added to close a different one."""
+    name = "ac5-real-in-tree-plan-stays-normalizable"
+    # parents[5] is the repo root: work-loop/skills/tests/core/packs/<root>.
+    # A wrong depth here silently takes the skip branch and the case reports
+    # success having run nothing — which is how the toggle mutation survived.
+    real = Path(__file__).resolve().parents[5] / "docs" / "specs" / "m2-frame-situation" / "plan.md"
+    if not real.is_file():
+        fail(name, f"expected the fixture plan at {real} — wrong parents[] depth "
+                   f"would make this case pass without running")
+        return
+    # Concatenate rather than .format(): the real file contains braces, which
+    # str.format would try to interpret.
+    base = real.read_text(encoding="utf-8")
+    same = (canonical_contract(base + "\n### T9\n\n- [ ] T9 done\n", ac_section_only=False)
+            == canonical_contract(base + "\n### T9\n\n- [x] T9 done\n", ac_section_only=False))
+    ok(name) if same else fail(name, "ticking a task in a real plan moved the digest")
 
 
 def main() -> int:
@@ -2689,6 +2745,8 @@ def main() -> int:
             test_ac1_h1_closes_the_ac_region,
             test_ac2_multiline_preamble_comment_keeps_line_indices,
             test_ac7_fenced_ac_heading_does_not_open_the_region,
+            test_ac1_fence_tracking_follows_commonmark,
+            test_ac5_real_in_tree_plan_stays_normalizable,
             test_stub_lifecycle_status_bump_keeps_pin,
             test_stub_lifecycle_bump_with_vocabulary_comment,
             test_stub_status_line_smuggling_still_caught,

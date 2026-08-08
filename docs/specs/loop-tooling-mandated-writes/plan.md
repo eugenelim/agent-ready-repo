@@ -68,7 +68,7 @@ dependency; both scripts stay pure-stdlib.
 | 4 | Does any test duplicate the canonicalizer? | **Resolved (review finding)** — `test-loop-engine.py`'s duplicated helpers does, feeding 28 fixtures. Now AC11 and T1. |
 | 5 | Is ticking an AC bookkeeping or scope? | **Resolved** — bookkeeping (`SKILL.md`'s finish checklist mandates it); `(deferred: <slug>)` is scope and stays detected (AC8). |
 | 6 | Are healthy in-flight runs newly wedged? | **Resolved (review finding)** — yes: a run at `SPEC-PLAN-APPROVED` is healthy today. First draft's Assumption 1 was false. Corrected. The accurate-message half was first attempted via a `schema_version: 2` bump; that is withdrawn — see row 11. |
-| 7 | Can raw UTF-8 output break the linter's own reader? | **Resolved (review finding)** — yes, for `U+0085`/`U+2028`/`U+2029`; verified `splitlines()` splits all three and `ensure_ascii=False` emits them raw. Writer refuses them (AC16); linter exempts their escaped form (AC20). |
+| 7 | Can raw UTF-8 output break the linter's own reader? | **Resolved (review finding)** — yes, for `U+0085`/`U+2028`/`U+2029`; verified `splitlines()` splits all three and `ensure_ascii=False` emits them raw. Writer refuses them (AC16); the linter refuses both spellings (AC20/AC20a) — an escaped separator survives the round trip intact and forges a line in the replayed block, which is exactly why the earlier exemption had to go. |
 | 8 | Is the writer's `--file` a security boundary? | **Resolved (review finding)** — yes; argv-controlled path *and* content. Confined per AC14/AC15 against the blessed helper's shape. |
 | 9 | Is the writer scope creep? | **Resolved** — `adversarial-reviewer` flagged it as additive; overridden on fact, the user requested it explicitly ("have a script that just appends to the knowledge pattern"). Recorded rather than silently kept. |
 | 10 | Does SAST cover the argv → path flow? | **Surfaced** — no; `env-path-taint.yml` sources only `os.environ.*`. Recorded as spec Assumption 4 so scanner silence is not read as coverage. A companion rule is deferred, not done here. |
@@ -196,8 +196,7 @@ else needs it once AC10 drops the legacy compare. The three module-level binding
 file at import rather than at an assertion: rename `canonical_plan` (its `canonical_plan` binding)
 and `sha256_canonical_plan` (its `sha256_canonical_plan` binding), and **delete** the `sha256_file` binding
 (its `sha256_file` binding) — nothing else in that file uses it. In `test-loop-engine.py`, the
-~12 `sha256_file(...)` call sites (`:160, 650, 763, 798, 832, 869, 903, 937,
-1040, 1067, 1096, 2672`) all become the canonical function, and rename `test_canonical_plan_normalization` and its entry in `main()`'s
+~12 `sha256_file(...)` call sites  all become the canonical function, and rename `test_canonical_plan_normalization` and its entry in `main()`'s
 `tests` list — by symbol, not line number, which the stubs already shifted.
 
 Give every mismatch message the AC10 both-causes wording, including the
@@ -236,7 +235,7 @@ transition.
 
 `schema_version` stays at `1` — see the declined-pattern register.
 
-Replace `test-loop-engine.py`'s duplicated helpers's local `sha256_file` /
+Replace `test-loop-engine.py`'s duplicated helpers `sha256_file` /
 `sha256_canonical_plan` with an `importlib` load of the canonicalizer, so the
 28 fixtures that fabricate `state.json` cannot drift from the subject.
 
@@ -256,13 +255,13 @@ must-still-pass guard that the current raw-byte hash already satisfies.
 rewrites and the AC5/AC7/AC8/AC9/AC10 cases. Do not read the list as
 already materialized.
 - Rewrite the three tests that assert the defect —
-  `test_plan_check_current_changed_spec` (`test_plan_check_current_changed_spec`),
-  `test_approve_plan_refuses_changed_spec` (`test_approve_plan_refuses_changed_spec`), and
-  `test_approve_plan_overwrites_hashes` (`test_approve_plan_overwrites_hashes`) — to make a *substantive*
+  `test_plan_check_current_changed_spec`,
+  `test_approve_plan_refuses_changed_spec`, and
+  `test_approve_plan_overwrites_hashes` — to make a *substantive*
   change (add an AC). All three mutate spec.md by the `Status` bump today.
   `test_approve_plan_overwrites_hashes`'s post-change contract is two-sided: exit 0 no-op on a status bump,
   exit 1 on a substantive edit.
-- Rewrite `test_approve_plan_state_preserved_on_refusal` (`test_approve_plan_state_preserved_on_refusal`) scenario A
+- Rewrite `test_approve_plan_state_preserved_on_refusal` scenario A
   to a substantive edit. It bumps `Status` and asserts only that `state.json`
   is unchanged, so after T1 it stays green while no longer testing the refusal
   its name and docstring claim — a silent loss of coverage, not a failure.
@@ -279,7 +278,7 @@ already materialized.
   line at all leaves every verb unaffected (AC9).
 - Each of the four mismatch messages names both causes and the reset pair —
   including the `plan_hash != approved_plan_hash` compare in `cmd_plan_check_current` and
-  `approve-plan`'s idempotency idempotency message (AC10).
+  `approve-plan`'s idempotency message (AC10).
 - Re-indenting `- [ ] AC1` into a sub-bullet of its predecessor **changes**
   the digest (AC1). This is the only case pinning "bracket contents only"
   against a whole-match substitution that would also eat the indentation.
@@ -333,8 +332,11 @@ matches nothing today, so it passed whether or not the task was done.)
 **Touches:** `.../scripts/lint-knowledge.py`, `.../test-lint-knowledge.py`
 
 Per-line rule: an escape `\uXXXX` is a character written the wrong way unless
-it is one of the five C0 characters JSON needs (`\b \t \n \f \r`) or one of
-`U+0085` / `U+2028` / `U+2029`. An escape is
+the decoded pass already refuses that character — no C0 or line separator
+belongs in a field value in either spelling, so flagging the escape too would
+just draw a second error advising a form that is also refused. Surrogates stay
+flagged here regardless, because a pair decodes to a valid character and the
+escape form is the only place it is visible. An escape is
 real when the run of consecutive backslashes ending at (and including) the
 matched `\` is **odd**; skip it when the run is even, so a literal `\\u2014`
 in body text is not a false positive. Surrogate pairs are caught because neither half is in
@@ -511,8 +513,9 @@ cannot be the only check.
   checkboxes — the scope the pin protects; the correction to section-only then
   stopped normalizing plan-task checkboxes, which four plans here carry. The
   over-match risk that motivated the original wording is handled by the scan
-  skipping fenced blocks and closing on an H1 as well as an H2, so a documented
-  example cannot move the boundary.
+  CommonMark fence tracking plus three terminators: H1/H2 for a heading-opened
+  region, and the next bold lead-in or an H3 for a bold-opened one, which has no
+  heading to close it.
 - **In-flight runs still reset.** AC10 makes the failure message accurate but
   does not make the old pin valid — that is deliberate. Spec Assumption 1 is
   the canonical statement; T6 reproduces it in the CHANGELOG.

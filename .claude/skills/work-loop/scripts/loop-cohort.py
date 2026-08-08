@@ -216,9 +216,11 @@ _ANY_SECTION_RE = re.compile(r"^ {0,3}#{1,2}[ \t]")
 # A bold-lead-in region has no heading to close it, so it would run to EOF and
 # un-pin every later checkbox — including a `Never do` item, which is the scope
 # the pin exists to protect. It closes on the next bold lead-in instead.
-# H3+ is NOT a terminator: 293 H3 headings sit *inside* AC sections across this
-# repo, so closing on them would end the region early for most specs.
+# H3 closes a bold-opened region but NOT an H2-opened one: H3 subheadings sit
+# inside H2-opened AC sections all over this repo and closing on them would end
+# those regions early, while no bold-opened region contains one.
 _BOLD_LEAD_RE = re.compile(r"^ {0,3}\*\*")
+_H3_RE = re.compile(r"^ {0,3}#{3,6}[ \t]")
 
 # AC10: a mismatch has two possible causes and the verb cannot tell them apart,
 # so it names both rather than asserting the one that is usually wrong.
@@ -294,11 +296,27 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
     # `spec-ac-heading-casing-silent-gate`.
     in_ac = not ac_section_only
     opened_bold = False
-    fenced = False
+    fence_char = fence_len = None
     for i, line in enumerate(lines):
-        if line.lstrip().startswith("```"):
-            fenced = not fenced
-        if fenced:
+        # CommonMark fence semantics, not a toggle. A toggle desyncs on a
+        # nested fence — a ```toml inside a ```markdown example flips the state
+        # back — and one real plan in this tree has an odd fence count, which
+        # left the tracker stuck open and disabled normalization for the rest of
+        # the file. Only a bare run of the opening character, at least as long,
+        # closes; a line carrying an info string always opens.
+        stripped = line.lstrip()
+        marker = stripped[:1]
+        if marker in ("`", "~"):
+            run = len(stripped) - len(stripped.lstrip(marker))
+            info = stripped[run:].strip()
+            if fence_char is None:
+                if run >= 3:
+                    fence_char, fence_len = marker, run
+                    continue
+            elif marker == fence_char and run >= fence_len and not info:
+                fence_char = fence_len = None
+                continue
+        if fence_char is not None:
             continue
         if ac_section_only and _AC_HEADING_RE.match(line):
             in_ac = True
@@ -306,7 +324,7 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
             continue
         if ac_section_only and in_ac and (
             _ANY_SECTION_RE.match(line)
-            or (opened_bold and _BOLD_LEAD_RE.match(line))
+            or (opened_bold and (_BOLD_LEAD_RE.match(line) or _H3_RE.match(line)))
         ):
             in_ac = False
         if in_ac and lint._AC_DONE_RE.match(line):

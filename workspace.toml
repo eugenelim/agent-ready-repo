@@ -493,7 +493,7 @@ open = [
   # activation, not hurt it. Needs an eval-backed pass, not a prose sweep.
   {slug = "codex-skill-description-budget", source = "spec/pack-description-quality"},
     # Every loop-cohort verb does read_state() -> mutate -> write_state_atomic() with no
-    # lock. write_state_atomic (loop-cohort.py:138) makes each *write* atomic via
+    # lock. write_state_atomic makes each *write* atomic via
     # mkstemp+replace, but the read-modify-write around it is unguarded, so two concurrent
     # verbs (a supervisor and a hand-run status, two agents in one workspace) silently lose
     # one update — last writer wins, no error. No flock/fcntl/O_EXCL anywhere under the

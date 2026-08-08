@@ -159,10 +159,18 @@ def gratuitous_escapes(raw: str) -> list[tuple[str, str]]:
     found: list[tuple[str, str]] = []
     for m in _ESCAPE_RE.finditer(raw):
         cp = int(m.group(2), 16)
-        # Skip anything the decoded pass refuses outright. Otherwise an escaped
-        # C0 fires twice, and the escape rule's advice — "write it literally" —
-        # points at a form that is also refused.
-        if cp in _LINE_BREAKERS or unicodedata.category(chr(cp)) == "Cc":
+        # Skip anything the decoded pass refuses anyway — asked of that
+        # predicate rather than restated, so the two cannot drift. Otherwise an
+        # escaped character fires twice and the escape rule's advice ("write it
+        # literally") points at a form that is also refused; for a lone
+        # surrogate that form cannot exist in a UTF-8 file at all.
+        # Skip what the decoded pass refuses anyway, so an escaped character does
+        # not fire twice with advice ("write it literally") pointing at a form
+        # that is also refused. Surrogates are the exception and must stay
+        # flagged here: a *pair* decodes to a perfectly valid astral character,
+        # so the escape rule is the only thing that ever sees it — which is the
+        # whole non-BMP half of the drift this rule exists for.
+        if not (0xD800 <= cp <= 0xDFFF) and field_problems(chr(cp)):
             continue
         found.append((f"\\u{m.group(2)}", chr(cp)))
     return found

@@ -163,10 +163,10 @@ def layer_validation_rules(tmp: Path) -> None:
              '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
              '"body": "a\\u0009b", "source": "s"}\n',
              1, "control character U+0009")
-    run_case(tmp, "stub-literal-control-rejected-too",
+    run_case(tmp, "stub-escaped-del-rejected",
              '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
              '"body": "a\\u007fb", "source": "s"}\n',
-             1, "control character U+007F")
+             1, "failed (1 error(s))")   # U+007F is Cc at 0x7F, outside `cp < 0x20`
     # Non-BMP characters become surrogate PAIRS under ensure_ascii=True — the
     # half of the drift that is not merely cosmetic, since U+D800-U+DFFF are
     # not valid TOML/YAML scalars.
@@ -209,7 +209,7 @@ def layer_validation_rules(tmp: Path) -> None:
     run_case(tmp, "stub-escaped-esc-rejected",
              '{"id": "K-0001", "kind": "pattern", "scope": "x", "title": "t", '
              '"body": "pre \\u001b[31mRED post", "source": "s"}\n',
-             1, "control character U+001B")
+             1, "failed (1 error(s))")   # one error, not two: see the exemption
     # AC16 — three adjacent zero-width characters is an alphabet, not text.
     # The run spans joiners AND presentation selectors: counting joiners only
     # left an alternating VS15/VS16 sequence invisible to every check.

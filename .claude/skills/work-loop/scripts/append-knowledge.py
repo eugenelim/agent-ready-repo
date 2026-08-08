@@ -82,11 +82,6 @@ FIELD_ORDER = ("id", "kind", "scope", "tier", "title", "body", "source")
 TITLE_CAP = 120
 BODY_CAP = 2000
 
-# str.splitlines() splits on these; the raw form would turn one entry into two
-# unparseable lines. Refused here rather than escaped, because a knowledge entry
-# has no business carrying a line separator mid-field.
-_LINE_BREAKERS = frozenset("  ")
-
 # Environment that steers `git rev-parse --show-toplevel` away from the cwd.
 _GIT_ENV_OVERRIDES = (
     "GIT_DIR", "GIT_WORK_TREE", "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES",
@@ -303,10 +298,6 @@ def validate_value(field: str, value: str) -> str | None:
     if problems:
         return (f"{field} contains a {problems[0]}; entries are replayed "
                 "verbatim into every future session, so these are refused")
-    for ch in value:
-        if ch in _LINE_BREAKERS:
-            return (f"{field} contains U+{ord(ch):04X}, which str.splitlines() "
-                    "treats as a line break — it would split this entry in two")
     cap = {"title": TITLE_CAP, "body": BODY_CAP}.get(field)
     if cap is not None and len(value) > cap:
         return f"{field} is {len(value)} characters; the limit is {cap}"
