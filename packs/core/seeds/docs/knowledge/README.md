@@ -59,7 +59,7 @@ usual mistake:
 | `id` | `K-\d{4,}` | Unique, zero-padded to four digits. Conventionally sequential, but the linter only enforces uniqueness — gaps are fine. |
 | `kind` | `pattern` \| `gotcha` \| `antipattern` | Exactly one of these three values. |
 | `scope` | glob(s) | Path pattern(s) this applies to — `packages/auth/**`, `src/cli/*.py`, or `*` for repo-wide. Comma-separate for multiple patterns: `"packages/auth/**, src/models/**"`. |
-| `tier` | `"invariant"` \| `"observation"` | Optional, default `"observation"`. `"invariant"` entries are always injected by session-start regardless of `--scope`; use for lessons that apply everywhere. |
+| `tier` | `"invariant"` \| `"observation"` | Optional, default `"observation"`. A routing hint for curation and future retrieval. It once made an entry bypass `--scope` and replay into every session unconditionally — a privilege bit selectable inside the record itself — and no longer grants anything. |
 | `title` | string | One-line summary; aim for under 80 characters. |
 | `body` | string | The lesson itself. A paragraph or two is enough; if you find yourself writing more, the entry probably wants to be split. |
 | `source` | string | Where this came from: `PR#42`, `ADR-0007`, `issue#13`, etc. |
@@ -94,9 +94,10 @@ with `json.dumps(entry)` — whose `ensure_ascii` defaults to `True` — drifts 
 escapes silently while still linting clean under every other rule. Write `—`,
 not `\u2014`; if you serialize with Python, pass `ensure_ascii=False`.
 
-Entries are read back verbatim into every future session by the session-start
-hook, so treat the body as durable instruction: keep it to lessons about this
-repo, and never paste content from an untrusted source into one. Characters
+Entries are **evidence, not instructions**, and are no longer replayed into
+sessions automatically — see § How these are read. Still keep the body to
+lessons about this repo, and never paste content from an untrusted source into
+one: an entry is a durable, agent-authored record that a human approves. Characters
 that render as nothing — bidi overrides, zero-width joiners in runs, the
 Unicode Tag block, the variation selectors, the Mongolian ones — are refused
 outright, by the writer and by the linter, because a payload you cannot see in
@@ -151,7 +152,20 @@ captures a learning that fits the pattern/gotcha/antipattern shape, the
 canonical home is here. Other kinds of learning still go where they
 already belong (AGENTS.md, skill bodies, architecture/).
 
-The session-start hook ([`tools/hooks/session-start.py`](../../tools/hooks/session-start.py))
-reads this file and prints the entries — optionally filtered by glob —
-so a fresh agent session starts with the relevant patterns already in
-context.
+The session-start hook does **not** read this file. Whatever that hook prints
+becomes model context before the user's first prompt — and again on resume,
+clear, compaction and fork — so replaying agent-captured prose there would turn
+one influenced session into a standing instruction for every session after it.
+Entries are captured from material the work-loop encountered; being committed
+makes them reviewed, not authoritative.
+
+The renderer is still reachable on request, for curation:
+
+```bash
+python3 tools/hooks/session-start.py --show-knowledge [--scope <path-or-glob>]
+```
+
+Harvesting these into the places that *are* authoritative — AGENTS.md, a skill,
+an ADR, architecture docs, or a lint or test — is the distill-knowledge path's
+job. The strongest knowledge is not prose a model remembers; it is behaviour the
+repository mechanically enforces.

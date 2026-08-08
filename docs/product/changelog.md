@@ -73,6 +73,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Knowledge entries are no longer replayed into sessions automatically.**
+  `session-start.py` printed every entry in `docs/knowledge/patterns.jsonl` to
+  stdout, which Claude Code inserts into model context before the user's first
+  prompt — and again on resume, clear, compaction and fork. Entries are captured
+  by agents during the work-loop from material those loops encountered, so the
+  hook turned one influenced session into a standing instruction for every
+  session after it. The block is now rendered only when a caller passes
+  `--show-knowledge`, which the wired hook does not; `tier: "invariant"`, which
+  bypassed scope filtering and requested unconditional replay from inside the
+  record itself, no longer grants anything. The adapt-to-project nudge is
+  unaffected. If you relied on entries arriving at session start, render them
+  deliberately with `session-start.py --show-knowledge [--scope <path>]`, or
+  promote the durable ones into `AGENTS.md`, a skill, or an ADR — which is where
+  guidance an agent must follow belongs.
+
 - **Knowledge entries refuse control characters other than tab, and newline in `body`.**
   A hand-edited entry carrying `ESC`, `DEL`, a C1 character or a bare carriage
   return now fails `lint-knowledge.py`, where it previously passed — these are
@@ -86,6 +101,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tabs in any field, which is how a payload is pushed off the side of a diff
   while still being replayed. If an entry trips any of these, rewrite the
   offending character out; there is no format migration.
+
+  These rules guarantee that a reviewer sees what the model receives; they do
+  not make replayed entries trusted. Entries are version-controlled and
+  PR-reviewed, and that review remains the control.
 
 ### Security
 

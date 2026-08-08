@@ -66,12 +66,15 @@ def _isolated_env(**overrides: str) -> dict:
 
 
 def test_session_start_emits_knowledge_block(tmp_path: Path) -> None:
+    """Under `--show-knowledge`. The hook no longer replays entries at session
+    start — see `test_session_start_never_replays_knowledge_by_default`."""
     kb = tmp_path / "knowledge.jsonl"
     kb.write_text(
         '{"id":"K-0001","kind":"pattern","scope":"*","title":"T","body":"B","source":"S"}\n',
         encoding="utf-8",
     )
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)),
+                  "--show-knowledge", cwd=tmp_path)
     assert result.returncode == 0, result.stderr
     assert "=== knowledge ===" in result.stdout
     assert "[K-0001]" in result.stdout
@@ -95,7 +98,8 @@ def test_session_start_layout_matches_the_field_policy(tmp_path: Path) -> None:
         '"title":"TITLE_S","body":"BODY_ONE\\nBODY_TWO","source":"SOURCE_S"}\n',
         encoding="utf-8",
     )
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)),
+                  "--show-knowledge", cwd=tmp_path)
     assert result.returncode == 0, result.stderr
     lines = result.stdout.splitlines()
 
@@ -120,10 +124,57 @@ def test_session_start_layout_matches_the_field_policy(tmp_path: Path) -> None:
     assert "invariant" not in result.stdout, "tier is now rendered — policy stale"
 
 
+def test_session_start_never_replays_knowledge_by_default(tmp_path: Path) -> None:
+    """The containment rule: no contributor-controlled byte reaches stdout.
+
+    Whatever this hook prints becomes model context before the user's first
+    prompt, and again on resume, clear, compact and fork. Knowledge entries are
+    agent-captured evidence, so replaying them there turns one influenced
+    session into a standing instruction for every session after it. Every field
+    of this fixture carries an instruction — including `scope`, which is not
+    prose and was still printed in the entry header.
+    """
+    kb = tmp_path / "knowledge.jsonl"
+    kb.write_text(
+        '{"id":"K-0001","kind":"pattern","scope":"SCOPEPAYLOAD",'
+        '"tier":"invariant","title":"TITLEPAYLOAD","body":"BODYPAYLOAD",'
+        '"source":"SOURCEPAYLOAD"}\n',
+        encoding="utf-8",
+    )
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
+    for payload in ("SCOPEPAYLOAD", "TITLEPAYLOAD", "BODYPAYLOAD",
+                    "SOURCEPAYLOAD", "K-0001", "=== knowledge ==="):
+        assert payload not in result.stdout, (
+            f"{payload!r} reached session-start stdout — it becomes model "
+            f"context before the user's first prompt"
+        )
+    # `tier: invariant` was an unconditional-replay bypass; it must not survive
+    # as one. Nothing about this record can request prompt authority any more.
+    assert "invariant" not in result.stdout
+
+
+def test_session_start_knowledge_is_reachable_on_request(tmp_path: Path) -> None:
+    """Containment, not deletion. Curation still needs to render the block, so
+    the renderer stays reachable — just never from the wired hook."""
+    kb = tmp_path / "knowledge.jsonl"
+    kb.write_text(
+        '{"id":"K-0001","kind":"pattern","scope":"*","title":"T","body":"B",'
+        '"source":"S"}\n',
+        encoding="utf-8",
+    )
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), "--show-knowledge",
+                  cwd=tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert "=== knowledge ===" in result.stdout
+    assert "[K-0001]" in result.stdout
+
+
 def test_session_start_malformed_warns_to_stderr(tmp_path: Path) -> None:
     kb = tmp_path / "knowledge.jsonl"
     kb.write_text("{not json\n", encoding="utf-8")
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)),
+                  "--show-knowledge", cwd=tmp_path)
     assert result.returncode == 0
     assert "skipped 1 malformed line(s)" in result.stderr
     # Adopter-clean: the hint must not point at a repo-native catalogue linter.
@@ -138,7 +189,8 @@ def test_session_start_mixed_valid_and_malformed(tmp_path: Path) -> None:
         '{"id":"K-0001","kind":"pattern","scope":"*","title":"T","body":"B","source":"S"}\n',
         encoding="utf-8",
     )
-    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)), cwd=tmp_path)
+    result = _run(_isolated_env(KNOWLEDGE_FILE=str(kb)),
+                  "--show-knowledge", cwd=tmp_path)
     assert result.returncode == 0
     assert "[K-0001]" in result.stdout
     assert "skipped 1 malformed" in result.stderr
@@ -241,7 +293,7 @@ def test_session_start_scope_coverage_glob(tmp_path: Path) -> None:
     )
     result = _run(
         _isolated_env(KNOWLEDGE_FILE=str(kb)),
-        "--scope", "packages/auth/server.ts",
+        "--show-knowledge", "--scope", "packages/auth/server.ts",
         cwd=tmp_path,
     )
     assert result.returncode == 0
