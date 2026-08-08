@@ -56,16 +56,15 @@ def test_real_core_install_writes_session_start_binding(tmp_path):
         rc = install.run(args)
     assert rc == 0, f"install failed: {err.getvalue()}"
 
-    # `core` declares allowed-scopes = ["repo"], so it does not reach the
-    # user-scope claude-plugins route (docs/specs/claude-plugin-route-scope).
-    # The route emits only the marketplace envelope; core's own subtree — and
-    # therefore the dist-tree settings file this test used to read — is absent
-    # by design. The APM route is unfiltered and still carries core's wiring,
-    # which is what this test now pins.
-    plugins_dir = target / "claude-plugins"
-    assert not (plugins_dir / "core").exists(), (
-        "core is repo-only and must not reach the claude-plugins route"
-    )
+    # This test asserts *engine* behaviour: the install machinery projects a
+    # real pack's wiring. Whether `core` specifically belongs on the
+    # claude-plugins route is a claim about this repository's catalogue roster,
+    # owned by `tools/lint-plugin-membership.py` under RFC-0082's taxonomy —
+    # asserting it here would put a roster claim in the engine tree.
+    #
+    # The route emits only the marketplace envelope for a repo-only pack, so
+    # the dist-tree settings file this test used to read is absent. The APM
+    # route is unfiltered and carries the wiring, which is what it pins now.
     wiring = target / "apm" / "core" / ".apm" / "hook-wiring" / "session-start.toml"
     assert wiring.exists(), f"APM-route wiring missing at {wiring}"
     body = wiring.read_text(encoding="utf-8")
