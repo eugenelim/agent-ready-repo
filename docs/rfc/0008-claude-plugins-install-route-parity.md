@@ -774,6 +774,10 @@ Consequences for this RFC's design:
   files) is unchanged and still governs how an installed plugin's scope is
   detected.
 
+### History / audit trail
+
+Dated entries, superseded by the current-state layer above where they conflict.
+
 - **2026-08-07 — the claude-plugins route wrote no marker, and the
   `allowed-scopes` rail never fired, from first ship until `agentbundle`
   0.29.8.** This RFC's design is unchanged; the erratum records that two

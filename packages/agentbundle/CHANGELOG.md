@@ -32,6 +32,16 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   avoids two unrelated copies of the pack's skills once you reinstall at repo
   scope.
 
+- **`agentbundle upgrade` removes `claude-plugins/<pack>/` from an existing
+  dist-tree install of a repo-only pack.** The filter sits in `render_pack`, so
+  `--emit-install-routes` no longer writes that subtree — and `upgrade` renders
+  the same shape to diff against your state file, which means the previously
+  installed `claude-plugins/<pack>/` files read as *removals* and are deleted
+  from your repository. That is the correct end state (the route never carried
+  those packs legitimately), but it is a file deletion on your disk, not just a
+  marketplace listing change. `apm/<pack>/` is unaffected. If you want to keep
+  the old tree, copy it aside before upgrading.
+
 - **Engine behaviour change for self-hosting adopters.** The same predicate
   applies on `run_self_host`, so a pack in *your* catalogue that resolves
   repo-only no longer appears in the `.claude-plugin/marketplace.json` your

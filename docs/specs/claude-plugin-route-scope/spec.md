@@ -95,15 +95,23 @@ Seventeen criteria are met. Eight are deferred with backlog slugs, and they are
 **not equivalent** — this section says which is which rather than letting a
 uniform `(deferred: …)` marker imply they are.
 
-**Deferrable follow-ups.** `AC18` (consumer characterization tests) and `AC19`
-(the living-docs sweep, one site seed-projected and needing a `core` bump) are
-additive: nothing published is wrong without them.
+**Deferrable follow-ups.** None, on review. Both candidates were reclassified:
+
+- `AC18` is a **migration** gap, not an additive one. Its
+  stale-`state.json`-through-`upgrade` case decides whether an adopter's
+  existing `claude-plugins/<pack>/` tree is removed cleanly or leaves orphans.
+  The risk is on the adopter's disk, not in what is published; the changelog now
+  states the deletion explicitly, which is the interim mitigation.
+- `AC19` includes `docs/CONVENTIONS.md:597`, which is **seed-projected into
+  every adopter repo** and now states something untrue. `CONVENTIONS.md` classes
+  living-doc drift as a bug, not a follow-up.
 
 **Gaps in this spec's own guarantee — deferred, but weakly.** `AC5`
 (three-surface equality both directions), `AC6` (the by-name tripwire with its
 complement), `AC7` (envelope identity), `AC10` (tests for the publish script's
-refusals), `AC9` (the recorded mutation transcripts) and `AC16`'s scripted
-per-site assertion are the controls this spec exists to add. What ships today is
+refusals), `AC9` (the recorded mutation transcripts) and `AC16` (three prose
+sites still name a path the change makes impossible, plus its scripted per-site
+assertion) are the controls this spec exists to add. What ships today is
 the *mechanism* — the filter works, is verified against the real client, and is
 gated in CI — but several of its assertions are weaker than specified:
 
@@ -140,8 +148,8 @@ would be the drift this repo treats as a bug.
   overturns *at the note*. ADR-0072 records that same function as the writer
   missed last time.
 
-- [x] **AC2 — Scope resolution reuses the existing helper, and its real gate is
-  named.** `commands/validate.py:_allowed_scopes` is reused, not re-derived. Its
+- [ ] **AC2 — Scope resolution reuses the existing helper, and its real gate is
+  named.** *(deferred: plugin-scope-resolver-mirrors)* `commands/validate.py:_allowed_scopes` is reused, not re-derived. Its
   actual behaviour — verified by execution — is that it returns `["repo"]`
   whenever `[pack.adapter-contract].version` is absent or `"0.1"`, **ignoring
   `[pack.install]` entirely**. Any fixture that must publish declares the
@@ -450,8 +458,8 @@ would be the drift this repo treats as a bug.
   passes identically — so the verification is the trailer's presence plus a human
   reading the number, not a mechanical resolution.
 
-- [x] **AC21 — The three `allowed-scopes` resolvers are pinned by a property
-  test.** `validate.py:_allowed_scopes(pack_data)` gates on
+- [ ] **AC21 — The three `allowed-scopes` resolvers are pinned by a property
+  test.** *(deferred: plugin-resolver-property-second-conjunct)* `validate.py:_allowed_scopes(pack_data)` gates on
   `[pack.adapter-contract].version`; `install.py:_resolved_allowed_scopes(pack_install)`
   and `catalogue_tooling/lint.py:_profile_allowed_scopes(pack_toml)` read
   `[pack.install]` with no version gate — note the three take different argument
@@ -490,7 +498,7 @@ would be the drift this repo treats as a bug.
   silently dropping it. The test module's own docstring enumerates the same rows
   and is in scope.
 
-- [x] **AC25 — RFC-0008's dormancy is recorded where the route is documented.**
+- [ ] **AC25 — RFC-0008's dormancy is recorded where the route is documented.** *(deferred: plugin-dormancy-architecture-note)*
   The install→adapt marker keeps being written; both readers
   (`packs/core/.apm/hooks/session-start.py` and the `adapt-to-project` skill)
   live in `core`, so on this route the automatic nudge is reachable only for an

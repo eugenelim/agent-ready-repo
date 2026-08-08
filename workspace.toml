@@ -469,6 +469,25 @@ open = [
   # spec/engine-export-boundary: fixing 66 violations in shipped code does not
   # belong in a release-blocking diff.
   {slug = "ruff-excludes-the-engine-build-package", source = "spec/engine-export-boundary (quality pass)"},
+  # AC2: the spec says _allowed_scopes is "reused, not re-derived", but four
+  # stdlib mirrors ship in tools/ (publish, membership lint, site-parity lint,
+  # site-offers check). Nothing compares any to the canonical, so a change to
+  # commands/validate.py silently desyncs the publish gate from the build. The
+  # publish script's stated justification is also weak — its workflow does
+  # `pip install -e packages/agentbundle` two steps before invoking it. Fix:
+  # extract one shared stdlib resolver and differential-test it against the
+  # canonical over the contract-version x install-table matrix.
+  {slug = "plugin-scope-resolver-mirrors", source = "spec/claude-plugin-route-scope AC2"},
+  # AC21: the property test asserts only the _profile_allowed_scopes conjunct.
+  # _resolved_allowed_scopes — the resolver that gates the install rails, and
+  # the one whose divergence would matter most to a publish decision — is never
+  # called. Fix: add the second conjunct to the same parametrised test.
+  {slug = "plugin-resolver-property-second-conjunct", source = "spec/claude-plugin-route-scope AC21"},
+  # AC25: RFC-0008's dormancy is recorded in the RFC erratum, but the plan
+  # assigns docs/architecture/agentbundle.md as the site and that file still
+  # documents the plugin route with no dormancy note. Fix: add the one-line note
+  # there, or amend AC25 to name the erratum as the recording site.
+  {slug = "plugin-dormancy-architecture-note", source = "spec/claude-plugin-route-scope AC25"},
   # AC5: the three-surface set-equality assertion (dist tree, dist marketplace,
   # repo-root marketplace) with the expected side enumerated literally. What
   # ships asserts by-name absences over fixtures, which catches a fail-open bug
