@@ -43,3 +43,12 @@ dist/
 
 # Conductor scratch + per-workspace probe scaffolding.
 .context/
+
+# append-knowledge.py transients — a SIGKILL between mkstemp and replace
+# would otherwise leave a partial knowledge file stageable by `git add -A`.
+docs/knowledge/**/.append-*.jsonl.tmp
+docs/knowledge/.append-*.jsonl.tmp
+docs/knowledge/**/*.lock
+docs/knowledge/*.lock
+docs/knowledge/**/*.lock.stale-*
+docs/knowledge/*.lock.stale-*

@@ -38,10 +38,18 @@ import tomllib
 from pathlib import Path
 
 USAGE = """\
-Session-start hook: prints knowledge entries as a context block.
+Session-start hook. Prints the adapt-to-project nudge.
+
+Knowledge entries are NOT printed at session start. They are captured
+by agents during the work-loop and are evidence, not instructions — and
+whatever this hook prints lands in the model's context before the user's
+first prompt, on start, resume, clear, compact and fork. Replaying
+unreviewed, self-authored prose there grants it prompt authority no
+review step ever agreed to. Pass --show-knowledge to render the block
+deliberately, for curation.
 
 Usage:
-  session-start.py [--scope <path-or-glob>]
+  session-start.py [--show-knowledge [--scope <path-or-glob>]]
   session-start.py --help
 
 Optional argument: --scope <path-or-glob>
@@ -108,15 +116,20 @@ def _safe_override_path(raw: str, base: Path) -> Path | None:
     return resolved
 
 
-def _parse_args(argv: list[str]) -> str:
-    """Return the scope filter (empty string if absent). Mirrors the
-    bash arg loop: --scope requires a value, --help/-h prints USAGE
-    and exits 0, anything else exits 2."""
+def _parse_args(argv: list[str]) -> tuple[str, bool]:
+    """Return (scope filter, whether to render knowledge).
+
+    `--scope` requires a value, `--help`/`-h` prints USAGE and exits 0,
+    anything else exits 2.
+    """
     scope_filter = ""
+    show_knowledge = False
     i = 0
     while i < len(argv):
         arg = argv[i]
-        if arg == "--scope":
+        if arg == "--show-knowledge":
+            show_knowledge = True
+        elif arg == "--scope":
             i += 1
             if i >= len(argv) or argv[i].startswith("-"):
                 print(
@@ -132,7 +145,7 @@ def _parse_args(argv: list[str]) -> str:
             print(f"session-start: unknown argument {arg}", file=sys.stderr)
             sys.exit(2)
         i += 1
-    return scope_filter
+    return scope_filter, show_knowledge
 
 
 def _emit_knowledge(path: Path, scope_filter: str) -> None:
@@ -245,14 +258,28 @@ def _emit_adapt_nudge(repo_marker: Path, user_marker: Path) -> None:
 
 
 def main(argv: list[str]) -> int:
-    scope_filter = _parse_args(argv[1:])
+    scope_filter, show_knowledge = _parse_args(argv[1:])
     repo_root = _repo_root()
 
     home = Path.home()
     knowledge_file = _safe_override_path(
         os.environ.get("KNOWLEDGE_FILE", ""), repo_root
     ) or (repo_root / "docs" / "knowledge" / "patterns.jsonl")
-    if knowledge_file.is_file() and knowledge_file.stat().st_size > 0:
+    # Deliberately gated. Whatever this hook prints becomes model context before
+    # the user's first prompt — and again on resume, clear, compact and fork,
+    # compaction being the moment the model has least surrounding context with
+    # which to discount it. Knowledge entries are captured by agents during the
+    # work-loop from material those loops encountered, so replaying them here
+    # turns one influenced session into a standing instruction for every session
+    # after it. They are evidence; nothing about being committed makes them
+    # policy. The character rules in `lint-knowledge.py` keep the diff faithful
+    # to what the model would receive, which makes review effective — they
+    # cannot make instructional prose safe to inject, because useful knowledge
+    # is itself instructional.
+    #
+    # So: rendered only when a caller asks, which the wired hook never does.
+    # Harvesting is the distill-knowledge path's job, under review.
+    if show_knowledge and knowledge_file.is_file() and knowledge_file.stat().st_size > 0:
         _emit_knowledge(knowledge_file, scope_filter)
 
     repo_marker = _safe_override_path(
