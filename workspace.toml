@@ -469,6 +469,16 @@ open = [
   # spec/engine-export-boundary: fixing 66 violations in shipped code does not
   # belong in a release-blocking diff.
   {slug = "ruff-excludes-the-engine-build-package", source = "spec/engine-export-boundary (quality pass)"},
+  # tools/lint-ci-parity.py classifies pages.yml as "Deploy workflow, not a
+  # gate" and therefore out of scope — but claude-plugin-route-scope added a
+  # non-blocking assertion step to it (check-site-plugin-offers.py), so that
+  # step carries no disposition and parity will not notice if it is deleted.
+  # Fix: update WORKFLOW_SCOPE's reason, or bring the step in scope as CI_ONLY.
+  {slug = "plugin-pages-yml-parity-disposition", source = "spec/claude-plugin-route-scope"},
+  # Six fixture continuation strings in build/tests/test_self_host_check.py are
+  # indented to column 8 inside deeper blocks — ruff accepts it, but it reads as
+  # a dedent bug. Left alone because RFC-0082 relocates that whole tree.
+  {slug = "plugin-fixture-continuation-indent", source = "spec/claude-plugin-route-scope"},
   # AC2: the spec says _allowed_scopes is "reused, not re-derived", but four
   # stdlib mirrors ship in tools/ (publish, membership lint, site-parity lint,
   # site-offers check). Nothing compares any to the canonical, so a change to

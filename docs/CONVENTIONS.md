@@ -600,7 +600,8 @@ seeds) lives under `packs/<pack>/`. The split is:
   on first install via brownfield rules and own their on-disk content
   thereafter.)
 - Aggregated: `.claude-plugin/marketplace.json` from the `.claude-plugin/plugin.json`
-  of every pack whose `[pack.install] allowed-scopes` admits `user`. The
+  of every pack whose `[pack.install] allowed-scopes` admits `user` — and that declares `[pack.adapter-contract] version`; a pack with no
+  contract version resolves `repo` regardless of what `allowed-scopes` says. The
   Claude-plugin route installs at user scope, so a repo-scoped pack is not
   listed there — it installs with `agentbundle install`.
 - Recreated: `CLAUDE.md → AGENTS.md` symlink.

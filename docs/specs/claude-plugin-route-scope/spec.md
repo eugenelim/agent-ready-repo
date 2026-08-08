@@ -91,9 +91,9 @@ Used by every criterion below. A pack is **publishable** when all hold:
 
 ## What shipped, and what did not
 
-Seventeen criteria are met. Eight are deferred with backlog slugs, and they are
-**not equivalent** — this section says which is which rather than letting a
-uniform `(deferred: …)` marker imply they are.
+The criteria met are marked `[x]`; each deferred one carries a backlog slug.
+They are **not equivalent**, so this section says which is which rather than
+letting a uniform `(deferred: …)` marker imply they are.
 
 **Deferrable follow-ups.** None, on review. Both candidates were reclassified:
 
@@ -124,6 +124,12 @@ gated in CI — but several of its assertions are weaker than specified:
   push`, and none is tested.
 - `AC7` leaves the marketplace envelope derivable from the first surviving
   entry, so a filtered set can re-key it.
+- `AC2` claims the scope resolver is "reused, not re-derived", while four
+  stdlib mirrors ship in `tools/` with nothing pinning them to the canonical.
+- `AC21`'s property test asserts one of its two conjuncts, omitting the
+  resolver that gates the install rails.
+- `AC25`'s dormancy note landed in the RFC erratum rather than the architecture
+  doc the plan assigns.
 
 **Status is therefore `Implementing`, not `Shipped`.** A spec whose central
 assertions are deferred has not met its own contract, and marking it Shipped
@@ -149,8 +155,8 @@ would be the drift this repo treats as a bug.
   overturns *at the note*. ADR-0072 records that same function as the writer
   missed last time.
 
-- [ ] **AC2 — Scope resolution reuses the existing helper, and its real gate is
-  named.** *(deferred: plugin-scope-resolver-mirrors)* `commands/validate.py:_allowed_scopes` is reused, not re-derived. Its
+- [ ] **AC2 — Scope resolution reuses the existing helper** *(deferred: plugin-scope-resolver-mirrors)*
+  — and its real gate is named. `commands/validate.py:_allowed_scopes` is reused, not re-derived. Its
   actual behaviour — verified by execution — is that it returns `["repo"]`
   whenever `[pack.adapter-contract].version` is absent or `"0.1"`, **ignoring
   `[pack.install]` entirely**. Any fixture that must publish declares the
@@ -459,8 +465,8 @@ would be the drift this repo treats as a bug.
   passes identically — so the verification is the trailer's presence plus a human
   reading the number, not a mechanical resolution.
 
-- [ ] **AC21 — The three `allowed-scopes` resolvers are pinned by a property
-  test.** *(deferred: plugin-resolver-property-second-conjunct)* `validate.py:_allowed_scopes(pack_data)` gates on
+- [ ] **AC21 — The three `allowed-scopes` resolvers are pinned** *(deferred: plugin-resolver-property-second-conjunct)*
+  — by a property test. `validate.py:_allowed_scopes(pack_data)` gates on
   `[pack.adapter-contract].version`; `install.py:_resolved_allowed_scopes(pack_install)`
   and `catalogue_tooling/lint.py:_profile_allowed_scopes(pack_toml)` read
   `[pack.install]` with no version gate — note the three take different argument
@@ -513,6 +519,18 @@ would be the drift this repo treats as a bug.
   does **not** narrow, and still require a version bump in lockstep with
   `pack.toml`. Recorded here rather than as a criterion: nothing can fail it, and
   the Testing Strategy should not promise an artifact that does not exist.
+
+- [x] **AC27 — Two implementation guards, recorded because they change
+  observable behaviour.** Added during EXECUTE, so they belong in the contract
+  (`CONVENTIONS.md` § 4):
+
+  - `--pack` on an **aggregate** recipe exits 1 with a named refusal.
+    `make build RECIPE=marketplace PACK=x` previously succeeded and rewrote the
+    shared marketplace down to one entry — a silent truncation of an artifact
+    other packs share.
+  - `aggregate_scope` outside `AGGREGATE_SCOPES` raises, validated at
+    `run_recipe`'s boundary rather than only inside `aggregate_exit_code`, which
+    per-pack recipes never reach.
 
 ## Testing Strategy
 

@@ -465,9 +465,6 @@ def _skip_reason(pack_path: Path) -> str:
     )
 
 
-AGGREGATE_SCOPES = frozenset({"catalogue", "single-pack", "self-host"})
-
-
 def aggregate_exit_code(
     *,
     aggregate_scope: str,
@@ -562,12 +559,23 @@ def run_recipe(
     would let `render_packs_to_dir` and `cmd_build --recipe` inherit the wrong
     policy silently. One of "catalogue" | "single-pack" | "self-host".
     """
+    if aggregate_scope not in AGGREGATE_SCOPES:
+        # Validate here, not only inside `aggregate_exit_code`: that is reached
+        # only for aggregate recipes, so a typo at a per-pack call site would
+        # pass silently — the class of bug the frozenset exists to close.
+        raise ValueError(
+            f"aggregate_scope must be one of {sorted(AGGREGATE_SCOPES)}; "
+            f"got {aggregate_scope!r}"
+        )
     packs_list = list(packs)
     for pack in packs_list:
         validate_pack_uniqueness(pack)
 
     if recipe.type == "per-pack":
-        return _run_per_pack(recipe, packs_list, output_dir, contract)
+        return _run_per_pack(
+            recipe, packs_list, output_dir, contract,
+            aggregate_scope=aggregate_scope,
+        )
     if recipe.type == "aggregate":
         return _run_aggregate(
             recipe, output_dir, packs=packs_list, aggregate_scope=aggregate_scope
@@ -598,7 +606,12 @@ def _assert_under(target: Path, base: Path) -> None:
 
 
 def _run_per_pack(
-    recipe: Recipe, packs: list[Pack], output_dir: Path, contract: dict
+    recipe: Recipe,
+    packs: list[Pack],
+    output_dir: Path,
+    contract: dict,
+    *,
+    aggregate_scope: str = "catalogue",
 ) -> dict:
     if recipe.adapter == "apm":
         return _run_per_pack_apm(recipe, packs, output_dir)
@@ -616,10 +629,16 @@ def _run_per_pack(
             # Route membership, not an error: a repo-only pack forbids the only
             # install this route offers. Named on stderr so an exclusion is
             # never silent (spec § AC1, AC3).
-            print(
-                f"claude-plugins: skipping {pack.name} — {_skip_reason(pack.path)}",
-                file=sys.stderr,
-            )
+            if aggregate_scope == "catalogue":
+                # Catalogue builds name every exclusion. A single-pack render —
+                # which is what `agentbundle install --pack core` and every
+                # render_pack consumer runs — would otherwise print a route
+                # refusal on the flagship successful repo-scope path.
+                print(
+                    f"claude-plugins: skipping {pack.name} — "
+                    f"{_skip_reason(pack.path)}",
+                    file=sys.stderr,
+                )
             continue
         try:
             _run_per_pack_single(
@@ -970,6 +989,10 @@ def _run_aggregate(
             "nothing is a defect, not an outcome — check each pack's "
             "[pack.adapter-contract] version and [pack.install] allowed-scopes."
         )
+    output_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=False) + "\n",
+        encoding="utf-8", newline="\n",
+    )
     return {"recipe": recipe.name, "type": recipe.type, "entries": len(entries)}
 
 
@@ -1030,7 +1053,7 @@ def cmd_build(args) -> int:
         try:
             packs = discover_packs(packs_dir)
             # `--pack` narrows an explicit `--recipe` run to one pack (the
-            # `make build-recipe RECIPE=... PACK=...` form). That is a
+            # `make build RECIPE=... PACK=...` form). That is a
             # single-pack aggregate, not a catalogue: an emptied marketplace is
             # the expected outcome for a repo-only pack, not a defect.
             aggregate_scope = "catalogue"

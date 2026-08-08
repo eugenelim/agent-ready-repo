@@ -31,7 +31,9 @@ schema beyond the per-pack `pack.toml`, and no network protocol.
 `marketplace.json` is the catalogue-level listing consumed by
 `/plugin marketplace add`; the build aggregates version and metadata into it
 from the `.claude-plugin/plugin.json` of every pack whose `allowed-scopes`
-admits `user`. The route installs at user scope, so repo-scoped packs are
+admits `user` *and* that declares `[pack.adapter-contract] version` — the
+resolver gates on the contract version first, so a pack without one resolves
+`repo` whatever its `allowed-scopes` says. The route installs at user scope, so repo-scoped packs are
 excluded — see `docs/specs/claude-plugin-route-scope`. How a pack's
 `pack.toml` projects into that entry is covered in
 [`pack-manifest.md`](pack-manifest.md).

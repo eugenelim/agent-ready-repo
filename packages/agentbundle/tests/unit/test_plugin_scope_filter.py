@@ -121,3 +121,20 @@ def test_empty_set_behaviour(
         )
         != 0
     ) is expect_nonzero
+
+
+def test_unknown_aggregate_scope_raises() -> None:
+    """A typo must fail, not silently disable the guard.
+
+    The frozenset exists because the earlier `!= "catalogue"` form returned 0
+    for any unrecognised string — so a misspelled scope at a call site would
+    have turned AC12's hard error back off with no signal.
+    """
+    from agentbundle.build.main import aggregate_exit_code
+
+    with pytest.raises(ValueError, match="aggregate_scope must be one of"):
+        aggregate_exit_code(
+            aggregate_scope="catalouge",
+            discovered_empty=False,
+            published_empty=True,
+        )

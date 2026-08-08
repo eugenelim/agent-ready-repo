@@ -75,8 +75,10 @@ def main(argv: list[str] | None = None) -> int:
     # The positive half: a user-capable pack's page must still offer it, or the
     # conditional has been inverted rather than removed.
     for slug in sorted(capable):
-        page = build / "packs" / slug / "index.html"
-        if page.exists() and slug not in offered:
+        # No `page.exists()` guard: lint-site-scope-parity guarantees every
+        # pack has a page, so a missing one means the output layout moved — and
+        # skipping the assertion there would print `ok` while it was disabled.
+        if slug not in offered:
             failures.append(
                 f"{GATE}: packs/{slug}/ offers no plugin install command, but "
                 f"{slug} is user-capable"

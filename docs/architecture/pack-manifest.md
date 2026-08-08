@@ -63,7 +63,8 @@ merged into:
 - the derived `dist/claude-plugins/<pack>/.claude-plugin/plugin.json` of every
   **user-capable** pack (alongside the synthesised `SessionStart` hook) — a pack
   whose `allowed-scopes` omits `user` reaches neither, since the route installs
-  at user scope, and
+  at user scope — as does one with no `[pack.adapter-contract] version`, which
+  the resolver gates on first, and
 - that pack's entry in the aggregated `.claude-plugin/marketplace.json`
   (built by `_aggregate_marketplace` in
   [`self_host.py`](../../packages/agentbundle/agentbundle/build/self_host.py)).
