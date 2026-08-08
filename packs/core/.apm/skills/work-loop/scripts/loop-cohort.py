@@ -41,6 +41,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import fnmatch
+import functools
 import glob as _glob
 import hashlib
 import importlib.util
@@ -157,6 +158,83 @@ def write_state_atomic(spec_dir: Path, state: dict) -> None:
         with contextlib.suppress(OSError):
             Path(tmp).unlink()
         raise
+
+
+# ── state lock ────────────────────────────────────────────────────────────
+
+# `write_state_atomic` makes each *write* atomic, but the read-modify-write
+# around it is not: two concurrent verbs each load a snapshot, both decide from
+# it, and the second replace drops the first's update — silently, with both
+# callers exiting 0. Reproduced at 20/20 trials; see
+# docs/specs/loop-cohort-state-lock/notes/reproduction.md.
+#
+# `_statelock.py` is a work-loop script owned by this skill (ADR-0074):
+# stdlib-only, so it works where `agentbundle` is not installed. `agentbundle`
+# has its own, separate lock for the installer's state.toml.
+_statelock_module: object | None = None
+
+
+def _statelock():
+    """Load the sibling `_statelock.py`.
+
+    Loaded by path rather than `import _statelock`, matching
+    `_lint_spec_status()` above: a plain import resolves under file-path
+    invocation but not under an importlib-based harness, which does not put this
+    directory on `sys.path` — and the concurrency suites are exactly that.
+    """
+    global _statelock_module
+    if _statelock_module is None:
+        lock_path = SCRIPT_DIR / "_statelock.py"
+        spec = importlib.util.spec_from_file_location("_statelock", str(lock_path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"loop-cohort: cannot load {lock_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _statelock_module = module
+    return _statelock_module
+
+
+def with_state_lock(spec_dir: Path, verb: str, body):
+    """Run *body* holding the state lock for *spec_dir*; map failures to stop().
+
+    The lock opens *before* the body's `read_state()` and closes *after* its
+    `write_state_atomic()`, so the decision is made against state that cannot
+    change underneath it. Guarding only read→write would leave every defect
+    intact: both contenders would still evaluate their run-id, idempotency and
+    retry-cap checks against the same superseded snapshot.
+
+    Every lock failure becomes a `stop()` refusal — non-zero, one line, no
+    traceback, nothing written. A verb never proceeds unlocked. `StateLockLost`
+    is caught by the same clause (it shares the base) but says something
+    different: the mutation ran, and a reclaim may have overwritten it, so
+    exiting 0 would be a lie.
+    """
+    try:
+        sl = _statelock()
+    except (ImportError, OSError) as exc:
+        # A missing or unloadable projection must refuse, not traceback. In an
+        # adopter tree this is the realistic shape, and proceeding unlocked would
+        # be the fail-open this lock exists to prevent.
+        return stop(f"{verb}: state lock unavailable: {exc}")
+    try:
+        with sl.exclusive(state_path_for(spec_dir)):
+            return body()
+    except sl.StateLockError as exc:
+        return stop(f"{verb}: {exc}")
+
+
+def _locked(verb: str):
+    """Decorator form of `with_state_lock` for verbs that take `args.spec_dir`."""
+    def decorate(fn):
+        @functools.wraps(fn)
+        def wrapper(args: argparse.Namespace) -> int:
+            try:
+                spec_dir = _resolve_spec_dir(args.spec_dir)
+            except ValueError as exc:
+                return stop(str(exc))
+            return with_state_lock(spec_dir, verb, lambda: fn(args))
+        return wrapper
+    return decorate
 
 
 def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
@@ -555,6 +633,7 @@ def dispatch_decision(categories, *, merge_tree_clean):
 # ── init ──────────────────────────────────────────────────────────────────
 
 
+@_locked("init")
 def cmd_init(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -646,6 +725,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 # ── reset ─────────────────────────────────────────────────────────────────
 
 
+@_locked("reset")
 def cmd_reset(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -721,6 +801,7 @@ def _assert_status_legal(verb: str, *paths: Path) -> int | None:
     return None
 
 
+@_locked("approve-plan")
 def cmd_approve_plan(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -980,7 +1061,11 @@ def cmd_schedule(args: argparse.Namespace) -> int:
     if not args.expect_run_id:
         return stop("schedule: --expect-run-id is required")
     plan_override = getattr(args, "plan", None)
-    return _schedule_run_impl(spec_dir, args.expect_run_id, plan_override)
+    return with_state_lock(
+        spec_dir,
+        "schedule",
+        lambda: _schedule_run_impl(spec_dir, args.expect_run_id, plan_override),
+    )
 
 
 # ── check (phase termination) ─────────────────────────────────────────────
@@ -1073,6 +1158,7 @@ def cmd_wave_check(args: argparse.Namespace) -> int:
     return stop(f"wave check: unknown --expect value {args.expect!r}")
 
 
+@_locked("wave advance")
 def cmd_wave_advance(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -1127,6 +1213,7 @@ def cmd_wave_advance(args: argparse.Namespace) -> int:
 # ── record-attempt ────────────────────────────────────────────────────────
 
 
+@_locked("record-attempt")
 def cmd_record_attempt(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -1342,6 +1429,7 @@ def cmd_review_inspect(args: argparse.Namespace) -> int:
     return 0  # content outcomes always exit 0
 
 
+@_locked("review record")
 def cmd_review_record(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)

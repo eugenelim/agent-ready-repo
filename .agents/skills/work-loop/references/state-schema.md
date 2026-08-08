@@ -115,6 +115,29 @@ after the status token on the status line.
 `tempfile.mkstemp` + `os.replace`. A partial-write cannot present as malformed
 JSON and falsely stop the loop.
 
+**State lock.** Atomic writes are not enough on their own: a *verb* reads, then
+decides, then writes, and a concurrent verb's write landing inside that window
+is lost silently. So every mutating verb holds a sibling lockfile
+(`state.json.lock`, `engine-state.json.lock`) across its whole read-decide-write,
+and `loop-engine transition` holds it through the outbox append as well. Both
+files are gitignored, lockfile included.
+
+What you may see:
+
+- **`could not acquire … within 10s (recorded holder pid N)`** — another verb is
+  mid-mutation. The verb refuses without writing; re-run it.
+- **`a lock path must be a regular file`** — something other than a lockfile sits
+  at that path (a stray directory or symlink). Refused at once rather than
+  waited on; remove it.
+- **`lost … mid-mutation`** — this run's lock was reclaimed as stale while it was
+  working, so its write may have been overwritten. Re-read the state before
+  trusting it.
+
+A lock left behind by a killed process is reclaimed automatically after
+**5 minutes**; to clear one sooner, delete the `.lock` file beside the state file
+it names. A lockfile whose contents this tool did not write is never deleted
+automatically — it is reported so a human can look.
+
 **Lifecycle.** Both `state.json` and `engine-state.json` are run-local
 (survives session boundaries; gitignored). A resuming session reads them via
 `loop-engine status` and `loop-cohort identity` / `loop-cohort status`. For

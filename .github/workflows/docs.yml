@@ -32,11 +32,17 @@ on:
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
       - '.claude/skills/work-loop/scripts/loop-engine.py'
       - '.claude/skills/work-loop/scripts/check-spec-status.py'
+      # The state lock. `packs/**` below covers the pack copy; the `.claude/`
+      # projection needs naming explicitly.
+      - '.claude/skills/work-loop/scripts/_statelock.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
       - 'packs/core/.apm/skills/work-loop/scripts/loop-engine.py'
       - 'packs/core/.apm/skills/work-loop/scripts/check-spec-status.py'
+      - 'packs/core/.apm/skills/work-loop/scripts/_statelock.py'
       - 'packs/core/tests/skills/work-loop/test-loop-cohort.py'
       - 'packs/core/tests/skills/work-loop/test-loop-engine.py'
+      - 'packs/core/tests/skills/work-loop/test-statelock.py'
+      - 'packs/core/tests/skills/work-loop/test-loop-concurrency.py'
       - 'packs/core/tests/skills/work-loop/test-loop-cohort.sh'
       - 'packs/core/tests/skills/work-loop/test-root-validation.py'
       - 'packs/core/tests/skills/work-loop/test-fingerprint-width.py'

@@ -15,6 +15,12 @@ docs/specs/**/state.json
 docs/specs/**/engine-state.json
 docs/specs/**/state-*.json
 docs/specs/**/engine-state-*.json
+# State lock (statelock_core). The lockfile is removed on both the success and
+# the exception path, but a SIGKILLed holder leaves one behind — and a reclaimer
+# that dies mid-rename leaves a `.reclaim.<uuid>` companion. Both patterns, or
+# `git status` goes dirty after a crash.
+docs/specs/**/*.json.lock
+docs/specs/**/*.json.lock.reclaim.*
 
 # Supervisor-mode worktrees.
 .worktrees/

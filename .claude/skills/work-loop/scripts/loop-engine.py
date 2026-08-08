@@ -29,6 +29,8 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import functools
+import importlib.util
 import json
 import os
 import shutil
@@ -44,6 +46,28 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+
+# ── the lock-hold budget (ADR-0074 / spec AC10) ────────────────────────────
+#
+# `cmd_transition` holds the state lock across git-shelling guards. Three
+# numbers are ONE budget, and breaking the ordering silently reinstates the
+# lost update this lock exists to prevent:
+#
+#     statelock timeout (10s)  <  max hold  <  statelock stale_after (300s)
+#
+# `timeout` must be shorter than a legitimate hold, or contenders give up on a
+# live holder. `stale_after` must exceed one, or a merely-slow holder is judged
+# dead, its lock is reclaimed, and a second writer is admitted.
+#
+# max hold = SUBPROCESS_TIMEOUT_S x MAX_SUBPROCESS_CALLS_UNDER_LOCK
+#          = 20 x 6 = 120s, comfortably inside 300s.
+#
+# Bounding every call is what makes the hold provable rather than hoped-for.
+# test-loop-concurrency.py's budget case walks this module's locked call graph
+# and fails if a subprocess call appears without a `timeout=`, so adding a guard
+# cannot quietly break the arithmetic.
+SUBPROCESS_TIMEOUT_S = 20.0
+MAX_SUBPROCESS_CALLS_UNDER_LOCK = 6
 SCHEMA_VERSION = 1
 _LOOP_RUN_DIR_NAME = ".loop-run"
 
@@ -64,11 +88,19 @@ _GIT_OVERRIDE_VARS = frozenset({
 
 def _get_repo_root() -> Path:
     safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
-    r = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"],
-        capture_output=True, text=True, encoding="utf-8", check=False,
-        env=safe_env,
-    )
+    try:
+        r = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True, text=True, encoding="utf-8", check=False,
+            env=safe_env, timeout=SUBPROCESS_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired as exc:
+        # Raised as ValueError because every caller already handles that; a bare
+        # TimeoutExpired would surface as a traceback.
+        raise ValueError(
+            f"git rev-parse --show-toplevel timed out after "
+            f"{SUBPROCESS_TIMEOUT_S:.0f}s"
+        ) from exc
     if r.returncode != 0 or not r.stdout.strip():
         raise ValueError("could not determine repo root (git rev-parse --show-toplevel failed)")
     return Path(r.stdout.strip()).resolve()
@@ -303,8 +335,16 @@ CHECK_SPEC_STATUS = str(SCRIPT_DIR / "check-spec-status.py")
 
 
 def _run(cmd: list[str]) -> tuple[int, str]:
-    """Run a subprocess; return (returncode, combined stderr)."""
-    proc = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", check=False)
+    """Run a subprocess; return (returncode, combined stderr). Bounded."""
+    try:
+        proc = subprocess.run(
+            cmd, capture_output=True, text=True, encoding="utf-8", check=False,
+            timeout=SUBPROCESS_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        return 1, (
+            f"timed out after {SUBPROCESS_TIMEOUT_S:.0f}s: {' '.join(cmd[:3])}"
+        )
     return proc.returncode, (proc.stderr.strip() or proc.stdout.strip())
 
 
@@ -537,9 +577,79 @@ def stop(reason: str, code: int = 1) -> int:
     return code
 
 
+# ── state lock ────────────────────────────────────────────────────────────
+
+# `_write_engine_state_atomic` makes each *write* atomic, but the
+# read-decide-write around it is not. Two concurrent transitions both validate
+# against the same `current_state`, so BOTH are admitted where the second must
+# fail `illegal transition`, both compute the same `transition_sequence`, and the
+# durable outbox records the collision. Reproduced at 10/10 trials; see
+# docs/specs/loop-cohort-state-lock/notes/reproduction.md.
+#
+# `_statelock.py` is a work-loop script owned by this skill (ADR-0074):
+# stdlib-only, so it works where `agentbundle` is not installed. `agentbundle`
+# has its own, separate lock for the installer's state.toml.
+_statelock_module: object | None = None
+
+
+def _statelock():
+    """Load the sibling `_statelock.py` by path.
+
+    By path, not `import _statelock`: a plain import resolves under file-path
+    invocation but not under an importlib-based harness, which does not put this
+    directory on `sys.path` — and the concurrency suites are exactly that.
+    """
+    global _statelock_module
+    if _statelock_module is None:
+        lock_path = SCRIPT_DIR / "_statelock.py"
+        spec = importlib.util.spec_from_file_location("_statelock", str(lock_path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"loop-engine: cannot load {lock_path}")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _statelock_module = module
+    return _statelock_module
+
+
+def _locked(verb: str):
+    """Hold the engine-state lock across the whole decorated verb.
+
+    For `transition` the section deliberately spans the FSM table lookup, the
+    plan-hash pre-guard, the event guard AND the outbox finalisation — not just
+    the state write. Releasing at the write leaves a reachable duplicate-event
+    interleaving for the *same* spec: A writes events.pending, writes
+    engine-state, releases; B acquires, `_recover_pending` matches on
+    to/seq/run_id and replays A's event; B refuses; A then appends its own record
+    again.
+
+    Every lock failure becomes a `stop()` refusal — non-zero, one line, no
+    traceback, never an unlocked write.
+    """
+    def decorate(fn):
+        @functools.wraps(fn)
+        def wrapper(args: argparse.Namespace) -> int:
+            try:
+                spec_dir = _resolve_spec_dir(args.spec_dir)
+            except ValueError as exc:
+                return stop(str(exc))
+            try:
+                sl = _statelock()
+            except (ImportError, OSError) as exc:
+                # Refuse, never traceback — see loop-cohort.py's twin.
+                return stop(f"{verb}: state lock unavailable: {exc}")
+            try:
+                with sl.exclusive(_engine_state_path(spec_dir)):
+                    return fn(args)
+            except sl.StateLockError as exc:
+                return stop(f"{verb}: {exc}")
+        return wrapper
+    return decorate
+
+
 # ── init ───────────────────────────────────────────────────────────────────
 
 
+@_locked("init")
 def cmd_init(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -620,6 +730,7 @@ def cmd_init(args: argparse.Namespace) -> int:
 # ── reset ──────────────────────────────────────────────────────────────────
 
 
+@_locked("reset")
 def cmd_reset(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -637,6 +748,10 @@ def cmd_reset(args: argparse.Namespace) -> int:
         repo_root = _get_repo_root()
         loop_run = _loop_run_dir(repo_root)
         if loop_run.exists():
+            # Repo-global, like _recover_pending in cmd_transition: this wipes
+            # the outbox for EVERY spec while holding only this spec's lock. A
+            # per-spec lock cannot serialise it. Tracked as backlog:
+            # loop-outbox-cross-spec-rmw.
             shutil.rmtree(loop_run)
             print(f"loop-engine: removed {loop_run}")
         else:
@@ -702,6 +817,7 @@ def _schedule_check_current(spec_dir: Path) -> str | None:
     return None
 
 
+@_locked("transition")
 def cmd_transition(args: argparse.Namespace) -> int:
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
@@ -728,6 +844,12 @@ def cmd_transition(args: argparse.Namespace) -> int:
     _cmd_transition_repo_root: Path | None = None
     try:
         _cmd_transition_repo_root = _get_repo_root()
+        # NOTE: this runs inside the critical section but is NOT protected
+        # by it. It reads the repo-global events.pending and then calls
+        # _recover_engine_state_tmp on whatever spec THAT record names, so
+        # it can reach another spec's engine-state while we hold only this
+        # spec's lock. A per-spec lock cannot serialise a repo-global
+        # resource. Tracked as backlog: loop-outbox-cross-spec-rmw.
         _recover_pending(_cmd_transition_repo_root)
     except Exception as exc:
         print(f"loop-engine: warning — pending recovery failed: {exc}", file=sys.stderr)
