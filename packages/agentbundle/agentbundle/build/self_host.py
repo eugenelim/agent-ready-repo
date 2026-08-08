@@ -1603,24 +1603,35 @@ def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
     `None` to proceed. Dry-run writes to a shadow temp dir, so it is never
     guarded (matching the `run_self_host` dirty-tree check).
 
-    Matching is on path *components*, not a substring, and `fixtures` need only
-    follow `tests` — not sit directly beneath it. RFC-0082 moved the engine
-    suite to `tests/build_pipeline/fixtures/`, where the two are no longer
-    adjacent; the previous `"tests/fixtures/" in ...` test missed that and
-    failed *open*. Component matching also preserves what the old trailing
-    slash was protecting: `my-tests` is not the component `tests`, and
+    Two matches, either of which refuses — the union is strictly stronger than
+    either alone:
+
+    * **Components.** A `tests` component followed anywhere by a `fixtures`
+      component. RFC-0082 moved the engine suite to
+      `tests/build_pipeline/fixtures/`, where the two are no longer adjacent;
+      the original substring test missed that and failed *open*.
+    * **The historical substring.** `tests/fixtures/` anywhere in the path.
+      Component matching alone would be a **narrowing** — it lets through
+      `mytests/fixtures/` and `attests/fixtures/`, which the substring form
+      refused. Dropping a refusal a previous release gave is not something a
+      relocation should do quietly, so both are kept.
+
+    The component form does not over-match the case the original trailing slash
+    was protecting: `my-tests` is not the component `tests`, and
     `fixtures-backup` is not `fixtures`.
     """
     if dry_run or os.environ.get("ALLOW_FIXTURE_PACKS"):
         return None
     parts = packs_dir.parts
-    if any(
+    by_component = any(
         "fixtures" in parts[i + 1 :] for i, part in enumerate(parts) if part == "tests"
-    ):
+    )
+    if by_component or "tests/fixtures/" in packs_dir.as_posix():
         print(
-            "self-host: refusing — --packs-dir points into tests/fixtures/; "
-            "this would overwrite your working tree with fixture data. Set "
-            "ALLOW_FIXTURE_PACKS=1 to override, or use --packs-dir packs.",
+            f"self-host: refusing — --packs-dir {packs_dir} points into a test "
+            "fixture tree; this would overwrite your working tree with fixture "
+            "data. Set ALLOW_FIXTURE_PACKS=1 to override, or use "
+            "--packs-dir packs.",
             file=sys.stderr,
         )
         return 2

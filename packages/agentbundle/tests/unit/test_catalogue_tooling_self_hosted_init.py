@@ -802,3 +802,52 @@ def test_guides_call_site_is_unaffected(tmp_path):
     fk: dict[str, str] = {}
     _collect_dir_bytes(tmp_path / "guides" / "_shared", "guides/_shared", fb, fk, kind="guide")
     assert any("a.md" in k for k in fb)
+
+
+def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None:
+    """AC5 driven through the real entry point, not through `_collect_dir_bytes`.
+
+    The unit tests above pass `exclude=` themselves, so they assert the routine
+    plus the constants and would survive the wiring at the two vendored call
+    sites being deleted. This one runs `init_self_hosted` end to end against a
+    source that carries test content on both sides of the boundary, so removing
+    either `exclude=` kwarg turns it red.
+    """
+    source = _make_source(tmp_path)
+    eng = source / "packages" / "agentbundle"
+    (eng / "agentbundle").mkdir(parents=True)
+    (eng / "agentbundle" / "__init__.py").write_text("", encoding="utf-8")
+    (eng / "tests" / "build_pipeline").mkdir(parents=True)
+    (eng / "tests" / "build_pipeline" / "test_x.py").write_text("x\n", encoding="utf-8")
+    (eng / "conftest.py").write_text("x\n", encoding="utf-8")
+
+    cc = source / "packs" / "catalogue-curation"
+    cc.mkdir()
+    (cc / "pack.toml").write_text(
+        '[pack]\nname = "catalogue-curation"\nversion = "0.2.0"\n', encoding="utf-8"
+    )
+    (cc / "tests").mkdir()
+    (cc / "tests" / "test_y.py").write_text("x\n", encoding="utf-8")
+
+    # ...and test content on a pack the adopter actually selects, which must
+    # survive: ADR-0071 wants catalogue archives to carry pack tests.
+    own_tests = source / "packs" / "core" / "tests"
+    own_tests.mkdir()
+    (own_tests / "test_own.py").write_text("x\n", encoding="utf-8")
+
+    cfg = _base_cfg(tmp_path, source, tooling="vendored")
+    result = init_self_hosted(cfg)
+    assert result.ok, result.diagnostics
+
+    vendored = cfg.target / ".agentbundle" / "tooling"
+    assert vendored.is_dir(), "vendored tooling was not written"
+    leaked = [
+        p.relative_to(cfg.target).as_posix()
+        for p in vendored.rglob("*")
+        if p.is_file() and ("tests" in p.parts or p.name == "conftest.py")
+    ]
+    assert not leaked, f"vendored payload carries test content: {leaked}"
+
+    # ...while the adopter's own catalogue keeps its pack tests (ADR-0071).
+    own = cfg.target / "packs" / "core" / "tests" / "test_own.py"
+    assert own.exists(), "the adopter's own pack lost its tests"

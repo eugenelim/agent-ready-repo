@@ -1,7 +1,7 @@
 # Plan: engine export boundary
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -144,7 +144,7 @@ Path anchors, three idioms:
 
 - `parents[5]` → `parents[4]` in 35 modules (repo-root anchor).
 - One chained `.parent.parent.parent.parent` in
-  `tests/build/test_lint_packs.py:71` — same correction, and a `parents[N]`
+  `tests/build_pipeline/test_lint_packs.py:71` — same correction, and a `parents[N]`
   sweep does not see it.
 - Two `parents[2]` reaches *into* the package — `test_writers_emit_lf.py:29` and
   `test_adapter_root_bins_projection.py:202`. These are genuine rewrites: they
