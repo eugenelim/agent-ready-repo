@@ -27,7 +27,7 @@ from pathlib import Path
 
 from agentbundle.build import user_libs as ul
 
-# Repo root: tests/ -> build/ -> agentbundle/ -> agentbundle/ -> packages/ -> repo
+# Repo root: build_pipeline/ -> tests/ -> agentbundle/ -> packages/ -> repo
 REPO_ROOT = Path(__file__).resolve().parents[4]
 
 # A minimal stand-in package: a pure-base module, a lazily-importing module,

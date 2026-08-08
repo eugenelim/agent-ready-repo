@@ -18,12 +18,19 @@ receives engine code and nothing else. The rule is enforced by construction: an
 artifact that regains test content fails the release build, rather than being
 caught by whoever happens to read the diff.
 
-The source distribution is the surface whose consumers *do* run tests, and it is
-deliberately left empty of them here. Its graft depends on the engine suite being
-self-contained, which is not true until the catalogue carve-out lands — grafting
-sooner would ship a packager catalogue assertions that cannot run from an archive
-with no `packs/`. That gap is intentional, bounded by the sibling spec, and
-named rather than papered over.
+The source distribution is the surface whose consumers *do* run tests, and this
+change **removes** its engine suite — it is not a pre-existing gap. The 0.29.8
+sdist carried 45 engine test modules, because they sat inside the importable
+package and `packages.find` swept them in; at `tests/build_pipeline/` they are
+outside it, and setuptools' default sdist glob reaches only `tests/test*.py` at
+the top level. So the 0.30.0 sdist carries none.
+
+That is a real, redistributor-visible regression, accepted for one release and
+recorded in both changelogs. Restoring it needs an explicit `MANIFEST.in` graft,
+which waits for the catalogue carve-out: grafting now would ship a packager the
+catalogue assertions still mixed into the engine suite, which cannot run from an
+archive containing no `packs/`. Shipping a suite that fails is worse than shipping
+none, but neither is the end state.
 
 Success is measured on the built artifacts, not on the tree that produced them.
 The wheel carries zero test entries where it currently carries 45 of 184. The
@@ -159,8 +166,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] **AC7** — `build/self_host.py`'s destructive-write guard refuses a
       real-write self-host targeting the relocated fixture tree
       (`…/tests/build_pipeline/fixtures/…`) as well as the unmoved one
-      (`…/tests/fixtures/…`). It matches `tests` preceding `fixtures` as **path
-      components**, which preserves the anti-over-match invariant its comment
+      (`…/tests/fixtures/…`). The rule is a **union**: a `tests` component
+      followed by a `fixtures` component, **or** the historical
+      `tests/fixtures/` substring. Components alone would be a *narrowing* —
+      `mytests/fixtures/` and `attests/fixtures/` would lose the refusal 0.29.8
+      gave — so both are kept and the union refuses strictly more than either.
+      Matching on components which preserves the anti-over-match invariant its comment
       names — `my-tests/fixtures-backup/` still passes, because neither is a
       component match. The helper signature is unchanged: no repo-root argument,
       no new parameter. Its covering test gains a case for the relocated shape
@@ -192,8 +203,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       an unfiltered re-sweep finds no operative reference remaining. Historical
       references under `docs/specs/**`, `docs/rfc/**`, `docs/product/changelog.md`,
       and the package `CHANGELOG.md` are deliberately untouched. That leaves
-      seven warn-only dangling-reference warnings in `lint-spec-status`
-      (178 → 185) — prose in shipped specs naming the old path — which is the
+      six new warn-only dangling-reference warnings in `lint-spec-status`,
+      with one pre-existing warning resolved (178 → 183) — prose in shipped
+      specs naming the old path — which is the
       cost of not rewriting history, not a regression. Two exceptions are
       updated: `docs/specs/catalogue-test-carve-out/**`, a live Draft spec
       pair this change invalidates, and `docs/specs/cursor-full-parity/spec.md`,

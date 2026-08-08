@@ -25,7 +25,8 @@ import ast
 import unittest
 from pathlib import Path
 
-# Package root: tests -> build -> agentbundle
+# Package root: resolved explicitly — this tree sits beside the package now,
+# not inside it, so relative depth no longer reaches it.
 _PACKAGE_ROOT = (
     Path(__file__).resolve().parents[4] / "packages" / "agentbundle" / "agentbundle"
 )

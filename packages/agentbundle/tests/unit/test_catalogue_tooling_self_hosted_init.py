@@ -792,18 +792,6 @@ def test_adopter_packs_still_carry_tests(tmp_path):
     assert [k for k in fb if "/tests/" in k], "the adopter's own pack lost its tests"
 
 
-def test_guides_call_site_is_unaffected(tmp_path):
-    """The fourth caller copies shared guides under `--guides selected`. A
-    routine-level or default-on exclusion would break it with nothing red."""
-    g = tmp_path / "guides" / "_shared" / "how-to"
-    g.mkdir(parents=True)
-    (g / "a.md").write_text("x\n", encoding="utf-8")
-    fb: dict[str, bytes] = {}
-    fk: dict[str, str] = {}
-    _collect_dir_bytes(tmp_path / "guides" / "_shared", "guides/_shared", fb, fk, kind="guide")
-    assert any("a.md" in k for k in fb)
-
-
 def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None:
     """AC5 driven through the real entry point, not through `_collect_dir_bytes`.
 
@@ -829,13 +817,16 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     (cc / "tests").mkdir()
     (cc / "tests" / "test_y.py").write_text("x\n", encoding="utf-8")
 
-    # ...and test content on a pack the adopter actually selects, which must
-    # survive: ADR-0071 wants catalogue archives to carry pack tests.
+    # ...and test content on the two non-vendored copy paths, which must
+    # survive: ADR-0071 wants catalogue archives to carry tests.
     own_tests = source / "packs" / "core" / "tests"
     own_tests.mkdir()
     (own_tests / "test_own.py").write_text("x\n", encoding="utf-8")
+    guide_tests = source / "guides" / "_shared" / "tests"
+    guide_tests.mkdir(parents=True)
+    (guide_tests / "test_g.py").write_text("x\n", encoding="utf-8")
 
-    cfg = _base_cfg(tmp_path, source, tooling="vendored")
+    cfg = _base_cfg(tmp_path, source, tooling="vendored", guides="selected")
     result = init_self_hosted(cfg)
     assert result.ok, result.diagnostics
 
@@ -851,3 +842,5 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     # ...while the adopter's own catalogue keeps its pack tests (ADR-0071).
     own = cfg.target / "packs" / "core" / "tests" / "test_own.py"
     assert own.exists(), "the adopter's own pack lost its tests"
+    guided = cfg.target / "guides" / "_shared" / "tests" / "test_g.py"
+    assert guided.exists(), "the guides call site stopped carrying test content"

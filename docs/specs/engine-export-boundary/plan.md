@@ -228,8 +228,11 @@ After the move the path is `…/tests/build_pipeline/fixtures/`, where `tests` a
 `fixtures` are no longer adjacent, so the substring is absent and the guard fails
 open — the command would overwrite the working tree with fixture data.
 
-Rewrite it to test `packs_dir.parts` for a `tests` component followed by a
-`fixtures` component. **The signature does not change** — no `repo_root`
+Rewrite it as a **union**: `packs_dir.parts` carrying a `tests` component
+followed by a `fixtures` component, **or** the historical `tests/fixtures/`
+substring. Component matching alone is a narrowing — `mytests/fixtures/` loses a
+refusal 0.29.8 gave — and a relocation should not quietly drop a safety
+behaviour. **The signature does not change** — no `repo_root`
 parameter, no new argument, so the four direct call sites are untouched.
 
 An earlier draft of this spec required the match to be "within the repository
