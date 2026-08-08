@@ -144,13 +144,21 @@ def test_unreadable_archive_is_an_input_error_not_a_violation(tmp_path):
     assert gate.main(["prog", str(bogus)]) == 2
 
 
-def test_one_bad_artifact_does_not_skip_the_rest(tmp_path):
+def test_a_real_violation_outranks_a_bad_argument(tmp_path):
+    """An unreadable first artifact must not skip the rest, and must not mask a
+    genuine violation behind exit 2 — a triager reading "bad glob" would walk
+    past tests shipping in the wheel."""
     bogus = tmp_path / "a-1.0-py3-none-any.whl"
     bogus.write_text("not a zip\n", encoding="utf-8")
     dirty = _zip(tmp_path / "b.pyz", ["pkg/__init__.py", "pkg/tests/test_x.py"])
-    # Exit is 2 (input error wins), but the second artifact was still opened —
-    # its violation appears in the output rather than being skipped.
-    assert gate.main(["prog", str(bogus), str(dirty)]) == 2
+    assert gate.main(["prog", str(bogus), str(dirty)]) == 1
+
+
+def test_bad_argument_alone_still_exits_two(tmp_path):
+    bogus = tmp_path / "a-1.0-py3-none-any.whl"
+    bogus.write_text("not a zip\n", encoding="utf-8")
+    clean = _zip(tmp_path / "b.pyz", ["pkg/__init__.py"])
+    assert gate.main(["prog", str(bogus), str(clean)]) == 2
 
 
 # ── the real artifacts ───────────────────────────────────────────────────

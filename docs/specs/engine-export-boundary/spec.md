@@ -145,12 +145,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       zipapp built from a tree containing `_data/catalogue-scaffold/**/tests/`
       retains that content. (Mechanism and rationale: `plan.md` T4.)
 - [x] **AC5** — `_collect_dir_bytes`'s two vendored call sites emit no test
-      content at the vendored root: no `tests/` subtree and no root
-      `conftest.py`. Matching is by **exact relative path**, not by name at
-      any depth — a deliberate narrowing, so the exclusion cannot over-match
-      an adopter's content. A nested `conftest.py` deeper in the engine tree
-      would still be vendored; that residue is recorded as a follow-up rather
-      than fixed with a name-anywhere pattern this spec declined. The last clause is load-bearing: the
+      content **and no build residue**. Two matching modes, and the split is
+      load-bearing:
+      - **Root-relative** (`tests/`, `conftest.py`, `build/`, `dist/`) —
+        anchored at the collect root so they cannot over-match. `build/` in
+        particular *must* be anchored: `agentbundle/build/` is the shipped
+        build-pipeline package, and pruning that name at any depth leaves a
+        vendored engine that cannot import.
+      - **Name at any depth** (`__pycache__`, `.pytest_cache`, `*.egg-info`,
+        `*.pyc`) — these appear at arbitrary depth, so a relative path cannot
+        express them. A `.pyc` embeds the absolute build path, including a
+        real username, which `AGENTS.md` § Privacy forbids committing; and
+        `.pytest_cache` and `SOURCES.txt` enumerate engine test node IDs.
+      A nested `conftest.py` deeper in the engine tree is still vendored. No
+      instance exists today, so it is not registered. The last clause is load-bearing: the
       engine call site collects the whole `packages/agentbundle/` directory, and
       a root `conftest.py` lives there beside the package. The two non-vendored
       call sites must keep carrying test content: its **packs** call site and
@@ -163,6 +171,20 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       enumerated `tools/` pytest line — that list is curated by hand, not
       globbed, so an unlisted file runs nowhere and would let AC8 and AC11 pass
       vacuously.
+- [x] **AC5c** — The destructive-write guard covers **both** real-write entry
+      points: `cmd_self` (`packs_dir` from a flag) and
+      `catalogue_tooling.self_host.write_self_host` (`packs_dir` derived from
+      the catalogue root). A catalogue whose packs path points into a fixture
+      tree is the same destructive write by another route. Both wirings are
+      pinned by tests that redden when the call is removed.
+- [x] **AC5d** — The guard is case-folded. `Path.resolve()` does not
+      canonicalise case on a case-insensitive filesystem (macOS default), so
+      `…/Fixtures/…` reaches the same on-disk tree; unfolded, it matched
+      neither the component test nor the substring.
+- [x] **AC5e** — `ALLOW_FIXTURE_PACKS` overrides the guard only on an
+      explicit `1`, `true`, or `yes`. Truthiness would let `=0` read as
+      "off" while disarming a destructive-write control for every later
+      invocation in that shell or CI job.
 - [x] **AC6** — `pip install -e packages/agentbundle` succeeds; `import
       agentbundle` and `import agentbundle.build` resolve; the `agentbundle`
       console script reports the correct version; `import
@@ -175,7 +197,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       `tests/fixtures/` substring. Components alone would be a *narrowing* —
       `mytests/fixtures/` and `attests/fixtures/` would lose the refusal 0.29.8
       gave — so both are kept and the union refuses strictly more than either.
-      Matching on components which preserves the anti-over-match invariant its comment
+      Component matching preserves the anti-over-match invariant its comment
       names — `my-tests/fixtures-backup/` still passes, because neither is a
       component match. The helper signature is unchanged: no repo-root argument,
       no new parameter. Its covering test gains a case for the relocated shape

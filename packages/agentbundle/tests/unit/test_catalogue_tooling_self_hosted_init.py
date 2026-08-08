@@ -738,6 +738,16 @@ def _synthetic_source(root: Path) -> Path:
     eng = root / "packages" / "agentbundle"
     (eng / "agentbundle").mkdir(parents=True)
     (eng / "agentbundle" / "cli.py").write_text("x\n", encoding="utf-8")
+    # The shipped build-pipeline package. Its name collides with setuptools'
+    # build *output*, so a name-at-any-depth prune removes it and leaves an
+    # engine that cannot import — the K-0048 trap. Present here so that
+    # over-pruning reddens.
+    (eng / "agentbundle" / "build" / "adapters").mkdir(parents=True)
+    (eng / "agentbundle" / "build" / "self_host.py").write_text("x\n", encoding="utf-8")
+    (eng / "agentbundle" / "build" / "adapters" / "cursor.py").write_text("x\n", encoding="utf-8")
+    # ...and setuptools output at the collect root, which must go.
+    (eng / "build" / "lib").mkdir(parents=True)
+    (eng / "build" / "lib" / "stale.py").write_text("x\n", encoding="utf-8")
     (eng / "tests" / "build_pipeline").mkdir(parents=True)
     (eng / "tests" / "build_pipeline" / "test_x.py").write_text("x\n", encoding="utf-8")
     (eng / "conftest.py").write_text("x\n", encoding="utf-8")
@@ -769,6 +779,14 @@ def test_vendored_engine_carries_no_tests(tmp_path):
         fb, fk, kind="vendored", exclude=_VENDORED_ENGINE_EXCLUDE,
     )
     assert any("cli.py" in k for k in fb), "engine code was dropped"
+    assert any(k.endswith("agentbundle/build/self_host.py") for k in fb), (
+        "the shipped agentbundle/build/ package was pruned — the vendored "
+        "engine would not import"
+    )
+    assert any(k.endswith("build/adapters/cursor.py") for k in fb)
+    assert not [k for k in fb if "/build/lib/" in k], (
+        "setuptools build output at the collect root was vendored"
+    )
     leaked = [k for k in fb if "/tests/" in k or k.endswith("conftest.py")]
     assert not leaked, f"vendored engine carries test content: {leaked}"
 

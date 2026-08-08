@@ -81,6 +81,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  "spec/engine-export-boundary",                    # PR #898 — RFC-0082 engine export boundary (agentbundle 0.30.0)
   # Docs-site design refresh (2026-08-05): Starlight tech docs restyled to a
   # display-serif + enterprise-cobalt design language; fonts + mermaid
   # self-hosted (CDN script removed); per-site AGENTS.md split. Boundary
@@ -139,7 +140,6 @@ queue   = [
   # enforcement) so spec 2's relocations cannot silently re-enter an artifact.
   # Spec 2 does the ownership classification, extracts conformance classes out of
   # mixed engine modules, wires the shipping channels, and lands the sdist graft.
-  "spec/engine-export-boundary",
   {path = "spec/catalogue-test-carve-out", needs = "work:spec/engine-export-boundary"},
 
   # P5 · Adopt — gated on adopter-persona research (evidence base)

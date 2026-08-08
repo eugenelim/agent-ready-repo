@@ -105,8 +105,8 @@ def main(argv: list[str]) -> int:
         else:
             print(f"check-artifact-contents: {artifact.name} clean")
 
-    if bad_args:
-        return 2
+    # A genuine violation outranks a bad argument: exit 2 on a mixed run would
+    # read as "bad glob" and send a triager past a real one.
     if failed:
         print(
             "check-artifact-contents: tests must not ship in an installed "
@@ -114,6 +114,8 @@ def main(argv: list[str]) -> int:
             file=sys.stderr,
         )
         return 1
+    if bad_args:
+        return 2
     return 0
 
 

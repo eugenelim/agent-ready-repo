@@ -70,7 +70,14 @@ _VENDORED_TOOLING_ROOT = ".agentbundle/tooling"
 # tree, and carries no test content. Relative to each vendored call's own root.
 # The engine root is `packages/agentbundle/`, so its suite sits at `tests/` and
 # a root `conftest.py` sits beside the package; both are test content.
-_VENDORED_ENGINE_EXCLUDE: tuple[str, ...] = ("tests/", "conftest.py")
+_VENDORED_ENGINE_EXCLUDE: tuple[str, ...] = (
+    "tests/",
+    "conftest.py",
+    # Root-relative, so `agentbundle/build/` — the shipped package — is
+    # untouched. These are setuptools output at the collect root only.
+    "build/",
+    "dist/",
+)
 
 # Build residue, matched by *name at any depth* rather than by relative path.
 # A maintainer's working tree carries all of these, and `_collect_dir_bytes`
@@ -82,9 +89,13 @@ _VENDORED_ENGINE_EXCLUDE: tuple[str, ...] = ("tests/", "conftest.py")
 #   * `.pytest_cache/` and `*.egg-info/SOURCES.txt` enumerate engine test node
 #     IDs and paths: test content, shipped past a control whose whole purpose
 #     is that no test content ships.
-_BUILD_RESIDUE_DIRS: frozenset[str] = frozenset(
-    {"__pycache__", ".pytest_cache", "build", "dist"}
-)
+# `build` and `dist` are deliberately NOT here. `agentbundle/build/` is the
+# shipped build-pipeline package — adapters, projections, recipes, self_host —
+# and pruning that name at any depth removes it, leaving an engine that cannot
+# import. That is K-0048's trap (a bare `build` matching at any depth) and it
+# bit this very fix. Root-relative build output is pruned through the ordinary
+# `prune` mechanism instead; see `_VENDORED_ENGINE_EXCLUDE`.
+_BUILD_RESIDUE_DIRS: frozenset[str] = frozenset({"__pycache__", ".pytest_cache"})
 _VENDORED_PACK_EXCLUDE: tuple[str, ...] = ("tests/",)
 
 

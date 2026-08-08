@@ -111,3 +111,48 @@ they cannot be tested.
 mechanics be settled by running them. The plan's command-level prose should be
 demoted to intent, not kept as a specification nothing has executed.
 
+
+
+## Closed at DECIDE (2026-08-08)
+
+**Reviewers run:** `adversarial-reviewer` ×3 (pre-EXECUTE) + ×3 (on the diff),
+`quality-engineer` ×1, `security-reviewer` ×1. The last two ran late — they were
+skipped on the first pass through REVIEW and only caught when the completion
+state was audited. Both found defects three adversarial rounds had not, which is
+the argument for the mode's reviewer set being a floor rather than a menu.
+
+**Resolved by the loop, additionally:**
+
+- The `tests/build/` → `tests/build_pipeline/` rename, on a human decision after
+  the loop surfaced that `build` is skipped by pytest *and* ruff. Carries an
+  Approver-signed erratum on RFC-0082.
+- Build residue pruned from the vendored payload, in two modes:
+  `__pycache__`, `.pytest_cache`, `*.egg-info` and `*.pyc` by **name at any
+  depth**; `build/` and `dist/` **root-relative**. The split is the whole
+  finding: a first attempt pruned `build` by name and silently removed
+  `agentbundle/build/` — the shipped build-pipeline package — leaving a
+  vendored engine that could not import. That is K-0048's trap, reintroduced
+  by the fix that captured it, and caught only because the final review round
+  ran the vendored copy instead of reading it. Registered as a backlog slug first, then fixed
+  here instead: a `.pyc` embeds an absolute build path including a real
+  username, which AGENTS.md § Privacy forbids committing, so it is not a
+  deferrable item.
+- The guard's second entry point (`write_self_host`), its case-sensitivity, and
+  its truthiness-based override.
+
+**Surfaced to the human:**
+
+- The `tests/build/` destination (decided: rename, option B).
+- The pre-EXECUTE plateau at four blockers, where the loop stopped rather than
+  spot-fixing a fourth round. The steer — demote command-level mechanics to
+  intent — was correct: every subsequent finding in that class came from running
+  the thing, not from reading it.
+- The sdist regression, once measured rather than assumed.
+
+**Deferred with slugs:** `ruff-excludes-the-engine-build-package` (66 violations
+in shipped engine code the repo-root sweep never sees) and
+`agentbundle-install-marker-importable-path`.
+
+**Knowledge captured:** K-0048 (a test directory named `build` is invisible to
+pytest and ruff) and K-0049 (a test that supplies the wiring it is meant to
+verify) in `docs/knowledge/patterns.jsonl`.

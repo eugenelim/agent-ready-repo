@@ -21,6 +21,15 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   namespace package regardless of its `__init__.py`. Deleting that marker would
   have removed exactly one entry of the forty-five.
 
+### Changed
+
+- **`ALLOW_FIXTURE_PACKS` now requires an explicit `1`, `true`, or `yes`.**
+  It previously bypassed the self-host fixture guard on *any* non-empty
+  value, so `ALLOW_FIXTURE_PACKS=0` disarmed a destructive-write control
+  while reading as "off" — and stayed disarmed for every later invocation
+  in that shell or CI job. If you set it to anything else, the guard now
+  refuses.
+
 ### Removed
 
 - **The source distribution no longer carries the engine's test suite.**

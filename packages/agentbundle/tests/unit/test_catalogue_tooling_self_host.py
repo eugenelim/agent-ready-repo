@@ -276,3 +276,36 @@ def test_run_self_host_kiro_ide_skips_claude_artifacts(tmp_path):
 
     mock_mkt.assert_not_called()
     mock_sym.assert_not_called()
+
+
+# ── RFC-0082: the destructive-write guard covers this entry point too ────
+
+
+def test_write_self_host_refuses_a_fixture_packs_dir(tmp_path):
+    """`build self --packs-dir <fixtures>` is guarded, but this path reaches the
+    same destructive write with `packs_dir` derived from the catalogue root
+    rather than a flag. Nothing pinned that wiring, so stubbing the guard out
+    left the whole suite green — every other `write_self_host` test drives a
+    plain `tmp_path` with no `tests`/`fixtures` component, so the guard never
+    fires here.
+    """
+    # No catalogue.toml: `packs_dir` falls back to `root / "packs"`, and the
+    # root itself carries the components the guard refuses.
+    root = tmp_path / "tests" / "build_pipeline" / "fixtures"
+    (root / "packs").mkdir(parents=True)
+
+    with patch("agentbundle.build.self_host.run_self_host") as run:
+        result = write_self_host(root)
+
+    assert isinstance(result, SelfHostResult)
+    assert result.ok is False, "the guard let a fixture-tree write through"
+    run.assert_not_called()
+
+
+def test_write_self_host_proceeds_on_an_ordinary_root(tmp_path):
+    """The guard must not refuse a normal catalogue — the negative half."""
+    (tmp_path / "packs").mkdir()
+    with patch("agentbundle.build.self_host.run_self_host", return_value=0) as run:
+        result = write_self_host(tmp_path)
+    assert result.ok is True
+    run.assert_called_once()
