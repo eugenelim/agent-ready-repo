@@ -43,6 +43,34 @@ class RefuseFixturePacksDirTest(unittest.TestCase):
             rc = _refuse_fixture_packs_dir(_FIXTURE_DIR, dry_run=True)
         self.assertIsNone(rc)
 
+    def test_relocated_fixture_tree_refuses(self):
+        """RFC-0082 moved the suite to tests/build_pipeline/, so `tests` and
+        `fixtures` are no longer adjacent. A substring guard misses this and
+        fails *open* — the command would overwrite the working tree."""
+        relocated = Path(
+            "/repo/packages/agentbundle/tests/build_pipeline/fixtures/packs"
+        )
+        with mock.patch.dict(os.environ, _ENV_UNSET):
+            rc = _refuse_fixture_packs_dir(relocated, dry_run=False)
+        self.assertEqual(rc, 2)
+
+    def test_components_in_wrong_order_proceeds(self):
+        """`fixtures` before `tests` is not the shape being guarded."""
+        with mock.patch.dict(os.environ, _ENV_UNSET):
+            rc = _refuse_fixture_packs_dir(
+                Path("/repo/fixtures/build/tests/packs"), dry_run=False
+            )
+        self.assertIsNone(rc)
+
+    def test_lookalike_components_proceed(self):
+        """The invariant the old trailing slash protected: `my-tests` is not
+        the component `tests`, and `fixtures-backup` is not `fixtures`."""
+        with mock.patch.dict(os.environ, _ENV_UNSET):
+            rc = _refuse_fixture_packs_dir(
+                Path("/repo/my-tests/fixtures-backup/packs"), dry_run=False
+            )
+        self.assertIsNone(rc)
+
     def test_non_fixtures_dir_proceeds(self):
         with mock.patch.dict(os.environ, _ENV_UNSET):
             rc = _refuse_fixture_packs_dir(_REAL_DIR, dry_run=False)
