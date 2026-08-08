@@ -126,7 +126,7 @@ jobs:
 
       - name: Full agentbundle test suite (Gate H pre-publish)
         working-directory: packages/agentbundle
-        run: python -m pytest tests/ agentbundle/build/tests/ -q
+        run: python -m pytest tests/ -q
 
       - name: install-defaults staleness check
         # Fail if install-defaults.toml has drifted from catalogue.toml —

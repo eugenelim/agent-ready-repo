@@ -21,7 +21,7 @@ functions that drop `packs/<pack>/seeds/` into an adopter tree (the other is
 see the core-install-seed-delivery notes). As of issue #190 the
 `per-pack-claude-plugin` and `per-pack-apm-package` build recipes also ship
 `seeds/` *inside* the dist artifact (`dist/<route>/<pack>/seeds/`, covered by
-`build/tests/test_build_ships_seeds.py`); that copy is byte-verbatim from the
+`tests/build_pipeline/test_build_ships_seeds.py`); that copy is byte-verbatim from the
 same source tree this golden/leak test guards, so testing `scaffold` here
 remains sufficient to catch a seed-scrub regression at the source.
 `lint.py (_PackRules._check_seeds)` is the cross-source invariant.

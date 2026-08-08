@@ -285,7 +285,7 @@ lint-mypy:
 # renderers. One process per skill test directory is a correctness requirement,
 # not a style choice; see catalogue-authoring-standards.md § 4.
 test:
-	$(PYTHON) -m pytest packages/agentbundle/tests/ packages/agentbundle/agentbundle/build/tests/ -q
+	$(PYTHON) -m pytest packages/agentbundle/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
 	$(PYTHON) -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
 	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::' || true); \

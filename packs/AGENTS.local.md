@@ -88,7 +88,7 @@ Editing projected files directly trips `make build-check`. Workflow: [`AGENTS.md
 sources copied *into* `_data/catalogue-scaffold/` by `tools/catalogue/sync_authoring_scaffold.py`.
 After editing any of them run `python3 tools/catalogue/sync_authoring_scaffold.py --write` — the drift
 gate lives only in the agentbundle suite (`test_scaffold_projection.py`), which CI runs from
-`packages/agentbundle` as `pytest tests/ agentbundle/build/tests/`. `make build-check` passes without it.
+`packages/agentbundle` as `pytest tests/`. `make build-check` passes without it.
 
 **Manual (edit directly):** `AGENTS.md`, `CLAUDE.md` (adopter-owned; `build-self` won't regenerate),
 `docs/CHARTER.md`, `docs/architecture/overview.md`, `docs/specs/README.md`,

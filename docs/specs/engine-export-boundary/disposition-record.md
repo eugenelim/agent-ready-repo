@@ -8,7 +8,7 @@ self-coverage gate.
 
 **Files I will touch**
 
-- `packages/agentbundle/agentbundle/build/tests/**` → `packages/agentbundle/tests/build/**` (the move)
+- `packages/agentbundle/agentbundle/build/tests/**` → `packages/agentbundle/tests/build_pipeline/**` (the move)
 - Path anchors inside the moved suite: 35 `parents[5]`, one chained `.parent` walk, two `parents[2]` package reaches
 - Two in-suite literals: `test_end_to_end_build.py:5` and
   `test_self_host_fixture_guard.py:74` (its `_FIXTURE_DIR` is **not** touched)

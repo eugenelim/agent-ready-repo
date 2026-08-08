@@ -1,0 +1,621 @@
+"""Tests for adapter.toml + adapter.schema.json (T1b).
+
+Verifies:
+  - adapter.toml validates against adapter.schema.json.
+  - Every (5 standard primitives × 8 adapters) = 40 standard pairs present;
+    kiro-ide, kiro-cli, cursor, and gemini each add a kiro-ide-hook table
+    entry = 44 total.
+  - The mode enum in adapter.schema.json contains exactly the seven base modes;
+    unknown modes are rejected.
+  - Every projection entry carries an on-conflict value from the legal set,
+    matching the per-mode default — except for degraded-info-log and dropped
+    which are no-write/no-output and carry no on-conflict.
+  - hook-wiring primitive's source-path is .apm/hook-wiring/.
+  - command primitive's source-path is .apm/commands/; Claude Code projects
+    direct-file; Copilot/Codex/Kiro-family are dropped.
+  - frontmatter-mapping table for kiro-ide-agent-frontmatter-v0.9 validates
+    against schema (renamed from kiro-agent-frontmatter-v0.9 in T1);
+    frontmatter-default table for copilot-instruction validates and is
+    structurally distinct.
+"""
+
+from __future__ import annotations
+
+import json
+import tomllib
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[4]
+CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
+
+# All seven base projection modes.
+SEVEN_RFC_MODES = {
+    "direct-directory",
+    "direct-file",
+    "merge-json",
+    "instruction-file",
+    "managed-block-inline",
+    "degraded-info-log",
+    "dropped",
+}
+
+# Legal on-conflict values.
+LEGAL_ON_CONFLICT = {
+    "prompt-then-preserve",
+    "prompt-then-overwrite",
+    "preserve-outside-block",
+    "merge-managed-key-only",
+    "overwrite-without-prompt",
+}
+
+# Per-mode default on-conflict values (no-write modes have no on-conflict).
+MODE_DEFAULT_ON_CONFLICT = {
+    "direct-directory": "prompt-then-preserve",
+    "direct-file": "prompt-then-preserve",
+    "merge-json": "merge-managed-key-only",
+    "instruction-file": "prompt-then-overwrite",
+    "managed-block-inline": "preserve-outside-block",
+    # degraded-info-log and dropped carry no on-conflict
+}
+
+# Modes that are no-write / no-output — they do not require an on-conflict.
+NO_WRITE_MODES = {"degraded-info-log", "dropped"}
+
+# All five primitive names.
+ALL_PRIMITIVES = {"skill", "agent", "hook-body", "hook-wiring", "command"}
+
+# All reference adapter names (kiro-ide and kiro-cli added by the kiro split; kiro retained as alias;
+# Cursor added).
+ALL_ADAPTERS = {"claude-code", "kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex", "gemini"}
+
+# Extra primitives that are kiro-specific and OK to declare in kiro-family
+# adapter blocks without failing the "no extra primitives" check.
+KIRO_EXTRA_PRIMITIVES = frozenset({"kiro-ide-hook"})
+
+
+def _load_contract() -> dict:
+    return tomllib.loads(CONTRACT_PATH.read_bytes().decode("utf-8"))
+
+
+def _load_schema() -> dict:
+    return json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+
+
+class ContractSchemaValidationTests(unittest.TestCase):
+    """adapter.toml must validate against adapter.schema.json."""
+
+    def test_contract_validates_against_schema(self) -> None:
+        from agentbundle.build.validate import validate
+
+        contract = _load_contract()
+        schema = _load_schema()
+        errors = validate(contract, schema)
+        self.assertEqual(
+            errors,
+            [],
+            "adapter.toml failed schema validation:\n" + "\n".join(errors),
+        )
+
+
+class AllPairsEnumeratedTests(unittest.TestCase):
+    """Every (primitive × adapter) pair must be present — no missing, no extra."""
+
+    def setUp(self) -> None:
+        self.contract = _load_contract()
+
+    def test_all_adapters_present(self) -> None:
+        adapters = set(self.contract["adapter"].keys())
+        self.assertEqual(adapters, ALL_ADAPTERS, f"adapter keys differ: {adapters}")
+
+    def test_every_primitive_covered_per_adapter(self) -> None:
+        """Every (primitive × adapter) pair must be declared in *some* form.
+
+        Under v0.3, kiro's `hook-wiring` no longer appears in the
+        legacy `projection` array — it lives in the new
+        `projections.<primitive>` table. The coverage union walks both forms.
+
+        Kiro-family adapters (kiro, kiro-ide, kiro-cli) may
+        additionally declare `kiro-ide-hook` in their `projections` table;
+        this is a known extra and is not flagged.
+        """
+        missing: list[str] = []
+        extra: list[str] = []
+        for adapter_name, adapter_block in self.contract["adapter"].items():
+            array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
+            table_form = set(adapter_block.get("projections", {}).keys())
+            primitives_in_adapter = array_form | table_form
+            for prim in ALL_PRIMITIVES:
+                if prim not in primitives_in_adapter:
+                    missing.append(f"({prim}, {adapter_name})")
+            for prim in primitives_in_adapter:
+                if prim not in ALL_PRIMITIVES and prim not in KIRO_EXTRA_PRIMITIVES:
+                    extra.append(f"({prim}, {adapter_name})")
+        self.assertEqual(missing, [], f"missing pairs: {missing}")
+        self.assertEqual(extra, [], f"extra unknown primitives: {extra}")
+
+    def test_exactly_twenty_pairs_total(self) -> None:
+        """Count (primitive × adapter) pairs across array + table forms.
+
+        Pairs that appear in BOTH forms (the transitional hook-body declarations
+        on claude-code/kiro and the claude-code hook-wiring legacy entry that
+        coexists with its v0.3 table) count once per adapter, matching the
+        "primitive coverage" semantic.
+
+        The kiro split added kiro-ide (+5 standard + 1 kiro-ide-hook = +6),
+        kiro-cli carries kiro-ide-hook dropped (+6). Plus kiro-ide adds
+        hook-wiring dropped to its array_form, which is already counted.
+        Cursor added (+5 standard + 1 kiro-ide-hook dropped = +6).
+        Gemini added (+5 standard + 1 kiro-ide-hook dropped = +6).
+        Total: 5 (claude-code) + 5 (kiro) + 6 (kiro-ide) + 6 (kiro-cli)
+               + 5 (copilot) + 6 (cursor) + 5 (codex) + 6 (gemini) = 44.
+        Class name preserved.
+        """
+        total = 0
+        for adapter_block in self.contract["adapter"].values():
+            array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
+            table_form = set(adapter_block.get("projections", {}).keys())
+            total += len(array_form | table_form)
+        self.assertEqual(total, 44, f"expected 44 pairs total, got {total}")
+
+
+class ModeEnumTests(unittest.TestCase):
+    """adapter.schema.json mode enum: seven base modes plus the two
+    v0.3 additions (`user-merge-json`, `merge-into-agent-json`)
+    plus the v0.8 addition
+    (`codex-agent-toml`)."""
+
+    def test_mode_enum_contains_expected_modes(self) -> None:
+        schema = _load_schema()
+        # Navigate to the mode enum inside projection items.
+        projection_items = (
+            schema["properties"]["adapter"]["additionalProperties"]["properties"][
+                "projection"
+            ]["items"]
+        )
+        mode_enum = set(projection_items["properties"]["mode"]["enum"])
+        expected = SEVEN_RFC_MODES | {
+            "user-merge-json",
+            "merge-into-agent-json",
+            "codex-agent-toml",
+            # Copilot full parity (v0.10): copilot agent + hook-wiring
+            # modes admitted at every `dropped`-enumerating site.
+            "copilot-agent-md",
+            "copilot-hooks-json",
+            # Gemini full parity (v0.13): gemini command projection.
+            "gemini-command-toml",
+        }
+        self.assertEqual(
+            mode_enum,
+            expected,
+            f"schema mode enum differs from the v0.1+v0.3+v0.8+v0.10+v0.13 set: {mode_enum}",
+        )
+
+    def test_schema_rejects_unknown_mode(self) -> None:
+        from agentbundle.build.validate import validate
+
+        schema = _load_schema()
+        bad_contract = {
+            "contract": {"version": "0.1"},
+            "primitive": {
+                "skill": {"source-path": ".apm/skills/"},
+                "agent": {"source-path": ".apm/agents/"},
+                "hook-body": {"source-path": ".apm/hooks/"},
+                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
+                "command": {"source-path": ".apm/commands/"},
+            },
+            "adapter": {
+                "claude-code": {
+                    "projection": [
+                        {
+                            "primitive": "skill",
+                            "mode": "not-a-real-mode",
+                            "target-path": ".claude/skills/",
+                            "on-conflict": "prompt-then-preserve",
+                        }
+                    ]
+                }
+            },
+        }
+        errors = validate(bad_contract, schema)
+        self.assertTrue(errors, "schema accepted an unknown projection mode")
+
+
+class OnConflictTests(unittest.TestCase):
+    """Every write-mode projection must carry a legal on-conflict matching the default."""
+
+    def setUp(self) -> None:
+        self.contract = _load_contract()
+
+    def test_write_mode_projections_carry_on_conflict(self) -> None:
+        for adapter_name, adapter_block in self.contract["adapter"].items():
+            for projection in adapter_block["projection"]:
+                mode = projection["mode"]
+                if mode in NO_WRITE_MODES:
+                    # no-write modes must NOT be required to carry on-conflict
+                    continue
+                self.assertIn(
+                    "on-conflict",
+                    projection,
+                    f"({projection['primitive']}, {adapter_name}) mode={mode} missing on-conflict",
+                )
+
+    def test_on_conflict_values_are_legal(self) -> None:
+        for adapter_name, adapter_block in self.contract["adapter"].items():
+            for projection in adapter_block["projection"]:
+                if "on-conflict" in projection:
+                    self.assertIn(
+                        projection["on-conflict"],
+                        LEGAL_ON_CONFLICT,
+                        f"({projection['primitive']}, {adapter_name}) illegal on-conflict: "
+                        f"{projection['on-conflict']!r}",
+                    )
+
+    def test_on_conflict_matches_mode_default(self) -> None:
+        for adapter_name, adapter_block in self.contract["adapter"].items():
+            for projection in adapter_block["projection"]:
+                mode = projection["mode"]
+                if mode in NO_WRITE_MODES:
+                    continue
+                expected = MODE_DEFAULT_ON_CONFLICT.get(mode)
+                if expected is None:
+                    continue  # mode has no default; explicit override required
+                self.assertEqual(
+                    projection.get("on-conflict"),
+                    expected,
+                    f"({projection['primitive']}, {adapter_name}) mode={mode}: "
+                    f"expected on-conflict={expected!r}, got {projection.get('on-conflict')!r}",
+                )
+
+    def test_no_write_modes_have_no_on_conflict(self) -> None:
+        for adapter_name, adapter_block in self.contract["adapter"].items():
+            for projection in adapter_block["projection"]:
+                mode = projection["mode"]
+                if mode in NO_WRITE_MODES:
+                    self.assertNotIn(
+                        "on-conflict",
+                        projection,
+                        f"({projection['primitive']}, {adapter_name}) mode={mode} "
+                        f"should not carry on-conflict",
+                    )
+
+
+class SourcePathTests(unittest.TestCase):
+    """Primitive source-path values must match the spec."""
+
+    def setUp(self) -> None:
+        self.contract = _load_contract()
+
+    def test_hook_wiring_source_path(self) -> None:
+        self.assertEqual(
+            self.contract["primitive"]["hook-wiring"]["source-path"],
+            ".apm/hook-wiring/",
+        )
+
+    def test_command_source_path(self) -> None:
+        self.assertEqual(
+            self.contract["primitive"]["command"]["source-path"],
+            ".apm/commands/",
+        )
+
+    def test_user_libs_source_path(self) -> None:
+        """credbroker-user-scope T3: the user-libs primitive is declared."""
+        self.assertEqual(
+            self.contract["primitive"]["user-libs"]["source-path"],
+            ".apm/user-libs/",
+        )
+
+    def test_user_libs_is_build_pipeline_only(self) -> None:
+        """T3 / #139 precedent: user-libs (like adapter-root-bins / shared-libs)
+        carries no per-adapter projection rule — its target is fenced by
+        ``allowed-prefixes``, not a per-adapter path — so adding it does not
+        change the (primitive × adapter) pair count or the contract version."""
+        for adapter_name, adapter_block in self.contract["adapter"].items():
+            array_form = {p["primitive"] for p in adapter_block.get("projection", [])}
+            table_form = set(adapter_block.get("projections", {}).keys())
+            self.assertNotIn(
+                "user-libs", array_form | table_form,
+                f"user-libs must not have a projection rule for {adapter_name}",
+            )
+
+
+class CommandProjectionTests(unittest.TestCase):
+    """command primitive: Claude Code = direct-file; Kiro/Copilot/Codex = dropped."""
+
+    def setUp(self) -> None:
+        self.contract = _load_contract()
+
+    def _projection_for(self, adapter: str, primitive: str) -> dict:
+        for p in self.contract["adapter"][adapter]["projection"]:
+            if p["primitive"] == primitive:
+                return p
+        raise AssertionError(
+            f"projection for ({primitive}, {adapter}) not found"
+        )
+
+    def test_claude_code_command_is_direct_file(self) -> None:
+        proj = self._projection_for("claude-code", "command")
+        self.assertEqual(proj["mode"], "direct-file")
+        self.assertEqual(proj["target-path"], ".claude/commands/")
+
+    def test_kiro_command_is_dropped(self) -> None:
+        proj = self._projection_for("kiro", "command")
+        self.assertEqual(proj["mode"], "dropped")
+
+    def test_copilot_command_is_dropped(self) -> None:
+        proj = self._projection_for("copilot", "command")
+        self.assertEqual(proj["mode"], "dropped")
+
+    def test_codex_command_is_dropped(self) -> None:
+        proj = self._projection_for("codex", "command")
+        self.assertEqual(proj["mode"], "dropped")
+
+
+class FrontmatterTableTests(unittest.TestCase):
+    """frontmatter-mapping and frontmatter-default tables validate and are distinct."""
+
+    def setUp(self) -> None:
+        self.contract = _load_contract()
+        self.schema = _load_schema()
+
+    def test_kiro_frontmatter_mapping_present(self) -> None:
+        mapping = self.contract.get("frontmatter-mapping", {})
+        self.assertIn(
+            "kiro-ide-agent-frontmatter-v0.9",
+            mapping,
+            "frontmatter-mapping.kiro-ide-agent-frontmatter-v0.9 not found in contract",
+        )
+
+    def test_kiro_frontmatter_mapping_validates_against_schema(self) -> None:
+        from agentbundle.build.validate import validate
+
+        errors = validate(self.contract, self.schema)
+        self.assertEqual(
+            errors,
+            [],
+            "contract with frontmatter-mapping failed validation:\n"
+            + "\n".join(errors),
+        )
+
+    def test_copilot_instruction_frontmatter_default_retired(self) -> None:
+        """The copilot `skill` flip to
+        first-class `direct-directory` SKILL.md orphaned the `copilot-instruction`
+        frontmatter-default (it was its only consumer), so it is removed from the
+        contract entirely."""
+        defaults = self.contract.get("frontmatter-default", {})
+        self.assertNotIn(
+            "copilot-instruction",
+            defaults,
+            "copilot-instruction frontmatter-default should be retired after gemini-full-parity",
+        )
+        skill = next(
+            p
+            for p in self.contract["adapter"]["copilot"]["projection"]
+            if p["primitive"] == "skill"
+        )
+        self.assertEqual(skill["mode"], "direct-directory")
+        self.assertEqual(skill["target-path"], ".agents/skills/")
+        self.assertNotIn("frontmatter-default", skill)
+
+    def test_frontmatter_mapping_and_default_are_structurally_distinct(self) -> None:
+        # mapping = rewrite rules (nested objects with rename/normalize/default fields)
+        # default = inject-when-missing (flat string→string map)
+        mapping = self.contract.get("frontmatter-mapping", {})
+        defaults = self.contract.get("frontmatter-default", {})
+
+        # They must be under different top-level keys.
+        self.assertNotEqual(
+            set(mapping.keys()).intersection(set(defaults.keys())),
+            set(mapping.keys()),
+            "frontmatter-mapping and frontmatter-default share the same sub-keys",
+        )
+
+        # frontmatter-mapping entries are nested objects (rewrite rules).
+        for key, mapping_table in mapping.items():
+            self.assertIsInstance(
+                mapping_table,
+                dict,
+                f"frontmatter-mapping.{key} should be a dict of rewrite rules",
+            )
+            for field, rule in mapping_table.items():
+                self.assertIsInstance(
+                    rule,
+                    dict,
+                    f"frontmatter-mapping.{key}.{field} should be a dict (rewrite rule)",
+                )
+
+        # frontmatter-default entries are flat string→string maps.
+        for key, default_table in defaults.items():
+            self.assertIsInstance(
+                default_table,
+                dict,
+                f"frontmatter-default.{key} should be a dict",
+            )
+            for field, value in default_table.items():
+                self.assertIsInstance(
+                    value,
+                    str,
+                    f"frontmatter-default.{key}.{field} should be a string",
+                )
+
+
+class ContractV05Tests(unittest.TestCase):
+    """T2 (apm-install-route-parity): contract-version assertion.
+
+    Originally pinned v0.5; bumped to v0.6 by the codex user-scope table,
+    to v0.7 by per-adapter projection and the credential-broker contract,
+    and to v0.8 by dropped-primitives coverage. Class name preserved to avoid
+    needless diff churn against the next bump.
+    """
+
+    def setUp(self) -> None:
+        self.contract = _load_contract()
+        self.schema = _load_schema()
+
+    def test_contract_version_is_v05(self) -> None:
+        """tomllib.loads of adapter.toml returns contract.version == "0.17"
+        (bumped from kiro-cli-agent-skill-resources' "0.15" by
+        pack.toml gains an optional
+        scope-keyed [pack.layout] table). Class/method names preserved to
+        avoid churn.
+        """
+        self.assertEqual(
+            self.contract["contract"]["version"],
+            "0.17",
+            "adapter.toml [contract] version must be '0.17' after consolidated-pack-layout",
+        )
+
+    def test_claude_code_install_routes_includes_apm(self) -> None:
+        """[adapter."claude-code"] carries install-routes == ["cli", "claude-plugins", "apm"]."""
+        routes = self.contract["adapter"]["claude-code"].get("install-routes")
+        self.assertEqual(
+            routes,
+            ["cli", "claude-plugins", "apm"],
+            f"expected install-routes=['cli', 'claude-plugins', 'apm'], got {routes!r}",
+        )
+
+    def test_other_adapters_have_no_install_routes(self) -> None:
+        """kiro-family, Copilot, and Codex do not declare install-routes (regression
+        guard: the v0.4 → v0.5 bump must not silently extend the field's surface to
+        those adapters; per-adapter optionality / default ['cli'] on read is unchanged).
+        Kiro-ide and kiro-cli added to the checked set; cursor added at v0.11."""
+        for adapter_name in ("kiro", "kiro-ide", "kiro-cli", "copilot", "cursor", "codex"):
+            adapter_block = self.contract["adapter"].get(adapter_name, {})
+            self.assertNotIn(
+                "install-routes",
+                adapter_block,
+                f"adapter '{adapter_name}' must not carry install-routes (only claude-code does)",
+            )
+
+    def test_adapter_schema_accepts_apm_enum_value(self) -> None:
+        """Round-trip: the v0.5 contract validates; "apm" is admitted; a value
+        outside the three-value enum is rejected."""
+        from agentbundle.build.validate import validate
+
+        # Full contract validates (includes "apm" on install-routes).
+        errors = validate(self.contract, self.schema)
+        self.assertEqual(
+            errors,
+            [],
+            "adapter.toml with apm install-route failed schema validation:\n"
+            + "\n".join(errors),
+        )
+
+        # Omitting install-routes is also valid (field is optional).
+        minimal_contract = {
+            "contract": {"version": "0.5"},
+            "primitive": {
+                "skill": {"source-path": ".apm/skills/"},
+                "agent": {"source-path": ".apm/agents/"},
+                "hook-body": {"source-path": ".apm/hooks/"},
+                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
+                "command": {"source-path": ".apm/commands/"},
+            },
+            "adapter": {
+                "claude-code": {}
+            },
+        }
+        errors = validate(minimal_contract, self.schema)
+        self.assertEqual(
+            errors,
+            [],
+            "adapter without install-routes (optional) should validate:\n"
+            + "\n".join(errors),
+        )
+
+        # install-routes value outside the enum must be rejected (regression guard
+        # for the enum extension: adding "apm" must not have widened the field to
+        # any string).
+        bad_contract = {
+            "contract": {"version": "0.5"},
+            "primitive": {
+                "skill": {"source-path": ".apm/skills/"},
+                "agent": {"source-path": ".apm/agents/"},
+                "hook-body": {"source-path": ".apm/hooks/"},
+                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
+                "command": {"source-path": ".apm/commands/"},
+            },
+            "adapter": {
+                "claude-code": {
+                    "install-routes": ["foo"],
+                }
+            },
+        }
+        errors = validate(bad_contract, self.schema)
+        self.assertTrue(
+            errors,
+            "schema must reject install-routes value outside the three-value enum",
+        )
+
+        # install-routes as a string (not array) must still be rejected.
+        bad_contract_str = {
+            "contract": {"version": "0.5"},
+            "primitive": {
+                "skill": {"source-path": ".apm/skills/"},
+                "agent": {"source-path": ".apm/agents/"},
+                "hook-body": {"source-path": ".apm/hooks/"},
+                "hook-wiring": {"source-path": ".apm/hook-wiring/"},
+                "command": {"source-path": ".apm/commands/"},
+            },
+            "adapter": {
+                "claude-code": {
+                    "install-routes": "cli",
+                }
+            },
+        }
+        errors = validate(bad_contract_str, self.schema)
+        self.assertTrue(
+            errors,
+            "schema must reject install-routes as a string (must be an array)",
+        )
+
+
+DATA_CONTRACT_PATH = (
+    REPO_ROOT
+    / "packages"
+    / "agentbundle"
+    / "agentbundle"
+    / "_data"
+    / "adapter.toml"
+)
+SEED_AGENTS_MD_PATH = REPO_ROOT / "packs" / "core" / "seeds" / "AGENTS.md"
+
+
+class TestCodexSkillDirectDirectory(unittest.TestCase):
+    """The codex-native-skills contract flip.
+
+    Codex `skill` is `direct-directory` projecting to
+         `.agents/skills/` with `on-conflict = "prompt-then-preserve"`;
+         no managed-block delimiter keys remain on the entry.
+    `contracts/adapter.toml` and the bundled `_data/adapter.toml`
+         are byte-identical.
+    The seed AGENTS.md no longer carries the legacy delimiter pair.
+    """
+
+    def test_codex_skill_projection_is_direct_directory(self) -> None:
+        contract = tomllib.loads(CONTRACT_PATH.read_text(encoding="utf-8"))
+        codex_entries = contract["adapter"]["codex"]["projection"]
+        skill_entries = [e for e in codex_entries if e["primitive"] == "skill"]
+        self.assertEqual(len(skill_entries), 1)
+        entry = skill_entries[0]
+        self.assertEqual(entry["mode"], "direct-directory")
+        self.assertEqual(entry["target-path"], ".agents/skills/")
+        self.assertEqual(entry["on-conflict"], "prompt-then-preserve")
+        self.assertNotIn("managed-block-delimiter-start", entry)
+        self.assertNotIn("managed-block-delimiter-end", entry)
+
+    def test_contract_files_byte_identical(self) -> None:
+        def _norm(p: Path) -> bytes:
+            return p.read_bytes().replace(b"\r\n", b"\n")
+
+        self.assertEqual(_norm(CONTRACT_PATH), _norm(DATA_CONTRACT_PATH))
+
+    def test_seed_agents_md_has_no_legacy_delimiters(self) -> None:
+        text = SEED_AGENTS_MD_PATH.read_text(encoding="utf-8")
+        self.assertNotIn("<!-- agent-skills:start -->", text)
+        self.assertNotIn("<!-- agent-skills:end -->", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

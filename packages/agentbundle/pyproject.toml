@@ -41,5 +41,5 @@ include = ["agentbundle*"]
 agentbundle = ["_data/*", "_data/catalogue-scaffold/**/*", "build/recipes/*.toml"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests", "agentbundle/build/tests"]
+testpaths = ["tests"]
 addopts = "-q"

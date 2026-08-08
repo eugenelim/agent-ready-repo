@@ -35,9 +35,8 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 TEMPLATE_PATH = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
 FIXTURES_PACKS = (
     Path(__file__).resolve().parents[2]
-    / "agentbundle"
-    / "build"
     / "tests"
+    / "build_pipeline"
     / "fixtures"
     / "packs"
 )
