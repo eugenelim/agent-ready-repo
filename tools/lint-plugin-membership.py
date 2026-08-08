@@ -96,7 +96,16 @@ def check(root: Path) -> list[str]:
     failures: list[str] = []
 
     root_marketplace = root / ".claude-plugin" / "marketplace.json"
-    if root_marketplace.exists():
+    if not root_marketplace.exists():
+        # Vacuously green is the failure shape this gate exists to prevent:
+        # a missing marketplace must not read as "nothing to check" while the
+        # dist branch keeps publishing.
+        if expected:
+            failures.append(
+                f"{GATE}: .claude-plugin/marketplace.json is missing, but "
+                f"{len(expected)} pack(s) are publishable — run `make build-self`"
+            )
+    else:
         actual = listed(root_marketplace)
         # Both directions: extras are the fail-open bug this gate exists for,
         # and missing entries are the fail-closed truncation only equality

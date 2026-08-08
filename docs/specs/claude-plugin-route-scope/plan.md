@@ -299,8 +299,11 @@ $ claude plugin uninstall architect@agent-ready-repo
 ✔ Successfully uninstalled plugin: architect (scope: user)
 ```
 
-**What this settles.** The delisted plugin does **not** keep running an
-unmaintained copy — it fails to load, loudly, and `update` refuses. The
+**What this settles — and its precondition.** The transcript runs
+`marketplace update` *first*. After that refresh the delisted plugin fails to
+load, loudly, and `update` refuses. **Before** it, the cached copy keeps
+loading and its hooks keep running, which is the AST07 stale-copy condition —
+so the remedy is uninstall, not wait. The
 enablement entry survives until uninstalled, so the residual is a broken entry
 in the adopter's plugin list, not silent execution of stale code. That is
 milder than the changelogs originally assumed, and they were corrected to state

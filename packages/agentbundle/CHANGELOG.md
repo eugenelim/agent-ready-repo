@@ -23,13 +23,14 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   `claude plugin uninstall <pack>@agent-ready-repo` — then install at repo
   scope with `agentbundle install --pack <name> …`.
 
-  Observed against Claude Code 2.1.223: a delisted plugin does **not** keep
-  running an unmaintained copy. It reports `Status: ✘ failed to load` in
-  `claude plugin list`, and `claude plugin update` refuses it. The enablement
-  entry survives until you uninstall, so what you are left with is a dead entry
-  in your plugin list rather than stale code executing. Uninstalling clears it,
-  and avoids two unrelated copies of the pack's skills once you reinstall at
-  repo scope.
+  Observed against Claude Code 2.1.223, **after a marketplace refresh**: a
+  delisted plugin reports `Status: ✘ failed to load` in `claude plugin list`,
+  and `claude plugin update` refuses it. Until your client refreshes
+  (`claude plugin marketplace update <marketplace>`), the cached copy keeps
+  loading and its hooks keep running — so uninstall rather than wait for the
+  refresh. The enablement entry survives until you do, and uninstalling also
+  avoids two unrelated copies of the pack's skills once you reinstall at repo
+  scope.
 
 - **Engine behaviour change for self-hosting adopters.** The same predicate
   applies on `run_self_host`, so a pack in *your* catalogue that resolves

@@ -127,12 +127,30 @@ def _build_dist_marketplace(tmp_path: Path) -> dict:
         '[pack]\nname = "core"\n'
         '[pack.links]\nrepository = "https://github.com/eugenelim/agent-ready-repo"\n',
         encoding="utf-8")
+    # A publishable source pack: `_run_aggregate` now resolves membership from
+    # the source tree, so the dist directory alone is not enough.
+    src_pack = tmp_path / "packs" / "core"
+    (src_pack / ".claude-plugin").mkdir(parents=True)
+    (src_pack / ".claude-plugin" / "plugin.json").write_text("{}", encoding="utf-8")
+    (src_pack / "pack.toml").write_text(
+        '[pack]\nname = "core"\nversion = "2.2.0"\n'
+        '[pack.adapter-contract]\nversion = "0.3"\n'
+        '[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\n',
+        encoding="utf-8")
+
     recipe = Recipe(name="marketplace", type="aggregate", adapter=None,
                     output_subdir=None, input_subdir="claude-plugins",
                     output_file="marketplace.json", units=[],
                     fragment_path=None, manifest_path=None)
+    # `packs` is required and drives the publishability filter — passing the
+    # synthetic source pack keeps this exercising the envelope, not the filter.
+    from agentbundle.build.main import Pack
+
     _run_aggregate(  # returns a summary; the payload is written
-        recipe, tmp_path, packs=None, aggregate_scope="catalogue"
+        recipe,
+        tmp_path,
+        packs=[Pack(name="core", path=src_pack)],
+        aggregate_scope="catalogue",
     )
     return json.loads((tmp_path / "marketplace.json").read_text(encoding="utf-8"))
 

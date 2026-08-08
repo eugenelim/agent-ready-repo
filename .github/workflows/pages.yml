@@ -76,6 +76,8 @@ jobs:
 
       - name: Build Astro marketing site
         run: npm run build --prefix web  # writes build/ at repo root
+        env:
+          ASTRO_TELEMETRY_DISABLED: "1"
 
       # Built-output half of the Claude-plugin route gate. The consistency half
       # (site frontmatter vs pack.toml) runs in the required `make build-check`
@@ -85,8 +87,6 @@ jobs:
       # accepted residual (this check is non-blocking).
       - name: Assert the plugin route is offered only where it applies
         run: python3 tools/check-site-plugin-offers.py --build-dir build
-        env:
-          ASTRO_TELEMETRY_DISABLED: "1"
 
       # ── Starlight reference docs SECOND — writes into build/docs/ ──────────
       # Build order is load-bearing: web/ Astro build (above) cleans build/

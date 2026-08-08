@@ -841,7 +841,7 @@ def _run_aggregate(
     recipe: Recipe,
     output_dir: Path,
     *,
-    packs: list[Pack] | None = None,
+    packs: list[Pack],
     aggregate_scope: str,
 ) -> dict:
     """Aggregate per-pack manifests into a marketplace file.
@@ -853,12 +853,19 @@ def _run_aggregate(
     """
     input_dir = output_dir / recipe.input_subdir
     _assert_under(input_dir, output_dir)
-    source_by_name = {p.name: p for p in (packs or [])}
+    source_by_name = {p.name: p for p in packs}
     entries: list[dict] = []
+    excluded: list[str] = []
     if input_dir.exists():
         for plugin_dir in sorted(input_dir.iterdir()):
+            if plugin_dir.name == "marketplace.json" or not plugin_dir.is_dir():
+                continue
             source = source_by_name.get(plugin_dir.name)
-            if source is not None and not pack_is_publishable(source.path):
+            # A dist directory with no source pack is stale — `make build` has
+            # no `clean` dependency, so it survives a pack's deletion. Fail
+            # closed: absent from the source tree means not publishable.
+            if source is None or not pack_is_publishable(source.path):
+                excluded.append(plugin_dir.name)
                 continue
             manifest = plugin_dir / ".claude-plugin" / "plugin.json"
             if manifest.exists():
@@ -916,6 +923,30 @@ def _run_aggregate(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8", newline="\n",
     )
+    if excluded:
+        print(
+            f"marketplace: excluded {len(excluded)} pack(s) not installable at "
+            f"user scope: {', '.join(sorted(excluded))}",
+            file=sys.stderr,
+        )
+    rc = aggregate_exit_code(
+        aggregate_scope=aggregate_scope,
+        discovered_empty=not source_by_name,
+        published_empty=not entries,
+    )
+    if rc:
+        detail = (
+            f"{len(excluded)} excluded here: {', '.join(sorted(excluded))}"
+            if excluded
+            else "none reached this writer — the per-pack recipe filtered them "
+            "upstream"
+        )
+        raise ValueError(
+            "marketplace: the catalogue publishes no packs to the "
+            f"claude-plugins route ({detail}). A catalogue that publishes "
+            "nothing is a defect, not an outcome — check each pack's "
+            "[pack.adapter-contract] version and [pack.install] allowed-scopes."
+        )
     return {"recipe": recipe.name, "type": recipe.type, "entries": len(entries)}
 
 

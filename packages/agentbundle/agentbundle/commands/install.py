@@ -1728,10 +1728,6 @@ def run(args: argparse.Namespace) -> int:
             # route list for the repo-scope install-time message rail.
             # The claude-plugins route publishes only packs whose
             # `allowed-scopes` admits "user" (docs/specs/claude-plugin-route-scope),
-            # so a repo-only pack produces no such directory — listing one would
-            # send the adopter to a path that does not exist.
-            # The claude-plugins route publishes only packs whose
-            # `allowed-scopes` admits "user" (docs/specs/claude-plugin-route-scope),
             # so a repo-only pack produces no such directory. Gate on what the
             # projection actually wrote rather than re-deriving the predicate
             # here — it has already run by this point, and a second copy of the
