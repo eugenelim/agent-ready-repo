@@ -102,9 +102,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Self-test loop-cohort Phase-1 (schema, init pair, check verbs, review)
         run: bash packs/core/tests/skills/work-loop/test-loop-cohort.sh
-      - name: Python test suite — loop-cohort (67 unit tests)
+      - name: Python test suite — loop-cohort
         run: python3 packs/core/tests/skills/work-loop/test-loop-cohort.py
-      - name: Python test suite — loop-engine FSM (84 unit/integration tests)
+      - name: Python test suite — loop-engine FSM
         run: python3 packs/core/tests/skills/work-loop/test-loop-engine.py
       - name: Python test suite — CLI path-argument boundary validators
         run: python3 packs/core/tests/skills/work-loop/test-root-validation.py

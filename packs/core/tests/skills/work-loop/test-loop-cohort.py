@@ -2608,6 +2608,29 @@ def test_ac2_multiline_preamble_comment_keeps_line_indices(tmp: Path) -> None:
                    "preceded the status line — the line index did not map back")
 
 
+def test_ac9_comment_only_status_is_skipped(tmp: Path) -> None:
+    """AC9. `extract_status_token` returns "" — not None — when the status value
+    is only an HTML comment, so an `is not None` guard stops on it. AC9 promises
+    absent *or unparseable* is skipped, and that promise is the whole safety
+    argument for wiring the assertion into a `CODE-*` pre-guard, so the empty
+    case has to behave like the absent one.
+    """
+    name = "ac9-comment-only-status-is-skipped"
+    spec_dir, _ = _approved_run(tmp, name)
+    write_plan(spec_dir, content="# Plan\n\n"
+               "- **Status:** <!-- Drafting | Approved | Executing | Done -->\n\n"
+               "### T1\n\n**Depends on:** none\n\n### T2\n\n**Depends on:** T1\n")
+    rc, _, err = run_cohort("schedule", "check-current", str(spec_dir))
+    if rc != 0 and "Status is" in err:
+        fail(name, f"an unparseable token stopped the pre-guard: {err!r}")
+        return
+    rc2, _, err2 = run_cohort("plan", "check-current", str(spec_dir))
+    if rc2 != 0 and "Status is" in err2:
+        fail(name, f"an unparseable token stopped plan check-current: {err2!r}")
+    else:
+        ok(name)
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
@@ -2624,6 +2647,7 @@ def main() -> int:
             test_ac9_regressed_spec_status_stops,
             test_unreadable_artifact_reports_from_every_verb,
             test_ac9_absent_plan_status_is_skipped,
+            test_ac9_comment_only_status_is_skipped,
             test_ac9_pending_sentinel_survives,
             test_ac10_mismatch_names_both_causes,
             test_ac10_plan_compare_names_both_causes,

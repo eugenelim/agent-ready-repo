@@ -12,6 +12,7 @@ behaviour it names from append-knowledge.py and the case must go red.
 from __future__ import annotations
 
 import importlib.util
+import inspect
 import json
 import os
 import subprocess
@@ -613,15 +614,26 @@ def test_stale_directory_lock_is_broken_not_fatal(target: Path) -> None:
         elif lock.exists():
             fail(name, "the lock path was not freed")
         else:
-            # Assert the *constructed* name, not a glob: `exclusive` always
-            # clears the renamed entry before returning, so a post-hoc glob is
-            # guaranteed empty and can never catch a reserved character.
+            # Two assertions, because neither alone holds. A glob cannot work:
+            # `exclusive` clears the renamed entry before returning. And a
+            # behavioural check cannot work off Windows, where `:` is a legal
+            # filename character — so the helper's output is checked for
+            # reserved characters, and the call site is pinned structurally so
+            # the rename cannot quietly go back to inlining the `pid:nonce`
+            # token. Same shape as `test_loop_cohort_schedule.py`'s
+            # `inspect.getsource` guards.
             spec = importlib.util.spec_from_file_location("_ak6", str(SCRIPT))
             mod = importlib.util.module_from_spec(spec)
             spec.loader.exec_module(mod)
             probe = mod.stale_name("patterns.jsonl.lock", "deadbeef" * 4)
             bad = set(probe) & set('<>:"/\\|?*')
-            fail(name, f"stale name is not Windows-legal: {sorted(bad)}") if bad else ok(name)
+            if bad:
+                fail(name, f"stale name is not Windows-legal: {sorted(bad)}")
+            elif "stale_name(" not in inspect.getsource(mod.exclusive):
+                fail(name, "exclusive() no longer builds its rename target via "
+                           "stale_name(), so the Windows-legal guarantee is unpinned")
+            else:
+                ok(name)
     finally:
         for leftover in target.parent.glob(f"{lock.name}*"):
             if leftover.is_dir():

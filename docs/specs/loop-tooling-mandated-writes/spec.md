@@ -18,7 +18,7 @@ writes the work-loop itself mandates.**
 `loop-cohort approve-plan` pins `approved_spec_hash = sha256(raw bytes of
 spec.md)` and `approved_plan_hash = sha256(canonical(plan.md))`, where
 `canonical` normalizes only line endings and trailing whitespace
-(`loop-cohort.py:177-186`). `plan check-current` and `schedule check-current`
+(`canonical_plan`). `plan check-current` and `schedule check-current`
 recompute and compare.
 
 The same skill then mandates writes to those exact files:
@@ -48,7 +48,8 @@ The plan-side half is the more dangerous one: `schedule check-current` is a
 a plan-side lifecycle write can wedge the state machine mid-EXECUTE.
 
 The contradiction is **encoded as intended behavior in three tests**:
-`test-loop-cohort.py:503`, `:1712`, and `:457` each mutate spec.md *precisely by
+`test_plan_check_current_changed_spec`, `test_approve_plan_refuses_changed_spec`
+and `test_approve_plan_overwrites_hashes` each mutated spec.md *precisely by
 bumping `Status` to `Implementing`* and assert the refusal. The suite certifies
 the bug.
 
@@ -153,9 +154,9 @@ unparseable lines.
       unconditionally — approved scope changed, *or* this baseline predates
       canonical hashing — and points at the reset pair. This covers all four
       mismatch sites: `plan check-current`'s spec and plan compares, its
-      `plan_hash != approved_plan_hash` compare (`loop-cohort.py:635`),
+      `plan_hash != approved_plan_hash` compare (`cmd_plan_check_current`'s `plan_hash` compare),
       `schedule check-current`, and `approve-plan`'s idempotency-compare
-      message (`:558-563`) — which is the one a wedged run hits when it tries
+      message (its idempotency compare) — which is the one a wedged run hits when it tries
       to re-approve, so it is the least exemptable of the four. `schema_version` stays at `1`.
 
       No legacy-hash comparison is retained. A first draft compared the
@@ -366,7 +367,7 @@ unparseable lines.
 
    A `schema_version: 2` bump was the first design and was withdrawn: four
    enforcement sites hardcode `!= 1` beyond the hash verbs
-   (`loop-cohort.py:194,423,452,778`, plus a stale `help=` string at `:1221`),
+   (`loop-cohort.py`'s four schema_version checks, plus a stale `help=` string at `:1221`),
    three suites assert `== 1` (`test-loop-cohort.sh:105,131`,
    `test_loop_cohort_schedule.py:202`, `test-loop-engine.py:114,142`). Note honestly what
    is *not* the discriminator: this run's own pin breaks either way — the hash
@@ -379,7 +380,7 @@ unparseable lines.
    Recovery is the documented reset pair, which preserves `spec.md` and
    `plan.md`. Note the wrinkle the CHANGELOG must state: a run past
    `plan-locked` has `spec.md` at `Implementing`, and `approve-plan`'s
-   crash-window guard (`loop-cohort.py:570-582`) requires both files to read
+   crash-window guard (`cmd_approve_plan`'s crash-window guard) requires both files to read
    `Approved` — so re-approval means restoring `Status: Approved` in both
    files first. `state.json` is gitignored run-local state (verified:
    `.gitignore:14-15`), so the blast radius is one developer's working copy.

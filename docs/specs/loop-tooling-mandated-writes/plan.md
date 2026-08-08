@@ -63,7 +63,7 @@ dependency; both scripts stay pure-stdlib.
 | # | Question | Disposition |
 |---|---|---|
 | 1 | Does the plan-side pin break too? | **Resolved** — reproduced; `schedule check-current` is a pre-guard on every `CODE-*` transition (`loop-engine.py:764`). Spec widened. |
-| 2 | Do existing tests encode the bug? | **Resolved (corrected round 4)** — *three*, not two: `test-loop-cohort.py:503`, `:1712`, and `:457`, all bumping `Status`. A fourth, `:1829`, goes silently meaningless rather than red. All four rewritten in T1. |
+| 2 | Do existing tests encode the bug? | **Resolved (corrected round 4)** — *three*, not two: `test_plan_check_current_changed_spec`, `test_approve_plan_refuses_changed_spec` and `test_approve_plan_overwrites_hashes`, all bumping `Status`. A fourth, `test_approve_plan_state_preserved_on_refusal`, goes silently meaningless rather than red. All four rewritten in T1. |
 | 3 | Every writer of a contract hash rewired? | **Resolved (review finding)** — swept: `_schedule_run_impl:729` also writes `plan_hash` and was missing from the first draft. Now AC3. |
 | 4 | Does any test duplicate the canonicalizer? | **Resolved (review finding)** — `test-loop-engine.py:101-105` does, feeding 28 fixtures. Now AC11 and T1. |
 | 5 | Is ticking an AC bookkeeping or scope? | **Resolved** — bookkeeping (`SKILL.md:434` mandates it); `(deferred: <slug>)` is scope and stays detected (AC8). |
@@ -113,7 +113,7 @@ cohort state, not engine state.
 Run once, immediately after T1's gates go green:
 
 1. Restore `Status: Approved` in **both** `spec.md` and `plan.md` —
-   `approve-plan`'s crash-window guard (`loop-cohort.py:570-582`) requires both.
+   `approve-plan`'s crash-window guard (`cmd_approve_plan`'s crash-window guard) requires both.
 2. `loop-cohort reset` only. Leave `engine-state.json` alone.
 3. Re-init the cohort against the engine's **existing** `run_id` (read it from
    `loop-engine status <spec-dir> --json`; the identity preflight only requires
@@ -126,7 +126,7 @@ Run once, immediately after T1's gates go green:
 4. Restore `Status: Implementing` in `spec.md` and continue at T2.
 
 The reset costs more than `spec.md` / `plan.md` survival: `cmd_init`
-(`loop-cohort.py:391-408`) writes the template wholesale, so
+(`cmd_init`) writes the template wholesale, so
 `implementation_retry_count`, `review_round_count`, `review_retry_count`,
 `last_record_attempt_cycle_id`, and both `finding_fingerprints` arrays go back
 to zero. After recovery the gates-failed cap restarts from 0, and `review
@@ -156,7 +156,7 @@ per-line rstrip:
 - **Status token, preamble only.** Load `parse_status`,
   `extract_status_token`, `_STATUS_RE`, `_SECTION_HEADING_RE`, and
   `_HTML_COMMENT_RE` from `lint-spec-status.py` by the `importlib` pattern at
-  `check-spec-status.py:17-51` (`loop-cohort.py:504-514` already does this for
+  `check-spec-status.py:17-51` (`loop-cohort.py`'s existing importlib load already does this for
   `parse_status`). Locate the line by the same comment-stripped,
   heading-terminated scan `parse_status` performs — a hand-rolled raw-line
   scan disagrees with it whenever a `**Status:**` sits inside a multiline
@@ -192,7 +192,7 @@ per-line rstrip:
 Rewire all four hash sites: `cmd_approve_plan` (idempotency compare **and**
 baseline write), `cmd_plan_check_current`, `_schedule_run_impl:729` (writes
 `plan_hash`), `_schedule_check_current_impl`. Delete `sha256_file` — nothing
-else needs it once AC10 drops the legacy compare. At `test-loop-cohort.py:38-40` the three module-level bindings fail the whole
+else needs it once AC10 drops the legacy compare. The three module-level bindings at the top of `test-loop-cohort.py` fail the whole
 file at import rather than at an assertion: rename `canonical_plan` (`:38`)
 and `sha256_canonical_plan` (`:39`), and **delete** the `sha256_file` binding
 (`:40`) — nothing else in that file uses it. In `test-loop-engine.py`, the
@@ -486,7 +486,7 @@ added or omitted, so it would pass whether or not this task happened.
 `make build-self`, then read `git status` — `build-self` reverts
 projection-only edits, so this runs after every source edit rather than
 alongside. Bump the core pack version in all three files (`build-self` syncs
-none of them). CHANGELOG `[Unreleased]` gets both fixes plus the migration
+none of them). `docs/product/changelog.md` gains a `## [core][<version>]` section with both fixes plus the migration
 note, whose canonical statement is spec Assumption 1 — reproduce it there
 rather than paraphrasing, including the wrinkle that a run past `plan-locked`
 must have `Status: Approved` restored in both files before re-approval.
