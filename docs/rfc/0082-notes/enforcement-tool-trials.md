@@ -1,7 +1,7 @@
 # RFC-0082 spike notes: enforcement-tool trials
 
 Audit trail for the D5 decision in
-[RFC-0082](../0082-engine-export-boundary-and-test-inclusion.md). The RFC body
+[RFC-0082](../0082-test-ownership-boundaries-and-inclusion.md). The RFC body
 carries the conclusion; this file carries the runs behind it, because D5's
 recommendation rests on two candidate tools behaving differently from how they
 are usually described.

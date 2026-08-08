@@ -82,7 +82,7 @@
 | [0074](0074-pack-config-and-oplog.md) | Pack config and operation log — per-pack user config (`pack_dir`, `load_pack_config`), three-source cascade via `install-defaults.toml` baking, atomic JSONL oplog (`write_entry`), new `catalogue.toml` `[pack-defaults.*]` and `user-dir`, two new CLI subcommand groups. | Accepted | 2026-07-27 | 2026-07-28 |
 | [0079](0079-codebase-context-pack.md) | `codebase-context` pack — optional user-scope pack wrapping `codebase-memory-mcp` (C/tree-sitter, stdio subprocess) and `serena` (Python/LSP) as semantic graph MCP backends; `CBM_ALLOWED_ROOT` path confinement; three-tier freshness (file watcher / git hook `touch` / PLAN-time check); `agentbundle install` only. | Draft | 2026-08-03 | — |
 | [0080](0080-local-scope-install.md) | Local scope install — `--scope local` installs pack files into the working tree and excludes them via `.git/info/exclude` so they never appear in `git status` or get committed. | Accepted | 2026-08-04 | 2026-08-04 |
-| [0082](0082-engine-export-boundary-and-test-inclusion.md) | Engine export boundary and per-surface test inclusion — `packages/<pkg>/<pkg>/` is the runtime export boundary; the sdist carries the complete test tree while the wheel, zipapp, and vendored copy carry none. | Draft | 2026-08-07 | — |
+| [0082](0082-test-ownership-boundaries-and-inclusion.md) | Test ownership boundaries and per-surface inclusion — every test owned by the engine, the catalogue, or one pack, each with its own tree; `packages/<pkg>/<pkg>/` is the engine's runtime export boundary; inclusion decided per surface *and* per owner, so `agentbundle catalogue init` ships a catalogue that can verify itself. | Draft | 2026-08-07 | — |
 
 ## Adding a new RFC
 

@@ -1,4 +1,4 @@
-# RFC-0082: Engine export boundary and per-surface test inclusion
+# RFC-0082: Test ownership boundaries and per-surface inclusion
 
 - **Status:** Draft
 - **Author:** eugenelim
@@ -7,90 +7,124 @@
 - **Date closed:**
 - **Decision weight:** heavy
 - **Related:** [ADR-0071](../adr/0071-pack-runtime-export-boundary-and-test-placement.md)
-  (the pack-side companion this extends to the engine),
+  (the pack-side companion this extends — and whose *"keeps catalogue-wide
+  behaviour in the engine's own suite"* clause this RFC revisits),
   [`docs/specs/pack-test-boundary-remaining-packs/`](../specs/pack-test-boundary-remaining-packs/)
   (whose disposition record names the gap this closes),
   [`0082-notes/`](0082-notes/) (promoted spike transcripts)
 
 ## Reviewer brief
 
-- **Decision:** whether `packages/<pkg>/<pkg>/` is the engine's runtime export
-  boundary, with test inclusion decided per distribution surface rather than
-  uniformly.
+- **Decision:** who owns each test in this repository — the engine, the
+  catalogue, or a single pack — where each owner's tests live, and which
+  distribution surfaces carry them.
 - **Recommended outcome:** accept.
 - **Change if accepted:**
-  - `packages/agentbundle/agentbundle/build/tests/` relocates to
-    `packages/agentbundle/tests/build/`. The importable package does not move.
-  - The source distribution carries the complete test tree; the wheel, the
-    zipapp, and the vendored copy carry none.
-  - Two pure-stdlib enforcement instruments, both in-repo: an artifact gate
-    over the built wheel and sdist, and a unit test over the vendored payload.
-- **Affected surface:** four distribution surfaces (wheel, sdist, zipapp,
-  `agentbundle init --tooling vendored`); the ten operative files that reference
-  the current test path, enumerated in *Evidence*; plus `packages/AGENTS.md`,
-  which documents the convention but carries no path reference; and
-  `build/self_host.py`'s fixture guard plus its covering test. No pack *source* changes, though the
-  vendored surface currently carries pack tests and this RFC closes that too. No
-  adopter-visible CLI change.
-- **Stakes:** reversible. The relocation is a `git mv`, two enumerable edit sets
-  (path anchors inside the suite, operative references outside it), and one
-  behavioural rewrite — a shipped destructive-write guard that the new layout
-  would silently disable; the per-surface rule is packaging configuration.
-- **Review focus:** (1) that the asymmetry in D2 is argued rather than asserted,
-  and (2) that D5's enforcement instruments actually fire — the third-party tool
-  the supporting research recommended does not, and getting all four surfaces
-  right takes two instruments plus a layout argument for the zipapp.
-- **Not in scope:** any version bump *in this RFC* — the implementing changeset
-  carries exactly one; src layout; pack test placement (ADR-0071 owns it);
+  - Three test owners, three homes: engine tests at `packages/<pkg>/tests/`,
+    catalogue tests at a new repository-root `tests/`, pack tests at
+    `packs/<pack>/tests/` (already ADR-0071's rule).
+  - Nothing testable lives inside `packages/<pkg>/<pkg>/` — the importable
+    package — which is the engine's runtime export boundary.
+  - Test inclusion is decided per surface *and per owner*: the sdist carries the
+    engine suite; the catalogue channels (`catalogue package` archives and
+    `agentbundle catalogue init`, in both tooling modes) carry the catalogue and pack
+    suites; the wheel, zipapp, and vendored engine copy carry none.
+  - Catalogue tests that ship must be **rule-shaped** — portable to any
+    catalogue — not **roster-shaped**, which pins this repository's own content.
+  - Two pure-stdlib enforcement instruments, both in-repo.
+- **Affected surface:** four engine distribution surfaces plus two catalogue
+  channels; 82 test modules to classify and relocate; the ten operative
+  files that reference the current in-package test path, enumerated in
+  *Evidence*; `packages/AGENTS.md`; `build/self_host.py`'s fixture guard plus its
+  covering test; and five positive allowlists that exclude a root `tests/` by
+  construction — `tools/lint-build.py`'s `RFC_AUTHORISED_DIRS`,
+  `catalogue_tooling/package.py`'s `_DEFAULT_INCLUDE_DIRS` and
+  `_SOURCE_INCLUDE_DIRS`, `sync_authoring_scaffold.py`'s `_SYNC_PAIRS`, and the
+  `Makefile`'s `SAST_DIRS` scan roots. A new top-level `tests/` directory. No adopter-visible
+  CLI change.
+- **Stakes:** the boundary decisions are reversible; the classification is the
+  costly part, because deciding an owner per module is judgement that does not
+  compress. Shipped in two specs so the release-blocking half lands first.
+- **Review focus:** (1) D1's new top-level `tests/` — the only irreversible ask,
+  refused by the pre-PR build lint's allowlist until this RFC is Accepted, and the option ADR-0071
+  explicitly declined; (2) that D6's taxonomy carves at the joints, especially
+  the engine-test-borrowing-the-catalogue case; and (3) that D2's per-owner rule
+  leaves every shipped suite actually *runnable* where it lands.
+- **Not in scope:** any version bump *in this RFC* — the implementing changesets
+  carry one; src layout; changing ADR-0071's `packs/<pack>/tests/` destination;
   relocating `tools/test*.py`.
 
 ## The ask
 
-**Recommendation (BLUF).** Adopt `packages/<pkg>/<pkg>/` — the importable Python
-package directory — as **the engine's runtime export boundary**: the line past
-which content is shipped to a consumer, and inside which tests never live. *The
-engine* here means the `agentbundle` Python package: the CLI and build machinery
-this repository publishes to PyPI. Then decide test inclusion **per distribution
-surface** rather than uniformly: the source distribution yes and complete; the
-wheel, the zipapp, and the vendored copy no.
+**Recommendation (BLUF).** Give every test in this repository an **owner** — the
+engine, the catalogue, or one pack — put each owner's tests in its own tree, and
+decide distribution inclusion per surface *and per owner*.
 
-This is the engine-side companion to **ADR-0071**, which decided the same
-question one directory level down, for *packs*. A **pack** is one installable
-bundle of skills, subagents, and hooks living at `packs/<name>/`; the engine
-installs packs into a user's repository. ADR-0071 established that a pack's
-`.apm/` subdirectory — the part of the pack that gets projected into an adopter's
-tree — is *that* boundary, and moved pack tests out of it to `packs/<pack>/tests/`.
-Its reasoning transfers directly: a boundary that holds only because consumers
-happen not to look past it is not a boundary.
+Three terms, since a cold reader needs them up front. **The engine** is the
+`agentbundle` Python package: the CLI and build machinery published to PyPI.
+**The catalogue** is this repository's shippable content — `packs/`, `profiles/`,
+`contracts/`, and the marketplace aggregate — which the engine installs into a
+user's repository. A **pack** is one installable bundle of skills, subagents, and
+hooks at `packs/<name>/`.
+
+The concrete rule: `packages/<pkg>/<pkg>/` — the importable package directory —
+is **the engine's runtime export boundary**, and nothing testable lives inside
+it. Engine tests sit beside it at `packages/<pkg>/tests/`. Catalogue tests leave
+the engine package entirely, for a new repository-root `tests/`. Pack tests stay
+at `packs/<pack>/tests/`, where ADR-0071 already put them. The source
+distribution then carries the engine suite; the catalogue channels carry the
+catalogue and pack suites; the wheel, zipapp, and vendored engine copy carry
+none.
+
+This extends **ADR-0071**, which decided the same question one directory level
+down. ADR-0071 established that a pack's `.apm/` subdirectory — the part
+projected into an adopter's tree — is *that* boundary, and moved pack tests out
+of it. Its reasoning transfers directly: a boundary that holds only because
+consumers happen not to look past it is not a boundary. But this RFC also asks to **reverse one of
+its decisions and supersede another** — see *Problem & goals*, where the sentence
+in question is quoted in full.
 
 **Why now (SCQA).**
 
 *Situation.* ADR-0071 (2026-08-06) settled where pack tests live and what `.apm/`
 exports across the boundary.
 
-*Complication.* It scoped itself to packs. The engine — the `agentbundle` Python
-package — has test code in several places, one written convention naming two of
-them, and four distribution surfaces that each behave differently. Measured against
-`agentbundle` 0.29.8 on 2026-08-07: the wheel ships 45 test entries out of 184;
-the source distribution ships exactly 8 top-level test files and no
-`conftest.py`, so they cannot be run; `agentbundle init --tooling vendored`
-sweeps the working tree with no exclusions whatsoever. Only the zipapp is
-correct, and its rule is a one-liner in `tools/build_zipapp.py` that no document
-records. A *disposition record* — the note a completed piece of work leaves
-behind saying what it decided itself versus what it escalated — written the day
-before this RFC names the gap outright: *"`agentbundle/build/tests/` is inside
-the package and does ship — nothing moved out of there."*
+*Complication.* It scoped itself to packs, and disposed of everything else in one
+sentence — quoted here in full, because both of its clauses are revisited:
+*"This catalogue declines a root `tests/` — a new top-level directory is
+RFC-gated here — and keeps catalogue-wide behaviour in the engine's own suite."*
+This RFC asks to reverse the first clause and supersede the second. The gating
+mechanism it refers to is real — an allowlist in the pre-PR build lint — which is
+what makes D1 a decision rather than a filing preference. Worth noting honestly:
+that audit is weaker than it looks. It resolves its baseline with
+`git merge-base HEAD main`, which fails on a CI checkout where only
+`origin/main` exists, and the linter then *skips the audit and returns success*.
+So it protects a local pre-PR run and not much else. Spec 2 should fix the
+fallback while it is adding an entry to the list. Measured against `agentbundle` 0.29.8 on
+2026-08-07: the wheel ships 45 test entries out of 184; the source distribution
+ships 8 top-level test files with no `conftest.py` and no fixtures, so they
+cannot run; `agentbundle catalogue init --preset self-hosted --tooling vendored` sweeps the working tree with no
+exclusions whatsoever. Only the zipapp is correct, via an undocumented one-liner
+in `tools/build_zipapp.py`.
 
-*Question.* Where is the engine's export boundary, and what does each surface
-carry across it?
+And underneath all four surfaces sits the deeper fault: **82 test modules inside `packages/agentbundle/` do not test the engine at all.** They walk
+`REPO_ROOT / "packs"` and assert things about the *catalogue*. Relocating them
+within the engine package — the first draft of this RFC did exactly that —
+moves the problem without fixing it, and makes the sdist rule incoherent, because
+those modules can never run from an sdist that contains no `packs/`.
+
+*Question.* Who owns each test, where does each owner's tests live, and which
+surfaces carry them?
 
 ### Decisions requested
 
 | ID | Question | Recommendation | Why | Decide by | Reviewer action |
 | --- | --- | --- | --- | --- | --- |
-| D1 | Relocate the in-package test tree, or exclude it in packaging config? | Relocate to `packages/agentbundle/tests/build/` | Both cheaper fixes leave the tests inside the boundary, so the rule stays uncheckable; setuptools chose exclusion under compatibility pressure this repo does not have | this review | Confirm relocation over the two exclusion variants; confirm src layout stays deferred |
-| D2 | One test-inclusion rule for all surfaces, or one per surface? | Per surface — sdist yes, wheel/zipapp/vendored no | PyPA: wheels should never include tests, sdists commonly do; conda-forge builds from the sdist and runs the suite | this review | Rule on the asymmetry — or partially accept, deferring the sdist half |
-| D3 | Should the vendored copy carry tests? | None — it is wheel-class (option C) | Its documented consumption path is `pip install -e`, so it is an install source, not a source tree; adopter assurance comes from `agentbundle catalogue verify` | this review | Confirm the classification |
+| D6 | Who owns a test, and how do we tell? | Four categories — engine, engine-borrowing-the-catalogue, catalogue (rule- or roster-shaped), pack — decided by *what the test asserts*, not by what it reads | The read-based signal is the one that misleads: an adapter test reads `packs/core` but asserts nothing about it | this review | Rule on the taxonomy — it drives D1 and D2 |
+| D1 | Where does each owner's tests live? | Engine → `packages/<pkg>/tests/`; catalogue → a new repository-root `tests/`; pack → `packs/<pack>/tests/` | A new top-level directory is RFC-gated here, and this is the RFC; ADR-0071's self-containment argument covers packs, not cross-catalogue conformance | this review | Approve the new top-level `tests/`; confirm relocation over the two exclusion variants |
+| D2 | What does each surface carry? | Per surface **and per owner** — sdist carries the engine suite; catalogue channels carry the catalogue and pack suites; wheel, zipapp, vendored engine carry none | PyPA: wheels never, sdists commonly. A suite must be runnable where it lands, which is what the current mixture prevents | this review | Rule on the asymmetry — or partially accept, deferring the sdist half |
+| D3 | Should the vendored copy carry tests? | Its **engine** half, no — it is wheel-class. Its **catalogue** half, yes — `catalogue init` ships catalogue and pack tests under the default preset *and* both `--preset self-hosted --tooling` modes | The vendored engine's consumption path is `pip install -e`; but a new catalogue needs to verify itself, which is ADR-0071's own "that is wanted" | this review | Confirm the split classification |
+| D7 | May a shipped catalogue test pin this repository's content? | No — shipped catalogue tests must be rule-shaped; roster-shaped ones stay home and are marked non-shipping | A roster-shaped test fails on day one in an adopter's catalogue, which is the same present-but-unrunnable defect this RFC exists to end | this review | Confirm portability is a gating property, not a style note |
 | D4 | Does the boundary reach `tools/test*.py`? | No — scope it to distribution surfaces and record co-location as a named exception | `tools/` is absent from all three packaging config tables | this review | Confirm the exception is recorded, not silently tolerated |
 | D5 | What enforces the rule? | Two in-repo pure-stdlib instruments — an artifact gate after the existing build step, plus a unit test for the vendored payload | `check-wheel-contents` never fires on a nested test tree, and `pydistcheck`'s natural-reading flag passes while broken | this review | Confirm in-repo over third-party |
 
@@ -119,6 +153,47 @@ merely untidy: being at the top level is exactly what makes them the 8 files
 setuptools' default sweep picks up, so this convention drift is the direct cause
 of the arbitrary sdist slice described below.
 
+### The deeper fault: no test has a declared owner
+
+The table above is about *placement*. Underneath it is an ownership problem that
+placement alone cannot fix.
+
+82 modules across all three `packages/agentbundle/` test roots
+resolve `REPO_ROOT` and read the live catalogue — `packs/`, `contracts/`,
+`profiles/`, the marketplace aggregate. Measured 2026-08-07:
+
+| Root | Reads the live catalogue | Package-internal only |
+| --- | --- | --- |
+| `agentbundle/build/tests/` | 29 of 44 | 15 |
+| `tests/unit/` | 29 of 135 | 106 |
+| `tests/integration/` | 24 of 71 | 47 |
+
+Two consequences follow, and the second is the one that matters.
+
+**It makes the sdist rule incoherent.** These modules anchor on
+`REPO_ROOT = Path(__file__).resolve().parents[5]`, then read `REPO_ROOT / "packs"`.
+The sdist is built from `packages/agentbundle` alone and contains no `packs/`,
+`contracts/`, or `profiles/` — so from inside an extracted sdist that anchor
+escapes the archive entirely. Any rule of the form "the sdist carries the test
+tree" ships a downstream packager a suite that fails on a path which does not
+exist. That is the same present-but-unrunnable defect described above, reproduced
+by the fix rather than removed.
+
+**But "reads the catalogue" is not the same as "tests the catalogue",** and
+conflating them is how a mechanical split goes wrong.
+`build/tests/test_adapter_claude_code.py` opens with *"Tests for the Claude Code
+adapter"*, imports `agentbundle.build.adapters.claude_code`, and reaches for
+`packs/core` only because a real pack is a convenient *input*. It asserts nothing
+about the catalogue. Moving it to a catalogue test tree would be wrong; the
+correct treatment is to re-point it at a fixture, leaving it an engine test.
+Meanwhile `build/tests/test_shipped_packs_v08_declarations.py` hardcodes
+`V08_PACKS = (atlassian, figma, converters, …)` and asserts that *this
+repository's* packs declare a contract version. That is not portable to any other
+catalogue.
+
+So the classifying question is **what does the test assert**, not what it reads.
+D6 turns that into a taxonomy.
+
 The last row is the one to note: `packages/credbroker/tests/` already conforms.
 Its wheel is clean by construction, because its tests sit outside the importable package —
 the same `pyproject.toml` shape as `agentbundle`, a different tree layout, and a
@@ -131,7 +206,7 @@ in unrelated commits landing unrelated features. The layout is whatever the
 author of each reached for — the same finding ADR-0071 recorded for packs, one
 directory level up.
 
-The consequence is four distribution surfaces behaving four ways. Measured
+The consequence is four engine distribution surfaces behaving four ways. Measured
 against `agentbundle` 0.29.8 by building both artifacts from a clean source copy
 on 2026-08-07:
 
@@ -140,7 +215,7 @@ on 2026-08-07:
 | zipapp (`.pyz`) | `tools/build_zipapp.py` | none — `shutil.ignore_patterns("__pycache__", "tests", "*.pyc")` | yes, by an undocumented one-liner |
 | wheel | `python -m build` | 45 of 184 entries are the in-package test tree | no |
 | sdist | `python -m build` | the in-package test tree's `.py` modules only — its fixtures absent — plus exactly 8 top-level `tests/test*.py` files, and no `conftest.py` | no — present but unrunnable, for two independent reasons |
-| vendored | `agentbundle init --tooling vendored` | the entire working tree of `packages/agentbundle/`, unfiltered, **and** the whole of `packs/catalogue-curation/` including its pack tests | no |
+| vendored | `agentbundle catalogue init --preset self-hosted --tooling vendored` | the entire working tree of `packages/agentbundle/`, unfiltered, **and** the whole of `packs/catalogue-curation/` including its pack tests | no |
 
 **Why four and not five.** This repository also produces *catalogue* archives —
 source archives of the packs and their configuration, as distinct from the Python
@@ -190,13 +265,18 @@ Three of these are defects with distinct causes, so no single switch fixes them:
 
 ### Goals
 
-1. State the engine's export boundary once, in a form that structure enforces
+1. Give every test an owner, decided by a rule that stays true for tests not yet
+   written.
+2. State the engine's export boundary once, in a form that structure enforces
    rather than convention asserts.
-2. Give each distribution surface a stated, justified test-inclusion rule.
-3. Make the rule checkable in CI, so it fails on regression rather than on
+3. Give each surface *and each owner* a stated, justified inclusion rule — such
+   that every shipped suite is runnable where it lands.
+4. Let an adopter's catalogue verify itself, from `agentbundle catalogue init` onward,
+   regardless of tooling mode.
+5. Make the rules checkable in CI, so they fail on regression rather than on
    review attention.
-4. Record `tools/test*.py` co-location as a deliberate exception, so it stops
-   reading as a fourth unexplained convention.
+6. Record `tools/test*.py` co-location as a deliberate exception, so it stops
+   reading as an unexplained convention.
 
 ### Non-goals
 
@@ -212,54 +292,157 @@ These could reasonably have been goals. They are deliberately dropped.
 - **Relocating `tools/test*.py`.** See D4; the boundary does not reach code that
   ships through no surface.
 - **Changing pack test placement.** ADR-0071 owns it and is not reopened.
-- **A repository-root `tests/` tree.** A new top-level directory is RFC-gated
-  here, and ADR-0071 rejected the equivalent for packs on the grounds that it
-  separates a test from the thing it validates.
+- **Rewriting every borrowed-catalogue engine test onto fixtures at once.** D6
+  says an engine test that borrows `packs/core` as an input should be re-pointed
+  at a fixture. Doing that for every such module is a large mechanical job with
+  its own regression risk, and it is not required for any surface to become
+  correct. The specs may leave a module borrowing the live catalogue, provided
+  its *owner* is recorded as the engine and it is not shipped where it cannot run.
+  That proviso needs a mechanism, since a `graft` is unconditional: still-borrowing
+  modules live under a single `tests/live-catalogue/` subdirectory that
+  `MANIFEST.in` prunes. Emptying that directory is spec 2's exit condition — it
+  makes the remaining debt visible and countable instead of dissolved into a
+  non-goal.
 - **Fixing the unrelated packaging defects this RFC's research surfaced.** The wheel also
   carries `agentbundle/_data/install-marker.py` at a non-importable path, and the
   sdist carries `agentbundle.egg-info/`. Both are real; neither is this boundary.
 
 ## Proposal
 
+### The ownership taxonomy (D6)
+
+Every test module gets exactly one owner, decided by **what it asserts**:
+
+| Category | Asserts | Home | Ships with |
+| --- | --- | --- | --- |
+| **Engine** | engine code behaves correctly | `packages/<pkg>/tests/` | sdist only |
+| **Engine, borrowing the catalogue** | engine code behaves correctly, using a live pack as *input* | `packages/<pkg>/tests/` — same owner; re-point at a fixture when convenient | sdist only, once fixture-backed |
+| **Catalogue, rule-shaped** | *any* catalogue's content is well-formed | repository-root `tests/` | catalogue archives **and** `agentbundle catalogue init` |
+| **Catalogue, roster-shaped** | *this* repository's specific content | repository-root `tests/`, marked non-shipping | nothing |
+| **Pack** | one pack's own content or behaviour | `packs/<pack>/tests/` (ADR-0071) | catalogue archives, and `catalogue init --preset self-hosted` (already true today) |
+
+The middle two rows are the ones that earn their keep. Without the
+engine-borrowing row, a mechanical "reads `packs/`" split drags adapter and
+installer tests out of the engine suite where they belong. Without the
+rule/roster distinction, shipping catalogue tests to a new catalogue hands the
+adopter a suite that fails immediately — see D7.
+
 ### The boundary
 
 > `packages/<pkg>/<pkg>/` — the importable Python package directory — is the
 > engine's runtime export boundary. Tests never live inside it.
 
-This is the same shape of rule as ADR-0071's, one level up the tree: there,
-`.apm/` is the boundary and pack tests live at `packs/<pack>/tests/`; here, the
-package directory is the boundary and engine tests live at
-`packages/<pkg>/tests/`.
+Same shape as ADR-0071's rule, one level up the tree: there, `.apm/` is the
+boundary and pack tests live at `packs/<pack>/tests/`; here, the package
+directory is the boundary and engine tests live at `packages/<pkg>/tests/`.
 
-**The source code does not move.** Only the test tree does.
+**The source code does not move.** Only test trees do.
 
 ```
 packages/agentbundle/
 ├── agentbundle/                  ← unchanged; this directory IS the boundary
 │   ├── build/
-│   │   ├── tests/                ← moves out
+│   │   ├── tests/                ← empties out (engine → up, catalogue → root)
 │   │   ├── main.py  adapters/  recipes/  …    ← stay
 │   ├── commands/  catalogue_tooling/  _data/  cli.py  …   ← stay
-├── tests/
-│   ├── unit/                     ← unchanged
-│   ├── integration/              ← unchanged
-│   └── build/                    ← lands here
+├── tests/                        ← the ENGINE suite, and only that
+│   ├── unit/  integration/  build/
 ├── conftest.py
 └── pyproject.toml
+
+tests/                            ← NEW top-level: the CATALOGUE suite
+├── conformance/                  ← rule-shaped; ships to new catalogues
+└── roster/                       ← roster-shaped; pins this repo, never ships
+
+packs/<pack>/tests/               ← unchanged (ADR-0071)
 ```
 
 Every import path is preserved. `agentbundle.build.main`, `agentbundle.cli`, and
-every other module resolve exactly as before. The single name that stops
-resolving is `agentbundle.build.tests`, which nothing imports.
+every other module resolve exactly as before. The one name that stops resolving
+is `agentbundle.build.tests`, which nothing imports.
 
-### Per-surface test inclusion
+The `conformance/` ÷ `roster/` split inside the new tree is what makes D7
+mechanically checkable: shipping is a directory rule, not a per-file judgement
+someone has to remember.
 
-| Surface | Tests | Rationale |
-| --- | --- | --- |
-| **sdist** | **yes** — complete, via an explicit `graft` | Downstream redistributors build from sdists and run the suite. A partial tree is worse than none. |
-| **wheel** | no | A wheel contains exactly what is installed, and nothing more. |
-| **zipapp** | no | Build-essential code only; already correct, now written down. |
-| **vendored** | no | Wheel-class — see D3. |
+**The new top-level directory is gated, and this RFC is the gate.**
+`tools/lint-build.py` holds `RFC_AUTHORISED_DIRS`, a hard-coded allowlist of
+top-level directories whose comment reads *"Add entries only when an Accepted RFC
+authorises the new directory."* It runs in the pre-PR build lint and fails on any
+unlisted top-level directory (see *Problem & goals* for how much weaker that
+guard is in CI than it looks). So `tests/` cannot be created until this RFC is
+**Accepted**, and adding it to that tuple is a required implementation step, not
+an incidental edit. This is also why D1 is a genuine decision rather than a
+filing preference: the repository has a mechanism that refuses it by default.
+
+**One carve-out has to be stated, or the boundary rule contradicts itself.** The
+bundled catalogue scaffold lives at
+`packages/agentbundle/agentbundle/_data/catalogue-scaffold/` — *inside* the
+importable package, and shipped in the wheel by design via `package-data`. Once
+the scaffold gains a `tests/` template so new catalogues inherit one, there is
+test-shaped content inside the export boundary. That is intended and is not a
+violation: scaffold content is **inert template material**, never collected or
+executed in this repository. The enforcement gate must discriminate on that
+basis — content under `_data/catalogue-scaffold/` is exempt — and the exemption
+must be written into the gate rather than left to a reviewer's judgement, since a
+naive path check would either fail the wheel or, if loosened, stop protecting it.
+
+**The same carve-out must reach the zipapp builder, and this one bites hard.**
+`tools/build_zipapp.py` copies the package with
+`shutil.ignore_patterns("__pycache__", "tests", "*.pyc")`. That pattern matches
+the *name* `tests` at any depth, so the moment the scaffold gains a `tests/`
+template the zipapp silently drops it. The scaffold is hash-manifest-verified at
+init time, so the consequence is not a quietly thinner artifact: the missing
+files fail manifest verification and `catalogue init` aborts outright with a
+scaffold-integrity error. The bare-`tests` pattern must be narrowed to the
+relocated engine tree before the scaffold template lands. It is the same
+name-anywhere hazard flagged for `bandit.yaml` in *Evidence*, with a much worse
+failure mode.
+
+### Per-surface, per-owner inclusion
+
+| Surface / channel | Engine suite | Catalogue suite | Pack suites |
+| --- | --- | --- | --- |
+| **sdist** | **yes** — complete, via an explicit `graft`, **but only once the engine suite is fixture-backed** (see below) | no — cannot run there; the archive has no `packs/` | no |
+| **wheel** | no | no | no |
+| **zipapp** | no | no | no |
+| **vendored engine copy** | no — wheel-class | no | no |
+| **`catalogue package` archive** | no | **yes** — needs an allowlist edit; see below | **yes** (ADR-0071, already true) |
+| **`agentbundle catalogue init`** (default preset — materialises the bundled scaffold) | no | **yes**, `conformance/` only | n/a — no packs selected |
+| **`agentbundle catalogue init --preset self-hosted`**, both `--tooling external` and `--tooling vendored` | no | **yes**, `conformance/` only | **already true** — each selected pack's `tests/` is copied today |
+
+Two corrections to how this reads, because the CLI surface is easy to get wrong
+and an earlier draft of this RFC did. The command is `agentbundle catalogue
+init`, not `agentbundle init`. And `--tooling` is not a general flag: it is
+rejected unless `--preset self-hosted` is given, so it selects between two
+*different code paths* — the self-hosted path copies from a source catalogue,
+while the default preset materialises the engine's bundled scaffold. Both must
+carry the catalogue suite, and they need separate implementation work because
+they share no code.
+
+Two channels also need a positive allowlist widened rather than a filter relaxed
+— they exclude a root `tests/` by construction, not by policy:
+`catalogue package`'s `_DEFAULT_INCLUDE_DIRS` and `_SOURCE_INCLUDE_DIRS`.
+
+Read the two right-hand columns as the answer to *"how does an adopter's
+catalogue verify itself?"*, and the left as *"how does a redistributor verify the
+engine?"*. They are different consumers asking different questions, which is why
+one uniform rule was never going to fit.
+
+**The sdist graft is sequenced, and this is load-bearing.** A `graft` is
+unconditional: it ships whatever is in the tree. Spec 1 leaves unclassified
+modules in the engine suite by default, and a share of those still borrow the
+live catalogue — so grafting in spec 1 would ship a redistributor a suite that
+fails on `REPO_ROOT / "packs"`, which is precisely the defect this RFC exists to
+end, reintroduced by its own fix. Worse, a presence-checking gate would certify
+it green.
+
+Therefore: **spec 1 enforces only the absence half** — no test content in the
+wheel, zipapp, or vendored engine copy. **The sdist graft lands in spec 2**, once
+classification has left the engine suite genuinely self-contained, and its gate
+asserts runnability by extracting the sdist and collecting the suite, not merely
+by counting files. The two halves of D2 are both accepted here; only their
+delivery is staged.
 
 The sdist rule needs a `MANIFEST.in` with an explicit `graft tests`, because
 setuptools' default sweep is partial by design. Two documented traps apply and
@@ -273,8 +456,9 @@ effect.
 
 This is the contested call, so the reasoning is stated rather than assumed.
 
-`agentbundle init` scaffolds a new catalogue — an adopter's own repository of
-packs, built on this engine. Its `--tooling` flag takes two values: `external`,
+`agentbundle catalogue init --preset self-hosted` scaffolds a new catalogue from an
+existing source — an adopter's own repository of
+packs, built on this engine. Under that preset, its `--tooling` flag takes two values: `external`,
 where the adopter installs the engine from PyPI like any other dependency, and
 `vendored`, where the engine's source is copied into their repository so their
 catalogue tooling is self-contained and pinned rather than floating on a
@@ -315,18 +499,33 @@ needs its own explicit exclusion in code. It has none today, not even for
 `__pycache__`, which is why its payload varies with the state of the working tree
 it was invoked from.
 
-**This surface also leaks *pack* tests, which ADR-0071 was supposed to have
-closed.** Vendored mode calls `_collect_dir_bytes` a second time, on
-`packs/catalogue-curation/`, copying it wholesale to
-`.agentbundle/tooling/packs/catalogue-curation`. That pack carries its own tests
-at `packs/catalogue-curation/tests/`, exactly where ADR-0071 put them — and they
-ride along. ADR-0071's reasoning for why pack tests never reach an adopter is
-that *"projection adapters read only `.apm/` and `seeds/`"*. That reasoning does
-not cover this path, because vendored mode is a raw tree copy, not a projection
-adapter. It is a genuine hole in an accepted decision, found by this RFC's
-research and closed by the same exclusion work — carefully, because the routine
-these two copies share is also used by the paths that must keep carrying tests.
-See migration step 2.
+**Only the *engine* half of this surface is wheel-class.** Everything above
+concerns the copy of `packages/agentbundle/` that the adopter pip-installs. The
+same command also creates their catalogue — and a catalogue that cannot verify
+itself is exactly the gap `catalogue verify` exists to close. So `agentbundle
+init` carries the catalogue suite (`tests/conformance/`) and each selected pack's
+`packs/<pack>/tests/`, in **both** `--tooling external` and `--tooling vendored`.
+The tooling mode governs how the adopter gets the *engine*; it says nothing about
+whether their catalogue is testable.
+
+This is the same call ADR-0071 already made for catalogue archives — *"Catalogue
+archives carry tests; installers do not install them. […] That is wanted —
+downstream verification, auditing, security review"* — applied to the other
+channel that produces a catalogue. Vendored mode looked contradictory only while
+"the vendored copy" was treated as one undifferentiated blob.
+
+**Vendored mode currently leaks *pack* tests through a path ADR-0071 does not
+cover** — and, given the above, the fix is narrower than it first appeared.
+Vendored mode calls `_collect_dir_bytes` a second time on
+`packs/catalogue-curation/`, copying it wholesale into
+`.agentbundle/tooling/packs/catalogue-curation`. That is the *engine tooling*
+tree, not the adopter's catalogue: `catalogue-curation` is vendored there as an
+operator tool, so its tests are engine-side baggage and should be excluded.
+ADR-0071's reasoning for why pack tests never reach an adopter — *"projection
+adapters read only `.apm/` and `seeds/`"* — does not reach this path at all,
+because a raw tree copy is not a projection adapter. That gap is real and this
+RFC closes it. See migration step 2, and note the care required: the routine
+these copies share also serves the paths that must keep carrying tests.
 
 ### `tools/` — a named exception
 
@@ -341,10 +540,19 @@ lists only `packs/core`. The exception is recorded here and in
 
 A pure-stdlib checker in `tools/`, run in `release-agentbundle.yml` immediately
 after the existing "Build wheel + sdist" step. It opens the built artifacts with
-`zipfile` and `tarfile` and asserts both halves of the rule: no test content in
-the wheel, and a complete test tree — modules *and* fixtures — in the sdist.
-Roughly thirty lines, no new dependency, and consistent with this repo's standing
-rule that new `tools/` scripts are pure-stdlib Python.
+`zipfile` and `tarfile`. Roughly thirty lines, no new dependency, and consistent
+with this repo's standing rule that new `tools/` scripts are pure-stdlib Python.
+
+**It arrives in two stages, matching the two specs** — a gate asserting a
+property the tree does not yet have would simply be red:
+
+- **Spec 1 — the absence half.** No test content in the wheel; none in the
+  zipapp or the vendored engine payload. This is enforceable the moment the tree
+  moves.
+- **Spec 2 — the presence half.** A complete engine test tree — modules *and*
+  fixtures — in the sdist, and *runnable there*: extract the archive and collect
+  the suite, rather than counting files. Presence alone is what let the current
+  8-file slice look acceptable.
 
 Asserting the sdist's *presence* half matters as much as the wheel's absence
 half. A gate that only strips is a gate that will eventually strip the sdist too.
@@ -379,11 +587,34 @@ The unit test is therefore justified by *surface coverage*, not by timing: the
 vendored payload is produced on an adopter's machine and is not an artifact any
 CI job can open, so reading built artifacts can never reach it.
 
-### Migration path
+### Migration path — two specs
 
-Sequenced so each step is independently verifiable:
+The work splits cleanly along a seam of its own: one half is mechanical,
+release-blocking, and independently verifiable; the other is a
+judgement-per-module classification with no release urgency. Shipping them
+together would hold the first hostage to the second.
 
-1. **Move the tree, and update every operative reference.** `git mv`, the
+**Spec 1 — the engine export boundary.** Empties `agentbundle/build/tests/`,
+stops the wheel, zipapp, and vendored engine copy carrying tests, and lands the
+absence half of the enforcement. It does **not** graft the sdist — see the
+sequencing note under *Per-surface, per-owner inclusion*. Ships a release. Does
+not require any test to be classified as catalogue-or-engine: modules whose owner
+is unresolved move to `packages/agentbundle/tests/` as engine tests by default,
+which is where they already effectively live. Steps 1, 2 (its vendored half only), 4, and 5 below.
+
+**Spec 2 — the catalogue and pack carve-out.** Classifies the 82 catalogue-reading modules per D6, moves rule-shaped conformance to
+`tests/conformance/`, roster-shaped to `tests/roster/`, pack-owned to
+`packs/<pack>/tests/`, and wires the shipping channels in `catalogue package` and
+`agentbundle catalogue init`. Step 3 below, plus step 2's `MANIFEST.in` half —
+the largest part of the work.
+
+The ordering matters and is not arbitrary: spec 1 makes the export boundary real,
+so spec 2's relocations cannot silently re-enter an artifact while it is
+underway.
+
+Steps, sequenced so each is independently verifiable:
+
+1. **(Spec 1) Move the tree, and update every operative reference.** `git mv`, the
    path-anchor edits inside the suite, and the ten operative files outside it —
    both sets enumerated in *Evidence*. This step is larger than it looks: one CI
    workflow alone carries most of the references. Two of them are not
@@ -409,59 +640,146 @@ Sequenced so each step is independently verifiable:
    noticed. Its covering test
    must change too: it currently asserts against a hardcoded literal path, so it
    would stay green while the real guard was dead.
-2. **`MANIFEST.in` and the vendored exclusions.** Graft the test tree into the
-   sdist — including its non-`.py` fixtures, which `package-data` does not carry
-   today and which are the second reason the shipped tests cannot run. A third trap
-   applies here beyond the two named above: setting `include_package_data = True`
-   would promote the newly grafted tree into the *wheel*, inverting D2. The
-   package sets it nowhere today, and must not start.
-   Then exclude tests from the vendored payload — **at the call site, not inside
+2. **(Spec 1) The vendored exclusions; (Spec 2) the `MANIFEST.in` graft.** The
+   graft is deferred with the sdist half: when it lands it must carry the test
+   tree's non-`.py` fixtures too, which `package-data` does not carry today and
+   which are the second reason the shipped tests cannot run. A third trap applies
+   beyond the two named above: setting `include_package_data = True` would promote
+   the grafted tree into the *wheel*, inverting D2. The package sets it nowhere
+   today, and must not start.
+
+   In spec 1, exclude tests from the vendored payload — **at the call site, not inside
    `_collect_dir_bytes`.** The routine has four callers, and only two of them are
    vendored: the engine copy and the `packs/catalogue-curation/` copy. The other
-   two copy the adopter's selected packs and shared guides in *every* mode, and
-   those must keep carrying tests — ADR-0071 says catalogue archives carrying
+   two are the adopter's own catalogue: the packs copy runs unconditionally, and
+   the guides copy runs when `--guides selected` is given. Both must keep carrying
+   tests — ADR-0071 says catalogue archives carrying
    tests is *wanted*. An implementer who adds the exclusion inside the shared
    routine would strip tests from the adopter's own catalogue and break an
    accepted decision this RFC explicitly upholds.
-3. **Adopter wiring — probably nothing, and the RFC should say so.** The engine
-   ships a bundled *catalogue scaffold*: the file tree `agentbundle init`
-   materialises into a newly-created catalogue. The original sketch of this
-   migration assumed the scaffold needed updating. On inspection it holds
-   `packs/`, `profiles/`, and `guides/` and no Python package at all, so the
-   boundary this RFC defines — a rule about `packages/<pkg>/<pkg>/` — has nothing
-   to attach to there. An adopter's own packs are already governed by ADR-0071
-   via the scaffold's pack authoring guidance.
+3. **(Spec 2) Classify, relocate, and ship the catalogue and pack suites.** The
+   substantial half.
 
-   The one arguable edit is a line telling adopters that a vendored
-   `.agentbundle/tooling/` tree is engine-owned and not somewhere to add their
-   own tests. That is worth a sentence at most. Its marginal cost is one
-   scaffold-sync run — the version bump and the `Engine-Change-RFC:` trailer are
-   already owed by steps 1, 2, and 5, so they are not an argument against this
-   step. **Recommendation: skip it anyway**, on the merits rather than the cost:
-   the boundary is engine-internal and an adopter has nothing to apply it to.
-   Revisit only if the implementing spec finds a concrete rule an adopter would
-   otherwise get wrong.
-   Recorded rather than deleted, because "we looked and there was nothing to do"
-   is a more useful migration note than silence.
-4. **CI gate.** Add both instruments. Wire the artifact gate into the release
+   1. **Classify every catalogue-reading module against D6.** 82,
+      across all three engine test roots. This is judgement per module and does
+      not compress: the automated signal — "does it resolve `REPO_ROOT / packs`"
+      — finds the candidate set but cannot separate an engine test borrowing a
+      pack as input from a genuine conformance test. *Evidence* records both the
+      candidate set and why the automated split is insufficient.
+   2. **Relocate by owner.** Rule-shaped conformance → `tests/conformance/`;
+      roster-shaped → `tests/roster/`; pack-owned → `packs/<pack>/tests/`,
+      following ADR-0071's existing layout. Engine tests stay put.
+   3. **Make the shipped ones portable (D7).** A test moving into
+      `tests/conformance/` must assert a *rule* over whatever packs it finds, not
+      a roster. Where an existing test pins a list — `V08_PACKS` is the worked
+      example — either rewrite it as a rule or classify it roster-shaped and
+      leave it home. Rewriting is preferred where the rule is expressible;
+      "leave it home" must not become the default that empties the shipped suite.
+   4. **Wire the channels — four concrete edits, none of them a filter relax.**
+      Each channel excludes a root `tests/` by *positive allowlist*, so nothing
+      happens until the allowlist is widened:
+      - `tools/lint-build.py` — add `"tests",  # RFC-0082` to
+        `RFC_AUTHORISED_DIRS`, without which the directory cannot exist at all.
+      - `catalogue_tooling/package.py` — add `("tests",)` to
+        `_DEFAULT_INCLUDE_DIRS` and `"tests"` to `_SOURCE_INCLUDE_DIRS`, so both
+        archive flavours carry the conformance suite.
+      - `agentbundle catalogue init --preset self-hosted` — materialise
+        `tests/conformance/` into the new catalogue. Each selected pack's
+        `tests/` **already ships** here today, unfiltered, so that column needs
+        no work; it needs only to survive step 2's exclusion edit, which is why
+        step 2 insists the exclusion goes at the vendored call sites and not
+        inside the shared routine.
+      - `agentbundle catalogue init` (default preset) — a separate code path that
+        materialises the bundled scaffold, so the scaffold gains a
+        `tests/conformance/` template and its authoring guidance. A real scaffold
+        change: version bump, `Engine-Change-RFC:` trailer, scaffold-sync run —
+        **and an entry in `tools/catalogue/sync_authoring_scaffold.py`'s
+        `_SYNC_PAIRS`**, a fifth explicit pair list whose own comment says new
+        files must be added there to participate. A template file absent from
+        `_SYNC_PAIRS` gets no manifest entry, so `init` never materialises it and
+        the omission surfaces only as a non-blocking INFO — shipping green while
+        shipping nothing.
+        Note the carve-out under *The boundary* — this template content sits
+        inside the export boundary by design and the gate must exempt it.
+   5. **Give the new tree a runner.** The repository root has no
+      `[tool.pytest.ini_options]`, the `Makefile` enumerates every suite by
+      explicit path, and no workflow references a root `tests/` — so an
+      unwired tree is collected by nothing and Goal 5 goes unmet for the
+      catalogue suite. Wire it into the `Makefile` test target and
+      `build-check.yml`. Heed the `Makefile`'s existing warning about duplicate
+      test basenames: consolidating modules from three roots into one tree can
+      collide, and pytest refuses duplicates outright.
+   6. **Verify by construction, not by inspection.** Run `agentbundle catalogue
+      init` into a temporary directory and execute the materialised suite against
+      the scaffolded catalogue. If it does not pass there, the shipped tests are
+      not portable and step 3.3 is not done. This is the only check that
+      distinguishes a genuinely rule-shaped suite from one that merely looks it.
+4. **(Spec 1) CI gate — absence half.** Add the artifact gate's absence
+   assertion and the vendored-payload unit test; the sdist presence assertion
+   lands with spec 2's graft. Wire the artifact gate into the release
    workflow's build job, immediately after the artifacts are produced — and add
    the gate script's own path to that workflow's `pull_request.paths` filter,
    which today lists only `packages/agentbundle/**` and the workflow file. Without
    that, a pull request changing only the gate would never run it.
-5. **One release, cut last.** The whole changeset ships together, with the single
-   version bump this repository requires for a non-cosmetic package change. *This
-   RFC changes no code and bumps nothing*; the bump belongs to the implementing
-   changeset.
+5. **(Spec 1) One release, cut last within the spec.** Spec 1's changeset ships
+   together, with the single version bump this repository requires for a
+   non-cosmetic package change. Both specs touch `packages/agentbundle/**`, the
+   range guarded by the curation lint, so **both** carry the
+   `Engine-Change-RFC:` commit trailer — not just spec 2's scaffold change. Spec 2 carries its own bump when its scaffold
+   change lands. *This RFC changes no code and bumps nothing.*
 
 ## Options considered
 
-### D1 — how the boundary is achieved
+### D6 — how a test's owner is decided
 
-MECE along *how much of the tree's identity changes*: nothing changes; only
-packaging configuration changes; only the directory's package-ness changes; the
-directory moves; the directory and the package both move. Those five exhaust the
-axis — there is no sixth position between "delete one marker file" and "move the
-directory".
+MECE along *what signal decides the owner*. A test can be classified by where it
+currently sits, by what it reads, by what it asserts, or not at all.
+
+| Option | Trade-off | If accepted |
+| --- | --- | --- |
+| **A — no taxonomy (status quo)** | zero work | Ownership stays implicit, so every future test lands wherever its author guesses. This is the mechanism that produced the present state; ADR-0071 diagnosed the same thing for packs. |
+| **B — by current location** | trivially mechanical | Encodes the existing accident as the rule. Rejected on sight. |
+| **C — by what the test reads** | fully automatable — one grep for `REPO_ROOT / "packs"` | Wrong for the largest group. Adapter and installer tests read a live pack purely as input; classifying them catalogue-owned would strip the engine suite of most of its integration coverage. Measured: 29 of 44 modules in `build/tests/` read the live catalogue, but the majority of those assert only engine behaviour. |
+| **D — by what the test asserts ★** | correct; not automatable | Requires per-module judgement over 82 files. Buys a rule that stays true for tests not yet written, which is the whole point of a convention. |
+
+**Prior art.** ADR-0071 made the same move one level down, deciding pack test
+placement by *ownership* ("the pack is the ownership and test-execution
+boundary") rather than by convenience. This is that principle applied upward,
+and the reason its "keeps catalogue-wide behaviour in the engine's own suite"
+clause needs revisiting: that clause assigned a *location* without assigning an
+*owner*, so catalogue-owned tests ended up inside the engine.
+
+**Recommended: D**, with C used to *find* the candidate set and D to decide each
+one. The cost is honest and is why this is spec 2's bulk.
+
+### D7 — may a shipped catalogue test pin this repository's content?
+
+MECE along *what a shipped test is allowed to assume*.
+
+| Option | Trade-off | If accepted |
+| --- | --- | --- |
+| **A — ship everything in the catalogue suite** | simplest wiring | Roster-shaped tests fail immediately in an adopter's catalogue, which has different packs. The adopter's first experience of their new catalogue is a red suite testing someone else's content. |
+| **B — ship nothing; catalogue tests stay home** | no portability problem | Gives up the point of the exercise: a new catalogue cannot verify itself, which is the gap `catalogue verify` was built to close and the reason D3's vendored classification works at all. |
+| **C — shipped tests must be rule-shaped; roster-shaped are marked and stay ★** | keeps both properties | Requires the distinction to be visible and checkable. Making it a directory split (`conformance/` ÷ `roster/`) rather than a per-file convention means the shipping rule is mechanical and the classification is reviewable in a diff. |
+| **D — ship everything, let adopters delete what fails** | zero authoring discipline | Ships a known-broken artifact and calls it configuration. This is the present-but-unrunnable defect with extra steps. |
+
+**Recommended: C.** Note it is a real constraint on authoring, not a filing
+convention: it says a conformance test must express *why* something is required,
+not *which* things currently satisfy it. `V08_PACKS = (atlassian, figma, …)`
+becomes "every pack declares a contract version the engine supports" — a better
+test for this repository too, since the roster form silently passes when a new
+pack forgets to add itself.
+
+### D1 — where each owner's tests live
+
+Given D6's taxonomy, the destinations for catalogue and pack tests follow from
+ownership (a repository-root `tests/`, and `packs/<pack>/tests/` per ADR-0071).
+What remains genuinely open is the *engine* tree: how it stops being inside the
+export boundary. MECE along *how much of the tree's identity changes*: nothing
+changes; only packaging configuration changes; only the directory's package-ness
+changes; the directory moves; the directory and the package both move. Those five
+exhaust the axis — there is no sixth position between "delete one marker file"
+and "move the directory".
 
 | Option | Trade-off | If accepted |
 | --- | --- | --- |
@@ -471,7 +789,18 @@ directory".
 | **C — relocate the test tree ★** | one mechanical move, two enumerated edit sets, and one guard rewrite | The boundary becomes structural. All four surfaces inherit correctness from layout rather than from four separate correct configurations. Cost: the path-anchor and operative-reference edits enumerated in *Evidence*. |
 | **D — relocate, and adopt a src layout** | the fuller upstream recommendation | Touches every path resolution in the package, plus editable-install machinery. Large blast radius for a marginal gain over C. |
 
-**Prior art.** B is what setuptools did for exactly this defect: its own wheel
+**Prior art — ADR-0071 Option B, answered.** ADR-0071 considered and rejected
+"a repository-root `tests/` tree mirroring `packs/`" for two reasons: it
+separates a test from the thing it validates, and it "gives cross-pack tests and
+pack-owned tests the same home, which is the ambiguity we are trying to remove".
+The first still holds for *pack* tests, which is why this RFC leaves them at
+`packs/<pack>/tests/`. The second is answered by construction: because D6 assigns
+an owner before a location, cross-catalogue conformance and pack-owned tests get
+*different* homes, so the root tree carries only one of them. ADR-0071 rejected a
+root `tests/` that would have held both; this proposes one that holds neither
+pack tests nor engine tests.
+
+B is what setuptools did for exactly this defect: its own wheel
 shipped test files (#3017), and the fix (#3018) tightened exclusion rules rather
 than moving the tree. That precedent is instructive in both directions — it
 proves the failure is real, and it shows a large project reaching for the weaker
@@ -508,7 +837,7 @@ actually works.
 
 **Recommended: D.**
 
-### D3 — the vendored copy's assurance instrument
+### D3 — what the vendored copy carries
 
 MECE along *how much test content the vendored tree carries*: all of it, a
 curated part of it, or none. Those three exhaust the axis.
@@ -576,6 +905,26 @@ local pattern, not a novel preference for hand-rolled tooling.
 
 ### Pre-mortem
 
+- **The shipped conformance tree lands outside SAST entirely.** Not via an
+  exclusion glob — via scope. `SAST_DIRS := tools packs packages` in the
+  `Makefile` is the single source of truth that `build-check.yml` reads, and a
+  repository-root `tests/` is in none of those roots, so Bandit and Semgrep never
+  descend into it. This is code that *ships to adopters* sitting outside the
+  security gate. Mitigation: spec 2 must decide explicitly, and the edit is
+  adding `tests` to `SAST_DIRS` — not touching `bandit.yaml`, whose `*/tests/*`
+  glob would not match `tests/conformance/x.py` in any case.
+- **The shipped catalogue suite is roster-shaped in practice, and every adopter's
+  new catalogue starts red.** D7 states the rule, but the rule is only as good as
+  the classification, and "rewrite as a rule" is harder than "mark it roster and
+  leave it" — so the pressure is toward an empty shipped suite or a broken one.
+  Mitigation: migration step 3.6 verifies by *running* the materialised suite
+  against a freshly scaffolded catalogue. A suite that cannot pass there is not
+  shippable, and that check cannot be satisfied by inspection.
+- **Spec 2's classification is done mechanically because it is large.** Eighty-two
+  modules of judgement invites someone to reach for the grep. That grep
+  is precisely what D6 option C rejects. Mitigation: the taxonomy names the
+  engine-borrowing-the-catalogue case explicitly, and the spec should require a
+  recorded owner per module rather than a bulk move.
 - **The move silently disables a shipped safety guard, and the test that covers
   it stays green.** This is not hypothetical — it is the concrete case above:
   `self_host.py`'s destructive-write refusal is a substring match on
@@ -718,8 +1067,8 @@ by relative depth, which works *only* because the test lives inside the package.
 That coupling is what makes the current placement self-reinforcing, and removing
 it is the point of the move rather than an incidental cost of it.
 
-**Operative references outside the suite.** A separate, unfiltered sweep for the
-literal path found ten files that must change with it. It is listed here because
+**References outside the suite.** A separate, unfiltered sweep for the literal
+path found ten files that must change with it — eight operative, two prose. It is listed here because
 the migration's size claim depends on it, and because the first version of this
 RFC named four and was wrong:
 
@@ -730,7 +1079,7 @@ RFC named four and was wrong:
 | `agentbundle/catalogue_tooling/self_host_windows.py` | 4 | **shipped engine code** — see *Risks*, assumption 1 |
 | `pyproject.toml` (repository root) | 2 | mypy `exclude` |
 | `packages/agentbundle/pyproject.toml` | 1 | `testpaths` |
-| `packages/agentbundle/tests/integration/test_install_snapshot.py` | 1 | a test asserting on the other test root |
+| `packages/agentbundle/tests/integration/test_install_snapshot.py` | 1 | prose — a docstring mention, not an executable path |
 | `Makefile` | 1 | test target |
 | `.github/workflows/release-agentbundle.yml` | 1 | pre-release suite |
 | `bandit.yaml` | 1 | entry goes dead; `*/tests/*` still matches, so coverage is unchanged |
@@ -754,6 +1103,37 @@ it seriously rather than treat it as tidy-up.
 Historical references in `docs/specs/**`, earlier `docs/rfc/**`, the package
 `CHANGELOG.md`, and `docs/product/changelog.md` are deliberately excluded: those are shipped records of past work, and this
 repository's convention is to rename operative references only.
+
+### The ownership mapping, and why it cannot be automated
+
+The candidate set was found mechanically: modules resolving `REPO_ROOT` (or an
+equivalent `parents[N]` walk) *and* reading `packs/`, `contracts/`, `profiles/`,
+or `guides/`. Measured 2026-08-07 — 29 of 44 in `agentbundle/build/tests/`, 29 of
+135 in `tests/unit/`, 24 of 71 in `tests/integration/`.
+
+A second pass tried to split that set by which pack each module names. It does
+not survive inspection, and the failures are instructive rather than incidental:
+
+- **The signal is dominated by false positives from directory names.** An early
+  pass assigned 24 modules to a pack called `contracts` — they were reading the
+  repository-root `contracts/` directory holding the adapter contract, which
+  shares a name with a pack. Same hazard for `core`.
+- **Reading a pack is not testing it.** `test_adapter_claude_code.py` opens
+  *"Tests for the Claude Code adapter"*, imports
+  `agentbundle.build.adapters.claude_code`, and uses a real pack only as input.
+  Any read-based classifier calls it catalogue-owned. It is engine-owned.
+- **Some catalogue tests are not portable.**
+  `test_shipped_packs_v08_declarations.py` hardcodes
+  `V08_PACKS = (atlassian, figma, converters, …)`. It is genuinely
+  catalogue-owned, and genuinely unshippable as written — the distinction D7
+  exists to make.
+
+Four modules were read end-to-end to validate the taxonomy against real code, one
+per category; they are the worked examples cited throughout. **The remaining
+classification is deliberately left to spec 2.** Publishing a machine-generated
+per-module mapping here would give it an authority the method does not have — the
+above is exactly the evidence that a mechanical split gets this wrong. What this
+RFC fixes is the *rule*; applying it is the spec's job, one module at a time.
 
 ### Enforcement tooling, tested rather than cited
 
@@ -880,13 +1260,30 @@ vendored halves now and defer the sdist graft — by saying so against D2.
 
 Filled in on acceptance.
 
-- **ADR** recording the boundary and the per-surface rule as a decision.
-- **Spec** covering the migration, sequenced as: move the test tree →
-  `MANIFEST.in` and the vendored exclusions → catalogue-scaffold adopter wiring
-  (conditional — recommended skipped; see migration step 3) →
-  CI gate → a single release cut last.
-- **`packages/AGENTS.md`** — extend § Test conventions to name the boundary, all
-  engine test roots, and the `tools/` exception.
+- **ADR** recording the ownership taxonomy, the three homes, and the per-surface
+  per-owner inclusion rule. It must record its relationship to ADR-0071
+  precisely: ADR-0071's `.apm/` boundary and `packs/<pack>/tests/` destination
+  stay in force, so the new ADR carries `Related: ADR-0071` and states the
+  partial supersession in prose — **not** `Supersedes: ADR-0071`, which would
+  mark a still-governing decision as dead. ADRs are immutable here and CI
+  enforces it, so the correction lives in the new ADR naming the old one, never
+  in an edit to ADR-0071.
+- **Spec 1 — engine export boundary.** Move the test tree out of the package →
+  the vendored exclusions → the `self_host.py` guard rewrite → the absence-half
+  CI gate → one release. Release-blocking; lands first. The `MANIFEST.in` graft
+  is **not** here — it belongs to spec 2, once the engine suite is self-contained.
+- **Spec 2 — catalogue and pack carve-out.** Classify per D6 → relocate to
+  `tests/conformance/`, `tests/roster/`, and `packs/<pack>/tests/` → make shipped
+  tests rule-shaped per D7 → widen the four positive allowlists → wire
+  `catalogue package` and `agentbundle catalogue init` (default preset *and* both
+  `--preset self-hosted --tooling` modes) → land the `MANIFEST.in` graft with
+  fixture coverage → verify by scaffolding a catalogue and running its
+  materialised suite.
+- **`packages/AGENTS.md`** — extend § Test conventions to name the taxonomy, the
+  three homes, and the `tools/` exception. It currently names two roots of what
+  is now a three-owner model.
+- **The scaffold's authoring guidance** — a new catalogue should be told it owns
+  a `tests/` tree and what belongs in it.
 
 One unrelated defect surfaced during research and is deliberately excluded from
 this RFC's scope: the wheel ships `agentbundle/_data/install-marker.py` at a
