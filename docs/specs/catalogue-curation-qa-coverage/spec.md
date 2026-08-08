@@ -1,6 +1,6 @@
 # Spec: catalogue-curation-qa-coverage
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Constrained by:** [`spec/catalogue-curation`](../catalogue-curation/spec.md) — parent spec (Shipped); this spec closes the four deferred ACs.
 - **Brief:** none
