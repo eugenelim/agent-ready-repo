@@ -1,7 +1,7 @@
 # Plan: Claude-plugin route — publish only user-capable packs
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -49,6 +49,27 @@ Sequencing notes not in the spec:
   `build/self_host.py`, so the committed changeset needs an
   `Engine-Change-RFC:` trailer. The gate fires on the *committed* range, so it
   surfaces after the first commit, not during editing. Resolved at PLAN — see the spec's *engine change is carried by RFC-0008* criterion.
+
+## Task status
+
+All four waves ran. What each task actually delivered, against its Done-when:
+
+| Task | State | Gap |
+|---|---|---|
+| T1 fixtures | done | — |
+| T0 predicate, four sites | **partial** | membership asserted by name over *fixtures*, not the three real surfaces (AC5/AC6); envelope identity untouched (AC7) |
+| T1b membership lint | **partial** | registered and mutation-verified, but derives both sides from the predicate, so it is not the roster tripwire AC6 specifies |
+| T2 site gating | done | built-output check runs in `pages.yml` per the accepted Node decision |
+| T3 prose docs | **partial** | five of eight sites fixed; the scripted per-site assertion (AC16) not written |
+| T4 errata | done | RFC-0008 erratum lacks the `### History` heading RFC-0055's two-layer split wants |
+| T4b render_pack consumers | **not done** | route-summary rail fixed; the six consumer assertions and the stale-`state.json` case are deferred |
+| T5 changelogs | done | corrected twice — once for the observed delist behaviour, once for its refresh precondition |
+| T6 real client | done | transcripts in the Verification log; post-merge re-run is a backlog slug |
+
+The spec's *mechanism* ships and is verified end-to-end against Claude Code
+2.1.223. Several of its *assertions* are weaker than specified; the spec's
+"What shipped, and what did not" section names which, and each carries a
+backlog slug.
 
 ## Tasks
 

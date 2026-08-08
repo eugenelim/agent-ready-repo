@@ -89,9 +89,40 @@ Used by every criterion below. A pack is **publishable** when all hold:
    adds a `plugin.json` precondition at the recipe writer — stated, not implied;
 3. its resolved scopes admit `"user"`.
 
+## What shipped, and what did not
+
+Seventeen criteria are met. Eight are deferred with backlog slugs, and they are
+**not equivalent** — this section says which is which rather than letting a
+uniform `(deferred: …)` marker imply they are.
+
+**Deferrable follow-ups.** `AC18` (consumer characterization tests) and `AC19`
+(the living-docs sweep, one site seed-projected and needing a `core` bump) are
+additive: nothing published is wrong without them.
+
+**Gaps in this spec's own guarantee — deferred, but weakly.** `AC5`
+(three-surface equality both directions), `AC6` (the by-name tripwire with its
+complement), `AC7` (envelope identity), `AC10` (tests for the publish script's
+refusals), `AC9` (the recorded mutation transcripts) and `AC16`'s scripted
+per-site assertion are the controls this spec exists to add. What ships today is
+the *mechanism* — the filter works, is verified against the real client, and is
+gated in CI — but several of its assertions are weaker than specified:
+
+- `AC6`'s two lints derive **both** sides from the same predicate, so a
+  predicate bug moves both together. That is the tautology `AC5` was written to
+  forbid, and it means widening a pack's `allowed-scopes` does not reliably turn
+  a gate red.
+- `AC10`'s three publish-time refusals are the only runtime check on the `git
+  push`, and none is tested.
+- `AC7` leaves the marketplace envelope derivable from the first surviving
+  entry, so a filtered set can re-key it.
+
+**Status is therefore `Implementing`, not `Shipped`.** A spec whose central
+assertions are deferred has not met its own contract, and marking it Shipped
+would be the drift this repo treats as a bug.
+
 ## Acceptance Criteria
 
-- [ ] **AC1 — One predicate, four sites.** A pack reaches
+- [x] **AC1 — One predicate, four sites.** A pack reaches
   `dist/claude-plugins/`, the dist `marketplace.json`, the repo-root
   `.claude-plugin/marketplace.json`, and the drift gate's expected set only when
   it is publishable.
@@ -109,14 +140,14 @@ Used by every criterion below. A pack is **publishable** when all hold:
   overturns *at the note*. ADR-0072 records that same function as the writer
   missed last time.
 
-- [ ] **AC2 — Scope resolution reuses the existing helper, and its real gate is
+- [x] **AC2 — Scope resolution reuses the existing helper, and its real gate is
   named.** `commands/validate.py:_allowed_scopes` is reused, not re-derived. Its
   actual behaviour — verified by execution — is that it returns `["repo"]`
   whenever `[pack.adapter-contract].version` is absent or `"0.1"`, **ignoring
   `[pack.install]` entirely**. Any fixture that must publish declares the
   contract version *and* the scopes.
 
-- [ ] **AC3 — The predicate is route-keyed on `(recipe.name, recipe.adapter)`**,
+- [x] **AC3 — The predicate is route-keyed on `(recipe.name, recipe.adapter)`**,
   matching `_resolve_contract_for_route`'s existing idiom — not on
   `output_subdir`, which is free text on an operator-supplied `--recipe` file.
 
@@ -126,7 +157,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   draft claimed. Gate 1c independently checks `dist/apm/<pack>/` for every pack
   and would fail loudly if APM were ever filtered.
 
-- [ ] **AC4 — `_run_aggregate` gains a source-tree handle.** It is
+- [x] **AC4 — `_run_aggregate` gains a source-tree handle.** It is
   `_run_aggregate(recipe, output_dir)` today and resolves scope from the
   *projected* `dist/claude-plugins/<pack>/pack.toml`. `make build` has no
   dependency on `clean`, so narrowing a pack's scopes and rebuilding leaves a
@@ -135,7 +166,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   `packs/<slug>/pack.toml`. `run_recipe` already holds `packs_list`; threading it
   is a signature change and is named as one.
 
-- [ ] **AC5 — Membership is asserted on all three surfaces, both directions.**
+- [ ] **AC5 — Membership is asserted on all three surfaces, both directions.** *(deferred: plugin-three-surface-equality)*
   The dist tree, the dist `marketplace.json`, and the repo-root
   `marketplace.json` each equal the derived publishable set exactly. **The
   expected side is enumerated literally in the test**, never computed by calling
@@ -157,14 +188,14 @@ Used by every criterion below. A pack is **publishable** when all hold:
   gitignored and absent under a plain `pytest` run; an absence assertion against
   a directory that does not exist is green while the feature is broken.
 
-- [ ] **AC6 — Both sides of the split are asserted by name.** The seven excluded
+- [ ] **AC6 — Both sides of the split are asserted by name.** *(deferred: plugin-roster-tripwire)* The seven excluded
   packs absent from all three surfaces, **and the user-capable complement present
   by name** — absences alone leave a fail-closed truncation that drops
   `architect` or `product-documentation` asserted by nothing. The assertion carries a comment naming it the
   **scope-widening-equals-publication tripwire** — a future engineer must not
   "fix" it by deleting a name.
 
-- [ ] **AC7 — The envelope survives.** `_run_aggregate` derives the dist
+- [ ] **AC7 — The envelope survives.** *(deferred: plugin-marketplace-envelope-identity)* `_run_aggregate` derives the dist
   marketplace's `name` and `owner` from the **first** entry carrying a GitHub
   `source.url` — pack-supplied metadata — so a filtered set can silently re-key
   the marketplace to a different owner. Either the envelope identity is read from
@@ -172,7 +203,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   refuses when surviving entries disagree on `source.url`. `name`, `owner`, and
   `description` are asserted intact.
 
-- [ ] **AC8 — The site gates on user-capability, computed not copied.**
+- [x] **AC8 — The site gates on user-capability, computed not copied.**
   `web/src/content/packs/*.md` are hand-authored with no generator, and their
   `scope` field is `default-scope`, not `allowed-scopes` — gating on it would
   hide `product-documentation` (`default-scope = "repo"`,
@@ -210,7 +241,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   Zod field is required with no default, so *omitting* it fails the Astro build
   regardless.
 
-- [ ] **AC9 — The checks are wired into the required gate, and proven wired.**
+- [ ] **AC9 — The checks are wired into the required gate, and proven wired.** *(deferred: plugin-mutation-transcripts)*
   `make build-check` is `catalogue verify` + `tools/repo/build_gate_chain.py` +
   SAST. **It runs no pytest**, and in `build-check.yml` the make step runs
   *before* pytest is installed. So a pytest-based tripwire cannot simply "hang
@@ -239,7 +270,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   lands in the plan's `## Verification log`. A passing target proves the target
   passes, not that the new check ran.
 
-- [ ] **AC10 — The publish script enforces membership itself.** AC6's tripwire is
+- [ ] **AC10 — The publish script enforces membership itself.** *(deferred: plugin-publish-script-tests)* AC6's tripwire is
   a *pre-merge* control that the publishing actor never consults:
   `publish-claude-plugins.yml` triggers on `push: main` with `contents: write`,
   declares **no `needs:`** on the build-check job, and runs regardless of its
@@ -274,7 +305,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   `conclusion == success`. That is Deferred, not the Environment reviewer, which
   is a non-control in a single-maintainer repo.
 
-- [ ] **AC11 — `catalogue-curation` keeps its own exclusion**, retained
+- [x] **AC11 — `catalogue-curation` keeps its own exclusion**, retained
   *alongside* the derived predicate, applied **first**, and exempt from AC10's
   fail-loud check — otherwise the two give opposite instructions for the one
   input AC10 exists for, since `catalogue-curation` is itself repo-only.
@@ -284,7 +315,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   would re-publish it at the root with only AC6's tripwire in the way. Recorded,
   not fixed: operator-only is not yet pack metadata all writers honour.
 
-- [ ] **AC12 — Emptying the set is an error only where emptiness is a defect.**
+- [x] **AC12 — Emptying the set is an error only where emptiness is a defect.**
   A build exits non-zero when **the discovered pack set was non-empty and the
   filter emptied it**. Not when the catalogue was empty to begin with:
   `tests/fixtures/blank_catalogue/packs/` holds only `_example`, so
@@ -314,19 +345,19 @@ Used by every criterion below. A pack is **publishable** when all hold:
     That path warns loudly and continues **with the filtered, possibly empty
     set** — "continues" must not be read as "continues unfiltered".
 
-- [ ] **AC13 — The engine behaviour change is disclosed to self-hosting
+- [x] **AC13 — The engine behaviour change is disclosed to self-hosting
   adopters.** `packages/agentbundle`'s `[Unreleased]` describes the filter as an
   engine change affecting anyone running `run_self_host`, separately from AC14's
   this-repo delisting notice.
 
-- [ ] **AC14 — Delisting is disclosed as a breaking change, with revocation as
+- [x] **AC14 — Delisting is disclosed as a breaking change, with revocation as
   step one.** `[Unreleased]` in `packages/agentbundle/CHANGELOG.md` and
   `docs/product/changelog.md` name the removal, the seven packs, and the remedy:
   **`claude plugin uninstall <pack>@agent-ready-repo` first**, then install at
   repo scope with `agentbundle install`. Delisting is not revocation — the filter
   removes the entry and the directory but uninstalls nothing.
 
-- [ ] **AC15 — Real-client verification, and it decides AC14's remedy.**
+- [x] **AC15 — Real-client verification, and it decides AC14's remedy.**
   Pre-merge against a **local marketplace path** — the repo-root marketplace
   resolves from `main` and the dist branch is written on push, so neither
   reflects the PR. Recorded: `claude plugin details` on a dropped pack; a
@@ -344,7 +375,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   copy from `description`. It also requires the pack to stay published one more
   release, which AC6 forbids in the same PR.
 
-- [ ] **AC16 — Prose docs stop advertising the route for repo-only packs.**
+- [ ] **AC16 — Prose docs stop advertising the route for repo-only packs.** *(deferred: plugin-prose-site-assertion)*
   Enforced by a scripted assertion enumerating **`(path, pattern, expected
   state)` per site**, not one grep form — the sites do not share a pattern.
   `README.md` and `docs-site/.../install.md` carry the literal
@@ -368,12 +399,12 @@ Used by every criterion below. A pack is **publishable** when all hold:
   `packs/core/.apm/hook-wiring/session-start.toml`. The precondition is stated
   once, in `install-routes.md`'s route table.
 
-- [ ] **AC17 — The `--emit-install-routes` route summary stops printing a path
+- [x] **AC17 — The `--emit-install-routes` route summary stops printing a path
   that does not exist.** `commands/install.py:1723-1732` unconditionally emits
   `{output_root}/claude-plugins/{pack_name}/`; after the filter that directory is
   absent for the seven, including `core`.
 
-- [ ] **AC18 — The six `render_pack` consumers are named and asserted.**
+- [ ] **AC18 — The six `render_pack` consumers are named and asserted.** *(deferred: plugin-render-consumer-characterization)*
   `commands/render.py`, `diff.py`, `init_state.py`, `upgrade.py`,
   `install.py --emit-install-routes`, `validate.py`. `init-state` writes rendered
   relpaths into the state file, so a pre-change `state.json` carries paths the
@@ -381,7 +412,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   assumed.
 
 - [ ] **AC19 — Living statements the change falsifies are fixed, re-derived by
-  grep.** Known: `docs/architecture/catalogue.md:32`,
+  grep.** *(deferred: plugin-living-docs-sweep)* Known: `docs/architecture/catalogue.md:32`,
   `docs/architecture/pack-manifest.md:63-66`,
   `docs/architecture/pack-layout.md:113-115`, and `docs/CONVENTIONS.md:597`,
   which is **seed-projected** from `packs/core/seeds/docs/CONVENTIONS.md` — so it
@@ -394,7 +425,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   `make build-check` stays green on a stale manifest — the agentbundle pytest
   suite is the verification, not `build-check`.
 
-- [ ] **AC20 — The engine change is carried by RFC-0008, with an erratum.**
+- [x] **AC20 — The engine change is carried by RFC-0008, with an erratum.**
   `tools/lint-catalogue-curation-guard.py` protects `packages/agentbundle/`
   (carve-outs: `build/recipes/` and `/tests/` only), so the committed changeset
   carries `Engine-Change-RFC: 0008`. The gate reads the *committed* range, so it
@@ -419,7 +450,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   passes identically — so the verification is the trailer's presence plus a human
   reading the number, not a mechanical resolution.
 
-- [ ] **AC21 — The three `allowed-scopes` resolvers are pinned by a property
+- [x] **AC21 — The three `allowed-scopes` resolvers are pinned by a property
   test.** `validate.py:_allowed_scopes(pack_data)` gates on
   `[pack.adapter-contract].version`; `install.py:_resolved_allowed_scopes(pack_install)`
   and `catalogue_tooling/lint.py:_profile_allowed_scopes(pack_toml)` read
@@ -441,16 +472,16 @@ Used by every criterion below. A pack is **publishable** when all hold:
   declares version ≥ 0.7, so the test runs over a synthetic matrix — asserting
   over shipped packs alone would be vacuously green.
 
-- [ ] **AC22 — Projected artifacts regenerated and committed.**
+- [x] **AC22 — Projected artifacts regenerated and committed.**
   `.claude-plugin/marketplace.json` is a `make build-check`-gated projected path.
 
-- [ ] **AC23 — Frozen specs carrying the dead premise get errata.**
+- [x] **AC23 — Frozen specs carrying the dead premise get errata.**
   `docs/specs/claude-plugins-install-route/spec.md`,
   `docs/specs/claude-plugins-manifest-correctness/spec.md`, and
   `docs/specs/wire-session-start-hook/spec.md` are `Shipped` and frozen; each
   assumes `core` is plugin-installable. Errata only — bodies not edited.
 
-- [ ] **AC24 — The QA-matrix row is retired, and its frozen owner amended.**
+- [x] **AC24 — The QA-matrix row is retired, and its frozen owner amended.**
   `docs/specs/adapt-to-project/notes/manual-qa-matrix.md`'s "claude-plugins
   install of core at project scope" row is **retired**, not re-pointed.
   `tests/unit/test_manual_qa_matrix_shape.py` cites it as required by AC19 of
@@ -459,7 +490,7 @@ Used by every criterion below. A pack is **publishable** when all hold:
   silently dropping it. The test module's own docstring enumerates the same rows
   and is in scope.
 
-- [ ] **AC25 — RFC-0008's dormancy is recorded where the route is documented.**
+- [x] **AC25 — RFC-0008's dormancy is recorded where the route is documented.**
   The install→adapt marker keeps being written; both readers
   (`packs/core/.apm/hooks/session-start.py` and the `adapt-to-project` skill)
   live in `core`, so on this route the automatic nudge is reachable only for an

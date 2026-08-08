@@ -469,6 +469,48 @@ open = [
   # spec/engine-export-boundary: fixing 66 violations in shipped code does not
   # belong in a release-blocking diff.
   {slug = "ruff-excludes-the-engine-build-package", source = "spec/engine-export-boundary (quality pass)"},
+  # AC5: the three-surface set-equality assertion (dist tree, dist marketplace,
+  # repo-root marketplace) with the expected side enumerated literally. What
+  # ships asserts by-name absences over fixtures, which catches a fail-open bug
+  # but not a fail-closed truncation. Fix: land the literal equality.
+  {slug = "plugin-three-surface-equality", source = "spec/claude-plugin-route-scope AC5"},
+  # AC6: the by-name tripwire naming the seven exclusions AND the user-capable
+  # complement. Both current lints derive both sides from the same predicate, so
+  # a predicate bug moves them together — the tautology AC5 forbids. Until this
+  # lands, widening a pack's allowed-scopes does not reliably turn a gate red,
+  # which is the control the spec exists to add. Fix: a roster-shaped tools/ lint
+  # case with the literal enumeration.
+  {slug = "plugin-roster-tripwire", source = "spec/claude-plugin-route-scope AC6"},
+  # AC7: `_run_aggregate` still derives the marketplace name/owner from the first
+  # surviving entry's source.url, so a filtered set can silently re-key the
+  # marketplace to another repository's identity. Fix: read identity from the
+  # catalogue/discovery config as the sibling writer does, or refuse when
+  # survivors disagree.
+  {slug = "plugin-marketplace-envelope-identity", source = "spec/claude-plugin-route-scope AC7"},
+  # AC9: the two mutation transcripts (web frontmatter desync; membership) with
+  # the gate that produced each non-zero exit named, recorded in the spec's
+  # verification log. Both mutations were run during review but not captured.
+  {slug = "plugin-mutation-transcripts", source = "spec/claude-plugin-route-scope AC9"},
+  # AC10: publish_claude_plugins.py's three refusals — stale-dist, dangling
+  # entry, repo-root-not-subset — plus AC11's EXCLUDE-first ordering are the only
+  # runtime check on the git push, and none is tested. Fix: a tools/ test pair
+  # over synthetic trees, registered in the gate chain.
+  {slug = "plugin-publish-script-tests", source = "spec/claude-plugin-route-scope AC10"},
+  # AC16: three of eight prose sites still advertise the route — the publish
+  # workflow header's "any pack", tools/hooks/README.md, and core's
+  # session-start.toml comment — and the scripted (path, pattern, expected)
+  # assertion was never written, so a missed site fails review rather than a gate.
+  {slug = "plugin-prose-site-assertion", source = "spec/claude-plugin-route-scope AC16"},
+  # AC18: characterization tests for the six render_pack consumers, including a
+  # pre-change state.json carrying claude-plugins/<pack>/ relpaths driven through
+  # upgrade — the case most likely to surprise an adopter. Additive: nothing
+  # published is wrong without it.
+  {slug = "plugin-render-consumer-characterization", source = "spec/claude-plugin-route-scope AC18"},
+  # AC19: living statements the filter falsifies — docs/architecture/catalogue.md,
+  # pack-manifest.md, pack-layout.md, and docs/CONVENTIONS.md, the last
+  # seed-projected from packs/core/seeds/ and therefore needing make build-self
+  # plus a two-file core version bump. Additive; drift, not breakage.
+  {slug = "plugin-living-docs-sweep", source = "spec/claude-plugin-route-scope AC19"},
   # agentbundle-install-marker-importable-path — the wheel ships
   # agentbundle/_data/install-marker.py at a path that is not importable, which
   # `check-wheel-contents` reports as W004. Surfaced while measuring artifacts for
