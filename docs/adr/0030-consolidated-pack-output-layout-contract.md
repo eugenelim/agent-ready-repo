@@ -4,6 +4,7 @@
 - **Date:** 2026-06-22
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
+- **Extended by:** ADR-0078 opts standalone core intake into the shared layout contract as a repository-confined `[core]` consumer.
 - **Related:** RFC-0040 (the accepted decision this records); ADR-0029 (research project mode — introduced `research-layout.toml`, the file this generalises, and the only prior prompt-only-read layout precedent); ADR-0021 (`pack.toml` is the metadata source of truth — home for the `[pack.layout]` extension); RFC-0035 (`references/sso-config.toml` — namespacing + shipped-placeholder delivery, but code-read via `tomllib`, *not* a prompt-only-read precedent); RFC-0034 (`profiles/<name>.toml` config precedent); RFC-0038 (forward-only migration / one-release alias — considered, found not to apply)
 
 ## Context

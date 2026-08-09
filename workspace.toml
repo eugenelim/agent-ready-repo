@@ -1790,6 +1790,22 @@ open = [
   # from this repo only; it is never installed into an adopter repo, so it
   # carries none of the shipped-artifact exposure that motivates the entries
   # above. Revisit only if web/ ever gains a server-side runtime.
+
+  # capture-work-alias-removal — RFC-0083 keeps `capture-work` as a forwarding
+  # alias and retains the legacy workspace reader throughout the compatibility
+  # window. Removing either one earlier would strand documented invocations or
+  # released workspace shapes. Fix: write and approve a later removal spec that
+  # deletes the forwarding skill and legacy-reader branches, updates adopter and
+  # maintainer guidance, regenerates projections, and ships the required major
+  # core release without deleting canonical artifacts or migration evidence.
+  # Unblocks only when every AC14 gate in work-intake-migration-docs is evidenced:
+  # two qualifying minor releases after the first write-new release (excluding
+  # the reader-first release), at least 90 elapsed days, advance notice, clean
+  # legacy-fixture/writer/current-guide audits, demonstrated rollback readiness,
+  # and check-before-effect RFC Approver authorization. These are external,
+  # conjunctive gates, so this entry has no machine-readable `needs` edge and
+  # remains non-dispatchable until a separate spec is approved.
+  {slug = "capture-work-alias-removal", source = "spec/work-intake-migration-docs AC14"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
