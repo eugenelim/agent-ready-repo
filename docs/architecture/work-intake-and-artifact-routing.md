@@ -12,6 +12,8 @@ The decisions are straightforward: use `work-intake` as the single standalone fr
 
 This design should let an adopter bring in work without knowing the local skill names or tracker vocabulary. It should leave a real artifact behind before anything becomes dispatchable. A later session should be able to see what is ready, what is blocked, and why, without guessing from old comments.
 
+The result is testable: every dispatchable entry resolves to a spec and plan; deleting or rewriting comments does not change routing; and two sessions reading the same files report the same ready, blocked, active, and reconciliation sets.
+
 It does not build a tracker replacement, a cross-repo control plane, or a new product-process mandate. It does not make every team create intents before writing a spec. It also does not change any skill, schema, parser, RFC, ADR, or `workspace.toml` in this change.
 
 ## The model
@@ -149,6 +151,8 @@ There are two modes.
 
 Tracker-origin does not mean “the tracker overwrites the repository.” Ownership is per field and recorded as provenance. Refresh is always a reviewed delta, not a blind sync.
 
+This lifecycle follows imported requirements through local acceptance and into a spec. A brief has its own, simpler lifecycle in the next section.
+
 ```mermaid
 stateDiagram-v2
   [*] --> Draft: source crosses trust boundary
@@ -167,6 +171,62 @@ In Draft, source-owned fields can refresh after a reviewed delta. In Ready and A
 
 This explains [linear-brief-sync](../../packs/linear/.apm/skills/linear-brief-sync/SKILL.md): it is a tracker-origin refresh before execution, not a mysterious exception to “trackers are one-way renders.” Repo-origin remains useful when a team authors locally and only publishes a tracker view.
 
+## What happens after a brief is received
+
+A brief is a durable planning envelope, not a dispatchable work item. It may stay Ready for as long as the team wants, with no specs or plans yet. Only the slices chosen for delivery move into specs and plans.
+
+```mermaid
+flowchart LR
+  B[Draft brief exists] --> V[Validate outcome and scope]
+  V --> R[Ready brief can wait]
+  R --> C[Choose and confirm current slices]
+  C --> S[Create spec.md + plan.md per slice]
+  S --> I[Index each spec in workspace.toml]
+  I --> Q[Queue or activate specs]
+  Q --> W[work-loop reads the spec]
+  W --> D{Brief has more work?}
+  D -->|yes| R
+  D -->|no| H[Ship the brief]
+```
+
+That flow gives each stage a concrete result:
+
+1. `work-intake` or `author-brief` writes the brief file and registers its path in `brief_queue.draft`.
+2. `receive-brief` fills the load-bearing gaps. Once the brief itself is accepted, it moves to Ready. The flow may stop here without creating delivery work.
+3. When the team chooses work from the brief, `receive-brief` shows the slice cut for that delivery and waits for confirmation.
+4. `new-spec` creates a `spec.md` and `plan.md` for each selected slice. Each spec carries its `Brief:` back-link and source provenance.
+5. Only then are structured work entries added to `workspace.toml`. Each entry names an existing `spec.md`, its brief as the source artifact, a display summary, and any hard `needs` edges.
+6. The brief is Executing while a child spec is active. When the current batch finishes, it returns to Ready if the brief still has in-scope work. It moves to Shipped only when the brief is explicitly closed and every materialized child spec is shipped.
+
+Deferred or future work stays in the brief's own scope and decomposition, where it can be reviewed. It does not need a placeholder work entry. If another slice is chosen later, create its spec and plan, then register it. Do not leave a proposed slice in a queue comment for a future session to interpret.
+
+Brief lifecycle follows these conditions. If stored membership disagrees with them, `workspace-status` reports drift instead of guessing:
+
+| Brief state | Condition |
+| --- | --- |
+| Draft | The brief exists, but its load-bearing fields or acceptance are incomplete. |
+| Ready | The brief is accepted and has no active child spec. It may have zero, queued, or shipped child specs and may remain here indefinitely. |
+| Executing | At least one child spec is active and not all children are shipped. |
+| Shipped | The brief is explicitly closed, has no remaining in-scope work, and every materialized child spec is shipped. It moves to `brief_queue.shipped` so the workspace keeps a structured history. |
+
+The children come from structured links: each derived spec's `Brief:` metadata and its workspace `source.artifact`. Remaining scope stays in the brief itself. Comments cannot add a child, change the cut, or move the brief between states.
+
+The target shape looks like this. The exact TOML syntax belongs to the RFC, but the references and meanings do not:
+
+```toml
+["ini-002".brief_queue]
+ready = [
+  { path = "docs/product/briefs/account-recovery.md", kind = "brief", source = { mode = "tracker-origin", ref = "PROJ-123" }, summary = "Make account recovery self-service" },
+]
+
+["ini-002".work]
+queue = [
+  { path = "docs/specs/self-service-reset/spec.md", kind = "spec", source = { artifact = "docs/product/briefs/account-recovery.md", ref = "PROJ-123" }, summary = "Let a user reset access without support", needs = [] },
+]
+```
+
+The brief holds the shared outcome, decomposition, and anything intentionally deferred. The spec holds a selected delivery contract. The plan holds its build strategy. `workspace.toml` holds only the index and lifecycle facts needed to find and sequence them. A Ready brief with no work entries is valid and non-dispatchable.
+
 ## What the existing skills should do
 
 | Surface | Target responsibility |
@@ -174,7 +234,7 @@ This explains [linear-brief-sync](../../packs/linear/.apm/skills/linear-brief-sy
 | `work-intake` | Standalone entry point for start, capture, status, and refresh routing |
 | `capture-work` | Removed or retained briefly as a compatibility alias |
 | `author-brief` | Turn unstructured multi-spec input into a Draft brief |
-| `receive-brief` | Validate an existing brief, cut it into specs, and produce those specs |
+| `receive-brief` | Validate an existing brief and leave it Ready; when delivery is chosen, confirm the current cut and produce specs |
 | `new-spec` | Materialize one shippable contract, including provenance |
 | `work-loop` | Execute an existing spec and plan; never rebuild requirements from workspace comments |
 | `workspace-status` | Show lifecycle, next actions, and reconciliation failures |
@@ -186,7 +246,7 @@ The important boundary is between acquisition and routing. An adapter knows how 
 
 ## The `workspace.toml` contract
 
-Every entry points to a real artifact. Queue membership is lifecycle state, not a substitute for the artifact.
+Every entry points to a real artifact. Queue membership is lifecycle state, not a substitute for the artifact. Given the same files and parsed TOML, two sessions must reach the same routing result.
 
 ```text
 path:     artifact path
@@ -196,18 +256,23 @@ summary:  display only
 needs:    hard dependencies
 ```
 
+Routing may use only the structured entry, whether the referenced file exists, machine-readable artifact status, and explicit `needs`. It must not depend on comment text, list order, nearby prose, or what a previous session happened to know.
+
 The RFC will choose exact field names and migration details. It must preserve these rules:
 
-- Dispatchable work points to an existing spec.
+- Dispatchable work points to an existing `spec.md`; its sibling `plan.md` must also exist before execution.
 - A brief queue entry points to an existing brief.
 - A shaping entry points to an intent, research artifact, or design artifact.
 - A missing artifact is a reconciliation failure, or it is a non-dispatchable capture.
 - Comments do not affect routing.
 - A queue entry never authorizes an agent to infer the complete contract from surrounding comments.
+- A spec derived from a brief has the same brief path in its `Brief:` metadata and workspace source index. A mismatch is a reconciliation failure.
+- `needs` contains hard artifact dependencies only. Priority, affinity, suggested ordering, and rationale belong elsewhere.
+- Unknown kinds, malformed entries, duplicate lifecycle membership, and impossible transitions fail closed as reconciliation findings. The parser never falls back to comments.
 
 Provenance records identifiers and links, not credentials or a copied tracker payload. Refresh happens on an explicit request; this design does not add a polling service or webhook.
 
-`workspace-status` should report broken references. A dispatcher should not start work until the referenced spec and its hard dependencies exist. A capture without an artifact can remain visible; it cannot quietly become dispatchable work.
+`workspace-status` should report broken references and inconsistent brief/spec links. A dispatcher should not start work until the referenced spec, plan, and hard dependencies exist. A capture without an artifact can remain visible; it cannot quietly become dispatchable work.
 
 ## Other shapes we could choose
 
@@ -224,6 +289,8 @@ The feature gate is a judgment call. A loose outcome can make unrelated tracker 
 Tracker-origin refresh can create difficult conflicts. Keep the first version small: record field ownership, show the delta, require an explicit decision, and lock requirement refresh once execution starts.
 
 Migration can leave old queue entries pointing nowhere. Treat each missing path as a visible reconciliation failure or an explicitly non-dispatchable capture. Do not silently promote it.
+
+A Ready brief can sit untouched long enough for its source or assumptions to age. `workspace-status` should keep it visible without calling it build-ready, and tracker-origin refresh rules still apply before a deferred slice is materialized.
 
 The operational failure to watch is a broken reference at session start. `workspace-status` needs to show it plainly, and dispatch needs to stop before an agent starts work from a comment.
 
