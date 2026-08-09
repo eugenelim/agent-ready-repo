@@ -1,6 +1,6 @@
 # Spec: Claude-plugin route — publish only user-capable packs
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md)
@@ -499,7 +499,8 @@ fixture continuation indentation RFC-0082's relocation will carry.
   `pack.toml`. Recorded here rather than as a criterion: nothing can fail it, and
   the Testing Strategy should not promise an artifact that does not exist.
 
-- [x] **AC27 — Two implementation guards, recorded because they change
+
+- [x] **AC26 — Two implementation guards, recorded because they change
   observable behaviour.** Added during EXECUTE, so they belong in the contract
   (`CONVENTIONS.md` § 4):
 

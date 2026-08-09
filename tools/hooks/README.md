@@ -121,14 +121,12 @@ The SessionStart wiring is **shipped pre-wired** by `agentbundle install`
 (and by `make build-self` for this repo's self-host). Two projection
 surfaces carry it, with the same JSON body in both:
 
-- **Install-via-`agentbundle`:** `<output>/apm/core/.apm/hook-wiring/` — the
-  dist-tree path the install pipeline writes for `core`. It carries no
-  `claude-plugins/core/` subtree: that route publishes only packs whose
-  `allowed-scopes` admits `user`, and `core` is repo-scoped
-  (`docs/specs/claude-plugin-route-scope`). Claude Code's plugin
-  marketplace ingests it; once the marketplace is enrolled, the
-  user-facing edit-target shifts to the per-user plugin cache
-  (typically `~/.claude/plugins/cache/<marketplace>/core/<version>/.claude/...`).
+- **Install-via-`agentbundle`:** `<install-root>/.claude/settings.local.json` —
+  verified: `agentbundle install --pack core … --output <root>` writes the
+  `SessionStart` and `UserPromptSubmit` bindings there. There is no
+  `claude-plugins/core/` subtree and no plugin-cache edit target: that route
+  publishes only packs whose `allowed-scopes` admits `user`, and `core` is
+  repo-scoped (`docs/specs/claude-plugin-route-scope`).
 - **Self-host (this repo):** `<workspace>/.claude/settings.local.json` —
   the flat workspace path `make build-self` writes (gitignored at
   `.gitignore:18`).

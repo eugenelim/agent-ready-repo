@@ -979,10 +979,6 @@ def _run_aggregate(
         payload["owner"] = marketplace_owner
     payload["plugins"] = entries
 
-    output_path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8", newline="\n",
-    )
     if excluded:
         print(
             f"marketplace: excluded {len(excluded)} pack(s) not installable at "

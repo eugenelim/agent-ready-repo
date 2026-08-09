@@ -64,14 +64,25 @@ def main() -> int:
            mirror.is_user_capable(_pack("0.3", ["repo", "user"]))
            and not mirror.is_user_capable(_pack("0.3", ["repo"])))
 
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "packages" / "agentbundle"))
     try:
-        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "packages" / "agentbundle"))
-        from agentbundle.commands.validate import _allowed_scopes
-    except Exception as exc:  # pragma: no cover - environment-dependent
-        print(f"  skip differential half — agentbundle unimportable ({exc})")
+        import agentbundle.commands.validate as _validate
+    except ModuleNotFoundError as exc:
+        # Only a genuinely absent package skips. A *renamed or moved symbol* is
+        # exactly the drift this gate exists to catch — swallowing it as
+        # "unimportable" made the gate report success while the one-copy
+        # guarantee was gone.
+        print(f"  skip differential half — agentbundle not installed ({exc})")
     else:
+        _allowed_scopes = getattr(_validate, "_allowed_scopes", None)
+        _check("the canonical resolver is still where the mirror mirrors it from",
+               _allowed_scopes is not None,
+               "commands/validate.py:_allowed_scopes is gone — the mirror in "
+               "tools/pack_scope.py now tracks nothing")
         mismatches = []
-        for version, scopes, default in itertools.product(VERSIONS, SCOPES, DEFAULTS):
+        for version, scopes, default in itertools.product(
+            VERSIONS, SCOPES, DEFAULTS
+        ) if _allowed_scopes else []:
             meta = _pack(version, scopes, default)
             if mirror.allowed_scopes(meta) != _allowed_scopes(meta):
                 mismatches.append(

@@ -32,25 +32,41 @@ GATE = "lint-plugin-route-docs"
 REPO_ONLY = ("core", "governance-extras", "iac-terraform", "monorepo-extras",
              "release-engineering", "user-guide-diataxis", "catalogue-curation")
 
+
+# Both spellings. A doc may write either; a site constrained for only one is
+# green while it regresses in the other — which is how five sites shipped with
+# an empty `forbidden` list and no assertion against a regression at all.
+def _offers(pack: str) -> list[str]:
+    return [f"claude plugin install {pack}@", f"/plugin install {pack}@"]
+
+
+_NO_REPO_ONLY_OFFER = [pat for p in REPO_ONLY for pat in _offers(p)]
+
 SITES: list[tuple[str, list[str], list[str]]] = [
     # (path, forbidden substrings, required substrings)
-    ("README.md",
-     [f"claude plugin install {p}@" for p in REPO_ONLY],
-     ["user-scope"]),
+    ("README.md", _NO_REPO_ONLY_OFFER, ["user-scope"]),
     ("docs-site/src/content/docs/getting-started/install.md",
-     [f"claude plugin install {p}@" for p in REPO_ONLY],
-     ["Repo-scoped packs"]),
+     _NO_REPO_ONLY_OFFER, ["Repo-scoped packs"]),
+    # Two entries: the route-table row and the marker-writer paragraph are
+    # separate claims, and pinning one string that lives in both means deleting
+    # either is green.
     ("guides/_shared/explanation/install-routes.md",
-     [],
-     ["The plugin route is user-scope only", "allowed-scopes"]),
-    ("guides/_shared/explanation/pack-catalogue.md", [], ["install-routes.md"]),
-    ("guides/core/how-to/adapt-to-project.md", [], ["repo-scoped"]),
+     _NO_REPO_ONLY_OFFER,
+     ["**Carries only packs whose `allowed-scopes` admits `user`**"]),
+    ("guides/_shared/explanation/install-routes.md",
+     [], ["The plugin route is user-scope only",
+          "derived into each **published** pack's"]),
+    ("guides/_shared/explanation/pack-catalogue.md",
+     _NO_REPO_ONLY_OFFER, ["install-routes.md"]),
+    ("guides/core/how-to/adapt-to-project.md",
+     _NO_REPO_ONLY_OFFER, ["repo-scoped"]),
     (".github/workflows/publish-claude-plugins.yml",
-     ["so adopters can install any pack with"],
+     ["so adopters can install any pack with"] + _NO_REPO_ONLY_OFFER,
      ["user-scope"]),
-    ("tools/hooks/README.md", [], ["`claude-plugins/core/` subtree"]),
-    ("packs/core/.apm/hook-wiring/session-start.toml",
-     [], ["There is no `claude-plugins/core/` dist-tree copy"]),
+    ("tools/hooks/README.md", _NO_REPO_ONLY_OFFER,
+     ["`claude-plugins/core/` subtree"]),
+    ("packs/core/.apm/hook-wiring/session-start.toml", _NO_REPO_ONLY_OFFER,
+     ["There is no `claude-plugins/core/` dist-tree copy"]),
 ]
 
 

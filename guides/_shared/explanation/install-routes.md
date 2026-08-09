@@ -42,7 +42,7 @@ The mechanism is identical across routes:
 | Route | Marker writer |
 | --- | --- |
 | Reference CLI | The `install` verb writes it in-process and chains to `agentbundle adapt`. |
-| Claude plugins | A `SessionStart` hook derived into each pack's `.claude-plugin/plugin.json` runs the canonical writer on first session after install. |
+| Claude plugins | A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` runs the canonical writer on first session after install. Repo-scoped packs are not published to this route, so it does not reach them. |
 | APM | `.apm/hooks/install-marker.{json,py}`, projected via APM's `HookIntegrator`, runs the same canonical writer. |
 | Local clone | Same as Reference CLI — the clone route uses the same `install` verb. |
 

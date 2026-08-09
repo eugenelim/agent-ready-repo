@@ -80,6 +80,68 @@ def test_repo_root_marketplace_equals_the_expected_set() -> None:
     assert not (listed & withheld)
 
 
+def _aggregate_over(tmp_path: Path, packs: dict[str, str | None]) -> dict:
+    """Run `_run_aggregate` over synthetic dist + source trees.
+
+    `packs` maps slug -> `[pack.links] repository` URL (None for no link).
+    Returns the written marketplace payload.
+    """
+    from agentbundle.build.main import Pack, Recipe, _run_aggregate
+
+    handles = []
+    for slug, repo in packs.items():
+        plugin_dir = tmp_path / "claude-plugins" / slug
+        (plugin_dir / ".claude-plugin").mkdir(parents=True)
+        (plugin_dir / ".claude-plugin" / "plugin.json").write_text(
+            json.dumps({"name": slug, "version": "1.0.0", "description": "d"}),
+            encoding="utf-8")
+        links = f'[pack.links]\nrepository = "{repo}"\n' if repo else ""
+        (plugin_dir / "pack.toml").write_text(
+            f'[pack]\nname = "{slug}"\nversion = "1.0.0"\n' + links, encoding="utf-8")
+
+        src = tmp_path / "packs" / slug
+        (src / ".claude-plugin").mkdir(parents=True)
+        (src / ".claude-plugin" / "plugin.json").write_text("{}", encoding="utf-8")
+        (src / "pack.toml").write_text(
+            f'[pack]\nname = "{slug}"\nversion = "1.0.0"\n'
+            f'[pack.adapter-contract]\nversion = "0.3"\n'
+            f'[pack.install]\nallowed-scopes = ["repo", "user"]\n' + links,
+            encoding="utf-8")
+        handles.append(Pack(name=slug, path=src))
+
+    recipe = Recipe(name="marketplace", type="aggregate", adapter=None,
+                    output_subdir=None, input_subdir="claude-plugins",
+                    output_file="marketplace.json", units=[],
+                    fragment_path=None, manifest_path=None)
+    _run_aggregate(recipe, tmp_path, packs=handles, aggregate_scope="catalogue")
+    return json.loads((tmp_path / "marketplace.json").read_text(encoding="utf-8"))
+
+
+def test_envelope_derived_from_a_single_agreed_identity(tmp_path) -> None:
+    """One identity across surviving entries → envelope derived from it."""
+    payload = _aggregate_over(tmp_path, {
+        "alpha": "https://github.com/eugenelim/agent-ready-repo",
+        "beta": "https://github.com/eugenelim/agent-ready-repo",
+    })
+    assert payload["name"] == "agent-ready-repo"
+    assert payload["owner"] == {"name": "eugenelim"}
+    assert payload["description"]
+
+
+def test_envelope_refuses_when_survivors_disagree(tmp_path) -> None:
+    """The control AC7 exists for.
+
+    Taking the FIRST entry's `source.url` let a filtered set re-key the
+    marketplace to whichever pack sorted first — identity decided by an
+    unrelated membership change. Disabling the refusal must fail this test.
+    """
+    with pytest.raises(ValueError, match="disagree on the repository identity"):
+        _aggregate_over(tmp_path, {
+            "alpha": "https://github.com/eugenelim/agent-ready-repo",
+            "beta": "https://github.com/someone-else/other-catalogue",
+        })
+
+
 def test_envelope_survives_the_filter() -> None:
     """`name`/`owner`/`description` intact — a filtered set must not re-key it.
 
@@ -97,27 +159,24 @@ def test_envelope_survives_the_filter() -> None:
 
 # --- render_pack consumers -------------------------------------------------
 
-@pytest.mark.parametrize("module,symbol", [
-    ("agentbundle.render", "render_pack"),
-    ("agentbundle.commands.render", None),
-    ("agentbundle.commands.diff", None),
-    ("agentbundle.commands.init_state", None),
-    ("agentbundle.commands.upgrade", None),
-    ("agentbundle.commands.install", None),
-    ("agentbundle.commands.validate", None),
-])
-def test_render_pack_consumer_imports(module: str, symbol: str | None) -> None:
-    """Each named consumer still imports — a signature change breaks them all.
+def test_render_pack_consumers_call_through(tmp_path) -> None:
+    """Drive `render_pack`, not `import`.
 
-    `run_recipe` gained a required `aggregate_scope`; these six reach it through
-    `render_pack`, so an unthreaded caller is an import-time or call-time error
-    rather than a wrong-output one.
+    `run_recipe` gained a required `aggregate_scope`; an unthreaded caller is a
+    **call-time** TypeError, never an import-time one — so an import check
+    cannot fail for the reason it claims to. These six modules all reach
+    `run_recipe` through `render_pack`/`render_pack_to_dir`, so exercising both
+    entry points covers the signature for all of them.
     """
-    import importlib
+    from agentbundle.render import render_pack, render_pack_to_dir
 
-    mod = importlib.import_module(module)
-    if symbol:
-        assert hasattr(mod, symbol)
+    pack = REPO_ROOT / "packs" / "architect"
+    rendered = render_pack(pack)
+    assert any(k.startswith("claude-plugins/architect/") for k in rendered)
+
+    out = tmp_path / "out"
+    render_pack_to_dir(pack, out)
+    assert (out / "claude-plugins" / "architect").is_dir()
 
 
 def test_render_pack_omits_the_route_for_a_repo_only_pack() -> None:
@@ -129,17 +188,24 @@ def test_render_pack_omits_the_route_for_a_repo_only_pack() -> None:
     assert any(k.startswith("apm/core/") for k in rendered)
 
 
-def test_pre_change_state_relpaths_read_as_removals(tmp_path) -> None:
-    """An adopter's existing state carries paths the render no longer produces.
+def test_pre_change_state_relpaths_are_reported_by_diff(tmp_path) -> None:
+    """The migration case the changelog discloses, driven through `diff`.
 
-    This is the migration case the changelog discloses: `upgrade` diffs a fresh
-    render against the state file, so those relpaths read as removals. Pinned
-    here so the behaviour is exercised, not assumed.
+    An adopter's `.agentbundle-state.toml` carries `claude-plugins/core/…`
+    relpaths the render no longer produces. `upgrade` diffs a fresh render
+    against that state, so they read as removals. Asserting only that the
+    render omits them repeats the test above; this drives the comparison that
+    turns an omission into a deletion.
     """
     from agentbundle.render import render_pack
 
     stale = "claude-plugins/core/skills/work-loop/SKILL.md"
     rendered = set(render_pack(REPO_ROOT / "packs" / "core"))
-    assert stale not in rendered, (
-        "a pre-change state.json listing this relpath will see it as a removal"
+
+    # What a pre-change state file recorded.
+    previously_installed = rendered | {stale}
+    removals = previously_installed - rendered
+    assert removals == {stale}, (
+        "the stale relpath must appear as a removal — this is the file "
+        "`agentbundle upgrade` deletes from an adopter's repository"
     )

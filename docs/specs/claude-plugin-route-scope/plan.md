@@ -1,7 +1,7 @@
 # Plan: Claude-plugin route — publish only user-capable packs
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -250,8 +250,8 @@ recorded, since that is the observation AC14's remedy is written against; and an
 an installed-but-delisted plugin. Transcripts below. **Scope boundary:** one
 dropped pack and one user-capable pack are exercised by hand; the other 19 are
 covered by T0's assertions. The **post-merge** re-run against the published
-marketplace is a separate recorded step. **This PR registers four
-`workspace.toml [backlog].open` slugs** with no `(deferred: <slug>)` AC markers —
+marketplace is a separate recorded step. **This PR registers the `workspace.toml [backlog].open` slugs the spec's
+*What shipped* section enumerates** with no `(deferred: <slug>)` AC markers —
 `docs/CONVENTIONS.md` pins that marker to an *unchecked* criterion, and AC10 and
 AC12 both ship their in-code half and will be `[x]`, while the post-merge check
 and the content hash correspond to no criterion at all, none of which exist today:
@@ -293,11 +293,19 @@ lint-plugin-roster: 'core' is published but is pinned repo-only. If you widened
   its allowed-scopes, that publishes its code to a public marketplace …
 ```
 
-Mutation 2 targets the **roster** gate deliberately. Injecting into the real
-marketplace also trips the projected-path drift gate, which regenerates that
-file into a shadow tree and diffs it — so the exit code alone would not show
-which gate fired. The roster gate names itself, which is what makes this
-evidence rather than coincidence.
+**Through the chain, and its limit.** Both mutations were also run under
+`tools/repo/build_gate_chain.py build-check`, which exits 1 — but the chain
+stops at its first failing step, and injecting into `.claude-plugin/marketplace.json`
+trips the projected-path drift gate *before* the roster gate is reached, since
+that file is regenerated into a shadow tree and diffed. So the chain's exit code
+alone cannot attribute the failure.
+
+What the direct invocations above establish is that each gate fires and names
+itself on its own input. What is **not** established by mutation is that each is
+reachable from `make build-check` — that rests on the `build_gate_chain.py`
+registration and `lint-ci-parity` corroborating it, not on an observed failure.
+Recorded as a gap rather than papered over: a mutation isolating a single late
+step needs a chain runner that continues past the first failure.
 
 
 Real-client run against `claude` 2.1.223, pre-merge, using a **local

@@ -43,6 +43,13 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   marketplace listing change. `apm/<pack>/` is unaffected. If you want to keep
   the old tree, copy it aside before upgrading.
 
+- **A catalogue whose packs declare different `[pack.links] repository` values
+  now fails the build.** The marketplace envelope's `name` and `owner` were
+  derived from the *first* surviving entry's `source.url`, so a filtered set
+  could silently re-key the marketplace to whichever pack sorted first. Every
+  surviving entry must now agree, and disagreement exits non-zero naming both
+  identities. Remedy: align `[pack.links] repository` across your packs.
+
 - **Engine behaviour change for self-hosting adopters.** The same predicate
   applies on `run_self_host`, so a pack in *your* catalogue that resolves
   repo-only no longer appears in the `.claude-plugin/marketplace.json` your
