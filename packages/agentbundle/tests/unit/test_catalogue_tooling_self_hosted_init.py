@@ -832,6 +832,12 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     eng = source / "packages" / "agentbundle"
     (eng / "agentbundle").mkdir(parents=True)
     (eng / "agentbundle" / "__init__.py").write_text("", encoding="utf-8")
+    # The shipped build-pipeline package — must survive the residue prune.
+    (eng / "agentbundle" / "build").mkdir()
+    (eng / "agentbundle" / "build" / "self_host.py").write_text("x\n", encoding="utf-8")
+    # ...and setuptools output at the collect root — must not.
+    (eng / "build" / "lib").mkdir(parents=True)
+    (eng / "build" / "lib" / "stale.py").write_text("x\n", encoding="utf-8")
     (eng / "tests" / "build_pipeline").mkdir(parents=True)
     (eng / "tests" / "build_pipeline" / "test_x.py").write_text("x\n", encoding="utf-8")
     (eng / "conftest.py").write_text("x\n", encoding="utf-8")
@@ -859,20 +865,31 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
 
     vendored = cfg.target / ".agentbundle" / "tooling"
     assert vendored.is_dir(), "vendored tooling was not written"
-    residue = {"__pycache__", ".pytest_cache", "build", "dist"}
-    leaked = [
-        p.relative_to(cfg.target).as_posix()
-        for p in vendored.rglob("*")
-        if p.is_file()
-        and (
-            "tests" in p.parts
-            or p.name == "conftest.py"
-            or residue & set(p.parts)
-            or p.suffix in {".pyc", ".pyo"}
-            or any(part.endswith(".egg-info") for part in p.parts)
-        )
-    ]
+    # `build`/`dist` are checked at the vendored ROOT only. Matching them at any
+    # depth is the rule that deleted the shipped `agentbundle/build/` package —
+    # asserting it here would re-encode the bug as the contract.
+    any_depth = {"__pycache__", ".pytest_cache"}
+    leaked = []
+    for f in vendored.rglob("*"):
+        if not f.is_file():
+            continue
+        parts = f.relative_to(vendored).parts
+        if (
+            "tests" in parts
+            or f.name == "conftest.py"
+            or any_depth & set(parts)
+            or f.suffix in {".pyc", ".pyo"}
+            or any(part.endswith(".egg-info") for part in parts)
+            # root-relative: <vendored>/agentbundle/{build,dist}/ is setuptools
+            # output; <vendored>/agentbundle/agentbundle/build/ is the package.
+            or (len(parts) > 1 and parts[1] in {"build", "dist"})
+        ):
+            leaked.append(f.relative_to(cfg.target).as_posix())
     assert not leaked, f"vendored payload carries test content or build residue: {leaked}"
+
+    # ...and the shipped build-pipeline package survived.
+    shipped = vendored / "agentbundle" / "agentbundle" / "build" / "self_host.py"
+    assert shipped.exists(), "the shipped agentbundle/build/ package was pruned"
 
     # ...while the adopter's own catalogue keeps its pack tests (ADR-0071).
     own = cfg.target / "packs" / "core" / "tests" / "test_own.py"

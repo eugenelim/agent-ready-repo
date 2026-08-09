@@ -279,8 +279,6 @@ detection loses its baseline.
   `__init__.py` — deleting that marker would have removed exactly one entry of
   the forty-five.
 
-### Changed
-
 - **`ALLOW_FIXTURE_PACKS` now requires an explicit `1`, `true`, or `yes`.**
   It previously bypassed the self-host fixture guard on *any* non-empty
   value, so `ALLOW_FIXTURE_PACKS=0` disarmed a destructive-write control
@@ -290,13 +288,14 @@ detection loses its baseline.
 
 ### Removed
 
-- **The source distribution no longer carries the engine's test suite.**
-  0.29.8's sdist held 45 engine test modules; 0.30.0's holds none. They sat
-  inside the importable package, so setuptools swept them in; from their new
-  home they need an explicit `MANIFEST.in` graft, which lands with the
-  catalogue carve-out. If you build from the sdist and run the upstream
-  suite, this release has nothing for you to run — build from a git
-  checkout until the graft ships.
+- **The source distribution no longer carries the build-pipeline test suite.**
+  0.29.8's sdist held 45 of them; 0.30.0 holds none. They sat inside the
+  importable package, so setuptools swept them in; from their new home they
+  need an explicit `MANIFEST.in` graft, which lands with the catalogue
+  carve-out. Eight top-level `tests/test*.py` modules still ship — the
+  default sdist glob reaches those — but without `tests/conftest.py`, so
+  they are not runnable either. Build from a git checkout until the graft
+  ships.
 
 - **`import agentbundle.build.tests` no longer resolves.** Nothing imported it;
   the module existed only to make a directory look like a package.

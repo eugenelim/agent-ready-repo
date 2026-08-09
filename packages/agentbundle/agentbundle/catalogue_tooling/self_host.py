@@ -10,7 +10,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from agentbundle.catalogue_tooling.config import load_catalogue_config
-from agentbundle.catalogue_tooling.results import SelfHostResult
+from agentbundle.catalogue_tooling.results import Diagnostic, SelfHostResult, Severity
 
 _AGENTBUNDLE_VERSION: str | None = None
 
@@ -76,7 +76,28 @@ def write_self_host(root: Path, force: bool = False) -> SelfHostResult:
     # overwrite the working tree with fixture data. `check_self_host` is
     # dry-run and needs no guard.
     if _refuse_fixture_packs_dir(packs_dir.resolve(), dry_run=False) is not None:
-        return _make_result(ok=False, operation="write", config=config)
+        result = _make_result(ok=False, operation="write", config=config)
+        # The guard prints to stderr; under `--format json` that is invisible,
+        # so surface the reason where a caller can read it.
+        result.diagnostics.append(
+            Diagnostic(
+                code="SELF-HOST-FIXTURE-PACKS",
+                severity=Severity.ERROR,
+                pack=None,
+                path=str(packs_dir),
+                line=None,
+                col=None,
+                message=(
+                    "packs path points into a test fixture tree; a real write "
+                    "would overwrite the working tree with fixture data"
+                ),
+                remediation=(
+                    "point [catalogue.paths] packs at your real packs "
+                    "directory, or set ALLOW_FIXTURE_PACKS=1 to override"
+                ),
+            )
+        )
+        return result
 
     rc = run_self_host(
         working_tree=root,

@@ -23,7 +23,9 @@ change **removes** its engine suite — it is not a pre-existing gap. The 0.29.8
 sdist carried 45 engine test modules, because they sat inside the importable
 package and `packages.find` swept them in; at `tests/build_pipeline/` they are
 outside it, and setuptools' default sdist glob reaches only `tests/test*.py` at
-the top level. So the 0.30.0 sdist carries none.
+the top level. So the 0.30.0 sdist carries none of them. Eight top-level `tests/test*.py`
+modules still ship, which that glob does reach — but `tests/conftest.py` does
+not, so they are not runnable either.
 
 That is a real, redistributor-visible regression, accepted for one release and
 recorded in both changelogs. Restoring it needs an explicit `MANIFEST.in` graft,
@@ -153,7 +155,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
         build-pipeline package, and pruning that name at any depth leaves a
         vendored engine that cannot import.
       - **Name at any depth** (`__pycache__`, `.pytest_cache`, `*.egg-info`,
-        `*.pyc`) — these appear at arbitrary depth, so a relative path cannot
+        `*.pyc`, `*.pyo`) — these appear at arbitrary depth, so a relative path cannot
         express them. A `.pyc` embeds the absolute build path, including a
         real username, which `AGENTS.md` § Privacy forbids committing; and
         `.pytest_cache` and `SOURCES.txt` enumerate engine test node IDs.
