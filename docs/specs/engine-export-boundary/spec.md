@@ -25,13 +25,16 @@ package and `packages.find` swept them in; at `tests/build_pipeline/` they are
 outside it, and setuptools' default sdist glob reaches only `tests/test*.py` at
 the top level. So the 0.30.0 sdist carries none of them. Eight top-level `tests/test*.py`
 modules still ship, which that glob does reach, and they do run — 20 passed,
-47 skipped from an installed sdist. What they lose is `tests/conftest.py`,
-whose autouse fixture redirects `HOME` and `XDG_CONFIG_HOME`; without it a
-redistributor's run can touch the real user config.
+47 skipped from an installed sdist. They run without `tests/conftest.py`'s
+autouse `HOME`/`XDG_CONFIG_HOME` redirect, so a redistributor's run can
+touch the real user config — but that is **not** new: a `tests/test*.py`
+glob cannot match `conftest.py`, so 0.29.8 shipped them the same way
+(verified by building both sdists). The regression this change introduces
+is the build-pipeline suite's absence, and only that.
 
-That is a real, redistributor-visible regression, accepted for one release and
-recorded in both changelogs. Restoring it needs an explicit `MANIFEST.in` graft,
-which waits for the catalogue carve-out: grafting now would ship a packager the
+Those 45 entries are a real, redistributor-visible regression, accepted for one
+release and recorded in both changelogs. Restoring them needs an explicit
+`MANIFEST.in` graft, which waits for the carve-out: grafting now would ship a packager the
 catalogue assertions still mixed into the engine suite, which cannot run from an
 archive containing no `packs/`. Shipping a suite that fails is worse than shipping
 none, but neither is the end state.
@@ -90,7 +93,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   toolchain will catch: `RFC_AUTHORISED_DIRS` is the nominal guard, but its audit
   skips itself and returns success on a CI checkout, which the carve-out spec's
   AC14 fixes.
-- **No new dependency.** The enforcement gate is pure-stdlib Python in `tools/`.
+- **No new dependency in shipped code or in the gate itself.** The enforcement
+  gate is pure-stdlib Python in `tools/`. Dev-time additions to
+  `tools/requirements.txt` are permitted and recorded under Assumptions —
+  this change makes two.
   `check-wheel-contents` and `pydistcheck` are both rejected under this rule;
   `check-wheel-contents` additionally does not detect the defect at all, and
   `pydistcheck` detects it only via `--expected-files`, not the natural-reading
@@ -306,6 +312,14 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Process:** commits touching *non-carved-out* `packages/agentbundle/` paths
   require an `Engine-Change-RFC:` trailer; `classify_paths` carves out `/tests/`
   and `build/recipes/` (`tools/lint-catalogue-curation-guard.py:100-115`).
+- **Dependency:** `build>=1.0` and `setuptools>=61` are added to
+  `tools/requirements.txt` as dev-time dependencies, recorded here per
+  `AGENTS.md` § Check before acting. AC3's real-wheel check builds a wheel
+  with `--no-isolation`, so both the frontend and the backend must be
+  in-env; without them the check `importorskip`s and the headline criterion
+  reports green having never run. Neither reaches shipped code, and the gate
+  script stays pure-stdlib. `setuptools>=61` matches
+  `packages/agentbundle` `build-system.requires`.
 - **Process:** this spec is queued under `ini-002` Platform Core
   (`workspace.toml:141`; user confirmation 2026-08-08).
 - **Product:** `agentbundle/_data/install-marker.py`'s non-importable path is

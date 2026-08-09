@@ -115,8 +115,8 @@ demoted to intent, not kept as a specification nothing has executed.
 
 ## Closed at DECIDE (2026-08-08)
 
-**Reviewers run:** `adversarial-reviewer` ×3 (pre-EXECUTE) + ×3 (on the diff),
-`quality-engineer` ×1, `security-reviewer` ×1. The last two ran late — they were
+**Reviewers run:** `adversarial-reviewer` at PLAN and repeatedly on the diff,
+plus one `quality-engineer` and one `security-reviewer` pass. The last two ran late — they were
 skipped on the first pass through REVIEW and only caught when the completion
 state was audited. Both found defects three adversarial rounds had not, which is
 the argument for the mode's reviewer set being a floor rather than a menu.

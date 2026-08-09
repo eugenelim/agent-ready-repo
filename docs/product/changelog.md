@@ -294,10 +294,11 @@ detection loses its baseline.
   need an explicit `MANIFEST.in` graft, which lands with the catalogue
   carve-out. Eight top-level `tests/test*.py` modules still ship — the default
   sdist glob reaches those — and they do run (20 passed, 47 skipped from an
-  installed sdist). But `tests/conftest.py` is not shipped, so they run
-  without the suite's autouse `HOME`/`XDG_CONFIG_HOME` isolation and can
-  touch the real user config. Build from a git checkout until the graft
-  ships.
+  installed sdist), without `tests/conftest.py`'s autouse
+  `HOME`/`XDG_CONFIG_HOME` isolation. That last part is not new: a
+  `tests/test*.py` glob never matched `conftest.py`, so 0.29.8's sdist
+  shipped those eight the same way. What this release removes is the
+  build-pipeline suite. Build from a git checkout until the graft ships.
 
 - **`import agentbundle.build.tests` no longer resolves.** Nothing imported it;
   the module existed only to make a directory look like a package.
