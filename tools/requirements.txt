@@ -5,5 +5,10 @@ pyyaml>=6.0
 jsonschema>=4.0  # guide frontmatter validation (validate_guides.py)
 tomlkit==0.15.1  # workspace-status repair-apply (comment-preserving TOML write)
 # AC3's real-wheel check (tools/test_check_artifact_contents.py) importorskips
-# this; without it `make test` skips the headline criterion silently.
-build
+# both of these; without them `make test` skips the headline criterion
+# silently. setuptools is explicit because the check builds with
+# --no-isolation (so the backend must be in-env) and ensurepip stopped
+# bundling it in Python 3.12 — absent here, a fresh venv on any modern
+# interpreter skips AC3 while reporting green.
+build>=1.0
+setuptools>=61  # matches packages/agentbundle build-system.requires

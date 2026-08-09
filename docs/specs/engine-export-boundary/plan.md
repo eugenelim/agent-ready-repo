@@ -220,6 +220,14 @@ Sweep with `*.yaml` included — a `*.yml`-only filter silently drops
   new component guard must catch. It fails before the rewrite — that is the red.
 - Keep a case for `packages/agentbundle/tests/fixtures/`, which still matches
   today and must keep matching.
+- The second entry point (AC5c): `write_self_host` refuses a catalogue whose
+  packs path resolves into a fixture tree, returns `CAT-SH-001`, and does not
+  call `run_self_host` —
+  `tests/unit/test_catalogue_tooling_self_host.py`, with the negative case.
+- Case folding (AC5d): `.../Fixtures/...` and `.../Tests/fixtures/...` refuse —
+  `tests/build_pipeline/test_self_host_fixture_guard.py`.
+- Override allow-list (AC5e): `=0`, `=false`, `=no`, `=off` and empty all keep
+  refusing; `=1`, `=true`, `=YES` override — same file.
 
 **Approach:**
 
