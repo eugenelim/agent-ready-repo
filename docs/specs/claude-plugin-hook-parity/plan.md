@@ -78,21 +78,21 @@ Radius 1 (the scope filter) is the sibling plan's. What follows is this
 spec's own.
 
 **Radius 2 — the hook layout.** Red under the body-relocation and
-no-`.claude/` criteria: `build/tests/test_end_to_end_build.py:67-75` (also carries
+no-`.claude/` criteria: `tests/build_pipeline/test_end_to_end_build.py:67-75` (also carries
 the stale "hook wiring is the exception" comment), `tests/unit/test_render_cmd.py:89-99`
 (same comment), `tests/integration/test_install_session_start_wiring.py:98,124`,
 `tests/integration/test_install_core_smoke.py:60-69`,
 `tests/integration/test_build_derivation_claude_plugins.py`,
-`build/tests/test_plugin_manifest_schema.py`.
+`tests/build_pipeline/test_plugin_manifest_schema.py`.
 
 **Contract-version pins — six literal `assertEqual`s**, re-pinned in the contract
-task: `build/tests/test_contract.py:463`, `test_shared_prefix_contract.py:35`,
+task: `tests/build_pipeline/test_contract.py:463`, `test_shared_prefix_contract.py:35`,
 `test_adapter_gemini.py:157`, `test_adapter_cursor.py:60`,
 `test_adapter_kiro_ide.py:182`, `tests/unit/test_contract_v0_3_schema.py:85`.
 **Not a pin:** `test_contract_scope.py` compares a tuple and stays green; its
 prose comment needs updating, as do version strings in the six files' docstrings.
 
-**Fixtures.** `build/tests/fixtures/packs/core/.apm/hook-wiring/baz.toml` and
+**Fixtures.** `tests/build_pipeline/fixtures/packs/core/.apm/hook-wiring/baz.toml` and
 `tests/fixtures/install/catalogue/packs/alpha/.apm/hook-wiring/run.toml` carry a
 toy `[hooks] name = "path"` shape that is not valid Claude wiring; both rewrite.
 `tests/fixtures/upgrade/catalogue_v{1,2,3}/…/pre-commit.toml` already carry the
@@ -136,7 +136,7 @@ known, and the grep is what makes the set complete.
 ### T3 — Derived schema
 **Depends on:** none · **Mode:** TDD
 
-**Tests:** `stub: true` — extends `build/tests/test_plugin_manifest_schema.py`.
+**Tests:** `stub: true` — extends `tests/build_pipeline/test_plugin_manifest_schema.py`.
 Accepts a compiled two-event block with and without `matcher`; rejects
 `type: "http"`, unknown keys in a hook object and in an entry.
 
@@ -147,7 +147,7 @@ object (absent today, and `additionalProperties: false` would reject it). Mirror
 ### T4 — Hook-wiring rules (neutral module)
 **Depends on:** none · **Mode:** TDD
 
-**Tests:** `stub: true` — `packages/agentbundle/agentbundle/build/tests/test_hook_wiring_rules.py`.
+**Tests:** `stub: true` — `packages/agentbundle/tests/build_pipeline/test_hook_wiring_rules.py`.
 Each raise: unknown event, non-`command` type, non-string command, timeout out of
 range, matcher failing the grammar, basename failing the allowlist, command
 carrying a shell metacharacter. Each **skip**: Kiro lowercase events, flat
@@ -160,7 +160,7 @@ import `projections/`. Exposes `KNOWN_EVENTS`, `is_claude_shaped(entry)`,
 ### T5 — The hook compiler
 **Depends on:** T4 · **Mode:** TDD
 
-**Tests:** `stub: true` — `packages/agentbundle/agentbundle/build/tests/test_plugin_hooks.py`.
+**Tests:** `stub: true` — `packages/agentbundle/tests/build_pipeline/test_plugin_hooks.py`.
 Multi-occurrence, leading `./`, `--flag=path`, `sh -c "…"` nesting (emitted bare),
 single-quoted region (raises), embedded `vendor/tools/hooks/…` (raises), trailing
 args, no-hook-path command; the `sh -c` execution assertion with a space-and-`$`

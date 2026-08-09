@@ -87,7 +87,7 @@ writer does not require today) and declares
 tests assert claude-plugins output, not from a named five — `tests/fixtures/packs/cc-user-hooks`,
 `tests/fixtures/install/catalogue/packs/alpha`, `tests/fixtures/list_packs/…`
 and `tests/fixtures/local_scope/…` also carry no `plugin.json`. Five fixtures
-under `build/tests/fixtures/packs/` lack
+under `tests/build_pipeline/fixtures/packs/` lack
 `[pack.adapter-contract]` and therefore resolve to `["repo"]`. `.../packs/core/`
 additionally ships `.apm/hooks/` + `.apm/hook-wiring/`, so Rail B
 (`build/scope_rails.py:check_hooks`) also requires

@@ -554,8 +554,8 @@ would be the drift this repo treats as a bug.
 
 Re-derived by glob at task start, not trusted from this list. Tests asserting
 `claude-plugins/<repo-only-pack>/` output: `tests/unit/test_render.py:33-34`,
-`tests/unit/test_render_cmd.py:84-96`, `build/tests/test_pipeline.py:77-80`,
-`build/tests/test_end_to_end_build.py:51,64`,
+`tests/unit/test_render_cmd.py:84-96`, `tests/build_pipeline/test_pipeline.py:77-80`,
+`tests/build_pipeline/test_end_to_end_build.py:51,64`,
 `tests/integration/test_install_repo_scope_per_adapter.py:238-241`,
 `tests/integration/test_install_core_smoke.py:60`,
 `tests/integration/test_build_derivation_claude_plugins.py` (derives
