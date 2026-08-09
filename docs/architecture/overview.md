@@ -109,6 +109,10 @@ One file per non-trivial subsystem:
   (env / OS keyring / `~/.agentbundle/credentials.env`), the four
   brokers (`creds` / `env` / `cli` / `sso-cookie`), the
   credentialed-primitive contract, and the substring trap.
+- [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md)
+  — proposed target architecture for routing work intake between intents,
+  briefs, specs, trackers, and `workspace.toml`; an input to follow-on
+  governance, not a description of current implementation.
 
 ## Packages
 
