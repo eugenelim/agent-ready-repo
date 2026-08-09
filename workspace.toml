@@ -739,6 +739,11 @@ open = [
     # adapter coverage (kiro-ide drops hook-wiring); cannot stop direct sso-broker.py
     # register. Fix: only if an adopter wants it knowing the limits. Unblocks: on request.
   {slug = "sso-register-pretooluse-hook", source = "spec/jira-check-sso-auto-login"},
+  # `test_version_matches_pyproject` hardcodes "0.6.0" instead of reading
+  # pyproject.toml dynamically. A future version bump can reintroduce the same
+  # missed-copy drift that PR #ci-windows-sso-concurrency-test-fix fixed.
+  # Fix: open pyproject.toml with tomllib.load() and compare version field.
+  {slug = "credbroker-version-test-dynamic", source = "spec/ci-windows-sso-concurrency-test-fix AC3"},
 
   # No gate resolves marketing-site → docs-site links. The docsUrl repair PR
   # verified them with an ad-hoc script (resolve every internal href on the built

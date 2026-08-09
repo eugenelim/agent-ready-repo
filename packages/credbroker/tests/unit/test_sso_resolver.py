@@ -134,4 +134,4 @@ def test_spawn_is_argv_composed_and_never_shelled() -> None:
 
 
 def test_version_matches_pyproject() -> None:
-    assert credbroker.__version__ == "0.5.0"
+    assert credbroker.__version__ == "0.6.0"
