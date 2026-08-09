@@ -69,6 +69,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
 
+## [frontend-engineering][0.1.4] — 2026-08-08
+
+### Added
+
+- **Frontend Engineering now routes adopters by job before listing skills.**
+  The pack page opens with create, retrofit, audit, and verify paths, each with
+  the expected output, then links to a new canonical journey from page/screen
+  contract through implementation, gates, evidence manifest, and independent
+  frontend review.
+- **Two new guides make frontend contracts and performance policy actionable.**
+  The page/screen-contract how-to helps adopters choose a full contract, a
+  proportional subset, or an explicit no-contract decision. The performance
+  reference fixes p75 Core Web Vitals targets while keeping numeric asset
+  ceilings project-specific and prioritized by surface type.
+
 ## [core][2.3.1] — 2026-08-07
 
 ### Changed
