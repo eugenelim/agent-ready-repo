@@ -265,6 +265,72 @@ detection loses its baseline.
   `--root` used to exit 0 and now exits non-zero. If CI depends on that
   false pass, fix the path — the previous result was not a real check.
 
+## [agentbundle][0.30.0] — 2026-08-08
+
+### Changed
+
+- **The wheel is about a fifth smaller, because it stops shipping the engine's
+  own test suite.** It carried 45 test entries of 184 — a quarter of the
+  uncompressed payload. The suite moved out of the importable package; the
+  package itself did not move, so every import path except one is unchanged.
+
+  The cause was not the obvious one. `setuptools`' package discovery defaults to
+  PEP 420 namespace packages, so the tree was found whether or not it carried an
+  `__init__.py` — deleting that marker would have removed exactly one entry of
+  the forty-five.
+
+- **`ALLOW_FIXTURE_PACKS` now requires an explicit `1`, `true`, or `yes`.**
+  It previously bypassed the self-host fixture guard on *any* non-empty
+  value, so `ALLOW_FIXTURE_PACKS=0` disarmed a destructive-write control
+  while reading as "off" — and stayed disarmed for every later invocation
+  in that shell or CI job. If you set it to anything else, the guard now
+  refuses.
+
+### Removed
+
+- **The source distribution no longer carries the build-pipeline test suite.**
+  0.29.8's sdist held 45 of them; 0.30.0 holds none. They sat inside the
+  importable package, so setuptools swept them in; from their new home they
+  need an explicit `MANIFEST.in` graft, which lands with the catalogue
+  carve-out. Eight top-level `tests/test*.py` modules still ship — the default
+  sdist glob reaches those — and they do run (20 passed, 47 skipped from an
+  installed sdist), without `tests/conftest.py`'s autouse
+  `HOME`/`XDG_CONFIG_HOME` isolation. That last part is not new: a
+  `tests/test*.py` glob never matched `conftest.py`, so 0.29.8's sdist
+  shipped those eight the same way. What this release removes is the
+  build-pipeline suite. Build from a git checkout until the graft ships.
+
+- **`import agentbundle.build.tests` no longer resolves.** Nothing imported it;
+  the module existed only to make a directory look like a package.
+
+### Fixed
+
+- **`build self --packs-dir <a fixture tree>` refuses again.** The
+  destructive-write guard matched a fixed substring, so relocating the suite
+  broke it silently and the command would have overwritten a working tree with
+  fixture data. It now matches path components *and* the original substring, so
+  it refuses strictly more than before.
+
+- **`agentbundle catalogue self-host --write` now refuses a fixture packs
+  path too.** That entry point takes its packs directory from
+  `[catalogue.paths] packs` rather than a flag, and was never guarded — a
+  catalogue pointing at a `tests/.../fixtures/` tree performed the same
+  destructive overwrite. It now exits non-zero with a `CAT-SH-001`
+  diagnostic, visible under `--format json`. This is a **new** refusal, not
+  a restored one.
+
+- **`catalogue init --preset self-hosted --tooling vendored` no longer copies
+  test content into your repository.** The vendored copy is an install source —
+  the command tells you to `pip install -e` it — so it is treated like the
+  wheel. Your own packs and shared guides keep their tests, which is what
+  catalogue archives are for.
+
+  **Upgrade note:** if you vendored tooling from an earlier release, the engine
+  tests, a stray `conftest.py`, and build residue (`__pycache__`,
+  `.pytest_cache`, `*.egg-info`) are sitting in `.agentbundle/tooling/`. They
+  are inert; deleting them is safe, and re-running `catalogue init` writes a
+  clean copy — verified by running it, not inferred.
+
 ## [agentbundle][0.29.7] — 2026-08-06
 
 ### Changed

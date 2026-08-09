@@ -81,6 +81,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  "spec/engine-export-boundary",                    # PR #898 — RFC-0082 engine export boundary (agentbundle 0.30.0)
   # Docs-site design refresh (2026-08-05): Starlight tech docs restyled to a
   # display-serif + enterprise-cobalt design language; fonts + mermaid
   # self-hosted (CDN script removed); per-site AGENTS.md split. Boundary
@@ -139,7 +140,6 @@ queue   = [
   # enforcement) so spec 2's relocations cannot silently re-enter an artifact.
   # Spec 2 does the ownership classification, extracts conformance classes out of
   # mixed engine modules, wires the shipping channels, and lands the sdist graft.
-  "spec/engine-export-boundary",
   {path = "spec/catalogue-test-carve-out", needs = "work:spec/engine-export-boundary"},
 
   # P5 · Adopt — gated on adopter-persona research (evidence base)
@@ -445,6 +445,30 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # flaky-sso-store-concurrency-on-windows —
+  # packages/credbroker/tests/unit/test_sso_store_concurrency.py::
+  # test_file_floor_path_is_serialised_too[1] fails intermittently on the
+  # Windows build-check leg with ProfileConfinementError on a lock path under
+  # the pytest tmp dir, then passes on a bare re-run of the same commit
+  # (observed on PR #898: red, rerun green, no code change). The test races two
+  # threads through _store() and asserts neither raised, so the confinement
+  # check is seeing a partially-created or differently-cased tmp path under
+  # concurrency. Not caused by RFC-0082 — that diff touches no credbroker file.
+  # Fix: make the confinement check tolerant of the tmp-path shape, or serialise
+  # the fixture's home setup; do not paper over it with a retry marker.
+  {slug = "flaky-sso-store-concurrency-on-windows", source = "PR #898 (observed, not caused)"},
+  # ruff-excludes-the-engine-build-package — the root pyproject's ruff
+  # `exclude` carries the bare name "build", which ruff matches at any depth. It
+  # was put there for build *output*; it also hides
+  # packages/agentbundle/agentbundle/build/ — shipped engine code — from every
+  # repo-root `ruff check`. Measured 2026-08-08: 66 live violations in there,
+  # including self_host.py. Surfaced by RFC-0082's quality pass, which hit the
+  # same collision in pytest's norecursedirs. Fix: anchor the exclude at the
+  # repo-root build output ("/build" or "build/" at the root) rather than the
+  # bare name, then clear what it uncovers. Deliberately not folded into
+  # spec/engine-export-boundary: fixing 66 violations in shipped code does not
+  # belong in a release-blocking diff.
+  {slug = "ruff-excludes-the-engine-build-package", source = "spec/engine-export-boundary (quality pass)"},
   # agentbundle-install-marker-importable-path — the wheel ships
   # agentbundle/_data/install-marker.py at a path that is not importable, which
   # `check-wheel-contents` reports as W004. Surfaced while measuring artifacts for

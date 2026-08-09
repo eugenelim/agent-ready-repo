@@ -1,0 +1,40 @@
+# Test fixtures for `agentbundle.build`
+
+Fixture layout convention — one pack per subdirectory under
+`packs/`, named for the test it serves. Adapters draw their input
+from these; the end-to-end pipeline test (T8) drives `make build`
+against the four named reference packs.
+
+Layout:
+
+```
+fixtures/
+├── packs/                                 # T8 end-to-end + adapter unit tests
+│   ├── core/
+│   │   ├── pack.toml
+│   │   ├── .claude-plugin/plugin.json
+│   │   └── .apm/
+│   │       ├── skills/<name>/
+│   │       ├── agents/<name>.md
+│   │       ├── hooks/<name>.{sh,py}
+│   │       ├── hook-wiring/<name>.toml
+│   │       └── commands/<name>.md
+│   ├── governance-extras/
+│   ├── product-documentation/
+│   └── monorepo-extras/
+└── recipes/                               # T6 negative-path tests
+    └── bogus-target.toml                  # unknown-adapter-target negative test
+```
+
+Fixtures are test data and the `stdlib-only` rule does **not** bind
+them — a fixture hook may import third-party packages to simulate a
+real-world payload. The stdlib-only import audit in
+`tools/lint-build.py` does not reach this tree — it scans
+`packages/agentbundle/agentbundle/build/` only, and RFC-0082 moved
+these fixtures out of that root.
+
+Production-pack migration (a top-level `packs/` directory holding
+this repo's catalogue content) is **out of scope** for this spec
+in a follow-on that owns production-pack migration. When that lands, `make
+build` will pick up both `packs/` and these fixtures without code
+change — pack discovery is a glob.

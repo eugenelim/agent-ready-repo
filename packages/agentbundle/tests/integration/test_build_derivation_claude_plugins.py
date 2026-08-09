@@ -37,7 +37,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[4]
 # packages/agentbundle/tests/integration/ → parents[2] = packages/agentbundle/
 FIXTURES_PACKS = (
-    Path(__file__).resolve().parents[2] / "agentbundle" / "build" / "tests" / "fixtures" / "packs"
+    Path(__file__).resolve().parents[2] / "tests" / "build_pipeline" / "fixtures" / "packs"
 )
 TEMPLATE_PATH = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
 

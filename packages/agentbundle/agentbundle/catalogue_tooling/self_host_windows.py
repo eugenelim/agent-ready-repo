@@ -56,22 +56,22 @@ def run_windows_compat(root: Path) -> int:
         ),
         (
             "shared-libs projection retirement (credbroker T9)",
-            [py, "-m", "pytest", "agentbundle/build/tests/test_shared_libs_projection.py"],
+            [py, "-m", "pytest", "tests/build_pipeline/test_shared_libs_projection.py"],
             pkg,
         ),
         (
             "self-host recipe config (externalize-self-host-config)",
-            [py, "-m", "pytest", "agentbundle/build/tests/test_self_host_recipe_config.py"],
+            [py, "-m", "pytest", "tests/build_pipeline/test_self_host_recipe_config.py"],
             pkg,
         ),
         (
             "self-host fixture guard (windows-build-self-entry)",
-            [py, "-m", "pytest", "agentbundle/build/tests/test_self_host_fixture_guard.py"],
+            [py, "-m", "pytest", "tests/build_pipeline/test_self_host_fixture_guard.py"],
             pkg,
         ),
         (
             "user-libs vendored floor (credbroker-user-scope T3)",
-            [py, "-m", "pytest", "agentbundle/build/tests/test_user_libs_projection.py"],
+            [py, "-m", "pytest", "tests/build_pipeline/test_user_libs_projection.py"],
             pkg,
         ),
         (

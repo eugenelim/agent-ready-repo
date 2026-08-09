@@ -6,8 +6,11 @@ from pathlib import Path
 
 import pytest
 from agentbundle.catalogue_tooling.initialise_self_hosted import (
+    _VENDORED_ENGINE_EXCLUDE,
+    _VENDORED_PACK_EXCLUDE,
     SelfHostedInitConfig,
     SelfHostOwnershipState,
+    _collect_dir_bytes,
     init_self_hosted,
     select_packs,
     validate_fields,
@@ -717,3 +720,196 @@ def test_to_dict_contains_all_phase2_fields(tmp_path: Path) -> None:
     assert "name" in d["source"]
     assert "summary" in d
     assert isinstance(d["summary"], str)
+
+
+# ---------------------------------------------------------------------------
+# RFC-0082: the vendored payload carries no test content
+# ---------------------------------------------------------------------------
+#
+# `catalogue init --preset self-hosted --tooling vendored` copies the engine's
+# source into the adopter's tree, where the emitted instruction tells them to
+# `pip install -e` it. That makes it wheel-class (ADR-0075 D3), so it carries no
+# test content — while the adopter's *own* catalogue keeps its tests, which
+# ADR-0071 explicitly wants.
+
+
+def _synthetic_source(root: Path) -> Path:
+    """A source catalogue with test content on both sides of the boundary."""
+    eng = root / "packages" / "agentbundle"
+    (eng / "agentbundle").mkdir(parents=True)
+    (eng / "agentbundle" / "cli.py").write_text("x\n", encoding="utf-8")
+    # The shipped build-pipeline package. Its name collides with setuptools'
+    # build *output*, so a name-at-any-depth prune removes it and leaves an
+    # engine that cannot import. Present here so that over-pruning reddens.
+    (eng / "agentbundle" / "build" / "adapters").mkdir(parents=True)
+    (eng / "agentbundle" / "build" / "self_host.py").write_text("x\n", encoding="utf-8")
+    (eng / "agentbundle" / "build" / "adapters" / "cursor.py").write_text("x\n", encoding="utf-8")
+    # ...and setuptools output at the collect root, which must go.
+    (eng / "build" / "lib").mkdir(parents=True)
+    (eng / "build" / "lib" / "stale.py").write_text("x\n", encoding="utf-8")
+    (eng / "tests" / "build_pipeline").mkdir(parents=True)
+    (eng / "tests" / "build_pipeline" / "test_x.py").write_text("x\n", encoding="utf-8")
+    (eng / "conftest.py").write_text("x\n", encoding="utf-8")
+    # Build residue a maintainer's working tree always carries. The .pyc embeds
+    # an absolute build path — a real username — which AGENTS.md § Privacy
+    # forbids committing, and .pytest_cache lists engine test node IDs.
+    (eng / "agentbundle" / "__pycache__").mkdir()
+    (eng / "agentbundle" / "__pycache__" / "cli.cpython-311.pyc").write_bytes(b"\x00/Users/someone/x")
+    (eng / "agentbundle" / "__pycache__" / "cli.cpython-311.pyo").write_bytes(b"\x00/Users/someone/x")
+    (eng / ".pytest_cache" / "v").mkdir(parents=True)
+    (eng / ".pytest_cache" / "v" / "nodeids").write_text("[]\n", encoding="utf-8")
+    (eng / "agentbundle.egg-info").mkdir()
+    (eng / "agentbundle.egg-info" / "SOURCES.txt").write_text("x\n", encoding="utf-8")
+
+    pack = root / "packs" / "catalogue-curation"
+    (pack / ".apm").mkdir(parents=True)
+    (pack / ".apm" / "s.md").write_text("x\n", encoding="utf-8")
+    (pack / "tests").mkdir()
+    (pack / "tests" / "test_y.py").write_text("x\n", encoding="utf-8")
+    return root
+
+
+def test_vendored_engine_carries_no_tests(tmp_path):
+    src = _synthetic_source(tmp_path)
+    fb: dict[str, bytes] = {}
+    fk: dict[str, str] = {}
+    _collect_dir_bytes(
+        src / "packages" / "agentbundle",
+        ".agentbundle/tooling/agentbundle",
+        fb, fk, kind="vendored", exclude=_VENDORED_ENGINE_EXCLUDE,
+    )
+    assert any("cli.py" in k for k in fb), "engine code was dropped"
+    assert any(k.endswith("agentbundle/build/self_host.py") for k in fb), (
+        "the shipped agentbundle/build/ package was pruned — the vendored "
+        "engine would not import"
+    )
+    assert any(k.endswith("build/adapters/cursor.py") for k in fb)
+    assert not [k for k in fb if "/build/lib/" in k], (
+        "setuptools build output at the collect root was vendored"
+    )
+    # The residue half. Without these the prune could be disabled outright and
+    # the suite would stay green — and this is the half that writes a real
+    # username into an adopter's repo via a .pyc's embedded build path.
+    residue = [
+        k
+        for k in fb
+        if "__pycache__" in k
+        or ".pytest_cache" in k
+        or ".egg-info" in k
+        or k.endswith((".pyc", ".pyo"))
+    ]
+    assert not residue, f"vendored engine carries build residue: {residue}"
+    leaked = [k for k in fb if "/tests/" in k or k.endswith("conftest.py")]
+    assert not leaked, f"vendored engine carries test content: {leaked}"
+
+
+def test_vendored_curation_pack_carries_no_tests(tmp_path):
+    src = _synthetic_source(tmp_path)
+    fb: dict[str, bytes] = {}
+    fk: dict[str, str] = {}
+    _collect_dir_bytes(
+        src / "packs" / "catalogue-curation",
+        ".agentbundle/tooling/packs/catalogue-curation",
+        fb, fk, kind="vendored", exclude=_VENDORED_PACK_EXCLUDE,
+    )
+    assert any("s.md" in k for k in fb)
+    assert not [k for k in fb if "/tests/" in k]
+
+
+def test_adopter_packs_still_carry_tests(tmp_path):
+    """The regression a careless fix causes. ADR-0071 wants catalogue archives
+    to carry pack tests, so the non-vendored callers must keep copying them —
+    which is why `exclude` defaults to empty and is passed only at the two
+    vendored call sites."""
+    src = _synthetic_source(tmp_path)
+    fb: dict[str, bytes] = {}
+    fk: dict[str, str] = {}
+    _collect_dir_bytes(
+        src / "packs" / "catalogue-curation", "packs/catalogue-curation",
+        fb, fk, kind="pack",
+    )
+    assert [k for k in fb if "/tests/" in k], "the adopter's own pack lost its tests"
+
+
+def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None:
+    """AC5 driven through the real entry point, not through `_collect_dir_bytes`.
+
+    The unit tests above pass `exclude=` themselves, so they assert the routine
+    plus the constants and would survive the wiring at the two vendored call
+    sites being deleted. This one runs `init_self_hosted` end to end against a
+    source that carries test content on both sides of the boundary, so removing
+    either `exclude=` kwarg turns it red.
+    """
+    source = _make_source(tmp_path)
+    eng = source / "packages" / "agentbundle"
+    (eng / "agentbundle").mkdir(parents=True)
+    (eng / "agentbundle" / "__init__.py").write_text("", encoding="utf-8")
+    # The shipped build-pipeline package — must survive the residue prune.
+    (eng / "agentbundle" / "build").mkdir()
+    (eng / "agentbundle" / "build" / "self_host.py").write_text("x\n", encoding="utf-8")
+    # Residue, so this test's residue clauses are live rather than inert.
+    (eng / "agentbundle" / "__pycache__").mkdir()
+    (eng / "agentbundle" / "__pycache__" / "cli.cpython-311.pyc").write_bytes(b"\x00")
+    (eng / "agentbundle.egg-info").mkdir()
+    (eng / "agentbundle.egg-info" / "SOURCES.txt").write_text("x\n", encoding="utf-8")
+    # ...and setuptools output at the collect root — must not.
+    (eng / "build" / "lib").mkdir(parents=True)
+    (eng / "build" / "lib" / "stale.py").write_text("x\n", encoding="utf-8")
+    (eng / "tests" / "build_pipeline").mkdir(parents=True)
+    (eng / "tests" / "build_pipeline" / "test_x.py").write_text("x\n", encoding="utf-8")
+    (eng / "conftest.py").write_text("x\n", encoding="utf-8")
+
+    cc = source / "packs" / "catalogue-curation"
+    cc.mkdir()
+    (cc / "pack.toml").write_text(
+        '[pack]\nname = "catalogue-curation"\nversion = "0.2.0"\n', encoding="utf-8"
+    )
+    (cc / "tests").mkdir()
+    (cc / "tests" / "test_y.py").write_text("x\n", encoding="utf-8")
+
+    # ...and test content on the two non-vendored copy paths, which must
+    # survive: ADR-0071 wants catalogue archives to carry tests.
+    own_tests = source / "packs" / "core" / "tests"
+    own_tests.mkdir()
+    (own_tests / "test_own.py").write_text("x\n", encoding="utf-8")
+    guide_tests = source / "guides" / "_shared" / "tests"
+    guide_tests.mkdir(parents=True)
+    (guide_tests / "test_g.py").write_text("x\n", encoding="utf-8")
+
+    cfg = _base_cfg(tmp_path, source, tooling="vendored", guides="selected")
+    result = init_self_hosted(cfg)
+    assert result.ok, result.diagnostics
+
+    vendored = cfg.target / ".agentbundle" / "tooling"
+    assert vendored.is_dir(), "vendored tooling was not written"
+    # `build`/`dist` are checked at the vendored ROOT only. Matching them at any
+    # depth is the rule that deleted the shipped `agentbundle/build/` package —
+    # asserting it here would re-encode the bug as the contract.
+    any_depth = {"__pycache__", ".pytest_cache"}
+    leaked = []
+    for f in vendored.rglob("*"):
+        if not f.is_file():
+            continue
+        parts = f.relative_to(vendored).parts
+        if (
+            "tests" in parts
+            or f.name == "conftest.py"
+            or any_depth & set(parts)
+            or f.suffix in {".pyc", ".pyo"}
+            or any(part.endswith(".egg-info") for part in parts)
+            # root-relative: <vendored>/agentbundle/{build,dist}/ is setuptools
+            # output; <vendored>/agentbundle/agentbundle/build/ is the package.
+            or parts[:2] in {("agentbundle", "build"), ("agentbundle", "dist")}
+        ):
+            leaked.append(f.relative_to(cfg.target).as_posix())
+    assert not leaked, f"vendored payload carries test content or build residue: {leaked}"
+
+    # ...and the shipped build-pipeline package survived.
+    shipped = vendored / "agentbundle" / "agentbundle" / "build" / "self_host.py"
+    assert shipped.exists(), "the shipped agentbundle/build/ package was pruned"
+
+    # ...while the adopter's own catalogue keeps its pack tests (ADR-0071).
+    own = cfg.target / "packs" / "core" / "tests" / "test_own.py"
+    assert own.exists(), "the adopter's own pack lost its tests"
+    guided = cfg.target / "guides" / "_shared" / "tests" / "test_g.py"
+    assert guided.exists(), "the guides call site stopped carrying test content"

@@ -28,9 +28,8 @@ from agentbundle.commands.render import run
 #   parents[4] = repo root
 FIXTURE_PACKS = (
     Path(__file__).resolve().parents[2]
-    / "agentbundle"
-    / "build"
     / "tests"
+    / "build_pipeline"
     / "fixtures"
     / "packs"
 )

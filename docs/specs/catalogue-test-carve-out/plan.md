@@ -17,7 +17,7 @@ plan front-loads classification as its own task with its own deliverable — a
 recorded owner per module — and treats relocation as the mechanical consequence.
 
 The shape of the work is not what RFC-0082 first assumed, and the plan follows
-the corrected picture. No module in `build/tests/` is a standalone rule-shaped
+the corrected picture. No module in `tests/build_pipeline/` (formerly `agentbundle/build/tests/`) is a standalone rule-shaped
 conformance test. The rule-shaped material exists, but embedded as classes inside
 three engine modules. So the shipped conformance suite is assembled by
 **extraction**, not by moving files, and that is T3 rather than a footnote.
@@ -126,7 +126,7 @@ shipping-nothing failure, which is why AC8 names `_SYNC_PAIRS` explicitly.
 **Approach:**
 
 Start from `docs/rfc/0082-notes/first-cut-ownership-mapping.md`, which
-hand-classifies `build/tests/` and is explicitly provisional. Re-derive the
+hand-classifies `tests/build_pipeline/` (formerly `agentbundle/build/tests/`) and is explicitly provisional. Re-derive the
 candidate set rather than inheriting a number: 82 under the quoted-directory
 sweep, 103 under the path-form sweep, and both miss modules that locate the
 repository root by walking for a marker instead of by index.
@@ -200,7 +200,7 @@ refuses duplicates outright.
 
 **Approach:**
 
-Three known instances, all in `build/tests/`, and the mapping warns to expect
+Three known instances, all in `tests/build_pipeline/` (formerly `agentbundle/build/tests/`), and the mapping warns to expect
 more in the other roots:
 
 - `test_adapter_gemini.py` — `GeminiShippedAgentToolCoverageTests` (sweeps

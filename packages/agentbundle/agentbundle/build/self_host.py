@@ -1592,27 +1592,56 @@ def run_build_check_drift_gates(
 
 
 def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
-    """Refuse a real-write self-host whose `packs_dir` points into
-    `tests/fixtures/` (which would overwrite the working tree with fixture
-    data), unless `ALLOW_FIXTURE_PACKS` is set.
+    """Refuse a real-write self-host whose `packs_dir` points into a test
+    fixture tree (which would overwrite the working tree with fixture data),
+    unless `ALLOW_FIXTURE_PACKS` is set.
 
     This is the cross-platform home of the guard that used to live only in the
-    Makefile `build-self` recipe — so the make-free entry
-    `python -m agentbundle.build self` (the only way to run build-self on
-    Windows) is protected too. Returns a non-zero exit code to refuse, or
+    Makefile `build-self` recipe, so the make-free entry
+    `python -m agentbundle.build self` is protected too. It is reached from
+    `cmd_self` **and** from `catalogue_tooling.self_host.write_self_host`,
+    whose `packs_dir` comes from `catalogue.toml` rather than from a flag — a
+    catalogue pointing `[catalogue.paths] packs` at a fixture tree is the same
+    destructive write by a different route. Returns a non-zero exit code to refuse, or
     `None` to proceed. Dry-run writes to a shadow temp dir, so it is never
-    guarded (matching the `run_self_host` dirty-tree check). `as_posix()`
-    normalises separators so the match is Windows-safe.
+    guarded (matching the `run_self_host` dirty-tree check).
+
+    Two matches, either of which refuses — the union is strictly stronger than
+    either alone:
+
+    * **Components.** A `tests` component followed anywhere by a `fixtures`
+      component. RFC-0082 moved the engine suite to
+      `tests/build_pipeline/fixtures/`, where the two are no longer adjacent;
+      the original substring test missed that and failed *open*.
+    * **The historical substring.** `tests/fixtures/` anywhere in the path.
+      Component matching alone would be a **narrowing** — it lets through
+      `mytests/fixtures/` and `attests/fixtures/`, which the substring form
+      refused. Dropping a refusal a previous release gave is not something a
+      relocation should do quietly, so both are kept.
+
+    The component form does not over-match the case the original trailing slash
+    was protecting: `my-tests` is not the component `tests`, and
+    `fixtures-backup` is not `fixtures`.
     """
-    if dry_run or os.environ.get("ALLOW_FIXTURE_PACKS"):
+    # An explicit allow-list, not truthiness: `ALLOW_FIXTURE_PACKS=0` reads as
+    # "off" and would otherwise disarm a destructive-write control, for every
+    # later invocation in that shell or CI job.
+    override = os.environ.get("ALLOW_FIXTURE_PACKS", "").strip().lower()
+    if dry_run or override in {"1", "true", "yes"}:
         return None
-    # Trailing slash mirrors the historical Makefile glob `*tests/fixtures/*`
-    # exactly — so a sibling like `my-tests/fixtures-backup/` doesn't over-match.
-    if "tests/fixtures/" in packs_dir.as_posix():
+    # Case-folded: `resolve()` does not canonicalise case on a case-insensitive
+    # filesystem (macOS default), so `.../tests/build_pipeline/Fixtures/packs`
+    # reaches the same on-disk tree while matching neither test.
+    parts = tuple(p.lower() for p in packs_dir.parts)
+    by_component = any(
+        "fixtures" in parts[i + 1 :] for i, part in enumerate(parts) if part == "tests"
+    )
+    if by_component or "tests/fixtures/" in packs_dir.as_posix().lower():
         print(
-            "self-host: refusing — --packs-dir points into tests/fixtures/; "
-            "this would overwrite your working tree with fixture data. Set "
-            "ALLOW_FIXTURE_PACKS=1 to override, or use --packs-dir packs.",
+            f"self-host: refusing — packs path {packs_dir} points into a test "
+            "fixture tree; this would overwrite your working tree with fixture "
+            "data. Point it at your real packs directory, or set "
+            "ALLOW_FIXTURE_PACKS=1 to override.",
             file=sys.stderr,
         )
         return 2

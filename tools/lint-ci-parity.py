@@ -103,7 +103,12 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "pages.yml": "Deploy workflow, not a gate.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
-    "release-agentbundle.yml": "Release workflow, not a gate.",
+    "release-agentbundle.yml":
+        "Release workflow. It carries one hard gate — RFC-0082's "
+        "export-boundary check — whose local counterpart is `make test` "
+        "(tools/test_check_artifact_contents.py) and whose presence in the "
+        "workflow is pinned by test_the_gate_step_is_actually_invoked. "
+        "Everything else here is release plumbing.",
     "release-credbroker.yml": "Release workflow, not a gate.",
     "iac-release-loop-canary.yml": "Scheduled canary against live infra.",
     "iac-staleness.yml": "Scheduled staleness probe against live infra.",
@@ -260,6 +265,11 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest make-free gate chains (windows-build-gate-chain)":
         LOCAL("test"),
     "pytest guides sidebar generation":
+        LOCAL("test"),
+    # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
+    # this step runs the gate's own tests, so a regression to always-exit-0 goes
+    # red here rather than staying silently green.
+    "pytest export-boundary gate":
         LOCAL("test"),
     "Install credbroker (editable, with crypto extra)":
         CI_ONLY(

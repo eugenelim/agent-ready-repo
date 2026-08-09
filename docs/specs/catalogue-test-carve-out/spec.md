@@ -169,7 +169,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   the first-cut mapping deliberately omits per-root counts because an earlier
   revision mislabelled the strict figures as loose.
 - **Technical:** ownership is a property of test *classes*, not modules — three
-  modules in `build/tests/` alone carry conformance classes inside engine
+  modules in `tests/build_pipeline/` (formerly `agentbundle/build/tests/`) alone carry conformance classes inside engine
   modules (verified by reading `GeminiShippedAgentToolCoverageTests`,
   `SourcePluginJsonAuditTests`, `RealTreeInvariantTests`).
 - **Technical:** five positive allowlists exclude a root `tests/` by

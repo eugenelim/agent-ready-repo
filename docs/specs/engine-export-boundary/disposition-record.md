@@ -8,7 +8,7 @@ self-coverage gate.
 
 **Files I will touch**
 
-- `packages/agentbundle/agentbundle/build/tests/**` → `packages/agentbundle/tests/build/**` (the move)
+- `packages/agentbundle/agentbundle/build/tests/**` → `packages/agentbundle/tests/build_pipeline/**` (the move)
 - Path anchors inside the moved suite: 35 `parents[5]`, one chained `.parent` walk, two `parents[2]` package reaches
 - Two in-suite literals: `test_end_to_end_build.py:5` and
   `test_self_host_fixture_guard.py:74` (its `_FIXTURE_DIR` is **not** touched)
@@ -21,7 +21,11 @@ self-coverage gate.
 - New: `tools/check-artifact-contents.py`, plus its test
 - `docs/specs/catalogue-test-carve-out/{spec,plan}.md` — live sibling, four invalidated references
 - New: `docs/specs/engine-export-boundary/notes/guard-sweep.md`
-- Ride-along: `docs/adr/README.md` (missing ADR-0074 row) — **user-authorized, not carve-out-justified**: `docs/adr/` holds no file this change edits and the gap was not orphaned by this work, so it fails the bundled-fixes gates. It lands because the human explicitly asked for it, recorded as such rather than dressed up as a same-area ride-along.
+- Ride-along: `packages/agentbundle/tests/build_pipeline/fixtures/README.md` —
+  a stale claim about a lint exclusion this change deleted, in a file this
+  change moved. Squarely inside the bundled-fixes carve-out.
+  (The `docs/adr/README.md` ADR-0074 row was also user-authorized, but it
+  landed on the RFC-0082 branch and is already on `main`.)
 
 **What tests demonstrate done**
 
@@ -36,10 +40,20 @@ resolves.
 
 No `MANIFEST.in`, no sdist graft — deferred to the carve-out spec by design. No
 new top-level `tests/` directory. No `namespaces = false`. No pack content, no
-`.apm/` trees, no ADR-0071 destinations. No test assertions, with one
-pre-authorised exception: `test_self_host_fixture_guard.py:74`'s hardcoded path
-literal. Its `_FIXTURE_DIR` is explicitly out of scope — it points at a tree this
-change does not move, and repointing it would delete the coverage T2 needs. No version bump until the release task.
+`.apm/` trees, no ADR-0071 destinations. No test *assertions* change. Two
+classes of edit did land in the moved modules and are recorded rather than
+waved through: (1) the one pre-authorised path literal,
+`test_self_host_fixture_guard.py:74` — its `_FIXTURE_DIR` was left alone, since
+it points at a tree this change does not move; and (2) 73 mechanical ruff fixes
+across the tree, forced by it entering lint scope for the first time (the ruff
+`exclude` also carries `"build"`). The second class was not anticipated by the
+spec's *Ask first* rail. It was resolved rather than surfaced because
+re-suppressing would reproduce the incidental-exclusion defect the spec exists to
+remove. Several of the fixes *are* assertion expressions, so this is not the
+cosmetic-only change an earlier draft of this record claimed: one — `os.readlink`
+to `Path.readlink` — silently normalised a link target and weakened four
+assertions, and was reverted once review caught it. The rail was tripped, the
+first account of it was wrong, and saying so is the point of this record.
 
 ## Declined-pattern register
 
@@ -97,3 +111,49 @@ they cannot be tested.
 mechanics be settled by running them. The plan's command-level prose should be
 demoted to intent, not kept as a specification nothing has executed.
 
+
+
+## Closed at DECIDE (2026-08-08)
+
+**Reviewers run:** `adversarial-reviewer` at PLAN and repeatedly on the diff,
+plus one `quality-engineer` and one `security-reviewer` pass. The last two ran late — they were
+skipped on the first pass through REVIEW and only caught when the completion
+state was audited. Both found defects three adversarial rounds had not, which is
+the argument for the mode's reviewer set being a floor rather than a menu.
+
+**Resolved by the loop, additionally:**
+
+- The `tests/build/` → `tests/build_pipeline/` rename, on a human decision after
+  the loop surfaced that `build` is skipped by pytest *and* ruff. Carries an
+  Approver-signed erratum on RFC-0082.
+- Build residue pruned from the vendored payload, in two modes:
+  `__pycache__`, `.pytest_cache`, `*.egg-info` and `*.pyc` by **name at any
+  depth**; `build/` and `dist/` **root-relative**. The split is the whole
+  finding: a first attempt pruned `build` by name and silently removed
+  `agentbundle/build/` — the shipped build-pipeline package — leaving a
+  vendored engine that could not import. That is the trap the knowledge entry
+  below records, reintroduced by the fix that captured it, and caught only because the final review round
+  ran the vendored copy instead of reading it. Registered as a backlog slug first, then fixed
+  here instead: a `.pyc` embeds an absolute build path including a real
+  username, which AGENTS.md § Privacy forbids committing, so it is not a
+  deferrable item.
+- The guard's second entry point (`write_self_host`), its case-sensitivity, and
+  its truthiness-based override.
+
+**Surfaced to the human:**
+
+- The `tests/build/` destination (decided: rename, option B).
+- The pre-EXECUTE plateau at four blockers, where the loop stopped rather than
+  spot-fixing a fourth round. The steer — demote command-level mechanics to
+  intent — was correct: every subsequent finding in that class came from running
+  the thing, not from reading it.
+- The sdist regression, once measured rather than assumed.
+
+**Deferred with slugs:** `ruff-excludes-the-engine-build-package` (66 violations
+in shipped engine code the repo-root sweep never sees) and
+`agentbundle-install-marker-importable-path`.
+
+**Knowledge captured:** two entries in `docs/knowledge/patterns.jsonl`, cited
+by title rather than id because ids are reallocated on curation — *A test
+directory named `build` is invisible to pytest and ruff* and *A test that
+supplies the wiring it is meant to verify*.
