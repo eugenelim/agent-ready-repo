@@ -848,6 +848,11 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
     # The shipped build-pipeline package — must survive the residue prune.
     (eng / "agentbundle" / "build").mkdir()
     (eng / "agentbundle" / "build" / "self_host.py").write_text("x\n", encoding="utf-8")
+    # Residue, so this test's residue clauses are live rather than inert.
+    (eng / "agentbundle" / "__pycache__").mkdir()
+    (eng / "agentbundle" / "__pycache__" / "cli.cpython-311.pyc").write_bytes(b"\x00")
+    (eng / "agentbundle.egg-info").mkdir()
+    (eng / "agentbundle.egg-info" / "SOURCES.txt").write_text("x\n", encoding="utf-8")
     # ...and setuptools output at the collect root — must not.
     (eng / "build" / "lib").mkdir(parents=True)
     (eng / "build" / "lib" / "stale.py").write_text("x\n", encoding="utf-8")

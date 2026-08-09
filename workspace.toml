@@ -445,6 +445,18 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # flaky-sso-store-concurrency-on-windows — 
+  # packages/credbroker/tests/unit/test_sso_store_concurrency.py::
+  # test_file_floor_path_is_serialised_too[1] fails intermittently on the
+  # Windows build-check leg with ProfileConfinementError on a lock path under
+  # the pytest tmp dir, then passes on a bare re-run of the same commit
+  # (observed on PR #898: red, rerun green, no code change). The test races two
+  # threads through _store() and asserts neither raised, so the confinement
+  # check is seeing a partially-created or differently-cased tmp path under
+  # concurrency. Not caused by RFC-0082 — that diff touches no credbroker file.
+  # Fix: make the confinement check tolerant of the tmp-path shape, or serialise
+  # the fixture's home setup; do not paper over it with a retry marker.
+  {slug = "flaky-sso-store-concurrency-on-windows", source = "PR #898 (observed, not caused)"},
   # ruff-excludes-the-engine-build-package — the root pyproject's ruff
   # `exclude` carries the bare name "build", which ruff matches at any depth. It
   # was put there for build *output*; it also hides

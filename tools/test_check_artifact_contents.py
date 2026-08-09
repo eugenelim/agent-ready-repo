@@ -184,14 +184,18 @@ def test_real_zipapp_carries_no_engine_tests(tmp_path):
 def test_real_wheel_carries_no_engine_tests(tmp_path):
     """AC3 — the headline criterion. Its only other enforcement is the CI step,
     so without this the claim rests entirely on a workflow nothing else pins."""
-    try:
-        subprocess.run(
-            [sys.executable, "-m", "build", "--wheel", "--no-isolation",
-             "--outdir", str(tmp_path), str(REPO_ROOT / "packages" / "agentbundle")],
-            check=True, capture_output=True,
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError) as exc:
-        pytest.skip(f"`python -m build` unavailable: {exc}")
+    # Probe the toolchain up front, then let a genuine build failure FAIL.
+    # Catching CalledProcessError and skipping would report a real packaging
+    # regression — malformed pyproject, broken package-data, missing backend —
+    # as a green skip, which is the shape this gate exists to prevent.
+    # `--no-isolation` needs the backend in-env too, so probe both.
+    pytest.importorskip("build", reason="`build` not installed")
+    pytest.importorskip("setuptools", reason="build backend not installed")
+    subprocess.run(
+        [sys.executable, "-m", "build", "--wheel", "--no-isolation",
+         "--outdir", str(tmp_path), str(REPO_ROOT / "packages" / "agentbundle")],
+        check=True, capture_output=True,
+    )
     wheels = list(tmp_path.glob("*.whl"))
     assert wheels, "no wheel was produced"
     assert gate.offending_entries(wheels[0]) == []
