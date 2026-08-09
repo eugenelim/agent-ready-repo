@@ -4,7 +4,7 @@
 
 We need one way to answer a basic question: given some work, what is the first local artifact worth creating? Today the answer varies by skill and tracker. That leaves us with a few awkward outcomes: a one-spec change wrapped in a brief, a tracker collection treated as a requirement, or a queue comment doing the job of a spec.
 
-This paper sets a common model. It needs a new RFC before implementation and a new ADR refining part 2 of [ADR-0019](../adr/0019-product-intent-ontology-and-brief-projection.md): an app-scale feature no longer becomes a brief by default. [ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)'s decision on `Level` and `Scale` remains intact. So do [ADR-0009](../adr/0009-product-brief-layer-and-plan-owned-lld.md)'s brief layer and plan-owned LLD.
+This paper sets a common model. [RFC-0083](../rfc/0083-work-intake-and-artifact-routing.md) now proposes its adoption; implementation still needs that RFC accepted and two follow-on ADRs. One refines part 2 of [ADR-0019](../adr/0019-product-intent-ontology-and-brief-projection.md): an app-scale feature no longer becomes a brief by default. The other records standalone intake, deterministic workspace indexing, and the shared layout boundary. [ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)'s decision on `Level` and `Scale` remains intact. So do [ADR-0009](../adr/0009-product-brief-layer-and-plan-owned-lld.md)'s brief layer and plan-owned LLD.
 
 The decisions are straightforward: use `work-intake` as the single standalone front door; create briefs only when they earn their keep; index artifacts rather than requirements in `workspace.toml`; and say who owns tracker-imported fields at each lifecycle stage.
 
@@ -42,6 +42,8 @@ In particular, a workspace initiative is a coordination scope. It is not proof t
 
 ```mermaid
 flowchart LR
+  accTitle: Canonical artifact and requirements flow
+  accDescr: Evidence and governance feed a level-tagged intent tree, feature projection creates a brief or spec, and only a spec with a plan reaches work-loop; workspace and tracker links are non-authoritative references.
   R[Study / research] --> I[Intent tree]
   F[RFC] --> I
   I --> G{Feature gate}
@@ -68,9 +70,11 @@ A brief earns its place when it holds something a spec cannot: the shared outcom
 | One independently shippable change in one repo | A spec |
 | Several independently shippable changes in one repo | A brief, then specs |
 | One feature spanning component repos | One brief per affected repo, then specs |
-| One spec with useful cross-repo coordination/provenance | A brief is allowed |
+| One repository's single-spec slice of a cross-repo feature | A brief is allowed only when it preserves shared identity, sibling ordering, or closure |
 
-This is a deliberate refinement of the current “app-scale feature intent is a brief” rule in [ADR-0019](../adr/0019-product-intent-ontology-and-brief-projection.md) and [decompose-intent](../../packs/product-engineering/.apm/skills/decompose-intent/SKILL.md). A one-spec brief is not forbidden, but it needs a reason beyond “that is the usual shape.”
+This is a deliberate refinement of the current “app-scale feature intent is a brief” rule in [ADR-0019](../adr/0019-product-intent-ontology-and-brief-projection.md) and [decompose-intent](../../packs/product-engineering/.apm/skills/decompose-intent/SKILL.md). Ordinary provenance belongs on the spec. A one-spec brief is justified only by a concrete cross-repo identity, ordering, or closure need.
+
+Cross-repo status is never read live during local dispatch. Each repo brief keeps a reviewed coordination receipt for a remote prerequisite, and the parent feature intent keeps reviewed closure receipts for its repo briefs. A receipt pins the remote locator, revision, terminal status, reviewer, and date. Its stable ID is local to the containing artifact. Accepting a new receipt revision updates matching local dependency pins atomically; rejection changes neither. That gives reconciliation durable local evidence without copying remote requirements or making one workspace authoritative for another.
 
 Start with shippability, not components. “The API” and “the screen” are not separate specs unless each can ship and be useful on its own. Likewise, a milestone, board, sprint, cycle, or JQL result is not a brief just because it contains several issues. It becomes one only when those issues serve one feature-level outcome and require several specs.
 
@@ -85,6 +89,7 @@ Start with shippability, not components. “The API” and “the screen” are 
 | Brief | Hold a repo's multi-spec or cross-repo projection envelope |
 | Spec | Define one shippable, verifiable behaviour |
 | Plan | Explain how to implement and verify one spec |
+| Defect context | Record expected and observed behavior, reproduction evidence, provenance, and a durable citation proving the expectation is already intended |
 | Tracker object | Represent upstream demand or external coordination |
 | `workspace.toml` | Index artifacts, lifecycle, hard dependencies, provenance, and short display summaries |
 
@@ -95,6 +100,8 @@ Names from other methods do not decide this. A BRD, PRD, FRD, SRS, or Jira Story
 - One shippable contract becomes a spec.
 - A cross-cutting proposal becomes an RFC.
 - Evidence becomes study/research.
+- A deviation from cited intended behavior becomes a defect context; without
+  that durable evidence, it remains unresolved intake or becomes a Draft spec.
 
 `workspace.toml` is not another requirements document. Its comments are for people reading the file. Routing ignores them, and a later agent must never have to reconstruct a full spec from a comment.
 
@@ -123,24 +130,30 @@ The profile still has to pass the coherence and shippability test. A board is us
 
 If the input is a product outcome or opportunity, `work-intake` can route or materialize an intent. It does not need special installation state to do so. It also does not invent an intent when the direct answer is a brief, spec, defect, or capture.
 
-This replaces `capture-work` in the target design. The RFC should decide whether to leave a short-lived alias for existing users or remove it directly. Either way, `work-intake` is the sole public intake surface.
+Shared intake owns only a minimal intent contract. It uses the existing `[core]` layout configuration with an in-repository parent; `docs/product/intents/` is the default, not a dependency on another workflow bundle. Keeping the parent in the repo lets every workspace entry use the same repository-relative path rule.
+
+This replaces `capture-work` in the target design. RFC-0083 keeps a temporary compatibility alias for two minor catalogue releases counted from the first write-new release and at least 90 days, then removes it after the migration gates pass. `work-intake` is the sole public intake surface throughout; the old name only forwards to it.
 
 ```mermaid
 flowchart LR
-  A[Start / do] --> Q[work-intake]
-  C[Remember] --> Q
-  S[Where are we] --> Q
-  R[Refresh tracker] --> Q
-  Q --> X[Acquire source]
-  X --> N[Normalize]
-  N --> K[Classify level or delivery unit]
-  K --> M[Make intent / brief / spec / defect]
-  M --> W[Register in workspace.toml]
-  W --> P[Shaping / receive-brief / new-spec + work-loop / bug-fix]
-  X -. tracker trust boundary .-> N
+  accTitle: Adopter-facing work intake
+  accDescr: Start and remember may create artifacts, refresh reviews a delta against an existing artifact, and status reads the workspace without creating work.
+  A[Start / remember] --> X[Acquire source]
+  F[Refresh tracker] --> X
+  S[Where are we] --> R[Read workspace + artifacts]
+  X -. tracker trust boundary .-> N[Normalize]
+  N -->|start / remember| K[Classify delivery unit]
+  K --> M[Make canonical artifact]
+  M --> W[Register structured entry]
+  N -->|refresh| D[Resolve existing artifact]
+  D --> J[Invoke refresh processor]
+  J --> U[Review delta + guarded update]
+  W --> P[Selected processor]
+  U --> P
+  R --> T[workspace-status]
 ```
 
-The common path is simple: acquire the source, normalize it, decide whether it is an intent or a delivery unit, make the right local artifact, register that artifact, then call the processor that owns the next step. Status is usually read-only; its source is the workspace index and the artifacts it names.
+The creation path is simple: acquire the source, normalize it, decide whether it is an intent or a delivery unit, make the right local artifact, register that artifact, then call the processor that owns the next step. Refresh instead resolves an existing artifact and invokes the configured refresh processor, which reviews the delta and updates only after acceptance. Intake copies only required fields, redacts secrets and unnecessary sensitive data, and stops if the destination is more visible than the source. Status is read-only; its source is the workspace index and the artifacts it names.
 
 ## Who owns imported requirements?
 
@@ -155,19 +168,26 @@ This lifecycle follows imported requirements through local acceptance and into a
 
 ```mermaid
 stateDiagram-v2
+  accTitle: Tracker-origin authority lifecycle
+  accDescr: Source-owned fields may refresh after review in Draft, require conflict resolution after local acceptance, lock during implementation, and allow trace-only writes after shipping.
   [*] --> Draft: source crosses trust boundary
-  Draft --> Ready: reviewed local acceptance
-  Ready --> Approved: scope / plan approved
-  Approved --> Executing: local spec takes control
-  Executing --> Shipped: verified delivery
   Draft --> Draft: refresh allowed after review
+  Draft --> Accepted: intent accepted
+  Draft --> Ready: brief accepted
+  Draft --> Approved: direct spec approved
+  Accepted --> Ready: feature projects to brief
+  Accepted --> Approved: feature projects to direct spec
+  Accepted --> Accepted: resolve conflict first
   Ready --> Ready: resolve conflict first
+  Ready --> Approved: selected spec and plan approved
   Approved --> Approved: resolve conflict first
-  Executing --> Executing: requirements refresh locked
+  Approved --> Implementing: local spec takes control
+  Implementing --> Shipped: verified delivery
+  Implementing --> Implementing: requirements refresh locked
   Shipped --> Shipped: links, status, comments, PR, closure only
 ```
 
-In Draft, source-owned fields can refresh after a reviewed delta. In Ready and Approved, a refresh needs explicit conflict resolution. In Executing, the spec is authoritative and requirement refresh is locked. After execution, tracker writes are limited to trace links, status, comments, PR links, and closure.
+In Draft, source-owned fields can refresh after a reviewed delta. After an intent is Accepted, a brief is Ready, or a spec is Approved, a refresh needs explicit conflict resolution. While the spec is Implementing, it is authoritative and requirement refresh is locked. The containing brief is Executing during that time. After execution, tracker writes are limited to trace links, status, comments, PR links, and closure.
 
 This explains [linear-brief-sync](../../packs/linear/.apm/skills/linear-brief-sync/SKILL.md): it is a tracker-origin refresh before execution, not a mysterious exception to “trackers are one-way renders.” Repo-origin remains useful when a team authors locally and only publishes a tracker view.
 
@@ -177,11 +197,14 @@ A brief is a durable planning envelope, not a dispatchable work item. It may sta
 
 ```mermaid
 flowchart LR
+  accTitle: Brief-to-delivery lifecycle
+  accDescr: A brief may remain Ready until slices are selected; each slice becomes an approved spec and plan before it can enter work-loop.
   B[Draft brief exists] --> V[Validate outcome and scope]
   V --> R[Ready brief can wait]
   R --> C[Choose and confirm current slices]
   C --> S[Create spec.md + plan.md per slice]
-  S --> I[Index each spec in workspace.toml]
+  S --> A[Review + approve each spec and plan]
+  A --> I[Index each spec in workspace.toml]
   I --> Q[Queue or activate specs]
   Q --> W[work-loop reads the spec]
   W --> D{Brief has more work?}
@@ -195,8 +218,8 @@ That flow gives each stage a concrete result:
 2. `receive-brief` fills the load-bearing gaps. Once the brief itself is accepted, it moves to Ready. The flow may stop here without creating delivery work.
 3. When the team chooses work from the brief, `receive-brief` shows the slice cut for that delivery and waits for confirmation.
 4. `new-spec` creates a `spec.md` and `plan.md` for each selected slice. Each spec carries its `Brief:` back-link and source provenance.
-5. Only then are structured work entries added to `workspace.toml`. Each entry names an existing `spec.md`, its brief as the source artifact, a display summary, and any hard `needs` edges.
-6. The brief is Executing while a child spec is active. When the current batch finishes, it returns to Ready if the brief still has in-scope work. It moves to Shipped only when the brief is explicitly closed and every materialized child spec is shipped.
+5. A human reviews each contract and plan. Only an Approved spec is added to `work.queue`; each entry names the existing `spec.md`, its brief as the source artifact, a display summary, and any hard `needs` edges.
+6. Claiming the first active child moves the work entry to active, the spec to Implementing, and the brief to Executing as one guarded change. Further child claims retain Executing. Each completion retains Executing while another child remains active; the last returns the brief to Ready. It moves to Shipped only through a separate explicit close event when no scope remains and every materialized child spec is shipped.
 
 Deferred or future work stays in the brief's own scope and decomposition, where it can be reviewed. It does not need a placeholder work entry. If another slice is chosen later, create its spec and plan, then register it. Do not leave a proposed slice in a queue comment for a future session to interpret.
 
@@ -216,12 +239,12 @@ The target shape looks like this. The exact TOML syntax belongs to the RFC, but 
 ```toml
 ["ini-002".brief_queue]
 ready = [
-  { path = "docs/product/briefs/account-recovery.md", kind = "brief", source = { mode = "tracker-origin", ref = "PROJ-123" }, summary = "Make account recovery self-service" },
+  { path = "docs/product/briefs/account-recovery.md", kind = "brief", source = { mode = "tracker-origin", ref = "PROJ-123", revision = "42" }, summary = "Make account recovery self-service", needs = [] },
 ]
 
 ["ini-002".work]
 queue = [
-  { path = "docs/specs/self-service-reset/spec.md", kind = "spec", source = { artifact = "docs/product/briefs/account-recovery.md", ref = "PROJ-123" }, summary = "Let a user reset access without support", needs = [] },
+  { path = "docs/specs/self-service-reset/spec.md", kind = "spec", source = { mode = "tracker-origin", artifact = "docs/product/briefs/account-recovery.md", ref = "PROJ-123", revision = "42" }, summary = "Let a user reset access without support", needs = [] },
 ]
 ```
 
@@ -232,7 +255,7 @@ The brief holds the shared outcome, decomposition, and anything intentionally de
 | Surface | Target responsibility |
 | --- | --- |
 | `work-intake` | Standalone entry point for start, capture, status, and refresh routing |
-| `capture-work` | Removed or retained briefly as a compatibility alias |
+| `capture-work` | Temporary compatibility alias that forwards to `work-intake` until the migration gates pass |
 | `author-brief` | Turn unstructured multi-spec input into a Draft brief |
 | `receive-brief` | Validate an existing brief and leave it Ready; when delivery is chosen, confirm the current cut and produce specs |
 | `new-spec` | Materialize one shippable contract, including provenance |
@@ -249,9 +272,9 @@ The important boundary is between acquisition and routing. An adapter knows how 
 Every entry points to a real artifact. Queue membership is lifecycle state, not a substitute for the artifact. Given the same files and parsed TOML, two sessions must reach the same routing result.
 
 ```text
-path:     artifact path
+path:     repository-relative artifact path
 kind:     intent | research | design | brief | spec | defect
-source:   origin, tracker identifier/URL when relevant, field ownership
+source:   origin mode, durable locator and revision, parent / coordination reference
 summary:  display only
 needs:    hard dependencies
 ```
@@ -268,9 +291,17 @@ The RFC will choose exact field names and migration details. It must preserve th
 - A queue entry never authorizes an agent to infer the complete contract from surrounding comments.
 - A spec derived from a brief has the same brief path in its `Brief:` metadata and workspace source index. A mismatch is a reconciliation failure.
 - `needs` contains hard artifact dependencies only. Priority, affinity, suggested ordering, and rationale belong elsewhere.
+- A cross-repo `needs` condition points to a reviewed coordination receipt in the local brief. Dispatch checks its pinned revision and Shipped status from local files; it never reads another repository live.
+- A defect dependency is satisfied only by a closed defect whose structured resolution is `fixed`; declined or superseded defects remain history but do not unblock work.
 - Unknown kinds, malformed entries, duplicate lifecycle membership, and impossible transitions fail closed as reconciliation findings. The parser never falls back to comments.
 
 Provenance records identifiers and links, not credentials or a copied tracker payload. Refresh happens on an explicit request; this design does not add a polling service or webhook.
+
+Field ownership lives only in the canonical artifact's source-authority record. `workspace.toml` mirrors the mode, locator, and revision needed for routing and display; it is not a second authority map.
+
+After every completed refresh comparison, the artifact's compared revision and its workspace mirror advance atomically even when the human keeps local requirements; accepted requirements and dependency pins do not change. A failed acquisition or comparison advances neither.
+
+Shipped entries may leave the active workspace index only after no live dependency or open parent refers to them. Their canonical artifacts and Git history remain. ADR-0051's threshold still applies: 50 or more active specs across initiatives requires a fresh scale decision rather than an ever-growing single-file assumption.
 
 `workspace-status` should report broken references and inconsistent brief/spec links. A dispatcher should not start work until the referenced spec, plan, and hard dependencies exist. A capture without an artifact can remain visible; it cannot quietly become dispatchable work.
 
@@ -310,17 +341,17 @@ This table separates evidence from the conclusion we should draw from it.
 
 ## Order the implementation this way
 
-1. **RFC and ADR refinement.** Done when the RFC settles routing, provenance, authority, and compatibility, and a new ADR records the ADR-0019 refinement without editing its frozen body.
+1. **RFC and ADR refinement.** Done when RFC-0083 settles routing, provenance, authority, and compatibility; one new ADR refines ADR-0019's projection and tracker rules; and another records standalone intake, the in-repo `[core]` layout consumer, deterministic workspace indexing, and the ADR-0051/ADR-0076 refinements.
 2. **Normalized intake and workspace contract.** Done when both have a versioned contract for path, kind, provenance, display summary, and hard `needs`.
 3. **Parser, status, and work-loop checks.** Done when broken references are visible and no dispatcher or work-loop run can get a contract from comments.
-4. **Standalone `work-intake` and core boundaries.** Done when it independently routes normalized input and the `capture-work` removal/alias decision is complete.
+4. **Standalone `work-intake` and core boundaries.** Done when start, remember, and status independently route normalized input, refresh delegates fail-closed until its processors land, and the `capture-work` alias is in place.
 5. **Tracker adapters.** Jira, Jira Align, Linear, and GitHub can change in parallel once they all normalize input, run the feature gate, and register artifacts the same way.
 6. **Refresh and write-back.** Done when reviewed deltas, conflicts, the execution lock, and allowed post-execution writes are implemented and tested.
 7. **Migration and guides.** Done when old entries are reconciled or marked as captures, aliases are documented if kept, and routing evaluations cover one spec, many specs, cross-repo work, collections, and defects.
 
 Roll this out in those phases, not as a big-bang rewrite. Each phase can be reverted by retaining the old reader or alias until the next contract is proven. The maintainer group that accepts the RFC owns the rollout window and decides when an old compatibility path can be removed.
 
-The remaining judgment call is whether `capture-work` gets a temporary alias. Both choices are reasonable: an alias reduces upgrade friction; direct removal keeps one front door truly singular. The RFC author and core maintainers should decide it from adopter migration evidence.
+RFC-0083 resolves the migration judgment: `capture-work` becomes a temporary alias that reads old state but writes only the new contract. Rollout is reader-first so the release immediately before write-new remains a dual-reader rollback target. Core maintainers own rollback from a reversible migration manifest; canonical artifacts are never deleted to make an old writer happy. The alias remains for two minor catalogue releases counted from the first write-new release and at least 90 days, then is removed only after the RFC's fixture, documentation, release-note, and Approver gates pass.
 
 ## Checks before adopting it
 
