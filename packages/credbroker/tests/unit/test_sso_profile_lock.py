@@ -35,6 +35,26 @@ BROKER_PY = (
 # the platform this task's Done-when requires.
 _EDEADLK = getattr(errno, "EDEADLOCK", errno.EDEADLK)
 
+# `errno.EOPNOTSUPP` and `errno.ENOSYS` are POSIX-only names that not every
+# platform's C library exposes. Guard with getattr to mirror the production
+# code's `_LOCK_UNSUPPORTED_ERRNOS` frozenset — a direct attribute access in the
+# @pytest.mark.parametrize list is evaluated at collection time, so an
+# AttributeError here fails the *entire module*, not just the three test cases.
+_LOCK_UNSUPPORTED_CODES: list[int] = [
+    c
+    for c in (
+        getattr(errno, "ENOLCK", None),
+        getattr(errno, "EOPNOTSUPP", None),
+        getattr(errno, "ENOSYS", None),
+    )
+    if c is not None
+]
+# `ENOLCK` (39) is defined on every supported platform, so this list is never
+# empty in practice. If it were empty, pytest would emit a collection warning
+# and the test would not run — not an error. The guard still prevents a
+# collection-time AttributeError on hypothetical platforms where all three
+# names are absent.
+
 
 def _load_broker(py_path: pathlib.Path) -> types.ModuleType:
     spec = importlib.util.spec_from_file_location(py_path.stem, py_path)
@@ -189,9 +209,7 @@ def test_same_errno_from_os_open_is_a_fault_not_contention(broker, monkeypatch):
         pass
 
 
-@pytest.mark.parametrize(
-    "code", [errno.ENOLCK, errno.EOPNOTSUPP, errno.ENOSYS], ids=lambda c: str(c)
-)
+@pytest.mark.parametrize("code", _LOCK_UNSUPPORTED_CODES, ids=str)
 def test_filesystem_refusing_locks_is_a_fault(broker, monkeypatch, code):
     """AC13: a filesystem that cannot lock fails loudly, never silently.
 
