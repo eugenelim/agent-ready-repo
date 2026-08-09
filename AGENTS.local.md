@@ -16,7 +16,8 @@ directly. To propagate changes to new adopters, also update `packs/core/seeds/AG
 ## Commands
 
 ```bash
-python tools/lint-agent-artifacts.py     # projected adapter lint — not in make build-check; run for .apm/ changes
+python -m agentbundle catalogue lint --root . --deep  # agentskills.io compliance for .apm/ changes
+python -m agentbundle catalogue verify --root .       # projected agent-artifact and adapter verification
 ```
 
 ## Catalogue authoring scaffold — release-impact policy
@@ -61,6 +62,5 @@ RFCs, ADRs, internal READMEs. The adopter-facing version ships in the `product-d
 - **Soft-wrap guides.** Under `docs/guides/`, one line per paragraph, blank line between paragraphs,
   list items one line each. Older docs (README, CONVENTIONS) are hard-wrapped near 72 columns; match
   the file you're editing.
-
 
 
