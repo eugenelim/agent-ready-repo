@@ -32,6 +32,18 @@
     "should_trigger": true
   },
   {
+    "query": "Retrofit this existing account settings page without breaking the current keyboard flow",
+    "should_trigger": true
+  },
+  {
+    "query": "Write a page/screen contract for this onboarding route before implementing the UI",
+    "should_trigger": true
+  },
+  {
+    "query": "Set a project-specific asset budget for this new product workspace and verify it with the evidence manifest",
+    "should_trigger": true
+  },
+  {
     "query": "Audit the CSS on this page for token violations and missing states",
     "should_trigger": true
   },
@@ -65,6 +77,18 @@
   },
   {
     "query": "What is the current accessibility status of this surface?",
+    "should_trigger": false
+  },
+  {
+    "query": "Write a guide that explains how our frontend team reviews pull requests",
+    "should_trigger": false
+  },
+  {
+    "query": "Review authentication, session handling, and secrets exposure on this login page",
+    "should_trigger": false
+  },
+  {
+    "query": "Assess error budgets, SLO alerting, and recovery procedures for this frontend service",
     "should_trigger": false
   }
 ]
