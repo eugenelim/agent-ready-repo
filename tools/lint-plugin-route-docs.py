@@ -45,8 +45,12 @@ _NO_REPO_ONLY_OFFER = [pat for p in REPO_ONLY for pat in _offers(p)]
 SITES: list[tuple[str, list[str], list[str]]] = [
     # (path, forbidden substrings, required substrings)
     ("README.md", _NO_REPO_ONLY_OFFER, ["user-scope"]),
+    # The prose enumerates the repo-only set by name. Pin each slug so widening
+    # a pack — which `lint-plugin-roster` already forces you to notice — also
+    # forces the prose, rather than leaving it silently wrong.
     ("docs-site/src/content/docs/getting-started/install.md",
-     _NO_REPO_ONLY_OFFER, ["Repo-scoped packs"]),
+     _NO_REPO_ONLY_OFFER,
+     ["Repo-scoped packs"] + [f"`{p}`" for p in REPO_ONLY if p != "catalogue-curation"]),
     # Two entries: the route-table row and the marker-writer paragraph are
     # separate claims, and pinning one string that lives in both means deleting
     # either is green.
@@ -55,7 +59,8 @@ SITES: list[tuple[str, list[str], list[str]]] = [
      ["**Carries only packs whose `allowed-scopes` admits `user`**"]),
     ("guides/_shared/explanation/install-routes.md",
      [], ["The plugin route is user-scope only",
-          "derived into each **published** pack's"]),
+          "derived into each **published** pack's"]
+        + [f"`{p}`" for p in REPO_ONLY if p != "catalogue-curation"]),
     ("guides/_shared/explanation/pack-catalogue.md",
      _NO_REPO_ONLY_OFFER, ["install-routes.md"]),
     ("guides/core/how-to/adapt-to-project.md",

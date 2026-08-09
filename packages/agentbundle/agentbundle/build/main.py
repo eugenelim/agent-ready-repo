@@ -561,7 +561,10 @@ def run_recipe(
     `aggregate_scope` is required and has no default: it decides whether an
     emptied marketplace is a defect (see `aggregate_exit_code`), and a default
     would let `render_packs_to_dir` and `cmd_build --recipe` inherit the wrong
-    policy silently. One of "catalogue" | "single-pack" | "self-host".
+    policy silently. One of "catalogue" | "single-pack". The self-host writer is absent
+    deliberately: it implements warn-and-continue inline because it runs after
+    adapters and seeds are written, so a hard exit would leave a half-projected
+    tree.
     """
     if aggregate_scope not in AGGREGATE_SCOPES:
         # Validate here, not only inside `aggregate_exit_code`: that is reached

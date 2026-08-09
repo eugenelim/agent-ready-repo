@@ -91,9 +91,17 @@ Used by every criterion below. A pack is **publishable** when all hold:
 
 ## What shipped
 
-Every criterion is met. The route publishes only user-capable packs, says so
-everywhere it is advertised, and each control is asserted by a gate that fails
-when the thing it guards breaks.
+Every criterion is met **except AC18's removal clause**, which is deferred with
+a slug. What ships pins that a stale `claude-plugins/<pack>/` relpath is absent
+from a fresh render; what it does not pin is that `upgrade` therefore deletes
+it. Two attempts to drive the production comparator failed — `diff.run` returns
+0 and prints nothing even on a real divergence — so the changelog's
+file-deletion disclosure currently rests on reading the code, not on a test.
+
+Otherwise: the route publishes only user-capable packs, says so everywhere it is
+advertised, and each control is asserted by a gate that fails when the thing it
+guards breaks — verified by mutating each control and confirming its artifact
+goes red.
 
 Two things are worth carrying forward as read:
 
@@ -398,7 +406,7 @@ fixture continuation indentation RFC-0082's relocation will carry.
   `{output_root}/claude-plugins/{pack_name}/`; after the filter that directory is
   absent for the seven, including `core`.
 
-- [x] **AC18 — The six `render_pack` consumers are named and asserted.**
+- [ ] **AC18 — The six `render_pack` consumers are named and asserted.** *(deferred: plugin-upgrade-removal-artifact)*
   `commands/render.py`, `diff.py`, `init_state.py`, `upgrade.py`,
   `install.py --emit-install-routes`, `validate.py`. `init-state` writes rendered
   relpaths into the state file, so a pre-change `state.json` carries paths the

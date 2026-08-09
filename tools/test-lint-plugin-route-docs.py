@@ -42,10 +42,17 @@ def main() -> int:
     by_path: dict[str, set[str]] = {}
     for path, forbidden, _ in lint.SITES:
         by_path.setdefault(path, set()).update(forbidden)
-    missing = {
-        p for p, pats in by_path.items()
-        if not set(lint._NO_REPO_ONLY_OFFER).issubset(pats)
-    }
+    # Literal, not derived from `lint._offers`. Comparing the sites against
+    # `_NO_REPO_ONLY_OFFER` compared two values built by the same helper, so
+    # narrowing `_offers` to one spelling left this green while the check named
+    # "in both spellings" constrained neither.
+    expected = {"claude plugin install core@", "/plugin install core@"}
+    _check("both offer spellings are still generated",
+           set(lint._offers("core")) == expected,
+           f"lint._offers('core') = {sorted(lint._offers('core'))}")
+    required = {pat for p in lint.REPO_ONLY for pat in
+                (f"claude plugin install {p}@", f"/plugin install {p}@")}
+    missing = {p for p, pats in by_path.items() if not required.issubset(pats)}
     _check("every site forbids a repo-only pack offer, in both spellings",
            not missing, f"sites with no offer constraint: {sorted(missing)}")
 

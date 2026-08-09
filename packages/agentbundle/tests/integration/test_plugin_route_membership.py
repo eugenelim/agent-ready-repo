@@ -188,27 +188,24 @@ def test_render_pack_omits_the_route_for_a_repo_only_pack() -> None:
     assert any(k.startswith("apm/core/") for k in rendered)
 
 
-def test_pre_change_state_relpaths_are_reported_by_diff(tmp_path) -> None:
-    """The migration case the changelog discloses, driven through `diff`.
+def test_stale_route_relpath_is_absent_from_a_fresh_render() -> None:
+    """Half of the migration case, and only half — see the criterion.
 
-    An adopter's `.agentbundle-state.toml` carries `claude-plugins/core/…`
-    relpaths the render no longer produces. `upgrade` diffs a fresh render
-    against that state, so they read as removals. Asserting only that the
-    render omits them repeats the test above; this drives the comparison that
-    turns an omission into a deletion.
+    What this pins: a `claude-plugins/core/…` relpath a pre-change install
+    recorded is absent from a fresh render. What it does **not** pin: that
+    `upgrade` therefore deletes it. Two attempts to drive the production
+    comparator failed — `diff.run` returns 0 and prints nothing even on a real
+    divergence, so it is not the comparator `upgrade` uses, and the right entry
+    point has not been identified.
+
+    Recorded rather than papered over: the changelog tells adopters `upgrade`
+    deletes these files, and that claim currently rests on reading the code.
+    Slug `plugin-upgrade-removal-artifact`.
     """
     from agentbundle.render import render_pack
 
     stale = "claude-plugins/core/skills/work-loop/SKILL.md"
-    rendered = set(render_pack(REPO_ROOT / "packs" / "core"))
-
-    # What a pre-change state file recorded.
-    previously_installed = rendered | {stale}
-    removals = previously_installed - rendered
-    assert removals == {stale}, (
-        "the stale relpath must appear as a removal — this is the file "
-        "`agentbundle upgrade` deletes from an adopter's repository"
-    )
+    assert stale not in set(render_pack(REPO_ROOT / "packs" / "core"))
 
 
 # --- Controls that had no artifact until round five --------------------------
