@@ -1,44 +1,37 @@
 # Frontend Engineering guides
 
-This guide tree covers the `frontend-engineering` pack: how to build web
-surfaces that meet the frontend engineering quality floor, how to use the
-pack's atomic craft skills, and a reference for all skills and the reviewer.
+Need the shortest path? Say: "Build this dashboard screen from the brief and produce the frontend evidence for release review." Start at the [pack overview](../../../packs/frontend-engineering/), then open the [frontend engineering journey](../../../journeys/frontend-engineering/) to see how create, retrofit, audit, and verify work from mode choice through evidence and independent review.
 
-## Who these guides are for
+Use this index when you have found the `frontend-engineering` pack and need the next documentation path by task, not by skill name.
 
-Engineers who build product web surfaces in HTML, CSS, and JS — from design
-handoff to shipped, gate-passing component. The guides assume you are using
-the `frontend-engineering` pack with an agent (Claude Code, Codex, Copilot,
-Cursor, Kiro, or Gemini).
+## Choose your path
 
-## What's here
+| Current task | Open this | Result |
+|---|---|---|
+| Confirm what the pack is for | [Pack overview](../../../packs/frontend-engineering/) | The four jobs, expected outputs, install command, and route into this guide tree |
+| See the end-to-end workflow before starting | [Frontend engineering journey](../../../journeys/frontend-engineering/) | Mode choice, contract approval, implementation or audit path, gates, evidence manifest, and frontend review in order |
+| Decide whether a new or changed surface needs a contract | [Write a page/screen contract](how-to/page-screen-contract.md) | A full 12-field contract, proportional subset, or explicit no-contract decision |
+| Set or verify performance policy | [Performance targets](reference/performance-targets.md) | Fixed CWV targets, prioritized asset-budget categories, and project-specific numeric-ceiling decisions |
+| Audit an existing page or component without writing code | [Run an audit](how-to/run-an-audit.md) | A findings report and baseline evidence manifest for the existing surface |
+| Learn the workflow from a small worked example | [Scaffold a component](tutorials/scaffold-a-component.md) | A gate-passing component and completed evidence manifest |
+| Look up every skill and the reviewer boundary | [Frontend Engineering Pack reference](reference/frontend-engineering.md) | The nine installed skills, their triggers, near misses, and the `frontend-reviewer` scope |
 
-| Section | Contents |
-|---|---|
-| [Tutorials](tutorials/scaffold-a-component.md) | Step-by-step: scaffold a component from a screen brief to a gate-passing evidence manifest |
-| [How-to](how-to/run-an-audit.md) | Run the full frontend-engineering audit on an existing surface |
-| [Reference](reference/frontend-engineering.md) | All 9 skills and the reviewer agent — one-line descriptions and when to use each |
+## What this pack holds you to
 
-## The quality floor
+The shared frontend quality floor is state coverage, WCAG 2.2 AA, token discipline, and an evidence manifest for completed create, retrofit, or verify work.
 
-Every surface built with this pack is held to one shared quality floor:
+The pack does not claim to replace security or reliability review. Frontend review routes auth, secrets, user input, reliability, and broader product-design concerns to the appropriate reviewer or owner.
 
-1. **Handle all states** — every applicable state from the 18-state matrix
-   must be implemented (loading, empty, error, content, and the rest that
-   apply). A surface that only handles the happy path ships broken.
-2. **WCAG 2.2 AA** — accessibility is not a feature. The GATES phase runs
-   pa11y/axe-core to `wcag21aa` and adds two manual checks for the WCAG 2.2
-   criteria automated tools miss (2.4.11 Focus Appearance, 2.5.8 Target Size).
-3. **Token discipline** — no hardcoded hex, rgb, or magic pixel values outside
-   the `:root` primitive definition block. All colour and spacing through
-   `var(--ds-*)`.
-4. **Evidence manifest** — completion is not claimed without a manifest. The
-   manifest is the record of what was tested and what was found.
+## Install with the design pack
 
-## Co-install
+Install the frontend pack first:
 
-For full genre routing in the pre-flight, co-install with `experience-design`:
-```
+```bash
 agentbundle install --pack frontend-engineering --scope user
+```
+
+For full genre routing in the pre-flight, also install `experience-design`:
+
+```bash
 agentbundle install --pack experience-design --scope user
 ```
