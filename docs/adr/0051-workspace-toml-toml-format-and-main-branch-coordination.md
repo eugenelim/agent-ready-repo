@@ -4,6 +4,7 @@
 - **Date:** 2026-07-18
 - **Decision-makers:** eugenelim
 - **Supersedes:** none (supersedes the umbrella-branch coordination pattern adopted in the 2026-07-18 workspace.toml design session — that session settled the artifact's existence and three-queue schema; this ADR records the format and branching decisions resolved in the same RFC)
+- **Refined by:** ADR-0078 makes comments non-semantic and constrains `workspace.toml` to a deterministic index of canonical artifacts and lifecycle facts; the TOML format and main-branch coordination decisions stand.
 - **Related:** [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md) — governing RFC; decisions D2 and D4
 
 ## Decision summary

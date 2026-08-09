@@ -82,6 +82,8 @@
 | 0074 | [The work-loop owns its state lock](0074-the-work-loop-owns-its-state-lock.md) | Accepted |
 | 0075 | [Every test has one owner — engine, catalogue, pack, or tools — and inclusion follows the owner, not the surface alone](0075-test-ownership-taxonomy-and-per-owner-inclusion.md) | Accepted |
 | 0076 | [Briefs persist; dispatch starts from specs](0076-briefs-persist-dispatch-starts-from-specs.md) | Accepted |
+| 0077 | [Feature projection is gated; tracker authority follows lifecycle](0077-feature-projection-and-tracker-authority.md) | Accepted |
+| 0078 | [Standalone intake with an artifact-backed workspace index](0078-standalone-intake-and-deterministic-workspace-index.md) | Accepted |
 
 ## Adding a new ADR
 
