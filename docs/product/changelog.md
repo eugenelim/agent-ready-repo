@@ -84,6 +84,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reference fixes p75 Core Web Vitals targets while keeping numeric asset
   ceilings project-specific and prioritized by surface type.
 
+## [core][2.5.1] — 2026-08-08
+
+### Changed
+
+- **Bug investigations start from more of the language people actually use and
+  stay evidence-led through exceptional cases.** The `bug-fix` skill now
+  activates on root-cause requests, CI-only failures, intermittent or flaky
+  behavior, and active production incidents without taking over new features,
+  behavior-preserving refactors, postmortems, or skill maintenance.
+
+  Multi-component failures are localized at their boundaries before the
+  investigation narrows; a known-good path and backward data-flow trace feed
+  the existing rival-hypothesis record. Asynchronous tests wait on a bounded
+  real condition instead of sleeping. Three failed evidence-backed attempts
+  stop patch stacking and surface an architectural discussion. External or
+  timing failures can close without a false internal root-cause claim, while
+  active harm permits labelled containment before analysis without presenting
+  mitigation as the permanent fix. A production mutation requires confirmation
+  of its exact action, scope, and blast radius unless already approved in the
+  current turn; incident evidence is minimized and sensitive fields are redacted
+  or sequestered. The early red regression test, minimum coherent diff,
+  coverage-gap analysis, commit rationale, and tracker sync stay intact. The
+  production-hotfix guide follows the same rule: containment is mitigation, and
+  the permanent fix still returns to the red regression test.
+
 ## [core][2.3.1] — 2026-08-07
 
 ### Changed

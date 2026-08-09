@@ -8,6 +8,11 @@
   {"query": "Our nightly job started crashing yesterday — find and fix the cause", "should_trigger": true},
   {"query": "Fix this: the total doesn't update when I remove an item from the cart", "should_trigger": true},
   {"query": "There's a defect in the rounding logic, track it down and fix it", "should_trigger": true},
+  {"query": "Find the root cause of why checkout fails only under load", "should_trigger": true},
+  {"query": "This integration only fails in CI; help me understand why", "should_trigger": true},
+  {"query": "The queue consumer is intermittently dropping events — track down the cause", "should_trigger": true},
+  {"query": "Why is this test flaky? Find the underlying cause instead of retrying it", "should_trigger": true},
+  {"query": "We have a production incident: requests are timing out; contain it and diagnose the cause", "should_trigger": true},
 
   {"query": "Let's spec out a new feature to let users export their data", "should_trigger": false},
   {"query": "Refactor this module to be cleaner — behavior should stay the same", "should_trigger": false},
@@ -17,5 +22,9 @@
   {"query": "Bootstrap a new service repo from scratch", "should_trigger": false},
   {"query": "Decompose this requirements packet into specs", "should_trigger": false},
   {"query": "Upgrade us from React 17 to React 18", "should_trigger": false},
-  {"query": "Document the deployment runbook", "should_trigger": false}
+  {"query": "Document the deployment runbook", "should_trigger": false},
+  {"query": "Design a new retry feature for failed webhooks", "should_trigger": false},
+  {"query": "Plan a behavior-preserving refactor of the cache module", "should_trigger": false},
+  {"query": "Write a resolved incident postmortem from these notes", "should_trigger": false},
+  {"query": "Improve the bug-fix skill's debugging guidance", "should_trigger": false}
 ]
