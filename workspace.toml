@@ -445,7 +445,7 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # flaky-sso-store-concurrency-on-windows — 
+  # flaky-sso-store-concurrency-on-windows —
   # packages/credbroker/tests/unit/test_sso_store_concurrency.py::
   # test_file_floor_path_is_serialised_too[1] fails intermittently on the
   # Windows build-check leg with ProfileConfinementError on a lock path under

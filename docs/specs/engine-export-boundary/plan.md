@@ -202,7 +202,7 @@ Sweep with `*.yaml` included — a `*.yml`-only filter silently drops
 
 ### T2 — Rewrite the `self_host.py` destructive-write guard
 
-- **Implements:** AC7, AC12, AC13 (Testing Strategy: TDD)
+- **Implements:** AC7, AC5c, AC5d, AC5e, AC12, AC13 (Testing Strategy: TDD)
 - **Depends on:** T1
 
 **Tests:**
@@ -244,6 +244,19 @@ Over-matching a checkout under `~/tests/…/fixtures/…` is acceptable: that is
 directory literally shaped like the thing being guarded.
 
 Include a negative case for the components in the wrong order.
+
+Three further behaviours land here, all arriving from review rounds rather
+than from the original plan (see the Changelog):
+
+- **The second entry point.** `catalogue_tooling.self_host.write_self_host`
+  reaches the same destructive write with `packs_dir` derived from the
+  catalogue root rather than a flag, and was never guarded. It returns a
+  typed `CAT-SH-001` diagnostic so `--format json` callers see the reason.
+- **Case folding.** `resolve()` does not canonicalise case on a
+  case-insensitive filesystem, so `.../Fixtures/...` reached the same tree.
+- **An explicit override allow-list.** `ALLOW_FIXTURE_PACKS=0` previously
+  *enabled* the bypass, disarming a destructive control for the rest of the
+  shell session.
 
 While in this file, sweep `packages/agentbundle/agentbundle/**` for other
 substring-shaped path guards over `tests`, `fixtures`, or `build`. Write the
@@ -439,6 +452,12 @@ unrecorded interface change.
   reddens CI in a way that looks unrelated to the move.
 
 ## Changelog
+
+- **2026-08-09 (review)** — AC5c, AC5d and AC5e arrived from the quality and
+  security passes, not from this plan: the unguarded `write_self_host` entry
+  point, the guard's case-sensitivity, and an override that fired on `=0`.
+  Folded into T2 rather than given their own task — same file, same control,
+  same TDD mode.
 
 - **2026-08-08 (steer)** — Command-level mechanics demoted from specification to
   intent. Three pre-EXECUTE rounds each found the plan's literal invocations and

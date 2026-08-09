@@ -4,3 +4,6 @@
 pyyaml>=6.0
 jsonschema>=4.0  # guide frontmatter validation (validate_guides.py)
 tomlkit==0.15.1  # workspace-status repair-apply (comment-preserving TOML write)
+# AC3's real-wheel check (tools/test_check_artifact_contents.py) importorskips
+# this; without it `make test` skips the headline criterion silently.
+build

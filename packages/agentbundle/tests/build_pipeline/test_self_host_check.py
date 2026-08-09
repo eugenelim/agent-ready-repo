@@ -1797,8 +1797,8 @@ class FileModeBitsTests(unittest.TestCase):
             tree.mkdir()
             (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
             (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
-            Path(shadow / "hook.sh").chmod(0o755)
-            Path(tree / "hook.sh").chmod(0o644)
+            (shadow / "hook.sh").chmod(0o755)
+            (tree / "hook.sh").chmod(0o644)
 
             drifts = diff_against_working_tree(shadow, tree)
             self.assertEqual(len(drifts), 1)
@@ -1813,8 +1813,8 @@ class FileModeBitsTests(unittest.TestCase):
             tree.mkdir()
             (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
             (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
-            Path(shadow / "hook.sh").chmod(0o755)
-            Path(tree / "hook.sh").chmod(0o755)
+            (shadow / "hook.sh").chmod(0o755)
+            (tree / "hook.sh").chmod(0o755)
 
             self.assertEqual(diff_against_working_tree(shadow, tree), [])
 
@@ -1936,8 +1936,8 @@ class StrengthenedDiffRegressionIntegrationTests(unittest.TestCase):
             # +x bit gets dropped on disk.
             (shadow / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
             (tree / "hook.sh").write_text("#!/bin/sh\n", encoding="utf-8", newline="\n")
-            Path(shadow / "hook.sh").chmod(0o755)
-            Path(tree / "hook.sh").chmod(0o644)
+            (shadow / "hook.sh").chmod(0o755)
+            (tree / "hook.sh").chmod(0o644)
 
             # Rule (c) regression: CLAUDE.md → AGENTS.md projected as a
             # symlink, but on disk it points at the wrong target. The
