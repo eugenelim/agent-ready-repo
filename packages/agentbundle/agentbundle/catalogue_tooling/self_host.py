@@ -81,7 +81,7 @@ def write_self_host(root: Path, force: bool = False) -> SelfHostResult:
         # so surface the reason where a caller can read it.
         result.diagnostics.append(
             Diagnostic(
-                code="SELF-HOST-FIXTURE-PACKS",
+                code="CAT-SH-001",
                 severity=Severity.ERROR,
                 pack=None,
                 path=str(packs_dir),

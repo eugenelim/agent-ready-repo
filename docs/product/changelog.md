@@ -292,9 +292,11 @@ detection loses its baseline.
   0.29.8's sdist held 45 of them; 0.30.0 holds none. They sat inside the
   importable package, so setuptools swept them in; from their new home they
   need an explicit `MANIFEST.in` graft, which lands with the catalogue
-  carve-out. Eight top-level `tests/test*.py` modules still ship — the
-  default sdist glob reaches those — but without `tests/conftest.py`, so
-  they are not runnable either. Build from a git checkout until the graft
+  carve-out. Eight top-level `tests/test*.py` modules still ship — the default
+  sdist glob reaches those — and they do run (20 passed, 47 skipped from an
+  installed sdist). But `tests/conftest.py` is not shipped, so they run
+  without the suite's autouse `HOME`/`XDG_CONFIG_HOME` isolation and can
+  touch the real user config. Build from a git checkout until the graft
   ships.
 
 - **`import agentbundle.build.tests` no longer resolves.** Nothing imported it;
@@ -307,6 +309,14 @@ detection loses its baseline.
   broke it silently and the command would have overwritten a working tree with
   fixture data. It now matches path components *and* the original substring, so
   it refuses strictly more than before.
+
+- **`agentbundle catalogue self-host --write` now refuses a fixture packs
+  path too.** That entry point takes its packs directory from
+  `[catalogue.paths] packs` rather than a flag, and was never guarded — a
+  catalogue pointing at a `tests/.../fixtures/` tree performed the same
+  destructive overwrite. It now exits non-zero with a `CAT-SH-001`
+  diagnostic, visible under `--format json`. This is a **new** refusal, not
+  a restored one.
 
 - **`catalogue init --preset self-hosted --tooling vendored` no longer copies
   test content into your repository.** The vendored copy is an install source —

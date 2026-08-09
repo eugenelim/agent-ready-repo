@@ -300,6 +300,9 @@ def test_write_self_host_refuses_a_fixture_packs_dir(tmp_path):
     assert isinstance(result, SelfHostResult)
     assert result.ok is False, "the guard let a fixture-tree write through"
     run.assert_not_called()
+    # The reason must reach a `--format json` caller, not only stderr.
+    assert [d.code for d in result.diagnostics] == ["CAT-SH-001"]
+    assert "fixture" in result.diagnostics[0].message
 
 
 def test_write_self_host_proceeds_on_an_ordinary_root(tmp_path):

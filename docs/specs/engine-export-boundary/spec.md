@@ -24,8 +24,10 @@ sdist carried 45 engine test modules, because they sat inside the importable
 package and `packages.find` swept them in; at `tests/build_pipeline/` they are
 outside it, and setuptools' default sdist glob reaches only `tests/test*.py` at
 the top level. So the 0.30.0 sdist carries none of them. Eight top-level `tests/test*.py`
-modules still ship, which that glob does reach — but `tests/conftest.py` does
-not, so they are not runnable either.
+modules still ship, which that glob does reach, and they do run — 20 passed,
+47 skipped from an installed sdist. What they lose is `tests/conftest.py`,
+whose autouse fixture redirects `HOME` and `XDG_CONFIG_HOME`; without it a
+redistributor's run can touch the real user config.
 
 That is a real, redistributor-visible regression, accepted for one release and
 recorded in both changelogs. Restoring it needs an explicit `MANIFEST.in` graft,
@@ -177,8 +179,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       points: `cmd_self` (`packs_dir` from a flag) and
       `catalogue_tooling.self_host.write_self_host` (`packs_dir` derived from
       the catalogue root). A catalogue whose packs path points into a fixture
-      tree is the same destructive write by another route. Both wirings are
-      pinned by tests that redden when the call is removed.
+      tree is the same destructive write by another route. It exits non-zero
+      with a `CAT-SH-001` diagnostic, so a `--format json` caller sees the
+      reason rather than an empty list. Both wirings are pinned by tests that
+      redden when the call is removed.
 - [x] **AC5d** — The guard is case-folded. `Path.resolve()` does not
       canonicalise case on a case-insensitive filesystem (macOS default), so
       `…/Fixtures/…` reaches the same on-disk tree; unfolded, it matched

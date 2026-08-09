@@ -756,6 +756,7 @@ def _synthetic_source(root: Path) -> Path:
     # forbids committing, and .pytest_cache lists engine test node IDs.
     (eng / "agentbundle" / "__pycache__").mkdir()
     (eng / "agentbundle" / "__pycache__" / "cli.cpython-311.pyc").write_bytes(b"\x00/Users/someone/x")
+    (eng / "agentbundle" / "__pycache__" / "cli.cpython-311.pyo").write_bytes(b"\x00/Users/someone/x")
     (eng / ".pytest_cache" / "v").mkdir(parents=True)
     (eng / ".pytest_cache" / "v" / "nodeids").write_text("[]\n", encoding="utf-8")
     (eng / "agentbundle.egg-info").mkdir()
@@ -787,6 +788,18 @@ def test_vendored_engine_carries_no_tests(tmp_path):
     assert not [k for k in fb if "/build/lib/" in k], (
         "setuptools build output at the collect root was vendored"
     )
+    # The residue half. Without these the prune could be disabled outright and
+    # the suite would stay green — and this is the half that writes a real
+    # username into an adopter's repo via a .pyc's embedded build path.
+    residue = [
+        k
+        for k in fb
+        if "__pycache__" in k
+        or ".pytest_cache" in k
+        or ".egg-info" in k
+        or k.endswith((".pyc", ".pyo"))
+    ]
+    assert not residue, f"vendored engine carries build residue: {residue}"
     leaked = [k for k in fb if "/tests/" in k or k.endswith("conftest.py")]
     assert not leaked, f"vendored engine carries test content: {leaked}"
 
@@ -882,7 +895,7 @@ def test_init_self_hosted_vendored_emits_no_test_content(tmp_path: Path) -> None
             or any(part.endswith(".egg-info") for part in parts)
             # root-relative: <vendored>/agentbundle/{build,dist}/ is setuptools
             # output; <vendored>/agentbundle/agentbundle/build/ is the package.
-            or (len(parts) > 1 and parts[1] in {"build", "dist"})
+            or parts[:2] in {("agentbundle", "build"), ("agentbundle", "dist")}
         ):
             leaked.append(f.relative_to(cfg.target).as_posix())
     assert not leaked, f"vendored payload carries test content or build residue: {leaked}"

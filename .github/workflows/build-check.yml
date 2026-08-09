@@ -224,7 +224,12 @@ jobs:
       # nothing here would catch it regressing to always-exit-0. make
       # build-check runs no pytest — wire its tests explicitly.
       - name: pytest export-boundary gate
-        run: python -m pytest tools/test_check_artifact_contents.py
+        # `build` is needed by test_real_wheel_carries_no_engine_tests, which
+        # otherwise pytest.skips — the AC3 check would report green having
+        # never run.
+        run: |
+          python -m pip install --quiet build
+          python -m pytest tools/test_check_artifact_contents.py
 
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)

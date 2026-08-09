@@ -1638,10 +1638,10 @@ def _refuse_fixture_packs_dir(packs_dir: Path, *, dry_run: bool) -> int | None:
     )
     if by_component or "tests/fixtures/" in packs_dir.as_posix().lower():
         print(
-            f"self-host: refusing — --packs-dir {packs_dir} points into a test "
+            f"self-host: refusing — packs path {packs_dir} points into a test "
             "fixture tree; this would overwrite your working tree with fixture "
-            "data. Set ALLOW_FIXTURE_PACKS=1 to override, or use "
-            "--packs-dir packs.",
+            "data. Point it at your real packs directory, or set "
+            "ALLOW_FIXTURE_PACKS=1 to override.",
             file=sys.stderr,
         )
         return 2
