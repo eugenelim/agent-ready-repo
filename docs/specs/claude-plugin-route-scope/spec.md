@@ -91,12 +91,14 @@ Used by every criterion below. A pack is **publishable** when all hold:
 
 ## What shipped
 
-Every criterion is met **except AC18's removal clause**, which is deferred with
-a slug. What ships pins that a stale `claude-plugins/<pack>/` relpath is absent
-from a fresh render; what it does not pin is that `upgrade` therefore deletes
-it. Two attempts to drive the production comparator failed — `diff.run` returns
-0 and prints nothing even on a real divergence — so the changelog's
-file-deletion disclosure currently rests on reading the code, not on a test.
+Every criterion is met.
+
+One correction is worth carrying: AC18's removal clause rested on a **false
+premise**. Three rounds of review — and this spec's own changelog — asserted
+that `agentbundle upgrade` deletes a pre-change `claude-plugins/<pack>/` tree.
+Driving the real command shows it does not: `upgrade` adds rendered relpaths to
+`state.files` and never prunes ones the render dropped, so the tree is orphaned,
+not removed. The changelog now says that, and a test pins it.
 
 Otherwise: the route publishes only user-capable packs, says so everywhere it is
 advertised, and each control is asserted by a gate that fails when the thing it
@@ -406,7 +408,7 @@ fixture continuation indentation RFC-0082's relocation will carry.
   `{output_root}/claude-plugins/{pack_name}/`; after the filter that directory is
   absent for the seven, including `core`.
 
-- [ ] **AC18 — The six `render_pack` consumers are named and asserted.** *(deferred: plugin-upgrade-removal-artifact)*
+- [x] **AC18 — The six `render_pack` consumers are named and asserted.**
   `commands/render.py`, `diff.py`, `init_state.py`, `upgrade.py`,
   `install.py --emit-install-routes`, `validate.py`. `init-state` writes rendered
   relpaths into the state file, so a pre-change `state.json` carries paths the

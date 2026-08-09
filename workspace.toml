@@ -445,14 +445,6 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # AC18's removal clause. What ships pins that a stale claude-plugins/<pack>/
-  # relpath is absent from a fresh render; it does NOT pin that `upgrade`
-  # therefore deletes it, which is what the changelog tells adopters. Two
-  # attempts to drive the comparator failed — diff.run returns 0 and prints
-  # nothing even on a real divergence, so it is not the comparator upgrade
-  # uses. Fix: identify the real entry point, build an adopter tree whose
-  # state carries the relpath, and assert the removal.
-  {slug = "plugin-upgrade-removal-artifact", source = "spec/claude-plugin-route-scope AC18"},
   # publish_claude_plugins.py's _assert_membership call site is unasserted:
   # deleting the call leaves tools/test-publish-claude-plugins.py green, and it
   # is the only runtime check between `git push` and a public marketplace.

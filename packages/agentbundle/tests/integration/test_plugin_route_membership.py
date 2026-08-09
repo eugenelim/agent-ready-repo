@@ -188,24 +188,77 @@ def test_render_pack_omits_the_route_for_a_repo_only_pack() -> None:
     assert any(k.startswith("apm/core/") for k in rendered)
 
 
-def test_stale_route_relpath_is_absent_from_a_fresh_render() -> None:
-    """Half of the migration case, and only half — see the criterion.
+def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> None:
+    """What `upgrade` actually does with a pre-change `claude-plugins/<pack>/`.
 
-    What this pins: a `claude-plugins/core/…` relpath a pre-change install
-    recorded is absent from a fresh render. What it does **not** pin: that
-    `upgrade` therefore deletes it. Two attempts to drive the production
-    comparator failed — `diff.run` returns 0 and prints nothing even on a real
-    divergence, so it is not the comparator `upgrade` uses, and the right entry
-    point has not been identified.
+    The changelog told adopters this tree was *deleted*. Driving the real
+    `upgrade` — both the re-apply path and a genuine version bump — shows it is
+    not: `upgrade` adds rendered relpaths to `state.files` and never prunes ones
+    the render dropped, so the files stay on disk and stay listed.
 
-    Recorded rather than papered over: the changelog tells adopters `upgrade`
-    deletes these files, and that claim currently rests on reading the code.
-    Slug `plugin-upgrade-removal-artifact`.
+    Pinned because the disclosure adopters read depends on it. If a future
+    change starts pruning, this test fails and the changelog needs revisiting —
+    which is the point.
     """
+    import argparse
+    import contextlib
+    import io
+    import re as _re
+    import shutil
+
+    from agentbundle.commands import install, upgrade
+
+    catalogue = tmp_path / "cat"
+    (catalogue / "packs").mkdir(parents=True)
+    shutil.copytree(REPO_ROOT / "packs" / "core", catalogue / "packs" / "core",
+                    symlinks=False)
+    root = tmp_path / "adopter"
+    root.mkdir()
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        install.run(argparse.Namespace(
+            pack="core", catalogue=str(catalogue), output=str(root),
+            scope=None, force=False,
+        ))
+
+    # What a pre-change dist-tree install left behind.
+    stale_rel = "claude-plugins/core/skills/work-loop/SKILL.md"
+    stale = root / stale_rel
+    stale.parent.mkdir(parents=True, exist_ok=True)
+    stale.write_text("previously installed\n", encoding="utf-8")
+    state = root / ".agentbundle-state.toml"
+    marker = "[pack.core.adapters.claude-code.files]"
+    state.write_text(state.read_text(encoding="utf-8").replace(
+        marker,
+        marker + f'\n"{stale_rel}" = {{ from-pack-version = "2.5.2", '
+        f'sha = "{"0" * 64}" }}',
+        1,
+    ), encoding="utf-8")
+
+    # A genuine version bump, not just a re-apply.
+    pack_toml = catalogue / "packs" / "core" / "pack.toml"
+    pack_toml.write_text(
+        _re.sub(r'^version = "[^"]+"', 'version = "99.0.0"',
+                pack_toml.read_text(encoding="utf-8"), count=1, flags=_re.M),
+        encoding="utf-8",
+    )
+
+    with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+        rc = upgrade.run(argparse.Namespace(
+            pack="core", catalogue=str(catalogue), root=str(root), scope="repo",
+            adapter=None, yes=True, dry_run=False, json=False, force=False,
+            all=False, primitive=None,
+        ))
+
+    assert rc == 0
+    assert stale.exists(), "upgrade does not delete the orphaned tree"
+    assert stale_rel in state.read_text(encoding="utf-8"), (
+        "the relpath stays listed in state — upgrade never prunes dropped renders"
+    )
+    # And the route itself is genuinely gone from the fresh render.
     from agentbundle.render import render_pack
 
-    stale = "claude-plugins/core/skills/work-loop/SKILL.md"
-    assert stale not in set(render_pack(REPO_ROOT / "packs" / "core"))
+    assert not any(k.startswith("claude-plugins/core/")
+                   for k in render_pack(REPO_ROOT / "packs" / "core"))
 
 
 # --- Controls that had no artifact until round five --------------------------
