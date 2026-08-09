@@ -29,6 +29,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import importlib.util as _ilu
 import json
 import sys
 import tomllib
@@ -37,31 +38,12 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
+_ps = _ilu.spec_from_file_location("pack_scope", Path(__file__).parent / "pack_scope.py")
+_pack_scope = _ilu.module_from_spec(_ps)
+_ps.loader.exec_module(_pack_scope)
+allowed_scopes = _pack_scope.allowed_scopes
+
 GATE = "lint-plugin-membership"
-
-
-def allowed_scopes(pack_meta: dict) -> list[str]:
-    """Mirror of ``commands/validate.py:_allowed_scopes``.
-
-    The gate is ``[pack.adapter-contract].version``, **not** ``[pack.install]``:
-    a pack declaring ``allowed-scopes`` with no contract version resolves
-    ``["repo"]``.
-    """
-    pack = pack_meta.get("pack", {})
-    if not isinstance(pack, dict):
-        return ["repo"]
-    contract = pack.get("adapter-contract")
-    version = contract.get("version") if isinstance(contract, dict) else None
-    if version is None or version == "0.1":
-        return ["repo"]
-    install = pack.get("install", {})
-    if not isinstance(install, dict):
-        return ["repo"]
-    declared = install.get("allowed-scopes")
-    if isinstance(declared, list) and declared:
-        return [s for s in declared if isinstance(s, str)]
-    default = install.get("default-scope")
-    return [default] if isinstance(default, str) else ["repo"]
 
 
 def publishable(packs_dir: Path) -> set[str]:

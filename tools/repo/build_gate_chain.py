@@ -195,6 +195,14 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-experience-agnostic",
             "tools", "lint-experience-agnostic.py",
         ),
+        # tools/pack_scope.py is the single stdlib mirror of
+        # commands/validate.py:_allowed_scopes that the three route gates and
+        # the publish script share. This differential test is what stops it
+        # drifting from the resolver it mirrors.
+        _script_step(
+            "test-pack-scope",
+            "tools", "test-pack-scope.py",
+        ),
         # Claude-plugin route membership. Lives here, not in pytest: this is
         # the only required, path-unfiltered gate, and `make build-check` runs
         # no pytest. Widening a pack's allowed-scopes publishes its code to a
@@ -206,6 +214,34 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "lint-plugin-membership",
             "tools", "lint-plugin-membership.py",
+        ),
+        # The roster tripwire. Distinct from the membership lint above, which
+        # derives both sides from the same predicate and is therefore green
+        # when the predicate itself is wrong. This one enumerates literally.
+        _script_step(
+            "test-lint-plugin-roster",
+            "tools", "test-lint-plugin-roster.py",
+        ),
+        _script_step(
+            "lint-plugin-roster",
+            "tools", "lint-plugin-roster.py",
+        ),
+        # The publish script's three refusals are the only runtime check
+        # between `git push` and a public marketplace — the publish job has no
+        # `needs:` on this one.
+        _script_step(
+            "test-publish-claude-plugins",
+            "tools", "test-publish-claude-plugins.py",
+        ),
+        # Per-site `(path, pattern, expected)` — the sites do not share a
+        # pattern, so one repo-wide grep would pass green on most of them.
+        _script_step(
+            "test-lint-plugin-route-docs",
+            "tools", "test-lint-plugin-route-docs.py",
+        ),
+        _script_step(
+            "lint-plugin-route-docs",
+            "tools", "lint-plugin-route-docs.py",
         ),
         # The site's `pluginInstallable` field is hand-copied from pack.toml —
         # `tools/build-site.py` feeds docs-site/, not web/ — so this is what

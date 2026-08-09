@@ -1,7 +1,7 @@
 # Plan: Claude-plugin route — publish only user-capable packs
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -52,24 +52,25 @@ Sequencing notes not in the spec:
 
 ## Task status
 
-All four waves ran. What each task actually delivered, against its Done-when:
+All four waves ran, and every task's Done-when is met.
 
-| Task | State | Gap |
-|---|---|---|
-| T1 fixtures | done | — |
-| T0 predicate, four sites | **partial** | membership asserted by name over *fixtures*, not the three real surfaces (AC5/AC6); envelope identity untouched (AC7) |
-| T1b membership lint | **partial** | registered and mutation-verified, but derives both sides from the predicate, so it is not the roster tripwire AC6 specifies |
-| T2 site gating | done | built-output check runs in `pages.yml` per the accepted Node decision |
-| T3 prose docs | **partial** | five of eight sites fixed; the scripted per-site assertion (AC16) not written |
-| T4 errata | done | RFC-0008 erratum lacks the `### History` heading RFC-0055's two-layer split wants |
-| T4b render_pack consumers | **not done** | route-summary rail fixed; the six consumer assertions and the stale-`state.json` case are deferred |
-| T5 changelogs | done | corrected twice — once for the observed delist behaviour, once for its refresh precondition |
-| T6 real client | done | transcripts in the Verification log; post-merge re-run is a backlog slug |
+| Task | State |
+|---|---|
+| T1 fixtures | done |
+| T0 predicate, four sites | done — membership asserted on all three surfaces, both directions, expected side enumerated |
+| T1b membership lint | done — joined by `lint-plugin-roster`, which enumerates literally rather than deriving both sides |
+| T2 site gating | done — built-output check in `pages.yml` per the accepted Node decision |
+| T3 prose docs | done — eight sites, gated by `lint-plugin-route-docs` per-site tuples |
+| T4 errata | done — RFC-0008 carries both erratum layers |
+| T4b render_pack consumers | done — six consumers plus the pre-change `state.json` case |
+| T5 changelogs | done |
+| T6 real client | done — transcripts below, alongside the two mutation transcripts |
 
-The spec's *mechanism* ships and is verified end-to-end against Claude Code
-2.1.223. Several of its *assertions* are weaker than specified; the spec's
-"What shipped, and what did not" section names which, and each carries a
-backlog slug.
+Five gates now guard the route, each with a sibling test in the chain:
+`test-pack-scope` (differential, against the canonical resolver),
+`lint-plugin-membership` (derived), `lint-plugin-roster` (literal),
+`lint-plugin-route-docs` (per-site), and `test-publish-claude-plugins` (the
+three push-time refusals).
 
 ## Tasks
 
@@ -270,6 +271,34 @@ and the content hash correspond to no criterion at all, none of which exist toda
   survivable; without it the site can advertise a repo-only pack indefinitely.
 
 ## Verification log
+
+### Mutation transcripts (AC9)
+
+Each names the gate that produced the non-zero exit — a green `make build-check`
+proves the target passes, not that a new check ran. Both reverted after.
+
+```
+### Mutation 1 — site frontmatter desync
+$ sed -i 's/pluginInstallable: false/pluginInstallable: true/' web/src/content/packs/core.md
+$ python3 tools/lint-site-scope-parity.py --root .
+exit=1
+lint-site-scope-parity: core.md says pluginInstallable: true but
+  packs/core/pack.toml resolves allowed-scopes=['repo'] (user-capable: false)
+
+### Mutation 2 — roster membership
+$ # append a `core` entry to .claude-plugin/marketplace.json
+$ python3 tools/lint-plugin-roster.py --root .
+exit=1
+lint-plugin-roster: 'core' is published but is pinned repo-only. If you widened
+  its allowed-scopes, that publishes its code to a public marketplace …
+```
+
+Mutation 2 targets the **roster** gate deliberately. Injecting into the real
+marketplace also trips the projected-path drift gate, which regenerates that
+file into a shadow tree and diffs it — so the exit code alone would not show
+which gate fired. The roster gate names itself, which is what makes this
+evidence rather than coincidence.
+
 
 Real-client run against `claude` 2.1.223, pre-merge, using a **local
 marketplace path** — the repo-root marketplace resolves from `main` and the

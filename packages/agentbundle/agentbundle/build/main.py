@@ -939,19 +939,37 @@ def _run_aggregate(
     # no `repo`, so leaving the old split in place would silently drop the
     # envelope's `name`, `owner` and `description` — the same defect the
     # 2026-07 "marketplace missing top-level name" fix already corrected once.
-    marketplace_name: str | None = None
-    marketplace_owner: dict | None = None
+    # Every surviving entry must agree. Taking the FIRST match let a filtered
+    # set silently re-key the marketplace to whichever pack happened to sort
+    # first — identity derived from pack-supplied metadata, decided by an
+    # unrelated membership change. Refuse on disagreement instead (spec AC7).
+    identities: set[tuple[str, str]] = set()
     for entry in entries:
         src = entry.get("source")
-        if isinstance(src, dict):
-            url = src.get("url", "")
-            if isinstance(url, str):
-                m = _GITHUB_URL_RE.match(url)
-                if m:
-                    owner_part, name_part = m.group(1).split("/", 1)
-                    marketplace_name = name_part
-                    marketplace_owner = {"name": owner_part}
-                    break
+        if not isinstance(src, dict):
+            continue
+        url = src.get("url", "")
+        if not isinstance(url, str):
+            continue
+        m = _GITHUB_URL_RE.match(url)
+        if m and "/" in m.group(1):
+            owner_part, name_part = m.group(1).split("/", 1)
+            identities.add((owner_part, name_part))
+
+    if len(identities) > 1:
+        rendered = ", ".join(f"{o}/{n}" for o, n in sorted(identities))
+        raise ValueError(
+            "marketplace: surviving entries disagree on the repository identity "
+            f"the envelope is derived from ({rendered}). Publishing would key "
+            "the marketplace to whichever pack sorted first."
+        )
+
+    marketplace_name: str | None = None
+    marketplace_owner: dict | None = None
+    if identities:
+        owner_part, name_part = next(iter(identities))
+        marketplace_name = name_part
+        marketplace_owner = {"name": owner_part}
 
     payload: dict = {}
     if marketplace_name:

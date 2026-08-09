@@ -13,6 +13,7 @@ Invoked by .github/workflows/publish-claude-plugins.yml after `make build`.
 
 from __future__ import annotations
 
+import importlib.util as _ilu
 import json
 import shlex
 import shutil
@@ -32,30 +33,12 @@ BRANCH = "claude-plugins-dist"
 EXCLUDE = {"catalogue-curation"}  # operator-only pack
 
 
-def _allowed_scopes(pack_meta: dict) -> list[str]:
-    """Mirror of ``commands/validate.py:_allowed_scopes``.
-
-    Duplicated deliberately: this script is stdlib-only and its documented
-    invocation is a bare ``python3 tools/catalogue/publish_claude_plugins.py``,
-    with no guarantee ``agentbundle`` is importable. The gate here is
-    ``[pack.adapter-contract].version``, **not** ``[pack.install]`` — a pack
-    declaring ``allowed-scopes`` with no contract version resolves ``["repo"]``.
-    """
-    pack = pack_meta.get("pack", {})
-    if not isinstance(pack, dict):
-        return ["repo"]
-    contract = pack.get("adapter-contract")
-    version = contract.get("version") if isinstance(contract, dict) else None
-    if version is None or version == "0.1":
-        return ["repo"]
-    install = pack.get("install", {})
-    if not isinstance(install, dict):
-        return ["repo"]
-    allowed = install.get("allowed-scopes")
-    if isinstance(allowed, list) and allowed:
-        return [s for s in allowed if isinstance(s, str)]
-    default = install.get("default-scope")
-    return [default] if isinstance(default, str) else ["repo"]
+_ps = _ilu.spec_from_file_location(
+    "pack_scope", Path(__file__).resolve().parents[1] / "pack_scope.py"
+)
+_pack_scope = _ilu.module_from_spec(_ps)
+_ps.loader.exec_module(_pack_scope)
+_allowed_scopes = _pack_scope.allowed_scopes
 
 
 def _publishable_from_source() -> set[str]:

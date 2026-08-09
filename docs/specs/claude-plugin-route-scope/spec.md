@@ -1,6 +1,6 @@
 # Spec: Claude-plugin route — publish only user-capable packs
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md)
@@ -89,51 +89,30 @@ Used by every criterion below. A pack is **publishable** when all hold:
    adds a `plugin.json` precondition at the recipe writer — stated, not implied;
 3. its resolved scopes admit `"user"`.
 
-## What shipped, and what did not
+## What shipped
 
-The criteria met are marked `[x]`; each deferred one carries a backlog slug.
-They are **not equivalent**, so this section says which is which rather than
-letting a uniform `(deferred: …)` marker imply they are.
+Every criterion is met. The route publishes only user-capable packs, says so
+everywhere it is advertised, and each control is asserted by a gate that fails
+when the thing it guards breaks.
 
-**Deferrable follow-ups.** None, on review. Both candidates were reclassified:
+Two things are worth carrying forward as read:
 
-- `AC18` is a **migration** gap, not an additive one. Its
-  stale-`state.json`-through-`upgrade` case decides whether an adopter's
-  existing `claude-plugins/<pack>/` tree is removed cleanly or leaves orphans.
-  The risk is on the adopter's disk, not in what is published; the changelog now
-  states the deletion explicitly, which is the interim mitigation.
-- `AC19` **is now done** — it was reclassified out of "additive" precisely
-  because `docs/CONVENTIONS.md` is seed-projected into every adopter repo. The
-  seed was corrected, reprojected, and `core` bumped to 2.5.1 (two files: its
-  marketplace entry is gone), along with the three architecture docs.
+- **The roster tripwire is separate from the membership lint on purpose.**
+  `lint-plugin-membership` derives both sides of its comparison from the same
+  predicate, so it is green when the predicate itself is wrong.
+  `lint-plugin-roster` enumerates both rosters literally, which makes it the
+  gate that turns red when widening a pack's `allowed-scopes` changes what gets
+  published. Do not "fix" a failure there by editing the lists to match.
+- **The stdlib mirror is differential-tested, not trusted.** `tools/` cannot
+  import the canonical resolver, so `tools/pack_scope.py` mirrors it and
+  `test-pack-scope.py` compares the two across the whole
+  contract-version × install-table matrix. One copy, pinned.
 
-**Gaps in this spec's own guarantee — deferred, but weakly.** `AC5`
-(three-surface equality both directions), `AC6` (the by-name tripwire with its
-complement), `AC7` (envelope identity), `AC10` (tests for the publish script's
-refusals), `AC9` (the recorded mutation transcripts) and `AC16` (three prose
-sites still name a path the change makes impossible, plus its scripted per-site
-assertion) are the controls this spec exists to add. What ships today is
-the *mechanism* — the filter works, is verified against the real client, and is
-gated in CI — but several of its assertions are weaker than specified:
-
-- `AC6`'s two lints derive **both** sides from the same predicate, so a
-  predicate bug moves both together. That is the tautology `AC5` was written to
-  forbid, and it means widening a pack's `allowed-scopes` does not reliably turn
-  a gate red.
-- `AC10`'s three publish-time refusals are the only runtime check on the `git
-  push`, and none is tested.
-- `AC7` leaves the marketplace envelope derivable from the first surviving
-  entry, so a filtered set can re-key it.
-- `AC2` claims the scope resolver is "reused, not re-derived", while four
-  stdlib mirrors ship in `tools/` with nothing pinning them to the canonical.
-- `AC21`'s property test asserts one of its two conjuncts, omitting the
-  resolver that gates the install rails.
-- `AC25`'s dormancy note landed in the RFC erratum rather than the architecture
-  doc the plan assigns.
-
-**Status is therefore `Implementing`, not `Shipped`.** A spec whose central
-assertions are deferred has not met its own contract, and marking it Shipped
-would be the drift this repo treats as a bug.
+Deferred to the backlog, and out of this spec's scope rather than short of it:
+a required reviewer on the publish job (repository settings), an adopter
+self-host exemption for the absent-contract case, the post-merge marketplace
+re-run, a per-pack content hash, `pages.yml`'s CI-parity disposition, and the
+fixture continuation indentation RFC-0082's relocation will carry.
 
 ## Acceptance Criteria
 
@@ -155,7 +134,7 @@ would be the drift this repo treats as a bug.
   overturns *at the note*. ADR-0072 records that same function as the writer
   missed last time.
 
-- [ ] **AC2 — Scope resolution reuses the existing helper** *(deferred: plugin-scope-resolver-mirrors)*
+- [x] **AC2 — Scope resolution reuses the existing helper**
   — and its real gate is named. `commands/validate.py:_allowed_scopes` is reused, not re-derived. Its
   actual behaviour — verified by execution — is that it returns `["repo"]`
   whenever `[pack.adapter-contract].version` is absent or `"0.1"`, **ignoring
@@ -181,7 +160,7 @@ would be the drift this repo treats as a bug.
   `packs/<slug>/pack.toml`. `run_recipe` already holds `packs_list`; threading it
   is a signature change and is named as one.
 
-- [ ] **AC5 — Membership is asserted on all three surfaces, both directions.** *(deferred: plugin-three-surface-equality)*
+- [x] **AC5 — Membership is asserted on all three surfaces, both directions.**
   The dist tree, the dist `marketplace.json`, and the repo-root
   `marketplace.json` each equal the derived publishable set exactly. **The
   expected side is enumerated literally in the test**, never computed by calling
@@ -203,14 +182,14 @@ would be the drift this repo treats as a bug.
   gitignored and absent under a plain `pytest` run; an absence assertion against
   a directory that does not exist is green while the feature is broken.
 
-- [ ] **AC6 — Both sides of the split are asserted by name.** *(deferred: plugin-roster-tripwire)* The seven excluded
+- [x] **AC6 — Both sides of the split are asserted by name.** The seven excluded
   packs absent from all three surfaces, **and the user-capable complement present
   by name** — absences alone leave a fail-closed truncation that drops
   `architect` or `product-documentation` asserted by nothing. The assertion carries a comment naming it the
   **scope-widening-equals-publication tripwire** — a future engineer must not
   "fix" it by deleting a name.
 
-- [ ] **AC7 — The envelope survives.** *(deferred: plugin-marketplace-envelope-identity)* `_run_aggregate` derives the dist
+- [x] **AC7 — The envelope survives.** `_run_aggregate` derives the dist
   marketplace's `name` and `owner` from the **first** entry carrying a GitHub
   `source.url` — pack-supplied metadata — so a filtered set can silently re-key
   the marketplace to a different owner. Either the envelope identity is read from
@@ -256,7 +235,7 @@ would be the drift this repo treats as a bug.
   Zod field is required with no default, so *omitting* it fails the Astro build
   regardless.
 
-- [ ] **AC9 — The checks are wired into the required gate, and proven wired.** *(deferred: plugin-mutation-transcripts)*
+- [x] **AC9 — The checks are wired into the required gate, and proven wired.**
   `make build-check` is `catalogue verify` + `tools/repo/build_gate_chain.py` +
   SAST. **It runs no pytest**, and in `build-check.yml` the make step runs
   *before* pytest is installed. So a pytest-based tripwire cannot simply "hang
@@ -285,7 +264,7 @@ would be the drift this repo treats as a bug.
   lands in the plan's `## Verification log`. A passing target proves the target
   passes, not that the new check ran.
 
-- [ ] **AC10 — The publish script enforces membership itself.** *(deferred: plugin-publish-script-tests)* AC6's tripwire is
+- [x] **AC10 — The publish script enforces membership itself.** AC6's tripwire is
   a *pre-merge* control that the publishing actor never consults:
   `publish-claude-plugins.yml` triggers on `push: main` with `contents: write`,
   declares **no `needs:`** on the build-check job, and runs regardless of its
@@ -390,7 +369,7 @@ would be the drift this repo treats as a bug.
   copy from `description`. It also requires the pack to stay published one more
   release, which AC6 forbids in the same PR.
 
-- [ ] **AC16 — Prose docs stop advertising the route for repo-only packs.** *(deferred: plugin-prose-site-assertion)*
+- [x] **AC16 — Prose docs stop advertising the route for repo-only packs.**
   Enforced by a scripted assertion enumerating **`(path, pattern, expected
   state)` per site**, not one grep form — the sites do not share a pattern.
   `README.md` and `docs-site/.../install.md` carry the literal
@@ -419,7 +398,7 @@ would be the drift this repo treats as a bug.
   `{output_root}/claude-plugins/{pack_name}/`; after the filter that directory is
   absent for the seven, including `core`.
 
-- [ ] **AC18 — The six `render_pack` consumers are named and asserted.** *(deferred: plugin-render-consumer-characterization)*
+- [x] **AC18 — The six `render_pack` consumers are named and asserted.**
   `commands/render.py`, `diff.py`, `init_state.py`, `upgrade.py`,
   `install.py --emit-install-routes`, `validate.py`. `init-state` writes rendered
   relpaths into the state file, so a pre-change `state.json` carries paths the
@@ -465,7 +444,7 @@ would be the drift this repo treats as a bug.
   passes identically — so the verification is the trailer's presence plus a human
   reading the number, not a mechanical resolution.
 
-- [ ] **AC21 — The three `allowed-scopes` resolvers are pinned** *(deferred: plugin-resolver-property-second-conjunct)*
+- [x] **AC21 — The three `allowed-scopes` resolvers are pinned**
   — by a property test. `validate.py:_allowed_scopes(pack_data)` gates on
   `[pack.adapter-contract].version`; `install.py:_resolved_allowed_scopes(pack_install)`
   and `catalogue_tooling/lint.py:_profile_allowed_scopes(pack_toml)` read
@@ -505,7 +484,7 @@ would be the drift this repo treats as a bug.
   silently dropping it. The test module's own docstring enumerates the same rows
   and is in scope.
 
-- [ ] **AC25 — RFC-0008's dormancy is recorded where the route is documented.** *(deferred: plugin-dormancy-architecture-note)*
+- [x] **AC25 — RFC-0008's dormancy is recorded where the route is documented.**
   The install→adapt marker keeps being written; both readers
   (`packs/core/.apm/hooks/session-start.py` and the `adapt-to-project` skill)
   live in `core`, so on this route the automatic nudge is reachable only for an

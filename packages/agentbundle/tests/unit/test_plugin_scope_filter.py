@@ -65,10 +65,16 @@ def test_user_membership_implication_holds(
     contract_version: str | None, declared: list[str] | None
 ) -> None:
     from agentbundle.catalogue_tooling.lint import _profile_allowed_scopes
+    from agentbundle.commands.install import _resolved_allowed_scopes
 
     pack = _pack(contract_version, declared)
     if "user" in _allowed_scopes(pack):
+        # Both conjuncts. The three resolvers take different argument shapes:
+        # the whole pack dict, the [pack.install] table, and the parsed TOML.
         assert "user" in _profile_allowed_scopes(pack)
+        assert "user" in _resolved_allowed_scopes(
+            pack.get("pack", {}).get("install", {})
+        )
 
 
 # --- Red until the filter lands: driven by name, not by a raise ---
