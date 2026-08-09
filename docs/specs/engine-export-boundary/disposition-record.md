@@ -131,8 +131,8 @@ the argument for the mode's reviewer set being a floor rather than a menu.
   depth**; `build/` and `dist/` **root-relative**. The split is the whole
   finding: a first attempt pruned `build` by name and silently removed
   `agentbundle/build/` — the shipped build-pipeline package — leaving a
-  vendored engine that could not import. That is K-0048's trap, reintroduced
-  by the fix that captured it, and caught only because the final review round
+  vendored engine that could not import. That is the trap the knowledge entry
+  below records, reintroduced by the fix that captured it, and caught only because the final review round
   ran the vendored copy instead of reading it. Registered as a backlog slug first, then fixed
   here instead: a `.pyc` embeds an absolute build path including a real
   username, which AGENTS.md § Privacy forbids committing, so it is not a
@@ -153,6 +153,7 @@ the argument for the mode's reviewer set being a floor rather than a menu.
 in shipped engine code the repo-root sweep never sees) and
 `agentbundle-install-marker-importable-path`.
 
-**Knowledge captured:** K-0048 (a test directory named `build` is invisible to
-pytest and ruff) and K-0049 (a test that supplies the wiring it is meant to
-verify) in `docs/knowledge/patterns.jsonl`.
+**Knowledge captured:** two entries in `docs/knowledge/patterns.jsonl`, cited
+by title rather than id because ids are reallocated on curation — *A test
+directory named `build` is invisible to pytest and ruff* and *A test that
+supplies the wiring it is meant to verify*.

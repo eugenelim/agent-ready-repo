@@ -92,8 +92,8 @@ _VENDORED_ENGINE_EXCLUDE: tuple[str, ...] = (
 # `build` and `dist` are deliberately NOT here. `agentbundle/build/` is the
 # shipped build-pipeline package — adapters, projections, recipes, self_host —
 # and pruning that name at any depth removes it, leaving an engine that cannot
-# import. That is K-0048's trap (a bare `build` matching at any depth) and it
-# bit this very fix. Root-relative build output is pruned through the ordinary
+# import. A bare `build` matching at any depth is the trap, and it bit this
+# very fix. Root-relative build output is pruned through the ordinary
 # `prune` mechanism instead; see `_VENDORED_ENGINE_EXCLUDE`.
 _BUILD_RESIDUE_DIRS: frozenset[str] = frozenset({"__pycache__", ".pytest_cache"})
 _VENDORED_PACK_EXCLUDE: tuple[str, ...] = ("tests/",)

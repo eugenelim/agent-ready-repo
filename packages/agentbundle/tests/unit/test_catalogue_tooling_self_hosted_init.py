@@ -740,8 +740,7 @@ def _synthetic_source(root: Path) -> Path:
     (eng / "agentbundle" / "cli.py").write_text("x\n", encoding="utf-8")
     # The shipped build-pipeline package. Its name collides with setuptools'
     # build *output*, so a name-at-any-depth prune removes it and leaves an
-    # engine that cannot import — the K-0048 trap. Present here so that
-    # over-pruning reddens.
+    # engine that cannot import. Present here so that over-pruning reddens.
     (eng / "agentbundle" / "build" / "adapters").mkdir(parents=True)
     (eng / "agentbundle" / "build" / "self_host.py").write_text("x\n", encoding="utf-8")
     (eng / "agentbundle" / "build" / "adapters" / "cursor.py").write_text("x\n", encoding="utf-8")
