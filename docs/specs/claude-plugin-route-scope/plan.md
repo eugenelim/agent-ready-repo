@@ -293,19 +293,29 @@ lint-plugin-roster: 'core' is published but is pinned repo-only. If you widened
   its allowed-scopes, that publishes its code to a public marketplace …
 ```
 
-**Through the chain, and its limit.** Both mutations were also run under
-`tools/repo/build_gate_chain.py build-check`, which exits 1 — but the chain
-stops at its first failing step, and injecting into `.claude-plugin/marketplace.json`
-trips the projected-path drift gate *before* the roster gate is reached, since
-that file is regenerated into a shadow tree and diffed. So the chain's exit code
-alone cannot attribute the failure.
+**Through the required gate.** Both mutations were also run under
+`tools/repo/build_gate_chain.py build-check` — the chain `make build-check`
+invokes:
 
-What the direct invocations above establish is that each gate fires and names
-itself on its own input. What is **not** established by mutation is that each is
-reachable from `make build-check` — that rests on the `build_gate_chain.py`
-registration and `lint-ci-parity` corroborating it, not on an observed failure.
-Recorded as a gap rather than papered over: a mutation isolating a single late
-step needs a chain runner that continues past the first failure.
+```
+$ sed -i 's/pluginInstallable: false/pluginInstallable: true/' web/src/content/packs/core.md
+$ python3 tools/repo/build_gate_chain.py build-check --packs-dir packs --output-dir dist
+…
+68 passed, 0 failed
+build chain: ✖ lint-site-scope-parity failed (exit 1)
+exit 1
+```
+
+The chain stops at its first failure, so the `68 passed` line is load-bearing:
+`test-pack-scope`, both membership steps, both roster steps,
+`test-publish-claude-plugins` and both route-docs steps ran and passed before
+this one fired. That establishes reachability from the required gate, not just
+that the lint works standalone — which is what AC9 asks for.
+
+The one thing this shape cannot do is isolate a *late* step: a mutation
+targeting the roster gate trips the projected-path drift gate first, because
+`.claude-plugin/marketplace.json` is regenerated into a shadow tree and diffed.
+The synthetic-tree sibling tests cover those in isolation.
 
 
 Real-client run against `claude` 2.1.223, pre-merge, using a **local

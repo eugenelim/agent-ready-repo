@@ -491,15 +491,6 @@ fixture continuation indentation RFC-0082's relocation will carry.
   adopter who also has `core` at repo scope. Dormant on the user-scope path, not
   falsified; takes no erratum.
 
-## Assumptions
-
-- **The seven source `plugin.json` files are retained deliberately.** They become
-  consumer-less on this route but still feed Gate 2 (source-shape), which AC1
-  does **not** narrow, and still require a version bump in lockstep with
-  `pack.toml`. Recorded here rather than as a criterion: nothing can fail it, and
-  the Testing Strategy should not promise an artifact that does not exist.
-
-
 - [x] **AC26 — Two implementation guards, recorded because they change
   observable behaviour.** Added during EXECUTE, so they belong in the contract
   (`CONVENTIONS.md` § 4):
@@ -511,6 +502,16 @@ fixture continuation indentation RFC-0082's relocation will carry.
   - `aggregate_scope` outside `AGGREGATE_SCOPES` raises, validated at
     `run_recipe`'s boundary rather than only inside `aggregate_exit_code`, which
     per-pack recipes never reach.
+
+## Assumptions
+
+- **The seven source `plugin.json` files are retained deliberately.** They become
+  consumer-less on this route but still feed Gate 2 (source-shape), which AC1
+  does **not** narrow, and still require a version bump in lockstep with
+  `pack.toml`. Recorded here rather than as a criterion: nothing can fail it, and
+  the Testing Strategy should not promise an artifact that does not exist.
+
+
 
 ## Testing Strategy
 
@@ -528,6 +529,7 @@ fixture continuation indentation RFC-0082's relocation will carry.
 | AC19, AC22 | Goal-based | `! grep -q <pattern>` per site (not a bare no-match grep, which exits 1); agentbundle suite green after the seed edit + two-file bump; `make build-self` leaves the tree clean |
 | AC20 | Goal-based | the trailer is present and the engine gate passes; the number is checked by review, not mechanically |
 | AC21 | Unit | property test over the synthetic matrix |
+| AC26 | Integration | `--pack` on an aggregate recipe exits 1; `run_recipe` raises on an unknown scope at a per-pack call site |
 | AC23–AC25 | Goal-based | each named artifact carries its erratum / statement; matrix row and docstring retired |
 
 ## Blast radius

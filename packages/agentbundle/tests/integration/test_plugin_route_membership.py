@@ -209,3 +209,115 @@ def test_pre_change_state_relpaths_are_reported_by_diff(tmp_path) -> None:
         "the stale relpath must appear as a removal — this is the file "
         "`agentbundle upgrade` deletes from an adopter's repository"
     )
+
+
+# --- Controls that had no artifact until round five --------------------------
+
+
+def _synth_pack(root: Path, slug: str, *, user: bool, repo: str | None = None) -> None:
+    """A source pack plus its dist projection."""
+    links = f'[pack.links]\nrepository = "{repo}"\n' if repo else ""
+    scopes = '["repo", "user"]' if user else '["repo"]'
+    src = root / "packs" / slug
+    (src / ".claude-plugin").mkdir(parents=True)
+    (src / "pack.toml").write_text(
+        f'[pack]\nname = "{slug}"\nversion = "1.0.0"\n'
+        f'[pack.adapter-contract]\nversion = "0.3"\n'
+        f'[pack.install]\ndefault-scope = "repo"\nallowed-scopes = {scopes}\n' + links,
+        encoding="utf-8")
+    (src / ".claude-plugin" / "plugin.json").write_text(
+        json.dumps({"name": slug, "version": "1.0.0", "description": "d"}), encoding="utf-8")
+    dist = root / "claude-plugins" / slug
+    (dist / ".claude-plugin").mkdir(parents=True)
+    (dist / ".claude-plugin" / "plugin.json").write_text(
+        json.dumps({"name": slug, "version": "1.0.0", "description": "d"}), encoding="utf-8")
+    (dist / "pack.toml").write_text(
+        f'[pack]\nname = "{slug}"\nversion = "1.0.0"\n' + links, encoding="utf-8")
+
+
+def _recipe():
+    from agentbundle.build.main import Recipe
+    return Recipe(name="marketplace", type="aggregate", adapter=None,
+                  output_subdir=None, input_subdir="claude-plugins",
+                  output_file="marketplace.json", units=[],
+                  fragment_path=None, manifest_path=None)
+
+
+def test_catalogue_build_refuses_when_the_filter_empties_a_non_empty_set(tmp_path) -> None:
+    """AC12's hard error, driven through `_run_aggregate` rather than the pure helper.
+
+    `aggregate_exit_code` was previously the only thing tested — a pure function
+    disconnected from its single caller, so `if rc:` could be deleted and the
+    suite stayed green.
+    """
+    from agentbundle.build.main import Pack, _run_aggregate
+
+    _synth_pack(tmp_path, "repoonly", user=False)
+    with pytest.raises(ValueError, match="publishes no packs"):
+        _run_aggregate(
+            _recipe(), tmp_path,
+            packs=[Pack(name="repoonly", path=tmp_path / "packs" / "repoonly")],
+            aggregate_scope="catalogue",
+        )
+
+
+def test_blank_catalogue_is_not_an_error(tmp_path) -> None:
+    """Emptiness is a defect only when the filter caused it."""
+    from agentbundle.build.main import _run_aggregate
+
+    (tmp_path / "claude-plugins").mkdir()
+    result = _run_aggregate(_recipe(), tmp_path, packs=[], aggregate_scope="catalogue")
+    assert result["entries"] == 0
+
+
+def test_scope_resolves_from_source_not_a_stale_dist(tmp_path) -> None:
+    """AC4's control: `make build` has no `clean`, so a stale dist survives.
+
+    The dist copy keeps the OLD, user-capable declaration; the source has been
+    narrowed. Resolving from dist would republish against current intent.
+    """
+    from agentbundle.build.main import Pack, _run_aggregate
+
+    _synth_pack(tmp_path, "narrowed", user=True,
+                repo="https://github.com/eugenelim/agent-ready-repo")
+    _synth_pack(tmp_path, "keeper", user=True,
+                repo="https://github.com/eugenelim/agent-ready-repo")
+    # Narrow the SOURCE only — the dist projection still carries the old scopes.
+    src = tmp_path / "packs" / "narrowed" / "pack.toml"
+    src.write_text(src.read_text().replace('["repo", "user"]', '["repo"]'), encoding="utf-8")
+
+    _run_aggregate(
+        _recipe(), tmp_path,
+        packs=[Pack(name=n, path=tmp_path / "packs" / n) for n in ("narrowed", "keeper")],
+        aggregate_scope="catalogue",
+    )
+    listed = _names(tmp_path / "marketplace.json")
+    assert listed == {"keeper"}, "a stale dist directory must not republish"
+
+
+def test_pack_flag_refused_on_an_aggregate_recipe(tmp_path) -> None:
+    """AC26 guard one: `--pack` truncated the shared marketplace and exited 0."""
+    result = subprocess.run(
+        [sys.executable, "-m", "agentbundle.build", "build",
+         "--packs-dir", str(FIXTURES), "--output-dir", str(tmp_path / "d"),
+         "--recipe", "marketplace", "--pack", "core"],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert result.returncode == 1, result.stdout
+    assert "not meaningful" in result.stderr
+
+
+def test_run_recipe_rejects_an_unknown_scope_on_a_per_pack_recipe(tmp_path) -> None:
+    """AC26 guard two, at the boundary a per-pack recipe actually reaches.
+
+    Validating only inside `aggregate_exit_code` left per-pack call sites
+    unchecked — the class the frozenset exists to close.
+    """
+    from agentbundle.build.contract import load as load_contract
+    from agentbundle.build.main import CONTRACT_PATH, load_recipe, run_recipe
+
+    with pytest.raises(ValueError, match="aggregate_scope must be one of"):
+        run_recipe(
+            load_recipe("per-pack-claude-plugin"), [], tmp_path,
+            load_contract(CONTRACT_PATH), aggregate_scope="catalouge",
+        )

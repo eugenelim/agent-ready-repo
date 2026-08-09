@@ -36,9 +36,18 @@ def main() -> int:
 
     _check("the real tree passes", lint.check(repo) == [], f"got {lint.check(repo)}")
 
-    _check("every site names at least one assertion",
-           all(f or r for _, f, r in lint.SITES),
-           "a site with neither forbidden nor required patterns asserts nothing")
+    # The guard that actually locks in the round-four fix: five sites shipped
+    # with an empty `forbidden` list, and "names at least one assertion" was
+    # true for all of them because each had a `required` pin.
+    by_path: dict[str, set[str]] = {}
+    for path, forbidden, _ in lint.SITES:
+        by_path.setdefault(path, set()).update(forbidden)
+    missing = {
+        p for p, pats in by_path.items()
+        if not set(lint._NO_REPO_ONLY_OFFER).issubset(pats)
+    }
+    _check("every site forbids a repo-only pack offer, in both spellings",
+           not missing, f"sites with no offer constraint: {sorted(missing)}")
 
     with tempfile.TemporaryDirectory() as tmp:
         # An empty tree: every site is missing, so every site must report.

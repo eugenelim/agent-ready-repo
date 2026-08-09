@@ -66,23 +66,30 @@ def main() -> int:
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "packages" / "agentbundle"))
     try:
-        import agentbundle.commands.validate as _validate
+        import agentbundle  # noqa: F401 - genuine-absence probe only
     except ModuleNotFoundError as exc:
-        # Only a genuinely absent package skips. A *renamed or moved symbol* is
-        # exactly the drift this gate exists to catch — swallowing it as
-        # "unimportable" made the gate report success while the one-copy
-        # guarantee was gone.
         print(f"  skip differential half — agentbundle not installed ({exc})")
     else:
+        # Deliberately OUTSIDE the except: a moved or renamed
+        # `commands.validate` raises ModuleNotFoundError too, so catching it
+        # here would skip on the exact drift this gate exists to catch — the
+        # same defect one level up from the symbol check below.
+        import agentbundle.commands.validate as _validate
+
         _allowed_scopes = getattr(_validate, "_allowed_scopes", None)
-        _check("the canonical resolver is still where the mirror mirrors it from",
-               _allowed_scopes is not None,
-               "commands/validate.py:_allowed_scopes is gone — the mirror in "
-               "tools/pack_scope.py now tracks nothing")
+        _allowed_scopes = getattr(_validate, "_allowed_scopes", None)
+        if _allowed_scopes is None:
+            _check("the canonical resolver is still where the mirror mirrors it from",
+                   False,
+                   "commands/validate.py:_allowed_scopes is gone — the mirror "
+                   "in tools/pack_scope.py now tracks nothing")
+            print("test-pack-scope: FAIL (1)", file=sys.stderr)
+            return 1
+        _check("the canonical resolver is still where the mirror mirrors it from", True)
         mismatches = []
         for version, scopes, default in itertools.product(
             VERSIONS, SCOPES, DEFAULTS
-        ) if _allowed_scopes else []:
+) if True else []:
             meta = _pack(version, scopes, default)
             if mirror.allowed_scopes(meta) != _allowed_scopes(meta):
                 mismatches.append(

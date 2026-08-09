@@ -111,7 +111,6 @@ def test_aggregate_scope_is_required_with_no_default() -> None:
         ("catalogue", False, True),
         ("catalogue", True, False),
         ("single-pack", False, False),
-        ("self-host", False, False),
     ],
 )
 def test_empty_set_behaviour(

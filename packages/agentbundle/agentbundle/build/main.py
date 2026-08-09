@@ -443,7 +443,7 @@ def pack_is_publishable(pack_path: Path) -> bool:
     return is_publishable(meta, slug=pack_path.name)
 
 
-AGGREGATE_SCOPES = frozenset({"catalogue", "single-pack", "self-host"})
+AGGREGATE_SCOPES = frozenset({"catalogue", "single-pack"})
 
 
 def _skip_reason(pack_path: Path) -> str:
@@ -487,6 +487,10 @@ def aggregate_exit_code(
             f"got {aggregate_scope!r}"
         )
     if aggregate_scope != "catalogue":
+        # Single-pack renders legitimately yield zero entries. The self-host
+        # writer is deliberately absent from this enum: it implements
+        # warn-and-continue inline because it runs after adapters and seeds are
+        # written, so routing it here would imply a policy it does not use.
         return 0
     if discovered_empty:
         return 0
@@ -611,7 +615,7 @@ def _run_per_pack(
     output_dir: Path,
     contract: dict,
     *,
-    aggregate_scope: str = "catalogue",
+    aggregate_scope: str,
 ) -> dict:
     if recipe.adapter == "apm":
         return _run_per_pack_apm(recipe, packs, output_dir)
@@ -933,8 +937,8 @@ def _run_aggregate(
     _assert_under(output_path, output_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Derive marketplace name and owner from the first entry's `source.url`
-    # (populated above from pack.toml via derive_projectable_subset). This
+    # Derive marketplace name and owner from `source.url` (populated above from
+    # pack.toml via derive_projectable_subset). This
     # reads `url` rather than the former `repo`: a `git-subdir` source carries
     # no `repo`, so leaving the old split in place would silently drop the
     # envelope's `name`, `owner` and `description` — the same defect the
@@ -1004,7 +1008,7 @@ def _run_aggregate(
             "[pack.adapter-contract] version and [pack.install] allowed-scopes."
         )
     output_path.write_text(
-        json.dumps(payload, indent=2, sort_keys=False) + "\n",
+        json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8", newline="\n",
     )
     return {"recipe": recipe.name, "type": recipe.type, "entries": len(entries)}
