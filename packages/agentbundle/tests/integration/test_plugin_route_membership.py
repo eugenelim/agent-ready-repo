@@ -62,22 +62,11 @@ def test_dist_marketplace_equals_the_expected_set(tmp_path) -> None:
     assert _names(out / "claude-plugins" / "marketplace.json") == EXPECTED_PUBLISHED
 
 
-def test_repo_root_marketplace_equals_the_expected_set() -> None:
-    """The surface `claude plugin marketplace add <owner>/<repo>` resolves.
-
-    Enumerated against the real roster, so a fail-closed truncation that drops
-    a user-capable pack fails here rather than passing on `expected == actual`.
-    """
-    listed = _names(REPO_ROOT / ".claude-plugin" / "marketplace.json")
-    withheld = {"core", "catalogue-curation", "governance-extras", "iac-terraform",
-                "monorepo-extras", "release-engineering", "user-guide-diataxis"}
-    published = {"architect", "atlassian", "contracts", "converters",
-                 "credential-brokers", "desk-research", "experience-design",
-                 "figma", "frontend-engineering", "github", "linear",
-                 "product-documentation", "product-engineering",
-                 "product-strategy"}
-    assert listed == published
-    assert not (listed & withheld)
+# The repo-root marketplace's literal roster is asserted by
+# `tools/lint-plugin-roster.py`, which runs in the required gate against the
+# real file. Enumerating this repository's 14 published / 7 withheld packs here
+# too would put a catalogue-roster claim in the engine tree — the same reason
+# `test_install_core_smoke.py` routes its roster claim to `tools/`.
 
 
 def _aggregate_over(tmp_path: Path, packs: dict[str, str | None]) -> dict:
@@ -250,6 +239,14 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
         ))
 
     assert rc == 0
+    # Prove the dist-tree branch ran. Without this the test is green even if
+    # `_was_dist_tree_install` returns False and the per-IDE render executes
+    # instead — that render also contains no `claude-plugins/`, so the absence
+    # assertion below would hold for the wrong reason.
+    assert (root / "apm" / "core").is_dir(), (
+        "the dist-tree render did not execute — this test would then assert "
+        "the orphan survives a path it never took"
+    )
     assert stale.exists(), "upgrade does not delete the orphaned tree"
     assert stale_rel in state.read_text(encoding="utf-8"), (
         "the relpath stays listed in state — upgrade never prunes dropped renders"

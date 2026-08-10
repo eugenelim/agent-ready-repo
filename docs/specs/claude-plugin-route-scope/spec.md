@@ -5,7 +5,6 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md)
 - **Engine RFC:** [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md) — carried as `Engine-Change-RFC: 0008`, with an erratum. See AC20.
-- **Contract:** `contracts/marketplace-entry.schema.json`
 - **Shape:** integration
 
 > **Spec contract:** this document defines what "done" means. The implementing

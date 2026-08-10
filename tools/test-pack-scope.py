@@ -77,7 +77,6 @@ def main() -> int:
         import agentbundle.commands.validate as _validate
 
         _allowed_scopes = getattr(_validate, "_allowed_scopes", None)
-        _allowed_scopes = getattr(_validate, "_allowed_scopes", None)
         if _allowed_scopes is None:
             _check("the canonical resolver is still where the mirror mirrors it from",
                    False,

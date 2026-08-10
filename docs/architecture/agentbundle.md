@@ -114,7 +114,10 @@ packs/                                dist/
    (`claude_code`, `codex`, `copilot`, `cursor`, `gemini`, `kiro_ide`,
    `kiro_cli`, and `kiro` — the deprecated alias for `kiro_ide`) which delegate to
    [`build/projections/`](../../packages/agentbundle/agentbundle/build/projections/).
-4. **Aggregation.** `marketplace.json` lists every per-pack plugin entry.
+4. **Aggregation.** `marketplace.json` lists a plugin entry for every
+   *user-capable* pack — the Claude-plugin route installs at user scope, so a
+   pack whose `allowed-scopes` omits `user` is not listed
+   (`docs/specs/claude-plugin-route-scope`).
 5. **Self-host overlay.** `make build-self` runs `self-host.toml` against
    this repo's root. The effective adapter set — which folders are written —
    is determined by `preferred-adapter` in `catalogue.toml`; see the diagram

@@ -17,7 +17,7 @@ A catalogue is a directory holding two things:
 ├── packs/
 │   └── <pack>/…                     # one directory per shippable pack (see pack-layout.md)
 └── .claude-plugin/
-    └── marketplace.json             # the catalogue listing — aggregates every pack's plugin.json
+    └── marketplace.json             # the catalogue listing — aggregates the plugin.json of every user-capable pack
 ```
 
 Those two markers — a `packs/` directory and a

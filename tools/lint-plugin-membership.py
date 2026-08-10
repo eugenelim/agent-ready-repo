@@ -17,10 +17,10 @@ marketplace, not a metadata tweak. If this gate fails because a pack you widened
 is now listed, that is the gate working. Regenerate with `make build-self` and
 make sure publishing it is what you meant — see the spec's `Ask first` boundary.
 
-Stdlib-only and self-contained: `tools/` scripts must run from a clean checkout
-with no `agentbundle` on the path. The scope resolver below is a deliberate
-mirror of `commands/validate.py:_allowed_scopes`, kept in sync by
-`tools/test-lint-plugin-membership.py`.
+Stdlib-only: `tools/` scripts must run from a clean checkout with no
+`agentbundle` on the path, so the scope resolver is imported from
+`tools/pack_scope.py` — one mirror of `commands/validate.py:_allowed_scopes`,
+differential-tested against the canonical by `tools/test-pack-scope.py`.
 
 Usage:
     python tools/lint-plugin-membership.py [--root .]
