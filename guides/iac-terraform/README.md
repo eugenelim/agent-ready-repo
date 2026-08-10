@@ -1,7 +1,14 @@
+---
+title: IaC (Terraform) guides
+summary: Find the governed Terraform and OpenTofu generation workflow, drift checks, and validated provider coverage.
+pack: iac-terraform
+kind: reference
+---
+
 # `iac-terraform` — guides
 
 An opt-in accelerator for Terraform and OpenTofu IaC generation. Two skills —
-`generate-iac` (8-stage generation loop) and `reconcile-iac` (drift audit
+`generate-iac` (seven-stage governance-to-plan loop) and `reconcile-iac` (drift audit
 before every follow-on change) — plus a reference library covering per-cloud
 provider contracts, standards, and pipeline patterns.
 
@@ -14,7 +21,7 @@ set one up.
 
 | Skill | Trigger | What it does |
 | --- | --- | --- |
-| `generate-iac` | "provision X", "create Terraform for", "generate IaC for" | 8-stage generate → plan → policy-gate → handoff loop |
+| `generate-iac` | "provision X", "create Terraform for", "generate IaC for" | Stage 0 ADR gate → SPECIFY → CLARIFY → PLAN → TASKS → WRITE TF → VERIFY → G4 handoff |
 | `reconcile-iac` | "check for drift", "reconcile IaC" | Runs `terraform plan` and classifies every change before follow-on work |
 
 ## How-to
@@ -36,8 +43,10 @@ dual-engine, loop-arc alignment, category taxonomy) is in the pack README at
 
 - **Generate IaC for a new workload** — invoke `generate-iac`. It asks for
   target cloud, engine (terraform/tofu), environment, and region. Stage 0 reads
-  your governance index; Stage 1 scaffolds the directory; Stages 2–7 apply
-  standards and emit the plan.
+  your governance index. Stages 1–2 specify the workload and collect inputs;
+  Stage 3 plans; Stage 4 orders tasks; Stage 5 writes Terraform and the CI
+  pipeline; Stage 6 formats, validates, plans, runs policy and security checks,
+  and records the plan digest for handoff.
 
 - **Check for drift before a follow-on change** — invoke `reconcile-iac`.
   It runs `terraform plan`, classifies every planned change by reversibility
@@ -48,8 +57,9 @@ dual-engine, loop-arc alignment, category taxonomy) is in the pack README at
   `mode: infra`. The `new-adr` infra mode (governance-extras 0.6.0) gives you
   the right framing question for each of the seven IaC ADR topics.
 
-- **Set up the CI pipeline** — after Stage 6 of `generate-iac`, a pipeline
-  file is emitted for your CI system. The GitHub Actions reference is at
+- **Set up the CI pipeline** — Stage 5 of `generate-iac` emits a pipeline
+  file for your CI system; Stage 6 verifies the generated configuration. The
+  GitHub Actions reference is at
   `packs/iac-terraform/.apm/skills/generate-iac/references/pipeline/github-actions.md`.
 
 ## Validated providers (v1)
