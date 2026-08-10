@@ -745,6 +745,39 @@ On acceptance:
 Corrections below are Approver-signed. The RFC body above is preserved
 unchanged; errata supersede where noted. (Approver: eugenelim, 2026-08-07.)
 
+### Current state
+
+The authoritative reading, superseding the dated entries below where they
+conflict. (Approver: eugenelim, 2026-08-08.)
+
+**`allowed-scopes` is enforced by exclusion from the route, not by the writer's
+refusal rail.** This RFC specifies the rail as defence in depth: *"an adopter
+could install a repo-only pack (`allowed-scopes = ["repo"]`) at Claude-plugins
+user scope. The writer refuses-and-warns in that case."*
+`docs/specs/claude-plugin-route-scope` moves that control upstream — a pack
+whose `allowed-scopes` does not admit `"user"` is no longer published to the
+marketplace at all, so an adopter cannot reach the install the rail existed to
+refuse.
+
+Consequences for this RFC's design:
+
+- The rail in `install-marker.py` is retained and unchanged, but is now
+  **unreachable for repo-only packs** — they ship no plugin, so their marker
+  never runs. It still guards a pack that is user-capable today and narrowed
+  later without a republish.
+- The install→adapt chain is **dormant on the user-scope path**, not falsified.
+  Both readers of `.adapt-install-marker.toml` live in `core`, which is
+  repo-scoped and therefore no longer published. The chain works for an adopter
+  who also has `core` at repo scope, and the user-scope path re-lights when a
+  user-capable pack ships a session-start hook.
+- The scope taxonomy in this RFC (user / project / local ↔ the three settings
+  files) is unchanged and still governs how an installed plugin's scope is
+  detected.
+
+### History / audit trail
+
+Dated entries, superseded by the current-state layer above where they conflict.
+
 - **2026-08-07 — the claude-plugins route wrote no marker, and the
   `allowed-scopes` rail never fired, from first ship until `agentbundle`
   0.29.8.** This RFC's design is unchanged; the erratum records that two

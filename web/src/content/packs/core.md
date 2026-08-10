@@ -1,5 +1,6 @@
 ---
 name: Core
+pluginInstallable: false
 scope: repo
 tagline: "The build loop. Spec → shipped code. Supervised."
 skills:

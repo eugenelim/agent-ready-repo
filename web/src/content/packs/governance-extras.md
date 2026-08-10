@@ -1,5 +1,6 @@
 ---
 name: Governance Extras
+pluginInstallable: false
 scope: repo
 tagline: "Decision trail — RFCs, ADRs, and conventions for long-lived repos."
 skills:

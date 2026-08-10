@@ -788,3 +788,15 @@ If accepted, this RFC produces one downstream artifact:
   `contracts/`; this RFC's path references updated. Full
   rationale and the `CONVENTIONS.md:80` exception note live in
   [RFC-0001 § Amendments](0001-bundle-distribution-by-adapter-spec.md#amendments).
+
+## Errata
+
+- **2026-08-09 — the root `marketplace.json` no longer aggregates every pack.**
+  The projection table's row — "Aggregated from `packs/*/.claude-plugin/
+  plugin.json` by the self-host recipe" — is narrowed by
+  `docs/specs/claude-plugin-route-scope`. A Claude plugin's code lands in the
+  adopter's global cache and `claude plugin install` defaults to
+  `--scope user`, so `_aggregate_marketplace` now writes only packs whose
+  `allowed-scopes` admits `user`. Everything else about the row holds: it is
+  still projected, still written by the self-host recipe, still drift-gated.
+  Approver: eugenelim.

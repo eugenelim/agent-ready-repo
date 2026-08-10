@@ -191,7 +191,10 @@ jobs:
 
           [pack.install]
           default-scope = "repo"
-          allowed-scopes = ["repo"]
+          # User-capable so the smoke build exercises the claude-plugins route
+          # as well as APM. A repo-only fixture leaves the marketplace empty,
+          # which is a valid state but tests nothing about aggregation.
+          allowed-scopes = ["repo", "user"]
 
           [pack.first-value]
           audience-posture = "technical"

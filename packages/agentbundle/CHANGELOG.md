@@ -6,6 +6,69 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [Unreleased]
+
+### Changed
+
+- **BREAKING — `build.main.run_recipe` requires `aggregate_scope`.** It is
+  keyword-only with no default, so an out-of-repo caller gets a `TypeError` at
+  call time rather than silently inheriting catalogue semantics. Whether a
+  pack skipped on the plugin route is announced depends on which mode ran — a
+  catalogue build names every exclusion, a single-pack render stays silent so
+  a successful `agentbundle install --pack <repo-only>` does not print a route
+  refusal — and that is the caller's fact, not something the recipe can infer.
+- **BREAKING — `agentbundle build --recipe marketplace --pack <X>` exits 1.**
+  Aggregate recipes read the whole dist tree, so a pack filter on one was
+  always meaningless; it previously succeeded and produced a marketplace whose
+  contents ignored the flag.
+- **BREAKING — the Claude-plugin route now publishes only packs that permit a
+  user-scope install.** A Claude plugin's code lives in the adopter's global
+  cache and `claude plugin install` defaults to `--scope user`, so a pack
+  declaring `[pack.install] allowed-scopes = ["repo"]` was being offered an
+  install its own declaration forbids. Six packs leave the marketplace: `core`,
+  `governance-extras`, `iac-terraform`, `monorepo-extras`,
+  `release-engineering`, `user-guide-diataxis`. `catalogue-curation` makes
+  seven: it was already excluded from the published branch, but was still
+  listed at the repo root, and that entry goes too.
+
+  **If you installed any of them as a plugin**, uninstall first —
+  `claude plugin uninstall <pack>@agent-ready-repo` — then install at repo
+  scope with `agentbundle install --pack <name> …`.
+
+  Observed against Claude Code 2.1.223, **after a marketplace refresh**: a
+  delisted plugin reports `Status: ✘ failed to load` in `claude plugin list`,
+  and `claude plugin update` refuses it. Until your client refreshes
+  (`claude plugin marketplace update <marketplace>`), the cached copy keeps
+  loading and its hooks keep running — so uninstall rather than wait for the
+  refresh. The enablement entry survives until you do, and uninstalling also
+  avoids two unrelated copies of the pack's skills once you reinstall at repo
+  scope.
+
+- **An existing dist-tree install of a repo-only pack leaves an orphaned
+  `claude-plugins/<pack>/` tree.** The filter sits in `render_pack`, so
+  `--emit-install-routes` no longer writes that subtree. Verified by running a
+  real upgrade — both a re-apply and a genuine version bump — the previously
+  installed files are **not** deleted: they stay on disk and stay listed in
+  `.agentbundle-state.toml`, because `upgrade` adds rendered relpaths to state
+  and never prunes ones the render dropped. Nothing breaks; you are left with a
+  directory nothing maintains. Remove it by hand if you want it gone.
+
+- **A catalogue whose packs declare different `[pack.links] repository` values
+  now fails the build.** The marketplace envelope's `name` and `owner` were
+  derived from the *first* surviving entry's `source.url`, so a filtered set
+  could silently re-key the marketplace to whichever pack sorted first. Every
+  surviving entry must now agree, and disagreement exits non-zero naming both
+  identities. Remedy: align `[pack.links] repository` across your packs.
+
+- **Engine behaviour change for self-hosting adopters.** The same predicate
+  applies on `run_self_host`, so a pack in *your* catalogue that resolves
+  repo-only no longer appears in the `.claude-plugin/marketplace.json` your
+  build writes. The resolver gates on `[pack.adapter-contract].version`, not
+  `[pack.install]` — a pack declaring `allowed-scopes` with no contract version
+  resolves `["repo"]` and will be filtered. Each exclusion prints a named line.
+  A catalogue whose packs are *all* repo-scoped writes an empty marketplace and
+  warns — that is a valid state, not a defect, and your build still succeeds.
+
 ## [0.30.1] — 2026-08-09
 
 ### Fixed
@@ -215,8 +278,6 @@ No flag, verb, exit code, or schema changed. Archive *contents* do change: an
 archive built from a tree that has been tested or npm-installed is now smaller,
 and matches what `catalogue-authoring-standards.md` § 4 has always told adopters
 it contains.
-
-## [Unreleased]
 
 ## [0.29.4] — 2026-08-06
 

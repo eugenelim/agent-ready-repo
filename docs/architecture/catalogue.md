@@ -17,7 +17,7 @@ A catalogue is a directory holding two things:
 ├── packs/
 │   └── <pack>/…                     # one directory per shippable pack (see pack-layout.md)
 └── .claude-plugin/
-    └── marketplace.json             # the catalogue listing — aggregates every pack's plugin.json
+    └── marketplace.json             # the catalogue listing — aggregates the plugin.json of every user-capable pack
 ```
 
 Those two markers — a `packs/` directory and a
@@ -29,8 +29,12 @@ and it is the whole definition — there is no registry service, no manifest
 schema beyond the per-pack `pack.toml`, and no network protocol.
 
 `marketplace.json` is the catalogue-level listing consumed by
-`/plugin marketplace add`; the build aggregates each pack's version and
-metadata into it from the pack's `.claude-plugin/plugin.json`. How a pack's
+`/plugin marketplace add`; the build aggregates version and metadata into it
+from the `.claude-plugin/plugin.json` of every pack whose `allowed-scopes`
+admits `user` *and* that declares `[pack.adapter-contract] version` — the
+resolver gates on the contract version first, so a pack without one resolves
+`repo` whatever its `allowed-scopes` says. The route installs at user scope, so repo-scoped packs are
+excluded — see `docs/specs/claude-plugin-route-scope`. How a pack's
 `pack.toml` projects into that entry is covered in
 [`pack-manifest.md`](pack-manifest.md).
 

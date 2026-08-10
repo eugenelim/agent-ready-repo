@@ -195,6 +195,74 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-experience-agnostic",
             "tools", "lint-experience-agnostic.py",
         ),
+        # tools/pack_scope.py is the single stdlib mirror of
+        # commands/validate.py:_allowed_scopes that the three route gates and
+        # the publish script share. This differential test is what stops it
+        # drifting from the resolver it mirrors.
+        _script_step(
+            "test-pack-scope",
+            "tools", "test-pack-scope.py",
+        ),
+        # Claude-plugin route membership. Lives here, not in pytest: this is
+        # the only required, path-unfiltered gate, and `make build-check` runs
+        # no pytest. Widening a pack's allowed-scopes publishes its code to a
+        # public marketplace — this is the tripwire for that.
+        _script_step(
+            "test-lint-plugin-membership",
+            "tools", "test-lint-plugin-membership.py",
+        ),
+        _script_step(
+            "lint-plugin-membership",
+            "tools", "lint-plugin-membership.py",
+        ),
+        # The roster tripwire. Distinct from the membership lint above, which
+        # derives both sides from the same predicate and is therefore green
+        # when the predicate itself is wrong. This one enumerates literally.
+        _script_step(
+            "test-lint-plugin-roster",
+            "tools", "test-lint-plugin-roster.py",
+        ),
+        _script_step(
+            "lint-plugin-roster",
+            "tools", "lint-plugin-roster.py",
+        ),
+        # The publish script's three refusals are the only runtime check
+        # between `git push` and a public marketplace — the publish job has no
+        # `needs:` on this one.
+        _script_step(
+            "test-publish-claude-plugins",
+            "tools", "test-publish-claude-plugins.py",
+        ),
+        # Per-site `(path, pattern, expected)` — the sites do not share a
+        # pattern, so one repo-wide grep would pass green on most of them.
+        _script_step(
+            "test-lint-plugin-route-docs",
+            "tools", "test-lint-plugin-route-docs.py",
+        ),
+        _script_step(
+            "lint-plugin-route-docs",
+            "tools", "lint-plugin-route-docs.py",
+        ),
+        # The site's `pluginInstallable` field is hand-copied from pack.toml —
+        # `tools/build-site.py` feeds docs-site/, not web/ — so this is what
+        # keeps the copy honest. The built-output half lives in pages.yml; see
+        # docs/specs/claude-plugin-route-scope AC8 for why it is not here.
+        _script_step(
+            "test-lint-site-scope-parity",
+            "tools", "test-lint-site-scope-parity.py",
+        ),
+        _script_step(
+            "lint-site-scope-parity",
+            "tools", "lint-site-scope-parity.py",
+        ),
+        # The built-output gate itself needs a real site build, so it runs in
+        # pages.yml. Its *self-test* needs nothing, so it runs here and blocks:
+        # a broken assertion in a non-blocking gate is the quietest failure
+        # this spec can produce.
+        _script_step(
+            "test-check-site-plugin-offers",
+            "tools", "test-check-site-plugin-offers.py",
+        ),
         # Drift backstop only — the pack-description quality bar is
         # guides/_shared/reference/catalogue-authoring-standards.md § 2.
         _script_step(

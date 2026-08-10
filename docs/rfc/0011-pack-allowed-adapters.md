@@ -310,3 +310,18 @@ appended here rather than edited in-body.
    on access of the legacy name and returns the new value; the
    alias is targeted for removal in **agentbundle 0.2.0**.
 
+## Erratum (added 2026-08-09)
+
+The *Resolution* section says a repo-scope install "still emits
+`dist/apm/<pack>/` and `dist/claude-plugins/<pack>/` at repo scope unchanged",
+and Alternative #6 defers "per-pack install-route constraints" to a future RFC.
+That RFC's surface arrived as
+[`docs/specs/claude-plugin-route-scope`](../specs/claude-plugin-route-scope/spec.md),
+under RFC-0008: `dist/claude-plugins/<pack>/` is now emitted only for packs
+whose `allowed-scopes` admits `user`, because a Claude plugin's code lands in
+the adopter's global cache regardless of the `--scope` flag. `dist/apm/<pack>/`
+is unchanged for every pack, and this RFC's actual decision — that
+`allowed-adapters` constrains user-scope installs only and has no repo-scope
+semantics — is unaffected: the new filter reads `allowed-scopes`, not
+`allowed-adapters`. Body above left as written; this RFC is Accepted → Frozen.
+Approver: eugenelim.

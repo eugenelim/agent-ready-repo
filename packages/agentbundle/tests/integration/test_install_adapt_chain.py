@@ -29,11 +29,11 @@ name = "addon"
 version = "0.1.0"
 
 [pack.adapter-contract]
-version = "0.2"
+version = "0.3"
 
 [pack.install]
 default-scope = "repo"
-allowed-scopes = ["repo"]
+allowed-scopes = ["repo", "user"]
 """
 
 
@@ -42,6 +42,15 @@ def _stage_pack(catalogue_root: Path, name: str, body: str) -> Path:
     pack.mkdir(parents=True)
     (pack / "pack.toml").write_text(body, encoding="utf-8", newline="\n")
     (pack / ".apm").mkdir()
+    # Reaching the claude-plugins dist tree requires a source manifest as well
+    # as user-admitting scopes (docs/specs/claude-plugin-route-scope).
+    (pack / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+    (pack / ".claude-plugin" / "plugin.json").write_text(
+        '{\n  "name": "' + name + '",\n  "version": "0.1.0",\n'
+        '  "description": "adapt-chain fixture"\n}\n',
+        encoding="utf-8",
+        newline="\n",
+    )
     return pack
 
 
@@ -64,6 +73,15 @@ def _stage_pack_with_skill(catalogue_root: Path, name: str, body: str) -> Path:
     (pack / "pack.toml").write_text(body, encoding="utf-8", newline="\n")
     (pack / ".apm" / "skills" / name / "SKILL.md").write_text(
         f"---\nname: {name}\ndescription: x\n---\nbody-from-bundle\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    # Reaching the claude-plugins dist tree requires a source manifest as well
+    # as user-admitting scopes (docs/specs/claude-plugin-route-scope).
+    (pack / ".claude-plugin").mkdir(parents=True, exist_ok=True)
+    (pack / ".claude-plugin" / "plugin.json").write_text(
+        '{\n  "name": "' + name + '",\n  "version": "0.1.0",\n'
+        '  "description": "adapt-chain fixture"\n}\n',
         encoding="utf-8",
         newline="\n",
     )

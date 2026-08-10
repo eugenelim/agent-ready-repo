@@ -392,6 +392,109 @@ def discover_packs(packs_dir: Path) -> list[Pack]:
     return packs
 
 
+# ---------------------------------------------------------------------------
+# Claude-plugin route membership (docs/specs/claude-plugin-route-scope)
+#
+# The route is a user-scope distribution channel: a plugin's code always lives
+# in the adopter's global cache, and `claude plugin install` defaults to
+# `--scope user`. A pack declaring `allowed-scopes = ["repo"]` therefore forbids
+# the only install this route offers, and publishing it contradicts the refusal
+# contract ADR-0002 defines. One predicate decides membership; every writer that
+# can publish calls it.
+# ---------------------------------------------------------------------------
+
+# Recipes whose output this route publishes. Keyed on (name, adapter) to match
+# `_resolve_contract_for_route`'s idiom — `output_subdir` is free text on an
+# operator-supplied `--recipe` file and is not a safe key.
+_CLAUDE_PLUGIN_ROUTE = ("per-pack-claude-plugin", "claude-code")
+
+
+def is_publishable(pack_meta: dict, *, slug: str) -> bool:
+    """Does this pack belong on the Claude-plugin route?
+
+    Three conditions, all required (spec § The derived set):
+
+    1. the slug is not underscore-prefixed (reserved authoring asset);
+    2. — checked by the caller, which knows whether `.claude-plugin/plugin.json`
+       is present; `discover_packs` requires only `pack.toml` today, so this
+       function does not assume the manifest;
+    3. the resolved scopes admit ``"user"``.
+
+    Scope resolution reuses ``commands.validate._allowed_scopes`` rather than
+    re-deriving it. That helper's real gate is ``[pack.adapter-contract].version``,
+    **not** ``[pack.install]``: a pack declaring ``allowed-scopes`` with no
+    contract version resolves ``["repo"]``. Re-deriving would fork that rule.
+    """
+    if slug.startswith("_"):
+        return False
+    from agentbundle.commands.validate import _allowed_scopes
+
+    return "user" in _allowed_scopes(pack_meta)
+
+
+def pack_is_publishable(pack_path: Path) -> bool:
+    """`is_publishable` for a pack on disk, including the manifest condition."""
+    pack_toml = pack_path / "pack.toml"
+    if not pack_toml.exists():
+        return False
+    if not (pack_path / ".claude-plugin" / "plugin.json").exists():
+        return False
+    meta = tomllib.loads(pack_toml.read_text(encoding="utf-8"))
+    return is_publishable(meta, slug=pack_path.name)
+
+
+AGGREGATE_SCOPES = frozenset({"catalogue", "single-pack"})
+
+
+def _skip_reason(pack_path: Path) -> str:
+    """Why a pack is not publishable, in the reader's terms.
+
+    Reporting a scope refusal for a pack that simply has no manifest is
+    self-contradicting — it prints `allowed-scopes=['repo', 'user'] does not
+    admit 'user'` and sends the reader to the wrong file.
+    """
+    if not (pack_path / "pack.toml").exists():
+        return "no pack.toml"
+    if not (pack_path / ".claude-plugin" / "plugin.json").exists():
+        return "no .claude-plugin/plugin.json (required on this route)"
+    from agentbundle.commands.validate import _allowed_scopes
+
+    meta = tomllib.loads((pack_path / "pack.toml").read_text(encoding="utf-8"))
+    return (
+        f"allowed-scopes={_allowed_scopes(meta)!r} does not admit 'user'"
+    )
+
+
+def _empty_marketplace_warning(excluded: list[str]) -> str:
+    """What to say when the filter leaves a marketplace with no entries.
+
+    Warn-and-continue, matching `self_host.py`'s sibling writer. This was a
+    hard error until round thirteen, on the reasoning that "a catalogue that
+    publishes nothing is a defect". That holds for *this* repository and is
+    guarded precisely by `tools/lint-plugin-roster.py`, which pins the roster
+    literally. It does not hold for an adopter: `contracts/pack.schema.json`
+    makes `[pack.adapter-contract]` optional, so an adopter whose packs are
+    all repo-scoped — a shape this project explicitly endorses — resolves to
+    an empty plugin route through no fault of their own. Failing their
+    `agentbundle catalogue build` outright is a regression in a published
+    command, and it broke the catalogue-tooling smoke gate's own fixture.
+    """
+    detail = (
+        f"{len(excluded)} excluded here: {', '.join(sorted(excluded))}"
+        if excluded
+        else "none reached this writer — the per-pack recipe filtered them "
+        "upstream"
+    )
+    return (
+        "marketplace: no packs reach the claude-plugins route "
+        f"({detail}), so the marketplace is empty. That is a valid state for "
+        "a catalogue whose packs all install at repo scope; they are reached "
+        "with `agentbundle install`. If you expected entries here, check each "
+        "pack's [pack.adapter-contract] version and [pack.install] "
+        "allowed-scopes."
+    )
+
+
 def validate_pack_metadata(pack_toml_path: Path) -> None:
     """Validate a pack.toml against pack.schema.json. Raise on errors."""
     metadata = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
@@ -448,16 +551,41 @@ def run_recipe(
     packs: Iterable[Pack],
     output_dir: Path,
     contract: dict,
+    *,
+    aggregate_scope: str,
 ) -> dict:
-    """Execute a recipe and return a description of what it produced."""
+    """Execute a recipe and return a description of what it produced.
+
+    `aggregate_scope` is required and has no default: it decides whether a
+    pack skipped on the claude-plugins route is announced. A catalogue build
+    names every exclusion (AC1); a single-pack render stays silent, because
+    that is the flagship *successful* repo-scope path — `agentbundle install
+    --pack core` — and a route refusal there reads as an error on a command
+    that worked. A default would let `render_packs_to_dir` and `cmd_build
+    --recipe` inherit the wrong policy silently. One of "catalogue" |
+    "single-pack". The self-host writer is absent deliberately: it runs after
+    adapters and seeds are written and warns inline.
+    """
+    if aggregate_scope not in AGGREGATE_SCOPES:
+        # Validate here, not only where it is read: a typo at a per-pack call
+        # site would otherwise pass silently.
+        raise ValueError(
+            f"aggregate_scope must be one of {sorted(AGGREGATE_SCOPES)}; "
+            f"got {aggregate_scope!r}"
+        )
     packs_list = list(packs)
     for pack in packs_list:
         validate_pack_uniqueness(pack)
 
     if recipe.type == "per-pack":
-        return _run_per_pack(recipe, packs_list, output_dir, contract)
+        return _run_per_pack(
+            recipe, packs_list, output_dir, contract,
+            aggregate_scope=aggregate_scope,
+        )
     if recipe.type == "aggregate":
-        return _run_aggregate(recipe, output_dir)
+        return _run_aggregate(
+            recipe, output_dir, packs=packs_list, aggregate_scope=aggregate_scope
+        )
     if recipe.type == "overlay":
         return _run_overlay(recipe, packs_list)
     if recipe.type == "composite":
@@ -484,7 +612,12 @@ def _assert_under(target: Path, base: Path) -> None:
 
 
 def _run_per_pack(
-    recipe: Recipe, packs: list[Pack], output_dir: Path, contract: dict
+    recipe: Recipe,
+    packs: list[Pack],
+    output_dir: Path,
+    contract: dict,
+    *,
+    aggregate_scope: str,
 ) -> dict:
     if recipe.adapter == "apm":
         return _run_per_pack_apm(recipe, packs, output_dir)
@@ -496,7 +629,23 @@ def _run_per_pack(
         )
     project = ADAPTERS[recipe.adapter]
     produced: dict[str, str] = {}
+    route_filtered = (recipe.name, recipe.adapter) == _CLAUDE_PLUGIN_ROUTE
     for pack in packs:
+        if route_filtered and not pack_is_publishable(pack.path):
+            # Route membership, not an error: a repo-only pack forbids the only
+            # install this route offers. Named on stderr so an exclusion is
+            # never silent (spec § AC1, AC3).
+            if aggregate_scope == "catalogue":
+                # Catalogue builds name every exclusion. A single-pack render —
+                # which is what `agentbundle install --pack core` and every
+                # render_pack consumer runs — would otherwise print a route
+                # refusal on the flagship successful repo-scope path.
+                print(
+                    f"claude-plugins: skipping {pack.name} — "
+                    f"{_skip_reason(pack.path)}",
+                    file=sys.stderr,
+                )
+            continue
         try:
             _run_per_pack_single(
                 pack, recipe, project, output_dir, contract, produced
@@ -736,12 +885,47 @@ def _render_apm_yml(pack_metadata: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
+def _run_aggregate(
+    recipe: Recipe,
+    output_dir: Path,
+    *,
+    packs: list[Pack],
+    aggregate_scope: str,
+) -> dict:
+    """Aggregate per-pack manifests into a marketplace file.
+
+    Membership is resolved from the **source** tree (`packs/<slug>/pack.toml`),
+    never from the projected copy under `dist/`: `make build` has no dependency
+    on `clean`, so a stale dist directory carries the *old* declaration and
+    would republish contrary to the pack's current intent (spec § AC4).
+    """
     input_dir = output_dir / recipe.input_subdir
     _assert_under(input_dir, output_dir)
+    source_by_name = {p.name: p for p in packs}
     entries: list[dict] = []
+    excluded: list[str] = []
+    # Two distinct causes, kept apart. Reporting a stale directory as a scope
+    # refusal sends the reader to a `pack.toml` that no longer exists — the
+    # same self-contradiction `_skip_reason` exists to prevent at the per-pack
+    # site.
+    stale: list[str] = []
+    # `aggregate_scope` is read at the emptiness warning below, and by
+    # `_run_per_pack` for the skip line. Both are disclosure decisions the
+    # caller owns.
     if input_dir.exists():
         for plugin_dir in sorted(input_dir.iterdir()):
+            if plugin_dir.name == "marketplace.json" or not plugin_dir.is_dir():
+                continue
+            source = source_by_name.get(plugin_dir.name)
+            # A dist directory with no source pack is stale — `make build` has
+            # no `clean` dependency, so it survives a pack's deletion. Fail
+            # closed: absent from the source tree means not publishable.
+            if source is None:
+                stale.append(plugin_dir.name)
+                continue
+            if not pack_is_publishable(source.path):
+                excluded.append(plugin_dir.name)
+                continue
             manifest = plugin_dir / ".claude-plugin" / "plugin.json"
             if manifest.exists():
                 entry = json.loads(manifest.read_text(encoding="utf-8"))
@@ -766,25 +950,43 @@ def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
     _assert_under(output_path, output_dir)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Derive marketplace name and owner from the first entry's `source.url`
-    # (populated above from pack.toml via derive_projectable_subset). This
+    # Derive marketplace name and owner from `source.url` (populated above from
+    # pack.toml via derive_projectable_subset). This
     # reads `url` rather than the former `repo`: a `git-subdir` source carries
     # no `repo`, so leaving the old split in place would silently drop the
     # envelope's `name`, `owner` and `description` — the same defect the
     # 2026-07 "marketplace missing top-level name" fix already corrected once.
-    marketplace_name: str | None = None
-    marketplace_owner: dict | None = None
+    # Every surviving entry must agree. Taking the FIRST match let a filtered
+    # set silently re-key the marketplace to whichever pack happened to sort
+    # first — identity derived from pack-supplied metadata, decided by an
+    # unrelated membership change. Refuse on disagreement instead (spec AC7).
+    identities: set[tuple[str, str]] = set()
     for entry in entries:
         src = entry.get("source")
-        if isinstance(src, dict):
-            url = src.get("url", "")
-            if isinstance(url, str):
-                m = _GITHUB_URL_RE.match(url)
-                if m:
-                    owner_part, name_part = m.group(1).split("/", 1)
-                    marketplace_name = name_part
-                    marketplace_owner = {"name": owner_part}
-                    break
+        if not isinstance(src, dict):
+            continue
+        url = src.get("url", "")
+        if not isinstance(url, str):
+            continue
+        m = _GITHUB_URL_RE.match(url)
+        if m and "/" in m.group(1):
+            owner_part, name_part = m.group(1).split("/", 1)
+            identities.add((owner_part, name_part))
+
+    if len(identities) > 1:
+        rendered = ", ".join(f"{o}/{n}" for o, n in sorted(identities))
+        raise ValueError(
+            "marketplace: surviving entries disagree on the repository identity "
+            f"the envelope is derived from ({rendered}). Publishing would key "
+            "the marketplace to whichever pack sorted first."
+        )
+
+    marketplace_name: str | None = None
+    marketplace_owner: dict | None = None
+    if identities:
+        owner_part, name_part = next(iter(identities))
+        marketplace_name = name_part
+        marketplace_owner = {"name": owner_part}
 
     payload: dict = {}
     if marketplace_name:
@@ -794,6 +996,34 @@ def _run_aggregate(recipe: Recipe, output_dir: Path) -> dict:
         payload["owner"] = marketplace_owner
     payload["plugins"] = entries
 
+    # All three lines take the caller's disclosure policy, not just the
+    # emptiness warning below. No in-tree caller can reach the difference:
+    # every `single-pack` caller renders into a fresh directory, so `excluded`
+    # and `stale` are empty there. The gate guards an out-of-tree caller of
+    # the public `render_pack_to_dir` that reuses one `output_dir` across
+    # packs — it would otherwise get the `stale` line, mislabelled at that:
+    # its pack list was narrowed, not deleted from the source tree.
+    if aggregate_scope == "catalogue":
+        if excluded:
+            print(
+                f"marketplace: excluded {len(excluded)} pack(s) not installable "
+                f"at user scope: {', '.join(sorted(excluded))}",
+                file=sys.stderr,
+            )
+        if stale:
+            print(
+                f"marketplace: excluded {len(stale)} directory/ies no longer "
+                f"present in the source tree (stale dist/ — `make build` has no "
+                f"`clean` dependency): {', '.join(sorted(stale))}",
+                file=sys.stderr,
+            )
+    # Gated on the caller's mode, exactly like the per-pack skip line: a
+    # single-pack render of a repo-only pack is a *successful* `agentbundle
+    # install --pack core`, and announcing an empty marketplace there reads as
+    # an error on a command that worked. Round thirteen added this warning
+    # ungated and regressed AC12's single-pack silence.
+    if aggregate_scope == "catalogue" and source_by_name and not entries:
+        print(_empty_marketplace_warning(excluded + stale), file=sys.stderr)
     output_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8", newline="\n",
@@ -828,7 +1058,11 @@ def run_default_build(
     results: list[dict] = []
     for recipe_name in DEFAULT_RECIPES:
         recipe = load_recipe(recipe_name)
-        results.append(run_recipe(recipe, packs, output_dir, contract))
+        results.append(
+            run_recipe(
+                recipe, packs, output_dir, contract, aggregate_scope="catalogue"
+            )
+        )
     return results
 
 
@@ -853,9 +1087,30 @@ def cmd_build(args) -> int:
             return 1
         try:
             packs = discover_packs(packs_dir)
+            # `--pack` narrows an explicit `--recipe` run to one pack (the
+            # `make build RECIPE=... PACK=...` form). That is a
+            # single-pack aggregate, not a catalogue: an emptied marketplace is
+            # the expected outcome for a repo-only pack, not a defect.
+            aggregate_scope = "catalogue"
             if args.pack:
+                # An aggregate recipe writes ONE shared marketplace over the
+                # whole dist tree. Narrowing its pack list made it rewrite that
+                # file down to the single pack and exit 0 — a silent truncation
+                # of an artifact other packs share. Per-pack recipes are fine.
+                if recipe.type == "aggregate":
+                    print(
+                        f"build: --pack is not meaningful for the "
+                        f"{recipe.name!r} aggregate recipe, which writes one "
+                        f"marketplace over the whole dist tree; drop --pack or "
+                        f"choose a per-pack recipe",
+                        file=sys.stderr,
+                    )
+                    return 1
                 packs = [p for p in packs if p.name == args.pack]
-            run_recipe(recipe, packs, output_dir, contract)
+                aggregate_scope = "single-pack"
+            run_recipe(
+                recipe, packs, output_dir, contract, aggregate_scope=aggregate_scope
+            )
         except ValueError as exc:
             print(f"build: {exc}", file=sys.stderr)
             return 1

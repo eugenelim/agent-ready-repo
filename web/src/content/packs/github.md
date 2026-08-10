@@ -1,5 +1,6 @@
 ---
 name: GitHub
+pluginInstallable: true
 scope: user
 tagline: "Turn a GitHub Milestone into a product brief"
 skills:

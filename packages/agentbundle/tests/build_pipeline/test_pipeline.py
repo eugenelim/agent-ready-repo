@@ -42,8 +42,16 @@ def _seed_pack(root: Path, name: str = "demo") -> Path:
     (pack / ".apm" / "commands").mkdir(parents=True)
     (pack / ".apm" / "commands" / "qux.md").write_text("# qux\n", encoding="utf-8", newline="\n")
 
+    # The claude-plugins route publishes only packs whose resolved scopes admit
+    # "user" (docs/specs/claude-plugin-route-scope). The gate is
+    # [pack.adapter-contract].version, not [pack.install] — declaring
+    # allowed-scopes alone leaves the pack repo-only and unpublished.
+    # user-scope-hooks is required by Rail B because this seed ships .apm/hooks/.
     (pack / "pack.toml").write_text(
-        f'[pack]\nname = "{name}"\nversion = "0.1.0"\ndescription = "demo pack"\n',
+        f'[pack]\nname = "{name}"\nversion = "0.1.0"\ndescription = "demo pack"\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n'
+        '\n[pack.install]\ndefault-scope = "repo"\n'
+        'allowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
         encoding="utf-8",
         newline="\n",
     )
@@ -71,7 +79,10 @@ class PerPackClaudePluginTests(unittest.TestCase):
             _seed_pack(packs_dir, "core")
             output_dir = tmp_path / "dist"
             recipe = load_recipe("per-pack-claude-plugin")
-            result = run_recipe(recipe, discover_packs(packs_dir), output_dir, self.contract)
+            result = run_recipe(
+                recipe, discover_packs(packs_dir), output_dir, self.contract,
+                aggregate_scope="catalogue",
+            )
             self.assertIn("core", result["produced"])
             self.assertTrue(
                 (output_dir / "claude-plugins" / "core" / ".claude-plugin" / "plugin.json").exists()
@@ -94,7 +105,10 @@ class PerPackApmPackageTests(unittest.TestCase):
             _seed_pack(packs_dir, "core")
             output_dir = tmp_path / "dist"
             recipe = load_recipe("per-pack-apm-package")
-            run_recipe(recipe, discover_packs(packs_dir), output_dir, self.contract)
+            run_recipe(
+                recipe, discover_packs(packs_dir), output_dir, self.contract,
+                aggregate_scope="catalogue",
+            )
             apm_yml = output_dir / "apm" / "core" / "apm.yml"
             self.assertTrue(apm_yml.exists())
             self.assertIn('name: "core"', apm_yml.read_text(encoding="utf-8"))
@@ -106,7 +120,7 @@ class MarketplaceAggregateTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_aggregates_all_plugin_jsons(self) -> None:
+    def test_aggregates_the_user_capable_plugin_jsons(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"
@@ -120,12 +134,14 @@ class MarketplaceAggregateTests(unittest.TestCase):
                 discover_packs(packs_dir),
                 output_dir,
                 self.contract,
+                aggregate_scope="catalogue",
             )
             result = run_recipe(
                 load_recipe("marketplace"),
                 discover_packs(packs_dir),
                 output_dir,
                 self.contract,
+                aggregate_scope="catalogue",
             )
 
             marketplace = output_dir / "claude-plugins" / "marketplace.json"
@@ -184,7 +200,10 @@ class UnknownAdapterTargetTests(unittest.TestCase):
             packs_dir.mkdir()
             _seed_pack(packs_dir, "core")
             with self.assertRaises(ValueError) as caught:
-                run_recipe(recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract)
+                run_recipe(
+                    recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract,
+                    aggregate_scope="catalogue",
+                )
             self.assertIn("bogus", str(caught.exception))
 
 
@@ -204,7 +223,8 @@ class Rfc0002RecipeLoadTests(unittest.TestCase):
             packs_dir.mkdir()
             _seed_pack(packs_dir, "core")
             result = run_recipe(
-                recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract
+                recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract,
+                aggregate_scope="catalogue",
             )
             self.assertEqual(result["type"], "overlay")
             self.assertIn("core", result["expansion"])
@@ -226,7 +246,8 @@ class Rfc0002RecipeLoadTests(unittest.TestCase):
             (pack_two / "seeds").mkdir()
             (pack_two / "seeds" / "AGENTS.fragment.md").write_text("extras fragment\n", encoding="utf-8", newline="\n")
             result = run_recipe(
-                recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract
+                recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract,
+                aggregate_scope="catalogue",
             )
             self.assertEqual(len(result["composed"]), 2)
 
@@ -241,7 +262,8 @@ class Rfc0002RecipeLoadTests(unittest.TestCase):
             _seed_pack(packs_dir, "extras")
             _seed_pack(packs_dir, "monorepo-extras")
             result = run_recipe(
-                recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract
+                recipe, discover_packs(packs_dir), tmp_path / "dist", self.contract,
+                aggregate_scope="catalogue",
             )
             self.assertEqual(len(result["composed"]), 3)
 
@@ -265,6 +287,7 @@ class EmptyPackEdgeCaseTests(unittest.TestCase):
                 discover_packs(packs_dir),
                 output_dir,
                 self.contract,
+                aggregate_scope="catalogue",
             )
             self.assertFalse(
                 (output_dir / "claude-plugins" / "minimal" / "commands").exists()

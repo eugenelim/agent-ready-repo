@@ -7,3 +7,10 @@ description = "Governance fixture for the end-to-end build test."
 catalogue = "agent-ready-repo"
 pack = "core"
 version = "0.1.0"
+
+[pack.adapter-contract]
+version = "0.3"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo", "user"]

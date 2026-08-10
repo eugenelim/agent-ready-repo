@@ -25,14 +25,16 @@ agentbundle install --pack core
 
 ## Quick start
 
-**Install via Claude Code** (no extra tooling required):
+**Install via Claude Code** (no extra tooling required). This route installs at
+user scope, so it carries the packs that permit it — repo-scoped packs like
+`core` install with `agentbundle` instead:
 
 ```bash
 # Add the marketplace once
 claude plugin marketplace add eugenelim/agent-ready-repo
 
-# Install any pack by name
-claude plugin install core@agent-ready-repo
+# Install any *user-scope* pack by name
+claude plugin install architect@agent-ready-repo
 
 # Browse all available packs with install commands
 # → https://eugenelim.github.io/agent-ready-repo/plugins/

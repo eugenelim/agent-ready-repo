@@ -1,5 +1,6 @@
 ---
 name: Frontend Engineering
+pluginInstallable: true
 scope: user
 tagline: "The implementation layer for product web surfaces."
 skills:

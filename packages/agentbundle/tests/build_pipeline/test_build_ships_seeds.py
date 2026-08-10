@@ -31,7 +31,8 @@ def _make_seed_pack(packs_dir: Path) -> None:
         newline="\n",
     )
     (pack / "pack.toml").write_text(
-        '[pack]\nname = "seedpack"\nversion = "0.1.0"\ndescription = "seed-ship test pack."\n',
+        '[pack]\nname = "seedpack"\nversion = "0.1.0"\ndescription = "seed-ship test pack."\n'
+        '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n',
         encoding="utf-8",
         newline="\n",
     )

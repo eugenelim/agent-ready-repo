@@ -289,3 +289,14 @@ config file.
       "python tools/hooks/session-start.py"`. This guards against the
       synthetic-pack test passing while core's actual wiring is broken
       by an unrelated change.
+
+## Errata
+
+Corrections below are Approver-signed. The spec body above is preserved
+unchanged; errata supersede where noted. (Approver: eugenelim, 2026-08-08.)
+
+- **2026-08-08 — `core` is no longer installable as a Claude plugin.**
+  `docs/specs/claude-plugin-route-scope` publishes only packs whose
+  `[pack.install] allowed-scopes` admits `"user"`. `core` declares
+  `["repo"]`, so it is excluded from both marketplaces and from
+  `dist/claude-plugins/`. This spec's subject is `core`'s SessionStart wiring on that route, so its acceptance criteria no longer have a live artifact. The wiring itself is unchanged and still projects on the direct and APM routes. Separately, the `claude-plugins/<pack>/.claude/settings.local.json` layout this spec pins throughout is superseded for any pack that does publish — see the sibling hook-parity spec.

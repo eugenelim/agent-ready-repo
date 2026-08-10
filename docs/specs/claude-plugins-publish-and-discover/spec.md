@@ -17,6 +17,18 @@
 > it records an observation that was true when verified, and this spec is
 > Shipped → Frozen (`docs/CONVENTIONS.md` — status may change, bodies may not).
 
+> **Erratum (2026-08-09).** AC1, AC4 and AC6's membership claim — that the
+> route carries every pack except `catalogue-curation`, and that the guard is
+> therefore publish-side only — is **superseded** by
+> `docs/specs/claude-plugin-route-scope`. A Claude plugin's code always lands
+> in the adopter's global cache, so the marketplace now carries only packs
+> whose `allowed-scopes` admits `user`: six further packs are unlisted, and a
+> page-side guard exists (`web/src/pages/packs/[pack].astro` gates the install
+> block on `pluginInstallable`). The AC bodies below are left as written —
+> they record what was true when verified, and this spec is Shipped → Frozen
+> (`docs/CONVENTIONS.md` — status may change, bodies may not).
+> Approver: eugenelim.
+
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 

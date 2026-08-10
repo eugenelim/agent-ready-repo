@@ -1,5 +1,6 @@
 ---
 name: IaC (Terraform)
+pluginInstallable: false
 scope: repo
 tagline: "Intent → governed Terraform. Stops at plan."
 skills:

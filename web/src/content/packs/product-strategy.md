@@ -1,5 +1,6 @@
 ---
 name: Product Strategy
+pluginInstallable: true
 scope: user
 tagline: "Answer the committed strategic questions upstream of every initiative."
 skills:

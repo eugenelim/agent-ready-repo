@@ -236,3 +236,14 @@ correct the component layout.
 6. **Relationship to `claude-clean-room-plugin-smoke`** (`workspace.toml`
    `[backlog].open`): AC11 narrows it to a CLI round-trip on one pack. The slug
    stays open for graphical-client and multi-pack coverage.
+
+## Errata
+
+Corrections below are Approver-signed. The spec body above is preserved
+unchanged; errata supersede where noted. (Approver: eugenelim, 2026-08-08.)
+
+- **2026-08-08 — `core` is no longer installable as a Claude plugin.**
+  `docs/specs/claude-plugin-route-scope` publishes only packs whose
+  `[pack.install] allowed-scopes` admits `"user"`. `core` declares
+  `["repo"]`, so it is excluded from both marketplaces and from
+  `dist/claude-plugins/`. This spec's AC2 (components at plugin root) and its layout assertions still govern every pack that *is* published; only `core`'s participation lapses.

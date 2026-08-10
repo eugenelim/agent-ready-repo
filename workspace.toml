@@ -445,6 +445,20 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # catalogue-tooling-ci-gates.yml Gate B builds a synthetic external catalogue
+  # with `agentbundle catalogue build`, so an engine change can redden it while
+  # every `make` target stays green — it did, on spec/claude-plugin-route-scope,
+  # and no local command would have caught it. Fix: a `make` target that extracts
+  # the fixture heredoc and runs the same command, chained into `make ci`.
+  {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope"},
+  # render_packs_to_dir hard-codes aggregate_scope="catalogue", so an adopter
+  # rendering a repo-only subset through that public helper gets the
+  # catalogue's exclusion lines on stderr where the single-pack sibling is
+  # silent. (It raised a ValueError until round thirteen made both writers
+  # warn-and-continue; the surviving asymmetry is disclosure only.) No in-repo
+  # caller, so nothing catches it. Fix: take the scope as a parameter,
+  # matching run_recipe.
+  {slug = "plugin-render-packs-scope-parameter", source = "spec/claude-plugin-route-scope"},
   # flaky-sso-store-concurrency-on-windows —
   # packages/credbroker/tests/unit/test_sso_store_concurrency.py::
   # test_file_floor_path_is_serialised_too[1] fails intermittently on the
@@ -469,6 +483,17 @@ open = [
   # spec/engine-export-boundary: fixing 66 violations in shipped code does not
   # belong in a release-blocking diff.
   {slug = "ruff-excludes-the-engine-build-package", source = "spec/engine-export-boundary (quality pass)"},
+  # tools/lint-ci-parity.py classifies pages.yml as "Deploy workflow, not a
+  # gate" and therefore out of scope — but claude-plugin-route-scope added a
+  # non-blocking assertion step to it (check-site-plugin-offers.py), so that
+  # step carries no disposition and parity will not notice if it is deleted.
+  # Fix: update WORKFLOW_SCOPE's reason, or bring the step in scope as CI_ONLY.
+  {slug = "plugin-pages-yml-parity-disposition", source = "spec/claude-plugin-route-scope"},
+  # Six fixture continuation strings in
+  # packages/agentbundle/tests/build_pipeline/test_self_host_check.py are
+  # indented to column 8 inside deeper blocks — ruff accepts it, but it reads as
+  # a dedent bug. Left alone because RFC-0082 relocates that whole tree.
+  {slug = "plugin-fixture-continuation-indent", source = "spec/claude-plugin-route-scope"},
   # agentbundle-install-marker-importable-path — the wheel ships
   # agentbundle/_data/install-marker.py at a path that is not importable, which
   # `check-wheel-contents` reports as W004. Surfaced while measuring artifacts for
@@ -478,6 +503,39 @@ open = [
   # stalling. Fix: move the file to an importable path, or declare it data rather
   # than a module.
   {slug = "agentbundle-install-marker-importable-path", source = "spec/engine-export-boundary (out of scope)"},
+  # The publish job triggers on `push: main` with `contents: write` and declares
+  # no `needs:` on the build-check job, so it runs regardless of that job's
+  # result. `main` requires no PR review and has no CODEOWNERS, so the real trust
+  # boundary for publishing to a public marketplace is push access to `main`.
+  # The in-code half shipped (publish_claude_plugins.py re-derives the predicate
+  # and refuses on desync); this is the actor half. Fix: gate the publish job on
+  # `workflow_run` + `conclusion == success` rather than a GitHub Environment
+  # reviewer, which is a non-control in a single-maintainer repo.
+  {slug = "plugin-publish-required-reviewer", source = "spec/claude-plugin-route-scope"},
+  # `_aggregate_marketplace` runs on an adopter's `run_self_host`, and
+  # `[pack.adapter-contract]` is optional in `contracts/pack.schema.json` — so a
+  # schema-valid adopter pack resolves ["repo"] and vanishes from their own
+  # marketplace. Today that warns and continues (deliberately: it runs after
+  # adapters and seeds are written, so failing would leave a half-projected
+  # tree). Fix: decide whether the absent-contract case should be exempt on the
+  # self-host path rather than filtered.
+  {slug = "plugin-selfhost-scope-exemption", source = "spec/claude-plugin-route-scope"},
+  # The pre-merge real-client run uses a local marketplace path, because the
+  # repo-root marketplace resolves from `main` and the dist branch is written on
+  # push — neither reflects the PR. Fix: re-run `claude plugin details` and a
+  # post-delist `claude plugin update` against the published marketplace once
+  # this lands, and record the transcript in the spec's verification log.
+  {slug = "plugin-postmerge-marketplace-check", source = "spec/claude-plugin-route-scope"},
+  # Marketplace entries pin `ref = claude-plugins-dist`, a mutable branch, with
+  # no per-pack content hash. Force-push and deletion are denied, which protects
+  # history — but an ordinary fast-forward replaces every file, which is what
+  # each publish does, so an adopter can neither prove what they installed nor
+  # re-fetch it after a delist. Fix: emit a per-pack content hash into the entry.
+  # Deferred rather than omitted: ADR-0072 constrains the entry schema to mirror
+  # an upstream contract we do not own, so a non-upstream field is a spike.
+  # `catalogue_tooling/package.py` already records a whole-marketplace
+  # `marketplace_digest` as a partial mitigation.
+  {slug = "plugin-marketplace-content-hash", source = "spec/claude-plugin-route-scope"},
   # Every other pack description was rewritten outcome-first; credential-brokers
   # still opens "User-scope credential brokering: the credbroker library
   # (pip-installed, in-process resolver...)" and names an internal path

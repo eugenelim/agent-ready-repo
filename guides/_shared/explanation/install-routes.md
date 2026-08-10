@@ -4,10 +4,18 @@ Four ways to install a pack from this catalogue:
 
 | Route | Command | When it fits |
 | --- | --- | --- |
-| **Claude plugins** | `/plugin marketplace add <owner>/<catalogue>` then `/plugin install <pack>@<catalogue>` | You're on Claude Code and want one-line install with auto-update. |
+| **Claude plugins** | `/plugin marketplace add <owner>/<catalogue>` then `/plugin install <pack>@<catalogue>` | You're on Claude Code and want one-line install with auto-update. **Carries only packs whose `allowed-scopes` admits `user`** — see the note below. |
 | **APM** | `apm install <owner>/<catalogue>/<pack>` | You're in any other IDE harness with the [APM](https://github.com/agent-package-manager) CLI. |
 | **Reference CLI** | `agentbundle install --pack <name> git+https://github.com/<owner>/<catalogue>` | You want a pinned, scriptable install with state tracking from day one. |
 | **Local clone** | `git clone … && python -m pip install -e packages/agentbundle/ && agentbundle install --pack <name> . --output <target>` | Network-constrained environment, or you want both the catalogue and the runtime library editable. |
+
+> **The plugin route is user-scope only.** A Claude plugin's code lives in your
+> global cache and `claude plugin install` defaults to `--scope user`, so the
+> marketplace carries only packs that permit a user-scope install. A pack
+> declaring `allowed-scopes = ["repo"]` — `core`, `governance-extras`,
+> `iac-terraform`, `monorepo-extras`, `release-engineering`,
+> `user-guide-diataxis` — installs with `agentbundle install` instead. That is
+> the route they are scoped for, not a gap.
 
 > **Already added the marketplace before 2026-08?** Run
 > `/plugin marketplace update <catalogue>` and reinstall your packs. Entries
@@ -34,7 +42,7 @@ The mechanism is identical across routes:
 | Route | Marker writer |
 | --- | --- |
 | Reference CLI | The `install` verb writes it in-process and chains to `agentbundle adapt`. |
-| Claude plugins | A `SessionStart` hook derived into each pack's `.claude-plugin/plugin.json` runs the canonical writer on first session after install. |
+| Claude plugins | A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` runs the canonical writer on first session after install. Repo-scoped packs are not published to this route, so it does not reach them. |
 | APM | `.apm/hooks/install-marker.{json,py}`, projected via APM's `HookIntegrator`, runs the same canonical writer. |
 | Local clone | Same as Reference CLI — the clone route uses the same `install` verb. |
 
@@ -73,10 +81,10 @@ Adopters with multiple IDE homes populated (`~/.claude/` plus `~/.kiro/`, say) c
 Pre-RFC-0012, `agentbundle install --pack X --scope repo .` produced dist-tree artifacts (`<repo>/claude-plugins/<pack>/`, `<repo>/apm/<pack>/`) regardless of adapter choice. RFC-0012 flips the default at repo scope to per-IDE projection (the same shape user scope has used since RFC-0004); the dist-tree producer becomes an explicit opt-in via `--emit-install-routes`:
 
 ```
-agentbundle install --pack core --scope repo --emit-install-routes .
+agentbundle install --pack architect --scope repo --emit-install-routes .
 ```
 
-Catalogue maintainers scripting the dist-tree shape for publishing pipelines add this one flag to their existing invocations. The flag is bound to `--scope repo` and mutually exclusive with `--adapter` at that scope (the dist-tree producer doesn't pick a single adapter). It carries a `DeprecationWarning` from day one and is targeted for removal in the next minor — see [RFC-0012 § *Alternatives* #6](../../../rfc/0012-repo-scope-per-adapter-projection.md).
+Catalogue maintainers scripting the dist-tree shape for publishing pipelines add this one flag to their existing invocations. The `claude-plugins/<pack>/` half is emitted only for packs the plugin route carries — a repo-only pack like `core` yields `apm/<pack>/` alone. The flag is bound to `--scope repo` and mutually exclusive with `--adapter` at that scope (the dist-tree producer doesn't pick a single adapter). It carries a `DeprecationWarning` from day one and is targeted for removal in the next minor — see [RFC-0012 § *Alternatives* #6](../../../rfc/0012-repo-scope-per-adapter-projection.md).
 
 ## Where to read next
 

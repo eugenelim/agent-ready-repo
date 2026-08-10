@@ -203,6 +203,12 @@ On acceptance:
 
 ## Errata
 
+**Erratum (2026-08-09).** "aggregates the latter into `dist/claude-plugins/marketplace.json` for every pack in `packs/`" (§ *Handled at system level*) no longer holds. Superseded by
+`docs/specs/claude-plugin-route-scope`: a Claude plugin's code lands in the
+adopter's global cache, so `marketplace.json` now carries only packs whose
+`allowed-scopes` admits `user`. `converters` itself is user-capable and still published, so this RFC's own decision is unaffected — only the generality of the sentence is. Body above left as written — this
+artifact is frozen (`docs/CONVENTIONS.md`). Approver: eugenelim.
+
 This RFC is Accepted: the body above is preserved as the original decision
 record. Corrections and later-revisited judgments are appended here,
 Approver-signed.

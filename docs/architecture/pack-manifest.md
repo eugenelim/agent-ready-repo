@@ -60,9 +60,12 @@ is a pure function that maps `pack.toml` to the manifest subset:
 output only when its source field is present and non-empty. The subset is
 merged into:
 
-- each pack's derived `dist/claude-plugins/<pack>/.claude-plugin/plugin.json`
-  (alongside the synthesised `SessionStart` hook), and
-- each pack's entry in the aggregated `.claude-plugin/marketplace.json`
+- the derived `dist/claude-plugins/<pack>/.claude-plugin/plugin.json` of every
+  **user-capable** pack (alongside the synthesised `SessionStart` hook) — a pack
+  whose `allowed-scopes` omits `user` reaches neither, since the route installs
+  at user scope — as does one with no `[pack.adapter-contract] version`, which
+  the resolver gates on first, and
+- that pack's entry in the aggregated `.claude-plugin/marketplace.json`
   (built by `_aggregate_marketplace` in
   [`self_host.py`](../../packages/agentbundle/agentbundle/build/self_host.py)).
 

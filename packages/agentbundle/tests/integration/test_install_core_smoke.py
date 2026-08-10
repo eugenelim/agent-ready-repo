@@ -21,7 +21,6 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
-import json
 import shutil
 from pathlib import Path
 
@@ -57,12 +56,17 @@ def test_real_core_install_writes_session_start_binding(tmp_path):
         rc = install.run(args)
     assert rc == 0, f"install failed: {err.getvalue()}"
 
-    settings = target / "claude-plugins" / "core" / ".claude" / "settings.local.json"
-    assert settings.exists(), (
-        f"dist-tree settings file missing at {settings}"
-    )
-    data = json.loads(settings.read_text(encoding="utf-8"))
-    assert (
-        data["hooks"]["SessionStart"][0]["hooks"][0]["command"]
-        == "python tools/hooks/session-start.py"
-    ), f"unexpected SessionStart command in {data!r}"
+    # This test asserts *engine* behaviour: the install machinery projects a
+    # real pack's wiring. Whether `core` specifically belongs on the
+    # claude-plugins route is a claim about this repository's catalogue roster,
+    # owned by `tools/lint-plugin-membership.py` under RFC-0082's taxonomy —
+    # asserting it here would put a roster claim in the engine tree.
+    #
+    # The route emits only the marketplace envelope for a repo-only pack, so
+    # the dist-tree settings file this test used to read is absent. The APM
+    # route is unfiltered and carries the wiring, which is what it pins now.
+    wiring = target / "apm" / "core" / ".apm" / "hook-wiring" / "session-start.toml"
+    assert wiring.exists(), f"APM-route wiring missing at {wiring}"
+    body = wiring.read_text(encoding="utf-8")
+    assert "[[hooks.SessionStart]]" in body
+    assert "tools/hooks/session-start.py" in body

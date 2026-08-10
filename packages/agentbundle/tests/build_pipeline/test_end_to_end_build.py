@@ -21,7 +21,12 @@ REPO_ROOT = Path(__file__).resolve().parents[4]
 FIXTURES_PACKS = (
     Path(__file__).resolve().parent / "fixtures" / "packs"
 )
+# Every fixture pack. `user-guide-diataxis` is deliberately repo-only, so it is
+# the drop-path witness: it must NOT reach the claude-plugins route or either
+# marketplace (docs/specs/claude-plugin-route-scope).
 REFERENCE_PACKS = ("core", "governance-extras", "product-documentation", "user-guide-diataxis", "monorepo-extras")
+PUBLISHABLE_PACKS = ("core", "governance-extras", "product-documentation", "monorepo-extras")
+REPO_ONLY_PACKS = ("user-guide-diataxis",)
 
 
 def _run_build(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -50,12 +55,22 @@ class EndToEndBuildTests(unittest.TestCase):
             marketplace = tmp_path / "claude-plugins" / "marketplace.json"
             self.assertTrue(marketplace.exists())
             entries = json.loads(marketplace.read_text(encoding="utf-8"))
+            # Set equality both directions: absences alone would miss a
+            # fail-closed truncation that drops a user-capable pack.
             self.assertEqual(
                 {entry["name"] for entry in entries["plugins"]},
-                set(REFERENCE_PACKS),
+                set(PUBLISHABLE_PACKS),
             )
-            for pack in REFERENCE_PACKS:
+            for pack in PUBLISHABLE_PACKS:
                 self.assertTrue((tmp_path / "claude-plugins" / pack).exists())
+            for pack in REPO_ONLY_PACKS:
+                self.assertFalse(
+                    (tmp_path / "claude-plugins" / pack).exists(),
+                    f"{pack} declares allowed-scopes without 'user' and must not "
+                    "reach the claude-plugins route",
+                )
+            # The APM route is NOT filtered — it carries every pack.
+            for pack in REFERENCE_PACKS:
                 self.assertTrue((tmp_path / "apm" / pack).exists())
 
             # Integrated-journey coverage: assert each of the five

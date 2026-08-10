@@ -67,23 +67,35 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
           Requires <a href={withBase('/docs/getting-started/')}>agentbundle</a>.
         </p>
 
-        <!-- Claude plugin route -->
-        <p class="install-route-label install-route-label--spaced">Via Claude Code / Claude Desktop</p>
-        <div class="install-block">
-          <div class="install-block__plugin-row">
-            <pre class="install-block__code install-block__code--light"><code>{pluginInstallCmd}</code></pre>
-            <button
-              class="install-copy-btn"
-              data-cmd={pluginInstallCmd}
-              aria-label="Copy Claude plugin install command"
-              type="button"
-            >Copy</button>
-          </div>
-        </div>
-        <p class="install-note">
-          No extra tooling required — works directly in <a href="https://claude.ai/code" rel="noopener noreferrer">Claude Code</a> or Claude Desktop.
-          <a href={withBase('/catalogue/')}>Browse the catalogue →</a>
-        </p>
+        <!-- Claude plugin route — offered only for packs whose allowed-scopes
+             admits "user". The route installs at user scope, so advertising it
+             for a repo-scoped pack offers an install the pack forbids. -->
+        {data.pluginInstallable ? (
+          <>
+            <p class="install-route-label install-route-label--spaced">Via Claude Code / Claude Desktop</p>
+            <div class="install-block">
+              <div class="install-block__plugin-row">
+                <pre class="install-block__code install-block__code--light"><code>{pluginInstallCmd}</code></pre>
+                <button
+                  class="install-copy-btn"
+                  data-cmd={pluginInstallCmd}
+                  aria-label="Copy Claude plugin install command"
+                  type="button"
+                >Copy</button>
+              </div>
+            </div>
+            <p class="install-note">
+              No extra tooling required — works directly in <a href="https://claude.ai/code" rel="noopener noreferrer">Claude Code</a> or Claude Desktop.
+              <a href={withBase('/catalogue/')}>Browse the catalogue →</a>
+            </p>
+          </>
+        ) : (
+          <p class="install-note">
+            This pack installs into a repository, not across your machine, so it
+            is not offered as a Claude plugin. Use the command above.
+            <a href={withBase('/catalogue/')}>Browse the catalogue →</a>
+          </p>
+        )}
       </div>
 
       <!-- Journey -->

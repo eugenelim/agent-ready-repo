@@ -47,10 +47,34 @@ EXPECTED_COMMAND = (
     " --install-route claude-plugins"
 )
 
+
 # All fixture packs — parametrisation covers multi-pack derivation (Concern-5).
-FIXTURE_PACK_NAMES = [
-    p.name for p in sorted(FIXTURES_PACKS.iterdir()) if p.is_dir() and (p / "pack.toml").exists()
+def _is_publishable(pack_dir) -> bool:
+    """Mirror of the route's membership predicate for parametrisation.
+
+    Derived, not hardcoded: the fixture set changes, and a hardcoded list would
+    silently stop covering a pack. See docs/specs/claude-plugin-route-scope.
+    """
+    import sys as _sys
+
+    _sys.path.insert(0, str(REPO_ROOT / "packages" / "agentbundle"))
+    from agentbundle.build.main import pack_is_publishable
+
+    return pack_is_publishable(pack_dir)
+
+
+_ALL_FIXTURE_PACKS = [
+    p for p in sorted(FIXTURES_PACKS.iterdir()) if p.is_dir() and (p / "pack.toml").exists()
 ]
+# Only user-capable packs reach this route; the rest are the drop-path witnesses.
+FIXTURE_PACK_NAMES = [p.name for p in _ALL_FIXTURE_PACKS if _is_publishable(p)]
+REPO_ONLY_PACK_NAMES = [p.name for p in _ALL_FIXTURE_PACKS if not _is_publishable(p)]
+
+# Both lists are computed from the production predicate, so a predicate that
+# returns a constant would empty one of them — and an empty parametrisation
+# collects zero cases and passes. Fail at collection instead.
+assert FIXTURE_PACK_NAMES, "no publishable fixture packs — the predicate is broken"
+assert REPO_ONLY_PACK_NAMES, "no repo-only fixture pack — the drop path is uncovered"
 
 
 def _run_build(packs_dir: Path, output_dir: Path) -> subprocess.CompletedProcess[str]:
@@ -533,3 +557,17 @@ def test_marketplace_entries_have_no_hooks(tmp_path):
             f"Plugin '{plugin.get('name')}' in marketplace.json contains 'hooks' — "
             "hooks are per-plugin artifacts and must not appear in marketplace entries"
         )
+
+
+@pytest.mark.parametrize("pack_name", REPO_ONLY_PACK_NAMES)
+def test_repo_only_packs_are_not_derived(tmp_path, pack_name):
+    """A pack whose allowed-scopes omits "user" must not reach this route.
+
+    The route installs at user scope, so publishing it would offer an install
+    the pack's own declaration forbids (ADR-0002's refusal contract).
+    """
+    output_dir = tmp_path / "dist"
+    result = _run_build(FIXTURES_PACKS, output_dir)
+    assert result.returncode == 0, result.stderr
+    assert not (output_dir / "claude-plugins" / pack_name).exists()
+    assert pack_name in result.stderr  # the exclusion is named, never silent

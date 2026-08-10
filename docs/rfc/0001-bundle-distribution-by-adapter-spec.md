@@ -1477,6 +1477,18 @@ absorbed into the build pipeline.
 
 ## Errata
 
+- **2026-08-09 — "a single shared `marketplace.json` lists them all" is
+  narrowed, and the `core` example no longer resolves.** Per
+  `docs/specs/claude-plugin-route-scope`, the marketplace lists only packs
+  whose `allowed-scopes` admits `user`, because a Claude plugin's code always
+  lands in the adopter's global cache — `--scope project` records an
+  enablement pointer, not the code. The `/plugin install core@agent-ready-repo`
+  example in the same passage therefore returns `not found`; substitute any
+  published pack (`architect`, say). `core` is reached with
+  `agentbundle install`, which is the route it is scoped for. The
+  one-marketplace-per-repo shape the passage argues for is unaffected.
+  Approver: eugenelim.
+
 - **2026-05-30 — seed delivery is automatic on the CLI route only (issue #190).**
   Short version: **the seeds now ship inside every artifact, but only the CLI
   route drops them into your repo for you.** Two clauses of this RFC needed

@@ -235,10 +235,13 @@ class RepoScopeEmitInstallRoutesTests(unittest.TestCase):
                 rc, 0, f"install failed:\nstdout={stdout}\nstderr={stderr}"
             )
 
-            # Dist-tree shape present.
-            self.assertTrue(
+            # Dist-tree shape present. `core` is repo-only, so it does NOT
+            # reach the user-scope claude-plugins route; the APM route below is
+            # unfiltered and still carries it.
+            self.assertFalse(
                 (adopter / "claude-plugins" / "core").exists(),
-                f"expected claude-plugins/core/ under {adopter}",
+                f"core declares allowed-scopes without 'user' and must not "
+                f"reach claude-plugins/ under {adopter}",
             )
             self.assertTrue(
                 (adopter / "apm" / "core").exists(),
@@ -254,7 +257,16 @@ class RepoScopeEmitInstallRoutesTests(unittest.TestCase):
 
             # Stdout carries the route-list summary AND the recap.
             self.assertIn("emitted install routes for core at", stdout)
-            self.assertIn(" and ", stdout)  # the N=2 join rule
+            # Assert on the route line itself. The old ` in stdout` form
+            # passed for an unrelated reason: an unrelated trailing line
+            # contains " and ", so reverting the filter left every assertion
+            # green while `claude-plugins/core/` was printed again.
+            route_line = next(
+                ln for ln in stdout.splitlines()
+                if ln.startswith("emitted install routes for core at")
+            )
+            self.assertNotIn("claude-plugins/core/", route_line)
+            self.assertNotIn(" and ", route_line)  # repo-only pack → one route
             self.assertIn("installed: core @ repo", stdout)
 
 

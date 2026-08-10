@@ -1,5 +1,6 @@
 ---
 name: Converters
+pluginInstallable: true
 scope: user
 tagline: "Document conversion — between every format your team uses."
 skills:

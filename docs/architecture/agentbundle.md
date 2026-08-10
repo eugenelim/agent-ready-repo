@@ -114,7 +114,10 @@ packs/                                dist/
    (`claude_code`, `codex`, `copilot`, `cursor`, `gemini`, `kiro_ide`,
    `kiro_cli`, and `kiro` — the deprecated alias for `kiro_ide`) which delegate to
    [`build/projections/`](../../packages/agentbundle/agentbundle/build/projections/).
-4. **Aggregation.** `marketplace.json` lists every per-pack plugin entry.
+4. **Aggregation.** `marketplace.json` lists a plugin entry for every
+   *user-capable* pack — the Claude-plugin route installs at user scope, so a
+   pack whose `allowed-scopes` omits `user` is not listed
+   (`docs/specs/claude-plugin-route-scope`).
 5. **Self-host overlay.** `make build-self` runs `self-host.toml` against
    this repo's root. The effective adapter set — which folders are written —
    is determined by `preferred-adapter` in `catalogue.toml`; see the diagram
@@ -251,8 +254,17 @@ Three install routes share one mechanism: each route drops
 | Route | Marker writer | Trigger |
 | --- | --- | --- |
 | `agentbundle install` (CLI) | The CLI command writes it in-process and chains to `agentbundle adapt`. | Run by user. |
-| `claude plugin install` | A `SessionStart` hook derived into each pack's `.claude-plugin/plugin.json` runs the canonical writer template. | First session after install. |
+| `claude plugin install` | A `SessionStart` hook derived into each **published** pack's `.claude-plugin/plugin.json` runs the canonical writer template. | First session after install. |
 | `apm install` | `.apm/hooks/install-marker.{json,py}` projected via APM's `HookIntegrator`, same template. | First session after install. |
+
+> **Dormant on the user-scope path.** The marker is still written for every
+> published pack, but both readers of `.adapt-install-marker.toml` —
+> `packs/core/.apm/hooks/session-start.py` and the `adapt-to-project` skill —
+> live in `core`, which is repo-scoped and therefore not published to the
+> Claude-plugin route (`docs/specs/claude-plugin-route-scope`). So on that route
+> the automatic nudge fires only for an adopter who *also* has `core` installed
+> at repo scope. RFC-0008's design is unchanged; the user-scope path re-lights
+> when a user-capable pack ships a session-start hook.
 
 The writer template lives at
 [`packages/agentbundle/templates/install-marker.py`](../../packages/agentbundle/templates/install-marker.py)

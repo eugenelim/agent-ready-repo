@@ -1,5 +1,6 @@
 ---
 name: Desk Research
+pluginInstallable: true
 scope: user
 tagline: "Evidence-grounded research — portable across every repo."
 skills:

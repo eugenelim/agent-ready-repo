@@ -64,12 +64,19 @@ First, add the marketplace (one-time setup):
 claude plugin marketplace add eugenelim/agent-ready-repo
 ```
 
-Then install any pack using `<pack>@agent-ready-repo`:
+Then install any **user-scope** pack using `<pack>@agent-ready-repo`:
 
 ```bash
-claude plugin install core@agent-ready-repo
+claude plugin install architect@agent-ready-repo
 claude plugin install desk-research@agent-ready-repo
 ```
+
+A Claude plugin's code lives in your global cache and `claude plugin install`
+defaults to `--scope user`, so the marketplace carries only packs that permit a
+user-scope install. Repo-scoped packs — `core`, `governance-extras`,
+`iac-terraform`, `monorepo-extras`, `release-engineering`,
+`user-guide-diataxis` — install with `agentbundle` instead; that is the route
+they are scoped for.
 
 :::caution[Added this marketplace before 2026-08?]
 Run `claude plugin marketplace update agent-ready-repo`, then reinstall your
@@ -80,7 +87,9 @@ a healthy pack reports a non-zero skill count. A cached catalogue keeps serving
 the old entries until you update it.
 :::
 
-Available for all 20 packs (catalogue-curation is an operator-only pack not published to the marketplace). Pack names match the directory names under `packs/`.
+Pack names match the directory names under `packs/`. The marketplace lists
+the user-capable subset; `claude plugin marketplace add` then `claude plugin
+list agent-ready-repo` shows exactly what is on offer.
 
 ## Route 3: APM (Agent Package Manager)
 

@@ -1,5 +1,6 @@
 ---
 name: User Guide (Diátaxis) — Deprecated
+pluginInstallable: false
 scope: repo
 tagline: "Superseded by product-documentation."
 skills:

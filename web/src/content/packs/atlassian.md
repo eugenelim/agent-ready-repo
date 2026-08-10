@@ -1,5 +1,6 @@
 ---
 name: Atlassian
+pluginInstallable: true
 scope: user
 tagline: "Run Jira and Confluence from a conversation"
 skills:

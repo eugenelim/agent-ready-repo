@@ -1,5 +1,6 @@
 ---
 name: Release Engineering
+pluginInstallable: false
 scope: repo
 tagline: "Deploy. Verify. Converge. Then ship."
 skills:

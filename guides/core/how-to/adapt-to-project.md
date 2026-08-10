@@ -50,7 +50,7 @@ The skill's class-2 *Companion merges* walk depends on `*.upstream.<ext>` files 
 | --- | --- |
 | `agentbundle install` (CLI) | At install time — the CLI drops them on every Tier-2 collision. |
 | `apm install` | Not at install. Run `agentbundle init-state` to record a baseline; the next `agentbundle upgrade` produces companions on Tier-2 collisions. |
-| `/plugin install` (Claude Code) | Same as APM — `agentbundle init-state` first, then companions surface on `agentbundle upgrade`. |
+| `/plugin install` (Claude Code) | Same as APM — `agentbundle init-state` first, then companions surface on `agentbundle upgrade`. Not a route for `core` itself, which is repo-scoped; this row covers user-scope packs you installed as plugins. |
 
 The class-2 walk is a no-op if no companions are on disk; the other three classes (substitution, discovery, consolidation) run on every invocation regardless.
 
