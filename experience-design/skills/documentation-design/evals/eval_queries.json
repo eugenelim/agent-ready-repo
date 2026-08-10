@@ -1,4 +1,6 @@
 [
+  {"query": "Design the help center so new users reach the right task guide quickly", "should_trigger": true},
+  {"query": "Build the approved docs navigation and theme in the site code", "should_trigger": false},
   {"query": "Design the docs site structure for our developer API", "should_trigger": true},
   {"query": "Structure the help centre so users find answers quickly", "should_trigger": true},
   {"query": "How should we organize our technical documentation?", "should_trigger": true},

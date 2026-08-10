@@ -1,6 +1,6 @@
 ---
 name: workspace-design
-description: "Use when designing a workspace surface — a productivity tool, a collaborative environment, an agentic UI, or any surface whose primary purpose is to support sustained professional work across sessions. Triggers on 'design the workspace', 'structure the tool UI', 'collaborative editing surface', 'agentic UI design', 'multi-agent coordination UI', 'task management surface', 'session arc design'. Covers context-persistence, collaboration state IA, ambient attention, agentic patterns, and interrupt design. Do NOT use for dashboards and monitoring views (use analytical-design) or marketplace surfaces (use marketplace-design). Surface genre: workspace."
+description: "Use when someone asks how a productivity, collaboration, or agentic workspace should support sustained professional work across sessions. Produces a workspace-surface specification covering context persistence, collaboration state, ambient attention, interruptions, and session arcs. Use `analytical-design` for dashboards and monitoring views and `marketplace-design` for exchange surfaces. Product strategy is upstream; choosing the appetite and scope belongs to product engineering; implementing the workspace or writing its UI strings belongs to frontend engineering and `ux-writing`."
 ---
 
 # Skill: workspace-design

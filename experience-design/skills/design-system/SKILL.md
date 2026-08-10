@@ -1,6 +1,6 @@
 ---
 name: design-system
-description: Use when an aesthetic direction exists and the next move is a system — deriving a token/scale taxonomy and its rationale from intent. Triggers on "derive a scale", "set up design tokens", "name our tokens", "what's our spacing/type system", "turn the direction into a system". Names tokens by semantic role, organizes scales by a single ratio-as-concept, treats accessibility as a floor, and composes atomically (build systems, not pages). Do NOT use to set the vibe first (use `creative-direction`), to lay out a screen's hierarchy and flow (use `information-architecture`), or to evaluate an existing surface (use `design-review`).
+description: "Use when an approved aesthetic direction exists and someone asks how to name and organize semantic tokens, spacing, type, or color scales. Produces a token taxonomy and rationale; it does not implement token values. Use `creative-direction` to establish the vibe, `information-architecture` for page hierarchy, and `design-review` to evaluate an existing surface. Product differentiation belongs to product strategy; framing a design-system initiative belongs to `frame-intent`; implementing tokens or components belongs to `frontend-engineering`."
 ---
 
 # Skill: design-system

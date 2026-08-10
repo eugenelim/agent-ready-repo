@@ -1,6 +1,6 @@
 ---
 name: journey-mapping
-description: Use when a product team needs to understand how a customer moves through an experience end-to-end — mapping the stages, actions, emotions, pains, and opportunities along the path. Triggers on "map the customer journey", "what does the user go through", "journey map this flow", "map out the experience stages", "what are the customer touchpoints", "where does the user feel pain". Carries a platform/surface axis (responsive-web, iOS, Android, cross-platform) that changes what the method asks at each stage. Scoped to customer/end-user journeys only — employee journeys are out of v1. Do NOT use to design screen interactions (use `user-flow`), to blueprint the backing services (use `service-blueprint`), or to map an internal business process (use `process-mapping`).
+description: "Use when a team asks what an end user goes through across an experience, from one meaningful outcome to the next. Produces a customer journey map of stages, actions, touchpoints, emotions, pains, and opportunities, adjusted for the relevant platform. Use `service-blueprint` for backing services, `user-flow` to turn the journey into screens, and `process-mapping` for internal operations. Adoption strategy belongs to product strategy; selecting and scoping a bet belongs to product-engineering shaping; implementing journey screens belongs to `frontend-engineering`."
 ---
 
 # Skill: journey-mapping

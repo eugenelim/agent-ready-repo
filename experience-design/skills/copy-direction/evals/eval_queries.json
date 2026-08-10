@@ -1,4 +1,6 @@
 [
+  {"query": "Name the copy goals for this pricing-page hero before anyone writes the lines", "should_trigger": true},
+  {"query": "Define the voice our brand should use consistently across every channel", "should_trigger": false},
   {"query": "What voice should our landing page have? We know we want authority but not cold", "should_trigger": true},
   {"query": "Write a copy direction doc for our pricing page — we know the vibe but can't name it", "should_trigger": true},
   {"query": "What should our above-fold hero copy feel like for our new product launch surface?", "should_trigger": true},

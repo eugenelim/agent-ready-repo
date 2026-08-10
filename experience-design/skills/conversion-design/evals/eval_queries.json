@@ -1,4 +1,6 @@
 [
+  {"query": "Structure a pricing page so a qualified visitor understands the offer and can act", "should_trigger": true},
+  {"query": "Write the final hero headline, proof copy, and call-to-action text", "should_trigger": false},
   {"query": "Design the landing page to convert visitors to sign-ups", "should_trigger": true},
   {"query": "Structure the homepage so visitors understand what we do and take action", "should_trigger": true},
   {"query": "What goes above the fold on our product marketing page?", "should_trigger": true},

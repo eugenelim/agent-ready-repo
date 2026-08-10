@@ -1,6 +1,6 @@
 ---
 name: process-mapping
-description: Use when a team needs to understand, document, or improve how an internal business operation works — mapping an APQC L3 process end-to-end as a swimlane flow with as-is and to-be states, a SIPOC scoping table, and a pain/waste register. Triggers on "map our internal process", "document this business process", "what does our current process look like", "as-is to-be process", "process improvement", "how does this workflow actually work", "swimlane diagram for this process", "map the claims process", "map the order fulfilment flow". This is the inside-out operations sibling of `journey-mapping`. Do NOT use to map what a customer experiences (use `journey-mapping`), to blueprint how screens tie to backing services (use `service-blueprint`), or to sequence screen transitions (use `user-flow`). Does NOT carry a platform/surface axis — it is actor/swimlane-shaped, not device-shaped.
+description: "Use when a team asks how an internal business operation works today or should work tomorrow across actors and handoffs. Produces a SIPOC scope, swimlane map, as-is/to-be flow, and pain-and-waste register. Use `journey-mapping` for the customer's experience, `service-blueprint` to connect a journey to backstage support, and `user-flow` for screens. Operating or product strategy belongs upstream; shaping an automation bet belongs to `frame-intent`; implementing workflow software belongs to engineering."
 ---
 
 # Skill: process-mapping

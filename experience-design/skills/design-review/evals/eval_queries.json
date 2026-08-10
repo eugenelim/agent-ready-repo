@@ -1,4 +1,6 @@
 [
+  {"query": "Review this working checkout flow and rank the design problems by severity", "should_trigger": true},
+  {"query": "Review this frontend change for code defects, test failures, and implementation quality", "should_trigger": false},
   {"query": "Critique this design and tell me what's wrong with it", "should_trigger": true},
   {"query": "Review this checkout screen — what are the usability problems?", "should_trigger": true},
   {"query": "Do a heuristic evaluation of our onboarding flow", "should_trigger": true},

@@ -1,6 +1,6 @@
 ---
 name: design-review
-description: "Evaluate an existing screen, flow, or mockup with a severity-rated findings list: quality-floor pass (states, a11y, motion), heuristic eval (Nielsen's 10), marketing clarity pass (tweet test, five-second scan, painkiller-first — fires on above-fold copy with a persuasion goal), and taste critique (grounded aesthetic reference + platform fit). Triggers on 'critique this design', 'review this screen', 'what is wrong with this mockup', 'do a heuristic eval', 'is this usable', 'does this fit our aesthetic', 'does this page convert', 'is this copy compelling', 'tweet test'. Do NOT use to name a felt direction (use creative-direction), to derive tokens (use design-system), or to structure hierarchy (use information-architecture)."
+description: "Use when someone asks to critique an existing rendered screen, flow, or mockup for usability, quality-floor, clarity, and aesthetic-fit problems. Produces a severity-rated findings list grounded in the actual artifact. Use `creative-direction` to name a new visual direction, `information-architecture` to design hierarchy, and `design-system` to derive tokens. Reviewing product strategy or choosing a bet is upstream strategy work; framing the work belongs to `frame-intent`; reviewing code defects or implementation quality belongs to frontend engineering."
 ---
 
 # Skill: design-review

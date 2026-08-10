@@ -1,4 +1,6 @@
 [
+  {"query": "Before wireframes, decide what our onboarding page must say and how the story should unfold", "should_trigger": true},
+  {"query": "Write the final error, empty-state, and button text for this product flow", "should_trigger": false},
   {"query": "What should this landing page say to convert technical team leads?", "should_trigger": true},
   {"query": "Write a content brief for our onboarding flow — we need to decide what it should communicate", "should_trigger": true},
   {"query": "What's the narrative arc for this marketing page? We don't know what to say first", "should_trigger": true},

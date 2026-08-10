@@ -1,4 +1,6 @@
 [
+  {"query": "Derive semantic spacing, type, and color token names from our approved direction", "should_trigger": true},
+  {"query": "Wire the approved tokens into stylesheet variables and update the component code", "should_trigger": false},
   {"query": "Derive a spacing scale from our aesthetic direction", "should_trigger": true},
   {"query": "Set up our design tokens and name them by role", "should_trigger": true},
   {"query": "Turn the named aesthetic direction into a design system", "should_trigger": true},

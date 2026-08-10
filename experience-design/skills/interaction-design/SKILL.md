@@ -1,6 +1,6 @@
 ---
 name: interaction-design
-description: Use when a screen or component needs its behavioral layer designed — how it responds to actions, validates input, transitions between states, and guides users through gesture and cognitive fit. Triggers on "design how this form behaves", "what happens when the user taps submit", "design the loading and error states", "map the state machine for this component", "design the micro-interactions", "how should this feel to use". Do NOT use to structure hierarchy or wayfinding (use `information-architecture`), to name aesthetic direction (use `creative-direction`), to map cross-screen navigation routes (use `user-flow`), or to enumerate which states exist (that enumeration belongs to the shared quality floor).
+description: "Use when someone asks how one screen or component should respond to actions, validate input, transition, recover, or feel in use. Produces behavioral and state specifications for the interaction. Use `information-architecture` for hierarchy, `user-flow` for cross-screen routes, and `creative-direction` for visual mood; `ux-writing` owns the strings shown in those states. Product strategy is upstream; framing and scoping the feature belongs to `frame-intent`; implementing the state machine, motion, or component code belongs to `frontend-engineering`."
 ---
 
 # Skill: interaction-design

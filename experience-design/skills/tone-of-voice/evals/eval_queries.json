@@ -1,4 +1,6 @@
 [
+  {"query": "Our teams sound inconsistent; define the brand voice every channel should share", "should_trigger": true},
+  {"query": "Set the copy goals for this pricing-page hero and campaign only", "should_trigger": false},
   {"query": "What voice should our brand have across all channels? We're a developer tool and we sound too corporate", "should_trigger": true},
   {"query": "How do we sound different from our competitors? They all sound the same", "should_trigger": true},
   {"query": "We want to sound like a guide, not an expert. Help us name that direction", "should_trigger": true},

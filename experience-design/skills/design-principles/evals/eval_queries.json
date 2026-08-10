@@ -1,4 +1,6 @@
 [
+  {"query": "Turn these journey pains into a few design principles we can use to settle tradeoffs", "should_trigger": true},
+  {"query": "Choose our target segment, differentiation, and product positioning", "should_trigger": false},
   {"query": "What are our design principles for this product?", "should_trigger": true},
   {"query": "We keep arguing about the same design decisions — help us define our principles", "should_trigger": true},
   {"query": "Derive design principles from this journey map", "should_trigger": true},
