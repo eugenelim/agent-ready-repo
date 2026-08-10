@@ -1,6 +1,6 @@
 ---
 name: analytical-design
-description: "Use when designing an analytical surface — a dashboard, a reporting view, a monitoring screen, or any surface whose primary purpose is to help a user understand a data set and act on it. Triggers on 'design the dashboard', 'structure the reporting view', 'what goes on the analytics screen', 'KPI layout', 'design a monitoring view'. Produces domain-model-first IA and widget hierarchy specifications. Scope boundary — individual chart encoding design is out of scope (use interaction-design for component state machines); this skill handles dashboard IA only. Do NOT use for marketing surfaces (use conversion-design) or workspace productivity surfaces (use workspace-design). Surface genre: analytical."
+description: "Use when someone asks how a dashboard, report, or monitoring view should help a user understand data and act. Produces domain-model-first information architecture and a widget hierarchy for the analytical surface, not individual chart implementations. Use `interaction-design` for component behavior, `conversion-design` for marketing surfaces, and `workspace-design` for sustained-work tools. Metric and outcome strategy belongs upstream; shaping the analytics product belongs to `frame-intent`; implementing charts and data bindings belongs to frontend engineering."
 ---
 
 # Skill: analytical-design

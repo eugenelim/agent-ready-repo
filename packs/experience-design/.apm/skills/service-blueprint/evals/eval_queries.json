@@ -1,4 +1,6 @@
 [
+  {"query": "Show which backstage services and teams support every step of this customer journey", "should_trigger": true},
+  {"query": "Implement the approved service calls and loading behavior in the frontend", "should_trigger": false},
   {"query": "Create a service blueprint for our checkout journey", "should_trigger": true},
   {"query": "Map the backstage services that back this screen", "should_trigger": true},
   {"query": "Blueprint the service behind our account-registration flow", "should_trigger": true},

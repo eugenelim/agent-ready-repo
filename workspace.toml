@@ -250,26 +250,6 @@ queue   = [
   # Note: ux-writing rename shipped separately in spec/ux-writing-rename.
   {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
 
-  # M3a · XD Skill Boundaries
-  # Problem: XD skill frontmatter descriptions are artifact-named not natural-
-  #   language-triggered; near-misses don't guard adjacent disciplines. 20
-  #   skills (19 + new copy-direction) need consistent boundary language. The
-  #   four-way copy boundary (tone-of-voice / copy-direction / content-design / ux-writing)
-  #   is settled by spec/xd-copy-direction before this spec runs. Note: tone-of-voice
-  #   is upstream of copy-direction (brand register → per-surface direction).
-  # Deliver: updated trigger descriptions + near-misses across all 20 XD skills
-  #   using natural requests (redesign this experience / make this onboarding
-  #   understandable / etc.); explicit near-miss guards for strategy, PE shaping,
-  #   and routine FE; tone-of-voice frontmatter updated to note its downstream
-  #   (copy-direction, ux-writing) neighbors; all four copy-layer boundaries
-  #   explicit in frontmatter not buried prose.
-  #   Site/guide: update experience-design pack page (web/ + site/) — trigger
-  #   language and near-miss guards visible to adopters; ensure all 20 skill
-  #   listings on pack page use the new natural-language descriptions.
-  # Done: natural requests route correctly; near-misses prevent discipline bleed;
-  #   full four-way copy boundary is explicit in frontmatter; pack page updated.
-  {path = "spec/xd-skill-boundaries", needs = ["work:spec/digital-experience-contract", "work:spec/xd-copy-direction"]},
-
   # M3b · XD Design Token Taxonomy rename + Design System Foundations (RFC-0071 D3a+D3b)
   # Problem: design-system produces a token taxonomy (method only; explicitly
   #   refuses values). No skill bridges "derived taxonomy" → "set up this project's
@@ -345,33 +325,6 @@ queue   = [
   #   reference + journey page updated.
   {path = "spec/xd-state-reviewer-doctrine", needs = ["work:spec/xd-skill-boundaries", "work:spec/xd-ia-archetypes-objects"]},
 
-  # M4 · Frontend Engineering Doctrine Update
-  # Parity baseline (2026-08-01): frontend-engineering pack v0.1.3 already
-  #   implements the core skill requirements. Verified in canonical source
-  #   (packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md):
-  #   four-mode structure (create/retrofit/audit/verify) as conditional sections
-  #   in one SKILL.md; 12-field page/screen contract (proportional to risk);
-  #   WCAG 2.2 AA default; CWV targets (LCP ≤2.5s / INP ≤200ms / CLS ≤0.1 at
-  #   p75) with asset budgets; brownfield inspection checklist; evidence manifest
-  #   required for completion; activation evals present. Also: dedicated skills
-  #   for a11y-engineering, component-contract, css-architecture, fe-performance,
-  #   rendering-strategy, responsive-layout, token-architecture; frontend-reviewer
-  #   agent present. The FE SKILL.md genre-routing table already references
-  #   design-system-foundations (forward reference — skill delivered by M3b).
-  # Remaining delta (site/guide surfaces only):
-  # Problem: FE pack page (web/ + site/) lacks four-mode description and
-  #   jobs-first layout; no FE JOURNEY.md or web journey page exists; no
-  #   page-contract how-to guide; no performance targets quick-reference.
-  # Deliver: update FE pack page (web/ + site/) with four-mode description +
-  #   jobs-first layout; add JOURNEY.md (packs/frontend-engineering/) + web
-  #   journey page showing page/screen contract, evidence manifest, and CWV gate
-  #   as named steps; add page-contract how-to guide (when required, what each
-  #   field means, proportional application examples); add performance targets
-  #   quick-reference (CWV values + asset budgets by surface type).
-  # Done: pack page + FE journey + page-contract how-to + performance reference
-  #   published and consistent with the existing SKILL.md implementation.
-  {path = "spec/frontend-engineering-doctrine-update", needs = "work:spec/digital-experience-contract"},
-
   # M5 · Cross-Pack Experience Eval
   # Problem: no cross-pack golden-path eval tests continuity from raw opportunity
   #   through strategy → PE → XD → FE → rendered evidence → measurement. No
@@ -427,6 +380,8 @@ shipped = [
   "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
   "spec/digital-experience-contract",              # Shipped 2026-07-23
   "spec/xd-copy-direction",                        # Shipped 2026-08-02 — RFC-0062 impl; copy-direction skill + four-way boundary + tov re-scope
+  "spec/frontend-engineering-doctrine-update",     # Shipped 2026-08-09 — jobs-first pack page, journey, guides, evals, and QA
+  "spec/xd-skill-boundaries",                      # Shipped 2026-08-10 — 20-skill routing boundaries, evals, adopter pages, and rendered QA
 ]
 
 ["ini-003".shaping_queue]

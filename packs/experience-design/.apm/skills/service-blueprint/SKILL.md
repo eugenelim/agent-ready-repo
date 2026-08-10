@@ -1,6 +1,6 @@
 ---
 name: service-blueprint
-description: Use when you need to map the backing services that fulfil a customer journey — building a service blueprint with four rows (frontstage / line-of-visibility / backstage / support) that ties every screen action to the service or system behind it. Triggers on "service blueprint", "what backs this screen", "map the backstage", "what services support this journey", "blueprint the service". Do NOT use to map the customer journey itself (use `journey-mapping`), to sequence screens and their transitions (use `user-flow`), or to design system components (use `design-system`).
+description: "Use when someone asks what people, services, and systems support each step of an existing customer journey. Produces a service blueprint across frontstage, line of visibility, backstage, and support. Use `journey-mapping` to discover the customer path first, `user-flow` for screen transitions, and `process-mapping` for an internal operation without the customer lens. Service strategy belongs upstream; framing the initiative belongs to `frame-intent`; implementing service calls or frontend behavior belongs to engineering."
 ---
 
 # Skill: service-blueprint

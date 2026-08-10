@@ -1,4 +1,6 @@
 [
+  {"query": "Design a monitoring view that helps operators spot a problem and decide what to do", "should_trigger": true},
+  {"query": "Define the company's KPI strategy and decide which outcomes matter", "should_trigger": false},
   {"query": "Design the dashboard for our analytics team", "should_trigger": true},
   {"query": "How should we structure the reporting view for sales managers?", "should_trigger": true},
   {"query": "What goes on the KPI monitoring screen?", "should_trigger": true},

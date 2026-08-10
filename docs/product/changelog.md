@@ -100,6 +100,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
 
+## [experience-design][2.0.1] — 2026-08-10
+
+### Changed
+
+- **All 20 experience-design skills now route natural requests at explicit
+  discipline boundaries.** Each activation description names its design
+  output and routes product strategy, product-engineering shaping, and routine
+  frontend implementation away where applicable. The copy path now separates
+  the brand register, surface content structure, acquisition-surface copy
+  goals, and product UI strings without assigning one skill all four jobs.
+- **Activation evidence and adopter pages use the same routing model.** Every
+  skill gains a natural positive and an adjacent-discipline negative fixture.
+  The pack page and guide home now lead with jobs and exits before the complete
+  20-skill inventory, and the reference mirrors each skill's trigger, output,
+  and nearest boundary.
+
 ## [agentbundle][0.30.1] — 2026-08-09
 
 ### Fixed

@@ -1,4 +1,6 @@
 [
+  {"query": "Design a collaborative workspace that preserves context across sessions and interruptions", "should_trigger": true},
+  {"query": "Choose the appetite and scope for the collaboration feature before design begins", "should_trigger": false},
   {"query": "Design the workspace UI for our collaborative editing tool", "should_trigger": true},
   {"query": "Structure the tool interface for a multi-agent coordination surface", "should_trigger": true},
   {"query": "Design the agentic UI for our AI-assisted development environment", "should_trigger": true},

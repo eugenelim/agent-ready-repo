@@ -1,6 +1,6 @@
 ---
 name: user-flow
-description: "Use when a customer journey needs to become the screens that realize it — sequencing the screens, the transitions between them, and the error/edge flows (a failed action lands the user where?), then emitting one self-contained brief per screen. Triggers on map the screen flow, what screens do we need, sequence the screens for this journey, design the screen-to-screen flow, what happens when this action fails, turn this journey into screens. Carries a platform/surface axis and ends in a whole-journey walk that never skips. Do NOT use to map the journey itself (use journey-mapping), to design how one screen behaves internally (use interaction-design), or to blueprint the backing services (use service-blueprint)."
+description: "Use when an approved customer journey needs to become screens, transitions, failure paths, and navigation routes. Produces a complete screen sequence plus one self-contained brief per screen and a whole-flow walk-through. Use `journey-mapping` to understand the journey first, `interaction-design` for behavior within one screen, and `service-blueprint` for backing services. Adoption strategy belongs upstream; appetite and scope belong to `frame-intent`; implementing routes and screens belongs to `frontend-engineering`."
 ---
 
 # Skill: user-flow

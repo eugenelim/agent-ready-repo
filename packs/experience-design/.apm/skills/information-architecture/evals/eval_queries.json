@@ -1,4 +1,6 @@
 [
+  {"query": "Organize this settings area so people know what is primary and where to go next", "should_trigger": true},
+  {"query": "Build this approved page hierarchy in markup and styles", "should_trigger": false},
   {"query": "Structure this screen — what goes where and in what order?", "should_trigger": true},
   {"query": "Work out the information architecture for the dashboard", "should_trigger": true},
   {"query": "Lay out this signup flow so users stay oriented", "should_trigger": true},

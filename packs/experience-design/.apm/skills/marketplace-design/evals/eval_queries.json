@@ -1,4 +1,6 @@
 [
+  {"query": "Design catalogue filters and comparison views that help buyers choose between listings", "should_trigger": true},
+  {"query": "Frame the marketplace opportunity, appetite, risks, and solution options", "should_trigger": false},
   {"query": "Design the marketplace catalogue and listing page", "should_trigger": true},
   {"query": "Structure the search and filter UI for our product marketplace", "should_trigger": true},
   {"query": "How should the listing card be structured to drive buyer decisions?", "should_trigger": true},

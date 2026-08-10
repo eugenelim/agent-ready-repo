@@ -140,6 +140,104 @@ const pluginInstallCmd = `claude plugin install ${packSlug}@${MARKETPLACE}`;
     line-height: var(--ds-lead-body);
   }
 
+  /* Markdown is rendered as child content, so the global reset removes its
+     native rhythm unless these descendants receive an explicit prose contract. */
+  .pack-description :global(h2),
+  .pack-description :global(h3) {
+    margin-top: var(--ds-space-7);
+    margin-bottom: var(--ds-space-3);
+    font-size: var(--ds-type-h3);
+    color: var(--ds-on-surface);
+  }
+
+  .pack-description :global(h2:first-child),
+  .pack-description :global(h3:first-child) {
+    margin-top: 0;
+  }
+
+  .pack-description :global(p + p) {
+    margin-top: var(--ds-space-4);
+  }
+
+  .pack-description :global(ul),
+  .pack-description :global(ol) {
+    display: grid;
+    gap: var(--ds-space-3);
+    margin-top: var(--ds-space-3);
+    padding-left: var(--ds-space-6);
+  }
+
+  .pack-description :global(ul) {
+    list-style: disc;
+  }
+
+  .pack-description :global(ol) {
+    list-style: decimal;
+  }
+
+  .pack-description :global(ul + p),
+  .pack-description :global(ol + p),
+  .pack-description :global(blockquote + p),
+  .pack-description :global(pre + p),
+  .pack-description :global(table + p) {
+    margin-top: var(--ds-space-4);
+  }
+
+  .pack-description :global(strong) {
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+  }
+
+  .pack-description :global(blockquote) {
+    margin-top: var(--ds-space-5);
+    padding: var(--ds-space-4) var(--ds-space-5);
+    background-color: var(--ds-surface-alt);
+    border-left: 4px solid var(--ds-accent);
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .pack-description :global(hr) {
+    margin-block: var(--ds-space-7);
+    border: 0;
+    border-top: 1px solid var(--ds-border);
+  }
+
+  .pack-description :global(code) {
+    padding: 0.1rem 0.4rem;
+    color: var(--ds-accent-deep);
+    background-color: var(--ds-accent-subtle);
+    border-radius: var(--ds-radius-sm);
+  }
+
+  .pack-description :global(pre),
+  .pack-description :global(table) {
+    display: block;
+    max-width: 100%;
+    margin-top: var(--ds-space-5);
+    overflow-x: auto;
+  }
+
+  .pack-description :global(pre) {
+    padding: var(--ds-space-5) var(--ds-space-6);
+    color: var(--ds-hero-fg);
+    background-color: var(--ds-hero-bg);
+    border-radius: var(--ds-radius-md);
+  }
+
+  .pack-description :global(pre code) {
+    padding: 0;
+    color: inherit;
+    background: none;
+  }
+
+  .pack-description :global(th),
+  .pack-description :global(td) {
+    padding: var(--ds-space-3) var(--ds-space-4);
+    border-bottom: 1px solid var(--ds-border);
+    text-align: left;
+    vertical-align: top;
+  }
+
   .pack-section__title {
     font-size: var(--ds-type-h3);
     margin-bottom: var(--ds-space-4);

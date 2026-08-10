@@ -1,6 +1,6 @@
 ---
 name: informational-design
-description: "Use when designing an informational surface — an article page, a news or editorial page, a long-form content page, or a content-rich page whose primary purpose is to inform, not to convert or enable tasks. Triggers on 'design the article page', 'structure the editorial page', 'how should the blog look', 'long-form content design', 'reading experience design'. Uses typography as the primary design tool. Do NOT use for documentation (use documentation-design), marketing (use conversion-design), or tool/app surfaces (use workspace-design). Surface genre: informational."
+description: "Use when someone asks how an article, news page, editorial feature, or other long-form informational surface should support sustained reading. Produces typography, hierarchy, and reading-flow specifications for the surface. Use `documentation-design` for task/reference systems, `conversion-design` for acquisition pages, and `workspace-design` for tools. Editorial or product strategy is upstream; shaping a publishing-product bet belongs to product engineering; writing the article or building its template belongs to content authors and frontend engineering."
 ---
 
 # Skill: informational-design

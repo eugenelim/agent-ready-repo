@@ -1,4 +1,6 @@
 [
+  {"query": "Orient me to the current design thread and tell me which design artifact is missing", "should_trigger": true},
+  {"query": "Tell me which product opportunity we should shape and commit to next", "should_trigger": false},
   {"query": "Where are we with the design?", "should_trigger": true},
   {"query": "What experience artifacts do we have?", "should_trigger": true},
   {"query": "Status of the design thread", "should_trigger": true},

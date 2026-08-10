@@ -1,276 +1,364 @@
-# `experience-design` — the skills, the reviewer, and the `quality-floor`
+# `experience-design` — skill and reviewer reference
 
-> **Reference** — information-oriented. The contract for each skill and the
-> reviewer agent: when it triggers, what it produces, and what it routes away
-> to. Mirrors the shipped `SKILL.md` / agent frontmatter; if a description
-> changes, update this page in the same PR. For the steps, see the
-> [how-to](../how-to/author-design-intent.md).
+> **Reference** — information-oriented. This page mirrors the shipped skill and
+> agent contracts: what each one accepts, returns, reads or writes, and routes
+> away. When frontmatter changes, update this page in the same change. For a
+> task-oriented walkthrough, see [Thread a feature from journey to screens](../how-to/author-design-intent.md).
 
-All skills are pure-markdown, framework-agnostic, and user-scope by default.
-They install across all seven adapters (Claude Code, Codex, Copilot, Cursor,
-Gemini, Kiro IDE, Kiro CLI). The artifact-writing skills resolve their output
-path through the `[experience]` layout table (below).
+The pack contains 20 pure-Markdown skills and one independent reviewer agent.
+It installs at user scope across every adapter declared by the pack manifest.
 
-## The connective thread
+## Operating contract
+
+**Inputs:** natural-language design requests, relevant product context, and any
+existing journey, screen, content, direction, or rendered artifact the selected
+skill needs.
+
+**Returns:** a design decision, specification, map, brief, status report, or
+severity-rated review. Artifact-writing skills resolve their location through
+the `[design]` layout described below.
+
+**Reads:** supplied context and existing design artifacts. `experience-status`
+also reads the configured design output to report what exists.
+
+**Writes:** only when the selected skill's contract names an artifact. The
+resolved path is surfaced before the first write. `experience-status` and the
+`experience-reviewer` agent are read-only.
+
+**Limits:** the pack does not choose product strategy, frame or commit the
+product-engineering bet, write frontend code, produce pixel comps, or replace
+the person who approves the design. Skills ship method rather than framework
+syntax or fixed visual values.
+
+## Intent index
+
+| If you need to… | Use | You receive | Nearest boundary |
+| --- | --- | --- | --- |
+| Understand an end user's path | `journey-mapping` | Customer journey map | Not product strategy or feature shaping |
+| Connect a journey to backstage support | `service-blueprint` | Service blueprint | Not service/frontend implementation |
+| Turn a journey into screens and edge paths | `user-flow` | Screen flow and per-screen briefs | Not bet scope or screen code |
+| Map an internal operation | `process-mapping` | SIPOC, swimlanes, as-is/to-be map | Not operating strategy or workflow implementation |
+| Orient to existing design work | `experience-status` | Read-only status and next design skill | Not portfolio, shaping, or build status |
+| Create durable design arbitration rules | `design-principles` | Named principles with tests | Not product positioning or component rules |
+| Name a visual direction | `creative-direction` | Ranked aesthetic goals | Not market positioning or visual implementation |
+| Derive token names and scales | `design-system` | Token taxonomy and rationale | Not token implementation |
+| Organize hierarchy and wayfinding | `information-architecture` | IA and layout reasoning | Not markup or styles |
+| Specify behavior within a screen | `interaction-design` | Behavioral and state specification | Not component code or UI strings |
+| Critique an existing design | `design-review` | Severity-rated findings | Not code review or new design creation |
+| Decide a surface's message and structure | `content-design` | Content brief | Not brand register, copy goals, or UI strings |
+| Set copy goals for one acquisition surface | `copy-direction` | Copy-direction record | Not brand register, content structure, or UI strings |
+| Define the cross-surface brand register | `tone-of-voice` | Brand-register document | Not one surface's copy direction or UI strings |
+| Structure a marketing or acquisition surface | `conversion-design` | Conversion-surface specification | Not go-to-market strategy, final copy, or page code |
+| Structure docs, help, or API reference | `documentation-design` | Docs IA and navigation specification | Not docs strategy, technical authoring, or site code |
+| Structure a dashboard or reporting view | `analytical-design` | Analytical IA and widget hierarchy | Not metric strategy or chart implementation |
+| Structure an editorial reading surface | `informational-design` | Typography and reading-flow specification | Not editorial strategy, article writing, or template code |
+| Structure marketplace discovery and choice | `marketplace-design` | Catalogue and transaction-bridge IA | Not marketplace strategy or implementation |
+| Structure sustained professional work | `workspace-design` | Workspace-surface specification | Not feature scope, implementation, or UI strings |
+
+## Connective and operational skills
 
 ### `journey-mapping`
 
-**Triggers on:** "map the customer journey", "what does the user go through",
-"journey map this flow", "what are the touchpoints", "where does the user feel
-pain".
+**Use when:** “Map what a new customer goes through from first awareness to
+first successful use.”
 
-**Use when** a team needs to understand how a customer moves through an
-experience end-to-end. Produces a journey map — stages × actions / emotions /
-pains / opportunities, outside-in — carrying a `surface` axis. Customer/end-user
-scoped (employee journeys are out of v1). **Consumed by** `user-flow` and
-`service-blueprint`.
+**Returns:** stages, actions, touchpoints, emotions, pains, and opportunities in
+a customer journey map, adjusted for the target platform. Writes
+`<output_dir>/journeys/<slug>.md` with `type: customer-journey`.
 
-**Do NOT use** to design screen interactions (use `user-flow`), to
-blueprint services (use `service-blueprint`), or to map an internal process (use
-`process-mapping`).
-
-**Writes:** `<parent>/journeys/<slug>.md` (`type: customer-journey`).
-
-### `user-flow`
-
-**Triggers on:** "map the screen flow", "what screens do we need", "sequence the
-screens", "design the screen-to-screen flow", "what happens when this action
-fails".
-
-**Use when** a journey needs to become the screens that realize it. Produces a
-**screen flow** — screens sequenced, with transitions and error/edge flows, a
-per-screen state matrix (deferring to the quality floor), and the surface axis —
-plus **one per-screen brief per screen** (shared-contract / per-screen-spec
-split). Ends in a cross-brief consistency pass and a **non-droppable steel
-thread** (prototype → text-only, never nothing). Can emit an optional design-tool
-handover (instructions, never pixels). **Consumed by** the craft skills,
-`ux-writing`, and `experience-reviewer`.
-
-**Do NOT use** to map the journey (use `journey-mapping`), to design
-in-screen behavior (use `interaction-design`), or to blueprint services (use
-`service-blueprint`).
-
-**Writes:** `<parent>/screens/<slug>-flow.md` (`type: screen-flow`) + briefs at
-`<parent>/screens/<slug>/<screen>.md` + optional `<screen>.handover.md`.
+**Routes away:** product/adoption strategy; selecting or scoping a bet; screen
+implementation. Use `service-blueprint` for backing services, `user-flow` for
+screens, and `process-mapping` for internal operations.
 
 ### `service-blueprint`
 
-**Triggers on:** "blueprint the service", "what services back these screens",
-"map frontstage and backstage", "what happens behind the line of visibility".
+**Use when:** “Show which backstage services and teams support every step of
+this customer journey.”
 
-**Use when** the screens exist and the next question is what's behind them.
-Produces a service blueprint — frontstage / line-of-visibility / backstage /
-support. The backstage column is the slicing instrument handed **by-name** to
-`architect` / `contracts` (named textually when those are absent). **Consumed
-by** `architect` and the spec LLD.
+**Returns:** a four-part service blueprint covering frontstage, line of
+visibility, backstage, and support. Writes
+`<output_dir>/blueprints/<slug>.md` with `type: service-blueprint`.
 
-**Do NOT use** to map the customer's experience (use `journey-mapping`) or
-to map an internal process with no customer touchpoint (use
-`process-mapping`).
+**Routes away:** service strategy, initiative framing, and implementation of
+service calls or frontend behavior. Use `journey-mapping` to discover the
+customer path, `user-flow` for screen transitions, and `process-mapping` for an
+internal operation without the customer lens.
 
-**Writes:** `<parent>/blueprints/<slug>.md` (`type: service-blueprint`).
+### `user-flow`
 
-### `process-mapping` — the inside-out sibling
+**Use when:** “Turn this approved onboarding journey into screens, transitions,
+and failure paths.”
 
-**Triggers on:** "map our internal process", "current-state / target-state of
-this workflow", "swimlane this process", "as-is and to-be for this operation".
+**Returns:** a complete screen sequence, edge paths, one brief per screen, and a
+whole-flow check. Writes `<output_dir>/screens/<slug>-flow.md`, briefs under
+`<output_dir>/screens/<slug>/`, and an optional design-tool handover.
 
-**Use when** the process spans many touchpoints, has no customer-facing layer,
-or is a constraint on the solution. Produces (anchored on APQC L3→L4): a SIPOC
-scoping table, a mermaid swimlane (`flowchart` + `subgraph` lanes), **as-is + to-be**
-with an as-is→to-be delta table, and a pain/waste register. Points to APQC PCF /
-BPMN 2.0 / BABOK, reprints none. **Carries no surface axis.** Cross-references
-the service blueprint by-name when customer-triggered; is the producer of
-`product-engineering`'s `frame-intent` "current-state process map" input.
+**Routes away:** adoption strategy, appetite and scope, and implementation of
+routes or screens. Use `journey-mapping` first, `interaction-design` for
+within-screen behavior, and `service-blueprint` for backing services.
 
-**Do NOT use** for the customer-facing journey (use `journey-mapping`).
+### `process-mapping`
 
-**Writes:** `<parent>/processes/<slug>.md` (`type: process-flow`).
+**Use when:** “Map our internal fulfilment process across teams, including
+handoffs and waste.”
 
-## The Define phase
+**Returns:** a SIPOC scope, swimlane map, as-is/to-be flow, delta table, and
+pain/waste register. Writes `<output_dir>/processes/<slug>.md` with
+`type: process-flow`.
+
+**Routes away:** operating or product strategy, shaping an automation bet, and
+implementing workflow software. Use `journey-mapping` for the customer's path,
+`service-blueprint` for customer-facing backstage support, and `user-flow` for
+screens.
+
+### `experience-status`
+
+**Use when:** “Orient me to the current design thread and tell me which design
+artifact is missing.”
+
+**Returns:** a read-only inventory of existing design artifacts, gaps, and the
+next relevant design skill. It never writes or elicits configuration.
+
+**Routes away:** product or portfolio status, prioritizing or shaping the next
+feature, and implementation/build status.
+
+## Principles and craft
 
 ### `design-principles`
 
-**Triggers on:** "derive our design principles", "what should guide our design decisions", "we need a principle set", "articulate our design philosophy", "what principles should our design honor".
+**Use when:** “Turn these journey pains into a few design principles we can use
+to settle tradeoffs.”
 
-**Use when** a team needs to turn journey insights and product values into explicit, testable design principles — before craft work begins. Follows the NNGroup 4-step model: insight → user-grounded → arbitration-aware → team-owned. Each principle passes the arbitration test: "given two wireframes, can this principle distinguish between them?" If not, it is not a principle — it is a brand value or an aspiration. Carries `evidence-level` from the upstream journey map: assumption-based journeys produce hypothesis principles. **Consumed by** `creative-direction`, `information-architecture`, `content-design`, and `design-review`.
+**Returns:** 3–5 named principles grounded in evidence, each with rationale and
+an arbitration test. Writes `docs/design/principles/<slug>.md`; this skill does
+not currently consult `[design] output_dir`.
 
-**Do NOT confuse with** brand values (which belong in `creative-direction`) or the `quality-floor` (which is a universal floor, not a product-specific principle).
-
-**Writes:** `<parent>/principles/<slug>.md`.
-
-## The craft
+**Routes away:** target segments and product positioning, choosing or scoping a
+bet, and encoding rules in components. Use `creative-direction` for visual
+goals, `design-system` for token taxonomy, and `design-review` for critique.
 
 ### `creative-direction`
 
-**Triggers on:** "make it feel premium/calm/playful", "I want it to feel like
-X", "what's the vibe here", "we need a look and feel", "before we pick
-colors/type".
+**Use when:** “We keep saying calm and premium; turn that into a visual
+direction the team can use.”
 
-**Use when** there's a felt "vibe" but no named direction. Converges a mood into
-named, ranked goals, **grounds each goal in a stable referent** (persona,
-precedent, standards, platform conventions for the target `surface`), records
-what grounds each, and copies an creative-direction doc into the repo. Stays
-method-not-values.
+**Returns:** ranked aesthetic goals grounded in stable referents, plus rules for
+which goal wins when goals conflict, recorded in `creative-direction.md`.
 
-**Ships:** `references/interrogation-sequence.md`,
-`references/coherence-arbitration.md`, `references/grounding.md`, and
-`assets/creative-direction-template.md`.
+**Routes away:** product positioning, framing or scoping the bet, and
+implementing colors, type, or components. Use `design-system` after the
+direction, `information-architecture` for hierarchy, and `design-review` for
+critique.
 
 ### `design-system`
 
-**Triggers on:** "derive a scale", "set up design tokens", "name our tokens",
-"turn the direction into a system".
+**Use when:** “Derive semantic spacing, type, and color token names from our
+approved direction.”
 
-**Use when** a direction exists and the next move is a system. Derives a
-token/scale taxonomy from intent — semantic-role naming, ratio-as-concept scales,
-accessibility as a floor, atomic composition. Points to WCAG and the W3C Design
-Tokens shape; **never reprints a values table.**
+**Returns:** a semantic token/scale taxonomy and its rationale. It names and
+organizes the system but does not implement token values.
+
+**Routes away:** product differentiation, design-system initiative shaping, and
+token or component implementation. Use `creative-direction` to establish the
+vibe, `information-architecture` for page hierarchy, and `design-review` for
+evaluation.
 
 ### `information-architecture`
 
-**Triggers on:** "structure this screen", "information architecture", "lay out
-this flow", "what's the hierarchy here", "why does this page feel cluttered".
+**Use when:** “Organize this settings area so people know what is primary and
+where to go next.”
 
-**Use when** designing how a screen or flow is organized — hierarchy, reading
-flow, progressive disclosure, wayfinding, **as concepts** (never ARIA roles or
-CSS grid).
+**Returns:** hierarchy, reading flow, progressive disclosure, navigation, and
+wayfinding in an information-architecture and layout-reasoning document.
+
+**Routes away:** product direction, feature scope, and markup/styles. Use
+`creative-direction` for visual mood, `interaction-design` for within-screen
+behavior, `user-flow` for screen sequence, and `design-review` for critique.
 
 ### `interaction-design`
 
-**Triggers on:** "design how this behaves", "what's the feedback for this
-action", "model this component's states", "how should this form validate", "what
-motion does this need".
+**Use when:** “Design how this upload component behaves from idle through
+progress, failure, and retry.”
 
-**Use when** designing **how a screen behaves** — feedback & timing (the Doherty
-perceived-performance lens, design-time), input & forms, a component **state
-machine** (mermaid `stateDiagram-v2`; statecharts as the referent, never a
-state-management library), purposeful motion (honors reduced-motion, reprints no
-durations/easing), navigation-as-behavior, gesture/pointer on the surface axis,
-and cognitive-law fit. **References** onboarding and search-interaction pattern
-families. **Enriches the per-screen brief**; owns no file-per-slug artifact and
-no layout entry.
+**Returns:** behavioral and state specifications for one screen or component;
+it may enrich a per-screen brief and does not create a separate layout entry.
 
-**Do NOT confuse with** `information-architecture` (structure),
-`creative-direction` (visual taste), the quality floor (the state *set*), or
-`user-flow` (the *cross-screen* macro flow). It owns the *in-component*
-state machine, motion, and feedback.
+**Routes away:** product strategy, feature shaping, component implementation,
+and writing the strings shown in states. Use `information-architecture` for
+hierarchy, `user-flow` for cross-screen routes, and `ux-writing` for UI strings.
 
 ### `design-review`
 
-**Triggers on:** "critique this design", "review this screen", "what's wrong
-with this mockup", "do a heuristic eval", "is this usable".
+**Use when:** “Review this working checkout flow and rank the design problems by
+severity.”
 
-**Use to** evaluate an existing screen — an interactive, **authoring-time**
-critique. Applies the shared `quality-floor`, evaluates against usability
-heuristics, and runs a **taste mode** (against the grounded aesthetic reference +
-platform fit). Maps each issue to its principle, rates severity (0–4), returns a
-prioritized list. It is **not fresh-context and not the reviewer agent** — a
-same-session critique marks its own homework; the independent pass is
-`experience-reviewer`.
+**Returns:** an authoring-time, severity-rated findings list grounded in the
+rendered artifact, shared quality floor, usability heuristics, clarity, and the
+approved aesthetic reference.
 
-**Ships:** `references/heuristics.md`, `references/taste-critique.md`,
-`references/quality-floor.md` (the shared floor below).
+**Routes away:** product-strategy review, bet selection/framing, and code or
+implementation review. Use `creative-direction` to create a direction,
+`information-architecture` to design hierarchy, and `design-system` to derive
+tokens.
+
+## Content and copy
+
+The copy path has four owners in sequence: `tone-of-voice` defines the brand
+register; `content-design` decides what the surface communicates and how it is
+structured; `copy-direction` sets acquisition-surface copy goals; `ux-writing`
+in product engineering writes product UI strings.
 
 ### `content-design`
 
-**Triggers on:** "what should this landing page say", "write a content brief for our onboarding flow", "what's the narrative arc for this marketing page", "what does this feature page need to communicate", "help me decide the above-fold structure".
+**Use when:** “Before wireframes, decide what our onboarding page must say and
+how the story should unfold.”
 
-**Use when** a surface needs a content brief — a text-first document answering what the surface must say, for whom, in what form, to achieve what objective — before any wireframe or copy is written. Distinguishes acquisition surfaces (persuasion goal) from product/reference surfaces (task-enablement goal). Produces `communication_mode` frontmatter consumed by `copy-direction` and `conversion-design`; scroll-section structure consumed by `user-flow`.
+**Returns:** a content brief for acquisition, product, or reference surfaces,
+including the message, audience, form, order, objective, and
+`communication_mode`.
 
-**Do NOT use** to write finished copy or UI strings (use `copy-direction` for per-surface copy voice, `ux-writing` in the `product-engineering` pack for UI strings — labels, CTAs, error messages, empty states), or for brand-level copy register (use `tone-of-voice`).
+**Routes away:** organization-level content strategy, feature framing, and page
+or content-system implementation. It does not own brand register,
+acquisition-surface copy goals, or product UI strings.
 
 ### `copy-direction`
 
-**Triggers on:** "what voice should our landing page have", "write copy direction for this surface", "name the copy goals for this campaign page", "how should our pricing page sound", "copy positioning for this acquisition surface".
+**Use when:** “Name the copy goals for this pricing-page hero before anyone
+writes the lines.”
 
-**Use when** a specific acquisition or marketing surface needs named, ranked copy goals — the per-surface twin of `creative-direction`. Produces a `copy-direction` doc at `<design_output_dir>/copy/<surface-slug>.md`. References the `tone-of-voice` brand register as an optional upstream anchor. **Do NOT use** for brand-level register across all surfaces (use `tone-of-voice`) or for UI copy states (use `ux-writing` in the `product-engineering` pack). See [Route copy work across content-design, copy-direction, ux-writing, and tone-of-voice](../how-to/copy-boundary.md) for the four-way boundary.
+**Returns:** ranked, grounded copy goals for one marketing or acquisition
+surface. Writes `<output_dir>/copy/<surface-slug>.md`.
+
+**Routes away:** product/growth strategy, acquisition-bet framing, and surface
+implementation. It may reference `tone-of-voice`, runs after `content-design`,
+and does not own `ux-writing`'s product UI strings.
 
 ### `tone-of-voice`
 
-**Triggers on:** "what's our tone of voice", "define our brand voice", "are we formal or casual", "voice and tone guidelines", "write a brand register".
+**Use when:** “Our teams sound inconsistent; define the brand voice every
+channel should share.”
 
-**Use when** a product needs a named, consistent brand-level copy register across all surfaces — personality axis, application rules, and a stable reference point for per-surface copy direction. Produces a single `brand-register.md` doc at `<design_output_dir>/copy/brand-register.md`. Distinct from `copy-direction`, which names per-surface copy goals grounded in the register; distinct from `ux-writing`, which applies voice to UI copy states.
+**Returns:** a cross-surface brand register with named, ranked voice goals and
+arbitration rules. Writes `<output_dir>/copy/brand-register.md`.
 
-## Genre-specific design
+**Routes away:** organization-level product/content strategy, initiative
+shaping, and copy implementation. It anchors but does not replace
+`content-design`, `copy-direction`, or `ux-writing`.
 
-Declare the surface genre once in the per-screen brief's `surface-genre:` field; downstream skills read it to apply genre-appropriate methodology.
+## Surface genres
+
+Declare the chosen genre once in the per-screen brief's `surface-genre:` field.
+The matching skill applies that genre's method without replacing the connective
+or craft skills.
 
 ### `conversion-design`
 
-**Triggers on:** "design the marketing page", "structure the landing page", "what goes above the fold", "hero design", "conversion-rate design", "how do we structure the homepage". Surface genre: `marketing`.
+**Use when:** “Structure a pricing page so a qualified visitor understands the
+offer and can act.”
 
-**Use when** designing a marketing surface — a landing page, product page, or above-fold conversion surface. Produces: hero approach selection (5 types), above-fold 6-element spec, scroll-story 7-zone structure, social proof tier, product tour spine. **Do NOT use** for documentation (use `documentation-design`) or informational editorial pages (use `informational-design`).
+**Returns:** information architecture and structural specifications for a
+marketing or acquisition surface, including its above-fold and scroll story.
+
+**Routes away:** go-to-market strategy, acquisition-initiative shaping, final
+copy, and page implementation. Use `content-design` for message hierarchy,
+`copy-direction` for copy goals, and the flow/interaction skills for product UI.
 
 ### `documentation-design`
 
-**Triggers on:** "design the docs site", "structure the help centre", "IA for the API reference", "TTFV for this tutorial", "docs landing page design". Surface genre: `documentation`.
+**Use when:** “Design the help center so new users reach the right task guide
+quickly.”
 
-**Use when** designing a documentation surface — a docs site, a help centre, or an API reference. Produces: Diátaxis type map, navigation-at-scale strategy, docs landing page hub structure, TTFV target, machine-readability as design-phase decision. **Do NOT use** for marketing (use `conversion-design`) or informational editorial (use `informational-design`).
+**Returns:** content-type, information-architecture, navigation-at-scale, and
+first-value specifications for docs, help, or API-reference surfaces.
+
+**Routes away:** organization-level documentation strategy, docs-platform
+shaping, technical content authoring, and site/theme implementation. Use
+`conversion-design` for marketing and `informational-design` for editorial
+reading.
 
 ### `analytical-design`
 
-**Triggers on:** "design the dashboard", "KPI layout", "structure the reporting view", "what goes on the analytics screen", "monitoring view design". Surface genre: `analytical`.
+**Use when:** “Design a monitoring view that helps operators spot a problem and
+decide what to do.”
 
-**Use when** designing an analytical surface — a dashboard, monitoring screen, or reporting view. Produces: domain-model-first IA, business-question anchoring (3–5 questions), 3-tier widget hierarchy, Shneiderman's mantra applied to layout, role-based views, spatial layout grammar, per-widget state handling. **Do NOT use** for workspace productivity surfaces (use `workspace-design`).
+**Returns:** domain-model-first analytical information architecture, business
+questions, role-aware views, and widget hierarchy. Individual chart code is not
+the output.
 
-### `marketplace-design`
-
-**Triggers on:** "design the marketplace", "listing card design", "filter and facet architecture", "catalogue IA", "buyer journey", "search and filter". Surface genre: `marketplace`.
-
-**Use when** designing a marketplace surface — a listing grid, product detail page, or buying flow. Produces: listing card IA hierarchy, filter/facet architecture, comparison affordances, browse-first vs. search-first routing, transaction bridge to wizard patterns. **Do NOT use** for single-product marketing (use `conversion-design`).
+**Routes away:** metric/outcome strategy, analytics-product shaping, and chart
+or data-binding implementation. Use `interaction-design` for component behavior
+and `workspace-design` for sustained-work tools.
 
 ### `informational-design`
 
-**Triggers on:** "design the article page", "structure the editorial page", "reading experience design", "long-form content design", "blog design". Surface genre: `informational`.
+**Use when:** “Design a long-form article template that stays readable through
+dense material.”
 
-**Use when** designing an informational surface — an article page, editorial page, or content-rich page. Uses typography as the primary design tool. Produces: typographic hierarchy (line-length constraint, line-height, scale contrast), F/Z-pattern calibration, editorial grid, article page structure, "what's next" chain (4 category types). **Do NOT use** for documentation (use `documentation-design`).
+**Returns:** typography, hierarchy, editorial grid, reading flow, and the next-
+content path for an informational surface.
+
+**Routes away:** editorial/product strategy, publishing-product shaping,
+article writing, and template implementation. Use `documentation-design` for
+task/reference systems and `conversion-design` for acquisition pages.
+
+### `marketplace-design`
+
+**Use when:** “Design catalogue filters and comparison views that help buyers
+choose between listings.”
+
+**Returns:** search, filter, listing, comparison, detail, and transaction-bridge
+information architecture for a multi-party exchange.
+
+**Routes away:** marketplace strategy, bet framing/sizing, implementation of
+search/transactions, and listing copy. Use `conversion-design` for a
+single-product marketing page and `workspace-design` for an internal tool.
 
 ### `workspace-design`
 
-**Triggers on:** "design the workspace", "collaborative editing surface", "agentic UI design", "task management surface", "session arc design", "multi-agent coordination UI". Surface genre: `workspace`.
+**Use when:** “Design a collaborative workspace that preserves context across
+sessions and interruptions.”
 
-**Use when** designing a workspace surface — a productivity tool, collaborative environment, or agentic UI. Produces: context-persistence patterns, session arc (5 stages), collaboration state IA, interrupt escalation design, agentic UI patterns (task queue, agent status, HITL confirmation, output review, multi-agent coordination). **Do NOT use** for dashboards (use `analytical-design`).
+**Returns:** a workspace-surface specification covering context persistence,
+collaboration state, ambient attention, interruption handling, agentic patterns,
+and session arcs.
 
-## The reviewer agent
+**Routes away:** product strategy, feature appetite/scope, workspace
+implementation, and UI-string authoring. Use `analytical-design` for dashboards,
+`marketplace-design` for exchange surfaces, and `ux-writing` for UI strings.
+
+## Independent reviewer
 
 ### `experience-reviewer`
 
-A **forked-context, read-only** agent (not a skill) — the independent design-time
-review. Reviews the journey, the screen flow + per-screen briefs, the aesthetic,
-or a generated screen against four lenses: the **grounded aesthetic reference**,
-**platform fit**, **cross-brief coherence**, and the **full quality floor**
-(handle-all-states + accessibility + reduced-motion) — accessibility being the
-one independent a11y check between human-value-add gates. Returns a verdict
-(SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT) + severity-tagged
-findings. It flags, never rewrites; it never reviews code diffs (core's
-reviewers) or architecture design docs (architect's `design-reviewer`).
+The forked-context `experience-reviewer` is an agent, not a skill. It reads the
+journey, screen flow, per-screen briefs, aesthetic reference, or rendered screen
+and returns a verdict plus severity-tagged findings across aesthetic grounding,
+platform fit, cross-brief coherence, state coverage, accessibility, and reduced
+motion. It is read-only, never rewrites the artifact, and does not review code
+diffs or architecture documents.
 
-## The `[experience]` layout
+## `[design]` layout
 
-The artifact-writing skills resolve `<parent>` in three tiers — **config**
-(`[experience]` table in the adopter-owned `agentbundle-layout.toml`, repo-root
-over user-profile) → **default** (`docs/design`, the pack's `[pack.layout.repo]`)
-→ **discover-by-marker** (scan for the frontmatter `type:` anchors:
-`customer-journey` / `service-blueprint` / `screen-flow` / `process-flow`). Each
-skill surfaces the resolved path before its first write and creates its dir
-lazily. See any artifact-writing skill's `references/agentbundle-layout.md`.
+Layout-aware artifact-writing skills resolve `<output_dir>` in three tiers: the
+adopter-owned `[design] output_dir` in `agentbundle-layout.toml` (repository
+setting before user setting), then the pack default `docs/design`, then
+discovery by existing artifact markers. Each skill surfaces the resolved path
+before its first write and creates its subdirectory only when needed.
 
-## The `quality-floor` checklist
+**Current exception:** `design-principles` writes to the fixed
+`docs/design/principles/<slug>.md` path, which is also where `design-review`
+looks for a principles artifact. It does not currently use the configurable
+`[design] output_dir` contract.
 
-One shared floor every artifact clears. Lives at
-`design-review/references/quality-floor.md` and is referenced sibling-relative
-by every consuming skill (and the reviewer); a pack-level `references/` dir does
-not project, so the single resident file is the shared home. Three commitments:
+## Shared `quality-floor`
 
-1. **Handle all states** — empty (first-run vs no-results), loading, error,
-   success, partial, disabled, plus `permission/denied` as an *additional* gated
-   state. A surface isn't designed until every state it can be in is designed.
-2. **Accessibility floor** — meet the recognized standard (WCAG, at your
-   context's level), read from the source. Perceivable contrast, operable
-   without a pointer, meaning never on one channel alone, named for assistive
-   tech, forgiving targets and timing. Points to the standard; never reprints a
-   ratio.
-3. **Motion communicates state — honor reduced-motion.** Motion earns its place
-   by carrying meaning; always provide a reduced-motion path that preserves the
-   information without the movement.
+The canonical checklist lives at
+`design-review/references/quality-floor.md` and is shared by consuming skills and
+the reviewer. It requires:
+
+1. Every applicable state, including empty, loading, error, success, partial,
+   disabled, and permission/denied.
+2. The recognized accessibility standard for the context, with keyboard,
+   assistive-technology, target, timing, contrast, and non-color requirements.
+3. Motion that communicates state and a reduced-motion path that preserves the
+   same information.

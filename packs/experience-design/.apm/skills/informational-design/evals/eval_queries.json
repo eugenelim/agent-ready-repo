@@ -1,4 +1,6 @@
 [
+  {"query": "Design a long-form article template that stays readable through dense material", "should_trigger": true},
+  {"query": "Write and edit the final article content for publication", "should_trigger": false},
   {"query": "Design the article page layout for our editorial blog", "should_trigger": true},
   {"query": "How should the long-form content page be structured for readability?", "should_trigger": true},
   {"query": "Design the reading experience for our news and editorial pages", "should_trigger": true},

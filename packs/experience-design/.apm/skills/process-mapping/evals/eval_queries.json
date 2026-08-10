@@ -1,4 +1,6 @@
 [
+  {"query": "Map our internal fulfilment process across teams, including handoffs and waste", "should_trigger": true},
+  {"query": "Choose the organization-wide operating strategy and competitive priorities", "should_trigger": false},
   {"query": "Map our internal process for handling warranty claims", "should_trigger": true},
   {"query": "Document the as-is process for supplier onboarding", "should_trigger": true},
   {"query": "Draw a swimlane diagram for our order fulfilment process", "should_trigger": true},

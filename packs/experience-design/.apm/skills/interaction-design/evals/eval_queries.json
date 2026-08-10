@@ -1,4 +1,6 @@
 [
+  {"query": "Design how this upload component behaves from idle through progress, failure, and retry", "should_trigger": true},
+  {"query": "Implement the approved upload state machine and animations in component code", "should_trigger": false},
   {"query": "Design how the login form behaves — feedback, validation, and error recovery", "should_trigger": true},
   {"query": "What happens when the user taps the submit button on the checkout screen?", "should_trigger": true},
   {"query": "Map the state machine for this onboarding wizard", "should_trigger": true},

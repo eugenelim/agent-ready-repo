@@ -1,4 +1,6 @@
 [
+  {"query": "We keep saying calm and premium; can you turn that into a visual direction the team can use?", "should_trigger": true},
+  {"query": "Choose the customer segment and market position our product should pursue", "should_trigger": false},
   {"query": "Make it feel premium and calm — I can't describe it better than that yet", "should_trigger": true},
   {"query": "I want this product to feel like a high-end spa, before we touch any colors", "should_trigger": true},
   {"query": "What's the vibe for our new landing page? Help me name it", "should_trigger": true},
