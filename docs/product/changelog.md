@@ -79,6 +79,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
 
+## [agentbundle][0.30.1] — 2026-08-09
+
+### Fixed
+
+- **Catalogue verification now reports zero unclassified paths for this
+  repository's current inventory without hiding future unknown files.**
+  Repository-owned source, docs, profiles, and website trees are classified at
+  stable ownership boundaries. Generated `.agentbundle/bin` and
+  `.agentbundle/lib` files stay projected rather than excluded, and their drift
+  now fails the self-host verifier path. Git filename enumeration is
+  NUL-delimited with one-line escaped diagnostics. Special projection reads,
+  writes, and orphan cleanup are no-follow; held-directory atomic writes defeat
+  concurrent leaf-link swaps, and executable projections reject mode drift.
+
+## [core][2.5.2] — 2026-08-09
+
+### Changed
+
+- **The source-of-truth convention now names the adapter-independent runtime
+  projection rails.** Maintainers are directed to edit `adapter-root-bins` and
+  `user-libs` upstreams instead of the generated `.agentbundle/` copies.
+
 ## [frontend-engineering][0.1.4] — 2026-08-08
 
 ### Added

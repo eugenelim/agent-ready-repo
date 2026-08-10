@@ -451,3 +451,24 @@ def test_step_plugin_manifests_pipeline_integration(tmp_path):
 
     manifests = list((tmp_path / "dist" / "claude-plugins").rglob("*.claude-plugin/plugin.json"))
     assert len(manifests) >= 1, "no plugin.json files found — integration test is vacuous"
+
+
+def test_step_selfhost_drift_maps_special_projection_failure_to_cat_v_015(tmp_path):
+    """Step 15 exposes a failed special projection check as CAT-V-015."""
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from agentbundle.catalogue_tooling.verify import _step_selfhost_drift
+
+    (tmp_path / ".adapt-discovery.toml").write_text(
+        'discovery-schema-version = "0.1"\n', encoding="utf-8"
+    )
+    with patch(
+        "agentbundle.catalogue_tooling.self_host.check_self_host",
+        return_value=SimpleNamespace(ok=False),
+    ):
+        diagnostics = _step_selfhost_drift(
+            tmp_path, object(), None, tmp_path / "tmp"
+        )
+
+    assert [diagnostic.code for diagnostic in diagnostics] == ["CAT-V-015"]

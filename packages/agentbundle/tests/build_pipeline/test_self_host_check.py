@@ -24,6 +24,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.self_host import (
@@ -749,7 +750,7 @@ class ExcludedGlobTests(unittest.TestCase):
 
         # AGENTS.md root-only; nested AGENTS.md must NOT be excluded
         self.assertTrue(_is_excluded(Path("AGENTS.md")))
-        self.assertFalse(_is_excluded(Path("packages/foo/AGENTS.md")))
+        self.assertFalse(_is_excluded(Path("src/foo/AGENTS.md")))
 
         # Makefile, .gitignore, .adapt-discovery.toml — same pattern
         self.assertTrue(_is_excluded(Path("Makefile")))
@@ -766,6 +767,37 @@ class ExcludedGlobTests(unittest.TestCase):
         )
         # but packs.md at root is NOT under packs/
         self.assertFalse(_is_excluded(Path("packs.md")))
+
+    def test_repository_owned_boundaries_are_excluded(self) -> None:
+        """The current source/manual ownership classes stay out of projection."""
+        from agentbundle.build.self_host import _is_excluded
+
+        for path in (
+            "docs/architecture/binder-publishing/runtime.md",
+            "docs/guides/reference/catalogue-toml.md",
+            "docs/product/findings/README.md",
+            "docs/rfc/0053-notes/spike/check_sidecar.py",
+            "docs/specs/example/fixtures/sample-hook.py",
+            "docs/backlog.md",
+            "docs-site/src/components/Banner.astro",
+            "web/src/pages/index.astro",
+            "packages/credbroker/credbroker/_core.py",
+            "profiles/inception.toml",
+            ".gitleaksignore",
+            ".snyk",
+            ".taplo.toml",
+            "CONTRIBUTING.md",
+            "bandit.yaml",
+            "catalogue.toml",
+            "guide-nav-baseline.toml",
+            "llms.txt",
+            "pyproject.toml",
+            "site.toml",
+        ):
+            self.assertTrue(_is_excluded(Path(path)), msg=path)
+
+        self.assertFalse(_is_excluded(Path("misc/future-owner.txt")))
+        self.assertFalse(_is_excluded(Path(".agentbundle/bin/future.py")))
 
     def test_post_2026_05_25_shrink_leaves_only_conventions(self) -> None:
         """Per the 2026-05-25 amendment: PROJECTED_README_OVERRIDES
@@ -818,13 +850,10 @@ class ExcludedGlobTests(unittest.TestCase):
         # shrink didn't accidentally widen the override.
         self.assertTrue(_is_excluded(Path("docs/architecture/data-pipeline.md")))
 
-        # The literal additions are anchored: `packages/_example/README.md`
-        # matches; a hypothetical `packages/foo/_example/README.md` does
-        # not. (Other patterns like `packages/agentbundle/**` cover
-        # nested package directories; the literal additions guard the
-        # specific `_example/` scaffold only.)
+        # The package source boundary is now class-wide rather than tied to
+        # the two original monorepo seed examples.
         self.assertTrue(_is_excluded(Path("packages/_example/README.md")))
-        self.assertFalse(_is_excluded(Path("packages/foo/_example/README.md")))
+        self.assertTrue(_is_excluded(Path("packages/foo/_example/README.md")))
 
 
 class ExclusionIsHonouredOnDiskTests(unittest.TestCase):
@@ -862,7 +891,8 @@ class ExclusionIsHonouredOnDiskTests(unittest.TestCase):
             excluded = working_tree / "docs" / "specs" / "foo" / "notes" / "x.md"
             excluded.parent.mkdir(parents=True)
             excluded.write_text("scratch\n", encoding="utf-8", newline="\n")
-            control = working_tree / "docs" / "specs" / "foo" / "kept.md"
+            control = working_tree / "misc" / "kept.md"
+            control.parent.mkdir(parents=True)
             control.write_text("kept\n", encoding="utf-8", newline="\n")
 
             run_self_host(
@@ -887,7 +917,7 @@ class ExclusionIsHonouredOnDiskTests(unittest.TestCase):
 
             # The control proves the enumeration ran and reaches this
             # directory at all — without it, a silent stderr would pass.
-            self.assertIn("unclassified: docs/specs/foo/kept.md", stderr_text)
+            self.assertIn('unclassified: "misc/kept.md"', stderr_text)
             self.assertNotIn("docs/specs/foo/notes/x.md", stderr_text)
 
 
@@ -1121,6 +1151,34 @@ class SeedProjectionTests(unittest.TestCase):
             self.assertIn("seed collision", str(ctx.exception))
             self.assertIn("AGENTS.md", str(ctx.exception))
 
+    @unittest.skipIf(os.name != "posix", "control-byte filenames require POSIX")
+    def test_seed_collision_escapes_control_characters(self) -> None:
+        """Collision target and producer paths remain on one error line."""
+        from agentbundle.build.self_host import _project_seeds
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            filename = "line\nbreak\r\x1b.md"
+            for name, content in (("core", "one\n"), ("governance-extras", "two\n")):
+                pack = packs_dir / name
+                (pack / "seeds").mkdir(parents=True)
+                (pack / "seeds" / filename).write_text(content, encoding="utf-8")
+                (pack / "pack.toml").write_text(
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n',
+                    encoding="utf-8",
+                )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            with self.assertRaises(ValueError) as caught:
+                _project_seeds(packs_dir, output)
+
+        rendered = str(caught.exception)
+        self.assertIn("line\\nbreak\\r\\u001b.md", rendered)
+        self.assertNotIn("line\nbreak", rendered)
+
     def test_reference_md_two_producer_collision_raises(self) -> None:
         """Living documentation of the stack-pack reference-architecture
         contract: two packs that each ship a filled
@@ -1162,10 +1220,10 @@ class SeedProjectionTests(unittest.TestCase):
             with self.assertRaises(ValueError) as ctx:
                 _project_seeds(packs_dir, output)
             # Message shape captured from a real invocation:
-            # "seed collision at docs/architecture/reference.md: <a> and
+            # 'seed collision at "docs/architecture/reference.md": <a> and
             #  <b> differ — rename or consolidate one of them."
             self.assertIn(
-                "seed collision at docs/architecture/reference.md",
+                'seed collision at "docs/architecture/reference.md"',
                 str(ctx.exception),
             )
 
@@ -1583,7 +1641,177 @@ class InfoLineUnclassifiedTests(unittest.TestCase):
                     contract=self.contract,
                 )
             self.assertEqual(exit_code, 0)  # info lines don't fail the build
-            self.assertIn("[info] unclassified: stray-note.md", buf.getvalue())
+            self.assertIn('[info] unclassified: "stray-note.md"', buf.getvalue())
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_unclassified_symlink_surfaces_as_info(self) -> None:
+        """Only projected symlinks are classified; an unknown link is visible."""
+        import io
+        from contextlib import redirect_stderr
+
+        from agentbundle.build.self_host import _emit_info_for_unclassified
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            (tree / "target.txt").write_text("target\n", encoding="utf-8")
+            (tree / "unknown-link").symlink_to("target.txt")
+            stderr = io.StringIO()
+            with (
+                patch(
+                    "agentbundle.build.self_host._git_visible_paths",
+                    return_value=[Path("unknown-link")],
+                ),
+                redirect_stderr(stderr),
+            ):
+                _emit_info_for_unclassified(tree, set())
+
+        self.assertIn('[info] unclassified: "unknown-link"', stderr.getvalue())
+
+    def test_control_characters_in_unclassified_path_are_escaped(self) -> None:
+        """A hostile Git filename cannot forge another diagnostic line."""
+        import io
+        from contextlib import redirect_stderr
+
+        from agentbundle.build.self_host import _emit_info_for_unclassified
+
+        stderr = io.StringIO()
+        with (
+            patch(
+                "agentbundle.build.self_host._git_visible_paths",
+                return_value=[Path("line\nbreak\r\x1b.md")],
+            ),
+            redirect_stderr(stderr),
+        ):
+            _emit_info_for_unclassified(Path("/repo"), set())
+
+        self.assertEqual(
+            stderr.getvalue(),
+            '[info] unclassified: "line\\nbreak\\r\\u001b.md"\n',
+        )
+
+    def test_git_filenames_are_nul_delimited_and_lossless(self) -> None:
+        """Whitespace and newline bytes identify the exact Git-visible path."""
+        from agentbundle.build.self_host import _git_visible_paths
+
+        result = subprocess.CompletedProcess(
+            args=[],
+            returncode=0,
+            stdout=b" leading.md\0trailing.md \0line\nbreak.md\0",
+            stderr=b"",
+        )
+        with patch(
+            "agentbundle.build.self_host.subprocess.run", return_value=result
+        ) as run:
+            paths = _git_visible_paths(Path("/repo"))
+
+        self.assertEqual(
+            paths,
+            [Path(" leading.md"), Path("trailing.md "), Path("line\nbreak.md")],
+        )
+        self.assertIn("-z", run.call_args.args[0])
+        self.assertFalse(run.call_args.kwargs["text"])
+
+    def test_git_enumeration_failure_warns_without_failing(self) -> None:
+        """A failed Git listing is visible and never claims completeness."""
+        import io
+        from contextlib import redirect_stderr
+
+        from agentbundle.build.self_host import _emit_info_for_unclassified
+
+        result = subprocess.CompletedProcess(
+            args=[], returncode=128, stdout=b"", stderr=b"fatal"
+        )
+        stderr = io.StringIO()
+        with (
+            patch("agentbundle.build.self_host.subprocess.run", return_value=result),
+            redirect_stderr(stderr),
+        ):
+            _emit_info_for_unclassified(Path("/repo"), set())
+        self.assertIn("warning", stderr.getvalue())
+        self.assertIn("skipping unclassified-path enumeration", stderr.getvalue())
+
+
+class SpecialProjectionClassificationTests(unittest.TestCase):
+    """Special self-host rails share classification and drift truth."""
+
+    def test_special_targets_come_from_projection_enumerators(self) -> None:
+        from agentbundle.build.self_host import _self_host_projection_paths
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            packs = tree / "packs"
+            pack = _seed_pack(packs, "credential-brokers")
+            bins = pack / ".apm" / "adapter-root-bins"
+            bins.mkdir(parents=True)
+            (bins / "sso-broker.py").write_text("# broker\n", encoding="utf-8")
+            package = tree / "packages" / "credbroker" / "credbroker"
+            package.mkdir(parents=True)
+            (package / "__init__.py").write_text("# lib\n", encoding="utf-8")
+
+            paths = _self_host_projection_paths(tree, packs)
+
+        self.assertIn(Path(".agentbundle/bin/sso-broker.py"), paths)
+        self.assertIn(Path(".agentbundle/lib/credbroker/__init__.py"), paths)
+
+    def test_special_target_drift_fails_self_host_dry_run(self) -> None:
+        for rail in ("adapter-root-bin", "user-lib"):
+            with self.subTest(rail=rail):
+                self._assert_special_target_drift(rail)
+
+    def _assert_special_target_drift(self, rail: str) -> None:
+        """Exercise one special rail through the real self-host dry-run join."""
+        import io
+        from contextlib import redirect_stderr
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tree = Path(tmp)
+            packs = tree / "packs"
+            _seed_pack(packs, "core")
+            broker_pack = _seed_pack(packs, "credential-brokers")
+            if rail == "adapter-root-bin":
+                bins = broker_pack / ".apm" / "adapter-root-bins"
+                bins.mkdir(parents=True)
+                (bins / "sso-broker.py").write_text(
+                    "# broker\n", encoding="utf-8"
+                )
+                target = tree / ".agentbundle" / "bin" / "sso-broker.py"
+                diagnostic_prefix = "adapter-root-bins"
+                unclassified_prefix = '.agentbundle/bin'
+            else:
+                package = tree / "packages" / "credbroker" / "credbroker"
+                package.mkdir(parents=True)
+                (package / "__init__.py").write_text(
+                    "# lib\n", encoding="utf-8"
+                )
+                target = (
+                    tree
+                    / ".agentbundle"
+                    / "lib"
+                    / "credbroker"
+                    / "__init__.py"
+                )
+                diagnostic_prefix = "user-libs"
+                unclassified_prefix = '.agentbundle/lib'
+            _git_init(tree)
+            _seed_discovery(tree)
+
+            self.assertEqual(
+                run_self_host(tree, packs, dry_run=False, force=True),
+                0,
+            )
+            _git_commit_all(tree, "seed projections")
+            target.write_text("# drift\n", encoding="utf-8")
+
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                rc = run_self_host(tree, packs, dry_run=True, force=False)
+
+        self.assertEqual(rc, 1)
+        self.assertIn(diagnostic_prefix, stderr.getvalue())
+        self.assertIn("modified", stderr.getvalue())
+        self.assertNotIn(
+            f'unclassified: "{unclassified_prefix}', stderr.getvalue()
+        )
 
 
 class ForwardFlowIntegrationTests(unittest.TestCase):
@@ -1749,6 +1977,31 @@ class CrlfNormalisationTests(unittest.TestCase):
             (tree / "doc.md").write_bytes(b"hello\r\nworld\r\n")
 
             self.assertEqual(diff_against_working_tree(shadow, tree), [])
+
+    @unittest.skipIf(os.name != "posix", "control-byte filenames require POSIX")
+    def test_generic_drift_paths_are_one_line_escaped(self) -> None:
+        """Projected and source paths cannot forge generic drift lines."""
+        with tempfile.TemporaryDirectory() as tmp:
+            shadow = Path(tmp) / "shadow"
+            tree = Path(tmp) / "tree"
+            shadow.mkdir()
+            tree.mkdir()
+            relative = Path("line\nbreak\r\x1b.md")
+            (shadow / relative).write_bytes(b"projected\n")
+            source = Path("packs/source\nref\r\x1b.md")
+
+            rendered = "\n".join(
+                diff_against_working_tree(
+                    shadow,
+                    tree,
+                    source_map={relative: source},
+                )
+            )
+
+        self.assertIn('"line\\nbreak\\r\\u001b.md"', rendered)
+        self.assertIn('"packs/source\\nref\\r\\u001b.md"', rendered)
+        self.assertNotIn("line\nbreak", rendered)
+        self.assertNotIn("source\nref", rendered)
 
     def test_trailing_space_after_lf_normalisation_drifts(self) -> None:
         """LF norm doesn't whitewash genuine content differences."""

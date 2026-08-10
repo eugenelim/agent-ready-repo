@@ -19,6 +19,8 @@ import tempfile
 import tomllib
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from agentbundle.build import adapter_root_bins as arb
 
@@ -83,6 +85,21 @@ class AdapterRootBinsTests(unittest.TestCase):
         _make_fixture_pack(packs, "p2", {"sso-broker.py": b"# p2\n"})
         with self.assertRaisesRegex(ValueError, "adapter-root-bins collision"):
             arb.collect_sources(packs)
+
+    @unittest.skipIf(os.name != "posix", "control-byte filenames require POSIX")
+    def test_collision_hard_error_escapes_control_characters(self) -> None:
+        """Collision basenames and both source paths remain one-line."""
+        filename = "line\nbreak\r\x1b.py"
+        packs = self._packs()
+        _make_fixture_pack(packs, "p1", {filename: b"# p1\n"})
+        _make_fixture_pack(packs, "p2", {filename: b"# p2\n"})
+
+        with self.assertRaises(ValueError) as caught:
+            arb.collect_sources(packs)
+
+        rendered = str(caught.exception)
+        self.assertIn("line\\nbreak\\r\\u001b.py", rendered)
+        self.assertNotIn("line\nbreak", rendered)
 
     def test_apply_projection_writes_target_with_0755(self) -> None:
         packs = self._packs()
@@ -153,6 +170,196 @@ class AdapterRootBinsTests(unittest.TestCase):
         self.assertEqual(len(drifts), 1)
         self.assertIn("modified", drifts[0])
         self.assertIn("make build-self", drifts[0])
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_check_drift_rejects_symlink_target(self) -> None:
+        """The executable drift gate never follows an on-disk target symlink."""
+        packs = self._packs()
+        _make_fixture_pack(packs, "p1", {"sso-broker.py": b"# source\n"})
+        wt = self._wt()
+        outside = self.tmp_path / "outside.py"
+        outside.write_bytes(b"# source\n")
+        target = wt / ".agentbundle" / "bin" / "sso-broker.py"
+        target.parent.mkdir(parents=True)
+        target.symlink_to(outside)
+
+        drifts = arb.check_drift(wt, packs)
+
+        self.assertTrue(any("type mismatch" in drift for drift in drifts))
+        self.assertTrue(target.is_symlink())
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_apply_replaces_symlink_target_without_touching_referent(self) -> None:
+        """The advertised repair replaces a link instead of following it."""
+        packs = self._packs()
+        _make_fixture_pack(packs, "p1", {"sso-broker.py": b"# source\n"})
+        wt = self._wt()
+        outside = self.tmp_path / "outside.py"
+        outside.write_bytes(b"# outside\n")
+        target = wt / ".agentbundle" / "bin" / "sso-broker.py"
+        target.parent.mkdir(parents=True)
+        target.symlink_to(outside)
+
+        arb.apply_projection(wt, packs)
+
+        self.assertFalse(target.is_symlink())
+        self.assertEqual(target.read_bytes(), b"# source\n")
+        self.assertEqual(outside.read_bytes(), b"# outside\n")
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_apply_replaces_symlinked_target_root(self) -> None:
+        """Repair replaces the owned bin-root link without following it."""
+        packs = self._packs()
+        _make_fixture_pack(packs, "p1", {"sso-broker.py": b"# source\n"})
+        wt = self._wt()
+        outside = self.tmp_path / "outside-bin"
+        outside.mkdir()
+        target_dir = wt / ".agentbundle" / "bin"
+        target_dir.parent.mkdir()
+        target_dir.symlink_to(outside, target_is_directory=True)
+
+        drifts = arb.check_drift(wt, packs)
+        arb.apply_projection(wt, packs)
+
+        self.assertTrue(any("type mismatch" in drift for drift in drifts), drifts)
+        self.assertFalse(target_dir.is_symlink())
+        self.assertEqual(
+            (target_dir / "sso-broker.py").read_bytes(), b"# source\n"
+        )
+        self.assertEqual(list(outside.iterdir()), [])
+
+    @unittest.skipIf(os.name != "posix", "dir-fd semantics require POSIX")
+    def test_atomic_replace_defeats_leaf_symlink_swap(self) -> None:
+        """A link swapped in immediately before replace cannot redirect bytes."""
+        packs = self._packs()
+        _make_fixture_pack(packs, "p1", {"sso-broker.py": b"# source\n"})
+        wt = self._wt()
+        arb.apply_projection(wt, packs)
+        target = wt / ".agentbundle" / "bin" / "sso-broker.py"
+        outside = self.tmp_path / "outside.py"
+        outside.write_bytes(b"# outside\n")
+        real_replace = os.replace
+        swapped = False
+
+        def racing_replace(source, destination, **kwargs):
+            nonlocal swapped
+            if destination == "sso-broker.py" and not swapped:
+                swapped = True
+                target.unlink()
+                target.symlink_to(outside)
+            return real_replace(source, destination, **kwargs)
+
+        with patch(
+            "agentbundle.build.projection_io.os.replace",
+            side_effect=racing_replace,
+        ):
+            arb.apply_projection(wt, packs)
+
+        self.assertTrue(swapped)
+        self.assertFalse(target.is_symlink())
+        self.assertEqual(target.read_bytes(), b"# source\n")
+        self.assertEqual(outside.read_bytes(), b"# outside\n")
+
+    def test_orphan_scan_continues_after_disappearing_entry(self) -> None:
+        """One raced-away entry does not hide the remaining orphan names."""
+        target_dir = self._wt() / ".agentbundle" / "bin"
+        with (
+            patch.object(os, "listdir", return_value=["gone.py", "orphan.py"]),
+            patch.object(
+                os,
+                "stat",
+                side_effect=[
+                    FileNotFoundError("gone"),
+                    SimpleNamespace(st_mode=stat.S_IFREG),
+                ],
+            ),
+        ):
+            names = arb._target_python_names(target_dir, 42)
+
+        self.assertEqual(names, ["orphan.py"])
+
+    def test_orphan_root_permission_error_becomes_drift(self) -> None:
+        """An exceptional orphan-root read is actionable, not a traceback."""
+        packs = self._packs()
+        wt = self._wt()
+        (wt / ".agentbundle" / "bin").mkdir(parents=True)
+        with patch.object(
+            arb,
+            "open_directory_no_follow",
+            side_effect=PermissionError("denied"),
+        ):
+            drifts = arb.check_drift(wt, packs)
+
+        self.assertTrue(
+            any(
+                '[adapter-root-bins] unreadable: ".agentbundle/bin"' in drift
+                and "denied" in drift
+                and "make build-self" in drift
+                for drift in drifts
+            ),
+            drifts,
+        )
+
+    @unittest.skipIf(os.name != "posix", "control-byte filenames require POSIX")
+    def test_orphan_diagnostic_escapes_control_characters(self) -> None:
+        """A filesystem-discovered orphan cannot forge another log line."""
+        packs = self._packs()
+        wt = self._wt()
+        target_dir = wt / ".agentbundle" / "bin"
+        target_dir.mkdir(parents=True)
+        (target_dir / "line\nbreak\r\x1b.py").write_bytes(b"orphan\n")
+
+        drifts = arb.check_drift(wt, packs)
+        rendered = "\n".join(drifts)
+
+        self.assertIn('".agentbundle/bin/line\\nbreak\\r\\u001b.py"', rendered)
+        self.assertNotIn("line\nbreak", rendered)
+
+    @unittest.skipIf(os.name != "posix", "control-byte filenames require POSIX")
+    def test_all_drift_outcomes_escape_control_characters(self) -> None:
+        """Missing/type/mode/modified target and source paths stay one-line."""
+        filename = "line\nbreak\r\x1b.py"
+        escaped = "line\\nbreak\\r\\u001b.py"
+        packs = self._packs()
+        _make_fixture_pack(packs, "p1", {filename: b"# source\n"})
+        wt = self._wt()
+
+        missing = "\n".join(arb.check_drift(wt, packs))
+        arb.apply_projection(wt, packs)
+        target = wt / ".agentbundle" / "bin" / filename
+        target.chmod(0o644)
+        target.write_bytes(b"# modified\n")
+        mode_and_modified = "\n".join(arb.check_drift(wt, packs))
+        outside = self.tmp_path / "outside-control.py"
+        outside.write_bytes(b"# source\n")
+        target.unlink()
+        target.symlink_to(outside)
+        type_mismatch = "\n".join(arb.check_drift(wt, packs))
+
+        for rendered in (missing, mode_and_modified, type_mismatch):
+            self.assertIn(escaped, rendered)
+            self.assertNotIn("line\nbreak", rendered)
+        self.assertIn("missing", missing)
+        self.assertIn("mode drift", mode_and_modified)
+        self.assertIn("modified", mode_and_modified)
+        self.assertIn("type mismatch", type_mismatch)
+
+    @unittest.skipIf(os.name != "posix", "POSIX mode bits are unavailable")
+    def test_check_drift_rejects_posix_mode_drift(self) -> None:
+        """The executable drift gate enforces the projected 0o755 mode."""
+        packs = self._packs()
+        _make_fixture_pack(packs, "p1", {"sso-broker.py": b"# source\n"})
+        wt = self._wt()
+        arb.apply_projection(wt, packs)
+        target = wt / ".agentbundle" / "bin" / "sso-broker.py"
+        target.chmod(0o644)
+
+        drifts = arb.check_drift(wt, packs)
+
+        self.assertTrue(any("mode drift" in drift for drift in drifts))
+        self.assertTrue(
+            any("0o644" in drift and "0o755" in drift for drift in drifts)
+        )
 
     def test_check_drift_missing_outcome(self) -> None:
         packs = self._packs()
@@ -330,6 +537,26 @@ class AdapterRootBinsShimCompanionTests(unittest.TestCase):
             "Tier-2 dispatch would degrade silently on macOS/Windows", msg,
             f"hard-error message must be broker-agnostic; got: {msg!r}",
         )
+
+    @unittest.skipIf(os.name != "posix", "control-byte filenames require POSIX")
+    def test_shim_hard_error_escapes_control_characters(self) -> None:
+        """Shim offender lists cannot forge lines before drift checking."""
+        filename = "line\nbreak\r\x1b.py"
+        packs = self._packs()
+        _make_fixture_pack(
+            packs,
+            "p1",
+            bins={
+                filename: b"from .credentials_shim import Tier2HardFailError\n"
+            },
+        )
+
+        with self.assertRaises(ValueError) as caught:
+            arb.apply_projection(self._wt(), packs)
+
+        rendered = str(caught.exception)
+        self.assertIn("line\\nbreak\\r\\u001b.py", rendered)
+        self.assertNotIn("line\nbreak", rendered)
 
     def test_check_drift_modified_shim_companion_carries_prefix(self) -> None:
         """Companion drift descriptions use the
