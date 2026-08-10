@@ -48,8 +48,10 @@ SITES: list[tuple[str, list[str], list[str]]] = [
     # The prose enumerates the repo-only set by name. Pin each slug so widening
     # a pack — which `lint-plugin-roster` already forces you to notice — also
     # forces the prose, rather than leaving it silently wrong.
+    # "all N packs" is the shape the enumeration missed once already: a count
+    # that silently re-asserts whole-catalogue coverage without naming a pack.
     ("docs-site/src/content/docs/getting-started/install.md",
-     _NO_REPO_ONLY_OFFER,
+     _NO_REPO_ONLY_OFFER + ["all 20 packs", "all 21 packs", "for all packs"],
      ["Repo-scoped packs"] + [f"`{p}`" for p in REPO_ONLY if p != "catalogue-curation"]),
     # Two entries: the route-table row and the marker-writer paragraph are
     # separate claims, and pinning one string that lives in both means deleting

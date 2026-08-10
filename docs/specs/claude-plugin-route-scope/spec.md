@@ -76,10 +76,11 @@ repo-scoped deliberately; adopters reach them through the direct adapter.
 Used by every criterion below. A pack is **publishable** when all hold:
 
 1. it lives at `packs/<slug>/` and its slug does not start with `_` — the
-   existing guards at `build/main.py:387` (`discover_packs`, which governs the
-   dist tree), `build/self_host.py:616` (the repo-root writer), and
-   `build/self_host.py:1380` (the drift gate). Not `self_host.py:550`, which is a
-   *seed-filename* guard inside `_project_seeds`, not a slug rule. `_example` is
+   existing guards in `build/main.py:discover_packs` (which governs the dist
+   tree), `build/self_host.py:_aggregate_marketplace` (the repo-root writer),
+   and `build/self_host.py:run_build_check_drift_gates` (the drift gate). Not
+   the `_project_seeds` guard, which is a *seed-filename* rule, not a slug
+   rule. (Cited by symbol: this spec outlived three renumberings.) `_example` is
    user-capable by declaration and excluded by this rule, so a naive
    set-equality assertion fails on day one;
 2. it carries `pack.toml` and `.claude-plugin/plugin.json`. **The three writers
@@ -131,7 +132,7 @@ fixture continuation indentation RFC-0082's relocation will carry.
   it is publishable.
 
   The fourth site is the one the first review round missed:
-  `run_build_check_drift_gates` Gate 1 (`build/self_host.py:1376-1414`) builds
+  `run_build_check_drift_gates` Gate 1 (`build/self_host.py`) builds
   `expected_packs` from every pack carrying `.claude-plugin/plugin.json` and
   hard-fails on a missing derived `install-marker.py` — seven failures in the
   *required* gate. It is production code, not a test, so re-pinning tests does
@@ -264,7 +265,8 @@ fixture continuation indentation RFC-0082's relocation will carry.
   A **second** mutation exercises the membership tripwire, which the frontmatter
   desync does not reach. It must be one the **existing** projected-path drift
   gate cannot see: `.claude-plugin/marketplace.json` is regenerated into the
-  shadow tree and diffed (`self_host.py:1169-1193`), so hand-injecting an entry
+  shadow tree and diffed (`self_host.py`, the projected-path drift gate), so
+  hand-injecting an entry
   there exits non-zero on *drift* whether or not the membership lint was ever
   registered — reproducing the very defect this mutation was added to catch.
   Instead: drive the membership lint's own `tools/test-lint-*.py`, or mutate the

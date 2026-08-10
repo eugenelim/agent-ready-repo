@@ -86,9 +86,9 @@ def main() -> int:
             return 1
         _check("the canonical resolver is still where the mirror mirrors it from", True)
         mismatches = []
-        for version, scopes, default in itertools.product(
-            VERSIONS, SCOPES, DEFAULTS
-) if True else []:
+        compared = 0
+        for version, scopes, default in itertools.product(VERSIONS, SCOPES, DEFAULTS):
+            compared += 1
             meta = _pack(version, scopes, default)
             if mirror.allowed_scopes(meta) != _allowed_scopes(meta):
                 mismatches.append(
@@ -96,8 +96,16 @@ def main() -> int:
                     f"mirror={mirror.allowed_scopes(meta)!r} "
                     f"canonical={_allowed_scopes(meta)!r}"
                 )
+        # The count is the loop's own counter, not the matrix dimensions —
+        # a report derived from the inputs cannot notice an empty loop.
+        expected_cells = len(VERSIONS) * len(SCOPES) * len(DEFAULTS)
         _check(
-            f"mirror matches canonical across {len(VERSIONS) * len(SCOPES) * len(DEFAULTS)} cells",
+            f"the differential ran over all {expected_cells} cells",
+            compared == expected_cells,
+            f"compared {compared} cells, expected {expected_cells}",
+        )
+        _check(
+            f"mirror matches canonical across {compared} cells",
             not mismatches,
             "; ".join(mismatches[:3]),
         )

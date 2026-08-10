@@ -81,10 +81,10 @@ Adopters with multiple IDE homes populated (`~/.claude/` plus `~/.kiro/`, say) c
 Pre-RFC-0012, `agentbundle install --pack X --scope repo .` produced dist-tree artifacts (`<repo>/claude-plugins/<pack>/`, `<repo>/apm/<pack>/`) regardless of adapter choice. RFC-0012 flips the default at repo scope to per-IDE projection (the same shape user scope has used since RFC-0004); the dist-tree producer becomes an explicit opt-in via `--emit-install-routes`:
 
 ```
-agentbundle install --pack core --scope repo --emit-install-routes .
+agentbundle install --pack architect --scope repo --emit-install-routes .
 ```
 
-Catalogue maintainers scripting the dist-tree shape for publishing pipelines add this one flag to their existing invocations. The flag is bound to `--scope repo` and mutually exclusive with `--adapter` at that scope (the dist-tree producer doesn't pick a single adapter). It carries a `DeprecationWarning` from day one and is targeted for removal in the next minor — see [RFC-0012 § *Alternatives* #6](../../../rfc/0012-repo-scope-per-adapter-projection.md).
+Catalogue maintainers scripting the dist-tree shape for publishing pipelines add this one flag to their existing invocations. The `claude-plugins/<pack>/` half is emitted only for packs the plugin route carries — a repo-only pack like `core` yields `apm/<pack>/` alone. The flag is bound to `--scope repo` and mutually exclusive with `--adapter` at that scope (the dist-tree producer doesn't pick a single adapter). It carries a `DeprecationWarning` from day one and is targeted for removal in the next minor — see [RFC-0012 § *Alternatives* #6](../../../rfc/0012-repo-scope-per-adapter-projection.md).
 
 ## Where to read next
 

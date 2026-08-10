@@ -87,7 +87,9 @@ a healthy pack reports a non-zero skill count. A cached catalogue keeps serving
 the old entries until you update it.
 :::
 
-Available for all 20 packs (catalogue-curation is an operator-only pack not published to the marketplace). Pack names match the directory names under `packs/`.
+Pack names match the directory names under `packs/`. The marketplace lists
+the user-capable subset; `claude plugin marketplace add` then `claude plugin
+list agent-ready-repo` shows exactly what is on offer.
 
 ## Route 3: APM (Agent Package Manager)
 

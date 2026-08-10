@@ -63,7 +63,7 @@ const packs = allPacks
 
 <SiteLayout
   title="Pack catalogue — agent-ready-repo"
-  description={`${packs.length} packs covering the full SDLC. Install with agentbundle on the CLI, or as a Claude plugin in Claude Code and Claude Desktop.`}
+  description={`${packs.length} packs covering the full SDLC. Install any of them with agentbundle on the CLI; the user-scope packs also install as Claude plugins.`}
 >
   <!-- ── Hero ──────────────────────────────────────────────────────────── -->
   <section class="cat-hero" aria-labelledby="cat-hero-heading">
@@ -73,9 +73,9 @@ const packs = allPacks
         Every pack.<br />Your way.
       </h1>
       <p class="cat-hero__body">
-        {packs.length} packs for the full SDLC. Install with <code>agentbundle</code> for
-        the CLI path, or as a Claude plugin for Claude Code and Claude
-        Desktop — no extra configuration either way.
+        {packs.length} packs for the full SDLC. Every one of them installs with
+        <code>agentbundle</code>; the packs that install at user scope are also
+        Claude plugins — their cards say so.
       </p>
     </div>
   </section>

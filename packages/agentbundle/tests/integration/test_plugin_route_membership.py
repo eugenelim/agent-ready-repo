@@ -239,13 +239,14 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
         ))
 
     assert rc == 0
-    # Prove the dist-tree branch ran. Without this the test is green even if
-    # `_was_dist_tree_install` returns False and the per-IDE render executes
-    # instead — that render also contains no `claude-plugins/`, so the absence
-    # assertion below would hold for the wrong reason.
-    assert (root / "apm" / "core").is_dir(), (
-        "the dist-tree render did not execute — this test would then assert "
-        "the orphan survives a path it never took"
+    # Prove *this upgrade run* took the dist-tree branch. `apm/core` will not
+    # do: the install above already created it, so asserting it holds whichever
+    # branch runs. The per-IDE branch is the one that writes `.claude/` into
+    # the adopter root, and nothing before this point has — so its absence is
+    # produced by the upgrade and by nothing else.
+    assert not (root / ".claude").exists(), (
+        "upgrade took the per-IDE branch, not the dist-tree branch — this test "
+        "would then assert the orphan survives a path it never took"
     )
     assert stale.exists(), "upgrade does not delete the orphaned tree"
     assert stale_rel in state.read_text(encoding="utf-8"), (

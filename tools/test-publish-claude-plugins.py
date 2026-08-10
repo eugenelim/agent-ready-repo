@@ -89,8 +89,16 @@ def main() -> int:
 
         # Refusal 1: a stale dist/ directory for a pack the source no longer
         # publishes. `make build` has no `clean` dependency, so this survives.
-        msg = _refuses(root, ["userpack", "repopack"], ["userpack", "repopack"])
+        msg = _refuses(root, ["userpack", "gonepack"], ["userpack", "gonepack"])
         _check("a stale/unpublishable directory refuses",
+               msg is not None and "gonepack" in msg, f"got {msg}")
+
+        # Refusal 1b: the pack is *present* in the source and simply repo-only.
+        # Refusal 1 is driven by an absent pack, so it survives deleting the
+        # scope branch in `_publishable_from_source`; this case does not.
+        _source_pack(root, "repopack", user=False)
+        msg = _refuses(root, ["userpack", "repopack"], ["userpack", "repopack"])
+        _check("a present-but-repo-only pack refuses on scope",
                msg is not None and "repopack" in msg, f"got {msg}")
 
         # Refusal 2: an entry whose directory is absent — a dangling fetch for
