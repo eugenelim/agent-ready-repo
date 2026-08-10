@@ -1,0 +1,26 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "remember",
+  "content": {
+    "outcomes": ["Preserve an external request for later triage."],
+    "constraints": ["No dispatch before materialized artifact approval."],
+    "evidence": ["The source has enough context for triage but not implementation."],
+    "behaviors": [],
+    "assumptions": ["A human will choose the artifact kind later."],
+    "named_gaps": ["Missing observable acceptance checks."]
+  },
+  "source": {
+    "mode": "tracker-origin",
+    "locator": "example-service://tickets/WORK-456",
+    "revision": "tracker-rev-77",
+    "tracker_profile": {
+      "id": "example-service/product",
+      "version": "2026-08"
+    },
+    "object_type": "Task"
+  },
+  "constraints": {
+    "origin_collection": "triage"
+  },
+  "proposed_authority": "tracker-origin"
+}

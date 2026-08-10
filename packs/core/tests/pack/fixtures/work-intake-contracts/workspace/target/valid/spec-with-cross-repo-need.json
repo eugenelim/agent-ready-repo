@@ -1,0 +1,26 @@
+{
+  "path": "docs/specs/self-service-reset/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-service://projects/PROJ-123",
+    "revision": "tracker-rev-124",
+    "parent": "docs/product/briefs/account-recovery.md"
+  },
+  "summary": "Let a user reset access without support.",
+  "needs": [
+    {
+      "type": "local",
+      "kind": "design",
+      "path": "docs/product/design/workspace-routing.md"
+    },
+    {
+      "type": "cross-repo",
+      "kind": "brief",
+      "path": "docs/product/briefs/account-recovery.md",
+      "containing_brief": "docs/product/briefs/account-recovery.md",
+      "receipt_id": "remote-prereq",
+      "accepted_revision": "remote-rev-9"
+    }
+  ]
+}

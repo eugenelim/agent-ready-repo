@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/normalized-intake.schema.json",
+  "title": "Normalized work intake",
+  "description": "Transient, source-boundary envelope for acquired work before classification or materialization.",
+  "type": "object",
+  "contract_version": "normalized-intake.v1",
+  "x-spec": ["docs/specs/normalized-intake-workspace-contracts/"],
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "action",
+    "content",
+    "source",
+    "constraints",
+    "proposed_authority"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "normalized-intake.v1"
+    },
+    "action": {
+      "enum": ["start", "remember", "refresh"]
+    },
+    "content": {
+      "$ref": "#/$defs/content"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "constraints": {
+      "$ref": "#/$defs/suppliedConstraints"
+    },
+    "proposed_authority": {
+      "enum": ["repo-origin", "tracker-origin"]
+    },
+    "refresh_target": {
+      "$ref": "#/$defs/repositoryRelativePath"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "action": {
+            "const": "refresh"
+          }
+        },
+        "required": ["action"]
+      },
+      "then": {
+        "required": ["refresh_target"]
+      },
+      "else": {
+        "not": {
+          "required": ["refresh_target"]
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "boundedText": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "boundedTextArray": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/boundedText"
+      }
+    },
+    "content": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "outcomes",
+        "constraints",
+        "evidence",
+        "behaviors",
+        "assumptions",
+        "named_gaps"
+      ],
+      "properties": {
+        "outcomes": {
+          "$ref": "#/$defs/boundedTextArray"
+        },
+        "constraints": {
+          "$ref": "#/$defs/boundedTextArray"
+        },
+        "evidence": {
+          "$ref": "#/$defs/boundedTextArray"
+        },
+        "behaviors": {
+          "$ref": "#/$defs/boundedTextArray"
+        },
+        "assumptions": {
+          "$ref": "#/$defs/boundedTextArray"
+        },
+        "named_gaps": {
+          "$ref": "#/$defs/boundedTextArray"
+        }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "locator", "revision"],
+      "properties": {
+        "mode": {
+          "enum": ["repo-origin", "tracker-origin"]
+        },
+        "locator": {
+          "$ref": "#/$defs/safeLocator"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "tracker_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "version"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        },
+        "object_type": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        }
+      }
+    },
+    "suppliedConstraints": {
+      "type": "object",
+      "maxProperties": 40,
+      "propertyNames": {
+        "pattern": "^[a-z][a-z0-9_]{0,63}$",
+        "not": {
+          "pattern": "(?:^|_)(?:raw|payload|prompt|instruction|credential|credentials|secret|secrets|password|passwords|passwd|pwd|(?:api|access|private)?_?(?:token|tokens|key|keys))(?:_|$)"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/constraintValue"
+      }
+    },
+    "constraintValue": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/constraintScalar"
+        },
+        {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/constraintScalar"
+          }
+        }
+      ]
+    },
+    "constraintScalar": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 1000
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "safeLocator": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^[^@?#]+$"
+    },
+    "repositoryRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    }
+  }
+}

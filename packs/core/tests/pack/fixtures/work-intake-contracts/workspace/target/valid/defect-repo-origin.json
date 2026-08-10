@@ -1,0 +1,16 @@
+{
+  "path": "docs/product/defects/login-timeout.md",
+  "kind": "defect",
+  "source": {
+    "mode": "repo-origin",
+    "ref": "docs/specs/login/spec.md"
+  },
+  "summary": "Login times out before the intended retry window.",
+  "needs": [
+    {
+      "type": "local",
+      "kind": "spec",
+      "path": "docs/specs/login/spec.md"
+    }
+  ]
+}

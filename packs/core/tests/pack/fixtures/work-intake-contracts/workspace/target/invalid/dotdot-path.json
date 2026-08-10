@@ -1,0 +1,9 @@
+{
+  "path": "docs/specs/../escape/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Traversal path.",
+  "needs": []
+}

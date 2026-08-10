@@ -1,0 +1,20 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "refresh",
+  "content": {
+    "outcomes": ["Refresh source evidence for an existing artifact."],
+    "constraints": ["The target artifact must already exist."],
+    "evidence": ["Local source changed after draft creation."],
+    "behaviors": ["Compare the source revision before updating the artifact."],
+    "assumptions": [],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "docs/product/intents/work-intake.md",
+    "revision": "rev-local-003"
+  },
+  "constraints": {},
+  "proposed_authority": "repo-origin",
+  "refresh_target": "docs/product/intents/work-intake.md"
+}

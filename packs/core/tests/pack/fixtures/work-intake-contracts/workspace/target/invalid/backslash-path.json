@@ -1,0 +1,9 @@
+{
+  "path": "docs\\specs\\backslash\\spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Backslash path.",
+  "needs": []
+}

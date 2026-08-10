@@ -1,0 +1,9 @@
+{
+  "path": "C:/outside/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "A drive-qualified path is not repository relative.",
+  "needs": []
+}

@@ -1,0 +1,19 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "status",
+  "content": {
+    "outcomes": ["Show current workspace state."],
+    "constraints": [],
+    "evidence": [],
+    "behaviors": [],
+    "assumptions": [],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "workspace.toml",
+    "revision": "rev-local-004"
+  },
+  "constraints": {},
+  "proposed_authority": "repo-origin"
+}

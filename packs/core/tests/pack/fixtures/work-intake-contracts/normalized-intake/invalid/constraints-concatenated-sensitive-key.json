@@ -1,0 +1,21 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": [],
+    "constraints": [],
+    "evidence": [],
+    "behaviors": [],
+    "assumptions": [],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "tracker-origin",
+    "locator": "example-service://tickets/WORK-115",
+    "revision": "tracker-rev-115"
+  },
+  "constraints": {
+    "apikey": "must-not-persist"
+  },
+  "proposed_authority": "tracker-origin"
+}

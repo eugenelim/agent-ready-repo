@@ -50,45 +50,27 @@ Any path with special characters requires the argv form.
 ```toml
 # workspace.toml
 #
-# Declared-intent coordination artifact for this repo.
-# Each initiative gets its own named section. Run `workspace-status` to surface
-# ready items, blocked items, and active signals.
+# Repository coordination index. Canonical artifacts own requirements; this
+# file records lifecycle membership, source provenance, display summaries, and
+# hard dependencies.
 #
-# Queue entries are strings (no deps) or inline objects {path/slug, needs}
-# (with dependencies). `needs` uses queue-prefix notation:
-#   "work:<path>"      — depends on a work queue entry
-#   "shape:<slug>"     — depends on a shaping queue entry
-#   "research:<slug>"  — depends on a research entry
-#   "brief:<path>"     — depends on a brief queue entry
-#   "backlog:<slug>"   — depends on a repo-level [backlog] item
-# Cross-initiative deps prefix the initiative slug: "ini-002:work:spec/..."
+# Target entries are inline tables with exactly:
+#   path, kind, source, summary, needs
 #
-# shaping_queue entry types: shape | research | strategy | signal | design
-#   shape    → frame-intent (or frame-situation when PE pack is available)
-#   research → desk-research-project-start (requires desk-research pack)
-#   strategy → frame-situation (PE pack — M2); interim: frame-intent
-#   signal   → no action; surfaces in "active context" section only
-#   design   → experience-status (requires experience-design pack); fallback: journey-mapping
+# Example:
+#   { path = "docs/specs/<slug>/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Example spec", needs = [] }
 #
-# The top-level [backlog] section (repo-durable open work not scoped to any
-# active initiative) is distinct from a shaping_queue's `backlog` array.
-
-["<initiative-slug>"]
-name      = "<Initiative Name>"
-status    = "active"      # active | paused | closed
-milestone = "<milestone>"
-
-["<initiative-slug>".work]
-queue   = []  # ordered list of spec paths to build; earliest-first
-active  = []  # currently in-progress
-shipped = []  # completed
-
-["<initiative-slug>".shaping_queue]
-active  = []
-backlog = []
+# Comments, summaries, list order, tracker labels, and profile hints are
+# non-semantic. They must not determine routing, dependency satisfaction,
+# processor selection, or dispatch.
+#
+# Paths are repository-relative POSIX paths. Consumers must reject absolute
+# paths, backslashes, ".." segments, and any symlink-resolved target outside the
+# repository root.
 
 [backlog]
 open = []
+closed = []
 ```
 
 **Exit 2 — unexpected error:** surface the stderr message and stop — do not proceed with partial data.

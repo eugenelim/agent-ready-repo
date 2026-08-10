@@ -1,0 +1,6 @@
+# Different comments, order, and summaries must not change the graph.
+["ini-001".work]
+queue = [
+  { path = "docs/specs/independent/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Changed display text.", needs = [] },
+  { path = "docs/specs/child/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/parent.md" }, summary = "Changed child display text.", needs = [{ type = "local", kind = "brief", path = "docs/product/briefs/parent.md" }] },
+]

@@ -1,0 +1,10 @@
+artifact_source_decisions = [
+  { artifact = "docs/specs/tracker-refresh/spec.md", source_revision = "tracker-rev-701", field = "Outcome", decision = "keep-local", local_approver = "workspace-owner", date = "2026-08-07" },
+  { artifact = "docs/specs/tracker-refresh/spec.md", source_revision = "tracker-rev-702", field = "Constraint", decision = "accept-source", local_approver = "workspace-owner", date = "2026-08-08" },
+  { artifact = "docs/specs/tracker-refresh/spec.md", source_revision = "tracker-rev-703", field = "Assumption", decision = "revise-both", local_approver = "workspace-owner", date = "2026-08-09" },
+]
+
+["ini-001".work]
+queue = [
+  { path = "docs/specs/tracker-refresh/spec.md", kind = "spec", source = { mode = "tracker-origin", ref = "example-service://tickets/WORK-700", revision = "tracker-rev-700", parent = "docs/product/briefs/tracker-refresh.md" }, summary = "Tracker-origin work with artifact-owned decisions.", needs = [] },
+]
