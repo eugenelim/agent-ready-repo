@@ -1,6 +1,6 @@
 # Spec: workspace-status simplification — Order 2B
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (write-authority boundary + public-interface change + multi-feature/dependent tasks + workspace.toml mutation without comment loss)
