@@ -55,6 +55,19 @@ class ShapingEntry:
 
 
 @dataclasses.dataclass
+class RepoBacklogEntry:
+    """Display-only projection of one repository-level backlog entry."""
+    room: str
+    needs: list[str | dict[str, object]]
+    slug: str | None = None
+    path: str | None = None
+    kind: str | None = None
+    entry_type: str | None = None
+    source: str | dict[str, object] | None = None
+    summary: str | None = None
+
+
+@dataclasses.dataclass
 class BriefQueue:
     executing: str
     ready: list[str]
@@ -169,6 +182,8 @@ class WorkspaceStatusResult:
     # [backlog].open typed shaping entries (workspace-level, not per-initiative).
     # Populated by extract_top_level_backlog(); work-loop's shaping-item guard reads these.
     top_level_backlog: list[ShapingEntry] = dataclasses.field(default_factory=list)
+    # Complete [backlog].open display projection. It is not passed to classifiers.
+    repo_backlog: list[RepoBacklogEntry] = dataclasses.field(default_factory=list)
     global_scan_performed: bool = dataclasses.field(default=False)
     declared_spec_files_read: int = dataclasses.field(default=0)
     global_scan_files_read: int = dataclasses.field(default=0)
@@ -844,6 +859,7 @@ def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceSta
     reconciliation = type1_findings + type23_findings
 
     top_level_backlog = extract_top_level_backlog(workspace)
+    repo_backlog = extract_repo_backlog(workspace)
 
     elapsed = time.monotonic() - t0
     return WorkspaceStatusResult(
@@ -853,6 +869,7 @@ def analyze(root: Path, *, workspace_bytes: bytes | None = None) -> WorkspaceSta
         reconciliation=reconciliation,
         elapsed_s=elapsed,
         top_level_backlog=top_level_backlog,
+        repo_backlog=repo_backlog,
         global_scan_performed=True,
         declared_spec_files_read=type23_files,
         global_scan_files_read=type1_files,
@@ -885,6 +902,7 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
 
     type23_findings, declared_files = _run_type23_scan(root, initiatives)
     top_level_backlog = extract_top_level_backlog(workspace)
+    repo_backlog = extract_repo_backlog(workspace)
 
     elapsed = time.monotonic() - t0
     return WorkspaceStatusResult(
@@ -894,6 +912,7 @@ def analyze_bounded(root: Path, autonomous_dispatch: bool = False) -> WorkspaceS
         reconciliation=type23_findings,
         elapsed_s=elapsed,
         top_level_backlog=top_level_backlog,
+        repo_backlog=repo_backlog,
         global_scan_performed=False,
         declared_spec_files_read=declared_files,
         global_scan_files_read=0,
@@ -1035,6 +1054,46 @@ def get_active_specs(initiatives: list[Initiative]) -> list[tuple[str, str]]:
 _SHAPING_TYPES: frozenset[str] = frozenset(
     {"shape", "research", "strategy", "signal", "design"}
 )
+_SHAPING_ARTIFACT_KINDS: frozenset[str] = frozenset(
+    {"intent", "research", "design", "brief"}
+)
+
+
+def extract_repo_backlog(workspace: dict) -> list[RepoBacklogEntry]:
+    """Project every supported [backlog].open inline object for display."""
+    backlog_section = workspace.get("backlog", {})
+    if not isinstance(backlog_section, dict):
+        return []
+
+    entries: list[RepoBacklogEntry] = []
+    for raw in backlog_section.get("open", []):
+        if not isinstance(raw, dict):
+            continue
+
+        if all(key in raw for key in ("path", "kind", "source", "summary", "needs")):
+            kind = raw["kind"]
+            entries.append(RepoBacklogEntry(
+                path=raw["path"],
+                kind=kind,
+                source=raw["source"],
+                summary=raw["summary"],
+                needs=list(raw["needs"]),
+                room="shape" if kind in _SHAPING_ARTIFACT_KINDS else "build",
+            ))
+            continue
+
+        if "slug" not in raw:
+            continue
+        entry_type = raw.get("type")
+        entries.append(RepoBacklogEntry(
+            slug=raw["slug"],
+            room="shape" if entry_type is not None else "build",
+            entry_type=entry_type,
+            needs=list(_parse_needs(raw.get("needs"))),
+            source=raw.get("source"),
+            summary=raw.get("summary"),
+        ))
+    return entries
 
 
 def extract_top_level_backlog(workspace: dict) -> list[ShapingEntry]:

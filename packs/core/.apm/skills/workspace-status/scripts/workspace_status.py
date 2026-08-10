@@ -106,6 +106,15 @@ def _shaping_entry_dict(e) -> dict:
     return {"slug": e.slug, "entry_type": e.entry_type, "needs": e.needs}
 
 
+def _repo_backlog_entry_dict(entry) -> dict:
+    result = {"room": entry.room, "needs": entry.needs}
+    for key in ("slug", "path", "kind", "entry_type", "source", "summary"):
+        value = getattr(entry, key)
+        if value is not None:
+            result[key] = value
+    return result
+
+
 def _finding_dict(f) -> dict:
     return {
         "finding_type": f.finding_type,
@@ -204,6 +213,9 @@ def _build_json(root: Path, result, mode: str) -> dict:
             # [backlog].open typed entries (workspace-level, not per-initiative).
             # work-loop's shaping-item guard checks this list for slug matches.
             "top_level_backlog": [_shaping_entry_dict(e) for e in result.top_level_backlog],
+        },
+        "repo_backlog": {
+            "open": [_repo_backlog_entry_dict(e) for e in result.repo_backlog],
         },
         "reconciliation": {
             "performed": True,

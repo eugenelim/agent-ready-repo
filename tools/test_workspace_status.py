@@ -48,6 +48,7 @@ compute_type2_cleanup = _engine_mod.compute_type2_cleanup
 extract_initiatives = _engine_mod.extract_initiatives
 extract_spec_status = _engine_mod.extract_spec_status
 extract_spec_status_with_fingerprint = _engine_mod.extract_spec_status_with_fingerprint
+extract_repo_backlog = _engine_mod.extract_repo_backlog
 extract_top_level_backlog = _engine_mod.extract_top_level_backlog
 get_active_specs = _engine_mod.get_active_specs
 normalize_for_shaping_guard = _engine_mod.normalize_for_shaping_guard
@@ -1217,6 +1218,64 @@ def case_shaping_guard_top_level_backlog() -> None:
         result3 = check_shaping_guard("not-here", initiatives, top_level_backlog=top_backlog)
         expect(result3 is None,
                f"[AC3f-toplevel] non-shaping slug → None, got {result3!r}")
+
+
+def case_extract_repo_backlog_preserves_declared_display_data() -> None:
+    workspace = {
+        "backlog": {
+            "open": [
+                {
+                    "slug": "build-item",
+                    "needs": "backlog:prerequisite",
+                    "source": "spec/example",
+                    "summary": "Build item",
+                },
+                {
+                    "slug": "shape-item",
+                    "type": "research",
+                    "needs": ["backlog:build-item"],
+                    "source": {"mode": "repo-origin"},
+                    "summary": "Shape item",
+                },
+                {
+                    "path": "docs/product/intents/example.md",
+                    "kind": "intent",
+                    "source": {"mode": "repo-origin"},
+                    "summary": "Target item",
+                    "needs": [{
+                        "type": "local",
+                        "kind": "research",
+                        "path": "docs/product/research/example.md",
+                    }],
+                },
+                {"slug": "minimal-build"},
+            ],
+        },
+    }
+
+    entries = extract_repo_backlog(workspace)
+    expect([entry.slug or entry.path for entry in entries] == [
+        "build-item", "shape-item", "docs/product/intents/example.md",
+        "minimal-build",
+    ], "repo backlog preserves source order")
+    expect(entries[0].room == "build", "untyped legacy backlog entry is build")
+    expect(entries[0].needs == ["backlog:prerequisite"],
+           "legacy scalar need is normalized without losing the dependency")
+    expect(entries[1].room == "shape" and entries[1].entry_type == "research",
+           "typed legacy backlog entry preserves shaping room and subtype")
+    expect(entries[1].source == {"mode": "repo-origin"},
+           "legacy structured source is preserved")
+    expect(entries[2].room == "shape" and entries[2].kind == "intent",
+           "target upstream kind maps to shape without losing kind")
+    expect(entries[2].needs == workspace["backlog"]["open"][2]["needs"],
+           "target structured dependencies are preserved")
+    expect(entries[3].room == "build" and entries[3].needs == [],
+           "legacy entry without optional fields remains visible")
+    expect(entries[3].source is None and entries[3].summary is None,
+           "missing optional display metadata is not fabricated")
+    expect(extract_repo_backlog({}) == [], "absent repo backlog is empty")
+    expect(extract_repo_backlog({"backlog": {"open": []}}) == [],
+           "empty repo backlog is empty")
 
 
 # ── AC3g: workspace-status Type 2 cleanup mutation shape ────────────────────────
@@ -2677,6 +2736,10 @@ def test_ac3f_shaping_guard_top_level_backlog() -> None:
     _run_case(case_shaping_guard_top_level_backlog)
 
 
+def test_extract_repo_backlog_preserves_declared_display_data() -> None:
+    _run_case(case_extract_repo_backlog_preserves_declared_display_data)
+
+
 def test_ac3g_type2_cleanup_ownership() -> None:
     _run_case(case_type2_cleanup_ownership)
 
@@ -3089,6 +3152,7 @@ CASES = [
     ("AC3f shaping_item_guard", case_shaping_item_guard),
     ("AC3f shaping_guard_paused_initiative", case_shaping_guard_paused_initiative),
     ("AC3f shaping_guard_top_level_backlog", case_shaping_guard_top_level_backlog),
+    ("repo backlog display projection", case_extract_repo_backlog_preserves_declared_display_data),
     ("AC3g type2_cleanup_ownership", case_type2_cleanup_ownership),
     ("AC3a dag_all_needs_prefixes", case_dag_all_needs_prefixes),
     ("type2_cleanup_mutation_contract", case_type2_cleanup_mutation_contract),
