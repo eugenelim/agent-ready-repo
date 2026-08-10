@@ -1,0 +1,19 @@
+[legacy.invalid]
+"work.queue" = [
+  "docs/product/briefs/account-recovery.md",
+  { slug = "captured-prose", source = "capture-work", summary = "Wrong collection.", needs = [], type = "spec" },
+]
+"shaping_queue.backlog" = [
+  "spec/password-reset",
+  "docs/product/briefs/account-recovery.md",
+  { slug = "bad-kind", type = "intent", needs = [] },
+]
+"brief_queue.ready" = [
+  "spec/password-reset",
+  { slug = "routing-study", type = "research", needs = [] },
+  { slug = "captured-prose", source = "capture-work", summary = "Wrong collection.", needs = [], type = "spec" },
+]
+"backlog.open" = [
+  "spec/password-reset",
+  { slug = "bad-backlog", source = "capture-work", summary = "Extra path breaks the accepted comment-rich shape.", needs = [], type = "spec", path = "spec/password-reset" },
+]

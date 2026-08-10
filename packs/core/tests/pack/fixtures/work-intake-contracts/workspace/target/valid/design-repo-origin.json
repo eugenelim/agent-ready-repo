@@ -1,0 +1,16 @@
+{
+  "path": "docs/product/design/workspace-routing.md",
+  "kind": "design",
+  "source": {
+    "mode": "repo-origin",
+    "parent": "docs/product/intents/workspace-routing.md"
+  },
+  "summary": "Design the workspace routing surface.",
+  "needs": [
+    {
+      "type": "local",
+      "kind": "research",
+      "path": "docs/product/research/workspace-routing-study.md"
+    }
+  ]
+}

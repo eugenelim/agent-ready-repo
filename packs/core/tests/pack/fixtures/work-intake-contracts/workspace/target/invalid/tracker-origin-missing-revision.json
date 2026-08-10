@@ -1,0 +1,10 @@
+{
+  "path": "docs/specs/tracker-missing-revision/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-service://tickets/WORK-300"
+  },
+  "summary": "Tracker-origin missing revision.",
+  "needs": []
+}

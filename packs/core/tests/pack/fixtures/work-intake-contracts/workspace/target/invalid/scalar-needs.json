@@ -1,0 +1,9 @@
+{
+  "path": "docs/specs/scalar-needs/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Needs must be an array.",
+  "needs": "docs/specs/prereq/spec.md"
+}

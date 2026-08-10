@@ -1,0 +1,12 @@
+{
+  "path": "docs/specs/source-requirements/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-service://tickets/WORK-302",
+    "revision": "tracker-rev-302",
+    "requirements": ["Must never live in workspace source."]
+  },
+  "summary": "Workspace source must not carry requirements.",
+  "needs": []
+}

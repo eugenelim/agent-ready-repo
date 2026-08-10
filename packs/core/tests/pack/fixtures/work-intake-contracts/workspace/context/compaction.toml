@@ -1,0 +1,43 @@
+[[compaction_cases]]
+id = "safe_shipped_spec"
+path = "docs/specs/shipped-routing/spec.md"
+kind = "spec"
+status = "Shipped"
+live_needs = []
+open_parents = []
+closure_evidence = true
+expected = "remove-index"
+canonical_artifact_deleted = false
+
+[[compaction_cases]]
+id = "blocked_live_need"
+path = "docs/specs/shared-contract/spec.md"
+kind = "spec"
+status = "Shipped"
+live_needs = ["docs/specs/queued-routing/spec.md"]
+open_parents = []
+closure_evidence = true
+expected = "retain"
+canonical_artifact_deleted = false
+
+[[compaction_cases]]
+id = "blocked_open_parent"
+path = "docs/product/briefs/shipped-routing.md"
+kind = "brief"
+status = "Shipped"
+live_needs = []
+open_parents = ["docs/product/intents/workspace-routing.md"]
+closure_evidence = true
+expected = "retain"
+canonical_artifact_deleted = false
+
+[[compaction_cases]]
+id = "blocked_missing_closure"
+path = "docs/specs/no-closure/spec.md"
+kind = "spec"
+status = "Shipped"
+live_needs = []
+open_parents = []
+closure_evidence = false
+expected = "retain"
+canonical_artifact_deleted = false

@@ -1,6 +1,6 @@
 # Spec: Normalized intake and workspace contracts
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0083, ADR-0077, ADR-0078
@@ -54,31 +54,31 @@ Adopters and workflow authors have one versioned contract for passing acquired w
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `contracts/jsonschema/normalized-intake.schema.json` is a valid JSON Schema with a stable contract version and an `x-spec` backlink to this spec.
-- [ ] **AC2.** A normalized intake record carries `contract_version`, `action`, normalized substantive content, a durable source locator and revision, supplied constraints, and a proposed authority mode.
-- [ ] **AC3.** The normalized action vocabulary is `start | remember | refresh`; status bypasses source acquisition and normalized intake and delegates directly to `workspace-status`.
-- [ ] **AC4.** `refresh` requires the repository-relative path of an existing canonical artifact. `start` and `remember` reject that refresh-only target field.
-- [ ] **AC5.** Tracker profile id/version and tracker object type are optional classification hints under source provenance and cannot determine artifact kind or processor.
-- [ ] **AC6.** Normalized content contains only fields needed for classification and materialization—outcomes, constraints, evidence, behaviors, assumptions, and named gaps—and rejects an unbounded raw source-payload field.
-- [ ] **AC7.** `contracts/jsonschema/workspace-entry.schema.json` is a valid JSON Schema with a stable contract version and an `x-spec` backlink to this spec.
-- [ ] **AC8.** Every target workspace entry requires exactly the semantic fields `path`, `kind`, `source`, `summary`, and `needs`; unknown fields fail schema validation.
-- [ ] **AC9.** `kind` is exactly `intent | research | design | brief | spec | defect`.
-- [ ] **AC10.** `path` is a repository-relative canonical artifact path. The contract rejects empty paths, absolute paths, backslash-based paths, and paths containing a `..` segment; runtime realpath confinement remains a consumer obligation.
-- [ ] **AC11.** `source.mode` is exactly `repo-origin | tracker-origin`. Tracker-origin source records require a durable source reference and revision; repo-origin records may omit an external revision.
-- [ ] **AC12.** Workspace source provenance may carry a parent artifact, tracker profile id/version, or coordination reference, but it cannot carry `owned_fields`, source-decision rows, requirements, or credentials.
-- [ ] **AC13.** `summary` is non-empty display text and is explicitly excluded from routing, reconciliation, dependency satisfaction, and lifecycle decisions.
-- [ ] **AC14.** `needs` is an array of typed hard-dependency records. A local dependency names `kind` and canonical `path`; a cross-repository dependency additionally names the containing local brief, receipt id, and pinned accepted revision.
-- [ ] **AC15.** The workspace reference defines every RFC-0083 membership, including `[backlog].open`, `[backlog].closed`, shaping backlog/active, brief draft/ready/executing/shipped, and work queue/active/shipped.
-- [ ] **AC16.** A Ready brief with zero child specs is valid, visible, and non-dispatchable.
-- [ ] **AC17.** The minimal shared intent contract is documented with `Status`, `Level`, `Outcome`, `Opportunity`, `Assumptions`, and `Source`; its default path is `docs/product/intents/<slug>.md`, subject to an in-repository `[core]` layout override.
-- [ ] **AC18.** Defect fixtures require expected behavior, observed behavior, reproduction evidence or an error signature, provenance, and a durable citation establishing intended behavior. Closed defects record exactly `fixed | declined | superseded`.
-- [ ] **AC19.** Fixtures cover both authority modes and the artifact-owned source-decision values `keep-local`, `accept-source`, and `revise-both`; the workspace mirror contains no field-ownership map.
-- [ ] **AC20.** Compatibility fixtures cover bare `spec/<slug>` work strings, bare shaping slugs, `{slug, type, needs}` shaping objects, brief-path strings, and comment-rich backlog entries.
-- [ ] **AC21.** Every compatibility fixture is tagged legacy by the reader contract; a missing artifact or plan remains non-dispatchable, and no fixture reconstructs requirements from comments.
-- [ ] **AC22.** Compaction fixtures refuse removal of a Shipped entry while any live `needs` edge or open parent references it, or while required closure evidence is absent. Allowed compaction never deletes the canonical artifact.
-- [ ] **AC23.** Editing only comments, `summary`, or array order leaves the expected artifact classification and semantic dependency graph unchanged.
-- [ ] **AC24.** `guides/core/reference/workspace-toml-schema.md`, `packs/core/seeds/workspace.toml`, and every contract example validate against the accepted schemas and use the same exact field names and TOML encoding.
-- [ ] **AC25.** ADR-0077 and ADR-0078 are Accepted and back-linked before this spec is approved.
+- [x] **AC1.** `contracts/jsonschema/normalized-intake.schema.json` is a valid JSON Schema with a stable contract version and an `x-spec` backlink to this spec.
+- [x] **AC2.** A normalized intake record carries `contract_version`, `action`, normalized substantive content, a durable source locator and revision, supplied constraints, and a proposed authority mode.
+- [x] **AC3.** The normalized action vocabulary is `start | remember | refresh`; status bypasses source acquisition and normalized intake and delegates directly to `workspace-status`.
+- [x] **AC4.** `refresh` requires the repository-relative path of an existing canonical artifact. `start` and `remember` reject that refresh-only target field.
+- [x] **AC5.** Tracker profile id/version and tracker object type are optional classification hints under source provenance and cannot determine artifact kind or processor.
+- [x] **AC6.** Normalized content contains only fields needed for classification and materialization—outcomes, constraints, evidence, behaviors, assumptions, and named gaps—and rejects an unbounded raw source-payload field. Every acquired value remains instruction-inert untrusted data; consumers must validate classifier or model output against the accepted contracts before using it as a path, artifact kind, processor, or lifecycle decision.
+- [x] **AC7.** `contracts/jsonschema/workspace-entry.schema.json` is a valid JSON Schema with a stable contract version and an `x-spec` backlink to this spec.
+- [x] **AC8.** Every target workspace entry requires exactly the semantic fields `path`, `kind`, `source`, `summary`, and `needs`; unknown fields fail schema validation.
+- [x] **AC9.** `kind` is exactly `intent | research | design | brief | spec | defect`.
+- [x] **AC10.** `path` is a repository-relative canonical artifact path. The contract rejects empty paths, absolute paths, backslash-based paths, and paths containing a `..` segment. The contextual contract oracle resolves the repository root and target after symlinks, verifies the target remains beneath that root, and fails closed on escape; runtime consumers must enforce the same realpath confinement before reading or dispatching.
+- [x] **AC11.** `source.mode` is exactly `repo-origin | tracker-origin`. Tracker-origin source records require a durable source reference and revision; repo-origin records may omit an external revision.
+- [x] **AC12.** Workspace source provenance may carry a parent artifact, tracker profile id/version, or coordination reference, but it cannot carry `owned_fields`, source-decision rows, requirements, or credentials.
+- [x] **AC13.** `summary` is non-empty display text and is explicitly excluded from routing, reconciliation, dependency satisfaction, and lifecycle decisions.
+- [x] **AC14.** `needs` is an array of typed hard-dependency records. A local dependency names `kind` and canonical `path`; a cross-repository dependency additionally names the containing local brief, receipt id, and pinned accepted revision.
+- [x] **AC15.** The workspace reference defines every RFC-0083 membership, including `[backlog].open`, `[backlog].closed`, shaping backlog/active, brief draft/ready/executing/shipped, and work queue/active/shipped.
+- [x] **AC16.** A Ready brief with zero child specs is valid, visible, and non-dispatchable.
+- [x] **AC17.** The minimal shared intent contract is documented with `Status`, `Level`, `Outcome`, `Opportunity`, `Assumptions`, and `Source`; its default path is `docs/product/intents/<slug>.md`, subject to an in-repository `[core]` layout override.
+- [x] **AC18.** Defect fixtures require expected behavior, observed behavior, reproduction evidence or an error signature, provenance, and a durable citation establishing intended behavior. Closed defects record exactly `fixed | declined | superseded`.
+- [x] **AC19.** Fixtures cover both authority modes and the artifact-owned source-decision values `keep-local`, `accept-source`, and `revise-both`; the workspace mirror contains no field-ownership map.
+- [x] **AC20.** Compatibility fixtures cover bare `spec/<slug>` strings only in work arrays, bare shaping slugs and `{slug, type, needs}` objects only in shaping arrays, brief-path strings only in `brief_queue`, and comment-rich entries only in `[backlog].open`. The same shapes in the wrong lifecycle collection fail compatibility classification.
+- [x] **AC21.** Every compatibility fixture is tagged legacy by the reader contract; a missing artifact or plan remains non-dispatchable, and no fixture reconstructs requirements from comments.
+- [x] **AC22.** Compaction fixtures refuse removal of a Shipped entry while any live `needs` edge or open parent references it, or while required closure evidence is absent. Allowed compaction never deletes the canonical artifact.
+- [x] **AC23.** Editing only comments, `summary`, or array order leaves the expected artifact classification and semantic dependency graph unchanged.
+- [x] **AC24.** `guides/core/reference/workspace-toml-schema.md`, `packs/core/seeds/workspace.toml`, and every contract example validate against the accepted schemas and use the same exact field names and TOML encoding. JSON fixture loading rejects non-standard `NaN` and infinity constants, JSON emission refuses them, and TOML examples preserve Unicode scalar values as raw UTF-8 rather than JSON surrogate escapes.
+- [x] **AC25.** ADR-0077 and ADR-0078 are Accepted and back-linked before this spec is approved. (Verified 2026-08-09: both records show `Status: Accepted` and list RFC-0083 under `Related`.)
 
 ## Assumptions
 

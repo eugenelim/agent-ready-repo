@@ -1,0 +1,25 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "refresh",
+  "content": {
+    "outcomes": ["Refresh imported fields for an accepted local artifact."],
+    "constraints": ["Conflicts require an explicit artifact-owned decision."],
+    "evidence": ["Tracker revision tracker-rev-88 changes scope wording."],
+    "behaviors": ["Record decisions in the canonical artifact, not transient intake."],
+    "assumptions": [],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "tracker-origin",
+    "locator": "example-service://tickets/WORK-789",
+    "revision": "tracker-rev-88",
+    "tracker_profile": {
+      "id": "example-service/product",
+      "version": "2026-08"
+    },
+    "object_type": "Epic"
+  },
+  "constraints": {},
+  "proposed_authority": "tracker-origin",
+  "refresh_target": "docs/specs/work-intake/spec.md"
+}

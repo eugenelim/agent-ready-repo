@@ -1,25 +1,23 @@
 # workspace.toml
 #
-# Declared-intent coordination artifact for this repo.
-# Each initiative gets its own named section. Run `workspace-status` to surface
-# ready items, blocked items, and active signals — or to initialise this file
-# with your first initiative and the full schema.
+# Repository coordination index. Canonical artifacts own requirements; this
+# file records lifecycle membership, source provenance, display summaries, and
+# hard dependencies.
 #
-# Queue entries are strings (no deps) or inline objects
-# {path/slug, needs?, source?, summary?, type?}. `summary` is a short one-line label
-# that workspace-status renders as the item's title; a fuller `#` comment below an
-# entry can carry cold-start detail. `needs` uses queue-prefix notation:
-#   "work:<path>"      — depends on a work queue entry
-#   "shape:<slug>"     — depends on a shaping queue entry
-#   "research:<slug>"  — depends on a research entry
-#   "brief:<path>"     — depends on a brief queue entry
-#   "backlog:<slug>"   — depends on a repo-level [backlog] item
+# Target entries are inline tables with exactly:
+#   path, kind, source, summary, needs
 #
-# The [backlog] section below tracks open work not yet scoped to an initiative.
-# Add items as: {slug = "my-deferred-item", summary = "one-line label"}
-# When a backlog item is blocked by another tracked item, encode it as a `needs`
-# edge (e.g. {slug = "b", needs = "backlog:a"}) — not just a prose comment.
-# Run `workspace-status` to see all open backlog items.
+# Example:
+#   { path = "docs/specs/<slug>/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Example spec", needs = [] }
+#
+# Comments, summaries, list order, tracker labels, and profile hints are
+# non-semantic. They must not determine routing, dependency satisfaction,
+# processor selection, or dispatch.
+#
+# Paths are repository-relative POSIX paths. Consumers must reject absolute
+# paths, backslashes, ".." segments, and any symlink-resolved target outside the
+# repository root.
 
 [backlog]
 open = []
+closed = []

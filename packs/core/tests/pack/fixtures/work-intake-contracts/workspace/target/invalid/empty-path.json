@@ -1,0 +1,9 @@
+{
+  "path": "",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Empty path.",
+  "needs": []
+}

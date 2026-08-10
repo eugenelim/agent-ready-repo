@@ -1,0 +1,24 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": ["Create a deterministic workspace entry contract."],
+    "constraints": ["Do not persist raw tracker payloads."],
+    "evidence": ["Tracker object says this is a Story, which remains only a hint."],
+    "behaviors": ["Require source revision before accepting tracker-origin input."],
+    "assumptions": ["Imported draft fields remain source-owned until acceptance."],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "tracker-origin",
+    "locator": "example-service://tickets/WORK-123",
+    "revision": "tracker-rev-42",
+    "tracker_profile": {
+      "id": "example-service/default",
+      "version": "2026-08"
+    },
+    "object_type": "Story"
+  },
+  "constraints": {},
+  "proposed_authority": "tracker-origin"
+}

@@ -1,0 +1,10 @@
+{
+  "path": "docs/specs/unknown-field/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Has an unknown field.",
+  "needs": [],
+  "processor": "work-loop"
+}

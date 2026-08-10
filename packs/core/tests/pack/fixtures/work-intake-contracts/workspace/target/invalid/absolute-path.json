@@ -1,0 +1,9 @@
+{
+  "path": "/docs/specs/absolute/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Absolute path.",
+  "needs": []
+}

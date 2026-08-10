@@ -1,0 +1,9 @@
+{
+  "path": "docs/specs/unknown-kind/spec.md",
+  "kind": "task",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Unknown kind.",
+  "needs": []
+}

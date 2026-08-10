@@ -1,0 +1,103 @@
+work_contract_cases = [
+  { id = "draft-active", collection = "work.active", kind = "spec", status = "Draft", plan_exists = true, expected = false },
+  { id = "queued-missing-plan", collection = "work.queue", kind = "spec", status = "Approved", plan_exists = false, expected = false },
+]
+
+[backlog]
+open = [
+  { path = "docs/product/intents/unassigned-draft.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Unassigned draft intent.", needs = [] },
+  { path = "docs/product/defects/login-timeout.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Login times out before the intended retry window.", needs = [] },
+]
+closed = [
+  { path = "docs/product/defects/login-timeout-fixed.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Fixed timeout defect.", needs = [] },
+  { path = "docs/product/defects/login-timeout-declined.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Declined timeout defect.", needs = [] },
+  { path = "docs/product/defects/login-timeout-superseded.md", kind = "defect", source = { mode = "repo-origin", ref = "docs/specs/login/spec.md" }, summary = "Superseded timeout defect.", needs = [] },
+]
+
+["ini-001".shaping_queue]
+backlog = [
+  { path = "docs/product/intents/workspace-routing.md", kind = "intent", source = { mode = "repo-origin" }, summary = "Define deterministic workspace routing.", needs = [] },
+  { path = "docs/product/research/workspace-routing-study.md", kind = "research", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Study routing failures.", needs = [] },
+]
+active = [
+  { path = "docs/product/design/workspace-routing.md", kind = "design", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Design routing surface.", needs = [{ type = "local", kind = "research", path = "docs/product/research/workspace-routing-study.md" }] },
+]
+
+["ini-001".brief_queue]
+draft = [
+  { path = "docs/product/briefs/draft-routing.md", kind = "brief", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Draft routing brief.", needs = [] },
+]
+ready = [
+  { path = "docs/product/briefs/ready-without-specs.md", kind = "brief", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Ready brief with no child specs.", needs = [] },
+]
+executing = [
+  { path = "docs/product/briefs/executing-routing.md", kind = "brief", source = { mode = "tracker-origin", ref = "example-service://projects/PROJ-500", revision = "tracker-rev-500", coordination = "coordination/routing" }, summary = "Executing routing brief.", needs = [] },
+]
+shipped = [
+  { path = "docs/product/briefs/shipped-routing.md", kind = "brief", source = { mode = "repo-origin", parent = "docs/product/intents/workspace-routing.md" }, summary = "Shipped routing brief.", needs = [] },
+]
+
+["ini-001".work]
+queue = [
+  { path = "docs/specs/queued-routing/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/executing-routing.md" }, summary = "Queued routing spec.", needs = [{ type = "local", kind = "design", path = "docs/product/design/workspace-routing.md" }] },
+]
+active = [
+  { path = "docs/specs/active-routing/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/executing-routing.md" }, summary = "Active routing spec.", needs = [] },
+]
+shipped = [
+  { path = "docs/specs/shipped-routing/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/shipped-routing.md" }, summary = "Shipped routing spec.", needs = [] },
+]
+
+[spec_artifacts."docs/specs/queued-routing/spec.md"]
+Status = "Approved"
+plan = "docs/specs/queued-routing/plan.md"
+plan_exists = true
+
+[spec_artifacts."docs/specs/active-routing/spec.md"]
+Status = "Implementing"
+plan = "docs/specs/active-routing/plan.md"
+plan_exists = true
+
+[spec_artifacts."docs/specs/shipped-routing/spec.md"]
+Status = "Shipped"
+plan = "docs/specs/shipped-routing/plan.md"
+plan_exists = true
+
+[intent_artifacts."docs/product/intents/workspace-routing.md"]
+Status = "Draft"
+Level = "feature"
+Outcome = "Make workspace routing deterministic."
+Opportunity = "Cold-start agents can choose the same route from committed files."
+Assumptions = ["Artifacts remain authoritative for requirements."]
+Source = "docs/product/intents/workspace-routing.md"
+
+[defect_artifacts."docs/product/defects/login-timeout.md"]
+expected_behavior = "Login honors the documented retry window."
+observed_behavior = "Login times out before the retry window."
+reproduction_evidence = "Run the login retry scenario."
+source = "docs/specs/login/spec.md"
+citation = "docs/specs/login/spec.md"
+
+[defect_artifacts."docs/product/defects/login-timeout-fixed.md"]
+expected_behavior = "Login honors the documented retry window."
+observed_behavior = "Login timed out before the retry window."
+error_signature = "TimeoutBeforeRetryWindow"
+source = "docs/specs/login/spec.md"
+citation = "docs/specs/login/spec.md"
+resolution = "fixed"
+
+[defect_artifacts."docs/product/defects/login-timeout-declined.md"]
+expected_behavior = "Login honors the documented retry window."
+observed_behavior = "Login timed out before the retry window."
+error_signature = "TimeoutBeforeRetryWindow"
+source = "docs/specs/login/spec.md"
+citation = "docs/specs/login/spec.md"
+resolution = "declined"
+
+[defect_artifacts."docs/product/defects/login-timeout-superseded.md"]
+expected_behavior = "Login honors the documented retry window."
+observed_behavior = "Login timed out before the retry window."
+error_signature = "TimeoutBeforeRetryWindow"
+source = "docs/specs/login/spec.md"
+citation = "docs/specs/login/spec.md"
+resolution = "superseded"

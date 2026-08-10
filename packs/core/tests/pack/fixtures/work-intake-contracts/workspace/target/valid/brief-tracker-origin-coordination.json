@@ -1,0 +1,12 @@
+{
+  "path": "docs/product/briefs/account-recovery.md",
+  "kind": "brief",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-service://projects/PROJ-123",
+    "revision": "tracker-rev-123",
+    "coordination": "coordination/account-recovery"
+  },
+  "summary": "Make account recovery self-service.",
+  "needs": []
+}

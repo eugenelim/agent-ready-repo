@@ -1,0 +1,17 @@
+{
+  "path": "docs/specs/incomplete-cross-repo/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Cross-repository dependency misses its accepted revision pin.",
+  "needs": [
+    {
+      "type": "cross-repo",
+      "kind": "brief",
+      "path": "docs/product/briefs/account-recovery.md",
+      "containing_brief": "docs/product/briefs/account-recovery.md",
+      "receipt_id": "remote-prereq"
+    }
+  ]
+}

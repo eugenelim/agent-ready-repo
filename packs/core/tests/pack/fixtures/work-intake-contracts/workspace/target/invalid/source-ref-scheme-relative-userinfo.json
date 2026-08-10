@@ -1,0 +1,11 @@
+{
+  "path": "docs/specs/scheme-relative-source/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "//user:secret@example-service.invalid/items/WORK-307",
+    "revision": "tracker-rev-307"
+  },
+  "summary": "Scheme-relative URL userinfo must not enter workspace provenance.",
+  "needs": []
+}

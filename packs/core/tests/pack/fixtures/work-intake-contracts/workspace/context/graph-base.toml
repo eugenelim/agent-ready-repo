@@ -1,0 +1,6 @@
+# Comments are intentionally non-semantic.
+["ini-001".work]
+queue = [
+  { path = "docs/specs/child/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/parent.md" }, summary = "Original summary.", needs = [{ type = "local", kind = "brief", path = "docs/product/briefs/parent.md" }] },
+  { path = "docs/specs/independent/spec.md", kind = "spec", source = { mode = "repo-origin" }, summary = "Independent summary.", needs = [] },
+]

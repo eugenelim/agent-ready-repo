@@ -1,0 +1,11 @@
+{
+  "path": "docs/specs/plural-token-source/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "https://example-service.invalid/items/WORK-306?tokens=secret",
+    "revision": "tracker-rev-306"
+  },
+  "summary": "Query-bearing locators must be replaced by sanitized opaque identifiers.",
+  "needs": []
+}

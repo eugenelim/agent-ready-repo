@@ -1,0 +1,22 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": ["Reduce duplicate workspace routing decisions."],
+    "constraints": ["Dispatch only from an approved spec and sibling plan."],
+    "evidence": ["Current workspace comments can describe future work without an artifact."],
+    "behaviors": ["Classify by content rather than source label."],
+    "assumptions": ["The repository contains the canonical artifact root."],
+    "named_gaps": ["Confirm whether this is one spec or a brief with child specs."]
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "docs/product/intents/work-intake.md",
+    "revision": "rev-local-001"
+  },
+  "constraints": {
+    "repository": "current",
+    "deadline": "2026-09-01"
+  },
+  "proposed_authority": "repo-origin"
+}

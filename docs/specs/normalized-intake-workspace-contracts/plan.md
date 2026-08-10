@@ -1,7 +1,7 @@
 # Plan: Normalized intake and workspace contracts
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially,
@@ -14,7 +14,7 @@ Define the two JSON Schemas first, with separate fixture sets so normalized-sour
 ## Constraints
 
 - RFC-0083 fixes artifact responsibilities, lifecycle memberships, dependency meanings, authority modes, compatibility shapes, and migration duration.
-- The two Group 1 ADRs are approval prerequisites. One refines feature projection and tracker authority; the other establishes standalone intake, the shared minimal intent contract, relocatable core intent output, and deterministic workspace indexing. Their identifiers remain unstated until assigned.
+- ADR-0077 and ADR-0078 are approval prerequisites. One refines feature projection and tracker authority; the other establishes standalone intake, the shared minimal intent contract, relocatable core intent output, and deterministic workspace indexing.
 - `contracts/jsonschema/normalized-intake.schema.json` and `contracts/jsonschema/workspace-entry.schema.json` are the sole machine-readable contracts.
 - Runtime core readers remain Python 3.11+ and stdlib-only. `jsonschema` is test-time only.
 - New pack tests belong under `packs/core/tests/`; `.apm/` contains shipped sources, not tests.
@@ -32,7 +32,7 @@ Define the two JSON Schemas first, with separate fixture sets so normalized-sour
 
 **Manual verification:**
 
-- Security review confirms source content is treated as data, sensitive payloads have no persistence field, and path checks fail closed.
+- The work-loop's pre-EXECUTE and post-diff `security-reviewer` reports confirm source content is treated as instruction-inert data, sensitive payloads have no persistence field, lexical path checks are backed by realpath confinement, and contract output is validated before path, routing, processor, or lifecycle sinks. The work-loop state records the reports; runtime consumer implementation remains out of scope.
 - Review the rendered workspace reference as a cold adopter and confirm the canonical form, legacy form, and non-dispatchability distinction are explicit.
 
 ## Design (LLD)
@@ -128,6 +128,8 @@ Group 3 consumes both schemas and the fixture corpus. Groups 4–7 consume the n
 
 - Valid fixtures cover repo-origin and tracker-origin `start`, `remember`, and `refresh`. Traces to: AC1–AC5, AC19.
 - Invalid fixtures reject status-as-normalized-intake, refresh without an artifact target, target on start/remember, missing tracker revision, unknown action/authority, raw payload, credentials, and unknown fields. Traces to: AC3–AC6.
+- A valid fixture carries prompt-like source text inside an allowed content value without promoting it to an instruction field; invalid fixtures reject instruction, prompt, and unbounded payload fields. Traces to: AC6.
+- Fixture loading rejects `NaN` and infinity constants, and strict JSON emission refuses non-finite values. Traces to: AC24.
 - Schema validation confirms the `x-spec` backlink and stable contract version. Traces to: AC1.
 
 **Approach:**
@@ -153,9 +155,10 @@ Group 3 consumes both schemas and the fixture corpus. Groups 4–7 consume the n
 
 - Valid target entries cover every `kind`, both authority modes, parent provenance, local dependencies, and cross-repository receipt pins. Traces to: AC7–AC14, AC19.
 - Invalid target entries reject missing semantic fields, unknown fields/kinds, unsafe paths, tracker-origin without revision, field ownership in workspace source, scalar needs, and incomplete receipt pins. Traces to: AC8–AC14.
-- TOML fixtures cover every lifecycle membership, Ready-without-spec, minimal intent, defect outcomes, and every accepted legacy representation. Traces to: AC15–AC21.
+- TOML fixtures cover every lifecycle membership, Ready-without-spec, minimal intent, defect outcomes, and every accepted legacy representation in its RFC-defined collection; the same legacy shape in a wrong collection is invalid. Traces to: AC15–AC21.
 - Compaction fixtures retain entries with live dependency/open-parent references or incomplete closure evidence and allow only safe index removal. Traces to: AC22.
 - Comment, summary, and ordering variants preserve the same semantic graph. Traces to: AC23.
+- A repository fixture with an in-root symlink resolving outside the repository fails the contextual confinement oracle; a resolved in-root target passes. Traces to: AC10.
 
 **Approach:**
 
@@ -181,8 +184,9 @@ Group 3 consumes both schemas and the fixture corpus. Groups 4–7 consume the n
 - Both schemas pass the selected JSON Schema meta-validator.
 - Every JSON fixture validates or fails with the expected schema path.
 - Every TOML entry normalizes to the same five-field JSON form before validation.
-- The contextual oracle rejects duplicate membership, impossible membership/status pairs, unsafe legacy promotion, and unsafe compaction.
+- The contextual oracle rejects duplicate membership, impossible membership/status pairs, unsafe legacy promotion, unsafe compaction, and lexical or symlink-mediated repository escape.
 - The minimal intent, defect, authority-decision, and Ready-without-spec fixtures satisfy their contract assertions.
+- Strict JSON helpers reject non-standard constants on load and emission; TOML round-trips preserve non-BMP Unicode scalar values without surrogate escapes.
 
 **Approach:**
 
@@ -237,4 +241,5 @@ Group 3 consumes both schemas and the fixture corpus. Groups 4–7 consume the n
 
 ## Changelog
 
+- 2026-08-09: Strengthened lifecycle-scoped legacy fixtures, symlink confinement, instruction-as-data, strict JSON/TOML scalar handling, and loop-level security-review ownership after pre-EXECUTE review; recorded the already-satisfied ADR approval prerequisite in the spec.
 - 2026-08-09: Initial plan derived from accepted RFC-0083 and confirmed assumptions.

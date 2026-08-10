@@ -1,0 +1,20 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": ["Route this work."],
+    "constraints": [],
+    "evidence": [],
+    "behaviors": [],
+    "assumptions": [],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "docs/product/intents/work-intake.md",
+    "revision": "rev-local-013"
+  },
+  "constraints": {},
+  "proposed_authority": "repo-origin",
+  "processor": "work-loop"
+}

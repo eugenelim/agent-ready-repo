@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.5.1] — 2026-08-09
+
+#### Changed
+
+- **Core now publishes the target workspace index contract.**
+  The workspace reference, starter seed, and initialization text describe the
+  five-field target entry shape, lifecycle collections, source provenance,
+  typed hard dependencies, legacy compatibility limits, path confinement, and
+  strict JSON/TOML encoding expectations.
+
 ### Fixed
 
 - **Concurrent SSO operations on one profile no longer corrupt its cookie jar.**

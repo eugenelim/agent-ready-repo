@@ -1,0 +1,15 @@
+[legacy.valid]
+"work.queue" = ["spec/password-reset"]
+"shaping_queue.backlog" = [
+  "shape-password-reset",
+  { slug = "legacy-shape", type = "shape", needs = [] },
+  { slug = "routing-study", type = "research", needs = ["shape-password-reset"] },
+  { slug = "market-strategy", type = "strategy", needs = [] },
+  { slug = "customer-signal", type = "signal", needs = [] },
+  { slug = "routing-design", type = "design", needs = ["routing-study"] },
+]
+"brief_queue.ready" = ["docs/product/briefs/account-recovery.md"]
+"backlog.open" = [
+  # comment-rich backlog item: prose here is visible to humans but not parsed into routing data.
+  { slug = "captured-prose", source = "capture-work", summary = "Captured prose remains visible but non-dispatchable.", needs = [], type = "spec" },
+]

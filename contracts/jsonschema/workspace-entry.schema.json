@@ -1,0 +1,171 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/workspace-entry.schema.json",
+  "title": "Target workspace entry",
+  "description": "Durable workspace.toml index entry for one canonical artifact.",
+  "type": "object",
+  "contract_version": "workspace-entry.v1",
+  "x-spec": ["docs/specs/normalized-intake-workspace-contracts/"],
+  "additionalProperties": false,
+  "required": ["path", "kind", "source", "summary", "needs"],
+  "properties": {
+    "path": {
+      "$ref": "#/$defs/repositoryRelativePath"
+    },
+    "kind": {
+      "$ref": "#/$defs/artifactKind"
+    },
+    "source": {
+      "$ref": "#/$defs/source"
+    },
+    "summary": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "needs": {
+      "type": "array",
+      "maxItems": 50,
+      "items": {
+        "$ref": "#/$defs/need"
+      }
+    }
+  },
+  "$defs": {
+    "artifactKind": {
+      "enum": ["intent", "research", "design", "brief", "spec", "defect"]
+    },
+    "repositoryRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*(?:^|/)\\.\\.(?:/|$)).+$"
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode"],
+      "properties": {
+        "mode": {
+          "enum": ["repo-origin", "tracker-origin"]
+        },
+        "ref": {
+          "$ref": "#/$defs/safeLocator"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "parent": {
+          "$ref": "#/$defs/repositoryRelativePath"
+        },
+        "coordination": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 300
+        },
+        "tracker_profile": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["id", "version"],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "mode": {
+                "const": "tracker-origin"
+              }
+            },
+            "required": ["mode"]
+          },
+          "then": {
+            "required": ["ref", "revision"]
+          }
+        }
+      ]
+    },
+    "need": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/localNeed"
+        },
+        {
+          "$ref": "#/$defs/crossRepoNeed"
+        }
+      ]
+    },
+    "localNeed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "kind", "path"],
+      "properties": {
+        "type": {
+          "const": "local"
+        },
+        "kind": {
+          "$ref": "#/$defs/artifactKind"
+        },
+        "path": {
+          "$ref": "#/$defs/repositoryRelativePath"
+        }
+      }
+    },
+    "crossRepoNeed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "kind",
+        "path",
+        "containing_brief",
+        "receipt_id",
+        "accepted_revision"
+      ],
+      "properties": {
+        "type": {
+          "const": "cross-repo"
+        },
+        "kind": {
+          "enum": ["brief", "spec"]
+        },
+        "path": {
+          "$ref": "#/$defs/repositoryRelativePath"
+        },
+        "containing_brief": {
+          "$ref": "#/$defs/repositoryRelativePath"
+        },
+        "receipt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "accepted_revision": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      }
+    },
+    "safeLocator": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^[^@?#]+$"
+    }
+  }
+}

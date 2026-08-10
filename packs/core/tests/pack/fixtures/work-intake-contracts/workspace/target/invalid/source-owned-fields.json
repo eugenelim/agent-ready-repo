@@ -1,0 +1,14 @@
+{
+  "path": "docs/specs/source-owned-fields/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-service://tickets/WORK-301",
+    "revision": "tracker-rev-301",
+    "owned_fields": {
+      "Outcome": "source"
+    }
+  },
+  "summary": "Workspace source must not mirror field ownership.",
+  "needs": []
+}

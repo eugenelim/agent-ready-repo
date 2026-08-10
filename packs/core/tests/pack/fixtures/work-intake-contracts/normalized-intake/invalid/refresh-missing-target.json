@@ -1,0 +1,19 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "refresh",
+  "content": {
+    "outcomes": ["Refresh an existing artifact."],
+    "constraints": [],
+    "evidence": [],
+    "behaviors": [],
+    "assumptions": [],
+    "named_gaps": []
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "docs/product/intents/work-intake.md",
+    "revision": "rev-local-005"
+  },
+  "constraints": {},
+  "proposed_authority": "repo-origin"
+}

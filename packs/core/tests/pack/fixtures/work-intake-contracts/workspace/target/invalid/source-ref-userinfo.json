@@ -1,0 +1,11 @@
+{
+  "path": "docs/specs/credential-bearing-source/spec.md",
+  "kind": "spec",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "https://user:secret@example-service.invalid/items/WORK-304",
+    "revision": "tracker-rev-304"
+  },
+  "summary": "URL userinfo must not enter durable workspace provenance.",
+  "needs": []
+}

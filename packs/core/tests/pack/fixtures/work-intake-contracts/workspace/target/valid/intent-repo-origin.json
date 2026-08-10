@@ -1,0 +1,9 @@
+{
+  "path": "docs/product/intents/workspace-routing.md",
+  "kind": "intent",
+  "source": {
+    "mode": "repo-origin"
+  },
+  "summary": "Define deterministic workspace routing.",
+  "needs": []
+}

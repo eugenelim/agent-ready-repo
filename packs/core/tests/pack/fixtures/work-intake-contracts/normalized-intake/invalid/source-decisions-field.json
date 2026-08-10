@@ -1,0 +1,26 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "refresh",
+  "content": {
+    "outcomes": [],
+    "constraints": [],
+    "evidence": [],
+    "behaviors": [],
+    "assumptions": [],
+    "named_gaps": [],
+    "source_decisions": [
+      {
+        "field": "Outcome",
+        "decision": "keep-local"
+      }
+    ]
+  },
+  "source": {
+    "mode": "tracker-origin",
+    "locator": "example-service://tickets/WORK-790",
+    "revision": "tracker-rev-90"
+  },
+  "constraints": {},
+  "proposed_authority": "tracker-origin",
+  "refresh_target": "docs/specs/work-intake/spec.md"
+}

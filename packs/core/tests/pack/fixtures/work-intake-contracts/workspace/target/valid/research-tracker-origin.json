@@ -1,0 +1,21 @@
+{
+  "path": "docs/product/research/workspace-routing-study.md",
+  "kind": "research",
+  "source": {
+    "mode": "tracker-origin",
+    "ref": "example-service://tickets/WORK-210",
+    "revision": "tracker-rev-210",
+    "tracker_profile": {
+      "id": "example-service/research",
+      "version": "2026-08"
+    }
+  },
+  "summary": "Study routing failures in existing workspace files.",
+  "needs": [
+    {
+      "type": "local",
+      "kind": "intent",
+      "path": "docs/product/intents/workspace-routing.md"
+    }
+  ]
+}
