@@ -92,7 +92,7 @@ The audit reviewed ~60 skills across 14 packs. Findings and their status:
 | **AST04** Insecure metadata parsing | PASS | Metadata parsed only by the `agentbundle` build pipeline (safe YAML load path) |
 | **AST07** Version drift | PASS | Pack-level pinning via pack.toml; skills invoke peers by name (version resolved at install) |
 | **AST08** Poor scanning | PASS | Covered structurally by the `tool`/`hybrid`/`reason` three-bucket delegation taxonomy |
-| **AST09** Governance | PASS | Auditable inventory via marketplace.json (built by `build-self`); install-state-visibility command; revocation via `agentbundle uninstall` |
+| **AST09** Governance | PASS | Auditable inventory of the user-capable subset via marketplace.json (built by `build-self`); full catalogue inventory via `agentbundle list-packs`; install-state-visibility command; revocation via `agentbundle uninstall` |
 
 ### Findings addressed
 

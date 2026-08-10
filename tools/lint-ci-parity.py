@@ -93,7 +93,13 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "incidentally, but nothing verifies that overlap — see workspace.toml "
         "[backlog].open `ci-parity-docs-yml-out-of-scope`.",
     "catalogue-tooling-ci-gates.yml":
-        "Out of scope; same backlog entry as docs.yml.",
+        "Out of scope; same backlog entry as docs.yml. Note: this one bites — "
+        "its Gate B fixture is a synthetic external catalogue built by "
+        "`agentbundle catalogue build`, so an engine change can redden it "
+        "while every `make` target stays green. That happened once "
+        "(docs/specs/claude-plugin-route-scope): a route filter emptied the "
+        "fixture's marketplace and the build raised. Reproduce locally by "
+        "extracting the fixture heredoc and running the same command.",
     "ci-security.yml":
         "Out of scope; same backlog entry as docs.yml.",
     "codeql.yml": "GitHub-hosted analysis; no local equivalent exists.",

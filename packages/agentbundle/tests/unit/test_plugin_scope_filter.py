@@ -112,41 +112,61 @@ def test_aggregate_scope_is_required_with_no_default() -> None:
     assert param.default is inspect.Parameter.empty
 
 
-@pytest.mark.parametrize(
-    "aggregate_scope,discovered_empty,expect_nonzero",
-    [
-        ("catalogue", False, True),
-        ("catalogue", True, False),
-        ("single-pack", False, False),
-    ],
-)
-def test_empty_set_behaviour(
-    aggregate_scope: str, discovered_empty: bool, expect_nonzero: bool
+def test_an_all_repo_scope_catalogue_warns_and_writes_rather_than_failing(
+    tmp_path, capsys
 ) -> None:
-    from agentbundle.build.main import aggregate_exit_code
+    """The asymmetry round thirteen removed.
 
-    assert (
-        aggregate_exit_code(
-            aggregate_scope=aggregate_scope,
-            discovered_empty=discovered_empty,
-            published_empty=True,
-        )
-        != 0
-    ) is expect_nonzero
+    `contracts/pack.schema.json` makes `[pack.adapter-contract]` optional, so
+    an adopter whose packs are all repo-scoped resolves to an empty plugin
+    route through no fault of their own — the shape the catalogue-tooling
+    smoke gate's own fixture has. This used to raise, which broke
+    `agentbundle catalogue build` for them outright.
+    """
+    import json
+
+    from agentbundle.build.main import Pack, Recipe, _run_aggregate
+
+    plugin_dir = tmp_path / "claude-plugins" / "narrow"
+    (plugin_dir / ".claude-plugin").mkdir(parents=True)
+    (plugin_dir / ".claude-plugin" / "plugin.json").write_text(
+        json.dumps({"name": "narrow", "version": "1.0.0", "description": "d"}),
+        encoding="utf-8")
+    (plugin_dir / "pack.toml").write_text(
+        '[pack]\nname = "narrow"\nversion = "1.0.0"\n', encoding="utf-8")
+
+    src = tmp_path / "packs" / "narrow"
+    (src / ".claude-plugin").mkdir(parents=True)
+    (src / ".claude-plugin" / "plugin.json").write_text("{}", encoding="utf-8")
+    (src / "pack.toml").write_text(
+        '[pack]\nname = "narrow"\nversion = "1.0.0"\n'
+        '[pack.adapter-contract]\nversion = "0.3"\n'
+        '[pack.install]\nallowed-scopes = ["repo"]\n', encoding="utf-8")
+
+    recipe = Recipe(name="marketplace", type="aggregate", adapter=None,
+                    output_subdir=None, input_subdir="claude-plugins",
+                    output_file="marketplace.json", units=[],
+                    fragment_path=None, manifest_path=None)
+    _run_aggregate(recipe, tmp_path, packs=[Pack(name="narrow", path=src)],
+                   aggregate_scope="catalogue")
+
+    err = capsys.readouterr().err
+    assert "the marketplace is empty" in err
+    assert "valid state" in err, "an all-repo-scope catalogue is not a defect"
+    assert "agentbundle install" in err, "the warning must name the other route"
+    payload = json.loads(
+        (tmp_path / "marketplace.json").read_text(encoding="utf-8"))
+    assert payload["plugins"] == [], "the file is still written"
 
 
 def test_unknown_aggregate_scope_raises() -> None:
-    """A typo must fail, not silently disable the guard.
+    """A typo must fail, not silently take the wrong disclosure policy.
 
-    The frozenset exists because the earlier `!= "catalogue"` form returned 0
-    for any unrecognised string — so a misspelled scope at a call site would
-    have turned AC12's hard error back off with no signal.
+    The frozenset exists because an earlier `!= "catalogue"` form treated any
+    unrecognised string as single-pack — so a misspelled scope at a call site
+    would silence AC1's exclusion lines with no signal.
     """
-    from agentbundle.build.main import aggregate_exit_code
+    from agentbundle.build.main import run_recipe
 
     with pytest.raises(ValueError, match="aggregate_scope must be one of"):
-        aggregate_exit_code(
-            aggregate_scope="catalouge",
-            discovered_empty=False,
-            published_empty=True,
-        )
+        run_recipe(None, [], None, {}, aggregate_scope="catalouge")

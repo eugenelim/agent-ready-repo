@@ -328,12 +328,15 @@ no callers anywhere in the tree, so its parameter is unreachable today).
   would re-publish it at the root with only AC6's tripwire in the way. Recorded,
   not fixed: operator-only is not yet pack metadata all writers honour.
 
-- [x] **AC12 — Emptying the set is an error only where emptiness is a defect.**
-  A build exits non-zero when **the discovered pack set was non-empty and the
-  filter emptied it**. Not when the catalogue was empty to begin with:
-  `tests/fixtures/blank_catalogue/packs/` holds only `_example`, so
-  `discover_packs` returns `[]` and the filter does nothing — a blank catalogue
-  is a shipped, valid state (`tests/integration/test_blank_catalogue.py`).
+- [x] **AC12 — Every writer discloses what it dropped, and none of them
+  fails on an emptiness that is a legitimate state.**
+  A build **warns** when the discovered pack set was non-empty and the filter
+  emptied it; it does not fail. It says nothing at all when the catalogue was
+  empty to begin with: `tests/fixtures/blank_catalogue/packs/` holds only
+  `_example`, so `discover_packs` returns `[]` and the filter does nothing — a
+  blank catalogue is a shipped, valid state
+  (`tests/integration/test_blank_catalogue.py`), and warning about it would be
+  noise.
 
   **The caller says which mode it is.** `_run_aggregate` is the *same* function
   under whole-catalogue (`run_default_build`) and single-pack (`render_pack_to_dir`
@@ -344,8 +347,18 @@ no callers anywhere in the tree, so its parameter is unreachable today).
   carries an explicit `aggregate_scope: "catalogue" | "single-pack"`, and each
   caller passes its own.
 
-  - **catalogue** — non-zero exit, one summary line naming how many packs were
-    dropped and why.
+  - **catalogue** — one summary line naming how many packs were dropped and
+    why, and a further line if the filter leaves the marketplace empty. Not a
+    hard error: that is what this bullet said until round thirteen, on the
+    reasoning that "a catalogue that publishes nothing is a defect". It is a
+    defect *for this repository*, and `tools/lint-plugin-roster.py` guards it
+    precisely by pinning the roster literally. It is not a defect for an
+    adopter — `contracts/pack.schema.json` makes `[pack.adapter-contract]`
+    optional, so an adopter whose packs are all repo-scoped resolves to an
+    empty route through no fault of their own, and failing their
+    `agentbundle catalogue build` is a regression in a published command. The
+    catalogue-tooling smoke gate's own fixture is that exact shape, and it
+    went red. Both writers now warn and continue.
   - **single-pack** — empty `plugins` list, success, and **silent**. The
     per-pack skip line is gated on `aggregate_scope == "catalogue"`: a
     single-pack render of a repo-only pack is the *flagship successful*
@@ -358,8 +371,8 @@ no callers anywhere in the tree, so its parameter is unreachable today).
     `test_every_exclusion_is_named_on_stderr`, the silence by
     `test_a_single_pack_render_says_nothing_about_the_route`.
   - **adopter self-host** — `_aggregate_marketplace` runs on `run_self_host`
-    *after* adapters and seeds are written, so a non-zero exit there leaves a
-    half-projected tree. `contracts/pack.schema.json` requires only `[pack].name`
+    *after* adapters and seeds are written, so a non-zero exit there would
+    leave a half-projected tree. `contracts/pack.schema.json` requires only `[pack].name`
     and `[pack].version` — `[pack.adapter-contract]` is **optional** — so a
     schema-valid adopter pack resolves `["repo"]` through no fault of its own.
     That path warns loudly and continues **with the filtered, possibly empty
@@ -560,7 +573,7 @@ no callers anywhere in the tree, so its parameter is unreachable today).
 | AC5, AC6, AC7 | Integration | build into `tmp_path`; three-surface set equality both directions; seven absences by name; envelope intact |
 | AC8 | Integration + built output | union consistency test; rendered page emits/omits the command |
 | AC9 | Goal-based, by mutation | perturb the data → `make build-check` exits non-zero |
-| AC10, AC11, AC12 | Unit | publish-script predicate re-derivation; entry-vs-directory equality; empty-set exit; evaluation order |
+| AC10, AC11, AC12 | Unit | publish-script predicate re-derivation; entry-vs-directory equality; empty-set warn-and-write; evaluation order |
 | AC13, AC14 | Goal-based | both `[Unreleased]` entries carry the pack names, the uninstall-first remedy, and the engine note |
 | AC15 | Visual / manual QA | recorded transcripts: local marketplace pre-merge, `plugin update` post-delist, published post-merge |
 | AC16 | Goal-based | scripted allowlist assertion over the enumerated sites |

@@ -465,36 +465,34 @@ def _skip_reason(pack_path: Path) -> str:
     )
 
 
-def aggregate_exit_code(
-    *,
-    aggregate_scope: str,
-    discovered_empty: bool,
-    published_empty: bool,
-) -> int:
-    """Emptiness policy for a marketplace write.
+def _empty_marketplace_warning(excluded: set[str]) -> str:
+    """What to say when the filter leaves a marketplace with no entries.
 
-    Only a *catalogue* aggregation treats an emptied set as a defect, and only
-    when the filter is what emptied it — a blank catalogue is a shipped, valid
-    state. A single-pack render legitimately yields zero entries for a repo-only
-    pack, and an adopter's self-host run must not hard-fail after adapters and
-    seeds have already been written.
+    Warn-and-continue, matching `self_host.py`'s sibling writer. This was a
+    hard error until round thirteen, on the reasoning that "a catalogue that
+    publishes nothing is a defect". That holds for *this* repository and is
+    guarded precisely by `tools/lint-plugin-roster.py`, which pins the roster
+    literally. It does not hold for an adopter: `contracts/pack.schema.json`
+    makes `[pack.adapter-contract]` optional, so an adopter whose packs are
+    all repo-scoped — a shape this project explicitly endorses — resolves to
+    an empty plugin route through no fault of their own. Failing their
+    `agentbundle catalogue build` outright is a regression in a published
+    command, and it broke the catalogue-tooling smoke gate's own fixture.
     """
-    if aggregate_scope not in AGGREGATE_SCOPES:
-        # Unvalidated, this reads `!= "catalogue"` and silently returns 0 — so a
-        # typo at any future call site disables the guard rather than failing.
-        raise ValueError(
-            f"aggregate_scope must be one of {sorted(AGGREGATE_SCOPES)}; "
-            f"got {aggregate_scope!r}"
-        )
-    if aggregate_scope != "catalogue":
-        # Single-pack renders legitimately yield zero entries. The self-host
-        # writer is deliberately absent from this enum: it implements
-        # warn-and-continue inline because it runs after adapters and seeds are
-        # written, so routing it here would imply a policy it does not use.
-        return 0
-    if discovered_empty:
-        return 0
-    return 1 if published_empty else 0
+    detail = (
+        f"{len(excluded)} excluded here: {', '.join(sorted(excluded))}"
+        if excluded
+        else "none reached this writer — the per-pack recipe filtered them "
+        "upstream"
+    )
+    return (
+        "marketplace: no packs reach the claude-plugins route "
+        f"({detail}), so the marketplace is empty. That is a valid state for "
+        "a catalogue whose packs all install at repo scope; they are reached "
+        "with `agentbundle install`. If you expected entries here, check each "
+        "pack's [pack.adapter-contract] version and [pack.install] "
+        "allowed-scopes."
+    )
 
 
 def validate_pack_metadata(pack_toml_path: Path) -> None:
@@ -558,18 +556,19 @@ def run_recipe(
 ) -> dict:
     """Execute a recipe and return a description of what it produced.
 
-    `aggregate_scope` is required and has no default: it decides whether an
-    emptied marketplace is a defect (see `aggregate_exit_code`), and a default
-    would let `render_packs_to_dir` and `cmd_build --recipe` inherit the wrong
-    policy silently. One of "catalogue" | "single-pack". The self-host writer is absent
-    deliberately: it implements warn-and-continue inline because it runs after
-    adapters and seeds are written, so a hard exit would leave a half-projected
-    tree.
+    `aggregate_scope` is required and has no default: it decides whether a
+    pack skipped on the claude-plugins route is announced. A catalogue build
+    names every exclusion (AC1); a single-pack render stays silent, because
+    that is the flagship *successful* repo-scope path — `agentbundle install
+    --pack core` — and a route refusal there reads as an error on a command
+    that worked. A default would let `render_packs_to_dir` and `cmd_build
+    --recipe` inherit the wrong policy silently. One of "catalogue" |
+    "single-pack". The self-host writer is absent deliberately: it runs after
+    adapters and seeds are written and warns inline.
     """
     if aggregate_scope not in AGGREGATE_SCOPES:
-        # Validate here, not only inside `aggregate_exit_code`: that is reached
-        # only for aggregate recipes, so a typo at a per-pack call site would
-        # pass silently — the class of bug the frozenset exists to close.
+        # Validate here, not only where it is read: a typo at a per-pack call
+        # site would otherwise pass silently.
         raise ValueError(
             f"aggregate_scope must be one of {sorted(AGGREGATE_SCOPES)}; "
             f"got {aggregate_scope!r}"
@@ -905,6 +904,11 @@ def _run_aggregate(
     source_by_name = {p.name: p for p in packs}
     entries: list[dict] = []
     excluded: list[str] = []
+    # Two distinct causes, kept apart. Reporting a stale directory as a scope
+    # refusal sends the reader to a `pack.toml` that no longer exists — the
+    # same self-contradiction `_skip_reason` exists to prevent at the per-pack
+    # site.
+    stale: list[str] = []
     if input_dir.exists():
         for plugin_dir in sorted(input_dir.iterdir()):
             if plugin_dir.name == "marketplace.json" or not plugin_dir.is_dir():
@@ -913,7 +917,10 @@ def _run_aggregate(
             # A dist directory with no source pack is stale — `make build` has
             # no `clean` dependency, so it survives a pack's deletion. Fail
             # closed: absent from the source tree means not publishable.
-            if source is None or not pack_is_publishable(source.path):
+            if source is None:
+                stale.append(plugin_dir.name)
+                continue
+            if not pack_is_publishable(source.path):
                 excluded.append(plugin_dir.name)
                 continue
             manifest = plugin_dir / ".claude-plugin" / "plugin.json"
@@ -992,24 +999,15 @@ def _run_aggregate(
             f"user scope: {', '.join(sorted(excluded))}",
             file=sys.stderr,
         )
-    rc = aggregate_exit_code(
-        aggregate_scope=aggregate_scope,
-        discovered_empty=not source_by_name,
-        published_empty=not entries,
-    )
-    if rc:
-        detail = (
-            f"{len(excluded)} excluded here: {', '.join(sorted(excluded))}"
-            if excluded
-            else "none reached this writer — the per-pack recipe filtered them "
-            "upstream"
+    if stale:
+        print(
+            f"marketplace: excluded {len(stale)} directory/ies no longer "
+            f"present in the source tree (stale dist/ — `make build` has no "
+            f"`clean` dependency): {', '.join(sorted(stale))}",
+            file=sys.stderr,
         )
-        raise ValueError(
-            "marketplace: the catalogue publishes no packs to the "
-            f"claude-plugins route ({detail}). A catalogue that publishes "
-            "nothing is a defect, not an outcome — check each pack's "
-            "[pack.adapter-contract] version and [pack.install] allowed-scopes."
-        )
+    if source_by_name and not entries:
+        print(_empty_marketplace_warning(excluded + stale), file=sys.stderr)
     output_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",
         encoding="utf-8", newline="\n",

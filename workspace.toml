@@ -445,6 +445,12 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # catalogue-tooling-ci-gates.yml Gate B builds a synthetic external catalogue
+  # with `agentbundle catalogue build`, so an engine change can redden it while
+  # every `make` target stays green — it did, on spec/claude-plugin-route-scope,
+  # and no local command would have caught it. Fix: a `make` target that extracts
+  # the fixture heredoc and runs the same command, chained into `make ci`.
+  {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope"},
   # render_packs_to_dir hard-codes aggregate_scope="catalogue", so an adopter
   # rendering a repo-only subset through that public helper gets a ValueError
   # where the single-pack sibling returns an empty plugins list. No in-repo

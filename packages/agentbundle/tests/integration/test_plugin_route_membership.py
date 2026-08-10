@@ -296,22 +296,29 @@ def _recipe():
                   fragment_path=None, manifest_path=None)
 
 
-def test_catalogue_build_refuses_when_the_filter_empties_a_non_empty_set(tmp_path) -> None:
-    """AC12's hard error, driven through `_run_aggregate` rather than the pure helper.
+def test_catalogue_build_warns_and_continues_when_the_filter_empties_it(
+    tmp_path, capsys
+) -> None:
+    """AC12, driven through `_run_aggregate` rather than a pure helper.
 
-    `aggregate_exit_code` was previously the only thing tested — a pure function
-    disconnected from its single caller, so `if rc:` could be deleted and the
-    suite stayed green.
+    This raised until round thirteen. It broke `agentbundle catalogue build`
+    for any adopter whose packs are all repo-scoped — including the
+    catalogue-tooling smoke gate's own fixture, which went red on this branch
+    with no local target covering it. Warn-and-continue now, matching the
+    self-host writer; this repository's roster is guarded far more precisely
+    by `tools/lint-plugin-roster.py`.
     """
     from agentbundle.build.main import Pack, _run_aggregate
 
     _synth_pack(tmp_path, "repoonly", user=False)
-    with pytest.raises(ValueError, match="publishes no packs"):
-        _run_aggregate(
-            _recipe(), tmp_path,
-            packs=[Pack(name="repoonly", path=tmp_path / "packs" / "repoonly")],
-            aggregate_scope="catalogue",
-        )
+    result = _run_aggregate(
+        _recipe(), tmp_path,
+        packs=[Pack(name="repoonly", path=tmp_path / "packs" / "repoonly")],
+        aggregate_scope="catalogue",
+    )
+    assert result["entries"] == 0
+    err = capsys.readouterr().err
+    assert "the marketplace is empty" in err and "valid state" in err
 
 
 def test_blank_catalogue_is_not_an_error(tmp_path) -> None:
@@ -441,10 +448,14 @@ def test_the_aggregate_names_what_it_drops_from_a_stale_tree(tmp_path, capsys) -
                    aggregate_scope="catalogue")
 
     err = capsys.readouterr().err
-    assert "marketplace: excluded" in err and "stale" in err, (
-        f"the stale directory was dropped silently: {err!r}"
+    assert "stale" in err, f"the stale directory was dropped silently: {err!r}"
+    # The reason must be the one that actually held. A directory whose source
+    # pack is gone is not a scope refusal, and saying so sends the reader to a
+    # `pack.toml` that no longer exists.
+    assert "no longer present in the source tree" in err
+    assert "not installable at user scope" not in err, (
+        "a stale directory was reported as a scope refusal"
     )
-    assert "not installable at user scope" in err
 
 
 def test_the_skip_reason_names_the_condition_that_actually_held(tmp_path) -> None:

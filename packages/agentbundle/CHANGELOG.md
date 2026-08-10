@@ -12,10 +12,11 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 - **BREAKING — `build.main.run_recipe` requires `aggregate_scope`.** It is
   keyword-only with no default, so an out-of-repo caller gets a `TypeError` at
-  call time rather than silently inheriting catalogue semantics. An aggregate
-  recipe's exit code depends on which mode it ran in — an emptied catalogue is
-  a hard error, an emptied single-pack render is not — and that is the
-  caller's fact, not something the recipe can infer.
+  call time rather than silently inheriting catalogue semantics. Whether a
+  pack skipped on the plugin route is announced depends on which mode ran — a
+  catalogue build names every exclusion, a single-pack render stays silent so
+  a successful `agentbundle install --pack <repo-only>` does not print a route
+  refusal — and that is the caller's fact, not something the recipe can infer.
 - **BREAKING — `agentbundle build --recipe marketplace --pack <X>` exits 1.**
   Aggregate recipes read the whole dist tree, so a pack filter on one was
   always meaningless; it previously succeeded and produced a marketplace whose
@@ -64,9 +65,9 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   repo-only no longer appears in the `.claude-plugin/marketplace.json` your
   build writes. The resolver gates on `[pack.adapter-contract].version`, not
   `[pack.install]` — a pack declaring `allowed-scopes` with no contract version
-  resolves `["repo"]` and will be filtered. Each exclusion prints a named line;
-  an emptied catalogue build is a hard error, an emptied self-host run is a
-  warning that does not stop the projection.
+  resolves `["repo"]` and will be filtered. Each exclusion prints a named line.
+  A catalogue whose packs are *all* repo-scoped writes an empty marketplace and
+  warns — that is a valid state, not a defect, and your build still succeeds.
 
 ## [0.30.1] — 2026-08-09
 
