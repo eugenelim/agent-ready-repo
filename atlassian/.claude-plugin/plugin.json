@@ -1,6 +1,6 @@
 {
   "name": "atlassian",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, and it queries the real API and answers.",
   "hooks": {
     "SessionStart": [

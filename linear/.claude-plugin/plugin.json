@@ -1,6 +1,6 @@
 {
   "name": "linear",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Pull a Linear issue into a product brief, and push the status back when it moves.",
   "hooks": {
     "SessionStart": [
