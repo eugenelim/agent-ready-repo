@@ -1662,14 +1662,17 @@ def _filter_for_primitive(
       that starts with ``/<src_dir>/<prim_name>/`` (directory primitive) or
       ``/<src_dir>/<prim_name>.`` (single-file primitive).
 
-    For example, skill ``work-loop`` under source dir ``skills`` matches:
-      - ``apm/core/.apm/skills/work-loop/SKILL.md``
-      - ``claude-plugins/core/skills/work-loop/SKILL.md``
+    For example, skill ``design-review`` under source dir ``skills`` matches:
+      - ``apm/architect/.apm/skills/design-review/SKILL.md``
+      - ``claude-plugins/architect/skills/design-review/SKILL.md``
 
     Hook ``pre-commit`` under source dir ``hooks`` matches:
-      - ``apm/core/.apm/hooks/pre-commit.sh``
-      - ``apm/core/.apm/hooks/pre-commit.py``
-      - ``claude-plugins/core/tools/hooks/pre-commit.sh``
+      - ``apm/architect/.apm/hooks/pre-commit.sh``
+      - ``apm/architect/.apm/hooks/pre-commit.py``
+      - ``claude-plugins/architect/tools/hooks/pre-commit.sh``
+
+    The ``claude-plugins/`` rows are shown for a user-capable pack: a
+    repo-only pack such as ``core`` has no projection on that route.
 
     This heuristic intersects naturally with the adapter projection because
     every adapter mirrors the source-dir tree structure from the pack root.

@@ -116,6 +116,18 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-catalogue-curation-guard.py",
     "tools/test-lint-experience-agnostic.py",
     "tools/lint-experience-agnostic.py",
+    # Claude-plugin route scope (docs/specs/claude-plugin-route-scope): each
+    # lint is preceded by the sibling that proves it can fail.
+    "tools/test-pack-scope.py",
+    "tools/test-lint-plugin-membership.py",
+    "tools/lint-plugin-membership.py",
+    "tools/test-lint-plugin-roster.py",
+    "tools/lint-plugin-roster.py",
+    "tools/test-publish-claude-plugins.py",
+    "tools/test-lint-plugin-route-docs.py",
+    "tools/lint-plugin-route-docs.py",
+    "tools/test-lint-site-scope-parity.py",
+    "tools/lint-site-scope-parity.py",
     "tools/test-lint-pack-descriptions.py",
     "tools/lint-pack-descriptions.py",
     "tools/test-lint-ci-parity.py",

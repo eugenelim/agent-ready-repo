@@ -600,13 +600,8 @@ both change.
   replace every file, which is exactly what the publish script does each run, and
   adopters resolve `ref: claude-plugins-dist` at the tip with no hash to compare
   against. The residual is tip *content* integrity plus the detection window.
-- A per-pack content hash in the marketplace entry — the compensating control
-  for the tip-content residual above: with directories removed at the same `ref`,
-  an adopter can neither prove what they installed nor re-fetch it. Deferred
-  rather than omitted because ADR-0072 constrains the entry schema to mirror an
-  upstream contract we do not own, so a non-upstream field is a spike;
-  `catalogue_tooling/package.py` already records a whole-marketplace
-  `marketplace_digest` as a partial mitigation.
+  Its compensating control — a per-pack content hash in the marketplace entry —
+  is tracked as `plugin-marketplace-content-hash`, not restated here.
 
 Everything else deferred here carries a backlog slug, and this section
 deliberately does **not** repeat it — `workspace.toml [backlog].open` filtered

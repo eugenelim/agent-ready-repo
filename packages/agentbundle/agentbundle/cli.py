@@ -436,9 +436,10 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help=(
             "Catalogue-publishing opt-in — emit the legacy "
-            "dist-tree shape (`<repo>/claude-plugins/<pack>/`, "
-            "`<repo>/apm/<pack>/`) at `--scope repo` instead of the "
-            "default per-IDE projection. Bound to `--scope repo`; "
+            "dist-tree shape (`<repo>/apm/<pack>/`, plus "
+            "`<repo>/claude-plugins/<pack>/` for packs whose "
+            "`allowed-scopes` admits `user`) at `--scope repo` instead of "
+            "the default per-IDE projection. Bound to `--scope repo`; "
             "mutually exclusive with `--adapter` at that scope."
         ),
     )
