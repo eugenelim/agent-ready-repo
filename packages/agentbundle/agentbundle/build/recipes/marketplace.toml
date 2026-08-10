@@ -1,5 +1,6 @@
-# Default recipe: aggregate every per-pack Claude plugin into one
-# marketplace.json at dist/claude-plugins/marketplace.json.
+# Default recipe: aggregate the per-pack Claude plugins that the route
+# published — every user-capable pack — into one marketplace.json at
+# dist/claude-plugins/marketplace.json.
 
 [recipe]
 name = "marketplace"

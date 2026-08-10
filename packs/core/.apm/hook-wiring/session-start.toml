@@ -6,7 +6,7 @@
 # writes the flat workspace path (`<workspace>/.claude/settings.local.json`,
 # gitignored). There is no `claude-plugins/core/` dist-tree copy: that route
 # publishes only packs whose `allowed-scopes` admits `user`, and this pack is
-# repo-scoped (`docs/specs/claude-plugin-route-scope`).
+# repo-scoped.
 #
 # Shape: Claude Code's documented nested SessionStart schema
 # (code.claude.com/docs/en/hooks). Outer entry has no `matcher`

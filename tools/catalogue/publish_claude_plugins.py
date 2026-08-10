@@ -81,6 +81,12 @@ def _assert_membership(published_dirs: set[str], marketplace_names: set[str]) ->
     **not** constrain an actor: the same push that widens a pack's scopes can
     edit this file, so publication remains gated by push access to `main`.
     """
+    # `- EXCLUDE` here is belt-and-braces: `main()` already skips EXCLUDE names
+    # before they reach `published_dirs`, so on the real path this subtraction
+    # changes nothing. Kept because this function is also called directly (by
+    # the sibling gate test), where the caller controls both sets. The
+    # subtraction that *is* load-bearing is the one on the root marketplace
+    # below, whose input this function does not construct.
     expected = _publishable_from_source() - EXCLUDE
     stale = published_dirs - expected
     if stale:

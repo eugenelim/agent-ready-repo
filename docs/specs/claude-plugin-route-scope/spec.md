@@ -346,10 +346,17 @@ no callers anywhere in the tree, so its parameter is unreachable today).
 
   - **catalogue** — non-zero exit, one summary line naming how many packs were
     dropped and why.
-  - **single-pack** — empty `plugins` list, success, summary line to **stderr**
-    so it does not become stdout noise in `diff`, `validate`, `init-state`,
-    `upgrade`, and `install --emit-install-routes`, all of which call
-    `render_pack`.
+  - **single-pack** — empty `plugins` list, success, and **silent**. The
+    per-pack skip line is gated on `aggregate_scope == "catalogue"`: a
+    single-pack render of a repo-only pack is the *flagship successful*
+    repo-scope path — `agentbundle install --pack core` — and printing a route
+    refusal there would read as an error on a command that worked. The five
+    `render_pack` consumers (`diff`, `validate`, `init-state`, `upgrade`,
+    `install --emit-install-routes`) all take this path. Catalogue builds are
+    the mode where a silent drop is the dangerous one, and there the line
+    always prints (AC1). Both halves are pinned — the catalogue line by
+    `test_every_exclusion_is_named_on_stderr`, the silence by
+    `test_a_single_pack_render_says_nothing_about_the_route`.
   - **adopter self-host** — `_aggregate_marketplace` runs on `run_self_host`
     *after* adapters and seeds are written, so a non-zero exit there leaves a
     half-projected tree. `contracts/pack.schema.json` requires only `[pack].name`
@@ -588,10 +595,6 @@ both change.
 - **Hook parity on this route** — `docs/specs/claude-plugin-hook-parity/`,
   blocked on a spike. No pack that qualifies for this route ships hooks today,
   so nothing regresses.
-- **A required reviewer on the publish job** (GitHub Environment). Repository
-  settings, not code. AC10 is the in-code half.
-- **An adopter self-host exemption** for the absent-`[pack.adapter-contract]`
-  case. AC12 makes the failure loud; making it fail-open is a separate decision.
 - Unrestricted ordinary pushes to `claude-plugins-dist`. Force-push and deletion
   denial protects **history**, not the tip — an ordinary fast-forward push can
   replace every file, which is exactly what the publish script does each run, and
@@ -604,3 +607,11 @@ both change.
   upstream contract we do not own, so a non-upstream field is a spike;
   `catalogue_tooling/package.py` already records a whole-marketplace
   `marketplace_digest` as a partial mitigation.
+
+Everything else deferred here carries a backlog slug, and this section
+deliberately does **not** repeat it — `workspace.toml [backlog].open` filtered
+on `source = "spec/claude-plugin-route-scope"` is the canonical register. Two
+prose copies of that list had already drifted apart by round nine; a third
+would drift too. The two items above stay because neither has a slug: the hook
+spike is a sibling spec, and the tip-content residual is an accepted risk
+rather than tracked work.

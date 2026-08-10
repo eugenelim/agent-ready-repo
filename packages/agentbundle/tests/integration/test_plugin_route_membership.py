@@ -216,6 +216,9 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
     stale = root / stale_rel
     stale.parent.mkdir(parents=True, exist_ok=True)
     stale.write_text("previously installed\n", encoding="utf-8")
+    # The version below is deliberately a *historical* one and must not be
+    # updated to track `packs/core/pack.toml` — the point is that this entry
+    # predates the change.
     state = root / ".agentbundle-state.toml"
     marker = "[pack.core.adapters.claude-code.files]"
     state.write_text(state.read_text(encoding="utf-8").replace(
@@ -501,3 +504,23 @@ def test_self_host_warns_loudly_when_the_filter_empties_the_marketplace(tmp_path
     # ...and continues: the file is still written, because self-host runs after
     # adapters and seeds and must not leave a half-projected tree.
     assert (out / ".claude-plugin" / "marketplace.json").exists()
+
+
+def test_a_single_pack_render_says_nothing_about_the_route(tmp_path) -> None:
+    """AC12's single-pack clause — the silence is deliberate, so pin it.
+
+    Deleting the `aggregate_scope == "catalogue"` gate would make
+    `agentbundle install --pack core` start printing a route refusal on a
+    command that succeeded, with nothing else going red.
+    """
+    result = subprocess.run(
+        [sys.executable, "-c",
+         "from pathlib import Path; from agentbundle.render import render_pack; "
+         f"render_pack(Path({str(REPO_ROOT / 'packs' / 'core')!r}))"],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "claude-plugins: skipping" not in result.stderr, (
+        "a single-pack render of a repo-only pack announced a route refusal — "
+        f"stderr was:\n{result.stderr}"
+    )

@@ -1,5 +1,5 @@
 # Self-host recipe: compose a self-host marketplace listing from each
-# pack's .claude-plugin/plugin.json (distinct from the dist/-aggregating
+# user-capable pack's .claude-plugin/plugin.json (distinct from the dist/-aggregating
 # `marketplace` recipe).
 
 [recipe]

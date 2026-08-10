@@ -49,7 +49,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `governance-extras`, `iac-terraform`, `monorepo-extras`,
   `release-engineering`, `user-guide-diataxis` — are no longer offered there.
   Install them with `agentbundle install` instead; that is the route they were
-  always built for.
+  always built for. `catalogue-curation` makes seven: it was never published
+  to the plugin branch, but it was still listed at the repository-root
+  marketplace that `claude plugin marketplace add` resolves — a listing that
+  could only ever fail to fetch. That entry is gone too.
 
   Already installed one as a plugin? Run
   `claude plugin uninstall <pack>@agent-ready-repo`, then install at repo scope

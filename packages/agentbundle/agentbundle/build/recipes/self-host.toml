@@ -7,7 +7,7 @@
 [recipe]
 name = "self-host"
 type = "composite"
-description = "Overlay every pack's Claude Code projection onto this repo; compose AGENTS.md from packs/core/seeds and aggregate .claude-plugin/marketplace.json across packs."
+description = "Overlay every pack's Claude Code projection onto this repo; compose AGENTS.md from packs/core/seeds and aggregate .claude-plugin/marketplace.json across user-capable packs."
 
 [recipe.adapters]
 # Authoritative source for `SELF_HOST_ADAPTERS` — `self_host.py` reads this list.

@@ -126,10 +126,17 @@ def main() -> int:
         root = Path(tmp)
         _source_pack(root, "userpack", user=True)
         _source_pack(root, "catalogue-curation", user=True)
-        _root_marketplace(root, ["userpack"])
+        # The root marketplace *file* must carry `catalogue-curation`: it is the
+        # only input the load-bearing `- EXCLUDE` subtracts from, and
+        # `_assert_membership` reads it from disk rather than taking it as an
+        # argument. Without it the assertion passed with the exemption deleted,
+        # which is the one thing it exists to catch.
+        _root_marketplace(root, ["userpack", "catalogue-curation"])
         # EXCLUDE is applied first and is exempt: catalogue-curation is
         # operator-only, a different reason from being repo-only, and folding
-        # the two would re-publish it if its scopes were ever widened.
+        # the two would re-publish it if its scopes were ever widened. The
+        # branch legitimately does not carry it, so without the exemption this
+        # reads as "the root advertises a pack the branch lacks".
         _check("the operator-only exclusion is exempt from the refusals",
                _refuses(root, ["userpack"], ["userpack"]) is None,
                "EXCLUDE must be applied before the membership assertion")

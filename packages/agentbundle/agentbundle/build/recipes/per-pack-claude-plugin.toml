@@ -1,4 +1,6 @@
-# Default recipe: project each pack as a Claude Code plugin into dist/claude-plugins/<pack>/.
+# Default recipe: project each user-capable pack as a Claude Code plugin into
+# dist/claude-plugins/<pack>/. A plugin's code lands in the adopter's global
+# cache, so a pack whose allowed-scopes omits `user` is skipped on this route.
 
 [recipe]
 name = "per-pack-claude-plugin"
