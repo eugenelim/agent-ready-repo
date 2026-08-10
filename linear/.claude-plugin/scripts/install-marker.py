@@ -1,9 +1,13 @@
 """Canonical stdlib-only install-marker writer for the Claude-plugins and APM install routes.
 
 This script is invoked by a ``SessionStart`` hook derived by ``agentbundle build``
-into every pack's projected output:
-  - ``dist/claude-plugins/<pack>/.claude-plugin/plugin.json``  — claude-plugins route
-  - ``dist/apm/<pack>/.apm/hooks/install-marker.json``         — APM route
+into each pack's projected output:
+  - ``dist/claude-plugins/<pack>/.claude-plugin/plugin.json``  — claude-plugins
+    route, for user-capable packs only (a plugin's code lands in the adopter's
+    global cache, so a pack whose ``allowed-scopes`` omits ``user`` is not
+    projected onto this route at all)
+  - ``dist/apm/<pack>/.apm/hooks/install-marker.json``         — APM route,
+    every pack
 
 It detects first-install-or-update and writes a ``[[packs-installed]]`` entry
 to the scope-correct ``.adapt-install-marker.toml`` file so the existing core

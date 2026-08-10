@@ -115,32 +115,6 @@
         "email": "eugenelim@users.noreply.github.com",
         "name": "eugenelim"
       },
-      "category": "governance",
-      "description": "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look.",
-      "displayName": "Core",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "keywords": [
-        "work-loop",
-        "spec-driven",
-        "reviewers",
-        "agents"
-      ],
-      "license": "Apache-2.0 OR MIT",
-      "name": "core",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "source": {
-        "path": "core",
-        "ref": "claude-plugins-dist",
-        "source": "git-subdir",
-        "url": "https://github.com/eugenelim/agent-ready-repo.git"
-      },
-      "version": "2.5.2"
-    },
-    {
-      "author": {
-        "email": "eugenelim@users.noreply.github.com",
-        "name": "eugenelim"
-      },
       "category": "credentials",
       "description": "Your credentials stay out of the repo and out of the agent's context. credbroker resolves them in-process, sso-broker handles the browser cookie dance, and an LLM-cooperative credential-setup skill walks you through the first time.",
       "displayName": "Credential Brokers",
@@ -300,58 +274,6 @@
         "email": "eugenelim@users.noreply.github.com",
         "name": "eugenelim"
       },
-      "category": "governance",
-      "description": "Write the RFC, record the ADR, and keep track of which ones are still open. Templates come with it, so nobody argues about format.",
-      "displayName": "Governance Extras",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "keywords": [
-        "rfc",
-        "adr",
-        "conventions"
-      ],
-      "license": "Apache-2.0 OR MIT",
-      "name": "governance-extras",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "source": {
-        "path": "governance-extras",
-        "ref": "claude-plugins-dist",
-        "source": "git-subdir",
-        "url": "https://github.com/eugenelim/agent-ready-repo.git"
-      },
-      "version": "0.9.6"
-    },
-    {
-      "author": {
-        "email": "eugenelim@users.noreply.github.com",
-        "name": "eugenelim"
-      },
-      "category": "infrastructure",
-      "description": "Describe the infrastructure you want; get Terraform you would be willing to review. Cloud-agnostic, gated on a written decision, and it stops at the plan — applying is still yours.",
-      "displayName": "IaC (Terraform)",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "keywords": [
-        "terraform",
-        "opentofu",
-        "iac",
-        "policy-as-code",
-        "oidc"
-      ],
-      "license": "Apache-2.0 OR MIT",
-      "name": "iac-terraform",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "source": {
-        "path": "iac-terraform",
-        "ref": "claude-plugins-dist",
-        "source": "git-subdir",
-        "url": "https://github.com/eugenelim/agent-ready-repo.git"
-      },
-      "version": "0.1.6"
-    },
-    {
-      "author": {
-        "email": "eugenelim@users.noreply.github.com",
-        "name": "eugenelim"
-      },
       "category": "integrations",
       "description": "Pull a Linear issue into a product brief, and push the status back when it moves.",
       "displayName": "Linear",
@@ -372,31 +294,6 @@
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.2.0"
-    },
-    {
-      "author": {
-        "email": "eugenelim@users.noreply.github.com",
-        "name": "eugenelim"
-      },
-      "category": "devops",
-      "description": "Add a package to the monorepo without hand-wiring the build.",
-      "displayName": "Monorepo Extras",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "keywords": [
-        "monorepo",
-        "scaffolding",
-        "packages"
-      ],
-      "license": "Apache-2.0 OR MIT",
-      "name": "monorepo-extras",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "source": {
-        "path": "monorepo-extras",
-        "ref": "claude-plugins-dist",
-        "source": "git-subdir",
-        "url": "https://github.com/eugenelim/agent-ready-repo.git"
-      },
-      "version": "0.1.6"
     },
     {
       "author": {
@@ -477,59 +374,6 @@
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
       "version": "0.2.3"
-    },
-    {
-      "author": {
-        "email": "eugenelim@users.noreply.github.com",
-        "name": "eugenelim"
-      },
-      "category": "devops",
-      "description": "Ship it the way production will see it. Deploy to a throwaway environment, run the tests, read the telemetry, and go round again until it holds. Then it stops and asks, because the next step is the one you cannot undo.",
-      "displayName": "Release Engineering",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "keywords": [
-        "release",
-        "deploy",
-        "sre",
-        "ephemeral-environments",
-        "canary"
-      ],
-      "license": "Apache-2.0 OR MIT",
-      "name": "release-engineering",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "source": {
-        "path": "release-engineering",
-        "ref": "claude-plugins-dist",
-        "source": "git-subdir",
-        "url": "https://github.com/eugenelim/agent-ready-repo.git"
-      },
-      "version": "0.1.9"
-    },
-    {
-      "author": {
-        "email": "eugenelim@users.noreply.github.com",
-        "name": "eugenelim"
-      },
-      "category": "documentation",
-      "description": "Deprecated. Install product-documentation instead; this exists so older installs keep working.",
-      "displayName": "User Guide (Diátaxis) — Deprecated",
-      "homepage": "https://github.com/eugenelim/agent-ready-repo",
-      "keywords": [
-        "diataxis",
-        "guides",
-        "documentation",
-        "deprecated"
-      ],
-      "license": "Apache-2.0 OR MIT",
-      "name": "user-guide-diataxis",
-      "repository": "https://github.com/eugenelim/agent-ready-repo",
-      "source": {
-        "path": "user-guide-diataxis",
-        "ref": "claude-plugins-dist",
-        "source": "git-subdir",
-        "url": "https://github.com/eugenelim/agent-ready-repo.git"
-      },
-      "version": "0.3.0"
     }
   ]
 }
