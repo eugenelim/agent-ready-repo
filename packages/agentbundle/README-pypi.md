@@ -247,7 +247,10 @@ ignore them there; the separation is structural, not incidental.
 `keywords` once; the build projects the cleanly-mappable subset — plus the
 pack's `README.md` — into each distribution route's manifest (the `plugin.json`
 / `marketplace.json` entry), so the catalogue describes each pack richly rather
-than with a single sentence. A marketplace entry's `source` is a `git-subdir`
+than with a single sentence. The Claude-plugin route carries only packs whose
+`[pack.install] allowed-scopes` admits `user`: a plugin's code lands in the
+adopter's global cache, so a repo-only pack gets no `marketplace.json` entry
+and is reached with `agentbundle install` instead. A marketplace entry's `source` is a `git-subdir`
 object (`url`, `path`, and one of `ref`/`sha`) pointing at the pack's directory
 on the published distribution branch, and every entry is schema-validated at
 build time against `marketplace-entry.schema.json`. Extra fields stay in `pack.toml`; the projection
