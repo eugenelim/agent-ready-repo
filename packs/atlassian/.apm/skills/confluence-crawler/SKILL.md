@@ -56,9 +56,10 @@ Populate any tier by running `credential-setup` skill.
 - **Never** put the token on the command line. The primitive
   refuses flags like `--token` / `--api-token` / `--bearer` /
   `--pat` / `--password` and exits — do not work around it.
-- If `--check` reports missing or invalid creds, tell the user to run
-  `credential-setup` skill themselves.
-  It's interactive — do not run it for them.
+- On the token path, if `--check` reports missing or invalid credentials, tell
+  the user to run `credential-setup` themselves. It is interactive — do not run
+  it for them. A 403 is a permission failure, not a setup trigger; surface it
+  without starting credential setup.
 - **`CONFLUENCE_BASE_URL` is user-configured.** Before invoking the
   crawler, verify the configured URL resolves to a known Confluence
   host (e.g. `*.atlassian.net` for Cloud, the organisation's known
@@ -82,10 +83,13 @@ the token (`creds`) path above. On the SSO-cookie path:
   cookie values.
 - **Never** put a session cookie on the command line. The skill attaches cookies
   to its HTTP client internally and sends no `Authorization` header on this path.
-- If the SSO session is missing or expired, tell the user to run
-  `python scripts/setup_sso.py` (which drives `sso-broker register`) themselves —
-  it opens a browser for interactive sign-in, so do not run any setup helper for
-  them.
+- Run `--check` first and allow its single headless recovery attempt. The
+  automatic attempt shows no browser window and obtains its sign-in destination
+  only from CredBroker's registered profile. It never uses `login_url` from
+  `sso-config.toml` as an automatic destination.
+- Request manual setup with `python scripts/setup_sso.py` only when `--check`
+  says automatic recovery refused or failed. That helper opens a browser for
+  interactive sign-in, so do not run any setup helper for them.
 
 ### Step 1: Verify the environment
 
@@ -102,7 +106,12 @@ python scripts/crawl_space.py --check
 ```
 
 - Exit code 0 → authenticated, proceed.
-- Exit code 2 → the user must act (credentials missing/invalid/expired). Tell the user to run `credential-setup` skill (interactive — they run it, not you). Stop here.
+- Exit code 2 → read the bounded error. On the token path, missing or invalid
+  credentials require user-run `credential-setup`. On the SSO path, request
+  user-run `python scripts/setup_sso.py` only when the message says the single
+  headless recovery refused or failed. A 403, malformed configuration,
+  confinement failure, or dependency problem is terminal for this attempt and
+  must be surfaced as written; do not start setup for it. Stop here.
 - Any other non-zero → see *When a request fails*.
 
 ### When a request fails
@@ -114,7 +123,7 @@ specific cause, then act on the band:
 |---|---|---|
 | 0 | success | proceed |
 | 1 | functional error — bad/missing args, server 5xx, transport, **a partial crawl (some pages failed)**, keychain hard-fail, unexpected | surface the message; for a partial crawl the per-page failures are in the log — report them, don't loop |
-| 2 | user must act — credentials missing/invalid/expired, 401/403 | tell the user to run `credential-setup` themselves (do not run it for them), then re-run `--check` |
+| 2 | user must act — token credentials, SSO recovery refusal/failure, permission/configuration, or dependency problem | follow the bounded message: request the matching manual setup only for missing token credentials or an explicit SSO recovery refusal/failure; surface 403/configuration/confinement/dependency errors without setup, then re-run `--check` only after the user resolves the named cause |
 | 130 | interrupted (Ctrl-C) | the run was cancelled; nothing to fix |
 
 `Tier2HardFailError` (OS keyring unavailable) or an unprojected shim surface as

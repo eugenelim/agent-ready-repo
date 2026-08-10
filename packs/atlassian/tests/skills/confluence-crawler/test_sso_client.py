@@ -68,7 +68,7 @@ def test_no_authorization_header_and_confined_cookies(broker_jar, monkeypatch):
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(request)
-        return httpx.Response(200, json={"type": "known"})
+        return httpx.Response(200, json={"username": "Example User"})
 
     async def go():
         async with _cookie_client(monkeypatch, handler) as client:
@@ -147,7 +147,7 @@ def test_jar_not_rewritten(broker_jar, monkeypatch):
     before = broker_jar.read_bytes()
 
     def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"type": "known"})
+        return httpx.Response(200, json={"username": "Example User"})
 
     async def go():
         async with _cookie_client(monkeypatch, handler) as client:

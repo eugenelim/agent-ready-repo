@@ -518,12 +518,10 @@ new concurrency module must be collected by that step rather than skipped.
   literal `Engine-Change-RFC:` in a commit message or
   `tools/lint-catalogue-curation-guard.py --base origin/main` fails CI, even
   for whitespace-only changes (source: `packages/AGENTS.local.md:56`)
-- Process: `sso-materialisation-ordering` stays in `workspace.toml
-  [backlog].open` even though this spec closes it, because the frozen
-  `jira-check-sso-auto-login` spec defers against that slug at `spec.md:368` and
-  `lint-spec-status.py` invariant (iv) requires it to resolve. The register has
-  no closed-item section; the entry is annotated instead (source:
-  `docs/specs/jira-check-sso-auto-login/spec.md:368`; `workspace.toml:544`)
+- Process: the historical `jira-check-sso-auto-login` deferral now points to
+  this shipped spec, so the absorbed `sso-materialisation-ordering` backlog
+  entry can be removed without violating `lint-spec-status.py` invariant (iv)
+  (source: `docs/specs/jira-check-sso-auto-login/spec.md:368`)
 - Product: this spec absorbs the `sso-materialisation-ordering` work;
   `sso-broker-register-concurrency` stays separate because it guards Chromium's
   user-data dir on a 540 s timescale, and one lock spanning both would starve

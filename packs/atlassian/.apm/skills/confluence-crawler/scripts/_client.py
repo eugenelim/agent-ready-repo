@@ -11,6 +11,7 @@ Auth selection:
 
 Override auto-detection by setting CONFLUENCE_FLAVOR=cloud|server.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -19,6 +20,7 @@ import logging
 import os
 import secrets
 import ssl
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, AsyncIterator
 from urllib.parse import urlparse
@@ -48,6 +50,50 @@ class ConfluenceError(Exception):
 
 class AuthError(ConfluenceError):
     pass
+
+
+class SsoSessionUnavailable(AuthError):
+    """No usable SSO session, and a bounded recapture could repair it.
+
+    This is the only signal the ``--check`` recovery path handles. A 403,
+    malformed configuration, confinement failure, missing broker, timeout, or
+    other generic authentication error remains a plain :class:`AuthError`.
+    """
+
+
+_IDENTITY_FIELDS = (
+    "username",
+    "displayName",
+    "publicName",
+    "email",
+    "accountId",
+)
+
+
+def identity_of(info: object) -> str | None:
+    """Return the first non-empty string identity field, if one exists."""
+    if not isinstance(info, Mapping):
+        return None
+    for field in _IDENTITY_FIELDS:
+        value = info.get(field)
+        if isinstance(value, str) and value:
+            return value
+    return None
+
+
+def _validate_jar_shape(raw_cookies: object) -> None:
+    """Reject materialized cookie records before filtering or attachment."""
+    if not isinstance(raw_cookies, list):
+        raise ValueError("cookie jar must be a list")
+    for record in raw_cookies:
+        if not isinstance(record, Mapping):
+            raise ValueError("cookie jar records must be mappings")
+        for field in ("name", "domain", "value"):
+            if not isinstance(record.get(field), str):
+                raise ValueError(f"cookie jar record {field} must be a string")
+        path = record.get("path")
+        if path is not None and not isinstance(path, str):
+            raise ValueError("cookie jar record path must be null or a string")
 
 
 @dataclass(frozen=True)
@@ -187,13 +233,24 @@ class ConfluenceClient:
         try:
             credbroker.require_host_in_cookie_domains(host, sso_config.cookie_domains)
             jar_path = credbroker.load_sso_cookies(sso_config.profile)
+        except credbroker.SsoSessionUnavailableError as exc:
+            raise SsoSessionUnavailable(str(exc)) from exc
         except credbroker.SsoError as exc:
             raise AuthError(str(exc)) from exc
 
-        raw_cookies = json.loads(jar_path.read_text(encoding="utf-8"))
-        confined = credbroker.filter_jar_to_domains(
-            raw_cookies, sso_config.cookie_domains
-        )
+        try:
+            raw_cookies = json.loads(jar_path.read_text(encoding="utf-8"))
+            _validate_jar_shape(raw_cookies)
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            raise SsoSessionUnavailable(
+                f"the stored SSO cookie jar for profile {sso_config.profile} "
+                "is unreadable or malformed; re-capture the session"
+            ) from exc
+
+        try:
+            confined = credbroker.filter_jar_to_domains(raw_cookies, sso_config.cookie_domains)
+        except credbroker.SsoError as exc:
+            raise AuthError(str(exc)) from exc
 
         self = cls.__new__(cls)
         self._base = base_url.rstrip("/")
@@ -270,7 +327,7 @@ class ConfluenceClient:
                         # Stop using the known-stale jar; remediation names the
                         # profile, never the cookie bytes.
                         self._client.cookies.clear()
-                        raise AuthError(
+                        raise SsoSessionUnavailable(
                             f"401 Unauthorized — SSO session expired; run "
                             f"'sso-broker register {self._profile}' to re-authenticate"
                         )
@@ -281,7 +338,7 @@ class ConfluenceClient:
                 if self._auth_mode == "sso-cookie" and 300 <= resp.status_code < 400:
                     # follow_redirects disabled on the cookie path: surface a
                     # 30x, never follow it (which would re-attach the session cookie).
-                    raise AuthError(
+                    raise SsoSessionUnavailable(
                         f"SSO session may have expired (HTTP {resp.status_code} "
                         f"redirect, not followed); run 'sso-broker register "
                         f"{self._profile}' to re-authenticate"
@@ -313,12 +370,26 @@ class ConfluenceClient:
     def _backoff(attempt: int) -> float:
         # SystemRandom (rather than random) for the jitter so security
         # scanners don't flag the PRNG; value is not security-sensitive.
-        return min(30.0, (2 ** attempt) * 0.5 + secrets.SystemRandom().uniform(0, 0.5))
+        return min(30.0, (2**attempt) * 0.5 + secrets.SystemRandom().uniform(0, 0.5))
 
     # --- High-level operations ---
 
     async def whoami(self) -> dict:
         resp = await self._request("GET", "/rest/api/user/current")
+        if self._auth_mode == "sso-cookie":
+            try:
+                data = resp.json()
+            except ValueError as exc:
+                raise SsoSessionUnavailable(
+                    f"the SSO session for profile {self._profile} returned a "
+                    "non-JSON body; the session has expired"
+                ) from exc
+            if identity_of(data) is None:
+                raise SsoSessionUnavailable(
+                    f"the SSO session for profile {self._profile} returned no "
+                    "identity; the session has expired"
+                )
+            return data
         return resp.json()
 
     async def get_space_homepage_id(self, space_key: str) -> str | None:
@@ -433,9 +504,7 @@ class ConfluenceClient:
         dest.parent.mkdir(parents=True, exist_ok=True)
         async with self._sem, self._client.stream("GET", download_path) as resp:
             if resp.status_code >= 400:
-                raise ConfluenceError(
-                    f"HTTP {resp.status_code} downloading {download_path}"
-                )
+                raise ConfluenceError(f"HTTP {resp.status_code} downloading {download_path}")
             tmp = dest.with_suffix(dest.suffix + ".part")
             with tmp.open("wb") as fh:
                 async for chunk in resp.aiter_bytes():
@@ -464,9 +533,7 @@ def load_credentials() -> Credentials:
     )
 
     try:
-        creds = _resolver_load(
-            "confluence", required_keys=["BASE_URL", "API_TOKEN"]
-        )
+        creds = _resolver_load("confluence", required_keys=["BASE_URL", "API_TOKEN"])
     except CredentialsMissingError as exc:
         raise AuthError(str(exc)) from exc
 

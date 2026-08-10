@@ -363,9 +363,10 @@ fix, so the pack bumps and the change is named in the changelog.
       hole. That is a concurrency protocol needing its own design and its own
       tests, not an acceptance criterion bolted onto a jar-materialisation fix.
       The Risks section already records concurrent `check` behaviour as
-      undefined; materialisation ordering is explicitly part of that deferral, so
-      this AC claims only what it can defend.
-      *(deferred: sso-materialisation-ordering)*
+      undefined; materialisation ordering was explicitly outside this AC's
+      original claim. It was subsequently resolved by
+      [`sso-store-transition-serialization`](../sso-store-transition-serialization/spec.md),
+      which serialises load plus materialisation under the per-profile lock.
 
       A test asserts two sequential `get-cookies` calls straddling a store change
       return different bytes, under both a keychain-backed and a
@@ -1148,12 +1149,11 @@ fix, so the pack bumps and the change is named in the changelog.
       the refresh call. Wired into `.github/workflows/build-check.yml` and
       `self_host_windows.py`.
 
-- [ ] **AC28 (existing suites green).** *(deferred: credbroker-050-requirements-pin)* `test_sso_config.py`,
+- [x] **AC28 (existing suites green).** `test_sso_config.py`,
       `test_sso_client.py`, `test_setup_sso.py`, `test_auth_selector.py` and
       `test_exit_codes.py` pass in **both** skills' `scripts/`;
       `python tools/test-lint-sso-config.py` passes; `pytest packages/credbroker`
-      passes; `make build-check` passes **with SAST enabled, once `credbroker`
-      0.5.0 is published** (see the precondition below) — the change adds
+      passes; `make build-check` passes **with SAST enabled** — the change adds
       subprocess spawning on the credential path, which is what the SAST leg
       exists to inspect.
 
@@ -1161,22 +1161,11 @@ fix, so the pack bumps and the change is named in the changelog.
       not anticipated here.** The SCA leg runs
       `pip-audit -r <requirements.txt>` over every skill's requirements file, and
       `pip-audit` resolves each pin **against PyPI**. AC30's
-      `credbroker>=0.5.0` therefore cannot resolve until `credbroker` 0.5.0 is
-      published, and `make build-check` fails with
-      `Could not find a version that satisfies the requirement credbroker>=0.5.0`
-      on both `jira` and `confluence-crawler`. Verified: with the pin at the
-      published `0.4.1` the whole SAST leg — bandit, every `pip-audit`, semgrep
-      — is green, so the pin is the only outstanding item.
-
-      **This is a merge-ordering decision, not a code defect**, and it is the
-      one thing in this spec that cannot be closed from inside the PR. Either
-      `credbroker` 0.5.0 is published before merge (the plan's *Rollout* already
-      commits to releasing it), or the pin lands in a follow-up and the runtime
-      feature-detect carries the floor alone until then — AC30's guard already
-      exits 2 with the upgrade command, so an adopter on an old pin is refused
-      with a remediation either way. Recorded rather than silently worked
-      around: carving these two files out of `pip-audit` would weaken the SCA
-      gate on precisely the credential path this change hardens.
+      `credbroker>=0.5.0` could not resolve until `credbroker` 0.5.0 was
+      published. That originally produced `Could not find a version that
+      satisfies the requirement credbroker>=0.5.0` for both consumers.
+      CredBroker is now at 0.6.0, both consuming skills retain the `>=0.5.0`
+      floor, and the full build gate passes without weakening the SCA input.
 
 - [x] **AC29 (version bump lands last).** After code, tests and docs are settled:
       `packages/credbroker` `[project].version` → `0.5.0` (**minor** — new public
@@ -1255,12 +1244,12 @@ Every entry was established by reading source or executing a probe on
 
 ## Risks
 
-- **Concurrent `check` invocations are undefined.** Two processes collide on
-  Chromium's singleton lock in the shared `browser-state/<profile>` dir, and
-  materialisation ordering is likewise unspecified (`sso-materialisation-ordering`);
-  concurrent processes can race the jar write. `jira-defect-flow`'s evals mandate a `check` pre-flight, so it
-  is plausible. AC17's bound is per-process; AC3's tree kill removes the
-  orphan-lock case but not the race. Deferred with a slug.
+- **Concurrent browser launches remain undefined.** Two processes can still
+  collide on Chromium's singleton lock in the shared
+  `browser-state/<profile>` directory. Jar materialisation ordering is no
+  longer part of that risk: `sso-store-transition-serialization` serialises
+  load plus materialisation under the per-profile store-transition lock.
+  `sso-broker-register-concurrency` retains the distinct browser-launch work.
 - **The Windows tree kill is reasoned, not executed**, until AC26's parity run.
   If disproved, the fallback leaves the Chromium grandchild alive.
 - **The persistent browser profile becomes an agent-triggered credential.**
@@ -1289,8 +1278,9 @@ Every entry was established by reading source or executing a probe on
   from stdlib-only scripts. Needs an RFC-0074 addendum plus an ADR extending
   ADR-0059, and must carry AC25's destination-pinning constraint.
   *(deferred: pack-config-catalogue-sso-defaults)*
-- Auto-recovery for `confluence-crawler`'s CLI — now a small change, since the
-  operation lives in `credbroker`. *(deferred: confluence-crawler-check-auto-login)*
+- Auto-recovery for `confluence-crawler`'s CLI was delivered by
+  [`confluence-crawler-check-auto-login`](../confluence-crawler-check-auto-login/spec.md),
+  reusing the operation that lives in `credbroker`.
 - Serialising concurrent *browser launches* — two recaptures collide on
   Chromium's singleton lock in the shared `browser-state/<profile>` dir. Scoped to
   the browser launch only; it makes no claim about materialisation.
