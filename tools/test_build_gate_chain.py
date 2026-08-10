@@ -128,6 +128,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-plugin-route-docs.py",
     "tools/test-lint-site-scope-parity.py",
     "tools/lint-site-scope-parity.py",
+    "tools/test-check-site-plugin-offers.py",
     "tools/test-lint-pack-descriptions.py",
     "tools/lint-pack-descriptions.py",
     "tools/test-lint-ci-parity.py",

@@ -465,7 +465,7 @@ def _skip_reason(pack_path: Path) -> str:
     )
 
 
-def _empty_marketplace_warning(excluded: set[str]) -> str:
+def _empty_marketplace_warning(excluded: list[str]) -> str:
     """What to say when the filter leaves a marketplace with no entries.
 
     Warn-and-continue, matching `self_host.py`'s sibling writer. This was a
@@ -909,6 +909,9 @@ def _run_aggregate(
     # same self-contradiction `_skip_reason` exists to prevent at the per-pack
     # site.
     stale: list[str] = []
+    # `aggregate_scope` is read at the emptiness warning below, and by
+    # `_run_per_pack` for the skip line. Both are disclosure decisions the
+    # caller owns.
     if input_dir.exists():
         for plugin_dir in sorted(input_dir.iterdir()):
             if plugin_dir.name == "marketplace.json" or not plugin_dir.is_dir():
@@ -1006,7 +1009,12 @@ def _run_aggregate(
             f"`clean` dependency): {', '.join(sorted(stale))}",
             file=sys.stderr,
         )
-    if source_by_name and not entries:
+    # Gated on the caller's mode, exactly like the per-pack skip line: a
+    # single-pack render of a repo-only pack is a *successful* `agentbundle
+    # install --pack core`, and announcing an empty marketplace there reads as
+    # an error on a command that worked. Round thirteen added this warning
+    # ungated and regressed AC12's single-pack silence.
+    if aggregate_scope == "catalogue" and source_by_name and not entries:
         print(_empty_marketplace_warning(excluded + stale), file=sys.stderr)
     output_path.write_text(
         json.dumps(payload, indent=2, sort_keys=True) + "\n",

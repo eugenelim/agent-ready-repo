@@ -359,8 +359,14 @@ no callers anywhere in the tree, so its parameter is unreachable today).
     `agentbundle catalogue build` is a regression in a published command. The
     catalogue-tooling smoke gate's own fixture is that exact shape, and it
     went red. Both writers now warn and continue.
-  - **single-pack** — empty `plugins` list, success, and **silent**. The
-    per-pack skip line is gated on `aggregate_scope == "catalogue"`: a
+  - **single-pack** — empty `plugins` list, success, and **silent**: not just
+    the per-pack skip line but *nothing at all on stderr*. Round thirteen
+    added an emptiness warning that was not scope-gated, so `agentbundle
+    render` and `init-state` both started announcing the route on a
+    successful run; the pin below asserts the whole stream is empty, because
+    the substring form it had could not see a second line arrive. Both the
+    skip line and the emptiness warning are gated on
+    `aggregate_scope == "catalogue"`: a
     single-pack render of a repo-only pack is the *flagship successful*
     repo-scope path — `agentbundle install --pack core` — and printing a route
     refusal there would read as an error on a command that worked. The five
@@ -552,8 +558,9 @@ no callers anywhere in the tree, so its parameter is unreachable today).
     shared marketplace down to one entry — a silent truncation of an artifact
     other packs share.
   - `aggregate_scope` outside `AGGREGATE_SCOPES` raises, validated at
-    `run_recipe`'s boundary rather than only inside `aggregate_exit_code`, which
-    per-pack recipes never reach.
+    `run_recipe`'s boundary rather than only where the value is read — the
+    reads are in `_run_per_pack` and the aggregate's emptiness warning, and a
+    per-pack recipe reaches neither, so a typo there would pass silently.
 
 ## Assumptions
 

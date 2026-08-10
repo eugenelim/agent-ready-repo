@@ -255,6 +255,14 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-site-scope-parity",
             "tools", "lint-site-scope-parity.py",
         ),
+        # The built-output gate itself needs a real site build, so it runs in
+        # pages.yml. Its *self-test* needs nothing, so it runs here and blocks:
+        # a broken assertion in a non-blocking gate is the quietest failure
+        # this spec can produce.
+        _script_step(
+            "test-check-site-plugin-offers",
+            "tools", "test-check-site-plugin-offers.py",
+        ),
         # Drift backstop only — the pack-description quality bar is
         # guides/_shared/reference/catalogue-authoring-standards.md § 2.
         _script_step(

@@ -452,10 +452,12 @@ open = [
   # the fixture heredoc and runs the same command, chained into `make ci`.
   {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope"},
   # render_packs_to_dir hard-codes aggregate_scope="catalogue", so an adopter
-  # rendering a repo-only subset through that public helper gets a ValueError
-  # where the single-pack sibling returns an empty plugins list. No in-repo
-  # caller, so nothing catches the asymmetry. Fix: take the scope as a
-  # parameter, matching run_recipe.
+  # rendering a repo-only subset through that public helper gets the
+  # catalogue's exclusion lines on stderr where the single-pack sibling is
+  # silent. (It raised a ValueError until round thirteen made both writers
+  # warn-and-continue; the surviving asymmetry is disclosure only.) No in-repo
+  # caller, so nothing catches it. Fix: take the scope as a parameter,
+  # matching run_recipe.
   {slug = "plugin-render-packs-scope-parameter", source = "spec/claude-plugin-route-scope"},
   # flaky-sso-store-concurrency-on-windows —
   # packages/credbroker/tests/unit/test_sso_store_concurrency.py::

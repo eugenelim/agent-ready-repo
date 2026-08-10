@@ -16,6 +16,10 @@ on:
       # route, so the site must rebuild and re-assert on them too.
       - 'packs/**/pack.toml'
       - 'tools/build-site.py'
+      # The offer assertion and the scope mirror it reads. Without these an
+      # edit that disables the check triggers no run at all.
+      - 'tools/check-site-plugin-offers.py'
+      - 'tools/pack_scope.py'
       - '.github/workflows/pages.yml'
   pull_request:
     branches: [main]
@@ -32,6 +36,10 @@ on:
       # route, so the site must rebuild and re-assert on them too.
       - 'packs/**/pack.toml'
       - 'tools/build-site.py'
+      # The offer assertion and the scope mirror it reads. Without these an
+      # edit that disables the check triggers no run at all.
+      - 'tools/check-site-plugin-offers.py'
+      - 'tools/pack_scope.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 

@@ -107,9 +107,9 @@ integration module. Covers: the predicate over an `allowed-scopes` ×
 equality both directions on all three surfaces**, built into `tmp_path`; the
 seven absences by name with the tripwire comment; the **envelope**
 (`name`/`owner`/`description`) intact; the **property test** over the three resolvers — user-membership
-*implication*, not subset (subset is disproved; see the criterion); all three **emptiness** modes — catalogue exits non-zero only when a
-non-empty set was filtered empty, single-pack succeeds with an empty `plugins`
-list, self-host warns and continues; the
+*implication*, not subset (subset is disproved; see the criterion); all three **emptiness** modes (see AC12 — every one of them
+warns and continues; the catalogue names each exclusion and says so when the
+filter leaves it empty, single-pack is silent, self-host warns inline); the
 publish script's predicate re-derivation and its entry-vs-directory equality;
 Gate 1's narrowed `expected_packs`.
 

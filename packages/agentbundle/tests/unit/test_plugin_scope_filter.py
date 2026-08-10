@@ -103,13 +103,20 @@ def test_predicate_exists_and_keys_on_the_derived_set() -> None:
 
 def test_aggregate_scope_is_required_with_no_default() -> None:
     """AC12's discriminator must be explicit — a default silently misclassifies
-    `render_packs_to_dir` and `cmd_build --recipe`."""
+    `render_packs_to_dir` and `cmd_build --recipe`.
+
+    Signature-only, and deliberately paired with the behavioural pins below:
+    `inspect.signature` cannot notice the *branches* that read the parameter
+    being deleted, which is what actually turns disclosure off.
+    """
     import inspect
 
-    from agentbundle.build.main import _run_aggregate
+    from agentbundle.build.main import _run_aggregate, _run_per_pack, run_recipe
 
-    param = inspect.signature(_run_aggregate).parameters["aggregate_scope"]
-    assert param.default is inspect.Parameter.empty
+    for fn in (run_recipe, _run_aggregate, _run_per_pack):
+        param = inspect.signature(fn).parameters["aggregate_scope"]
+        assert param.default is inspect.Parameter.empty, fn.__name__
+        assert param.kind is inspect.Parameter.KEYWORD_ONLY, fn.__name__
 
 
 def test_an_all_repo_scope_catalogue_warns_and_writes_rather_than_failing(

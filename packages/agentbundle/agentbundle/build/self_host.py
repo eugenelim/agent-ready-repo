@@ -685,12 +685,13 @@ def _aggregate_marketplace(
             f"user scope: {', '.join(sorted(excluded))}",
             file=sys.stderr,
         )
-    # Self-host deliberately does NOT consult `aggregate_exit_code`: it runs
-    # *after* adapters and seeds are written, so a non-zero exit would leave a
-    # half-projected tree. The policy for this mode is "warn and continue", and
-    # it is written here rather than routed through the helper — an earlier
-    # attempt asserted the helper returns 0 for "self-host", which is true by
-    # construction, so it could never fire and vanished under `python -O`.
+    # Warn and continue: this writer runs *after* adapters and seeds, so a
+    # non-zero exit would leave a half-projected tree. The catalogue writer in
+    # `build/main.py` reached the same policy from the other direction in
+    # round thirteen — an adopter whose packs are all repo-scoped is in a
+    # valid state, not a broken build — so the two are no longer in contrast.
+    # The wording differs because the situations do: here the projection has
+    # already happened.
     if not entries and excluded:
         print(
             "marketplace: every discovered pack was filtered out — the "

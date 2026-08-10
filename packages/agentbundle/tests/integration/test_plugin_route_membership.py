@@ -321,13 +321,23 @@ def test_catalogue_build_warns_and_continues_when_the_filter_empties_it(
     assert "the marketplace is empty" in err and "valid state" in err
 
 
-def test_blank_catalogue_is_not_an_error(tmp_path) -> None:
-    """Emptiness is a defect only when the filter caused it."""
+def test_blank_catalogue_is_silent_not_merely_non_fatal(tmp_path, capsys) -> None:
+    """AC12's blank-catalogue clause — nothing was filtered, so say nothing.
+
+    `result["entries"] == 0` alone was the whole assertion until round
+    fourteen, so relaxing the guard from `source_by_name and not entries` to
+    `not entries` left the entire suite green while a blank catalogue started
+    warning about a filter that never ran.
+    """
     from agentbundle.build.main import _run_aggregate
 
     (tmp_path / "claude-plugins").mkdir()
     result = _run_aggregate(_recipe(), tmp_path, packs=[], aggregate_scope="catalogue")
     assert result["entries"] == 0
+    assert capsys.readouterr().err == "", (
+        "a catalogue that was empty to begin with had nothing filtered out — "
+        "warning about it is noise"
+    )
 
 
 def test_scope_resolves_from_source_not_a_stale_dist(tmp_path) -> None:
@@ -370,7 +380,7 @@ def test_pack_flag_refused_on_an_aggregate_recipe(tmp_path) -> None:
 def test_run_recipe_rejects_an_unknown_scope_on_a_per_pack_recipe(tmp_path) -> None:
     """AC26 guard two, at the boundary a per-pack recipe actually reaches.
 
-    Validating only inside `aggregate_exit_code` left per-pack call sites
+    Validating only where the value is *read* left per-pack call sites
     unchecked — the class the frozenset exists to close.
     """
     from agentbundle.build.contract import load as load_contract
@@ -531,7 +541,11 @@ def test_a_single_pack_render_says_nothing_about_the_route(tmp_path) -> None:
         capture_output=True, text=True, cwd=REPO_ROOT,
     )
     assert result.returncode == 0, result.stderr
-    assert "claude-plugins: skipping" not in result.stderr, (
-        "a single-pack render of a repo-only pack announced a route refusal — "
-        f"stderr was:\n{result.stderr}"
+    # The whole stream, not one substring: round thirteen added an *ungated*
+    # emptiness warning that this test did not mention, so it stayed green
+    # while `agentbundle render` and `init-state` both started announcing the
+    # route on a successful repo-scope run.
+    assert result.stderr == "", (
+        "a single-pack render of a repo-only pack said something about the "
+        f"plugin route — stderr was:\n{result.stderr}"
     )
