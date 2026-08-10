@@ -420,29 +420,6 @@ open = [
   # Fix: make the confinement check tolerant of the tmp-path shape, or serialise
   # the fixture's home setup; do not paper over it with a retry marker.
   {slug = "flaky-sso-store-concurrency-on-windows", source = "PR #898 (observed, not caused)"},
-  # ruff-excludes-the-engine-build-package — the root pyproject's ruff
-  # `exclude` carries the bare name "build", which ruff matches at any depth. It
-  # was put there for build *output*; it also hides
-  # packages/agentbundle/agentbundle/build/ — shipped engine code — from every
-  # repo-root `ruff check`. Measured 2026-08-08: 66 live violations in there,
-  # including self_host.py. Surfaced by RFC-0082's quality pass, which hit the
-  # same collision in pytest's norecursedirs. Fix: anchor the exclude at the
-  # repo-root build output ("/build" or "build/" at the root) rather than the
-  # bare name, then clear what it uncovers. Deliberately not folded into
-  # spec/engine-export-boundary: fixing 66 violations in shipped code does not
-  # belong in a release-blocking diff.
-  {slug = "ruff-excludes-the-engine-build-package", source = "spec/engine-export-boundary (quality pass)"},
-  # tools/lint-ci-parity.py classifies pages.yml as "Deploy workflow, not a
-  # gate" and therefore out of scope — but claude-plugin-route-scope added a
-  # non-blocking assertion step to it (check-site-plugin-offers.py), so that
-  # step carries no disposition and parity will not notice if it is deleted.
-  # Fix: update WORKFLOW_SCOPE's reason, or bring the step in scope as CI_ONLY.
-  {slug = "plugin-pages-yml-parity-disposition", source = "spec/claude-plugin-route-scope"},
-  # Six fixture continuation strings in
-  # packages/agentbundle/tests/build_pipeline/test_self_host_check.py are
-  # indented to column 8 inside deeper blocks — ruff accepts it, but it reads as
-  # a dedent bug. Left alone because RFC-0082 relocates that whole tree.
-  {slug = "plugin-fixture-continuation-indent", source = "spec/claude-plugin-route-scope"},
   # agentbundle-install-marker-importable-path — the wheel ships
   # agentbundle/_data/install-marker.py at a path that is not importable, which
   # `check-wheel-contents` reports as W004. Surfaced while measuring artifacts for

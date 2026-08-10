@@ -107,7 +107,11 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
     "pack-evals.yml":
         "Runs live model evals against a metered API; deliberately not a local "
         "gate.",
-    "pages.yml": "Deploy workflow, not a gate.",
+    "pages.yml":
+        "Deploy workflow. Its built-output `check-site-plugin-offers.py` "
+        "assertion is intentionally non-blocking because it requires the full "
+        "site build; the assertion's self-test remains in the blocking local "
+        "build gate chain.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
     "release-agentbundle.yml":
