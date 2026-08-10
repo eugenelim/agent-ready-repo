@@ -42,6 +42,17 @@ All new code in `packages/` must be Windows-clean.
 
 ## Test conventions
 
+Ownership follows what a test asserts, at test-class or method-group
+granularity. Reading a pack does not by itself make a test pack-owned.
+
+| Category | Home | Included surfaces |
+|---|---|---|
+| Engine | `packages/agentbundle/tests/{unit,integration,build_pipeline}/` | Engine source distribution only; never catalogue init or package archives. |
+| Catalogue rule-shaped | `tests/conformance/` | Catalogue archives and both catalogue-init implementations; never the engine wheel or sdist. |
+| Catalogue roster-shaped | `tests/roster/` | Repository gates only; never shipped. |
+| Pack | `packs/<pack>/tests/` | Ships and runs with that pack; never the engine sdist. |
+| Tools | Beside the owning script under `tools/` | Repository gates only; never shipped. |
+
 - Use `tmp_path` (pytest fixture), not `tempfile.mkdtemp()`.
 - Use `pytest.MonkeyPatch` (`monkeypatch` fixture) for environment patching; do not use
   `unittest.mock.patch.dict` in new tests (use it only when extending existing unittest-style tests).

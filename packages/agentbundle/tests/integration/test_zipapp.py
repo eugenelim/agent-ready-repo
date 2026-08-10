@@ -1,15 +1,14 @@
-"""T13: zipapp distribution build.
+"""T13: zipapp distribution behavior.
 
-The `make zipapp` target stages `agentbundle/` into a temporary
-directory (stripping `__pycache__` and `tests/`), then runs
-`python -m zipapp` to produce a single-file executable bundle at
+The fixture stages the installed `agentbundle/` package, then uses
+the standard-library zipapp builder to produce a single-file bundle at
 `dist/agentbundle.pyz`. The bundle imports `agentbundle.cli:main` as
 its entry point and reads the spec version at startup from the
 bundled `agentbundle/_data/adapter.toml`.
 
 These tests pin the two ship-time invariants for the zipapp:
 
-  1. The Makefile target produces a runnable `.pyz`.
+  1. The engine package produces a runnable `.pyz`.
   2. `python dist/agentbundle.pyz --version` exits 0 and prints both
      the CLI version and the spec version.
 """
@@ -17,28 +16,30 @@ These tests pin the two ship-time invariants for the zipapp:
 from __future__ import annotations
 
 import os
+import shutil
 import subprocess
 import sys
+import zipapp
 from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(scope="module")
 def zipapp_path(tmp_path_factory) -> Path:
     """Build the zipapp into a tmpdir; yield its path. Module-scoped so
     the multi-second build runs once for all tests in this file."""
-    out_dir = tmp_path_factory.mktemp("zipapp_build")
-    proc = subprocess.run(
-        ["make", "-C", str(REPO_ROOT), "zipapp", f"OUTPUT_DIR={out_dir}"],
-        capture_output=True,
-        text=True,
+    workspace = tmp_path_factory.mktemp("zipapp_build")
+    staging = workspace / "staging"
+    shutil.copytree(
+        PACKAGE_ROOT / "agentbundle",
+        staging / "agentbundle",
+        ignore=shutil.ignore_patterns("__pycache__", "*.pyc"),
     )
-    if proc.returncode != 0:
-        pytest.fail(f"make zipapp failed: {proc.stderr}")
-    pyz = out_dir / "agentbundle.pyz"
+    pyz = workspace / "agentbundle.pyz"
+    zipapp.create_archive(staging, pyz, main="agentbundle.cli:main")
     assert pyz.exists(), f"expected zipapp at {pyz}"
     return pyz
 

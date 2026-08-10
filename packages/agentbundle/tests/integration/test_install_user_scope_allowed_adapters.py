@@ -28,8 +28,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONVERTERS_PACK_SRC = REPO_ROOT / "packs" / "converters"
+from tests._support import stage_installable_pack, stage_primitives
 
 
 def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
@@ -80,8 +79,22 @@ class AllowedAdaptersInstallTests(unittest.TestCase):
         self._env.start()
         self.addCleanup(self._env.stop)
         self.cat = self.tmp / "catalogue"
-        (self.cat / "packs").mkdir(parents=True)
-        shutil.copytree(CONVERTERS_PACK_SRC, self.cat / "packs" / "converters")
+        pack = stage_installable_pack(
+            self.cat,
+            "converters",
+            """\
+[pack]
+name = "converters"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+allowed-adapters = ["claude-code", "kiro-ide", "codex"]
+""",
+        )
+        stage_primitives(pack, skills=("file-to-markdown",))
 
     def _assert_pack_landed(self, ide_root_relpath: str, expected_adapter: str) -> None:
         skill_dir = self.home / ide_root_relpath / "file-to-markdown"

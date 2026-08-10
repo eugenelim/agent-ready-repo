@@ -4,7 +4,7 @@ The adapter contract gains a `[contract.shared-prefixes]` registry mapping each
 shared prefix to its reader cohort (shipped adapters); every other prefix is
 `private` by derivation. cursor/gemini/copilot route the `skill` primitive to
 the shared `.agents/skills/` home (joining codex) and include it in
-`allowed-prefixes` at both scopes. The two contract copies agree byte-for-byte.
+`allowed-prefixes` at both scopes.
 """
 
 from __future__ import annotations
@@ -13,12 +13,8 @@ import tomllib
 import unittest
 from pathlib import Path
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
-_DATA_COPY = (
-    _REPO_ROOT
-    / "packages/agentbundle/agentbundle/_data/adapter.toml"
-)
-_DOCS_COPY = _REPO_ROOT / "contracts/adapter.toml"
+_PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+_DATA_COPY = _PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 
 
 def _contract() -> dict:
@@ -95,18 +91,6 @@ class CohortSkillRoutingTests(unittest.TestCase):
                 if p.get("primitive") == "agent"
             )
             self.assertEqual(agent["target-path"], native)
-
-
-class ContractMirrorTests(unittest.TestCase):
-    def test_data_and_docs_agree_byte_for_byte(self) -> None:
-        def _norm(p: Path) -> bytes:
-            return p.read_bytes().replace(b"\r\n", b"\n")
-
-        self.assertEqual(
-            _norm(_DATA_COPY),
-            _norm(_DOCS_COPY),
-            "the _data/ and contracts/ adapter.toml copies must be identical",
-        )
 
 
 if __name__ == "__main__":

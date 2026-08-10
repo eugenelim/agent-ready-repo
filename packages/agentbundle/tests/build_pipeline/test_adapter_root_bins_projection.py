@@ -23,6 +23,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from agentbundle.build import adapter_root_bins as arb
+from agentbundle.build.main import CONTRACT_PATH
 
 
 def _make_fixture_pack(
@@ -405,10 +406,7 @@ class AdapterRootBinsTests(unittest.TestCase):
     def test_path_jail_compliance_against_contract(self) -> None:
         """Path-jail: `.agentbundle/` is in `allowed-prefixes.repo`
         for the named user-scope adapters in the v0.7 contract."""
-        contract_path = (
-            Path(__file__).resolve().parents[4] / "packages" / "agentbundle" / "agentbundle" / "_data" / "adapter.toml"
-        )
-        with contract_path.open("rb") as fh:
+        with CONTRACT_PATH.open("rb") as fh:
             contract = tomllib.load(fh)
         for adapter_name in ("claude-code", "kiro"):
             prefixes = contract["adapter"][adapter_name]["scope"][
@@ -420,21 +418,13 @@ class AdapterRootBinsTests(unittest.TestCase):
                 f"adapter {adapter_name!r}: {target_prefix!r} not in {prefixes!r}",
             )
 
-    def test_real_pack_projection_against_credential_brokers(self) -> None:
-        """Smoke test: the real credential-brokers pack source projects
-        into <tmp>/.agentbundle/bin/sso-broker.py with the real bytes."""
-        real_packs = Path(__file__).resolve().parents[4] / "packs"
-        if not (real_packs / "credential-brokers").is_dir():
-            self.skipTest("credential-brokers pack not present")
-        wt = self.tmp_path / "real-wt"
-        wt.mkdir()
-        arb.apply_projection(wt, real_packs)
+    def test_fixture_pack_projection_preserves_broker_bytes(self) -> None:
+        packs = self._packs()
+        _make_fixture_pack(packs, "broker", {"sso-broker.py": b"# broker\n"})
+        wt = self._wt()
+        arb.apply_projection(wt, packs)
         target = wt / ".agentbundle" / "bin" / "sso-broker.py"
-        source = (
-            real_packs / "credential-brokers" / ".apm"
-            / "adapter-root-bins" / "sso-broker.py"
-        )
-        self.assertEqual(target.read_bytes(), source.read_bytes())
+        self.assertEqual(target.read_bytes(), b"# broker\n")
 
 
 class AdapterRootBinsShimCompanionTests(unittest.TestCase):
@@ -630,27 +620,19 @@ class AdapterRootBinsShimCompanionTests(unittest.TestCase):
             f"orphan rail misfired on the shim companion: {drifts}",
         )
 
-    def test_real_pack_projection_includes_shim_companion(self) -> None:
-        """Smoke test: the real `credential-brokers` pack projects
-        `credentials_shim.py` into `<wt>/.agentbundle/bin/` with the
-        real shared-libs source bytes."""
-        real_packs = Path(__file__).resolve().parents[4] / "packs"
-        if not (real_packs / "credential-brokers").is_dir():
-            self.skipTest("credential-brokers pack not present")
-        wt = self.tmp_path / "real-wt"
-        wt.mkdir()
-        arb.apply_projection(wt, real_packs)
+    def test_fixture_pack_projection_includes_shim_companion(self) -> None:
+        packs = self._packs()
+        _make_fixture_pack(
+            packs,
+            "broker",
+            bins={"sso-broker.py": b"# broker\n"},
+            shared_libs={arb.SHIM_COMPANION_BASENAME: b"# shim\n"},
+        )
+        wt = self._wt()
+        arb.apply_projection(wt, packs)
         target = wt / ".agentbundle" / "bin" / "credentials_shim.py"
-        source = (
-            real_packs / "credential-brokers" / ".apm"
-            / "shared-libs" / "credentials_shim.py"
-        )
-        self.assertTrue(
-            target.is_file(),
-            "companion projection did not write "
-            "credentials_shim.py into bin/ from the real pack",
-        )
-        self.assertEqual(target.read_bytes(), source.read_bytes())
+        self.assertTrue(target.is_file())
+        self.assertEqual(target.read_bytes(), b"# shim\n")
 
 
 class CollectPackRootBinsTests(unittest.TestCase):

@@ -18,9 +18,7 @@ from agentbundle.build.adapters.codex import (
     project_packs,
 )
 from agentbundle.build.contract import load as load_contract
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+from agentbundle.build.main import CONTRACT_PATH
 
 
 def _seed_pack(root: Path, name: str = "pack", skill_prefix: str = "") -> Path:
@@ -670,60 +668,38 @@ class TestMigrationStripPureFunction(unittest.TestCase):
         self.assertEqual(spy.call_count, 1)
 
 
-class TestCodexProjectsEveryShippedSkill(unittest.TestCase):
-    """Every skill any in-tree pack ships projects through Codex
-    into `.agents/skills/<name>/SKILL.md` (byte-equal to source).
-
-    The spec text references `dist/codex/` as a notional adopter path;
-    in this self-hosting repo, Codex projects to the repo root, so the
-    test runs the projection against a `tmp_path` and enumerates
-    `packs/*/.apm/skills/`. The sentinel set (`work-loop`, `new-spec`,
-    `new-rfc`, `new-adr`) spans multiple packs (core +
-    governance-extras), so the test must walk all packs — a core-only
-    walk would silently skip `new-rfc` / `new-adr` against the spec's
-    explicit sentinel list.
-    """
+class TestCodexProjectsEveryFixtureSkill(unittest.TestCase):
+    """Every discovered fixture skill projects through Codex byte-for-byte."""
 
     @classmethod
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_every_shipped_skill_projects_with_equal_bytes(self) -> None:
-        packs_root = REPO_ROOT / "packs"
-        self.assertTrue(packs_root.is_dir())
-        pack_paths = sorted(
-            p for p in packs_root.iterdir()
-            if p.is_dir() and not p.name.startswith("_")
-        )
-
-        # Collect every source skill across every pack. Tracks the
-        # "winning" source path for same-name collisions so byte-equal
-        # comparisons use the last-supplied pack's body (matching
-        # projection).
-        winning_source: dict[str, Path] = {}
-        for pack_path in pack_paths:
-            skills_dir = pack_path / ".apm" / "skills"
-            if not skills_dir.is_dir():
-                continue
-            for entry in skills_dir.iterdir():
-                if entry.is_dir():
-                    winning_source[entry.name] = entry
-
-        self.assertGreater(len(winning_source), 0)
-        for sentinel in ("work-loop", "new-spec", "new-rfc", "new-adr"):
-            self.assertIn(
-                sentinel,
-                winning_source,
-                f"sentinel skill {sentinel!r} missing from any in-tree pack",
-            )
-
+    def test_every_fixture_skill_projects_with_equal_bytes(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
-            project_packs(pack_paths, self.contract, tmp_path)
+            packs_root = tmp_path / "packs"
+            pack_paths = [
+                _seed_pack(packs_root, "first", "first-"),
+                _seed_pack(packs_root, "second", "second-"),
+            ]
 
-            for skill_name, source_skill_dir in winning_source.items():
+            sources = {
+                entry.name: entry
+                for pack_path in pack_paths
+                for entry in (pack_path / ".apm" / "skills").iterdir()
+                if entry.is_dir()
+            }
+            self.assertEqual(
+                set(sources),
+                {"first-alpha", "first-foo", "second-alpha", "second-foo"},
+            )
+            output = tmp_path / "output"
+            project_packs(pack_paths, self.contract, output)
+
+            for skill_name, source_skill_dir in sources.items():
                 projected_skill_md = (
-                    tmp_path / ".agents" / "skills" / skill_name / "SKILL.md"
+                    output / ".agents" / "skills" / skill_name / "SKILL.md"
                 )
                 source_skill_md = source_skill_dir / "SKILL.md"
                 if not source_skill_md.exists():

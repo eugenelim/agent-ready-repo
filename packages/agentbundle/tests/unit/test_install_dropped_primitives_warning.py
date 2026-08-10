@@ -716,13 +716,24 @@ class TestMaybeEmitEventDrops(unittest.TestCase):
         import tomllib as _tomllib
         from io import StringIO
 
-        from agentbundle.build.main import REPO_ROOT, _read_bundled
+        from agentbundle.build.main import _read_bundled
         from agentbundle.commands._drop_warning import (
             enumerate_event_dropped_wirings,
             format_drop_message,
         )
 
-        pack_dir = REPO_ROOT / "packs" / "core"
+        pack_dir = _seed_pack(
+            self.tmp_path / "core",
+            skills=["work-loop"],
+            hook_wirings=["session-start"],
+            commands=["fixture"],
+        )
+        (pack_dir / ".apm" / "hook-wiring" / "session-start.toml").write_text(
+            "[[hooks.SessionStart]]\n"
+            'hooks = [{ type = "command", command = "python hook.py" }]\n',
+            encoding="utf-8",
+            newline="\n",
+        )
 
         # Build the expected message via the formatter (single source of truth).
         contract = _tomllib.loads(_read_bundled("adapter.toml"))

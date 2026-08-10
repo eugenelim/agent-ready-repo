@@ -10,8 +10,8 @@ from pathlib import Path
 
 from agentbundle.build.validate import validate
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+SCHEMA_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.schema.json"
 
 
 class TypeKeywordTests(unittest.TestCase):
@@ -218,7 +218,7 @@ on-conflict = "prompt-then-preserve"
             [sys.executable, "-m", "agentbundle.build", "validate", tmp_path],
             capture_output=True,
             text=True,
-            cwd=REPO_ROOT,
+            cwd=PACKAGE_ROOT,
         )
         self.assertEqual(
             result.returncode,
@@ -231,7 +231,7 @@ on-conflict = "prompt-then-preserve"
             [sys.executable, "-m", "agentbundle.build", "--help"],
             capture_output=True,
             text=True,
-            cwd=REPO_ROOT,
+            cwd=PACKAGE_ROOT,
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn("validate", result.stdout)
@@ -241,7 +241,7 @@ on-conflict = "prompt-then-preserve"
             [sys.executable, "-m", "agentbundle.build", "validate", "--help"],
             capture_output=True,
             text=True,
-            cwd=REPO_ROOT,
+            cwd=PACKAGE_ROOT,
         )
         self.assertEqual(result.returncode, 0)
 

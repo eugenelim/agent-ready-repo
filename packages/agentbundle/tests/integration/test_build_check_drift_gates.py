@@ -31,14 +31,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-TEMPLATE_PATH = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+TEMPLATE_PATH = PACKAGE_ROOT / "templates" / "install-marker.py"
 FIXTURES_PACKS = (
-    Path(__file__).resolve().parents[2]
-    / "tests"
-    / "build_pipeline"
-    / "fixtures"
-    / "packs"
+    PACKAGE_ROOT / "tests" / "build_pipeline" / "fixtures" / "packs"
 )
 
 
@@ -69,7 +65,7 @@ def _run_build_into_dist(packs_dir: Path, workspace: Path) -> subprocess.Complet
         ],
         capture_output=True,
         text=True,
-        cwd=REPO_ROOT,
+        cwd=PACKAGE_ROOT,
     )
 
 
@@ -311,14 +307,14 @@ def test_make_build_check_fails_on_source_hooks_block(tmp_path):
 def test_make_build_check_passes_on_clean_source_packs(tmp_path):
     """Gate 2: exits zero on a clean source + populated dist tree.
 
-    Shadow-copies the real ``packs/`` directory, builds into a shadow
+    Shadow-copies the build-pipeline fixture packs, builds into a shadow
     ``dist/`` (so the writer-template gate has projections to hash), and
     calls ``run_build_check_drift_gates`` in-process; expects 0.
     """
     from agentbundle.build.self_host import run_build_check_drift_gates
 
     packs_shadow = tmp_path / "packs"
-    shutil.copytree(REPO_ROOT / "packs", packs_shadow, symlinks=True)
+    shutil.copytree(FIXTURES_PACKS, packs_shadow, symlinks=True)
 
     output_dir = tmp_path / "workspace"
     output_dir.mkdir()
@@ -415,8 +411,10 @@ def test_make_build_check_passes_on_clean_apm_tree(tmp_path):
 
 
 def _shadow_real_tree_for_user_libs(tmp_path):
-    """Shadow the real ``packs/`` + ``packages/credbroker`` so the user-libs
-    gate's package source resolves via ``packs_shadow.parent``.
+    """Stage fixture packs plus a representative credbroker package source.
+
+    This gives the user-libs gate its documented ``packs_shadow.parent``
+    source shape without depending on a sibling monorepo checkout.
 
     Returns ``(packs_shadow, workspace)`` with ``dist/`` populated and both
     the adapter-root-bins and user-libs floors applied — a clean tree.
@@ -427,12 +425,15 @@ def _shadow_real_tree_for_user_libs(tmp_path):
     from agentbundle.build.user_libs import apply_projection as _user_libs_apply
 
     packs_shadow = tmp_path / "packs"
-    shutil.copytree(REPO_ROOT / "packs", packs_shadow, symlinks=True)
+    shutil.copytree(FIXTURES_PACKS, packs_shadow, symlinks=True)
     # user_libs locates its source at <packs_shadow.parent>/packages/credbroker/...
-    shutil.copytree(
-        REPO_ROOT / "packages" / "credbroker",
-        tmp_path / "packages" / "credbroker",
-        symlinks=True,
+    credbroker_source = tmp_path / "packages" / "credbroker" / "credbroker"
+    credbroker_source.mkdir(parents=True)
+    (credbroker_source / "__init__.py").write_text(
+        "from ._core import VALUE\n", encoding="utf-8"
+    )
+    (credbroker_source / "_core.py").write_text(
+        "VALUE = 1\n", encoding="utf-8"
     )
 
     workspace = tmp_path / "workspace"

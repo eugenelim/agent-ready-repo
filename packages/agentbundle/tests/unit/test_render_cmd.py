@@ -13,10 +13,9 @@ Coverage:
 from __future__ import annotations
 
 import argparse
-import subprocess
 from pathlib import Path
 
-import pytest
+from agentbundle import render
 from agentbundle.commands.render import run
 
 # The test fixture pack lives next to the build tests; it has both .sh and .py hooks.
@@ -25,7 +24,6 @@ from agentbundle.commands.render import run
 #   parents[1] = packages/agentbundle/tests
 #   parents[2] = packages/agentbundle
 #   parents[3] = packages
-#   parents[4] = repo root
 FIXTURE_PACKS = (
     Path(__file__).resolve().parents[2]
     / "tests"
@@ -34,10 +32,6 @@ FIXTURE_PACKS = (
     / "packs"
 )
 FIXTURE_CORE = FIXTURE_PACKS / "core"
-
-# The real repo packs/core — used for F-build parity gate.
-REPO_ROOT = Path(__file__).resolve().parents[4]
-REAL_CORE = REPO_ROOT / "packs" / "core"
 
 
 def _args(**kwargs) -> argparse.Namespace:
@@ -153,66 +147,17 @@ def test_hook_extension_preservation_py(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Test 4: F-build parity gate (goal-based)
+# Test 4: command/library parity gate
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.skipif(
-    not REAL_CORE.exists(),
-    reason="packs/core not present — skipping F-build parity gate",
-)
-def test_render_byte_identical_to_make_build(tmp_path):
-    """agentbundle render packs/core --output <tmp> is byte-identical to
-    `make build PACK=core OUTPUT_DIR=<tmp2>` (excluding marketplace.json which
-    `make build` aggregates across all packs but `render` only sees core).
-
-    Pattern mirrors test_render_pack_to_dir_byte_identical_to_make_build in
-    tests/unit/test_render.py.
-    """
+def test_render_command_matches_library_bytes(tmp_path):
+    """The command writes the same fixture bytes as the library API."""
     via_render = tmp_path / "via-render"
-    args = _args(pack_path=str(REAL_CORE), output=str(via_render))
+    args = _args(pack_path=str(FIXTURE_CORE), output=str(via_render))
     rc = run(args)
     assert rc == 0, "render command returned non-zero"
-
-    via_make = tmp_path / "via-make"
-    via_make.mkdir()
-    proc = subprocess.run(
-        [
-            "make",
-            "-C",
-            str(REPO_ROOT),
-            "build",
-            f"OUTPUT_DIR={via_make}",
-            "PACK=core",
-        ],
-        capture_output=True,
-        text=True,
-    )
-    assert proc.returncode == 0, f"make build failed: {proc.stderr}"
-
-    def _drop_marketplace(d: dict) -> dict:
-        return {k: v for k, v in d.items() if "marketplace.json" not in k}
-
-    render_tree = _drop_marketplace(_tree(via_render))
-    make_tree = _drop_marketplace(_tree(via_make))
-
-    # `make build` runs over all packs; restrict to core's subtrees.
-    make_core_tree = {
-        k: v
-        for k, v in make_tree.items()
-        if "/core/" in k or k.endswith("/core")
-    }
-    render_core_tree = {
-        k: v
-        for k, v in render_tree.items()
-        if "/core/" in k or k.endswith("/core")
-    }
-
-    assert render_core_tree == make_core_tree, (
-        "render output differs from make build for core pack.\n"
-        f"only in render: {sorted(set(render_core_tree) - set(make_core_tree))}\n"
-        f"only in make:   {sorted(set(make_core_tree) - set(render_core_tree))}"
-    )
+    assert _tree(via_render) == render.render_pack(FIXTURE_CORE)
 
 
 # ---------------------------------------------------------------------------

@@ -5,9 +5,18 @@ from __future__ import annotations
 import warnings
 from pathlib import Path
 from types import ModuleType
-from typing import Callable, Dict, Mapping
+from typing import Callable, Mapping
 
-from agentbundle.build.adapters import claude_code, codex, copilot, cursor, gemini, kiro, kiro_cli, kiro_ide
+from agentbundle.build.adapters import (
+    claude_code,
+    codex,
+    copilot,
+    cursor,
+    gemini,
+    kiro,
+    kiro_cli,
+    kiro_ide,
+)
 
 
 def _kiro_alias_project(pack_path: Path, contract: dict, output_root: Path) -> None:
@@ -22,7 +31,7 @@ def _kiro_alias_project(pack_path: Path, contract: dict, output_root: Path) -> N
 
 # Original callable registry (hyphenated contract names) — preserved for
 # F-build's recipe runner which keys recipes by contract names.
-ADAPTERS: Dict[str, Callable] = {
+ADAPTERS: dict[str, Callable] = {
     "claude-code": claude_code.project,
     "kiro-ide": kiro_ide.project,
     "kiro-cli": kiro_cli.project,

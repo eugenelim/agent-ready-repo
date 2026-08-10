@@ -6,7 +6,8 @@ exclude = [
     ".agentbundle",   # projected build output; source lives in packs/
     ".agents",        # projected skill scripts; source lives in packs/ and .claude/
     ".claude",        # projected skill scripts; source lives in packs/
-    "build",
+    "/build",         # repo-root build *output* only; must not match the
+                      # shipped packages/agentbundle/agentbundle/build/ package
     "__pycache__",
     ".git",
     "node_modules",
@@ -70,6 +71,7 @@ python_version = "3.11"
 ignore_missing_imports = true
 no_strict_optional = true
 warn_unused_ignores = false
+exclude = ["packages/agentbundle/agentbundle/_data/catalogue-scaffold/tests/"]
 # Scope: typed library packages only. Untyped scripts (tools/, skill scripts)
 # are excluded — typing them is a separate initiative.
 files = [

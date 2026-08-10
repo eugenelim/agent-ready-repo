@@ -12,9 +12,10 @@
        <relative-path>:<lineno>: non-stdlib import '<name>'
 
   2. No-new-top-level-directory audit — compares the root-level
-     directories in HEAD against the merge-base of HEAD and main using
-     `git ls-tree -d --name-only`. `comm -23` between the two sorted
-     lists is empty iff no new top-level directory has been introduced.
+     directories in HEAD against the merge-base of HEAD and local `main`,
+     falling back to `origin/main` for CI checkouts. It uses
+     `git ls-tree -d --name-only`; the set difference is empty iff no new
+     top-level directory has been introduced.
 
 Exit codes: 0 = clean, 1 = violation(s) found.
 """
@@ -37,6 +38,7 @@ RFC_AUTHORISED_DIRS = (
     "contracts",  # ADR-0055 — wave1 docs restructure: lift docs/contracts/ to repo root
     "guides",  # ADR-0055 — wave1 docs restructure: lift docs/guides/ to repo root
     "docs-site",  # ADR-0055 — Starlight replaces MkDocs: Astro+Node.js docs-site pipeline
+    "tests",  # RFC-0082 — catalogue conformance and non-shipping roster suites
 )
 
 
@@ -133,14 +135,20 @@ def main() -> int:
         print("lint-build: stdlib-import audit passed")
 
     # ── Part 2: No-new-top-level-directory audit ─────────────────────────
-    merge_base_result = subprocess.run(
-        ["git", "merge-base", "HEAD", "main"],
-        capture_output=True, text=True, check=False,
-    )
-    if merge_base_result.returncode != 0 or not merge_base_result.stdout.strip():
+    merge_base = ""
+    for base_ref in ("main", "origin/main"):
+        merge_base_result = subprocess.run(
+            ["git", "merge-base", "HEAD", base_ref],
+            capture_output=True, text=True, check=False,
+        )
+        if merge_base_result.returncode == 0 and merge_base_result.stdout.strip():
+            merge_base = merge_base_result.stdout.strip()
+            break
+
+    if not merge_base:
         print(
-            "lint-build: warning: could not compute merge-base HEAD main; "
-            "skipping top-level audit",
+            "lint-build: warning: could not compute merge-base against "
+            "main or origin/main; skipping top-level audit",
             file=sys.stderr,
         )
         # Normalise to 0/1 — bash heredoc's sys.exit(1 if violations else 0)
@@ -148,7 +156,6 @@ def main() -> int:
         # callers that pattern-match on rc==1.
         return 1 if import_violations else 0
 
-    merge_base = merge_base_result.stdout.strip()
     head_dirs = _top_level_dirs("HEAD")
     base_dirs = _top_level_dirs(merge_base)
 

@@ -1,20 +1,18 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentbundle"
-version = "0.31.0"
+version = "0.31.1"
 description = "npm for your coding agent. Install packs of skills, subagents, and hooks into any repo, for every major agent."
 requires-python = ">=3.11"
 dependencies = []
 authors = [{ name = "eugenelim", email = "eugenelim@users.noreply.github.com" }]
-license = { text = "Apache-2.0 OR MIT" }
+license = "Apache-2.0 OR MIT"
 readme = "README-pypi.md"
 classifiers = [
     "Development Status :: 4 - Beta",
-    "License :: OSI Approved :: Apache Software License",
-    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -38,7 +36,13 @@ where = ["."]
 include = ["agentbundle*"]
 
 [tool.setuptools.package-data]
-agentbundle = ["_data/*", "_data/catalogue-scaffold/**/*", "build/recipes/*.toml"]
+agentbundle = [
+    "_data/*",
+    "_data/catalogue-scaffold/**/*",
+    "_data/catalogue-scaffold/packs/_example/.apm/**/*",
+    "_data/catalogue-scaffold/packs/_example/.claude-plugin/*",
+    "build/recipes/*.toml",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

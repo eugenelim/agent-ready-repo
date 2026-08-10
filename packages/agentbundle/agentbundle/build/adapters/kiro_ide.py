@@ -20,25 +20,20 @@ Phase order (from phase_order.PHASE_ORDER):
 
 from __future__ import annotations
 
-import shutil
-import sys
 from pathlib import Path
 from typing import Any, Iterator
 
-from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
-from agentbundle.build.projections.direct_directory import sweep_orphans
-from agentbundle.build.projections.kiro_ide_hook import project as kiro_ide_hook_project
-
 # Import frontmatter helpers from kiro.py (pure functions, no side effects).
 from agentbundle.build.adapters.kiro import (
-    _split_frontmatter,
-    _parse_frontmatter,
     _apply_mapping,
     _project_direct_directory,
     _project_direct_file,
     _project_direct_file_template,
-    _resolve_kiro_hook_body_target_dir as _resolve_hook_body_target_dir_from_kiro,
+    _split_frontmatter,
 )
+from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
+from agentbundle.build.projections.direct_directory import sweep_orphans
+from agentbundle.build.projections.kiro_ide_hook import project as kiro_ide_hook_project
 
 _ADAPTER = "kiro-ide"
 
@@ -179,10 +174,7 @@ def _dispatch_kiro_ide_hook(
     `.kiro/hooks/<pack>--<name>.kiro.hook`
     """
     target = rule.get("target")
-    if isinstance(target, dict):
-        target_template = target.get("repo")
-    else:
-        target_template = target
+    target_template = target.get("repo") if isinstance(target, dict) else target
     if not target_template:
         return
 

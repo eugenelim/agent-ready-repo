@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import tarfile
 from pathlib import Path
 
@@ -24,6 +25,10 @@ def _make_source_catalogue(root: Path) -> None:
     (packs / "pack.toml").write_text(
         '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8"
     )
+    (packs / "tests").mkdir()
+    (packs / "tests" / "test_pack.py").write_text(
+        "def test_pack(): pass\n", encoding="utf-8"
+    )
     profiles = root / "profiles"
     profiles.mkdir()
     (profiles / "default.toml").write_text(
@@ -38,6 +43,14 @@ def _make_source_catalogue(root: Path) -> None:
     (root / "README.md").write_text("# Test Catalogue\n", encoding="utf-8")
     (root / "LICENSE-APACHE").write_text("Apache-2.0", encoding="utf-8")
     (root / "LICENSE-MIT").write_text("MIT", encoding="utf-8")
+    conformance = root / "tests" / "conformance"
+    conformance.mkdir(parents=True)
+    (conformance / "test_rule.py").write_text(
+        "def test_rule(): pass\n", encoding="utf-8"
+    )
+    roster = root / "tests" / "roster"
+    roster.mkdir()
+    (roster / "sentinel.txt").write_text("must not ship\n", encoding="utf-8")
 
 
 # ---------------------------------------------------------------------------
@@ -72,6 +85,45 @@ def test_archive_contains_packs(tmp_path: Path) -> None:
         members = tar.getnames()
     assert any(m.startswith("packs/") for m in members)
     assert "catalogue.toml" in members
+
+
+def test_archive_includes_conformance_and_pack_tests_but_not_roster(
+    tmp_path: Path,
+) -> None:
+    root = tmp_path / "root"
+    root.mkdir()
+    _make_source_catalogue(root)
+    result = package_source_flavour(
+        root=root, bundle="b", release="0.1.0", output=tmp_path / "output"
+    )
+    assert result.ok
+    with tarfile.open(result.archive_path, "r:gz") as tar:
+        members = set(tar.getnames())
+    assert "tests/conformance/test_rule.py" in members
+    assert "packs/core/tests/test_pack.py" in members
+    assert "tests/roster/sentinel.txt" not in members
+
+
+def test_source_archive_refuses_hard_linked_conformance(tmp_path: Path) -> None:
+    """A conformance path cannot smuggle bytes from another source path."""
+    root = tmp_path / "root"
+    root.mkdir()
+    _make_source_catalogue(root)
+    conformance = root / "tests" / "conformance" / "test_rule.py"
+    conformance.unlink()
+    outside = tmp_path / "outside.py"
+    outside.write_text("def test_outside(): pass\n", encoding="utf-8")
+    try:
+        os.link(outside, conformance)
+    except OSError:
+        pytest.skip("st_nlink hard-link detection is POSIX-only")
+
+    result = package_source_flavour(
+        root=root, bundle="b", release="0.1.0", output=tmp_path / "output"
+    )
+
+    assert not result.ok
+    assert any("hard link not allowed" in item for item in result.diagnostics)
 
 
 def test_archive_contains_guides(tmp_path: Path) -> None:

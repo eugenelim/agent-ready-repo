@@ -26,6 +26,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -76,10 +77,10 @@ def partition(lines: list[str], first_party: set[str]) -> tuple[list[str], list[
     return audited, skipped
 
 
-def audit(path: Path, first_party: set[str]) -> int:
-    lines = path.read_text(encoding="utf-8").splitlines()
+def audit_lines(label: str, lines: list[str], first_party: set[str]) -> int:
+    """Audit requirement *lines* after applying the first-party filter."""
     audited, skipped = partition(lines, first_party)
-    print(f"pip-audit -r {path}")
+    print(f"pip-audit -r {label}")
     for pin in skipped:
         print(f"  skipped (built in this repo, declares no dependencies): {pin}")
     if not any(
@@ -100,6 +101,32 @@ def audit(path: Path, first_party: set[str]) -> int:
         temp.unlink(missing_ok=True)
 
 
+def audit(path: Path, first_party: set[str]) -> int:
+    """Audit one requirements file."""
+    return audit_lines(
+        str(path), path.read_text(encoding="utf-8").splitlines(), first_party
+    )
+
+
+def build_system_requirements(paths: list[Path]) -> list[str]:
+    """Return declared PEP 517 backend requirements from *paths*.
+
+    Missing or malformed ``build-system.requires`` is a gate configuration
+    error: silently auditing an empty set would leave the build backend outside
+    SCA while reporting success.
+    """
+    requirements: list[str] = []
+    for path in paths:
+        data = tomllib.loads(path.read_text(encoding="utf-8"))
+        declared = data.get("build-system", {}).get("requires")
+        if not isinstance(declared, list) or not declared or not all(
+            isinstance(item, str) and item.strip() for item in declared
+        ):
+            raise ValueError(f"{path}: missing or invalid build-system.requires")
+        requirements.extend(declared)
+    return requirements
+
+
 def main(argv: list[str]) -> int:
     if not argv:
         print("usage: audit-requirements.py <requirements.txt> ...", file=sys.stderr)
@@ -114,6 +141,25 @@ def main(argv: list[str]) -> int:
             file=sys.stderr,
         )
         return 2
+    if argv[0] == "--build-system":
+        paths = [Path(raw) for raw in argv[1:]]
+        if not paths:
+            print(
+                "audit-requirements: --build-system requires pyproject.toml paths",
+                file=sys.stderr,
+            )
+            return 2
+        for path in paths:
+            if not path.is_file():
+                print(f"audit-requirements: no such file: {path}", file=sys.stderr)
+                return 2
+        try:
+            requirements = build_system_requirements(paths)
+        except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
+            print(f"audit-requirements: {exc}", file=sys.stderr)
+            return 2
+        return audit_lines("build-system-requirements", requirements, first_party)
+
     failed = 0
     for raw in argv:
         path = Path(raw)

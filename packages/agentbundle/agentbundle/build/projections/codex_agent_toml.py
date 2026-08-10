@@ -39,7 +39,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Frontmatter split / parse (mirrors kiro.py:_split_frontmatter +
 # _parse_frontmatter without reaching across module boundaries; the cross-
@@ -281,7 +280,7 @@ def _apply_codex_tool_intents(fields: dict[str, Any]) -> dict[str, Any]:
     if intents is missing or not isinstance(intents, list):
         return rewritten
 
-    intent_set = set(str(intent) for intent in intents)
+    intent_set = {str(intent) for intent in intents}
     has_write = "write" in intent_set
     has_shell = "shell" in intent_set
     has_web_search = "web_search" in intent_set

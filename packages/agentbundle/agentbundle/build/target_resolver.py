@@ -22,7 +22,6 @@ returns a target-template string they can further process.
 
 from __future__ import annotations
 
-
 _ATTACH_TO_AGENT_PLACEHOLDER = "<attach-to-agent>"
 
 

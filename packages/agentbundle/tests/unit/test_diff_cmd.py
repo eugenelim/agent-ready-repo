@@ -16,11 +16,7 @@ from types import SimpleNamespace
 from agentbundle import render
 from agentbundle.commands import diff
 
-# Resolve the repo root and core pack path relative to this file's location.
-# Layout: packages/agentbundle/tests/unit/test_diff_cmd.py
-# Repo root is four parents up.
-REPO_ROOT = Path(__file__).resolve().parents[4]
-PACKS_DIR = REPO_ROOT / "packs"
+PACKS_DIR = Path(__file__).resolve().parents[1] / "build_pipeline" / "fixtures" / "packs"
 CORE_PACK = PACKS_DIR / "core"
 
 

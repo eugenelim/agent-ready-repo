@@ -32,8 +32,8 @@ import os
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-FIXTURES = REPO_ROOT / "packages" / "agentbundle" / "tests" / "fixtures" / "packs"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
 
 
 WELL_FORMED = ("cc-user-hooks", "kiro-repo-hooks", "kiro-user-hooks")

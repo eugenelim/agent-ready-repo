@@ -29,7 +29,6 @@ contract revision changes one line, not four.
 
 from __future__ import annotations
 
-
 PHASE_ORDER: tuple[str, ...] = (
     "hook-body",
     "agent",

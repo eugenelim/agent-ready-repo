@@ -26,8 +26,22 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-PACKS_DIR = REPO_ROOT / "packs"
+import pytest
+
+from tests._support import materialize_catalogue
+
+REPO_ROOT = Path()
+PACKS_DIR = Path()
+
+
+@pytest.fixture(autouse=True)
+def _fixture_catalogue(tmp_path):
+    global PACKS_DIR, REPO_ROOT
+    REPO_ROOT = materialize_catalogue(
+        tmp_path / "catalogue",
+        packs=("core", "governance-extras"),
+    )
+    PACKS_DIR = REPO_ROOT / "packs"
 
 
 def _run_install(argv: list[str]) -> tuple[int, str, str]:

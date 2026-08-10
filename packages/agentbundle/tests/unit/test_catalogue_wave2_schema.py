@@ -8,26 +8,17 @@ Done-when criterion.
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from importlib.resources import files
 
 import pytest
 
 # ── Schema paths ──────────────────────────────────────────────────────────────
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]
-_LIVE_SCHEMA_PATH = _REPO_ROOT / "contracts" / "pack.schema.json"
-_BUNDLED_SCHEMA_PATH = (
-    _REPO_ROOT
-    / "packages"
-    / "agentbundle"
-    / "agentbundle"
-    / "_data"
-    / "pack.schema.json"
-)
+_BUNDLED_SCHEMA = files("agentbundle").joinpath("_data/pack.schema.json")
 
 
 def _load_schema() -> dict:
-    return json.loads(_LIVE_SCHEMA_PATH.read_text(encoding="utf-8"))
+    return json.loads(_BUNDLED_SCHEMA.read_text(encoding="utf-8"))
 
 
 def _validate(doc: dict) -> list:
@@ -178,12 +169,3 @@ def test_integration_malformed_ref_prefix_fails():
             {"pack": {"name": "x", "version": "1.0.0", "integrations": [entry]}}
         )
         assert errors != [], f"Expected validation error for consumers=[{bad_ref!r}]"
-
-
-# STUB: bundled schema is byte-identical to live contracts/pack.schema.json
-def test_parity_bytes_identical():
-    live = _LIVE_SCHEMA_PATH.read_bytes()
-    bundled = _BUNDLED_SCHEMA_PATH.read_bytes()
-    assert live == bundled, (
-        "Schema parity broken — run tools/catalogue/check_contract_parity.py to diagnose"
-    )

@@ -66,6 +66,18 @@ _SYNC_PAIRS: list[tuple[Path, str]] = [
         _REPO_ROOT / "guides" / "_shared" / "reference" / "catalogue-authoring-standards.md",
         "guides/_shared/reference/catalogue-authoring-standards.md",
     ),
+    (
+        _REPO_ROOT / "tests" / "conformance" / "test_gemini_admissibility.py",
+        "tests/conformance/test_gemini_admissibility.py",
+    ),
+    (
+        _REPO_ROOT / "tests" / "conformance" / "test_pack_metadata.py",
+        "tests/conformance/test_pack_metadata.py",
+    ),
+    (
+        _REPO_ROOT / "tests" / "conformance" / "test_shared_library_boundaries.py",
+        "tests/conformance/test_shared_library_boundaries.py",
+    ),
 ]
 
 

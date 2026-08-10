@@ -28,6 +28,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from agentbundle.catalogue_tooling.file_safety import (
+    UnsafeContentError,
+    read_confined_regular_file,
+)
 from agentbundle.catalogue_tooling.identity import (
     BINARY_EXT,
     Violation,
@@ -95,7 +99,21 @@ _VENDORED_ENGINE_EXCLUDE: tuple[str, ...] = (
 # import. A bare `build` matching at any depth is the trap, and it bit this
 # very fix. Root-relative build output is pruned through the ordinary
 # `prune` mechanism instead; see `_VENDORED_ENGINE_EXCLUDE`.
-_BUILD_RESIDUE_DIRS: frozenset[str] = frozenset({"__pycache__", ".pytest_cache"})
+_BUILD_RESIDUE_DIRS: frozenset[str] = frozenset(
+    {
+        "__pycache__",
+        ".pytest_cache",
+        ".mypy_cache",
+        ".ruff_cache",
+        ".hypothesis",
+        ".tox",
+        "node_modules",
+        ".venv",
+        "venv",
+        "htmlcov",
+    }
+)
+_BUILD_RESIDUE_FILES: frozenset[str] = frozenset({".DS_Store", "coverage.xml"})
 _VENDORED_PACK_EXCLUDE: tuple[str, ...] = ("tests/",)
 
 
@@ -433,21 +451,19 @@ def _collect_dir_bytes(
     """
     prune = tuple(e.rstrip("/") for e in exclude if e.endswith("/"))
     drop = frozenset(e for e in exclude if not e.endswith("/"))
-    # Build residue is pruned by name at any depth whenever any exclusion is in
-    # force — i.e. at the vendored call sites only. The adopter's own packs and
-    # guides are copied with `exclude=()` and keep everything.
-    residue = bool(exclude)
+    # Build residue is never authored source. Prune it independently from
+    # `exclude`: adopter pack tests remain included, while caches and bytecode
+    # never leak local paths or test node IDs into a materialized catalogue.
     for dirpath, dirnames, filenames in os.walk(str(src_dir), followlinks=False):
         dp = Path(dirpath)
         dirnames[:] = [dn for dn in dirnames if not (dp / dn).is_symlink()]
         rel_to_src = dp.relative_to(src_dir)
         rel_dir = rel_to_src.as_posix()
-        if residue:
-            dirnames[:] = [
-                dn
-                for dn in dirnames
-                if dn not in _BUILD_RESIDUE_DIRS and not dn.endswith(".egg-info")
-            ]
+        dirnames[:] = [
+            dn
+            for dn in dirnames
+            if dn not in _BUILD_RESIDUE_DIRS and not dn.endswith(".egg-info")
+        ]
         if prune:
             base = "" if rel_dir == "." else rel_dir + "/"
             dirnames[:] = [dn for dn in dirnames if base + dn not in prune]
@@ -455,14 +471,18 @@ def _collect_dir_bytes(
             src_file = dp / fname
             if src_file.is_symlink():
                 continue
-            if residue and fname.endswith((".pyc", ".pyo")):
+            if (
+                fname in _BUILD_RESIDUE_FILES
+                or fname.startswith(".coverage")
+                or fname.endswith((".pyc", ".pyo"))
+            ):
                 continue
             if drop and (
                 fname if rel_dir == "." else f"{rel_dir}/{fname}"
             ) in drop:
                 continue
             rel_path = (Path(dst_prefix) / rel_to_src / fname).as_posix()
-            file_bytes[rel_path] = src_file.read_bytes()
+            file_bytes[rel_path] = read_confined_regular_file(src_dir, src_file)
             file_kinds[rel_path] = kind
 
 
@@ -864,50 +884,93 @@ def init_self_hosted(cfg: SelfHostedInitConfig) -> SelfHostedInitResult:
     file_bytes: dict[str, bytes] = {}
     file_kinds: dict[str, str] = {}
 
+    def _collect_source_dir(
+        src_dir: Path,
+        dst_prefix: str,
+        *,
+        kind: str,
+        exclude: tuple[str, ...] = (),
+    ) -> str | None:
+        try:
+            _collect_dir_bytes(
+                src_dir,
+                dst_prefix,
+                file_bytes,
+                file_kinds,
+                kind=kind,
+                exclude=exclude,
+            )
+        except UnsafeContentError as exc:
+            return f"unsafe source content: {exc}"
+        return None
+
     # Copy packs.
     for pack_name in pack_names:
         src_pack = cfg.source / "packs" / pack_name
-        _collect_dir_bytes(src_pack, f"packs/{pack_name}", file_bytes, file_kinds, kind="pack")
+        collect_error = _collect_source_dir(
+            src_pack, f"packs/{pack_name}", kind="pack"
+        )
+        if collect_error:
+            return _fail(collect_error)
 
     # Copy profiles.
     for profile_name in profile_names:
         src_profile = cfg.source / "profiles" / f"{profile_name}.toml"
         if src_profile.is_file() and not src_profile.is_symlink():
             rel = f"profiles/{profile_name}.toml"
-            file_bytes[rel] = src_profile.read_bytes()
+            try:
+                file_bytes[rel] = read_confined_regular_file(
+                    cfg.source / "profiles", src_profile
+                )
+            except UnsafeContentError as exc:
+                return _fail(f"unsafe source content: {exc}")
             file_kinds[rel] = "profile"
 
     # Copy guides/_shared/ if requested.
     if cfg.guides == "selected":
         src_guides = cfg.source / "guides" / "_shared"
         if src_guides.is_dir() and not src_guides.is_symlink():
-            _collect_dir_bytes(
-                src_guides, "guides/_shared", file_bytes, file_kinds, kind="guide"
+            collect_error = _collect_source_dir(
+                src_guides, "guides/_shared", kind="guide"
             )
+            if collect_error:
+                return _fail(collect_error)
         else:
             diagnostics.append("guides/_shared/ not found in source; skipping guide copy")
+
+    # Root catalogue conformance ships in both tooling modes. Roster tests are
+    # deliberately outside this explicit source boundary.
+    src_conformance = cfg.source / "tests" / "conformance"
+    if src_conformance.is_dir() and not src_conformance.is_symlink():
+        collect_error = _collect_source_dir(
+            src_conformance,
+            "tests/conformance",
+            kind="conformance",
+        )
+        if collect_error:
+            return _fail(collect_error)
 
     # Vendored mode: copy agentbundle source and catalogue-curation.
     if cfg.tooling == "vendored":
         src_agentbundle = cfg.source / "packages" / "agentbundle"
-        _collect_dir_bytes(
+        collect_error = _collect_source_dir(
             src_agentbundle,
             f"{_VENDORED_TOOLING_ROOT}/agentbundle",
-            file_bytes,
-            file_kinds,
             kind="vendored",
             exclude=_VENDORED_ENGINE_EXCLUDE,
         )
+        if collect_error:
+            return _fail(collect_error)
         src_curation = cfg.source / "packs" / "catalogue-curation"
         if src_curation.is_dir() and not src_curation.is_symlink():
-            _collect_dir_bytes(
+            collect_error = _collect_source_dir(
                 src_curation,
                 f"{_VENDORED_TOOLING_ROOT}/packs/catalogue-curation",
-                file_bytes,
-                file_kinds,
                 kind="vendored",
                 exclude=_VENDORED_PACK_EXCLUDE,
             )
+            if collect_error:
+                return _fail(collect_error)
         else:
             diagnostics.append(
                 "packs/catalogue-curation/ not found in source; skipping vendored curation copy"

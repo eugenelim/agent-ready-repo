@@ -26,9 +26,10 @@ import tomllib
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
-SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+DATA_ROOT = PACKAGE_ROOT / "agentbundle" / "_data"
+CONTRACT_PATH = DATA_ROOT / "adapter.toml"
+SCHEMA_PATH = DATA_ROOT / "adapter.schema.json"
 
 # All seven base projection modes.
 SEVEN_RFC_MODES = {
@@ -571,25 +572,12 @@ class ContractV05Tests(unittest.TestCase):
         )
 
 
-DATA_CONTRACT_PATH = (
-    REPO_ROOT
-    / "packages"
-    / "agentbundle"
-    / "agentbundle"
-    / "_data"
-    / "adapter.toml"
-)
-SEED_AGENTS_MD_PATH = REPO_ROOT / "packs" / "core" / "seeds" / "AGENTS.md"
-
-
 class TestCodexSkillDirectDirectory(unittest.TestCase):
     """The codex-native-skills contract flip.
 
     Codex `skill` is `direct-directory` projecting to
          `.agents/skills/` with `on-conflict = "prompt-then-preserve"`;
          no managed-block delimiter keys remain on the entry.
-    `contracts/adapter.toml` and the bundled `_data/adapter.toml`
-         are byte-identical.
     The seed AGENTS.md no longer carries the legacy delimiter pair.
     """
 
@@ -604,17 +592,6 @@ class TestCodexSkillDirectDirectory(unittest.TestCase):
         self.assertEqual(entry["on-conflict"], "prompt-then-preserve")
         self.assertNotIn("managed-block-delimiter-start", entry)
         self.assertNotIn("managed-block-delimiter-end", entry)
-
-    def test_contract_files_byte_identical(self) -> None:
-        def _norm(p: Path) -> bytes:
-            return p.read_bytes().replace(b"\r\n", b"\n")
-
-        self.assertEqual(_norm(CONTRACT_PATH), _norm(DATA_CONTRACT_PATH))
-
-    def test_seed_agents_md_has_no_legacy_delimiters(self) -> None:
-        text = SEED_AGENTS_MD_PATH.read_text(encoding="utf-8")
-        self.assertNotIn("<!-- agent-skills:start -->", text)
-        self.assertNotIn("<!-- agent-skills:end -->", text)
 
 
 if __name__ == "__main__":

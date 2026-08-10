@@ -17,16 +17,39 @@ import contextlib
 import io
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+from tests._support import stage_installable_pack
+
 WORK_LOOP_SKILL = ".claude/skills/work-loop/SKILL.md"
 
 
 def _install_core(target: Path, *, force: bool = False) -> tuple[int, str, str]:
     from agentbundle.commands.install import run as install_run
 
+    catalogue = target.parent / "catalogue"
+    if not (catalogue / "packs" / "core").exists():
+        pack = stage_installable_pack(
+            catalogue,
+            "core",
+            """\
+[pack]
+name = "core"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+""",
+        )
+        work_loop = pack / ".apm" / "skills" / "work-loop"
+        work_loop.mkdir()
+        (work_loop / "SKILL.md").write_text(
+            "---\ndescription: Fixture work loop.\n---\nFixture.\n",
+            encoding="utf-8",
+        )
     args = argparse.Namespace(
         pack="core",
-        catalogue=str(REPO_ROOT),
+        catalogue=str(catalogue),
         output=str(target),
         scope="repo",
         emit_install_routes=False,

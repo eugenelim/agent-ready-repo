@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import json
 import os
 import shutil
 import tempfile
@@ -19,10 +20,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONVERTERS_PACK_SRC = REPO_ROOT / "packs" / "converters"
-CORE_PACK_SRC = REPO_ROOT / "packs" / "core"
-
+from tests._support import stage_installable_pack
 
 # ---------------------------------------------------------------------------
 # Part 1: _emit_first_value_handoff unit tests
@@ -59,6 +57,33 @@ _LEVEL_A_DATA = {
     "verification": "Run workspace-status and confirm your queue state is displayed.",
     "recovery": "Re-run adapt-to-project to refresh your repo's skill index.",
 }
+
+
+def _pack_manifest(
+    name: str,
+    first_value: dict | None,
+    *,
+    allowed_scopes: tuple[str, ...] = ("repo",),
+) -> str:
+    """Render the focused manifest fields exercised by this module."""
+    default_scope = allowed_scopes[0]
+    scopes = json.dumps(list(allowed_scopes))
+    lines = [
+        "[pack]",
+        f'name = "{name}"',
+        'version = "0.1.0"',
+        "[pack.adapter-contract]",
+        'version = "0.8"',
+        "[pack.install]",
+        f'default-scope = "{default_scope}"',
+        f"allowed-scopes = {scopes}",
+    ]
+    if first_value:
+        lines.append("[pack.first-value]")
+        for key, value in first_value.items():
+            encoded = str(value).lower() if isinstance(value, bool) else json.dumps(value)
+            lines.append(f"{key} = {encoded}")
+    return "\n".join(lines) + "\n"
 
 
 class EmitFirstValueHandoffUnitTests(unittest.TestCase):
@@ -177,11 +202,7 @@ def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
 
 
 class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
-    """install.run end-to-end handoff tests at repo scope.
-
-    Uses the real converters pack (Level B) and core pack (Level A) from the
-    repo. A scratch pack with no [pack.first-value] provides the baseline.
-    """
+    """install.run end-to-end handoff tests at repo scope."""
 
     def setUp(self) -> None:
         self.tmp = Path(tempfile.mkdtemp())
@@ -191,39 +212,27 @@ class InstallFirstValueHandoffIntegrationTests(unittest.TestCase):
 
         # Catalogue with converters (Level B) and core (Level A).
         self.cat = self.tmp / "catalogue"
-        (self.cat / "packs").mkdir(parents=True)
-        shutil.copytree(CONVERTERS_PACK_SRC, self.cat / "packs" / "converters")
-        shutil.copytree(CORE_PACK_SRC, self.cat / "packs" / "core")
+        stage_installable_pack(
+            self.cat,
+            "converters",
+            _pack_manifest("converters", _LEVEL_B_DATA),
+        )
+        stage_installable_pack(
+            self.cat,
+            "core",
+            _pack_manifest("core", _LEVEL_A_DATA),
+        )
 
         # Scratch pack: no [pack.first-value] section.
         self._make_scratch_pack("nofirstvalue")
 
     def _make_scratch_pack(self, name: str) -> Path:
         """Create a minimal repo-scope pack without [pack.first-value]."""
-        pack_dir = self.cat / "packs" / name
-        pack_dir.mkdir(parents=True)
-        (pack_dir / "pack.toml").write_text(
-            f'[pack]\n'
-            f'name = "{name}"\n'
-            f'version = "0.1.0"\n'
-            f'description = "Scratch fixture: no first-value section."\n\n'
-            f'[pack.adapter-contract]\n'
-            f'version = "0.6"\n\n'
-            f'[pack.install]\n'
-            f'default-scope = "repo"\n'
-            f'allowed-scopes = ["repo"]\n',
-            encoding="utf-8",
-            newline="\n",
+        return stage_installable_pack(
+            self.cat,
+            name,
+            _pack_manifest(name, None),
         )
-        # A minimal skill so the projection is non-empty.
-        skill_dir = pack_dir / ".apm" / "skills" / "dummy"
-        skill_dir.mkdir(parents=True)
-        (skill_dir / "SKILL.md").write_text(
-            "---\ndescription: Scratch skill.\n---\nScratch skill body.\n",
-            encoding="utf-8",
-            newline="\n",
-        )
-        return pack_dir
 
     def _install(
         self, pack: str, *, extra: dict | None = None
@@ -325,8 +334,15 @@ class InstallFirstValueHandoffDualScopeTests(unittest.TestCase):
         self._env.start()
         self.addCleanup(self._env.stop)
         self.cat = self.tmp / "catalogue"
-        (self.cat / "packs").mkdir(parents=True)
-        shutil.copytree(CONVERTERS_PACK_SRC, self.cat / "packs" / "converters")
+        stage_installable_pack(
+            self.cat,
+            "converters",
+            _pack_manifest(
+                "converters",
+                _LEVEL_B_DATA,
+                allowed_scopes=("user", "repo"),
+            ),
+        )
 
     def _install(
         self, *, scope: str, force: bool = False

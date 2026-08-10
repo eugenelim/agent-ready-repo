@@ -192,6 +192,14 @@ def main() -> int:
     _check("step-working-directory-prefix",
            M.extract_step_targets("python -m pytest test_render.py", "packs/x/scripts"),
            ["packs/x/scripts/test_render.py"])
+    _check(
+        "step-working-directory-parent-normalized",
+        M.extract_step_targets(
+            "python -m pytest ../../packs/x/tests/test_rule.py",
+            "packages/agentbundle",
+        ),
+        ["packs/x/tests/test_rule.py"],
+    )
     _check("step-provisioning-yields-nothing",
            M.extract_step_targets("pip install -r tools/requirements.txt"), [])
     _check("step-flag-value-not-a-target",

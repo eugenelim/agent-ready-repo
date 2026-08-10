@@ -26,16 +26,16 @@ from __future__ import annotations
 import copy
 import json
 import unittest
-from pathlib import Path
+from importlib.resources import files
 
 from agentbundle.build import validate as v
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-ADAPTER_SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
+ADAPTER_SCHEMA = files("agentbundle").joinpath("_data/adapter.schema.json")
+ADAPTER_CONTRACT = files("agentbundle").joinpath("_data/adapter.toml")
 
 
 def _load_schema() -> dict:
-    return json.loads(ADAPTER_SCHEMA_PATH.read_text(encoding="utf-8"))
+    return json.loads(ADAPTER_SCHEMA.read_text(encoding="utf-8"))
 
 
 def _minimal_v0_3_contract() -> dict:
@@ -116,8 +116,7 @@ class ExistingContractStillValidates(unittest.TestCase):
         import tomllib
 
         schema = _load_schema()
-        contract_path = REPO_ROOT / "contracts" / "adapter.toml"
-        contract = tomllib.loads(contract_path.read_text(encoding="utf-8"))
+        contract = tomllib.loads(ADAPTER_CONTRACT.read_text(encoding="utf-8"))
         errors = v.validate(contract, schema)
         self.assertEqual(errors, [])
 

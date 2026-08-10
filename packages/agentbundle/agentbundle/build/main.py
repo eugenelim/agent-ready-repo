@@ -27,7 +27,6 @@ from pathlib import Path
 from typing import Iterable
 
 from agentbundle.build.adapters import ADAPTERS
-from agentbundle.build.contract import load as load_contract
 from agentbundle.build.validate import validate as validate_instance
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
@@ -158,7 +157,9 @@ def _read_install_marker_template() -> bytes:
             return resource.read_bytes()
     except (FileNotFoundError, ModuleNotFoundError):
         pass
-    return (REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py").read_bytes()
+    return (
+        REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
+    ).read_bytes()
 
 
 def _project_pack_readme(pack_path: Path, per_pack_output: Path) -> None:
@@ -194,7 +195,8 @@ def validate_derived_plugin_manifest_dict(manifest: dict, label: str = "<derived
 
 
 def validate_derived_plugin_manifest(plugin_json_path: Path) -> None:
-    """Validate a derived .claude-plugin/plugin.json (with synthesised hooks) against derived schema.
+    """Validate a derived .claude-plugin/plugin.json (with synthesised hooks)
+    against derived schema.
 
     Defence-in-depth: also available as validate_derived_plugin_manifest_dict
     for pre-write validation before the file is written to disk.
@@ -303,6 +305,7 @@ def derive_projectable_subset(pack_toml: dict) -> dict:
         out["displayName"] = display_name
 
     return out
+
 
 # The three default recipes that plain `make build` invokes.
 # The self-host recipes (per-pack-overlay, composite-agents-md,

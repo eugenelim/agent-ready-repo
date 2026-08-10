@@ -1,0 +1,16 @@
+graft tests
+include conftest.py
+graft templates
+recursive-include agentbundle/_data/catalogue-scaffold/packs/_example/.apm *
+recursive-include agentbundle/_data/catalogue-scaffold/packs/_example/.claude-plugin *
+prune tests/live-catalogue
+prune tests/.pytest_cache
+prune tests/.mypy_cache
+prune tests/.ruff_cache
+prune tests/.hypothesis
+prune tests/htmlcov
+global-exclude *.py[cod]
+global-exclude .DS_Store
+global-exclude .coverage
+global-exclude .coverage.*
+global-exclude coverage.xml

@@ -44,7 +44,6 @@ import json
 import tomllib
 from pathlib import Path
 
-
 # copilot's hook-body retarget (contract v0.10): legacy `tools/hooks/` →
 # `.github/hooks/`. A carried command that references a hook body by its legacy
 # path is rewritten so it points where `direct-file` actually lands the script.

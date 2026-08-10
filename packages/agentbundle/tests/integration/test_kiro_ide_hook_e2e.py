@@ -22,8 +22,9 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-V0_3_CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+V0_3_CONTRACT_PATH = (
+    Path(__file__).resolve().parents[2] / "agentbundle" / "_data" / "adapter.toml"
+)
 
 
 def _synthesised_v0_4_contract() -> dict:

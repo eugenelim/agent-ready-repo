@@ -23,11 +23,9 @@ from agentbundle.commands.validate import (
     _validate_allowed_adapters,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = (
-    REPO_ROOT
-    / "packages"
-    / "agentbundle"
+    PACKAGE_ROOT
     / "agentbundle"
     / "_data"
     / "pack.schema.json"

@@ -19,15 +19,13 @@ import tempfile
 from pathlib import Path
 from typing import Iterator
 
-
 # Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
-from agentbundle.build.projections.direct_directory import sweep_orphans
-from agentbundle.build.projections.merge_json import project_merge_json
 from agentbundle.build.projections.codex_agent_toml import (
     project_codex_agent_toml,
 )
-
+from agentbundle.build.projections.direct_directory import sweep_orphans
+from agentbundle.build.projections.merge_json import project_merge_json
 
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
@@ -104,13 +102,16 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
             try:
                 with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as handle:
                     handle.write(stripped)
-                os.replace(tmp_path, agents_md)
+                Path(tmp_path).replace(agents_md)
             except BaseException:
                 Path(tmp_path).unlink(missing_ok=True)
                 raise
 
     adapter_block = contract["adapter"]["codex"]
-    rules_by_primitive = {entry["primitive"]: entry for entry in adapter_block.get("projection", [])}
+    rules_by_primitive = {
+        entry["primitive"]: entry
+        for entry in adapter_block.get("projection", [])
+    }
 
     for primitive_name in _iter_primitives(contract):
         rule = rules_by_primitive[primitive_name]
@@ -201,7 +202,7 @@ def _ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
     return {
         name for name in names
         if name == "__pycache__"
-        or ((base / name).is_symlink() and os.path.isabs(os.readlink(base / name)))
+        or ((base / name).is_symlink() and (base / name).readlink().is_absolute())
     }
 
 

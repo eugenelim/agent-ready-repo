@@ -3,11 +3,7 @@ the credential-broker contract, co-residing at v0.7).
 
 Verifies the T1 edits landed:
 
-  - ``[contract] version == "0.7"`` in both the runtime data file
-    (`_data/adapter.toml`) and the docs mirror
-    (`contracts/adapter.toml`). The two files must stay byte-
-    aligned per the v0.3-schema sync test; this module pins the
-    version on both as belt-and-braces.
+  - ``[contract] version >= "0.8"`` in the runtime data file.
   - **Per-adapter-projection surface:**
     * ``[adapter.copilot.scope]`` exists with ``repo = "."``,
       ``allowed-prefixes.repo`` enumerating the per-IDE skill /
@@ -35,19 +31,10 @@ import tomllib
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-DATA_CONTRACT_PATH = (
-    REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "adapter.toml"
-)
-DOCS_CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
-DATA_SCHEMA_PATH = (
-    REPO_ROOT
-    / "packages"
-    / "agentbundle"
-    / "agentbundle"
-    / "_data"
-    / "adapter.schema.json"
-)
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+DATA_ROOT = PACKAGE_ROOT / "agentbundle" / "_data"
+DATA_CONTRACT_PATH = DATA_ROOT / "adapter.toml"
+DATA_SCHEMA_PATH = DATA_ROOT / "adapter.schema.json"
 
 
 def _version_tuple(contract: dict) -> tuple[int, ...]:
@@ -58,9 +45,6 @@ def _version_tuple(contract: dict) -> tuple[int, ...]:
 class TestContractV07(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = tomllib.loads(DATA_CONTRACT_PATH.read_text(encoding="utf-8"))
-        self.docs_contract = tomllib.loads(
-            DOCS_CONTRACT_PATH.read_text(encoding="utf-8")
-        )
 
     def test_contract_version_is_07(self) -> None:
         """Per-adapter projection + credential broker + dropped-primitives
@@ -75,10 +59,6 @@ class TestContractV07(unittest.TestCase):
         # features must survive future bumps — validated by invariant tests below).
         # Compare as (major, minor) tuples — a string compare breaks at v0.10.
         self.assertGreaterEqual(_version_tuple(self.contract), (0, 8))
-
-    def test_docs_contract_version_is_07(self) -> None:
-        """docs mirror stays in sync (byte-identical to _data/ adapter.toml)."""
-        self.assertGreaterEqual(_version_tuple(self.docs_contract), (0, 8))
 
     def test_copilot_scope_table_shape(self) -> None:
         copilot_scope = self.contract["adapter"]["copilot"].get("scope")

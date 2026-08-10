@@ -25,12 +25,12 @@ import sys
 from pathlib import Path
 
 from agentbundle.build.contract import load as load_contract
-from agentbundle.build.validate import validate as validate_instance
 from agentbundle.build.lint_packs import cmd_lint_packs
-from agentbundle.build.main import cmd_build
+from agentbundle.build.main import _read_bundled, cmd_build
 from agentbundle.build.self_host import cmd_check, cmd_self
+from agentbundle.build.validate import validate as validate_instance
 
-__all__ = ["main"]
+__all__ = ["main", "cmd_lint_packs"]
 
 
 def _cmd_validate(args: argparse.Namespace) -> int:
@@ -42,14 +42,12 @@ def _cmd_validate(args: argparse.Namespace) -> int:
         )
         return 1
 
-    schema_path = (
-        Path(__file__).resolve().parent.parent.parent.parent.parent
-        / "contracts"
-        / "adapter.schema.json"
-    )
-    if not schema_path.exists():
+    try:
+        schema_text = _read_bundled("adapter.schema.json")
+    except (FileNotFoundError, ModuleNotFoundError):
         print(
-            f"validate: adapter.schema.json not found at {schema_path}",
+            "validate: adapter.schema.json not found in package data or "
+            "repository contracts",
             file=sys.stderr,
         )
         return 1
@@ -60,7 +58,7 @@ def _cmd_validate(args: argparse.Namespace) -> int:
         print(f"validate: failed to load {contract_path}: {exc}", file=sys.stderr)
         return 1
 
-    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+    schema = json.loads(schema_text)
     errors = validate_instance(contract, schema)
     if errors:
         print(
@@ -172,7 +170,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def _cmd_build_shim(args) -> int:
     print(
-        "agentbundle.build build is deprecated; use 'agentbundle catalogue build --root .' instead",
+        "agentbundle.build build is deprecated; "
+        "use 'agentbundle catalogue build --root .' instead",
         file=sys.stderr,
     )
     return int(cmd_build(args))
@@ -180,7 +179,8 @@ def _cmd_build_shim(args) -> int:
 
 def _cmd_self_shim(args) -> int:
     print(
-        "agentbundle.build self is deprecated; use 'agentbundle catalogue self-host --write --root .' instead",
+        "agentbundle.build self is deprecated; "
+        "use 'agentbundle catalogue self-host --write --root .' instead",
         file=sys.stderr,
     )
     return int(cmd_self(args))
@@ -188,7 +188,8 @@ def _cmd_self_shim(args) -> int:
 
 def _cmd_check_shim(args) -> int:
     print(
-        "agentbundle.build check is deprecated; use 'agentbundle catalogue self-host --check --root .' instead",
+        "agentbundle.build check is deprecated; "
+        "use 'agentbundle catalogue self-host --check --root .' instead",
         file=sys.stderr,
     )
     return int(cmd_check(args))
@@ -196,7 +197,8 @@ def _cmd_check_shim(args) -> int:
 
 def _cmd_lint_packs_shim(args) -> int:
     print(
-        "agentbundle.build lint-packs is deprecated; use 'agentbundle catalogue lint --root .' instead",
+        "agentbundle.build lint-packs is deprecated; "
+        "use 'agentbundle catalogue lint --root .' instead",
         file=sys.stderr,
     )
     from agentbundle.catalogue_tooling.lint import lint_catalogue, render_table

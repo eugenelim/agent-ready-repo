@@ -36,8 +36,8 @@ from agentbundle.build.self_host import (
     run_self_host,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 
 
 def _seed_pack(root: Path, name: str = "core") -> Path:
@@ -1236,29 +1236,6 @@ class SeedProjectionTests(unittest.TestCase):
                 'seed collision at "docs/architecture/reference.md"',
                 str(ctx.exception),
             )
-
-    def test_no_pre_placed_reference_md_core_seed(self) -> None:
-        """Precondition that makes the *sole*-producer case collision-free:
-        `core` does NOT ship `docs/architecture/reference.md` as a seed.
-        The arc42 template is a skill asset instantiated on demand, never a
-        pre-placed seed — so a single stack pack shipping `reference.md`
-        has nothing in core to collide against.
-        """
-        core_seed = (
-            REPO_ROOT
-            / "packs"
-            / "core"
-            / "seeds"
-            / "docs"
-            / "architecture"
-            / "reference.md"
-        )
-        self.assertFalse(
-            core_seed.exists(),
-            f"{core_seed} must not exist — reference.md is a template-on-demand "
-            "skill asset, not a core seed (a core seed would collide with every "
-            "stack pack that ships its own).",
-        )
 
     def test_underscore_prefixed_files_are_composition_fragments_not_projected(
         self,

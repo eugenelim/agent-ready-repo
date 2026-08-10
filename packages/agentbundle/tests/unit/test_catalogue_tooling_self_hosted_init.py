@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+import shutil
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -15,6 +19,9 @@ from agentbundle.catalogue_tooling.initialise_self_hosted import (
     select_packs,
     validate_fields,
 )
+from agentbundle.scaffold import scaffold_root
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -36,12 +43,25 @@ def _make_source(tmp_path: Path, packs: list[str] | None = None) -> Path:
         p = packs_dir / name
         p.mkdir()
         (p / "pack.toml").write_text(
-            f'[pack]\nname = "{name}"\nversion = "0.1.0"\n', encoding="utf-8"
+            f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+            'readme = "README.md"\nlicense = "Apache-2.0"\n'
+            'categories = ["testing"]\nkeywords = ["testing"]\n'
+            'maintainers = [{name = "Example Maintainer"}]\n'
+            '[pack.links]\nrepository = "https://example.com/catalogue"\n',
+            encoding="utf-8",
         )
+        (p / "README.md").write_text(f"# {name}\n", encoding="utf-8")
     (source / "profiles").mkdir()
     (source / "profiles" / "default.toml").write_text(
         '[profile]\nname = "default"\n', encoding="utf-8"
     )
+    shutil.copytree(
+        scaffold_root() / "tests" / "conformance",
+        source / "tests" / "conformance",
+    )
+    roster = source / "tests" / "roster"
+    roster.mkdir()
+    (roster / "sentinel.txt").write_text("must not ship\n", encoding="utf-8")
     return source
 
 
@@ -58,6 +78,76 @@ def _base_cfg(tmp_path: Path, source: Path, **kwargs) -> SelfHostedInitConfig:
     }
     defaults.update(kwargs)
     return SelfHostedInitConfig(**defaults)
+
+
+def _assert_materialised_conformance_passes(
+    target: Path, *, tooling: str = "external"
+) -> None:
+    """Execute the exact conformance suite copied into a self-hosted target."""
+    env = os.environ.copy()
+    if tooling == "vendored":
+        vendored_project = target / ".agentbundle" / "tooling" / "agentbundle"
+        current = env.get("PYTHONPATH")
+        env["PYTHONPATH"] = (
+            str(vendored_project)
+            if not current
+            else str(vendored_project) + os.pathsep + current
+        )
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "tests/conformance", "-q"],
+        cwd=target,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def _run_self_hosted_cli(
+    source: Path, target: Path, *, tooling: str
+) -> subprocess.CompletedProcess[str]:
+    """Invoke the public self-hosted init route from the source package."""
+    env = os.environ.copy()
+    current = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        str(PACKAGE_ROOT)
+        if not current
+        else str(PACKAGE_ROOT) + os.pathsep + current
+    )
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "agentbundle",
+            "catalogue",
+            "init",
+            str(target),
+            "--preset",
+            "self-hosted",
+            "--tooling",
+            tooling,
+            "--source",
+            str(source),
+            "--name",
+            "cli-catalogue",
+            "--display-name",
+            "CLI Catalogue",
+            "--description",
+            "A CLI lifecycle fixture.",
+            "--owner-name",
+            "Example Maintainer",
+            "--owner-email",
+            "maintainer@example.com",
+            "--preferred-adapter",
+            "claude-code",
+            "--guides",
+            "none",
+        ],
+        cwd=PACKAGE_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -150,6 +240,43 @@ def test_init_self_hosted_external_creates_packs(tmp_path: Path) -> None:
     assert result.ok, result.diagnostics
     assert (cfg.target / "packs" / "core" / "pack.toml").exists()
     assert (cfg.target / "catalogue.toml").exists()
+    assert (cfg.target / "tests" / "conformance" / "test_pack_metadata.py").exists()
+    assert not (cfg.target / "tests" / "roster").exists()
+    _assert_materialised_conformance_passes(cfg.target)
+
+
+def test_init_self_hosted_refuses_hard_linked_conformance(tmp_path: Path) -> None:
+    """Self-hosted init rejects conformance bytes linked from outside source."""
+    source = _make_source(tmp_path)
+    conformance = source / "tests" / "conformance" / "test_pack_metadata.py"
+    conformance.unlink()
+    outside = tmp_path / "outside.py"
+    outside.write_text("def test_outside(): pass\n", encoding="utf-8")
+    try:
+        os.link(outside, conformance)
+    except OSError:
+        pytest.skip("st_nlink hard-link detection is POSIX-only")
+
+    result = init_self_hosted(_base_cfg(tmp_path, source))
+
+    assert not result.ok
+    assert any("hard link not allowed" in item for item in result.diagnostics)
+
+
+def test_init_self_hosted_prunes_conformance_build_residue(tmp_path: Path) -> None:
+    """Materialization never copies cache bytes that embed checkout paths."""
+    source = _make_source(tmp_path)
+    cache = source / "tests" / "conformance" / "__pycache__"
+    cache.mkdir()
+    (cache / "test_pack_metadata.cpython-313.pyc").write_bytes(
+        b"/Users/example/private-checkout"
+    )
+
+    cfg = _base_cfg(tmp_path, source)
+    result = init_self_hosted(cfg)
+
+    assert result.ok, result.diagnostics
+    assert not (cfg.target / "tests" / "conformance" / "__pycache__").exists()
 
 
 def test_init_self_hosted_external_excludes_catalogue_curation(tmp_path: Path) -> None:
@@ -236,10 +363,10 @@ def test_init_self_hosted_profiles_copied(tmp_path: Path) -> None:
 
 def test_init_self_hosted_vendored_copies_tooling(tmp_path: Path) -> None:
     source = _make_source(tmp_path)
-    # Add agentbundle source tree to source.
+    # Add a real importable agentbundle runtime tree to the source.
     agentbundle_src = source / "packages" / "agentbundle" / "agentbundle"
-    agentbundle_src.mkdir(parents=True)
-    (agentbundle_src / "__init__.py").write_text("", encoding="utf-8")
+    agentbundle_src.parent.mkdir(parents=True)
+    shutil.copytree(PACKAGE_ROOT / "agentbundle", agentbundle_src)
     # Add catalogue-curation to source packs.
     cc = source / "packs" / "catalogue-curation"
     cc.mkdir()
@@ -252,6 +379,33 @@ def test_init_self_hosted_vendored_copies_tooling(tmp_path: Path) -> None:
     assert result.ok, result.diagnostics
     assert (cfg.target / ".agentbundle" / "tooling" / "agentbundle").is_dir()
     assert (cfg.target / ".agentbundle" / "tooling" / "packs" / "catalogue-curation").is_dir()
+    assert (cfg.target / "tests" / "conformance" / "test_pack_metadata.py").exists()
+    assert not (cfg.target / "tests" / "roster").exists()
+    _assert_materialised_conformance_passes(cfg.target, tooling="vendored")
+
+
+@pytest.mark.parametrize("tooling", ["external", "vendored"])
+def test_self_hosted_init_cli_materialises_runnable_conformance(
+    tmp_path: Path, tooling: str
+) -> None:
+    """Both public self-hosted CLI modes deliver their runnable suite."""
+    source = _make_source(tmp_path)
+    if tooling == "vendored":
+        agentbundle_src = source / "packages" / "agentbundle" / "agentbundle"
+        agentbundle_src.parent.mkdir(parents=True)
+        shutil.copytree(PACKAGE_ROOT / "agentbundle", agentbundle_src)
+        curation = source / "packs" / "catalogue-curation"
+        curation.mkdir()
+        (curation / "pack.toml").write_text(
+            '[pack]\nname = "catalogue-curation"\nversion = "0.2.0"\n',
+            encoding="utf-8",
+        )
+    target = tmp_path / f"target-{tooling}"
+
+    result = _run_self_hosted_cli(source, target, tooling=tooling)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    _assert_materialised_conformance_passes(target, tooling=tooling)
 
 
 def test_init_self_hosted_vendored_missing_agentbundle_diagnostic(tmp_path: Path) -> None:

@@ -14,11 +14,9 @@ deep-merging the incoming TOML payload.
 
 from __future__ import annotations
 
-import os
 import shutil
 from pathlib import Path
 from typing import Iterator
-
 
 # Phase order from the build-pipeline ordering invariant.
 # Uniform across all reference adapters even though Claude Code's
@@ -139,7 +137,10 @@ def _sweep_skill_orphans(pack_paths: list[Path], contract: dict, output_root: Pa
 
 def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
     adapter_block = contract["adapter"]["claude-code"]
-    rules_by_primitive = {entry["primitive"]: entry for entry in adapter_block.get("projection", [])}
+    rules_by_primitive = {
+        entry["primitive"]: entry
+        for entry in adapter_block.get("projection", [])
+    }
 
     for primitive_name in _iter_primitives(contract):
         rule = rules_by_primitive[primitive_name]
@@ -175,7 +176,7 @@ def _ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
     return {
         name for name in names
         if name == "__pycache__"
-        or ((base / name).is_symlink() and os.path.isabs(os.readlink(base / name)))
+        or ((base / name).is_symlink() and (base / name).readlink().is_absolute())
     }
 
 
@@ -213,5 +214,3 @@ def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str
         if entry.is_file():
             destination = target_dir / entry.name
             shutil.copy2(entry, destination, follow_symlinks=False)
-
-

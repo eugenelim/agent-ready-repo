@@ -21,16 +21,21 @@ from pathlib import Path
 from agentbundle.commands import install, list_packs, list_profiles
 from agentbundle.user_config import UserConfig
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-REAL_CORE = REPO_ROOT / "packs" / "core"
+FIXTURE_CORE = (
+    Path(__file__).resolve().parents[1]
+    / "build_pipeline"
+    / "fixtures"
+    / "packs"
+    / "core"
+)
 
 
 def _local_catalogue(tmp_path: Path) -> Path:
     """A tmp catalogue holding both markers (`packs/` + the marketplace file)
-    and a real `packs/core/`."""
+    and a representative fixture core pack."""
     cat = tmp_path / "cat"
     (cat / "packs").mkdir(parents=True)
-    shutil.copytree(REAL_CORE, cat / "packs" / "core", symlinks=False)
+    shutil.copytree(FIXTURE_CORE, cat / "packs" / "core", symlinks=False)
     cp = cat / ".claude-plugin"
     cp.mkdir()
     (cp / "marketplace.json").write_text("{}", encoding="utf-8", newline="\n")

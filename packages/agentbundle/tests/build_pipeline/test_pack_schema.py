@@ -19,9 +19,9 @@ import tomllib
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 PACK_SCHEMA_PATH = (
-    REPO_ROOT / "contracts" / "pack.schema.json"
+    PACKAGE_ROOT / "agentbundle" / "_data" / "pack.schema.json"
 )
 
 

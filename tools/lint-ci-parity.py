@@ -65,6 +65,7 @@ absent).
 from __future__ import annotations
 
 import argparse
+import posixpath
 import re
 import sys
 from pathlib import Path
@@ -301,6 +302,8 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         CI_ONLY(
             "needs httpx>=0.27 (RFC-0035 step installs it)."
         ),
+    "pytest catalogue-test carve-out destinations (RFC-0082)":
+        LOCAL("test"),
     "pytest user-libs vendored floor (credbroker-user-scope T3)":
         LOCAL("test"),
     "pytest cursor adapter (cursor-full-parity)":
@@ -507,7 +510,11 @@ def _pytest_path_args(segment: str) -> list[str] | None:
 def _prefixed(target: str, working_directory: str) -> str:
     wd = working_directory.strip().strip("/")
     tok = target.replace("\\", "/").removeprefix("./")
-    return f"{wd}/{tok}" if wd else tok
+    combined = f"{wd}/{tok}" if wd else tok
+    normalized = posixpath.normpath(combined)
+    if tok.endswith("/") and normalized != ".":
+        normalized += "/"
+    return normalized
 
 
 def extract_step_targets(run: str, working_directory: str = "") -> list[str]:

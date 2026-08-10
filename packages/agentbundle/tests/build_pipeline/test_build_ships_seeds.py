@@ -18,7 +18,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _make_seed_pack(packs_dir: Path) -> None:
@@ -63,7 +63,7 @@ class BuildShipsSeedsTests(unittest.TestCase):
                     "--packs-dir", str(packs_dir),
                     "--output-dir", str(out),
                 ],
-                capture_output=True, text=True, cwd=REPO_ROOT,
+                capture_output=True, text=True, cwd=PACKAGE_ROOT,
             )
             self.assertEqual(result.returncode, 0, msg=result.stderr)
 

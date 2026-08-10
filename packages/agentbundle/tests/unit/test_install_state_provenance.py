@@ -21,8 +21,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONVERTERS_PACK_SRC = REPO_ROOT / "packs" / "converters"
+from tests._support import stage_installable_pack
+
+_CONVERTERS_MANIFEST = """\
+[pack]
+name = "converters"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+"""
 
 
 def _run_install(args: argparse.Namespace) -> tuple[int, str, str]:
@@ -83,8 +93,7 @@ class InstallHTTPSProvenanceTests(unittest.TestCase):
         self.repo = self.tmp / "repo"
         self.repo.mkdir()
         self.cat = self.tmp / "catalogue"
-        (self.cat / "packs").mkdir(parents=True)
-        shutil.copytree(CONVERTERS_PACK_SRC, self.cat / "packs" / "converters")
+        stage_installable_pack(self.cat, "converters", _CONVERTERS_MANIFEST)
 
     def _read_pack_state(self) -> object:
         from agentbundle.config import load_state

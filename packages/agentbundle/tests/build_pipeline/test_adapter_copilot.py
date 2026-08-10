@@ -9,8 +9,8 @@ from pathlib import Path
 from agentbundle.build.adapters.copilot import project
 from agentbundle.build.contract import load as load_contract
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 
 
 def _seed_pack(root: Path) -> Path:

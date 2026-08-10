@@ -19,32 +19,18 @@ Coverage:
 
 from __future__ import annotations
 
-import re
 import shutil
 import tempfile
 import unittest
 from pathlib import Path
 
-from agentbundle.build import shared_libs
+from agentbundle.build import adapter_root_bins, shared_libs
 
-SHIM_BASENAMES = ("credentials_shim.py", "_keychain_macos.py", "_credman_windows.py")
-# `credentials_shim` import forms, assembled from parts so this test's own
-# source isn't mistaken for a consumer importing the retired shim. Matches
-# any import shape — relative (`from .` / `from ..`), dotted-package, or bare
-# — so a future re-introduction in any form is caught.
-_SHIM_IMPORT_RE = re.compile(
-    r"(?:from\s+\.{0,2}(?:[\w.]+\.)?" + "credentials_shim" + r"\s+import"
-    r"|import\s+(?:[\w.]+\.)?" + "credentials_shim" + r"\b)"
+SHIM_BASENAMES = (
+    adapter_root_bins.SHIM_COMPANION_BASENAME,
+    "_keychain_macos.py",
+    "_credman_windows.py",
 )
-
-
-def _repo_root() -> Path:
-    """Walk up from this file until a tree carrying the
-    ``credential-brokers`` pack is found — robust to test CWD."""
-    for parent in Path(__file__).resolve().parents:
-        if (parent / "packs" / "credential-brokers").is_dir():
-            return parent
-    raise RuntimeError("could not locate repo root (packs/credential-brokers)")
 
 
 def _write_pack(
@@ -93,7 +79,9 @@ class CollectSourcesTests(_FixtureBase):
         )
         sources = shared_libs.collect_sources(self.packs_dir)
         self.assertEqual(set(sources), set(SHIM_BASENAMES))
-        self.assertTrue(sources["credentials_shim.py"].is_file())
+        self.assertTrue(
+            sources[adapter_root_bins.SHIM_COMPANION_BASENAME].is_file()
+        )
 
     def test_no_sources_returns_empty(self) -> None:
         _write_pack(self.packs_dir, "plain")  # no shared-libs/
@@ -145,73 +133,6 @@ class ProjectionRetirementGuardTests(unittest.TestCase):
     def test_collect_sources_survives(self) -> None:
         self.assertTrue(hasattr(shared_libs, "collect_sources"))
         self.assertTrue(hasattr(shared_libs, "SOURCE_SUBDIR"))
-
-
-class RealTreeInvariantTests(unittest.TestCase):
-    """Standing regression against the real repo tree (spec AC for T9)."""
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        cls.repo_root = _repo_root()
-
-    def test_no_shim_copies_in_any_consumer_scripts(self) -> None:
-        """No projected shim copy remains in any pack skill's scripts/
-        (the projection was retired; the credbroker pip dep replaces it)."""
-        offenders: list[str] = []
-        for scripts_dir in self.repo_root.glob("packs/*/.apm/skills/*/scripts"):
-            for basename in SHIM_BASENAMES:
-                if (scripts_dir / basename).exists():
-                    offenders.append(
-                        str((scripts_dir / basename).relative_to(self.repo_root))
-                    )
-        self.assertEqual(
-            offenders, [],
-            f"retired shim projection reappeared under consumer scripts/: "
-            f"{offenders}",
-        )
-
-    def test_no_consumer_scripts_imports_the_shim(self) -> None:
-        """No `.py` under any consumer `scripts/` imports `credentials_shim`
-        — the resolver moved to the `credbroker` pip library (spec AC: the
-        six consumers import credbroker and **none** imports the shim). The
-        shim files are gone, so a surviving import would also be a dangling
-        reference; assert against the import line directly."""
-        offenders: list[str] = []
-        for py in self.repo_root.glob("packs/*/.apm/skills/*/scripts/*.py"):
-            try:
-                text = py.read_text(encoding="utf-8")
-            except OSError:
-                continue
-            if _SHIM_IMPORT_RE.search(text):
-                offenders.append(str(py.relative_to(self.repo_root)))
-        self.assertEqual(
-            offenders, [],
-            f"consumer scripts/ still import the retired shim "
-            f"(resolve via `from credbroker import …` instead): {offenders}",
-        )
-
-    def test_shim_source_retained_for_companion_rail(self) -> None:
-        """The shim source (`credentials_shim.py` + per-platform backends)
-        under credential-brokers/shared-libs/ is KEPT — the adapter-root-bins
-        rail projects it into `.agentbundle/bin/` so the sso-broker's
-        per-platform Tier-2 backends can `from .credentials_shim import
-        Tier2HardFailError` (adapter_root_bins._assert_shim_companion_present
-        hard-fails build-check if it's gone)."""
-        shared = (
-            self.repo_root
-            / "packs" / "credential-brokers" / ".apm" / "shared-libs"
-        )
-        for basename in SHIM_BASENAMES:
-            self.assertTrue(
-                (shared / basename).is_file(),
-                f"companion-rail source {basename} must be retained",
-            )
-
-    def test_collect_sources_finds_the_companion_source(self) -> None:
-        """collect_sources still locates the shim source on the real tree
-        — the input the adapter-root-bins companion rail depends on."""
-        sources = shared_libs.collect_sources(self.repo_root / "packs")
-        self.assertIn("credentials_shim.py", sources)
 
 
 if __name__ == "__main__":

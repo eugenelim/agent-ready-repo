@@ -35,13 +35,6 @@ def _load_contract() -> dict:
     return _tomllib.loads(_read_bundled("adapter.toml"))
 
 
-def _packs_dir() -> Path:
-    """Absolute path to the repo's packs/ directory."""
-    from agentbundle.build.main import REPO_ROOT
-
-    return REPO_ROOT / "packs"
-
-
 def _seed_wiring(root: Path, name: str, content: str) -> Path:
     """Write a hook-wiring TOML at ``<root>/.apm/hook-wiring/<name>.toml``."""
     hw_dir = root / ".apm" / "hook-wiring"
@@ -61,6 +54,14 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
         self._tmp = tempfile.TemporaryDirectory()
         self.tmp_path = Path(self._tmp.name)
         self.contract = _load_contract()
+        self.core = self.tmp_path / "core"
+        for name in ("session-start", "work-loop-check"):
+            _seed_wiring(
+                self.core,
+                name,
+                "[[hooks.SessionStart]]\n"
+                'hooks = [{ type = "command", command = "python hook.py" }]\n',
+            )
 
     def tearDown(self) -> None:
         self._tmp.cleanup()
@@ -81,7 +82,7 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
         shape, adding the second pair.
         """
         result = enumerate_event_dropped_wirings(
-            _packs_dir() / "core",
+            self.core,
             "kiro",
             self.contract,
         )
@@ -133,7 +134,7 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
         )
 
         result = enumerate_event_dropped_wirings(
-            _packs_dir() / "core",
+            self.core,
             "claude-code",
             self.contract,
         )
@@ -142,7 +143,7 @@ class TestEnumerateEventDroppedWirings(unittest.TestCase):
     def test_enumerate_event_drops_silent_when_type_dropped(self) -> None:
         """copilot has hook-wiring dropped at the type level; returns []."""
         result = enumerate_event_dropped_wirings(
-            _packs_dir() / "core",
+            self.core,
             "copilot",
             self.contract,
         )

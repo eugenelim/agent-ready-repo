@@ -52,7 +52,6 @@ import re
 from pathlib import Path
 from typing import Iterable
 
-
 # Both legacy UPPER_SNAKE and canonical lowercase-hyphen marker forms
 # are recognised. The canonical
 # form is what self_host.resolve_markers writes; the legacy form is
@@ -392,7 +391,7 @@ def check_kiro_event_vocabulary(
         hooks = body.get("hooks", {}) if isinstance(body, dict) else {}
         if not isinstance(hooks, dict):
             continue
-        for event in hooks.keys():
+        for event in hooks:
             if event not in allowed:
                 return (
                     f"pack {pack_name}'s hook-wiring {wiring_name}.toml "

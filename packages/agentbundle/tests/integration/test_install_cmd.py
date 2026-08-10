@@ -29,6 +29,8 @@ from unittest import mock
 
 import pytest
 
+from tests._support import materialize_catalogue
+
 # Fixture catalogue dir containing packs/alpha/ (see tests/fixtures/install/).
 FIXTURE_CATALOGUE = (
     Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
@@ -461,15 +463,24 @@ def test_install_warns_on_pack_collision(tmp_path, capsys):
 # Dry-run preview (projection-dry-run spec): read-only, writes nothing
 # ---------------------------------------------------------------------------
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+CATALOGUE_ROOT = Path()
 WORK_LOOP_SKILL = ".claude/skills/work-loop/SKILL.md"
+
+
+@pytest.fixture(autouse=True)
+def _fixture_core_catalogue(tmp_path):
+    """Give the dry-run slice a complete, package-local core catalogue."""
+    global CATALOGUE_ROOT
+    CATALOGUE_ROOT = materialize_catalogue(
+        tmp_path / "dry-run-catalogue", packs=("core",)
+    )
 
 
 def _args_core(target: Path, *, force: bool = False, dry_run: bool = False):
     """Args for installing the real `core` pack at repo scope (per-IDE shape)."""
     return argparse.Namespace(
         pack="core",
-        catalogue=str(REPO_ROOT),
+        catalogue=str(CATALOGUE_ROOT),
         output=str(target),
         scope="repo",
         emit_install_routes=False,
@@ -617,9 +628,6 @@ def test_dry_run_preflight_path_jail_passthrough(tmp_path):
 
 # Dry-run seed preview (projection-dry-run-governance-seeds spec)
 # ---------------------------------------------------------------------------
-
-CORE_SEEDS = REPO_ROOT / "packs" / "core" / "seeds"
-
 
 def test_dry_run_includes_seed_create_lines(tmp_path):
     """Dry-run fresh install stdout contains AGENTS.md, docs/CHARTER.md,

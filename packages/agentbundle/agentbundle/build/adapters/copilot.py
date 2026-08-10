@@ -22,16 +22,15 @@ import shutil
 from pathlib import Path
 from typing import Iterator
 
-
 # Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
-from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.copilot_agent_md import (
     project_copilot_agent_md,
 )
 from agentbundle.build.projections.copilot_hooks_json import (
     project_copilot_hooks_json,
 )
+from agentbundle.build.projections.direct_directory import sweep_orphans
 
 
 def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
@@ -58,7 +57,10 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
 
 def project(pack_path: Path, contract: dict, output_root: Path) -> None:
     adapter_block = contract["adapter"]["copilot"]
-    rules_by_primitive = {entry["primitive"]: entry for entry in adapter_block.get("projection", [])}
+    rules_by_primitive = {
+        entry["primitive"]: entry
+        for entry in adapter_block.get("projection", [])
+    }
 
     for primitive_name in _iter_primitives(contract):
         rule = rules_by_primitive[primitive_name]

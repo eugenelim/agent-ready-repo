@@ -13,7 +13,7 @@ Verifies:
 from __future__ import annotations
 
 import json
-from pathlib import Path
+from importlib.resources import files
 
 import pytest
 
@@ -23,15 +23,11 @@ try:
 except ImportError:
     _HAS_JSONSCHEMA = False
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-PACK_SCHEMA_PATH = REPO_ROOT / "contracts" / "pack.schema.json"
-DATA_PACK_SCHEMA_PATH = (
-    REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "pack.schema.json"
-)
+PACK_SCHEMA = files("agentbundle").joinpath("_data/pack.schema.json")
 
 
 def _load_schema() -> dict:
-    return json.loads(PACK_SCHEMA_PATH.read_text(encoding="utf-8"))
+    return json.loads(PACK_SCHEMA.read_text(encoding="utf-8"))
 
 
 def _base_pack(allowed_scopes: list[str]) -> dict:
@@ -85,12 +81,3 @@ def test_repo_only_still_passes():
     """Existing repo-only packs are unaffected."""
     errors = _validate(_base_pack(["repo"]))
     assert errors == [], f"Expected no errors for existing repo-only pack, got: {errors}"
-
-
-def test_schema_parity():
-    """Both schema copies are byte-identical."""
-    assert PACK_SCHEMA_PATH.exists()
-    assert DATA_PACK_SCHEMA_PATH.exists()
-    assert PACK_SCHEMA_PATH.read_bytes() == DATA_PACK_SCHEMA_PATH.read_bytes(), (
-        "contracts/pack.schema.json and agentbundle/_data/pack.schema.json are not byte-identical"
-    )

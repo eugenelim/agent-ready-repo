@@ -14,9 +14,9 @@ from pathlib import Path
 
 # Repo-relative anchor: this test file lives at
 # packages/agentbundle/tests/unit/test_marker_schema_version_parity.py
-_REPO_ROOT = Path(__file__).resolve().parents[4]
-_WRITER = _REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
-_CLI = _REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "commands" / "install.py"
+_PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+_WRITER = _PACKAGE_ROOT / "templates" / "install-marker.py"
+_CLI = _PACKAGE_ROOT / "agentbundle" / "commands" / "install.py"
 
 # Both writers emit the version via _emit_basic_string('<version>') in an
 # f-string: `f"marker-schema-version = {_emit_basic_string('0.1')}"`.

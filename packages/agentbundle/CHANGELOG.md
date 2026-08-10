@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.31.1] — 2026-08-10
+
+### Added
+
+- **Catalogue conformance tests now ship with every scaffolded or packaged
+  catalogue.** The portable rule suite is separate from this repository's
+  roster assertions and is materialised by both bare and self-hosted init.
+
+### Fixed
+
+- **The complete, self-contained engine test suite is restored to the source
+  distribution.** The release gate now validates tar members before extraction,
+  then collects and executes the extracted suite with dependency and skip
+  integrity checks. Wheels, zipapps, and vendored engines remain test-free.
+
 ## [0.31.0] — 2026-08-10
 
 ### Changed

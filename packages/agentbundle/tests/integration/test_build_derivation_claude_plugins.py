@@ -34,12 +34,15 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 # packages/agentbundle/tests/integration/ → parents[2] = packages/agentbundle/
 FIXTURES_PACKS = (
-    Path(__file__).resolve().parents[2] / "tests" / "build_pipeline" / "fixtures" / "packs"
+    PACKAGE_ROOT / "tests" / "build_pipeline" / "fixtures" / "packs"
 )
-TEMPLATE_PATH = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
+ADAPT_DISCOVERY_FIXTURE = (
+    PACKAGE_ROOT / "tests" / "fixtures" / "adapt" / ".adapt-discovery.toml"
+)
+TEMPLATE_PATH = PACKAGE_ROOT / "templates" / "install-marker.py"
 
 # Expected canonical command in the derived plugin.json.
 EXPECTED_COMMAND = (
@@ -57,7 +60,7 @@ def _is_publishable(pack_dir) -> bool:
     """
     import sys as _sys
 
-    _sys.path.insert(0, str(REPO_ROOT / "packages" / "agentbundle"))
+    _sys.path.insert(0, str(PACKAGE_ROOT))
     from agentbundle.build.main import pack_is_publishable
 
     return pack_is_publishable(pack_dir)
@@ -91,7 +94,7 @@ def _run_build(packs_dir: Path, output_dir: Path) -> subprocess.CompletedProcess
         ],
         capture_output=True,
         text=True,
-        cwd=REPO_ROOT,
+        cwd=PACKAGE_ROOT,
     )
 
 
@@ -302,9 +305,9 @@ def test_make_build_check_passes_post_migration(tmp_path):
     build-check: build, but the Python entry point on its own does not).
     """
     packs_shadow = tmp_path / "packs"
-    shutil.copytree(REPO_ROOT / "packs", packs_shadow, symlinks=True)
+    shutil.copytree(FIXTURES_PACKS, packs_shadow, symlinks=True)
     shutil.copy2(
-        REPO_ROOT / ".adapt-discovery.toml",
+        ADAPT_DISCOVERY_FIXTURE,
         tmp_path / ".adapt-discovery.toml",
     )
 
@@ -325,7 +328,7 @@ def test_make_build_check_passes_post_migration(tmp_path):
         ],
         capture_output=True,
         text=True,
-        cwd=REPO_ROOT,
+        cwd=PACKAGE_ROOT,
     )
     assert self_host.returncode == 0, (
         f"agentbundle build self (pre-check setup) failed (exit {self_host.returncode}):\n"
@@ -349,7 +352,7 @@ def test_make_build_check_passes_post_migration(tmp_path):
         ],
         capture_output=True,
         text=True,
-        cwd=REPO_ROOT,
+        cwd=PACKAGE_ROOT,
     )
     assert build.returncode == 0, (
         f"agentbundle build (pre-check setup) failed (exit {build.returncode}):\n"
@@ -370,7 +373,7 @@ def test_make_build_check_passes_post_migration(tmp_path):
         ],
         capture_output=True,
         text=True,
-        cwd=REPO_ROOT,
+        cwd=PACKAGE_ROOT,
     )
     assert result.returncode == 0, (
         f"agentbundle build check failed (exit {result.returncode}):\n"

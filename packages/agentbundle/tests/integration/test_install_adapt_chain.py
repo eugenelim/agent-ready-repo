@@ -321,7 +321,29 @@ def test_marker_in_seed_gitignore(tmp_path):
     """
     from agentbundle.commands.scaffold import run as scaffold_run
 
-    packs_dir = Path(__file__).resolve().parents[4] / "packs"
+    from tests._support import stage_installable_pack
+
+    catalogue = tmp_path / "catalogue"
+    pack = stage_installable_pack(
+        catalogue,
+        "core",
+        """\
+[pack]
+name = "core"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+""",
+    )
+    seeds = pack / "seeds"
+    seeds.mkdir()
+    (seeds / ".gitignore").write_text(
+        ".adapt-install-marker.toml\n", encoding="utf-8"
+    )
+    packs_dir = catalogue / "packs"
     output = tmp_path / "out"
     output.mkdir()
     ns = argparse.Namespace(
