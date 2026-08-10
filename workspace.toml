@@ -132,6 +132,7 @@ shipped = [
   "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening
   "spec/site-design-system-spec",                        # site token spec + zone-violation lint
   "spec/jira-check-sso-auto-login",       # jira check SSO auto-recovery in credbroker; credbroker 0.5.0 + engine errata RFC-0035/0013
+  "spec/confluence-crawler-check-auto-login", # confluence-crawler SSO --check bounded headless recovery
   "spec/catalogue-curation-qa-coverage",   # closes the 4 deferred catalogue-curation QA paths
   "spec/catalogue-test-carve-out",         # ADR-0075 ownership carve-out + shipped catalogue conformance + sdist test graft
   "spec/workspace-status-simplification-order-2b", # repair-plan + repair-apply; post-publication closeout
@@ -583,13 +584,6 @@ open = [
     # IdP session; this change makes replaying it agent-triggered. No lifetime management
     # today. Fix: bound/expire it in sso-broker.py. Unblocks: after
     # jira-check-sso-auto-login ships.
-  # The two consuming skills pin `credbroker>=0.5.0` (AC30), but `pip-audit`
-  # resolves every requirements pin against PyPI, so the SCA leg of
-  # `make build-check` fails until credbroker 0.5.0 is published. Resolves the
-  # moment it is: re-run the gate and re-check AC28. The alternative — carving
-  # those two files out of pip-audit — would remove SCA coverage from exactly
-  # the dependency this change introduced.
-  {slug = "credbroker-050-requirements-pin", source = "spec/jira-check-sso-auto-login AC28"},
   # `_capture(persist=, headless=)` is keyed on two booleans whose fourth
   # combination is meaningless; it is refused by construction today. A named
   # three-value mode (operator-register / ephemeral-register / automatic-refresh)
@@ -607,10 +601,6 @@ open = [
   # "install the credential-brokers pack", i.e. the pre-declaration behaviour.
   {slug = "pack-dependency-scope-qualifier", source = "spec/jira-check-sso-auto-login AC33"},
   {slug = "browser-state-lifetime", source = "spec/jira-check-sso-auto-login"},
-    # confluence-crawler inherits the shared _sso_config/setup_sso files but not check
-    # auto-recovery. Fix: adopt the same _probe/recapture flow now that it lives in
-    # credbroker. Unblocks: after credbroker 0.5.0.
-  {slug = "confluence-crawler-check-auto-login", source = "spec/jira-check-sso-auto-login"},
     # docs/CONVENTIONS.md:1197 requires --insecure to emit a stderr warning; jira-align,
     # confluence-crawler, confluence-publisher and figma are silent. Fix: add the warning in
     # each _client/CLI. Unblocks: now.
@@ -671,17 +661,6 @@ open = [
     # AC16 logs recapture via log.info, but jira.py:780-783 configures logging with no
     # filename, so the record goes to stderr the agent may discard — an unattended re-auth
     # stays repudiable. Fix: append-only 0600 log under ~/.agentbundle/logs/. Unblocks: now.
-    # Making get-cookies materialisation unconditional (AC6a) makes an existing shared-temp race
-    # routine; ordering between concurrent materialisers is deliberately unspecified - a write-guard
-    # permits reversal, lock vs generation-check is not distinguishable by any single test, and a
-    # generation check is racy unless compare-and-replace is atomic. Fix: design an ordering protocol
-    # with its own tests. DESIGN DONE — absorbed by spec/sso-store-transition-serialization AC4, which
-    # serialises get-cookies' load+materialisation under the same per-profile lock as the store
-    # transition. Retained in .open rather than removed: the frozen spec/jira-check-sso-auto-login
-    # defers against this slug at spec.md:368 and lint-spec-status invariant (iv) requires it to
-    # resolve; the register has no closed-item section. Remove only alongside a register convention
-    # for closed items.
-  {slug = "sso-materialisation-ordering", source = "spec/jira-check-sso-auto-login"},
     # sso-broker.py's new contended exit code 6 is documented recoverable, but no consumer backs off
     # on it: jira.py:709's bare `except credbroker.SsoError` routes it to EXIT_USER_ACTION, telling
     # the operator to re-register over a condition that clears in under a second. Fix: catch

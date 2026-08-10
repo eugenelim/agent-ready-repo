@@ -30,6 +30,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dependencies and summaries, supports target path-based entries, and remains
   absent for an empty repository backlog.
 
+### [atlassian][0.8.2] — 2026-08-10
+
+#### Changed
+
+- **Confluence SSO checks recover one unavailable stored session
+  automatically.** `confluence-crawler --check` now verifies the stored
+  cookie session, asks CredBroker to refresh its registered profile once when
+  that specific session is unavailable, and verifies the refreshed session
+  with one new probe. The disclosure states that recovery is headless, shows
+  no browser window, and takes its destination from the registered profile.
+
+  Permission, configuration, cookie-confinement, dependency, TLS, transport,
+  timeout, and server failures never trigger recovery. Crawls and token-based
+  authentication keep their existing behavior. When automatic recovery cannot
+  proceed, the error tells the user which existing manual setup action to run.
+
 ### [core][2.5.1] — 2026-08-09
 
 #### Changed

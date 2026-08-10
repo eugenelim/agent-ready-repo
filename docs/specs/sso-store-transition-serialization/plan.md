@@ -625,10 +625,9 @@ either green or explicitly `skipif`-ed with the reason recorded in AC11.
 implementing run does not re-derive it:**
 - `{slug = "sso-contended-consumer-backoff", source = "spec/sso-store-transition-serialization AC24"}`
   is in `[backlog].open` with a cold-start-sufficient comment.
-- The existing `sso-materialisation-ordering` entry is annotated as closed by
-  this spec and **left in place**: the frozen `jira-check-sso-auto-login` spec
-  defers against that slug at `spec.md:368` and lint invariant (iv) requires it
-  to resolve. The register has no closed-item section.
+- The absorbed `sso-materialisation-ordering` entry is removed after replacing
+  the frozen Jira spec's deferred marker with a direct reference to this
+  shipped spec; lint invariant (iv) therefore remains satisfied.
 - Remaining for the implementing run: nothing. The conditional
   `sso-keychain-call-timeouts` entry belongs to T5, which is where the bar is
   measured; T9 does not wait on it.

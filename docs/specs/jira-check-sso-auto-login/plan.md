@@ -19,8 +19,9 @@ Four layers change, bottom-up, and the dependency order is forced:
    path containment, and two behaviour fixes the design review surfaced —
    unconditional jar re-materialisation (with a unique temp name, since making the
    write unconditional makes the shared-temp collision routine; **ordering between
-   concurrent materialisers is deliberately unspecified** — see AC6a and
-   `sso-materialisation-ordering`) and a distinct not-registered exit code.
+   concurrent materialisers was deliberately unspecified here** — see AC6a;
+   the later `sso-store-transition-serialization` spec resolves it) and a
+   distinct not-registered exit code.
    It cannot import `credbroker`, so its grammar copy is pinned equal by test.
 3. **The `jira` skill** gains the typed discriminator, the `check` recovery
    flow, `--register`, and the honest `--insecure` warnings.
@@ -432,8 +433,8 @@ invisible on the file-floor (Linux/CI) path.
 **Approach:** drop the `if not materialised.exists()` guard; write via a
 **unique** temp name (pid + random suffix, not the shared `<profile>.jar.tmp`);
 use a **unique** temp name (pid + random suffix), removing the shared-path
-collision. Ordering between concurrent materialisers is **not** specified —
-see AC6a and `sso-materialisation-ordering`;
+collision. Ordering between concurrent materialisers was **not** specified by
+this plan; it was later resolved by `sso-store-transition-serialization`;
 `_do_refresh` returns 4 for `FileNotFoundError`. **Done when:** canonical 1.
 
 ### T5b — Engine capture split + `refresh` argument rejection (AC35 engine half)

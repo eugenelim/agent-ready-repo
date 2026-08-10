@@ -13,16 +13,19 @@ Credentials are resolved via the ``credbroker`` library
 ``credential-setup`` skill to populate the namespace. The
 PAT is never accepted on the command line.
 """
+
 from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib
 import logging
 import re
 import sys
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
+from types import ModuleType
 from typing import Iterable
 
 # Bootstrap when invoked as ``python scripts/crawl_space.py`` so the
@@ -71,11 +74,13 @@ try:
         ConfluenceError,
         Credentials,
         Page,
+        SsoSessionUnavailable,
+        identity_of,
         load_credentials,
     )
     from ._convert import to_markdown  # noqa: E402
     from ._links import LinkTargets  # noqa: E402
-    from ._sso_config import _select_auth_path  # noqa: E402
+    from ._sso_config import SsoConfig, _select_auth_path  # noqa: E402
 except ModuleNotFoundError as _import_exc:  # noqa: E402
     # A missing module here is a non-secret dependency (e.g. httpx);
     # `credbroker` is imported lazily inside load_credentials(), so its
@@ -101,6 +106,8 @@ EXIT_ERROR = 1
 EXIT_USER_ACTION = 2
 SLUG_MAX_LEN = 80
 UNLIMITED_DEPTH = 9999
+_CREDBROKER_FLOOR = "0.5.0"
+_MANUAL_SSO_SETUP = "python scripts/setup_sso.py"
 
 # Token-shaped CLI flags are rejected before argparse runs — argparse would
 # otherwise echo the offending ``--flag VALUE`` verbatim in its
@@ -112,8 +119,14 @@ UNLIMITED_DEPTH = 9999
 # (--token, --api-token, --api-key, --bearer, --pat, --password) plus the
 # short -t and a Confluence-specific alias.
 TOKEN_CLI_FLAGS = frozenset({
-    "--token", "--api-token", "--api-key", "--bearer", "-t",
-    "--confluence-token", "--pat", "--password",
+    "--token",
+    "--api-token",
+    "--api-key",
+    "--bearer",
+    "-t",
+    "--confluence-token",
+    "--pat",
+    "--password",
 })
 
 
@@ -201,14 +214,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--space", help="Confluence space key (e.g., ENG)")
     parser.add_argument("--root", help="Page ID to start from (default: space homepage)")
     parser.add_argument(
-        "--depth", type=int, default=UNLIMITED_DEPTH,
+        "--depth",
+        type=int,
+        default=UNLIMITED_DEPTH,
         help="Max hierarchy depth (default: unlimited)",
     )
     parser.add_argument(
         "--output", type=Path, default=Path("./confluence-out"), help="Output directory"
     )
     parser.add_argument(
-        "--force", action="store_true",
+        "--force",
+        action="store_true",
         help="Re-fetch and overwrite even if version unchanged",
     )
     parser.add_argument(
@@ -217,11 +233,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--concurrency", type=int, default=4)
     parser.add_argument("--min-delay-ms", type=int, default=100)
     parser.add_argument(
-        "--insecure", action="store_true",
+        "--insecure",
+        action="store_true",
         help="Disable TLS verification (not recommended)",
     )
     parser.add_argument(
-        "--check", action="store_true",
+        "--check",
+        action="store_true",
         help="Verify credentials and connectivity, then exit",
     )
     parser.add_argument("--verbose", "-v", action="store_true")
@@ -394,36 +412,145 @@ async def _run_check(client: ConfluenceClient, flavor: str) -> int:
     except AuthError as exc:
         log.error("%s", exc)
         return EXIT_USER_ACTION
-    identity = (
-        me.get("username")
-        or me.get("displayName")
-        or me.get("publicName")
-        or me.get("email")
-        or me.get("accountId")
-        or "<unknown>"
-    )
+    identity = identity_of(me) or "<unknown>"
     log.info("authenticated as %s (%s)", identity, flavor)
     return EXIT_OK
 
 
+def _credbroker_for_sso_check() -> tuple[ModuleType | None, str | None]:
+    """Feature-detect the recapture API for SSO ``--check`` only."""
+    try:
+        broker = importlib.import_module("credbroker")
+    except ImportError:
+        return (
+            None,
+            "error: SSO --check needs credbroker>=0.5.0; install or upgrade "
+            "with: python -m pip install --upgrade 'credbroker>=0.5.0'",
+        )
+    if not hasattr(broker, "refresh_sso_session"):
+        found = getattr(broker, "__version__", "an older release")
+        return (
+            None,
+            f"error: SSO --check needs credbroker>={_CREDBROKER_FLOOR}, found "
+            f"{found}. Run: python -m pip install --upgrade "
+            f"'credbroker>={_CREDBROKER_FLOOR}'",
+        )
+    return (broker, None)
+
+
+async def _probe(sso_config: SsoConfig, args: argparse.Namespace) -> int:
+    """Construct an SSO client, call ``whoami`` directly, and close it."""
+    client = ConfluenceClient.from_sso_cookies(
+        sso_config,
+        concurrency=args.concurrency,
+        min_delay_ms=args.min_delay_ms,
+    )
+    try:
+        me = await client.whoami()
+        log.info("authenticated as %s (server)", identity_of(me) or "<unknown>")
+        return EXIT_OK
+    finally:
+        await client.__aexit__(None, None, None)
+
+
+async def _run_sso_check(
+    sso_config: SsoConfig,
+    args: argparse.Namespace,
+    broker: ModuleType,
+) -> int:
+    """Probe, refresh the registered profile once, then re-probe once."""
+    try:
+        return await _probe(sso_config, args)
+    except SsoSessionUnavailable:
+        log.info("stored SSO session unavailable for profile %s", sso_config.profile)
+    except AuthError as exc:
+        log.error("%s", exc)
+        return EXIT_USER_ACTION
+    except ConfluenceError as exc:
+        log.error("%s", exc)
+        return EXIT_ERROR
+
+    sys.stderr.write(
+        "notice: the stored SSO session is unavailable. Recovery will run "
+        "headlessly; no browser window will be shown. The sign-in destination "
+        "comes from CredBroker's registered profile.\n"
+    )
+
+    try:
+        broker.refresh_sso_session(sso_config.profile)
+    except broker.SsoProfileNotRegisteredError:
+        sys.stderr.write(
+            "error: no SSO session has ever been registered for this profile; "
+            f"ask the user to run {_MANUAL_SSO_SETUP}.\n"
+        )
+        return EXIT_USER_ACTION
+    except broker.SsoInteractionRequiredError:
+        sys.stderr.write(
+            "error: the stored browser session could not re-authenticate "
+            "headlessly. No browser was opened; ask the user to run "
+            f"{_MANUAL_SSO_SETUP}.\n"
+        )
+        return EXIT_USER_ACTION
+    except broker.SsoError as exc:
+        sys.stderr.write(
+            "error: CredBroker could not re-establish the SSO session "
+            f"({type(exc).__name__}); request manual setup.\n"
+        )
+        return EXIT_USER_ACTION
+
+    try:
+        return await _probe(sso_config, args)
+    except SsoSessionUnavailable:
+        sys.stderr.write(
+            "error: the SSO session is still unavailable after headless recovery; "
+            f"ask the user to run {_MANUAL_SSO_SETUP}.\n"
+        )
+        return EXIT_USER_ACTION
+    except AuthError as exc:
+        log.error("authentication failed after SSO recovery: %s", exc)
+        return EXIT_USER_ACTION
+    except ConfluenceError as exc:
+        log.error("server error after SSO recovery: %s", exc)
+        return EXIT_ERROR
+
+
 async def main_async(args: argparse.Namespace) -> int:
     import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
+
     # Auth selector: sso-config.toml with auth_default = "sso-cookie"
     # routes to the cookie path; absent or "creds" → today's token path unchanged.
     try:
         auth_path, sso_config = _select_auth_path()
+    except ImportError as exc:
+        if args.check and (getattr(exc, "name", None) == "credbroker" or "credbroker" in str(exc)):
+            _, floor_error = _credbroker_for_sso_check()
+            sys.stderr.write((floor_error or "error: incompatible CredBroker SSO surface") + "\n")
+        else:
+            log.error("%s", exc)
+        return EXIT_USER_ACTION
     except Exception as exc:  # noqa: BLE001 — malformed SSO config → fail closed
         log.error("%s", exc)
         return EXIT_USER_ACTION
 
+    if auth_path == "sso-cookie" and args.check:
+        broker, floor_error = _credbroker_for_sso_check()
+        if floor_error is not None:
+            sys.stderr.write(floor_error + "\n")
+            return EXIT_USER_ACTION
+        assert sso_config is not None
+        assert broker is not None
+        return await _run_sso_check(sso_config, args, broker)
+
     try:
         if auth_path == "sso-cookie":
+            assert sso_config is not None
             client = ConfluenceClient.from_sso_cookies(
                 sso_config,
                 concurrency=args.concurrency,
                 min_delay_ms=args.min_delay_ms,
             )
             flavor = "server"
+            base_url = sso_config.base_url
         else:
             creds: Credentials = load_credentials()
             client = ConfluenceClient(
@@ -433,6 +560,7 @@ async def main_async(args: argparse.Namespace) -> int:
                 verify_tls=not args.insecure,
             )
             flavor = creds.flavor
+            base_url = creds.base_url
     except AuthError as exc:
         log.error("%s", exc)
         return EXIT_USER_ACTION
@@ -470,11 +598,12 @@ async def main_async(args: argparse.Namespace) -> int:
 
         log.info(
             "%d pages need fetching (skipping %d unchanged)",
-            len(to_fetch), len(discovered) - len(to_fetch),
+            len(to_fetch),
+            len(discovered) - len(to_fetch),
         )
 
         plan = CrawlPlan(
-            base_url=creds.base_url,
+            base_url=base_url,
             space_key=args.space,
             output_dir=args.output,
             discovered=discovered,
@@ -488,7 +617,7 @@ async def main_async(args: argparse.Namespace) -> int:
             (args.space, page.title): slug_by_id[page.id] for page in discovered if page.title
         }
         targets = LinkTargets(
-            base_url=creds.base_url,
+            base_url=base_url,
             default_space_key=args.space,
             slug_by_page_id=dict(slug_by_id),
             slug_by_title=slug_by_title,
@@ -511,7 +640,9 @@ async def main_async(args: argparse.Namespace) -> int:
 
         log.info(
             "wrote %d pages (failed: %d, skipped: %d)",
-            success, failed, len(discovered) - len(to_fetch),
+            success,
+            failed,
+            len(discovered) - len(to_fetch),
         )
         # Partial completion (some pages failed) is a functional outcome → 1,
         # not a credential/user-action; per-page detail is in the log above.
@@ -527,6 +658,7 @@ def main() -> int:
     # SystemExit (BaseException) — those pass through.
     try:
         import asyncio  # lazy: avoids asyncio IOCP probe on Windows before --help runs
+
         return asyncio.run(main_async(args))
     except KeyboardInterrupt:
         log.warning("interrupted")
