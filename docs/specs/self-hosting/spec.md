@@ -603,7 +603,23 @@ and the Codex multi-pack aggregation fix land.
   (Phase-1 enumeration). Goal-based verification: both APPROACH paths
   absent; `docs/CHARTER.md` carries filled mission/scope/principles.
 
+- [x] **AC24 (complete classification and special rails — 2026-08-09
+  amendment).** The current Git-visible repository inventory emits no
+  unclassified notices. Repository-owned source/manual subtrees are represented
+  in `EXCLUDED_PATTERNS`; `.agentbundle/bin/*.py` and
+  `.agentbundle/lib/credbroker/**/*.py` stay Projected and are derived from
+  their projection enumerators. Every self-host dry-run checks their drift;
+  executable targets use `lstat`, reject symlinks/type mismatch, and enforce
+  `0o755` on POSIX. Git enumeration uses NUL delimiters and preserves the
+  existing visible, non-failing warning on failure. Verified by
+  `docs/specs/catalogue-verify-classification/`.
+
 ## Changelog
+
+- 2026-08-09: AC24 added for complete current-inventory classification,
+  lossless Git path enumeration, and special `.agentbundle/` projection
+  membership/drift parity. This is the living-spec counterpart to RFC-0002's
+  2026-08-09 post-acceptance amendment.
 
 - 2026-06-10: restored Codex repo projection under self-host after the
   native-skills migration temporarily narrowed the allow-list. `make

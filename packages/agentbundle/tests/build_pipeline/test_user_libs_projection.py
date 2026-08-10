@@ -18,12 +18,14 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import stat
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from agentbundle.build import user_libs as ul
 
@@ -151,6 +153,154 @@ class UserLibsProjectionTests(unittest.TestCase):
         self.assertTrue(any("modified" in d for d in drifts), drifts)
         self.assertTrue(all("make build-self" in d for d in drifts), drifts)
 
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_check_drift_rejects_symlink_target(self) -> None:
+        """The user-lib drift gate never follows a projected target symlink."""
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        ul.apply_projection(self.wt, self.packs)
+        target = self._floor() / "_core.py"
+        outside = self.repo / "outside.py"
+        outside.write_bytes(target.read_bytes())
+        target.unlink()
+        target.symlink_to(outside)
+
+        drifts = ul.check_drift(self.wt, self.packs)
+
+        self.assertTrue(any("type mismatch" in drift for drift in drifts), drifts)
+        self.assertTrue(target.is_symlink())
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_check_drift_rejects_symlinked_target_root(self) -> None:
+        """A target-root symlink fails before any descendant is followed."""
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        outside = self.repo / "outside"
+        outside.mkdir()
+        floor = self._floor()
+        floor.parent.mkdir(parents=True)
+        floor.symlink_to(outside, target_is_directory=True)
+
+        drifts = ul.check_drift(self.wt, self.packs)
+
+        self.assertTrue(
+            any("type mismatch" in drift and "credbroker" in drift for drift in drifts),
+            drifts,
+        )
+
+    def test_target_parent_lstat_error_becomes_actionable_drift(self) -> None:
+        """Exceptional parent reads return a diagnostic instead of escaping."""
+        with patch.object(Path, "lstat", side_effect=PermissionError("denied")):
+            problem = ul._target_path_problem(self.repo, Path("owned"))
+
+        self.assertIsNotNone(problem)
+        assert problem is not None
+        drift = ul._target_path_problem_drift(problem, self.wt, self.packs)
+        self.assertIn("[user-libs] unreadable", drift)
+        self.assertIn("denied", drift)
+        self.assertIn("make build-self", drift)
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_apply_replaces_symlink_target_without_touching_referent(self) -> None:
+        """The advertised repair replaces a leaf link without following it."""
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        ul.apply_projection(self.wt, self.packs)
+        target = self._floor() / "_core.py"
+        outside = self.repo / "outside.py"
+        outside.write_bytes(b"outside\n")
+        target.unlink()
+        target.symlink_to(outside)
+
+        ul.apply_projection(self.wt, self.packs)
+
+        self.assertFalse(target.is_symlink())
+        self.assertEqual(target.read_bytes(), _FAKE_PACKAGE["_core.py"])
+        self.assertEqual(outside.read_bytes(), b"outside\n")
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_apply_replaces_symlinked_target_root(self) -> None:
+        """Repair replaces a target-root link and leaves its referent alone."""
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        outside = self.repo / "outside"
+        outside.mkdir()
+        floor = self._floor()
+        floor.parent.mkdir(parents=True)
+        floor.symlink_to(outside, target_is_directory=True)
+
+        ul.apply_projection(self.wt, self.packs)
+
+        self.assertFalse(floor.is_symlink())
+        self.assertEqual((floor / "_core.py").read_bytes(), _FAKE_PACKAGE["_core.py"])
+        self.assertEqual(list(outside.iterdir()), [])
+
+    @unittest.skipIf(os.name != "posix", "dir-fd semantics require POSIX")
+    def test_apply_defeats_target_root_symlink_swap(self) -> None:
+        """Nested repair restarts from a trusted base after a root swap."""
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        floor = self._floor()
+        outside = self.repo / "outside-root-race"
+        outside.mkdir()
+        real_ensure = ul.ensure_directory_no_follow
+        swapped = False
+
+        def racing_ensure(base: Path, relative: Path) -> None:
+            nonlocal swapped
+            real_ensure(base, relative)
+            if (
+                not swapped
+                and base == self.wt
+                and relative == ul.TARGET_SUBDIR / ul.VENDORED_MODULE
+            ):
+                shutil.rmtree(floor)
+                floor.symlink_to(outside, target_is_directory=True)
+                swapped = True
+
+        with patch.object(
+            ul,
+            "ensure_directory_no_follow",
+            side_effect=racing_ensure,
+        ):
+            ul.apply_projection(self.wt, self.packs)
+
+        self.assertTrue(swapped)
+        self.assertFalse(floor.is_symlink())
+        self.assertEqual((floor / "_core.py").read_bytes(), _FAKE_PACKAGE["_core.py"])
+        self.assertEqual(list(outside.iterdir()), [])
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_nested_target_directory_symlink_is_rejected_and_repaired(self) -> None:
+        """Every parent of a nested projected file is checked no-follow."""
+        files = dict(_FAKE_PACKAGE)
+        files["nested/module.py"] = b"nested = True\n"
+        _seed_source(self.repo, files)
+        ul.apply_projection(self.wt, self.packs)
+        nested = self._floor() / "nested"
+        shutil.rmtree(nested)
+        outside = self.repo / "outside-nested"
+        outside.mkdir()
+        nested.symlink_to(outside, target_is_directory=True)
+
+        drifts = ul.check_drift(self.wt, self.packs)
+        ul.apply_projection(self.wt, self.packs)
+
+        self.assertTrue(
+            any("type mismatch" in drift and "nested" in drift for drift in drifts),
+            drifts,
+        )
+        self.assertFalse(nested.is_symlink())
+        self.assertEqual((nested / "module.py").read_bytes(), b"nested = True\n")
+        self.assertEqual(list(outside.iterdir()), [])
+
+    @unittest.skipIf(os.name != "posix", "POSIX mode bits are unavailable")
+    def test_check_drift_rejects_mode_drift(self) -> None:
+        """The user-lib drift gate compares target mode with its source."""
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        ul.apply_projection(self.wt, self.packs)
+        target = self._floor() / "_core.py"
+        target.chmod(target.stat().st_mode | 0o111)
+
+        drifts = ul.check_drift(self.wt, self.packs)
+
+        self.assertTrue(any("mode drift" in drift for drift in drifts), drifts)
+
     def test_check_drift_missing_outcome(self) -> None:
         _seed_source(self.repo, _FAKE_PACKAGE)
         # No apply — every target missing.
@@ -164,6 +314,82 @@ class UserLibsProjectionTests(unittest.TestCase):
         (self._floor() / "phantom.py").write_bytes(b"# orphan\n")
         drifts = ul.check_drift(self.wt, self.packs)
         self.assertTrue(any("orphaned" in d and "phantom.py" in d for d in drifts), drifts)
+
+    @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
+    def test_check_drift_reports_dangling_symlink_orphan(self) -> None:
+        """A dangling orphan is visible without following its target."""
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        ul.apply_projection(self.wt, self.packs)
+        orphan = self._floor() / "phantom.py"
+        orphan.symlink_to("missing.py")
+
+        drifts = ul.check_drift(self.wt, self.packs)
+
+        self.assertTrue(
+            any("orphaned" in drift and "phantom.py" in drift for drift in drifts),
+            drifts,
+        )
+
+    @unittest.skipIf(os.name != "posix", "os.fwalk dir-fd walk requires POSIX")
+    def test_orphan_scan_continues_after_disappearing_directory(self) -> None:
+        """A raced-away directory entry does not discard later file entries."""
+        root = self._floor()
+        root.mkdir(parents=True)
+        with (
+            patch.object(
+                os,
+                "fwalk",
+                return_value=[(".", ["gone"], ["orphan.py"], 42)],
+            ),
+            patch.object(os, "stat", side_effect=FileNotFoundError("gone")),
+        ):
+            orphans = ul._orphan_files(root, set(), base=self.wt)
+
+        self.assertEqual(orphans, [root / "orphan.py"])
+
+    @unittest.skipIf(os.name != "posix", "control-byte filenames require POSIX")
+    def test_orphan_diagnostic_escapes_control_characters(self) -> None:
+        """A user-lib orphan renders reversibly on one diagnostic line."""
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        ul.apply_projection(self.wt, self.packs)
+        (self._floor() / "line\nbreak\r\x1b.py").write_bytes(b"orphan\n")
+
+        rendered = "\n".join(ul.check_drift(self.wt, self.packs))
+
+        self.assertIn(
+            '".agentbundle/lib/credbroker/line\\nbreak\\r\\u001b.py"',
+            rendered,
+        )
+        self.assertNotIn("line\nbreak", rendered)
+
+    @unittest.skipIf(os.name != "posix", "control-byte filenames require POSIX")
+    def test_all_drift_outcomes_escape_control_characters(self) -> None:
+        """Missing/type/mode/modified target and source paths stay one-line."""
+        filename = "line\nbreak\r\x1b.py"
+        escaped = "line\\nbreak\\r\\u001b.py"
+        files = dict(_FAKE_PACKAGE)
+        files[filename] = b"# source\n"
+        _seed_source(self.repo, files)
+
+        missing = "\n".join(ul.check_drift(self.wt, self.packs))
+        ul.apply_projection(self.wt, self.packs)
+        target = self._floor() / filename
+        target.chmod(target.stat().st_mode | 0o111)
+        target.write_bytes(b"# modified\n")
+        mode_and_modified = "\n".join(ul.check_drift(self.wt, self.packs))
+        outside = self.repo / "outside-control.py"
+        outside.write_bytes(b"# source\n")
+        target.unlink()
+        target.symlink_to(outside)
+        type_mismatch = "\n".join(ul.check_drift(self.wt, self.packs))
+
+        for rendered in (missing, mode_and_modified, type_mismatch):
+            self.assertIn(escaped, rendered)
+            self.assertNotIn("line\nbreak", rendered)
+        self.assertIn("missing", missing)
+        self.assertIn("mode drift", mode_and_modified)
+        self.assertIn("modified", mode_and_modified)
+        self.assertIn("type mismatch", type_mismatch)
 
     def test_check_drift_ignores_pycache_under_target(self) -> None:
         """Importing the floor writes ``__pycache__/`` — it must never

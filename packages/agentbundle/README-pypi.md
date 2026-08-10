@@ -283,13 +283,30 @@ pip install 'agentbundle[lint]'
 agentbundle catalogue lint --root . --deep
 ```
 
-**Check self-host projection drift** — verifies that adapter-projected files (skills, agents, hooks) match their `.apm/` sources without writing anything:
+**Verify a catalogue before you ship it** — runs the full read-only contract and
+self-host checks in one command:
+
+```bash
+agentbundle catalogue verify --root .
+```
+
+For a self-host-enabled catalogue with `.adapt-discovery.toml`, that includes the
+self-host classifier. It treats generated targets as projected and known
+repository-owned paths as excluded from projection. A genuinely unknown Git-visible
+path remains an informational `unclassified` notice; it does not fail an otherwise
+clean catalogue. Missing, modified, or orphaned projections do fail verification,
+including generated executables under `.agentbundle/bin/` and vendored user libraries
+under `.agentbundle/lib/`. Git filenames are read losslessly, and a failed Git listing
+is reported as a warning rather than mistaken for a fully classified inventory.
+
+To check only self-host projection drift, or to regenerate projected files locally:
 
 ```bash
 agentbundle catalogue self-host --check --root .
+agentbundle catalogue self-host --write --root .
 ```
 
-Exits non-zero if any projected file is out of date. Safe to run in CI as a required check; use `--write` locally to regenerate.
+Both check commands are safe to run in CI. The write command changes projected files.
 
 By default projects for `claude-code` and `codex`. Downstream repos that use a single adapter (e.g. `kiro-ide`) can declare it in `catalogue.toml` — only that adapter is then projected, and its output files participate in the drift check:
 

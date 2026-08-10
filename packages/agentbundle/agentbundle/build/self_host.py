@@ -33,7 +33,6 @@ named here are the current defaults.  When `catalogue.toml` declares a
 
 from __future__ import annotations
 
-import fnmatch
 import hashlib
 import importlib.util
 import json
@@ -43,10 +42,19 @@ import shutil
 import stat
 import subprocess
 import sys
-import tomllib
 import tempfile
+import tomllib
 from pathlib import Path
 
+from agentbundle.build.adapter_root_bins import (
+    apply_projection as _adapter_root_bins_apply,
+)
+from agentbundle.build.adapter_root_bins import (
+    check_drift as _adapter_root_bins_check_drift,
+)
+from agentbundle.build.adapter_root_bins import (
+    compute_projections as _adapter_root_bins_compute_projections,
+)
 from agentbundle.build.adapters import ADAPTERS, registry
 from agentbundle.build.contract import load as load_contract
 from agentbundle.build.main import (
@@ -56,13 +64,17 @@ from agentbundle.build.main import (
     discover_packs,
     validate_pack_uniqueness,
 )
-from agentbundle.build.adapter_root_bins import (
-    apply_projection as _adapter_root_bins_apply,
-    check_drift as _adapter_root_bins_check_drift,
+from agentbundle.build.projection_io import (
+    render_diagnostic_path as _render_diagnostic_path,
 )
 from agentbundle.build.user_libs import (
     apply_projection as _user_libs_apply,
+)
+from agentbundle.build.user_libs import (
     check_drift as _user_libs_check_drift,
+)
+from agentbundle.build.user_libs import (
+    compute_projections as _user_libs_compute_projections,
 )
 
 # Canonical lowercase-hyphen marker grammar. The self-host
@@ -386,39 +398,42 @@ def _compose_agents_md(
 EXCLUDED_PATTERNS: tuple[str, ...] = (
     ".context/**",
     ".claude/settings.local.json",
-    "docs/rfc/[0-9][0-9][0-9][0-9]-*.md",
-    "docs/adr/[0-9][0-9][0-9][0-9]-*.md",
-    "docs/specs/*/spec.md",
-    "docs/specs/*/plan.md",
-    "docs/specs/*/state.json",
-    "docs/specs/*/notes/**",
+    "docs/rfc/**",
+    "docs/adr/**",
+    "docs/specs/**",
     "contracts/**",
-    "docs/architecture/*.md",
-    "docs/product/*.md",
-    "docs/knowledge/*.md",
+    "docs/architecture/**",
+    "docs/guides/**",
+    "docs/product/**",
+    "docs/knowledge/**",
+    "docs/backlog.md",
+    "docs-site/**",
     "guides/**/*.md",
+    "web/**",
+    "profiles/**",
     # Seeded-once / adopter-curated files (Manual semantics).
     "workspace.toml",  # Seeded once; adopter-curated thereafter
-    # Manual seed-projected paths (amendment 2026-05-25). The
-    # `docs/<area>/*.md` patterns above cover 11 of the 19 reclassified
-    # paths; the following 7 are not matched by any pattern and need
-    # explicit listing.
+    # Manual seed-projected root path (amendment 2026-05-25). The subtree
+    # patterns above cover the other reclassified documentation paths.
     "docs/CHARTER.md",
-    "docs/knowledge/patterns.jsonl",
-    "docs/rfc/README.md",
-    "docs/adr/README.md",
-    "docs/specs/README.md",
-    "packages/README.md",
-    "packages/_example/README.md",
-    "packages/_example/AGENTS.md",
     "README.md",  # root-level; nested README.md not excluded
+    "CONTRIBUTING.md",
     "LICENSE-*",
     ".gitignore",
     ".gitattributes",
+    ".gitleaksignore",
+    ".snyk",
+    ".taplo.toml",
     ".github/**",
     "AGENTS.local.md",
     "AGENTS.md",  # root-level; nested AGENTS.md not excluded
-    "packages/agentbundle/**",
+    "bandit.yaml",
+    "catalogue.toml",
+    "guide-nav-baseline.toml",
+    "llms.txt",
+    "pyproject.toml",
+    "site.toml",
+    "packages/**",
     "packs/**",
     "tools/**",
     ".adapt-discovery.toml",
@@ -484,9 +499,8 @@ _EXCLUDED_REGEXES: tuple[re.Pattern[str], ...] = tuple(
 # The 2026-05-25 amendment reclassified 19 paths Projected
 # → Manual; this allow-list shrank to one entry (`docs/CONVENTIONS.md`)
 # accordingly. The reclassified paths now fall through to
-# EXCLUDED_PATTERNS coverage (`docs/architecture/*.md`,
-# `docs/product/*.md`, `docs/knowledge/*.md`, `guides/**/*.md`,
-# and the 8 explicit additions listed above).
+# EXCLUDED_PATTERNS coverage (the repository-owned documentation and package
+# subtrees plus their root-file entries above).
 PROJECTED_README_OVERRIDES: tuple[str, ...] = (
     "docs/CONVENTIONS.md",
 )
@@ -552,9 +566,16 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
             relative = src.relative_to(seeds_dir)
             if relative in seen:
                 if src.read_bytes() != seen[relative].read_bytes():
+                    collision_target = _render_diagnostic_path(relative)
+                    first_source = _render_diagnostic_path(
+                        seen[relative].relative_to(packs_dir.parent)
+                    )
+                    second_source = _render_diagnostic_path(
+                        src.relative_to(packs_dir.parent)
+                    )
                     raise ValueError(
-                        f"seed collision at {relative.as_posix()}: "
-                        f"{seen[relative]} and {src} differ — rename or "
+                        f"seed collision at {collision_target}: "
+                        f"{first_source} and {second_source} differ — rename or "
                         f"consolidate one of them."
                     )
                 continue
@@ -802,6 +823,47 @@ def _lookup_source(
     return None
 
 
+def _git_visible_paths(working_tree: Path) -> list[Path] | None:
+    """Return Git-visible paths losslessly, or ``None`` when Git fails.
+
+    ``-z`` is load-bearing: newline and leading/trailing whitespace are valid
+    filename bytes, while Git's default text form C-quotes some names. Splitting
+    bytes on NUL and decoding through ``os.fsdecode`` preserves the filesystem's
+    surrogate-escape behavior without stripping or normalizing a path.
+    """
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "ls-files",
+                "-z",
+                "--cached",
+                "--others",
+                "--exclude-standard",
+            ],
+            cwd=working_tree,
+            capture_output=True,
+            text=False,
+            check=False,
+        )
+    except FileNotFoundError:
+        print(
+            "self-host: warning — `git` binary not on PATH; "
+            "skipping unclassified-path enumeration.",
+            file=sys.stderr,
+        )
+        return None
+    if result.returncode != 0:
+        print(
+            f"self-host: warning — `git ls-files` failed in "
+            f"{working_tree} (exit {result.returncode}); skipping "
+            "unclassified-path enumeration.",
+            file=sys.stderr,
+        )
+        return None
+    return [Path(os.fsdecode(raw)) for raw in result.stdout.split(b"\0") if raw]
+
+
 def _emit_info_for_unclassified(
     working_tree: Path,
     projected_paths: set[Path],
@@ -816,44 +878,63 @@ def _emit_info_for_unclassified(
     seeing "zero info lines" should not mis-attribute it to "fully
     classified."
     """
-    try:
-        result = subprocess.run(
-            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-            cwd=working_tree,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
-    except FileNotFoundError:
-        print(
-            "self-host: warning — `git` binary not on PATH; "
-            "skipping unclassified-path enumeration.",
-            file=sys.stderr,
-        )
+    visible_paths = _git_visible_paths(working_tree)
+    if visible_paths is None:
         return
-    if result.returncode != 0:
-        print(
-            f"self-host: warning — `git ls-files` failed in "
-            f"{working_tree} (exit {result.returncode}); skipping "
-            "unclassified-path enumeration.",
-            file=sys.stderr,
-        )
-        return
-    for line in result.stdout.splitlines():
-        path_str = line.strip()
-        if not path_str:
-            continue
-        relative = Path(path_str)
+    for relative in visible_paths:
         if relative in projected_paths:
             continue
         if _is_excluded(relative):
             continue
-        on_disk = working_tree / relative
-        if on_disk.is_symlink():
-            # CLAUDE.md (projected as symlink) and any other symlinks are
-            # implicitly classified — symlink target comparison is Phase 2.
+        print(
+            f"[info] unclassified: {_render_diagnostic_path(relative)}",
+            file=sys.stderr,
+        )
+
+
+def _self_host_projection_paths(
+    working_tree: Path,
+    packs_dir: Path,
+) -> set[Path]:
+    """Return special-rail targets under ``working_tree`` as relative paths."""
+    targets: list[Path] = []
+    try:
+        adapter_targets = [
+            projection.target
+            for projection in _adapter_root_bins_compute_projections(
+                working_tree, packs_dir
+            )
+        ]
+    except ValueError:
+        # The drift checker reports collisions with the established diagnostic;
+        # classification cannot derive a unique target set in that state.
+        adapter_targets = []
+    targets.extend(adapter_targets)
+    targets.extend(
+        projection.target
+        for projection in _user_libs_compute_projections(working_tree, packs_dir)
+    )
+
+    relative_paths: set[Path] = set()
+    for target in targets:
+        try:
+            relative_paths.add(target.relative_to(working_tree))
+        except ValueError:
+            # user-libs also projects into packs_dir, which may be outside the
+            # requested working tree for fixtures/external catalogues.
             continue
-        print(f"[info] unclassified: {relative.as_posix()}", file=sys.stderr)
+    return relative_paths
+
+
+def _self_host_projection_drifts(
+    working_tree: Path,
+    packs_dir: Path,
+) -> list[str]:
+    """Return drift from every special self-host projection rail."""
+    return [
+        *_adapter_root_bins_check_drift(working_tree, packs_dir),
+        *_user_libs_check_drift(working_tree, packs_dir),
+    ]
 
 
 def _is_text_like(data: bytes) -> bool:
@@ -994,11 +1075,13 @@ def diff_against_working_tree(
             continue
 
         hint = ""
+        relative_display = _render_diagnostic_path(relative)
         if source_map is not None:
             source = _lookup_source(relative, source_map)
             if source is not None:
                 hint = (
-                    f": edit {source.as_posix()}; run: make build-self"
+                    f": edit {_render_diagnostic_path(source)}; "
+                    f"run: make build-self"
                 )
         if is_claude_md_row:
             # Operator-facing hint mirroring lint-agents-md.py check #2.
@@ -1015,12 +1098,12 @@ def diff_against_working_tree(
             disk_st = os.lstat(on_disk)
         except FileNotFoundError:
             drifts.append(
-                f"[drift] {relative.as_posix()} (missing on disk){hint}"
+                f"[drift] {relative_display} (missing on disk){hint}"
             )
             continue
         except OSError as exc:
             drifts.append(
-                f"[drift] {relative.as_posix()} (unreadable: {exc}){hint}"
+                f"[drift] {relative_display} (unreadable: {exc}){hint}"
             )
             continue
 
@@ -1031,7 +1114,7 @@ def diff_against_working_tree(
             expected = "symlink" if shadow_is_link else "regular file"
             found = "regular file" if shadow_is_link else "symlink"
             drifts.append(
-                f"[drift] {relative.as_posix()} "
+                f"[drift] {relative_display} "
                 f"(expected {expected}, found {found} on disk){hint}"
             )
             continue
@@ -1042,13 +1125,13 @@ def diff_against_working_tree(
                 disk_target = os.readlink(on_disk)
             except OSError as exc:
                 drifts.append(
-                    f"[drift] {relative.as_posix()} "
+                    f"[drift] {relative_display} "
                     f"(unreadable symlink: {exc}){hint}"
                 )
                 continue
             if shadow_target != disk_target:
                 drifts.append(
-                    f"[drift] {relative.as_posix()} "
+                    f"[drift] {relative_display} "
                     f"(symlink target differs: {disk_target!r} vs {shadow_target!r})"
                     f"{hint}"
                 )
@@ -1066,7 +1149,7 @@ def diff_against_working_tree(
             disk_bytes = on_disk.read_bytes()
         except OSError as exc:
             drifts.append(
-                f"[drift] {relative.as_posix()} (unreadable: {exc}){hint}"
+                f"[drift] {relative_display} (unreadable: {exc}){hint}"
             )
             continue
 
@@ -1079,7 +1162,7 @@ def diff_against_working_tree(
 
         if reasons:
             tag = " (" + "; ".join(reasons) + ")"
-            drifts.append(f"[drift] {relative.as_posix()}{tag}{hint}")
+            drifts.append(f"[drift] {relative_display}{tag}{hint}")
     return drifts
 
 
@@ -1180,7 +1263,11 @@ def run_self_host(
                 for rendered in shadow.rglob("*")
                 if rendered.is_file() or rendered.is_symlink()
             }
+            projected_paths.update(
+                _self_host_projection_paths(working_tree, packs_dir)
+            )
             drifts = diff_against_working_tree(shadow, working_tree, source_map)
+            drifts.extend(_self_host_projection_drifts(working_tree, packs_dir))
             # Info-level lines for unclassified paths.
             _emit_info_for_unclassified(working_tree, projected_paths)
             if drifts:
@@ -1330,8 +1417,10 @@ def _load_emit_basic_string_from_template(
 def run_build_check_drift_gates(
     output_dir: Path,
     packs_dir: Path,
+    *,
+    include_self_host_projections: bool = True,
 ) -> int:
-    """Run the three mechanical drift-gate assertions wired into ``make build-check``.
+    """Run the mechanical drift-gate assertions wired into ``make build-check``.
 
     1. **Writer-template drift:** every derived
        ``dist/claude-plugins/<pack>/.claude-plugin/scripts/install-marker.py``
@@ -1342,6 +1431,10 @@ def run_build_check_drift_gates(
     3. **Vendored ``_emit_basic_string`` parity:** the template's
        vendored copy must produce byte-identical output to the source primitive
        ``agentbundle.config._emit_basic_string`` across the fixed corpus.
+
+    ``include_self_host_projections`` stays true for direct callers. ``cmd_check``
+    disables it because ``run_self_host(dry_run=True)`` already owns those two
+    rails and would otherwise print each special drift twice.
 
     Returns 0 on success, 1 on any failure (all failures reported to stderr
     before exit so the operator sees all drift in one run).
@@ -1570,19 +1663,8 @@ def run_build_check_drift_gates(
     # projection (not many-to-many like shared-libs) so the diagnostic
     # shape is simpler.
     # ------------------------------------------------------------------
-    for msg in _adapter_root_bins_check_drift(output_dir, packs_dir):
-        failures.append(msg)
-
-    # ------------------------------------------------------------------
-    # Gate: user-libs projection drift (credbroker-user-scope T3).
-    #
-    # Same three outcomes — modified / missing / orphaned — across the
-    # pack-vendored copy and the self-host floor staging, each compared
-    # byte-wise to packages/credbroker/credbroker/. No-op outside the
-    # monorepo (package source absent).
-    # ------------------------------------------------------------------
-    for msg in _user_libs_check_drift(output_dir, packs_dir):
-        failures.append(msg)
+    if include_self_host_projections:
+        failures.extend(_self_host_projection_drifts(output_dir, packs_dir))
 
     if failures:
         for msg in failures:
@@ -1683,7 +1765,11 @@ def cmd_check(args) -> int:
         force=False,
         no_symlink=getattr(args, "no_symlink", False),
     )
-    drift_rc = run_build_check_drift_gates(output_dir, packs_dir)
+    drift_rc = run_build_check_drift_gates(
+        output_dir,
+        packs_dir,
+        include_self_host_projections=False,
+    )
     # Return the worse of the two exit codes.
     return max(self_host_rc, drift_rc)
 

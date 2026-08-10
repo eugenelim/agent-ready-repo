@@ -6,6 +6,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.30.1] — 2026-08-09
+
+### Fixed
+
+- **`catalogue verify` no longer reports this repository's owned source and
+  documentation as unclassified.** The self-host classifier now recognizes
+  the repository's package, profile, site, documentation, and root-config
+  ownership boundaries while preserving informational notices for genuinely
+  unknown paths. Git filenames are read losslessly with NUL delimiters.
+- **Special `.agentbundle/` projections now participate in every self-host
+  dry-run.** Generated broker executables and the vendored `credbroker` floor
+  are classified from their projection enumerators and drift makes catalogue
+  verifier step 15 fail. Executable drift checks no longer follow target
+  symlinks and now enforce the projected `0o755` POSIX mode. Both special rails
+  replace rejected target symlinks with held-directory atomic writes during
+  regeneration without modifying their referents, even under a concurrent
+  leaf swap; ancestor, read, and orphan operations are no-follow as well.
+
 ## [0.30.0] — 2026-08-08
 
 ### Changed

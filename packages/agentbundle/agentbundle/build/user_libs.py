@@ -58,9 +58,21 @@ shell-config edits.
 
 from __future__ import annotations
 
-import shutil
+import contextlib
+import os
+import stat
 from dataclasses import dataclass
 from pathlib import Path
+
+from .projection_io import (
+    ProjectionTypeError,
+    copy_file_atomic_no_follow,
+    ensure_directory_no_follow,
+    open_directory_no_follow,
+    read_regular_file_no_follow,
+    render_diagnostic_path,
+    unlink_file_no_follow,
+)
 
 # The vendored package: repo-relative source leaf and the module name it
 # resolves under on a consumer's ``sys.path``.
@@ -134,6 +146,66 @@ def _target_roots(working_tree: Path, packs_dir: Path) -> list[Path]:
     ]
 
 
+def _target_root_specs(
+    working_tree: Path, packs_dir: Path
+) -> list[tuple[Path, Path]]:
+    """Return trusted base + owned relative directory for each target root."""
+    return [
+        (
+            packs_dir,
+            Path(PACK_NAME) / PACK_TARGET_SUBDIR / VENDORED_MODULE,
+        ),
+        (working_tree, TARGET_SUBDIR / VENDORED_MODULE),
+    ]
+
+
+def _target_root_for(
+    target: Path, working_tree: Path, packs_dir: Path
+) -> Path:
+    """Return the owned projection root containing ``target``."""
+    for root in _target_roots(working_tree, packs_dir):
+        if target.is_relative_to(root):
+            return root
+    raise ValueError(f"user-lib target is outside owned roots: {target}")
+
+
+def _target_path_problem(
+    base: Path, relative: Path
+) -> tuple[Path, str, str] | None:
+    """Return the first unreadable/non-directory component, no-follow."""
+    current = base
+    for part in relative.parts:
+        current /= part
+        try:
+            current_stat = current.lstat()
+        except FileNotFoundError:
+            return None
+        except OSError as exc:
+            return current, "unreadable", str(exc)
+        if stat.S_ISDIR(current_stat.st_mode):
+            continue
+        kind = "a symlink" if stat.S_ISLNK(current_stat.st_mode) else "not a directory"
+        return current, "type mismatch", kind
+    return None
+
+
+def _target_path_problem_drift(
+    problem: tuple[Path, str, str], working_tree: Path, packs_dir: Path
+) -> str:
+    """Format one target ancestor problem as an actionable drift."""
+    path, category, detail = problem
+    display = _display(path, working_tree, packs_dir)
+    if category == "unreadable":
+        return (
+            f"[user-libs] unreadable: {display}: {detail}; "
+            f"run: make build-self FORCE=1"
+        )
+    return (
+        f"[user-libs] type mismatch: {display} is {detail}; expected an "
+        f"owned directory; run: make build-self FORCE=1"
+    )
+
+
 def compute_projections(
     working_tree: Path, packs_dir: Path
 ) -> list[UserLibProjection]:
@@ -158,17 +230,50 @@ def compute_projections(
     return projections
 
 
-def _orphan_files(root: Path, expected: set[Path]) -> list[Path]:
+def _orphan_files(
+    root: Path, expected: set[Path], *, base: Path
+) -> list[Path]:
     """Files under ``root`` not in ``expected``, skipping excluded subtrees."""
-    if not root.is_dir():
-        return []
     orphans: list[Path] = []
-    for existing in sorted(root.rglob("*")):
-        if not existing.is_file() or existing in expected:
-            continue
-        if _is_excluded(existing.relative_to(root)):
-            continue
-        orphans.append(existing)
+    try:
+        with open_directory_no_follow(base, root.relative_to(base)) as root_fd:
+            if root_fd is None:
+                for existing in sorted(root.rglob("*")):
+                    try:
+                        existing_stat = existing.lstat()
+                    except FileNotFoundError:  # pragma: no cover — race-only
+                        continue
+                    if stat.S_ISDIR(existing_stat.st_mode) or existing in expected:
+                        continue
+                    if not _is_excluded(existing.relative_to(root)):
+                        orphans.append(existing)
+                return orphans
+
+            for dirpath, dirnames, filenames, directory_fd in os.fwalk(
+                ".", topdown=True, follow_symlinks=False, dir_fd=root_fd
+            ):
+                relative_dir = Path() if dirpath == "." else Path(dirpath)
+                kept_directories: list[str] = []
+                for name in dirnames:
+                    try:
+                        entry_stat = os.stat(
+                            name, dir_fd=directory_fd, follow_symlinks=False
+                        )
+                    except FileNotFoundError:
+                        continue
+                    if stat.S_ISDIR(entry_stat.st_mode):
+                        kept_directories.append(name)
+                    else:
+                        filenames.append(name)
+                dirnames[:] = kept_directories
+                for name in filenames:
+                    existing = root / relative_dir / name
+                    if existing in expected:
+                        continue
+                    if not _is_excluded(existing.relative_to(root)):
+                        orphans.append(existing)
+    except FileNotFoundError:
+        return []
     return orphans
 
 
@@ -188,25 +293,36 @@ def apply_projection(working_tree: Path, packs_dir: Path) -> None:
     if not projections:
         return
     expected_targets = {p.target for p in projections}
+    for base, relative in _target_root_specs(working_tree, packs_dir):
+        ensure_directory_no_follow(base, relative)
     for proj in projections:
-        proj.target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(proj.source, proj.target)
-    for root in _target_roots(working_tree, packs_dir):
-        for existing in _orphan_files(root, expected_targets):
-            try:
-                existing.unlink()
-            except FileNotFoundError:  # pragma: no cover — race-only
-                pass
+        target_base = (
+            working_tree if proj.target.is_relative_to(working_tree) else packs_dir
+        )
+        ensure_directory_no_follow(
+            target_base,
+            proj.target.parent.relative_to(target_base),
+        )
+        copy_file_atomic_no_follow(
+            proj.source,
+            proj.target,
+            base=target_base,
+        )
+    for base, relative in _target_root_specs(working_tree, packs_dir):
+        root = base / relative
+        for existing in _orphan_files(root, expected_targets, base=base):
+            with contextlib.suppress(FileNotFoundError):  # pragma: no cover
+                unlink_file_no_follow(existing, base=base)
 
 
 def _display(path: Path, working_tree: Path, packs_dir: Path) -> str:
     """Render ``path`` relative to the repo root for a drift message."""
     for base in (working_tree, packs_dir.parent):
         try:
-            return path.relative_to(base).as_posix()
+            return render_diagnostic_path(path.relative_to(base))
         except ValueError:
             continue
-    return path.as_posix()  # pragma: no cover — defensive
+    return render_diagnostic_path(path)  # pragma: no cover — defensive
 
 
 def check_drift(working_tree: Path, packs_dir: Path) -> list[str]:
@@ -222,33 +338,100 @@ def check_drift(working_tree: Path, packs_dir: Path) -> list[str]:
     if not projections:
         return drifts
 
+    invalid_roots: set[Path] = set()
+    for base, relative in _target_root_specs(working_tree, packs_dir):
+        problem = _target_path_problem(base, relative)
+        if problem is None:
+            continue
+        root = base / relative
+        invalid_roots.add(root)
+        drifts.append(_target_path_problem_drift(problem, working_tree, packs_dir))
+
     expected_targets: set[Path] = set()
+    reported_parent_mismatches: set[Path] = set()
     for proj in projections:
         expected_targets.add(proj.target)
+        if any(proj.target.is_relative_to(root) for root in invalid_roots):
+            continue
+        target_root = _target_root_for(proj.target, working_tree, packs_dir)
+        parent_problem = _target_path_problem(
+            target_root, proj.target.parent.relative_to(target_root)
+        )
+        if parent_problem is not None:
+            path, _category, _detail = parent_problem
+            if path not in reported_parent_mismatches:
+                reported_parent_mismatches.add(path)
+                drifts.append(
+                    _target_path_problem_drift(
+                        parent_problem, working_tree, packs_dir
+                    )
+                )
+            continue
         target_display = _display(proj.target, working_tree, packs_dir)
-        source_display = proj.source.relative_to(packs_dir.parent).as_posix()
+        source_display = render_diagnostic_path(
+            proj.source.relative_to(packs_dir.parent)
+        )
         try:
             source_bytes = proj.source.read_bytes()
+            source_stat = proj.source.stat()
         except OSError as exc:  # pragma: no cover — defensive
             drifts.append(f"[user-libs] source unreadable: {exc}")
             continue
-        if not proj.target.exists():
+        target_base = (
+            working_tree if proj.target.is_relative_to(working_tree) else packs_dir
+        )
+        try:
+            target_bytes, target_stat = read_regular_file_no_follow(
+                proj.target,
+                base=target_base,
+            )
+        except FileNotFoundError:
             drifts.append(
                 f"[user-libs] missing: {target_display} "
                 f"(source: {source_display}); run: make build-self FORCE=1"
             )
             continue
-        if proj.target.read_bytes() != source_bytes:
+        except ProjectionTypeError as exc:
+            drifts.append(
+                f"[user-libs] type mismatch: {target_display} {exc}; "
+                f"expected a regular projected file; run: make build-self FORCE=1"
+            )
+            continue
+        except OSError as exc:
+            drifts.append(f"[user-libs] unreadable: {target_display}: {exc}")
+            continue
+        if os.name == "posix":
+            source_mode = stat.S_IMODE(source_stat.st_mode)
+            target_mode = stat.S_IMODE(target_stat.st_mode)
+            if target_mode != source_mode:
+                drifts.append(
+                    f"[user-libs] mode drift: {target_display} has "
+                    f"{oct(target_mode)}, expected {oct(source_mode)}; "
+                    f"run: make build-self FORCE=1"
+                )
+        if target_bytes != source_bytes:
             drifts.append(
                 f"[user-libs] modified: {target_display} "
                 f"diverges from {source_display}; run: make build-self FORCE=1"
             )
 
-    for root in _target_roots(working_tree, packs_dir):
-        for existing in _orphan_files(root, expected_targets):
+    for base, relative in _target_root_specs(working_tree, packs_dir):
+        root = base / relative
+        if root in invalid_roots:
+            continue
+        try:
+            orphan_files = _orphan_files(root, expected_targets, base=base)
+        except OSError as exc:
+            drifts.append(
+                f"[user-libs] unreadable: "
+                f"{_display(root, working_tree, packs_dir)}: {exc}"
+            )
+            continue
+        for existing in orphan_files:
+            existing_display = _display(existing, working_tree, packs_dir)
             drifts.append(
                 f"[user-libs] orphaned: "
-                f"{_display(existing, working_tree, packs_dir)} "
+                f"{existing_display} "
                 f"present but not in the vendored credbroker source; "
                 f"run: make build-self FORCE=1"
             )

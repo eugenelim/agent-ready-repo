@@ -36,11 +36,19 @@ from __future__ import annotations
 
 import contextlib
 import os
-import shutil
+import stat
 from dataclasses import dataclass
 from pathlib import Path
 
 from . import shared_libs
+from .projection_io import (
+    ProjectionTypeError,
+    copy_file_atomic_no_follow,
+    ensure_directory_no_follow,
+    open_directory_no_follow,
+    read_regular_file_no_follow,
+    render_diagnostic_path,
+)
 
 # Pin the source path so a downstream consumer that wants to enumerate
 # sources doesn't hardcode the literal repeatedly.
@@ -72,6 +80,11 @@ SHIM_COMPANION_BASENAME = "credentials_shim.py"
 SHIM_IMPORT_GREP = b"from .credentials_shim import"
 
 
+def _display(path: Path, base: Path) -> str:
+    """Render one path relative to its diagnostic base on one line."""
+    return render_diagnostic_path(path.relative_to(base))
+
+
 @dataclass(frozen=True)
 class AdapterRootBinProjection:
     """One concrete projection: copy ``source`` to ``target``."""
@@ -100,9 +113,12 @@ def collect_sources(packs_dir: Path) -> dict[str, Path]:
             continue
         for src in sorted(bins.glob("*.py")):
             if src.name in sources:
+                basename = render_diagnostic_path(Path(src.name))
+                first_source = _display(sources[src.name], packs_dir.parent)
+                second_source = _display(src, packs_dir.parent)
                 raise ValueError(
-                    f"adapter-root-bins collision: '{src.name}' shipped by both "
-                    f"{sources[src.name]} and {src}"
+                    f"adapter-root-bins collision: {basename} shipped by both "
+                    f"{first_source} and {second_source}"
                 )
             sources[src.name] = src
     return sources
@@ -155,9 +171,12 @@ def _assert_shim_companion_present(packs_dir: Path) -> None:
             if SHIM_IMPORT_GREP in body:
                 offenders.append(src.name)
         if offenders:
-            offender_list = ", ".join(offenders)
+            offender_list = ", ".join(
+                render_diagnostic_path(Path(SOURCE_SUBDIR) / offender)
+                for offender in offenders
+            )
             raise ValueError(
-                f"adapter-root-bins/{{{offender_list}}} imports "
+                f"{offender_list} imports "
                 f".credentials_shim but .apm/shared-libs/credentials_shim.py "
                 f"is missing in pack {pack.name!r} — the importing module's "
                 f"Tier-2 dispatch would degrade silently on macOS/Windows"
@@ -286,6 +305,27 @@ def _is_companion_projection(proj: AdapterRootBinProjection) -> bool:
     return proj.source.parent.name == shared_libs_leaf
 
 
+def _target_python_names(target_dir: Path, target_fd: int | None) -> list[str]:
+    """List non-directory ``*.py`` entries through an already-held directory."""
+    if target_fd is None:
+        return [
+            path.name for path in target_dir.glob("*.py") if not path.is_dir()
+        ]
+    names: list[str] = []
+    for name in os.listdir(target_fd):  # noqa: PTH208 — directory descriptor
+        if not name.endswith(".py"):
+            continue
+        try:
+            entry_stat = os.stat(
+                name, dir_fd=target_fd, follow_symlinks=False
+            )
+        except FileNotFoundError:
+            continue
+        if not stat.S_ISDIR(entry_stat.st_mode):
+            names.append(name)
+    return names
+
+
 def apply_projection(working_tree: Path, packs_dir: Path) -> None:
     """Write every projection target and remove orphans.
 
@@ -307,20 +347,28 @@ def apply_projection(working_tree: Path, packs_dir: Path) -> None:
     _assert_shim_companion_present(packs_dir)
     projections = compute_projections(working_tree, packs_dir)
     expected_targets = {p.target for p in projections}
+    ensure_directory_no_follow(working_tree, TARGET_SUBDIR)
     for proj in projections:
-        proj.target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(proj.source, proj.target)
-        if os.name == "posix":
-            with contextlib.suppress(OSError):
-                proj.target.chmod(EXECUTABLE_MODE)
+        copy_file_atomic_no_follow(
+            proj.source,
+            proj.target,
+            base=working_tree,
+            mode=EXECUTABLE_MODE,
+        )
     # Orphan removal: any *.py file under <working_tree>/.agentbundle/bin/
     # not claimed by an expected target.
     target_dir = working_tree / TARGET_SUBDIR
-    if target_dir.is_dir():
-        for existing in sorted(target_dir.glob("*.py")):
-            if existing not in expected_targets:
-                with contextlib.suppress(FileNotFoundError):  # pragma: no cover — race-only
+    with open_directory_no_follow(working_tree, TARGET_SUBDIR) as target_fd:
+        for name in sorted(_target_python_names(target_dir, target_fd)):
+            existing = target_dir / name
+            if existing in expected_targets:
+                continue
+            if target_fd is None:
+                with contextlib.suppress(FileNotFoundError):  # pragma: no cover
                     existing.unlink()
+            else:
+                with contextlib.suppress(FileNotFoundError):  # pragma: no cover
+                    os.unlink(name, dir_fd=target_fd)
 
 
 def check_drift(working_tree: Path, packs_dir: Path) -> list[str]:
@@ -348,6 +396,33 @@ def check_drift(working_tree: Path, packs_dir: Path) -> list[str]:
     target_dir = working_tree / TARGET_SUBDIR
     expected_targets: set[Path] = set()
 
+    current = working_tree
+    for part in TARGET_SUBDIR.parts:
+        current /= part
+        try:
+            current_stat = current.lstat()
+        except FileNotFoundError:
+            break
+        except OSError as exc:
+            drifts.append(
+                f"[adapter-root-bins] unreadable: "
+                f"{_display(current, working_tree)}: {exc}"
+            )
+            return drifts
+        if not stat.S_ISDIR(current_stat.st_mode):
+            kind = (
+                "a symlink"
+                if stat.S_ISLNK(current_stat.st_mode)
+                else "not a directory"
+            )
+            drifts.append(
+                f"[adapter-root-bins] type mismatch: "
+                f"{_display(current, working_tree)} is {kind}; "
+                f"expected a directory inside the working tree; "
+                f"run: make build-self FORCE=1"
+            )
+            return drifts
+
     for proj in compute_projections(working_tree, packs_dir):
         expected_targets.add(proj.target)
         prefix = (
@@ -360,34 +435,75 @@ def check_drift(working_tree: Path, packs_dir: Path) -> list[str]:
         except OSError as exc:  # pragma: no cover — defensive
             drifts.append(f"{prefix} source unreadable: {exc}")
             continue
-        if not proj.target.exists():
+        try:
+            target_bytes, target_stat = read_regular_file_no_follow(
+                proj.target,
+                base=working_tree,
+            )
+        except FileNotFoundError:
             drifts.append(
                 f"{prefix} missing: "
-                f"{proj.target.relative_to(working_tree).as_posix()} "
+                f"{_display(proj.target, working_tree)} "
                 f"(source: "
-                f"{proj.source.relative_to(packs_dir.parent).as_posix()}); "
+                f"{_display(proj.source, packs_dir.parent)}); "
                 f"run: make build-self FORCE=1"
             )
             continue
-        if proj.target.read_bytes() != source_bytes:
+        except ProjectionTypeError as exc:
+            drifts.append(
+                f"{prefix} type mismatch: "
+                f"{_display(proj.target, working_tree)} {exc}; "
+                f"expected a regular projected file; run: make build-self FORCE=1"
+            )
+            continue
+        except OSError as exc:
+            drifts.append(
+                f"{prefix} unreadable: "
+                f"{_display(proj.target, working_tree)}: {exc}"
+            )
+            continue
+        if (
+            os.name == "posix"
+            and stat.S_IMODE(target_stat.st_mode) != EXECUTABLE_MODE
+        ):
+            drifts.append(
+                f"{prefix} mode drift: "
+                f"{_display(proj.target, working_tree)} has "
+                f"{oct(stat.S_IMODE(target_stat.st_mode))}, expected "
+                f"{oct(EXECUTABLE_MODE)}; run: make build-self FORCE=1"
+            )
+        if target_bytes != source_bytes:
             drifts.append(
                 f"{prefix} modified: "
-                f"{proj.target.relative_to(working_tree).as_posix()} "
+                f"{_display(proj.target, working_tree)} "
                 f"diverges from "
-                f"{proj.source.relative_to(packs_dir.parent).as_posix()}; "
+                f"{_display(proj.source, packs_dir.parent)}; "
                 f"run: make build-self FORCE=1"
             )
 
     # Orphan check.
-    if target_dir.is_dir():
-        for existing in sorted(target_dir.glob("*.py")):
-            if existing not in expected_targets:
-                drifts.append(
-                    f"[adapter-root-bins] orphaned: "
-                    f"{existing.relative_to(working_tree).as_posix()} "
-                    f"present but no pack ships "
-                    f"adapter-root-bins/{existing.name}; "
-                    f"run: make build-self FORCE=1"
-                )
+    try:
+        with open_directory_no_follow(working_tree, TARGET_SUBDIR) as target_fd:
+            target_names = _target_python_names(target_dir, target_fd)
+    except FileNotFoundError:
+        target_names = []
+    except OSError as exc:
+        drifts.append(
+            f"[adapter-root-bins] unreadable: "
+            f"{render_diagnostic_path(TARGET_SUBDIR)}: {exc}; "
+            f"run: make build-self FORCE=1"
+        )
+        target_names = []
+    for name in sorted(target_names):
+        existing = target_dir / name
+        if existing not in expected_targets:
+            source_hint = render_diagnostic_path(Path("adapter-root-bins") / name)
+            drifts.append(
+                f"[adapter-root-bins] orphaned: "
+                f"{render_diagnostic_path(existing.relative_to(working_tree))} "
+                f"present but no pack ships "
+                f"{source_hint}; "
+                f"run: make build-self FORCE=1"
+            )
 
     return drifts

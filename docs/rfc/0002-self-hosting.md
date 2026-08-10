@@ -575,6 +575,28 @@ If accepted, this RFC produces one downstream artifact:
 
 ## Amendments
 
+- 2026-08-09 (post-acceptance): the classification registry catches up with
+  repository classes and projection rails added after the original self-host
+  implementation. Source and living-document boundaries now cover the
+  repository's `docs-site/`, `web/`, `profiles/`, `packages/`, and named root
+  configuration files, so the current Git-visible inventory is classified
+  without enumerating every leaf. The `.agentbundle/` tree is deliberately
+  **not** excluded: RFC-0013's `adapter-root-bins` targets under
+  `.agentbundle/bin/` and the shipped credbroker user-scope targets under
+  `.agentbundle/lib/` are Projected. Their membership is derived from the
+  projection enumerators, and their existing drift checkers now participate in
+  every self-host dry-run (including catalogue verifier step 15). Git-visible
+  filenames are enumerated with `git ls-files -z` so whitespace and newline
+  bytes remain lossless, while diagnostic rendering escapes control bytes onto
+  one reversible line; an unavailable/failed Git listing retains the non-failing
+  warning rather than implying a complete inventory. Special-rail reads,
+  orphan operations, and writes hold no-follow directory descriptors on POSIX;
+  writes use atomic replacement so a concurrent leaf-link swap cannot redirect
+  bytes. The adapter-root-bin checker also applies RFC-0002's established
+  file-type, no-follow symlink, and POSIX mode rules to the executable rail.
+  Implemented by `docs/specs/catalogue-verify-classification/`; no category
+  semantics or CLI exit policy changes.
+
 - 2026-05-25 (post-acceptance, later same day): AC22 rescoped from
   "per pack per install route" to single-route. The 2026-05-25
   amendment item (e) below named a first-install snapshot test "per
