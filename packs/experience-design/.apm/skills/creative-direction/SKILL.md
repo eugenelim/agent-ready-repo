@@ -1,6 +1,6 @@
 ---
 name: creative-direction
-description: Use when a designer or stakeholder has a felt "vibe" but no named direction — turning a vague mood into ranked emotional/brand goals and an creative-direction doc the rest of the build references. Triggers on "make it feel premium/calm/playful", "I want it to feel like X", "what's the vibe here", "we need a look and feel", "before we pick colors/type". Runs the interrogation that converges a mood into named goals, grounds each goal in a stable referent (persona, precedent, standards, platform conventions), then records which goal wins when two goals conflict. Do NOT use to derive a token or scale taxonomy (use `design-system`), to structure hierarchy and reading flow (use `information-architecture`), or to evaluate an existing screen (use `design-review`).
+description: "Use when someone says a digital surface should feel premium, calm, playful, or otherwise has a vibe but no shared visual direction. Produces ranked aesthetic goals and a `creative-direction.md` record grounded in referents and arbitration rules. Use `design-system` after the direction to derive tokens, `information-architecture` for page hierarchy, and `design-review` to critique existing work. Product positioning belongs to product strategy; framing or scoping the bet belongs to `frame-intent`; implementing colors, type, or components belongs to `frontend-engineering`."
 ---
 
 # Skill: creative-direction

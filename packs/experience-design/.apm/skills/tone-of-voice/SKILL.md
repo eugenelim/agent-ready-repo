@@ -1,6 +1,6 @@
 ---
 name: tone-of-voice
-description: Use when a team needs to name the brand-level copy register — the cross-surface voice personality that all per-surface copy decisions reference. Turns a felt brand voice into named, ranked copy goals grounded in stable referents (persona language, copy precedents, persuasion standards), and records them in a brand-register doc. Triggers on "what voice should our brand have across all channels", "name our brand copy personality", "write a brand-register doc", "how do we sound different from our competitors". Do NOT use for per-surface acquisition copy positioning — use `copy-direction` in the `experience-design` pack for those. Do NOT use for product UI copy states (error messages, empty states, button labels, form labels) — use `ux-writing` in the `product-engineering` pack for those. Do NOT use for SEO keyword targeting, advertising copy templates, or brand identity documentation.
+description: "Use when a team asks how the brand should sound consistently across channels and surfaces. Produces a brand-register document with named, ranked voice goals and arbitration rules. It is the upstream anchor: `content-design` owns a surface's message and structure, `copy-direction` owns acquisition-surface copy goals, and `ux-writing` owns product UI strings. Organization-level product or content strategy belongs to the strategy packs; shaping a product initiative belongs to `frame-intent`; implementing copy in templates or components belongs to `frontend-engineering`."
 ---
 
 # Skill: tone-of-voice

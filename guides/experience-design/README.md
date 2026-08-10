@@ -1,25 +1,52 @@
 # `experience-design` — guides
 
-The design/UX seat that carries the **whole design thread** — from a customer
-journey, through the screens it implies and the services behind them, to how
-each screen looks and behaves, to an independent review and a hand-off to
-realization. 19 skills covering: journey mapping and screen flow derivation
-(connective thread), design principles (Define phase), genre-specific surface
-design (marketing, documentation, analytical, marketplace, informational,
-workspace), craft design (creative direction, design system, information
-architecture, interaction design), content design, copy direction, tone of voice, continuous
-review, and a forked-context reviewer.
+Use this pack to move from an understood user need to design decisions a builder
+can implement and an independent reviewer can assess. Start with the job in your
+own words: “Map what a new customer goes through, turn the painful step into
+screens, and tell me which design decision comes next.” You receive durable
+design artifacts and an explicit next step; the pack does not write frontend
+code or choose the product bet for you.
 
-Every skill ships portable **method**, never your stack: no UI-framework code,
-no styling-language syntax, no values tables, no pixel comps. The skills point
-to the recognized standards — WCAG, the W3C Design Tokens interchange shape,
-Apple HIG, Material 3, APQC, BPMN — and ship the method to *derive* your design,
-so the discipline travels to any repo and any toolchain.
+## Choose by job
 
-New here? Read [The experience thread](explanation/the-experience-thread.md) to
-see how the skills compose into one walkable flow, then
-[Thread a feature from journey to screens](how-to/author-design-intent.md) to
-run it end to end.
+**Understand what happens.** Use `journey-mapping` for the customer's path,
+`service-blueprint` for the people and systems behind it, `process-mapping` for
+an internal operation, and `experience-status` to orient to existing design
+artifacts.
+
+**Turn intent into a screen experience.** Use `design-principles` for durable
+arbitration rules, `user-flow` for screen sequence and edge paths,
+`information-architecture` for hierarchy and wayfinding, and
+`interaction-design` for behavior within a screen or component.
+
+**Set direction and assess the result.** Use `creative-direction` for visual
+goals, `design-system` for the token taxonomy, `content-design` for the surface's
+message and narrative structure, and `design-review` for an authoring-time
+critique. Copy has four distinct layers: `tone-of-voice` owns the brand register;
+`content-design` owns what a surface must communicate; `copy-direction` owns
+copy goals for one acquisition surface; `ux-writing` in product engineering
+owns product UI strings.
+
+**Match the surface genre.** Use `conversion-design` for marketing,
+`documentation-design` for docs and help, `analytical-design` for dashboards,
+`informational-design` for editorial reading, `marketplace-design` for
+multi-party exchange, and `workspace-design` for sustained professional work.
+
+That is the complete 20-skill inventory. Every skill ships a portable method,
+not framework code, styling syntax, values tables, or pixel comps.
+
+## Leave the pack at the discipline boundary
+
+- Market, audience, positioning, adoption, and organization-level direction
+  belong to product strategy.
+- Framing, appetite, risks, scope, solution options, and bet commitment belong
+  to product-engineering shaping.
+- HTML, CSS, components, data bindings, and build evidence belong to frontend
+  engineering after the design is approved.
+
+Read [The experience thread](explanation/the-experience-thread.md) for the
+mental model, or [Thread a feature from journey to screens](how-to/author-design-intent.md)
+to run the connective path end to end.
 
 ## Explanation
 
@@ -39,7 +66,7 @@ run it end to end.
 
 - [The skills, the reviewer, and the `quality-floor`](reference/experience-design.md) —
   what each skill and the `experience-reviewer` agent trigger on, what they
-  produce, the `[experience]` layout, and the shared floor they all clear.
+  produce, the `[design]` layout, and the shared floor they all clear.
 
 ---
 

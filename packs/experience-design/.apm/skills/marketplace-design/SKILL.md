@@ -1,6 +1,6 @@
 ---
 name: marketplace-design
-description: "Use when designing a marketplace surface — a catalogue, a listing grid, a product detail page, or a buying/transaction flow that connects buyers and sellers or producers and consumers. Triggers on 'design the marketplace', 'structure the listing page', 'how should the catalogue work', 'design the search and filter', 'buyer journey on the marketplace', 'product card design'. Produces IA specifications for catalogue, filter, comparison, and transaction bridge surfaces. Do NOT use for single-product marketing surfaces (use conversion-design) or workspace tool surfaces (use workspace-design). Surface genre: marketplace."
+description: "Use when someone asks how a catalogue, listing grid, comparison view, detail page, or transaction bridge should help participants discover and choose in a marketplace. Produces information-architecture specifications for search, filters, listings, comparison, and the path to transaction. Use `conversion-design` for a single-product marketing page and `workspace-design` for an internal management tool. Marketplace strategy is upstream; framing and sizing the marketplace bet belongs to product engineering; implementing search, filters, transactions, or listing copy belongs elsewhere."
 ---
 
 # Skill: marketplace-design

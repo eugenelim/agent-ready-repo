@@ -1,6 +1,6 @@
 ---
 name: information-architecture
-description: Use when designing how a screen or flow is organized — what goes where, in what order, and how a user stays oriented. Triggers on "structure this screen", "information architecture", "lay out this flow", "what's the hierarchy here", "how should this navigation be organized", "why does this page feel cluttered". Produces an information-architecture and layout reasoning doc — hierarchy, reading flow, progressive disclosure, and wayfinding as concepts. Do NOT use when the work is choosing mood, type, or color personality (use `creative-direction`); when defining reusable tokens, scales, or component rules (use `design-system`); or when judging an existing design against a standard (use `design-review`).
+description: "Use when someone asks what goes where on a screen or flow, in what order, and how users stay oriented. Produces an information-architecture and layout-reasoning document covering hierarchy, reading flow, progressive disclosure, navigation, and wayfinding. Use `creative-direction` for visual mood, `interaction-design` for within-screen behavior, `user-flow` for screen sequence, and `design-review` for critique. Product direction belongs to product strategy; scoping the feature belongs to `frame-intent`; writing markup and styles belongs to `frontend-engineering`."
 ---
 
 # Skill: information-architecture

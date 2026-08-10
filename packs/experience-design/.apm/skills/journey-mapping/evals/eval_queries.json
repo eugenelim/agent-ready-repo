@@ -1,4 +1,6 @@
 [
+  {"query": "Map what a new customer goes through from first awareness to first successful use", "should_trigger": true},
+  {"query": "Turn this opportunity into a scoped product bet with appetite and solution boundaries", "should_trigger": false},
   {"query": "Map the customer journey for someone signing up for our product", "should_trigger": true},
   {"query": "Create a journey map for our onboarding flow", "should_trigger": true},
   {"query": "What does the user go through when they first use the app?", "should_trigger": true},

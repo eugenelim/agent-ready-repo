@@ -1,4 +1,6 @@
 [
+  {"query": "Turn this approved onboarding journey into screens, transitions, and failure paths", "should_trigger": true},
+  {"query": "Decide the appetite, risks, and boundaries for the onboarding initiative", "should_trigger": false},
   {"query": "Map the screen flow for this onboarding journey", "should_trigger": true},
   {"query": "What screens do we need for the checkout journey, and how do they connect?", "should_trigger": true},
   {"query": "Sequence the screens for this flow and route what happens when an action fails", "should_trigger": true},

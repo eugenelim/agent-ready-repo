@@ -1,6 +1,6 @@
 ---
 name: experience-status
-description: "Orient to the current design thread at a glance — reads design artifacts from the configured output directory and surfaces what exists, what's missing, and which skill to run next. Triggers on 'where are we with the design', 'what experience artifacts do we have', 'status of the design thread', 'what's next in the design', 'show me what design work exists', or any cold-start orient for the experience-design work thread. Read-only: never writes files, never elicits configuration."
+description: "Use when someone asks where the current experience-design thread stands, which design artifacts exist, what is missing, or which design skill comes next. Reads the configured design output and returns a read-only orientation; it never writes files or performs the missing design work. Product or portfolio status belongs to product strategy, prioritizing and shaping the next feature belongs to product engineering, and implementation or build status belongs to frontend engineering."
 ---
 
 # /experience-status
