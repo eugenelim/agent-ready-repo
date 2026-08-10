@@ -108,10 +108,16 @@ def main() -> int:
         _check("a dangling marketplace entry refuses",
                msg is not None and "ghost" in msg, f"got {msg}")
 
-        # Refusal 3: a published directory nobody lists.
+        # Refusal 3: a published directory nobody lists. `orphan` must exist
+        # in the source and be user-capable, or refusal 1 (`stale`) fires
+        # first and this case passes without ever reaching refusal 3 — it did,
+        # and deleting `orphaned` outright left the whole file green.
+        # Assert the message, not just the slug, for the same reason.
+        _source_pack(root, "orphan", user=True)
         msg = _refuses(root, ["userpack", "orphan"], ["userpack"])
         _check("an unlisted published directory refuses",
-               msg is not None and "orphan" in msg, f"got {msg}")
+               msg is not None and "orphan" in msg
+               and "no marketplace entry" in msg, f"got {msg}")
 
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)

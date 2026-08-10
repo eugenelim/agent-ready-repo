@@ -279,7 +279,11 @@ proves the target passes, not that a new check ran. Both reverted after.
 
 ```
 ### Mutation 1 — site frontmatter desync
-$ sed -i 's/pluginInstallable: false/pluginInstallable: true/' web/src/content/packs/core.md
+$ sed -i '' 's/pluginInstallable: false/pluginInstallable: true/' web/src/content/packs/core.md
+  # BSD sed (macOS): the empty suffix arg is required — without it sed
+  # takes the filename as the backup suffix and edits nothing, which
+  # would make this transcript unreproducible on the machine it was
+  # captured on. GNU sed: drop the ''.
 $ python3 tools/lint-site-scope-parity.py --root .
 exit=1
 lint-site-scope-parity: core.md says pluginInstallable: true but
@@ -298,7 +302,11 @@ lint-plugin-roster: 'core' is published but is pinned repo-only. If you widened
 invokes:
 
 ```
-$ sed -i 's/pluginInstallable: false/pluginInstallable: true/' web/src/content/packs/core.md
+$ sed -i '' 's/pluginInstallable: false/pluginInstallable: true/' web/src/content/packs/core.md
+  # BSD sed (macOS): the empty suffix arg is required — without it sed
+  # takes the filename as the backup suffix and edits nothing, which
+  # would make this transcript unreproducible on the machine it was
+  # captured on. GNU sed: drop the ''.
 $ python3 tools/repo/build_gate_chain.py build-check --packs-dir packs --output-dir dist
 …
 68 passed, 0 failed

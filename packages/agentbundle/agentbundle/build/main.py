@@ -996,19 +996,24 @@ def _run_aggregate(
         payload["owner"] = marketplace_owner
     payload["plugins"] = entries
 
-    if excluded:
-        print(
-            f"marketplace: excluded {len(excluded)} pack(s) not installable at "
-            f"user scope: {', '.join(sorted(excluded))}",
-            file=sys.stderr,
-        )
-    if stale:
-        print(
-            f"marketplace: excluded {len(stale)} directory/ies no longer "
-            f"present in the source tree (stale dist/ — `make build` has no "
-            f"`clean` dependency): {', '.join(sorted(stale))}",
-            file=sys.stderr,
-        )
+    # All three lines take the caller's disclosure policy, not just the
+    # emptiness warning below. A library caller rendering several packs into
+    # one `output_dir` would otherwise get the `stale` line — mislabelled, at
+    # that: the pack list was narrowed, not deleted from the source tree.
+    if aggregate_scope == "catalogue":
+        if excluded:
+            print(
+                f"marketplace: excluded {len(excluded)} pack(s) not installable "
+                f"at user scope: {', '.join(sorted(excluded))}",
+                file=sys.stderr,
+            )
+        if stale:
+            print(
+                f"marketplace: excluded {len(stale)} directory/ies no longer "
+                f"present in the source tree (stale dist/ — `make build` has no "
+                f"`clean` dependency): {', '.join(sorted(stale))}",
+                file=sys.stderr,
+            )
     # Gated on the caller's mode, exactly like the per-pack skip line: a
     # single-pack render of a repo-only pack is a *successful* `agentbundle
     # install --pack core`, and announcing an empty marketplace there reads as

@@ -549,3 +549,44 @@ def test_a_single_pack_render_says_nothing_about_the_route(tmp_path) -> None:
         "a single-pack render of a repo-only pack said something about the "
         f"plugin route — stderr was:\n{result.stderr}"
     )
+
+
+def test_a_manifest_less_pack_produces_no_route_output(tmp_path) -> None:
+    """Derived-set condition 2, which had no engine-side artifact.
+
+    `is_publishable`'s three conditions: underscore slug, a
+    `.claude-plugin/plugin.json`, and scopes admitting `user`. The first and
+    third are pinned in `test_plugin_scope_filter.py`; the second was not,
+    because every fixture pack carries a manifest — so deleting the guard
+    passed the entire suite. AC5 names this as a behavioural change ("manifest-
+    less packs now produce no claude-plugins output"), so it earns a control.
+    """
+    packs = tmp_path / "packs"
+    # User-capable, so only the missing manifest can withhold it.
+    pack = packs / "nomanifest"
+    (pack / ".apm" / "skills" / "demo").mkdir(parents=True)
+    (pack / ".apm" / "skills" / "demo" / "SKILL.md").write_text(
+        "---\nname: demo\ndescription: d\n---\n\nBody.\n", encoding="utf-8")
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "nomanifest"\nversion = "1.0.0"\n'
+        'description = "d"\n'
+        '[pack.adapter-contract]\nversion = "0.3"\n'
+        '[pack.install]\ndefault-scope = "repo"\n'
+        'allowed-scopes = ["repo", "user"]\n', encoding="utf-8")
+
+    out = tmp_path / "dist"
+    result = subprocess.run(
+        [sys.executable, "-m", "agentbundle.build", "build",
+         "--packs-dir", str(packs), "--output-dir", str(out)],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert result.returncode == 0, result.stderr
+    assert not (out / "claude-plugins" / "nomanifest").exists(), (
+        "a pack with no .claude-plugin/plugin.json reached the route"
+    )
+    # ...and the reason given is the one that held, not a scope refusal — the
+    # pack's scopes admit `user`, so saying otherwise sends the reader to the
+    # wrong line of a `pack.toml` that is correct.
+    assert "no .claude-plugin/plugin.json" in result.stderr, (
+        f"stderr was:\n{result.stderr}"
+    )

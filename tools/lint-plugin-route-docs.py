@@ -29,6 +29,12 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 GATE = "lint-plugin-route-docs"
 
 # A repo-only pack must never be named as the subject of a plugin install.
+#
+# Literal rather than derived because `SITES` below is built at import time,
+# before `--root` is known. `tools/test-lint-plugin-route-docs.py` compares
+# this tuple against `packs/*/pack.toml` on every run, so a pack narrowing its
+# scopes reddens there — the drift this list could otherwise carry silently
+# while a doc kept offering the pack.
 REPO_ONLY = ("core", "governance-extras", "iac-terraform", "monorepo-extras",
              "release-engineering", "user-guide-diataxis", "catalogue-curation")
 

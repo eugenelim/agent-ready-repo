@@ -120,7 +120,7 @@ class MarketplaceAggregateTests(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.contract = load_contract(CONTRACT_PATH)
 
-    def test_aggregates_all_plugin_jsons(self) -> None:
+    def test_aggregates_the_user_capable_plugin_jsons(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             tmp_path = Path(tmp)
             packs_dir = tmp_path / "packs"

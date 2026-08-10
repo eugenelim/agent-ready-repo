@@ -11,6 +11,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
 
 _spec = importlib.util.spec_from_file_location(
@@ -81,6 +82,28 @@ def main() -> int:
     # into one silently drops a claim.
     _check("the entry count is unchanged", len(lint.SITES) == 9,
            f"{len(lint.SITES)} entries, expected 9")
+
+    # `REPO_ONLY` cannot be derived at import time (SITES is built before
+    # `--root` exists), so its sync with reality is asserted here instead. A
+    # pack narrowing its scopes reddens `lint-plugin-roster` too; without this
+    # the *doc* guard for that pack would stay absent while the roster moved.
+    import importlib.util as _ilu
+
+    _ps = _ilu.spec_from_file_location(
+        "pack_scope", Path(__file__).parent / "pack_scope.py")
+    _pack_scope = _ilu.module_from_spec(_ps)
+    _ps.loader.exec_module(_pack_scope)
+    repo_root = Path(__file__).resolve().parents[1]
+    actual_repo_only = {
+        d.name for d in (repo_root / "packs").iterdir()
+        if d.is_dir() and not d.name.startswith("_") and (d / "pack.toml").exists()
+        and "user" not in _pack_scope.allowed_scopes(
+            tomllib.loads((d / "pack.toml").read_text(encoding="utf-8")))
+    }
+    _check("REPO_ONLY matches the packs that actually withhold user scope",
+           set(lint.REPO_ONLY) == actual_repo_only,
+           f"list has {sorted(set(lint.REPO_ONLY) - actual_repo_only)} extra, "
+           f"{sorted(actual_repo_only - set(lint.REPO_ONLY))} missing")
 
     with tempfile.TemporaryDirectory() as tmp:
         # An empty tree: every site is missing, so every site must report.

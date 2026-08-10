@@ -190,7 +190,11 @@ no callers anywhere in the tree, so its parameter is unreachable today).
   `pack.toml`, manifest or not; equality against a set that requires
   `plugin.json` deletes that subtree for `cc-user-hooks`, `list_packs/{alpha,beta}`,
   and `local_scope/local-test-pack`. That is a second behavioural change, named
-  here rather than discovered in a red suite.
+  here rather than discovered in a red suite — and pinned by
+  `test_a_manifest_less_pack_produces_no_route_output`. It had no engine-side
+  control until round fifteen: every fixture pack carries a manifest, so
+  deleting the guard passed the whole suite while the other two conditions
+  (underscore slug, scopes) each had one.
 
   Assertions build into `tmp_path`, not against the repo's `dist/`, which is
   gitignored and absent under a plain `pytest` run; an absence assertion against
