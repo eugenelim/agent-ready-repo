@@ -524,15 +524,6 @@ open = [
     # move user-must-act off 2. node exits 1 (MODULE_NOT_FOUND), so node-backed skills are
     # unaffected. Unblocks: now; spans atlassian, figma, linear and converters.
   {slug = "skill-script-exit-2-collision", source = "spec/binder-publishing-gate-propagation AC10"},
-    # guides/iac-terraform/README.md advertises an "8-stage generation loop" and
-    # "Stages 2-7 apply standards"; the skill it documents
-    # (packs/iac-terraform/.apm/skills/generate-iac/SKILL.md) runs Stage 0-6 with
-    # entirely different names. Adopter-facing, so an agent following the README
-    # looks for stages that do not exist. Deferred from guides-sidebar-generation:
-    # pre-existing, user-visible content drift, invisible to the sidebar generator,
-    # so it fails the bundled-fixes carve-out. Fix: rewrite the README's skill
-    # table against SKILL.md's actual stage sequence. Unblocks: now.
-  {slug = "iac-guides-readme-stage-drift", source = "spec/guides-sidebar-generation (out of scope)"},
   # Codex renders skill descriptions into a ~2% context budget and truncates to
   # fit, warning "Skill descriptions were shortened to fit the 2% skills context
   # budget" (observed on Codex CLI 0.146.0). The catalogue ships 122 skills whose
