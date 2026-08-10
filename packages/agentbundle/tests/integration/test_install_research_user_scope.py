@@ -20,8 +20,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-RESEARCH_PACK_SRC = REPO_ROOT / "packs" / "desk-research"
+from tests._support import stage_installable_pack, stage_primitives
+
 SKILL_NAMES = (
     "identify-perspectives",
     "build-outline",
@@ -79,11 +79,22 @@ class ResearchUserScopeInstallTests(unittest.TestCase):
         )
         self._env.start()
         self.addCleanup(self._env.stop)
-        # Temporary catalogue layout: <cat>/packs/desk-research/ — populated
-        # from the repo-local pack via copytree.
         self.cat = self.tmp / "catalogue"
-        (self.cat / "packs").mkdir(parents=True)
-        shutil.copytree(RESEARCH_PACK_SRC, self.cat / "packs" / "desk-research")
+        pack = stage_installable_pack(
+            self.cat,
+            "desk-research",
+            """\
+[pack]
+name = "desk-research"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+""",
+        )
+        stage_primitives(pack, skills=SKILL_NAMES, agents=AGENT_NAMES)
 
     def test_install_then_uninstall_round_trip(self) -> None:
         install_args = argparse.Namespace(

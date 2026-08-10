@@ -12,7 +12,10 @@
     "profiles/AGENTS.md": "8950438d9e0f57c13613104c88c90b598b53196c91bfdced6d63e4e01b5e9254",
     "profiles/README.md": "a0b0268edc57fc575f7fea08f3363ba7da9f6e67dc4a0a6f8bd38c9668c97922",
     "profiles/_example/README.md": "164494df049ddce3e57cb44ed604cb3d39be0a6ec2072e609ea3fa4bbfc74c72",
-    "profiles/_example/profile.toml": "68af18cf50fa0327a9776b029c92bb1cf82710c649691b3ac889eb8537b8eac7"
+    "profiles/_example/profile.toml": "68af18cf50fa0327a9776b029c92bb1cf82710c649691b3ac889eb8537b8eac7",
+    "tests/conformance/test_gemini_admissibility.py": "8b337da9272823aed2cb22041b3f9fd27549f075f28b9817efd5be8f8c5bb948",
+    "tests/conformance/test_pack_metadata.py": "8ea175b88cc6e10ba10cda87676fc225ee2b968d710c8e6ab05fb20e31ec978a",
+    "tests/conformance/test_shared_library_boundaries.py": "5e07783459336e657a355f43aa5a9cf6c138603624daec258ecc0fa3d74239c3"
   },
   "version": 1
 }

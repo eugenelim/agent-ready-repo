@@ -48,6 +48,19 @@ def _make_catalogue(
         '[pack]\nname = "core"\nversion = "0.1.0"\n', encoding="utf-8", newline="\n"
     )
     (pack_dir / "SKILL.md").write_text("# skill\n", encoding="utf-8", newline="\n")
+    (pack_dir / "tests").mkdir()
+    (pack_dir / "tests" / "test_pack.py").write_text(
+        "def test_pack(): pass\n", encoding="utf-8", newline="\n"
+    )
+
+    conformance = root / "tests" / "conformance"
+    conformance.mkdir(parents=True)
+    (conformance / "test_rule.py").write_text(
+        "def test_rule(): pass\n", encoding="utf-8", newline="\n"
+    )
+    roster = root / "tests" / "roster"
+    roster.mkdir()
+    (roster / "sentinel.txt").write_text("must not ship\n", encoding="utf-8")
 
     # Profile
     profiles_dir = root / "profiles"
@@ -235,6 +248,24 @@ def test_channel_descriptor_written_last(tmp_path: Path) -> None:
     assert descriptor.exists()
     # verify_archive must have been called
     assert "verify_archive" in write_order
+
+
+def test_archive_includes_conformance_and_pack_tests_but_not_roster(
+    tmp_path: Path,
+) -> None:
+    root = _make_catalogue(tmp_path)
+    output = tmp_path / "out"
+    with mock.patch.dict(os.environ, {"SOURCE_DATE_EPOCH": "1700000000"}):
+        result = package_catalogue(
+            root=root, bundle="b", release="0.1.0", channel="c", output=output
+        )
+    assert result.ok
+    archive = output / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
+    with tarfile.open(archive, mode="r:gz") as tf:
+        names = set(tf.getnames())
+    assert "tests/conformance/test_rule.py" in names
+    assert "packs/core/tests/test_pack.py" in names
+    assert "tests/roster/sentinel.txt" not in names
 
 
 # ---------------------------------------------------------------------------

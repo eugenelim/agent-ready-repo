@@ -19,8 +19,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-FIXTURES = REPO_ROOT / "packages" / "agentbundle" / "tests" / "fixtures" / "packs"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
 
 
 def _run_install(args_namespace) -> tuple[int, str, str]:
@@ -180,9 +180,9 @@ class ForceMergeFlagBindingTests(unittest.TestCase):
 
         proc = subprocess.run(
             [_sys.executable, "-m", "agentbundle", "uninstall", "--pack", "x", "--force-merge"],
-            env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "packages" / "agentbundle")},
+            env={**os.environ, "PYTHONPATH": str(PACKAGE_ROOT)},
             capture_output=True,
-            cwd=str(REPO_ROOT),
+            cwd=str(PACKAGE_ROOT),
         )
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn(

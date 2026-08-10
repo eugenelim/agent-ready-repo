@@ -39,10 +39,6 @@ import pytest
 SOURCE_WRITER = Path(__file__).resolve().parents[2] / "templates" / "install-marker.py"
 assert SOURCE_WRITER.exists(), f"Writer template not found at {SOURCE_WRITER}"
 
-# packages/agentbundle/tests/integration/ → parents[4] = <repo-root>
-REPO_ROOT = Path(__file__).resolve().parents[4]
-
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -790,48 +786,3 @@ def test_data_dir_treats_empty_string_plugin_root_as_unset(tmp_path):
     # Hash file lands under CURSOR_PLUGIN_ROOT/.data, NOT under PLUGIN_ROOT/.data
     # (the empty PLUGIN_ROOT was correctly skipped).
     assert (pack_root / ".data" / "pack-manifest-hash").exists()
-
-
-def test_apm_writer_to_reader_integration_journey(tmp_path):
-    """Quality-engineer Concern 2: integrated journey from writer to reader.
-
-    Run the writer to produce a real marker file, then feed the produced
-    marker (not a hand-authored fixture) through the core pack's
-    session-start `_pack_names_from_marker` helper. Asserts the
-    end-to-end chain — writer-emit → reader-parse — holds for the APM
-    route. If a future regression in marker serialisation produced
-    output the reader cannot parse, T1/T5 would still pass (they assert
-    on `tomllib.loads`-parsed dicts) but this test would fail.
-    """
-    import importlib.util
-
-    cwd = tmp_path / "repo"
-    cwd.mkdir()
-    pack_root = cwd / "apm_modules" / "core"
-    pack_root.mkdir(parents=True)
-    _write_pack_toml(pack_root, name="core", version="0.1.0", allowed_scopes=["repo"])
-    projected = _project_writer(pack_root)
-    home = tmp_path / "home"
-    home.mkdir()
-
-    env = _base_env({"PLUGIN_ROOT": pack_root, "HOME": home})
-    result = _run_writer(projected, env=env, cwd=cwd)
-    assert result.returncode == 0, result.stderr
-
-    marker_path = cwd / ".adapt-install-marker.toml"
-    assert marker_path.exists(), "writer must produce a marker file"
-
-    # Load the core pack's session-start hook as a module and exercise
-    # _pack_names_from_marker against the writer-produced marker.
-    session_start_path = (
-        REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "session-start.py"
-    )
-    spec = importlib.util.spec_from_file_location("_ss_hook", session_start_path)
-    mod = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
-    spec.loader.exec_module(mod)
-
-    names = mod._pack_names_from_marker(marker_path)
-    assert names == ["core"], (
-        f"reader must surface the pack name the writer emitted; got {names}"
-    )

@@ -1,5 +1,5 @@
 {
   "name": "credential-brokers",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Your credentials stay out of the repo and out of the agent's context. credbroker resolves them in-process, sso-broker handles the browser cookie dance, and an LLM-cooperative credential-setup skill walks you through the first time."
 }

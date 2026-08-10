@@ -17,9 +17,7 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACTS = REPO_ROOT / "contracts"
-DATA = REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data"
+DATA = Path(__file__).resolve().parents[2] / "agentbundle" / "_data"
 
 
 def _validate(instance: dict, schema: dict) -> list[str]:
@@ -67,7 +65,7 @@ def _entry_schema() -> dict:
     and permits `category`, while plugin.json carries neither
     (build/main.py:545-546 pops both before validation).
     """
-    path = CONTRACTS / "marketplace-entry.schema.json"
+    path = DATA / "marketplace-entry.schema.json"
     if not path.exists():  # STUB: AC9 — T0 has not landed yet
         pytest.fail(
             "marketplace-entry schema absent: one schema cannot both forbid "
@@ -155,20 +153,6 @@ def _build_dist_marketplace(tmp_path: Path) -> dict:
     return json.loads((tmp_path / "marketplace.json").read_text(encoding="utf-8"))
 
 
-def test_root_marketplace_entries_validate() -> None:
-    """# STUB: AC9 — the root marketplace is committed, so this always runs.
-
-    verify.py `_step_plugin_manifests` reads only `tmpdir/dist/claude-plugins`
-    (:594), so the root marketplace — written by
-    self_host._aggregate_marketplace (:602) — is currently gated by nothing.
-    """
-    path = REPO_ROOT / ".claude-plugin" / "marketplace.json"
-    entries = json.loads(path.read_text(encoding="utf-8")).get("plugins", [])
-    assert len(entries) >= 1, "assert coverage, not a brittle fixed count"
-    for entry in entries:
-        _assert_valid(entry, _entry_schema())
-
-
 def test_dist_marketplace_entries_validate(tmp_path: Path) -> None:
     """# STUB: AC9 — built into tmp_path, never read from the gitignored tree."""
     payload = _build_dist_marketplace(tmp_path)
@@ -189,8 +173,6 @@ def test_malformed_source_is_rejected() -> None:
 
 
 @pytest.mark.parametrize("schema_path", [
-    CONTRACTS / "plugin-manifest.derived.schema.json",
-    CONTRACTS / "plugin-manifest.schema.json",
     DATA / "plugin-manifest.derived.schema.json",
     DATA / "plugin-manifest.schema.json",
 ])
@@ -205,7 +187,7 @@ def test_source_requires_ref_or_sha() -> None:
     """# STUB: AC8 — a ref-less, sha-less payload silently fetches the default
     branch, which is the original defect wearing a valid shape."""
     schema = json.loads(
-        (CONTRACTS / "plugin-manifest.derived.schema.json").read_text(encoding="utf-8")
+        (DATA / "plugin-manifest.derived.schema.json").read_text(encoding="utf-8")
     )
     unpinned = dict(GIT_SUBDIR_SOURCE)
     unpinned.pop("ref")
@@ -219,7 +201,7 @@ def test_source_requires_ref_or_sha() -> None:
 def test_source_url_is_constrained(bad_url: str) -> None:
     """# STUB: AC8 — git-subdir moves the fetch host from the schema into data."""
     schema = json.loads(
-        (CONTRACTS / "plugin-manifest.derived.schema.json").read_text(encoding="utf-8")
+        (DATA / "plugin-manifest.derived.schema.json").read_text(encoding="utf-8")
     )
     payload = dict(GIT_SUBDIR_SOURCE, url=bad_url)
     _assert_invalid(payload, schema["properties"]["source"])

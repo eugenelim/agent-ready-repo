@@ -26,11 +26,11 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES_PACKS = (
     Path(__file__).resolve().parents[2] / "tests" / "build_pipeline" / "fixtures" / "packs"
 )
-TEMPLATE_PATH = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
+TEMPLATE_PATH = PACKAGE_ROOT / "templates" / "install-marker.py"
 
 # The canonical command — match the build pipeline's _SESSION_START_COMMAND_APM.
 EXPECTED_APM_COMMAND = (
@@ -59,7 +59,7 @@ def _run_build(packs_dir: Path, output_dir: Path) -> subprocess.CompletedProcess
         ],
         capture_output=True,
         text=True,
-        cwd=REPO_ROOT,
+        cwd=PACKAGE_ROOT,
     )
 
 

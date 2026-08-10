@@ -15,14 +15,29 @@ from pathlib import Path
 
 import pytest
 
-# repo root: packages/agentbundle/tests/integration/<file> → parents[4].
-REPO_ROOT = Path(__file__).resolve().parents[4]
+from tests._support import materialize_catalogue
+
+REPO_ROOT = Path()
 
 
 @pytest.fixture(autouse=True)
 def _isolate_home_and_caches(tmp_path, monkeypatch):
     from agentbundle.commands import install
 
+    global REPO_ROOT
+    REPO_ROOT = materialize_catalogue(
+        tmp_path / "catalogue",
+        packs=(
+            "core",
+            "governance-extras",
+            "product-documentation",
+            "monorepo-extras",
+            "architect",
+            "desk-research",
+            "contracts",
+        ),
+        profiles=("full-ceremony", "solution-architect"),
+    )
     home = tmp_path / "iso_home"
     home.mkdir()
     monkeypatch.setenv("HOME", str(home))

@@ -24,9 +24,6 @@ from types import SimpleNamespace
 from agentbundle.commands import show
 from agentbundle.config import PackState, State, dump_state
 
-# Repo root = the working-tree catalogue (contains packs/core/...).
-REPO_ROOT = Path(__file__).resolve().parents[4]
-
 # A URI that forces CatalogueError (SSH is deferred → raises immediately).
 UNRESOLVABLE = "git+ssh://example.com/owner/repo"
 
@@ -115,8 +112,26 @@ def test_primary_via_default_source_chain(tmp_path, capsys):
 # ---------------------------------------------------------------------------
 
 
-def test_show_core_lists_full_inventory_not_evals_subset(capsys):
-    rc = show.run(_args("core", catalogue=str(REPO_ROOT), fmt="json"))
+def test_show_lists_full_inventory_not_evals_subset(tmp_path, capsys):
+    skills = (
+        "security-checklists",
+        "operational-safety",
+        "work-loop",
+        "alpha",
+        "beta",
+        "gamma",
+        "delta",
+        "epsilon",
+        "zeta",
+    )
+    cat = _make_catalogue(tmp_path, name="core", skills=skills)
+    pack_toml = cat / "packs" / "core" / "pack.toml"
+    pack_toml.write_text(
+        pack_toml.read_text(encoding="utf-8")
+        + '\n[pack.evals]\nskills = ["alpha"]\n',
+        encoding="utf-8",
+    )
+    rc = show.run(_args("core", catalogue=str(cat), fmt="json"))
     out = capsys.readouterr().out
     assert rc == 0
     obj = json.loads(out)

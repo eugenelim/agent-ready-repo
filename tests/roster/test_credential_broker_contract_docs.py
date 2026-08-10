@@ -1,0 +1,92 @@
+"""T10 (credential-broker-contract): documentation surface presence
+checks for the governance surface (ADR, CONVENTIONS, backlog, guide, sibling
+spec amendments).
+"""
+
+from __future__ import annotations
+
+import pathlib
+
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
+
+
+def test_ac40_adr_exists():
+    """An ADR records the four-broker decision."""
+    adr = REPO_ROOT / "docs" / "adr" / "0003-credential-broker-contract.md"
+    assert adr.is_file(), f"missing ADR: {adr}"
+    body = adr.read_text(encoding="utf-8")
+    # Rejection of alternatives B / D / E / F / G / H / I / J recorded.
+    for alt in ("(B)", "(D)", "(E)", "(F)", "(G)", "(H)", "(I)", "(J)"):
+        assert alt in body, f"ADR missing rejection of alternative {alt}"
+    # Binding choices named.
+    for choice in (
+        "four broker",
+        "two transports",
+        "credential-setup",
+        "shared-libs",
+        "adapter-root-bins",
+    ):
+        assert choice in body, f"ADR missing binding choice keyword {choice!r}"
+
+
+def test_ac41_conventions_credentialed_section_names_brokers():
+    """CONVENTIONS § Credentialed skills names the four
+    brokers and `metadata.auth`."""
+    conventions = (REPO_ROOT / "docs" / "CONVENTIONS.md").read_text(encoding="utf-8")
+    # Locate the Credentialed skills section.
+    start = conventions.find("## Credentialed skills")
+    assert start > 0, "CONVENTIONS.md missing § Credentialed skills"
+    end = conventions.find("\n## ", start + 1)
+    section = conventions[start:end] if end > 0 else conventions[start:]
+    assert "metadata.auth" in section
+    for broker in ("env", "cli", "creds", "sso-cookie"):
+        assert f"`{broker}`" in section, f"section missing broker id {broker!r}"
+
+
+def test_ac42_roadmap_entry_carries_manual_qa_matrix():
+    """A workspace.toml [backlog] entry tracks the six manual-QA rows."""
+    workspace = (REPO_ROOT / "workspace.toml").read_text(encoding="utf-8")
+    slug = "credential-broker-contract-manual-qa"
+    assert f'slug = "{slug}"' in workspace, (
+        f"workspace.toml [backlog] missing {slug!r} entry"
+    )
+    # Find the entry and its surrounding comment (up to 600 chars before the slug line).
+    idx = workspace.find(f'slug = "{slug}"')
+    section = workspace[max(0, idx - 600) : idx + 100]
+    # Six rows: creds × {macOS, Windows, Linux} and sso-cookie × {macOS, Windows, Linux}.
+    for combo in (
+        "`creds` × macOS",
+        "`creds` × Windows",
+        "`creds` × Linux",
+        "`sso-cookie` × macOS",
+        "`sso-cookie` × Windows",
+        "`sso-cookie` × Linux",
+    ):
+        assert combo in section, f"workspace.toml backlog entry missing manual-QA row: {combo}"
+
+
+def test_ac44_skill_secrets_footer_present():
+    """The skill-secrets spec carries the verbatim footer pointing the
+    inheritance invariants at the new shim."""
+    spec = (REPO_ROOT / "docs" / "specs" / "skill-secrets" / "spec.md").read_text(encoding="utf-8")
+    assert "AC34 and AC35 inheritance invariants" in spec
+    assert "credentials_shim" in spec
+    assert "shared-libs" in spec
+    assert "(credential-broker-contract)" in spec
+
+
+def test_ac45_distribution_adapters_changelog_bullet_present():
+    """The distribution-adapters spec carries the
+    new dated bullet naming the two new primitive classes."""
+    spec = (
+        REPO_ROOT / "docs" / "specs" / "distribution-adapters" / "spec.md"
+    ).read_text(encoding="utf-8")
+    # Locate the Changelog section.
+    start = spec.find("## Changelog")
+    assert start > 0
+    section = spec[start:]
+    # The bullet names both new primitive classes and the spec by name.
+    assert "credential-broker-contract" in section
+    assert "`shared-libs/`" in section
+    assert "`adapter-root-bins/`" in section
+    assert "RFC-0013" in section

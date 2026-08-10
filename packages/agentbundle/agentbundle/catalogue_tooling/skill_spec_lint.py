@@ -22,6 +22,7 @@ import os
 import re
 import tomllib
 from pathlib import Path
+from typing import Any
 
 from agentbundle.catalogue_tooling.results import Diagnostic, Severity
 
@@ -69,7 +70,7 @@ class _DuplicateKeyError(Exception):
         self.line = line
 
 
-def _require_yaml():
+def _require_yaml() -> Any:
     """Import yaml, raising ImportError with an install hint when absent."""
     try:
         import yaml  # noqa: PLC0415 — lazy, PyYAML is optional
@@ -81,19 +82,21 @@ def _require_yaml():
         ) from None
 
 
-def _make_loader(yaml):
+def _make_loader(yaml: Any) -> Any:
     """Return a SafeLoader subclass that rejects duplicate mapping keys."""
     class _FrontmatterLoader(yaml.SafeLoader):
         pass
 
-    def _construct_no_dups(loader, node, deep=False):
+    def _construct_no_dups(
+        loader: Any, node: Any, deep: bool = False
+    ) -> dict[Any, Any]:
         if not isinstance(node, yaml.MappingNode):
             raise yaml.constructor.ConstructorError(
                 None, None,
                 f"expected a mapping node, got {node.id}",
                 node.start_mark,
             )
-        mapping: dict = {}
+        mapping: dict[Any, Any] = {}
         for key_node, value_node in node.value:
             key = loader.construct_object(key_node, deep=deep)
             if key in mapping:

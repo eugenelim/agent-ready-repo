@@ -19,8 +19,8 @@ from agentbundle.build.adapters import ADAPTERS, cursor, registry
 from agentbundle.build.contract import load as load_contract
 from agentbundle.scope import contract_version_at_least
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 
 
 def _seed_agent(pack: Path, name: str, *, tools: str | None, model: str | None = None) -> None:
@@ -308,12 +308,16 @@ class CursorProjectionTests(unittest.TestCase):
             self.assertEqual(len(handlers), 1)
             self.assertEqual(handlers[0]["command"], "python .cursor/hooks/ok.py")
 
-    def test_real_core_pack_projects(self) -> None:
-        """Against the real shipped core pack: reviewers readonly,
-        implementer writable (omitted)."""
+    def test_reviewer_and_implementer_agents_project(self) -> None:
+        """Reviewer fixtures are readonly; the implementer remains writable."""
         with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp) / "out"
-            cursor.project(REPO_ROOT / "packs" / "core", self.contract, out)
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            for reviewer in ("security-reviewer", "adversarial-reviewer", "quality-engineer"):
+                _seed_agent(pack, reviewer, tools="Read, Grep")
+            _seed_agent(pack, "implementer", tools="Read, Write")
+            out = tmp_path / "out"
+            cursor.project(pack, self.contract, out)
             for reviewer in ("security-reviewer", "adversarial-reviewer", "quality-engineer"):
                 fm = (out / ".cursor" / "agents" / f"{reviewer}.md").read_text().split("---")[1]
                 self.assertIn("readonly: true", fm, f"{reviewer} must be readonly")

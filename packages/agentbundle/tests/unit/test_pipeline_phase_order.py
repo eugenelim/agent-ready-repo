@@ -18,8 +18,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 
 
 PHASE_ORDER = ("hook-body", "agent", "hook-wiring", "command", "skill")

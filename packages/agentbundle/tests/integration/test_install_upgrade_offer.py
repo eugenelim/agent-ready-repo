@@ -16,13 +16,10 @@ import argparse
 import contextlib
 import io
 import os
-import shutil
 from pathlib import Path
 from unittest.mock import patch
 
-import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
+from tests._support import stage_installable_pack
 
 FIXTURE_CATALOGUE = (
     Path(__file__).parent.parent / "fixtures" / "install" / "catalogue"
@@ -168,10 +165,6 @@ def test_install_run_forwards_resolved_adapter_when_multi_adapter_and_no_cli_ada
     multi-adapter disambiguator fires ("pass --adapter to pick one") even though
     install already selected the right row via its auto-detection probe.
     """
-    converters_src = REPO_ROOT / "packs" / "converters"
-    if not converters_src.is_dir():
-        pytest.skip("converters pack not present in this checkout")
-
     home = tmp_path / "home"
     (home / ".claude").mkdir(parents=True)  # probe → claude-code
 
@@ -180,7 +173,21 @@ def test_install_run_forwards_resolved_adapter_when_multi_adapter_and_no_cli_ada
     from agentbundle.config import PackState, State, dump_state
 
     cat = tmp_path / "catalogue"
-    (cat / "packs").mkdir(parents=True)
+    stage_installable_pack(
+        cat,
+        "converters",
+        """\
+[pack]
+name = "converters"
+version = "0.8.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+allowed-adapters = ["claude-code", "codex"]
+""",
+    )
 
     two_adapter_state = State(
         packs={
@@ -197,7 +204,6 @@ def test_install_run_forwards_resolved_adapter_when_multi_adapter_and_no_cli_ada
     (agentbundle_dir / "state.toml").write_text(
         dump_state(two_adapter_state), encoding="utf-8", newline="\n"
     )
-    shutil.copytree(converters_src, cat / "packs" / "converters")
     (tmp_path / "repo").mkdir()
 
     captured: dict = {}

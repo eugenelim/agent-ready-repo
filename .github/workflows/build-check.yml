@@ -15,9 +15,10 @@ jobs:
   build-check:
     name: make build-check
     runs-on: ubuntu-latest
-    # Bumped 5 → 15 (ADR-0017): `make build-check` now chains `make sast`, whose
-    # Semgrep leg fetches registry rulesets and scans ~76k LOC.
-    timeout-minutes: 15
+    # Bumped 15 → 25 (RFC-0082): the real sdist gate permits 120 seconds for
+    # collection plus 900 for execution, and must report its own fail-closed
+    # timeout before Actions terminates the surrounding setup/SAST job.
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -184,7 +185,7 @@ jobs:
       # credbroker, not httpx.
       - name: pytest credbroker floor precedence (credbroker-user-scope T1)
         working-directory: packages/agentbundle
-        run: python -m pytest tests/integration/test_credbroker_floor_precedence.py
+        run: python -m pytest ../../packs/credential-brokers/tests/pack/test_floor_precedence.py
 
       # credbroker T9: RFC-0023 retired the shared-libs → consumer-scripts
       # projection (and its build-check drift gate). The standing net that
@@ -220,16 +221,6 @@ jobs:
       - name: pytest guides sidebar generation
         run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
 
-      # RFC-0082's export-boundary gate runs in release-agentbundle.yml, so
-      # nothing here would catch it regressing to always-exit-0. make
-      # build-check runs no pytest — wire its tests explicitly.
-      - name: pytest export-boundary gate
-        # `build` and `setuptools` come from tools/requirements.txt, installed
-        # earlier in this job — the single declaration. Both are load-bearing:
-        # test_real_wheel_carries_no_engine_tests importorskips them and the
-        # AC3 check would otherwise report green having never run.
-        run: python -m pytest tools/test_check_artifact_contents.py
-
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with
@@ -237,6 +228,17 @@ jobs:
         # import never reaches them (credbroker AC4). The vault tests that need
         # the extra arrive with task T4.
         run: python -m pip install -e './packages/credbroker[crypto]'
+
+      # RFC-0082's export-boundary gate runs in release-agentbundle.yml, so
+      # nothing here would catch it regressing to always-exit-0. make
+      # build-check runs no pytest — wire its tests explicitly. This follows
+      # the credbroker install because the extracted sdist suite preflights it.
+      - name: pytest export-boundary gate
+        # `build` and `setuptools` come from tools/requirements.txt, installed
+        # earlier in this job — the single declaration. The real wheel test
+        # skips without them and the real sdist test fails, so both are
+        # load-bearing for the AC3/AC9 proof.
+        run: python -m pytest tools/test_check_artifact_contents.py
 
       - name: pytest credbroker (RFC-0023 Phase 1)
         working-directory: packages/credbroker
@@ -286,6 +288,28 @@ jobs:
           python -c "import credbroker, httpx"
           python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
 
+      - name: pytest catalogue-test carve-out destinations (RFC-0082)
+        run: |
+          python tools/lint-conformance-portability.py --root .
+          python -m pytest tests/ -q
+          python -m pytest packs/architect/tests/pack/ -q
+          python -m pytest packs/catalogue-curation/tests/pack/ -q
+          python -m pytest packs/core/tests/pack/ -q
+          python -m pytest packs/core/tests/skills/workspace-status/ -q
+          python -m pytest packs/credential-brokers/tests/pack/ -q
+          python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+          python -m pytest packs/product-engineering/tests/pack/ -q
+          python -c "import httpx"
+          python -m pytest packs/linear/tests/skills/linear/ -q
+          python -m pytest tools/test_lint_agents_md_diataxis_block.py \
+            tools/test_lint_agents_md_legacy_block.py \
+            tools/test_lint_agents_md_risk_block.py \
+            tools/test_catalogue_curation_guard.py \
+            tools/test_contract_parity.py \
+            tools/test_release_check.py \
+            tools/test_scaffold_projection.py \
+            tools/test_conformance_portability.py -q
+
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
       # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
       # drift-gated. `make build-check` exercises the live drift gate, but the
@@ -328,8 +352,8 @@ jobs:
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
-          tests/build_pipeline/test_architect_design_reviewer_projection.py
-          tests/build_pipeline/test_architect_design_reviewer_rubric_parity.py
+          ../../packs/architect/tests/pack/test_design_reviewer_projection.py
+          ../../packs/architect/tests/pack/test_design_reviewer_rubric_parity.py
 
       # enriched-pack-manifest (RFC-0031): the manifest layer's contract +
       # construction tests live in the tests/{build_pipeline,unit,integration}
@@ -346,7 +370,7 @@ jobs:
           tests/build_pipeline/test_pack_schema.py
           tests/build_pipeline/test_plugin_manifest_schema.py
           tests/unit/test_validate_categories.py
-          tests/unit/test_enriched_pack_metadata.py
+          ../../tests/roster/test_enriched_pack_metadata.py
           tests/integration/test_list_packs_cmd.py
 
       # consolidated-pack-layout (RFC-0040): the installer _append_layout_section
@@ -586,4 +610,3 @@ jobs:
         run: |
           python3 tools/test-lint-pack-descriptions.py
           python3 tools/lint-pack-descriptions.py
-

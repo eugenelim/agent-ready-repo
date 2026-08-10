@@ -18,10 +18,11 @@ Monkeypatching strategy:
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
+from pathlib import Path
 
-import pytest
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity, VerifyResult
 from agentbundle.catalogue_tooling.verify import (
     render_json,
@@ -354,20 +355,6 @@ def test_step_agent_artifacts_no_module_scope_yaml():
     assert not hasattr(verify_mod, "yaml")
 
 
-def test_step_agent_artifacts_pipeline_integration(tmp_path):
-    """_step_agent_artifacts on the in-repo .claude/ returns clean AND >=1 artifact inspected."""
-    import pathlib
-
-    from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
-
-    repo_root = pathlib.Path(__file__).resolve().parents[4]
-    skills = list((repo_root / ".claude" / "skills").glob("*/SKILL.md"))
-    assert len(skills) >= 1, ".claude/skills has no SKILL.md — integration test is vacuous"
-
-    result = _step_agent_artifacts(repo_root, None, None, tmp_path)
-    assert result == [], [d.message for d in result]
-
-
 def test_step_agent_artifacts_clean(tmp_path):
     """A clean skill → empty list."""
     from agentbundle.catalogue_tooling.verify import _step_agent_artifacts
@@ -431,22 +418,22 @@ def test_step_plugin_manifests_clean(tmp_path):
 
 
 def test_step_plugin_manifests_pipeline_integration(tmp_path):
-    """build then step 13: in-repo catalogue produces >=1 manifest, no errors."""
-    import pathlib
+    """A fixture-built plugin manifest passes the packaged schema."""
+    from agentbundle.catalogue_tooling.verify import _step_plugin_manifests
 
-    from agentbundle.catalogue_tooling.config import load_catalogue_config
-    from agentbundle.catalogue_tooling.verify import _step_build_output, _step_plugin_manifests
-
-    repo_root = pathlib.Path(__file__).resolve().parents[4]
-    config = load_catalogue_config(repo_root)
-    if config is None:
-        pytest.skip("no catalogue.toml — skipping pipeline integration test")
-
-    build_diags = _step_build_output(repo_root, config, None, tmp_path)
-    if build_diags:
-        pytest.skip("build step failed — skipping plugin manifest integration test")
-
-    result = _step_plugin_manifests(repo_root, config, None, tmp_path)
+    fixture = (
+        Path(__file__).resolve().parents[1]
+        / "build_pipeline"
+        / "fixtures"
+        / "packs"
+        / "core"
+        / ".claude-plugin"
+        / "plugin.json"
+    )
+    manifest = tmp_path / "dist" / "claude-plugins" / "core.claude-plugin" / "plugin.json"
+    manifest.parent.mkdir(parents=True)
+    shutil.copyfile(fixture, manifest)
+    result = _step_plugin_manifests(tmp_path, None, None, tmp_path)
     assert result == [], [d.message for d in result]
 
     manifests = list((tmp_path / "dist" / "claude-plugins").rglob("*.claude-plugin/plugin.json"))

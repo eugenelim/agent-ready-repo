@@ -31,8 +31,8 @@ import argparse
 import re
 import sys
 import tomllib
-from typing import NamedTuple, Pattern
 from pathlib import Path
+from typing import NamedTuple, Pattern
 
 from agentbundle.pack_inventory import apm_entries
 from agentbundle.safety import PathJailError, assert_portable_name
@@ -84,30 +84,39 @@ def _walk_up_for_vocab(start: Path) -> Path | None:
 
 def _load_target_vocab(start: Path) -> tuple[dict | None, str | None]:
     """Walk up from `start` looking for `contracts/target-vocab.toml`;
-    fall back to walking up from this module's own ancestor chain when
-    the explicit walk fails. This keeps the gate working when an
-    adopter points `--packs-dir` at a tmp tree outside the repo while
-    still picking up the in-tree vocab. The legacy pre-PR
-    `LintPackTests` rely on this fallback. Returns `(vocab_dict, None)`
-    on success, `(None, err)` when **both** walks fail or the file is
-    malformed."""
+    then fall back to the bundled engine copy. This keeps the gate working when
+    an adopter points `--packs-dir` at a tree outside the repo and when the
+    engine runs from an installed artifact. Returns `(vocab_dict, None)` on
+    success, `(None, err)` when both sources fail or the file is malformed."""
     candidate = _walk_up_for_vocab(start)
-    if candidate is None:
-        candidate = _walk_up_for_vocab(Path(__file__).parent)
-    if candidate is None:
+    source = str(candidate) if candidate is not None else None
+    text = candidate.read_text(encoding="utf-8") if candidate is not None else None
+    if text is None:
+        try:
+            from importlib.resources import files
+
+            resource = files("agentbundle").joinpath(
+                f"_data/{_VOCAB_RELPATH.name}"
+            )
+            if resource.is_file():
+                source = str(resource)
+                text = resource.read_text(encoding="utf-8")
+        except (FileNotFoundError, ModuleNotFoundError):
+            pass
+    if text is None:
         return None, (
             "lint-packs: target-vocab.toml not found (walked up from "
-            f"{start} and from this module's ancestor chain; expected "
-            f"{_VOCAB_RELPATH.as_posix()})"
+            f"{start} and checked bundled package data; expected "
+            f"{_VOCAB_RELPATH.as_posix()} or _data/{_VOCAB_RELPATH.name})"
         )
     try:
-        raw = tomllib.loads(candidate.read_text(encoding="utf-8"))
+        raw = tomllib.loads(text)
     except tomllib.TOMLDecodeError as exc:
-        return None, f"lint-packs: failed to parse {candidate}: {exc}"
+        return None, f"lint-packs: failed to parse {source}: {exc}"
     targets = raw.get("target")
     if not isinstance(targets, dict) or not targets:
         return None, (
-            f"lint-packs: {candidate} has no [target.<name>] tables — "
+            f"lint-packs: {source} has no [target.<name>] tables — "
             f"the metadata gate has no constraints to apply"
         )
     return raw, None

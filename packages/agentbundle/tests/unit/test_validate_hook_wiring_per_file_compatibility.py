@@ -20,16 +20,9 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-import pytest
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-_HERE = Path(__file__).resolve().parent
-# packs/ lives four levels above the unit-test directory:
-#   packages/agentbundle/tests/unit → packages/agentbundle/tests → ...
-_PACKS_DIR = _HERE.parent.parent.parent.parent / "packs"
 
 _PACK_TOML_V08_REPO = """\
 [pack]
@@ -97,17 +90,29 @@ def _make_hook_wiring_pack(
 # ---------------------------------------------------------------------------
 
 
-def test_validate_packs_core_exits_zero(capsys):
-    """Agentbundle validate packs/core exits 0 with the two-reason
+def test_validate_core_fixture_exits_zero(tmp_path, capsys):
+    """Agentbundle validate exits 0 with the two-reason
     info line on stdout and no 'validate:' refusal on stderr.
 
     session-start.toml fires BOTH reasons (vocabulary + attach-to-agent)
     because it uses SessionStart (not in kiro's vocab) AND has no
     attach-to-agent field.
     """
-    core_path = _PACKS_DIR / "core"
-    if not core_path.exists():
-        pytest.skip("packs/core not available in this test environment")
+    core_path = _make_hook_wiring_pack(
+        tmp_path,
+        name="core",
+        wiring_files={
+            "session-start.toml": (
+                "[[hooks.SessionStart]]\n"
+                'hooks = [{type = "command", command = "x"}]\n'
+            ),
+            "work-loop-check.toml": (
+                "[[hooks.SessionStart]]\n"
+                'hooks = [{type = "command", command = "y"}]\n'
+            ),
+        },
+        agent_files=["fixture"],
+    )
 
     rc = _run(core_path)
     captured = capsys.readouterr()

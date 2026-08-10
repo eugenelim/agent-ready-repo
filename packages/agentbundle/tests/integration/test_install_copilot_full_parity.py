@@ -1,7 +1,7 @@
 """Integration tests for copilot full parity (T6 + T7 of
 copilot full parity).
 
-End-to-end against the live `packs/` catalogue (core + research) plus a
+End-to-end against a focused fixture catalogue (core + research) plus a
 synthetic user-scope hook pack:
 
   - install `core` via `--adapter copilot --scope repo` → `.github/`
@@ -26,7 +26,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+from tests._support import materialize_catalogue
 
 
 def _run_install(argv: list[str]) -> tuple[int, str, str]:
@@ -54,6 +54,9 @@ class CopilotRepoScopeCoreTests(unittest.TestCase):
         self.home.mkdir()
         self.adopter = self.tmp / "adopter"
         self.adopter.mkdir()
+        self.catalogue = materialize_catalogue(
+            self.tmp / "catalogue", packs=("core",)
+        )
         self._env = patch.dict(
             os.environ, {"HOME": str(self.home), "USERPROFILE": str(self.home)}
         )
@@ -75,7 +78,7 @@ class CopilotRepoScopeCoreTests(unittest.TestCase):
                 "repo",
                 "--output",
                 str(self.adopter),
-                str(REPO_ROOT),
+                str(self.catalogue),
             ]
         )
         self.assertEqual(rc, 0, f"install failed: {err!r}")
@@ -134,6 +137,9 @@ class CopilotUserScopeResearchTests(unittest.TestCase):
         self.home.mkdir()
         self.repo = self.tmp / "repo"
         self.repo.mkdir()
+        self.catalogue = materialize_catalogue(
+            self.tmp / "catalogue", packs=("desk-research",)
+        )
         self._env = patch.dict(
             os.environ, {"HOME": str(self.home), "USERPROFILE": str(self.home)}
         )
@@ -155,7 +161,7 @@ class CopilotUserScopeResearchTests(unittest.TestCase):
                 "user",
                 "--output",
                 str(self.repo),
-                str(REPO_ROOT),
+                str(self.catalogue),
             ]
         )
         self.assertEqual(

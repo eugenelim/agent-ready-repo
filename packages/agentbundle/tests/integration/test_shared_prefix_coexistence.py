@@ -24,7 +24,17 @@ from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+import pytest
+
+from tests._support import materialize_catalogue
+
+REPO_ROOT = Path()
+
+
+@pytest.fixture(autouse=True)
+def _fixture_catalogue(tmp_path):
+    global REPO_ROOT
+    REPO_ROOT = materialize_catalogue(tmp_path / "catalogue", packs=("core",))
 
 
 def _run(verb: str, argv: list[str]) -> tuple[int, str, str]:

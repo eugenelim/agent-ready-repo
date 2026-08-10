@@ -27,6 +27,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from agentbundle.catalogue_tooling.file_safety import (
+    UnsafeContentError,
+    read_confined_regular_file,
+)
 from agentbundle.catalogue_tooling.results import Diagnostic, PackageResult, Severity
 from agentbundle.config import ConfigError, load_pack_toml
 
@@ -43,6 +47,7 @@ _DEFAULT_INCLUDE_DIRS: tuple[tuple[str, ...], ...] = (
     ("profiles",),
     ("contracts",),
     (".claude-plugin",),
+    ("tests", "conformance"),
 )
 
 # Specific files included only if they exist at root (not walked).
@@ -350,11 +355,11 @@ def _validate_content(root: Path, content_paths: list[Path]) -> str | None:
 
 
 def _read_content_files(root: Path, paths: list[Path]) -> dict[str, bytes]:
-    """Read all content files; return {posix_relative_path: bytes}."""
+    """Safely snapshot all content files as {posix_relative_path: bytes}."""
     result: dict[str, bytes] = {}
     for p in paths:
         key = p.relative_to(root).as_posix()
-        result[key] = p.read_bytes()
+        result[key] = read_confined_regular_file(root, p)
     return result
 
 
@@ -630,7 +635,10 @@ def package_catalogue(
         return _err(val_err)
 
     # --- Read file bytes ---
-    file_bytes = _read_content_files(root, content_paths)
+    try:
+        file_bytes = _read_content_files(root, content_paths)
+    except UnsafeContentError as exc:
+        return _err(f"unsafe source content: {exc}")
 
     # Filter out catalogue.toml — never included in the archive
     file_bytes = {k: v for k, v in file_bytes.items() if k != "catalogue.toml"}
@@ -643,17 +651,25 @@ def package_catalogue(
     for key, data in file_bytes.items():
         parts = key.split("/")
         if len(parts) == 3 and parts[0] == "packs" and parts[2] == "pack.toml":
-            pack_data = tomllib.loads(data.decode("utf-8"))
-            packs_metadata.append({
-                "name": pack_data["pack"]["name"],
-                "version": pack_data["pack"]["version"],
-            })
+            try:
+                pack_data = tomllib.loads(data.decode("utf-8"))
+                pack_entry = {
+                    "name": pack_data["pack"]["name"],
+                    "version": pack_data["pack"]["version"],
+                }
+            except (KeyError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+                return _err(f"captured pack metadata is invalid at {key}: {exc}")
+            packs_metadata.append(pack_entry)
 
     # --- Extract profile names ---
     profiles_metadata: list[str] = []
-    for key in sorted(file_bytes.keys()):
+    for key, data in sorted(file_bytes.items()):
         parts = key.split("/")
         if len(parts) >= 2 and parts[0] == "profiles" and key.endswith(".toml"):
+            try:
+                tomllib.loads(data.decode("utf-8"))
+            except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+                return _err(f"captured profile TOML is invalid at {key}: {exc}")
             profiles_metadata.append(parts[-1].removesuffix(".toml"))
 
     # --- Determine generated_at ---
@@ -769,7 +785,7 @@ class SourcePackageResult:
 
 
 # Positive allowlist for source-flavor packaging.
-_SOURCE_INCLUDE_DIRS: tuple[str, ...] = ("packs", "profiles")
+_SOURCE_INCLUDE_DIRS: tuple[str, ...] = ("packs", "profiles", "tests/conformance")
 _SOURCE_INCLUDE_SHARED_GUIDES: tuple[str, ...] = ("guides", "_shared")
 _SOURCE_INCLUDE_ROOT_FILES: tuple[str, ...] = (
     "catalogue.toml",
@@ -802,6 +818,7 @@ def package_source_flavour(
       - catalogue.toml
       - packs/**
       - profiles/**
+      - tests/conformance/**
       - guides/_shared/**
       - .claude-plugin/marketplace.json
       - legal root files (README.md, LICENSE-*)
@@ -861,6 +878,19 @@ def package_source_flavour(
             diagnostics=["error: no source files found in root"]
         )
 
+    try:
+        collected_bytes = {
+            fp.relative_to(root).as_posix(): read_confined_regular_file(root, fp)
+            for fp in sorted(collected, key=lambda p: p.relative_to(root).as_posix())
+        }
+    except UnsafeContentError as exc:
+        return SourcePackageResult(
+            ok=False,
+            archive_path="",
+            manifest_path="",
+            diagnostics=[f"error: unsafe source content: {exc}"],
+        )
+
     # Build output paths.
     release_dir = output / "catalogue-sources" / bundle / "releases" / release
     archive_name = f"catalogue-source-{release}.tar.gz"
@@ -871,9 +901,8 @@ def package_source_flavour(
 
     # Compute digests.
     file_digests: dict[str, str] = {}
-    for fp in sorted(collected, key=lambda p: p.relative_to(root).as_posix()):
-        key = fp.relative_to(root).as_posix()
-        file_digests[key] = hashlib.sha256(fp.read_bytes()).hexdigest()
+    for key, data in collected_bytes.items():
+        file_digests[key] = hashlib.sha256(data).hexdigest()
 
     from datetime import UTC, datetime
     if generated_at is None:
@@ -884,19 +913,23 @@ def package_source_flavour(
             generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     # Extract pack inventory for manifest (B4 AC).
-    from agentbundle.config import ConfigError, load_pack_toml
     packs_inventory: list[dict[str, str]] = []
     for key in sorted(file_digests.keys()):
         parts = key.split("/")
         if len(parts) == 3 and parts[0] == "packs" and parts[2] == "pack.toml":
             try:
-                pack_data = load_pack_toml(root / key)
+                pack_data = tomllib.loads(collected_bytes[key].decode("utf-8"))
                 packs_inventory.append({
                     "name": pack_data["pack"]["name"],
                     "version": pack_data["pack"]["version"],
                 })
-            except (ConfigError, KeyError):
-                pass
+            except (KeyError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+                return SourcePackageResult(
+                    ok=False,
+                    archive_path="",
+                    manifest_path="",
+                    diagnostics=[f"error: invalid captured pack metadata at {key}: {exc}"],
+                )
 
     from agentbundle.version import CLI_VERSION
     file_entries: list[dict[str, str]] = sorted(
@@ -932,9 +965,7 @@ def package_source_flavour(
         tarfile.TarFile(fileobj=gz, mode="w") as tar,  # type: ignore[arg-type]
     ):
         members: list[tuple[str, bytes]] = []
-        for fp in sorted(collected, key=lambda p: p.relative_to(root).as_posix()):
-            arcname = fp.relative_to(root).as_posix()
-            members.append((arcname, fp.read_bytes()))
+        members.extend(collected_bytes.items())
         # Include manifest as a tar member.
         members.append(("self-hosted-source-manifest.json", manifest_bytes_placeholder))
         members.sort(key=lambda x: x[0])

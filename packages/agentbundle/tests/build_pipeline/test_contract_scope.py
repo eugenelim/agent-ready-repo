@@ -18,9 +18,10 @@ import tomllib
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
-SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+DATA_ROOT = PACKAGE_ROOT / "agentbundle" / "_data"
+CONTRACT_PATH = DATA_ROOT / "adapter.toml"
+SCHEMA_PATH = DATA_ROOT / "adapter.schema.json"
 
 
 def _load_schema() -> dict:

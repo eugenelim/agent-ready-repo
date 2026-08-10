@@ -42,7 +42,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-
 # Tool names Copilot custom agents are known to accept (verified 1.0.59),
 # including the web tools `WebFetch`/`WebSearch` which Copilot resolves to its
 # `web` tool on the CLI + app (see module docstring). A `tools` token outside

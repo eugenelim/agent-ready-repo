@@ -21,8 +21,6 @@ CAT_V1 = FIXTURE_ROOT / "catalogue_v1"
 CAT_V2 = FIXTURE_ROOT / "catalogue_v2"
 CAT_V3 = FIXTURE_ROOT / "catalogue_v3"
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-
 PACK_V1 = CAT_V1 / "packs" / "core"
 PACK_V2 = CAT_V2 / "packs" / "core"
 
@@ -810,7 +808,7 @@ def test_upgrade_prefix_violation_writes_nothing(tmp_path, capsys):
         "agentbundle.commands.install._render_for_repo_scope",
         return_value=("claude-code", new_projection),
     ):
-        rc = _run_upgrade(pack="core", catalogue=str(REPO_ROOT), root=str(tmp_path))
+        rc = _run_upgrade(pack="core", catalogue=str(CAT_V2), root=str(tmp_path))
 
     assert rc != 0, f"upgrade must exit non-zero on prefix violation; got rc={rc}"
     assert _snapshot_tree(tmp_path) == before, "upgrade must write nothing including companions"

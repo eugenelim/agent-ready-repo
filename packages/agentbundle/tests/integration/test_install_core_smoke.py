@@ -21,25 +21,42 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
-import shutil
-from pathlib import Path
 
 from agentbundle.commands import install
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-REAL_CORE = REPO_ROOT / "packs" / "core"
+from tests._support import stage_installable_pack
 
 
-def test_real_core_install_writes_session_start_binding(tmp_path):
-    """Real `packs/core/` install produces the dist-tree settings file
+def test_core_fixture_install_writes_session_start_binding(tmp_path):
+    """A core-shaped fixture produces the dist-tree settings file
     with the canonical SessionStart command string.
     """
-    assert REAL_CORE.exists(), f"real packs/core/ missing at {REAL_CORE}"
-
-    # Copy (not symlink) the real pack into a tmp catalogue.
     cat = tmp_path / "cat"
-    (cat / "packs").mkdir(parents=True)
-    shutil.copytree(REAL_CORE, cat / "packs" / "core", symlinks=False)
+    pack = stage_installable_pack(
+        cat,
+        "core",
+        """\
+[pack]
+name = "core"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+""",
+    )
+    hook = pack / ".apm" / "hooks" / "session-start.py"
+    hook.parent.mkdir(parents=True)
+    hook.write_text("print('fixture')\n", encoding="utf-8")
+    wiring = pack / ".apm" / "hook-wiring" / "session-start.toml"
+    wiring.parent.mkdir(parents=True)
+    wiring.write_text(
+        "[[hooks.SessionStart]]\n"
+        'hooks = [{ type = "command", command = '
+        '"python tools/hooks/session-start.py" }]\n',
+        encoding="utf-8",
+    )
 
     target = tmp_path / "repo"
     target.mkdir()

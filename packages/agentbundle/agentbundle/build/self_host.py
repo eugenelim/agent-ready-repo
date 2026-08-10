@@ -517,10 +517,7 @@ def _is_excluded(relative: Path) -> bool:
     posix = relative.as_posix()
     if posix in PROJECTED_README_OVERRIDES:
         return False
-    for regex in _EXCLUDED_REGEXES:
-        if regex.match(posix):
-            return True
-    return False
+    return any(regex.match(posix) for regex in _EXCLUDED_REGEXES)
 
 
 def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
@@ -629,7 +626,9 @@ def _aggregate_marketplace(
     output_root: Path,
     owner: str = "eugenelim",
     name: str = "agent-ready-repo",
-    description: str = "Agent skills, subagents, and hooks for Claude Code and other coding agents.",
+    description: str = (
+        "Agent skills, subagents, and hooks for Claude Code and other coding agents."
+    ),
 ) -> Path:
     """Aggregate `packs/*/.claude-plugin/plugin.json` into
     `output_root/.claude-plugin/marketplace.json` so this repo is itself
@@ -766,7 +765,7 @@ def _recreate_claude_symlink(output_root: Path, *, force_copy: bool = False) -> 
 
     if claude.is_symlink():
         try:
-            if os.readlink(claude) == desired_target:
+            if str(claude.readlink()) == desired_target:
                 return claude
         except OSError:
             pass
@@ -849,7 +848,7 @@ def _lookup_source(
     if projected_rel in mapping:
         return mapping[projected_rel]
     for ancestor in projected_rel.parents:
-        if ancestor == Path("."):
+        if ancestor == Path():
             continue
         if ancestor in mapping:
             anchor = mapping[ancestor]
@@ -1037,7 +1036,7 @@ def _is_equivalent_claude_md_shape(on_disk: Path, agents_md: Path) -> bool:
         return False
     if stat.S_ISLNK(st.st_mode):
         try:
-            return os.readlink(on_disk) == "AGENTS.md"
+            return str(on_disk.readlink()) == "AGENTS.md"
         except OSError:
             return False
     if not stat.S_ISREG(st.st_mode):
@@ -1160,8 +1159,8 @@ def diff_against_working_tree(
 
         if shadow_is_link:
             try:
-                shadow_target = os.readlink(rendered)
-                disk_target = os.readlink(on_disk)
+                shadow_target = str(rendered.readlink())
+                disk_target = str(on_disk.readlink())
             except OSError as exc:
                 drifts.append(
                     f"[drift] {relative_display} "
@@ -1450,7 +1449,7 @@ def _load_emit_basic_string_from_template(
         )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)  # type: ignore[union-attr]
-    return getattr(mod, "_emit_basic_string")
+    return mod._emit_basic_string
 
 
 def run_build_check_drift_gates(
@@ -1566,17 +1565,22 @@ def run_build_check_drift_gates(
     #   cp packages/agentbundle/templates/install-marker.py \
     #      packages/agentbundle/agentbundle/_data/install-marker.py
     # ------------------------------------------------------------------
-    _data_path = REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "install-marker.py"
+    _data_path = (
+        REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "install-marker.py"
+    )
     _tmpl_path = REPO_ROOT / "packages" / "agentbundle" / "templates" / "install-marker.py"
-    if _data_path.exists() and _tmpl_path.exists():
-        if _data_path.read_bytes() != _tmpl_path.read_bytes():
-            failures.append(
-                "build-check: _data/install-marker.py diverges from "
-                "templates/install-marker.py — run "
-                "`cp packages/agentbundle/templates/install-marker.py "
-                "packages/agentbundle/agentbundle/_data/install-marker.py` "
-                "to re-sync"
-            )
+    if (
+        _data_path.exists()
+        and _tmpl_path.exists()
+        and _data_path.read_bytes() != _tmpl_path.read_bytes()
+    ):
+        failures.append(
+            "build-check: _data/install-marker.py diverges from "
+            "templates/install-marker.py — run "
+            "`cp packages/agentbundle/templates/install-marker.py "
+            "packages/agentbundle/agentbundle/_data/install-marker.py` "
+            "to re-sync"
+        )
 
     # ------------------------------------------------------------------
     # Gate 1c: APM writer-template drift

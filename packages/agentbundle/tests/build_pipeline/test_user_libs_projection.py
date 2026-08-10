@@ -9,9 +9,8 @@ Verifies:
 - ``check_drift``: clean / modified / missing / orphaned; ``__pycache__``
   under a target never registers as drift
 - no-op when the package source is absent (non-monorepo invocation)
-- real-repo smoke: both targets match ``packages/credbroker/credbroker/``
 - purity: the vendored floor's base import reaches no third-party module
-  (reuses credbroker's import-graph assertion against the vendored copy)
+  (asserted against a projected representative package)
 """
 
 from __future__ import annotations
@@ -28,9 +27,6 @@ from pathlib import Path
 from unittest.mock import patch
 
 from agentbundle.build import user_libs as ul
-
-# Repo root: build_pipeline/ -> tests/ -> agentbundle/ -> packages/ -> repo
-REPO_ROOT = Path(__file__).resolve().parents[4]
 
 # A minimal stand-in package: a pure-base module, a lazily-importing module,
 # plus an ``__init__`` — enough to exercise the walk + the purity gate shape.
@@ -405,36 +401,22 @@ class UserLibsProjectionTests(unittest.TestCase):
         self.assertEqual(ul.check_drift(self.wt, self.packs), [])
 
 
-class UserLibsRealRepoTests(unittest.TestCase):
-    """Smoke + purity against the committed repo artifacts."""
+class UserLibsProjectedImportTests(unittest.TestCase):
+    """Import purity against a freshly projected representative package."""
+
+    def setUp(self) -> None:
+        self._tmp = tempfile.TemporaryDirectory()
+        self.repo = Path(self._tmp.name)
+        self.packs = self.repo / "packs"
+        self.packs.mkdir()
+        _seed_source(self.repo, _FAKE_PACKAGE)
+        ul.apply_projection(self.repo, self.packs)
+
+    def tearDown(self) -> None:
+        self._tmp.cleanup()
 
     def _floor_dir(self) -> Path:
-        return REPO_ROOT / ul.TARGET_SUBDIR / ul.VENDORED_MODULE
-
-    def _package_dir(self) -> Path:
-        return REPO_ROOT / ul.PACKAGE_SUBPATH
-
-    def test_real_repo_targets_match_package_source(self) -> None:
-        """Both committed targets are byte-faithful to the package source."""
-        package = self._package_dir()
-        if not package.is_dir():
-            self.skipTest("credbroker package source not present")
-        pack_copy = (
-            REPO_ROOT / "packs" / ul.PACK_NAME / ul.PACK_TARGET_SUBDIR
-            / ul.VENDORED_MODULE
-        )
-        floor = self._floor_dir()
-        sources = ul.collect_sources(package)
-        self.assertTrue(sources, "no source files collected")
-        for rel, src in sources.items():
-            self.assertEqual(
-                (pack_copy / rel).read_bytes(), src.read_bytes(),
-                f"pack copy diverges: {rel}",
-            )
-            self.assertEqual(
-                (floor / rel).read_bytes(), src.read_bytes(),
-                f"floor diverges: {rel}",
-            )
+        return self.repo / ul.TARGET_SUBDIR / ul.VENDORED_MODULE
 
     def test_vendored_floor_base_import_is_third_party_free(self) -> None:
         """Purity: importing credbroker from the vendored floor pulls no
@@ -443,8 +425,7 @@ class UserLibsRealRepoTests(unittest.TestCase):
         with the floor prepended to sys.path so the vendored copy wins over
         any installed credbroker (asserted via ``__file__``)."""
         floor = self._floor_dir()
-        if not floor.is_dir():
-            self.skipTest("vendored floor not present; run make build-self")
+        self.assertTrue(floor.is_dir())
         floor_parent = str(floor.parent)
         script = (
             "import json, sys\n"

@@ -27,9 +27,7 @@ from pathlib import Path
 
 # Package root: resolved explicitly — this tree sits beside the package now,
 # not inside it, so relative depth no longer reaches it.
-_PACKAGE_ROOT = (
-    Path(__file__).resolve().parents[4] / "packages" / "agentbundle" / "agentbundle"
-)
+_PACKAGE_ROOT = Path(__file__).resolve().parents[2] / "agentbundle"
 
 # Call targets that open a text stream and so honor `newline=`.
 _WRITE_TEXT_ATTR = "write_text"

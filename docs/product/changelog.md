@@ -116,6 +116,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   20-skill inventory, and the reference mirrors each skill's trigger, output,
   and nearest boundary.
 
+## [architect][0.14.4] — 2026-08-09
+
+### Changed
+
+- Architect's pack-owned projection, rubric-parity, README, and install-command
+  tests now travel with the pack instead of the `agentbundle` engine suite.
+
+## [core][2.5.4] — 2026-08-09
+
+### Changed
+
+- Core's workspace-status, seed, README, and install-marker journey tests now
+  travel with the pack that owns those behaviours.
+
+## [catalogue-curation][0.2.4] — 2026-08-09
+
+### Changed
+
+- Catalogue-curation's removal and retained-content regressions now travel with
+  the pack instead of the engine suite.
+
+## [credential-brokers][0.3.1] — 2026-08-09
+
+### Changed
+
+- Credential-brokers now carries its own manifest, install, shim, floor, broker,
+  guide, and vendored-source tests.
+
+## [atlassian][0.8.1] — 2026-08-09
+
+### Changed
+
+- The flow-metrics upstream probe now travels with the Atlassian pack and runs
+  from its skill-owned test directory.
+
+## [product-engineering][0.13.4] — 2026-08-09
+
+### Changed
+
+- Product-engineering's README install-command regression now travels with the
+  pack.
+
+## [linear][0.2.1] — 2026-08-09
+
+### Changed
+
+- Linear's primitive tests now travel with the pack and run with its declared
+  `httpx` test dependency.
+
 ## [agentbundle][0.30.1] — 2026-08-09
 
 ### Fixed

@@ -1,6 +1,6 @@
 [pack]
 name = "architect"
-version = "0.14.3"
+version = "0.14.4"
 description = "Sketch a system, write it up, then have it torn apart. You get a Google-style design doc or a Mermaid diagram, and a reviewer that never saw you write it."
 readme = "README.md"
 display_name = "Architect"

@@ -18,12 +18,12 @@ import json
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 PLUGIN_MANIFEST_SCHEMA_PATH = (
-    REPO_ROOT / "contracts" / "plugin-manifest.schema.json"
+    PACKAGE_ROOT / "agentbundle" / "_data" / "plugin-manifest.schema.json"
 )
 PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = (
-    REPO_ROOT / "contracts" / "plugin-manifest.derived.schema.json"
+    PACKAGE_ROOT / "agentbundle" / "_data" / "plugin-manifest.derived.schema.json"
 )
 
 
@@ -350,72 +350,6 @@ class PluginManifestSchemaSplitTests(unittest.TestCase):
             "derived schema rejected a manifest with the synthesised hooks block:\n"
             + "\n".join(errors),
         )
-
-
-class SourcePluginJsonAuditTests(unittest.TestCase):
-    """T5: Audit every source-tree packs/*/.claude-plugin/plugin.json.
-
-    test_no_source_plugin_json_carries_hooks
-    test_source_plugin_json_validates_against_schema
-    """
-
-    def _source_manifests(self) -> list[Path]:
-        """Return paths for all source-tree per-pack plugin.json files."""
-        return sorted((REPO_ROOT / "packs").glob("*/.claude-plugin/plugin.json"))
-
-    def test_no_source_plugin_json_carries_hooks(self) -> None:
-        """Every source-tree plugin.json must not declare a hooks block.
-
-        The hooks block is synthesised by the build pipeline; hand-authored
-        source manifests must never pre-declare it. This test pins that invariant
-        permanently so a future accidental hooks block is caught immediately.
-        """
-        manifests = self._source_manifests()
-        self.assertTrue(
-            manifests,
-            "No packs/*/.claude-plugin/plugin.json found — "
-            "check that REPO_ROOT resolves correctly.",
-        )
-        for manifest_path in manifests:
-            with self.subTest(pack=manifest_path.parent.parent.name):
-                content = json.loads(manifest_path.read_text(encoding="utf-8"))
-                self.assertNotIn(
-                    "hooks",
-                    content,
-                    f"{manifest_path.relative_to(REPO_ROOT)}: "
-                    f"source-tree plugin.json must not carry a 'hooks' block "
-                    f"(the build pipeline synthesises it). "
-                    f"Remove the stray hooks block from the source file.",
-                )
-
-    def test_source_plugin_json_validates_against_schema(self) -> None:
-        """Every source-tree plugin.json must validate against the source-shape schema.
-
-        The source schema (plugin-manifest.schema.json) explicitly forbids
-        hooks via additionalProperties: false. Validating every source-tree
-        manifest against it here provides a second gate that catches both missing
-        required fields and any stray additional properties (including hooks).
-        """
-        from agentbundle.build.validate import validate
-
-        schema = _load_schema()
-        manifests = self._source_manifests()
-        self.assertTrue(
-            manifests,
-            "No packs/*/.claude-plugin/plugin.json found — "
-            "check that REPO_ROOT resolves correctly.",
-        )
-        for manifest_path in manifests:
-            with self.subTest(pack=manifest_path.parent.parent.name):
-                content = json.loads(manifest_path.read_text(encoding="utf-8"))
-                errors = validate(content, schema)
-                self.assertEqual(
-                    errors,
-                    [],
-                    f"{manifest_path.relative_to(REPO_ROOT)} failed schema "
-                    f"validation against plugin-manifest.schema.json:\n"
-                    + "\n".join(errors),
-                )
 
 
 if __name__ == "__main__":

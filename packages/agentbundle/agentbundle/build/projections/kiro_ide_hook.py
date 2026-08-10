@@ -144,7 +144,7 @@ def project(
                 raise KiroIdeHookRefusal(
                     f"pack {pack_name}'s kiro-ide-hook {entry.name} "
                     f"failed to parse: {exc}"
-                )
+                ) from exc
             if (
                 isinstance(parsed, dict)
                 and isinstance(parsed.get("then"), dict)
@@ -166,7 +166,7 @@ def project(
             raise KiroIdeHookRefusal(
                 f"pack {pack_name}'s kiro-ide-hook {entry.name} "
                 f"failed to parse: {exc}"
-            )
+            ) from exc
         if not isinstance(body, dict):
             raise KiroIdeHookRefusal(
                 f"pack {pack_name}'s kiro-ide-hook {entry.name} "

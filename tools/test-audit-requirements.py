@@ -101,6 +101,28 @@ def main() -> int:
         only.write_text("credbroker>=0.1.0\n", encoding="utf-8")
         check("first-party-only file exits 0", _MOD.audit(only, first_party) == 0)
 
+    # 8. Build backends are extracted from the PEP 517 contract rather than
+    #    being copied into a second, drift-prone requirements file.
+    with tempfile.TemporaryDirectory() as tmp:
+        pyproject = Path(tmp) / "pyproject.toml"
+        pyproject.write_text(
+            '[build-system]\nrequires = ["setuptools>=77", "wheel>=0.45"]\n',
+            encoding="utf-8",
+        )
+        check(
+            "build-system requirements are extracted",
+            _MOD.build_system_requirements([pyproject])
+            == ["setuptools>=77", "wheel>=0.45"],
+        )
+        pyproject.write_text("[project]\nname = \"missing\"\n", encoding="utf-8")
+        try:
+            _MOD.build_system_requirements([pyproject])
+        except ValueError:
+            missing_refused = True
+        else:
+            missing_refused = False
+        check("missing build-system requirements fail closed", missing_refused)
+
     if FAILURES:
         print(f"\naudit-requirements self-test: {len(FAILURES)} failure(s)")
         return 1

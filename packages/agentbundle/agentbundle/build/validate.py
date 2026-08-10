@@ -71,17 +71,19 @@ def validate(instance: Any, schema: dict, path: str = "$") -> list[str]:
             )
             return errors
 
-    if "enum" in schema:
-        if instance not in schema["enum"]:
-            errors.append(
-                f"{path}: value {instance!r} not in enum {schema['enum']!r}"
-            )
+    if "enum" in schema and instance not in schema["enum"]:
+        errors.append(
+            f"{path}: value {instance!r} not in enum {schema['enum']!r}"
+        )
 
-    if "pattern" in schema and isinstance(instance, str):
-        if re.search(schema["pattern"], instance) is None:
-            errors.append(
-                f"{path}: value {instance!r} does not match pattern {schema['pattern']!r}"
-            )
+    if (
+        "pattern" in schema
+        and isinstance(instance, str)
+        and re.search(schema["pattern"], instance) is None
+    ):
+        errors.append(
+            f"{path}: value {instance!r} does not match pattern {schema['pattern']!r}"
+        )
 
     # `required`, `properties`, `additionalProperties` apply whenever the
     # instance is a dict — per JSON-Schema 2020-12, these keywords are
@@ -114,26 +116,31 @@ def validate(instance: Any, schema: dict, path: str = "$") -> list[str]:
                 errors.extend(validate(element, item_schema, f"{path}[{index}]"))
         min_items = schema.get("minItems")
         # bool is a subclass of int in Python — accept only true integers.
-        if isinstance(min_items, int) and not isinstance(min_items, bool):
-            if len(instance) < min_items:
-                errors.append(
-                    f"{path}: array has {len(instance)} item(s), minItems={min_items}"
-                )
+        if (
+            isinstance(min_items, int)
+            and not isinstance(min_items, bool)
+            and len(instance) < min_items
+        ):
+            errors.append(
+                f"{path}: array has {len(instance)} item(s), minItems={min_items}"
+            )
         max_items = schema.get("maxItems")
-        if isinstance(max_items, int) and not isinstance(max_items, bool):
-            if len(instance) > max_items:
-                errors.append(
-                    f"{path}: array has {len(instance)} item(s), maxItems={max_items}"
-                )
+        if (
+            isinstance(max_items, int)
+            and not isinstance(max_items, bool)
+            and len(instance) > max_items
+        ):
+            errors.append(
+                f"{path}: array has {len(instance)} item(s), maxItems={max_items}"
+            )
         contains_schema = schema.get("contains")
-        if isinstance(contains_schema, dict):
-            if not any(
-                not validate(element, contains_schema, f"{path}[{index}]")
-                for index, element in enumerate(instance)
-            ):
-                errors.append(
-                    f"{path}: no item matches the 'contains' subschema"
-                )
+        if isinstance(contains_schema, dict) and not any(
+            not validate(element, contains_schema, f"{path}[{index}]")
+            for index, element in enumerate(instance)
+        ):
+            errors.append(
+                f"{path}: no item matches the 'contains' subschema"
+            )
 
     # Conditional subschemas — applied last so type/required/enum errors on
     # the instance surface before any conditional branch fires. The 'if'

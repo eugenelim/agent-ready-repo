@@ -3,7 +3,7 @@
 Verification modes per plan.md:
   T1 — TDD: import, result-type structure, stub raises
   T2 — TDD: config loading and all 13 validation failure paths
-  T3 — Goal-based: schema drift check + repo catalogue.toml valid
+  T3 — Goal-based: packaged schema + catalogue.toml validation
   T4 — Goal-based: CLI subcommand groups registered
 """
 
@@ -481,29 +481,16 @@ def test_config_unknown_top_level_key(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# T3: schema drift + repo catalogue.toml
+# T3: packaged schema + catalogue.toml validation
 # ---------------------------------------------------------------------------
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]  # packages/agentbundle/tests/unit -> repo root
-
-
-def test_schema_copies_byte_equal():
-    """Both schema copies are byte-identical."""
-    src = _REPO_ROOT / "contracts" / "catalogue.schema.json"
-    dst = (
-        _REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "catalogue.schema.json"
-    )
-    assert src.exists(), f"Schema missing at {src}"
-    assert dst.exists(), f"Schema copy missing at {dst}"
-    assert src.read_bytes() == dst.read_bytes(), "Schema copies are not byte-identical"
-
-
-def test_repo_catalogue_toml_valid():
-    """Repo-root catalogue.toml passes load_catalogue_config validation."""
+def test_minimal_catalogue_toml_valid(tmp_path):
+    """A focused catalogue.toml passes packaged-schema validation."""
     from agentbundle.catalogue_tooling.config import load_catalogue_config
 
-    result = load_catalogue_config(_REPO_ROOT)
-    assert result is not None, "load_catalogue_config returned None for repo root"
+    _write_toml(tmp_path, _VALID_BASE)
+    result = load_catalogue_config(tmp_path)
+    assert result is not None
 
 
 # ---------------------------------------------------------------------------
@@ -517,7 +504,6 @@ def _run_agentbundle(*args: str) -> tuple[int, str, str]:
         [sys.executable, "-m", "agentbundle", *args],
         capture_output=True,
         text=True,
-        cwd=str(_REPO_ROOT / "packages" / "agentbundle"),
     )
     return proc.returncode, proc.stdout, proc.stderr
 

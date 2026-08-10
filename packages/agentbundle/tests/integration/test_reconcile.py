@@ -22,8 +22,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-FIXTURES = REPO_ROOT / "packages" / "agentbundle" / "tests" / "fixtures" / "packs"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
 
 
 def _run_reconcile(scope: str = "user") -> tuple[int, str, str]:
@@ -217,9 +217,9 @@ class ApplyFlagRejectedTests(unittest.TestCase):
     def test_apply_flag_rejected_by_argparse(self) -> None:
         proc = subprocess.run(
             [sys.executable, "-m", "agentbundle", "reconcile", "--apply"],
-            env={**os.environ, "PYTHONPATH": str(REPO_ROOT / "packages" / "agentbundle")},
+            env={**os.environ, "PYTHONPATH": str(PACKAGE_ROOT)},
             capture_output=True,
-            cwd=str(REPO_ROOT),
+            cwd=str(PACKAGE_ROOT),
         )
         self.assertNotEqual(proc.returncode, 0)
         # The default argparse "unrecognized argument" path fires.

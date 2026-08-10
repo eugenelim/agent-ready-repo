@@ -184,6 +184,47 @@ run_top_level_case() {
 run_top_level_case "authorised-packs"        "packs"               0 "no-new-top-level-directory audit passed"
 run_top_level_case "unauthorised-newdir"     "unauthorised-newdir" 1 "RFC required"
 
+# ── case 5: CI checkout with origin/main but no local main ───────────────
+#
+# GitHub Actions checks out a detached/feature commit and exposes the base as
+# origin/main. The audit must use that ref rather than silently returning 0 when
+# a local main branch is absent.
+
+repo="$TMP/repo_origin_main_only"
+mkdir -p "$repo"
+(
+  cd "$repo"
+  git init -q
+  git checkout -q -b seed
+  git config user.email "test@example.com"
+  git config user.name "test"
+  git commit -q --allow-empty -m "base"
+  git update-ref refs/remotes/origin/main HEAD
+  git checkout -q -b feature
+  mkdir unauthorised-newdir
+  touch unauthorised-newdir/.keep
+  git add -A
+  git commit -q -m "introduce unauthorised-newdir/"
+  git branch -q -D seed
+)
+
+set +e
+out=$(cd "$repo" && python3 "$LINTER" 2>&1)
+got=$?
+set -e
+ran=$((ran + 1))
+if [[ "$got" -ne 1 ]]; then
+  echo "FAIL [origin-main-only]: expected exit 1, got $got" >&2
+  echo "  output: $out" >&2
+  failures=$((failures + 1))
+elif [[ "$out" != *"RFC required"* ]]; then
+  echo "FAIL [origin-main-only]: top-level audit did not run" >&2
+  echo "  output: $out" >&2
+  failures=$((failures + 1))
+else
+  echo "ok   [origin-main-only]"
+fi
+
 # ── result ────────────────────────────────────────────────────────────────
 
 echo

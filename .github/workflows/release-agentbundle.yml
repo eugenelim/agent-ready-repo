@@ -11,6 +11,7 @@ on:
       # Both are load-bearing for the export-boundary gate below (RFC-0082):
       # without these, a PR changing only the gate never runs the gate.
       - 'tools/check-artifact-contents.py'
+      - 'tools/test_check_artifact_contents.py'
       - 'tools/build_zipapp.py'
 
 permissions:
@@ -23,7 +24,7 @@ concurrency:
 jobs:
   build-and-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -80,8 +81,10 @@ jobs:
             exit 1
           fi
 
-      - name: Install build + twine
-        run: python3 -m pip install --upgrade build twine
+      - name: Install build, release, and engine-test dependencies
+        run: >-
+          python3 -m pip install --upgrade build twine pytest jsonschema pyyaml
+          -e packages/credbroker
 
       - name: Build wheel + sdist
         working-directory: packages/agentbundle
@@ -94,10 +97,12 @@ jobs:
       - name: Build zipapp (scratch — not a release artifact)
         run: python3 tools/build_zipapp.py /tmp/zipapp-gate
 
-      - name: Export-boundary gate — no test content in wheel or zipapp
+      - name: Artifact test boundaries — wheel/zipapp absent, sdist executable
         run: |
           python3 tools/check-artifact-contents.py \
-            packages/agentbundle/dist/*.whl /tmp/zipapp-gate/agentbundle.pyz
+            packages/agentbundle/dist/*.whl \
+            /tmp/zipapp-gate/agentbundle.pyz \
+            packages/agentbundle/dist/*.tar.gz
 
       - name: twine check
         run: python3 -m twine check packages/agentbundle/dist/*

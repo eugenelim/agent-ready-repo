@@ -1,6 +1,6 @@
 [pack]
 name = "product-engineering"
-version = "0.13.3"
+version = "0.13.4"
 description = "The messy part, before there is anything to build. Name the outcome, find the assumption that would sink it, and test that one first. What survives gets cut into specs a delivery loop can pick up."
 readme = "README.md"
 display_name = "Product Engineering"

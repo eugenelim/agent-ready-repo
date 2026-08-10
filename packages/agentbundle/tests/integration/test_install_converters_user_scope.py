@@ -21,8 +21,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONVERTERS_PACK_SRC = REPO_ROOT / "packs" / "converters"
+from tests._support import stage_installable_pack, stage_primitives
+
 SKILL_NAMES = ("file-to-markdown", "markdown-to-html", "msg-to-markdown")
 
 
@@ -73,11 +73,22 @@ class ConvertersUserScopeInstallTests(unittest.TestCase):
         )
         self._env.start()
         self.addCleanup(self._env.stop)
-        # Temporary catalogue layout: <cat>/packs/converters/ — populated
-        # from the repo-local pack via copytree.
         self.cat = self.tmp / "catalogue"
-        (self.cat / "packs").mkdir(parents=True)
-        shutil.copytree(CONVERTERS_PACK_SRC, self.cat / "packs" / "converters")
+        pack = stage_installable_pack(
+            self.cat,
+            "converters",
+            """\
+[pack]
+name = "converters"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["user", "repo"]
+""",
+        )
+        stage_primitives(pack, skills=SKILL_NAMES)
 
     def test_install_then_uninstall_round_trip(self) -> None:
         install_args = argparse.Namespace(

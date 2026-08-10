@@ -19,16 +19,50 @@ import io
 import tomllib
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CORE_SEEDS = REPO_ROOT / "packs" / "core" / "seeds"
+from tests._support import stage_installable_pack
+
+
+def _core_catalogue(parent: Path) -> tuple[Path, Path]:
+    catalogue = parent / "catalogue"
+    pack = stage_installable_pack(
+        catalogue,
+        "core",
+        """\
+[pack]
+name = "core"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+""",
+    )
+    seeds = pack / "seeds"
+    contents = {
+        ".gitignore": b".adapt-install-marker.toml\n",
+        "AGENTS.md": b"# Fixture agents\n",
+        "_agents-footer.md": b"Fixture footer.\n",
+        "docs/CHARTER.md": b"# Fixture charter\n",
+        "docs/CONVENTIONS.md": b"# Fixture conventions\n",
+        "docs/specs/README.md": b"# Fixture specs\n",
+        "docs/architecture/overview.md": b"# Fixture architecture\n",
+        "workspace.toml": b"[workspace]\n",
+    }
+    for relpath, content in contents.items():
+        target = seeds / relpath
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+    return catalogue, seeds
 
 
 def _install_core(target: Path) -> tuple[int, str, str]:
     from agentbundle.commands.install import run as install_run
 
+    catalogue, _seeds = _core_catalogue(target.parent)
     args = argparse.Namespace(
         pack="core",
-        catalogue=str(REPO_ROOT),
+        catalogue=str(catalogue),
         output=str(target),
         scope="repo",
         emit_install_routes=False,
@@ -83,7 +117,8 @@ def test_install_composes_agents_md_and_skips_footer(tmp_path):
     assert not (target / "_agents-footer.md").exists(), (
         "_agents-footer.md is a composition fragment — must not be delivered standalone"
     )
-    footer = (CORE_SEEDS / "_agents-footer.md").read_bytes().rstrip()
+    _catalogue, seeds = _core_catalogue(tmp_path / "source")
+    footer = (seeds / "_agents-footer.md").read_bytes().rstrip()
     assert footer in (target / "AGENTS.md").read_bytes(), (
         "delivered AGENTS.md must contain the footer fragment content"
     )
@@ -155,7 +190,10 @@ def test_install_identical_seed_skipped(tmp_path):
     target.mkdir()
     (target / "docs").mkdir()
     # docs/CHARTER.md is not composed, so the delivered bytes equal the raw seed.
-    (target / "docs" / "CHARTER.md").write_bytes((CORE_SEEDS / "docs" / "CHARTER.md").read_bytes())
+    _catalogue, seeds = _core_catalogue(tmp_path / "source")
+    (target / "docs" / "CHARTER.md").write_bytes(
+        (seeds / "docs" / "CHARTER.md").read_bytes()
+    )
 
     rc, _out, err = _install_core(target)
     assert rc == 0, err
@@ -171,7 +209,8 @@ def test_install_records_skipped_seed_in_state(tmp_path):
     target.mkdir()
     (target / "docs").mkdir()
     # Pre-install CHARTER.md with the exact content that would be delivered.
-    charter_src = CORE_SEEDS / "docs" / "CHARTER.md"
+    _catalogue, seeds = _core_catalogue(tmp_path / "source")
+    charter_src = seeds / "docs" / "CHARTER.md"
     (target / "docs" / "CHARTER.md").write_bytes(charter_src.read_bytes())
 
     rc, _out, err = _install_core(target)

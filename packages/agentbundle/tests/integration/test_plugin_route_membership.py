@@ -133,19 +133,32 @@ def test_envelope_refuses_when_survivors_disagree(tmp_path) -> None:
         })
 
 
-def test_envelope_survives_the_filter() -> None:
+def test_envelope_survives_the_filter(tmp_path) -> None:
     """`name`/`owner`/`description` intact — a filtered set must not re-key it.
 
-    Asserted against the repo-root marketplace, not a fixture build: the
-    envelope is derived from `source.url`, which comes from `[pack.links]
-    repository`, and the fixture packs declare none.
+    Self-contained: two synthetic source packs declaring one shared
+    `[pack.links] repository`, one user-capable and one repo-only. A real build
+    filters the repo-only pack out, and the envelope the survivors produce must
+    still carry the identity — the fixture packs declare no links, so this drives
+    synthetic ones rather than reading this repository's marketplace.
     """
-    payload = json.loads(
-        (REPO_ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8")
+    url = "https://github.com/eugenelim/agent-ready-repo"
+    _synth_pack(tmp_path, "published", user=True, repo=url)
+    _synth_pack(tmp_path, "withheld", user=False, repo=url)
+    out = tmp_path / "dist"
+    result = subprocess.run(
+        [sys.executable, "-m", "agentbundle.build", "build",
+         "--packs-dir", str(tmp_path / "packs"), "--output-dir", str(out)],
+        capture_output=True, text=True, cwd=REPO_ROOT,
     )
+    assert result.returncode == 0, result.stderr
+    marketplace = out / "claude-plugins" / "marketplace.json"
+    payload = json.loads(marketplace.read_text(encoding="utf-8"))
     assert payload.get("name") == "agent-ready-repo"
     assert payload.get("owner", {}).get("name") == "eugenelim"
     assert payload.get("description")
+    # The repo-only pack was filtered, and the envelope survived that filter.
+    assert _names(marketplace) == {"published"}
 
 
 # --- render_pack consumers -------------------------------------------------
@@ -161,22 +174,27 @@ def test_render_pack_consumers_call_through(tmp_path) -> None:
     """
     from agentbundle.render import render_pack, render_pack_to_dir
 
-    pack = REPO_ROOT / "packs" / "architect"
+    pack = FIXTURES / "governance-extras"
     rendered = render_pack(pack)
-    assert any(k.startswith("claude-plugins/architect/") for k in rendered)
+    assert any(k.startswith("claude-plugins/governance-extras/") for k in rendered)
 
     out = tmp_path / "out"
     render_pack_to_dir(pack, out)
-    assert (out / "claude-plugins" / "architect").is_dir()
+    assert (out / "claude-plugins" / "governance-extras").is_dir()
 
 
 def test_render_pack_omits_the_route_for_a_repo_only_pack() -> None:
-    """The characterization that matters: real `core` yields no plugin subtree."""
+    """The characterization that matters: a repo-only pack yields no plugin subtree.
+
+    `user-guide-diataxis` is the fixture drop-path witness (no
+    `[pack.adapter-contract]`, so it resolves repo-only), keeping this a
+    self-contained engine test with no dependency on this repository's `packs/`.
+    """
     from agentbundle.render import render_pack
 
-    rendered = render_pack(REPO_ROOT / "packs" / "core")
-    assert not any(k.startswith("claude-plugins/core/") for k in rendered)
-    assert any(k.startswith("apm/core/") for k in rendered)
+    rendered = render_pack(FIXTURES / "user-guide-diataxis")
+    assert not any(k.startswith("claude-plugins/user-guide-diataxis/") for k in rendered)
+    assert any(k.startswith("apm/user-guide-diataxis/") for k in rendered)
 
 
 def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> None:
@@ -199,37 +217,40 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
 
     from agentbundle.commands import install, upgrade
 
+    # `user-guide-diataxis` is the repo-only fixture witness, so this drives the
+    # real install/upgrade with no dependency on this repository's `packs/`.
+    pack_name = "user-guide-diataxis"
     catalogue = tmp_path / "cat"
     (catalogue / "packs").mkdir(parents=True)
-    shutil.copytree(REPO_ROOT / "packs" / "core", catalogue / "packs" / "core",
+    shutil.copytree(FIXTURES / pack_name, catalogue / "packs" / pack_name,
                     symlinks=False)
     root = tmp_path / "adopter"
     root.mkdir()
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         install.run(argparse.Namespace(
-            pack="core", catalogue=str(catalogue), output=str(root),
+            pack=pack_name, catalogue=str(catalogue), output=str(root),
             scope=None, force=False,
         ))
 
     # What a pre-change dist-tree install left behind.
-    stale_rel = "claude-plugins/core/skills/work-loop/SKILL.md"
+    stale_rel = f"claude-plugins/{pack_name}/skills/diataxis/SKILL.md"
     stale = root / stale_rel
     stale.parent.mkdir(parents=True, exist_ok=True)
     stale.write_text("previously installed\n", encoding="utf-8")
     # The version below is deliberately a *historical* one and must not be
-    # updated to track `packs/core/pack.toml` — the point is that this entry
+    # updated to track the pack's `pack.toml` — the point is that this entry
     # predates the change.
     state = root / ".agentbundle-state.toml"
-    marker = "[pack.core.adapters.claude-code.files]"
+    marker = f"[pack.{pack_name}.adapters.claude-code.files]"
     state.write_text(state.read_text(encoding="utf-8").replace(
         marker,
-        marker + f'\n"{stale_rel}" = {{ from-pack-version = "2.5.2", '
+        marker + f'\n"{stale_rel}" = {{ from-pack-version = "0.0.1", '
         f'sha = "{"0" * 64}" }}',
         1,
     ), encoding="utf-8")
 
     # A genuine version bump, not just a re-apply.
-    pack_toml = catalogue / "packs" / "core" / "pack.toml"
+    pack_toml = catalogue / "packs" / pack_name / "pack.toml"
     pack_toml.write_text(
         _re.sub(r'^version = "[^"]+"', 'version = "99.0.0"',
                 pack_toml.read_text(encoding="utf-8"), count=1, flags=_re.M),
@@ -238,7 +259,7 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
 
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         rc = upgrade.run(argparse.Namespace(
-            pack="core", catalogue=str(catalogue), root=str(root), scope="repo",
+            pack=pack_name, catalogue=str(catalogue), root=str(root), scope="repo",
             adapter=None, yes=True, dry_run=False, json=False, force=False,
             all=False, primitive=None,
         ))
@@ -260,8 +281,8 @@ def test_upgrade_orphans_rather_than_removes_a_stale_route_tree(tmp_path) -> Non
     # And the route itself is genuinely gone from the fresh render.
     from agentbundle.render import render_pack
 
-    assert not any(k.startswith("claude-plugins/core/")
-                   for k in render_pack(REPO_ROOT / "packs" / "core"))
+    assert not any(k.startswith(f"claude-plugins/{pack_name}/")
+                   for k in render_pack(FIXTURES / pack_name))
 
 
 # --- Controls that had no artifact until round five --------------------------
@@ -537,7 +558,7 @@ def test_a_single_pack_render_says_nothing_about_the_route(tmp_path) -> None:
     result = subprocess.run(
         [sys.executable, "-c",
          "from pathlib import Path; from agentbundle.render import render_pack; "
-         f"render_pack(Path({str(REPO_ROOT / 'packs' / 'core')!r}))"],
+         f"render_pack(Path({str(FIXTURES / 'user-guide-diataxis')!r}))"],
         capture_output=True, text=True, cwd=REPO_ROOT,
     )
     assert result.returncode == 0, result.stderr

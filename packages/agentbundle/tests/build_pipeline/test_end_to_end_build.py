@@ -17,7 +17,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 FIXTURES_PACKS = (
     Path(__file__).resolve().parent / "fixtures" / "packs"
 )
@@ -34,7 +34,7 @@ def _run_build(args: list[str]) -> subprocess.CompletedProcess[str]:
         [sys.executable, "-m", "agentbundle.build", *args],
         capture_output=True,
         text=True,
-        cwd=REPO_ROOT,
+        cwd=PACKAGE_ROOT,
     )
 
 
@@ -103,7 +103,7 @@ class EndToEndBuildTests(unittest.TestCase):
         identical output before and after)."""
         before = subprocess.run(
             ["git", "status", "--porcelain"],
-            cwd=REPO_ROOT,
+            cwd=PACKAGE_ROOT,
             capture_output=True,
             text=True,
             check=False,
@@ -124,7 +124,7 @@ class EndToEndBuildTests(unittest.TestCase):
             self.assertFalse((tmp_path / ".claude-plugin" / "marketplace.json").exists())
         after = subprocess.run(
             ["git", "status", "--porcelain"],
-            cwd=REPO_ROOT,
+            cwd=PACKAGE_ROOT,
             capture_output=True,
             text=True,
             check=False,
@@ -158,7 +158,7 @@ class CheckCommandTests(unittest.TestCase):
             from agentbundle.build.self_host import run_self_host
 
             contract = load_contract(
-                REPO_ROOT / "contracts" / "adapter.toml"
+                PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
             )
             # Pre-seed using the self-host runner so the working
             # tree exactly matches what `make build-check` will render

@@ -164,7 +164,7 @@ build-check:
 #              correctly silent on it and still flags genuinely-permissive modes.
 # Excluding the duplicates avoids a second inline pragma system in shipped pack
 # scripts.
-SAST_DIRS := tools packs packages
+SAST_DIRS := tools packs packages tests
 
 # The SAST config / CI surface that *governs* the gate but lives outside
 # SAST_DIRS. A diff touching any of these must run SAST so a change that
@@ -217,6 +217,10 @@ sast:
 	# against the public index would couple a merge to a release that has not
 	# happened yet. Every skip is printed. See tools/audit-requirements.py.
 	python3 tools/audit-requirements.py tools/requirements.txt $$(find packs -name requirements.txt | sort)
+	# Audit the PEP 517 backends that execute during package builds. Extract the
+	# declarations from pyproject.toml itself so the SCA input cannot drift.
+	python3 tools/audit-requirements.py --build-system \
+		packages/agentbundle/pyproject.toml packages/credbroker/pyproject.toml
 	# semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both carrying known CVEs
 	# (mcp: CVE-2026-52870, CVE-2026-52869, CVE-2026-59950; click: PYSEC-2026-2132).
 	# Attack surface is negligible: these packages are SAST-tooling transitive deps only,
@@ -287,13 +291,31 @@ lint-mypy:
 test:
 	$(PYTHON) -m pytest packages/agentbundle/tests/ -q
 	$(PYTHON) -m pytest packages/credbroker/ -q
+	$(PYTHON) tools/lint-conformance-portability.py --root .
+	$(PYTHON) -m pytest tests/ -q
 	$(PYTHON) -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
+	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
+	$(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
+	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
+	$(PYTHON) -c "import httpx"
+	$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
 	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::' || true); \
 	 if [ "$$n" -lt 16 ]; then echo "packs/desk-research/tests/ collected $$n, expected >= 16" >&2; exit 1; fi
 	$(PYTHON) -m pytest packs/desk-research/tests/ -q
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_build_site_routing.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
+	$(PYTHON) -m pytest \
+		tools/test_lint_agents_md_diataxis_block.py \
+		tools/test_lint_agents_md_legacy_block.py \
+		tools/test_lint_agents_md_risk_block.py \
+		tools/test_catalogue_curation_guard.py \
+		tools/test_contract_parity.py \
+		tools/test_release_check.py \
+		tools/test_scaffold_projection.py \
+		tools/test_conformance_portability.py -q
 
 # Local CI gate. Exactly one workflow is watched: build-check.yml.
 # tools/lint-ci-parity.py — chained into build-check — holds a disposition per

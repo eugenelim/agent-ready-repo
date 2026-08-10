@@ -18,11 +18,7 @@ from types import SimpleNamespace
 from agentbundle import config, render
 from agentbundle.commands import init_state
 
-# Resolve the repo root and core pack path relative to this file's location.
-# Layout: packages/agentbundle/tests/unit/test_init_state_cmd.py
-# Repo root is four parents up.
-REPO_ROOT = Path(__file__).resolve().parents[4]
-PACKS_DIR = REPO_ROOT / "packs"
+PACKS_DIR = Path(__file__).resolve().parents[1] / "build_pipeline" / "fixtures" / "packs"
 CORE_PACK = PACKS_DIR / "core"
 
 

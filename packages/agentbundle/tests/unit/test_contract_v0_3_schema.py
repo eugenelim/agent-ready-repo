@@ -21,10 +21,8 @@ Covers:
         claude-plugins-install-route to "0.4"; bumped by T2 of
         apm-install-route-parity to "0.5").
 
-Tests load the shipped `contracts/{adapter,pack}.{toml,schema.json}` and call
-the project's stdlib-only validator. Mirrored copies under
-`packages/agentbundle/agentbundle/_data/` ship inside the zipapp; the two trees are
-kept in sync manually (both excluded from self-host drift comparison).
+Tests load the packaged contracts under ``agentbundle/_data`` and call the
+project's stdlib-only validator.
 """
 
 from __future__ import annotations
@@ -34,14 +32,11 @@ import tomllib
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
-ADAPTER_SCHEMA_PATH = REPO_ROOT / "contracts" / "adapter.schema.json"
-PACK_SCHEMA_PATH = REPO_ROOT / "contracts" / "pack.schema.json"
-PLUGIN_MANIFEST_SCHEMA_PATH = REPO_ROOT / "contracts" / "plugin-manifest.schema.json"
-PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH = (
-    REPO_ROOT / "contracts" / "plugin-manifest.derived.schema.json"
-)
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+DATA_DIR = PACKAGE_ROOT / "agentbundle" / "_data"
+CONTRACT_PATH = DATA_DIR / "adapter.toml"
+ADAPTER_SCHEMA_PATH = DATA_DIR / "adapter.schema.json"
+PACK_SCHEMA_PATH = DATA_DIR / "pack.schema.json"
 
 KIRO_EVENTS = ["agentSpawn", "userPromptSubmit", "preToolUse", "postToolUse", "stop"]
 
@@ -576,45 +571,8 @@ class AdapterBlockCoverageTests(unittest.TestCase):
                 )
 
 
-class BundledCopiesMatchTests(unittest.TestCase):
-    """`_data/` ships in the zipapp; `contracts/` is the dev-checkout
-    fallback per build/main.py § resolution chain. Both are excluded from the
-    self-host drift check, so we assert identity here to catch divergence."""
-
-    def _data_dir(self) -> Path:
-        return REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data"
-
-    def test_adapter_toml_copies_match(self) -> None:
-        a = (self._data_dir() / "adapter.toml").read_bytes()
-        b = CONTRACT_PATH.read_bytes()
-        self.assertEqual(a, b, "_data/adapter.toml and contracts/adapter.toml differ")
-
-    def test_adapter_schema_copies_match(self) -> None:
-        a = (self._data_dir() / "adapter.schema.json").read_bytes()
-        b = ADAPTER_SCHEMA_PATH.read_bytes()
-        self.assertEqual(a, b, "_data/adapter.schema.json and contracts/adapter.schema.json differ")  # noqa: E501
-
-    def test_pack_schema_copies_match(self) -> None:
-        a = (self._data_dir() / "pack.schema.json").read_bytes()
-        b = PACK_SCHEMA_PATH.read_bytes()
-        self.assertEqual(a, b, "_data/pack.schema.json and contracts/pack.schema.json differ")
-
-    def test_plugin_manifest_schema_copies_match(self) -> None:
-        a = (self._data_dir() / "plugin-manifest.schema.json").read_bytes()
-        b = PLUGIN_MANIFEST_SCHEMA_PATH.read_bytes()
-        self.assertEqual(
-            a, b,
-            "_data/plugin-manifest.schema.json and contracts/plugin-manifest.schema.json differ",
-        )
-
-    def test_plugin_manifest_derived_schema_copies_match(self) -> None:
-        a = (self._data_dir() / "plugin-manifest.derived.schema.json").read_bytes()
-        b = PLUGIN_MANIFEST_DERIVED_SCHEMA_PATH.read_bytes()
-        self.assertEqual(
-            a, b,
-            "_data/plugin-manifest.derived.schema.json and "
-            "contracts/plugin-manifest.derived.schema.json differ",
-        )
+class BundledTemplateParityTests(unittest.TestCase):
+    """The package-source fallback and bundled runtime template stay aligned."""
 
     def test_install_marker_template_copies_match(self) -> None:
         """Drift gate: _data/install-marker.py and
@@ -625,8 +583,8 @@ class BundledCopiesMatchTests(unittest.TestCase):
         Both copies are excluded from the self-host drift check, so this
         test is the only mechanical gate keeping them in sync.
         """
-        templates_dir = REPO_ROOT / "packages" / "agentbundle" / "templates"
-        a = (self._data_dir() / "install-marker.py").read_bytes()
+        templates_dir = PACKAGE_ROOT / "templates"
+        a = (DATA_DIR / "install-marker.py").read_bytes()
         b = (templates_dir / "install-marker.py").read_bytes()
         self.assertEqual(
             a, b,

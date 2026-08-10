@@ -17,18 +17,77 @@ import sys
 from pathlib import Path
 
 import pytest
+from agentbundle.catalogue_tooling.defaults import write_defaults
+
+from tests._support import stage_installable_pack
 
 # The autouse _isolate_user_config_dir fixture in conftest.py redirects HOME and
 # XDG_CONFIG_HOME to a tmp sandbox; subprocess calls inherit this env. All calls
 # below pass --root explicitly so no command reads user config from the sandbox.
 
-_REPO_ROOT = Path(__file__).resolve().parents[4]  # packages/agentbundle/tests/unit -> repo root
-
 
 @pytest.fixture
-def working_catalogue_root() -> Path:
-    """Return the working-tree catalogue root (this repo)."""
-    return _REPO_ROOT
+def working_catalogue_root(tmp_path: Path) -> Path:
+    """Create the smallest clean catalogue accepted by all three commands."""
+    (tmp_path / "catalogue.toml").write_text(
+        """\
+schema = 1
+[catalogue]
+name = "test"
+display-name = "Test"
+description = "Test catalogue"
+minimum-agentbundle-version = "0.14.0"
+[catalogue.paths]
+packs = "packs"
+profiles = "profiles"
+contracts = "contracts"
+marketplace = ".claude-plugin/marketplace.json"
+build-output = "dist"
+[catalogue.build]
+recipes = ["default"]
+self-host = false
+claude-plugin-branch = "main"
+marketplace-description = "Test"
+[catalogue.package]
+include = ["packs/core"]
+required = ["packs/core"]
+[distribution.agentbundle]
+install-defaults-output = "agentbundle/_data/install-defaults.toml"
+preferred-adapter = "claude-code"
+default-source = "git+https://github.com/example/catalogue"
+[distribution.agentbundle.artifactory]
+enabled = false
+""",
+        encoding="utf-8",
+    )
+    stage_installable_pack(
+        tmp_path,
+        "core",
+        """\
+[pack]
+name = "core"
+version = "0.1.0"
+[pack.adapter-contract]
+version = "0.8"
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+""",
+    )
+    marketplace = tmp_path / ".claude-plugin" / "marketplace.json"
+    marketplace.parent.mkdir()
+    marketplace.write_text(
+        '{"name":"test","owner":{"name":"test"},"plugins":[]}\n',
+        encoding="utf-8",
+    )
+    # Installable catalogue archives deliberately omit catalogue.toml, so a
+    # shipped root marker must remain for archive verification and discovery.
+    (tmp_path / "AGENTS.md").write_text("# Test catalogue\n", encoding="utf-8")
+    (tmp_path / "LICENSE-APACHE").write_text("Fixture license.\n", encoding="utf-8")
+    (tmp_path / "LICENSE-MIT").write_text("Fixture license.\n", encoding="utf-8")
+    result = write_defaults(tmp_path)
+    assert result.ok
+    return tmp_path
 
 
 def _run(*args: str) -> subprocess.CompletedProcess[str]:

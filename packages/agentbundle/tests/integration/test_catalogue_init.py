@@ -19,8 +19,13 @@ Test matrix per plan.md § Task 14:
 
 from __future__ import annotations
 
+import os
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
+
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -31,6 +36,45 @@ def _run_init(target: Path, **kwargs):
     from agentbundle.catalogue_tooling.initialise import init_catalogue
 
     return init_catalogue(target=target, **kwargs)
+
+
+def _assert_materialised_conformance_passes(target: Path) -> None:
+    """Execute the exact suite delivered to the initialized catalogue."""
+    result = subprocess.run(
+        [sys.executable, "-m", "pytest", "tests/conformance", "-q"],
+        cwd=target,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+
+def _run_cli_init(target: Path, *extra: str) -> subprocess.CompletedProcess[str]:
+    """Invoke the public CLI from source with an isolated target."""
+    env = os.environ.copy()
+    current = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = (
+        str(PACKAGE_ROOT)
+        if not current
+        else str(PACKAGE_ROOT) + os.pathsep + current
+    )
+    return subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "agentbundle",
+            "catalogue",
+            "init",
+            str(target),
+            "--name",
+            "cli-catalogue",
+            *extra,
+        ],
+        cwd=PACKAGE_ROOT,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -48,6 +92,8 @@ def test_new_target_full_lifecycle(tmp_path):
     assert (target / ".claude-plugin" / "marketplace.json").is_file()
     assert (target / "packs" / "README.md").is_file()
     assert (target / "profiles" / "README.md").is_file()
+    assert (target / "tests" / "conformance" / "test_pack_metadata.py").is_file()
+    assert not (target / "tests" / "roster").exists()
     # Check summary
     assert result.summary.create > 0
     assert result.summary.conflict == 0
@@ -56,6 +102,17 @@ def test_new_target_full_lifecycle(tmp_path):
     vr = verify_catalogue(target)
     errors = [d.message for d in vr.diagnostics if d.severity.name == "ERROR"]
     assert vr.ok, f"Verify failed after init: {errors}"
+    _assert_materialised_conformance_passes(target)
+
+
+def test_default_init_cli_materialises_runnable_conformance(tmp_path: Path) -> None:
+    """The documented bare init route delivers a suite that actually runs."""
+    target = tmp_path / "cli-catalogue"
+
+    result = _run_cli_init(target)
+
+    assert result.returncode == 0, result.stdout + result.stderr
+    _assert_materialised_conformance_passes(target)
 
 
 def test_init_writes_valid_catalogue_toml(tmp_path):

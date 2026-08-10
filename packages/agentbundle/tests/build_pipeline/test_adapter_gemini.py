@@ -23,8 +23,8 @@ from agentbundle.build.projections.gemini_command_toml import (
     project_gemini_command_toml,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 
 _COMMAND_RULE = {"target-path": ".gemini/commands/"}
 
@@ -339,11 +339,14 @@ class GeminiProjectionTests(unittest.TestCase):
             fm = (out / ".gemini" / "agents" / "from-file.md").read_text().split("---")[1]
             self.assertIn("name: from-file", fm)
 
-    def test_real_core_pack_projects(self) -> None:
-        """Against the real core pack — reviewers + implementer map cleanly."""
+    def test_implementer_agent_tools_project(self) -> None:
+        """A representative agent's tools map to Gemini tool identifiers."""
         with tempfile.TemporaryDirectory() as tmp:
-            out = Path(tmp) / "out"
-            gemini.project(REPO_ROOT / "packs" / "core", self.contract, out)
+            tmp_path = Path(tmp)
+            pack = tmp_path / "pack"
+            _seed_agent(pack, "implementer", tools="Read, Bash")
+            out = tmp_path / "out"
+            gemini.project(pack, self.contract, out)
             impl_fm = (out / ".gemini" / "agents" / "implementer.md").read_text().split("---")[1]
             self.assertIn("read_file", impl_fm)
             self.assertIn("run_shell_command", impl_fm)
@@ -545,90 +548,12 @@ class GeminiInstallDispatchTests(unittest.TestCase):
         self.assertTrue(all(k.startswith(".gemini/") for k in projection), sorted(projection))
 
 
-class GeminiShippedAgentToolCoverageTests(unittest.TestCase):
-    """Every tool any shipped agent declares is in the gemini tools map, so
-    an unmapped tool would surface here rather than silently dropping at install."""
-
-    def test_every_shipped_agent_tool_is_mapped(self) -> None:
-        contract = load_contract(CONTRACT_PATH)
-        values = contract["frontmatter-mapping"]["gemini-agent-frontmatter"]["tools"]["values"]
-        declared: set[str] = set()
-        for agent_md in (REPO_ROOT / "packs").glob("*/.apm/agents/*.md"):
-            for line in agent_md.read_text(encoding="utf-8").splitlines():
-                if line.startswith("tools:"):
-                    declared.update(
-                        t.strip() for t in line.split(":", 1)[1].split(",") if t.strip()
-                    )
-        self.assertTrue(declared, "no shipped agent tools found — glob likely wrong")
-        unmapped = declared - set(values)
-        self.assertEqual(
-            unmapped, set(),
-            f"shipped agent tools not in gemini-agent-frontmatter values map: {unmapped}",
-        )
-
-
 class GeminiSelfHostTests(unittest.TestCase):
     def test_gemini_not_in_self_host_adapters(self) -> None:
         """Gemini is distribution-only, not self-hosted."""
         from agentbundle.build.self_host import SELF_HOST_ADAPTERS
 
         self.assertNotIn("gemini", SELF_HOST_ADAPTERS)
-
-
-# ===========================================================================
-# T5 — every pack admits gemini at BOTH repo and user scope (user directive)
-# ===========================================================================
-
-
-class GeminiAllPacksAdmissibleTests(unittest.TestCase):
-    """`--adapter gemini` resolves (is not refused) for every shipped pack
-    at both repo and user scope: the 7 list-declaring packs list gemini, and the
-    4 list-less packs admit any shipped (repo) / user-scope-capable (user) adapter."""
-
-    PACKS_DIR = REPO_ROOT / "packs"
-
-    def _allowed_adapters(self, pack_dir: Path) -> list[str] | None:
-        import tomllib
-
-        data = tomllib.loads((pack_dir / "pack.toml").read_text(encoding="utf-8"))
-        return data.get("install", {}).get("allowed-adapters")
-
-    def test_every_pack_admits_gemini_both_scopes(self) -> None:
-        from agentbundle.commands.install import _resolve_target_adapter
-
-        pack_dirs = sorted(
-            p for p in self.PACKS_DIR.iterdir()
-            if not p.name.startswith("_") and (p / "pack.toml").exists()
-        )
-        self.assertTrue(pack_dirs, "no packs discovered under packs/ — pack lookup is broken")
-        # Count-independent by design: don't pin the number of packs (every new
-        # pack would break an unrelated adapter test). Assert gemini resolution
-        # for the packs that *support* gemini — a pack with no allowed-adapters
-        # list admits any shipped adapter; a pack with a list must name gemini.
-        # Packs that constrain to a list without gemini are skipped, not failed.
-        # `checked` is the non-vacuity guard the old hard count used to be.
-        checked = 0
-        for pack_dir in pack_dirs:
-            allowed = self._allowed_adapters(pack_dir)
-            if allowed is not None and "gemini" not in allowed:
-                continue
-            for scope in ("repo", "user"):
-                resolved = _resolve_target_adapter(
-                    pack_dir,
-                    scope=scope,
-                    adapter="gemini",
-                    allowed_adapters=allowed,
-                    contract_version="0.13",
-                    command_name="install",
-                )
-                self.assertEqual(
-                    resolved, "gemini",
-                    f"{pack_dir.name} @ {scope}: --adapter gemini was not admitted",
-                )
-            checked += 1
-        self.assertTrue(
-            checked, "no pack exercised gemini admission — the check ran vacuously"
-        )
 
 
 if __name__ == "__main__":

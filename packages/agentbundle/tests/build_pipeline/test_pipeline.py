@@ -22,8 +22,8 @@ from agentbundle.build.main import (
     validate_pack_uniqueness,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 FIXTURES = Path(__file__).resolve().parent / "fixtures"
 
 
@@ -181,7 +181,7 @@ class UnknownRecipeTests(unittest.TestCase):
                 ],
                 capture_output=True,
                 text=True,
-                cwd=REPO_ROOT,
+                cwd=PACKAGE_ROOT,
             )
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("bogus-recipe", result.stderr)

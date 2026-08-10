@@ -1,8 +1,8 @@
-"""Keystone integration test: editable detection resolves to the
-real clone root against a **real** `pip install -e`, not a mocked
+"""Keystone integration test: editable detection resolves to a staged
+clone root against a **real** `pip install -e`, not a mocked
 `direct_url.json`.
 
-Builds its own throwaway venv, editable-installs `packages/agentbundle` into
+Builds its own throwaway venv, editable-installs a copy of agentbundle into
 it, then runs `_detect_editable_source` against the real PEP 610 record and
 asserts it walks up to the clone root (the dir holding `packs/` +
 `.claude-plugin/marketplace.json`).
@@ -20,8 +20,7 @@ import sys
 import venv
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-PKG = REPO_ROOT / "packages" / "agentbundle"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _venv_env() -> dict[str, str]:
@@ -37,22 +36,54 @@ def _venv_env() -> dict[str, str]:
 
 
 def test_editable_detection_against_real_install(tmp_path):
-    assert (REPO_ROOT / "packs").is_dir(), f"clone markers missing at {REPO_ROOT}"
-    assert (REPO_ROOT / ".claude-plugin" / "marketplace.json").is_file()
-
-    # Defensive clean — a stale build/ or egg-info from a prior local build can
-    # shadow the editable install (see feedback_gitignore_silent_skip).
-    for stale in (PKG / "build", PKG / "agentbundle.egg-info", PKG / "dist"):
-        shutil.rmtree(stale, ignore_errors=True)
+    clone = tmp_path / "clone"
+    package = clone / "packages" / "agentbundle"
+    shutil.copytree(
+        PACKAGE_ROOT,
+        package,
+        ignore=shutil.ignore_patterns("build", "dist", "*.egg-info", "__pycache__"),
+    )
+    # Production intentionally accepts editable source roots only from a Git
+    # checkout.  The staged clone needs that boundary marker as well as the
+    # catalogue markers below; no repository metadata is otherwise required.
+    (clone / ".git").mkdir()
+    (clone / "packs").mkdir()
+    marketplace = clone / ".claude-plugin" / "marketplace.json"
+    marketplace.parent.mkdir()
+    marketplace.write_text('{"name":"fixture","plugins":[]}\n', encoding="utf-8")
 
     venv_dir = tmp_path / "venv"
-    venv.create(venv_dir, with_pip=True)
+    venv.create(venv_dir, with_pip=True, system_site_packages=True)
     bindir = venv_dir / ("Scripts" if sys.platform == "win32" else "bin")
     py = bindir / ("python.exe" if sys.platform == "win32" else "python")
 
     env = _venv_env()
+    # `--no-build-isolation` builds against the venv's own backend, so the
+    # backend must be present: a bare `venv` (Python 3.12+) ships pip but not
+    # setuptools, and `pyproject.toml`'s SPDX `license` string needs
+    # setuptools>=77. Provision it explicitly rather than relying on inherited
+    # system site-packages, which the CI runner's interpreter does not carry.
+    provision = subprocess.run(
+        [str(py), "-m", "pip", "install", "--quiet", "setuptools>=77", "wheel"],
+        capture_output=True,
+        text=True,
+        env=env,
+    )
+    assert provision.returncode == 0, (
+        f"backend provisioning failed:\nstdout={provision.stdout}\nstderr={provision.stderr}"
+    )
     install = subprocess.run(
-        [str(py), "-m", "pip", "install", "-e", str(PKG), "--quiet"],
+        [
+            str(py),
+            "-m",
+            "pip",
+            "install",
+            "-e",
+            str(package),
+            "--quiet",
+            "--no-deps",
+            "--no-build-isolation",
+        ],
         capture_output=True,
         text=True,
         env=env,
@@ -76,7 +107,7 @@ def test_editable_detection_against_real_install(tmp_path):
         f"detection run failed:\nstdout={detect.stdout}\nstderr={detect.stderr}"
     )
     detected = detect.stdout.strip()
-    assert detected == str(REPO_ROOT.resolve()), (
+    assert detected == str(clone.resolve()), (
         f"editable detection resolved to {detected!r}, expected the clone root "
-        f"{str(REPO_ROOT.resolve())!r}"
+        f"{str(clone.resolve())!r}"
     )

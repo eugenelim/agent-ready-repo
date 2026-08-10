@@ -24,8 +24,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-FIXTURES = REPO_ROOT / "packages" / "agentbundle" / "tests" / "fixtures" / "packs"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+FIXTURES = PACKAGE_ROOT / "tests" / "fixtures" / "packs"
 CC_USER_HOOKS = FIXTURES / "cc-user-hooks"
 
 

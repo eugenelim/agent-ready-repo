@@ -562,13 +562,8 @@ class LintPackVocabTests(unittest.TestCase):
         self.assertEqual(len(ml_findings), 1, findings)
         self.assertIn("agent/valid-agent", ml_findings[0])
 
-    def test_loader_module_ancestor_fallback_succeeds(self) -> None:
-        """The loader walks up from the supplied start; when that
-        finds nothing, it falls back to walking from the module's
-        own ancestor chain. Production-side this is what makes
-        `cmd_lint_packs` work for an out-of-tree --packs-dir while
-        still reading the in-tree vocab. Direct test of the
-        fallback hit-path."""
+    def test_loader_bundled_fallback_succeeds(self) -> None:
+        """An out-of-tree packs directory uses the engine's bundled vocab."""
         from agentbundle.build.lint_packs import _load_target_vocab
         with tempfile.TemporaryDirectory() as tmp:
             vocab, err = _load_target_vocab(Path(tmp))

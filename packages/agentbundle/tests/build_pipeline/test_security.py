@@ -19,8 +19,8 @@ from agentbundle.build.main import (
     validate_plugin_manifest,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 
 
 class PathTraversalGuardTests(unittest.TestCase):

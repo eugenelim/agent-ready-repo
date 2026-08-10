@@ -15,14 +15,11 @@ or `_aggregate_marketplace`.
 from __future__ import annotations
 
 import json
-import shutil
 import subprocess
 import sys
 from pathlib import Path
 
-import pytest
-
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 
 # Minimal pack.toml with full enriched metadata (maintainers + links).
 _PACK_WITH_METADATA = {
@@ -191,9 +188,41 @@ class TestRunAggregateMarketplaceName:
     """The aggregated marketplace.json must carry a top-level `name` field."""
 
     def _build_dist_marketplace(self, tmp_path: Path) -> dict:
-        """Run `agentbundle build` against the real packs and return marketplace.json."""
+        """Run the build against one enriched pack and return marketplace.json."""
         packs_shadow = tmp_path / "packs"
-        shutil.copytree(REPO_ROOT / "packs", packs_shadow, symlinks=True)
+        pack = packs_shadow / "research"
+        skill = pack / ".apm" / "skills" / "research"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text(
+            "---\ndescription: Fixture research.\n---\nFixture.\n",
+            encoding="utf-8",
+        )
+        (pack / "pack.toml").write_text(
+            """\
+[pack]
+name = "research"
+version = "0.2.0"
+description = "Research skills."
+[pack.adapter-contract]
+version = "0.3"
+[pack.install]
+default-scope = "user"
+allowed-scopes = ["repo", "user"]
+[pack.links]
+repository = "https://github.com/example-org/example-repo"
+[[pack.maintainers]]
+name = "Example User"
+email = "example@example.com"
+""",
+            encoding="utf-8",
+        )
+        plugin = pack / ".claude-plugin" / "plugin.json"
+        plugin.parent.mkdir()
+        plugin.write_text(
+            '{"name":"research","version":"0.2.0",'
+            '"description":"Research skills."}\n',
+            encoding="utf-8",
+        )
 
         result = subprocess.run(
             [
@@ -208,7 +237,7 @@ class TestRunAggregateMarketplaceName:
             ],
             capture_output=True,
             text=True,
-            cwd=REPO_ROOT,
+            cwd=PACKAGE_ROOT,
         )
         assert result.returncode == 0, (
             f"agentbundle build failed:\n{result.stdout}\n{result.stderr}"
@@ -223,9 +252,9 @@ class TestRunAggregateMarketplaceName:
             "regression of the 2026-07 defect"
         )
 
-    def test_dist_marketplace_name_is_repo_name(self, tmp_path):
+    def test_dist_marketplace_name_is_repository_name(self, tmp_path):
         m = self._build_dist_marketplace(tmp_path)
-        assert m["name"] == "agent-ready-repo"
+        assert m["name"] == "example-repo"
 
     def test_dist_marketplace_has_owner_field(self, tmp_path):
         m = self._build_dist_marketplace(tmp_path)
@@ -271,60 +300,4 @@ class TestRunAggregateMarketplaceName:
             )
             assert "branch" not in src and "directory" not in src, (
                 f"{plugin['name']}.source carries legacy keys"
-            )
-
-
-# ---------------------------------------------------------------------------
-# self-host aggregate — working-tree marketplace.json pins
-# ---------------------------------------------------------------------------
-
-
-class TestSelfHostMarketplace:
-    """The working-tree .claude-plugin/marketplace.json must satisfy all three
-    shape invariants that caused the 2026-07 validation failures."""
-
-    @pytest.fixture(scope="class")
-    def marketplace(self):
-        path = REPO_ROOT / ".claude-plugin" / "marketplace.json"
-        assert path.exists(), f"missing {path} — run make build-self first"
-        return json.loads(path.read_text(encoding="utf-8"))
-
-    def test_has_name_field(self, marketplace):
-        assert "name" in marketplace, (
-            ".claude-plugin/marketplace.json missing `name` — 2026-07 regression"
-        )
-
-    def test_name_is_agent_ready_repo(self, marketplace):
-        assert marketplace["name"] == "agent-ready-repo"
-
-    def test_has_owner_field(self, marketplace):
-        assert isinstance(marketplace.get("owner"), dict)
-
-    def test_every_plugin_has_object_author(self, marketplace):
-        """Every plugin entry must have an object author — not a string, not absent."""
-        missing = [p["name"] for p in marketplace["plugins"] if "author" not in p]
-        assert not missing, f"Plugins missing author: {missing}"
-        string_authors = [
-            p["name"]
-            for p in marketplace["plugins"]
-            if isinstance(p.get("author"), str)
-        ]
-        assert not string_authors, (
-            f"String author (not object) — regression of 2026-07 defect: {string_authors}"
-        )
-
-    def test_every_plugin_has_source(self, marketplace):
-        """Every plugin entry must carry a source field — not just some entries."""
-        missing = [p["name"] for p in marketplace["plugins"] if "source" not in p]
-        assert not missing, (
-            f"Plugins missing source — regression of 2026-07 defect: {missing}"
-        )
-
-    def test_every_source_is_valid_object(self, marketplace):
-        for plugin in marketplace["plugins"]:
-            src = plugin.get("source")
-            if src is None:
-                continue
-            assert isinstance(src, dict), (
-                f"{plugin['name']}.source must be object, got {src!r}"
             )

@@ -2,8 +2,7 @@
 
 Verifies the T1 contract edits:
 
-  - ``[contract] version == "0.8"`` in both the runtime data file
-    (`_data/adapter.toml`) and the docs mirror.
+  - ``[contract] version >= "0.8"`` in the runtime data file.
   - Codex `agent` projection: ``mode == "codex-agent-toml"``,
     ``target-path == ".codex/agents/"``,
     ``frontmatter-mapping == "codex-agent-frontmatter-v0.8"``.
@@ -31,19 +30,10 @@ import tomllib
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-DATA_CONTRACT_PATH = (
-    REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "_data" / "adapter.toml"
-)
-DOCS_CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
-DATA_SCHEMA_PATH = (
-    REPO_ROOT
-    / "packages"
-    / "agentbundle"
-    / "agentbundle"
-    / "_data"
-    / "adapter.schema.json"
-)
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+DATA_ROOT = PACKAGE_ROOT / "agentbundle" / "_data"
+DATA_CONTRACT_PATH = DATA_ROOT / "adapter.toml"
+DATA_SCHEMA_PATH = DATA_ROOT / "adapter.schema.json"
 
 
 def _codex_projection(contract: dict, primitive: str) -> dict:
@@ -62,9 +52,6 @@ def _version_tuple(contract: dict) -> tuple[int, ...]:
 class TestContractV08(unittest.TestCase):
     def setUp(self) -> None:
         self.contract = tomllib.loads(DATA_CONTRACT_PATH.read_text(encoding="utf-8"))
-        self.docs_contract = tomllib.loads(
-            DOCS_CONTRACT_PATH.read_text(encoding="utf-8")
-        )
         self.schema = json.loads(DATA_SCHEMA_PATH.read_text(encoding="utf-8"))
 
     def test_contract_version_is_08(self) -> None:
@@ -74,10 +61,6 @@ class TestContractV08(unittest.TestCase):
         # Compare as (major, minor) tuples — a string compare breaks at v0.10.
         version = _version_tuple(self.contract)
         self.assertGreaterEqual(version, (0, 8), "contract version must be >= 0.8")
-
-    def test_docs_contract_version_is_08(self) -> None:
-        version = _version_tuple(self.docs_contract)
-        self.assertGreaterEqual(version, (0, 8), "docs contract version must be >= 0.8")
 
     def test_codex_agent_projection(self) -> None:
         entry = _codex_projection(self.contract, "agent")

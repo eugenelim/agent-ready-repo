@@ -20,14 +20,21 @@ from unittest import mock
 
 import pytest
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[2]
-FIXTURE_PACK = PACKAGE_ROOT / "tests" / "fixtures" / "version_gate" / "incompatible_pack"
+# The version-gate fixtures are staged into a temp directory, never into the
+# shipped tests/ tree. A committed symlink materialises platform-dependently in
+# the sdist — dereferenced on Linux, dropped on macOS — which breaks the engine
+# suite's completeness gate. `FIXTURE_PACK` is bound by the autouse fixture
+# below before any test in this module runs.
+FIXTURE_PACK: Path
 
 
 @pytest.fixture(scope="module", autouse=True)
-def stage_fixture_pack():
+def stage_fixture_pack(tmp_path_factory):
     """Stage a pack whose [pack.adapter-contract] version major differs from ours."""
-    FIXTURE_PACK.mkdir(parents=True, exist_ok=True)
+    global FIXTURE_PACK
+    base = tmp_path_factory.mktemp("version_gate")
+    FIXTURE_PACK = base / "incompatible_pack"
+    FIXTURE_PACK.mkdir(parents=True)
     (FIXTURE_PACK / "pack.toml").write_text(
         """[pack]
 name = "incompatible"
@@ -39,26 +46,15 @@ version = "99.0"
         encoding="utf-8",
         newline="\n",
     )
-    (FIXTURE_PACK.parent / "packs").mkdir(parents=True, exist_ok=True)
-    # Symlink into a packs/<name>/ layout for subcommands that take
-    # --packs-dir. Use a *relative* target so the committed symlink
-    # doesn't carry one developer's absolute workspace path into every
-    # diff. Use is_symlink() / unlink rather than exists() — `.exists()`
-    # follows the symlink and returns False if the target appears
-    # invalid to Python's resolver, which races against symlink_to() and
-    # produces FileExistsError on the second test-session run.
-    # Test-only symlink: this fixture aliases an out-of-pack fixture
-    # directory into the expected `packs/<name>/` layout for the
-    # version-gate harness; it is not pack content and the
-    # Windows-portability lint (which walks shipped packs/) does not reach it.
-    # On native Windows the harness would skip; Windows CI is Phase 5.
-    pack_link = FIXTURE_PACK.parent / "packs" / "incompatible"
-    relative_target = os.path.relpath(FIXTURE_PACK, pack_link.parent)
-    if pack_link.is_symlink() or pack_link.exists():
-        pack_link.unlink()
-    pack_link.symlink_to(relative_target, target_is_directory=True)
+    # Alias the pack into a packs/<name>/ layout for subcommands that take
+    # --packs-dir. A *relative* symlink target keeps the fixture self-contained;
+    # staging under a temp dir keeps it out of the shipped tree entirely.
+    (base / "packs").mkdir()
+    pack_link = base / "packs" / "incompatible"
+    pack_link.symlink_to(
+        os.path.relpath(FIXTURE_PACK, pack_link.parent), target_is_directory=True
+    )
     yield
-    # Don't tear down — left in place for inspection if a test fails.
 
 
 def _run(module_name: str, **kwargs) -> tuple[int, str]:

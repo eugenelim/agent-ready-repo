@@ -15,8 +15,8 @@ from pathlib import Path
 from agentbundle.build.adapters.kiro_ide import project
 from agentbundle.build.contract import load as load_contract
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
+PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+CONTRACT_PATH = PACKAGE_ROOT / "agentbundle" / "_data" / "adapter.toml"
 
 
 def _seed_agent_pack(root: Path, tools: str = "Read, Grep", model: str | None = None) -> Path:

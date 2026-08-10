@@ -31,14 +31,6 @@ import tomllib
 from pathlib import Path
 from typing import Any, Iterator
 
-from agentbundle.build.projections.merge_into_agent_json import (
-    project as merge_into_agent_json_project,
-)
-from agentbundle.build.projections.kiro_ide_hook import (
-    project as kiro_ide_hook_project,
-)
-
-
 # Phase order from the build-pipeline ordering invariant.
 # `agent` precedes `hook-wiring` so `merge-into-agent-json` finds the
 # agent JSON in place. `command` and `skill` land last; their position
@@ -47,6 +39,12 @@ from agentbundle.build.projections.kiro_ide_hook import (
 # uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projections.direct_directory import sweep_orphans
+from agentbundle.build.projections.kiro_ide_hook import (
+    project as kiro_ide_hook_project,
+)
+from agentbundle.build.projections.merge_into_agent_json import (
+    project as merge_into_agent_json_project,
+)
 
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
@@ -63,7 +61,11 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
     """
     adapter_block = contract["adapter"]["kiro"]
     array_form = {entry["primitive"]: entry for entry in adapter_block.get("projection", [])}
-    table_form = adapter_block.get("projections", {}) if isinstance(adapter_block.get("projections"), dict) else {}
+    table_form = (
+        adapter_block.get("projections", {})
+        if isinstance(adapter_block.get("projections"), dict)
+        else {}
+    )
 
     for primitive_name in _PHASE_ORDER:
         if primitive_name in array_form:
@@ -172,7 +174,11 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
     """
     adapter_block = contract["adapter"]["kiro"]
     array_form = {entry["primitive"]: entry for entry in adapter_block.get("projection", [])}
-    table_form = adapter_block.get("projections", {}) if isinstance(adapter_block.get("projections"), dict) else {}
+    table_form = (
+        adapter_block.get("projections", {})
+        if isinstance(adapter_block.get("projections"), dict)
+        else {}
+    )
 
     for primitive_name in _iter_primitives(contract):
         primitive = contract["primitive"][primitive_name]
@@ -231,10 +237,7 @@ def _dispatch_table_form(
         # writes the repo-scope shape; user-scope projection is T8b's
         # install-time concern.
         target = rule.get("target")
-        if isinstance(target, dict):
-            target_template = target.get("repo")
-        else:
-            target_template = target
+        target_template = target.get("repo") if isinstance(target, dict) else target
         if target_template:
             _project_direct_file_template(source_dir, output_root, target_template)
     elif primitive_name == "kiro-ide-hook" and effective_mode == "direct-file":
@@ -613,10 +616,7 @@ def _project_kiro_ide_hook(
     # Target template from the rule (.kiro/hooks/<pack>/<name>.kiro.hook
     # at v0.4 per the RFC's lean).
     target = rule.get("target")
-    if isinstance(target, dict):
-        target_template = target.get("repo")
-    else:
-        target_template = target
+    target_template = target.get("repo") if isinstance(target, dict) else target
     if not target_template:
         return
 
