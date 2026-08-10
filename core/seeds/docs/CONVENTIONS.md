@@ -588,6 +588,11 @@ seeds) lives under `packs/<pack>/`. The split is:
   `.claude/agents/<name>.md`, `.claude/commands/<name>.md`,
   `tools/hooks/<name>.<ext>`, and the `hooks` key of
   `.claude/settings.local.json`.
+- Adapter-independent runtime primitives: `.agentbundle/bin/<name>.py` from
+  `packs/<pack>/.apm/adapter-root-bins/`, and
+  `.agentbundle/lib/<module>/` from the package source vendored through
+  `packs/<pack>/.apm/user-libs/`. These rails share the self-host drift gate
+  even though they are outside every adapter's native discovery tree.
 - Seed-projected paths: `docs/CONVENTIONS.md`. (Other seed-projected
   paths from earlier phases — `docs/CHARTER.md`, the seed READMEs
   under `docs/<area>/`, and `packages/_example/` — were reclassified
