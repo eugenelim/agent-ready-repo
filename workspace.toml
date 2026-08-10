@@ -445,16 +445,12 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # publish_claude_plugins.py's _assert_membership call site is unasserted:
-  # deleting the call leaves tools/test-publish-claude-plugins.py green, and it
-  # is the only runtime check between `git push` and a public marketplace.
-  # Fix: an ast-based assertion that main() contains the call.
   # render_packs_to_dir hard-codes aggregate_scope="catalogue", so an adopter
   # rendering a repo-only subset through that public helper gets a ValueError
   # where the single-pack sibling returns an empty plugins list. No in-repo
   # caller, so nothing catches the asymmetry. Fix: take the scope as a
   # parameter, matching run_recipe.
-  {slug = "plugin-render-packs-scope-parameter", source = "spec/claude-plugin-route-scope AC12"},
+  {slug = "plugin-render-packs-scope-parameter", source = "spec/claude-plugin-route-scope"},
   # flaky-sso-store-concurrency-on-windows —
   # packages/credbroker/tests/unit/test_sso_store_concurrency.py::
   # test_file_floor_path_is_serialised_too[1] fails intermittently on the
@@ -485,7 +481,8 @@ open = [
   # step carries no disposition and parity will not notice if it is deleted.
   # Fix: update WORKFLOW_SCOPE's reason, or bring the step in scope as CI_ONLY.
   {slug = "plugin-pages-yml-parity-disposition", source = "spec/claude-plugin-route-scope"},
-  # Six fixture continuation strings in build/tests/test_self_host_check.py are
+  # Six fixture continuation strings in
+  # packages/agentbundle/tests/build_pipeline/test_self_host_check.py are
   # indented to column 8 inside deeper blocks — ruff accepts it, but it reads as
   # a dedent bug. Left alone because RFC-0082 relocates that whole tree.
   {slug = "plugin-fixture-continuation-indent", source = "spec/claude-plugin-route-scope"},

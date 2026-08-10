@@ -243,7 +243,11 @@ no callers anywhere in the tree, so its parameter is unreachable today).
 
   **Accepted residual.** A PR that deletes the gating conditional from
   `[pack].astro` or `catalogue/index.astro` and changes nothing else goes red in
-  `pages.yml` but does not block merge. That failure is a visible edit to one of
+  `pages.yml` but does not block merge. It does **halt the Pages deploy** — the
+  step runs in the `build` job before the artifact upload, and `deploy` declares
+  `needs: build` — so unrelated content in that push does not publish either.
+  That is deliberate: shipping a site that offers an uninstallable plugin is
+  worse than shipping yesterday's copy. That failure is a visible edit to one of
   two files in a PR a human reads; the drift the required check catches is
   silent and spread across every pack. A third guard is already in place: the
   Zod field is required with no default, so *omitting* it fails the Astro build
@@ -483,12 +487,25 @@ no callers anywhere in the tree, so its parameter is unreachable today).
 
 - [x] **AC22 — Projected artifacts regenerated and committed.**
   `.claude-plugin/marketplace.json` is a `make build-check`-gated projected path.
+  Its literal expected roster lives in `tools/lint-plugin-roster.py`, not in the
+  integration module — asserting this repository's roster inside the engine tree
+  is the ownership violation RFC-0082 names, and the lint runs against the real
+  file in the required gate rather than a `tmp_path` build.
 
-- [x] **AC23 — Frozen specs carrying the dead premise get errata.**
+- [x] **AC23 — Every frozen artifact carrying the dead premise gets an
+  erratum, at all three layers.** Specs:
   `docs/specs/claude-plugins-install-route/spec.md`,
-  `docs/specs/claude-plugins-manifest-correctness/spec.md`, and
-  `docs/specs/wire-session-start-hook/spec.md` are `Shipped` and frozen; each
-  assumes `core` is plugin-installable. Errata only — bodies not edited.
+  `docs/specs/claude-plugins-manifest-correctness/spec.md`,
+  `docs/specs/wire-session-start-hook/spec.md`,
+  `docs/specs/claude-plugins-publish-and-discover/spec.md`, and
+  `docs/specs/self-hosting/spec.md` (AC16 — amended via that spec's own
+  Changelog idiom, not an erratum block),
+  `docs/specs/enriched-pack-manifest/spec.md`, and
+  `docs/specs/product-strategy-pack/spec.md`. ADR: `docs/adr/0072-...md`, whose
+  *Verification* recipe installs `core`. RFCs: `docs/rfc/0001-...md`,
+  `docs/rfc/0002-...md`, and `docs/rfc/0007-...md`. The sweep is by layer, not by directory: rounds eight
+  and nine each found a layer the previous sweep had not thought of. Errata
+  only — bodies not edited.
 
 - [x] **AC24 — The QA-matrix row is retired, and its frozen owner amended.**
   `docs/specs/adapt-to-project/notes/manual-qa-matrix.md`'s "claude-plugins

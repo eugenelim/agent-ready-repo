@@ -12,6 +12,8 @@ assertion is a tautology that stays green while the marketplace truncates.
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import subprocess
 import sys
@@ -369,3 +371,133 @@ def test_run_recipe_rejects_an_unknown_scope_on_a_per_pack_recipe(tmp_path) -> N
             load_recipe("per-pack-claude-plugin"), [], tmp_path,
             load_contract(CONTRACT_PATH), aggregate_scope="catalouge",
         )
+
+
+# --- AC1 / AC12: the disclosure clauses --------------------------------------
+#
+# "named on stderr so an exclusion is never silent" and "warns loudly and
+# continues" are claims about output. Deleting all four print blocks left every
+# other test in this module, `test_plugin_scope_filter.py`, the self-host tests
+# and all five route lints green — and made `_skip_reason` dead code nothing
+# noticed. These pin the wordings.
+
+
+def test_every_exclusion_is_named_on_stderr(tmp_path) -> None:
+    """`_build` runs a subprocess, so its own stream is the one to read —
+    `redirect_stderr` in this process captures nothing from it."""
+    result = subprocess.run(
+        [sys.executable, "-m", "agentbundle.build", "build",
+         "--packs-dir", str(FIXTURES), "--output-dir", str(tmp_path / "dist")],
+        capture_output=True, text=True, cwd=REPO_ROOT,
+    )
+    assert result.returncode == 0, result.stderr
+    err = result.stderr
+    for slug in sorted(EXPECTED_WITHHELD):
+        assert f"claude-plugins: skipping {slug} —" in err, (
+            f"{slug} was dropped without saying so — AC1's disclosure clause. "
+            f"stderr was:\n{err}"
+        )
+    # The aggregate's own summary is deliberately NOT asserted here: on a
+    # clean build the per-pack step has already dropped the pack, so nothing
+    # unpublishable reaches `dist/claude-plugins/` and `excluded` is empty.
+    # That line fires only over a stale tree — covered below.
+
+
+def test_the_aggregate_names_what_it_drops_from_a_stale_tree(tmp_path, capsys) -> None:
+    """`make build` has no `clean`, so a dropped pack's dist dir survives.
+
+    That is the one path on which the aggregate's own exclusion summary
+    fires — and it is the path where staying silent would publish a
+    marketplace keyed to packs the source no longer offers.
+    """
+    from agentbundle.build.main import Pack, Recipe, _run_aggregate
+
+    for slug in ("wide", "stale"):
+        plugin_dir = tmp_path / "claude-plugins" / slug
+        (plugin_dir / ".claude-plugin").mkdir(parents=True)
+        (plugin_dir / ".claude-plugin" / "plugin.json").write_text(
+            json.dumps({"name": slug, "version": "1.0.0", "description": "d"}),
+            encoding="utf-8")
+        (plugin_dir / "pack.toml").write_text(
+            f'[pack]\nname = "{slug}"\nversion = "1.0.0"\n', encoding="utf-8")
+
+    # Only `wide` still exists in source, and only it is user-capable.
+    src = tmp_path / "packs" / "wide"
+    (src / ".claude-plugin").mkdir(parents=True)
+    (src / ".claude-plugin" / "plugin.json").write_text("{}", encoding="utf-8")
+    (src / "pack.toml").write_text(
+        '[pack]\nname = "wide"\nversion = "1.0.0"\n'
+        '[pack.adapter-contract]\nversion = "0.3"\n'
+        '[pack.install]\nallowed-scopes = ["repo", "user"]\n', encoding="utf-8")
+
+    recipe = Recipe(name="marketplace", type="aggregate", adapter=None,
+                    output_subdir=None, input_subdir="claude-plugins",
+                    output_file="marketplace.json", units=[],
+                    fragment_path=None, manifest_path=None)
+    _run_aggregate(recipe, tmp_path, packs=[Pack(name="wide", path=src)],
+                   aggregate_scope="catalogue")
+
+    err = capsys.readouterr().err
+    assert "marketplace: excluded" in err and "stale" in err, (
+        f"the stale directory was dropped silently: {err!r}"
+    )
+    assert "not installable at user scope" in err
+
+
+def test_the_skip_reason_names_the_condition_that_actually_held(tmp_path) -> None:
+    """`_skip_reason`'s three branches, each against a pack shaped for it.
+
+    Reporting a scope refusal for a manifest-less pack sends the reader to the
+    wrong file, which is the whole reason this helper exists rather than one
+    hard-coded string.
+    """
+    from agentbundle.build.main import _skip_reason
+
+    bare = tmp_path / "bare"
+    bare.mkdir()
+    assert _skip_reason(bare) == "no pack.toml"
+
+    no_manifest = tmp_path / "no_manifest"
+    no_manifest.mkdir()
+    (no_manifest / "pack.toml").write_text('[pack]\nname = "x"\n', encoding="utf-8")
+    assert "no .claude-plugin/plugin.json" in _skip_reason(no_manifest)
+
+    repo_only = tmp_path / "repo_only"
+    (repo_only / ".claude-plugin").mkdir(parents=True)
+    (repo_only / ".claude-plugin" / "plugin.json").write_text("{}", encoding="utf-8")
+    (repo_only / "pack.toml").write_text(
+        '[pack]\nname = "repo_only"\nversion = "1.0.0"\n'
+        '[pack.adapter-contract]\nversion = "0.3"\n'
+        '[pack.install]\nallowed-scopes = ["repo"]\n', encoding="utf-8")
+    reason = _skip_reason(repo_only)
+    assert "user" in reason and "pack.toml" not in reason, (
+        f"a scope refusal must name the scope, not a missing file: {reason!r}"
+    )
+
+
+def test_self_host_warns_loudly_when_the_filter_empties_the_marketplace(tmp_path) -> None:
+    """AC12's self-host bullet — warn and continue, never silently empty."""
+    from agentbundle.build.self_host import _aggregate_marketplace
+
+    packs_dir = tmp_path / "packs"
+    pack = packs_dir / "narrow"
+    (pack / ".claude-plugin").mkdir(parents=True)
+    (pack / ".claude-plugin" / "plugin.json").write_text(
+        json.dumps({"name": "narrow", "version": "1.0.0"}), encoding="utf-8")
+    (pack / "pack.toml").write_text(
+        '[pack]\nname = "narrow"\nversion = "1.0.0"\n'
+        '[pack.adapter-contract]\nversion = "0.3"\n'
+        '[pack.install]\nallowed-scopes = ["repo"]\n', encoding="utf-8")
+    out = tmp_path / "out"
+    out.mkdir()
+
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        _aggregate_marketplace(packs_dir, out)
+    msg = err.getvalue()
+
+    assert "every discovered pack was filtered out" in msg
+    assert "agentbundle install" in msg, "the warning must name the other route"
+    # ...and continues: the file is still written, because self-host runs after
+    # adapters and seeds and must not leave a half-projected tree.
+    assert (out / ".claude-plugin" / "marketplace.json").exists()

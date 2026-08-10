@@ -100,3 +100,11 @@ This is a content/skill pack (an LLM workflow), not application code, so there i
 - **Process:** The implementing PR(s) will run `make build-self` only if this pack's projection is included in the build-self scope. User-scope packs that are not projected into this repo's working tree skip `build-self`; the gate is `lint-packs + validate + build + pytest` (per `project_self_host_pack_scope` memory). (source: memory reference_self_host_projected_readme_allowlist.md)
 - **Product:** The `workspace.toml` `[shaping_queue]` format is nested per-initiative: `["ini-NNN".shaping_queue].backlog`. The `run-okr-cascade` skill must resolve which initiative to append under — the implementation resolves the single active initiative automatically, and elicits from the user when multiple are active. The skill does not mandate workspace.toml's presence — graceful absence is the fallback. (source: workspace.toml inspection 2026-07-19; RFC-0063 §Cross-pack routing contract)
 - **Design:** The `check-workspace` `type = "strategy"` routing fix (line 98) is **decided** — update to route strategy-type entries to `frame-situation` (M2) / `frame-intent` (interim), matching the `shape`-type progressive-disclosure pattern. Zero existing `type = "strategy"` entries in `workspace.toml` are affected. T6 adds `packs/core/.apm/skills/check-workspace/SKILL.md` to its Touches. (source: packs/core/.apm/skills/check-workspace/SKILL.md:98; owner direction 2026-07-19)
+
+## Errata
+
+**Erratum (2026-08-09).** "marketplace aggregation runs for all packs regardless" (§ *Pack scaffold + registration*) no longer holds. Superseded by
+`docs/specs/claude-plugin-route-scope`: a Claude plugin's code lands in the
+adopter's global cache, so `marketplace.json` now carries only packs whose
+`allowed-scopes` admits `user`. `product-strategy` is user-capable and still listed, so this spec's own registration criterion is unaffected — only the generality of the sentence is. Body above left as written — this
+artifact is frozen (`docs/CONVENTIONS.md`). Approver: eugenelim.

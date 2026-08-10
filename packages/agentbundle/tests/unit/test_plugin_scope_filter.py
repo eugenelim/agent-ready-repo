@@ -56,7 +56,14 @@ def test_subset_is_false_so_the_property_must_be_implication() -> None:
     """Guards the disproved formulation from being reintroduced."""
     pack = _pack(None, ["user"])
     assert _allowed_scopes(pack) == ["repo"]
-    assert not set(_allowed_scopes(pack)) <= {"user"}
+    # Against the sibling resolvers, not a literal: comparing the canonical
+    # output to `{"user"}` can only fail if the line above already failed.
+    # What disproves the subset formulation is that a pack *declaring* only
+    # `user` still resolves to `repo` when no contract version is declared.
+    assert "user" in pack["pack"]["install"]["allowed-scopes"]
+    assert not set(_allowed_scopes(pack)) <= set(
+        pack["pack"]["install"]["allowed-scopes"]
+    ), "declared ⊉ resolved — subset would have made this pack publishable"
 
 
 @pytest.mark.parametrize("contract_version", [None, "0.1", "0.2", "0.3", "0.17"])

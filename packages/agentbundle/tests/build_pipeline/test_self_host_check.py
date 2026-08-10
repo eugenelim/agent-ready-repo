@@ -1295,7 +1295,7 @@ class SeedProjectionTests(unittest.TestCase):
 class MarketplaceAggregationTests(unittest.TestCase):
     """Unit tests for `_aggregate_marketplace`."""
 
-    def test_aggregates_all_plugin_jsons(self) -> None:
+    def test_aggregates_the_user_capable_plugin_jsons(self) -> None:
         from agentbundle.build.self_host import _aggregate_marketplace
 
         with tempfile.TemporaryDirectory() as tmp:
@@ -1327,6 +1327,44 @@ class MarketplaceAggregationTests(unittest.TestCase):
             names = {entry["name"] for entry in payload["plugins"]}
             self.assertEqual(names, {"core", "governance-extras"})
             self.assertEqual(payload["owner"], {"name": "eugenelim"})
+
+    def test_a_repo_only_pack_is_not_aggregated(self) -> None:
+        """The filter, pinned at the writer rather than only downstream.
+
+        Both packs above are user-capable — the fixture was widened when the
+        filter landed, which kept the sibling green while its old name
+        (`..._all_plugin_jsons`) quietly became false. Assert the exclusion.
+        """
+        from agentbundle.build.self_host import _aggregate_marketplace
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            for name, scopes in (("wide", '["repo", "user"]'), ("narrow", '["repo"]')):
+                pack = packs_dir / name
+                (pack / ".claude-plugin").mkdir(parents=True)
+                (pack / ".claude-plugin" / "plugin.json").write_text(
+                    json.dumps({"name": name, "version": "0.1.0"}),
+                    encoding="utf-8",
+                    newline="\n",
+                )
+                (pack / "pack.toml").write_text(
+                    f'[pack]\nname = "{name}"\nversion = "0.1.0"\n'
+                    f'\n[pack.adapter-contract]\nversion = "0.3"\n'
+                    f'\n[pack.install]\ndefault-scope = "repo"\n'
+                    f"allowed-scopes = {scopes}\nuser-scope-hooks = true\n",
+                    encoding="utf-8",
+                    newline="\n",
+                )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            _aggregate_marketplace(packs_dir, output)
+
+            payload = json.loads(
+                (output / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8"))
+            self.assertEqual({e["name"] for e in payload["plugins"]}, {"wide"})
 
     def test_aggregation_is_deterministic(self) -> None:
         from agentbundle.build.self_host import _aggregate_marketplace

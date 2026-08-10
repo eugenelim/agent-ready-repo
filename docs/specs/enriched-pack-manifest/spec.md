@@ -89,3 +89,11 @@ A pack today is described by only `name`, `version`, and `description` — far l
 - Product/Process: **decided** — the projected README is the sole portable per-pack doc and *links out*; we do not install guides into packs (not viable: 8/12 packs are user-scope and the seeds-rail `scope_rails.py:87` blocks them; and not spec-compliant). Per-pack guides are repo-internal, and `docs/guides/` is **reorganized to a per-pack Diátaxis hierarchy** `docs/guides/<pack>/{quadrant}/` (Diátaxis explicitly permits a per-segment dimension — diataxis.fr/complex-hierarchies). That layout is **decided in ADR-0020** (amending ADR-0001, since the convention was defined there — an ADR, not an RFC, so the vehicle is a superseding/amending ADR, not an RFC erratum) and **implemented by this spec** (T12 migrates the guides; T13 amends `CONVENTIONS.md §5c` + the `new-guide` write path, co-landed so the Living doc matches reality). The adopter-facing seed scaffold stays by-quadrant (an adopter is one product; we are many packs). (source: ADR-0020; user direction 2026-06-13; research 2026-06-13; `scope_rails.py:87`).
 - Product: the doc surface also covers the **PyPI wheel READMEs** and a **`docs/architecture/` entry** (source: user direction 2026-06-13).
 - Technical: the repo's user docs already follow Diátaxis quadrants with a per-pack `explanation/core-pack.md` precedent (source: `find docs/guides` 2026-06-13).
+
+## Errata
+
+**Erratum (2026-08-09).** The Objective's "the **catalogue consumer**, who sees a pack described richly in the `marketplace.json` entry" does not hold for every pack. Superseded by
+`docs/specs/claude-plugin-route-scope`: a Claude plugin's code lands in the
+adopter's global cache, so `marketplace.json` now carries only packs whose
+`allowed-scopes` admits `user`. A repo-only pack has no marketplace entry; its enriched metadata still projects into `pack.toml`, the APM route, and the projected README, which is where the rest of this spec's value lands. Body above left as written — this
+artifact is frozen (`docs/CONVENTIONS.md`). Approver: eugenelim.

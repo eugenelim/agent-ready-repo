@@ -620,7 +620,16 @@ and the Codex multi-pack aggregation fix land.
   lossless Git path enumeration, and special `.agentbundle/` projection
   membership/drift parity. This is the living-spec counterpart to RFC-0002's
   2026-08-09 post-acceptance amendment.
-
+- 2026-08-09: AC16's "aggregated from **every** `packs/<pack>/.claude-plugin/
+  plugin.json`" — and the identical sentence in the Phase 1 scope statement —
+  are **superseded** by `docs/specs/claude-plugin-route-scope`. A Claude
+  plugin's code lands in the adopter's global cache, so `_aggregate_marketplace`
+  now writes only packs whose `allowed-scopes` admits `user`. Byte-determinism
+  and the `sort_keys=True` claim are unaffected. `MarketplaceAggregationTests`
+  still owns the behaviour; its `test_aggregates_all_plugin_jsons` is renamed
+  `test_aggregates_the_user_capable_plugin_jsons` and gains an exclusion case.
+  Bodies above left as written — this spec is Shipped → Frozen. Approver:
+  eugenelim.
 - 2026-06-10: restored Codex repo projection under self-host after the
   native-skills migration temporarily narrowed the allow-list. `make
   build-self` and `make build-check` again run both `claude-code` and

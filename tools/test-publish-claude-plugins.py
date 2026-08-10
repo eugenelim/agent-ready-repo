@@ -140,18 +140,38 @@ def main() -> int:
     # The refusals above drive `_assert_membership` directly, so deleting its
     # single call from `main()` leaves every one of them green — and that call
     # is the only runtime check between `git push` and a public marketplace.
-    # Pin the call site structurally, not by substring: a commented-out call
-    # or one inside a dead branch must not read as wired.
+    # Pin the call site structurally, not by substring — and by *reachability*,
+    # not mere presence: `ast.walk` descends into `if False:` and into code
+    # below an unconditional `return`, so a walk-anywhere check reads a dead
+    # call as wired. Require the call at statement position in a block that is
+    # entered unconditionally, with no unconditional exit above it.
     src = Path(pub.__file__).read_text(encoding="utf-8")
     tree = ast.parse(src)
     main_fn = next((n for n in ast.walk(tree)
                     if isinstance(n, ast.FunctionDef) and n.name == "main"), None)
-    called = main_fn is not None and any(
-        isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
-        and n.func.id == "_assert_membership"
-        for n in ast.walk(main_fn)
-    )
-    _check("main() actually calls _assert_membership", called,
+
+    def _reachable_call(body: list[ast.stmt]) -> bool:
+        """Statement-position call in `body`, before any unconditional exit.
+
+        Descends only into `with`/`try` bodies — blocks whose statements run
+        without a condition. `if`/`while`/`else` are deliberately not followed:
+        a call reachable only under a condition is not a wired call site.
+        """
+        for stmt in body:
+            if isinstance(stmt, (ast.Return, ast.Raise)):
+                return False
+            if (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call)
+                    and isinstance(stmt.value.func, ast.Name)
+                    and stmt.value.func.id == "_assert_membership"):
+                return True
+            if isinstance(stmt, ast.With) and _reachable_call(stmt.body):
+                return True
+            if isinstance(stmt, ast.Try) and _reachable_call(stmt.body):
+                return True
+        return False
+
+    called = main_fn is not None and _reachable_call(main_fn.body)
+    _check("main() reaches _assert_membership unconditionally", called,
            "the membership refusal is defined but never reached — publishing "
            "would push whatever the build produced")
 

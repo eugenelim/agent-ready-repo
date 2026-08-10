@@ -10,6 +10,16 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ### Changed
 
+- **BREAKING — `build.main.run_recipe` requires `aggregate_scope`.** It is
+  keyword-only with no default, so an out-of-repo caller gets a `TypeError` at
+  call time rather than silently inheriting catalogue semantics. An aggregate
+  recipe's exit code depends on which mode it ran in — an emptied catalogue is
+  a hard error, an emptied single-pack render is not — and that is the
+  caller's fact, not something the recipe can infer.
+- **BREAKING — `agentbundle build --recipe marketplace --pack <X>` exits 1.**
+  Aggregate recipes read the whole dist tree, so a pack filter on one was
+  always meaningless; it previously succeeded and produced a marketplace whose
+  contents ignored the flag.
 - **BREAKING — the Claude-plugin route now publishes only packs that permit a
   user-scope install.** A Claude plugin's code lives in the adopter's global
   cache and `claude plugin install` defaults to `--scope user`, so a pack
