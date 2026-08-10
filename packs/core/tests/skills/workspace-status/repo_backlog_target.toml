@@ -1,0 +1,6 @@
+[backlog]
+open = [
+  {path = "docs/product/intents/example.md", kind = "intent", source = {mode = "repo-origin"}, summary = "Frame the example", needs = [{type = "local", kind = "research", path = "docs/product/research/example.md"}]},
+  {path = "docs/specs/example-defect/spec.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Fix the example", needs = []},
+]
+

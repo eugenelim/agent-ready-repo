@@ -38,6 +38,9 @@ _ENGINE = (
     _REPO_ROOT
     / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
 )
+_REPO_BACKLOG_FIXTURES = (
+    _REPO_ROOT / "packs/core/tests/skills/workspace-status"
+)
 
 
 def _run_cli(*args: str, cwd: str | None = None) -> subprocess.CompletedProcess:
@@ -120,6 +123,35 @@ shipped = []
 ["ini-001".shaping_queue]
 active  = []
 backlog = []
+"""
+
+_REPO_BACKLOG_ISOLATION_TOML = """\
+["ini-001"]
+name      = "Isolation Test"
+status    = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [
+  "spec/ready",
+  {path = "spec/blocked", needs = "work:spec/ready"},
+  "spec/completed",
+]
+active = ["spec/running"]
+shipped = ["spec/shipped"]
+
+["ini-001".shaping_queue]
+active = [{slug = "shape-active", type = "shape"}]
+backlog = [{slug = "shape-backlog", type = "research"}]
+shipped = []
+"""
+
+_DISPLAY_ONLY_REPO_BACKLOG_TOML = """
+
+[backlog]
+open = [
+  {slug = "display-only", needs = "backlog:external", source = "spec/example", summary = "Display-only item"},
+]
 """
 
 
@@ -519,6 +551,152 @@ class CLIContractTests(_CliBase):
         self.assertEqual(diag["workspace_files_read"], 1)
 
 
+# ── Test: repository backlog JSON contract ───────────────────────────────────
+
+class RepoBacklogContractTests(_CliBase):
+    def _fixture_root(self, name: str) -> Path:
+        fixture = _REPO_BACKLOG_FIXTURES / f"repo_backlog_{name}.toml"
+        shutil.copyfile(fixture, self.tmp / "workspace.toml")
+        return self.tmp
+
+    def _run_mode(self, mode: str, root: Path) -> dict:
+        result = _run_cli(mode, "--root", str(root))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return json.loads(result.stdout)
+
+    def _populated_root(self) -> Path:
+        root = self._write_workspace(_REPO_BACKLOG_ISOLATION_TOML)
+        self._make_spec(root, "ready", "Approved")
+        self._make_spec(root, "blocked", "Approved")
+        self._make_spec(root, "completed", "Shipped")
+        self._make_spec(root, "running", "Implementing")
+        self._make_spec(root, "shipped", "Shipped")
+        return root
+
+    def test_status_exposes_ordered_repo_backlog(self) -> None:
+        data = self._run_mode("status", self._fixture_root("mixed"))
+
+        self.assertEqual(
+            data["repo_backlog"]["open"],
+            [
+                {
+                    "slug": "example-build",
+                    "room": "build",
+                    "needs": ["backlog:prerequisite"],
+                    "source": "spec/example",
+                    "summary": "Implement the example",
+                },
+                {
+                    "slug": "example-shape",
+                    "room": "shape",
+                    "entry_type": "research",
+                    "needs": ["backlog:example-build"],
+                    "source": {"mode": "repo-origin"},
+                    "summary": "Research the example",
+                },
+            ],
+        )
+        self.assertEqual(data["work"], {
+            "ready": [], "blocked": [], "active": [], "shipped": [],
+        })
+        self.assertEqual(data["shaping"]["ready"], [])
+        self.assertEqual(data["shaping"]["blocked"], [])
+        self.assertEqual(data["shaping"]["signals"], [])
+        self.assertEqual(
+            data["shaping"]["top_level_backlog"],
+            [{
+                "slug": "example-shape",
+                "entry_type": "research",
+                "needs": ["backlog:example-build"],
+            }],
+        )
+
+    def test_reconcile_exposes_ordered_repo_backlog(self) -> None:
+        status = self._run_mode("status", self._fixture_root("mixed"))
+        reconcile = self._run_mode("reconcile", self.tmp)
+
+        self.assertEqual(reconcile["repo_backlog"], status["repo_backlog"])
+        self.assertEqual(reconcile["work"], status["work"])
+        self.assertEqual(reconcile["shaping"], status["shaping"])
+        self.assertEqual(reconcile["reconciliation"]["type1"], [])
+        self.assertEqual(reconcile["reconciliation"]["type2"], [])
+        self.assertEqual(reconcile["reconciliation"]["type3"], [])
+
+    def test_status_repo_backlog_empty(self) -> None:
+        data = self._run_mode("status", self._fixture_root("empty"))
+        self.assertEqual(data["repo_backlog"], {"open": []})
+
+    def test_reconcile_repo_backlog_absent(self) -> None:
+        data = self._run_mode("reconcile", self._write_workspace(_MINIMAL_TOML))
+        self.assertEqual(data["repo_backlog"], {"open": []})
+
+    def test_status_preserves_target_repo_backlog_entries(self) -> None:
+        data = self._run_mode("status", self._fixture_root("target"))
+        self.assertEqual(
+            data["repo_backlog"]["open"],
+            [
+                {
+                    "path": "docs/product/intents/example.md",
+                    "kind": "intent",
+                    "source": {"mode": "repo-origin"},
+                    "summary": "Frame the example",
+                    "needs": [{
+                        "type": "local",
+                        "kind": "research",
+                        "path": "docs/product/research/example.md",
+                    }],
+                    "room": "shape",
+                },
+                {
+                    "path": "docs/specs/example-defect/spec.md",
+                    "kind": "defect",
+                    "source": {"mode": "repo-origin"},
+                    "summary": "Fix the example",
+                    "needs": [],
+                    "room": "build",
+                },
+            ],
+        )
+        for entry in data["repo_backlog"]["open"]:
+            self.assertNotIn("slug", entry)
+            self.assertNotIn("entry_type", entry)
+
+    def test_display_only_repo_backlog_does_not_affect_processing(self) -> None:
+        root = self._populated_root()
+        baseline_status = self._run_mode("status", root)
+        baseline_plan = self._run_mode("repair-plan", root)
+
+        self._write_workspace(
+            _REPO_BACKLOG_ISOLATION_TOML + _DISPLAY_ONLY_REPO_BACKLOG_TOML,
+        )
+        backlog_status = self._run_mode("status", root)
+        backlog_plan = self._run_mode("repair-plan", root)
+
+        self.assertEqual(baseline_status["repo_backlog"], {"open": []})
+        self.assertEqual(
+            backlog_status["repo_backlog"]["open"],
+            [{
+                "slug": "display-only",
+                "room": "build",
+                "needs": ["backlog:external"],
+                "source": "spec/example",
+                "summary": "Display-only item",
+            }],
+        )
+        for key in ("work", "shaping", "reconciliation"):
+            self.assertEqual(
+                backlog_status[key],
+                baseline_status[key],
+                f"repo backlog display data changed status {key}",
+            )
+        for key in ("automatic_operations", "manual_findings", "reconciliation"):
+            self.assertEqual(
+                backlog_plan[key],
+                baseline_plan[key],
+                f"repo backlog display data changed repair-plan {key}",
+            )
+
+
 # ── Test: symlink confinement guard (AC19) ────────────────────────────────────
 
 class SymlinkConfinementTests(_CliBase):
@@ -611,6 +789,31 @@ class SkillWiringTests(unittest.TestCase):
             '"--root"' in text or '--root "' in text or "--root '" in text,
             "SKILL.md must pass --root as a quoted shell arg or discrete argv element",
         )
+
+    def test_skill_uses_repo_backlog_json_contract(self) -> None:
+        """Repository backlog membership and count come from the backend JSON."""
+        text = self._skill_text()
+        self.assertIn("repo_backlog.open", text)
+        self.assertIn("N = len(repo_backlog.open)", text)
+        self.assertIn("authoritative", text)
+        self.assertIn("Do not reread raw TOML to determine backlog membership", text)
+
+    def test_skill_renders_both_repo_backlog_identifiers(self) -> None:
+        """Legacy slugs and target paths both have an explicit render route."""
+        text = self._skill_text()
+        self.assertIn("`slug` when present, otherwise display `path`", text)
+        self.assertIn("declared `room` (`[shape]` or `[build]`)", text)
+
+    def test_skill_omits_empty_repo_backlog_and_keeps_comment_fallback(self) -> None:
+        """The section is conditional and raw TOML is summary fallback only."""
+        text = self._skill_text()
+        normalized = " ".join(text.split())
+        self.assertIn("repo_backlog.open` is absent or", text)
+        self.assertIn(
+            "Only when a legacy `slug` entry has no `summary`",
+            normalized,
+        )
+        self.assertIn("comment line", text)
 
 
 # ── Test: Order 1B subcommands ────────────────────────────────────────────────

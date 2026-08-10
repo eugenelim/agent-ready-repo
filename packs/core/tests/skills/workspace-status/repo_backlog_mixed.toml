@@ -1,21 +1,6 @@
-# Tier-B-lite eval fixture — minimal active workspace with one queued spec.
-[ini-001]
-name = "Example Initiative"
-status = "active"
-milestone = "M1"
-
-[ini-001.work]
-queue = ["spec/example-feature"]
-active = []
-shipped = []
-
-[ini-001.shaping_queue]
-backlog = []
-active = []
-shipped = []
-
 [backlog]
 open = [
   {slug = "example-build", needs = "backlog:prerequisite", source = "spec/example", summary = "Implement the example"},
   {slug = "example-shape", type = "research", needs = ["backlog:example-build"], source = {mode = "repo-origin"}, summary = "Research the example"},
 ]
+

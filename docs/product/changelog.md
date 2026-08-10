@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.5.4] — 2026-08-10
+
+#### Fixed
+
+- **Workspace status now shows the complete repository backlog.**
+  Both `status` and `reconcile` expose an ordered `repo_backlog.open` display
+  contract, so legacy untyped build entries no longer disappear when the
+  shaping guard's intentionally typed-only backlog is empty. The rendered
+  Backlog section labels build and shaping work separately, preserves explicit
+  dependencies and summaries, supports target path-based entries, and remains
+  absent for an empty repository backlog.
+
 ### [core][2.5.1] — 2026-08-09
 
 #### Changed

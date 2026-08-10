@@ -277,16 +277,27 @@ Intentional asymmetry: `shape:` in backlog = satisfied in autonomous mode (prese
 - **When either file has data rows:** output a `**Findings:**` section with both tables printed inline — paste each file's full markdown table (column header row + separator + data rows) under a sub-label (`RFC candidates:` / `Roadmap intents:`). If one file is absent or has no data rows, output its sub-label followed by `_(empty)_`.
 - **When both are empty or absent:** emit a single line: `0 rfc candidates · 0 roadmap intents — both registers empty`
 
-**Backlog:** when `[backlog].open` in `workspace.toml` is non-empty, render:
+**Backlog:** treat `repo_backlog.open` from the backend JSON as the authoritative
+repository backlog. When it is non-empty, set `N = len(repo_backlog.open)` and
+render:
 
 ```
 **Backlog** — N open item(s):
-- `[shape]` `<slug>` — <first # comment line above the entry>
-- `[build]` `<slug>` — <first # comment line above the entry>
+- `[shape]` `<slug-or-path>` — <summary>
+- `[build]` `<slug-or-path>` — <summary>
   ...
 ```
 
-Each entry is prefixed with its room: `[shape]` when the entry carries a `type` field (shaping work); `[build]` when it does not (build work). To extract the first comment line: read `workspace.toml` as text; for each entry in `[backlog].open`, find the nearest `# ` comment line immediately preceding `{slug = "<slug>"}`. Use the comment text (without the leading `# `) as the item's summary. If no comment line is present, omit the summary and render just the slug. Omit this section entirely when `[backlog].open` is empty or absent.
+Prefix each entry with its declared `room` (`[shape]` or `[build]`). Display
+`slug` when present, otherwise display `path` (target five-field entries use
+`path`). Iterate in array order. Use `summary` from the JSON when present. Only
+when a legacy `slug`
+entry has no `summary`, read `workspace.toml` as text and use the nearest `# `
+comment line immediately preceding `{slug = "<slug>"}` as a fallback, without
+the leading `# `. If neither summary source exists, render just the identifier.
+Do not reread raw TOML to determine backlog membership, room, order, or
+dependencies. Omit this section entirely when `repo_backlog.open` is absent or
+empty.
 
 ---
 

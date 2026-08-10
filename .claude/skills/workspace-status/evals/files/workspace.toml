@@ -13,3 +13,9 @@ shipped = []
 backlog = []
 active = []
 shipped = []
+
+[backlog]
+open = [
+  {slug = "example-build", needs = "backlog:prerequisite", source = "spec/example", summary = "Implement the example"},
+  {slug = "example-shape", type = "research", needs = ["backlog:example-build"], source = {mode = "repo-origin"}, summary = "Research the example"},
+]
