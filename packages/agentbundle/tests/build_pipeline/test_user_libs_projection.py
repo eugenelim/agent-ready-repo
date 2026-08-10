@@ -330,6 +330,7 @@ class UserLibsProjectionTests(unittest.TestCase):
             drifts,
         )
 
+    @unittest.skipIf(os.name != "posix", "os.fwalk dir-fd walk requires POSIX")
     def test_orphan_scan_continues_after_disappearing_directory(self) -> None:
         """A raced-away directory entry does not discard later file entries."""
         root = self._floor()
