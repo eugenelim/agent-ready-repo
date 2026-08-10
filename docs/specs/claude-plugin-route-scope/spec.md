@@ -1,6 +1,6 @@
 # Spec: Claude-plugin route — publish only user-capable packs
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md)
@@ -244,6 +244,15 @@ no callers anywhere in the tree, so its parameter is unreachable today).
   `build-check-windows.yml`. Adding it would make every PR in the repo — most
   touching nothing near the site — wait on `npm ci` in the gate that blocks
   merge, and inherit a registry outage as a merge blocker.
+
+  **Driven end to end (2026-08-09).** `npm ci --prefix web` was already
+  satisfied locally, so the full CI sequence ran: `build-site.py
+  --journeys-only`, `npm run build --prefix web` (45 pages), then
+  `check-site-plugin-offers.py --build-dir build` → `ok — 14 pack(s) offered,
+  all user-capable`. Mutating `[pack].astro`'s conditional to `{true ? (` and
+  rebuilding turns it red with exactly the seven withheld packs named. This is
+  the criterion's built-output half, verified against rendered HTML rather
+  than against the source that produces it.
 
   **Accepted residual.** A PR that deletes the gating conditional from
   `[pack].astro` or `catalogue/index.astro` and changes nothing else goes red in
@@ -533,7 +542,10 @@ no callers anywhere in the tree, so its parameter is unreachable today).
   `docs/specs/enriched-pack-manifest/spec.md`, and
   `docs/specs/product-strategy-pack/spec.md`. ADR: `docs/adr/0072-...md`, whose
   *Verification* recipe installs `core`. RFCs: `docs/rfc/0001-...md`,
-  `docs/rfc/0002-...md`, and `docs/rfc/0007-...md`. The sweep is by layer, not by directory: rounds eight
+  `docs/rfc/0002-...md`, `docs/rfc/0007-...md`, and — the pair that *reserved*
+  this exact decision to "a future RFC" — `docs/rfc/0011-...md` (its
+  *Resolution* says repo-scope emission is unchanged) and `docs/rfc/0012-...md`
+  (Unresolved question #3, now answered against its own author's lean). The sweep is by layer, not by directory: rounds eight
   and nine each found a layer the previous sweep had not thought of. Errata
   only — bodies not edited.
 

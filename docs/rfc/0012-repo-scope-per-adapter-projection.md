@@ -11,6 +11,18 @@
 - **2026-06-04 — Copilot scope decision superseded in part by [RFC-0024](0024-copilot-subagent-projection.md).** This RFC's contract surface (and the `[adapter.copilot.scope]` table it introduced) states *"Copilot is admissible at repo scope only — no user-scope analogue exists in the Copilot ecosystem."* That was accurate when written, but Copilot's app + CLI have since shipped a stable `$HOME` config tree (`~/.copilot/{agents,instructions,hooks}/`, `COPILOT_HOME`) plus native custom **agents** and **hooks**. RFC-0024 makes `copilot` a full-parity, user-scope-capable adapter and flips the `agent`/`hook-wiring` projections from `dropped` to first-class. The repo-only claim here is therefore superseded for scope and for those primitives; the rest of this RFC stands.
 - **2026-06-26 — Alternative #7 (one-install-one-adapter) superseded by [RFC-0052](0052-shared-prefix-aware-multi-adapter-install.md).** Two claims in this RFC are reversed. (1) *Alternatives considered* item 7 rejected fan-out, asserting "multi-IDE adopters run install twice with different `--adapter` values; state file rows distinguish them by `adapter` and `scope` cleanly," and named the cost it would avoid — "each pack [would have] multiple rows per scope, a state-schema bump, and a new uninstall flow." (2) The *Repo-scope projection* section asserted "No state-schema version bump — the field already exists and is already populated." Both are reversed: the name-keyed `State.packs` dict cannot hold two rows for one pack at one scope, so the promised clean coexistence was unbuildable. RFC-0052 makes the install identity the content-addressed **footprint**, bumps the state schema **v0.3 → v0.4** (keyed `[pack.<name>.adapters.<adapter>]`), and adds exactly the multiple-rows-per-scope and reference-aware uninstall this RFC named as the cost and deferred. The rest of this RFC stands.
 
+- **2026-08-09 — Unresolved question #3 is answered, against this RFC's lean, by
+  [`docs/specs/claude-plugin-route-scope`](../specs/claude-plugin-route-scope/spec.md).**
+  UQ#3 asked whether `--emit-install-routes` should emit every route the
+  contract declares or only those the pack's `[pack.install]` admits, observed
+  that "today `make build` emits both `dist/claude-plugins/` and `dist/apm/`
+  for every pack", and leaned toward emitting all — "filtering is a future
+  RFC's surface". That surface arrived under RFC-0008's aegis: a Claude
+  plugin's code lands in the adopter's global cache, so `dist/claude-plugins/`
+  now carries only packs whose `allowed-scopes` admits `user`. `dist/apm/` is
+  unchanged and still emitted for every pack, so the question is answered for
+  one route, not both. Approver: eugenelim.
+
 ## Summary
 
 **CLI surface.** `agentbundle install --pack <name> --scope repo --adapter <name> .` lands the pack at the adopter repo's per-IDE directory directly — `<repo>/.claude/skills/`, `<repo>/.kiro/skills/`, `<repo>/.agents/skills/`, or `<repo>/.github/instructions/` — instead of the current dist-tree shape (`<repo>/claude-plugins/<pack>/...` and `<repo>/apm/<pack>/...`). The `--adapter` flag, which RFC-0011 bound to `--scope user`, lifts to work at both scopes; the existing argparse `choices=` already enumerates every shipped adapter (RFC-0011's implementation widened from the user-scope-capable subset its text named; no `cli.py` edit needed for the lift). The dist-tree shape becomes opt-in via `--emit-install-routes` for catalogue-publishing workflows.

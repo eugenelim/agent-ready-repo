@@ -997,9 +997,12 @@ def _run_aggregate(
     payload["plugins"] = entries
 
     # All three lines take the caller's disclosure policy, not just the
-    # emptiness warning below. A library caller rendering several packs into
-    # one `output_dir` would otherwise get the `stale` line — mislabelled, at
-    # that: the pack list was narrowed, not deleted from the source tree.
+    # emptiness warning below. No in-tree caller can reach the difference:
+    # every `single-pack` caller renders into a fresh directory, so `excluded`
+    # and `stale` are empty there. The gate guards an out-of-tree caller of
+    # the public `render_pack_to_dir` that reuses one `output_dir` across
+    # packs — it would otherwise get the `stale` line, mislabelled at that:
+    # its pack list was narrowed, not deleted from the source tree.
     if aggregate_scope == "catalogue":
         if excluded:
             print(
