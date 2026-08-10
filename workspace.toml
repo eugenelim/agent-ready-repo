@@ -449,7 +449,6 @@ open = [
   # deleting the call leaves tools/test-publish-claude-plugins.py green, and it
   # is the only runtime check between `git push` and a public marketplace.
   # Fix: an ast-based assertion that main() contains the call.
-  {slug = "plugin-publish-callsite-assertion", source = "spec/claude-plugin-route-scope AC10"},
   # render_packs_to_dir hard-codes aggregate_scope="catalogue", so an adopter
   # rendering a repo-only subset through that public helper gets a ValueError
   # where the single-pack sibling returns an empty plugins list. No in-repo

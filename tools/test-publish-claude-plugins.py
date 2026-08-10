@@ -12,6 +12,7 @@ none of the three refusals is confused with a real-repo condition.
 
 from __future__ import annotations
 
+import ast
 import importlib.util
 import json
 import os
@@ -135,6 +136,24 @@ def main() -> int:
 
     _check("catalogue-curation is still the only name exclusion",
            {"catalogue-curation"} == pub.EXCLUDE, f"got {pub.EXCLUDE}")
+
+    # The refusals above drive `_assert_membership` directly, so deleting its
+    # single call from `main()` leaves every one of them green — and that call
+    # is the only runtime check between `git push` and a public marketplace.
+    # Pin the call site structurally, not by substring: a commented-out call
+    # or one inside a dead branch must not read as wired.
+    src = Path(pub.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(src)
+    main_fn = next((n for n in ast.walk(tree)
+                    if isinstance(n, ast.FunctionDef) and n.name == "main"), None)
+    called = main_fn is not None and any(
+        isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
+        and n.func.id == "_assert_membership"
+        for n in ast.walk(main_fn)
+    )
+    _check("main() actually calls _assert_membership", called,
+           "the membership refusal is defined but never reached — publishing "
+           "would push whatever the build produced")
 
     if FAILURES:
         print(f"test-publish-claude-plugins: FAIL ({len(FAILURES)})", file=sys.stderr)

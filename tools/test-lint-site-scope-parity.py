@@ -12,6 +12,7 @@ this lint.
 from __future__ import annotations
 
 import importlib.util
+import shutil
 import sys
 import tempfile
 from pathlib import Path
@@ -83,6 +84,23 @@ def main() -> int:
         _tree(root, "orphan", version="0.3", scopes=["repo", "user"], page_says=None)
         out = lint.check(root)
         _check("pack with no site page fails", len(out) == 1 and "orphan" in out[0], f"got {out}")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # A missing content directory must not read as "nothing to check":
+        # `check-site-plugin-offers` drops its own existence guard because
+        # this gate promises a page per pack.
+        _tree(root, "somepack", version="0.3", scopes=["repo", "user"], page_says="true")
+        shutil.rmtree(root / "web")
+        out = lint.check(root)
+        _check("a missing site content directory fails rather than passing",
+               len(out) == 1 and "is missing" in out[0], f"got {out}")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # ...but a checkout with neither site nor packs is genuinely nothing.
+        _check("no site and no packs is vacuously fine", lint.check(root) == [],
+               f"got {lint.check(root)}")
 
     if FAILURES:
         print(f"test-lint-site-scope-parity: FAIL ({len(FAILURES)})", file=sys.stderr)

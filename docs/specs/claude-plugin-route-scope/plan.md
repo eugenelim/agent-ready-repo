@@ -250,13 +250,13 @@ recorded, since that is the observation AC14's remedy is written against; and an
 an installed-but-delisted plugin. Transcripts below. **Scope boundary:** one
 dropped pack and one user-capable pack are exercised by hand; the other 19 are
 covered by T0's assertions. The **post-merge** re-run against the published
-marketplace is a separate recorded step. **This PR registers the `workspace.toml [backlog].open` slugs the spec's
-*What shipped* section enumerates** with no `(deferred: <slug>)` AC markers —
-`docs/CONVENTIONS.md` pins that marker to an *unchecked* criterion, and AC10 and
-AC12 both ship their in-code half and will be `[x]`, while the post-merge check
-and the content hash correspond to no criterion at all, none of which exist today:
-`plugin-publish-required-reviewer`, `plugin-selfhost-scope-exemption`,
-`plugin-postmerge-marketplace-check`, and `plugin-marketplace-content-hash`.
+marketplace is a separate recorded step. **This PR registers its deferred work in `workspace.toml [backlog].open` under
+`source = "spec/claude-plugin-route-scope"`, which is the canonical register** —
+this plan deliberately does not re-list the slugs, because the three prose
+copies of that list drifted apart before round nine caught it. No
+`(deferred: <slug>)` AC markers: `docs/CONVENTIONS.md` pins that marker to an
+*unchecked* criterion, and the deferred items either ship their in-code half
+(so the criterion is `[x]`) or correspond to no criterion at all.
 
 
 ## Risks

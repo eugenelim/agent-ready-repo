@@ -46,13 +46,26 @@ _FIELD = re.compile(r"^pluginInstallable:\s*(true|false)\s*$", re.M)
 
 def check(root: Path) -> list[str]:
     packs_dir, pages_dir = root / "packs", root / "web" / "src" / "content" / "packs"
-    if not pages_dir.is_dir():
-        return []  # no site in this checkout — nothing to keep in parity
 
     pack_slugs = {
         d.name for d in packs_dir.iterdir()
         if d.is_dir() and not d.name.startswith("_") and (d / "pack.toml").exists()
     } if packs_dir.is_dir() else set()
+
+    if not pages_dir.is_dir():
+        # Vacuously green is the failure shape to avoid here, and it is load
+        # bearing: `check-site-plugin-offers.py` drops its own per-pack
+        # existence guard on the stated ground that this gate guarantees a
+        # page for every pack. A renamed content directory would take that
+        # guarantee with it, silently.
+        if pack_slugs:
+            return [
+                f"{GATE}: web/src/content/packs/ is missing, but "
+                f"{len(pack_slugs)} pack(s) need a page — did the content "
+                f"directory move? `check-site-plugin-offers` relies on this "
+                f"gate for its existence guarantee."
+            ]
+        return []  # no site and no packs — genuinely nothing to keep in parity
     page_slugs = {p.stem for p in pages_dir.glob("*.md") if not p.stem.startswith("_")}
 
     failures: list[str] = []

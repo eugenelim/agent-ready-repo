@@ -147,3 +147,16 @@ The decision is verified by the real client, not by the schema:
 must report non-zero skills and agents. A schema test asserts that a
 `branch`/`directory` payload is now **rejected**, so the defect cannot be
 reintroduced silently.
+
+## Errata
+
+**Erratum (2026-08-09).** The *Verification* recipe above names `core`, which
+`docs/specs/claude-plugin-route-scope` removed from the marketplace — a Claude
+plugin's code lands in the adopter's global cache, so the route now carries
+only packs whose `allowed-scopes` admits `user`. Re-running it returns
+`Plugin "core" not found in marketplace`. Substitute any published pack:
+`claude plugin install architect@<marketplace>` followed by `claude plugin
+details architect@<marketplace>`. The decision itself — that the derived
+manifest mirrors the upstream schema, and that a `branch`/`directory` payload
+is rejected — is unaffected. The body above is left as written; this ADR is
+Accepted → Frozen (`docs/CONVENTIONS.md`). Approver: eugenelim.

@@ -98,11 +98,14 @@ def main() -> int:
                 )
         # The count is the loop's own counter, not the matrix dimensions —
         # a report derived from the inputs cannot notice an empty loop.
+        # Floor as well as equality: `compared == expected_cells` is satisfied
+        # at zero if any dimension is emptied, which is the same vacuous-green
+        # shape the `if True else []` residue had.
         expected_cells = len(VERSIONS) * len(SCOPES) * len(DEFAULTS)
         _check(
             f"the differential ran over all {expected_cells} cells",
-            compared == expected_cells,
-            f"compared {compared} cells, expected {expected_cells}",
+            compared == expected_cells and compared >= 40,
+            f"compared {compared} cells, expected {expected_cells} (floor 40)",
         )
         _check(
             f"mirror matches canonical across {compared} cells",

@@ -118,11 +118,15 @@ Two things are worth carrying forward as read:
   `test-pack-scope.py` compares the two across the whole
   contract-version × install-table matrix. One copy, pinned.
 
-Deferred to the backlog, and out of this spec's scope rather than short of it:
-a required reviewer on the publish job (repository settings), an adopter
-self-host exemption for the absent-contract case, the post-merge marketplace
-re-run, a per-pack content hash, `pages.yml`'s CI-parity disposition, and the
-fixture continuation indentation RFC-0082's relocation will carry.
+Deferred to the backlog, and out of this spec's scope rather than short of it.
+The **canonical register is `workspace.toml [backlog].open`**, filtered on
+`source = "spec/claude-plugin-route-scope"` — enumerating the set in prose too
+produced three lists that disagreed. In shape: repository-settings work on the
+publish job, an adopter self-host exemption for the absent-contract case, a
+post-merge marketplace re-run, a per-pack content hash, `pages.yml`'s CI-parity
+disposition, the fixture continuation indentation RFC-0082's relocation will
+carry, and `render_packs_to_dir`'s hard-coded aggregate scope (a function with
+no callers anywhere in the tree, so its parameter is unreachable today).
 
 ## Acceptance Criteria
 
