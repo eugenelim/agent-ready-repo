@@ -477,6 +477,21 @@ jobs:
             exit 1
           fi
 
+      # skill-script-exit-2-collision: keep the converter entry-point contract
+      # suites explicit because pack skill tests are not auto-discovered.
+      # Separate invocations preserve the import-isolation boundary enforced by
+      # lint-pack-test-boundary.py.
+      - name: pytest markdown-to-html installed entry-point contract
+        working-directory: packs/converters/tests/skills/markdown-to-html
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -m pytest -p no:cacheprovider -q
+      - name: pytest mermaid-renderer installed entry-point contract
+        working-directory: packs/converters/tests/skills/mermaid-renderer
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python -m pytest -p no:cacheprovider -q
+
       # markdown-to-office-publishing (RFC-0036): the three Markdown→Office
       # render skills carry TDD suites under packs/converters/tests/skills/<skill>/ (ADR-0071), which neither
       # `make build-check` nor any package pytest discovers. Wire each in
