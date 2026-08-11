@@ -1,0 +1,42 @@
+{
+  "name": "hook-parity-spike-all-events",
+  "version": "0.0.0",
+  "description": "A local fixture for the documented hook-event set.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {
+    "SessionStart": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "Setup": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "UserPromptSubmit": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "UserPromptExpansion": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "PreToolUse": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "PermissionRequest": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "PermissionDenied": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "PostToolUse": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "PostToolUseFailure": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "PostToolBatch": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "Notification": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "MessageDisplay": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "SubagentStart": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "SubagentStop": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "TaskCreated": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "TaskCompleted": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "Stop": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "StopFailure": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "TeammateIdle": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "InstructionsLoaded": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "ConfigChange": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "CwdChanged": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "DirectoryAdded": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "FileChanged": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "WorktreeCreate": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "WorktreeRemove": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "PreCompact": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "PostCompact": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "Elicitation": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "ElicitationResult": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}],
+    "SessionEnd": [{"hooks": [{"type": "command", "command": "/usr/bin/true"}]}]
+  }
+}

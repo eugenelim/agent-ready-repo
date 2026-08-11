@@ -127,8 +127,8 @@ the pack targets. Three required tables:
   route — see [`pack-manifest.md`](pack-manifest.md). Every enriched field
   is optional; a pack that omits them projects exactly as before.
 - **`[pack.adapter-contract]`** — `version`, must reference a
-  published contract version. The contract is at **v0.17** today
-  (shared-prefix registry); a pack pins the *minimum* version whose
+  published contract version. The contract is at **v0.18** today
+  (Claude-plugin hook parity); a pack pins the *minimum* version whose
   behaviour it needs, not necessarily the latest. When authoring a new
   pack, copy the value from a sibling with the same scope shape rather
   than the contract.

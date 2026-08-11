@@ -351,6 +351,80 @@ class PluginManifestSchemaSplitTests(unittest.TestCase):
             + "\n".join(errors),
         )
 
+    def test_derived_schema_accepts_multiple_events_and_matcher(self) -> None:
+        from agentbundle.build.validate import validate
+
+        derived = {
+            "name": "agent-ready-core",
+            "version": "0.1.0",
+            "description": "Core agent skills.",
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "matcher": "startup|resume",
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": 'python "${CLAUDE_PLUGIN_ROOT}/hooks/a.py"',
+                                "timeout": 12,
+                            }
+                        ],
+                    }
+                ],
+                "UserPromptSubmit": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": 'sh "${CLAUDE_PLUGIN_ROOT}/hooks/b.sh"',
+                            }
+                        ]
+                    }
+                ],
+            },
+        }
+        self.assertEqual(validate(derived, _load_derived_schema()), [])
+
+    def test_derived_schema_rejects_non_command_and_unknown_keys(self) -> None:
+        from agentbundle.build.validate import validate
+
+        base = {
+            "name": "agent-ready-core",
+            "version": "0.1.0",
+            "description": "Core agent skills.",
+        }
+        non_command = {
+            **base,
+            "hooks": {
+                "SessionStart": [
+                    {"hooks": [{"type": "http", "command": "https://example.com"}]}
+                ]
+            },
+        }
+        unknown_inner = {
+            **base,
+            "hooks": {
+                "SessionStart": [
+                    {
+                        "hooks": [
+                            {"type": "command", "command": "true", "async": True}
+                        ]
+                    }
+                ]
+            },
+        }
+        unknown_outer = {
+            **base,
+            "hooks": {
+                "SessionStart": [
+                    {"label": "x", "hooks": [{"type": "command", "command": "true"}]}
+                ]
+            },
+        }
+        self.assertTrue(validate(non_command, _load_derived_schema()))
+        self.assertTrue(validate(unknown_inner, _load_derived_schema()))
+        self.assertTrue(validate(unknown_outer, _load_derived_schema()))
+
 
 if __name__ == "__main__":
     unittest.main()

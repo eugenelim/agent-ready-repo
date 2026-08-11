@@ -1,0 +1,22 @@
+{
+  "name": "hook-parity-spike-baseline",
+  "version": "0.0.0",
+  "description": "A local fixture for probing Claude Code plugin hook validation.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/probe.py\"",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

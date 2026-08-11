@@ -13,8 +13,11 @@ Invoked by .github/workflows/publish-claude-plugins.yml after `make build`.
 
 from __future__ import annotations
 
+import base64
 import importlib.util as _ilu
 import json
+import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -31,6 +34,10 @@ DIST_DIR = Path("dist/claude-plugins")
 PACKS_DIR = Path("packs")
 BRANCH = "claude-plugins-dist"
 EXCLUDE = {"catalogue-curation"}  # operator-only pack
+TOKEN_ENV = "CLAUDE_PLUGIN_PUBLISH_TOKEN"
+_HTTPS_GITHUB_ORIGIN_RE = re.compile(
+    r"^https://github\.com/[^/@?#]+/[^/@?#]+(?:\.git)?$"
+)
 
 
 _ps = _ilu.spec_from_file_location(
@@ -39,6 +46,19 @@ _ps = _ilu.spec_from_file_location(
 _pack_scope = _ilu.module_from_spec(_ps)
 _ps.loader.exec_module(_pack_scope)
 _allowed_scopes = _pack_scope.allowed_scopes
+
+_sr = _ilu.spec_from_file_location(
+    "scope_rails",
+    Path(__file__).resolve().parents[2]
+    / "packages"
+    / "agentbundle"
+    / "agentbundle"
+    / "build"
+    / "scope_rails.py",
+)
+_scope_rails = _ilu.module_from_spec(_sr)
+_sr.loader.exec_module(_scope_rails)
+_check_hooks = _scope_rails.check_hooks
 
 
 def _publishable_from_source() -> set[str]:
@@ -61,7 +81,22 @@ def _publishable_from_source() -> set[str]:
         if not (pack_dir / ".claude-plugin" / "plugin.json").exists():
             continue
         meta = tomllib.loads(pack_toml.read_text(encoding="utf-8"))
-        if "user" in _allowed_scopes(meta):
+        pack = meta.get("pack", {})
+        install = pack.get("install", {}) if isinstance(pack, dict) else {}
+        opted_in = (
+            isinstance(install, dict)
+            and install.get("user-scope-hooks") is True
+        )
+        allowed_scopes = _allowed_scopes(meta)
+        if (
+            "user" in allowed_scopes
+            and _check_hooks(
+                pack_dir,
+                allowed_scopes,
+                user_scope_hooks=opted_in,
+            )
+            is None
+        ):
             names.add(pack_dir.name)
     return names
 
@@ -130,6 +165,47 @@ def _check(cmd: list[str], **kwargs) -> subprocess.CompletedProcess:
     return subprocess.run(cmd, check=False, **kwargs)
 
 
+def _git_auth_env(environ: dict[str, str] | None = None) -> dict[str, str]:
+    """Return a subprocess environment carrying non-persistent Git auth.
+
+    The short-lived publisher token is never placed in argv, a remote URL, or
+    exception text. Git receives an HTTP authorization header only through the
+    child environment. Requiring the value before the first remote probe keeps
+    a misconfigured CI job from reaching a mutation with some ambient identity.
+    """
+    source = os.environ if environ is None else environ
+    token = source.get(TOKEN_ENV)
+    if not token:
+        raise SystemExit(
+            f"publish: refusing before remote access — {TOKEN_ENV} is not set"
+        )
+    credential = base64.b64encode(f"x-access-token:{token}".encode()).decode()
+    child = dict(source)
+    child.update(
+        {
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "http.https://github.com/.extraheader",
+            "GIT_CONFIG_VALUE_0": f"AUTHORIZATION: basic {credential}",
+            "GIT_TERMINAL_PROMPT": "0",
+        }
+    )
+    child.pop(TOKEN_ENV, None)
+    return child
+
+
+def _assert_https_github_origin() -> str:
+    """Refuse remotes that could bypass the app token through SSH auth."""
+    origin = subprocess.check_output(
+        ["git", "remote", "get-url", "origin"], text=True
+    ).strip()
+    if _HTTPS_GITHUB_ORIGIN_RE.fullmatch(origin) is None:
+        raise SystemExit(
+            "publish: refusing — origin must be an HTTPS GitHub repository URL; "
+            "SSH or credential-bearing remotes could bypass the publisher app"
+        )
+    return origin
+
+
 def _write_filtered_marketplace(src: Path, dest: Path) -> None:
     """Copy marketplace.json with excluded packs stripped from the plugins list."""
     data = json.loads(src.read_text(encoding="utf-8"))
@@ -147,6 +223,9 @@ def main() -> None:
         )
         sys.exit(1)
 
+    git_auth_env = _git_auth_env()
+    _assert_https_github_origin()
+
     sha = subprocess.check_output(
         ["git", "rev-parse", "--short", "HEAD"]
     ).decode().strip()
@@ -156,6 +235,7 @@ def main() -> None:
         ["git", "ls-remote", "--heads", "origin", BRANCH],
         capture_output=True,
         text=True,
+        env=git_auth_env,
     )
     branch_exists = bool(probe.stdout.strip())
 
@@ -165,7 +245,7 @@ def main() -> None:
 
     try:
         if branch_exists:
-            _run(["git", "fetch", "origin", BRANCH])
+            _run(["git", "fetch", "origin", BRANCH], env=git_auth_env)
             _run(["git", "worktree", "add", str(worktree), f"origin/{BRANCH}"])
         else:
             # --orphan takes the branch name via -b; positional commit-ish is incompatible.
@@ -222,7 +302,10 @@ def main() -> None:
             "git", "-C", str(worktree), "commit",
             "-m", f"chore: publish claude-plugins [main@{sha}]",
         ])
-        _run(["git", "-C", str(worktree), "push", "origin", f"HEAD:{BRANCH}"])
+        _run(
+            ["git", "-C", str(worktree), "push", "origin", f"HEAD:{BRANCH}"],
+            env=git_auth_env,
+        )
         print(f"Published to {BRANCH}.")
     finally:
         _run(["git", "worktree", "remove", "--force", str(worktree)])

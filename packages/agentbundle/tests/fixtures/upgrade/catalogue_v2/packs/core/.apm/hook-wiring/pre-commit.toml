@@ -1,10 +1,9 @@
 # Test fixture for SHA-tracking across upgrade versions. The
-# `command = "true"` value is a static stub — these fixtures do not
-# exercise live hook firing; the repo-scope merge-json adapter passes
-# `command` through verbatim (no $HOOK_BODY_PATH substitution at repo
-# scope), so the stub keeps that intent explicit.
-[[hooks.PreToolUse]]
+# command names the fixture's real body so the same pack remains valid when
+# the dist-tree test path also compiles its Claude-plugin route. These fixtures
+# do not exercise live hook firing.
+[[hooks.PostToolUse]]
 matcher = "Bash|Edit"
 hooks = [
-  { type = "command", command = "true" },
+  { type = "command", command = "sh tools/hooks/pre-commit.sh" },
 ]

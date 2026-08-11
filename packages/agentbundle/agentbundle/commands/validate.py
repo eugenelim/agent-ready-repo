@@ -180,7 +180,20 @@ def run(args) -> int:
         )
         return 1
 
-    # ── 4c/4d. Kiro hook-wiring rails (T2 / T6) ──────────────────────────
+    # ── 4c. Claude-shaped hook-wiring ingress gate ───────────────────────
+    # This runs before any adapter projection and shares the exact rules used
+    # by the Claude-plugin compiler and repository lint. Adapter-specific flat
+    # and lowercase shapes are ignored by that neutral gate.
+    from agentbundle.build.hook_wiring_rules import validate_pack_hook_wiring
+
+    pack_name = pack_data.get("pack", {}).get("name") or pack_path.name
+    try:
+        validate_pack_hook_wiring(pack_path, _load_adapter_contract(), pack_name)
+    except ValueError as exc:
+        print(f"validate: {exc}", file=sys.stderr)
+        return 1
+
+    # ── 4d/4e. Kiro hook-wiring rails (T2 / T6) ──────────────────────────
     # Rails 4c (attach-to-agent) and 4d (event-vocabulary) are now merged
     # into a single dispatch that swallows the compatibility-only refusals
     # (missing attach-to-agent, out-of-vocab event) while preserving
@@ -193,8 +206,6 @@ def run(args) -> int:
     )
 
     target_adapters = _kiro_target_adapters(pack_data, pack_path)
-    pack_name = pack_data.get("pack", {}).get("name") or pack_path.name
-
     # Representative merge-family adapter for the enumeration calls below
     # (`kiro-cli` if declared, else the legacy `kiro`). The attach-to-agent
     # rail fires for the whole family; `kiro-ide` is excluded (drops wiring).

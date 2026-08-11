@@ -9,7 +9,7 @@
 ## Quick start
 
 ```bash
-pip install agentbundle
+python -m pip install agentbundle
 ```
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
@@ -30,7 +30,35 @@ agentbundle install --pack desk-research --scope user
 
 User-scope packs land in your home directory, not the repo — they're yours, not the team's, and they're there in every project you open.
 
+**Try a pack without committing it** — so the pack is live in this clone while
+`git status` stays clean:
+
+```bash
+agentbundle install --pack core --scope local
+```
+
+Local scope projects the same runtime files as repo scope, then records them in
+`.git/info/exclude`. It requires a Git work tree. Uninstalling removes both the
+projected files and the managed exclude entries; local and repo installs of the
+same pack cannot coexist.
+
 The install auto-detects your agent (`--adapter` overrides). Multi-IDE? Install the same pack for each agent at the same scope — they coexist, and the agents that read `.agents/skills/` (codex, cursor, gemini, copilot) share one skill copy instead of fighting over it. To install from a **different** catalogue, pass it as a trailing argument — a git URL or a local path (`agentbundle install --pack core <catalogue>`); a `config set source <catalogue>` makes that the default, and an editable clone (`pip install -e`) defaults to itself.
+
+## Claude Code marketplace
+
+Claude Code users can install any pack that permits user scope without first
+installing this CLI:
+
+```bash
+claude plugin marketplace add eugenelim/agent-ready-repo
+claude plugin install architect@agent-ready-repo
+```
+
+The marketplace excludes repo-only packs because Claude plugins live in a
+global cache. Install `core` and other repo-only packs with `agentbundle` so
+their files land in the project. For hook-bearing user-scope packs, the
+generated marketplace description lists the authored hook event, matcher,
+timeout, interpreter, and body path before publication.
 
 ## More commands
 
@@ -178,10 +206,10 @@ Artifactory bootstrap and editable-install detection entirely. `agentbundle` fal
 straight through to the packaged default, so hosts without network access to Artifactory
 still resolve a source without errors.
 
-See the full enterprise adoption guide at
-`docs/guides/_shared/how-to/use-an-artifactory-catalogue.md` for all six flows
-(org bootstrap, repo-scope CI upgrade, user-scope MDM, source-conflict remediation,
-disconnected hosts, and security controls).
+See [Configure catalogue enterprise
+distribution](https://github.com/eugenelim/agent-ready-repo/blob/main/guides/_shared/how-to/configure-catalogue-enterprise-distribution.md)
+for channel setup, authentication, CI upgrades, disconnected hosts, and the
+security boundary.
 
 ## Build your own catalogue
 
@@ -228,6 +256,7 @@ my-pack/
       evals/                 # activation + output-quality evals, skill-local
     agents/<name>.md         # subagents
     hooks/<name>.py          # lifecycle hooks
+    hook-wiring/<name>.toml  # adapter event wiring for a shipped hook body
   tests/                     # implementation tests — NEVER projected
     skills/<name>/
     hooks/
@@ -256,6 +285,12 @@ on the published distribution branch, and every entry is schema-validated at
 build time against `marketplace-entry.schema.json`. Extra fields stay in `pack.toml`; the projection
 is deliberately lossy per tool.
 
+A hook-bearing pack that permits user scope must explicitly set
+`[pack.install] user-scope-hooks = true`. On the Claude-plugin route,
+`agentbundle` compiles supported Claude-shaped wiring into native plugin hooks
+and rejects unsafe event, matcher, timeout, command, or body-path shapes before
+creating output. Direct CLI installs keep their adapter-native wiring contract.
+
 Point a catalogue URI (a git URL or a local path) at the repo that holds your packs. Then `validate` a pack against the adapter contract, `render` it to preview the projection, and `install` it into a target repo. `scaffold` drops a pack's seeds into a fresh directory to start from. The build pipeline (`agentbundle.build`) is the same engine `make build` runs.
 
 **Org adapter default:** If your org ships a private `agentbundle` wheel (or a fork pinned to your internal catalogue), you can set a default adapter for all developers without requiring them to run `agentbundle config set` or pass `--adapter` on every install. Add an `[organization]` table to `_data/install-defaults.toml` in your fork:
@@ -265,7 +300,7 @@ Point a catalogue URI (a git URL or a local path) at the repo that holds your pa
 preferred_adapter = "cursor"
 ```
 
-The org hint fires after the user-config but before the on-disk IDE probe — so `--adapter`, user-config, and upgrade state-hints all take priority. An invalid value exits 1 before writing anything. See the [`agentbundle` reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/reference/agentbundle.md#org-adapter-default) for the full cascade.
+The org hint fires after the user-config but before the on-disk IDE probe — so `--adapter`, user-config, and upgrade state-hints all take priority. An invalid value exits 1 before writing anything. See the [`agentbundle` reference](https://github.com/eugenelim/agent-ready-repo/blob/main/guides/_shared/reference/agentbundle.md#org-adapter-default) for the full cascade.
 
 **Bundled contracts** — the wheel ships the machine contracts used for offline validation:
 `pack.schema.json`, `skill.schema.json`, `guide.schema.json`, `skill-manifest.schema.json`,
@@ -326,7 +361,7 @@ When `preferred-adapter` names an adapter not in the upstream `SELF_HOST_ADAPTER
 agentbundle pack evals run --pack <pack-name> --catalogue-root .
 ```
 
-See the [pack layout reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/architecture/pack-layout.md) and [authoring a skill](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/guides/_shared/how-to/author-a-skill.md).
+See the [pack layout reference](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/architecture/pack-layout.md) and [authoring a skill](https://github.com/eugenelim/agent-ready-repo/blob/main/guides/_shared/how-to/author-a-skill.md).
 
 ## Catalogue defaults and pack config API
 

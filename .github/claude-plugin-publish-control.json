@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "branch": {
+    "target": "refs/heads/claude-plugins-dist",
+    "restrict_updates": true,
+    "restrict_deletions": true,
+    "block_force_pushes": true,
+    "bypass": {
+      "actor_type": "Integration",
+      "actor_binding": "environment_app_id",
+      "mode": "always"
+    }
+  },
+  "app": {
+    "installation_scope": "selected_repository",
+    "permissions": {
+      "contents": "write"
+    }
+  },
+  "environment": {
+    "name": "claude-plugin-publish",
+    "deployment_branches": [
+      "main"
+    ],
+    "required_reviewers": 1,
+    "prevent_self_review": true,
+    "allow_admin_bypass": false,
+    "app_id_variable": "CLAUDE_PLUGIN_PUBLISHER_APP_ID",
+    "private_key_secret": "CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY"
+  },
+  "canary": {
+    "branch": "refs/heads/claude-plugins-dist-control-canary",
+    "ordinary_update": "rejected",
+    "publisher_app_update": "accepted",
+    "live_branch_negative_tested": false
+  }
+}

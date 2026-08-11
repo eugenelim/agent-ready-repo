@@ -454,7 +454,11 @@ def _description_findings(
     return out
 
 
-def lint_pack(pack_dir: Path, constraints: Constraints | None = None) -> list[str]:
+def lint_pack(
+    pack_dir: Path,
+    constraints: Constraints | None = None,
+    contract: dict | None = None,
+) -> list[str]:
     """Return a list of human-readable violation strings for one pack.
 
     Empty list ⇒ clean. Each string is suitable for stderr emission;
@@ -490,6 +494,29 @@ def lint_pack(pack_dir: Path, constraints: Constraints | None = None) -> list[st
     if constraints is not None:
         findings.extend(_check_skill_metadata(pack_dir, constraints))
         findings.extend(_check_agent_metadata(pack_dir, constraints))
+    wiring_dir = pack_dir / ".apm" / "hook-wiring"
+    if wiring_dir.is_dir():
+        from agentbundle.build.hook_wiring_rules import claude_projection_paths
+        from agentbundle.build.main import _read_bundled
+        from agentbundle.build.projections.plugin_hooks import compile_plugin_hooks
+
+        contract_data = contract
+        if contract_data is None:
+            contract_data = tomllib.loads(_read_bundled("adapter.toml"))
+        repo_prefix, plugin_prefix, hook_source, wiring_source = (
+            claude_projection_paths(contract_data)
+        )
+        try:
+            compile_plugin_hooks(
+                pack_dir,
+                repo_hook_prefix=repo_prefix,
+                plugin_hook_prefix=plugin_prefix,
+                hook_source_path=hook_source,
+                wiring_source_path=wiring_source,
+                pack_name=pack_dir.name,
+            )
+        except (OSError, RuntimeError, ValueError) as exc:
+            findings.append(str(exc))
     # Sort unconditionally so the trailing-relpath invariant holds in
     # both call modes — a portability-only caller with violations
     # spanning both subtrees gets the same deterministic ordering as
@@ -502,6 +529,7 @@ def lint_pack(pack_dir: Path, constraints: Constraints | None = None) -> list[st
 def lint_all_packs(
     packs_dir: Path,
     constraints: Constraints | None = None,
+    contract: dict | None = None,
 ) -> dict[str, list[str]]:
     """Walk every immediate subdirectory of `packs_dir` that contains a
     `pack.toml`, return `{pack_name: [findings...]}`.
@@ -517,7 +545,9 @@ def lint_all_packs(
             continue
         if not (entry / "pack.toml").exists():
             continue
-        result[entry.name] = lint_pack(entry, constraints=constraints)
+        result[entry.name] = lint_pack(
+            entry, constraints=constraints, contract=contract
+        )
     return result
 
 

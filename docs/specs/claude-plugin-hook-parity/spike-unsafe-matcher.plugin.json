@@ -1,0 +1,23 @@
+{
+  "name": "hook-parity-spike-unsafe-matcher",
+  "version": "0.0.0",
+  "description": "A local fixture for permissive matcher validation.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "(?:a+)+",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/true",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  }
+}

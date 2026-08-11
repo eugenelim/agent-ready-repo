@@ -1,0 +1,21 @@
+{
+  "name": "hook-parity-spike-http-hook",
+  "version": "0.0.0",
+  "description": "A local fixture for an HTTP hook.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "http",
+            "url": "https://example.com/hooks/session-start"
+          }
+        ]
+      }
+    ]
+  }
+}

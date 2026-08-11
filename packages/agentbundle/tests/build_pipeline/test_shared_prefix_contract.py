@@ -27,7 +27,7 @@ class SharedPrefixRegistryTests(unittest.TestCase):
         self.shared = self.contract["contract"]["shared-prefixes"]
 
     def test_contract_version_bumped(self) -> None:
-        self.assertEqual(self.contract["contract"]["version"], "0.17")
+        self.assertEqual(self.contract["contract"]["version"], "0.18")
 
     def test_agents_skills_shared_with_full_cohort(self) -> None:
         self.assertEqual(

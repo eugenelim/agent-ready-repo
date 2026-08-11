@@ -79,18 +79,15 @@ def test_render_produces_expected_primitives_for_fixture_core(tmp_path):
     # agent — projects as <plugin root>/agents/<name>.md
     assert any("claude-plugins/core/agents/" in k and k.endswith(".md") for k in tree), \
         f"no agent in tree; keys={sorted(tree)}"
-    # hook-body — projects as tools/hooks/<name>.{sh,py}
-    assert any("tools/hooks/" in k for k in tree), \
+    # hook-body — projects at the plugin root as hooks/<name>.{sh,py}
+    assert any("claude-plugins/core/hooks/" in k for k in tree), \
         f"no hook-body in tree; keys={sorted(tree)}"
-    # hook-wiring — projects as .claude/settings.local.json
-    assert any("settings.local.json" in k for k in tree), \
-        f"no hook-wiring in tree; keys={sorted(tree)}"
+    # hook-wiring is compiled into plugin.json, not projected as settings.
+    assert not any("settings.local.json" in k for k in tree), tree
     # command — projects as <plugin root>/commands/<name>.md
     assert any("claude-plugins/core/commands/" in k and k.endswith(".md") for k in tree), \
         f"no command in tree; keys={sorted(tree)}"
-    # hook wiring is the exception — it stays under .claude/
-    assert any("claude-plugins/core/.claude/settings.local.json" in k for k in tree), \
-        f"hook wiring moved; keys={sorted(tree)}"
+    assert not any("claude-plugins/core/.claude/" in k for k in tree), tree
 
 
 # ---------------------------------------------------------------------------
@@ -128,7 +125,7 @@ def test_hook_extension_preservation_sh(tmp_path):
     assert rc == 0
 
     tree = _tree(out_dir)
-    # Fixture core has baz.sh in .apm/hooks/; expect tools/hooks/baz.sh
+    # Fixture core has baz.sh in .apm/hooks/; expect plugin-root hooks/baz.sh
     sh_keys = [k for k in tree if k.endswith(".sh") and "hooks" in k]
     assert sh_keys, f"no .sh hook in tree; hook-related keys={[k for k in tree if 'hook' in k]}"
 
@@ -141,7 +138,7 @@ def test_hook_extension_preservation_py(tmp_path):
     assert rc == 0
 
     tree = _tree(out_dir)
-    # Fixture core has baz.py in .apm/hooks/; expect tools/hooks/baz.py
+    # Fixture core has baz.py in .apm/hooks/; expect plugin-root hooks/baz.py
     py_keys = [k for k in tree if k.endswith(".py") and "hooks" in k]
     assert py_keys, f"no .py hook in tree; hook-related keys={[k for k in tree if 'hook' in k]}"
 

@@ -66,7 +66,9 @@ def test_subset_is_false_so_the_property_must_be_implication() -> None:
     ), "declared ⊉ resolved — subset would have made this pack publishable"
 
 
-@pytest.mark.parametrize("contract_version", [None, "0.1", "0.2", "0.3", "0.17"])
+@pytest.mark.parametrize(
+    "contract_version", [None, "0.1", "0.2", "0.3", "0.17", "0.18"]
+)
 @pytest.mark.parametrize("declared", [None, ["repo"], ["user"], ["repo", "user"]])
 def test_user_membership_implication_holds(
     contract_version: str | None, declared: list[str] | None

@@ -1,0 +1,21 @@
+{
+  "name": "hook-parity-spike-agent-hook",
+  "version": "0.0.0",
+  "description": "A local fixture for an agent hook.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "agent",
+            "prompt": "Return true."
+          }
+        ]
+      }
+    ]
+  }
+}

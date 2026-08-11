@@ -46,7 +46,7 @@ def _pack(version, scopes, default=None) -> dict:
     return tomllib.loads(src)
 
 
-VERSIONS = [None, "0.1", "0.2", "0.3", "0.17"]
+VERSIONS = [None, "0.1", "0.2", "0.3", "0.17", "0.18"]
 SCOPES = [None, ["repo"], ["user"], ["repo", "user"]]
 DEFAULTS = [None, "repo", "user"]
 
