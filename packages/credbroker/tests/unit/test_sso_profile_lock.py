@@ -89,6 +89,84 @@ def broker(tmp_path, monkeypatch):
 # ----------------------------------------------------------------------
 
 
+def test_profile_lock_confines_after_first_use_parent_creation(
+    broker: types.ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Confinement compares child and parent in one existence state."""
+    lexical_parent = broker._SSO_LOCK_DIR.parent / "LEXICAL-locks"
+    canonical_parent = broker._SSO_LOCK_DIR.parent / "canonical-locks"
+    original_resolve = pathlib.Path.resolve
+    original_mkdir = pathlib.Path.mkdir
+    parent_exists = False
+    opened: list[pathlib.Path] = []
+
+    def resolve_with_existence_transition(path, *args, **kwargs):
+        nonlocal parent_exists
+        if path == broker._SSO_LOCK_DIR:
+            return canonical_parent if parent_exists else lexical_parent
+        if path.parent == broker._SSO_LOCK_DIR:
+            resolved_parent = canonical_parent if parent_exists else lexical_parent
+            parent_exists = True  # Simulate the competing first-use mkdir.
+            return resolved_parent / path.name
+        return original_resolve(path, *args, **kwargs)
+
+    def mkdir_with_existence_transition(path, *args, **kwargs):
+        nonlocal parent_exists
+        if path == broker._SSO_LOCK_DIR:
+            parent_exists = True
+            return
+        original_mkdir(path, *args, **kwargs)
+
+    def record_open(path, *args, **kwargs):
+        opened.append(pathlib.Path(path))
+        return 101
+
+    monkeypatch.setattr(pathlib.Path, "resolve", resolve_with_existence_transition)
+    monkeypatch.setattr(pathlib.Path, "mkdir", mkdir_with_existence_transition)
+    monkeypatch.setattr(os, "open", record_open)
+    monkeypatch.setattr(os, "close", lambda fd: None)
+    monkeypatch.setattr(broker, "_acquire_once", lambda fd: None)
+    monkeypatch.setattr(broker, "_release_once", lambda fd: None)
+
+    with broker._profile_lock("jira"):
+        pass
+
+    # `_contained()` validates canonical forms but returns the original path.
+    assert opened == [broker._SSO_LOCK_DIR / "jira.lock"]
+
+
+def test_profile_lock_refuses_escape_before_open(
+    broker: types.ModuleType,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The lock boundary may create its fixed parent but never an escape."""
+    broker._SSO_LOCK_DIR.parent.mkdir(parents=True, exist_ok=True)
+    opened: list[pathlib.Path] = []
+    created: list[pathlib.Path] = []
+    original_mkdir = pathlib.Path.mkdir
+
+    def record_open(path, *args, **kwargs):
+        opened.append(pathlib.Path(path))
+        return 101
+
+    def record_mkdir(path, *args, **kwargs):
+        created.append(path)
+        original_mkdir(path, *args, **kwargs)
+
+    monkeypatch.setattr(os, "open", record_open)
+    monkeypatch.setattr(pathlib.Path, "mkdir", record_mkdir)
+
+    with (
+        pytest.raises(broker.ProfileConfinementError),
+        broker._profile_lock("../escape"),
+    ):
+        pass
+
+    assert set(created) <= {broker._SSO_LOCK_DIR}
+    assert opened == []
+
+
 def test_lock_path_refuses_traversal_before_opening_the_lockfile(broker):
     """AC18: a traversal-shaped profile raises before any file is opened."""
     with pytest.raises(broker.ProfileConfinementError):
