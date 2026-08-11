@@ -20,6 +20,12 @@ python -m agentbundle catalogue lint --root . --deep  # agentskills.io complianc
 python -m agentbundle catalogue verify --root .       # projected agent-artifact and adapter verification
 ```
 
+## Maintainer hook guidance
+
+The repo-only hook implementation and wiring guide lives at
+[`tools/hooks/README.md`](tools/hooks/README.md). Keep this pointer out of
+shipped pack content because adopters do not receive the maintainer README.
+
 ## Catalogue authoring scaffold — release-impact policy
 
 The catalogue authoring scaffold is bundled into the `agentbundle` wheel as package data under
@@ -62,5 +68,4 @@ RFCs, ADRs, internal READMEs. The adopter-facing version ships in the `product-d
 - **Soft-wrap guides.** Under `docs/guides/`, one line per paragraph, blank line between paragraphs,
   list items one line each. Older docs (README, CONVENTIONS) are hard-wrapped near 72 columns; match
   the file you're editing.
-
 
