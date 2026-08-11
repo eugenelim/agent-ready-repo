@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.5.6] — 2026-08-11
+
+#### Fixed
+
+- **Core conventions no longer send adopters to catalogue-only files.** The
+  credential-broker rule now states its four supported ids without linking to
+  this catalogue's decision records, and maintainer hook guidance no longer
+  points adopters to a README that is absent from the installed pack.
+
 ### [credential-brokers][0.3.2] — 2026-08-10
 
 #### Fixed

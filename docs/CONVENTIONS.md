@@ -909,8 +909,7 @@ automatically, no manual paste. `pre-pr.py` stays consumer-wired,
 because Claude Code has no PR-open lifecycle event (`Stop` fires after
 every agent turn — wrong semantics). Wire `pre-pr.py` via
 `.git/hooks/pre-push` if you want it automatic, or run it by hand
-before opening a PR. See [`tools/hooks/README.md`](../tools/hooks/README.md)
-for both surfaces.
+before opening a PR.
 
 ### When to reach for an unattended loop
 
@@ -1019,8 +1018,7 @@ template adopter knows when to wire each one up.
   is actively populated (`docs/knowledge/patterns.jsonl`). The
   `session-start` hook is shipped pre-wired by the install pipeline,
   so the knowledge base shows up in Claude Code session context out
-  of the box; see [`tools/hooks/README.md`](../tools/hooks/README.md)
-  for what lands and where.
+  of the box.
 
 ### Above Profile C
 
@@ -1121,11 +1119,8 @@ Security section must satisfy **both** brokers' don't-block phrase sets.
 
 ### Four brokers — pick one per skill
 
-`metadata.auth` names the broker that resolves the credential. The
-four ids are pinned by
-[ADR-0003](adr/0003-credential-broker-contract.md) and
-<!-- seed-content-lint-ignore: canonical RFC pointer for the four-broker contract -->
-[RFC-0013](rfc/0013-credential-broker-contract.md):
+`metadata.auth` names the broker that resolves the credential. Choose
+exactly one of these four ids:
 
 - **`env`** — the credential is a plain environment variable
   (`<NAMESPACE>_<KEY>`). Catalogue contributes naming convention and

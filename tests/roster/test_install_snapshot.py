@@ -74,6 +74,8 @@ BLOCKLIST_REGEXES = [
 SENTINEL_RE = re.compile(
     r"^\s*<!--\s*seed-content-lint-ignore:\s*([^>]+?)\s*-->\s*$"
 )
+MARKDOWN_LINK_RE = re.compile(r"\]\(([^)]+)\)")
+URI_SCHEME_RE = re.compile(r"^[a-z][a-z0-9+.-]*:", re.IGNORECASE)
 
 PACKS_WITH_SEEDS = ("core", "governance-extras", "monorepo-extras")
 # user-guide-diataxis (0.3.0) is a deprecated compat shim with no seeds.
@@ -138,6 +140,20 @@ def _scan_for_leaks(output_root: Path, projected_paths: list[str]) -> list[str]:
     return violations
 
 
+def _scan_for_missing_relative_links(path: Path) -> list[str]:
+    """Return repository-relative Markdown links whose targets are absent."""
+    violations: list[str] = []
+    content = path.read_text(encoding="utf-8")
+    for lineno, line in enumerate(content.splitlines(), start=1):
+        for raw_target in MARKDOWN_LINK_RE.findall(line):
+            target = raw_target.split("#", 1)[0]
+            if not target or URI_SCHEME_RE.match(target) or Path(target).is_absolute():
+                continue
+            if not (path.parent / target).exists():
+                violations.append(f"{path.name}:{lineno}: missing link target {target!r}")
+    return violations
+
+
 def _compare_or_update_paths_golden(pack_name: str, actual_paths: list[str]) -> None:
     """Compare actual projected-paths list to the checked-in golden;
     regenerate on `UPDATE_GOLDEN=1`."""
@@ -178,3 +194,20 @@ def test_first_install_snapshot(pack_name: str, tmp_path: Path) -> None:
         f"Catalogue-string leaks in projected output for pack "
         f"{pack_name!r}:\n  " + "\n  ".join(leaks)
     )
+
+
+def test_core_conventions_relative_links_resolve_after_scaffold(tmp_path: Path) -> None:
+    """Core conventions links resolve inside the adopter's scaffold."""
+    output_root = _scaffold_pack("core", tmp_path)
+    conventions = output_root / "docs" / "CONVENTIONS.md"
+    content = conventions.read_text(encoding="utf-8")
+
+    violations = _scan_for_missing_relative_links(conventions)
+
+    assert not violations, (
+        "Core conventions contain links unavailable to adopters:\n  " + "\n  ".join(violations)
+    )
+    for citation in ("ADR-0003", "RFC-0013"):
+        assert citation not in content, (
+            f"Core conventions contain catalogue-only citation {citation!r}"
+        )
