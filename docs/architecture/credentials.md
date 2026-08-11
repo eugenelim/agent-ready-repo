@@ -90,6 +90,14 @@ So the boundary is not a verb and not a subsystem. It is:
 Where a control is warranted, it must satisfy the anchor test below — integrity
 protection for the destination fields specifically, not for the whole config.
 
+[RFC-0084](../rfc/0084-sso-destination-trust-boundary.md) applies that test to
+the supported deployment and finds that no qualifying component can be shipped
+inside the user-scoped Python package and projected-script envelope. Generic
+headed cookie capture therefore remains operator-only and carries an accepted
+same-principal destination-poisoning limitation; no baseline enforcement work
+is deferred. A protocol-backed mode or privileged installation class requires a
+new proposal tied to a concrete consumer and deployment path.
+
 **What actually closes the same-principal case**, from a survey of comparable
 projects (see the references below), is always a trust anchor the agent's process
 cannot forge or reach:

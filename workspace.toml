@@ -606,16 +606,12 @@ open = [
     # baked layer sits inside the agentbundle package, unreachable from stdlib-only skill
     # scripts. Fix: installer projects [pack-defaults.<pack>] to
     # ~/.agentbundle/<pack>/defaults.toml; needs an RFC-0074 addendum plus an ADR extending
-    # ADR-0059. CONSTRAINT (AC25): a projected defaults.toml is NOT trusted merely because
-    # the installer wrote it — its contents come from catalogue.toml, so if it can supply
-    # auth_default or a sign-in destination it becomes a second adopter-writable source for
-    # an automated launch; the addendum must keep the automatic path pinned to
-    # broker-written state exactly as AC1 does. Unblocks: after the addendum is Accepted.
+    # ADR-0059. CONSTRAINT (AC25, RFC-0084): a projected defaults.toml is NOT trusted merely
+    # because the installer wrote it — its contents come from catalogue.toml. It may not
+    # supply a sign-in destination or make any automatic path headed; automatic refresh
+    # stays pinned to broker-written state exactly as AC1 requires. Unblocks: after the
+    # addendum is Accepted.
   {slug = "pack-config-catalogue-sso-defaults", source = "spec/jira-check-sso-auto-login"},
-    # AC32 branch 2 (login_url host == base_url host, the majority SP-initiated SAML
-    # topology) consults no server, so derivation attests nothing there. Fix: an attestation
-    # that works when SP and IdP share a host. Unblocks: needs design.
-  {slug = "sso-branch2-destination-attestation", source = "spec/jira-check-sso-auto-login"},
     # sso-broker.py creates browser-state/<profile> with umask-default mode and stores
     # context.cookies() unfiltered, so IdP cookies persist at rest though the consumer
     # filters at load. Fix: 0700 mode + capture-time domain filter. Unblocks: now.
@@ -629,20 +625,6 @@ open = [
     # whose literal meaning the check carve-out inverts. Fix: amend the pinned phrase set.
     # Unblocks: needs a lint-contract change.
   {slug = "sso-cookie-lint-phrase-amendment", source = "spec/jira-check-sso-auto-login"},
-    # Derive the destination from the browser's live state rather than config, after
-    # 1Password's extension model (inject only when already on the matching origin). Fix:
-    # design a live-state derivation. Unblocks: needs design.
-  {slug = "sso-live-browser-destination-derivation", source = "spec/jira-check-sso-auto-login"},
-    # login_url and success_url_pattern are the only fields that can point a human at a
-    # login page; everything else in sso-config.toml can stay adopter-editable. Fix:
-    # integrity-protect just those two (root-owned or signed). Unblocks: now — this is the
-    # one control the accepted threat profile says earns its cost.
-  {slug = "sso-destination-field-integrity", source = "spec/jira-check-sso-auto-login"},
-    # sso-config.toml is agent-writable, so no validation closes poisoning; a practitioner writeup's
-    # sudo-gated gh wrappers are the only mechanism found that actually protects such a
-    # file. Fix: privilege-separate the config at install. Unblocks: needs an install-path
-    # decision.
-  {slug = "sso-privilege-separated-config", source = "spec/jira-check-sso-auto-login"},
     # AC16 logs recapture via log.info, but jira.py:780-783 configures logging with no filename,
     # so the record goes to stderr the agent may discard - an unattended re-auth stays repudiable.
     # Fix: append-only 0600 log under ~/.agentbundle/logs/. Unblocks: now.
@@ -706,7 +688,9 @@ open = [
     # check --register and setup_sso.py) while allowing bare check. Belt-only, not a
     # boundary: lands in .claude/settings.local.json, an agent-writable repo file; uneven
     # adapter coverage (kiro-ide drops hook-wiring); cannot stop direct sso-broker.py
-    # register. Fix: only if an adopter wants it knowing the limits. Unblocks: on request.
+    # register. RFC-0084 permits this only as erring-agent defense in depth, never as
+    # destination protection. Fix: only if an adopter wants it knowing the limits.
+    # Unblocks: on request.
   {slug = "sso-register-pretooluse-hook", source = "spec/jira-check-sso-auto-login"},
   # `test_version_matches_pyproject` hardcodes "0.6.0" instead of reading
   # pyproject.toml dynamically. A future version bump can reintroduce the same
@@ -1441,7 +1425,8 @@ open = [
   # independently enforced (AC4/5/6/20). Deferred pending the live-DC transcript
   # clarifying actual broker behavior with the pattern host.
   # Fix: after the live-DC transcript, decide whether to tighten pattern-host
-  #   validation at the broker (capture-time) layer.
+  #   validation at the broker (capture-time) layer. Per RFC-0084 this can be
+  #   defense in depth only; it cannot become a same-principal destination boundary.
   # Unblocks when: atlassian-sso-cookie-live-dc-read-transcript is complete.
   {slug = "atlassian-sso-cookie-success-url-pattern-host-confinement", needs = "backlog:atlassian-sso-cookie-live-dc-read-transcript"},
 

@@ -3,7 +3,15 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](./plan.md)
-- **Constrained by:** [RFC-0035](../../rfc/0035-sso-cookie-auth-for-atlassian-pack.md) — pins the dual-auth selector and the fail-closed no-downgrade rule; [ADR-0026](../../adr/0026-sso-consumer-resolution-in-credbroker.md) — places SSO consumer resolution in `credbroker`, which this spec extends from resolution-only to resolution-plus-recapture.
+- **Constrained by:** [RFC-0035](../../rfc/0035-sso-cookie-auth-for-atlassian-pack.md)
+  — pins the dual-auth selector and the fail-closed no-downgrade rule;
+  [ADR-0026](../../adr/0026-sso-consumer-resolution-in-credbroker.md) — places
+  SSO consumer resolution in `credbroker`, which this spec extends from
+  resolution-only to resolution-plus-recapture; and
+  [RFC-0084](../../rfc/0084-sso-destination-trust-boundary.md) with
+  [ADR-0080](../../adr/0080-generic-headed-sso-capture-remains-operator-only.md)
+  — accepts the baseline's same-principal destination limitation, keeps headed
+  capture operator-only, and requires automatic refresh to remain headless.
 - **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#the-sso-cookie-broker) — the engine/library split, the consumer API, destination pinning, the profile grammar, and the auto-recovery contract live there. This spec does not restate them; it implements them.
 - **Contract:** none
 - **Brief:** none
@@ -507,18 +515,21 @@ fix, so the pack bumps and the change is named in the changelog.
       This closes the gap between this spec's own threat analysis and its ACs.
       The spec identifies "a human types credentials into a page whose
       destination the agent could influence" as the single exposure whose blast
-      radius leaves the machine, and AC15 defers the destination-integrity
-      control that would contain it — yet bare `check` reached exactly that state
-      whenever the IdP session had expired too, using destination fields from the
-      agent-writable `~/.agentbundle/sso-profiles/<profile>.toml`. Deferring the
-      control while shipping the flow it was meant to contain is not a defensible
-      order of operations.
+      radius leaves the machine. RFC-0084 records that the supported deployment
+      cannot enforce a destination-integrity boundary against its own principal.
+      Bare `check` nevertheless reached exactly that state whenever the IdP
+      session had expired, using destination fields from the agent-writable
+      `~/.agentbundle/sso-profiles/<profile>.toml`. Accepting that limitation
+      while shipping an automatic headed flow is not a defensible order of
+      operations.
 
       So the harvest surface is removed from the automatic path entirely rather
       than guarded: silent re-auth ships (it is the common case and involves no
       human), interactive capture is reachable **only** from an operator-typed
-      command. `sso-destination-field-integrity` remains the prerequisite for ever
-      relaxing this — until it lands, no automated path may render a login page.
+      command. RFC-0084 accepts the current deployment's lack of a
+      same-principal destination boundary. No automated path may render a login
+      page; changing that ceiling requires a new proposal with an independently
+      bound authorization mechanism.
 
       **The enforceable engine contract: `refresh` is universally headless.**
       An abort rule alone is unimplementable — `_do_refresh` delegates to
@@ -568,10 +579,12 @@ fix, so the pack bumps and the change is named in the changelog.
       design whose blast radius leaves the machine, and it is the only one that
       earns a control.
 
-      **The control, narrowed to fit.** Integrity-protect the two destination
-      fields — `login_url` and `success_url_pattern` — rather than the whole
-      config or the whole flow. Everything else in `sso-config.toml` stays
-      adopter-editable. *(deferred: sso-destination-field-integrity)*
+      **The control, narrowed to fit.** Integrity-protect the headed-login
+      destination policy rather than the whole config or the whole flow.
+      RFC-0084 records that the current user-scope installation cannot provide
+      that integrity boundary. Everything in `sso-config.toml` remains
+      adopter-editable, and the exposure is an accepted limitation rather than
+      deferred baseline work.
 
       AC21 still puts `--register` under the SKILL.md rule that the agent relays
       the command rather than running it, and AC21's negative eval still asserts
@@ -765,8 +778,8 @@ fix, so the pack bumps and the change is named in the changelog.
       majority topology, **derivation is effective only on IdP-host topologies.**
       This is accepted rather than fixed: requiring derivation in branch 2 would
       refuse every SSO-with-local-fallback adopter, and derivation is explicitly
-      not the control — AC15 is. Recorded as
-      *(deferred: sso-branch2-destination-attestation)*.
+      not the control — AC15 is. RFC-0084 closes a standalone branch-2 remedy as
+      part of the accepted same-principal limitation.
 
       **Branch 2 is evaluated first and short-circuits.** Where `login_url`'s host
       equals `base_url`'s host, **no derivation request is made** and the
@@ -1292,9 +1305,10 @@ Every entry was established by reading source or executing a probe on
 - The non-JSON-2xx guard on read paths other than `whoami` — every method calls
   `resp.json()`, so the same login-page body still exits 1 elsewhere.
   *(deferred: nonjson-2xx-guard-all-read-paths)*
-- Attestation for SP-initiated topologies, where `login_url` and `base_url`
-  share a host and AC32's branch 2 consults no server.
-  *(deferred: sso-branch2-destination-attestation)*
+- Headed-login destination poisoning remains an accepted limitation under
+  RFC-0084: the supported user-scope installation cannot enforce a boundary
+  against its own principal. Generic interactive capture stays operator-only;
+  no baseline implementation is deferred.
 - A pack-shipped `PreToolUse` hook denying **both** agent-facing capture
   commands — `jira.py check --register` and `setup_sso.py` — while allowing bare
   `check`. Explicitly **belt-only, not a boundary**: it lands in
@@ -1302,14 +1316,6 @@ Every entry was established by reading source or executing a probe on
   uneven (`kiro-ide` drops hook-wiring); and it cannot stop a direct
   `sso-broker.py register`. A real boundary needs privilege separation.
   *(deferred: sso-register-pretooluse-hook)*
-- Deriving the sign-in destination from the **browser's live state** rather than
-  config, after 1Password's extension model (inject only when the browser is
-  already on the matching origin; approve via a biometric prompt the agent cannot
-  reach). *(deferred: sso-live-browser-destination-derivation)*
-- Privilege-separating `sso-config.toml` so the agent cannot write it, after
-  a practitioner writeup's `sudo`-gated `gh` wrappers — the only mechanism found in the
-  prior-art sweep that actually protects an agent-editable credential config.
-  *(deferred: sso-privilege-separated-config)*
 - The profile grammar in `tools/lint-sso-config.py`, so a pre-baked traversal
   value fails at build time as well as at runtime.
   *(deferred: lint-sso-config-profile-charset)*

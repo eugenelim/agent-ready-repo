@@ -300,9 +300,10 @@ sessions.
 **Net effect on this spec:** nothing found contradicts the design. Parameter
 elimination (our AC1) is the named correct fix; no source treats prompt-level
 confirmation as a real control, which is why AC15 records it as a non-control.
-The two ideas worth pursuing are F10's — recorded as
-*(deferred: sso-live-browser-destination-derivation)* and
-*(deferred: sso-privilege-separated-config)*.
+F10's live-browser and privilege-separated mechanisms would require a browser or
+administrator-installed component outside the supported user-scope deployment.
+RFC-0084 therefore closes them as baseline work and records destination
+poisoning as an accepted limitation.
 
 `ASM (Agent Skill Manager)` was also checked: it is an Agent Skill Manager with **no
 credential broker** — the comparison premise did not hold. Its one transferable

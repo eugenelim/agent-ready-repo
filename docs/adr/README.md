@@ -85,6 +85,7 @@
 | 0077 | [Feature projection is gated; tracker authority follows lifecycle](0077-feature-projection-and-tracker-authority.md) | Accepted |
 | 0078 | [Standalone intake with an artifact-backed workspace index](0078-standalone-intake-and-deterministic-workspace-index.md) | Accepted |
 | 0079 | [Executable plugin branch — dedicated publisher identity](0079-executable-plugin-branch-publisher-identity.md) | Accepted |
+| 0080 | [Generic headed SSO capture remains operator-only](0080-generic-headed-sso-capture-remains-operator-only.md) | Accepted |
 
 ## Adding a new ADR
 
