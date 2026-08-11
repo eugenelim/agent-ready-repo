@@ -6,7 +6,7 @@
 # opts in.
 #
 # An enterprise pre-bakes its instance config here (a pack customization), then a
-# developer runs `python scripts/setup_sso.py` (drives `sso-broker register`)
+# developer runs `python '<skill-dir>/scripts/setup_sso.py'` (drives `sso-broker register`)
 # once. Upgrades to a pre-baked file merge as an adapt-to-project `.upstream`
 # companion (class-2), so an org's edits survive a later catalogue release.
 #

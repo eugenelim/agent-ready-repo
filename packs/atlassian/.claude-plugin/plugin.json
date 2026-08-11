@@ -1,5 +1,5 @@
 {
   "name": "atlassian",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, and it queries the real API and answers."
 }

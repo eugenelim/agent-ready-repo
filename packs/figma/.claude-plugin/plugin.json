@@ -1,5 +1,5 @@
 {
   "name": "figma",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Paste a Figma share URL and the agent can read the file. It pulls nodes, variables, and version history, renders frames as images, leaves comments, and turns a FigJam connector graph into Mermaid."
 }

@@ -40,11 +40,12 @@ import contextlib
 import json
 import logging
 import re
+import shlex
 import sys
 from pathlib import Path
 from typing import Any
 
-# Bootstrap when invoked as ``python scripts/figma.py`` so the
+# Bootstrap when invoked as ``python '<skill-dir>/scripts/figma.py'`` so the
 # relative imports of sibling modules (e.g. ``_client``) resolve
 # against the siblings in this directory. Gated on
 # ``__spec__ is None`` so the block only fires for true file-path
@@ -116,6 +117,39 @@ TOKEN_CLI_FLAGS = frozenset({
     "--figma-token", "--pat", "--password",
     "--access-token", "--auth-token", "--auth", "--secret",
 })
+
+
+def _render_windows_command(argv: list[str], fallback: str) -> str:
+    """Render only cmd/PowerShell-inert Windows argv; refuse everything else."""
+    safe_punctuation = frozenset(" _./:\\-")
+    if any(
+        not value
+        or any(
+            not char.isascii()
+            or (not char.isalnum() and char not in safe_punctuation)
+            for char in value
+        )
+        for value in argv
+    ):
+        return f"{fallback} (use an argv-capable terminal)"
+    return " ".join(f'"{value}"' if " " in value else value for value in argv)
+
+
+def _display_program() -> str:
+    """Return a shell-safe display form for this verified installed entry."""
+    fallback = "the installed figma.py entry point"
+    try:
+        entry = Path(__file__).resolve(strict=True)
+        entry.relative_to(entry.parent.resolve(strict=True))
+        if not entry.is_file():
+            return fallback
+    except (OSError, RuntimeError, ValueError):
+        return fallback
+    argv = [sys.executable, str(entry)]
+    if sys.platform == "win32":
+        return _render_windows_command(argv, fallback)
+    return shlex.join(argv)
+
 
 # Substring patterns on the flag NAME (not its value) that catch
 # token-shaped flags the explicit deny-list doesn't enumerate
@@ -288,7 +322,7 @@ def _normalise_node_ids_csv(ids_csv: str) -> str:
 
 def _build_parser() -> argparse.ArgumentParser:
     p = _ScrubbingArgumentParser(
-        prog="figma.py",
+        prog=_display_program(),
         description="Query the Figma REST API.",
     )
     p.add_argument(

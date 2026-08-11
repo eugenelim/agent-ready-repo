@@ -467,26 +467,6 @@ open = [
   # substrings credbroker / sso-broker / credential-setup / LLM-cooperative, so
   # any rewrite must keep them.
   {slug = "credential-brokers-description-rewrite", source = "spec/pack-description-quality AC4"},
-    # converters ships two skills whose documented invocation cannot work from an agent
-    # session: mermaid-renderer says `python scripts/render_mermaid.py` and markdown-to-html
-    # says `node scripts/render.js`, both bare-relative. Gate V6 measured the agent CWD as
-    # the project root (claude-code and codex), so both resolve against the wrong directory
-    # and fail. workspace-status has the correct shape: '<skill-dir>/scripts/...' plus
-    # --root . Fix: adopt that form in both converters skills. Unblocks: now.
-  {slug = "converters-bare-relative-script-paths", source = "spec/binder-publishing-gate-propagation AC10"},
-    # CPython exits 2 when it cannot open the script file, and shipped SKILL.md contracts
-    # assign exit 2 the meaning "the user must act". Measured reach: mermaid-renderer
-    # (reads 2 as "mmdc not installed"), and jira, jira-align, confluence-publisher,
-    # confluence-crawler, figma and linear (all read 2 as "credentials missing/invalid/
-    # expired"). All seven also invoke their script bare-relative, which is exactly how a
-    # path failure is produced -- see converters-bare-relative-script-paths. So a broken
-    # invocation reports itself as absent credentials and sends the user to re-authenticate
-    # against a problem that is not theirs. Nothing in-process can disambiguate: the
-    # interpreter exits before the script's first line. Fix: reserve 2 for the user-must-act
-    # condition and have callers resolve the script path first (the '<skill-dir>' form), or
-    # move user-must-act off 2. node exits 1 (MODULE_NOT_FOUND), so node-backed skills are
-    # unaffected. Unblocks: now; spans atlassian, figma, linear and converters.
-  {slug = "skill-script-exit-2-collision", source = "spec/binder-publishing-gate-propagation AC10"},
   # Codex renders skill descriptions into a ~2% context budget and truncates to
   # fit, warning "Skill descriptions were shortened to fit the 2% skills context
   # budget" (observed on Codex CLI 0.146.0). The catalogue ships 122 skills whose
@@ -684,6 +664,15 @@ open = [
     # but each spawn still costs up to refresh's 180 s and re-exercises the engine.
     # Fix: persist a last-attempt timestamp per profile and refuse inside a cooldown. Unblocks: now.
   {slug = "sso-recapture-cooldown", source = "spec/jira-check-sso-auto-login"},
+    # Review follow-on from spec/skill-script-exit-2-collision. The consumer now
+    # bounds its own exception output, but credbroker's headless refresh process
+    # inherits stderr before the typed SsoError reaches the caller. Capturing that
+    # stream changes the broker boundary and needs broker-wide compatibility tests;
+    # it is outside this four-pack caller-contract patch.
+    # Fix: capture refresh-engine stderr inside credbroker, translate it to a typed
+    # bounded error, and preserve headed register output for the operator.
+    # Unblocks: complete transcript-level suppression of refresh engine paths/details.
+  {slug = "credbroker-refresh-stderr-bounding", source = "spec/skill-script-exit-2-collision review"},
     # A pack-shipped PreToolUse hook denying BOTH agent-facing capture commands (jira.py
     # check --register and setup_sso.py) while allowing bare check. Belt-only, not a
     # boundary: lands in .claude/settings.local.json, an agent-writable repo file; uneven

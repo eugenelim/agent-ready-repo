@@ -7,7 +7,7 @@ metadata:
 
 # Mermaid Renderer
 
-A thin wrapper around `scripts/render_mermaid.py`. The script walks a
+A thin wrapper around `<skill-dir>/scripts/render_mermaid.py`. The script walks a
 Markdown file, extracts ` ```mermaid ` blocks, calls the Mermaid CLI
 (`mmdc`) to render each to a PNG, and writes a rewritten Markdown file
 where every fence is replaced by a standard Markdown image reference
@@ -30,6 +30,35 @@ ships its own `node_modules/`; the script finds `mmdc` on `PATH`.)
 
 No Python deps beyond the standard library.
 
+## Installed entry-point contract
+
+Treat `<skill-dir>` as the installer-supplied directory containing this active
+`SKILL.md`; never infer it from the current working directory, user input, an
+environment variable, or a profile path. Replace `<skill-dir>` with that actual
+validated directory before executing or relaying any command; never send the
+placeholder to a runtime or user. Before every invocation of `render_mermaid.py`:
+
+1. Canonicalize `<skill-dir>`, its `scripts/` child, and the expected entry
+   point, resolving symlinks. Require the entry point to be a regular file and
+   its resolved path to remain beneath the canonical `scripts/` directory.
+2. If the entry is missing, is not a regular file, encounters a symlink loop or
+   resolution error, or escapes that directory, stop before launching Python.
+   Report only `error: installed skill entry point is unavailable: <entry>`,
+   substituting the basename. Do not expose an absolute, home, profile,
+   environment, or protected path; do not relay raw runtime stderr; and do not
+   offer credential, SSO-capture, token, scope, or dependency remediation.
+3. Invoke with a discrete argument vector, for example
+   `["<python>", "<skill-dir>/scripts/render_mermaid.py", "..."]`, so spaces, both quote characters, `$()`, backticks, and
+   variable-shaped text cannot be expanded by a shell. Keep the project root as
+   the working directory so user content paths retain their documented meaning.
+4. If only a shell string is available, use a single-quoted literal path on
+   POSIX or PowerShell and refuse paths containing a single quote. On cmd.exe,
+   use a double-quoted path and refuse paths containing `"`, `%`, or `!`.
+   If the adapter cannot represent the path safely, refuse instead of invoking.
+
+Interpret exit codes only after this preflight succeeds and the entry point
+actually runs.
+
 ## Instructions
 
 You are not the renderer. The script is. Invoke it and report what
@@ -38,7 +67,7 @@ landed where.
 ### Step 1 — Verify `mmdc` is available
 
 ```bash
-python scripts/render_mermaid.py --check
+python '<skill-dir>/scripts/render_mermaid.py' --check
 ```
 
 - Exit code 0 → `mmdc` is on `PATH`, proceed.
@@ -49,7 +78,7 @@ python scripts/render_mermaid.py --check
 ### Step 2 — Render
 
 ```bash
-python scripts/render_mermaid.py --input report.md --output-dir ./rendered [--format png|svg] [--theme default|forest|dark|neutral] [--background white|transparent|#hex] [--prefix diagram]
+python '<skill-dir>/scripts/render_mermaid.py' --input report.md --output-dir ./rendered [--format png|svg] [--theme default|forest|dark|neutral] [--background white|transparent|#hex] [--prefix diagram]
 ```
 
 | Flag | Meaning |

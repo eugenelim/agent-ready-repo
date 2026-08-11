@@ -2,11 +2,11 @@
 
 Invocation examples:
 
-    python scripts/crawl_space.py --check
-    python scripts/crawl_space.py --space ENG
-    python scripts/crawl_space.py --space ENG --depth 3 --output ./out
-    python scripts/crawl_space.py --space ENG --root 12345 --force
-    python scripts/crawl_space.py --space ENG --no-attachments
+    python '<skill-dir>/scripts/crawl_space.py' --check
+    python '<skill-dir>/scripts/crawl_space.py' --space ENG
+    python '<skill-dir>/scripts/crawl_space.py' --space ENG --depth 3 --output ./out
+    python '<skill-dir>/scripts/crawl_space.py' --space ENG --root 12345 --force
+    python '<skill-dir>/scripts/crawl_space.py' --space ENG --no-attachments
 
 Credentials are resolved via the ``credbroker`` library
 (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile); run
@@ -28,7 +28,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Iterable
 
-# Bootstrap when invoked as ``python scripts/crawl_space.py`` so the
+# Bootstrap when invoked as ``python '<skill-dir>/scripts/crawl_space.py'`` so the
 # relative imports of sibling modules (e.g. ``_client``) resolve
 # against the siblings in this directory. Gated on
 # ``__spec__ is None`` so the block only fires for true file-path
@@ -69,6 +69,7 @@ try:
     from slugify import slugify  # noqa: E402
 
     from ._client import (  # noqa: E402
+        OPERATOR_SETUP_COMMAND,
         AuthError,
         ConfluenceClient,
         ConfluenceError,
@@ -77,6 +78,7 @@ try:
         SsoSessionUnavailable,
         identity_of,
         load_credentials,
+        operator_command,
     )
     from ._convert import to_markdown  # noqa: E402
     from ._links import LinkTargets  # noqa: E402
@@ -107,7 +109,7 @@ EXIT_USER_ACTION = 2
 SLUG_MAX_LEN = 80
 UNLIMITED_DEPTH = 9999
 _CREDBROKER_FLOOR = "0.5.0"
-_MANUAL_SSO_SETUP = "python scripts/setup_sso.py"
+_MANUAL_SSO_SETUP = OPERATOR_SETUP_COMMAND
 
 # Token-shaped CLI flags are rejected before argparse runs — argparse would
 # otherwise echo the offending ``--flag VALUE`` verbatim in its
@@ -208,8 +210,13 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    program = operator_command("crawl_space.py")
     parser = _ScrubbingArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+        prog=program,
+        description=(__doc__ or "").replace(
+            "python '<skill-dir>/scripts/crawl_space.py'", program
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--space", help="Confluence space key (e.g., ENG)")
     parser.add_argument("--root", help="Page ID to start from (default: space homepage)")

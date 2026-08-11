@@ -1,0 +1,19 @@
+[
+  {"query": "Turn Linear issue LIN-123 and its sub-issues into a product brief", "should_trigger": true},
+  {"query": "Create a brief from this Linear project", "should_trigger": true},
+  {"query": "Import this Linear epic into the product brief pipeline", "should_trigger": true},
+  {"query": "Make a shippable brief from Linear issue ENG-90", "should_trigger": true},
+  {"query": "Convert the stories under LIN-88 into brief user stories", "should_trigger": true},
+  {"query": "Start brief intake from this Linear project UUID", "should_trigger": true},
+  {"query": "Pull this Linear issue into a new product brief", "should_trigger": true},
+  {"query": "Use the Linear sub-issues as stories in a brief", "should_trigger": true},
+
+  {"query": "Fetch Linear issue LIN-123", "should_trigger": false},
+  {"query": "Sync this existing brief with Linear", "should_trigger": false},
+  {"query": "Create a new Linear issue", "should_trigger": false},
+  {"query": "Turn Jira issue PROJ-42 into a brief", "should_trigger": false},
+  {"query": "Write a spec for this one small feature", "should_trigger": false},
+  {"query": "Review this already written product brief", "should_trigger": false},
+  {"query": "Draft a brief from this stakeholder email", "should_trigger": false},
+  {"query": "Update the outcome in this product brief", "should_trigger": false}
+]

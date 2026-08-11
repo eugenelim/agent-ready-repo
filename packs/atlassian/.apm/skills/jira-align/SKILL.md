@@ -19,6 +19,35 @@ Atlassian Cloud (`*.jiraalign.com`) and self-hosted / on-prem installs.
 Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 
+## Installed entry-point contract
+
+Treat `<skill-dir>` as the installer-supplied directory containing this active
+`SKILL.md`; never infer it from the current working directory, user input, an
+environment variable, or a profile path. Replace `<skill-dir>` with that actual
+validated directory before executing or relaying any command; never send the
+placeholder to a runtime or user. Before every invocation of `jira_align.py`:
+
+1. Canonicalize `<skill-dir>`, its `scripts/` child, and the expected entry
+   point, resolving symlinks. Require the entry point to be a regular file and
+   its resolved path to remain beneath the canonical `scripts/` directory.
+2. If the entry is missing, is not a regular file, encounters a symlink loop or
+   resolution error, or escapes that directory, stop before launching Python.
+   Report only `error: installed skill entry point is unavailable: <entry>`,
+   substituting the basename. Do not expose an absolute, home, profile,
+   environment, or protected path; do not relay raw runtime stderr; and do not
+   offer credential, SSO-capture, token, scope, or dependency remediation.
+3. Invoke with a discrete argument vector, for example
+   `["<python>", "<skill-dir>/scripts/jira_align.py", "..."]`, so spaces, both quote characters, `$()`, backticks, and
+   variable-shaped text cannot be expanded by a shell. Keep the project root as
+   the working directory so user content paths retain their documented meaning.
+4. If only a shell string is available, use a single-quoted literal path on
+   POSIX or PowerShell and refuse paths containing a single quote. On cmd.exe,
+   use a double-quoted path and refuse paths containing `"`, `%`, or `!`.
+   If the adapter cannot represent the path safely, refuse instead of invoking.
+
+Interpret exit codes only after this preflight succeeds and the entry point
+actually runs.
+
 ## Instructions
 
 You are a Jira Align query agent. Authentication, pagination, retries, and
@@ -71,7 +100,7 @@ python -m pip install -r requirements.txt
 Then verify connectivity:
 
 ```bash
-python scripts/jira_align.py check
+python '<skill-dir>/scripts/jira_align.py' check
 ```
 
 - Exit code 0 → authenticated, proceed.
@@ -100,14 +129,14 @@ surface as exit 1 with a message naming the cause.
 
 | Intent | Command |
 |---|---|
-| Who am I? | `python scripts/jira_align.py whoami` |
-| Fetch one record | `python scripts/jira_align.py get <resource> <id>` |
-| List / filter a collection | `python scripts/jira_align.py list <resource> [--filter ... --select ... --orderby ... --expand ... --limit ...]` |
-| Shortcut: filter only | `python scripts/jira_align.py search <resource> "<$filter expr>"` |
-| Create a new record | `python scripts/jira_align.py create <resource> --field KEY=VALUE ...` (or `--data-file body.json`) |
-| Update an existing record | `python scripts/jira_align.py update <resource> <id> --field KEY=VALUE ...` (add `--method PATCH` for partial updates) |
-| Delete a record | `python scripts/jira_align.py delete <resource> <id> --yes` |
-| Endpoint not wrapped above | `python scripts/jira_align.py raw GET <path> [--param k=v ...]` |
+| Who am I? | `python '<skill-dir>/scripts/jira_align.py' whoami` |
+| Fetch one record | `python '<skill-dir>/scripts/jira_align.py' get <resource> <id>` |
+| List / filter a collection | `python '<skill-dir>/scripts/jira_align.py' list <resource> [--filter ... --select ... --orderby ... --expand ... --limit ...]` |
+| Shortcut: filter only | `python '<skill-dir>/scripts/jira_align.py' search <resource> "<$filter expr>"` |
+| Create a new record | `python '<skill-dir>/scripts/jira_align.py' create <resource> --field KEY=VALUE ...` (or `--data-file body.json`) |
+| Update an existing record | `python '<skill-dir>/scripts/jira_align.py' update <resource> <id> --field KEY=VALUE ...` (add `--method PATCH` for partial updates) |
+| Delete a record | `python '<skill-dir>/scripts/jira_align.py' delete <resource> <id> --yes` |
+| Endpoint not wrapped above | `python '<skill-dir>/scripts/jira_align.py' raw GET <path> [--param k=v ...]` |
 
 Common resources: `epics`, `features`, `stories`, `capabilities`, `themes`,
 `tasks`, `defects`, `objectives`, `portfolios`, `programs`, `teams`,
@@ -172,27 +201,27 @@ point them at their Swagger UI — do not invent values.
 
 ```bash
 # Who am I?
-python scripts/jira_align.py whoami
+python '<skill-dir>/scripts/jira_align.py' whoami
 
 # One epic by id, with the owner expanded
-python scripts/jira_align.py get epics 1001 --expand ownerUser
+python '<skill-dir>/scripts/jira_align.py' get epics 1001 --expand ownerUser
 
 # All in-progress features for a given program, just id+title, as CSV
-python scripts/jira_align.py list features \
+python '<skill-dir>/scripts/jira_align.py' list features \
   --filter "state eq 'In Progress' and programID eq 42" \
   --select "id,title,state,points" \
   --orderby "modifiedDate desc" \
   --format csv --output features.csv
 
 # Stories under a specific feature (raw call for nested endpoint)
-python scripts/jira_align.py raw GET features/789/stories
+python '<skill-dir>/scripts/jira_align.py' raw GET features/789/stories
 
 # Export every team, streaming as JSON Lines
-python scripts/jira_align.py list teams \
+python '<skill-dir>/scripts/jira_align.py' list teams \
   --format jsonl --output teams.jsonl
 
 # Create a new feature in program 42, owned by user 77
-python scripts/jira_align.py create features \
+python '<skill-dir>/scripts/jira_align.py' create features \
   --field title="Onboarding revamp" \
   --field programID=42 \
   --field ownerID=77 \
@@ -200,18 +229,18 @@ python scripts/jira_align.py create features \
   --field points=8
 
 # Partial update: change an existing feature's state and points only
-python scripts/jira_align.py update features 789 \
+python '<skill-dir>/scripts/jira_align.py' update features 789 \
   --method PATCH \
   --field state="In Progress" \
   --field points=13
 
 # Full replace from a JSON body, with one override
-python scripts/jira_align.py update epics 1001 \
+python '<skill-dir>/scripts/jira_align.py' update epics 1001 \
   --data-file epic-1001.json \
   --field state="Done"
 
 # Delete a story (requires explicit --yes)
-python scripts/jira_align.py delete stories 5432 --yes
+python '<skill-dir>/scripts/jira_align.py' delete stories 5432 --yes
 ```
 
 ### Don't

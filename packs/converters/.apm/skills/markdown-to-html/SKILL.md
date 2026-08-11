@@ -7,7 +7,7 @@ metadata:
 
 # Markdown to HTML
 
-A thin wrapper around `scripts/render.js`. The renderer parses Markdown
+A thin wrapper around `<skill-dir>/scripts/render.js`. The renderer parses Markdown
 deterministically with `marked` + `highlight.js`, post-processes for
 callouts and table wraps, builds a sidebar nav and print TOC from
 heading IDs, and stamps everything into `scripts/template.html`.
@@ -16,6 +16,35 @@ heading IDs, and stamps everything into `scripts/template.html`.
 
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 
+## Installed entry-point contract
+
+Treat `<skill-dir>` as the installer-supplied directory containing this active
+`SKILL.md`; never infer it from the current working directory, user input, an
+environment variable, or a profile path. Replace `<skill-dir>` with that actual
+validated directory before executing or relaying any command; never send the
+placeholder to a runtime or user. Before every invocation of `render.js`:
+
+1. Canonicalize `<skill-dir>`, its `scripts/` child, and the expected entry
+   point, resolving symlinks. Require the entry point to be a regular file and
+   its resolved path to remain beneath the canonical `scripts/` directory.
+2. If the entry is missing, is not a regular file, encounters a symlink loop or
+   resolution error, or escapes that directory, stop before launching Node.
+   Report only `error: installed skill entry point is unavailable: <entry>`,
+   substituting the basename. Do not expose an absolute, home, profile,
+   environment, or protected path; do not relay raw runtime stderr; and do not
+   offer credential, SSO-capture, token, scope, or dependency remediation.
+3. Invoke with a discrete argument vector, for example
+   `["node", "<skill-dir>/scripts/render.js", "..."]`, so spaces, both quote characters, `$()`, backticks, and
+   variable-shaped text cannot be expanded by a shell. Keep the project root as
+   the working directory so user content paths retain their documented meaning.
+4. If only a shell string is available, use a single-quoted literal path on
+   POSIX or PowerShell and refuse paths containing a single quote. On cmd.exe,
+   use a double-quoted path and refuse paths containing `"`, `%`, or `!`.
+   If the adapter cannot represent the path safely, refuse instead of invoking.
+
+Interpret exit codes only after this preflight succeeds and the entry point
+actually runs.
+
 ## Instructions
 
 You are not the renderer. The script is. Invoke it and report the path.
@@ -23,11 +52,15 @@ You are not the renderer. The script is. Invoke it and report the path.
 ### Step 1 — Verify dependencies
 
 The renderer needs Node.js and the `marked` + `highlight.js` packages
-(pinned in `package.json`). From the skill's own directory, check
-whether they're already installed:
+(pinned in `package.json`). Use the actual `<skill-dir>` resolved during
+preflight as npm's explicit prefix; do not substitute the current working
+directory. Render that prefix with the same safe literal/refusal rules as the
+entry point. The examples below show the POSIX/PowerShell single-quoted form;
+refuse a path containing a single quote instead of relaying either command.
+Check whether the packages are already installed:
 
 ```bash
-node -e "require.resolve('marked'); require.resolve('highlight.js')"
+npm --prefix '<skill-dir>' ls --depth=0 --silent marked highlight.js
 ```
 
 - Exit 0 → dependencies present; go to Step 2.
@@ -37,18 +70,18 @@ node -e "require.resolve('marked'); require.resolve('highlight.js')"
   one-time install and re-verify — don't assume it succeeded:
 
   ```bash
-  npm install   # installs the pinned marked + highlight.js
-  node -e "require.resolve('marked'); require.resolve('highlight.js')"
+  npm --prefix '<skill-dir>' install
+  npm --prefix '<skill-dir>' ls --depth=0 --silent marked highlight.js
   ```
 
 (The install is one-time; subsequent runs are cached in `node_modules/`.)
 
-> Note: if your installer drops this skill into a tracked directory, add the skill's `node_modules/` to your project's `.gitignore` to avoid committing the npm install artifacts.
+> Note: if your installer drops this skill into a tracked directory, add the skill's `node_modules/` to your project's `.gitignore` to avoid committing installed dependency artifacts.
 
 ### Step 2 — Render
 
 ```bash
-node scripts/render.js <input.md> [--output OUT.html] [--title T] [--subtitle S] [--theme NAME] [--no-mermaid]
+node '<skill-dir>/scripts/render.js' <input.md> [--output OUT.html] [--title T] [--subtitle S] [--theme NAME] [--no-mermaid]
 ```
 
 | Flag | Meaning |
@@ -100,7 +133,7 @@ relevant.
 
 ### Edge cases
 
-- **Missing dependencies**: `node scripts/render.js` exits 1 with an
+- **Missing dependencies**: `node '<skill-dir>/scripts/render.js'` exits 1 with an
   install hint. Follow Step 1 — install on consent, then re-verify;
   don't install bare.
 - **No headings**: sidebar shows `(no sections)`. Output still works,
