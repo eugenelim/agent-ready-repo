@@ -1,10 +1,10 @@
 """T1 of wire-session-start-hook spec — construction test.
 
 Stages a synthetic minimal pack inside a tmp catalogue and asserts that
-`install.run(...)` projects the wiring TOML into Claude Code's
-nested SessionStart schema. At **repo scope**, `agentbundle install`
-produces a dist-tree Claude-plugin layout, so the settings file lands
-at `<target>/claude-plugins/<pack>/.claude/settings.local.json`
+`install.run(...)` with `--emit-install-routes` compiles the wiring TOML into
+Claude Code's nested SessionStart schema. At **repo scope**, that opt-in
+produces a dist-tree Claude-plugin layout, so the compiled hook lands
+in `<target>/claude-plugins/<pack>/.claude-plugin/plugin.json`
 (the flat `<target>/.claude/...` shape is only produced at user scope,
 which this spec doesn't cover).
 
@@ -35,7 +35,7 @@ name = "test-core"
 version = "0.1.0"
 
 [pack.adapter-contract]
-version = "0.3"
+version = "0.18"
 
 [pack.install]
 default-scope = "repo"
@@ -103,25 +103,23 @@ def test_install_writes_nested_session_start_binding(tmp_path):
         "output": str(target),
         "scope": None,
         "force": False,
+        "emit_install_routes": True,
     })
     assert rc == 0, f"install failed: {stderr}"
 
-    # Repo-scope install produces the dist-tree Claude-plugin layout:
-    # `<target>/claude-plugins/<pack-name>/.claude/settings.local.json`.
-    settings = target / "claude-plugins" / "test-core" / ".claude" / "settings.local.json"
-    assert settings.exists(), (
-        f"settings.local.json not written under {target / 'claude-plugins' / 'test-core'}"
-    )
-    data = json.loads(settings.read_text(encoding="utf-8"))
+    plugin_root = target / "claude-plugins" / "test-core"
+    plugin_json = plugin_root / ".claude-plugin" / "plugin.json"
+    assert plugin_json.exists(), f"plugin.json not written under {plugin_root}"
+    data = json.loads(plugin_json.read_text(encoding="utf-8"))
 
-    # SessionStart array has exactly one outer entry.
+    # SessionStart has the unconditional install marker first, then authored wiring.
     assert "hooks" in data and "SessionStart" in data["hooks"], (
         f"hooks.SessionStart missing from settings: {data}"
     )
     entries = data["hooks"]["SessionStart"]
-    assert len(entries) == 1, f"expected 1 SessionStart entry, got {entries!r}"
+    assert len(entries) == 2, f"expected marker + authored SessionStart, got {entries!r}"
 
-    outer = entries[0]
+    outer = entries[1]
     # Pins the matcher-absence semantic (fires on all session types:
     # startup / resume / clear). Guards against a future TOML edit
     # accidentally narrowing scope by adding `matcher = "startup"`.
@@ -134,6 +132,10 @@ def test_install_writes_nested_session_start_binding(tmp_path):
     inner = outer.get("hooks", [])
     assert len(inner) == 1, f"expected 1 inner hook, got {inner!r}"
     assert inner[0]["type"] == "command", f"inner hook type must be 'command'; got {inner[0]!r}"
-    assert inner[0]["command"] == "python tools/hooks/session-start.py", (
+    assert inner[0]["command"] == (
+        'python "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.py"'
+    ), (
         f"inner hook command mismatch; got {inner[0]!r}"
     )
+    assert (plugin_root / "hooks" / "session-start.py").is_file()
+    assert not (plugin_root / ".claude").exists()

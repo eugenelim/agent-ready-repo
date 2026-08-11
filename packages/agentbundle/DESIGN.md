@@ -26,7 +26,7 @@ internal Artifactory bundle). Declares layout, build config, and
 distribution settings in `catalogue.toml`.
 
 **Adapter** — a target IDE or agent tool. agentbundle supports eight at
-contract v0.17: `claude-code`, `kiro-ide`, `kiro-cli`, `kiro` (deprecated
+contract v0.18: `claude-code`, `kiro-ide`, `kiro-cli`, `kiro` (deprecated
 alias for `kiro-ide`), `copilot`, `codex`, `cursor`, `gemini`.
 
 **Primitive** — the nine artifact types a pack can ship: `skill`, `agent`,
@@ -94,7 +94,7 @@ time. Computed by comparing the on-disk SHA with the SHA in state.toml:
 
 ### Adapter contract
 
-`_data/adapter.toml` (contract v0.17) is the enumerated source of truth for
+`_data/adapter.toml` (contract v0.18) is the enumerated source of truth for
 the (primitive × adapter) matrix. It drives:
 
 - which primitives a pack may declare per adapter

@@ -124,6 +124,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-lint-plugin-roster.py",
     "tools/lint-plugin-roster.py",
     "tools/test-publish-claude-plugins.py",
+    "tools/test-lint-claude-plugin-publish-control.py",
+    "tools/lint-claude-plugin-publish-control.py",
     "tools/test-lint-plugin-route-docs.py",
     "tools/lint-plugin-route-docs.py",
     "tools/test-lint-site-scope-parity.py",

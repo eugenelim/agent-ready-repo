@@ -27,6 +27,11 @@ from pathlib import Path
 from typing import Iterable
 
 from agentbundle.build.adapters import ADAPTERS
+from agentbundle.build.hook_wiring_rules import (
+    claude_projection_paths,
+)
+from agentbundle.build.projections.plugin_hooks import compile_plugin_hooks
+from agentbundle.build.scope_rails import check_hooks
 from agentbundle.build.validate import validate as validate_instance
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
@@ -54,6 +59,9 @@ _GITHUB_URL_RE = re.compile(
 # through the "not a GitHub URL" branch, which emits no `source` at all.
 _INSECURE_GITHUB_URL_RE = re.compile(
     r"^http://github\.com/([^/]+/[^/]+?)(?:\.git)?/?$"
+)
+_COMPILED_PLUGIN_HOOK_COMMAND_RE = re.compile(
+    r'^(python|python3|sh|bash) "\$\{CLAUDE_PLUGIN_ROOT\}/([^"]+)"$'
 )
 
 
@@ -110,6 +118,16 @@ _SESSION_START_COMMAND = (
     'python3 "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/scripts/install-marker.py"'
     ' --install-route claude-plugins'
 )
+
+_SESSION_START_HOOK_ENTRY = {
+    "hooks": [
+        {
+            "type": "command",
+            "command": _SESSION_START_COMMAND,
+            "timeout": 10,
+        }
+    ]
+}
 
 # The canonical APM-route SessionStart hook command synthesised into each
 # derived dist/apm/<pack>/.apm/hooks/install-marker.json. APM's HookIntegrator
@@ -436,14 +454,34 @@ def is_publishable(pack_meta: dict, *, slug: str) -> bool:
 
 
 def pack_is_publishable(pack_path: Path) -> bool:
-    """`is_publishable` for a pack on disk, including the manifest condition."""
+    """`is_publishable` on disk, including manifest and hook-consent rails."""
     pack_toml = pack_path / "pack.toml"
     if not pack_toml.exists():
         return False
     if not (pack_path / ".claude-plugin" / "plugin.json").exists():
         return False
     meta = tomllib.loads(pack_toml.read_text(encoding="utf-8"))
-    return is_publishable(meta, slug=pack_path.name)
+    return (
+        is_publishable(meta, slug=pack_path.name)
+        and _plugin_hook_consent_error(pack_path, meta) is None
+    )
+
+
+def _plugin_hook_consent_error(pack_path: Path, pack_meta: dict) -> str | None:
+    """Return Rail B's refusal for user-capable hook packs without opt-in."""
+    from agentbundle.commands.validate import _allowed_scopes
+
+    pack = pack_meta.get("pack", {})
+    install = pack.get("install", {}) if isinstance(pack, dict) else {}
+    opted_in = (
+        isinstance(install, dict)
+        and install.get("user-scope-hooks") is True
+    )
+    return check_hooks(
+        pack_path,
+        _allowed_scopes(pack_meta),
+        user_scope_hooks=opted_in,
+    )
 
 
 AGGREGATE_SCOPES = frozenset({"catalogue", "single-pack"})
@@ -463,6 +501,12 @@ def _skip_reason(pack_path: Path) -> str:
     from agentbundle.commands.validate import _allowed_scopes
 
     meta = tomllib.loads((pack_path / "pack.toml").read_text(encoding="utf-8"))
+    consent_error = _plugin_hook_consent_error(pack_path, meta)
+    if consent_error is not None:
+        return (
+            f"{consent_error}; set [pack.install] user-scope-hooks = true "
+            "to consent to user-scope hook publication"
+        )
     return (
         f"allowed-scopes={_allowed_scopes(meta)!r} does not admit 'user'"
     )
@@ -634,6 +678,35 @@ def _run_per_pack(
     produced: dict[str, str] = {}
     route_filtered = (recipe.name, recipe.adapter) == _CLAUDE_PLUGIN_ROUTE
     for pack in packs:
+        plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
+        pack_toml = pack.path / "pack.toml"
+        pack_meta = (
+            tomllib.loads(pack_toml.read_text(encoding="utf-8"))
+            if pack_toml.is_file()
+            else {}
+        )
+        if route_filtered:
+            consent_error = _plugin_hook_consent_error(pack.path, pack_meta)
+            if consent_error is not None:
+                raise ValueError(
+                    f"pack {pack.name!r}: claude-plugins recipe: "
+                    f"{consent_error}; set [pack.install] "
+                    "user-scope-hooks = true to consent to user-scope hook "
+                    "publication"
+                )
+        if route_filtered and not plugin_manifest.exists():
+            wiring_source = contract["primitive"]["hook-wiring"]["source-path"]
+            wiring_dir = pack.path / wiring_source.rstrip("/")
+            has_wiring = wiring_dir.is_dir() and any(
+                item.is_file() and item.suffix == ".toml"
+                for item in wiring_dir.iterdir()
+            )
+            if has_wiring and is_publishable(pack_meta, slug=pack.name):
+                raise ValueError(
+                    f"pack {pack.name!r}: claude-plugins recipe: pack ships "
+                    "hook wiring but has no .claude-plugin/plugin.json to "
+                    "receive it"
+                )
         if route_filtered and not pack_is_publishable(pack.path):
             # Route membership, not an error: a repo-only pack forbids the only
             # install this route offers. Named on stderr so an exclusion is
@@ -653,6 +726,12 @@ def _run_per_pack(
             _run_per_pack_single(
                 pack, recipe, project, output_dir, contract, produced
             )
+        except ValueError as exc:
+            # Pack-authored validation failures are expected input errors. Keep
+            # their type so command handlers render a normal refusal instead of
+            # leaking a traceback; prefix the pack for validators whose own
+            # message does not already identify it.
+            raise ValueError(f"pack {pack.name!r}: {exc}") from exc
         except Exception as exc:
             # Concern-9: surface the pack name so the operator knows which pack failed.
             raise RuntimeError(f"pack {pack.name!r}: {exc}") from exc
@@ -662,12 +741,12 @@ def _run_per_pack(
 def _resolve_contract_for_route(contract: dict, recipe: Recipe) -> dict:
     """Return the contract with route-scoped projection targets applied.
 
-    Claude Code *plugins* load ``skills/``, ``agents/`` and ``commands/`` from
-    the plugin root; a repo or user install lands the same primitives under
-    ``.claude/``. Rather than widen every adapter's ``project`` signature with a
-    route argument, the dispatcher swaps ``target-path`` for the entry's
-    ``plugin-target-path`` on the claude-plugins recipe only. The adapter keeps
-    reading ``target-path``, so the orphan sweep
+    Claude Code *plugins* load components from the plugin root; a repo or user
+    install lands the same primitives under adapter-specific direct paths.
+    Rather than widen every adapter's ``project`` signature with a route
+    argument, the dispatcher applies each ``plugin-target-path`` and
+    ``plugin-mode`` on the claude-plugins recipe only. The adapter keeps reading
+    ordinary ``target-path`` / ``mode`` fields, so the orphan sweep
     (``_skill_direct_directory_target``) resolves the same route-correct target
     for free — had the route reached the projection but not the sweep, the sweep
     would silently target a nonexistent directory.
@@ -675,26 +754,31 @@ def _resolve_contract_for_route(contract: dict, recipe: Recipe) -> dict:
     if recipe.name != "per-pack-claude-plugin" or recipe.adapter != "claude-code":
         return contract
     entries = contract["adapter"]["claude-code"].get("projection", [])
-    missing = [
-        e["primitive"] for e in entries
-        if e.get("primitive") in ("skill", "agent", "command")
-        and "plugin-target-path" not in e
-    ]
+    missing: list[str] = []
+    for entry in entries:
+        primitive = entry.get("primitive")
+        if primitive in ("skill", "agent", "hook-body", "command"):
+            if "plugin-target-path" not in entry:
+                missing.append(str(primitive))
+        elif primitive == "hook-wiring" and "plugin-mode" not in entry:
+            missing.append("hook-wiring:plugin-mode")
     if missing:
         # Fail loud. Returning the un-rerouted contract here would silently
         # restore the `.claude/` layout — the empty-plugin defect this exists
         # to prevent — for a typo'd key or a stale bundled adapter.toml.
         raise ValueError(
             "claude-plugins recipe: claude-code contract is missing "
-            f"'plugin-target-path' for {missing}; components would be "
-            "published under .claude/ where the plugin loader cannot see them"
+            f"route-scoped projection fields for {missing}; hook components "
+            "would be misplaced or silently omitted"
         )
-    rerouted = [
-        {**entry, "target-path": entry["plugin-target-path"]}
-        if "plugin-target-path" in entry
-        else entry
-        for entry in entries
-    ]
+    rerouted = []
+    for entry in entries:
+        resolved = dict(entry)
+        if "plugin-target-path" in entry:
+            resolved["target-path"] = entry["plugin-target-path"]
+        if "plugin-mode" in entry:
+            resolved["mode"] = entry["plugin-mode"]
+        rerouted.append(resolved)
     adapters = dict(contract["adapter"])
     adapters["claude-code"] = {
         **contract["adapter"]["claude-code"], "projection": rerouted
@@ -711,6 +795,32 @@ def _run_per_pack_single(
     produced: dict[str, str],
 ) -> None:
     """Execute the derivation pipeline for a single pack."""
+    plugin_route = (
+        recipe.name == "per-pack-claude-plugin" and recipe.adapter == "claude-code"
+    )
+    authored_hooks: dict[str, list[dict]] = {}
+    plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
+    if plugin_route:
+        repo_prefix, plugin_prefix, hook_source, wiring_source = (
+            claude_projection_paths(contract)
+        )
+        authored_hooks = compile_plugin_hooks(
+            pack.path,
+            repo_hook_prefix=repo_prefix,
+            plugin_hook_prefix=plugin_prefix,
+            hook_source_path=hook_source,
+            wiring_source_path=wiring_source,
+            pack_name=pack.name,
+        )
+        wiring_dir = pack.path / wiring_source.rstrip("/")
+        has_wiring = wiring_dir.is_dir() and any(
+            p.is_file() and p.suffix == ".toml" for p in wiring_dir.iterdir()
+        )
+        if has_wiring and not plugin_manifest.exists():
+            raise ValueError(
+                "claude-plugins recipe: pack ships hook wiring but has no "
+                ".claude-plugin/plugin.json to receive it"
+            )
     contract = _resolve_contract_for_route(contract, recipe)
     per_pack_output = output_dir / recipe.output_subdir / pack.name
     _assert_under(per_pack_output, output_dir)
@@ -720,7 +830,6 @@ def _run_per_pack_single(
         shutil.rmtree(per_pack_output)
     per_pack_output.mkdir(parents=True, exist_ok=True)
     project(pack.path, contract, per_pack_output)
-    plugin_manifest = pack.path / ".claude-plugin" / "plugin.json"
     if plugin_manifest.exists():
         # Validate source-tree manifest against the source schema
         # (forbids hooks; additionalProperties: false ensures any stray
@@ -734,19 +843,12 @@ def _run_per_pack_single(
         # with a nested "hooks" array of typed hook objects, not a flat
         # {command} object. The old flat shape ({command}) is rejected with
         # "hooks: Invalid input" by the plugin validator.
-        derived["hooks"] = {
-            "SessionStart": [
-                {
-                    "hooks": [
-                        {
-                            "type": "command",
-                            "command": _SESSION_START_COMMAND,
-                            "timeout": 10,
-                        }
-                    ]
-                }
-            ]
+        merged_hooks: dict[str, list[dict]] = {
+            "SessionStart": [_SESSION_START_HOOK_ENTRY]
         }
+        for event, entries in authored_hooks.items():
+            merged_hooks.setdefault(event, []).extend(entries)
+        derived["hooks"] = merged_hooks
         # enriched-pack-manifest: merge the projectable metadata subset derived
         # from this pack's pack.toml (emit-only-when-present, so a legacy pack
         # adds no keys and the output stays byte-identical).
@@ -870,6 +972,58 @@ def _run_per_pack_apm(recipe: Recipe, packs: list[Pack], output_dir: Path) -> di
     return {"recipe": recipe.name, "type": recipe.type, "produced": produced}
 
 
+def _authored_hook_disclosure(hooks: object) -> str | None:
+    """Render marketplace-safe metadata for compiled authored hooks.
+
+    The synthetic marker is recognized structurally only at its guaranteed
+    first ``SessionStart`` position. Executable hooks remain solely in the
+    per-plugin manifest; this string is disclosure, not a registration source.
+    """
+    if not isinstance(hooks, dict):
+        return None
+    inventory: list[str] = []
+    for event, entries in hooks.items():
+        if not isinstance(event, str) or not isinstance(entries, list):
+            raise ValueError("marketplace: derived hooks cannot be disclosed safely")
+        for index, outer in enumerate(entries):
+            if (
+                event == "SessionStart"
+                and index == 0
+                and outer == _SESSION_START_HOOK_ENTRY
+            ):
+                continue
+            if not isinstance(outer, dict):
+                raise ValueError("marketplace: derived hook entry is not an object")
+            matcher = outer.get("matcher", "*")
+            inner_hooks = outer.get("hooks", [])
+            if not isinstance(matcher, str) or not isinstance(inner_hooks, list):
+                raise ValueError("marketplace: derived hook metadata is not disclosable")
+            for inner in inner_hooks:
+                if not isinstance(inner, dict):
+                    raise ValueError("marketplace: derived command hook is not an object")
+                command = inner.get("command")
+                if not isinstance(command, str):
+                    raise ValueError("marketplace: derived hook command is not a string")
+                match = _COMPILED_PLUGIN_HOOK_COMMAND_RE.fullmatch(command)
+                if match is None:
+                    raise ValueError(
+                        "marketplace: authored hook command cannot be rendered "
+                        "as complete disclosure metadata"
+                    )
+                timeout = inner.get("timeout", 60)
+                if not isinstance(timeout, int):
+                    raise ValueError("marketplace: derived hook timeout is not an integer")
+                inventory.append(
+                    f"- {event} | matcher={matcher} | timeout={timeout}s | "
+                    f"interpreter={match.group(1)} | path={match.group(2)}"
+                )
+    if not inventory:
+        return None
+    return "\n\nAuthored hooks ({}):\n{}".format(
+        len(inventory), "\n".join(inventory)
+    )
+
+
 def _render_apm_yml(pack_metadata: dict) -> str:
     """Render the per-pack APM package metadata.
 
@@ -932,9 +1086,14 @@ def _run_aggregate(
             manifest = plugin_dir / ".claude-plugin" / "plugin.json"
             if manifest.exists():
                 entry = json.loads(manifest.read_text(encoding="utf-8"))
+                disclosure = _authored_hook_disclosure(entry.get("hooks"))
                 # hooks are per-plugin installation artifacts, not marketplace
                 # metadata; strip them from marketplace entries.
                 entry.pop("hooks", None)
+                if disclosure is not None:
+                    description = entry.get("description", "")
+                    if isinstance(description, str):
+                        entry["description"] = description + disclosure
                 # Re-add marketplace-only fields (source, category) from the
                 # projected pack.toml (also present in the dist directory).
                 # These were stripped from plugin.json to keep it clean of

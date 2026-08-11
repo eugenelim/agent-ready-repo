@@ -1,0 +1,41 @@
+{
+  "name": "hook-parity-spike-command-strings",
+  "version": "0.0.0",
+  "description": "A local fixture for command-string validation boundaries.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"exec('print(1)')\""
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/true; /usr/bin/true"
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/true | /usr/bin/cat"
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/echo $(/usr/bin/id)"
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/echo `/usr/bin/id`"
+          },
+          {
+            "type": "command",
+            "command": "/usr/bin/true\n/usr/bin/true"
+          }
+        ]
+      }
+    ]
+  }
+}

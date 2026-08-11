@@ -1669,7 +1669,7 @@ def _filter_for_primitive(
     Hook ``pre-commit`` under source dir ``hooks`` matches:
       - ``apm/architect/.apm/hooks/pre-commit.sh``
       - ``apm/architect/.apm/hooks/pre-commit.py``
-      - ``claude-plugins/architect/tools/hooks/pre-commit.sh``
+      - ``claude-plugins/architect/hooks/pre-commit.sh``
 
     The ``claude-plugins/`` rows are shown for a user-capable pack: a
     repo-only pack such as ``core`` has no projection on that route.

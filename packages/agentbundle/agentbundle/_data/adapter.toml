@@ -90,7 +90,10 @@
 # reader cohort. cursor/gemini/copilot route the `skill` primitive to the shared
 # `.agents/skills/` home (joining codex) and gain it in `allowed-prefixes` at
 # both scopes; their agent/hook/command projection stays native.
-version = "0.17"
+# v0.18 (Claude-plugin hook parity): `hook-body` gains the plugin-root
+# `hooks/` target and `hook-wiring` is dropped from the ordinary projection on
+# that route after its entries are compiled into plugin.json.
+version = "0.18"
 
 # Sibling schemas this contract references — pack metadata and the
 # per-pack Claude-plugin manifest.
@@ -202,11 +205,13 @@ on-conflict = "prompt-then-preserve"
 primitive = "hook-body"
 mode = "direct-file"
 target-path = "tools/hooks/"
+plugin-target-path = "hooks/"
 on-conflict = "prompt-then-preserve"
 
 [[adapter."claude-code".projection]]
 primitive = "hook-wiring"
 mode = "merge-json"
+plugin-mode = "dropped"
 target-path = ".claude/settings.local.json"
 managed-key = "hooks"
 on-conflict = "merge-managed-key-only"

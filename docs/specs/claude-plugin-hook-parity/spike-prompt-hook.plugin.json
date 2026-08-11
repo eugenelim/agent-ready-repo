@@ -1,0 +1,21 @@
+{
+  "name": "hook-parity-spike-prompt-hook",
+  "version": "0.0.0",
+  "description": "A local fixture for a prompt hook.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "Return true."
+          }
+        ]
+      }
+    ]
+  }
+}

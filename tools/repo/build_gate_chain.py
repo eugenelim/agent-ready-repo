@@ -233,6 +233,14 @@ def build_check(args: argparse.Namespace) -> int:
             "test-publish-claude-plugins",
             "tools", "test-publish-claude-plugins.py",
         ),
+        _script_step(
+            "test-lint-claude-plugin-publish-control",
+            "tools", "test-lint-claude-plugin-publish-control.py",
+        ),
+        _script_step(
+            "lint-claude-plugin-publish-control",
+            "tools", "lint-claude-plugin-publish-control.py",
+        ),
         # Per-site `(path, pattern, expected)` — the sites do not share a
         # pattern, so one repo-wide grep would pass green on most of them.
         _script_step(

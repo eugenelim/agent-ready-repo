@@ -54,9 +54,9 @@ class CursorContractTests(unittest.TestCase):
         """Contract bumped to 0.11 by cursor full parity; subsequently to
         0.12 by copilot skills and web, 0.13 by gemini full parity, 0.14 by
         the enriched pack manifest, 0.15 by kiro-cli agent skill resources,
-        and 0.17 by the consolidated pack layout. Name preserved to keep the
+        0.17 by the consolidated pack layout, and 0.18 by Claude-plugin hook parity. Name preserved to keep the
         diff small."""
-        self.assertEqual(self.contract["contract"]["version"], "0.17")
+        self.assertEqual(self.contract["contract"]["version"], "0.18")
 
     def test_cursor_block_projects_five_primitives(self) -> None:
         """The five standard primitives are in the projection array."""

@@ -1,0 +1,21 @@
+{
+  "name": "hook-parity-spike-unknown-event",
+  "version": "0.0.0",
+  "description": "A local fixture with an undocumented hook event.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {
+    "UnknownEvent": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/true"
+          }
+        ]
+      }
+    ]
+  }
+}

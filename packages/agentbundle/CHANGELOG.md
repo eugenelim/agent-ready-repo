@@ -6,6 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.32.0] — 2026-08-10
+
+### Added
+
+- **Claude-plugin installs now compile safe pack-authored command hooks into
+  native plugin hooks.** Hook bodies project under the plugin root, the
+  synthetic install marker remains first, and marketplace descriptions disclose
+  each authored event, matcher, timeout, interpreter, and body path before
+  installation.
+
+### Changed
+
+- **Claude-shaped hook wiring is validated at pack ingress.** Publication is
+  limited to a pinned event set, four interpreters, exact two-token commands,
+  confined regular hook-body files, bounded timeouts and fan-out, and literal
+  matcher alternations. Direct-route output for valid wiring is unchanged.
+- The adapter contract is now **v0.18**, adding the Claude-plugin-specific
+  hook-body target and hook-wiring projection mode.
+
 ## [0.31.1] — 2026-08-10
 
 ### Added

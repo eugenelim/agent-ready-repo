@@ -151,9 +151,8 @@ class GeminiContractTests(unittest.TestCase):
         cls.contract = load_contract(CONTRACT_PATH)
 
     def test_contract_version_is_0_14(self) -> None:
-        """Contract version is 0.17 (consolidated pack layout
-        bumped it from kiro-cli-agent-skill-resources' 0.15). Name preserved."""
-        self.assertEqual(self.contract["contract"]["version"], "0.17")
+        """Contract version is 0.18 after Claude-plugin hook parity. Name preserved."""
+        self.assertEqual(self.contract["contract"]["version"], "0.18")
 
     def test_gemini_block_projects_five_primitives(self) -> None:
         """Five standard primitives with their gemini targets."""

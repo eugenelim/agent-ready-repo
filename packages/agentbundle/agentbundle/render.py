@@ -73,12 +73,15 @@ def render_pack_to_dir(
     """
     pack = _pack_from_path(pack_path)
     contract_data = _resolve_contract(contract)
-    output_dir.mkdir(parents=True, exist_ok=True)
     for recipe_name in recipes:
         recipe = load_recipe(recipe_name)
         run_recipe(
             recipe, [pack], output_dir, contract_data, aggregate_scope="single-pack"
         )
+    # Recipe writers create their own parents. Retain the public guarantee for
+    # an empty recipe sequence without creating a visible artifact before a
+    # fail-closed plugin compiler has accepted the pack.
+    output_dir.mkdir(parents=True, exist_ok=True)
 
 
 def render_pack(
@@ -108,12 +111,12 @@ def render_packs_to_dir(
     """Render every pack under `packs_dir` — the full `make build` shape."""
     contract_data = _resolve_contract(contract)
     packs = discover_packs(packs_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
     for recipe_name in recipes:
         recipe = load_recipe(recipe_name)
         run_recipe(
             recipe, packs, output_dir, contract_data, aggregate_scope="catalogue"
         )
+    output_dir.mkdir(parents=True, exist_ok=True)
 
 
 def _collect_tree(root: Path) -> dict[str, bytes]:

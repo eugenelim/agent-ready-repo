@@ -1,2 +1,5 @@
-[hooks]
-baz = "tools/hooks/baz.sh"
+[[hooks.SessionStart]]
+matcher = "startup|resume"
+hooks = [
+  { type = "command", command = "python tools/hooks/baz.py", timeout = 12 },
+]

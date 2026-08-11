@@ -105,6 +105,27 @@ class LintPackTests(unittest.TestCase):
         findings = lint_pack(FIXTURES / "clean")
         self.assertEqual(findings, [])
 
+    def test_hook_compiler_findings_accumulate_across_packs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            packs = Path(tmp) / "packs"
+            for name in ("alpha", "beta"):
+                pack = packs / name
+                _write_minimal_pack(pack, name=name)
+                hooks = pack / ".apm" / "hooks"
+                wiring = pack / ".apm" / "hook-wiring"
+                hooks.mkdir(parents=True)
+                wiring.mkdir(parents=True)
+                (hooks / "run.py").write_text("pass\n", encoding="utf-8")
+                (wiring / "run.toml").write_text(
+                    "[[hooks.SessionStart]]\n"
+                    'hooks = [{ type = "command", command = '
+                    '"python3 -c tools/hooks/run.py" }]\n',
+                    encoding="utf-8",
+                )
+            results = lint_all_packs(packs)
+        self.assertIn("command", "\n".join(results["alpha"]))
+        self.assertIn("command", "\n".join(results["beta"]))
+
     @unittest.skipIf(
         sys.platform == "win32",
         "NTFS refuses to materialise seeds/CON.md; lint logic is OS-agnostic "

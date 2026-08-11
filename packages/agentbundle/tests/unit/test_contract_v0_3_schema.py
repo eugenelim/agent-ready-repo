@@ -76,8 +76,8 @@ class ContractVersionTests(unittest.TestCase):
         # v0.11; gemini full parity bumped it to v0.13;
         # the enriched pack manifest bumped it to v0.14;
         # kiro-cli agent skill resources bumped it to v0.15;
-        # the consolidated pack layout bumps it to v0.17.
-        self.assertEqual(_load_contract()["contract"]["version"], "0.17")
+        # the consolidated pack layout bumps it to v0.17 and hook parity to v0.18.
+        self.assertEqual(_load_contract()["contract"]["version"], "0.18")
 
 
 # ---------------------------------------------------------------------------

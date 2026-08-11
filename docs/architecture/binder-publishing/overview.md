@@ -389,7 +389,7 @@ the sources; this one stops it reaching back into the contract.
 | Skill path discipline (linter-enforced) | **Decides the invocation contract** |
 | Three-tier dependency policy | Satisfied with no deviation: a pinned pip install is Tier 2 as written |
 | `safe_io.py` in `converters` | The blessed path-confinement pattern to reproduce (not import — self-containment forbids that) |
-| Adapter contract v0.17 | Fixes both the invocation contract and the manifest's contract version |
+| Adapter contract v0.17 (current contract v0.18) | Fixes both the invocation contract and the manifest's minimum version |
 | RFC-0080 / ADR-0070 | `--scope local`; auto-allowed with `repo` |
 | RFC-0036 | The placement precedent, addressed above |
 

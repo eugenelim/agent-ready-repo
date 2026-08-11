@@ -455,7 +455,7 @@ class ContractV05Tests(unittest.TestCase):
         self.schema = _load_schema()
 
     def test_contract_version_is_v05(self) -> None:
-        """tomllib.loads of adapter.toml returns contract.version == "0.17"
+        """tomllib.loads of adapter.toml returns contract.version == "0.18"
         (bumped from kiro-cli-agent-skill-resources' "0.15" by
         pack.toml gains an optional
         scope-keyed [pack.layout] table). Class/method names preserved to
@@ -463,9 +463,17 @@ class ContractV05Tests(unittest.TestCase):
         """
         self.assertEqual(
             self.contract["contract"]["version"],
-            "0.17",
-            "adapter.toml [contract] version must be '0.17' after consolidated-pack-layout",
+            "0.18",
+            "adapter.toml [contract] version must be '0.18' after Claude-plugin hook parity",
         )
+
+    def test_claude_plugin_hook_route_fields_are_exact(self) -> None:
+        entries = {
+            item["primitive"]: item
+            for item in self.contract["adapter"]["claude-code"]["projection"]
+        }
+        self.assertEqual(entries["hook-body"]["plugin-target-path"], "hooks/")
+        self.assertEqual(entries["hook-wiring"]["plugin-mode"], "dropped")
 
     def test_claude_code_install_routes_includes_apm(self) -> None:
         """[adapter."claude-code"] carries install-routes == ["cli", "claude-plugins", "apm"]."""

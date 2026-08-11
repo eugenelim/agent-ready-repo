@@ -1,0 +1,10 @@
+{
+  "name": "hook-parity-spike-path-reference",
+  "version": "0.0.0",
+  "description": "A local fixture whose manifest points at a hook file.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": "./spike-hooks.json"
+}

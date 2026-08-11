@@ -11,9 +11,8 @@ would interact unpredictably with the Claude Code adapter's
 `shutil.copytree(..., symlinks=True)` at `claude_code.py:72` (which
 preserves symlinks inside packs); copy keeps the smoke stable.
 
-One assertion: the projected
-`tmp_path/claude-plugins/core/.claude/settings.local.json` JSON has
-`hooks.SessionStart[0].hooks[0].command == "python tools/hooks/session-start.py"`.
+One assertion: the unfiltered APM route retains core's authored
+`SessionStart` wiring with command `python tools/hooks/session-start.py`.
 """
 
 from __future__ import annotations

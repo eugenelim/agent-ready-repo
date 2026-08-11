@@ -1,0 +1,10 @@
+{
+  "name": "hook-parity-spike-empty-hooks",
+  "version": "0.0.0",
+  "description": "A local fixture with an empty inline hook block.",
+  "author": {
+    "name": "Example Author"
+  },
+  "license": "MIT",
+  "hooks": {}
+}

@@ -313,7 +313,7 @@ def test_hook_extension_preservation_through_install(tmp_path: Path):
     _run_install(tmp_path, pack_dir)
 
     # F-build projects hooks under each per-pack recipe output —
-    # `claude-plugins/<pack>/tools/hooks/` and `apm/<pack>/.apm/hooks/`.
+    # `claude-plugins/<pack>/hooks/` and `apm/<pack>/.apm/hooks/`.
     # Either path is acceptable; the invariant is that the extensions
     # round-trip from source.
     all_hooks = list(tmp_path.rglob("*"))

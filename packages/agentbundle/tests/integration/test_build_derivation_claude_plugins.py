@@ -33,6 +33,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from agentbundle.build.main import _authored_hook_disclosure
 
 PACKAGE_ROOT = Path(__file__).resolve().parents[2]
 # packages/agentbundle/tests/integration/ → parents[2] = packages/agentbundle/
@@ -158,7 +159,7 @@ def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
     assert "SessionStart" in hooks, f"[{pack_name}] derived hooks missing 'SessionStart'"
     session_start = hooks["SessionStart"]
     assert isinstance(session_start, list), "SessionStart must be a list"
-    assert len(session_start) == 1, f"[{pack_name}] Expected 1 SessionStart entry"
+    assert session_start, f"[{pack_name}] Expected the install-marker SessionStart entry"
     # New nested hook contract: {hooks: [{type, command, timeout}]}
     entry = session_start[0]
     assert "hooks" in entry, (
@@ -175,6 +176,112 @@ def test_derivation_synthesises_hooks_block(tmp_path, pack_name):
         f"  expected: {EXPECTED_COMMAND!r}\n"
         f"  got:      {inner[0]['command']!r}"
     )
+
+
+def test_authored_hooks_are_compiled_marker_first_with_disclosure(tmp_path):
+    result = _run_build(FIXTURES_PACKS, tmp_path)
+    assert result.returncode == 0, result.stderr
+
+    plugin_root = tmp_path / "claude-plugins" / "core"
+    manifest = json.loads(
+        (plugin_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )
+    assert manifest["hooks"]["SessionStart"][0]["hooks"][0]["command"] == EXPECTED_COMMAND
+    assert manifest["hooks"]["SessionStart"][1] == {
+        "matcher": "startup|resume",
+        "hooks": [
+            {
+                "type": "command",
+                "command": 'python "${CLAUDE_PLUGIN_ROOT}/hooks/baz.py"',
+                "timeout": 12,
+            }
+        ],
+    }
+    assert manifest["hooks"]["UserPromptSubmit"] == [
+        {
+            "hooks": [
+                {
+                    "type": "command",
+                    "command": 'sh "${CLAUDE_PLUGIN_ROOT}/hooks/baz.sh"',
+                    "timeout": 60,
+                }
+            ]
+        }
+    ]
+    assert (plugin_root / "hooks" / "baz.py").is_file()
+    assert (plugin_root / "hooks" / "baz.sh").is_file()
+    assert not (plugin_root / "tools" / "hooks").exists()
+    assert not (plugin_root / ".claude").exists()
+
+    marketplace = json.loads(
+        (tmp_path / "claude-plugins" / "marketplace.json").read_text(encoding="utf-8")
+    )
+    entry = next(item for item in marketplace["plugins"] if item["name"] == "core")
+    assert "hooks" not in entry
+    assert "Authored hooks (2):" in entry["description"]
+    assert (
+        "SessionStart | matcher=startup|resume | timeout=12s | "
+        "interpreter=python | path=hooks/baz.py"
+    ) in entry["description"]
+    assert (
+        "UserPromptSubmit | matcher=* | timeout=60s | "
+        "interpreter=sh | path=hooks/baz.sh"
+    ) in entry["description"]
+
+
+def test_wiring_without_source_manifest_fails_loud(tmp_path):
+    packs = tmp_path / "packs"
+    pack = packs / "core"
+    shutil.copytree(FIXTURES_PACKS / "core", pack)
+    (pack / ".claude-plugin" / "plugin.json").unlink()
+    result = _run_build(packs, tmp_path / "dist")
+    assert result.returncode != 0
+    assert "core" in result.stderr
+    assert "hook wiring" in result.stderr
+    assert "no .claude-plugin/plugin.json" in result.stderr
+
+
+def test_hook_fixture_requires_user_scope_consent_flag(tmp_path):
+    packs = tmp_path / "packs"
+    pack = packs / "core"
+    shutil.copytree(FIXTURES_PACKS / "core", pack)
+    pack_toml = pack / "pack.toml"
+    pack_toml.write_text(
+        pack_toml.read_text(encoding="utf-8").replace(
+            "user-scope-hooks = true\n", ""
+        ),
+        encoding="utf-8",
+    )
+    result = subprocess.run(
+        [sys.executable, "-m", "agentbundle", "validate", str(pack)],
+        capture_output=True,
+        text=True,
+        cwd=PACKAGE_ROOT,
+    )
+    assert result.returncode == 1
+    assert "carries hook-shaped primitives" in result.stderr
+
+
+def test_disclosure_fails_closed_on_an_unrenderable_authored_command():
+    with pytest.raises(ValueError, match="complete disclosure"):
+        _authored_hook_disclosure(
+            {
+                "Stop": [
+                    {
+                        "hooks": [
+                            {
+                                "type": "command",
+                                "command": (
+                                    'python "${CLAUDE_PLUGIN_ROOT}/hooks/run.py" '
+                                    "--unexpected"
+                                ),
+                                "timeout": 10,
+                            }
+                        ]
+                    }
+                ]
+            }
+        )
 
 
 @pytest.mark.parametrize("pack_name", FIXTURE_PACK_NAMES)

@@ -54,6 +54,25 @@
                   ]
                 },
                 "target-path": {"type": "string"},
+                "plugin-target-path": {"type": "string"},
+                "plugin-mode": {
+                  "type": "string",
+                  "enum": [
+                    "direct-directory",
+                    "direct-file",
+                    "merge-json",
+                    "user-merge-json",
+                    "merge-into-agent-json",
+                    "instruction-file",
+                    "managed-block-inline",
+                    "degraded-info-log",
+                    "dropped",
+                    "codex-agent-toml",
+                    "copilot-agent-md",
+                    "copilot-hooks-json",
+                    "gemini-command-toml"
+                  ]
+                },
                 "on-conflict": {
                   "type": "string",
                   "enum": [

@@ -147,7 +147,8 @@ packs/                                dist/
 
 The contract is published, semver'd, and lives at
 [`contracts/adapter.toml`](../../contracts/adapter.toml). Currently
-**v0.17** (RFC-0052 / shared-prefix registry). No pack targets the
+**v0.18** (Claude-plugin hook parity; v0.17 added RFC-0052's shared-prefix
+registry). No published pack targets the
 latest contract: each pins the *minimum* version whose behaviour it
 needs, and the pinned values today spread across the v0.7–v0.13 range.
 Pack versions and contract versions are independent; bumping a pack only
@@ -176,6 +177,10 @@ The contract declares:
 - **`install-routes`** array per adapter — `cli`, `claude-plugins`, `apm`.
   Only `claude-code` declares it; the other adapters install via the CLI
   route alone.
+- **Claude-plugin route fields** (v0.18) — `hook-body.plugin-target-path`
+  places executable bodies under the plugin root, while
+  `hook-wiring.plugin-mode = "dropped"` prevents a dead settings file after
+  the wiring has been compiled into the derived plugin manifest.
 - **`[adapter.<name>.scope]`** table — `repo`, `user`, and
   `allowed-prefixes.{repo,user}`. Every shipped adapter declares a
   user-scope root (`~`) today; what differs is the prefix set it may write

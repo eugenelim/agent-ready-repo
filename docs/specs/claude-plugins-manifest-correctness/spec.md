@@ -247,3 +247,12 @@ unchanged; errata supersede where noted. (Approver: eugenelim, 2026-08-08.)
   `[pack.install] allowed-scopes` admits `"user"`. `core` declares
   `["repo"]`, so it is excluded from both marketplaces and from
   `dist/claude-plugins/`. This spec's AC2 (components at plugin root) and its layout assertions still govern every pack that *is* published; only `core`'s participation lapses.
+
+- **2026-08-10 — `hooks/` is now a projected plugin-root component.**
+  `docs/specs/claude-plugin-hook-parity` adds the route-scoped
+  `hook-body.plugin-target-path = "hooks/"` contract field and compiles authored
+  wiring into the derived manifest. AC10's deferred rationale that deriving the
+  reserved set from primitive source names would over-reserve `hooks/` is
+  therefore superseded: `hooks/` is now legitimately reserved on this route.
+  The criterion's broader requirement to derive collision guards from resolved
+  projection targets remains deferred. (Approver: eugenelim, 2026-08-10.)
