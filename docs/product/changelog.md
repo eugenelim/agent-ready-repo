@@ -18,6 +18,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [credential-brokers][0.3.2] — 2026-08-10
+
+#### Fixed
+
+- **Concurrent first use of an SSO profile no longer fails spuriously on
+  Windows.** The broker now establishes its fixed lock directory before
+  validating the profile's lockfile path, so simultaneous first-use operations
+  cannot make Windows path canonicalisation look like a confinement escape.
+  Traversal and wrong-parent paths remain rejected before a lockfile is opened.
+
 ### [core][2.5.5] — 2026-08-10
 
 #### Fixed

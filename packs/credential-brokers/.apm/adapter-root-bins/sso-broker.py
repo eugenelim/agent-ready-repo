@@ -862,8 +862,8 @@ def _profile_lock(profile: str, budget_s: float | None = None):
 
     path = None
     try:
-        path = _sso_lock_path(profile)
         _SSO_LOCK_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+        path = _sso_lock_path(profile)
         if os.name == "posix":
             # `mkdir(mode=...)` does not repair an existing directory, and a
             # 0755 lock dir lists every SSO profile the user holds to any local
