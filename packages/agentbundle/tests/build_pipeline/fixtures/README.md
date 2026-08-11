@@ -9,6 +9,7 @@ Layout:
 
 ```
 fixtures/
+├── claude-code-2.1.226-hook-events.json  # validator-observed event snapshot
 ├── packs/                                 # T8 end-to-end + adapter unit tests
 │   ├── core/
 │   │   ├── pack.toml
@@ -25,6 +26,10 @@ fixtures/
 └── recipes/                               # T6 negative-path tests
     └── bogus-target.toml                  # unknown-adapter-target negative test
 ```
+
+The Claude Code hook-event snapshot is package-test data rather than spec
+evidence. Keeping it here makes the build-pipeline suite exercise the same
+contract in a repository checkout and in a staged source distribution.
 
 Fixtures are test data and the `stdlib-only` rule does **not** bind
 them — a fixture hook may import third-party packages to simulate a

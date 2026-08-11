@@ -367,8 +367,11 @@ Then: verify the existing Approver-signed erratum on
 `docs/specs/wire-session-start-hook/spec.md`; add an Approver-signed erratum to
 `docs/specs/claude-plugins-manifest-correctness/spec.md` because its deferred
 AC10's "over-reserve hooks/" premise becomes false; land the hook-event
-documentation snapshot under the spec dir. T13 owns the later errata that can
-truthfully say the external branch control is live.
+snapshot at
+`packages/agentbundle/tests/build_pipeline/fixtures/claude-code-2.1.226-hook-events.json`
+so the engine suite carries its own test data in staged source distributions.
+T13 owns the later errata that can truthfully say the external branch control
+is live.
 
 ### T11 — Package release coupling
 **Depends on:** T7, T8, T9 · **Mode:** Goal-based check
