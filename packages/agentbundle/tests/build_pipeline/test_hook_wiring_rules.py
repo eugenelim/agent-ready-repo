@@ -46,16 +46,19 @@ def test_event_snapshot_and_restricted_split() -> None:
         "PermissionRequest",
         "PermissionDenied",
     } == KNOWN_EVENTS - PUBLISHABLE_EVENTS
-    snapshot_path = (
-        Path(__file__).resolve().parents[4]
-        / "docs"
-        / "specs"
-        / "claude-plugin-hook-parity"
-        / "claude-code-2.1.226-hook-events.json"
-    )
-    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
-    assert set(snapshot["accepted_events"]) == KNOWN_EVENTS
-    assert set(snapshot["known_but_unpublishable"]) == KNOWN_EVENTS - PUBLISHABLE_EVENTS
+    repo_root = Path(__file__).resolve().parents[4]
+    specs_root = repo_root / "docs" / "specs"
+    # The snapshot lives in the repo governance tree, which is absent when this
+    # engine suite runs from a staged sdist (only packages/agentbundle ships).
+    # Bind the code constants to the snapshot wherever that tree is present; a
+    # missing snapshot *within* a present tree still fails as a real regression.
+    if specs_root.is_dir():
+        snapshot_path = (
+            specs_root / "claude-plugin-hook-parity" / "claude-code-2.1.226-hook-events.json"
+        )
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        assert set(snapshot["accepted_events"]) == KNOWN_EVENTS
+        assert set(snapshot["known_but_unpublishable"]) == KNOWN_EVENTS - PUBLISHABLE_EVENTS
 
 
 @pytest.mark.parametrize(
