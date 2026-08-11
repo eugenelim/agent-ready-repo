@@ -7,7 +7,7 @@ How the code is *currently* organized. Not why (that's in
 - [`overview.md`](overview.md) — the map of the monorepo. What's in
   `packages/`, `tools/`, `packs/`, and how they relate. Read this first.
 - [`catalogue.md`](catalogue.md) — what a catalogue *is* on disk, how
-  `agentbundle` resolves one (the four-layer chain), and how to point it
+  `agentbundle` resolves one (the five-layer chain), and how to point it
   at your own. The starting point for standing up your own catalogue.
 - [`skill-and-pack-format.md`](skill-and-pack-format.md) — the format map:
   the agentskills.io skill standard we conform to, the pack envelope that

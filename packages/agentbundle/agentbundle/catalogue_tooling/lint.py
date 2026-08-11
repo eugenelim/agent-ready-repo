@@ -20,7 +20,12 @@ import re
 import tomllib
 from pathlib import Path
 
-from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
+from agentbundle.build.self_host import projects_claude_artifacts
+from agentbundle.catalogue_tooling.config import (
+    CatalogueConfig,
+    CatalogueConfigError,
+    load_catalogue_config,
+)
 from agentbundle.catalogue_tooling.diagnostics import DiagnosticCode
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity
 
@@ -967,40 +972,74 @@ def _cs_is_canonical_shim(py: Path, shim_source_dir: Path) -> bool:
 
 
 class _CatalogueRules:
-    def __init__(self, root: Path, config: object | None) -> None:
+    def __init__(self, root: Path, config: CatalogueConfig) -> None:
         self._root = root
         self._config = config
+        self._resolved_root: Path | None = None
+        self._resolved_config_paths: dict[str, Path] = {}
+        self._unsafe_config_paths: set[str] = set()
 
     def collect(self, pack_filter: str | None) -> list[Diagnostic]:
         diagnostics: list[Diagnostic] = []
+        diagnostics.extend(self._check_config_paths())
         diagnostics.extend(self._check_markers())
         diagnostics.extend(self._check_duplicate_identities())
-        diagnostics.extend(self._check_config_paths())
         diagnostics.extend(self._check_profiles())
         return diagnostics
 
-    def _packs_dir(self) -> Path:
-        if self._config is not None:
-            return self._root / self._config.paths.packs  # type: ignore[attr-defined]
-        return self._root / "packs"
+    def _configured_path(self, field: str, default: str) -> Path | None:
+        if field in self._unsafe_config_paths:
+            return None
+        if field in self._resolved_config_paths:
+            return self._resolved_config_paths[field]
+        return self._root / default
 
-    def _marketplace_path(self) -> Path:
-        if self._config is not None:
-            return self._root / self._config.paths.marketplace  # type: ignore[attr-defined]
-        return self._root / ".claude-plugin" / "marketplace.json"
+    def _packs_dir(self) -> Path | None:
+        return self._configured_path("packs", "packs")
+
+    def _marketplace_path(self) -> Path | None:
+        return self._configured_path(
+            "marketplace", ".claude-plugin/marketplace.json"
+        )
 
     def _check_markers(self) -> list[Diagnostic]:
         diags: list[Diagnostic] = []
-        packs_dir = self._packs_dir()
-        if not packs_dir.is_dir():
+        root_packs = self._root / "packs"
+        root_packs_valid = root_packs.is_dir()
+        if root_packs_valid and self._resolved_root is not None:
+            try:
+                resolved_root_packs = root_packs.resolve(strict=True)
+                root_packs_valid = resolved_root_packs.is_relative_to(self._resolved_root)
+            except (OSError, RuntimeError):
+                root_packs_valid = False
+        if not root_packs_valid:
             diags.append(_diag(
                 DiagnosticCode.CAT_L002,
                 Severity.ERROR,
-                f"packs directory missing: {packs_dir}",
-                remediation="Create the packs directory or update catalogue.toml paths.packs.",
+                f"literal root packs directory missing or unsafe: {root_packs}",
+                remediation="Create a literal packs directory inside the catalogue root.",
             ))
+
+        packs_dir = self._packs_dir()
+        configured_packs = self._config.paths.packs
+        if configured_packs != "packs" and packs_dir is not None and not packs_dir.is_dir():
+            diags.append(_diag(
+                DiagnosticCode.CAT_L002,
+                Severity.ERROR,
+                f"configured packs directory missing: {packs_dir}",
+                remediation=(
+                    "Create the configured packs directory or update "
+                    "catalogue.toml paths.packs."
+                ),
+            ))
+
         mp = self._marketplace_path()
-        if not mp.exists():
+        preferred_adapter = self._config.distribution.agentbundle.preferred_adapter
+        if (
+            mp is not None
+            and projects_claude_artifacts(preferred_adapter)
+            and not mp.exists()
+        ):
             diags.append(_diag(
                 DiagnosticCode.CAT_L002,
                 Severity.ERROR,
@@ -1011,7 +1050,7 @@ class _CatalogueRules:
 
     def _check_duplicate_identities(self) -> list[Diagnostic]:
         packs_dir = self._packs_dir()
-        if not packs_dir.is_dir():
+        if packs_dir is None or not packs_dir.is_dir():
             return []
         seen_names: dict[str, str] = {}
         diags: list[Diagnostic] = []
@@ -1038,18 +1077,16 @@ class _CatalogueRules:
                 seen_names[pack_name] = entry.name
         return diags
 
-    def _profiles_dir(self) -> Path:
-        if self._config is not None:
-            profiles_val = getattr(self._config.paths, "profiles", None)  # type: ignore[attr-defined]
-            if profiles_val:
-                return self._root / profiles_val
-        return self._root / "profiles"
+    def _profiles_dir(self) -> Path | None:
+        return self._configured_path("profiles", "profiles")
 
     def _check_profiles(self) -> list[Diagnostic]:
         profiles_dir = self._profiles_dir()
-        if not profiles_dir.is_dir():
+        if profiles_dir is None or not profiles_dir.is_dir():
             return []
         packs_dir = self._packs_dir()
+        if packs_dir is None:
+            return []
         packs = _profile_load_packs(packs_dir)
         diags: list[Diagnostic] = []
         for toml_path in sorted(profiles_dir.glob("*.toml")):
@@ -1074,11 +1111,21 @@ class _CatalogueRules:
         return diags
 
     def _check_config_paths(self) -> list[Diagnostic]:
-        if self._config is None:
-            return []
         diags: list[Diagnostic] = []
-        root = self._root.resolve()
-        paths_obj = self._config.paths  # type: ignore[attr-defined]
+        try:
+            root = self._root.resolve(strict=True)
+        except (OSError, RuntimeError) as exc:
+            self._unsafe_config_paths.update(
+                {"packs", "profiles", "contracts", "marketplace", "build_output"}
+            )
+            return [_diag(
+                DiagnosticCode.CAT_L021,
+                Severity.ERROR,
+                f"catalogue root cannot be resolved safely: {exc}",
+                remediation="Use a readable catalogue root without circular symlinks.",
+            )]
+        self._resolved_root = root
+        paths_obj = self._config.paths
         for field in ("packs", "profiles", "contracts", "marketplace", "build_output"):
             val = getattr(paths_obj, field, None)
             if not val:
@@ -1086,14 +1133,23 @@ class _CatalogueRules:
             try:
                 resolved = (self._root / val).resolve()
                 if not resolved.is_relative_to(root):
+                    self._unsafe_config_paths.add(field)
                     diags.append(_diag(
                         DiagnosticCode.CAT_L021,
                         Severity.ERROR,
                         f"catalogue.paths.{field} resolves outside catalogue root: {val!r}",
                         remediation="Use a relative path that stays within the catalogue root.",
                     ))
-            except OSError:
-                pass
+                else:
+                    self._resolved_config_paths[field] = resolved
+            except (OSError, RuntimeError) as exc:
+                self._unsafe_config_paths.add(field)
+                diags.append(_diag(
+                    DiagnosticCode.CAT_L021,
+                    Severity.ERROR,
+                    f"catalogue.paths.{field} cannot be resolved safely: {val!r}: {exc}",
+                    remediation="Use a relative path without circular or escaping symlinks.",
+                ))
         return diags
 
 
@@ -1791,15 +1847,32 @@ def lint_catalogue(root: Path, pack: str | None = None, *, deep: bool = False) -
             catalogue_schema_version=1,
         )
 
+    if config is None:
+        diagnostics.append(_diag(
+            DiagnosticCode.CAT_L002,
+            Severity.ERROR,
+            f"catalogue.toml missing: {root / 'catalogue.toml'}",
+            remediation="Create a valid catalogue.toml at the catalogue root.",
+        ))
+        return LintResult(
+            ok=False,
+            diagnostics=diagnostics,
+            schema_version=1,
+            command="catalogue lint",
+            operation="lint",
+            agentbundle_version=_get_agentbundle_version(),
+            catalogue_schema_version=1,
+        )
+
     # Step 2: catalogue-level rules
     cat_rules = _CatalogueRules(root, config)
     diagnostics.extend(cat_rules.collect(pack))
 
     # Step 3: determine packs dir
-    packs_dir = root / config.paths.packs if config is not None else root / "packs"
+    packs_dir = cat_rules._packs_dir()
 
     # Step 4+5: per-pack rules
-    if packs_dir.is_dir():
+    if packs_dir is not None and packs_dir.is_dir():
         for pack_dir in sorted(packs_dir.iterdir()):
             if pack_dir.name.startswith("_"):
                 continue  # reserved authoring asset

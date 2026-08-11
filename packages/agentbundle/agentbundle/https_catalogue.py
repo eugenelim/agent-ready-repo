@@ -34,7 +34,7 @@ import tempfile
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 from agentbundle.catalogue import CatalogueError
@@ -398,6 +398,38 @@ def _stream_and_verify(
 # ---------------------------------------------------------------------------
 
 
+def _validated_archive_destination(destination: Path, member_name: str) -> Path:
+    """Return a confined destination for one POSIX-format tar member name."""
+    if "\\" in member_name:
+        raise CatalogueError(
+            f"archive member {member_name!r} contains a Windows path separator; rejected"
+        )
+
+    member_path = PurePosixPath(member_name)
+    if (
+        member_path.is_absolute()
+        or ".." in member_path.parts
+        or (len(member_name) > 1 and member_name[1] == ":")
+    ):
+        raise CatalogueError(
+            f"archive member {member_name!r} has unsafe path "
+            f"(traversal or absolute); rejected"
+        )
+
+    try:
+        resolved_destination = destination.resolve()
+        resolved_member = (resolved_destination / Path(*member_path.parts)).resolve()
+    except (OSError, RuntimeError, ValueError) as exc:
+        raise CatalogueError(
+            f"archive member {member_name!r} cannot be resolved safely; rejected"
+        ) from exc
+    if not resolved_member.is_relative_to(resolved_destination):
+        raise CatalogueError(
+            f"archive member {member_name!r} resolves outside extraction root; rejected"
+        )
+    return resolved_member
+
+
 def _safe_extract(archive_path: Path, dest: Path) -> None:
     """Extract a tar.gz archive to ``dest`` with per-member safety checks.
 
@@ -413,17 +445,8 @@ def _safe_extract(archive_path: Path, dest: Path) -> None:
                     raise CatalogueError(
                         f"archive contains more than {_MAX_MEMBERS} members; rejected"
                     )
-                # Path traversal check
                 name = member.name
-                if ".." in name.split("/") or name.startswith("/"):
-                    raise CatalogueError(
-                        f"archive member {name!r} has unsafe path "
-                        f"(traversal or absolute); rejected"
-                    )
-                if Path(name).is_absolute():
-                    raise CatalogueError(
-                        f"archive member {name!r} has absolute path; rejected"
-                    )
+                _validated_archive_destination(dest, name)
                 # Symlink check
                 if member.issym():
                     raise CatalogueError(

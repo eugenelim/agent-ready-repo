@@ -240,10 +240,10 @@ def _validate_path(root: Path, p: str, field_name: str) -> None:
             f"catalogue.toml: {field_name!r} path must not traverse outside root: {p!r}"
         )
     # Resolve and check inside root (catches symlinks)
-    resolved_root = root.resolve()
     try:
+        resolved_root = root.resolve()
         resolved_path = (root / p).resolve()
-    except OSError as exc:
+    except (OSError, RuntimeError) as exc:
         raise CatalogueConfigError(
             f"catalogue.toml: {field_name!r} path cannot be resolved: {p!r}"
         ) from exc

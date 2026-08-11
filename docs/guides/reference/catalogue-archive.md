@@ -14,7 +14,9 @@ they form the distributable unit for fully-disconnected hosts.
 
 ### Archive (`<bundle>-<release>.tar.gz`)
 
-A gzip-compressed tar archive. The extracted layout mirrors the catalogue source tree:
+A gzip-compressed tar archive containing the installable subset of the
+catalogue. It is not a source-tree mirror and may omit source-only files such
+as `catalogue.toml`:
 
 ```
 packs/
@@ -79,9 +81,9 @@ mkdir -p /opt/company/agentbundle/catalogues/<bundle>
 tar -xzf <bundle>-<release>.tar.gz -C /opt/company/agentbundle/catalogues/<bundle>
 ```
 
-The extracted root contains `packs/` and `.claude-plugin/marketplace.json`. Configure agentbundle
-to use it as the local catalogue source:
-
-```bash
-agentbundle config set source /opt/company/agentbundle/catalogues/<bundle>
-```
+An installable archive is a published artifact, not a source catalogue. It
+intentionally need not contain the source-only `catalogue.toml` marker, so do
+not configure its extracted directory as a local source. Use the verified
+archive through the publication or installation workflow. For a local source,
+use a checkout or source distribution containing both root `catalogue.toml`
+and literal root `packs/`.

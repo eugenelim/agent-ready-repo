@@ -13,7 +13,7 @@ this one — and want to validate it with the same tooling before publishing.
 
 **Prerequisites:**
 - Python 3.11+
-- `agentbundle` ≥ 0.22.0 (`python -m pip install agentbundle`)
+- `agentbundle` ≥ 0.33.0 (`python -m pip install agentbundle`)
 
 ---
 
@@ -38,17 +38,19 @@ schema — the full surface spans ~20 fields and is not shown inline here.
 
 ---
 
-## Step 2 — Generate `marketplace.json`
+## Step 2 — Generate adapter artifacts
 
-Before running `catalogue lint`, generate `marketplace.json` by running the self-host
-command. The linter requires this file (CAT-L002).
+Run the self-host command to generate the artifacts for the effective adapter
+set:
 
 ```bash
 agentbundle catalogue self-host --root . --write
 ```
 
-This writes `marketplace.json` (and related generated outputs declared in
-`catalogue.toml`) into your working tree. Commit the result.
+When the effective set includes `claude-code`, this writes `marketplace.json`
+and lint requires it (CAT-L002). A catalogue configured only for an adapter
+outside the default self-host allow-list, such as `kiro-ide`, omits Claude
+artifacts and does not require a marketplace. Commit the generated outputs.
 
 ---
 

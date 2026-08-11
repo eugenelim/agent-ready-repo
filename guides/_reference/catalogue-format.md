@@ -5,8 +5,8 @@
 ## Required markers
 
 Two markers make a directory a valid agentbundle catalogue:
-- `packs/` directory containing at least one pack
-- `.claude-plugin/marketplace.json` — the catalogue listing
+- `catalogue.toml` at the catalogue root
+- literal root `packs/` directory
 
 Both are checked by `source_defaults._has_catalogue_markers`.
 
@@ -14,6 +14,12 @@ Both are checked by `source_defaults._has_catalogue_markers`.
 
 - `catalogue.toml` — catalogue configuration. Must pass `contracts/catalogue.schema.json`.
 - `packs/<name>/pack.toml` per pack — must pass `contracts/pack.schema.json`.
+
+## Adapter artifacts
+
+`.claude-plugin/marketplace.json` is generated and required when the effective
+self-host adapter set includes `claude-code`. It is not catalogue identity;
+catalogues that project only a non-Claude adapter may omit it.
 
 ## Schema contracts
 

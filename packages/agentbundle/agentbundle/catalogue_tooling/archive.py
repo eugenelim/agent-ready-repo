@@ -10,10 +10,11 @@ from __future__ import annotations
 import hashlib
 import json
 import tarfile
-import tempfile
 from pathlib import Path
 
+from agentbundle.catalogue import CatalogueError
 from agentbundle.catalogue_tooling.results import Diagnostic, Severity, VerifyResult
+from agentbundle.https_catalogue import _validated_archive_destination
 
 _MANIFEST_NAME = "catalogue-manifest.json"
 _SOURCE_MANIFEST_NAME = "self-hosted-source-manifest.json"
@@ -87,15 +88,19 @@ def check_members(members: list[tarfile.TarInfo]) -> list[Diagnostic]:
     """Member-level safety checks. Exported for unit tests (T1)."""
     diags: list[Diagnostic] = []
 
-    # No absolute paths
+    # No absolute, traversal, or platform-ambiguous paths. Tar member names
+    # are POSIX paths; backslashes are rejected rather than reinterpreted on
+    # Windows during extraction.
     for m in members:
-        if m.name.startswith("/") or (len(m.name) > 1 and m.name[1] == ":"):
-            diags.append(_err("CAT-V-ARC-004", f"absolute member path: {m.name!r}", path=m.name))
-
-    # No traversal paths
-    for m in members:
-        if ".." in Path(m.name).parts:
-            diags.append(_err("CAT-V-ARC-005", f"traversal path: {m.name!r}", path=m.name))
+        try:
+            _validated_archive_destination(Path("/"), m.name)
+        except CatalogueError as exc:
+            code = (
+                "CAT-V-ARC-004"
+                if m.name.startswith("/") or (len(m.name) > 1 and m.name[1] == ":")
+                else "CAT-V-ARC-005"
+            )
+            diags.append(_err(code, str(exc), path=m.name))
 
     # No symlinks or hard links
     for m in members:
@@ -262,7 +267,7 @@ def _check_no_undeclared_members(
 
 
 def _check_catalogue_markers(members: list[tarfile.TarInfo]) -> list[Diagnostic]:
-    """At least one catalogue marker must be present at the archive root."""
+    """At least one installable-archive marker must be present at its root."""
     prefix = _detect_prefix(members)
     marker_tops = {"catalogue.toml", "AGENTS.md", ".agentbundle"}
     found: set[str] = set()
@@ -278,6 +283,54 @@ def _check_catalogue_markers(members: list[tarfile.TarInfo]) -> list[Diagnostic]
             "no catalogue marker found (expected catalogue.toml, AGENTS.md, or .agentbundle)",
         )]
     return []
+
+
+def _check_marketplace_entries(
+    tf: tarfile.TarFile,
+    members: list[tarfile.TarInfo],
+) -> list[Diagnostic]:
+    """Apply source-equivalent marketplace semantics without source identity."""
+    prefix = _detect_prefix(members)
+    member_name = f"{prefix}.claude-plugin/marketplace.json"
+    marketplace = next((m for m in members if m.name == member_name), None)
+    if marketplace is None:
+        return []
+
+    try:
+        fobj = tf.extractfile(marketplace)
+        if fobj is None:
+            raise ValueError("marketplace member is not a regular file")
+        payload = json.loads(fobj.read().decode("utf-8"))
+
+        from agentbundle.build.main import _read_bundled
+        from agentbundle.catalogue_tooling.verify import _validate_marketplace_entries
+
+        entry_schema = json.loads(_read_bundled("marketplace-entry.schema.json"))
+    except Exception as exc:
+        return [_err(
+            "CAT-V-ARC-017",
+            f"marketplace validation failed: {exc}",
+            path=".claude-plugin/marketplace.json",
+        )]
+
+    source_diags = _validate_marketplace_entries(
+        payload,
+        entry_schema,
+        ".claude-plugin/marketplace.json",
+    )
+    return [
+        Diagnostic(
+            code="CAT-V-ARC-017",
+            severity=diagnostic.severity,
+            pack=diagnostic.pack,
+            path=diagnostic.path,
+            line=diagnostic.line,
+            col=diagnostic.col,
+            message=diagnostic.message,
+            remediation=diagnostic.remediation,
+        )
+        for diagnostic in source_diags
+    ]
 
 
 def _check_min_agentbundle_compat(manifest: dict) -> list[Diagnostic]:
@@ -316,9 +369,9 @@ def _make_result(diags: list[Diagnostic], operation: str) -> VerifyResult:
 def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResult:
     """Verify a catalogue archive (.tar.gz).
 
-    Runs the full safety + semantic pipeline. Stops after safety errors.
-    Sha256 sidecar mismatch causes immediate early return.
-    On pass, extracts to tmpdir and calls verify_catalogue for round-trip.
+    Runs the full safety + archive-semantic pipeline. Stops after safety errors.
+    Sha256 sidecar mismatch causes immediate early return. Installable archives
+    are not source catalogues, so they are not passed to ``verify_catalogue``.
     """
     diags: list[Diagnostic] = []
 
@@ -368,34 +421,7 @@ def verify_archive(archive: Path, sha256_file: Path | None = None) -> VerifyResu
         diags.extend(_check_all_manifest_digests(tf, members, manifest))
         diags.extend(_check_no_undeclared_members(members, manifest))
         diags.extend(_check_catalogue_markers(members))
+        diags.extend(_check_marketplace_entries(tf, members))
         diags.extend(_check_min_agentbundle_compat(manifest))
-
-        # Local discoverability — extract to tmpdir and verify as catalogue
-        if not any(d.severity == Severity.ERROR for d in diags):
-            prefix = _detect_prefix(members)
-            with tempfile.TemporaryDirectory() as tmpdir_str:
-                tmpdir = Path(tmpdir_str)
-                try:
-                    tf.extractall(tmpdir, filter="data")
-                except TypeError:
-                    # Python < 3.12: extract member-by-member;
-                    # paths pre-validated by check_members()
-                    for _m in tf.getmembers():
-                        _dest = tmpdir / _m.name
-                        _dest.parent.mkdir(parents=True, exist_ok=True)
-                        if _m.isreg():
-                            _fobj = tf.extractfile(_m)
-                            if _fobj is not None:
-                                _dest.write_bytes(_fobj.read())
-                catalogue_root = tmpdir / prefix.rstrip("/") if prefix else tmpdir
-                from agentbundle.catalogue_tooling.verify import verify_catalogue
-                inner = verify_catalogue(catalogue_root)
-                if not inner.ok:
-                    for d in inner.diagnostics:
-                        diags.append(_err(
-                            "CAT-V-ARC-015",
-                            f"extracted archive not locally discoverable: {d.message}",
-                            path=d.path,
-                        ))
 
     return _make_result(diags, "archive")

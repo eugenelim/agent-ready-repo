@@ -437,6 +437,45 @@ def test_safe_extract_path_traversal(tmp_path: Path):
     assert not dest.exists()
 
 
+def test_safe_extract_windows_separator_traversal(tmp_path: Path):
+    """Windows-style traversal is rejected consistently on a POSIX runner."""
+    info = tarfile.TarInfo(name=r"..\..\evil.txt")
+    info.size = 5
+    data, _ = _make_tarball_with_member(info, b"oops!")
+    archive = tmp_path / "archive.tar.gz"
+    archive.write_bytes(data)
+    dest = tmp_path / "out"
+    dest.mkdir()
+
+    with pytest.raises(CatalogueError, match="Windows path separator"):
+        _safe_extract(archive, dest)
+
+    assert not dest.exists()
+
+
+def test_safe_extract_rejects_resolved_destination_escape(tmp_path: Path):
+    """A pre-existing destination symlink cannot redirect a regular member."""
+    info = tarfile.TarInfo(name="redirect/evil.txt")
+    info.size = 5
+    data, _ = _make_tarball_with_member(info, b"oops!")
+    archive = tmp_path / "archive.tar.gz"
+    archive.write_bytes(data)
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    dest = tmp_path / "out"
+    dest.mkdir()
+    try:
+        (dest / "redirect").symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unsupported on this platform/filesystem")
+
+    with pytest.raises(CatalogueError, match="outside extraction root"):
+        _safe_extract(archive, dest)
+
+    assert not dest.exists()
+    assert not (outside / "evil.txt").exists()
+
+
 def test_safe_extract_absolute_path(tmp_path: Path):
     """Member with absolute path rejected; dest cleaned up."""
     info = tarfile.TarInfo(name="/etc/passwd")

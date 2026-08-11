@@ -1,0 +1,35 @@
+schema = 1
+
+[catalogue]
+name                        = "blank-catalogue"
+display-name                = "Blank Catalogue"
+description                 = "A blank catalogue fixture for integration tests."
+minimum-agentbundle-version = "0.33.0"
+
+[catalogue.owner]
+name = "Example Maintainer"
+
+[catalogue.paths]
+packs        = "packs"
+profiles     = "profiles"
+marketplace  = ".claude-plugin/marketplace.json"
+build-output = "dist"
+
+[catalogue.build]
+recipes                 = ["default"]
+self-host               = false
+claude-plugin-branch    = "main"
+marketplace-description = "A blank catalogue fixture for integration tests."
+
+[catalogue.package]
+include  = []
+required = [
+  "packs",
+  ".claude-plugin/marketplace.json",
+]
+
+[distribution.agentbundle]
+preferred-adapter = "claude-code"
+
+[distribution.agentbundle.artifactory]
+enabled = false

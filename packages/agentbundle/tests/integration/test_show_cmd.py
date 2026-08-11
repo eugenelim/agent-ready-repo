@@ -21,6 +21,7 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.commands import show
 from agentbundle.config import PackState, State, dump_state
 
@@ -50,6 +51,19 @@ def _make_catalogue(
     meta: bool = True,
 ) -> Path:
     """Build ``<root>/packs/<name>/`` with pack.toml + .apm tree; return root."""
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "catalogue.toml").write_text(
+        emit_catalogue_toml(
+            name="test-catalogue",
+            display_name="Test Catalogue",
+            description="A catalogue fixture for show tests.",
+            minimum_agentbundle_version="0.33.0",
+            owner_name="Example Maintainer",
+            preferred_adapter="claude-code",
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
     pack = root / "packs" / name
     toml = f'[pack]\nname = "{name}"\n'
     if meta:
@@ -88,11 +102,9 @@ def test_primary_via_default_source_chain(tmp_path, capsys):
     default-source chain, not a layer-1 override. Drive that path: catalogue
     unset, source supplied through `_user_config` (layer 2)."""
     cat = _make_catalogue(tmp_path)
-    # A layer-2 [settings].source is marker-validated: it needs both packs/ and
-    # .claude-plugin/marketplace.json (layer-1 overrides skip this check).
-    marker = cat / ".claude-plugin" / "marketplace.json"
-    marker.parent.mkdir(parents=True)
-    marker.write_text("{}\n", encoding="utf-8", newline="\n")
+    # A layer-2 [settings].source is identity-validated: the helper provides
+    # both root catalogue.toml and literal root packs/. Layer-1 overrides skip
+    # this check.
     args = SimpleNamespace(
         pack="demo",
         catalogue=None,

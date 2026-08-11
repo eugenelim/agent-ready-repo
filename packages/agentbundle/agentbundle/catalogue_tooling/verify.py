@@ -70,9 +70,7 @@ def _step_config_validation(
 def _step_lint(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
-    """Step 2: run catalogue lint. Skips gracefully when catalogue.toml is absent."""
-    if config is None:
-        return []
+    """Step 2: run catalogue lint, including its source-identity checks."""
     from agentbundle.catalogue_tooling.lint import lint_catalogue
     result = lint_catalogue(root, pack=pack)
     diags: list[Diagnostic] = []
@@ -587,6 +585,67 @@ def _step_marketplace(
     return []
 
 
+def _validate_marketplace_entries(
+    payload: object,
+    entry_schema: dict,
+    label: str,
+) -> list[Diagnostic]:
+    """Validate marketplace entries shared by source and archive verification."""
+    from agentbundle.build.validate import validate as validate_manifest
+
+    if not isinstance(payload, dict):
+        return [_err(
+            "CAT-V-013",
+            f"{label} must contain a JSON object",
+            path=label,
+        )]
+
+    plugin_entries = payload.get("plugins", [])
+    if not isinstance(plugin_entries, list):
+        return [_err(
+            "CAT-V-013",
+            f"{label} 'plugins' must be a JSON array",
+            path=label,
+        )]
+
+    diags: list[Diagnostic] = []
+    for plugin_entry in plugin_entries:
+        if not isinstance(plugin_entry, dict):
+            diags.append(_err(
+                "CAT-V-013",
+                "marketplace plugin entry must be a JSON object",
+                path=label,
+            ))
+            continue
+        name = plugin_entry.get("name", "unknown")
+        if "source" not in plugin_entry:
+            # WARN, not ERROR. `[pack.links].repository` is optional, the
+            # shipped scaffold pack omits it, and an external catalogue may
+            # legitimately hold packs it does not publish for marketplace
+            # install. Surface the consequence without failing the build.
+            diags.append(_warn(
+                "CAT-V-013",
+                f"marketplace entry '{name}' has no 'source' — set "
+                f"[pack.links].repository in that pack's pack.toml so the "
+                f"build can emit one, or adopters cannot install it",
+                path=label,
+            ))
+        if "hooks" in plugin_entry:
+            diags.append(_err(
+                "CAT-V-013",
+                f"plugin '{name}' contains 'hooks' — "
+                "hooks must not appear in marketplace entries",
+                path=label,
+            ))
+        for error in validate_manifest(plugin_entry, entry_schema):
+            diags.append(_err(
+                "CAT-V-013",
+                f"marketplace entry '{name}': {error}",
+                path=label,
+            ))
+    return diags
+
+
 def _step_plugin_manifests(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
@@ -644,34 +703,7 @@ def _step_plugin_manifests(
             diags.append(_err("CAT-V-013", f"{label} parse error: {exc}",
                               path=label))
             return
-        for plugin_entry in payload.get("plugins", []):
-            name = plugin_entry.get("name", "unknown")
-            if "source" not in plugin_entry:
-                # WARN, not ERROR. `[pack.links].repository` is optional, the
-                # shipped scaffold pack omits it, and an external catalogue may
-                # legitimately hold packs it does not publish for marketplace
-                # install. That is a choice, not a defect — so surface the
-                # consequence and name the cause, but do not fail the build.
-                diags.append(_warn(
-                    "CAT-V-013",
-                    f"marketplace entry '{name}' has no 'source' — set "
-                    f"[pack.links].repository in that pack's pack.toml so the "
-                    f"build can emit one, or adopters cannot install it",
-                    path=label,
-                ))
-            if "hooks" in plugin_entry:
-                diags.append(_err(
-                    "CAT-V-013",
-                    f"plugin '{name}' contains 'hooks' — "
-                    "hooks must not appear in marketplace entries",
-                    path=label,
-                ))
-            for error in _validate_manifest(plugin_entry, entry_schema):
-                diags.append(_err(
-                    "CAT-V-013",
-                    f"marketplace entry '{name}': {error}",
-                    path=label,
-                ))
+        diags.extend(_validate_marketplace_entries(payload, entry_schema, label))
 
     for manifest_path in sorted(dist_dir.rglob("*.claude-plugin/plugin.json")) \
             if dist_dir.exists() else []:
@@ -991,9 +1023,20 @@ def verify_catalogue(
     Build output (step 10) goes to a temporary directory; the catalogue
     root has zero new or modified files after verify completes.
     """
-    from agentbundle.catalogue_tooling.config import load_catalogue_config
+    from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config
 
-    config = load_catalogue_config(root)
+    try:
+        config = load_catalogue_config(root)
+    except CatalogueConfigError as exc:
+        return VerifyResult(
+            ok=False,
+            diagnostics=[_err("CAT-V-001", str(exc), path="catalogue.toml")],
+            schema_version=1,
+            command="catalogue verify",
+            operation="source-checkout",
+            agentbundle_version=_get_agentbundle_version(),
+            catalogue_schema_version=1,
+        )
     catalogue_schema_version = getattr(config, "schema", 1) if config else 1
 
     all_diags: list[Diagnostic] = []

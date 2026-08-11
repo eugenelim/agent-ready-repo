@@ -180,7 +180,12 @@ agentbundle catalogue package \
   --output dist/
 ```
 
-Produces a `catalogue-source-<release>.tar.gz` from a positive allowlist (packs, profiles, guides, marketplace manifest, legal files), with the same build-residue exclusions as the default flavour. Includes a `self-hosted-source-manifest.json` with per-file SHA-256 digests and provenance fields. `agentbundle install` refuses to install a source archive, preventing accidental misuse.
+Produces a `catalogue-source-<release>.tar.gz` from a positive allowlist
+(`catalogue.toml`, packs, profiles, guides, a marketplace manifest when
+present, and legal files), with the same build-residue exclusions as the
+default flavour. Includes a `self-hosted-source-manifest.json` with per-file
+SHA-256 digests and provenance fields. `agentbundle install` refuses to install
+a source archive, preventing accidental misuse.
 
 **Org bootstrap — ship the default channel in your fork:**
 
@@ -213,7 +218,10 @@ security boundary.
 
 ## Build your own catalogue
 
-`agentbundle` isn't tied to the agent-ready-repo catalogue. Any repo that lays its packs out the same way can use it.
+`agentbundle` isn't tied to the agent-ready-repo catalogue. A catalogue source
+has two required root markers: a valid `catalogue.toml` and a literal `packs/`
+directory. A custom `catalogue.paths.packs` value controls where pack content
+is read from; it does not replace the root `packs/` marker.
 
 **Bootstrap a new catalogue** in an empty directory:
 
@@ -313,6 +321,11 @@ The org hint fires after the user-config but before the on-disk IDE probe — so
 ```bash
 agentbundle catalogue lint --root .
 ```
+
+Lint validates both source markers and then checks the configured pack content.
+It requires `.claude-plugin/marketplace.json` only when the effective self-host
+adapters include `claude-code`. A Kiro-only catalogue can omit that Claude
+artifact; the default Claude Code and Codex projection still requires it.
 
 For full [agentskills.io spec](https://agentskills.io/specification) compliance (frontmatter key set, description policy, encoding, evals schema), install the `lint` extra and run with `--deep`:
 

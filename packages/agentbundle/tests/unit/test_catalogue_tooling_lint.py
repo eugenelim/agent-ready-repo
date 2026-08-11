@@ -13,9 +13,9 @@ Monkeypatching strategy:
     return None where schema-validation results are not the focus.
     When None is returned, _check_pack_schema_validation emits CAT-L006
     at WARN severity, which does not affect ok.
-  - No catalogue.toml is created in any fixture: load_catalogue_config
-    returns None naturally (file absent), so the linter uses default
-    paths (packs/ and .claude-plugin/marketplace.json).
+  - Shared fixtures create a valid catalogue.toml with the default paths and
+    claude-code preferred adapter. Dedicated negative tests omit or customize
+    it explicitly.
 """
 
 from __future__ import annotations
@@ -28,14 +28,38 @@ import agentbundle.catalogue_tooling.lint as _lint_module
 import pytest
 from agentbundle.catalogue_tooling.lint import lint_catalogue, render_json, render_table
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity
+from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 
 # ---------------------------------------------------------------------------
 # Shared filesystem helpers
 # ---------------------------------------------------------------------------
 
 
+def _write_catalogue_config(
+    root: Path,
+    *,
+    preferred_adapter: str = "claude-code",
+    packs_path: str = "packs",
+) -> None:
+    text = emit_catalogue_toml(
+        name="test-catalogue",
+        display_name="Test catalogue",
+        description="Catalogue lint fixture.",
+        minimum_agentbundle_version="0.32.0",
+        owner_name="Example User",
+        preferred_adapter=preferred_adapter,
+    )
+    text = text.replace('packs        = "packs"', f'packs        = "{packs_path}"')
+    (root / "catalogue.toml").write_text(
+        text,
+        encoding="utf-8",
+        newline="\n",
+    )
+
+
 def _setup_markers(root: Path) -> None:
-    """Create the default catalogue structural markers lint requires."""
+    """Create a valid Claude-targeting catalogue with generated marketplace."""
+    _write_catalogue_config(root)
     (root / "packs").mkdir(parents=True, exist_ok=True)
     (root / ".claude-plugin").mkdir(parents=True, exist_ok=True)
     (root / ".claude-plugin" / "marketplace.json").write_text(
@@ -78,16 +102,145 @@ _PACK_A_JSON = '{"name": "pack-a", "version": "0.1.0"}'
 
 
 def test_no_catalogue_toml(tmp_path, monkeypatch):
-    """No catalogue.toml present: load_catalogue_config returns None naturally.
-
-    With both default markers (packs/ dir and marketplace.json) present and
-    an empty packs directory, no rules fire → ok=True, no diagnostics.
-    """
+    """A source root without catalogue.toml is not a lintable catalogue."""
     monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
-    _setup_markers(tmp_path)
+    (tmp_path / "packs").mkdir()
+    (tmp_path / ".claude-plugin").mkdir()
+    (tmp_path / ".claude-plugin" / "marketplace.json").write_text(
+        "{}", encoding="utf-8", newline="\n"
+    )
+    result = lint_catalogue(tmp_path)
+    assert result.ok is False
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["CAT-L002"]
+
+
+def test_kiro_only_catalogue_does_not_require_claude_marketplace(tmp_path, monkeypatch):
+    """Kiro-only projection succeeds without a Claude marketplace artifact."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    _write_catalogue_config(tmp_path, preferred_adapter="kiro-ide")
+    (tmp_path / "packs").mkdir()
     result = lint_catalogue(tmp_path)
     assert result.ok is True
-    assert result.diagnostics == []
+    assert all(diagnostic.code != "CAT-L002" for diagnostic in result.diagnostics)
+
+
+def test_literal_root_packs_and_configured_packs_are_checked_separately(
+    tmp_path,
+    monkeypatch,
+):
+    """A configured packs path cannot replace the literal root identity marker."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    _write_catalogue_config(tmp_path, packs_path="catalogue-packs")
+    configured_packs = tmp_path / "catalogue-packs"
+    configured_packs.mkdir()
+    (tmp_path / ".claude-plugin").mkdir()
+    (tmp_path / ".claude-plugin" / "marketplace.json").write_text(
+        "{}", encoding="utf-8", newline="\n"
+    )
+
+    missing_root_marker = lint_catalogue(tmp_path)
+    assert any(
+        diagnostic.code == "CAT-L002" and str(tmp_path / "packs") in diagnostic.message
+        for diagnostic in missing_root_marker.diagnostics
+    )
+
+    (tmp_path / "packs").mkdir()
+    configured_packs.rmdir()
+    missing_configured_content = lint_catalogue(tmp_path)
+    assert any(
+        diagnostic.code == "CAT-L002" and str(configured_packs) in diagnostic.message
+        for diagnostic in missing_configured_content.diagnostics
+    )
+
+
+def test_configured_packs_symlink_escape_is_not_inspected(tmp_path, monkeypatch):
+    """Configured pack content outside the catalogue root is never inspected."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    outside = tmp_path.parent / f"{tmp_path.name}-outside"
+    for name in ("one", "two"):
+        pack_dir = outside / name
+        pack_dir.mkdir(parents=True)
+        (pack_dir / "pack.toml").write_text(
+            '[pack]\nname = "duplicate"\nversion = "0.1.0"\n',
+            encoding="utf-8",
+            newline="\n",
+        )
+    linked_packs = tmp_path / "linked-packs"
+    try:
+        linked_packs.symlink_to(outside, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unsupported on this platform/filesystem")
+    _write_catalogue_config(tmp_path, packs_path="linked-packs")
+    (tmp_path / "packs").mkdir()
+    (tmp_path / ".claude-plugin").mkdir()
+    (tmp_path / ".claude-plugin" / "marketplace.json").write_text(
+        "{}", encoding="utf-8", newline="\n"
+    )
+    result = lint_catalogue(tmp_path)
+    error_codes = [
+        diagnostic.code
+        for diagnostic in result.diagnostics
+        if diagnostic.severity == Severity.ERROR
+    ]
+    assert error_codes == ["CAT-L001"]
+
+
+def test_configured_packs_symlink_loop_is_diagnostic(tmp_path, monkeypatch):
+    """A circular configured packs path is diagnostic rather than exceptional."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    loop = tmp_path / "loop"
+    try:
+        loop.symlink_to(loop, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unsupported on this platform/filesystem")
+    _write_catalogue_config(tmp_path, packs_path="loop")
+    (tmp_path / "packs").mkdir()
+    (tmp_path / ".claude-plugin").mkdir()
+    (tmp_path / ".claude-plugin" / "marketplace.json").write_text(
+        "{}", encoding="utf-8", newline="\n"
+    )
+    result = lint_catalogue(tmp_path)
+    error_codes = [
+        diagnostic.code
+        for diagnostic in result.diagnostics
+        if diagnostic.severity == Severity.ERROR
+    ]
+    assert error_codes in (["CAT-L001"], ["CAT-L002"], ["CAT-L021"])
+
+
+@pytest.mark.parametrize(
+    ("projects_claude", "expects_missing_marketplace"),
+    [(False, False), (True, True)],
+)
+def test_claude_marketplace_requirement_uses_shared_projection_predicate(
+    tmp_path,
+    monkeypatch,
+    projects_claude,
+    expects_missing_marketplace,
+):
+    """Claude-targeting lint delegates marketplace policy to self-host."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(
+        _lint_module,
+        "projects_claude_artifacts",
+        lambda preferred_adapter: projects_claude,
+    )
+    _write_catalogue_config(tmp_path, preferred_adapter="claude-code")
+    (tmp_path / "packs").mkdir()
+    result = lint_catalogue(tmp_path)
+    has_missing_marketplace = any(
+        diagnostic.code == "CAT-L002" for diagnostic in result.diagnostics
+    )
+    assert has_missing_marketplace is expects_missing_marketplace
+
+
+def test_allowed_adapter_requires_claude_marketplace(tmp_path, monkeypatch):
+    """An already-allowed adapter retains Claude linting through real config."""
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    _write_catalogue_config(tmp_path, preferred_adapter="codex")
+    (tmp_path / "packs").mkdir()
+    result = lint_catalogue(tmp_path)
+    assert any(diagnostic.code == "CAT-L002" for diagnostic in result.diagnostics)
 
 
 # ---------------------------------------------------------------------------

@@ -1888,6 +1888,13 @@ shipped = [
 ]
 queue   = [
 
+  # Adapter-neutral catalogue source identity (RFC-0085). Independent of the
+  # numbered discovery waves; this closes the current Claude-marketplace
+  # coupling in local source discovery and catalogue lint/verify. It owns the
+  # agentbundle 0.33.0 release bump, so serialize it with any other package
+  # version-bump change before merge.
+  "spec/catalogue-source-identity",
+
   # Wave 3 — Enterprise authoring discovery. Gated on Wave 2.
   # Deliver: catalogue-authoring-standards.md in init scaffold; bundled-contract
   # inspection CLI surface (agentbundle catalogue contracts list/show/export); offline

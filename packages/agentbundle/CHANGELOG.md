@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.33.0] — 2026-08-11
+
+### Changed
+
+- **BREAKING — local catalogue sources now require a root `catalogue.toml`
+  and literal root `packs/` directory.** The former `packs/` plus
+  `.claude-plugin/marketplace.json` identity is no longer accepted. Add a valid
+  `catalogue.toml` before upgrading; installable archive layouts are unchanged.
+- `catalogue lint` and `catalogue verify` now reject source roots without
+  `catalogue.toml`. A Claude marketplace is required only when the effective
+  self-host adapters include `claude-code`, so Kiro-only catalogues may omit
+  Claude-specific project artifacts.
+
 ## [0.32.0] — 2026-08-10
 
 ### Added

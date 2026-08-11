@@ -10,23 +10,23 @@ Fork it, build a fresh one, or host one privately, and point the CLI at yours.
 
 ## What a catalogue is
 
-A catalogue is a directory holding two things:
+A catalogue source is a directory holding two adapter-neutral markers:
 
 ```
 <catalogue-root>/
+├── catalogue.toml                    # catalogue metadata and distribution config
 ├── packs/
 │   └── <pack>/…                     # one directory per shippable pack (see pack-layout.md)
-└── .claude-plugin/
-    └── marketplace.json             # the catalogue listing — aggregates the plugin.json of every user-capable pack
+└── .claude-plugin/                  # present when Claude projection is enabled
+    └── marketplace.json             # generated Claude marketplace listing
 ```
 
-Those two markers — a `packs/` directory and a
-`.claude-plugin/marketplace.json` file — **are** the contract. Anything that
-holds both is a catalogue the CLI will read; anything missing either is
-refused. The check is one function,
+The source-identity contract is the root `catalogue.toml` plus the literal
+root `packs/` directory. Anything missing either is refused. The check is one
+function,
 [`source_defaults._has_catalogue_markers`](../../packages/agentbundle/agentbundle/source_defaults.py),
-and it is the whole definition — there is no registry service, no manifest
-schema beyond the per-pack `pack.toml`, and no network protocol.
+while lint validates the configuration and configured operational paths.
+There is no registry service or catalogue network protocol.
 
 `marketplace.json` is the catalogue-level listing consumed by
 `/plugin marketplace add`; the build aggregates version and metadata into it
@@ -57,7 +57,7 @@ omit it, the CLI resolves one through a five-layer, first-match-wins chain
 Layer 4 is the one that makes a local clone "just work": when `agentbundle`
 is installed editable, it reads its own PEP 610 `direct_url.json`, and walks
 up from the package directory — bounded by the enclosing `.git` root — to the
-first ancestor carrying both catalogue markers. So a developer working inside
+first ancestor carrying `catalogue.toml` and literal root `packs/`. So a developer working inside
 a clone gets that clone as their catalogue with no configuration.
 
 Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4, falling through directly to Layer 5. See the [adopter reference](../../guides/_shared/reference/agentbundle.md) for the full env var list.
@@ -100,8 +100,9 @@ packs are projected **into** — not a source. You never point `source` at it.
 
 ## Stand up your own catalogue
 
-The minimum is a directory with `packs/<your-pack>/` and a
-`.claude-plugin/marketplace.json`, then any of the switches above. The full,
+The minimum is a directory with a valid `catalogue.toml` and
+`packs/<your-pack>/`, then any of the switches above. A Claude marketplace is
+generated only when the effective adapter set includes `claude-code`. The full,
 opinionated recipe — fork this catalogue, add an org pack carrying your house
 conventions, blank the packaged upstream default so stray installs can't reach
 it, and ship a one-command profile every engineer installs — lives in the

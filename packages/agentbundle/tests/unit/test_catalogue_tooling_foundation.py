@@ -383,6 +383,19 @@ def test_config_symlink_escape(tmp_path):
         load_catalogue_config(tmp_path)
 
 
+def test_config_path_resolution_runtime_error_is_diagnostic(tmp_path, monkeypatch):
+    """Circular-path resolution failures become configuration diagnostics."""
+    from agentbundle.catalogue_tooling.config import CatalogueConfigError, _validate_path
+
+    def _raise_runtime_error(_path: Path) -> Path:
+        raise RuntimeError("symlink loop")
+
+    monkeypatch.setattr(Path, "resolve", _raise_runtime_error)
+
+    with pytest.raises(CatalogueConfigError, match="cannot be resolved"):
+        _validate_path(tmp_path, "packs", "catalogue.paths.packs")
+
+
 def test_config_unknown_recipe(tmp_path):
     """Unknown recipe raises CatalogueConfigError."""
     from agentbundle.catalogue_tooling.config import CatalogueConfigError, load_catalogue_config

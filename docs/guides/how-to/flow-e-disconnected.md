@@ -5,7 +5,8 @@ catalogue registry. It requires a pre-packaged archive produced on a connected h
 
 **Not supported:** resolving a channel descriptor (`channel.json`) from a local directory to
 install packs. Local channel-descriptor resolution is NOT supported. The disconnected path is
-archive-only: transfer archive + sidecar, verify, extract, configure the source path.
+archive-only: transfer archive + sidecar, verify, extract, and pass the trusted extraction path
+explicitly to install commands.
 
 ## What you need
 
@@ -55,44 +56,49 @@ The extracted layout contains:
     core/
     governance-extras/
     ...
-  .claude-plugin/marketplace.json
+  .claude-plugin/marketplace.json  # only when Claude projection is included
 ```
 
 ## Step 4 — Confirm the layout
 
 ```bash
 ls /opt/company/agentbundle/catalogues/engineering/packs/
-ls /opt/company/agentbundle/catalogues/engineering/.claude-plugin/marketplace.json
 ```
 
-Both must exist before proceeding.
+`packs/` must exist before proceeding. The marketplace file is present only
+when the published artifact includes the Claude projection.
 
-## Step 5 — Configure the local catalogue path
+## Step 5 — Use the extracted archive explicitly
 
 ```bash
-agentbundle config set source /opt/company/agentbundle/catalogues/engineering
+agentbundle list-packs /opt/company/agentbundle/catalogues/engineering
 ```
 
-This tells agentbundle to use the extracted directory as the catalogue source instead of a remote URL.
+An installable archive intentionally omits the source-only `catalogue.toml`
+marker. Do not save its extracted directory as the default source; pass the
+trusted local path explicitly to commands that consume the archive contents.
 
-## Step 6 — Confirm pack availability
+## Step 6 — Install from the verified path
 
 ```bash
-agentbundle list-packs
+agentbundle install --pack core /opt/company/agentbundle/catalogues/engineering
 ```
 
-The packs from the extracted catalogue appear in the output.
+The selected pack installs from the verified extracted archive.
 
 ## Upgrading
 
-To upgrade to a new release, repeat Steps 1–5 with the new archive. The `config set source` in
-Step 5 points to the versioned extraction root; update the path to the new version's extraction
-directory.
+To upgrade to a new release, repeat Steps 1–5 with the new archive, then pass
+the new extraction path explicitly:
+
+```bash
+agentbundle upgrade --pack core /opt/company/agentbundle/catalogues/engineering
+```
 
 ## Limitations
 
 - Local channel-descriptor resolution (`channel.json` in a local directory) is **not supported**.
   The channel descriptor is a registry artifact, not a local install mechanism.
-- Moving from an Artifactory-hosted source to a local-path source (or vice versa) is a source
-  change. Use `agentbundle config set source <new-source>` and follow any reinstall process
-  required for installed packs to reflect the new source.
+- Moving from an Artifactory-hosted source to an explicitly supplied local
+  extraction path (or vice versa) is a source change. Follow the normal
+  reinstall process required for installed packs to reflect the new source.

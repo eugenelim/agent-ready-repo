@@ -37,7 +37,8 @@ agentbundle catalogue verify [--root ROOT] [--pack PACK] [--archive ARCHIVE]
 | `--format` | `table` | Output format |
 
 When `--archive` is given, verify switches to archive mode: it checks the archive's SHA-256 against
-the sidecar and validates the extracted layout without touching source files.
+the sidecar and validates archive members, paths, manifest digests, markers, and compatibility
+without treating the installable artifact as a source catalogue.
 
 ## `agentbundle catalogue build`
 
