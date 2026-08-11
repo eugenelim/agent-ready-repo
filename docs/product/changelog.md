@@ -138,6 +138,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
 
+## [core][2.5.5] — 2026-08-10
+
+### Fixed
+
+- **Concurrent work-loop mutations no longer lose an update during lock
+  creation.** A contender could observe the live creator's lockfile after its
+  exclusive creation but before its ownership record was written, mistake that
+  fresh empty file for crash residue, and reclaim it immediately. Two writers
+  could then enter one critical section; one would report success before
+  discovering its lost lock, while the final state omitted an update. Fresh
+  empty locks now remain occupied until the existing stale-recovery budget
+  expires. Stale empty locks left by a crashed creator are still reclaimed, and
+  no timeout or stale threshold changed.
+
+- **The work-loop concurrency self-test now names its failing case in CI.** Its
+  shell wrapper preserves the child suite's output, concurrency cases prove
+  actual production-lock contention instead of scheduler timing, and
+  hermeticity observes only each child's throwaway repository.
+
 ## [experience-design][2.0.1] — 2026-08-10
 
 ### Changed

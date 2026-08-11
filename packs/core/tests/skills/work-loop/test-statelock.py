@@ -319,6 +319,225 @@ def test_contention_sleeps_rather_than_spins(tmp: Path) -> None:
     ok("contention-sleeps")
 
 
+# ── Fresh empty is live; stale empty is crash residue ──────────────────────
+
+_EMPTY_WINDOW_CHILD = r'''
+import importlib.util, os, sys, time
+from pathlib import Path
+
+mod_path, target, role, created, release, entered, result = sys.argv[1:8]
+spec = importlib.util.spec_from_file_location("_statelock", mod_path)
+m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
+target = Path(target)
+created, release, entered, result = map(Path, (created, release, entered, result))
+
+if role == "leader":
+    real_write = m.os.write
+
+    def paused_write(fd, record):
+        created.write_text(str(os.fstat(fd).st_ino), encoding="utf-8")
+        while not release.exists():
+            time.sleep(0.005)
+        return real_write(fd, record)
+
+    m.os.write = paused_write
+    try:
+        with m.exclusive(target, timeout=2.0, stale_after=10.0, poll=0.005):
+            entered.write_text("leader", encoding="utf-8")
+        result.write_text("leader-clean", encoding="utf-8")
+    except Exception as exc:
+        result.write_text(f"leader-error:{type(exc).__name__}:{exc}", encoding="utf-8")
+        raise
+else:
+    try:
+        with m.exclusive(target, timeout=0.2, stale_after=10.0, poll=0.005):
+            entered.write_text("follower", encoding="utf-8")
+        outcome = "follower-acquired"
+    except m.StateLockTimeout:
+        outcome = "follower-timeout"
+    except Exception as exc:
+        outcome = f"follower-error:{type(exc).__name__}:{exc}"
+    result.write_text(outcome, encoding="utf-8")
+'''
+
+
+def _wait_for_path(path: Path, timeout: float = 5.0) -> None:
+    deadline = time.monotonic() + timeout
+    while not path.exists():
+        if time.monotonic() >= deadline:
+            raise TimeoutError(f"timed out waiting for {path}")
+        time.sleep(0.005)
+
+
+def test_fresh_empty_lock_is_contended(tmp: Path) -> None:
+    """A visible empty file may be a live creator paused before record write."""
+    target = _target(tmp, "fresh-empty")
+    lock = target.with_name(target.name + ".lock")
+    child = tmp / "_empty_window_child.py"
+    child.write_text(_EMPTY_WINDOW_CHILD, encoding="utf-8")
+    created = tmp / "empty-created"
+    release = tmp / "allow-record-write"
+    leader_entered = tmp / "leader-entered"
+    leader_result = tmp / "leader-result"
+    follower_entered = tmp / "follower-entered"
+    follower_result = tmp / "follower-result"
+
+    leader = subprocess.Popen(
+        [sys.executable, str(child), str(STATELOCK), str(target), "leader",
+         str(created), str(release), str(leader_entered), str(leader_result)],
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    reason: str | None = None
+    try:
+        _wait_for_path(created)
+        leader_inode = int(created.read_text(encoding="utf-8"))
+        follower = subprocess.Popen(
+            [sys.executable, str(child), str(STATELOCK), str(target), "follower",
+             str(created), str(release), str(follower_entered),
+             str(follower_result)],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+        )
+        follower_stdout, follower_stderr = follower.communicate(timeout=5)
+        _wait_for_path(follower_result)
+        outcome = follower_result.read_text(encoding="utf-8")
+        if follower.returncode != 0 or outcome != "follower-timeout":
+            reason = (
+                f"fresh empty lock was not treated as occupied: rc={follower.returncode}, "
+                f"outcome={outcome!r}, stdout={follower_stdout[-200:]!r}, "
+                f"stderr={follower_stderr[-200:]!r}"
+            )
+        elif follower_entered.exists():
+            reason = "follower entered while the leader was paused before record write"
+        elif not lock.exists():
+            reason = "follower removed the leader's fresh empty lock"
+        elif lock.stat().st_ino != leader_inode:
+            reason = (
+                f"leader inode {leader_inode} was replaced by {lock.stat().st_ino}"
+            )
+        elif lock.lstat().st_nlink != 1:
+            reason = f"leader lock has {lock.lstat().st_nlink} links, want 1"
+        elif list(lock.parent.glob(f"{lock.name}.reclaim.*")):
+            reason = "follower left reclaim residue beside the leader's lock"
+    finally:
+        release.write_text("write", encoding="utf-8")
+        leader_stdout, leader_stderr = leader.communicate(timeout=5)
+
+    if reason is None:
+        _wait_for_path(leader_result)
+        leader_outcome = leader_result.read_text(encoding="utf-8")
+        if leader.returncode != 0 or leader_outcome != "leader-clean":
+            reason = (
+                f"leader did not complete cleanly: rc={leader.returncode}, "
+                f"outcome={leader_outcome!r}, stdout={leader_stdout[-200:]!r}, "
+                f"stderr={leader_stderr[-200:]!r}"
+            )
+        elif not leader_entered.exists():
+            reason = "leader never entered after writing its ownership record"
+        elif lock.exists():
+            reason = "leader's lock remained after clean release"
+        elif list(lock.parent.glob(f"{lock.name}.reclaim.*")):
+            reason = "reclaim residue remained after leader release"
+    if reason is not None:
+        fail("fresh-empty-lock-is-contended", reason)
+        return
+    ok("fresh-empty-lock-is-contended")
+
+
+def test_stale_empty_lock_is_reclaimed(tmp: Path) -> None:
+    mod = _load()
+    target = _target(tmp, "stale-empty")
+    lock = target.with_name(target.name + ".lock")
+    lock.write_bytes(b"")
+    old = time.time() - 10_000
+    os.utime(lock, (old, old))
+    try:
+        with mod.exclusive(target, timeout=0.5, stale_after=1.0, poll=0.005):
+            pass
+    except mod.StateLockError as exc:
+        fail("stale-empty-lock-is-reclaimed", f"did not reclaim: {exc}")
+        return
+    if lock.exists():
+        fail("stale-empty-lock-is-reclaimed", "lock remained after clean release")
+        return
+    ok("stale-empty-lock-is-reclaimed")
+
+
+def test_lock_path_stays_lexical_sibling(tmp: Path) -> None:
+    mod = _load()
+    target = _target(tmp, "real-state")
+    alias_dir = tmp / "state-alias"
+    alias_dir.mkdir()
+    alias = alias_dir / "state.json"
+    alias.symlink_to(target)
+    lexical_lock = alias_dir / "state.json.lock"
+    target_lock = target.with_name(target.name + ".lock")
+    with mod.exclusive(alias):
+        if not lexical_lock.exists():
+            fail("lock-path-stays-lexical-sibling", "lexical sibling was not locked")
+            return
+        if target_lock.exists():
+            fail("lock-path-stays-lexical-sibling", "symlink target directory was locked")
+            return
+    if lexical_lock.exists() or target_lock.exists():
+        fail("lock-path-stays-lexical-sibling", "lock residue remained after release")
+        return
+    ok("lock-path-stays-lexical-sibling")
+
+
+def test_stale_reclaim_stays_lexical_sibling(tmp: Path) -> None:
+    mod = _load()
+    target = _target(tmp, "real-reclaim-state")
+    alias_dir = tmp / "reclaim-alias"
+    alias_dir.mkdir()
+    alias = alias_dir / "state.json"
+    alias.symlink_to(target)
+    lexical_lock = alias_dir / "state.json.lock"
+    target_lock = target.with_name(target.name + ".lock")
+    lexical_lock.write_text("statelock1 " + "d" * 32 + " 99999\n", encoding="utf-8")
+    old = time.time() - 10_000
+    os.utime(lexical_lock, (old, old))
+    with mod.exclusive(alias, timeout=0.5, stale_after=1.0, poll=0.005):
+        if not lexical_lock.exists():
+            fail("stale-reclaim-stays-lexical-sibling", "lexical lock was absent")
+            return
+        if target_lock.exists():
+            fail("stale-reclaim-stays-lexical-sibling", "target directory was locked")
+            return
+    if target_lock.exists():
+        fail("stale-reclaim-stays-lexical-sibling", "target lock residue remained")
+        return
+    if list(target_lock.parent.glob(f"{target_lock.name}.reclaim.*")):
+        fail("stale-reclaim-stays-lexical-sibling", "target reclaim residue remained")
+        return
+    if list(alias_dir.glob("state.json.lock.reclaim.*")):
+        fail("stale-reclaim-stays-lexical-sibling", "reclaim residue remained")
+        return
+    ok("stale-reclaim-stays-lexical-sibling")
+
+
+def test_lock_path_symlink_to_file_is_refused(tmp: Path) -> None:
+    mod = _load()
+    target = _target(tmp, "linked-lock")
+    lock = target.with_name(target.name + ".lock")
+    outside = tmp / "outside-regular-file"
+    original = b"outside content must survive\n"
+    outside.write_bytes(original)
+    lock.symlink_to(outside)
+    try:
+        with mod.exclusive(target, timeout=0.2):
+            fail("lock-path-symlink-to-file-is-refused", "followed lock symlink")
+            return
+    except mod.StateLockUnusable:
+        pass
+    if not lock.is_symlink():
+        fail("lock-path-symlink-to-file-is-refused", "lock symlink was removed")
+        return
+    if outside.read_bytes() != original:
+        fail("lock-path-symlink-to-file-is-refused", "symlink target was modified")
+        return
+    ok("lock-path-symlink-to-file-is-refused")
+
+
 # ── AC9 — reclaim and release cannot admit or mask a second writer ─────────
 
 _RECLAIM_CHILD = '''
@@ -535,6 +754,11 @@ def main() -> int:
         test_directory_refused_fast,
         test_fifo_refused_fast,
         test_contention_sleeps_rather_than_spins,
+        test_fresh_empty_lock_is_contended,
+        test_stale_empty_lock_is_reclaimed,
+        test_lock_path_stays_lexical_sibling,
+        test_stale_reclaim_stays_lexical_sibling,
+        test_lock_path_symlink_to_file_is_refused,
         test_concurrent_reclaimers_yield_one_holder,
         test_reclaim_refuses_unrecognised_file,
         test_lost_lock_is_reported,
