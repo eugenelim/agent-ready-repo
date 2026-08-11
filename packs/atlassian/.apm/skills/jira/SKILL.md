@@ -23,6 +23,35 @@ Table — When presenting several items that share the same fields, render a Mar
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 Status list — Lead each row with a status glyph — ● running, ✓ done, ○ idle, ⚠ blocked — status first, one item per line, labels aligned.
 
+## Installed entry-point contract
+
+Treat `<skill-dir>` as the installer-supplied directory containing this active
+`SKILL.md`; never infer it from the current working directory, user input, an
+environment variable, or a profile path. Replace `<skill-dir>` with that actual
+validated directory before executing or relaying any command; never send the
+placeholder to a runtime or user. Before every invocation of `jira.py` or `setup_sso.py`:
+
+1. Canonicalize `<skill-dir>`, its `scripts/` child, and the expected entry
+   point, resolving symlinks. Require the entry point to be a regular file and
+   its resolved path to remain beneath the canonical `scripts/` directory.
+2. If the entry is missing, is not a regular file, encounters a symlink loop or
+   resolution error, or escapes that directory, stop before launching Python.
+   Report only `error: installed skill entry point is unavailable: <entry>`,
+   substituting the basename. Do not expose an absolute, home, profile,
+   environment, or protected path; do not relay raw runtime stderr; and do not
+   offer credential, SSO-capture, token, scope, or dependency remediation.
+3. Invoke with a discrete argument vector, for example
+   `["<python>", "<skill-dir>/scripts/jira.py", "..."]`, so spaces, both quote characters, `$()`, backticks, and
+   variable-shaped text cannot be expanded by a shell. Keep the project root as
+   the working directory so user content paths retain their documented meaning.
+4. If only a shell string is available, use a single-quoted literal path on
+   POSIX or PowerShell and refuse paths containing a single quote. On cmd.exe,
+   use a double-quoted path and refuse paths containing `"`, `%`, or `!`.
+   If the adapter cannot represent the path safely, refuse instead of invoking.
+
+Interpret exit codes only after this preflight succeeds and the entry point
+actually runs.
+
 ## Instructions
 
 You are a Jira query agent. Authentication, pagination, retries, ADF
@@ -114,15 +143,15 @@ the token (`creds`) path above. On the SSO-cookie path:
   the destination cannot be confirmed, surface the refusal to the user — never
   edit the config to clear it.
 - **Everything that opens a browser stays with the user.** When `check` reports
-  that a new capture is needed, **relay `python scripts/jira.py check --register`
+  that a new capture is needed, **relay `python '<skill-dir>/scripts/jira.py' check --register`
   to the user as text** and let them run it — it opens a browser for interactive
   sign-in, so do not run any setup helper for them. Never pass `--register`
-  yourself, and never invoke `scripts/setup_sso.py` or `credential-setup` on the
+  yourself, and never invoke `<skill-dir>/scripts/setup_sso.py` or `credential-setup` on the
   user's behalf.
 - **`check --register` is the ordinary first run**, and the only capture path
   that *attempts* to verify the sign-in destination against the instance. It
   does not always achieve it — where the configured sign-in host is the instance
-  host, verification is skipped by construction. `scripts/setup_sso.py` attempts
+  host, verification is skipped by construction. `<skill-dir>/scripts/setup_sso.py` attempts
   none at all and is reserved for exactly two cases: a scripted pre-bake, and
   the case where `check --register` refuses because it cannot confirm the
   destination.
@@ -148,7 +177,7 @@ python -m pip install -r requirements.txt
 Then verify connectivity:
 
 ```bash
-python scripts/jira.py check
+python '<skill-dir>/scripts/jira.py' check
 ```
 
 - Exit code 0 → authenticated, proceed.
@@ -157,7 +186,7 @@ python scripts/jira.py check
   themselves (interactive — they run it, not you). Stop here.
 - Exit code 2, **SSO-cookie path** → the session could not be re-established on
   its own. Read the stderr message: it names the command to relay, which is
-  `python scripts/jira.py check --register`. Stop here and hand it to the user.
+  `python '<skill-dir>/scripts/jira.py' check --register`. Stop here and hand it to the user.
 - Any other non-zero → see *When a request fails*.
 
 **Bare `check` never blocks for a browser sign-in.** On the SSO-cookie path it
@@ -181,7 +210,7 @@ specific cause, then act on the band:
 | 0 | success | proceed |
 | 1 | functional error — server 5xx, transport, keychain hard-fail, unexpected | surface the message to the user; don't loop or retry blindly |
 | 2 (token path) | user must act — credentials missing/invalid/expired, 401/403 | tell the user to run `credential-setup` themselves (interactive — do not run it for them), then re-run `check` |
-| 2 (SSO-cookie path) | user must act — the session could not be re-established headlessly, or the destination could not be confirmed | relay `python scripts/jira.py check --register` to the user as text; do not run it. `check` has already tried the automatic recovery once |
+| 2 (SSO-cookie path) | user must act — the session could not be re-established headlessly, or the destination could not be confirmed | relay `python '<skill-dir>/scripts/jira.py' check --register` to the user as text; do not run it. `check` has already tried the automatic recovery once |
 
 - A **401** means the credential is invalid or expired → exit 2 → re-auth via
   `credential-setup`.
@@ -195,21 +224,21 @@ specific cause, then act on the band:
 
 | Intent | Command |
 |---|---|
-| Who am I? | `python scripts/jira.py whoami` |
-| Fetch one issue | `python scripts/jira.py get-issue PROJ-123 [--fields ... --expand ...]` |
-| JQL search | `python scripts/jira.py search "<JQL>" [--fields ... --limit ...]` |
-| Create an issue | `python scripts/jira.py create-issue --field KEY=VALUE ...` (or `--data-file body.json`) |
-| Update an issue | `python scripts/jira.py update-issue PROJ-123 --field KEY=VALUE ...` (PUT, partial) |
-| Delete an issue | `python scripts/jira.py delete-issue PROJ-123 --yes` |
-| List transitions | `python scripts/jira.py list-transitions PROJ-123` |
-| Apply transition | `python scripts/jira.py transition PROJ-123 --to "In Progress"` |
-| Add a comment | `python scripts/jira.py comment PROJ-123 --body "text"` |
-| Attach a file | `python scripts/jira.py attach PROJ-123 --file ./screenshot.png` |
-| Fetch a project | `python scripts/jira.py get-project PROJ` |
-| List projects | `python scripts/jira.py list-projects [--query KW]` |
-| Fetch a user | `python scripts/jira.py get-user --account-id ABC` (Cloud) **or** `--username jdoe` (Server) |
-| Search users | `python scripts/jira.py list-users --query "ada"` |
-| Endpoint not wrapped above | `python scripts/jira.py raw GET <path> [--param k=v ...]` |
+| Who am I? | `python '<skill-dir>/scripts/jira.py' whoami` |
+| Fetch one issue | `python '<skill-dir>/scripts/jira.py' get-issue PROJ-123 [--fields ... --expand ...]` |
+| JQL search | `python '<skill-dir>/scripts/jira.py' search "<JQL>" [--fields ... --limit ...]` |
+| Create an issue | `python '<skill-dir>/scripts/jira.py' create-issue --field KEY=VALUE ...` (or `--data-file body.json`) |
+| Update an issue | `python '<skill-dir>/scripts/jira.py' update-issue PROJ-123 --field KEY=VALUE ...` (PUT, partial) |
+| Delete an issue | `python '<skill-dir>/scripts/jira.py' delete-issue PROJ-123 --yes` |
+| List transitions | `python '<skill-dir>/scripts/jira.py' list-transitions PROJ-123` |
+| Apply transition | `python '<skill-dir>/scripts/jira.py' transition PROJ-123 --to "In Progress"` |
+| Add a comment | `python '<skill-dir>/scripts/jira.py' comment PROJ-123 --body "text"` |
+| Attach a file | `python '<skill-dir>/scripts/jira.py' attach PROJ-123 --file ./screenshot.png` |
+| Fetch a project | `python '<skill-dir>/scripts/jira.py' get-project PROJ` |
+| List projects | `python '<skill-dir>/scripts/jira.py' list-projects [--query KW]` |
+| Fetch a user | `python '<skill-dir>/scripts/jira.py' get-user --account-id ABC` (Cloud) **or** `--username jdoe` (Server) |
+| Search users | `python '<skill-dir>/scripts/jira.py' list-users --query "ada"` |
+| Endpoint not wrapped above | `python '<skill-dir>/scripts/jira.py' raw GET <path> [--param k=v ...]` |
 
 Global flags:
 
@@ -359,20 +388,20 @@ on demand.
 
 ```bash
 # JQL: 50 most recently created bugs in PROJ, as JSONL on disk
-python scripts/jira.py search \
+python '<skill-dir>/scripts/jira.py' search \
   "project = PROJ AND issuetype = Bug ORDER BY created DESC" \
   --fields "summary,status,priority,created" \
   --limit 50 --format jsonl --output bugs.jsonl
 
 # Create a Task in PROJ
-python scripts/jira.py create-issue \
+python '<skill-dir>/scripts/jira.py' create-issue \
   --field 'project={"key":"PROJ"}' \
   --field summary="Onboarding revamp" \
   --field 'issuetype={"name":"Task"}' \
   --field description="Migrate the welcome flow to the new tour."
 
 # Apply a transition by name
-python scripts/jira.py transition PROJ-123 --to "In Progress"
+python '<skill-dir>/scripts/jira.py' transition PROJ-123 --to "In Progress"
 ```
 
 ### Don't

@@ -500,7 +500,9 @@ def test_unregistered_names_check_register(sso_path, recapture, responses, capsy
     probes = responses(_EXPIRED, _OK)
     assert _check() == jira.EXIT_USER_ACTION
     err = capsys.readouterr().err
-    assert "ask the user to run: python scripts/jira.py check --register" in err
+    assert str(Path(jira.__file__).resolve()) in err
+    assert "check --register" in err
+    assert "<skill-dir>" not in err
     assert len(probes) == 1, "no retry after a failed recapture"
     assert recapture.register_calls == []
 
@@ -519,12 +521,22 @@ def test_automatic_path_aborts_rather_than_showing_login_page(
     assert recapture.register_calls == [], "the automatic path never registers"
 
 
-def test_recapture_failure_is_terminal(sso_path, recapture, responses):
+def test_recapture_failure_is_terminal_and_bounded(
+    sso_path, recapture, responses, capsys
+):
     # STUB: AC14 — any other recapture failure yields exit 2 with no retry.
-    recapture.refresh_raises = credbroker.SsoRecaptureFailedError("playwright absent")
+    secret = "token-shaped-secret-1234567890"  # noqa: S105 — leak sentinel
+    leaked_path = "/protected/example-service/session.json"
+    recapture.refresh_raises = credbroker.SsoRecaptureFailedError(
+        f"{secret} at {leaked_path}"
+    )
     probes = responses(_EXPIRED, _OK)
     assert _check() == jira.EXIT_USER_ACTION
     assert len(probes) == 1
+    err = capsys.readouterr().err
+    assert secret not in err
+    assert leaked_path not in err
+    assert "check --register" in err
 
 
 def test_post_recapture_probe_is_the_success_criterion(sso_path, recapture, responses):

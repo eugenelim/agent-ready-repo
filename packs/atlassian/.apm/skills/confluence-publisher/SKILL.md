@@ -19,6 +19,35 @@ credentials namespace, same flavor support, opposite direction.
 
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 
+## Installed entry-point contract
+
+Treat `<skill-dir>` as the installer-supplied directory containing this active
+`SKILL.md`; never infer it from the current working directory, user input, an
+environment variable, or a profile path. Replace `<skill-dir>` with that actual
+validated directory before executing or relaying any command; never send the
+placeholder to a runtime or user. Before every invocation of `publish_page.py`:
+
+1. Canonicalize `<skill-dir>`, its `scripts/` child, and the expected entry
+   point, resolving symlinks. Require the entry point to be a regular file and
+   its resolved path to remain beneath the canonical `scripts/` directory.
+2. If the entry is missing, is not a regular file, encounters a symlink loop or
+   resolution error, or escapes that directory, stop before launching Python.
+   Report only `error: installed skill entry point is unavailable: <entry>`,
+   substituting the basename. Do not expose an absolute, home, profile,
+   environment, or protected path; do not relay raw runtime stderr; and do not
+   offer credential, SSO-capture, token, scope, or dependency remediation.
+3. Invoke with a discrete argument vector, for example
+   `["<python>", "<skill-dir>/scripts/publish_page.py", "..."]`, so spaces, both quote characters, `$()`, backticks, and
+   variable-shaped text cannot be expanded by a shell. Keep the project root as
+   the working directory so user content paths retain their documented meaning.
+4. If only a shell string is available, use a single-quoted literal path on
+   POSIX or PowerShell and refuse paths containing a single quote. On cmd.exe,
+   use a double-quoted path and refuse paths containing `"`, `%`, or `!`.
+   If the adapter cannot represent the path safely, refuse instead of invoking.
+
+Interpret exit codes only after this preflight succeeds and the entry point
+actually runs.
+
 ## Instructions
 
 You are a Confluence publishing agent. Authentication, REST mechanics,
@@ -73,7 +102,7 @@ Populate any tier by running `credential-setup` skill.
 
 ```bash
 python -m pip install -r requirements.txt
-python scripts/publish_page.py --check
+python '<skill-dir>/scripts/publish_page.py' --check
 ```
 
 - Exit code 0 → authenticated, proceed.
@@ -122,25 +151,25 @@ Pick the form that matches the user's request:
 
 ```bash
 # Update an existing page by ID, from Markdown:
-python scripts/publish_page.py --page-id 12345 --input report.md
+python '<skill-dir>/scripts/publish_page.py' --page-id 12345 --input report.md
 
 # Same, but from a Confluence URL:
-python scripts/publish_page.py --url 'https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Foo' --input report.md
+python '<skill-dir>/scripts/publish_page.py' --url 'https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Foo' --input report.md
 
 # Round-trip case — the markdown came from confluence-crawler:
-python scripts/publish_page.py --from-frontmatter --input crawled/eng-handbook.md
+python '<skill-dir>/scripts/publish_page.py' --from-frontmatter --input crawled/eng-handbook.md
 
 # Lookup-then-upsert by title:
-python scripts/publish_page.py --space ENG --title "Q2 Report" --parent-id 999 --input report.md
+python '<skill-dir>/scripts/publish_page.py' --space ENG --title "Q2 Report" --parent-id 999 --input report.md
 
 # Plain text body (one paragraph per line):
-python scripts/publish_page.py --page-id 12345 --input - --input-format text   # stdin
+python '<skill-dir>/scripts/publish_page.py' --page-id 12345 --input - --input-format text   # stdin
 
 # Already-rendered storage XHTML:
-python scripts/publish_page.py --page-id 12345 --input snippet.xhtml --input-format storage
+python '<skill-dir>/scripts/publish_page.py' --page-id 12345 --input snippet.xhtml --input-format storage
 
 # Dry-run — print what would be sent, do not call write APIs:
-python scripts/publish_page.py --page-id 12345 --input report.md --dry-run
+python '<skill-dir>/scripts/publish_page.py' --page-id 12345 --input report.md --dry-run
 ```
 
 Flags:

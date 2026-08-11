@@ -21,6 +21,7 @@ import contextlib
 import json
 import logging
 import re
+import shlex
 import sys
 import time
 from pathlib import Path
@@ -66,6 +67,39 @@ TOKEN_CLI_FLAGS = frozenset({
     "--linear-token", "--pat", "--password",
     "--access-token", "--auth-token",
 })
+
+
+def _render_windows_command(argv: list[str], fallback: str) -> str:
+    """Render only cmd/PowerShell-inert Windows argv; refuse everything else."""
+    safe_punctuation = frozenset(" _./:\\-")
+    if any(
+        not value
+        or any(
+            not char.isascii()
+            or (not char.isalnum() and char not in safe_punctuation)
+            for char in value
+        )
+        for value in argv
+    ):
+        return f"{fallback} (use an argv-capable terminal)"
+    return " ".join(f'"{value}"' if " " in value else value for value in argv)
+
+
+def _display_program() -> str:
+    """Return a shell-safe display form for this verified installed entry."""
+    fallback = "the installed linear.py entry point"
+    try:
+        entry = Path(__file__).resolve(strict=True)
+        entry.relative_to(entry.parent.resolve(strict=True))
+        if not entry.is_file():
+            return fallback
+    except (OSError, RuntimeError, ValueError):
+        return fallback
+    argv = [sys.executable, str(entry)]
+    if sys.platform == "win32":
+        return _render_windows_command(argv, fallback)
+    return shlex.join(argv)
+
 
 _CREDENTIAL_LOOKING_RE = re.compile(r"^[A-Za-z0-9_/+=%.~-]{20,}$")
 _STRIP_CHARS = "'\"`(),;:."
@@ -373,7 +407,7 @@ def _write_output(data: Any, args: argparse.Namespace) -> None:
 
 def _build_parser() -> _ScrubbingArgumentParser:
     p = _ScrubbingArgumentParser(
-        prog="linear",
+        prog=_display_program(),
         description="Linear GraphQL API CLI. API key is resolved via credbroker.",
     )
     p.add_argument("--format", choices=["json", "jsonl"], default="json")

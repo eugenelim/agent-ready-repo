@@ -7,9 +7,10 @@ by an image reference. The original input file is not modified.
 
 Invocation examples:
 
-    python scripts/render_mermaid.py --check
-    python scripts/render_mermaid.py --input report.md
-    python scripts/render_mermaid.py --input arch.md --output-dir ./out --format svg --theme forest
+    python '<skill-dir>/scripts/render_mermaid.py' --check
+    python '<skill-dir>/scripts/render_mermaid.py' --input report.md
+    python '<skill-dir>/scripts/render_mermaid.py' --input arch.md \
+        --output-dir ./out --format svg --theme forest
 
 Exit codes:
 - 0  success (or check passed)
@@ -25,6 +26,7 @@ from __future__ import annotations
 import argparse
 import logging
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -48,9 +50,45 @@ VALID_FORMATS = ("png", "svg")
 VALID_THEMES = ("default", "forest", "dark", "neutral")
 
 
+def _render_windows_command(argv: list[str], fallback: str) -> str:
+    """Render only cmd/PowerShell-inert Windows argv; refuse everything else."""
+    safe_punctuation = frozenset(" _./:\\-")
+    if any(
+        not value
+        or any(
+            not char.isascii()
+            or (not char.isalnum() and char not in safe_punctuation)
+            for char in value
+        )
+        for value in argv
+    ):
+        return f"{fallback} (use an argv-capable terminal)"
+    return " ".join(f'"{value}"' if " " in value else value for value in argv)
+
+
+def _display_program() -> str:
+    """Return a shell-safe display form for this verified installed entry."""
+    fallback = "the installed render_mermaid.py entry point"
+    try:
+        entry = Path(__file__).resolve(strict=True)
+        entry.relative_to(entry.parent.resolve(strict=True))
+        if not entry.is_file():
+            return fallback
+    except (OSError, RuntimeError, ValueError):
+        return fallback
+    argv = [sys.executable, str(entry)]
+    if sys.platform == "win32":
+        return _render_windows_command(argv, fallback)
+    return shlex.join(argv)
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    program = _display_program()
     parser = argparse.ArgumentParser(
-        description=__doc__,
+        prog=program,
+        description=(__doc__ or "").replace(
+            "python '<skill-dir>/scripts/render_mermaid.py'", program
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--check", action="store_true",

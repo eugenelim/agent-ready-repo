@@ -16,17 +16,26 @@ gemini, copilot), and `.kiro/skills/`, at either scope. Worse, `author-a-skill.m
 rule 2 is linter-enforced and forbids a skill from referring to its own files by
 an install-path prefix. So the contract is defined at two levels:
 
-**Agent invocation (normative, and what `SKILL.md` contains).** Skill-relative,
-exactly as `mermaid-renderer` does it — the script is named relative to the skill
-directory, and the *content* root is supplied explicitly:
+**Agent invocation (normative, and what `SKILL.md` contains).** The harness or
+installer supplies `<skill-dir>`, the directory containing the active
+`SKILL.md`. The caller canonicalizes that directory, its `scripts/` child, and
+the expected entry point; requires the resolved entry to be a regular file that
+remains beneath the canonical `scripts/` directory; and only then launches it.
+The current project root remains the content working directory:
 
-```bash
-python scripts/binder.py build binder.toml --root=/path/to/project
+```text
+["<python>", "<skill-dir>/scripts/binder.py", "build", "binder.toml", "--root=/path/to/project"]
 ```
 
-This is why `--root` exists. It is the mechanism that decouples "where the script
-lives" from "what it operates on", and it is what makes the contract independent
-of both the current shell and the adapter layout.
+The argument-vector form is canonical. A shell-string-only adapter must quote
+the resolved entry point with its platform's literal form or refuse when the
+path cannot be represented safely. A missing, non-file, resolution-error, or
+escaping entry stops before interpreter launch with a bounded installation or
+invocation diagnostic; it is not interpreted as a script exit code.
+
+`--root` remains the mechanism that decouples where the script lives from what
+it operates on. The installed entry point comes from `<skill-dir>`; content
+paths still resolve from the project root or the explicit `--root` value.
 
 > **Gate V6 answered this, and the answer is no.** The agent's working directory
 > is **not** the skill directory — measured 2026-08-07 on `claude-code` and
@@ -44,26 +53,18 @@ of both the current shell and the adapter layout.
 > full four-rule resolution order and the coverage caveat;
 > [`verified-findings.md`](verified-findings.md) carries the measurement.
 >
-> **What V6 found on the way is a caution for this file's own conventions.** The
-> bare-relative form that `converters` ships was measured failing from an agent
-> session in both skills — `python scripts/render_mermaid.py` and
-> `node scripts/render.js` each resolve against the *project root*. **The exit codes
-> differ, and only one of them collides:** CPython exits **2**, which is also what
-> `mermaid-renderer`'s own `SKILL.md` reads as *dependency missing*, so a wrong path
-> there reports itself as a missing `mmdc`; `node` exits **1** with
-> `MODULE_NOT_FOUND`, which collides with nothing.
+> **What V6 found corrected the caller contract.** Bare-relative skill commands
+> resolve against the project root, not the skill directory. CPython then exits
+> **2** before the script starts, which collides with the user-action band used
+> by credentialed clients and Mermaid Renderer; Node exits **1** with
+> `MODULE_NOT_FOUND`. Atlassian, Figma, Linear, Mermaid Renderer, and Markdown to
+> HTML now resolve and preflight their installed entry point before launch, so
+> neither runtime result can masquerade as missing credentials or dependencies.
 >
-> **`binder.py` inherits that collision and cannot close it from inside**, which is
-> the honest statement: the interpreter exits 2 before any line of `binder.py` runs,
-> so no in-process guard can distinguish the two. What the design can do is not
-> *rely* on a bare-relative path — hence the skill-relative-plus-`--root` form above
-> — and keep exit 2 meaning exactly one thing when it is `binder.py` that emits it.
-> **The collision is not this pack's to settle, and it is wider than one skill.** The
-> same exit-2-means-the-user-must-act contract is shipped by `mermaid-renderer` and by
-> every credentialed skill in `atlassian`, `figma` and `linear` — where a path failure
-> therefore reports itself as *absent credentials* and sends the user to
-> re-authenticate against a problem that is not theirs. Tracked as
-> `skill-script-exit-2-collision` in `workspace.toml [backlog].open`.
+> **`binder.py` cannot close the collision from inside.** The interpreter exits
+> before its first line runs. The preflight above therefore belongs to the
+> caller and precedes every exit-code table. Once the entry point actually runs,
+> its published exit meanings remain unchanged.
 
 **Non-agent invocation (CI, `Makefile`, cron).** A caller outside an agent session
 resolves the script path once, by either:
@@ -75,8 +76,8 @@ resolves the script path once, by either:
 
 `references/invocation.md` is the single place those paths are written down, so
 the skill body never carries a forbidden install-path prefix and CI never has to
-guess. Examples below use `$BINDER_SCRIPT` for non-agent callers and
-`scripts/binder.py` for agent callers.
+guess. Examples below use `$BINDER_SCRIPT` for non-agent callers and the
+resolved `<skill-dir>/scripts/binder.py` form for agent callers.
 
 ---
 
@@ -86,19 +87,19 @@ guess. Examples below use `$BINDER_SCRIPT` for non-agent callers and
 flags use `=` form throughout, per `skill-script-conventions.md`.
 
 ```
-python scripts/binder.py outline   <dir>... [--root=DIR] [--depth=N]
-python scripts/binder.py templates [<name>] [--root=DIR]
-python scripts/binder.py check     [--root=DIR]
-python scripts/binder.py check     --published=DIR <recipe> [--root=DIR] [--param=K=V]...
-python scripts/binder.py inventory <source-root>... [--root=DIR] [--json]
-python scripts/binder.py resolve   <recipe> [--root=DIR] [--param=K=V]...
+python '<skill-dir>/scripts/binder.py' outline   <dir>... [--root=DIR] [--depth=N]
+python '<skill-dir>/scripts/binder.py' templates [<name>] [--root=DIR]
+python '<skill-dir>/scripts/binder.py' check     [--root=DIR]
+python '<skill-dir>/scripts/binder.py' check     --published=DIR <recipe> [--root=DIR] [--param=K=V]...
+python '<skill-dir>/scripts/binder.py' inventory <source-root>... [--root=DIR] [--json]
+python '<skill-dir>/scripts/binder.py' resolve   <recipe> [--root=DIR] [--param=K=V]...
                                    [--allow-unknown-fields]
-python scripts/binder.py build     <recipe> [--root=DIR] [--param=K=V]...
+python '<skill-dir>/scripts/binder.py' build     <recipe> [--root=DIR] [--param=K=V]...
                                    [--keep-stage] [--no-wait] [--allow-unknown-fields]
-python scripts/binder.py explain   <recipe-or-index> <content-id-or-path> [--root=DIR]
-python scripts/binder.py recipe write <name> [--root=DIR]
-python scripts/binder.py clean     <binder-id> [--publication] [--yes]
-python scripts/binder.py clean     --stale [--yes]
+python '<skill-dir>/scripts/binder.py' explain   <recipe-or-index> <content-id-or-path> [--root=DIR]
+python '<skill-dir>/scripts/binder.py' recipe write <name> [--root=DIR]
+python '<skill-dir>/scripts/binder.py' clean     <binder-id> [--publication] [--yes]
+python '<skill-dir>/scripts/binder.py' clean     --stale [--yes]
 ```
 
 ### The complete flag surface
@@ -172,7 +173,7 @@ and the read accessor have.
 ## `check --published` — the CI staleness gate
 
 ```
-python scripts/binder.py check --published=DIR <recipe> [--root=DIR] [--param=K=V]...
+python '<skill-dir>/scripts/binder.py' check --published=DIR <recipe> [--root=DIR] [--param=K=V]...
 ```
 
 This is the reason source hashes are recorded at all. **It takes the recipe**,
@@ -306,21 +307,21 @@ rules, which are the ones that were doing the work all along.
 **Agent, user-scope install, unrelated directory with no Git and no configuration:**
 
 ```bash
-python scripts/binder.py build binder.toml --root=/Users/dev/scratch/vendor-eval
+python '<skill-dir>/scripts/binder.py' build binder.toml --root=/Users/dev/scratch/vendor-eval
 # → /Users/dev/scratch/vendor-eval/build/binders/vendor-eval/index.html
 ```
 
 **Agent, repository scope, named recipe, parameterized:**
 
 ```bash
-python scripts/binder.py build binders/architecture-review.binder.toml \
+python '<skill-dir>/scripts/binder.py' build binders/architecture-review.binder.toml \
   --root=/Users/dev/proj --param=subject=payments-migration
 ```
 
 **Agent, resolve without rendering (no renderer needed):**
 
 ```bash
-python scripts/binder.py resolve binders/architecture-review.binder.toml \
+python '<skill-dir>/scripts/binder.py' resolve binders/architecture-review.binder.toml \
   --root=/Users/dev/proj --param=subject=payments-migration
 # → .binder-work/architecture-review/8f3a91c2/binder-index.json   (path printed)
 ```
@@ -328,7 +329,7 @@ python scripts/binder.py resolve binders/architecture-review.binder.toml \
 **Agent, draft a first recipe from a folder:**
 
 ```bash
-python scripts/binder.py outline docs/ --root=/Users/dev/proj > binders/draft.binder.toml
+python '<skill-dir>/scripts/binder.py' outline docs/ --root=/Users/dev/proj > binders/draft.binder.toml
 ```
 
 **CI staleness gate (non-agent caller):**

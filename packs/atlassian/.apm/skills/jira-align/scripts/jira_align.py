@@ -24,11 +24,12 @@ import csv
 import json
 import logging
 import re
+import shlex
 import sys
 from pathlib import Path
 from typing import Any
 
-# Bootstrap when invoked as ``python scripts/jira_align.py`` so the
+# Bootstrap when invoked as ``python '<skill-dir>/scripts/jira_align.py'`` so the
 # relative imports of sibling modules (e.g. ``_client``) resolve
 # against the siblings in this directory. Gated on
 # ``__spec__ is None`` so the block only fires for true file-path
@@ -99,6 +100,38 @@ TOKEN_CLI_FLAGS = frozenset({
 })
 
 
+def _render_windows_command(argv: list[str], fallback: str) -> str:
+    """Render only cmd/PowerShell-inert Windows argv; refuse everything else."""
+    safe_punctuation = frozenset(" _./:\\-")
+    if any(
+        not value
+        or any(
+            not char.isascii()
+            or (not char.isalnum() and char not in safe_punctuation)
+            for char in value
+        )
+        for value in argv
+    ):
+        return f"{fallback} (use an argv-capable terminal)"
+    return " ".join(f'"{value}"' if " " in value else value for value in argv)
+
+
+def _display_program() -> str:
+    """Return a shell-safe display form for this verified installed entry."""
+    fallback = "the installed jira_align.py entry point"
+    try:
+        entry = Path(__file__).resolve(strict=True)
+        entry.relative_to(entry.parent.resolve(strict=True))
+        if not entry.is_file():
+            return fallback
+    except (OSError, RuntimeError, ValueError):
+        return fallback
+    argv = [sys.executable, str(entry)]
+    if sys.platform == "win32":
+        return _render_windows_command(argv, fallback)
+    return shlex.join(argv)
+
+
 def _reject_token_on_cli(argv: list[str]) -> None:
     """Jira Align tokens are secret; refuse to accept them as CLI args."""
     for arg in argv:
@@ -158,7 +191,7 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
 
 def _build_parser() -> argparse.ArgumentParser:
     p = _ScrubbingArgumentParser(
-        prog="jira_align.py",
+        prog=_display_program(),
         description="Query Jira Align REST API 2.0 (cloud or on-prem).",
     )
     p.add_argument("--verbose", action="store_true", help="Enable debug logging.")

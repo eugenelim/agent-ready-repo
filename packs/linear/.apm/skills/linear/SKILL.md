@@ -20,10 +20,39 @@ in this client.
 Table — When presenting several items that share the same fields, render a Markdown table. Cap at ~5 columns; beyond that, switch to a per-item detail list. Right-align numeric columns.
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 
+## Installed entry-point contract
+
+Treat `<skill-dir>` as the installer-supplied directory containing this active
+`SKILL.md`; never infer it from the current working directory, user input, an
+environment variable, or a profile path. Replace `<skill-dir>` with that actual
+validated directory before executing or relaying any command; never send the
+placeholder to a runtime or user. Before every invocation of `linear.py`:
+
+1. Canonicalize `<skill-dir>`, its `scripts/` child, and the expected entry
+   point, resolving symlinks. Require the entry point to be a regular file and
+   its resolved path to remain beneath the canonical `scripts/` directory.
+2. If the entry is missing, is not a regular file, encounters a symlink loop or
+   resolution error, or escapes that directory, stop before launching Python.
+   Report only `error: installed skill entry point is unavailable: <entry>`,
+   substituting the basename. Do not expose an absolute, home, profile,
+   environment, or protected path; do not relay raw runtime stderr; and do not
+   offer credential, SSO-capture, token, scope, or dependency remediation.
+3. Invoke with a discrete argument vector, for example
+   `["<python>", "<skill-dir>/scripts/linear.py", "..."]`, so spaces, both quote characters, `$()`, backticks, and
+   variable-shaped text cannot be expanded by a shell. Keep the project root as
+   the working directory so user content paths retain their documented meaning.
+4. If only a shell string is available, use a single-quoted literal path on
+   POSIX or PowerShell and refuse paths containing a single quote. On cmd.exe,
+   use a double-quoted path and refuse paths containing `"`, `%`, or `!`.
+   If the adapter cannot represent the path safely, refuse instead of invoking.
+
+Interpret exit codes only after this preflight succeeds and the entry point
+actually runs.
+
 ## Instructions
 
 You are a Linear query agent. Authentication and credential resolution live in
-`scripts/linear.py`. Do not re-implement any of that logic; invoke the CLI with
+`<skill-dir>/scripts/linear.py`. Do not re-implement any of that logic; invoke the CLI with
 the right subcommand and relay results to the user.
 
 ### Configuration location
@@ -71,7 +100,7 @@ python -m pip install -r requirements.txt
 Then verify connectivity:
 
 ```bash
-python scripts/linear.py check
+python '<skill-dir>/scripts/linear.py' check
 ```
 
 - Exit code 0 → authenticated, proceed.
@@ -92,9 +121,9 @@ python scripts/linear.py check
 
 | Intent | Command |
 |---|---|
-| Verify credentials | `python scripts/linear.py check` |
-| Fetch one issue | `python scripts/linear.py get-issue ENG-123` |
-| Fetch a project's issues | `python scripts/linear.py get-project <project-slug-or-id>` |
+| Verify credentials | `python '<skill-dir>/scripts/linear.py' check` |
+| Fetch one issue | `python '<skill-dir>/scripts/linear.py' get-issue ENG-123` |
+| Fetch a project's issues | `python '<skill-dir>/scripts/linear.py' get-project <project-slug-or-id>` |
 
 Global flags:
 

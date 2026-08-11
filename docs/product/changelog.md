@@ -27,6 +27,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   this catalogue's decision records, and maintainer hook guidance no longer
   points adopters to a README that is absent from the installed pack.
 
+### [atlassian][0.8.3] — 2026-08-11
+
+#### Fixed
+
+- **Jira, Jira Align, Confluence Publisher, and Confluence Crawler now resolve
+  installed scripts before interpreting exit codes.** Each skill confines and
+  preflights its regular-file entry point under the installed skill directory,
+  then launches it as one argument while keeping project-relative content paths
+  unchanged. A missing or escaping script is reported as an installation or
+  invocation failure instead of missing credentials. Headed Jira and Confluence
+  SSO capture remains a command for the operator to run; automatic recovery
+  remains headless.
+
+### [figma][0.3.1] — 2026-08-11
+
+#### Fixed
+
+- **Figma script resolution can no longer masquerade as a credential or scope
+  failure.** The skill validates and confines its installed `figma.py` before
+  launch, uses an argument-safe resolved path, and reports entry-point failures
+  without credential, token, re-authentication, or scope guidance.
+
+### [linear][0.2.2] — 2026-08-11
+
+#### Fixed
+
+- **Linear now distinguishes an unavailable installed client from exit 2.** The
+  primitive resolves and preflights `linear.py` before launch, preserving its
+  existing credential behavior only for a script that actually ran. The pack
+  also registers activation coverage for `linear`, `linear-brief-intake`, and
+  `linear-brief-sync`, plus primitive behavior coverage for the corrected path.
+
+### [converters][0.9.5] — 2026-08-11
+
+#### Fixed
+
+- **Mermaid Renderer and Markdown to HTML now launch their installed renderer
+  entry points from project-root sessions.** Both skills use confined resolved
+  paths, including eval and script-emitted usage surfaces. Missing scripts no
+  longer produce false Mermaid CLI or Node-package guidance; the renderers'
+  existing exit meanings and content-path behavior are unchanged.
+
 ### [credential-brokers][0.3.2] — 2026-08-10
 
 #### Fixed

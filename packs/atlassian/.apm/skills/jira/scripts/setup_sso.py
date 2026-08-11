@@ -13,15 +13,14 @@ two:
 
 1. a scripted pre-bake, where an enterprise has already written
    ``references/sso-config.toml`` and no operator is present to answer a prompt;
-2. the case where ``jira.py check --register`` refuses because it cannot attest
-   the sign-in destination against the instance — a host mismatch, or a topology
-   where derivation resolves nothing.
+2. the case where the skill's primary check requests operator-assisted capture
+   or cannot attest the configured sign-in destination.
 
-An ordinary first run belongs in ``python scripts/jira.py check --register``,
-which is one command and *attempts* destination attestation. This helper
-attempts none, and is safe only because an operator types it::
+An ordinary first run belongs in the primary check command documented by the
+active ``SKILL.md``. Use this helper only when that check requests it; the
+helper is safe only because an operator types it::
 
-    python scripts/setup_sso.py
+    python '<skill-dir>/scripts/setup_sso.py'
 """
 
 from __future__ import annotations
@@ -29,9 +28,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-# Make sibling modules importable when run as ``python scripts/setup_sso.py`` and
+# Make sibling modules importable when run as ``python '<skill-dir>/scripts/setup_sso.py'`` and
 # append the credbroker user-scope floor (lowest precedence) so the loader's
-# validation primitives resolve in a no-repo install. (Mirrors jira.py.)
+# validation primitives resolve in a no-repo install.
 _here = Path(__file__).resolve().parent
 if str(_here) not in sys.path:
     sys.path.insert(0, str(_here))
@@ -41,7 +40,7 @@ if _floor.is_dir() and str(_floor) not in sys.path:
 
 from _sso_config import load_sso_config  # noqa: E402
 
-# Matches `jira.py`'s floor. The recapture verbs landed in 0.5.0.
+# The recapture verbs landed in 0.5.0.
 _CREDBROKER_REQUIREMENT = "credbroker>=0.5.0"
 
 
@@ -101,8 +100,8 @@ def main(argv: list[str] | None = None) -> int:
         "(opens a headed browser for SSO sign-in; the cookie jar is captured and "
         "stored by the broker — no cookie value passes through this helper). "
         "This helper performs no destination attestation; "
-        "the jira skill's 'check --register' is the capture path that "
-        "attempts it.",
+        "use the active skill's documented primary check when destination "
+        "attestation is required.",
         file=sys.stderr,
     )
 

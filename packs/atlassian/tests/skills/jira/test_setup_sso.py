@@ -70,9 +70,16 @@ def test_no_subprocess_or_broker_path_left_in_any_skill_script():   # STUB: AC2
             assert token not in src, f"{token} present in {path.name}"
 
 
-def test_connection_params_forwarded_no_cookie(monkeypatch, registered):  # STUB: AC2
+def test_connection_params_forwarded_no_cookie(
+    monkeypatch, registered, capsys
+):  # STUB: AC2
     monkeypatch.setattr(setup_sso, "load_sso_config", lambda: CFG)
     assert setup_sso.main() == 0
+
+    err = capsys.readouterr().err.lower()
+    assert "active skill's documented primary check" in err
+    for stale in ("jira.py", "jira skill", "check --register"):
+        assert stale not in err
 
     assert registered["profile"] == "jira"
     assert registered["login_url"] == CFG.login_url

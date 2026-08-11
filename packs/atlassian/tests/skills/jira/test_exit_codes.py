@@ -120,6 +120,8 @@ def test_outofset_token_flag_value_scrubbed() -> None:
 def test_help_exits_0() -> None:
     proc = _run("--help")
     assert proc.returncode == 0, f"--help should exit 0, got {proc.returncode}"
+    assert str(CLI.resolve()) in proc.stdout
+    assert "<skill-dir>" not in proc.stdout
 
 
 # --- structural (source inspection; always run) ----------------------------

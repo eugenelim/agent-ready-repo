@@ -127,7 +127,10 @@ def test_401_surfaces_reregister_without_cookie_value(broker_jar, monkeypatch):
             return str(exc.value)
 
     msg = asyncio.run(go())
-    assert "sso-broker register confluence" in msg
+    setup_entry = Path(_client.__file__).resolve().parent / "setup_sso.py"
+    assert str(setup_entry) in msg
+    assert "sso-broker register" not in msg
+    assert "<skill-dir>" not in msg
     assert "sess1" not in msg and "tok1" not in msg
 
 

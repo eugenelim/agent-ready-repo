@@ -19,17 +19,18 @@ import json
 import logging
 import os
 import secrets
+import shlex
 import ssl
+import sys
 from collections.abc import Mapping
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, AsyncIterator
 from urllib.parse import urlparse
 
 import httpx
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from _sso_config import SsoConfig
 
 log = logging.getLogger("confluence_crawler.client")
@@ -50,6 +51,43 @@ class ConfluenceError(Exception):
 
 class AuthError(ConfluenceError):
     pass
+
+
+def _render_windows_command(argv: list[str], fallback: str) -> str:
+    """Render only cmd/PowerShell-inert Windows argv; refuse everything else."""
+    safe_punctuation = frozenset(" _./:\\-")
+    if any(
+        not value
+        or any(
+            not char.isascii()
+            or (not char.isalnum() and char not in safe_punctuation)
+            for char in value
+        )
+        for value in argv
+    ):
+        return f"{fallback} (use an argv-capable terminal)"
+    return " ".join(f'"{value}"' if " " in value else value for value in argv)
+
+
+def operator_command(entry_name: str, *args: str) -> str:
+    """Render a bounded command for a verified entry in this scripts directory."""
+    fallback = f"the installed {entry_name} entry point"
+    try:
+        scripts_dir = Path(__file__).resolve(strict=True).parent
+        entry = (scripts_dir / entry_name).resolve(strict=True)
+        entry.relative_to(scripts_dir)
+        if not entry.is_file():
+            return fallback
+    except (OSError, RuntimeError, ValueError):
+        return fallback
+
+    argv = [sys.executable, str(entry), *args]
+    if sys.platform == "win32":
+        return _render_windows_command(argv, fallback)
+    return shlex.join(argv)
+
+
+OPERATOR_SETUP_COMMAND = operator_command("setup_sso.py")
 
 
 class SsoSessionUnavailable(AuthError):
@@ -328,8 +366,8 @@ class ConfluenceClient:
                         # profile, never the cookie bytes.
                         self._client.cookies.clear()
                         raise SsoSessionUnavailable(
-                            f"401 Unauthorized — SSO session expired; run "
-                            f"'sso-broker register {self._profile}' to re-authenticate"
+                            "401 Unauthorized — SSO session expired; ask the user "
+                            f"to run: {OPERATOR_SETUP_COMMAND}"
                         )
                     raise AuthError(
                         "401 Unauthorized — credentials are missing, invalid, or expired. "
@@ -340,8 +378,8 @@ class ConfluenceClient:
                     # 30x, never follow it (which would re-attach the session cookie).
                     raise SsoSessionUnavailable(
                         f"SSO session may have expired (HTTP {resp.status_code} "
-                        f"redirect, not followed); run 'sso-broker register "
-                        f"{self._profile}' to re-authenticate"
+                        "redirect, not followed); ask the user to run: "
+                        f"{OPERATOR_SETUP_COMMAND}"
                     )
                 if resp.status_code == 403:
                     raise AuthError(

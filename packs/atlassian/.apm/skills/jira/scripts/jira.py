@@ -47,7 +47,7 @@ import sys
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-# Bootstrap when invoked as ``python scripts/jira.py`` so the
+# Bootstrap when invoked as ``python '<skill-dir>/scripts/jira.py'`` so the
 # relative imports of sibling modules (e.g. ``_client``) resolve
 # against the siblings in this directory. Gated on
 # ``__spec__ is None`` so the block only fires for true file-path
@@ -88,6 +88,7 @@ try:
         JiraError,
         SsoSessionUnavailable,
         load_credentials,
+        operator_command,
     )
     from ._client import identity_of as _identity_of  # noqa: E402
     from ._sso_config import _select_auth_path  # noqa: E402
@@ -200,7 +201,7 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
 
 def _build_parser() -> argparse.ArgumentParser:
     p = _ScrubbingArgumentParser(
-        prog="jira.py",
+        prog=operator_command("jira.py"),
         description="Query the Jira REST API (Cloud v3 or Server/DC v2).",
     )
     p.add_argument("--verbose", action="store_true", help="Enable debug logging.")
@@ -577,7 +578,7 @@ def _attest_sign_in_destination(sso_config: SsoConfig) -> str | None:
             f"error: could not confirm where {base_origin} sends users to sign "
             f"in, so the configured destination {login_origin} cannot be "
             f"attested. If it is correct, register with: "
-            f"python scripts/setup_sso.py"
+            f"{operator_command('setup_sso.py')}"
         )
 
     if _origin_of(derived) == login_origin:
@@ -590,7 +591,7 @@ def _attest_sign_in_destination(sso_config: SsoConfig) -> str | None:
     return (
         f"error: {base_origin} sends users to sign in at {derived_origin}, but "
         f"sso-config.toml points at {login_origin}. Refusing to open a browser. "
-        f"If {login_origin} is correct, register with: python scripts/setup_sso.py"
+        f"If {login_origin} is correct, register with: {operator_command('setup_sso.py')}"
     )
 
 
@@ -707,13 +708,16 @@ async def _cmd_check_sso(sso_config: SsoConfig, args: argparse.Namespace) -> int
         )
         return EXIT_USER_ACTION
     except credbroker.SsoError as exc:
-        # The engine's own stderr already reached the caller (its stdio is
-        # inherited), so this adds no guessed remediation.
+        # Do not echo broker exception text into the agent transcript: it may
+        # contain an engine path or other environment detail.
         log.error(
             "recapture failed for profile %s (%s)",
             sso_config.profile, type(exc).__name__,
         )
-        print(f"error: could not re-establish the SSO session: {exc}", file=sys.stderr)
+        print(
+            f"error: could not re-establish the SSO session — {_REGISTER_REMEDIATION}",
+            file=sys.stderr,
+        )
         return EXIT_USER_ACTION
 
     log.info("recapture completed for profile %s; re-probing", sso_config.profile)

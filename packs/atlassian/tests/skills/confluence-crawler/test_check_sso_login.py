@@ -453,7 +453,8 @@ def test_failed_post_refresh_probe_is_terminal_and_not_retried(
     assert state["probe_count"] == 2
     assert state["close_count"] == 2
     stderr = capsys.readouterr().err
-    assert "python scripts/setup_sso.py" in stderr
+    assert str(Path(crawl_space.__file__).resolve().parent / "setup_sso.py") in stderr
+    assert "<skill-dir>" not in stderr
     assert "still expired" not in stderr
 
 
@@ -470,7 +471,8 @@ def test_never_registered_requests_existing_manual_setup(
     )
     assert _check() == crawl_space.EXIT_USER_ACTION
     stderr = capsys.readouterr().err
-    assert "python scripts/setup_sso.py" in stderr
+    assert str(Path(crawl_space.__file__).resolve().parent / "setup_sso.py") in stderr
+    assert "<skill-dir>" not in stderr
     assert broker.register_calls == []
 
 
@@ -488,7 +490,8 @@ def test_interaction_required_says_no_browser_opened(
     assert _check() == crawl_space.EXIT_USER_ACTION
     stderr = capsys.readouterr().err
     assert "No browser was opened" in stderr
-    assert "python scripts/setup_sso.py" in stderr
+    assert str(Path(crawl_space.__file__).resolve().parent / "setup_sso.py") in stderr
+    assert "<skill-dir>" not in stderr
     assert broker.register_calls == []
 
 
