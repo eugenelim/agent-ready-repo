@@ -520,8 +520,10 @@ invalid one before it reaches `merge_json`.
   `TaskCreated`, `TaskCompleted`, `Stop`, `StopFailure`, `TeammateIdle`,
   `InstructionsLoaded`, `ConfigChange`, `CwdChanged`, `DirectoryAdded`,
   `FileChanged`, `WorktreeCreate`, `WorktreeRemove`, `PreCompact`, `PostCompact`,
-  `Elicitation`, `ElicitationResult`, `SessionEnd`. The snapshot lands under the
-  spec dir so a future widening can diff against it.
+  `Elicitation`, `ElicitationResult`, `SessionEnd`. The snapshot lives at
+  `packages/agentbundle/tests/build_pipeline/fixtures/claude-code-2.1.226-hook-events.json`
+  so the engine test can bind to it in a checkout and a staged source
+  distribution, and a future widening can diff against it.
 - `hooks/` at the plugin root is safe for hook *bodies*: Claude Code discovers
   `hooks/hooks.json` by exact name, not by globbing. AC18's exact-set assertion
   is what catches this being wrong.
