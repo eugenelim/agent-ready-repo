@@ -341,6 +341,10 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
             "Inline shell loop with an embedded `python3 -c` assertion; no repo "
             "script to call, so there is no path to wire or exempt."
         ),
+    "pytest markdown-to-html installed entry-point contract":
+        LOCAL("test"),
+    "pytest mermaid-renderer installed entry-point contract":
+        LOCAL("test"),
     "pip install the Markdown→Office render libraries (RFC-0036)":
         CI_ONLY(
             "Provisioning."

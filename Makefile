@@ -301,6 +301,8 @@ test:
 	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
 	$(PYTHON) -c "import httpx"
 	$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
+	$(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q
+	$(PYTHON) -m pytest packs/converters/tests/skills/mermaid-renderer/ -q
 	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::' || true); \
 	 if [ "$$n" -lt 16 ]; then echo "packs/desk-research/tests/ collected $$n, expected >= 16" >&2; exit 1; fi
 	$(PYTHON) -m pytest packs/desk-research/tests/ -q
