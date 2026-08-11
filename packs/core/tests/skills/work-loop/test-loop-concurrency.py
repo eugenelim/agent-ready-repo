@@ -8,26 +8,26 @@ These are the acceptance bar for docs/specs/loop-cohort-state-lock. Both cases
 were observed failing against the pre-fix tree — see notes/reproduction.md.
 
 THE HARNESS IS THE POINT. The synchronising barrier sits AFTER interpreter and
-module startup: each child loads the target module, spins to a shared wall-clock
-instant, then calls main(argv). Without that, ~40 ms of Python startup per
-process smears the children apart and the microsecond-wide critical section is
-never entered concurrently — a naive fan-out of 20 subprocesses loses nothing in
-5 of 5 trials and would pass against the unfixed tree.
+module startup. Child 0 then holds the production state lock until every
+follower proves it contended on that lock. Without an explicit contention
+handshake, process startup and scheduler fairness can smear the children apart,
+letting a naive fan-out pass against the unfixed tree.
 
 Separate OS processes, never threads: threads share os.chdir, the module-level
 _lint_module global, and sys.stdout, so they neither exercise the cross-process
 contract the lock exists for nor permit sound per-caller exit-code assertions.
 
 Hermetic: every case runs against a throwaway git repo so loop-engine's
-_get_repo_root() resolves inside tmp_path. The live repo's .loop-run/ and
-.gitignore must not be touched — this suite would otherwise replay or discard
-the pending event of the very run that owns this PR.
+_get_repo_root() resolves inside tmp_path. Every child records that resolved
+root, so the suite verifies its own boundary without treating unrelated writes
+to the live checkout as test failures.
 """
 
 from __future__ import annotations
 
 import contextlib
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -48,65 +48,111 @@ ENGINE = SCRIPT_DIR / "loop-engine.py"
 # Ceiling on the parent's wait for every child to finish loading its module.
 # Not a per-trial cost: the wait normally ends in tens of ms.
 READY_TIMEOUT = 30.0
+# Parent-side ceiling, not a pass/fail timing assertion. A child already gives
+# each synchronization wait READY_TIMEOUT; twice that budget leaves one full
+# interval for process teardown and a subject command while preventing an outer
+# CI job timeout from becoming the only diagnostic.
+HARNESS_PROCESS_TIMEOUT = READY_TIMEOUT * 2
 
 # The barriered child, in two phases. A *guessed* lead is what smears children
 # apart on a loaded runner — measured at 495 ms and 3756 ms of spread with a 1 s
-# lead, which silently destroys the suite's discriminating power. So the child
-# announces readiness only after its startup is paid, then rendezvouses on a go
-# file the parent creates once every child is ready. It records its own
-# post-barrier instant so the parent can prove they actually raced.
+# lead, which silently destroys the suite's discriminating power. The old
+# replacement still inferred overlap from a 50 ms post-release arrival spread;
+# scheduler fairness made that assertion flaky, and even a tight spread did not
+# prove the microsecond-wide critical sections overlapped.
+#
+# This child proves the relevant event directly. Child 0 acquires the real
+# production state lock and holds it until every follower has timed out once
+# against that occupied lock. Only then may the leader mutate and release; each
+# follower retries normally afterward. Slow scheduling changes how long the
+# handshake takes, never whether the case passes.
 _CHILD_SRC = '''
-import importlib.util, os, sys, time
-ready_file = sys.argv[1]; go_file = sys.argv[2]; arrival_file = sys.argv[3]
-target = sys.argv[4]; argv = sys.argv[5:]
+import contextlib, importlib.util, os, sys, time
+from pathlib import Path
+ready_file = Path(sys.argv[1]); go_file = Path(sys.argv[2])
+probe_dir = Path(sys.argv[3]); repo_root_file = Path(sys.argv[4])
+child_index = int(sys.argv[5]); child_count = int(sys.argv[6])
+sync_timeout = float(sys.argv[7]); target = sys.argv[8]; argv = sys.argv[9:]
+
+def wait_for(predicate, description):
+    deadline = time.monotonic() + sync_timeout
+    while not predicate():
+        if time.monotonic() >= deadline:
+            raise RuntimeError(f"sync timeout waiting for {description}")
+        time.sleep(0.005)
+
 spec = importlib.util.spec_from_file_location("_subject", target)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)          # startup paid BEFORE announcing ready
-open(ready_file, "w").write("1")      # phase 1: announce
-while not os.path.exists(go_file):    # phase 2: rendezvous on the parent's go
-    time.sleep(0.0002)                # ~0.2ms: 250x tighter than the spread cap
-open(arrival_file, "w").write(repr(time.time()))
+
+resolved_root = mod._get_repo_root() if hasattr(mod, "_get_repo_root") else Path.cwd()
+repo_root_file.write_text(str(resolved_root), encoding="utf-8")
+real_statelock = mod._statelock()
+disable_lock = os.environ.get("LOOP_CONCURRENCY_TEST_DISABLE_LOCK") == "1"
+
+if disable_lock:
+    write_name = (
+        "_write_engine_state_atomic"
+        if hasattr(mod, "_write_engine_state_atomic")
+        else "write_state_atomic"
+    )
+    real_write = getattr(mod, write_name)
+
+    def synchronized_unlocked_write(*args, **kwargs):
+        (probe_dir / f"unlocked-write-{child_index}").write_text("1", encoding="ascii")
+        wait_for(
+            lambda: len(list(probe_dir.glob("unlocked-write-*"))) == child_count,
+            f"{child_count} unlocked writers to reach the state-write boundary",
+        )
+        return real_write(*args, **kwargs)
+
+    setattr(mod, write_name, synchronized_unlocked_write)
+
+class ProbedStateLock:
+    def __getattr__(self, name):
+        return getattr(real_statelock, name)
+
+    @contextlib.contextmanager
+    def exclusive(self, path):
+        if disable_lock:
+            yield real_statelock.lock_path_for(path)
+            return
+
+        leader_held = probe_dir / "leader-held"
+        leader_released = probe_dir / "leader-released"
+        if child_index == 0:
+            try:
+                with real_statelock.exclusive(path) as lock:
+                    leader_held.write_text("1", encoding="ascii")
+                    wait_for(
+                        lambda: len(list(probe_dir.glob("contended-*")))
+                        == child_count - 1,
+                        f"{child_count - 1} followers to contend",
+                    )
+                    yield lock
+            finally:
+                leader_released.write_text("1", encoding="ascii")
+            return
+
+        wait_for(leader_held.exists, "leader to hold the state lock")
+        try:
+            with real_statelock.exclusive(path, timeout=0.1, poll=0.005):
+                raise RuntimeError("follower acquired while leader still held the lock")
+        except real_statelock.StateLockTimeout:
+            (probe_dir / f"contended-{child_index}").write_text("1", encoding="ascii")
+        wait_for(leader_released.exists, "leader to release the state lock")
+        with real_statelock.exclusive(path) as lock:
+            yield lock
+
+mod._statelock = lambda: ProbedStateLock()
+ready_file.write_text("1", encoding="ascii")  # phase 1: announce
+wait_for(go_file.exists, "parent go signal")  # phase 2: rendezvous
 sys.exit(mod.main(argv))
 '''
 
-# Max spread between children's post-barrier instants. The critical sections
-# being raced are microseconds wide, so arrivals must cluster far tighter than
-# the ~40 ms of startup the barrier exists to absorb.
-MAX_ARRIVAL_SPREAD = 0.050
-
-# The live repo this suite must not touch. parents[5], not [4]: [3] is
-# packs/core, [4] is packs/, [5] is the repo root — getting that wrong made the
-# hermeticity case pass vacuously.
-LIVE_ROOT = Path(__file__).resolve().parents[5]
-
-
-def _live_fingerprint() -> dict[str, str]:
-    """{relpath: sha256} over the live .loop-run/ contents plus .gitignore.
-
-    CONTENTS, not names: `loop-engine` APPENDS to events.jsonl and to
-    .gitignore, so a name-only listing stays green through exactly the pollution
-    this guards. Taken at IMPORT — a baseline captured inside the last test bakes
-    in whatever the earlier cases already did.
-    """
-    import hashlib
-
-    out: dict[str, str] = {}
-    for target in (LIVE_ROOT / ".loop-run", LIVE_ROOT / ".gitignore"):
-        if target.is_file():
-            out[target.name] = hashlib.sha256(target.read_bytes()).hexdigest()
-        elif target.is_dir():
-            for f in sorted(target.rglob("*")):
-                if f.is_file():
-                    out[str(f.relative_to(LIVE_ROOT))] = hashlib.sha256(
-                        f.read_bytes()
-                    ).hexdigest()
-    return out
-
-
-_LIVE_BASELINE = _live_fingerprint()
-
 failures: list[str] = []
 ran = 0
+_last_sync: dict[str, str] = {}
 
 
 def ok(name: str) -> None:
@@ -119,7 +165,8 @@ def fail(name: str, reason: str) -> None:
     global ran
     ran += 1
     failures.append(name)
-    print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+    sync = _last_sync.get(name, "not applicable")
+    print(f"FAIL [{name}]: {reason} (sync: {sync})", file=sys.stderr)
 
 
 # ── hermetic fixture helpers (shape borrowed from
@@ -133,10 +180,21 @@ def _child_path(root: Path) -> Path:
 
 
 def _init_git_repo(path: Path) -> Path:
-    subprocess.run(["git", "init", str(path)], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "init", str(path)],
+        check=True,
+        capture_output=True,
+        timeout=HARNESS_PROCESS_TIMEOUT,
+    )
     for cmd in (["git", "config", "user.email", "test@example.com"],
                 ["git", "config", "user.name", "Test"]):
-        subprocess.run(cmd, check=True, capture_output=True, cwd=str(path))
+        subprocess.run(
+            cmd,
+            check=True,
+            capture_output=True,
+            cwd=str(path),
+            timeout=HARNESS_PROCESS_TIMEOUT,
+        )
     return path
 
 
@@ -151,7 +209,7 @@ def _make_spec_dir(repo: Path, name: str) -> Path:
 def _run(script: Path, *args: str, cwd: Path) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(script), *args],
                           capture_output=True, text=True, encoding="utf-8",
-                          cwd=str(cwd))
+                          cwd=str(cwd), timeout=HARNESS_PROCESS_TIMEOUT)
 
 
 def _engine_init(repo: Path, spec_dir: Path) -> str:
@@ -173,15 +231,20 @@ def _load_module(path: Path, name: str):
 
 
 def _run_barriered(n: int, target: Path, argvs: list[list[str]], cwd: Path):
-    """Launch n children that all enter the critical section together.
+    """Launch n children through a proven real-lock contention handshake.
 
-    argvs is one argv per child. Returns [(rc, stdout, stderr)] per child —
-    read from that child, never from a shared stream.
+    argvs is one argv per child. Returns per-child results plus readiness,
+    contention, and resolved-repository evidence.
     """
     child = _child_path(cwd)
-    arrivals_dir = cwd / "_arrivals"
-    arrivals_dir.mkdir(exist_ok=True)
-    for stale in arrivals_dir.iterdir():
+    probe_dir = cwd / "_probe"
+    probe_dir.mkdir(exist_ok=True)
+    for stale in probe_dir.iterdir():
+        stale.unlink()
+
+    roots_dir = cwd / "_roots"
+    roots_dir.mkdir(exist_ok=True)
+    for stale in roots_dir.iterdir():
         stale.unlink()
 
     ready_dir = cwd / "_ready"
@@ -194,7 +257,8 @@ def _run_barriered(n: int, target: Path, argvs: list[list[str]], cwd: Path):
     procs = [
         subprocess.Popen(
             [sys.executable, str(child), str(ready_dir / f"{i}.txt"),
-             str(go_file), str(arrivals_dir / f"{i}.txt"), str(target), *argvs[i]],
+             str(go_file), str(probe_dir), str(roots_dir / f"{i}.txt"),
+             str(i), str(n), str(READY_TIMEOUT), str(target), *argvs[i]],
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
             encoding="utf-8", cwd=str(cwd),
         )
@@ -204,34 +268,80 @@ def _run_barriered(n: int, target: Path, argvs: list[list[str]], cwd: Path):
     deadline = time.monotonic() + READY_TIMEOUT
     while len(list(ready_dir.iterdir())) < n and time.monotonic() < deadline:
         time.sleep(0.005)
+    ready = len(list(ready_dir.iterdir()))
     # Phase 2: release them all at once.
     go_file.write_text("go")
 
-    results = []
-    for p in procs:
-        so, se = p.communicate()
-        results.append((p.returncode, so, se))
+    outputs: list[tuple[str, str] | None] = [None] * n
+    timed_out: list[int] = []
+    process_deadline = time.monotonic() + HARNESS_PROCESS_TIMEOUT
+    for i, proc in enumerate(procs):
+        remaining = max(0.0, process_deadline - time.monotonic())
+        try:
+            outputs[i] = proc.communicate(timeout=remaining)
+        except subprocess.TimeoutExpired:
+            timed_out = [
+                j for j, child_proc in enumerate(procs)
+                if outputs[j] is None and child_proc.poll() is None
+            ]
+            for j in timed_out:
+                procs[j].kill()
+            for j, child_proc in enumerate(procs):
+                if outputs[j] is None:
+                    outputs[j] = child_proc.communicate()
+            break
+    results = [
+        (proc.returncode, *(outputs[i] or ("", "")))
+        for i, proc in enumerate(procs)
+    ]
 
-    arrivals = []
-    for f in sorted(arrivals_dir.iterdir()):
-        with contextlib.suppress(OSError, ValueError):
-            arrivals.append(float(f.read_text(encoding="ascii").strip()))
-    spread = (max(arrivals) - min(arrivals)) if len(arrivals) > 1 else 0.0
-    return results, spread, len(arrivals)
+    roots = []
+    for f in sorted(roots_dir.iterdir()):
+        with contextlib.suppress(OSError):
+            roots.append(f.read_text(encoding="utf-8").strip())
+    contended = len(list(probe_dir.glob("contended-*")))
+    unlocked_writes = len(list(probe_dir.glob("unlocked-write-*")))
+    return results, ready, contended, unlocked_writes, roots, timed_out
 
 
 # STUB: AC20
-def _check_barrier(name: str, n: int, spread: float, arrived: int) -> bool:
-    """Every case must prove its children raced. A smeared run is a loud
-    failure, not a quiet pass."""
-    if arrived != n:
-        fail(name, f"only {arrived}/{n} children recorded a post-barrier arrival")
-        return False
-    if spread > MAX_ARRIVAL_SPREAD:
-        fail(name,
-             f"children arrived {spread * 1000:.0f} ms apart (limit "
-             f"{MAX_ARRIVAL_SPREAD * 1000:.0f} ms) — they did not race, so a pass "
-             "here would prove nothing")
+def _check_contention(
+    name: str,
+    n: int,
+    ready: int,
+    contended: int,
+    unlocked_writes: int,
+    roots: list[str],
+    timed_out: list[int],
+    cwd: Path,
+) -> bool:
+    """Verify real contention, or synchronized stale writes in proof mode."""
+    expected_root = str(cwd.resolve())
+    root_mismatches = [root for root in roots if root != expected_root]
+    observed = (
+        f"ready={ready}/{n}, contended={contended}/{n - 1}, "
+        f"unlocked_writes={unlocked_writes}/{n}, repo_roots={len(roots)}/{n}, "
+        f"timed_out={timed_out}"
+    )
+    _last_sync[name] = observed
+    expected_probe = (
+        unlocked_writes == n
+        if os.environ.get("LOOP_CONCURRENCY_TEST_DISABLE_LOCK") == "1"
+        else contended == n - 1 and unlocked_writes == 0
+    )
+    if (
+        ready != n
+        or timed_out
+        or not expected_probe
+        or len(roots) != n
+        or root_mismatches
+    ):
+        detail = f"; mismatched roots={root_mismatches!r}" if root_mismatches else ""
+        fail(
+            name,
+            f"race handshake incomplete{detail} — a pass would not prove the "
+            "state lock serialized these calls",
+        )
         return False
     return True
 
@@ -253,8 +363,19 @@ def test_concurrent_record_attempt_no_lost_update(tmp: Path) -> None:
                  "--cycle-id", f"{run_id}:{i}", "--expect-run-id", run_id]
                 for i in range(n)
             ]
-            res, spread, arrived = _run_barriered(n, COHORT, argvs, repo)
-            if not _check_barrier("record-attempt-no-lost-update", n, spread, arrived):
+            res, ready, contended, unlocked_writes, roots, timed_out = _run_barriered(
+                n, COHORT, argvs, repo
+            )
+            if not _check_contention(
+                "record-attempt-no-lost-update",
+                n,
+                ready,
+                contended,
+                unlocked_writes,
+                roots,
+                timed_out,
+                repo,
+            ):
                 return
             succeeded = sum(1 for rc, _, _ in res if rc == 0)
             got = json.loads((spec_dir / "state.json").read_text(
@@ -286,8 +407,19 @@ def test_concurrent_identical_transition(tmp: Path) -> None:
         spec_dir = _make_spec_dir(repo, "demo")
         _engine_init(repo, spec_dir)
         argvs = [["transition", str(spec_dir), "spec-ready"] for _ in range(2)]
-        res, spread, arrived = _run_barriered(2, ENGINE, argvs, repo)
-        if not _check_barrier("concurrent-identical-transition", 2, spread, arrived):
+        res, ready, contended, unlocked_writes, roots, timed_out = _run_barriered(
+            2, ENGINE, argvs, repo
+        )
+        if not _check_contention(
+            "concurrent-identical-transition",
+            2,
+            ready,
+            contended,
+            unlocked_writes,
+            roots,
+            timed_out,
+            repo,
+        ):
             return
 
         winners = [r for r in res if r[0] == 0]
@@ -333,8 +465,19 @@ def test_concurrent_init(tmp: Path) -> None:
     spec_dir = _make_spec_dir(repo, "demo")
     run_id = "20260807T000000Z-init"
     argvs = [["init", str(spec_dir), "--run-id", run_id] for _ in range(n)]
-    res, spread, arrived = _run_barriered(n, COHORT, argvs, repo)
-    if not _check_barrier("concurrent-init", n, spread, arrived):
+    res, ready, contended, unlocked_writes, roots, timed_out = _run_barriered(
+        n, COHORT, argvs, repo
+    )
+    if not _check_contention(
+        "concurrent-init",
+        n,
+        ready,
+        contended,
+        unlocked_writes,
+        roots,
+        timed_out,
+        repo,
+    ):
         return
     winners = [r for r in res if r[0] == 0]
     losers = [r for r in res if r[0] != 0]
@@ -589,27 +732,33 @@ def test_lock_hold_budget(_tmp: Path) -> None:
     ok("lock-hold-budget")
 
 
-# ── AC18 — the suite does not touch the live repo ──────────────────────────
+# ── AC18 — every child resolves its throwaway repo ─────────────────────────
 
 # STUB: AC21
 def test_harness_is_hermetic(tmp: Path) -> None:
-    """The live repo is byte-identical after a full run.
-
-    Compared against the import-time baseline, so this covers what EVERY case
-    above did, not just this one.
-    """
-    if not (LIVE_ROOT / ".git").exists():
-        fail("harness-is-hermetic",
-             f"{LIVE_ROOT} is not the repo root — check the parents[] depth")
-        return
-
-    # Exercise the engine once more for good measure, in its own temp repo.
+    """Every child resolves and writes only its throwaway git repository."""
     root = tmp / "herm"
     root.mkdir(parents=True)
     repo = _init_git_repo(root)
     spec_dir = _make_spec_dir(repo, "demo")
     _engine_init(repo, spec_dir)
-    _run_barriered(2, ENGINE, [["transition", str(spec_dir), "spec-ready"]] * 2, repo)
+    res, ready, contended, unlocked_writes, roots, timed_out = _run_barriered(
+        2,
+        ENGINE,
+        [["transition", str(spec_dir), "spec-ready"]] * 2,
+        repo,
+    )
+    if not _check_contention(
+        "harness-is-hermetic",
+        2,
+        ready,
+        contended,
+        unlocked_writes,
+        roots,
+        timed_out,
+        repo,
+    ):
+        return
 
     if not (repo / ".loop-run").is_dir():
         fail("harness-is-hermetic",
@@ -617,35 +766,40 @@ def test_harness_is_hermetic(tmp: Path) -> None:
              "repo root inside tmp_path, so the run was not hermetic")
         return
 
-    now = _live_fingerprint()
-    if now != _LIVE_BASELINE:
-        changed = sorted(
-            set(now) ^ set(_LIVE_BASELINE)
-            | {k for k in set(now) & set(_LIVE_BASELINE) if now[k] != _LIVE_BASELINE[k]}
+    winners = [r for r in res if r[0] == 0]
+    if len(winners) != 1:
+        detail = " | ".join(
+            f"rc={rc} {(so + se).strip()[:160]!r}" for rc, so, se in res
         )
-        fail("harness-is-hermetic",
-             f"the live repo changed during this suite: {changed}")
+        fail(
+            "harness-is-hermetic",
+            f"throwaway transition had {len(winners)} winners, expected 1: {detail}",
+        )
         return
     ok("harness-is-hermetic")
 
 
 def main() -> int:
     tests = [
-        test_concurrent_record_attempt_no_lost_update,
-        test_concurrent_identical_transition,
-        test_concurrent_init,
-        test_locked_verbs_refuse_when_held,
-        test_noop_paths_do_not_write,
-        test_lock_hold_budget,
-        test_harness_is_hermetic,
+        ("record-attempt-no-lost-update", test_concurrent_record_attempt_no_lost_update),
+        ("concurrent-identical-transition", test_concurrent_identical_transition),
+        ("concurrent-init", test_concurrent_init),
+        ("locked-verbs-refuse-when-held", test_locked_verbs_refuse_when_held),
+        ("noop-paths-do-not-write", test_noop_paths_do_not_write),
+        ("lock-hold-budget", test_lock_hold_budget),
+        ("harness-is-hermetic", test_harness_is_hermetic),
     ]
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp = Path(tmpdir)
-        for t in tests:
+        for case_name, test in tests:
+            _last_sync[case_name] = "not yet observed"
             try:
-                t(tmp)
+                test(tmp)
             except Exception as exc:
-                fail(t.__name__, f"uncaught exception: {type(exc).__name__}: {exc}")
+                fail(
+                    case_name,
+                    f"uncaught exception: {type(exc).__name__}: {exc}",
+                )
 
     print(f"\n{ran - len(failures)}/{ran} passed", end="")
     if failures:

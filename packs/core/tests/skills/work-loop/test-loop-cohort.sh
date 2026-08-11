@@ -491,7 +491,7 @@ fi
 PYTEST_CONCURRENCY="$REPO_ROOT/packs/core/tests/skills/work-loop/test-loop-concurrency.py"
 if [[ -f "$PYTEST_CONCURRENCY" ]]; then
   ran=$((ran + 1))
-  if python3 "$PYTEST_CONCURRENCY" > /dev/null 2>&1; then
+  if python3 "$PYTEST_CONCURRENCY"; then
     ok "python-test-loop-concurrency-suite"
   else
     fail "python-test-loop-concurrency-suite" "test-loop-concurrency.py reported failures (run it directly for details)"

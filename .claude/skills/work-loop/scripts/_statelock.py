@@ -40,6 +40,10 @@ Hardening, each item a defect the older implementation still has:
   unlinking a successor's file and exiting quietly. This is what protects the
   *state* rather than the file: a holder reclaimed mid-body must not report
   success, or the lost update is back with a green exit code.
+* **A fresh empty lock is contended, not reclaimed.** ``O_CREAT|O_EXCL`` makes
+  the path visible before the ownership record is written, so an empty record
+  may belong to a live creator. It remains eligible for crash recovery, but
+  only after the same ``stale_after`` budget as a complete recognised record.
 * **No ``mkdir``.** Creating the lock's parent is safe only for a confined state
   path, and ``loop-cohort.py``'s spec-dir resolver does not confine to the repo
   root — so it would gain an arbitrary-directory-creation side effect on a path
@@ -142,8 +146,9 @@ def _read_record(lock: Path) -> bytes | None:
 def _holder_pid(record: bytes | None) -> str | None:
     """The holder pid from a record this module wrote, else None.
 
-    None means "not a record we recognise" — foreign content, or a create that
-    was torn before its write. Never rendered into a message unvalidated.
+    None means there is no complete record we recognise — foreign content, an
+    in-progress create, or a create torn before its write. Never rendered into
+    a message unvalidated.
     """
     if record is None or len(record) > _MAX_RECORD_BYTES:
         return None
@@ -288,16 +293,17 @@ def exclusive(
 
             observed_record = _read_record(lock)
             holder = _holder_pid(observed_record)
-            # A zero-length lockfile is a TORN CREATE: the record is written
-            # immediately after O_CREAT|O_EXCL, so an empty file can never be a
-            # live holder's. Treat it as reclaimable, or a process killed in that
-            # one-instruction window wedges the spec until a human intervenes.
-            torn = observed_record == b""
-            unrecognised = holder is None and not torn
+            # O_CREAT|O_EXCL publishes an empty file before this module writes
+            # its ownership record. It may therefore be a live creator's lock,
+            # not only a create torn by a crash. Recognise the empty intermediate
+            # state so it remains eligible for stale recovery, but never reclaim
+            # it before the same stale_after budget as a complete record.
+            empty_record = observed_record == b""
+            unrecognised = holder is None and not empty_record
             # Staleness is wall-clock (st_mtime), unlike the monotonic timeout,
             # so it is exposed to NTP skew; the stale_after margin absorbs it.
             age = time.time() - observed.st_mtime
-            if (age > stale_after or torn) and not unrecognised:
+            if age > stale_after and not unrecognised:
                 _reclaim(lock, observed, observed_record)
                 if time.monotonic() >= deadline:
                     raise StateLockTimeout(
@@ -322,6 +328,13 @@ def exclusive(
                         f"so it was not reclaimed. It is "
                         f"{time.time() - observed.st_mtime:.0f}s old; inspect it "
                         "and remove it by hand if the run is dead."
+                    ) from None
+                if empty_record:
+                    raise StateLockTimeout(
+                        f"could not acquire {lock} within {timeout}s: its "
+                        "ownership record is not yet available. If its creator "
+                        "is gone, the empty lock is reclaimed automatically "
+                        f"after {stale_after:.0f}s, or remove it."
                     ) from None
                 raise StateLockTimeout(
                     f"could not acquire {lock} within {timeout}s (recorded "
