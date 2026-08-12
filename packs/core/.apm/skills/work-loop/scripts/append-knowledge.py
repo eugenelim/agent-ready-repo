@@ -54,15 +54,12 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import contextlib
 import importlib.util
 import json
 import os
 import subprocess
 import sys
 import tempfile
-import time
-import uuid
 from pathlib import Path
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
@@ -86,204 +83,20 @@ def fail(reason: str, code: int = 1) -> int:
     return code
 
 
-class LockUnavailable(Exception):
-    """Raised when the target's lock could not be acquired."""
+def _load_statelock():
+    """Load the shipped lock authority by path for standalone installations."""
+    lock_path = SCRIPT_DIR / "_statelock.py"
+    spec = importlib.util.spec_from_file_location("_statelock", str(lock_path))
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load {lock_path}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
-def _is_the_lock_we_saw(moved: Path, seen: os.stat_result | None,
-                       seen_token: str | None) -> bool:
-    """True when *moved* is the same file the staleness decision inspected.
-
-    `os.replace` moves whatever is at the path when it fires. Between the
-    `stat()` that judged a lock abandoned and the rename that breaks it, the
-    holder can release and a successor can acquire — so the file that moves may
-    be a live lock, and breaking it re-opens the lost update this manager
-    exists to prevent.
-    """
-    if seen is None:
-        return False
-    try:
-        now = moved.stat()
-    except OSError:
-        return False
-    if now.st_ino != seen.st_ino or now.st_mtime != seen.st_mtime:
-        return False
-    try:
-        return moved.read_text(encoding="utf-8") == seen_token
-    except (OSError, ValueError):
-        return seen_token is None
-
-
-def stale_name(lock_name: str, nonce: str) -> str:
-    """The rename target used to break an abandoned lock.
-
-    A named helper so a test can assert the shape without reaching into the
-    lock loop: the lock's own token is `pid:nonce`, and `:` is reserved in
-    Windows filenames, so using the token here would turn an abandoned lock
-    permanently unbreakable on a platform this suite never runs on.
-    """
-    return f"{lock_name}.stale-{nonce}"
-
-
-@contextlib.contextmanager
-def exclusive(target: Path, timeout: float = 60.0, stale_after: float = 120.0):
-    """Serialize the read-allocate-write window against the same target.
-
-    Allocating `max(existing) + 1` and then replacing the whole file is a
-    read-modify-write. Without this, two concurrent appends both read the same
-    highest id, both write a full file, and the second replace silently
-    discards the first entry — while *both* callers are told an id was
-    recorded. That is worse than a crash: a learning is reported as captured
-    and is not on disk.
-
-    `O_CREAT | O_EXCL` rather than `fcntl.flock`, which Windows lacks; this
-    repo's scripts are stdlib-only and cross-platform.
-
-    `timeout` is a *wait* budget, not a hold budget: the critical section runs
-    two lint subprocesses, so a holder legitimately takes about a second and a
-    queue of six tips a 10s budget over. 60s tolerates realistic contention
-    while still being bounded — the point is that it reports rather than
-    spinning, not that it gives up quickly.
-
-    Two rules make the takeover safe, and a first version of this got both
-    wrong — it broke a lock once *the waiter* had waited `timeout`, and then
-    unlinked whatever lock existed on the way out. Three processes ended up in
-    the critical section at once, and the displaced holder's release deleted
-    its successor's lock, cascading for the rest of the burst:
-
-      - **Break on the lock's age, never on our own patience.** A holder that
-        is merely slow still holds it. Only a lock older than `stale_after` —
-        far longer than this critical section's two subprocess spawns — is
-        treated as abandoned, and the acquire is retried rather than assumed
-        to have won the unlink race.
-      - **Release only what we still own.** The lock carries a unique token;
-        if a stale-breaker took it over, its content no longer matches and we
-        leave it alone.
-    """
-    lock = target.with_name(target.name + ".lock")
-    nonce = uuid.uuid4().hex
-    # `pid:nonce` identifies the holder in the lock *contents*; the rename
-    # target uses the bare nonce, because `:` is reserved in Windows
-    # filenames and a rejected rename turns an abandoned lock permanent.
-    token = f"{os.getpid()}:{nonce}"
-    deadline = time.monotonic() + timeout
-    fd = None
-    while fd is None:
-        try:
-            fd = os.open(str(lock), os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-        except FileExistsError:
-            # Every path through here must reach the deadline check and the
-            # sleep. A `continue` that skips them turns "bounded wait" into a
-            # busy-spin — reachable with a dangling symlink at the lock path
-            # (stat raises) or a directory there (unlink raises).
-            try:
-                seen = lock.stat()
-                age = time.time() - seen.st_mtime
-            except OSError:
-                age = seen = seen_token = None  # vanished, or not stat-able
-            else:
-                # Captured alongside the stat and checked again after the
-                # rename: `os.replace` is atomic but moves whatever is at the
-                # path when it fires, not the file this stat inspected.
-                try:
-                    seen_token = lock.read_text(encoding="utf-8")
-                except (OSError, ValueError):
-                    seen_token = None
-                # Stale in either direction, but only *grossly* so. A lock
-                # whose mtime is far in the future is a bogus timestamp (clock
-                # skew, NFS, a lock committed and checked out) and must not pin
-                # the lock forever; a lock a few milliseconds "in the future"
-                # is just timer granularity against a live holder, and treating
-                # that as abandoned breaks the mutual exclusion outright —
-                # it did, reintroducing the lost update this manager exists to
-                # prevent.
-                if age is not None and not -stale_after <= age <= stale_after:
-                    # Break by rename, not unlink. Unlinking the path directly
-                    # lets a second breaker delete a lock the *winner* has since
-                    # created: B stats an abandoned lock, is descheduled, A
-                    # breaks it and acquires, then B's unlink removes A's live
-                    # lock and a third process enters.
-                    #
-                    # Rename alone is not enough, because atomicity is not
-                    # identity — the same interleaving one step later has B
-                    # renaming away the lock A created after A broke the one B
-                    # stat'ed. So the moved file is checked against the inode and
-                    # token this waiter saw, and put back if it is someone
-                    # else's. `os.link` does the putting back: it is atomic and
-                    # fails outright if the path is occupied again, which means
-                    # a successor is live and this waiter simply keeps waiting.
-                    stale = lock.with_name(stale_name(lock.name, nonce))
-                    try:
-                        lock.replace(stale)
-                    except FileNotFoundError:
-                        pass  # another waiter won the break — just retry
-                    except OSError as exc:
-                        raise LockUnavailable(
-                            f"{lock} looks abandoned ({age:.0f}s old) but cannot "
-                            f"be moved aside: {exc}"
-                        ) from None
-                    else:
-                        if not _is_the_lock_we_saw(stale, seen, seen_token):
-                            # Moved a live successor's lock. Put it back and go
-                            # on waiting; if the path is already re-taken, the
-                            # link fails and dropping our copy is correct.
-                            with contextlib.suppress(OSError):
-                                os.link(stale, lock)
-                            with contextlib.suppress(OSError):
-                                stale.unlink()
-                        else:
-                            # The rename is what frees the path and what decides
-                            # the race; clearing the renamed file is tidiness. It
-                            # is gitignored, so failing here is not worth
-                            # refusing over.
-                            with contextlib.suppress(OSError):
-                                if stale.is_dir():
-                                    stale.rmdir()
-                                else:
-                                    stale.unlink()
-            if time.monotonic() >= deadline:
-                held = "could not be inspected" if age is None else f"held for {age:.0f}s"
-                raise LockUnavailable(
-                    f"{lock} ({held}) did not free within {timeout:.0f}s; "
-                    "if no other append is running, remove it"
-                ) from None
-            time.sleep(0.05)
-        except OSError as exc:
-            raise LockUnavailable(f"cannot create {lock}: {exc}") from exc
-    try:
-        try:
-            os.write(fd, token.encode())
-        finally:
-            os.close(fd)
-    except BaseException:
-        # An orphaned lock blocks every later append for `stale_after`.
-        with contextlib.suppress(OSError):
-            lock.unlink()
-        raise
-    try:
-        mine = lock.stat().st_ino
-    except OSError:
-        mine = None
-    try:
-        yield
-    finally:
-        try:
-            # Token *and* inode: a breaker that moved this lock aside lets a
-            # successor create a new one at the same path, and a token-only
-            # check on a fresh file that happens to be unreadable would fall
-            # through. Neither check is atomic with the unlink — a residual
-            # window remains, narrowed rather than closed, and it costs at worst
-            # one spurious break of a lock that is about to be released anyway.
-            if (lock.read_text(encoding="utf-8") == token
-                    and (mine is None or lock.stat().st_ino == mine)):
-                lock.unlink()
-        except (OSError, ValueError):
-            # ValueError catches UnicodeDecodeError, which is not an OSError: a
-            # lock overwritten with binary made release raise *after*
-            # `tmp.replace(target)` had installed the entry, so the caller saw a
-            # traceback and never saw the id — the tool reporting wrongly about
-            # what reached disk, which is the failure this lock exists to stop.
-            pass
+_statelock = _load_statelock()
+exclusive = _statelock.exclusive
+StateLockError = _statelock.StateLockError
 
 
 _linter_module = None
@@ -449,7 +262,7 @@ def main(argv: list[str] | None = None) -> int:
     # derived from the file's current contents, so a concurrent append between
     # the read and the replace would silently drop one entry.
     try:
-        with exclusive(target):
+        with exclusive(target, timeout=60.0, stale_after=300.0):
             # A file that does not exist yet is an empty knowledge base, not a
             # broken one — pre-linting it would report "does not exist" and make a
             # fresh base uncreatable. Lint before reading, so a file that is not
@@ -505,7 +318,7 @@ def main(argv: list[str] | None = None) -> int:
             finally:
                 if tmp.exists():
                     tmp.unlink()
-    except LockUnavailable as exc:
+    except StateLockError as exc:
         return fail(str(exc))
 
     print(entry["id"])

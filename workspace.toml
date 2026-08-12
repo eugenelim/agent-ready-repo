@@ -1586,11 +1586,12 @@ open = [
   # ── Adopter-SAST follow-ons (spec/pack-script-root-boundary-validation) ────
   # An adopter's org Snyk Code scan reports CWE-23 path-traversal against the
   # work-loop scripts we ship, at the adapter-projection path
-  # (.kiro/skills/...). All findings are false positives: the confinement via
-  # _within()/_confined() is interprocedural, so no taint engine follows it.
-  # CodeQL's py/path-injection (security-extended) independently clears them.
-  # The parent spec fixes the four work-loop scripts by moving the
-  # normalize-and-check to the argv boundary. These are the leftovers.
+  # (.kiro/skills/...). The original report was mixed: several highlighted
+  # argv/environment flows are already confined or intentionally operator-
+  # authorized, while adjacent repository reads, recursive probes, managed
+  # state reads, and the append-only lock implementation had genuine symlink/
+  # traversal gaps. `core-path-confinement` owns that correction. CodeQL's
+  # earlier zero result did not prove the adjacent symlink paths safe.
   #
   # ~68 further argv->path boundary sites exist across the other packs and
   # packages/agentbundle (measured this session: 73 repo-wide, 5 fixed by the
@@ -1600,13 +1601,15 @@ open = [
   # paths.include as each pack adopts the validator.
   {slug = "pack-argv-path-boundary-sweep", summary = "Apply the argv->path boundary validator to the remaining ~68 sites across converters/atlassian/workspace-status/receive-brief packs and packages/agentbundle", source = "spec/pack-script-root-boundary-validation"},
 
-  # Suppression cannot be shipped to adopters today: `agentbundle install` has
+  # Snyk Open Source policy cannot be merged into adopter policy today:
+  # `agentbundle install` has
   # no YAML-merge mode, so two packs each shipping a .snyk would clobber one
   # another (self_host.py's merge-json / managed-block-inline do not apply --
   # that is the self-hosting projection path, not the install path). Until this
   # exists, fixing the source is the only remediation that reaches an adopter.
-  # Note: Snyk Code ignores additionally require the org to enable "Consistent
-  # Ignores", so this unblocks the vehicle but not the policy.
+  # This does not provide Snyk Code issue ignores; those remain organisation-
+  # owned through the Snyk Web UI/API, with Consistent Ignores used for
+  # repository-wide dispositions.
   {slug = "agentbundle-install-yaml-merge", summary = "Add a YAML-merge conflict mode to `agentbundle install` so packs can ship mergeable .snyk (and other YAML) policy files without clobbering each other", source = "spec/pack-script-root-boundary-validation"},
 
   # CodeQL runs security-extended on every PR and is the only lens we have with

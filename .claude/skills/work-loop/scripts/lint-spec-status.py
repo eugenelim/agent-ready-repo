@@ -60,6 +60,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+
 CANONICAL_STATUSES: frozenset[str] = frozenset(
     {"Draft", "Approved", "Implementing", "Shipped", "Archived"}
 )
@@ -344,10 +347,17 @@ def _within(path: Path, root: Path) -> bool:
     oracle. `docs/architecture/security.md` declares `filesystem_read_untrusted`
     a boundary, so hostile repo content is in scope.
     """
+    return _confined_path(path, root) is not None
+
+
+def _confined_path(path: Path, root: Path) -> Path | None:
+    """Return the canonical path only when it remains below ``root``."""
     try:
-        return path.resolve().is_relative_to(root)
+        resolved = path.resolve()
+        resolved.relative_to(root)
+        return resolved
     except (OSError, ValueError, RuntimeError):
-        return False
+        return None
 
 
 def _confined(paths, root: Path) -> list[Path]:
@@ -357,7 +367,18 @@ def _confined(paths, root: Path) -> list[Path]:
     before it is read — a symlinked `docs/specs/<slug>` cannot pull in a
     spec.md from outside the tree.
     """
-    return [p for p in paths if _within(p, root)]
+    confined: list[Path] = []
+    for path in paths:
+        canonical = _confined_path(path, root)
+        if canonical is not None:
+            confined.append(canonical)
+    return confined
+
+
+def _confined_file(path: Path, root: Path) -> Path | None:
+    """Return a canonical in-root regular-file candidate, else ``None``."""
+    canonical = _confined_path(path, root)
+    return canonical if canonical is not None and canonical.is_file() else None
 
 
 def _validated_root(candidate: Path | None) -> Path:
@@ -410,8 +431,8 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
     hard: list[str] = []
     warn: list[str] = []
 
-    workspace_path = root / "workspace.toml"
-    anchors = backlog_open_slugs(workspace_path)
+    workspace_path = _confined_file(root / "workspace.toml", root)
+    anchors = backlog_open_slugs(workspace_path) if workspace_path is not None else set()
 
     base_resolvable = base_ref is not None
     if not base_resolvable:
@@ -468,14 +489,14 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
                 # A link may be spec-relative or repo-root-relative; warn only
                 # if it resolves under neither.
                 candidates = [spec_path.parent / target, root / target]
-                if not any(c.is_file() for c in candidates):
+                if not any(_confined_file(c, root) is not None for c in candidates):
                     warn.append(
                         f"{rel}:{lineno}: invariant (iii) — doc link '{target}' "
                         f"does not resolve (warn-only)"
                     )
         for lineno, path in code_references(text):
             candidates = [spec_path.parent / path, root / path]
-            if not any(c.is_file() for c in candidates):
+            if not any(_confined_file(c, root) is not None for c in candidates):
                 warn.append(
                     f"{rel}:{lineno}: invariant (iii) — code reference '{path}' "
                     f"does not resolve (warn-only)"
@@ -487,17 +508,14 @@ def check(root: Path, base_ref: str | None) -> tuple[list[str], list[str]]:
         contract_refs = contract_header_refs(text)
         if contract_refs:
             feature_dir = spec_path.parent.relative_to(root).as_posix()
-            registry_path = root / "contracts" / "REGISTRY.md"
-            registry_text = (
-                registry_path.read_text(encoding="utf-8", errors="replace")
-                if registry_path.is_file()
-                else ""
-            )
+            registry_path = _confined_file(root / "contracts" / "REGISTRY.md", root)
+            registry_text = _read(registry_path) if registry_path is not None else ""
+            registry_text = registry_text or ""
             for lineno, token in contract_refs:
-                contract_file = root / token
+                contract_file = _confined_file(root / token, root)
                 # Confinement precedes the existence probe: an unconfined
                 # is_file() is itself an existence oracle for files outside root.
-                if not _within(contract_file, root) or not contract_file.is_file():
+                if contract_file is None:
                     warn.append(
                         f"{rel}:{lineno}: invariant (v) — Contract: '{token}' does "
                         f"not resolve to a file (warn-only)"

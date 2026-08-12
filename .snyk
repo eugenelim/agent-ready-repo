@@ -9,24 +9,24 @@
 #      does not. Prefer this for every genuine finding.
 #   2. `# nosec <ID>` for Bandit-only false positives; Semgrep rule exclusions in
 #      `make sast` for its duplicates. Neither reaches Snyk.
-#   3. This file — the only suppression that reaches Snyk. Use it to *accept* a
-#      finding Snyk reports that we have judged acceptable.
+#   3. This file for Snyk Open Source findings, or the Snyk platform/API for
+#      Snyk Code findings that the owning organisation has judged acceptable.
 #
 # Snyk Open Source (SCA): `ignore` blocks below are honoured directly.
-# Snyk Code (SAST): `ignore` blocks here apply only when the org has enabled
-#   "Consistent Ignores"; otherwise Code ignores are managed in the Snyk
-#   platform/API. Either path needs the issue ID from an actual Snyk run.
+# Snyk Code (SAST): issue ignores are not read from this policy file. Manage
+#   them in the Snyk Web UI or API. Enable Consistent Ignores when an owning
+#   organisation wants the disposition applied across the repository.
 #
 # DO NOT invent issue IDs. Populate `ignore` only with IDs copied from a real
 # Snyk scan, each carrying a `reason` and an `expires`. Add entries with:
 #   snyk ignore --id=<ISSUE_ID> --reason="<why>" --expiry=<YYYY-MM-DD>
 #
-# Likely first candidates (ADR-0017): Snyk Code keys its weak-hash rule on the
+# A likely Snyk Code false-positive candidate (ADR-0017) keys its weak-hash rule on the
 # `hashlib.sha1(...)` call, not on the `usedforsecurity=False` kwarg, so it may
 # still flag NON-security SHA-1 digests our own gate already cleared:
 #   - packages/agentbundle/agentbundle/config.py  (8-char derivation cache key)
 # That one is a documented non-security digest (see its docstring). If the org
-# scan flags it, accept here with the Snyk-assigned ID.
+# scan flags it, disposition it in the Snyk platform/API with the assigned ID.
 #
 # RESOLVED (core 2.3.0): loop-cohort.py's review fingerprint was the second
 # candidate. Rather than suppress it we switched the digest to SHA-256 — the

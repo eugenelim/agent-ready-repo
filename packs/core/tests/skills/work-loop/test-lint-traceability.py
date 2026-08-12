@@ -16,7 +16,9 @@ no-hardcoded-path NFRs.
 
 from __future__ import annotations
 
+import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -33,11 +35,32 @@ if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
 LINTER = SCRIPT_DIR / "lint-traceability.py"
 
 FAILURES: list[str] = []
+SKIPS: list[str] = []
 
 
 def expect(cond: bool, msg: str) -> None:
     if not cond:
         FAILURES.append(msg)
+
+
+def symlink_or_skip(
+    name: str,
+    link: Path,
+    target: Path | str,
+    *,
+    target_is_directory: bool = False,
+) -> bool:
+    """Create a required symlink, recording a real skip only outside CI."""
+    try:
+        link.symlink_to(target, target_is_directory=target_is_directory)
+    except (OSError, NotImplementedError) as exc:
+        if os.environ.get("CI"):
+            FAILURES.append(f"{name}: CI must support this symlink regression: {exc}")
+        else:
+            SKIPS.append(name)
+            print(f"SKIP: {name}: symlink creation unavailable ({exc})")
+        return False
+    return True
 
 
 def run(root: Path, *extra: str) -> tuple[int, str, str]:
@@ -289,6 +312,51 @@ def case_layout_base_escape_confined() -> None:
                f"escaping base reported + ignored: {out}")
 
 
+# STUB: AC2 — configured bases with circular resolution fail closed, not open.
+def case_layout_base_circular_symlink_is_ignored_without_degrading() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        if not symlink_or_skip(
+            "configured circular-layout confinement",
+            root / "circular-spec-base",
+            "circular-spec-base",
+            target_is_directory=True,
+        ):
+            return
+        write_brief(root, "b")
+        write(
+            root / "agentbundle-layout.toml",
+            '[traceability]\nspec = "circular-spec-base"\n',
+        )
+
+        module_spec = importlib.util.spec_from_file_location(
+            "_trace_circular_layout_stub", str(LINTER)
+        )
+        mod = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(mod)
+        base, _ = mod.resolve_base(
+            "spec", root, {"spec": "circular-spec-base"}
+        )
+        real_confined_path = mod._confined_path
+        mod._confined_path = lambda _path, _root: None
+        try:
+            failed_base, failed_note = mod.resolve_base(
+                "spec", root, {"spec": "circular-spec-base"}
+            )
+        finally:
+            mod._confined_path = real_confined_path
+
+        rc, out, err = run(root)
+
+        expect(base is None, f"circular configured base resolved to {base}")
+        expect(failed_base is None and failed_note is not None
+               and "escapes root" in failed_note,
+               f"configured resolution failure was not classified safely: "
+               f"{failed_base!r}, {failed_note!r}")
+        expect(rc == 0, f"circular configured base should be ignored: {out} {err}")
+        expect("degraded" not in err, f"circular base reached fail-open handler: {err}")
+
+
 def case_catalog_symlink_confined() -> None:
     """A `catalog-info.yaml` symlinked outside `--root` is not followed — the
     nested-read confinement. Skipped where symlinks aren't permitted (Windows)."""
@@ -300,10 +368,10 @@ def case_catalog_symlink_confined() -> None:
         write_brief(root, "b")  # anchor
         cdir = root / "packages" / "c1"
         cdir.mkdir(parents=True)
-        try:
-            (cdir / "catalog-info.yaml").symlink_to(secret)
-        except (OSError, NotImplementedError):
-            return  # symlinks unavailable — skip
+        if not symlink_or_skip(
+            "catalog symlink confinement", cdir / "catalog-info.yaml", secret
+        ):
+            return
         rc, out, err = run(root)
         expect("PWNED" not in (out + err) and "stolen" not in (out + err),
                f"escaping catalog-info.yaml symlink not read: {out}{err}")
@@ -776,6 +844,109 @@ def case_screen_nested_brief_recognized() -> None:
         expect("DANGLING" not in err, f"no dangling on a nested-brief fixture: {err}")
 
 
+# STUB: AC2 — an outside marker must not make an in-root directory a component.
+def case_component_marker_symlink_outside_root_is_not_recognized() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        sandbox = Path(tmp)
+        root = sandbox / "repo"
+        component = root / "packages" / "ghost"
+        component.mkdir(parents=True)
+        outside = sandbox / "outside-catalog-info.yaml"
+        outside.write_text(
+            "apiVersion: backstage.io/v1alpha1\nkind: Component\n"
+            "metadata:\n  name: outside-sentinel\n",
+            encoding="utf-8",
+        )
+        if not symlink_or_skip(
+            "component-marker symlink confinement",
+            component / "catalog-info.yaml",
+            outside,
+        ):
+            return
+        write_brief(root, "consumer-brief")
+        write_spec(root, "consumer", brief="consumer-brief", component="ghost")
+
+        rc, out, err = run(root)
+
+        expect(rc == 1, f"outside marker must leave component edge dangling: {out} {err}")
+        expect("DANGLING" in err and "ghost" in err,
+               f"expected the unrecognized component to stay dangling: {err}")
+        expect("outside-sentinel" not in out + err,
+               f"outside marker content leaked into diagnostics: {out} {err}")
+
+
+# STUB: AC2 — recursive discovery prunes outside and circular children before descent.
+def case_iter_dirs_prunes_unresolvable_children_before_descent() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        sandbox = Path(tmp)
+        root = sandbox / "repo"
+        root.mkdir()
+        outside = sandbox / "outside"
+        outside.mkdir()
+        if not symlink_or_skip(
+            "iterator outside-link pruning",
+            root / "outside-link",
+            outside,
+            target_is_directory=True,
+        ):
+            return
+        if not symlink_or_skip(
+            "iterator circular-link pruning",
+            root / "circle",
+            "circle",
+            target_is_directory=True,
+        ):
+            return
+        spec = importlib.util.spec_from_file_location("_trace_iter_stub", str(LINTER))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        real_walk = os.walk
+        descended: list[str] = []
+
+        def junction_like_walk(start: Path, *, followlinks: bool = False):
+            children = ["outside-link", "circle"]
+            yield str(start), children, []
+            for child in children:
+                descended.append(child)
+                yield str(Path(start) / child), [], []
+
+        os.walk = junction_like_walk
+        try:
+            seen = list(mod._iter_dirs(root))
+        finally:
+            os.walk = real_walk
+
+        expect(seen == [root.resolve()],
+               f"outside/circular children were yielded after prune point: {seen}")
+        expect(not descended,
+               f"walker descended before filtering could hide the result: {descended}")
+
+
+# STUB: AC2 — node IDs derive from canonical confined component paths.
+def case_component_alias_uses_canonical_id() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp).resolve()
+        real = root / "packages" / "real"
+        real.mkdir(parents=True)
+        write(real / "catalog-info.yaml", "# marker without metadata\n")
+        alias = root / "packages" / "alias"
+        if not symlink_or_skip(
+            "canonical component alias", alias, real, target_is_directory=True
+        ):
+            return
+        spec = importlib.util.spec_from_file_location("_trace_id_stub", str(LINTER))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        graph = mod.Graph()
+
+        mod.recognize_components(root / "packages", root, graph)
+
+        expect("component:real" in graph.nodes,
+               f"canonical component id missing: {graph.nodes}")
+        expect("component:alias" not in graph.nodes,
+               f"symlink alias became a distinct component id: {graph.nodes}")
+
+
 # --------------------------------------------------------------------------
 # Structural-only / output-shape / stdlib / no-hardcoded-path NFRs
 # --------------------------------------------------------------------------
@@ -863,7 +1034,8 @@ def main() -> int:
         for f in FAILURES:
             print(f"  - {f}", file=sys.stderr)
         return 1
-    print(f"test-lint-traceability: {len(cases)} case(s) passed.")
+    suffix = f"; {len(SKIPS)} skipped" if SKIPS else ""
+    print(f"test-lint-traceability: {len(cases) - len(SKIPS)} case(s) passed{suffix}.")
     return 0
 
 

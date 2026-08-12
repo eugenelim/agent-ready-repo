@@ -225,8 +225,11 @@ def load_layout(root: Path) -> dict:
         # `<root>/agentbundle-layout.toml` in an untrusted tree would otherwise
         # be followed. The user-scope candidate is deliberately outside `root`
         # and is operator-owned, so it is exempt by design, not by oversight.
-        if cfg.parent == root and not _within(cfg, root):
-            continue
+        if cfg.parent == root:
+            canonical = _confined_file(cfg, root)
+            if canonical is None:
+                continue
+            cfg = canonical
         text = _read(cfg)  # stat-size-guarded; None if absent/oversized/unreadable
         if text is None:
             continue
@@ -251,13 +254,13 @@ def resolve_base(layer: str, root: Path, layout: dict) -> tuple[Path | None, str
     """
     configured = layout.get(layer)
     if isinstance(configured, str) and configured.strip():
-        p = (root / configured).resolve()
-        if not _within(p, root):
+        p = _confined_path(root / configured, root)
+        if p is None:
             return None, f"layout base for '{layer}' escapes root — ignored"
         return (p if p.is_dir() else None), None
 
-    default = root / Path(*_DEFAULT_BASES[layer])
-    if default.is_dir() and _within(default, root):
+    default = _confined_path(root / Path(*_DEFAULT_BASES[layer]), root)
+    if default is not None and default.is_dir():
         return default, None
 
     # Tier 3: discover by marker. Only reached when the default is absent — the
@@ -283,9 +286,21 @@ def _iter_dirs(root: Path):
     import os
     skip = {".git", "node_modules", ".venv", "venv", "__pycache__", "dist",
             ".worktrees", ".agents", ".claude", ".cursor", ".gemini"}
-    for dirpath, dirnames, _ in os.walk(root, followlinks=False):
-        dirnames[:] = [d for d in dirnames if d not in skip and not d.startswith(".")]
-        yield Path(dirpath)
+    canonical_root = root.resolve()
+    for dirpath, dirnames, _ in os.walk(canonical_root, followlinks=False):
+        current = _confined_path(Path(dirpath), canonical_root)
+        if current is None:
+            dirnames[:] = []
+            continue
+        kept: list[str] = []
+        for name in dirnames:
+            if name in skip or name.startswith("."):
+                continue
+            child = _confined_path(Path(dirpath) / name, canonical_root)
+            if child is not None and child.is_dir():
+                kept.append(name)
+        dirnames[:] = kept
+        yield current
 
 
 def _discover_layer_dirs(root: Path, layer: str) -> list[Path]:
@@ -353,17 +368,35 @@ def _within(path: Path, root: Path) -> bool:
     confinement check that keeps every read inside `--root`. A hostile
     `agentbundle-layout.toml` value (`../../../etc`) or a symlinked artifact dir
     cannot redirect a read outside the tree (`root` is pre-resolved in `main`)."""
+    return _confined_path(path, root) is not None
+
+
+def _confined_path(path: Path, root: Path) -> Path | None:
+    """Return the canonical path only when it remains below ``root``."""
     try:
-        return path.resolve().is_relative_to(root)
+        resolved = path.resolve()
+        resolved.relative_to(root)
+        return resolved
     except (OSError, ValueError, RuntimeError):
-        return False
+        return None
 
 
 def _confined(paths, root: Path) -> list[Path]:
     """Globbed / iterated paths filtered to those confined within `root` — a
     `pathlib.glob` follows symlinked dirs (unlike `os.walk(followlinks=False)`),
     so each result is re-checked before it is read."""
-    return [p for p in paths if _within(p, root)]
+    confined: list[Path] = []
+    for path in paths:
+        canonical = _confined_path(path, root)
+        if canonical is not None:
+            confined.append(canonical)
+    return confined
+
+
+def _confined_file(path: Path, root: Path) -> Path | None:
+    """Return a canonical in-root regular-file candidate, else ``None``."""
+    canonical = _confined_path(path, root)
+    return canonical if canonical is not None and canonical.is_file() else None
 
 
 def _first(text: str, pat: re.Pattern[str]) -> str | None:
@@ -403,7 +436,7 @@ def recognize_components(base: Path, root: Path, g: Graph) -> None:
     for child in sorted(_confined(base.iterdir(), root)):
         if not child.is_dir() or child.name.startswith("_"):
             continue
-        if (child / "catalog-info.yaml").is_file():
+        if _confined_file(child / "catalog-info.yaml", root) is not None:
             g.add(_component_id(child, root), "component")
 
 
@@ -412,8 +445,8 @@ def _component_id(component_dir: Path, root: Path) -> str:
     `component:<dirname>` (a stdlib-only, line-based read — no YAML dep). The
     `catalog-info.yaml` read is confined: a symlink pointing outside `--root` is
     not followed (completing the `_confined` guard for this nested read)."""
-    cat = component_dir / "catalog-info.yaml"
-    text = _read(cat) if (cat.is_file() and _within(cat, root)) else None
+    cat = _confined_file(component_dir / "catalog-info.yaml", root)
+    text = _read(cat) if cat is not None else None
     if text:
         kind = name = namespace = None
         for line in text.splitlines():
@@ -625,18 +658,17 @@ def discover_sidecar(root: Path, layout: dict) -> Path | None:
     `**/_state/traceability.json` (bounded). Never a single hardcoded path."""
     configured = layout.get("sidecar")
     if isinstance(configured, str) and configured.strip():
-        p = (root / configured).resolve()
-        return p if (p.is_file() and _within(p, root)) else None
-    default = root / Path(*_SIDECAR_DEFAULT_BASE)
-    if default.is_dir() and _within(default, root):
+        return _confined_file(root / configured, root)
+    default = _confined_path(root / Path(*_SIDECAR_DEFAULT_BASE), root)
+    if default is not None and default.is_dir():
         for d in _iter_dirs(default):
-            cand = d / Path(*_SIDECAR_RELPATH)
-            if cand.is_file() and _within(cand, root):
+            cand = _confined_file(d / Path(*_SIDECAR_RELPATH), root)
+            if cand is not None:
                 return cand
     for d in _iter_dirs(root):
         if d.name == "_state":
-            cand = d / "traceability.json"
-            if cand.is_file() and _within(cand, root):
+            cand = _confined_file(d / "traceability.json", root)
+            if cand is not None:
                 return cand
     return None
 
@@ -941,17 +973,17 @@ def _anchor_base(root: Path, layout: dict, key: str,
                  default: tuple[str, ...]) -> tuple[Path | None, str | None]:
     configured = layout.get(key)
     if isinstance(configured, str) and configured.strip():
-        p = (root / configured).resolve()
-        return (p if (p.is_dir() and _within(p, root)) else None), None
-    p = root / Path(*default)
-    return (p if (p.is_dir() and _within(p, root)) else None), None
+        p = _confined_path(root / configured, root)
+        return (p if p is not None and p.is_dir() else None), None
+    p = _confined_path(root / Path(*default), root)
+    return (p if p is not None and p.is_dir() else None), None
 
 
 def _has_briefs(root: Path, layout: dict) -> bool:
     base, _ = _anchor_base(root, layout, "briefs", _BRIEFS_BASE)
     if base is None:
         return False
-    return any(not p.name.startswith("_") for p in base.glob("*.md"))
+    return any(not p.name.startswith("_") for p in _confined(base.glob("*.md"), root))
 
 
 def build_standalone(root: Path, layout: dict, g: Graph,

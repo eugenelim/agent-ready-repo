@@ -8,7 +8,9 @@ Exit 0 = all pass; exit non-zero = at least one failure.
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import subprocess
@@ -33,6 +35,7 @@ COHORT = SCRIPT_DIR / "loop-cohort.py"
 EVALS_JSON = _SKILL_DIR / "evals" / "evals.json"
 
 failures: list[str] = []
+skipped: list[str] = []
 ran = 0
 
 
@@ -47,6 +50,28 @@ def fail(name: str, reason: str) -> None:
     ran += 1
     failures.append(name)
     print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+
+
+def symlink_or_skip(
+    name: str,
+    link: Path,
+    target: Path | str,
+    *,
+    target_is_directory: bool = False,
+) -> bool:
+    """Create a required symlink, recording a real skip only outside CI."""
+    try:
+        link.symlink_to(target, target_is_directory=target_is_directory)
+    except (OSError, NotImplementedError) as exc:
+        if os.environ.get("CI"):
+            fail(name, f"CI must support this symlink regression: {exc}")
+        else:
+            global ran
+            ran += 1
+            skipped.append(name)
+            print(f"skip [{name}]: symlink creation unavailable ({exc})")
+        return False
+    return True
 
 
 def run_engine(*args) -> tuple[int, str, str]:
@@ -107,6 +132,10 @@ _cohort = importlib.util.module_from_spec(_cohort_spec)
 _cohort_spec.loader.exec_module(_cohort)
 
 sha256_canonical_contract = _cohort.sha256_canonical_contract
+
+_engine_spec = importlib.util.spec_from_file_location("_loop_engine_for_tests", str(ENGINE))
+_engine = importlib.util.module_from_spec(_engine_spec)
+_engine_spec.loader.exec_module(_engine)
 
 
 def minimal_cohort_state(run_id: str, feature: str, extra: dict | None = None) -> dict:
@@ -264,6 +293,157 @@ def test_init_field_set_complete(tmp: Path) -> None:
         ok(name)
 
 
+# STUB: AC3 — init must not create an event log through a dangling symlink.
+def test_init_rejects_dangling_event_log_symlink(tmp: Path) -> None:
+    name = "init-rejects-dangling-event-log-symlink"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(exist_ok=True)
+    event_path = loop_dir / "events.jsonl"
+    event_path.unlink(missing_ok=True)
+    outside = tmp.parent / f"{tmp.name}-{name}-outside.jsonl"
+    outside.unlink(missing_ok=True)
+    if not symlink_or_skip(name, event_path, outside):
+        return
+    try:
+        spec_dir = make_spec_dir(tmp, name)
+        rc, _, err = run_engine("init", str(spec_dir), "--mode", "code")
+        if rc != 0:
+            fail(name, f"init's graceful event-log refusal changed exit status: {err!r}")
+        elif outside.exists():
+            fail(name, "init created the event log through a dangling symlink")
+        elif not event_path.is_symlink():
+            fail(name, "init mutated the unrecognized event-log symlink")
+        elif "regular file" not in err:
+            fail(name, f"event-log refusal was not explicit: {err!r}")
+        else:
+            ok(name)
+    finally:
+        event_path.unlink(missing_ok=True)
+        outside.unlink(missing_ok=True)
+
+
+# STUB: AC3 — append must not create an event log through a dangling symlink.
+def test_append_rejects_dangling_event_log_symlink(tmp: Path) -> None:
+    name = "append-rejects-dangling-event-log-symlink"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(exist_ok=True)
+    event_path = loop_dir / "events.jsonl"
+    event_path.unlink(missing_ok=True)
+    outside = tmp.parent / f"{tmp.name}-{name}-outside.jsonl"
+    outside.unlink(missing_ok=True)
+    if not symlink_or_skip(name, event_path, outside):
+        return
+    try:
+        try:
+            _engine._append_events_jsonl(tmp, {"event": name})
+        except OSError as exc:
+            refusal = str(exc)
+        else:
+            fail(name, "append accepted a dangling event-log symlink")
+            return
+        if outside.exists():
+            fail(name, "append created the event log through a dangling symlink")
+        elif not event_path.is_symlink():
+            fail(name, "append mutated the unrecognized event-log symlink")
+        elif "regular file" not in refusal:
+            fail(name, f"event-log refusal was not explicit: {refusal!r}")
+        else:
+            ok(name)
+    finally:
+        event_path.unlink(missing_ok=True)
+        outside.unlink(missing_ok=True)
+
+
+# STUB: AC3 — init must leave a non-regular event-log path untouched.
+def test_init_rejects_non_regular_event_log(tmp: Path) -> None:
+    name = "init-rejects-non-regular-event-log"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(exist_ok=True)
+    event_path = loop_dir / "events.jsonl"
+    event_path.unlink(missing_ok=True)
+    event_path.mkdir()
+    try:
+        spec_dir = make_spec_dir(tmp, name)
+        rc, _, err = run_engine("init", str(spec_dir), "--mode", "code")
+        if rc != 0:
+            fail(name, f"init's graceful event-log refusal changed exit status: {err!r}")
+        elif not event_path.is_dir():
+            fail(name, "init mutated the non-regular event-log path")
+        elif "regular file" not in err:
+            fail(name, f"non-regular event-log refusal was not explicit: {err!r}")
+        else:
+            ok(name)
+    finally:
+        event_path.rmdir()
+
+
+# STUB: AC3 — append must leave a non-regular event-log path untouched.
+def test_append_rejects_non_regular_event_log(tmp: Path) -> None:
+    name = "append-rejects-non-regular-event-log"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(exist_ok=True)
+    event_path = loop_dir / "events.jsonl"
+    event_path.unlink(missing_ok=True)
+    event_path.mkdir()
+    try:
+        try:
+            _engine._append_events_jsonl(tmp, {"event": name})
+        except OSError as exc:
+            refusal = str(exc)
+        else:
+            fail(name, "append accepted a non-regular event-log path")
+            return
+        if not event_path.is_dir():
+            fail(name, "append mutated the non-regular event-log path")
+        elif "regular file" not in refusal:
+            fail(name, f"non-regular event-log refusal was not explicit: {refusal!r}")
+        else:
+            ok(name)
+    finally:
+        event_path.rmdir()
+
+
+# STUB: AC3 — event-log descriptor identity is checked before append writes.
+def test_append_rejects_event_log_identity_change(tmp: Path) -> None:
+    name = "append-rejects-event-log-identity-change"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(exist_ok=True)
+    event_path = loop_dir / "events.jsonl"
+    original = b'{"event": "existing"}\n'
+    event_path.write_bytes(original)
+    real_fstat = os.fstat
+    calls = 0
+
+    def changed_fstat(fd: int):
+        nonlocal calls
+        calls += 1
+        observed = real_fstat(fd)
+        fields = list(observed)
+        fields[1] += 1  # st_ino
+        return os.stat_result(fields)
+
+    _engine.os.fstat = changed_fstat
+    try:
+        try:
+            _engine._append_events_jsonl(tmp, {"event": name})
+        except OSError as exc:
+            refusal = str(exc)
+        else:
+            fail(name, "append accepted an identity-changing event log")
+            return
+    finally:
+        _engine.os.fstat = real_fstat
+
+    if calls < 1:
+        fail(name, "append did not verify event-log descriptor identity")
+    elif event_path.read_bytes() != original:
+        fail(name, "append mutated the event log before verifying identity")
+    elif "changed while being opened" not in refusal:
+        fail(name, f"identity-change refusal was not explicit: {refusal!r}")
+    else:
+        ok(name)
+
+
 # ── T2: reset verb ────────────────────────────────────────────────────────
 
 
@@ -315,6 +495,274 @@ def test_status_absent(tmp: Path) -> None:
     rc, _, _ = run_engine("status", str(spec_dir))
     if rc == 0:
         fail(name, "expected non-zero when engine-state.json absent")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — status must not follow a managed engine-state symlink.
+def test_status_rejects_symlinked_engine_state(tmp: Path) -> None:
+    name = "status-rejects-symlinked-engine-state"
+    spec_dir = make_spec_dir(tmp, name)
+    sentinel = "outside-engine-state-sentinel"
+    outside = tmp / f"{name}-outside.json"
+    outside.write_text(
+        json.dumps(minimal_engine_state(
+            str(uuid.uuid4()), sentinel, "code", "SPEC-PLAN-DRAFTING"
+        )),
+        encoding="utf-8",
+    )
+    if not symlink_or_skip(name, spec_dir / "engine-state.json", outside):
+        return
+
+    rc, out, err = run_engine("status", str(spec_dir), "--json")
+
+    if rc == 0:
+        fail(name, "symlinked engine-state.json was accepted")
+    elif sentinel in out + err:
+        fail(name, "outside engine-state content reached command output")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — a descriptor whose identity changes during the read is rejected.
+def test_engine_state_reader_rejects_identity_change(tmp: Path) -> None:
+    name = "engine-state-reader-rejects-identity-change"
+    sentinel = "identity-change-sentinel"
+    spec_dir = make_spec_dir(tmp, name)
+    path = spec_dir / "engine-state.json"
+    path.write_text(
+        json.dumps(minimal_engine_state(
+            str(uuid.uuid4()), sentinel, "code", "SPEC-PLAN-DRAFTING"
+        )),
+        encoding="utf-8",
+    )
+    real_fstat = os.fstat
+    calls = 0
+
+    def changed_fstat(fd: int):
+        nonlocal calls
+        calls += 1
+        observed = real_fstat(fd)
+        if calls < 2:
+            return observed
+        fields = list(observed)
+        fields[1] += 1  # st_ino
+        return os.stat_result(fields)
+
+    _engine.os.fstat = changed_fstat
+    try:
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            rc = _engine.cmd_status(
+                _engine.argparse.Namespace(spec_dir=str(spec_dir), json=True)
+            )
+    finally:
+        _engine.os.fstat = real_fstat
+    output = stdout.getvalue() + stderr.getvalue()
+    if rc == 0:
+        fail(name, "public status accepted an identity-changing state read")
+    elif calls < 2:
+        fail(name, "public status did not verify descriptor identity twice")
+    elif sentinel in output:
+        fail(name, f"identity-changing content reached output: {output!r}")
+    else:
+        ok(name)
+
+
+def _pending_fixture(tmp: Path, name: str, sentinel: str) -> tuple[Path, Path, dict]:
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(exist_ok=True)
+    pending_path = loop_dir / "events.pending"
+    if pending_path.is_symlink() or pending_path.is_file():
+        pending_path.unlink()
+    elif pending_path.is_dir():
+        pending_path.rmdir()
+    (loop_dir / "events.jsonl").unlink(missing_ok=True)
+    spec_dir = make_spec_dir(tmp, f"{name}-spec")
+    run_id = str(uuid.uuid4())
+    state = minimal_engine_state(run_id, name, "code", "SPEC-PLAN-DRAFTING")
+    state["transition_sequence"] = 1
+    write_engine_state(spec_dir, state)
+    pending = {
+        "spec": spec_dir.relative_to(tmp).as_posix(),
+        "to": state["state"],
+        "seq": 1,
+        "run_id": run_id,
+        "sentinel": sentinel,
+    }
+    return loop_dir, spec_dir, pending
+
+
+# STUB: AC3 — pending-event recovery must not follow an outside symlink.
+def test_recover_pending_rejects_symlink(tmp: Path) -> None:
+    name = "recover-pending-rejects-symlink"
+    sentinel = "outside-pending-sentinel"
+    loop_dir, _, pending = _pending_fixture(tmp, name, sentinel)
+    outside = tmp / f"{name}-outside.json"
+    outside.write_text(json.dumps(pending), encoding="utf-8")
+    pending_path = loop_dir / "events.pending"
+    if not symlink_or_skip(name, pending_path, outside):
+        return
+
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        _engine._recover_pending(tmp)
+
+    events = loop_dir / "events.jsonl"
+    event_text = events.read_text(encoding="utf-8") if events.exists() else ""
+    if sentinel in event_text:
+        fail(name, "outside pending content was replayed")
+    elif not pending_path.is_symlink():
+        fail(name, "recovery mutated the unrecognized pending symlink")
+    elif "left in place; remove manually" not in stderr.getvalue():
+        fail(name, f"recovery diagnostic hid retained symlink: {stderr.getvalue()!r}")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — recovery must validate .loop-run before any child-path access.
+def test_recover_pending_rejects_symlinked_parent(tmp: Path) -> None:
+    name = "recover-pending-rejects-symlinked-parent"
+    repo = tmp / f"{name}-repo"
+    repo.mkdir()
+    outside = tmp / f"{name}-outside"
+    outside.mkdir()
+    sentinel = "symlinked-loop-run-parent-sentinel"
+    pending_path = outside / "events.pending"
+    pending_path.write_text(
+        json.dumps({"spec": "outside", "sentinel": sentinel}),
+        encoding="utf-8",
+    )
+    loop_run_link = repo / ".loop-run"
+    if not symlink_or_skip(
+        name, loop_run_link, outside, target_is_directory=True
+    ):
+        return
+
+    before = pending_path.read_bytes()
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr):
+        _engine._recover_pending(repo)
+
+    if pending_path.read_bytes() != before:
+        fail(name, "recovery mutated events.pending through a symlinked parent")
+    elif (outside / "events.jsonl").exists():
+        fail(name, "recovery created an event log through a symlinked parent")
+    elif sentinel in stderr.getvalue():
+        fail(name, "recovery exposed external pending content through its diagnostic")
+    elif ".loop-run must be a directory" not in stderr.getvalue():
+        fail(name, f"parent refusal was not explicit: {stderr.getvalue()!r}")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — pending-event recovery rejects non-regular paths explicitly.
+def test_recover_pending_rejects_non_regular_path(tmp: Path) -> None:
+    name = "recover-pending-rejects-non-regular-path"
+    loop_dir, _, _ = _pending_fixture(tmp, name, "unused-sentinel")
+    (loop_dir / "events.pending").mkdir()
+    stderr = io.StringIO()
+
+    with contextlib.redirect_stderr(stderr):
+        _engine._recover_pending(tmp)
+
+    if "regular file" not in stderr.getvalue():
+        fail(name, f"non-regular refusal was not explicit: {stderr.getvalue()!r}")
+    elif "left in place; remove manually" not in stderr.getvalue():
+        fail(name, f"recovery diagnostic hid retained directory: {stderr.getvalue()!r}")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — pending-event recovery enforces the 8 MiB managed JSON cap.
+def test_recover_pending_rejects_over_limit_file(tmp: Path) -> None:
+    name = "recover-pending-rejects-over-limit-file"
+    loop_dir, _, _ = _pending_fixture(tmp, name, "unused-sentinel")
+    (loop_dir / "events.pending").write_bytes(b"x" * (8 * 1024 * 1024 + 1))
+    stderr = io.StringIO()
+
+    with contextlib.redirect_stderr(stderr):
+        _engine._recover_pending(tmp)
+
+    if "8388608" not in stderr.getvalue() and "8 MiB" not in stderr.getvalue():
+        fail(name, f"pending size cap was not identified: {stderr.getvalue()!r}")
+    elif (loop_dir / "events.jsonl").exists():
+        fail(name, "over-limit pending data reached the event log")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — identity verification is on the actual pending recovery path.
+def test_recover_pending_rejects_identity_change(tmp: Path) -> None:
+    name = "recover-pending-rejects-identity-change"
+    sentinel = "pending-identity-change-sentinel"
+    loop_dir, _, pending = _pending_fixture(tmp, name, sentinel)
+    (loop_dir / "events.pending").write_text(json.dumps(pending), encoding="utf-8")
+    real_fstat = os.fstat
+    calls = 0
+
+    def changed_fstat(fd: int):
+        nonlocal calls
+        calls += 1
+        observed = real_fstat(fd)
+        if calls < 2:
+            return observed
+        fields = list(observed)
+        fields[1] += 1  # st_ino
+        return os.stat_result(fields)
+
+    _engine.os.fstat = changed_fstat
+    stderr = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(stderr):
+            _engine._recover_pending(tmp)
+    finally:
+        _engine.os.fstat = real_fstat
+    events = loop_dir / "events.jsonl"
+    event_text = events.read_text(encoding="utf-8") if events.exists() else ""
+    if calls < 2:
+        fail(name, "pending recovery did not verify descriptor identity twice")
+    elif sentinel in event_text:
+        fail(name, "identity-changing pending content was replayed")
+    elif not (loop_dir / "events.pending").is_file():
+        fail(name, "identity-change cleanup deleted the pending path")
+    elif "left in place; remove manually" not in stderr.getvalue():
+        fail(name, f"identity-change cleanup diagnostic was unsafe: {stderr.getvalue()!r}")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — managed state has the same 8 MiB cap as shipped file readers.
+def test_engine_state_reader_rejects_over_limit_file(tmp: Path) -> None:
+    name = "engine-state-reader-rejects-over-limit-file"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "engine-state.json").write_bytes(b"x" * (8 * 1024 * 1024 + 1))
+
+    rc, out, err = run_engine("status", str(spec_dir), "--json")
+
+    if rc == 0:
+        fail(name, "over-limit engine-state.json was accepted")
+    elif "8388608" not in out + err and "8 MiB" not in out + err:
+        fail(name, f"failure did not identify the managed-state size cap: {out} {err}")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — managed engine state must be a regular file.
+def test_engine_state_reader_rejects_non_regular_path(tmp: Path) -> None:
+    name = "engine-state-reader-rejects-non-regular-path"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "engine-state.json").mkdir()
+
+    rc, out, err = run_engine("status", str(spec_dir), "--json")
+
+    if rc == 0:
+        fail(name, "directory engine-state.json was accepted")
+    elif "Traceback" in out + err:
+        fail(name, f"non-regular state escaped the diagnostic boundary: {out} {err}")
+    elif "regular file" not in out + err:
+        fail(name, f"failure did not identify the required file type: {out} {err}")
     else:
         ok(name)
 
@@ -2775,10 +3223,24 @@ def main() -> int:
             test_init_refuses_if_engine_state_exists,
             test_init_rejects_dotdot_spec_dir,
             test_init_field_set_complete,
+            test_init_rejects_dangling_event_log_symlink,
+            test_append_rejects_dangling_event_log_symlink,
+            test_init_rejects_non_regular_event_log,
+            test_append_rejects_non_regular_event_log,
+            test_append_rejects_event_log_identity_change,
             test_reset_deletes_engine_state,
             test_reset_idempotent,
             test_reset_leaves_state_json_intact,
             test_status_absent,
+            test_status_rejects_symlinked_engine_state,
+            test_engine_state_reader_rejects_identity_change,
+            test_engine_state_reader_rejects_over_limit_file,
+            test_engine_state_reader_rejects_non_regular_path,
+            test_recover_pending_rejects_symlink,
+            test_recover_pending_rejects_symlinked_parent,
+            test_recover_pending_rejects_non_regular_path,
+            test_recover_pending_rejects_over_limit_file,
+            test_recover_pending_rejects_identity_change,
             test_status_json_after_init,
             test_status_human_wait_states,
             test_status_is_read_only,
@@ -2894,7 +3356,10 @@ def main() -> int:
         finally:
             os.chdir(orig_cwd)
 
-    print(f"\n{ran - len(failures)}/{ran} passed", end="")
+    passed = ran - len(failures) - len(skipped)
+    print(f"\n{passed}/{ran} passed", end="")
+    if skipped:
+        print(f"; {len(skipped)} skipped", end="")
     if failures:
         print(f"  FAILED: {', '.join(failures)}", file=sys.stderr)
         return 1

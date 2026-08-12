@@ -34,6 +34,7 @@ import importlib.util
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -70,6 +71,7 @@ SUBPROCESS_TIMEOUT_S = 20.0
 MAX_SUBPROCESS_CALLS_UNDER_LOCK = 6
 SCHEMA_VERSION = 1
 _LOOP_RUN_DIR_NAME = ".loop-run"
+_MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
 
 # Environment variables that could redirect git to a foreign repo root.
 _GIT_OVERRIDE_VARS = frozenset({
@@ -121,6 +123,88 @@ def _events_pending_path(repo_root: Path) -> Path:
     return _loop_run_dir(repo_root) / "events.pending"
 
 
+def _read_managed_json(path: Path, label: str) -> dict:
+    """Read a bounded regular JSON file without following or racing a symlink."""
+    try:
+        before = os.lstat(path)
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise ValueError(f"{label} cannot be examined: {exc}") from exc
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError(f"{label} must be a regular file")
+    if before.st_size > _MAX_MANAGED_JSON_BYTES:
+        raise ValueError(
+            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
+        )
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise ValueError(f"{label} cannot be opened safely: {exc}") from exc
+    try:
+        try:
+            opened = os.fstat(fd)
+            if not stat.S_ISREG(opened.st_mode):
+                raise ValueError(f"{label} must be a regular file")
+            identity = (before.st_dev, before.st_ino)
+            if (opened.st_dev, opened.st_ino) != identity:
+                raise ValueError(f"{label} changed while being opened")
+            chunks: list[bytes] = []
+            remaining = _MAX_MANAGED_JSON_BYTES + 1
+            while remaining:
+                chunk = os.read(fd, min(64 * 1024, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            raw = b"".join(chunks)
+            after_fd = os.fstat(fd)
+        except OSError as exc:
+            raise ValueError(f"{label} could not be read safely: {exc}") from exc
+    finally:
+        os.close(fd)
+    try:
+        after_path = os.lstat(path)
+    except OSError as exc:
+        raise ValueError(f"{label} changed while being read") from exc
+    if (
+        (after_fd.st_dev, after_fd.st_ino) != identity
+        or (after_path.st_dev, after_path.st_ino) != identity
+    ):
+        raise ValueError(f"{label} changed while being read")
+    if len(raw) > _MAX_MANAGED_JSON_BYTES:
+        raise ValueError(
+            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
+        )
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{label} is not valid UTF-8") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} malformed: {exc.msg} at line {exc.lineno}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{label} root must be an object")
+    return data
+
+
+def _discard_regular_file(path: Path) -> bool:
+    """Best-effort discard of an owned regular file, never a link or directory."""
+    try:
+        observed = os.lstat(path)
+    except OSError:
+        return False
+    if stat.S_ISREG(observed.st_mode):
+        try:
+            path.unlink()
+        except OSError:
+            return False
+        return True
+    return False
+
+
 def _ensure_gitignore_entry(gitignore_path: Path, entry: str) -> None:
     existing = gitignore_path.read_text(encoding="utf-8") if gitignore_path.exists() else ""
     if entry in existing.splitlines():
@@ -134,7 +218,7 @@ def _ensure_gitignore_entry(gitignore_path: Path, entry: str) -> None:
 def _write_events_pending(repo_root: Path, pending_data: dict) -> None:
     pending_path = _events_pending_path(repo_root)
     loop_run_dir = pending_path.parent
-    if loop_run_dir.is_symlink() or (pending_path.exists() and pending_path.is_symlink()):
+    if loop_run_dir.is_symlink() or pending_path.is_symlink():
         raise OSError(f"refusing to write: loop-run path is a symlink ({pending_path})")
     fd, tmp = tempfile.mkstemp(
         prefix=".events-pending-", suffix=".tmp", dir=str(loop_run_dir)
@@ -150,12 +234,62 @@ def _write_events_pending(repo_root: Path, pending_data: dict) -> None:
         raise
 
 
+def _open_regular_event_log(path: Path) -> tuple[int, tuple[int, int]]:
+    """Open or create an event log without following or racing a symlink."""
+    flags = os.O_RDWR | os.O_APPEND | getattr(os, "O_NOFOLLOW", 0)
+    for _attempt in range(2):
+        try:
+            before = os.lstat(path)
+        except FileNotFoundError:
+            try:
+                fd = os.open(path, flags | os.O_CREAT | os.O_EXCL, 0o666)
+            except FileExistsError:
+                continue
+            except OSError as exc:
+                raise OSError(f"event log cannot be created safely: {exc}") from exc
+            opened = os.fstat(fd)
+            identity = (opened.st_dev, opened.st_ino)
+        except OSError as exc:
+            raise OSError(f"event log cannot be examined: {exc}") from exc
+        else:
+            if not stat.S_ISREG(before.st_mode):
+                raise OSError(f"event log must be a regular file ({path})")
+            identity = (before.st_dev, before.st_ino)
+            try:
+                fd = os.open(path, flags)
+            except FileNotFoundError:
+                continue
+            except OSError as exc:
+                raise OSError(f"event log cannot be opened safely: {exc}") from exc
+            opened = os.fstat(fd)
+            if not stat.S_ISREG(opened.st_mode) or (
+                opened.st_dev,
+                opened.st_ino,
+            ) != identity:
+                os.close(fd)
+                raise OSError(f"event log changed while being opened ({path})")
+        try:
+            after_path = os.lstat(path)
+        except OSError as exc:
+            os.close(fd)
+            raise OSError(f"event log changed while being opened ({path})") from exc
+        if not stat.S_ISREG(after_path.st_mode) or (
+            after_path.st_dev,
+            after_path.st_ino,
+        ) != identity:
+            os.close(fd)
+            raise OSError(f"event log changed while being opened ({path})")
+        return fd, identity
+    raise OSError(f"event log changed while being opened ({path})")
+
+
 def _append_events_jsonl(repo_root: Path, event_data: dict) -> None:
     path = _events_jsonl_path(repo_root)
     loop_run_dir = path.parent
-    if loop_run_dir.is_symlink() or (path.exists() and path.is_symlink()):
+    if loop_run_dir.is_symlink():
         raise OSError(f"refusing to write: loop-run path is a symlink ({path})")
-    with path.open("a+b") as fh:
+    fd, identity = _open_regular_event_log(path)
+    with os.fdopen(fd, "a+b") as fh:
         # Repair a torn tail: if the last byte is not '\n', a previous crash
         # left a partial line. Write a bare newline to isolate it so the new
         # event is parsed as a separate record, not concatenated to the fragment.
@@ -164,14 +298,24 @@ def _append_events_jsonl(repo_root: Path, event_data: dict) -> None:
             if fh.read(1) != b"\n":
                 fh.write(b"\n")
         fh.write((json.dumps(event_data) + "\n").encode())
+        fh.flush()
+        after_fd = os.fstat(fh.fileno())
+        try:
+            after_path = os.lstat(path)
+        except OSError as exc:
+            raise OSError(f"event log changed while being written ({path})") from exc
+        if (
+            (after_fd.st_dev, after_fd.st_ino) != identity
+            or (after_path.st_dev, after_path.st_ino) != identity
+        ):
+            raise OSError(f"event log changed while being written ({path})")
 
 
 def _recover_engine_state_tmp(spec_dir: Path) -> None:
     """Complete any crash-left atomic engine-state rename; validate JSON before promoting."""
     for tmp_path in spec_dir.glob(".engine-state-*.json.tmp"):
         try:
-            raw = tmp_path.read_text(encoding="utf-8")
-            data = json.loads(raw)
+            data = _read_managed_json(tmp_path, "engine-state tmp")
             if not isinstance(data, dict) or not data.get("state") or not data.get("run_id"):
                 raise ValueError("engine-state tmp is missing required fields")
         except Exception as exc:
@@ -195,18 +339,47 @@ def _recover_engine_state_tmp(spec_dir: Path) -> None:
 
 def _recover_pending(repo_root: Path) -> None:
     """Replay or discard a stale events.pending if one exists."""
-    pending_path = _events_pending_path(repo_root)
-    if not pending_path.exists():
-        return
     try:
-        pending = json.loads(pending_path.read_text(encoding="utf-8"))
-    except Exception as exc:
+        loop_run_observed = os.lstat(_loop_run_dir(repo_root))
+    except FileNotFoundError:
+        return
+    except OSError as exc:
         print(
-            f"loop-engine: warning — could not parse events.pending ({exc}); discarding",
+            f"loop-engine: warning — could not examine .loop-run ({exc}); "
+            "recovery skipped",
             file=sys.stderr,
         )
-        with contextlib.suppress(OSError):
-            pending_path.unlink(missing_ok=True)
+        return
+    if not stat.S_ISDIR(loop_run_observed.st_mode):
+        print(
+            "loop-engine: warning — .loop-run must be a directory, not a link "
+            "or other file; recovery skipped",
+            file=sys.stderr,
+        )
+        return
+
+    pending_path = _events_pending_path(repo_root)
+    try:
+        os.lstat(pending_path)
+    except FileNotFoundError:
+        return
+    try:
+        pending = _read_managed_json(pending_path, "events.pending")
+    except Exception as exc:
+        detail = str(exc)
+        content_invalid = isinstance(exc, ValueError) and any(
+            marker in detail
+            for marker in (" exceeds ", "not valid UTF-8", " malformed:", " root must be")
+        )
+        action = (
+            "discarded"
+            if content_invalid and _discard_regular_file(pending_path)
+            else "left in place; remove manually"
+        )
+        print(
+            f"loop-engine: warning — could not parse events.pending ({exc}); {action}",
+            file=sys.stderr,
+        )
         return
 
     # Validate owning spec path — must not escape repo root.
@@ -221,12 +394,15 @@ def _recover_pending(repo_root: Path) -> None:
             pending_spec_dir = (repo_root / spec_str).resolve()
         pending_spec_dir.relative_to(repo_root)
     except Exception as exc:
+        action = (
+            "discarded"
+            if _discard_regular_file(pending_path)
+            else "left in place; remove manually"
+        )
         print(
-            f"loop-engine: warning — events.pending spec path invalid ({exc}); discarding",
+            f"loop-engine: warning — events.pending spec path invalid ({exc}); {action}",
             file=sys.stderr,
         )
-        with contextlib.suppress(OSError):
-            pending_path.unlink(missing_ok=True)
         return
 
     # Complete any in-progress atomic engine-state.json rename (crash during step 3).
@@ -234,20 +410,22 @@ def _recover_pending(repo_root: Path) -> None:
 
     # Load owning spec's engine-state.json.
     owning_state_path = pending_spec_dir / "engine-state.json"
-    if not owning_state_path.exists():
-        with contextlib.suppress(OSError):
-            pending_path.unlink(missing_ok=True)
-        return
     try:
-        owning_state = json.loads(owning_state_path.read_text(encoding="utf-8"))
+        owning_state = _read_managed_json(owning_state_path, "engine-state.json")
+    except FileNotFoundError:
+        _discard_regular_file(pending_path)
+        return
     except Exception as exc:
+        action = (
+            "discarded"
+            if _discard_regular_file(pending_path)
+            else "left in place; remove manually"
+        )
         print(
             f"loop-engine: warning — could not parse owning engine-state.json ({exc});"
-            " discarding pending",
+            f" pending {action}",
             file=sys.stderr,
         )
-        with contextlib.suppress(OSError):
-            pending_path.unlink(missing_ok=True)
         return
 
     # Replay if state+seq+run_id all match (engine-state.json was written but append was not).
@@ -523,15 +701,10 @@ def _engine_state_path(spec_dir: Path) -> Path:
 
 def _read_engine_state(spec_dir: Path) -> dict:
     path = _engine_state_path(spec_dir)
-    if not path.exists():
-        raise FileNotFoundError(f"engine-state.json missing at {path}")
     try:
-        data = json.loads(path.read_text())
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"engine-state.json malformed: {exc.msg} at line {exc.lineno}") from exc
-    if not isinstance(data, dict):
-        raise ValueError("engine-state.json root must be an object")
-    return data
+        return _read_managed_json(path, "engine-state.json")
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"engine-state.json missing at {path}") from exc
 
 
 def _write_engine_state_atomic(spec_dir: Path, state: dict) -> None:
@@ -697,13 +870,8 @@ def cmd_init(args: argparse.Namespace) -> int:
             else:
                 loop_run.mkdir(exist_ok=True)
                 jsonl = _events_jsonl_path(repo_root)
-                if jsonl.exists() and jsonl.is_symlink():
-                    print(
-                        "loop-engine: warning — events.jsonl is a symlink; refusing to touch",
-                        file=sys.stderr,
-                    )
-                else:
-                    jsonl.touch()
+                event_fd, _ = _open_regular_event_log(jsonl)
+                os.close(event_fd)
                 gitignore = repo_root / ".gitignore"
                 if not gitignore.is_symlink():
                     _ensure_gitignore_entry(gitignore, ".loop-run/")
