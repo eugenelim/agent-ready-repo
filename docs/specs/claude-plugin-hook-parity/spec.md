@@ -208,23 +208,23 @@ invalid one before it reaches `merge_json`.
 
 ### Hook parity
 
-- [ ] **AC7 — Authored wiring reaches the manifest.** For a user-capable pack
+- [x] **AC7 — Authored wiring reaches the manifest.** For a user-capable pack
   shipping `.apm/hook-wiring/*.toml`, the derived `plugin.json` `hooks` object
   contains every authored event and entry, merged with the synthetic
   install-marker entry — marker first, then authored entries in sorted
   wiring-filename order. Asserted against a fixture pack, since no shipped pack
   qualifies today.
 
-- [ ] **AC8 — Merge, not overwrite, in both directions.** The install-marker
+- [x] **AC8 — Merge, not overwrite, in both directions.** The install-marker
   entry is present whether or not the pack authors `SessionStart`; authored
   `SessionStart` entries survive. A pack with no `hook-wiring/` produces a
   manifest byte-identical to today's.
 
-- [ ] **AC9 — Bodies at a plugin-root path.** `hook-body` projects to
+- [x] **AC9 — Bodies at a plugin-root path.** `hook-body` projects to
   `<pack>/hooks/<name>.{sh,py}` via a new `plugin-target-path`;
   `<pack>/tools/hooks/` is not emitted. The direct route is unchanged.
 
-- [ ] **AC10 — Commands resolve against the plugin root after exact-shape
+- [x] **AC10 — Commands resolve against the plugin root after exact-shape
   validation.** An authored command must contain exactly two shell tokens: one
   interpreter from `python`, `python3`, `sh`, or `bash`, followed by one relative
   path naming a shipped hook body. An optional leading `./` on the path is
@@ -242,7 +242,7 @@ invalid one before it reaches `merge_json`.
   observed `argv` must show the path as exactly one argument. A tokenization-only
   assertion is not acceptable evidence.
 
-- [ ] **AC11 — Fail closed on a dangling or non-confined hook path.** The one
+- [x] **AC11 — Fail closed on a dangling or non-confined hook path.** The one
   path token must resolve to a regular, non-symlink file under the pack's
   hook-body source directory and its basename must match exactly one body the
   pack ships. `resolve()` plus `relative_to()` proves confinement; `exists()`
@@ -252,20 +252,20 @@ invalid one before it reaches `merge_json`.
   validation error; neither a traceback nor an aborted multi-pack lint is an
   acceptable result.
 
-- [ ] **AC12 — Hook-body basenames are validated, not escaped.** Each basename
+- [x] **AC12 — Hook-body basenames are validated, not escaped.** Each basename
   must `fullmatch` `^[A-Za-z0-9][A-Za-z0-9._-]*$`. Inside the double quotes AC10
   mandates, `sh` still interprets `` ` ``, `$(`, `\`, and `"`, so a body named
   ``a`id`.py`` would run command substitution on every hook fire. Mirrors the
   existing `install-marker.py` `_assert_portable_name` precedent.
 
-- [ ] **AC13 — Only `command` hooks are published.** A hook whose `type` is not
+- [x] **AC13 — Only `command` hooks are published.** A hook whose `type` is not
   `"command"` raises with the same locating detail. House convention for every
   adapter that *transforms* wiring: `copilot` and `gemini` both raise; `cursor`
   is the fail-open outlier that drops with a log. This route transforms, so it
   fails closed, and raises rather than drops because a dropped hook on a
   published artifact is invisible.
 
-- [ ] **AC14 — Known and publishable event names are separate; the schema
+- [x] **AC14 — Known and publishable event names are separate; the schema
   validates shape.** The compiler holds the documented event set and raises on
   an unknown event, naming pack, file, and event. It separately rejects
   `Setup`, `PreToolUse`, `PermissionRequest`, and `PermissionDenied` as known
@@ -287,7 +287,7 @@ invalid one before it reaches `merge_json`.
   additionally requires adopter-visible consent and disclosure plus a
   real-client verification; pack-owner consent alone is not enough.
 
-- [ ] **AC15 — Bounded hook cost.** The compiler raises on a `timeout` outside
+- [x] **AC15 — Bounded hook cost.** The compiler raises on a `timeout` outside
   1–60s (60 is Claude Code's documented default; a lower ceiling is a
   *restriction*, permitted under ADR-0072) and on a `matcher` that does not
   satisfy AC31's canonical bare-literal-alternation grammar.
@@ -304,13 +304,13 @@ invalid one before it reaches `merge_json`.
   heuristic is evaded by `(?:a+)+` and `(a|ab)*$`. A bypassable check that reads
   as a control is worse than none.
 
-- [ ] **AC16 — A route-eligible pack with wiring but no source manifest raises.**
+- [x] **AC16 — A route-eligible pack with wiring but no source manifest raises.**
   `build/main.py` gates manifest synthesis on `plugin.json` existing; a
   user-capable pack with wiring must raise naming the pack rather than silently
   drop its hooks. A repo-only pack remains outside the route and keeps its
   established direct-route behavior.
 
-- [ ] **AC17 — No dead artifact.** The route emits no `<pack>/.claude/`.
+- [x] **AC17 — No dead artifact.** The route emits no `<pack>/.claude/`.
 
 ### Verification and hygiene
 
@@ -322,7 +322,7 @@ invalid one before it reaches `merge_json`.
   or sequential) for AC7's ordering rationale. Separately, a dropped pack is
   confirmed absent from the marketplace. Transcripts recorded in `plan.md`.
 
-- [ ] **AC19 — Idempotent.** Warm and cold rebuilds produce byte-identical
+- [x] **AC19 — Idempotent.** Warm and cold rebuilds produce byte-identical
   `plugin.json`.
 
 - [ ] **AC20 — Other routes unchanged; every changed consumer named.**
@@ -335,7 +335,7 @@ invalid one before it reaches `merge_json`.
   file, so every `init-state` run records a different set after this change.
   Asserted per projection.
 
-- [ ] **AC21 — Contract bumped and mirrored.** `contracts/adapter.toml` bumps
+- [x] **AC21 — Contract bumped and mirrored.** `contracts/adapter.toml` bumps
   `[contract].version`, declares `plugin-target-path` on `hook-body` and
   `plugin-mode` on `hook-wiring`, byte-identical to the `_data/` mirror.
   `adapter.schema.json` constrains `plugin-mode`'s **value** to the `mode` enum;
@@ -379,7 +379,7 @@ invalid one before it reaches `merge_json`.
 ### Round-4 additions
 
 
-- [ ] **AC26 — Rail B's consent gesture is part of the qualifying shape.**
+- [x] **AC26 — Rail B's consent gesture is part of the qualifying shape.**
   `build/scope_rails.py:check_hooks` refuses a pack declaring `"user"` while
   carrying `.apm/hooks/` or `.apm/hook-wiring/` unless it also sets
   `[pack.install] user-scope-hooks = true`. AC7's fixture and AC18's subject pack
@@ -391,14 +391,14 @@ invalid one before it reaches `merge_json`.
   land on the adopter's machine outside per-project isolation" — exactly the
   consent this route needs.
 
-- [ ] **AC28 — The command allowlist cannot be bypassed with a safe-looking
+- [x] **AC28 — The command allowlist cannot be bypassed with a safe-looking
   interpreter.** The exact two-token grammar rejects `python3 -c`, `python -m`,
   `sh -c`, environment assignments, trailing arguments, and every shell
   metacharacter fixture accepted by the real client. A denylist is not an
   alternative: the 2.1.226 strict validator accepted
   `python3 -c "exec('print(1)')"` without any shell operator.
 
-- [ ] **AC29 — The source-path token is exact, not basename-shaped.**
+- [x] **AC29 — The source-path token is exact, not basename-shaped.**
   `vendor/tools/hooks/x.py`, `tools/hooks/../hooks/x.py`, an absolute path, and
   a same-basename file outside the hook-body source directory all raise. A
   symlink under the source directory also raises rather than materializing or
@@ -412,18 +412,18 @@ invalid one before it reaches `merge_json`.
   `compile_plugin_hooks` against **every** pack shipping `.apm/hook-wiring/`,
   publishable or not, converting each raise to a finding.
 
-- [ ] **AC31 — Matcher grammar drops the anchors.**
+- [x] **AC31 — Matcher grammar drops the anchors.**
   `^[A-Za-z0-9_-]+(\|[A-Za-z0-9_-]+)*$` — bare literal alternations only.
   `^Bash|Edit$` parses as `(^Bash)|(Edit$)`, which matches `BashTool` and
   `MyEdit` and misses `EditFile`, firing a hook on tools it was not scoped to.
   AC14's widening procedure applies to this grammar too.
 
-- [ ] **AC33 — Marker emission remains unconditional and pack-local.** Every
+- [x] **AC33 — Marker emission remains unconditional and pack-local.** Every
   published plugin retains the synthetic `SessionStart` install-marker entry,
   first in the merged array. No marker-reader declaration is added and adding or
   removing another published pack cannot change this pack's manifest.
 
-- [ ] **AC34 — Authored-hook disclosure is complete metadata, not a second
+- [x] **AC34 — Authored-hook disclosure is complete metadata, not a second
   registration.** A pack with authored wiring has its generated marketplace
   description end with a deterministic inventory naming the authored-entry
   count and, for every entry, event, matcher (or `*`), effective timeout,

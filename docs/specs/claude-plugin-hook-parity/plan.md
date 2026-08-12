@@ -515,6 +515,57 @@ Reverting the identity is not a retreat from ADR-0079: the ADR's end state is
 unchanged and AC36 clause 4 now makes the interim state self-terminating — once
 evidence lands, the interim shape fails its own test.
 
+### AC verification pass — 2026-08-12
+
+22 of 26 criteria are confirmed against the tree. Each was matched to named,
+passing coverage rather than to the existence of an implementation:
+
+- AC7/AC8/AC33/AC34 — `test_authored_hooks_are_compiled_marker_first_with_disclosure`,
+  `test_derivation_projects_install_marker`, `test_no_wiring_compiles_to_empty_block`,
+  `test_disclosure_fails_closed_on_an_unrenderable_authored_command`.
+- AC9/AC21 — `plugin-target-path = "hooks/"` in `contracts/adapter.toml`, whose
+  `[contract] version` went 0.17 → 0.18 in #916, mirrored by `adapter.schema.json`.
+- AC10/AC28/AC29 — `test_shell_exec_quoting_survives_space_in_root` and
+  `test_compiled_command_executes_with_literal_space_and_dollar_root` satisfy the
+  "verification is execution, tokenization is not evidence" clause; grammar
+  refusals in `test_exact_command_grammar_rejects_expansion`,
+  `test_allowed_interpreter_suffix_pairs`, `test_optional_leading_dot_slash_is_absorbed`.
+- AC11 — `resolve()`/`relative_to()` confinement with `OSError`/`RuntimeError`/
+  `ValueError` folded into one locating error at `hook_wiring_rules.py:129`;
+  `test_missing_body_fails_locating`, `test_symlinked_body_fails_locating`.
+- AC12 — `_BASENAME_RE` is exactly the criterion's pattern; `test_hook_body_basename_allowlist`.
+- AC13/AC14/AC31 — `test_non_command_and_non_string_command_fail`,
+  `test_event_snapshot_and_restricted_split`, `test_known_control_events_are_unpublishable`,
+  `test_unknown_event_is_distinct`, `test_flat_and_lowercase_adapter_shapes_are_skipped`,
+  `test_derived_schema_rejects_old_flat_hooks_shape`, `test_matcher_allowlist`.
+- AC15 — `test_timeout_bounds` plus `test_per_event_fanout_boundary` and
+  `test_per_pack_fanout_boundary` at limit and limit-plus-one.
+- AC16/AC17/AC19/AC26 — `test_wiring_without_source_manifest_fails_loud`,
+  `assert not (plugin_root / ".claude").exists()`, `test_derivation_idempotent`,
+  `test_derivation_cold_rebuild_byte_identical`,
+  `test_hook_fixture_requires_user_scope_consent_flag`.
+
+**Four remain unchecked, and none is a bookkeeping gap:**
+
+- **AC18 — real-client verification.** `plan.md` records a 2.1.226 run, but the
+  locally installed client is **2.1.228**, so the pinned version cannot be
+  re-driven here. Confirming this needs a human at a 2.1.226 client, or a spec
+  amendment moving the pin forward with a fresh matrix.
+- **AC20 — six named consumers byte-identical.** No parameterized command-level
+  artifact covering all six `render_pack` consumers was located; the criterion
+  names it explicitly as the evidence.
+- **AC22 — ingestion gate.** `commands/validate.py:191` does call
+  `validate_pack_hook_wiring`, so the boundary exists, but no test was found
+  driving a malicious Claude-shaped command through `agentbundle validate`
+  itself, which is what the criterion asks for.
+- **AC30 — lint dry-runs the compiler on *every* wiring pack.** The per-pack call
+  exists; a repository-level lint asserting that coverage across packs was not
+  located.
+
+The spec therefore stays `Implementing`. AC35/AC36 (the publisher boundary) and
+AC23 (frozen-artifact errata) are closed; what remains is the compiler's own
+verification surface.
+
 ## Risks
 
 - **Event-set drift.** The accepted event/type surface already exceeds the old
