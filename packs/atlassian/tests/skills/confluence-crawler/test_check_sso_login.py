@@ -16,8 +16,8 @@ from types import ModuleType
 import httpx
 import pytest
 
-_REPO_ROOT = Path(__file__).resolve().parents[5]
-_SKILL_ROOT = _REPO_ROOT / "packs/atlassian/.apm/skills/confluence-crawler"
+_PACK_ROOT = Path(__file__).resolve().parents[3]
+_SKILL_ROOT = _PACK_ROOT / ".apm/skills/confluence-crawler"
 if str(_SKILL_ROOT) not in sys.path:
     sys.path.insert(0, str(_SKILL_ROOT))
 

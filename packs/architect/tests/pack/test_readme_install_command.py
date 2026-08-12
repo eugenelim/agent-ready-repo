@@ -6,8 +6,8 @@ import re
 import shlex
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-ARCHITECT_README = REPO_ROOT / "packs" / "architect" / "README.md"
+PACK_ROOT = Path(__file__).resolve().parents[2]
+ARCHITECT_README = PACK_ROOT / "README.md"
 
 
 def _agentbundle_commands(markdown: str) -> list[list[str]]:

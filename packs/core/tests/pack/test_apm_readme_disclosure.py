@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]  # pack tests -> repository root
+PACK_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _read_core_readme() -> str:
-    return (REPO_ROOT / "packs" / "core" / "README.md").read_text(encoding="utf-8")
+    return (PACK_ROOT / "README.md").read_text(encoding="utf-8")
 
 
 def test_core_readme_discloses_apm_manual_fallback():

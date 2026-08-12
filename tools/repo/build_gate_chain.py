@@ -82,6 +82,19 @@ def _script_step(label: str, *path_parts: str) -> Step:
     return (label, _thunk)
 
 
+def _pytest_step(label: str, *path_parts: str) -> Step:
+    """Wrap a repo-relative pytest module as a chain step."""
+    test_path = Path(*path_parts)
+
+    def _thunk(test_path=test_path) -> int:
+        return subprocess.run(
+            [sys.executable, "-m", "pytest", str(test_path), "-q"],
+            check=False,
+        ).returncode
+
+    return (label, _thunk)
+
+
 def _module_step(label: str, *cmd_args: str) -> Step:
     """Run ``python -m agentbundle <cmd_args>`` as a chain step.
 
@@ -141,25 +154,25 @@ def build_check(args: argparse.Namespace) -> int:
             "check-contract-parity",
             "tools", "catalogue", "check_contract_parity.py",
         ),
-        _script_step(
+        _pytest_step(
             "test-lint-spec-status",
-            "packs", "core", "tests", "skills", "work-loop", "test-lint-spec-status.py",
+            "packs", "core", "tests", "skills", "work-loop", "test_lint_spec_status.py",
         ),
         _script_step(
             "lint-spec-status",
             ".claude", "skills", "work-loop", "scripts", "lint-spec-status.py",
         ),
-        _script_step(
+        _pytest_step(
             "test-lint-brief-coverage",
-            "packs", "core", "tests", "skills", "receive-brief", "test-lint-brief-coverage.py",
+            "packs", "core", "tests", "skills", "receive-brief", "test_lint_brief_coverage.py",
         ),
         _script_step(
             "lint-brief-coverage",
             ".claude", "skills", "receive-brief", "scripts", "lint-brief-coverage.py",
         ),
-        _script_step(
+        _pytest_step(
             "test-lint-traceability",
-            "packs", "core", "tests", "skills", "work-loop", "test-lint-traceability.py",
+            "packs", "core", "tests", "skills", "work-loop", "test_lint_traceability.py",
         ),
         _script_step(
             "lint-traceability",

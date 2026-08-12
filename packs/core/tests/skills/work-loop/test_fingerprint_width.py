@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fingerprint algorithm + width contract for loop-cohort.py (core 2.3.0).
+"""Pytest fingerprint algorithm + width contract for loop-cohort.py (core 2.3.0).
 
 Review-finding fingerprints moved from SHA-1 to SHA-256. They are opaque
 tokens compared set-wise for stasis detection, never displayed and never a key
@@ -12,8 +12,7 @@ These cases live here rather than in test-loop-cohort.sh because that fixture
 is sequential and its counter assertions accumulate — inserting a successful
 `review record` there shifts every downstream expected count.
 
-Run: python3 test-fingerprint-width.py
-Exit 0 = all pass; exit non-zero = at least one failure.
+Run with pytest.
 """
 
 from __future__ import annotations
@@ -22,6 +21,8 @@ import importlib.util
 import re
 import sys
 from pathlib import Path
+
+import pytest
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -36,21 +37,13 @@ _spec = importlib.util.spec_from_file_location("loop_cohort_under_test", COHORT)
 lc = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(lc)
 
-failures: list[str] = []
-ran = 0
-
 
 def ok(name: str) -> None:
-    global ran
-    ran += 1
-    print(f"ok   [{name}]")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, reason: str) -> None:
-    global ran
-    ran += 1
-    failures.append(name)
-    print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+    pytest.fail(f"{name}: {reason}")
 
 
 def test_parse_findings_emits_sha256() -> None:
@@ -107,23 +100,3 @@ def test_validator_rejects_other_widths() -> None:
             fail(name, "accepted a value that is neither sha1 nor sha256 hex")
         else:
             ok(name)
-
-
-def main() -> int:
-    test_parse_findings_emits_sha256()
-    test_fingerprint_is_stable()
-    test_distinct_findings_differ()
-    test_validator_accepts_both_widths()
-    test_validator_rejects_other_widths()
-
-    total = ran
-    passed = total - len(failures)
-    print(f"\n{passed}/{total} passed")
-    if failures:
-        print("Failed:", ", ".join(failures), file=sys.stderr)
-        return 1
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

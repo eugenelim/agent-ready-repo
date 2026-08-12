@@ -7,11 +7,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+PACK_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT = (
-    REPO_ROOT
-    / "packs"
-    / "converters"
+    PACK_ROOT
     / ".apm"
     / "skills"
     / "mermaid-renderer"

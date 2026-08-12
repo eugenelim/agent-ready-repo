@@ -25,8 +25,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-REPO_ROOT = Path(__file__).resolve().parents[4]  # pack tests -> repository root
-SHARED_LIBS = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "shared-libs"
+PACK_ROOT = Path(__file__).resolve().parents[2]
+SHARED_LIBS = PACK_ROOT / ".apm" / "shared-libs"
 
 
 class _ShimImportBase(unittest.TestCase):

@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Unit tests for _statelock.py — the work-loop's state lock.
+"""Pytest tests for _statelock.py — the work-loop's state lock.
 
-Run: python3 test-statelock.py
-Exit 0 = all pass; exit non-zero = at least one failure.
+Run with pytest.
 
 Subject is the PROJECTED copy under the skill's scripts/, not the package
 source, so this suite also proves the projection is importable standalone —
@@ -26,9 +25,10 @@ import os
 import stat
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
+
+import pytest
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -40,21 +40,13 @@ if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
     raise SystemExit(f"subject dir not found at {SCRIPT_DIR} — check the parents[] depth")
 STATELOCK = SCRIPT_DIR / "_statelock.py"
 
-failures: list[str] = []
-ran = 0
-
 
 def ok(name: str) -> None:
-    global ran
-    ran += 1
-    print(f"ok   [{name}]")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, reason: str) -> None:
-    global ran
-    ran += 1
-    failures.append(name)
-    print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+    pytest.fail(f"{name}: {reason}")
 
 
 def _load():
@@ -77,7 +69,7 @@ def _target(tmp: Path, name: str) -> Path:
 # ── AC1 / AC2 — stdlib-only, no platform branch ────────────────────────────
 
 # STUB: AC1
-def test_imports_only_stdlib(_tmp: Path) -> None:
+def test_imports_only_stdlib() -> None:
     """Import nodes, not a substring grep — the module's own docstring
     discusses fcntl, which a grep would trip on."""
     tree = ast.parse(STATELOCK.read_text(encoding="utf-8"))
@@ -98,7 +90,7 @@ def test_imports_only_stdlib(_tmp: Path) -> None:
 
 
 # STUB: AC2
-def test_no_platform_locking_imports(_tmp: Path) -> None:
+def test_no_platform_locking_imports() -> None:
     tree = ast.parse(STATELOCK.read_text(encoding="utf-8"))
     banned, hits = {"fcntl", "msvcrt"}, set()
     for node in ast.walk(tree):
@@ -200,7 +192,7 @@ def test_no_residue_on_return_and_on_raise(tmp: Path) -> None:
 # ── AC7 — one non-OSError base for every acquisition failure ───────────────
 
 # STUB: AC7
-def test_errors_are_not_oserror(_tmp: Path) -> None:
+def test_errors_are_not_oserror() -> None:
     mod = _load()
     classes = [mod.StateLockError, mod.StateLockTimeout,
                mod.StateLockUnusable, mod.StateLockLost]
@@ -740,48 +732,3 @@ def test_no_mkdir(tmp: Path) -> None:
         fail("no-mkdir", f"lock acquisition created {missing.parent}")
         return
     ok("no-mkdir")
-
-
-def main() -> int:
-    tests = [
-        test_imports_only_stdlib,
-        test_no_platform_locking_imports,
-        test_mutual_exclusion_across_processes,
-        test_no_residue_on_return_and_on_raise,
-        test_errors_are_not_oserror,
-        test_unwritable_dir_fails_closed,
-        test_dangling_symlink_refused_fast,
-        test_directory_refused_fast,
-        test_fifo_refused_fast,
-        test_contention_sleeps_rather_than_spins,
-        test_fresh_empty_lock_is_contended,
-        test_stale_empty_lock_is_reclaimed,
-        test_lock_path_stays_lexical_sibling,
-        test_stale_reclaim_stays_lexical_sibling,
-        test_lock_path_symlink_to_file_is_refused,
-        test_concurrent_reclaimers_yield_one_holder,
-        test_reclaim_refuses_unrecognised_file,
-        test_lost_lock_is_reported,
-        test_lockfile_mode_and_record,
-        test_timeout_names_the_recorded_holder,
-        test_unparseable_pid_is_not_rendered,
-        test_no_mkdir,
-    ]
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp = Path(tmpdir)
-        for t in tests:
-            try:
-                t(tmp)
-            except Exception as exc:
-                fail(t.__name__, f"uncaught exception: {type(exc).__name__}: {exc}")
-
-    print(f"\n{ran - len(failures)}/{ran} passed", end="")
-    if failures:
-        print(f"  FAILED: {', '.join(failures)}", file=sys.stderr)
-        return 1
-    print()
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

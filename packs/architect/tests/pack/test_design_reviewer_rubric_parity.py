@@ -28,8 +28,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]  # pack tests -> repository root
-ARCHITECT = REPO_ROOT / "packs" / "architect"
+ARCHITECT = Path(__file__).resolve().parents[2]
 
 # The interop vocabulary, canonical. (Prose around these may be condensed in a
 # copy; the tokens themselves may not drift.)

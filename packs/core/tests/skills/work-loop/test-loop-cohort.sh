@@ -5,7 +5,7 @@
 # approve-plan, schedule, wave, record-attempt, review inspect/record,
 # disabled Phase-1 verbs, and schema-key drift against assets/state.json.
 #
-# Comprehensive TDD coverage lives in test-loop-cohort.py and test-loop-engine.py;
+# Comprehensive TDD coverage lives in test_loop_cohort.py and test_loop_engine.py;
 # this script retests the core contracts via the projected path and verifies
 # the assets/state.json field set matches Phase-1 expectations.
 
@@ -401,7 +401,7 @@ fi
 # --fingerprint path: increments both counters.
 # NOTE: this fixture is sequential and the counters accumulate — a new
 # `review record` case inserted here shifts every downstream count assertion.
-# Fingerprint-width coverage lives in test-fingerprint-width.py instead.
+# Fingerprint-width coverage lives in test_fingerprint_width.py instead.
 # 40-hex (SHA-1) is the legacy width, still accepted so a cohort that was
 # mid-review when core upgraded to SHA-256 can finish.
 run_and_check "review-record-fingerprint" 0 "" -- $PY review record "$SPEC1" --fingerprint "aabbccdd112233445566778899001122334455aa" --expect-run-id "$RUN_ID"
@@ -454,33 +454,33 @@ run_and_check "reset-idempotent" 0 "" -- $PY reset "$SPEC1"
 # ── Python test delegation ────────────────────────────────────────────────
 # Run the comprehensive Python test suite against the pack source.
 
-PYTEST="$REPO_ROOT/packs/core/tests/skills/work-loop/test-loop-cohort.py"
+PYTEST="$REPO_ROOT/packs/core/tests/skills/work-loop/test_loop_cohort.py"
 if [[ -f "$PYTEST" ]]; then
   ran=$((ran + 1))
-  if python3 "$PYTEST" > /dev/null 2>&1; then
+  if python3 -m pytest "$PYTEST" -q > /dev/null 2>&1; then
     ok "python-test-loop-cohort-suite"
   else
-    fail "python-test-loop-cohort-suite" "test-loop-cohort.py reported failures (run it directly for details)"
+    fail "python-test-loop-cohort-suite" "test_loop_cohort.py reported failures (run it through pytest for details)"
   fi
 fi
 
-PYTEST_ENGINE="$REPO_ROOT/packs/core/tests/skills/work-loop/test-loop-engine.py"
+PYTEST_ENGINE="$REPO_ROOT/packs/core/tests/skills/work-loop/test_loop_engine.py"
 if [[ -f "$PYTEST_ENGINE" ]]; then
   ran=$((ran + 1))
-  if python3 "$PYTEST_ENGINE" > /dev/null 2>&1; then
+  if python3 -m pytest "$PYTEST_ENGINE" -q > /dev/null 2>&1; then
     ok "python-test-loop-engine-suite"
   else
-    fail "python-test-loop-engine-suite" "test-loop-engine.py reported failures (run it directly for details)"
+    fail "python-test-loop-engine-suite" "test_loop_engine.py reported failures (run it through pytest for details)"
   fi
 fi
 
-PYTEST_STATELOCK="$REPO_ROOT/packs/core/tests/skills/work-loop/test-statelock.py"
+PYTEST_STATELOCK="$REPO_ROOT/packs/core/tests/skills/work-loop/test_statelock.py"
 if [[ -f "$PYTEST_STATELOCK" ]]; then
   ran=$((ran + 1))
-  if python3 "$PYTEST_STATELOCK" > /dev/null 2>&1; then
+  if python3 -m pytest "$PYTEST_STATELOCK" -q > /dev/null 2>&1; then
     ok "python-test-statelock-suite"
   else
-    fail "python-test-statelock-suite" "test-statelock.py reported failures (run it directly for details)"
+    fail "python-test-statelock-suite" "test_statelock.py reported failures (run it through pytest for details)"
   fi
 fi
 
@@ -488,24 +488,23 @@ fi
 # child processes across ~20 throwaway git repos), and the reason it earns that
 # is that nothing cheaper reproduces a lost update — see
 # docs/specs/loop-cohort-state-lock/notes/reproduction.md.
-PYTEST_CONCURRENCY="$REPO_ROOT/packs/core/tests/skills/work-loop/test-loop-concurrency.py"
+PYTEST_CONCURRENCY="$REPO_ROOT/packs/core/tests/skills/work-loop/test_loop_concurrency.py"
 if [[ -f "$PYTEST_CONCURRENCY" ]]; then
   ran=$((ran + 1))
-  if python3 "$PYTEST_CONCURRENCY"; then
+  if python3 -m pytest "$PYTEST_CONCURRENCY" -q; then
     ok "python-test-loop-concurrency-suite"
   else
-    fail "python-test-loop-concurrency-suite" "test-loop-concurrency.py reported failures (run it directly for details)"
+    fail "python-test-loop-concurrency-suite" "test_loop_concurrency.py reported failures (run it through pytest for details)"
   fi
 fi
 
-PYTEST_FRESHNESS="$REPO_ROOT/packs/core/tests/skills/work-loop/test-check-base-freshness.py"
+PYTEST_FRESHNESS="$REPO_ROOT/packs/core/tests/skills/work-loop/test_check_base_freshness.py"
 if [[ -f "$PYTEST_FRESHNESS" ]]; then
   ran=$((ran + 1))
-  if _freshness_out=$(python3 "$PYTEST_FRESHNESS" 2>&1); then
+  if _freshness_out=$(python3 -m pytest "$PYTEST_FRESHNESS" -q 2>&1); then
     ok "python-test-check-base-freshness-suite"
   else
-    _freshness_fails=$(echo "$_freshness_out" | grep '^FAIL' | tr '\n' '; ')
-    fail "python-test-check-base-freshness-suite" "test-check-base-freshness.py: ${_freshness_fails:-run it directly for details}"
+    fail "python-test-check-base-freshness-suite" "test_check_base_freshness.py: ${_freshness_out:-run it through pytest for details}"
   fi
 fi
 

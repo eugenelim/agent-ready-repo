@@ -15,9 +15,9 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.validators import validator_for
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_ROOT = ROOT / "contracts/jsonschema"
-FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures/work-intake-contracts"
+FIXTURE_ROOT = ROOT / "packs/core/tests/pack/fixtures/work-intake-contracts"
 NORMALIZED_SCHEMA = CONTRACT_ROOT / "normalized-intake.schema.json"
 WORKSPACE_SCHEMA = CONTRACT_ROOT / "workspace-entry.schema.json"
 WORKSPACE_CONTEXT = FIXTURE_ROOT / "workspace/context"
@@ -331,7 +331,7 @@ def test_work_memberships_have_required_status_and_plan_evidence() -> None:
         entry = memberships[f"ini-001.{collection}"][0]
         artifact = doc["spec_artifacts"][entry["path"]]
         assert artifact["Status"] == expected_status
-        assert artifact["plan"] == str(Path(entry["path"]).with_name("plan.md"))
+        assert artifact["plan"] == Path(entry["path"]).with_name("plan.md").as_posix()
         assert _valid_work_contract(
             collection,
             entry["kind"],

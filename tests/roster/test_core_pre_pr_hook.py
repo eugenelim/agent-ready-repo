@@ -7,9 +7,8 @@ gate (`loop-cohort.py check`) — plus a wire-your-gate stub. It references
 missing tool is a skip, never a crash). The catalogue's own gate lives in the
 repo-native `tools/catalogue/pre_pr_catalogue.py` (tested separately).
 
-These assertions read core-pack content, so they live under
-`packs/core/tests/` rather than `packages/agentbundle/tests/`: renaming a
-private helper in the core pack must not break the published package's suite.
+These repository-owned assertions span core-pack content and catalogue tooling,
+so they live in the root roster rather than either component's local suite.
 
 Sandbox construction mirrors the working tree (tracked + untracked-not-ignored),
 then `git init` so any git-aware probe resolves. Runs on Linux, macOS, and
@@ -37,7 +36,7 @@ def _load_hook():
     return mod
 
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 HOOK = REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "pre-pr.py"
 CATALOGUE_HOOK = REPO_ROOT / "tools" / "catalogue" / "pre_pr_catalogue.py"
 
@@ -153,7 +152,7 @@ def test_shipped_pre_pr_gates_the_knowledge_base(sandbox: Path) -> None:
     entries = sandbox / "docs" / "knowledge" / "patterns.jsonl"
     entries.parent.mkdir(parents=True, exist_ok=True)
     # Seed a known-good entry: whether the *repo's* live file is clean is
-    # test-lint-knowledge.py's signal to own, not this one's.
+    # test_work_loop_lint_knowledge.py's signal to own, not this one's.
     entries.write_text(
         '{"id": "K-0001", "kind": "gotcha", "scope": "*", '
         '"title": "T", "body": "B", "source": "PR#1"}\n',

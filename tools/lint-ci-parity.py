@@ -322,7 +322,7 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest kiro drop-warning contract":
         LOCAL("test"),
-    "pytest core work-loop activation hook (pack-owned)":
+    "pytest core work-loop activation hook (roster-owned)":
         LOCAL("test"),
     "pytest CLI-hygiene sweep (agentbundle-cli-hygiene)":
         LOCAL("test"),

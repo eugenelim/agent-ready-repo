@@ -19,8 +19,8 @@ import textwrap
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]  # pack tests -> repository root
-SHARED_LIBS = REPO_ROOT / "packs" / "credential-brokers" / ".apm" / "shared-libs"
+PACK_ROOT = Path(__file__).resolve().parents[2]
+SHARED_LIBS = PACK_ROOT / ".apm" / "shared-libs"
 
 # Stdlib roots the shim is allowed to pull in transitively. Lifted
 # from loader.py's top-level import list + dataclasses + tomllib +

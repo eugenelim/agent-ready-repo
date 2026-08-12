@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test for `.apm/skills/work-loop/scripts/lint-spec-status.py` (the Tier-1 spec-status lint).
+"""Pytest coverage for the Tier-1 spec-status lint.
 
 Builds fixture spec trees in a tempdir and runs the linter as a
 subprocess against the documented `python <skill>/scripts/lint-spec-status.py
@@ -17,6 +17,8 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+import pytest
 
 # The pack ships tests under packs/<pack>/tests/ and runtime primitives under
 # packs/<pack>/.apm/ — tests are visible in the catalogue and never installed.
@@ -68,13 +70,9 @@ def git_init_commit(root: Path) -> None:
         subprocess.run(argv, check=True, capture_output=True)
 
 
-FAILURES: list[str] = []
-SKIPS: list[str] = []
-
-
 def expect(cond: bool, msg: str) -> None:
-    if not cond:
-        FAILURES.append(msg)
+    """Assert a condition through pytest instead of aggregate state."""
+    assert cond, msg
 
 
 def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
@@ -83,15 +81,12 @@ def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
         link.symlink_to(target)
     except (OSError, NotImplementedError) as exc:
         if os.environ.get("CI"):
-            FAILURES.append(f"{name}: CI must support this symlink regression: {exc}")
-        else:
-            SKIPS.append(name)
-            print(f"SKIP: {name}: symlink creation unavailable ({exc})")
-        return False
+            pytest.fail(f"{name}: CI must support this symlink regression: {exc}")
+        pytest.skip(f"{name}: symlink creation unavailable ({exc})")
     return True
 
 
-def case_clean() -> None:
+def test_clean() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "ok", "Draft", "- [ ] AC1 open\n")
@@ -99,7 +94,7 @@ def case_clean() -> None:
         expect(rc == 0, f"clean fixture should exit 0, got {rc}: {err}")
 
 
-def case_invariant_i_out_of_vocab() -> None:
+def test_invariant_i_out_of_vocab() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "bad", "Drafting", "- [ ] AC1\n")
@@ -108,7 +103,7 @@ def case_invariant_i_out_of_vocab() -> None:
         expect("invariant (i)" in err, f"expected invariant (i) msg: {err}")
 
 
-def case_invariant_i_lenient() -> None:
+def test_invariant_i_lenient() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "annotated", "Shipped (2026-05-26)", "- [x] AC1\n")
@@ -117,7 +112,7 @@ def case_invariant_i_lenient() -> None:
         expect(rc == 0, f"annotated/arrowed status should pass (i), got {rc}: {err}")
 
 
-def case_invariant_ii_transition_fails() -> None:
+def test_invariant_ii_transition_fails() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "shipping", "Draft", "- [ ] AC1 open\n")
@@ -129,7 +124,7 @@ def case_invariant_ii_transition_fails() -> None:
         expect("invariant (ii)" in err, f"expected invariant (ii) msg: {err}")
 
 
-def case_invariant_ii_transition_ok_when_deferred() -> None:
+def test_invariant_ii_transition_ok_when_deferred() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_workspace_backlog(root, ["later-work"])
@@ -143,7 +138,7 @@ def case_invariant_ii_transition_ok_when_deferred() -> None:
         expect(rc == 0, f"ship w/ checked+deferred ACs should exit 0, got {rc}: {err}")
 
 
-def case_invariant_ii_grandfather() -> None:
+def test_invariant_ii_grandfather() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # Already Shipped on the base with an unchecked AC → grandfathered.
@@ -153,7 +148,7 @@ def case_invariant_ii_grandfather() -> None:
         expect(rc == 0, f"already-Shipped spec should be grandfathered, got {rc}: {err}")
 
 
-def case_invariant_ii_no_base() -> None:
+def test_invariant_ii_no_base() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)  # plain dir, not a git repo, no base ref
         write_spec(root, "shipping", "Shipped", "- [ ] AC1 open\n")
@@ -162,7 +157,7 @@ def case_invariant_ii_no_base() -> None:
         expect("no base ref resolvable" in err, f"expected skip warning: {err}")
 
 
-def case_invariant_i_missing_status() -> None:
+def test_invariant_i_missing_status() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # A spec with no `- **Status:**` header line at all.
@@ -174,7 +169,7 @@ def case_invariant_i_missing_status() -> None:
         expect("no `- **Status:**`" in err, f"expected missing-status msg: {err}")
 
 
-def case_invariant_iv_resolves_workspace_slug() -> None:
+def test_invariant_iv_resolves_workspace_slug() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # A slug in workspace.toml [backlog].open must resolve a (deferred:) marker.
@@ -186,7 +181,7 @@ def case_invariant_iv_resolves_workspace_slug() -> None:
 
 
 # STUB: AC1 — repository metadata must not be read through an outside symlink.
-def case_workspace_symlink_outside_root_does_not_resolve_deferral() -> None:
+def test_workspace_symlink_outside_root_does_not_resolve_deferral() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
@@ -218,7 +213,7 @@ def case_workspace_symlink_outside_root_does_not_resolve_deferral() -> None:
 
 
 # STUB: AC1 — link and code-reference probes must not consult outside targets.
-def case_reference_candidates_outside_root_do_not_resolve() -> None:
+def test_reference_candidates_outside_root_do_not_resolve() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
@@ -245,7 +240,7 @@ def case_reference_candidates_outside_root_do_not_resolve() -> None:
 
 
 # CONTRACT CONTROL: AC1 — the existing contract-file confinement stays pinned.
-def case_contract_file_symlink_outside_root_does_not_resolve() -> None:
+def test_contract_file_symlink_outside_root_does_not_resolve() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
@@ -273,7 +268,7 @@ def case_contract_file_symlink_outside_root_does_not_resolve() -> None:
         )
 
 
-def case_invariant_ii_born_shipped_fails() -> None:
+def test_invariant_ii_born_shipped_fails() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # A brand-new spec absent at base, born Shipped with an unchecked AC.
@@ -285,7 +280,7 @@ def case_invariant_ii_born_shipped_fails() -> None:
         expect("invariant (ii)" in err, f"expected invariant (ii) msg: {err}")
 
 
-def case_invariant_iv_missing_anchor() -> None:
+def test_invariant_iv_missing_anchor() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "deferring", "Draft",
@@ -295,7 +290,7 @@ def case_invariant_iv_missing_anchor() -> None:
         expect("invariant (iv)" in err, f"expected invariant (iv) msg: {err}")
 
 
-def case_invariant_iv_placeholder_ignored() -> None:
+def test_invariant_iv_placeholder_ignored() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # The template placeholder `<anchor>` must NOT be treated as a real
@@ -306,7 +301,7 @@ def case_invariant_iv_placeholder_ignored() -> None:
         expect(rc == 0, f"placeholder <anchor> should be ignored, got {rc}: {err}")
 
 
-def case_invariant_iii_warn_only() -> None:
+def test_invariant_iii_warn_only() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         p = root / "docs" / "specs" / "linky" / "spec.md"
@@ -339,7 +334,7 @@ def touch(root: Path, rel: str) -> None:
     p.write_text("x\n", encoding="utf-8")
 
 
-def case_iii_code_ref_resolves_and_missing() -> None:
+def test_iii_code_ref_resolves_and_missing() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         touch(root, "tools/real.py")
@@ -351,7 +346,7 @@ def case_iii_code_ref_resolves_and_missing() -> None:
         expect("tools/real.py" not in err, f"resolving code ref must not warn: {err}")
 
 
-def case_iii_code_ref_exclusions_with_controls() -> None:
+def test_iii_code_ref_exclusions_with_controls() -> None:
     # Each excluded shape is paired with a shape-matched full-path control that
     # IS flagged — so a no-op extractor (matching nothing) fails this case.
     with tempfile.TemporaryDirectory() as tmp:
@@ -380,7 +375,7 @@ def case_iii_code_ref_exclusions_with_controls() -> None:
             expect(control in err, f"control should warn but didn't: {control}: {err}")
 
 
-def case_iii_code_ref_suffix_strip() -> None:
+def test_iii_code_ref_suffix_strip() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         touch(root, "tools/y.py")
@@ -395,7 +390,7 @@ def case_iii_code_ref_suffix_strip() -> None:
         expect("tools/gone.py" in err, f"missing path with locator should warn: {err}")
 
 
-def case_iii_code_ref_markdown_link() -> None:
+def test_iii_code_ref_markdown_link() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec_body(root, "linkref", "See [the helper](../../tools/nope.py).")
@@ -423,7 +418,7 @@ def write_contract(root: Path, relpath: str, content: str) -> None:
     p.write_text(content, encoding="utf-8")
 
 
-def case_v_agreement_passes() -> None:
+def test_v_agreement_passes() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_contract(root, "contracts/openapi/orders.yaml",
@@ -434,7 +429,7 @@ def case_v_agreement_passes() -> None:
         expect("invariant (v)" not in err, f"agreement must not warn (v): {err}")
 
 
-def case_v_forward_without_backward_warns() -> None:
+def test_v_forward_without_backward_warns() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # contract exists but carries no x-spec back-ref, and no REGISTRY.md
@@ -445,7 +440,7 @@ def case_v_forward_without_backward_warns() -> None:
         expect("invariant (v)" in err, f"expected invariant (v) warning: {err}")
 
 
-def case_v_no_contracts_noop() -> None:
+def test_v_no_contracts_noop() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # template placeholder value + an explicit "none"; no contracts/ tree
@@ -457,7 +452,7 @@ def case_v_no_contracts_noop() -> None:
         expect("invariant (v)" not in err, f"no-contracts must not warn (v): {err}")
 
 
-def case_v_extensionless_registry_and_dangling() -> None:
+def test_v_extensionless_registry_and_dangling() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # extensionless format → REGISTRY.md is the backward channel
@@ -480,7 +475,7 @@ def case_v_extensionless_registry_and_dangling() -> None:
 
 
 # STUB: AC1 — the contract registry must not be read through an outside symlink.
-def case_contract_registry_symlink_outside_root_does_not_supply_backref() -> None:
+def test_contract_registry_symlink_outside_root_does_not_supply_backref() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
@@ -511,7 +506,7 @@ def case_contract_registry_symlink_outside_root_does_not_supply_backref() -> Non
         )
 
 
-def case_multiline_comment_not_matched() -> None:
+def test_multiline_comment_not_matched() -> None:
     """Regression: a **Status:** inside a multiline HTML comment must not
     be returned before the live status field (parse_status was applying
     _HTML_COMMENT_RE per-line, so block comments were never stripped)."""
@@ -535,47 +530,3 @@ def case_multiline_comment_not_matched() -> None:
         )
         rc, _, err = run_lint(root)
         expect(rc == 0, f"live Draft should pass vocab check, got {rc}: {err}")
-
-
-def main() -> int:
-    for case in (
-        case_clean,
-        case_invariant_i_out_of_vocab,
-        case_invariant_i_lenient,
-        case_invariant_ii_transition_fails,
-        case_invariant_ii_transition_ok_when_deferred,
-        case_invariant_ii_grandfather,
-        case_invariant_ii_no_base,
-        case_invariant_i_missing_status,
-        case_invariant_ii_born_shipped_fails,
-        case_invariant_iv_resolves_workspace_slug,
-        case_workspace_symlink_outside_root_does_not_resolve_deferral,
-        case_reference_candidates_outside_root_do_not_resolve,
-        case_contract_file_symlink_outside_root_does_not_resolve,
-        case_invariant_iv_missing_anchor,
-        case_invariant_iv_placeholder_ignored,
-        case_invariant_iii_warn_only,
-        case_iii_code_ref_resolves_and_missing,
-        case_iii_code_ref_exclusions_with_controls,
-        case_iii_code_ref_suffix_strip,
-        case_iii_code_ref_markdown_link,
-        case_v_agreement_passes,
-        case_v_forward_without_backward_warns,
-        case_v_no_contracts_noop,
-        case_v_extensionless_registry_and_dangling,
-        case_contract_registry_symlink_outside_root_does_not_supply_backref,
-        case_multiline_comment_not_matched,
-    ):
-        case()
-    if FAILURES:
-        for f in FAILURES:
-            print(f"FAIL: {f}", file=sys.stderr)
-        print(f"test-lint-spec-status: {len(FAILURES)} failure(s).", file=sys.stderr)
-        return 1
-    suffix = f" ({len(SKIPS)} skipped)" if SKIPS else ""
-    print(f"test-lint-spec-status: all executed invariant cases pass{suffix}.")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

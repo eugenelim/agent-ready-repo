@@ -232,7 +232,3 @@ class ResearchSkillDescriptionRegression(unittest.TestCase):
             f"description missing every applied cue {applied_tokens!r} "
             f"— bias requires at least one"
         )
-
-
-if __name__ == "__main__":  # pragma: no cover
-    unittest.main()

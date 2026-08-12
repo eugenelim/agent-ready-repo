@@ -6,8 +6,8 @@ import ast
 import re
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
-SKILL_ROOT = REPO_ROOT / "packs" / "atlassian" / ".apm" / "skills" / "jira"
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "jira"
 ENTRY_POINTS = ("jira.py", "setup_sso.py")
 TEXT_SUFFIXES = {".js", ".json", ".md", ".py", ".toml"}
 WINDOWS_RENDERER_SOURCE = SKILL_ROOT / "scripts" / "_client.py"

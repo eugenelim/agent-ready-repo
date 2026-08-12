@@ -293,9 +293,15 @@ test:
 	$(PYTHON) -m pytest packages/credbroker/ -q
 	$(PYTHON) tools/lint-conformance-portability.py --root .
 	$(PYTHON) -m pytest tests/ -q
-	$(PYTHON) -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
+	$(PYTHON) -m pytest packs/core/tests/hooks/ -q
+	$(PYTHON) -m pytest packs/core/tests/pack/ -q
+	$(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
+	$(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
+	$(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ -q
+	$(PYTHON) -m pytest packs/core/tests/skills/work-loop/ -q
+	$(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q
+	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
-	$(PYTHON) -m pytest packs/catalogue-curation/tests/pack/ -q
 	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
 	$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
 	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
@@ -303,9 +309,12 @@ test:
 	$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
 	$(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q
 	$(PYTHON) -m pytest packs/converters/tests/skills/mermaid-renderer/ -q
-	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::' || true); \
-	 if [ "$$n" -lt 16 ]; then echo "packs/desk-research/tests/ collected $$n, expected >= 16" >&2; exit 1; fi
-	$(PYTHON) -m pytest packs/desk-research/tests/ -q
+	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q --collect-only | grep -c '::' || true); \
+	 if [ "$$n" -lt 9 ]; then echo "packs/desk-research/tests/skills/desk-research/ collected $$n, expected >= 9" >&2; exit 1; fi
+	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q
+	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q --collect-only | grep -c '::' || true); \
+	 if [ "$$n" -lt 7 ]; then echo "packs/desk-research/tests/skills/desk-research-project-start/ collected $$n, expected >= 7" >&2; exit 1; fi
+	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q
 	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_build_site_routing.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q

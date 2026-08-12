@@ -14,8 +14,8 @@ import importlib.util
 import types
 from pathlib import Path
 
-_REPO_ROOT = Path(__file__).parents[5]
-_SCRIPT = _REPO_ROOT / "packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py"
+_PACK_ROOT = Path(__file__).parents[3]
+_SCRIPT = _PACK_ROOT / ".apm/skills/work-loop/scripts/lint-spec-status.py"
 
 
 def _load_lint_module() -> types.ModuleType:

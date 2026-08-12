@@ -13,11 +13,10 @@ Three layers:
    clean. Entries landing without `source` because the guidance named no
    keys is the failure this layer guards.
 
-This suite lives in the pack's test tree and is never installed, so it always
-runs against the full catalogue: the pack source, both per-adapter projections,
-and both knowledge READMEs. It asserts that surface count rather than assuming
-it — a discovery bug that quietly checked fewer would report success while
-letting drift through.
+This repository-owned suite runs against the full catalogue: the pack source,
+both per-adapter projections, and both knowledge READMEs. It asserts that
+surface count rather than assuming it — a discovery bug that quietly checked
+fewer would report success while letting drift through.
 """
 
 from __future__ import annotations
@@ -27,54 +26,24 @@ import os
 import re
 import subprocess
 import sys
-import tempfile
 import unicodedata
 from pathlib import Path
+
+import pytest
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
-# The pack ships tests under packs/<pack>/tests/ and runtime primitives under
-# packs/<pack>/.apm/ — tests are visible in the catalogue and never installed.
-_SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
+# This repository-owned roster test inspects core's shipped work-loop primitive.
+ROOT = Path(__file__).resolve().parents[2]
+_SKILL_DIR = ROOT / "packs/core/.apm/skills/work-loop"
 SCRIPT_DIR = _SKILL_DIR / "scripts"
 
 if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
     raise SystemExit(f"subject dir not found at {SCRIPT_DIR} — check the parents[] depth")
 LINTER = SCRIPT_DIR / "lint-knowledge.py"
 SKILL = _SKILL_DIR / "SKILL.md"
-
-FAILURES: list[str] = []
-RAN = 0
-HERE = Path(__file__).resolve().parent
-
-
-def _repo_root() -> Path:
-    """Anchor on this file, not on cwd.
-
-    `git rev-parse` resolves against the working directory, so running the
-    suite from elsewhere silently repointed every layer at the wrong tree:
-    discovery fell to the one mandatory surface, two layers skipped, and it
-    still exited 0. Same failure shape as the `| tail -2` defect this suite
-    exists to prevent.
-    """
-    candidate = HERE.parents[4]          # packs/core/tests/skills/work-loop -> repo root
-    if (candidate / "packs").is_dir():
-        return candidate
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--show-toplevel"],
-            capture_output=True, text=True, check=False,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            return Path(result.stdout.strip())
-    except FileNotFoundError:
-        pass
-    return Path.cwd()
-
-
-ROOT = _repo_root()
 
 
 def _lint(path: Path) -> subprocess.CompletedProcess[str]:
@@ -86,20 +55,18 @@ def _lint(path: Path) -> subprocess.CompletedProcess[str]:
 
 
 def ok(name: str) -> None:
-    print(f"ok   [{name}]")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, detail: str) -> None:
-    FAILURES.append(name)
-    print(f"FAIL [{name}]: {detail}", file=sys.stderr)
+    """Fail the independently collected pytest case immediately."""
+    pytest.fail(f"{name}: {detail}")
 
 
 # --- Layer 1: validation rules ---------------------------------------------
 
 def run_case(tmp: Path, name: str, body: str, want_exit: int,
              want_substr: str) -> None:
-    global RAN
-    RAN += 1
     path = tmp / f"{name}.jsonl"
     path.write_text(body, encoding="utf-8")
     proc = _lint(path)
@@ -139,7 +106,8 @@ def _entry(**over: object) -> str:
     return json.dumps(base)
 
 
-def layer_validation_rules(tmp: Path) -> None:
+def test_validation_rules(tmp_path: Path) -> None:
+    tmp = tmp_path
     # STUB: AC20 — docs/specs/loop-tooling-mandated-writes, task T3.
     # Red until the linter rejects a `\uXXXX` escape for a character that
     # should have been written literally. `_entry` serializes with json.dumps'
@@ -478,8 +446,6 @@ def layer_validation_rules(tmp: Path) -> None:
              1, "duplicate id")
 
     # Multiple shape errors on a single line surface in one lint run.
-    global RAN
-    RAN += 1
     path = tmp / "multi.jsonl"
     path.write_text('{"id": "bad", "scope": "x", "title": "t", "body": "b", '
                     '"source": "s", "stray": 1}', encoding="utf-8")
@@ -512,10 +478,8 @@ def _enforced_sets() -> tuple[set[str], set[str], set[str]]:
 
 # --- Layer 2: schema drift (README field table vs linter) -------------------
 
-def layer_schema_drift(required: set[str], optional: set[str],
-                       kinds: set[str]) -> None:
-    global RAN
-    RAN += 1
+def test_schema_drift() -> None:
+    required, optional, kinds = _enforced_sets()
     readme = ROOT / "docs" / "knowledge" / "README.md"
     if not readme.is_file():
         fail("schema-drift-readme-vs-script",
@@ -676,9 +640,9 @@ def _check_examples(name: str, text: str, tmp: Path,
 _MIN_SURFACES = 5
 
 
-def layer_guidance_drift(tmp: Path, required: set[str], optional: set[str]) -> None:
-    global RAN
-    RAN += 1
+def test_guidance_drift(tmp_path: Path) -> None:
+    tmp = tmp_path
+    required, optional, _kinds = _enforced_sets()
     surfaces = _guidance_surfaces()
     for name, _ in surfaces:
         print(f"     surface: {name}")
@@ -749,9 +713,7 @@ def _check_readme_parity() -> list[str]:
 
 # --- Layer 4: the live knowledge base lints clean ---------------------------
 
-def layer_production_file() -> None:
-    global RAN
-    RAN += 1
+def test_production_file() -> None:
     live = ROOT / "docs" / "knowledge" / "patterns.jsonl"
     if not live.is_file():
         fail("production-file",
@@ -769,7 +731,7 @@ def layer_production_file() -> None:
 _DERIVED_FROM_UCD = "15.1.0"
 
 
-def layer_default_ignorable_property() -> None:
+def test_default_ignorable_property() -> None:
     """The hidden-character rule is a Unicode *property*, so assert the property.
 
     Two rounds were lost to spot-checks: `Cf` alone missed the variation
@@ -777,8 +739,6 @@ def layer_default_ignorable_property() -> None:
     Default_Ignorable_Code_Point set from DerivedCoreProperties, so a future UCD
     bump that adds a member fails here rather than in a review.
     """
-    global RAN
-    RAN += 1
     import importlib.util
     spec = importlib.util.spec_from_file_location("_lk", str(LINTER))
     mod = importlib.util.module_from_spec(spec)
@@ -815,26 +775,3 @@ def layer_default_ignorable_property() -> None:
              f"{len(escaped)} property member(s) not caught, e.g. {escaped[:6]}")
     else:
         ok("default-ignorable-property")
-
-
-def main() -> int:
-    required, optional, kinds = _enforced_sets()
-    with tempfile.TemporaryDirectory() as td:
-        tmp = Path(td)
-        layer_validation_rules(tmp)
-        layer_schema_drift(required, optional, kinds)
-        layer_guidance_drift(tmp, required, optional)
-        layer_production_file()
-        layer_default_ignorable_property()
-
-    print()
-    if FAILURES:
-        print(f"✖ test-lint-knowledge: {len(FAILURES)} of {RAN} cases failed",
-              file=sys.stderr)
-        return 1
-    print(f"✓ test-lint-knowledge: passed ({RAN} cases).")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

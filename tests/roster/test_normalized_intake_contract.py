@@ -10,11 +10,11 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.validators import validator_for
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "contracts/jsonschema/normalized-intake.schema.json"
 FIXTURE_ROOT = (
-    Path(__file__).resolve().parent
-    / "fixtures/work-intake-contracts/normalized-intake"
+    ROOT
+    / "packs/core/tests/pack/fixtures/work-intake-contracts/normalized-intake"
 )
 
 

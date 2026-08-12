@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
-SKILL_ROOT = REPO_ROOT / "packs" / "linear" / ".apm" / "skills" / "linear"
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "linear"
 ENTRY_POINTS = ("linear.py",)
 TEXT_SUFFIXES = {".js", ".json", ".md", ".py", ".toml"}
 WINDOWS_RENDERER_SOURCE = SKILL_ROOT / "scripts" / "linear.py"

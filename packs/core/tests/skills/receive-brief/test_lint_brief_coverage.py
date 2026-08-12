@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test for `.apm/skills/receive-brief/scripts/lint-brief-coverage.py` (the brief-coverage rollup).
+"""Pytest coverage for the brief-coverage rollup.
 
 Builds fixture brief + spec trees in a tempdir and runs the linter as a
 subprocess against the documented `python <skill>/scripts/lint-brief-coverage.py
@@ -25,12 +25,10 @@ LINTER = _SKILL_DIR / "scripts" / "lint-brief-coverage.py"
 if not LINTER.is_file():  # wrong parents[] depth after a move
     raise SystemExit(f"subject not found at {LINTER} — check the parents[] depth")
 
-FAILURES: list[str] = []
-
 
 def expect(cond: bool, msg: str) -> None:
-    if not cond:
-        FAILURES.append(msg)
+    """Assert a condition through pytest instead of aggregate state."""
+    assert cond, msg
 
 
 def write_spec(root: Path, slug: str, status: str, brief: str | None = None) -> None:
@@ -65,7 +63,7 @@ def run_lint(root: Path) -> tuple[int, str, str]:
     return proc.returncode, proc.stdout, proc.stderr
 
 
-def case_mixed_map_not_delivered() -> None:
+def test_mixed_map_not_delivered() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "Shipped", brief="myb")
@@ -78,7 +76,7 @@ def case_mixed_map_not_delivered() -> None:
         expect("not delivered" in out.lower(), f"mixed map → not delivered: {out}")
 
 
-def case_all_shipped_delivered() -> None:
+def test_all_shipped_delivered() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "Shipped", brief="myb")
@@ -90,7 +88,7 @@ def case_all_shipped_delivered() -> None:
         expect("': delivered" in out, f"all-shipped brief → delivered: {out}")
 
 
-def case_empty_map_not_delivered() -> None:
+def test_empty_map_not_delivered() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "emptyb", [])
@@ -102,7 +100,7 @@ def case_empty_map_not_delivered() -> None:
                f"empty map must NOT report delivered: {out}")
 
 
-def case_no_brief_noop() -> None:
+def test_no_brief_noop() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "Shipped")  # spec but no brief
@@ -112,7 +110,7 @@ def case_no_brief_noop() -> None:
         expect(out.strip() == "", f"no brief → no diagnostic on stdout: {out!r}")
 
 
-def case_template_skipped() -> None:
+def test_template_skipped() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # A `_template.md` placeholder in the briefs dir must NOT be treated
@@ -125,7 +123,7 @@ def case_template_skipped() -> None:
                f"_template.md must be skipped (no diagnostic): out={out!r} err={err!r}")
 
 
-def case_untracked_backlink_informational() -> None:
+def test_untracked_backlink_informational() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # gamma back-links myb but is NOT in myb's Spec map → untracked.
@@ -139,7 +137,7 @@ def case_untracked_backlink_informational() -> None:
         expect("gamma" in combined, f"untracked spec named: {out}{err}")
 
 
-def case_stale_cell_drifts_fail_closed() -> None:
+def test_stale_cell_drifts_fail_closed() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # beta is actually Shipped, but the brief's Spec map still records
@@ -153,7 +151,7 @@ def case_stale_cell_drifts_fail_closed() -> None:
         expect("beta" in err, f"drift message should name the spec: {err}")
 
 
-def case_unset_cell_is_not_drift() -> None:
+def test_unset_cell_is_not_drift() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # An `<auto>` / unset cell means "not yet derived" — report, don't fail.
@@ -164,7 +162,7 @@ def case_unset_cell_is_not_drift() -> None:
         expect("implementing" in out.lower(), f"derived status still reported: {out}")
 
 
-def case_slug_differs_from_filename() -> None:
+def test_slug_differs_from_filename() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # The brief's Slug field (real-slug) differs from its filename stem
@@ -179,7 +177,7 @@ def case_slug_differs_from_filename() -> None:
                f"gamma back-links by slug, must be untracked: {out}{err}")
 
 
-def case_prose_pipe_after_table_is_not_a_row() -> None:
+def test_prose_pipe_after_table_is_not_a_row() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "Shipped", brief="myb")
@@ -196,7 +194,7 @@ def case_prose_pipe_after_table_is_not_a_row() -> None:
         expect("stale" not in err.lower(), f"no phantom drift row: {err}")
 
 
-def case_lowercase_status_token_still_delivers() -> None:
+def test_lowercase_status_token_still_delivers() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "shipped", brief="myb")  # lowercase token
@@ -207,7 +205,7 @@ def case_lowercase_status_token_still_delivers() -> None:
                f"lowercase 'shipped' must still count as delivered: {out}")
 
 
-def case_placeholder_brief_value_ignored() -> None:
+def test_placeholder_brief_value_ignored() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "alpha", "Draft", brief="<slug>")  # template placeholder
@@ -219,7 +217,7 @@ def case_placeholder_brief_value_ignored() -> None:
                f"placeholder must not surface as a tracked/untracked slug: {combined}")
 
 
-def case_annotated_recorded_cell_not_drift() -> None:
+def test_annotated_recorded_cell_not_drift() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # A recorded cell annotated the same way a spec's own Status field may
@@ -231,33 +229,3 @@ def case_annotated_recorded_cell_not_drift() -> None:
         expect(rc == 0, f"annotated recorded cell must not drift, got {rc}: {err}")
         expect("stale" not in err.lower(), f"no false drift on annotated cell: {err}")
         expect("': delivered" in out, f"annotated-cell brief still delivered: {out}")
-
-
-def main() -> int:
-    for case in (
-        case_mixed_map_not_delivered,
-        case_annotated_recorded_cell_not_drift,
-        case_all_shipped_delivered,
-        case_empty_map_not_delivered,
-        case_no_brief_noop,
-        case_template_skipped,
-        case_untracked_backlink_informational,
-        case_stale_cell_drifts_fail_closed,
-        case_unset_cell_is_not_drift,
-        case_slug_differs_from_filename,
-        case_prose_pipe_after_table_is_not_a_row,
-        case_lowercase_status_token_still_delivers,
-        case_placeholder_brief_value_ignored,
-    ):
-        case()
-    if FAILURES:
-        for f in FAILURES:
-            print(f"FAIL: {f}", file=sys.stderr)
-        print(f"test-lint-brief-coverage: {len(FAILURES)} failure(s).", file=sys.stderr)
-        return 1
-    print("test-lint-brief-coverage: all cases pass.")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

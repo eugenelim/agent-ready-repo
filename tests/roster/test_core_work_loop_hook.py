@@ -23,7 +23,7 @@ import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 CORE_PACK = REPO_ROOT / "packs" / "core"
 CONTRACT = REPO_ROOT / "contracts" / "adapter.toml"
 KIRO_HOOK = CORE_PACK / ".apm" / "kiro-ide-hooks" / "work-loop-check.kiro.hook"
@@ -105,7 +105,3 @@ class TestCoreWorkLoopHook(unittest.TestCase):
         for text in (prompt, stdout):
             self.assertIn("work-loop", text.lower())
             self.assertIn("plan -> execute -> verify -> review", text.lower())
-
-
-if __name__ == "__main__":
-    unittest.main()

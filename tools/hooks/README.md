@@ -178,15 +178,14 @@ python tools/hooks/session-start.py
 python tools/hooks/pre-pr.py
 ```
 
-Two pytest smoke suites under `packs/core/tests/hooks/` are the canonical
-parity net. They test core-pack hooks, so they live with the pack rather
-than in `packages/agentbundle/tests/` — renaming a helper in the core pack
-must not break the published package's suite:
+Two pytest smoke suites form the canonical parity net. Pack-local coverage
+stays under `packs/core/tests/hooks/`; coverage that compares the pack hook
+with repository tooling lives under `tests/roster/`:
 
 - `test_session_start_py.py` — exercises `--scope` validation, the
   malformed-line warning, the `KNOWLEDGE_FILE` override, and the
   empty/missing-file silent-exit paths.
-- `test_pre_pr_py.py` — asserts the **shipped** `pre-pr.py` is adopter-clean
+- `tests/roster/test_core_pre_pr_hook.py` — asserts the **shipped** `pre-pr.py` is adopter-clean
   (references no catalogue linter, runs the knowledge lint + loop-cohort +
   a wire-your-gate stub, degrades gracefully) and that the catalogue hook
   runs its own checks + delegates.

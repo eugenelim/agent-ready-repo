@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Concurrency regressions for loop-cohort.py and loop-engine.py.
+"""Pytest concurrency regressions for loop-cohort.py and loop-engine.py.
 
-Run: python3 test-loop-concurrency.py
-Exit 0 = all pass; exit non-zero = at least one failure.
+Run with pytest.
 
 These are the acceptance bar for docs/specs/loop-cohort-state-lock. Both cases
 were observed failing against the pre-fix tree — see notes/reproduction.md.
@@ -30,9 +29,10 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
+
+import pytest
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -150,23 +150,16 @@ wait_for(go_file.exists, "parent go signal")  # phase 2: rendezvous
 sys.exit(mod.main(argv))
 '''
 
-failures: list[str] = []
-ran = 0
 _last_sync: dict[str, str] = {}
 
 
 def ok(name: str) -> None:
-    global ran
-    ran += 1
-    print(f"ok   [{name}]")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, reason: str) -> None:
-    global ran
-    ran += 1
-    failures.append(name)
     sync = _last_sync.get(name, "not applicable")
-    print(f"FAIL [{name}]: {reason} (sync: {sync})", file=sys.stderr)
+    pytest.fail(f"{name}: {reason} (sync: {sync})")
 
 
 # ── hermetic fixture helpers (shape borrowed from
@@ -678,7 +671,7 @@ def test_noop_paths_do_not_write(tmp: Path) -> None:
 # ── AC10 — the lock-hold budget is machine-checked, not asserted in prose ──
 
 # STUB: AC10
-def test_lock_hold_budget(_tmp: Path) -> None:
+def test_lock_hold_budget() -> None:
     """timeout < max hold < stale_after, and every under-lock call is bounded.
 
     loop-engine holds the state lock across git-shelling guards. An unbounded
@@ -777,37 +770,3 @@ def test_harness_is_hermetic(tmp: Path) -> None:
         )
         return
     ok("harness-is-hermetic")
-
-
-def main() -> int:
-    tests = [
-        ("record-attempt-no-lost-update", test_concurrent_record_attempt_no_lost_update),
-        ("concurrent-identical-transition", test_concurrent_identical_transition),
-        ("concurrent-init", test_concurrent_init),
-        ("locked-verbs-refuse-when-held", test_locked_verbs_refuse_when_held),
-        ("noop-paths-do-not-write", test_noop_paths_do_not_write),
-        ("lock-hold-budget", test_lock_hold_budget),
-        ("harness-is-hermetic", test_harness_is_hermetic),
-    ]
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp = Path(tmpdir)
-        for case_name, test in tests:
-            _last_sync[case_name] = "not yet observed"
-            try:
-                test(tmp)
-            except Exception as exc:
-                fail(
-                    case_name,
-                    f"uncaught exception: {type(exc).__name__}: {exc}",
-                )
-
-    print(f"\n{ran - len(failures)}/{ran} passed", end="")
-    if failures:
-        print(f"  FAILED: {', '.join(failures)}", file=sys.stderr)
-        return 1
-    print()
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

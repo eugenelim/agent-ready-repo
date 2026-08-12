@@ -73,23 +73,23 @@ jobs:
           PYTHONIOENCODING: "utf-8"
         run: python -m pytest tests/ -q
       - name: Run repo/pack hook suites (Linux)
-        # Core-pack hook tests live with the pack they validate, outside the
-        # runtime payload — they need their own step, run from the repo root.
+        # Pack tests live outside the runtime payload. Keep each skill directory
+        # in its own pytest process so sibling test and subject names cannot bind.
         if: matrix.os != 'windows-latest'
         env:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: "utf-8"
         run: |
-          python -m pytest packs/core/tests/ packs/product-documentation/tests/ -q
-          # Separate invocation, not appended above: in a shared run the collected
-          # count stays obviously non-zero even if nothing from desk-research
-          # landed. Floor asserted so a lost suite reds the step.
-          n=$(python -m pytest packs/desk-research/tests/ -q --collect-only | grep -c '::' || true)
-          if [ "$n" -lt 16 ]; then
-            echo "::error::packs/desk-research/tests/ collected $n tests, expected at least 16"
-            exit 1
-          fi
-          python -m pytest packs/desk-research/tests/ -q
+          python -m pytest packs/core/tests/hooks/ -q
+          python -m pytest packs/core/tests/pack/ -q
+          python -m pytest packs/core/tests/skills/adapt-to-project/ -q
+          python -m pytest packs/core/tests/skills/bug-fix/ -q
+          python -m pytest packs/core/tests/skills/receive-brief/ -q
+          python -m pytest packs/core/tests/skills/work-loop/ -q
+          python -m pytest packs/core/tests/skills/workspace-status/ -q
+          python -m pytest packs/product-documentation/tests/ -q
+          python -m pytest packs/desk-research/tests/skills/desk-research/ -q
+          python -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q
       - name: Run agentbundle test suite (Windows — curated portable subset)
         if: matrix.os == 'windows-latest'
         working-directory: packages/agentbundle

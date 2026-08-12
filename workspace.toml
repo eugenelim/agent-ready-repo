@@ -1671,7 +1671,7 @@ open = [
   #
   # Also measured: the suite exceeds 10 minutes locally. Worth profiling during
   # the port -- it spawns a Python subprocess per case and invokes the
-  # 2133-line test-loop-cohort.py as one of them.
+  # large test_loop_cohort.py suite as one of them.
   {slug = "loop-cohort-shell-suite-to-python", summary = "Port test-loop-cohort.sh (493 lines, 51 sequential cases) to pure-stdlib Python so it runs on Windows, decoupling the shared-counter fixtures and profiling its >10min runtime", source = "spec/pack-script-root-boundary-validation"},
 
   # Frontend-engineering doctrine benchmark follow-ons — 2026-08-08.

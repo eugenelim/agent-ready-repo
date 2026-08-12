@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Unit tests for loop-cohort.py — Phase-1 cohort state, identity, approval,
+"""Pytest tests for loop-cohort.py — Phase-1 cohort state, identity, approval,
 schedule guards, wave, retry, and review mutations.
 
-Run: python3 test-loop-cohort.py
-Exit 0 = all pass; exit non-zero = at least one failure.
+Run with pytest.
 """
 
 from __future__ import annotations
@@ -15,9 +14,10 @@ import io
 import json
 import os
 import sys
-import tempfile
 import uuid
 from pathlib import Path
+
+import pytest
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -44,22 +44,13 @@ CLEAN_SUBSTRING = _mod.CLEAN_SUBSTRING
 
 # ── helpers ───────────────────────────────────────────────────────────────
 
-failures: list[str] = []
-skipped: list[str] = []
-ran = 0
-
 
 def ok(name: str) -> None:
-    global ran
-    ran += 1
-    print(f"ok   [{name}]")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, reason: str) -> None:
-    global ran
-    ran += 1
-    failures.append(name)
-    print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+    pytest.fail(f"{name}: {reason}")
 
 
 def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
@@ -69,12 +60,7 @@ def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
     except (OSError, NotImplementedError) as exc:
         if os.environ.get("CI"):
             fail(name, f"CI must support this symlink regression: {exc}")
-        else:
-            global ran
-            ran += 1
-            skipped.append(name)
-            print(f"skip [{name}]: symlink creation unavailable ({exc})")
-        return False
+        pytest.skip(f"{name}: symlink creation unavailable ({exc})")
     return True
 
 
@@ -2846,174 +2832,10 @@ def test_ac1_fence_tracking_follows_commonmark(tmp: Path) -> None:
     ok(name)
 
 
-def test_ac5_real_in_tree_plan_stays_normalizable(tmp: Path) -> None:
-    """AC5, against a real file rather than a fixture. `m2-frame-situation`'s
-    plan carries nested fences with an odd total count; under a toggle its tail
-    stopped normalizing, so ticking a task there would have turned
-    `schedule check-current` red mid-EXECUTE — the original defect, reintroduced
-    by the fence guard added to close a different one."""
-    name = "ac5-real-in-tree-plan-stays-normalizable"
-    # parents[5] is the repo root: work-loop/skills/tests/core/packs/<root>.
-    # A wrong depth here silently takes the skip branch and the case reports
-    # success having run nothing — which is how the toggle mutation survived.
-    real = Path(__file__).resolve().parents[5] / "docs" / "specs" / "m2-frame-situation" / "plan.md"
-    if not real.is_file():
-        fail(name, f"expected the fixture plan at {real} — wrong parents[] depth "
-                   f"would make this case pass without running")
-        return
-    # Concatenate rather than .format(): the real file contains braces, which
-    # str.format would try to interpret.
-    base = real.read_text(encoding="utf-8")
+def test_ac5_nested_fence_plan_stays_normalizable(tmp: Path) -> None:
+    """AC5 regression fixture for a plan carrying nested, odd-count fences."""
+    name = "ac5-nested-fence-plan-stays-normalizable"
+    base = """# Plan\n\n### T1: Example\n\n```markdown\n~~~text\nexample\n~~~\n```\n\n```text\nunclosed fixture fence\n"""
     same = (canonical_contract(base + "\n### T9\n\n- [ ] T9 done\n", ac_section_only=False)
             == canonical_contract(base + "\n### T9\n\n- [x] T9 done\n", ac_section_only=False))
     ok(name) if same else fail(name, "ticking a task in a real plan moved the digest")
-
-
-def main() -> int:
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp = Path(tmpdir)
-        tests = [
-            test_ac5_ticking_a_criterion_is_bookkeeping,
-            test_ac1_reindenting_a_criterion_is_scope,
-            test_ac5_checkbox_outside_the_ac_section_is_scope,
-            test_ac7_body_status_line_is_pinned,
-            test_ac1_splice_preserves_indentation,
-            test_ac8_deferral_annotation_is_scope,
-            test_ac8_status_annotation_is_scope,
-            test_ac6_changed_task_text_is_scope,
-            test_ac6_changed_depends_on_is_scope,
-            test_ac9_regressed_spec_status_stops,
-            test_unreadable_artifact_reports_from_every_verb,
-            test_ac9_absent_plan_status_is_skipped,
-            test_ac9_comment_only_status_is_skipped,
-            test_ac9_pending_sentinel_survives,
-            test_ac10_mismatch_names_both_causes,
-            test_ac10_plan_compare_names_both_causes,
-            test_ac10_plan_hash_desync_names_both_causes,
-            test_ac9_regressed_plan_status_stops,
-            test_ac9_schedule_check_current_stops_on_regressed_plan,
-            test_ac9_approve_plan_replay_checks_status,
-            test_ac5_plan_task_checkbox_is_bookkeeping,
-            test_ac5_lowercase_ac_heading_still_normalizes,
-            test_ac5_prose_ac_lead_in_opens_the_region,
-            test_ac5_bold_ac_region_terminates,
-            test_ac1_h1_closes_the_ac_region,
-            test_ac2_multiline_preamble_comment_keeps_line_indices,
-            test_ac7_fenced_ac_heading_does_not_open_the_region,
-            test_ac1_fence_tracking_follows_commonmark,
-            test_ac5_real_in_tree_plan_stays_normalizable,
-            test_stub_lifecycle_status_bump_keeps_pin,
-            test_stub_lifecycle_bump_with_vocabulary_comment,
-            test_stub_status_line_smuggling_still_caught,
-            test_identity_absent_state,
-            test_identity_wrong_schema_version,
-            test_identity_run_id_mismatch,
-            test_identity_success,
-            test_identity_json,
-            test_init_creates_state,
-            test_init_refuses_if_state_exists,
-            test_init_phase1_field_set,
-            test_pre_phase1_state_fails_identity,
-            test_status_absent,
-            test_status_rejects_symlinked_cohort_state,
-            test_cohort_state_reader_rejects_identity_change,
-            test_cohort_state_reader_rejects_over_limit_file,
-            test_cohort_state_reader_rejects_non_regular_path,
-            test_status_json_after_init,
-            test_status_is_read_only,
-            test_status_null_to_value_transition,
-            test_reset_deletes_state,
-            test_reset_idempotent,
-            test_approve_plan_writes_hashes,
-            test_approve_plan_run_id_mismatch,
-            test_approve_plan_overwrites_hashes,
-            test_plan_check_current_not_approved,
-            test_plan_check_current_changed_spec,
-            test_plan_check_current_changed_plan,
-            test_plan_check_current_require_schedule_no_schedule,
-            test_plan_check_current_absent_files_spec_plan_mode,
-            test_schedule_check_current_refuses_on_change,
-            test_schedule_check_current_passes_unchanged,
-            test_schedule_persists_waves,
-            test_schedule_run_id_mismatch,
-            test_schedule_rejects_alternate_plan_path,
-            test_disabled_worktree,
-            test_disabled_dispatch_decision,
-            test_disabled_auto_parallel,
-            test_check_phase_implement_stub,
-            test_check_phase_implement_no_phase2_fields,
-            test_check_phase_gates_failed_cap,
-            test_check_phase_gates_failed_under_cap,
-            test_check_phase_review_cap,
-            test_wave_advance_normal,
-            test_wave_advance_idempotent,
-            test_wave_advance_refuses_final_wave,
-            test_wave_advance_refuses_negative,
-            test_wave_advance_refuses_ge_len,
-            test_wave_advance_refuses_empty_schedule,
-            test_wave_advance_expect_run_id_mismatch,
-            test_wave_check_more_succeeds,
-            test_wave_check_more_fails_at_last,
-            test_wave_check_last_succeeds,
-            test_wave_check_wave_index_mismatch,
-            test_record_attempt_increments,
-            test_record_attempt_idempotent,
-            test_record_attempt_new_cycle_increments,
-            test_record_attempt_run_id_prefix_mismatch,
-            test_record_attempt_invalid_sequence_suffix,
-            test_review_inspect_clean,
-            test_review_inspect_findings,
-            test_review_inspect_invalid_absent,
-            test_review_inspect_invalid_no_clean_no_findings,
-            test_review_inspect_stasis,
-            test_review_inspect_empty_vs_empty_not_stasis,
-            test_review_inspect_findings_precedence,
-            test_review_record_fingerprint_increments_both_counters,
-            test_review_record_report_increments_only_round,
-            test_review_record_report_rejects_non_clean,
-            test_review_record_fingerprint_canonicalization,
-            test_review_record_fingerprint_invalid_format,
-            test_review_record_all_skipped,
-            test_review_record_run_id_mismatch,
-            test_review_record_clean_resets_fingerprint_baseline,
-            test_clean_substring_constant,
-            test_parse_findings_canonical_algorithm,
-            test_parse_findings_specialist_formats,
-            test_classify_report_ship_it_clean,
-            test_validate_run_id_rejects_wrong_schema,
-            test_canonical_contract_normalization,
-            test_schedule_accepts_level2_task_headings,
-            test_gplan_ordering_status_approved_before_approve_plan,
-            test_approve_plan_first_write,
-            test_approve_plan_idempotent_no_op,
-            test_approve_plan_refuses_changed_spec,
-            test_approve_plan_refuses_changed_plan,
-            test_approve_plan_refuses_unapproved_spec,
-            test_approve_plan_refuses_unapproved_plan,
-            test_approve_plan_refuses_run_id_mismatch,
-            test_approve_plan_state_preserved_on_refusal,
-            test_cohort_status_json_includes_plan_review_status_pending,
-            test_cohort_status_json_includes_plan_review_status_approved,
-            test_crash_after_plan_approved_before_approve_plan,
-            test_crash_after_approve_plan_before_schedule,
-            test_crash_after_schedule_before_plan_locked,
-        ]
-        for t in tests:
-            try:
-                t(tmp)
-            except Exception as exc:
-                fail(t.__name__, f"uncaught exception: {exc}")
-
-    passed = ran - len(failures) - len(skipped)
-    print(f"\n{passed}/{ran} passed", end="")
-    if skipped:
-        print(f"; {len(skipped)} skipped", end="")
-    if failures:
-        print(f"  FAILED: {', '.join(failures)}", file=sys.stderr)
-        return 1
-    print()
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -8,11 +8,9 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+PACK_ROOT = Path(__file__).resolve().parents[2]
 BROKER = (
-    REPO_ROOT
-    / "packs"
-    / "credential-brokers"
+    PACK_ROOT
     / ".apm"
     / "adapter-root-bins"
     / "sso-broker.py"

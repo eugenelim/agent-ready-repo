@@ -13,11 +13,11 @@ import json
 import re
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+PACK_ROOT = Path(__file__).resolve().parents[3]
 LOOP_COHORT = (
-    REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts" / "loop-cohort.py"
+    PACK_ROOT / ".apm" / "skills" / "work-loop" / "scripts" / "loop-cohort.py"
 )
-TEMPLATE = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "assets" / "state.json"
+TEMPLATE = PACK_ROOT / ".apm" / "skills" / "work-loop" / "assets" / "state.json"
 
 
 def _load_module():

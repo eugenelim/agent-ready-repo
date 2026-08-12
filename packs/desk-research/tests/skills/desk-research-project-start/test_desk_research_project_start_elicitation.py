@@ -167,7 +167,3 @@ class DeskResearchProjectStartElicitationContract(unittest.TestCase):
             "User-scope must appear before repo-scope in the resolution order "
             "— personal workspace config takes priority over team convention",
         )
-
-
-if __name__ == "__main__":  # pragma: no cover
-    unittest.main()

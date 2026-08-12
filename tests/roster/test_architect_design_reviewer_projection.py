@@ -22,7 +22,7 @@ from pathlib import Path
 from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.contract import load as load_contract
 
-REPO_ROOT = Path(__file__).resolve().parents[4]  # pack tests -> repository root
+REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 ARCHITECT_PACK = REPO_ROOT / "packs" / "architect"
 AGENT_NAME = "design-reviewer"
@@ -82,7 +82,3 @@ class ArchitectDesignReviewerProjectionTests(unittest.TestCase):
                             agent_hit.read_text(encoding="utf-8"),
                             "cursor: design-reviewer must project with the readonly flag",
                         )
-
-
-if __name__ == "__main__":
-    unittest.main()

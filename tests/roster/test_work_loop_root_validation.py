@@ -16,7 +16,7 @@ Two properties are asserted, and they pull in opposite directions:
 Every case invokes the real script through `subprocess`, never a synthesised
 import, so the test exercises the documented invocation path.
 
-Run: python3 test-root-validation.py
+Run with pytest.
 Exit 0 = all pass; exit non-zero = at least one failure.
 """
 
@@ -28,13 +28,15 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
-# The pack ships tests under packs/<pack>/tests/ and runtime primitives under
-# packs/<pack>/.apm/ — tests are visible in the catalogue and never installed.
-_SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
+# This repository-owned roster test inspects core's shipped work-loop primitive.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+_SKILL_DIR = REPO_ROOT / "packs/core/.apm/skills/work-loop"
 SCRIPT_DIR = _SKILL_DIR / "scripts"
 
 if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
@@ -48,21 +50,13 @@ LOOP_COHORT = SCRIPT_DIR / "loop-cohort.py"
 # separately because it needs a subcommand and cohort state.
 ROOT_SCRIPTS = [("lint-traceability", TRACEABILITY), ("lint-spec-status", SPEC_STATUS)]
 
-failures: list[str] = []
-ran = 0
-
 
 def ok(name: str) -> None:
-    global ran
-    ran += 1
-    print(f"ok   [{name}]")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, reason: str) -> None:
-    global ran
-    ran += 1
-    failures.append(name)
-    print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+    pytest.fail(f"{name}: {reason}")
 
 
 def run(script: Path, *args: str, cwd: Path | None = None) -> tuple[int, str, str]:
@@ -210,7 +204,7 @@ def _repo_root() -> Path:
     the off-by-one produced green parity tests that were not exercising the
     repo at all.
     """
-    root = Path(__file__).resolve().parents[5]
+    root = REPO_ROOT
     if not (root / "docs" / "specs").is_dir():
         raise SystemExit(f"repo root not found at {root} — check the parents[] depth")
     return root
@@ -281,25 +275,3 @@ def test_relative_root_unchanged() -> None:
             fail(name, f"validator rejected a relative root: {combined!r}")
         else:
             ok(name)
-
-
-def main() -> int:
-    test_nonexistent_root_exits_nonzero_with_diagnostic()
-    test_file_valued_root_exits_nonzero()
-    test_missing_report_classifies_invalid_not_crash()
-    test_report_sites_route_through_resolver()
-    test_valid_root_unchanged()
-    test_omitted_root_unchanged()
-    test_relative_root_unchanged()
-
-    total = ran
-    passed = total - len(failures)
-    print(f"\n{passed}/{total} passed")
-    if failures:
-        print("Failed:", ", ".join(failures), file=sys.stderr)
-        return 1
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

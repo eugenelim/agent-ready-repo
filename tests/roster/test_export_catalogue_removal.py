@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def test_export_catalogue_skill_removed_from_pack() -> None:

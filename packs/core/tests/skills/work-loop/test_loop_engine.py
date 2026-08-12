@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Unit/integration tests for loop-engine.py — Phase-1 FSM transitions,
+"""Pytest tests for loop-engine.py — Phase-1 FSM transitions,
 guards, lifecycle walks, and session-resumption state.
 
-Run: python3 test-loop-engine.py
-Exit 0 = all pass; exit non-zero = at least one failure.
+Run with pytest.
 """
 
 from __future__ import annotations
@@ -16,9 +15,10 @@ import os
 import stat
 import subprocess
 import sys
-import tempfile
 import uuid
 from pathlib import Path
+
+import pytest
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -35,22 +35,25 @@ ENGINE = SCRIPT_DIR / "loop-engine.py"
 COHORT = SCRIPT_DIR / "loop-cohort.py"
 EVALS_JSON = _SKILL_DIR / "evals" / "evals.json"
 
-failures: list[str] = []
-skipped: list[str] = []
-ran = 0
+
+@pytest.fixture
+def tmp(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    """Run each engine case inside its own throwaway Git repository."""
+    subprocess.run(
+        ["git", "init", "-q", str(tmp_path)],
+        check=True,
+        capture_output=True,
+    )
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
 
 
 def ok(name: str) -> None:
-    global ran
-    ran += 1
-    print(f"ok   [{name}]")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, reason: str) -> None:
-    global ran
-    ran += 1
-    failures.append(name)
-    print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+    pytest.fail(f"{name}: {reason}")
 
 
 def symlink_or_skip(
@@ -66,12 +69,7 @@ def symlink_or_skip(
     except (OSError, NotImplementedError) as exc:
         if os.environ.get("CI"):
             fail(name, f"CI must support this symlink regression: {exc}")
-        else:
-            global ran
-            ran += 1
-            skipped.append(name)
-            print(f"skip [{name}]: symlink creation unavailable ({exc})")
-        return False
+        pytest.skip(f"{name}: symlink creation unavailable ({exc})")
     return True
 
 
@@ -1831,7 +1829,7 @@ def test_spec_plan_full_walk(tmp: Path) -> None:
 # ── evals.json shape assertion ────────────────────────────────────────────
 
 
-def test_evals_json_shape(_tmp: Path) -> None:
+def test_evals_json_shape() -> None:
     """evals.json exists, is valid JSON, has skill_name='work-loop' and at least 14 entries."""
     name = "evals-json-shape"
     if not EVALS_JSON.exists():
@@ -3229,171 +3227,3 @@ def test_check_spec_status_no_flags_defaults_shipped_spec_md(tmp: Path) -> None:
 
 
 # ── runner ────────────────────────────────────────────────────────────────
-
-
-def main() -> int:
-    orig_cwd = Path.cwd()
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp = Path(tmpdir)
-        # Initialise a throw-away git repository so loop-engine's spec-dir
-        # confinement check (git rev-parse --show-toplevel) resolves to this
-        # temp root rather than the real checkout.  Subprocesses inherit the
-        # CWD we set below, so git searches upward from tmpdir and finds it.
-        subprocess.run(
-            ["git", "init", tmpdir],
-            check=True, capture_output=True,
-        )
-        os.chdir(tmpdir)
-        tests = [
-            test_init_creates_engine_state_code,
-            test_init_json_output,
-            test_init_refuses_if_engine_state_exists,
-            test_init_rejects_dotdot_spec_dir,
-            test_init_field_set_complete,
-            test_init_rejects_dangling_event_log_symlink,
-            test_append_rejects_dangling_event_log_symlink,
-            test_init_rejects_non_regular_event_log,
-            test_append_rejects_non_regular_event_log,
-            test_append_rejects_event_log_identity_change,
-            test_init_creates_owner_only_event_log,
-            test_reset_deletes_engine_state,
-            test_reset_idempotent,
-            test_reset_leaves_state_json_intact,
-            test_status_absent,
-            test_status_rejects_symlinked_engine_state,
-            test_engine_state_reader_rejects_identity_change,
-            test_engine_state_reader_rejects_over_limit_file,
-            test_engine_state_reader_rejects_non_regular_path,
-            test_recover_pending_rejects_symlink,
-            test_recover_pending_rejects_symlinked_parent,
-            test_recover_pending_rejects_non_regular_path,
-            test_recover_pending_rejects_over_limit_file,
-            test_recover_pending_rejects_identity_change,
-            test_status_json_after_init,
-            test_status_human_wait_states,
-            test_status_is_read_only,
-            test_illegal_transitions_code,
-            test_illegal_transitions_spec_plan,
-            test_illegal_mode_in_engine_state,
-            test_wave_passed_requires_wave_index,
-            test_non_wave_events_reject_wave_index,
-            test_run_id_preflight_mismatch_blocks_transition,
-            test_run_id_preflight_absent_cohort_blocks_transition,
-            test_legal_transition_spec_ready,
-            test_legal_transition_plan_rejected,
-            test_legal_transition_findings_remain_spec_plan_mode,
-            test_transition_increments_sequence,
-            test_transition_preserves_run_id_feature_mode,
-            test_blocker_applied_code_human_gate,
-            test_legal_plan_approved_spec_plan_mode,
-            test_legal_reviewers_clean_spec_plan,
-            test_guard_check_spec_status_fails_non_shipped,
-            test_legal_wave_complete_to_code_verification,
-            test_legal_gates_clean_to_code_review,
-            test_legal_wave_passed_to_code_implementation,
-            test_legal_gates_failed_to_code_implementation,
-            test_legal_findings_remain_code_mode,
-            test_legal_reviewers_clean_code_to_human_gate,
-            test_legal_done_from_code_human_gate,
-            test_guard_plan_check_current_fires_for_spec_plan_mode,
-            test_guard_plan_check_current_require_schedule_fires_for_code_mode,
-            test_guard_gates_failed_at_cap_blocks_transition,
-            test_guard_review_at_cap_blocks_findings_remain,
-            test_schedule_precheck_blocks_code_implementation_transition,
-            test_done_exempt_from_schedule_precheck,
-            test_transition_no_tmp_file_left_on_success,
-            test_schema_version_forward_guard,
-            test_check_spec_status_shipped,
-            test_check_spec_status_draft_fails,
-            test_check_spec_status_absent_spec,
-            test_check_spec_status_no_status_line,
-            test_check_spec_status_no_args,
-            test_spec_plan_full_walk,
-            test_evals_json_shape,
-            # Crash-window tests: session-resumption and idempotency coverage
-            test_no_chat_history_status_read_via_cli,
-            test_no_chat_history_identity_verify_via_cli,
-            test_no_chat_history_route_wave_passed_via_cli,
-            test_no_chat_history_route_gates_failed_via_cli,
-            test_wave_passed_window_a_advance_before_crash,
-            test_wave_passed_window_b_advance_after_crash,
-            test_wave_passed_wrong_from_index_refused,
-            test_wave_passed_wrong_run_id_refused,
-            test_wave_passed_run_ids_remain_paired_after_advance,
-            test_gates_failed_window_a_record_before_crash,
-            test_gates_failed_window_b_record_after_crash,
-            test_gates_failed_wrong_run_id_prefix_refused,
-            test_gates_failed_fifth_retry_permitted,
-            test_gates_failed_sixth_retry_refused,
-            test_findings_remain_phase_recoverable_from_engine,
-            test_findings_remain_no_auto_replay,
-            test_findings_remain_skill_prose_present,
-            test_reviewers_clean_record_forms_present,
-            test_reviewers_clean_no_silent_replay,
-            test_reviewers_clean_skill_prose_obligations,
-            # T4 legacy compat tests
-            test_legacy_code_impl_plan_approved_readable,
-            test_legacy_done_plan_approved_readable,
-            # T2 new-gate tests
-            test_legal_reviewers_clean_to_spec_human_gate,
-            test_legal_spec_approved_to_plan_human_gate_code,
-            test_legal_spec_approved_to_plan_human_gate_spec_plan,
-            test_legal_plan_approved_to_spec_plan_approved_code,
-            test_legal_plan_approved_to_spec_plan_approved_spec_plan,
-            test_legal_plan_locked_code,
-            test_legal_plan_locked_spec_plan,
-            test_legal_spec_rejected,
-            test_legal_plan_rejected,
-            test_illegal_plan_approved_from_spec_human_gate,
-            test_illegal_plan_rejected_from_spec_human_gate,
-            test_illegal_spec_approved_from_plan_human_gate,
-            test_illegal_spec_rejected_from_plan_human_gate,
-            test_illegal_spec_approved_from_spec_plan_approved,
-            test_illegal_plan_locked_from_human_gates,
-            test_illegal_plan_locked_from_code_states,
-            test_illegal_wave_events_from_spec_plan_approved,
-            test_spec_human_gate_pending_human_wait_true,
-            test_plan_human_gate_pending_human_wait_true,
-            test_spec_plan_approved_pending_human_wait_false,
-            test_spec_approved_fields,
-            test_plan_approved_fields,
-            test_spec_approved_guard_accepts_approved,
-            test_spec_approved_guard_refuses_draft,
-            test_spec_approved_guard_refuses_implementing,
-            test_spec_approved_guard_refuses_malformed,
-            test_plan_approved_guard_accepts_approved,
-            test_plan_approved_guard_refuses_drafting,
-            test_plan_approved_guard_refuses_done,
-            test_plan_approved_guard_refuses_malformed,
-            test_plan_locked_guard_code_approved,
-            test_plan_locked_guard_spec_plan_approved,
-            test_plan_locked_guard_refuses_wrong_spec_status,
-            test_plan_locked_guard_code_requires_schedule,
-            test_reviewers_clean_still_requires_shipped,
-            test_check_spec_status_expect_approved_spec_md,
-            test_check_spec_status_expect_approved_plan_md,
-            test_check_spec_status_expect_shipped_spec_md,
-            test_check_spec_status_no_flags_defaults_shipped_spec_md,
-        ]
-        try:
-            for t in tests:
-                try:
-                    t(tmp)
-                except Exception as exc:
-                    fail(t.__name__, f"uncaught exception: {exc}")
-        finally:
-            os.chdir(orig_cwd)
-
-    passed = ran - len(failures) - len(skipped)
-    print(f"\n{passed}/{ran} passed", end="")
-    if skipped:
-        print(f"; {len(skipped)} skipped", end="")
-    if failures:
-        print(f"  FAILED: {', '.join(failures)}", file=sys.stderr)
-        return 1
-    print()
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
