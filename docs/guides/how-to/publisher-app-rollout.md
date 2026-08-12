@@ -114,9 +114,50 @@ git commit --allow-empty -m "canary: ordinary identity"
 git push origin HEAD:claude-plugins-dist-control-canary   # expect a rejection
 ```
 
-For the positive case, trigger the publisher against the canary via
-`workflow_dispatch` once the App-token step is restored (step 5), or push using
-an installation token minted from the App. The push must be **accepted**.
+For the positive case, mint an installation token from the App and push with it.
+Do not wait for step 5 — the workflow publishes to the live branch, not the
+canary, so it cannot serve as this probe and the ordering would be circular.
+
+```bash
+KEY=/path/to/private-key.pem
+b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+
+# A GitHub App JWT is valid for at most 10 minutes.
+header=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+now=$(date +%s)
+payload=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' \
+  $((now - 60)) $((now + 540)) "$APP_ID" | b64)
+sig=$(printf '%s.%s' "$header" "$payload" \
+  | openssl dgst -sha256 -sign "$KEY" -binary | b64)
+JWT="$header.$payload.$sig"
+
+# Authenticating AS the App, so /repos/{repo}/installation is available here
+# (it is not available to the user token `gh` holds — that is why
+# capture-publish-control-evidence.py reads /user/installations instead).
+INSTALL_ID=$(curl -sf -H "Authorization: Bearer $JWT" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/repos/$REPO/installation" | jq -r .id)
+
+APP_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $JWT" \
+  -H "Accept: application/vnd.github+json" \
+  "https://api.github.com/app/installations/$INSTALL_ID/access_tokens" \
+  | jq -r .token)
+
+git commit --allow-empty -m "canary: publisher app identity"
+git push "https://x-access-token:$APP_TOKEN@github.com/$REPO" \
+  HEAD:claude-plugins-dist-control-canary        # expect ACCEPTED
+```
+
+That token expires in an hour and is scoped to `contents: write` on this
+repository only. Nothing needs to be stored.
+
+> **If you would rather skip the JWT dance:** you can take the first successful
+> publish on the live branch (after step 5) as the positive signal instead, and
+> record `--publisher-app-update accepted` on that basis. It is a genuine
+> App-accepted push. But it is *not* what T13 step 4 literally asks for, and the
+> evidence file's `canary.branch` field will still name the canary ref — so
+> amend T13 and the desired-state contract if you go that way, rather than
+> letting the artifact imply a probe you did not run.
 
 Then clean up and retarget the ruleset to `refs/heads/claude-plugins-dist`:
 
