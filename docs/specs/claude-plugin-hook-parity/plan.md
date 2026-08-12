@@ -1,7 +1,7 @@
 # Plan: Claude-plugin route — hook parity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -398,7 +398,45 @@ the command that turns red, and restoration followed by green. A mutation whose
 expected and actual sides derive from the same source does not count.
 
 ### T13 — Owner rollout and live publication-control evidence
-**Depends on:** T12 · **Mode:** Operational verification
+**Depends on:** T12, T14 · **Mode:** Operational verification
+
+> **Rolled out 2026-08-12.** Steps 1–4 are complete and evidenced in
+> `publish-control-evidence.json`. The dedicated publisher App is installed on
+> this repository only, with `contents: write` as its sole write permission; the
+> `claude-plugin-publish` environment is `main`-only with one required reviewer,
+> self-review prevented, and admin bypass off; an active ruleset targets
+> `refs/heads/claude-plugins-dist` restricting updates, deletions, and force
+> pushes, with the App as its only always-bypass actor. No App, installation,
+> ruleset, or account identifier is recorded here or in the evidence — those are
+> internal settings, and the lint refuses an evidence file carrying one.
+> Canary probes both landed as required — an ordinary owner push was rejected
+> (`GH013 … push declined due to repository rule violations`) and the same commit
+> pushed with an App installation token was accepted (`Bypassed rule violations
+> …`); the canary ref was then deleted with the App identity and the ruleset
+> retargeted to the live branch, which was never used as a negative probe.
+>
+> **Step 5 is complete.** The live-evidence lint passes
+> (`tools/lint-claude-plugin-publish-control.py --require-live-evidence`), and the
+> frozen-artifact errata are written and Approver-signed:
+> `claude-plugins-manifest-correctness` (Assumption 4's "does not exist today"),
+> `claude-plugin-route-scope` (the unrestricted-ordinary-push residual), ADR-0072
+> (branch protection as an unmet precondition), and ADR-0079 itself (Confirmation
+> satisfied, plus the ordering rule it had omitted and the no-identifier
+> narrowing). `wire-session-start-hook`'s 2026-08-08 erratum already records both
+> of its facts and was verified rather than duplicated, as AC23 requires. The
+> named frozen-artifact sweep found no further Shipped/Accepted premise, so T13
+> needed no amendment. The tip-content residual — marketplace entries pinning a
+> mutable branch rather than an immutable SHA — is explicitly **not** closed and
+> remains an accepted risk.
+
+> **Re-sequenced 2026-08-12 (see T14).** The workflow's App-token step merged in
+> #916 ahead of this task, so the publisher could not authenticate and every
+> push to `main` failed at the minting step for eight consecutive commits. T14
+> restored the interim publisher, made the ordering mechanically enforced, and
+> built the tooling steps 4–5 below assume. What remains here is only the part
+> that needs a human at github.com: steps 1–4's settings and canary. Run
+> `python3 tools/capture-publish-control-evidence.py` for step 4's snapshot and
+> follow [`docs/guides/how-to/publisher-app-rollout.md`](../../guides/how-to/publisher-app-rollout.md).
 
 **Done when:** the owner completes AC35's external settings and canary sequence;
 `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json` contains the
@@ -432,6 +470,165 @@ Owner settings, sequenced before the live target is enabled:
 The live branch is never the target of the negative probe. If the GitHub plan or
 repository ownership model cannot express the app-only bypass or required
 environment reviewer, Surface; do not weaken the bypass list.
+
+### T14 — Re-sequence the publisher identity and enforce the ordering
+**Depends on:** none · **Mode:** TDD + goal-based check
+
+Satisfies AC36. #916 enabled the live target before T13 provisioned it, which
+the plan's own "sequenced before the live target is enabled" forbade. AC35
+clause 5's construction tests still passed, because they assert the *end-state*
+workflow shape and never ask whether the credentials it names exist. The fix is
+to make provisioning state and workflow shape one invariant, checked both ways.
+
+**Tests:** extend `tools/test-publish-claude-plugins.py` — derive the mode from
+the presence of `publish-control-evidence.json`, then assert the matching shape.
+Two red-first mutations: the current `main` state (App shape, no evidence) must
+fail, and a synthetic provisioned-but-interim state must fail. AC35's SHA-pin,
+control-lint, and cross-workflow assertions stay unconditional. Add
+`tools/test-lint-claude-plugin-publish-control.py` cases for the same invariant
+at the lint layer, including a fixture where deleting the check turns the suite
+red.
+
+**Done when:** `python3 tools/test-publish-claude-plugins.py` and
+`python3 tools/test-lint-claude-plugin-publish-control.py` exit 0; `make
+build-check` is green; and a real push to `main` completes the publish job and
+updates `claude-plugins-dist`.
+
+1. Restore the interim publisher in `.github/workflows/publish-claude-plugins.yml`:
+   `contents: write`, no `environment:`, no token-minting step, checkout at its
+   default credential behaviour, `github-actions[bot]` identity. Keep the
+   full-SHA action pins and the publication-control lint step — both are
+   improvements from #916 that are independent of the identity.
+2. Teach `tools/lint-claude-plugin-publish-control.py` the mode invariant, so
+   the gate that already runs inside the publish job is the one that refuses a
+   mismatch. Export the mode helper for reuse rather than restating the regexes.
+3. Add `tools/capture-publish-control-evidence.py` — pure-stdlib, reads live
+   ruleset/environment/app state via `gh api`, emits the sanitized evidence
+   shape `compare_evidence` expects. This is T13 step 4's "capture sanitized
+   API state" made runnable instead of hand-written.
+4. Write [`docs/guides/how-to/publisher-app-rollout.md`](../../guides/how-to/publisher-app-rollout.md)
+   — the maintainer runbook for T13 steps 1–4, with the exact `gh` commands for
+   every part that is scriptable and an explicit marker on the browser-only App
+   creation.
+
+Reverting the identity is not a retreat from ADR-0079: the ADR's end state is
+unchanged and AC36 clause 4 now makes the interim state self-terminating — once
+evidence lands, the interim shape fails its own test.
+
+### AC verification pass — 2026-08-12
+
+22 of 26 criteria are confirmed against the tree. Each was matched to named,
+passing coverage rather than to the existence of an implementation:
+
+- AC7/AC8/AC33/AC34 — `test_authored_hooks_are_compiled_marker_first_with_disclosure`,
+  `test_derivation_projects_install_marker`, `test_no_wiring_compiles_to_empty_block`,
+  `test_disclosure_fails_closed_on_an_unrenderable_authored_command`.
+- AC9/AC21 — `plugin-target-path = "hooks/"` in `contracts/adapter.toml`, whose
+  `[contract] version` went 0.17 → 0.18 in #916, mirrored by `adapter.schema.json`.
+- AC10/AC28/AC29 — `test_shell_exec_quoting_survives_space_in_root` and
+  `test_compiled_command_executes_with_literal_space_and_dollar_root` satisfy the
+  "verification is execution, tokenization is not evidence" clause; grammar
+  refusals in `test_exact_command_grammar_rejects_expansion`,
+  `test_allowed_interpreter_suffix_pairs`, `test_optional_leading_dot_slash_is_absorbed`.
+- AC11 — `resolve()`/`relative_to()` confinement with `OSError`/`RuntimeError`/
+  `ValueError` folded into one locating error at `hook_wiring_rules.py:129`;
+  `test_missing_body_fails_locating`, `test_symlinked_body_fails_locating`.
+- AC12 — `_BASENAME_RE` is exactly the criterion's pattern; `test_hook_body_basename_allowlist`.
+- AC13/AC14/AC31 — `test_non_command_and_non_string_command_fail`,
+  `test_event_snapshot_and_restricted_split`, `test_known_control_events_are_unpublishable`,
+  `test_unknown_event_is_distinct`, `test_flat_and_lowercase_adapter_shapes_are_skipped`,
+  `test_derived_schema_rejects_old_flat_hooks_shape`, `test_matcher_allowlist`.
+- AC15 — `test_timeout_bounds` plus `test_per_event_fanout_boundary` and
+  `test_per_pack_fanout_boundary` at limit and limit-plus-one.
+- AC16/AC17/AC19/AC26 — `test_wiring_without_source_manifest_fails_loud`,
+  `assert not (plugin_root / ".claude").exists()`, `test_derivation_idempotent`,
+  `test_derivation_cold_rebuild_byte_identical`,
+  `test_hook_fixture_requires_user_scope_consent_flag`.
+
+### AC18 real-client transcript — 2.1.228, 2026-08-12
+
+Re-driven because the 2.1.226 pin had gone stale (see the AC18 amendment). All
+commands run against the installed `claude` 2.1.228.
+
+```
+$ claude plugin validate --strict dist/claude-plugins/<pack>   # x14
+✔ Validation passed                                            # 14 passed, 0 failed
+
+$ claude plugin validate --strict dist/claude-plugins/marketplace.json
+Validating marketplace manifest: .../dist/claude-plugins/marketplace.json
+✔ Validation passed
+```
+
+Event-set re-derivation — one single-event manifest per candidate through
+`validate --strict`:
+
+```
+ACCEPTED at 2.1.228: 31
+REJECTED at 2.1.228: TeammateActive, PreCompactFailure, ToolResult,
+                     SessionResume, BogusEventXYZ
+in pinned 2.1.226 but REJECTED at 2.1.228: []      # no removals
+NEW at 2.1.228 (not in pinned set):        []      # no additions
+```
+
+Marketplace scope filter: 14 plugins listed; the 7 repo-only packs
+(`catalogue-curation`, `core`, `governance-extras`, `iac-terraform`,
+`monorepo-extras`, `release-engineering`, `user-guide-diataxis`) are all absent.
+
+Recorded as `fixtures/claude-code-2.1.228-hook-events.json`.
+`test_event_snapshot_and_restricted_split` now globs that directory, so both
+recorded versions must agree with `KNOWN_EVENTS`.
+
+**Carried forward, not re-observed at 2.1.228:** the hook-firing side effect and
+the parallel-vs-sequential execution model, which need a live install and
+session. The accepted event set and manifest shape are identical across the two
+versions, so the 2.1.226 observation still holds; had either drifted, the probe
+above would have caught it.
+
+### AC20 / AC22 / AC30 — evidence implemented 2026-08-12
+
+All three named an artifact as their evidence while the implementation they
+describe was already present: `lint_packs.py:497-519` has dry-run
+`compile_plugin_hooks` since #916, and all six `render_pack` consumers have
+existed since then. The missing piece was the assertion that stops the behaviour
+regressing silently. `tests/build_pipeline/test_plugin_publication_gates.py`
+adds nine cases:
+
+- **AC30** — the dry run reports a compiler refusal as a finding, does so for a
+  **repo-only** pack (the criterion's whole point: the build-time scope filter
+  means `packs/core`'s wiring would otherwise be the one wiring never checked),
+  stays silent on clean wiring, and does not abort the sweep.
+- **AC22** — `agentbundle validate` refuses a compound Claude-shaped command on
+  a route-qualified pack, accepts a conforming one, and **leaves a repo-only
+  pack on its established broader rules**. That asymmetry is the criterion, not
+  an oversight; route-qualification turns on `pack_is_publishable`, so the
+  fixture needs a source manifest as well as a user-admitting scope.
+- **AC20** — the set of `commands/*.py` reaching `render_pack` equals the six the
+  criterion names, so a seventh consumer or a dropped one fails; and
+  `build/self_host.py` and `commands/pack_evals.py` reach neither `render_pack`
+  nor the recipe name, which is how "byte-identical to pre-change" is asserted
+  without a pre-change tree.
+
+Mutation-checked, per the repo standard that expected and actual must not derive
+from the same source: swallowing the lint's `findings.append` turns AC30 red, and
+short-circuiting `validate_pack_hook_wiring`'s publishability guard turns AC22
+red. Both restore green.
+
+**All 26 criteria are now checked.** Spec moves to `Shipped`, plan to `Done`.
+
+- **AC20 — six named consumers byte-identical.** No parameterized command-level
+  artifact covering all six `render_pack` consumers was located; the criterion
+  names it explicitly as the evidence.
+- **AC22 — ingestion gate.** `commands/validate.py:191` does call
+  `validate_pack_hook_wiring`, so the boundary exists, but no test was found
+  driving a malicious Claude-shaped command through `agentbundle validate`
+  itself, which is what the criterion asks for.
+- **AC30 — lint dry-runs the compiler on *every* wiring pack.** The per-pack call
+  exists; a repository-level lint asserting that coverage across packs was not
+  located.
+
+The spec therefore stays `Implementing`. AC35/AC36 (the publisher boundary) and
+AC23 (frozen-artifact errata) are closed; what remains is the compiler's own
+verification surface.
 
 ## Risks
 

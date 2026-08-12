@@ -107,3 +107,46 @@ moves to immutable commit SHAs.
 - [GitHub: deployments and environments](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments)
 - [GitHub: `GITHUB_TOKEN`](https://docs.github.com/en/actions/concepts/security/github_token)
 - [GitHub: `actions/create-github-app-token`](https://github.com/actions/create-github-app-token/blob/main/README.md)
+
+## Errata
+
+Corrections below are Approver-signed. The body above is preserved unchanged;
+errata supersede where noted. This ADR is Accepted → Frozen
+(`docs/CONVENTIONS.md`). (Approver: eugenelim, 2026-08-12.)
+
+- **2026-08-12 — the control is live; *Confirmation* is satisfied.** Every signal
+  the *Confirmation* section names has been exercised. The publisher App is
+  installed on this repository only, with Contents read/write as its sole write
+  permission. The `claude-plugin-publish` environment admits `main` only,
+  requires one reviewer, prevents self-review, and disallows admin bypass. An
+  active ruleset targets exactly `refs/heads/claude-plugins-dist`, restricting
+  updates and deletions and blocking force pushes, with the App as its only
+  always-bypass actor. On a canary ref, an ordinary owner push was rejected
+  (`GH013 … push declined due to repository rule violations`) and the same commit
+  pushed with an App installation token was accepted (`Bypassed rule
+  violations …`); the canary was then removed with the App identity and the
+  ruleset retargeted, so the live branch was never a negative probe. The
+  sanitized snapshot is committed at
+  `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`.
+
+- **2026-08-12 — the decision needed an ordering rule it did not state.** This
+  ADR specified the end state but not the identity to hold *until* the App
+  exists. The token-minting step consequently merged ahead of its credentials
+  and every push to `main` failed at
+  `[@octokit/auth-app] appId option is required` for eight consecutive commits,
+  while the construction tests stayed green because they asserted the end-state
+  workflow shape without asking whether the credentials it named existed.
+  `docs/specs/claude-plugin-hook-parity` AC36 closes this: the workflow's
+  identity must match provisioning state, read offline from whether the evidence
+  file exists, and both directions fail closed — an App-token workflow without
+  evidence is refused, and so is the interim publisher once evidence lands. The
+  decision is unchanged; it is now sequenced.
+
+- **2026-08-12 — no internal identifier is recorded.** The *Confirmation*
+  signal "sanitized live settings snapshots" is narrowed: the evidence artifact
+  carries no App, installation, ruleset, account, or node ID. The three-way
+  identity agreement between the ruleset bypass actor, the App installation, and
+  the environment's App ID variable is computed against live state at capture
+  time and committed as a single asserted boolean, and the repository lint walks
+  the artifact to refuse any forbidden identifier key. Recorded as AC36
+  clause 6. This strengthens "sanitized" rather than relaxing it.

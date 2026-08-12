@@ -256,3 +256,18 @@ unchanged; errata supersede where noted. (Approver: eugenelim, 2026-08-08.)
   therefore superseded: `hooks/` is now legitimately reserved on this route.
   The criterion's broader requirement to derive collision guards from resolved
   projection targets remains deferred. (Approver: eugenelim, 2026-08-10.)
+
+- **2026-08-12 — dist-branch protection is no longer an unmet precondition.**
+  Assumption 4 above states that integrity rests on branch protection for
+  `claude-plugins-dist`, which **does not exist today**. That dated statement is
+  closed. Per [ADR-0079](../../adr/0079-executable-plugin-branch-publisher-identity.md)
+  and `docs/specs/claude-plugin-hook-parity` AC35, an active ruleset targets
+  exactly `refs/heads/claude-plugins-dist`, restricts updates and deletions,
+  blocks force pushes, and admits one always-bypass actor: a dedicated
+  repository-scoped publisher GitHub App whose short-lived token is minted only
+  from a `main`-only protected environment with a required reviewer. Both canary
+  probes were exercised — ordinary identity rejected, publisher App accepted —
+  and the sanitized snapshot is committed at
+  `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`. The
+  spec's own AC11 CLI round-trip and its marketplace assertions are unaffected.
+  (Approver: eugenelim, 2026-08-12.)

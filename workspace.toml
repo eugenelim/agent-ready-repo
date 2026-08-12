@@ -81,6 +81,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  {path = "spec/claude-plugin-hook-parity", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   "spec/engine-export-boundary",                    # PR #898 — RFC-0082 engine export boundary (agentbundle 0.30.0)
   # Docs-site design refresh (2026-08-05): Starlight tech docs restyled to a
   # display-serif + enterprise-cobalt design language; fonts + mermaid

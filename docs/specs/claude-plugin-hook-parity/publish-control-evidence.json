@@ -29,10 +29,13 @@
     "app_id_variable": "CLAUDE_PLUGIN_PUBLISHER_APP_ID",
     "private_key_secret": "CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY"
   },
+  "identities_agree": true,
   "canary": {
     "branch": "refs/heads/claude-plugins-dist-control-canary",
     "ordinary_update": "rejected",
     "publisher_app_update": "accepted",
     "live_branch_negative_tested": false
-  }
+  },
+  "observed_at": "2026-08-12T15:50:59.127353+00:00",
+  "observation_source": "github-api-sanitized"
 }

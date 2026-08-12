@@ -646,3 +646,29 @@ prose copies of that list had already drifted apart by round nine; a third
 would drift too. The two items above stay because neither has a slug: the hook
 spike is a sibling spec, and the tip-content residual is an accepted risk
 rather than tracked work.
+
+## Errata
+
+Corrections below are Approver-signed. The spec body above is preserved
+unchanged; errata supersede where noted. (Approver: eugenelim, 2026-08-12.)
+
+- **2026-08-12 — the unrestricted-ordinary-push residual is closed.** This spec
+  defers unrestricted ordinary pushes to `claude-plugins-dist` as an open
+  residual: force-push and deletion denial protected history, but an ordinary
+  fast-forward push could still replace every published hook body. That residual
+  no longer stands. Per
+  [ADR-0079](../../adr/0079-executable-plugin-branch-publisher-identity.md) and
+  `docs/specs/claude-plugin-hook-parity` AC35, an active ruleset targets exactly
+  `refs/heads/claude-plugins-dist` and restricts updates as well as deletions and
+  force pushes, with a dedicated repository-scoped publisher GitHub App as its
+  only always-bypass actor — not the generic GitHub Actions app, so no other
+  workflow holding `contents: write` can update the branch. The App's token is
+  minted only after a required reviewer approves the `main`-only
+  `claude-plugin-publish` environment. Ordinary-identity rejection and
+  publisher-App acceptance were both exercised on a canary ref, never on the live
+  branch, and the sanitized snapshot is committed at
+  `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`.
+
+  The tip-content residual named above is **not** closed by this: marketplace
+  entries still pin a mutable branch rather than an immutable commit SHA, which
+  remains tracked as an accepted risk.

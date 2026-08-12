@@ -25,7 +25,8 @@ name: Publish Claude plugin packages
 # is NECESSARY BUT NOT SUFFICIENT — the schemas mirror an upstream contract we
 # do not own, so only the real client can detect upstream drift (ADR-0072). Real-client validation (`claude plugin validate`) must be
 # run locally before merging PRs that touch the plugin build pipeline.
-# Client version used for local validation: Claude Code 2.1.226.
+# Client version used for local validation: Claude Code 2.1.228
+# (2026-08-12; accepted event set identical to 2.1.226 — see AC18).
 
 on:
   push:
@@ -35,6 +36,16 @@ on:
 concurrency:
   group: publish-claude-plugins
   cancel-in-progress: true
+
+# Publisher identity is SEQUENCED, not free-form — see spec AC36. The dedicated
+# publisher App of ADR-0079 is provisioned, so the App-token shape below is the
+# only legal one: `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`
+# exists, and while it does, reverting to a `contents: write` GITHUB_TOKEN
+# publisher fails both tools/lint-claude-plugin-publish-control.py (which runs
+# inside this job) and tools/test-publish-claude-plugins.py. If the App is ever
+# decommissioned, delete the evidence file in the same commit that changes this
+# workflow — the two must move together.
+# Rollout runbook: docs/guides/how-to/publisher-app-rollout.md
 
 permissions:
   contents: read

@@ -160,3 +160,19 @@ details architect@<marketplace>`. The decision itself — that the derived
 manifest mirrors the upstream schema, and that a `branch`/`directory` payload
 is rejected — is unaffected. The body above is left as written; this ADR is
 Accepted → Frozen (`docs/CONVENTIONS.md`). Approver: eugenelim.
+
+**Erratum (2026-08-12).** The *Consequences* discussion above states that branch
+protection on `claude-plugins-dist` is a precondition of this decision that
+**does not exist**. That statement is now closed. Per
+[ADR-0079](0079-executable-plugin-branch-publisher-identity.md) and
+`docs/specs/claude-plugin-hook-parity` AC35, an active ruleset targets exactly
+`refs/heads/claude-plugins-dist`, restricts updates and deletions, blocks force
+pushes, and names a dedicated repository-scoped publisher GitHub App as its only
+always-bypass actor; the publish job mints that App's short-lived token from a
+`main`-only protected environment with a required reviewer. Ordinary-identity
+rejection and publisher-App acceptance were both exercised on a canary ref — the
+live branch was never used as a negative probe — and the sanitized snapshot is
+committed at `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`.
+The reasoning above is unaffected: integrity still rests on branch integrity
+rather than manifest integrity; that rest is now load-bearing rather than
+aspirational. Approver: eugenelim.
