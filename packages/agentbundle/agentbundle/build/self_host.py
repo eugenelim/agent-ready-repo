@@ -65,6 +65,9 @@ from agentbundle.build.main import (
     validate_pack_uniqueness,
 )
 from agentbundle.build.projection_io import (
+    copy_projected_file,
+)
+from agentbundle.build.projection_io import (
     render_diagnostic_path as _render_diagnostic_path,
 )
 from agentbundle.build.user_libs import (
@@ -320,6 +323,8 @@ def _project_all_adapters(
     packs_dir: Path,
     contract: dict,
     preferred_adapter: str | None = None,
+    *,
+    preserve_existing_metadata: bool = False,
 ) -> None:
     """Run direct self-host adapter projections against the
     `SELF_HOST_PACKS`-filtered pack list. Pack uniqueness validation
@@ -341,7 +346,12 @@ def _project_all_adapters(
         if adapter_name not in effective:
             continue
         adapter_module = registry[adapter_name.replace("-", "_")]
-        adapter_module.project_packs(pack_paths, contract, output_root)
+        adapter_module.project_packs(
+            pack_paths,
+            contract,
+            output_root,
+            preserve_existing_metadata=preserve_existing_metadata,
+        )
 
 
 def _compose_agents_md(
@@ -526,7 +536,12 @@ def _is_excluded(relative: Path) -> bool:
     return any(regex.match(posix) for regex in _EXCLUDED_REGEXES)
 
 
-def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
+def _project_seeds(
+    packs_dir: Path,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> dict[Path, Path]:
     """Copy `packs/<pack>/seeds/**` into `output_root` at seed-relative paths.
 
     Two packs may contribute to the same directory (historical canonical
@@ -618,12 +633,17 @@ def _project_seeds(packs_dir: Path, output_root: Path) -> dict[Path, Path]:
             # filled-in instance.
             continue
         target = output_root / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
         # Use shutil.copy (content + mode, no timestamps) so the shadow seed
         # file has the same permission bits as the source regardless of umask.
         # copyfile (content-only) would leave umask-derived mode on new files,
         # causing false mode drift when the diff gate compares shadow vs disk.
-        shutil.copy(src, target)
+        copy_projected_file(
+            src,
+            target,
+            base=output_root,
+            metadata="mode",
+            preserve_existing_metadata=preserve_existing_metadata,
+        )
     return seen
 
 
@@ -1280,7 +1300,13 @@ def run_self_host(
         with tempfile.TemporaryDirectory(prefix="agentbundle-shadow-") as shadow_str:
             shadow = Path(shadow_str)
             _clone_target_subtree(working_tree, shadow)
-            _project_all_adapters(shadow, packs_dir, contract, preferred_adapter)
+            _project_all_adapters(
+                shadow,
+                packs_dir,
+                contract,
+                preferred_adapter,
+                preserve_existing_metadata=False,
+            )
             # Compose AGENTS.md BEFORE seed projection: on a fresh tree the
             # composed output (body + footer) must win over the body-only
             # seed at `packs/core/seeds/AGENTS.md`; on an existing tree
@@ -1288,7 +1314,11 @@ def run_self_host(
             # live file alone.
             agents_path = _compose_agents_md(packs_dir, shadow, contract)
             try:
-                seed_map = _project_seeds(packs_dir, shadow)
+                seed_map = _project_seeds(
+                    packs_dir,
+                    shadow,
+                    preserve_existing_metadata=False,
+                )
             except ValueError as exc:
                 print(f"self-host: {exc}", file=sys.stderr)
                 return 4
@@ -1343,13 +1373,23 @@ def run_self_host(
     # and the catalogue-visible pack copy (`.apm/user-libs/credbroker/`). No-op
     # outside the monorepo (package source absent — see user_libs docstring).
     _user_libs_apply(working_tree, packs_dir)
-    _project_all_adapters(working_tree, packs_dir, contract, preferred_adapter)
+    _project_all_adapters(
+        working_tree,
+        packs_dir,
+        contract,
+        preferred_adapter,
+        preserve_existing_metadata=True,
+    )
     # Compose AGENTS.md BEFORE seed projection — see dry-run branch for
     # rationale (the body-only seed at packs/core/seeds/AGENTS.md must
     # not race the body+footer composition on fresh trees).
     agents_path = _compose_agents_md(packs_dir, working_tree, contract)
     try:
-        seed_map = _project_seeds(packs_dir, working_tree)
+        seed_map = _project_seeds(
+            packs_dir,
+            working_tree,
+            preserve_existing_metadata=True,
+        )
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 4

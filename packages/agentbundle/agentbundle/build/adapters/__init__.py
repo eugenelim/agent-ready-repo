@@ -19,14 +19,25 @@ from agentbundle.build.adapters import (
 )
 
 
-def _kiro_alias_project(pack_path: Path, contract: dict, output_root: Path) -> None:
+def _kiro_alias_project(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Deprecated alias: `kiro` → `kiro-ide`. Emits a build-time warning."""
     warnings.warn(
         "kiro: deprecated alias for kiro-ide; update allowed-adapters in pack.toml",
         DeprecationWarning,
         stacklevel=2,
     )
-    kiro_ide.project(pack_path, contract, output_root)
+    kiro_ide.project(
+        pack_path,
+        contract,
+        output_root,
+        preserve_existing_metadata=preserve_existing_metadata,
+    )
 
 
 # Original callable registry (hyphenated contract names) — preserved for

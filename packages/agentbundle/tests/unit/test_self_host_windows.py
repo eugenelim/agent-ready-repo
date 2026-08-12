@@ -49,10 +49,6 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
     # step and the total stays put. Each entry is (cwd suffix, a token that must
     # appear in the command).
     #
-    # `packages/credbroker` is here because the cross-platform process-tree kill
-    # lives in that suite; the `taskkill` arm is only verified once this run is
-    # green.
-    #
     # The dependency probe is here because both SSO trios `importorskip`
     # `credbroker` at module scope and the step runner judges by return code
     # alone — without it, a machine missing the dependency skips both suites
@@ -69,7 +65,6 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
         (str(Path("packages") / "agentbundle"), "test_self_host_fixture_guard.py"),
         (str(Path("packages") / "agentbundle"), "test_user_libs_projection.py"),
         (str(Path("packages") / "agentbundle"), "test_credential_brokers_pack_install.py"),
-        (str(Path("packages") / "credbroker"), "pytest"),
         (str(Path("tests") / "skills" / "jira"), "test_check_sso_login.py"),
         (str(Path("tests") / "skills" / "confluence-crawler"), "test_sso_config.py"),
     }
@@ -78,6 +73,10 @@ def test_all_steps_pass_returns_zero(fake_root: Path) -> None:
         assert any(
             cwd.endswith(cwd_suffix) and token in command for cwd, command in observed
         ), f"parity step missing: {token} in a cwd ending {cwd_suffix!r}"
+    credbroker_root = str(fake_root / "packages" / "credbroker")
+    assert all(str(cwd) != credbroker_root for _, cwd in calls), (
+        "CredBroker's package suite must stay in its parallel Windows CI job"
+    )
 
 
 def test_stops_on_first_failure(fake_root: Path) -> None:

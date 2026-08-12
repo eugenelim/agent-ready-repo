@@ -297,6 +297,54 @@ def test_run_self_host_claude_artifacts_follow_shared_predicate(
     assert mock_sym.call_count == int(projects_claude)
 
 
+@pytest.mark.parametrize("dry_run", [False, True])
+def test_run_self_host_selects_metadata_policy_by_mode(tmp_path, dry_run):
+    """Only real-write preserves metadata on existing projected files."""
+    from unittest.mock import MagicMock
+
+    from agentbundle.build.self_host import run_self_host
+
+    (tmp_path / ".adapt-discovery.toml").write_text(
+        "discovery-schema-version = '0.1'\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    packs_dir = tmp_path / "packs"
+    packs_dir.mkdir()
+    fake_discovery = MagicMock()
+    fake_discovery.markers = {}
+    contract = {"adapter": {"kiro-ide": {}}}
+
+    with (
+        patch("agentbundle.build.self_host._adapter_root_bins_apply"),
+        patch("agentbundle.build.self_host._user_libs_apply"),
+        patch("agentbundle.build.self_host._project_all_adapters") as adapters,
+        patch("agentbundle.build.self_host._compose_agents_md", return_value=None),
+        patch("agentbundle.build.self_host._project_seeds", return_value={}) as seeds,
+        patch("agentbundle.build.self_host._aggregate_marketplace"),
+        patch("agentbundle.build.self_host._recreate_claude_symlink"),
+        patch("agentbundle.build.self_host.resolve_markers"),
+        patch("agentbundle.build.self_host._clone_target_subtree"),
+        patch("agentbundle.build.self_host._build_projected_to_source_map", return_value={}),
+        patch("agentbundle.build.self_host.diff_against_working_tree", return_value=[]),
+        patch("agentbundle.build.self_host._self_host_projection_drifts", return_value=[]),
+        patch("agentbundle.build.self_host._emit_info_for_unclassified"),
+        patch("agentbundle.config.load_adapt_discovery_typed", return_value=fake_discovery),
+    ):
+        result = run_self_host(
+            working_tree=tmp_path,
+            packs_dir=packs_dir,
+            dry_run=dry_run,
+            force=True,
+            contract=contract,
+            preferred_adapter="kiro-ide",
+        )
+
+    assert result == 0
+    assert adapters.call_args.kwargs["preserve_existing_metadata"] is not dry_run
+    assert seeds.call_args.kwargs["preserve_existing_metadata"] is not dry_run
+
+
 # ── RFC-0082: the destructive-write guard covers this entry point too ────
 
 

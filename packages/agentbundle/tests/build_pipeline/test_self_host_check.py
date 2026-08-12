@@ -201,6 +201,50 @@ class DryRunCleanTreeTests(unittest.TestCase):
             self.assertIn(".claude/skills/foo/SKILL.md", stderr_text)
             self.assertIn("drift", stderr_text)
 
+    @unittest.skipIf(sys.platform == "win32", "mode drift is POSIX-only")
+    def test_dry_run_reports_mode_drift_after_write(self) -> None:
+        import io
+        from contextlib import redirect_stderr
+
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            packs_dir.mkdir()
+            pack = _seed_pack(packs_dir, "core")
+            agent = _add_agent(pack, "mode-check")
+            agent.chmod(0o755)
+            working_tree = tmp_path / "tree"
+            working_tree.mkdir()
+            _git_init(working_tree)
+            _seed_discovery(working_tree)
+
+            self.assertEqual(
+                run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=False,
+                    force=True,
+                    contract=self.contract,
+                ),
+                0,
+            )
+            _git_commit_all(working_tree, "seed")
+            projected = working_tree / ".claude" / "agents" / "mode-check.md"
+            projected.chmod(0o644)
+
+            stderr = io.StringIO()
+            with redirect_stderr(stderr):
+                exit_code = run_self_host(
+                    working_tree=working_tree,
+                    packs_dir=packs_dir,
+                    dry_run=True,
+                    force=False,
+                    contract=self.contract,
+                )
+
+            self.assertEqual(exit_code, 1)
+            self.assertIn("mode 0o644 vs 0o755", stderr.getvalue())
+
 
 class DirtyTreeRefusalTests(unittest.TestCase):
     @classmethod
@@ -2585,6 +2629,70 @@ class SelfHostAdapterRoutingTests(unittest.TestCase):
                 pack_paths_arg,
                 [packs_dir / "core"],
             )
+
+    def test_metadata_policy_reaches_every_shipped_adapter(self) -> None:
+        from contextlib import ExitStack
+        from unittest import mock
+
+        from agentbundle.build import self_host as self_host_module
+        from agentbundle.build.adapters import registry
+        from agentbundle.scope import shipped_adapters_from_contract
+
+        contract = load_contract(CONTRACT_PATH)
+        shipped = shipped_adapters_from_contract()
+        self.assertEqual(set(shipped), set(contract["adapter"]))
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            (packs_dir / "core" / ".apm").mkdir(parents=True)
+            (packs_dir / "core" / "pack.toml").write_text(
+                "[pack]\n"
+                'name = "core"\n'
+                'version = "0.0.0"\n'
+                "[pack.adapter-contract]\n"
+                'version = "0.2"\n'
+                "[pack.install]\n"
+                'default-scope = "repo"\n'
+                'allowed-scopes = ["repo"]\n',
+                encoding="utf-8",
+                newline="\n",
+            )
+            output = tmp_path / "out"
+            output.mkdir()
+
+            for preferred_adapter in shipped:
+                with ExitStack() as stack:
+                    projectors = {
+                        adapter: stack.enter_context(
+                            mock.patch.object(
+                                registry[adapter.replace("-", "_")],
+                                "project_packs",
+                            )
+                        )
+                        for adapter in shipped
+                    }
+                    self_host_module._project_all_adapters(
+                        output,
+                        packs_dir,
+                        contract,
+                        preferred_adapter=preferred_adapter,
+                        preserve_existing_metadata=True,
+                    )
+
+                effective = set(
+                    self_host_module._effective_adapters(preferred_adapter)
+                )
+                for adapter, projector in projectors.items():
+                    if adapter in effective:
+                        projector.assert_called_once()
+                        self.assertIs(
+                            projector.call_args.kwargs[
+                                "preserve_existing_metadata"
+                            ],
+                            True,
+                        )
+                    else:
+                        projector.assert_not_called()
 
 
 if __name__ == "__main__":

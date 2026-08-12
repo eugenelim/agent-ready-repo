@@ -38,6 +38,7 @@ from typing import Any, Iterator
 # projection), so the predictable trailing position keeps the phases
 # uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
+from agentbundle.build.projection_io import copy_projected_file, ensure_directory_no_follow
 from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.kiro_ide_hook import (
     project as kiro_ide_hook_project,
@@ -83,12 +84,29 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
             yield primitive_name
 
 
-def project(pack_path: Path, contract: dict, output_root: Path) -> None:
+def project(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Single-pack convenience wrapper. Delegates to `project_packs`."""
-    project_packs([pack_path], contract, output_root)
+    project_packs(
+        [pack_path],
+        contract,
+        output_root,
+        preserve_existing_metadata=preserve_existing_metadata,
+    )
 
 
-def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
+def project_packs(
+    pack_paths: list[Path],
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Project every pack in `pack_paths` in order, then run the
     shared orphan-sweep post-pass on the `skill` target directory.
 
@@ -100,7 +118,12 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
     another that ships the union complement.
     """
     for pack_path in pack_paths:
-        _project_single(pack_path, contract, output_root)
+        _project_single(
+            pack_path,
+            contract,
+            output_root,
+            preserve_existing_metadata=preserve_existing_metadata,
+        )
     _sweep_skill_orphans(pack_paths, contract, output_root)
 
 
@@ -160,7 +183,13 @@ def _sweep_skill_orphans(pack_paths: list[Path], contract: dict, output_root: Pa
     sweep_orphans(target_dir, expected_names)
 
 
-def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
+def _project_single(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool,
+) -> None:
     """Project *pack_path* into *output_root* per Kiro's contract rules.
 
     Iteration is phase-ordered (see `_iter_primitives`). For each
@@ -188,11 +217,19 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
 
         if primitive_name in array_form:
             rule = array_form[primitive_name]
-            _dispatch_array_form(primitive_name, source_dir, output_root, rule, contract)
+            _dispatch_array_form(
+                primitive_name,
+                source_dir,
+                output_root,
+                rule,
+                contract,
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
         else:
             rule = table_form[primitive_name]
             _dispatch_table_form(
                 primitive_name, source_dir, output_root, rule, pack_path, contract,
+                preserve_existing_metadata=preserve_existing_metadata,
             )
 
 
@@ -202,6 +239,8 @@ def _dispatch_array_form(
     output_root: Path,
     rule: dict,
     contract: dict,
+    *,
+    preserve_existing_metadata: bool,
 ) -> None:
     mode = rule["mode"]
     if mode == "direct-directory":
@@ -210,7 +249,12 @@ def _dispatch_array_form(
         if primitive_name == "agent":
             _project_agent_as_json(source_dir, output_root, rule, contract)
         else:
-            _project_direct_file(source_dir, output_root, rule["target-path"])
+            _project_direct_file(
+                source_dir,
+                output_root,
+                rule["target-path"],
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
     else:
         raise ValueError(f"kiro: unhandled array-form mode {mode!r} for {primitive_name}")
 
@@ -222,6 +266,8 @@ def _dispatch_table_form(
     rule: dict,
     pack_path: Path,
     contract: dict,
+    *,
+    preserve_existing_metadata: bool,
 ) -> None:
     mode = rule.get("mode")
     # `mode` may be a string or a scope-map; at build time
@@ -239,13 +285,25 @@ def _dispatch_table_form(
         target = rule.get("target")
         target_template = target.get("repo") if isinstance(target, dict) else target
         if target_template:
-            _project_direct_file_template(source_dir, output_root, target_template)
+            _project_direct_file_template(
+                source_dir,
+                output_root,
+                target_template,
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
     elif primitive_name == "kiro-ide-hook" and effective_mode == "direct-file":
         # v0.4 — IDE event hooks via the kiro-ide-hook primitive.
         # Delegate the file-walk, JSON-parse, and `${hook-body:<name>}`
         # expansion to the dedicated projection module so the wiring
         # here stays mechanical.
-        _project_kiro_ide_hook(source_dir, output_root, rule, contract, pack_path)
+        _project_kiro_ide_hook(
+            source_dir,
+            output_root,
+            rule,
+            contract,
+            pack_path,
+            preserve_existing_metadata=preserve_existing_metadata,
+        )
     else:
         # Other table-form modes (or scope-only declarations the legacy
         # array still owns) — silent skip.
@@ -435,19 +493,33 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
             shutil.copytree(entry, destination, ignore=_ignore_symlinks)
 
 
-def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str) -> None:
+def _project_direct_file(
+    source_dir: Path,
+    output_root: Path,
+    target_prefix: str,
+    *,
+    preserve_existing_metadata: bool,
+) -> None:
     target_dir = output_root / target_prefix.rstrip("/")
-    target_dir.mkdir(parents=True, exist_ok=True)
+    ensure_directory_no_follow(output_root, target_dir.relative_to(output_root))
     for entry in sorted(source_dir.iterdir()):
         if entry.is_file():
             destination = target_dir / entry.name
-            shutil.copy2(entry, destination, follow_symlinks=False)
+            copy_projected_file(
+                entry,
+                destination,
+                base=output_root,
+                metadata="stat",
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
 
 
 def _project_direct_file_template(
     source_dir: Path,
     output_root: Path,
     target_template: str,
+    *,
+    preserve_existing_metadata: bool,
 ) -> None:
     """Project each file under *source_dir* to a path derived from
     *target_template* by substituting `<name>` with the filename's
@@ -470,8 +542,13 @@ def _project_direct_file_template(
             prefix, _, _suffix = resolved.partition("<name>")
             resolved = prefix + entry.name
         target_path = output_root / resolved.lstrip("/")
-        target_path.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(entry, target_path, follow_symlinks=False)
+        copy_projected_file(
+            entry,
+            target_path,
+            base=output_root,
+            metadata="stat",
+            preserve_existing_metadata=preserve_existing_metadata,
+        )
 
 
 def _split_frontmatter(text: str) -> tuple[dict, str]:
@@ -603,6 +680,8 @@ def _project_kiro_ide_hook(
     rule: dict,
     contract: dict,
     pack_path: Path,
+    *,
+    preserve_existing_metadata: bool,
 ) -> None:
     """Dispatch ``.apm/kiro-ide-hooks/`` through the dedicated projector.
 
@@ -627,6 +706,7 @@ def _project_kiro_ide_hook(
         output_root,
         target_template=target_template,
         hook_body_target_dir=hook_body_target_dir,
+        preserve_existing_metadata=preserve_existing_metadata,
     )
 
 

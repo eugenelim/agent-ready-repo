@@ -1,6 +1,6 @@
 # Plan: core pack path confinement
 
-- **Status:** Executing
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 - **Mode:** full
 

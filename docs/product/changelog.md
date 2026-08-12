@@ -18,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [agentbundle][0.33.3] — 2026-08-12
+
+#### Changed
+
+- **AgentBundle and CredBroker Windows checks now run in parallel.** The
+  AgentBundle compatibility command keeps the engine and pack portability
+  checks, while CredBroker's package suite runs in its own Windows CI job. The
+  existing aggregate check remains blocking on both suites.
+
+#### Fixed
+
+- **Self-host writes now work across checkout ownership boundaries.**
+  `catalogue self-host --write` updates writable existing seed and adapter
+  files without attempting owner-only timestamp or mode changes, preserving
+  their inode, ownership, and mode. `--check` still reports mode drift that the
+  writer cannot repair.
+
 ### [agentbundle][0.33.2] — 2026-08-12
 
 #### Fixed

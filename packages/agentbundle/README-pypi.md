@@ -14,12 +14,17 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
-## What's new in 0.33.1
+## What's new in 0.33.3
 
-If you maintain a catalogue with repository-level tests, `agentbundle catalogue
-verify --root .` now recognizes the top-level `tests/` tree as
-repository-owned. Those paths no longer produce `[info] unclassified` notices;
-genuinely unknown paths still do, and the notices remain informational.
+`agentbundle catalogue self-host --write` now updates writable existing files
+without attempting owner-only timestamp or mode changes. This supports CI and
+development checkouts where projected files are owned by a different user;
+ownership, inode, and mode remain intact, while `--check` continues to report
+mode drift that the writer cannot repair.
+
+The Windows compatibility command covers AgentBundle and pack portability;
+CredBroker maintainers should run that package's test suite separately on
+Windows.
 
 **Install into a repo** — so everyone who clones it gets the pack. `core` is the flagship pack, the loop itself:
 

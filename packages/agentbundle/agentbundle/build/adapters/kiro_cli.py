@@ -20,12 +20,29 @@ from pathlib import Path
 from agentbundle.build.adapters import kiro as _kiro
 
 
-def project(pack_path: Path, contract: dict, output_root: Path) -> None:
+def project(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Single-pack convenience wrapper. Delegates to `project_packs`."""
-    project_packs([pack_path], contract, output_root)
+    project_packs(
+        [pack_path],
+        contract,
+        output_root,
+        preserve_existing_metadata=preserve_existing_metadata,
+    )
 
 
-def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
+def project_packs(
+    pack_paths: list[Path],
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Project every pack in `pack_paths` using the kiro-cli adapter block.
 
     Adapts the contract so kiro.py's projection functions read from
@@ -35,7 +52,12 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
     emitted instead of the IDE ids.
     """
     adapted = _adapt_contract(contract)
-    _kiro.project_packs(pack_paths, adapted, output_root)
+    _kiro.project_packs(
+        pack_paths,
+        adapted,
+        output_root,
+        preserve_existing_metadata=preserve_existing_metadata,
+    )
 
 
 def _adapt_contract(contract: dict) -> dict:

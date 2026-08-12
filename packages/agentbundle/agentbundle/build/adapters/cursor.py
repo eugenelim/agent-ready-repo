@@ -41,6 +41,7 @@ from typing import Any, Iterator
 
 # Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
+from agentbundle.build.projection_io import copy_projected_file, ensure_directory_no_follow
 from agentbundle.build.projections.direct_directory import sweep_orphans
 
 _ADAPTER = "cursor"
@@ -60,16 +61,38 @@ _LEGACY_HOOK_BODY_PREFIX = "tools/hooks/"
 _CURSOR_HOOK_BODY_PREFIX = ".cursor/hooks/"
 
 
-def project(pack_path: Path, contract: dict, output_root: Path) -> None:
+def project(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Single-pack convenience wrapper. Delegates to `project_packs`."""
-    project_packs([pack_path], contract, output_root)
+    project_packs(
+        [pack_path],
+        contract,
+        output_root,
+        preserve_existing_metadata=preserve_existing_metadata,
+    )
 
 
-def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
+def project_packs(
+    pack_paths: list[Path],
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Project every pack in `pack_paths`, then run the shared orphan-sweep
     post-pass on the `skill` target (mirrors kiro_ide/claude_code)."""
     for pack_path in pack_paths:
-        _project_single(pack_path, contract, output_root)
+        _project_single(
+            pack_path,
+            contract,
+            output_root,
+            preserve_existing_metadata=preserve_existing_metadata,
+        )
     _sweep_skill_orphans(pack_paths, contract, output_root)
 
 
@@ -101,7 +124,13 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
             yield primitive_name
 
 
-def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
+def _project_single(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool,
+) -> None:
     adapter_block = contract["adapter"][_ADAPTER]
     array_form = {entry["primitive"]: entry for entry in adapter_block.get("projection", [])}
 
@@ -121,7 +150,12 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
             if primitive_name == "agent":
                 _project_agent_as_md(source_dir, output_root, rule, contract)
             else:
-                _project_direct_file(source_dir, output_root, rule["target-path"])
+                _project_direct_file(
+                    source_dir,
+                    output_root,
+                    rule["target-path"],
+                    preserve_existing_metadata=preserve_existing_metadata,
+                )
         elif mode == "merge-json":
             _project_hooks_json(source_dir, output_root, rule)
         else:
@@ -169,12 +203,24 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
             shutil.copytree(entry, destination, ignore=_ignore_symlinks)
 
 
-def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str) -> None:
+def _project_direct_file(
+    source_dir: Path,
+    output_root: Path,
+    target_prefix: str,
+    *,
+    preserve_existing_metadata: bool,
+) -> None:
     target_dir = output_root / target_prefix.rstrip("/")
-    target_dir.mkdir(parents=True, exist_ok=True)
+    ensure_directory_no_follow(output_root, target_dir.relative_to(output_root))
     for entry in sorted(source_dir.iterdir()):
         if entry.is_file():
-            shutil.copy2(entry, target_dir / entry.name, follow_symlinks=False)
+            copy_projected_file(
+                entry,
+                target_dir / entry.name,
+                base=output_root,
+                metadata="stat",
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
 
 
 def _skill_direct_directory_target(contract: dict, output_root: Path) -> Path | None:

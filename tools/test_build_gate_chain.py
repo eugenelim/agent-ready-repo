@@ -134,6 +134,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-lint-pack-descriptions.py",
     "tools/lint-pack-descriptions.py",
     "tools/test-lint-ci-parity.py",
+    "tools/test-build-check-windows-workflow.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
 ]
