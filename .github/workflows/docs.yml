@@ -94,6 +94,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pytest
+        run: python -m pip install pytest
       - name: Run knowledge-base linter
         run: python .claude/skills/work-loop/scripts/lint-knowledge.py
       - name: Self-test the linter (validation rules + schema/guidance drift)
@@ -106,6 +111,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pytest
+        run: python -m pip install pytest
       - name: Self-test loop-cohort Phase-1 (schema, init pair, check verbs, review)
         run: bash packs/core/tests/skills/work-loop/test-loop-cohort.sh
       - name: Python test suite — loop-cohort

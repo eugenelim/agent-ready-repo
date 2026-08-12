@@ -72,6 +72,38 @@ class PackSkillPytestShapeTest(unittest.TestCase):
         self.assertEqual(failures, [], "\n".join(failures))
 
 
+class CiPytestProvisioningTest(unittest.TestCase):
+    """CI provisions pytest before entering pytest-backed gate paths."""
+
+    def test_build_check_installs_pytest_before_make_build_check(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/build-check.yml").read_text(encoding="utf-8")
+
+        install = workflow.index(
+            "run: python -m pip install -e packages/agentbundle/ pytest"
+        )
+        build_check = workflow.index("- name: Run make build-check")
+
+        self.assertLess(install, build_check)
+
+    def test_docs_jobs_install_pytest_before_pytest_backed_steps(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/docs.yml").read_text(encoding="utf-8")
+        jobs = {
+            "lint-knowledge": ("loop-cohort", "run: python3 -m pytest"),
+            "loop-cohort": ("hooks", "run: bash packs/core/tests/skills/work-loop/test-loop-cohort.sh"),
+        }
+
+        for job, (next_job, first_pytest_step) in jobs.items():
+            with self.subTest(job=job):
+                block = workflow.split(f"  {job}:\n", 1)[1].split(f"\n  {next_job}:\n", 1)[0]
+                setup = block.index("uses: actions/setup-python@")
+                install = block.index("run: python -m pip install pytest")
+                invocation = block.index(first_pytest_step)
+                self.assertLess(setup, install)
+                self.assertLess(install, invocation)
+
+
 class RunChainTest(unittest.TestCase):
     """The generic runner: order, all-pass, and first-failure short-circuit."""
 
