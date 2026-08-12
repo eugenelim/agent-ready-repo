@@ -1,6 +1,7 @@
 # Plan: catalogue-wave8-readme-contributing
 
-- **Status:** Drafting
+- **Status:** Done
+- **Superseded by:** [`documentation-entry-navigation`](../documentation-entry-navigation/plan.md)
 - **Spec:** [`spec.md`](spec.md)
 
 ## Mode and declined patterns
@@ -71,12 +72,12 @@ subsection:
 ```markdown
 ### Evaluate or build a catalogue
 
-**Evaluating?** The [portable authoring hub](guides/_shared/reference/catalogue-authoring-standards.md)
+**Evaluating?** The [portable authoring hub](../../../guides/_shared/reference/catalogue-authoring-standards.md)
 explains the catalogue structure, available contracts, and how to assess whether the
 catalogue model fits your organisation's needs.
 
 **Building?** Run `agentbundle catalogue init <target>` to scaffold a new catalogue in
-`<target>`. See [Create a catalogue](guides/_shared/how-to/create-a-catalogue.md) for
+`<target>`. See [Create a catalogue](../../../guides/_shared/how-to/create-a-catalogue.md) for
 a walkthrough.
 ```
 
@@ -178,7 +179,7 @@ prominent note before the numbered steps:
 
 ```markdown
 > Before starting: familiarise yourself with the
-> [portable authoring standards](guides/_shared/reference/catalogue-authoring-standards.md)
+> [portable authoring standards](../../../guides/_shared/reference/catalogue-authoring-standards.md)
 > — it covers the expected pack structure, JOURNEY.md convention, and contract files.
 ```
 
@@ -200,7 +201,7 @@ prominent note before the numbered steps:
 Locate the "Where to find authoritative information" table. Add a new row:
 
 ```markdown
-| Catalogue authoring standards and contracts | [`guides/_shared/reference/catalogue-authoring-standards.md`](guides/_shared/reference/catalogue-authoring-standards.md) |
+| Catalogue authoring standards and contracts | [`guides/_shared/reference/catalogue-authoring-standards.md`](../../../guides/_shared/reference/catalogue-authoring-standards.md) |
 ```
 
 **Done when:** Within the "Where to find authoritative information" table section,
@@ -226,7 +227,7 @@ In the `### Adding a new pack` section, after the main numbered steps, add a not
 **Optional cross-pack composition:** If the pack declares optional composition with other
 packs, add `[[pack.integrations]]` entries to `pack.toml`. The `[[pack.integrations]]`
 convention shipped with Wave 2 (0.27.0); see the
-[authoring hub](guides/_shared/reference/catalogue-authoring-standards.md) for the
+[authoring hub](../../../guides/_shared/reference/catalogue-authoring-standards.md) for the
 full contract spec.
 ```
 

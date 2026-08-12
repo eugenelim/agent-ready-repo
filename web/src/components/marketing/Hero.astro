@@ -8,21 +8,25 @@ import { withBase } from '../../lib/paths';
 
 <section class="hero">
   <div class="hero__inner">
-    <h1 class="hero__headline">The supervised AI operating model for software teams.</h1>
+    <h1 class="hero__headline">The agentic build loop that cannot approve its own work.</h1>
     <p class="hero__subhead">
-      Three supervised peer loops across the full SDLC — mechanical gates the agent
-      cannot bypass, cold-read specialist reviewers, and human checkpoints it cannot
-      self-certify past.
+      <code>core</code> takes a brief or spec through implementation, mechanical gates,
+      and a cold independent review. It keeps going until the change is clean—or stops
+      and tells you why. The wider catalogue brings the same discipline to product,
+      design, infrastructure, release, research, and documentation work.
     </p>
     <div class="hero__actions">
       <a class="hero__cta hero__cta--primary" href={withBase('/#install')}>
-        Install the core loop <span aria-hidden="true">→</span>
+        Try the supervised build loop <span aria-hidden="true">→</span>
       </a>
-      <a class="hero__cta hero__cta--ghost" href={withBase('/catalogue/')}>
-        Browse the catalogue <span aria-hidden="true">→</span>
+      <a class="hero__cta hero__cta--ghost" href={withBase('/#use-cases')}>
+        Explore use cases <span aria-hidden="true">→</span>
       </a>
     </div>
-    <p class="hero__friction">Reversible. One command to try, one to remove.</p>
+    <p class="hero__friction">
+      One command. Every major coding agent. Human merge gate. User-scope packs also
+      ship through the <a href={withBase('/docs/getting-started/install/#route-2-claude-plugins')}>Claude plugin marketplace</a>.
+    </p>
   </div>
 </section>
 
@@ -54,6 +58,12 @@ import { withBase } from '../../lib/paths';
     font-size: var(--ds-type-body-lg);
     max-width: 60ch;
     margin-bottom: var(--ds-space-6);
+  }
+
+  .hero__subhead code {
+    background: none;
+    color: var(--ds-accent);
+    font-family: var(--ds-font-mono);
   }
 
   .hero__actions {
@@ -119,5 +129,11 @@ import { withBase } from '../../lib/paths';
     color: var(--ds-hero-fg-muted);
     margin-top: var(--ds-space-3);
     margin-bottom: 0;
+  }
+
+  .hero__friction a {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
   }
 </style>

@@ -2,12 +2,12 @@
 // Primary navigation. Dark zone — continuous with the hero below it, no gap.
 // Mobile menu is a <details>/<summary> disclosure: zero JavaScript.
 // Nav structure:
-//   Logo | How it works | Catalogue | Journeys | Docs ↗ | [Install →]
+//   Logo | How it works | Use cases | Catalogue | Docs ↗ | [Try the build loop →]
 import { withBase } from '../../lib/paths';
 const links = [
   { label: 'How it works', href: withBase('/#three-loops') },
+  { label: 'Use cases', href: withBase('/#use-cases') },
   { label: 'Catalogue', href: withBase('/catalogue/') },
-  { label: 'Journeys', href: withBase('/journeys/') },
 ];
 const homeHref = withBase('/');
 const docsHref = withBase('/docs/');
@@ -28,7 +28,7 @@ const installHref = withBase('/#install');
         </a>
       </li>
       <li>
-        <a class="nav__cta" href={installHref}>Install <span aria-hidden="true">→</span></a>
+        <a class="nav__cta" href={installHref}>Try the build loop <span aria-hidden="true">→</span></a>
       </li>
     </ul>
 
@@ -46,7 +46,7 @@ const installHref = withBase('/#install');
           </a>
         </li>
         <li>
-          <a class="nav__cta" href={installHref}>Install <span aria-hidden="true">→</span></a>
+          <a class="nav__cta" href={installHref}>Try the build loop <span aria-hidden="true">→</span></a>
         </li>
       </ul>
     </details>

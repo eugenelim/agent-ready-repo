@@ -39,6 +39,9 @@ export default defineConfig({
       title: 'agent-ready-repo',
       description:
         'The complete AI operating model for software teams — from first idea to production.',
+      // Reuse the marketing site's root asset. Starlight otherwise prefixes its
+      // default `/favicon.svg` with the docs base and emits a missing file.
+      favicon: 'https://eugenelim.github.io/agent-ready-repo/favicon.svg',
       editLink: {
         baseUrl: 'https://github.com/eugenelim/agent-ready-repo/edit/main/',
       },

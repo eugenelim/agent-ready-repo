@@ -2,6 +2,25 @@
 
 Thanks for thinking about contributing. This catalogue grows by *primitives* — packs, skills, subagents — and each kind of contribution has a different shape. Pick the lane that fits your change.
 
+## Understand the product before changing it
+
+The [technical documentation](https://eugenelim.github.io/agent-ready-repo/docs/) is the best product-level entry point: it routes by use case and role into the adopter guides and generated pack reference. The source is deliberately split:
+
+- [`guides/`](guides/) owns public tutorials, how-tos, reference, and explanation.
+- [`packs/<pack>/README.md`](packs/) owns what each pack ships; the docs build generates the complete pack reference from those sources and `pack.toml`.
+- [`docs-site/src/content/docs/`](docs-site/src/content/docs/) owns only the technical-doc entry pages; generated pack and guide pages are not edited there.
+- [`docs/architecture/overview.md`](docs/architecture/overview.md) maps the repository implementation for contributors.
+
+For a quick orientation, go from [technical docs](https://eugenelim.github.io/agent-ready-repo/docs/) → the relevant [pack guide](guides/) → its source under [`packs/`](packs/) → the current architecture or contract. This lets you see the adopter experience before changing the machinery behind it.
+
+## How decisions become changes
+
+```text
+research or observed problem → RFC → ADR when needed → spec + plan → implementation → adopter docs
+```
+
+The chain is proportional, not ceremonial: small fixes can go straight to a PR, while a new public contract, pack, top-level structure, or substantive charter change starts with an RFC. Research under [`docs/product/research/`](docs/product/research/) supplies evidence; RFCs record the proposal and trade-offs; ADRs record durable architectural decisions; specs and plans define the accepted behavior and implementation. If the answer is absent from those sources, it has not been decided—ask or open an RFC rather than inferring policy from nearby code.
+
 ## Before you start
 
 Two reads will save you time:
@@ -25,7 +44,9 @@ Full rule with the projected-paths list: [`CONVENTIONS.md § Pack source-of-trut
 
 ### Adding a new pack
 
-A new pack is a coherent slice — a workflow, a reviewer lens, a document shape — packaged as a unit. The ceremony exists because a pack adds public contract surface: a name in the catalogue, a row in the `Packs` table, an install URI adopters will pin against.
+A new pack is a coherent slice — a workflow, a reviewer lens, a document shape — packaged as a unit. The ceremony exists because a pack adds public contract surface: a name in the published catalogue, an install URI adopters may pin against, and guidance they will rely on.
+
+Start with the portable [`catalogue-authoring-standards.md`](guides/_shared/reference/catalogue-authoring-standards.md) hub. It is the canonical contract for pack structure, metadata, composition, public guidance, and verification.
 
 Steps:
 
@@ -38,7 +59,9 @@ Steps:
    - `seeds/` — upstream for seed-projected files (README, governance content). Files prefixed `_` are composition fragments, not standalone.
 3. **Run the pack validator.** `agentbundle validate packs/<your-pack>`; fix anything it reports before opening the PR.
 4. **If you claim `user` scope**, justify it. The user-scope eligibility test is falsifiable: content must be project-portable (no hooks that wire into a specific repo's surface, no seeds that name *this* project).
-5. **Update the `Packs` table in [`README.md`](README.md)** and the catalogue manifest (`make build-self` regenerates the latter).
+5. **Declare optional composition when it exists.** Add `[[pack.integrations]]` entries to `pack.toml` for useful cross-pack relationships that are not required dependencies. This convention shipped in Wave 2; the [authoring standards](guides/_shared/reference/catalogue-authoring-standards.md) carry the complete contract.
+6. **Complete public discovery at the sources.** Add the pack guide home and journey required by the authoring standards and register its curated site group in `site.toml`. The public catalogue and technical pack index derive from pack metadata; do not add a row to the root README or edit generated site output.
+7. **Regenerate the catalogue manifest.** `make build-self` updates the projected marketplace and self-hosted outputs.
 
 ### Adding or modifying a skill
 
@@ -126,11 +149,17 @@ The **one-time** PyPI Trusted Publisher — a Pending Publisher matching `releas
 | You want to know… | Look here |
 | --- | --- |
 | Mission, scope, principles | [`docs/CHARTER.md`](docs/CHARTER.md) |
+| Public product behavior and task guidance | [Technical docs](https://eugenelim.github.io/agent-ready-repo/docs/) and their source in [`guides/`](guides/) |
+| Current repository architecture | [`docs/architecture/overview.md`](docs/architecture/overview.md) |
 | How we work, document hierarchy | [`docs/CONVENTIONS.md`](docs/CONVENTIONS.md) |
+| Evidence informing a product direction | [`docs/product/research/`](docs/product/research/) |
 | Why we chose X over Y | [`docs/adr/`](docs/adr/) |
 | In-flight proposals | [`docs/rfc/`](docs/rfc/) |
+| Accepted behavior and build plan | [`docs/specs/`](docs/specs/) |
+| Current initiative and dependency state | [`workspace.toml`](workspace.toml) |
 | Per-IDE adapter contract | [`contracts/adapter.toml`](contracts/adapter.toml) |
 | Pack manifest schema | [`contracts/pack.schema.json`](contracts/pack.schema.json) |
+| Portable catalogue authoring standards and contracts | [`guides/_shared/reference/catalogue-authoring-standards.md`](guides/_shared/reference/catalogue-authoring-standards.md) |
 | Catalogue model rationale | [RFC-0001](docs/rfc/0001-bundle-distribution-by-adapter-spec.md) |
 
 ## When this file is wrong

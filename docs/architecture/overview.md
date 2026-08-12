@@ -11,27 +11,23 @@
 ├── AGENTS.local.md       # repo-specific addendum — self-host drift rules etc.
 ├── packages/
 │   ├── agentbundle/      # the reference CLI + runtime library (Python, stdlib-only)
+│   ├── credbroker/       # credential resolver used by credentialed pack helpers
 │   └── _example/         # template package consumed by the new-package skill
-├── packs/                # the catalogue — one directory per shippable pack
-│   ├── core/             # the load-bearing pack; every other pack composes against it
-│   ├── governance-extras/
-│   ├── product-documentation/
-│   ├── monorepo-extras/
-│   ├── contracts/
-│   ├── converters/
-│   ├── atlassian/
-│   └── figma/
+├── packs/                # catalogue sources — one directory per pack
+├── profiles/             # curated single-scope combinations of packs
+├── guides/               # public adopter guidance, mirrored into the docs site
+├── contracts/            # portable TOML/JSON contracts and schemas
 ├── docs/
 │   ├── CHARTER.md        # mission, scope, principles
 │   ├── CONVENTIONS.md    # how we work
-│   ├── backlog.md        # open spec items, top-level index
 │   ├── rfc/              # proposals (governance)
 │   ├── adr/              # architecture decisions (frozen history)
 │   ├── specs/            # feature specs and plans
 │   ├── architecture/     # this directory — internals for contributors
-│   ├── contracts/        # adapter.toml, JSON schemas — the publishable spec
 │   ├── product/          # roadmap + changelog
-│   └── guides/           # Diátaxis: tutorials, how-to, reference, explanation
+│   └── guides/           # maintainer-only tooling and repository guidance
+├── web/                  # authored marketing and catalogue site
+├── docs-site/            # technical-doc shell; most content is generated
 ├── tools/                # build/lint/test scripts (.py preferred; .sh grandfathered)
 ├── .claude/              # Claude Code self-host projection — local only
 ├── .codex/               # Codex self-host agents + hook wiring — local only
@@ -53,29 +49,18 @@ Edit seeds under `packs/<pack>/.apm/...`, not these projections. See
 
 ## The catalogue
 
-`packs/` is a catalogue of reference packs. The relationship is
-"compose around `core`", not "subclass": every other pack assumes `core`'s
-seeds and reviewer-agents are available, but they don't import code from
-each other. Each pack's full metadata (license, maintainers, links,
-categories, keywords) lives in its `pack.toml` and is projected into the
-catalogue listing — see [`pack-manifest.md`](pack-manifest.md).
+`packs/` is the source catalogue. Each pack owns its manifest, portable
+primitives, tests, seeds, README, and journey; `profiles/` composes those packs
+without introducing new primitives. The complete current inventory belongs to
+the [generated catalogue](https://eugenelim.github.io/agent-ready-repo/catalogue/)
+and [technical pack reference](https://eugenelim.github.io/agent-ready-repo/docs/packs/),
+not to a hand-maintained architecture table.
 
-| Pack | Scope | Carries |
-| --- | --- | --- |
-| `core` | repo only | `work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`, the four reviewer agents (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`, `implementer`), `session-start.py` + `pre-pr.py` hooks, `conventions-check`, `workspace-mcp` (per-session MCP server for harness-controlled sessions), layer-0 seeds (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`). |
-| `governance-extras` | repo only | `new-rfc`, `new-adr`, `update-conventions` skills + `docs/rfc/` and `docs/adr/` shapes. Requires `core`. |
-| `product-documentation` | repo or user | `author-product-docs` skill for creating, revising, retrofitting, auditing, and verifying product docs. No `core` dependency. `user-guide-diataxis@0.3.0` (deprecated compat pack) depends on this pack. |
-| `monorepo-extras` | repo only | `new-package` skill + `packages/_example/` template. Requires `core`. |
-| `contracts` | user (default) or repo | `api-contract` (OpenAPI 3.1) and `event-contract` (AsyncAPI). |
-| `converters` | user (default) or repo | Document/image → Markdown, Markdown → styled HTML, Outlook `.msg` → Markdown. |
-| `atlassian` | user (default) or repo | `jira`, `jira-align`, `confluence-crawler` (credentialed CLIs) + the `flow-metrics`, `ai-adoption-report`, `jira-defect-flow`, `jira-brief-intake`, `jira-align-brief-intake` workflows that compose them. |
-| `github` | user (default) or repo | `github-brief-intake` — turns a GitHub Milestone into a product brief and hands off to `receive-brief`. Uses the `gh` CLI; no credentialed-skill frontmatter. |
-| `figma` | user (default) or repo | `figma` credentialed CLI (REST API reads, frame renders, FigJam → Mermaid). |
-| `linear` | user (default) or repo | `linear` credentialed CLI (GraphQL reads: issues, projects, pagination) + `linear-brief-intake` and `linear-brief-sync` workflows that compose it with `receive-brief`. |
-| `research` | user (default) or repo | Seven research skills (scoping → synthesis → decision support) + two read-only retrieval subagents. |
-| `architect` | user (default) or repo | `architect-design`, `architect-diagram`, `architect-review` (Mermaid + Google-style design docs). |
-| `credential-brokers` | user (default) or repo | `credentials_shim`, the `sso-broker` subprocess, and the `credential-setup` skill — user-scope credential brokering for credentialed packs. |
-| `product-engineering` | user (default) or repo | `frame-intent`, `de-risk-intent`, `decompose-intent` — shaping product intent into shippable specs. |
+[`core`](../../guides/core/explanation/core-pack.md) is the flagship build
+system. Other packs may depend on it, integrate with it, or remain independently
+useful; composition is declared in `pack.toml`, not inferred from directory
+adjacency. Each pack's full metadata lives in that manifest and is projected
+into catalogue listings — see [`pack-manifest.md`](pack-manifest.md).
 
 What it means for `core` to be load-bearing: its
 `session-start.py` is the single read-side of the install→adapt chain —

@@ -1,80 +1,65 @@
 ---
-title: Reference documentation
-description: Pack reference, getting-started guides, and the full skill catalogue.
+title: Agent-ready catalogue documentation
+description: Choose, install, operate, and build catalogues of supervised agent workflows.
 hero:
-  tagline: Pack reference, getting-started guides, and the full skill catalogue. For an overview of the supervised loops and the pack catalogue, see the platform site.
+  tagline: Choose, install, operate, and build catalogues of supervised agent workflows. Start with the work you need to accomplish; pack names and installation details come next.
   actions:
-    - text: Getting started
+    - text: Choose a starting point
       link: /agent-ready-repo/docs/getting-started/
       icon: right-arrow
       variant: primary
-    - text: Browse packs
+    - text: Browse every pack
       link: /agent-ready-repo/docs/packs/
       icon: right-arrow
 ---
 
-import { Tabs, TabItem, CardGrid, Card } from '@astrojs/starlight/components';
+## Choose what you want to achieve
 
-## Quick install
+| I need to… | Start here |
+| --- | --- |
+| **Decide what to build** | [Product strategy](/agent-ready-repo/docs/guides/product-strategy/), [evidence-grounded research](/agent-ready-repo/docs/guides/desk-research/), then [product shaping](/agent-ready-repo/docs/guides/product-engineering/) |
+| **Design the product and system** | [Experience design](/agent-ready-repo/docs/guides/experience-design/), [architecture](/agent-ready-repo/docs/guides/architect/), [contracts](/agent-ready-repo/docs/guides/contracts/), and [frontend engineering](/agent-ready-repo/docs/guides/frontend-engineering/) |
+| **Build and review software** | The [`core` supervised work loop](/agent-ready-repo/docs/guides/core/) |
+| **Provision and release safely** | [Architecture](/agent-ready-repo/docs/guides/architect/), [Terraform planning](/agent-ready-repo/docs/guides/iac-terraform/), and [release engineering](/agent-ready-repo/docs/guides/release-engineering/) |
+| **Work with team systems and evidence** | [Atlassian](/agent-ready-repo/docs/guides/atlassian/), [GitHub](/agent-ready-repo/docs/guides/github/), [Linear](/agent-ready-repo/docs/guides/linear/), [Figma](/agent-ready-repo/docs/guides/figma/), and [converters](/agent-ready-repo/docs/guides/converters/) |
+| **Document what ships** | [Product documentation](/agent-ready-repo/docs/guides/product-documentation/) |
+| **Build and govern a catalogue** | [Create a catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/), then apply the [authoring standards](/agent-ready-repo/docs/guides/_shared/reference/catalogue-authoring-standards/) |
 
-<Tabs>
-  <TabItem label="Flagship loop">
-    ```bash
-    python -m pip install agentbundle
-    agentbundle install --pack core
-    ```
-  </TabItem>
-  <TabItem label="With discovery">
-    ```bash
-    agentbundle install --pack core
-    agentbundle install --pack product-engineering --scope user
-    ```
-  </TabItem>
-  <TabItem label="Full inception profile">
-    ```bash
-    agentbundle install --profile inception
-    ```
-  </TabItem>
-  <TabItem label="Solution architect">
-    ```bash
-    agentbundle install --profile solution-architect
-    ```
-  </TabItem>
-</Tabs>
+The [`core` build loop](/agent-ready-repo/docs/guides/core/) is the catalogue's flagship and its strongest standalone product: spec and plan before code, mechanical gates before claims, a cold independent review before handoff, stasis detection when the loop stops making progress, and a human decision before merge. The catalogue extends that supervised-work model beyond coding; it does not dilute the build loop.
 
-## Packs
+## Choose by role
 
-**Supervised loops (start here):**
+- **Product manager or strategist:** [decide](/agent-ready-repo/docs/guides/product-strategy/), [research](/agent-ready-repo/docs/guides/desk-research/), and [shape](/agent-ready-repo/docs/guides/product-engineering/) before work reaches a delivery team.
+- **Platform, infrastructure, or SRE team:** [design the system](/agent-ready-repo/docs/guides/architect/), [author contracts](/agent-ready-repo/docs/guides/contracts/), [produce a reviewable infrastructure plan](/agent-ready-repo/docs/guides/iac-terraform/), and [stop at the production gate](/agent-ready-repo/docs/guides/release-engineering/).
+- **Engineer:** [start with `core`](/agent-ready-repo/docs/guides/core/), then add the domain pack the change needs.
+- **Designer or architect:** [design the experience](/agent-ready-repo/docs/guides/experience-design/) or [system](/agent-ready-repo/docs/guides/architect/); **researcher or analyst:** [start with evidence](/agent-ready-repo/docs/guides/desk-research/).
+- **AI enablement or catalogue owner:** [initialize an organization-owned catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/) and govern what it distributes.
 
-| Pack | Scope | What it installs |
-|---|---|---|
-| [Core](packs/core/) | `repo` | `work-loop`, `new-spec`, `bug-fix`, specialist reviewers, hooks |
-| [Product Engineering](packs/product-engineering/) | `user` | `discovery-loop`, `frame-intent`, `de-risk-intent`, `decompose-intent` |
-| [Release Engineering](packs/release-engineering/) | `repo` | `release-loop`, `release-lead` |
+## Use a catalogue
 
-**User-scope packs (follow you across repos):**
+- [Get started](/agent-ready-repo/docs/getting-started/) with a path matched to your work.
+- [Compare install routes](/agent-ready-repo/docs/guides/_shared/explanation/install-routes/) and [adapter support](/agent-ready-repo/docs/guides/_shared/reference/adapter-support/).
+- [Browse every pack](/agent-ready-repo/docs/packs/) or [install a curated profile](/agent-ready-repo/docs/guides/_shared/how-to/install-a-profile/).
+- [Preview an install or upgrade](/agent-ready-repo/docs/guides/_shared/how-to/preview-install-or-upgrade/) before writing, then [upgrade safely](/agent-ready-repo/docs/guides/_shared/how-to/upgrade-packs/).
+- Using Claude? [Add this catalogue as a plugin marketplace](/agent-ready-repo/docs/getting-started/install/#route-2-claude-plugins) for user-scope packs. Repo-scoped packs such as `core` install with `agentbundle`.
 
-| Pack | What it installs |
-|---|---|
-| [Desk Research](packs/desk-research/) | `desk-research`, `source-map`, `compare-hypotheses`, `devils-advocate`, `decision-archaeology` |
-| [Architect](packs/architect/) | `architect-design`, `architect-diagram`, `architect-review`, `design-reviewer` subagent |
-| [Experience Design](packs/experience-design/) | Journey mapping, screen flows, creative direction, experience reviewers |
-| [Contracts](packs/contracts/) | `api-contract` (OpenAPI 3.1), `event-contract` (AsyncAPI) |
-| [Converters](packs/converters/) | PDF/DOCX/PPTX → Markdown, Markdown → HTML/Word/PowerPoint/Excel |
-| [Atlassian](packs/atlassian/) | `jira`, `jira-align`, `confluence-crawler`, `confluence-publisher`, `flow-metrics` |
-| [Figma](packs/figma/) | Figma REST API — files, frames, variables, FigJam → Mermaid |
-| [Credential Brokers](packs/credential-brokers/) | `credbroker`, `sso-broker`, `credential-setup` |
+## Build and operate a catalogue
 
-**Repo-scope packs (per-project conventions):**
+An organization can initialize a clean catalogue without forking this repository:
 
-| Pack | What it installs |
-|---|---|
-| [Governance Extras](packs/governance-extras/) | `new-rfc`, `new-adr`, `update-conventions` |
-| [Product Documentation](packs/product-documentation/) | `author-product-docs` (five-mode: create, revise, retrofit, audit, verify) |
-| [Monorepo Extras](packs/monorepo-extras/) | `new-package`, `packages/_example/` template |
+```bash
+agentbundle catalogue init my-catalogue --name my-catalogue
+agentbundle catalogue verify --root my-catalogue
+```
 
-## A foundation to build on
+- [Create the first valid catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/).
+- [Understand packs, profiles, adapters, composition, and self-hosting](/agent-ready-repo/docs/guides/_shared/explanation/pack-catalogue/).
+- [Author against the portable standards](/agent-ready-repo/docs/guides/_shared/reference/catalogue-authoring-standards/).
+- [Implement the provider-neutral verify → package → publish contract](/agent-ready-repo/docs/guides/_shared/reference/catalogue-ci-contract/).
 
-Run `agentbundle catalogue init` to create a new catalogue from the managed scaffold — no fork required.
+## Understand and reference
 
-[How to build your org's catalogue](guides/_shared/how-to/build-an-org-stack-pack/)
+- [The three supervised loops](/agent-ready-repo/docs/getting-started/three-loops/) — discovery, build, release, and their human gates.
+- [The file-safety contract](/agent-ready-repo/docs/guides/_shared/explanation/file-safety-contract/) — how local edits survive installs and upgrades.
+- [`agentbundle` CLI reference](/agent-ready-repo/docs/guides/_shared/reference/agentbundle/) — exact commands and flags.
+- [Complete pack reference](/agent-ready-repo/docs/packs/) — generated from the current catalogue rather than maintained on this page.

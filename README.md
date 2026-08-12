@@ -1,156 +1,65 @@
 # agent-ready-repo
 
-**The supervised AI operating model for software teams.**
+**The supervised agentic build loop—and the catalogue of workflows around it.**
 
-```
-Raw idea → Gate: Idea → Spec → Gate: Spec → Shipped code → Gate: PR → Production
+Decide what to build, design the product and system, implement and review software, plan infrastructure, validate releases, document what ships, and govern the catalogue your organization owns.
+
+```text
+Reversible agent work → mechanical checks → independent review → human decision
 ```
 
 [![PyPI](https://img.shields.io/pypi/v/agentbundle)](https://pypi.org/project/agentbundle/) [![License](https://img.shields.io/badge/license-MIT%2FApache--2.0-blue)](#license) [![OWASP Agentic Skills Top 10](https://img.shields.io/badge/OWASP-Agentic%20Skills%20Top%2010%20v1.0-blue)](https://owasp.org/www-project-agentic-skills-top-10/)
 
-[Quick Start](#quick-start) · [The Three Loops](#the-three-loops) · [The Catalogue](#the-catalogue) · [Docs](guides/) · [Contributing](CONTRIBUTING.md)
+[Build with `core`](#build-with-core) · [Explore use cases](https://eugenelim.github.io/agent-ready-repo/#use-cases) · [Get started](https://eugenelim.github.io/agent-ready-repo/docs/getting-started/) · [Browse the catalogue](https://eugenelim.github.io/agent-ready-repo/catalogue/) · [Contribute](CONTRIBUTING.md)
 
-> "You shouldn't be prompting coding agents anymore. You should be designing loops that prompt your agents." — [Peter Steinberger](https://x.com/steipete/status/2063697162748260627)
+## Choose a use case
 
-Agent coding tools moved the leverage from the prompt to the loop. But an unattended loop also makes unattended mistakes — and it will self-certify its way out of every check you give it. The answer is a supervised loop with mechanical gates the agent cannot bypass.
+- **Product managers and strategists:** move from strategy and evidence to a bounded decision brief with `product-strategy`, `desk-research`, and `product-engineering`.
+- **Platform, infrastructure, and SRE teams:** design the boundary, author contracts, produce reviewable Terraform, and validate the deployed result with `architect`, `contracts`, `iac-terraform`, and `release-engineering`.
+- **Software teams:** take a brief or spec through implementation, hard gates, independent review, and a human merge decision with `core`.
+- **Design, research, documentation, and enablement teams:** [explore the use cases](https://eugenelim.github.io/agent-ready-repo/#use-cases) that map your work to the relevant packs.
 
-Three peer loops span the full SDLC. Discovery takes a raw idea to a ratified brief. The build loop runs spec to shipped code with hard gates and cold-read reviewers. The release loop validates the deployed whole before any human touches a prod switch. Human gates sit at every irreversible handoff; nothing runs past them automatically.
+Packs are composable units, not departments. Install only what you need, or use a profile when a curated starting set fits. The [complete catalogue](https://eugenelim.github.io/agent-ready-repo/catalogue/) remains the source for current pack inventory and install commands.
 
-`core` is the flagship pack — the build loop, in one command:
+## Build with `core`
+
+`core` is the catalogue's flagship and its strongest reason to start. It is a complete build system for coding agents: spec and plan before code, mechanical gates before claims, a cold independent review before handoff, and a human decision before merge.
 
 ```bash
 python -m pip install agentbundle
 agentbundle install --pack core
 ```
 
-## Quick start
+Then ask your coding agent:
 
-**Install via Claude Code** (no extra tooling required). This route installs at
-user scope, so it carries the packs that permit it — repo-scoped packs like
-`core` install with `agentbundle` instead:
+```text
+Implement <small, testable feature> with the work-loop.
+```
+
+The loop keeps fixing until the checks and review are clean. If it repeats the same failure, crosses a boundary, or reaches an irreversible decision, it stops and surfaces the choice instead of self-certifying. [See how `core` compares with prompt-and-approve coding, Spec Kit, and Kiro](guides/core/explanation/core-pack.md).
+
+Using Claude? You can also [add this catalogue as a plugin marketplace](https://eugenelim.github.io/agent-ready-repo/docs/getting-started/install/#route-2-claude-plugins) and install any user-scope pack directly. Repo-scoped packs such as `core` install with `agentbundle` so the whole team shares the same loop.
+
+## Own the system
+
+`agentbundle` projects portable skills, subagents, hooks, commands, and seeds into the layout each supported agent expects. Installed files remain readable and editable; upgrades preserve local changes as explicit companions instead of silently clobbering them.
+
+Create an organization-owned catalogue without forking this repository:
 
 ```bash
-# Add the marketplace once
-claude plugin marketplace add eugenelim/agent-ready-repo
-
-# Install any *user-scope* pack by name
-claude plugin install architect@agent-ready-repo
-
-# Browse all available packs with install commands
-# → https://eugenelim.github.io/agent-ready-repo/plugins/
+agentbundle catalogue init my-catalogue --name my-catalogue
+agentbundle catalogue verify --root my-catalogue
 ```
 
-**Or install via agentbundle CLI** (supports all agent adapters):
+[Understand packs, profiles, adapters, composition, and self-hosting](guides/_shared/explanation/pack-catalogue.md) · [Create a catalogue](guides/_shared/how-to/create-a-catalogue.md) · [Read the authoring standards](guides/_shared/reference/catalogue-authoring-standards.md)
 
-```bash
-# Install the CLI (one-time)
-python -m pip install agentbundle
+## Go deeper
 
-# See the catalogue
-agentbundle list-packs
-
-# See what you have installed — version + whether an upgrade is available
-agentbundle list-installed
-
-# Install the flagship loop into this repo
-agentbundle install --pack core
-
-# Install a pack at user scope — follows you across every project
-agentbundle install --pack desk-research --scope user
-
-# Install a whole curated profile in one command
-agentbundle install --profile solution-architect
-
-# Upgrade a pack to the catalogue's version (asks before writing; --yes for CI)
-agentbundle upgrade --pack core
-
-# Preview any install without writing a file
-agentbundle install --pack core --dry-run
-```
-
-`--dry-run` previews every file before anything is written — one line per file, then a `create`/`overwrite` count. Installs auto-detect your agent and fall back to Claude Code; [configure a different default →](guides/_shared/how-to/configure-adapter.md)
-
-Every source verb defaults to this catalogue when you don't name one; pass a git URL or local path to use a different one, or `agentbundle config set source <catalogue>` to change the default.
-
-**Machine-readable catalogue:** `https://raw.githubusercontent.com/eugenelim/agent-ready-repo/claude-plugins-dist/marketplace.json`
-
-## The three loops
-
-```
-product-engineering              core                    release-engineering
-───────────────────              ────                    ───────────────────
-discovery-lead                   work-loop               release-lead
-Raw idea → Brief  ─Gate: Idea─▶  Spec → Shipped code  ─Gate: PR─▶  Production
-```
-
-Each loop is autonomous where the work is reversible and surfaces to a human at every irreversible step.
-
-### Discovery — `product-engineering`
-
-Raw idea → ratified brief. Five candidate shapes explored in parallel, collapsed through product, UX, architecture, and safety lenses.
-
-**Human gate.** You approve a ratified decision brief, not a validated solution. The loop never advances past Gate: Idea automatically.
-
-→ [Discovery loop guide](guides/product-engineering/) · [Walk a discovery end-to-end](guides/product-engineering/tutorials/walk-a-discovery-end-to-end.md)
-
-### Build — `core`
-
-Spec → shipped code. Lint, typecheck, and tests must pass. Three specialist reviewers each read the diff cold, in a fresh session — adversarial by design. Gate: Spec sits between the approved spec and the first line of implementation.
-
-**Human gate.** You merge only when adversarial review is clean and all gates pass.
-
-→ [The `core` pack as a system](guides/core/explanation/core-pack.md)
-
-### Release — `release-engineering`
-
-Built → production. Autonomous e2e convergence on ephemeral environments; deployed findings feed back to the build loop automatically.
-
-**Human gate.** Prod ship always surfaces to a human. Always.
-
-→ [Release loop guide](guides/release-engineering/) · [The release loop explained](guides/release-engineering/explanation/the-release-loop.md)
-
-## The catalogue
-
-Three packs form the operating model. The rest are curated kits — each distilled from the best practices of its discipline. Install only what your team needs.
-
-| Pack | Scope | What it does |
-| --- | --- | --- |
-| [`core`](guides/core/) | **repo** | The build loop. `work-loop`, `new-spec`, `bug-fix`, the four reviewer/executor subagents, hooks, governance seeds. **Install this first.** |
-| [`product-engineering`](guides/product-engineering/) | user | The discovery loop — raw idea to build-ready brief. |
-| [`release-engineering`](guides/release-engineering/) | **repo** | The release loop — build to production. Hard-depends on `core`. |
-| [`governance-extras`](guides/governance-extras/) | repo | RFC/ADR ceremony for teams and long-lived repos. |
-| [`product-documentation`](guides/product-documentation/) | user / repo | Create, revise, audit, and verify product documentation. |
-| [`monorepo-extras`](guides/monorepo-extras/) | repo | Scaffold packages in a monorepo. |
-| [`desk-research`](guides/desk-research/) | user / repo | Go from a question to an evidence-grounded answer. |
-| [`contracts`](guides/contracts/) | user / repo | Author an API contract (OpenAPI 3.1). |
-| [`converters`](guides/converters/) | user / repo | Move documents in and out of Markdown. |
-| [`atlassian`](guides/atlassian/) | user / repo | Work Jira and Confluence from the agent. |
-| [`figma`](guides/figma/) | user / repo | Read and render Figma designs. |
-| [`architect`](guides/architect/) | user / repo | Design a system and pressure-test it. |
-| [`experience-design`](guides/experience-design/) | user / repo | Carry the whole design thread — journey to realization. |
-
-A profile is a blessed combination of packs: `full-ceremony` adds the governance packs to `core`; `solution-architect` lands `architect` + `desk-research` + `contracts`; `inception` takes an idea from zero to a buildable repo. `agentbundle list-profiles` shows them all — see the [install-a-profile how-to](guides/_shared/how-to/install-a-profile.md).
-
-Run `agentbundle catalogue init` to create a new catalogue from the managed scaffold. Write your conventions and review standards into `core`, add skills for your stack, and ship one catalogue every engineer installs in a single line — identical across every machine and every agent. The same bundler works for any domain, not just software delivery. [How to build your org's catalogue →](guides/_shared/how-to/create-a-catalogue.md)
-
-## Ecosystem
-
-Your skills, subagents, and hooks are files you own. No SDK, no runtime, no service. Version and compose them like any other code.
-
-- Works with Claude Code, Codex, Cursor, Copilot, Gemini, and Kiro. One adapter pipeline projects the same primitives into the layout each agent expects.
-- The mechanics are prose you can read and `git diff`. Outgrow a default? Edit the file.
-- Packs layer cleanly. Colliding files land as `*.upstream` companions to merge, not clobber.
-- Every pack is shaped through practitioner research and an RFC-and-ADR governance process.
-
-Two standalone packages underpin it:
-
-- **[`agentbundle`](https://pypi.org/project/agentbundle/)** — installs and upgrades packs, projects each primitive into the layout every agent expects, and builds catalogues of your own.
-- **[`credbroker`](https://pypi.org/project/credbroker/)** — resolves secrets in-process through environment variable → OS keyring → dotfile. Cleartext never reaches the model. See [credential handling](docs/architecture/credentials.md).
-
-## Contributing
-
-Adding a pack, skill, or subagent? [`CONTRIBUTING.md`](CONTRIBUTING.md) has the three contribution lanes, the pack source-of-truth split, and the gates your PR has to pass.
+- **Use the catalogue:** [technical docs](https://eugenelim.github.io/agent-ready-repo/docs/) · [install routes](guides/_shared/explanation/install-routes.md) · [adapter support](guides/_shared/reference/adapter-support.md) · [`agentbundle` reference](guides/_shared/reference/agentbundle.md)
+- **Understand the operating model:** [the three supervised loops](guides/_shared/explanation/the-three-loops.md) · [file safety](guides/_shared/explanation/file-safety-contract.md)
+- **Inspect the implementation:** [architecture](docs/architecture/) · [machine contracts](contracts/) · [security model](docs/architecture/security.md)
+- **Contribute:** [contribution lanes and gates](CONTRIBUTING.md) · [pack authoring](packs/) · [repository conventions](docs/CONVENTIONS.md)
 
 ## License
 
-Licensed under either of [Apache 2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option. Contributions are dual-licensed under the same terms unless you state otherwise.
+Licensed under either [Apache 2.0](LICENSE-APACHE) or [MIT](LICENSE-MIT) at your option. Contributions are dual-licensed under the same terms unless you state otherwise.

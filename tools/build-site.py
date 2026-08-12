@@ -39,6 +39,7 @@ SITE_BASE = "/agent-ready-repo/docs"
 _GUIDE_ONLY_FIELDS = frozenset({
     "pack", "kind", "summary", "slug", "aliases", "status", "journey", "order",
 })
+_GUIDE_SLUG_PART_RE = re.compile(r"^[a-z0-9_][a-z0-9_-]*$")
 
 
 def discover_packs(root: Path, site_toml: Path) -> list[dict]:
@@ -146,6 +147,40 @@ def _parse_frontmatter(text: str) -> dict:
     except yaml.YAMLError:
         return {}
     return data if isinstance(data, dict) else {}
+
+
+def _normalise_guide_slug(
+    value: object, source_path: Path | None = None, field: str = "slug"
+) -> str | None:
+    """Return a confined guide slug, or ``None`` when frontmatter is invalid."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        if source_path is not None:
+            print(
+                f"  warn  {_relpath(source_path)}: non-string '{field}' ignored",
+                file=sys.stderr,
+            )
+        return None
+
+    slug = value.strip().strip("/")
+    if slug.endswith("/index"):
+        slug = slug[: -len("/index")]
+    parts = slug.split("/")
+    valid = (
+        len(parts) >= 2
+        and parts[0] == "guides"
+        and all(_GUIDE_SLUG_PART_RE.fullmatch(part) for part in parts[1:])
+    )
+    if valid:
+        return slug
+
+    if source_path is not None:
+        print(
+            f"  warn  {_relpath(source_path)}: invalid '{field}' ignored",
+            file=sys.stderr,
+        )
+    return None
 
 
 def _strip_guide_metadata(text: str) -> str:
@@ -269,15 +304,9 @@ def build_guide_inventory(guides_root: Path, enumerator=None) -> list[dict]:
         is_int = isinstance(raw_order, int) and not isinstance(raw_order, bool)
         order = raw_order if is_int else None
 
-        # Frontmatter is adopter-authored: a non-string here must degrade to the
-        # derived value, not crash the build with an AttributeError naming no
-        # file. `order` is coerced the same way a few lines above.
-        override = fm.get("slug")
-        if override is not None and not isinstance(override, str):
-            print(f"  warn  {_relpath(path)}: non-string 'slug' ignored", file=sys.stderr)
-            override = None
-        if override and override.endswith("/index"):
-            override = override[: -len("/index")]
+        # Frontmatter is adopter-authored: invalid route metadata must degrade
+        # to the derived value, not crash or write outside the guide route tree.
+        override = _normalise_guide_slug(fm.get("slug"), path)
 
         title = fm.get("title") or None
         if title is not None and not isinstance(title, str):
@@ -482,8 +511,9 @@ def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
         fm = _parse_frontmatter(text)
 
         # Determine canonical slug and output path
-        if fm and fm.get("slug"):
-            canonical_slug = fm["slug"]
+        override = _normalise_guide_slug(fm.get("slug"), path) if fm else None
+        if override:
+            canonical_slug = override
             target = site_docs / (canonical_slug + ".md")
         else:
             # Derive slug from the (possibly renamed) relative parts
@@ -502,7 +532,7 @@ def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
 
         if dry_run:
             action = "rename" if path.name == "README.md" else "copy"
-            if fm and fm.get("slug"):
+            if override:
                 action = "route"
             print(f"  {action} {_relpath(path)} → {_relpath(target)}")
         else:
@@ -512,16 +542,24 @@ def mirror_guides(src: Path, site_docs: Path, dry_run: bool = False) -> int:
 
         # Generate redirect stubs for aliases
         aliases = fm.get("aliases") if fm else None
-        if aliases:
+        if isinstance(aliases, list):
             canonical_url = f"{SITE_BASE}/{canonical_slug}/"
             for alias in aliases:
-                stub_target = site_docs / (alias + ".md")
+                alias_slug = _normalise_guide_slug(alias, path, "aliases")
+                if not alias_slug:
+                    continue
+                stub_target = site_docs / (alias_slug + ".md")
                 stub_content = _make_redirect_stub(canonical_url)
                 if dry_run:
-                    print(f"  stub  {alias} → {canonical_slug}")
+                    print(f"  stub  {alias_slug} → {canonical_slug}")
                 else:
                     stub_target.parent.mkdir(parents=True, exist_ok=True)
                     stub_target.write_text(stub_content, encoding="utf-8")
+        elif aliases is not None:
+            print(
+                f"  warn  {_relpath(path)}: non-list 'aliases' ignored",
+                file=sys.stderr,
+            )
 
     return count
 
@@ -568,15 +606,14 @@ def _rewrite_changelog(text: str) -> str:
     """Fix links in changelog.md when moved from docs/product/ to docs-site content.
 
     In source: relative to docs/product/changelog.md
-      ../guides/... → guides/...  (in-site, rewrite)
+      ../guides/... → base-qualified technical guide route
       ../rfc/...    → GitHub URL  (not in site)
       ../specs/...  → GitHub URL  (not in site)
     """
     def replace(m: re.Match) -> str:
         prefix, path, anchor = m.group(1), m.group(2), m.group(3) or ""
         if path.startswith("../guides/"):
-            # Strip the leading ../
-            return f"{prefix}{path[3:]}{anchor})"
+            return f"{prefix}{SITE_BASE}/{path[3:]}{anchor})"
         if path.startswith("../"):
             # Convert to GitHub URL
             clean = path[3:]  # remove ../
@@ -591,8 +628,8 @@ def _rewrite_pack_readme(text: str, pack_src_path: Path) -> str:
     """Rewrite links in pack READMEs moved from packs/<slug>/README.md
     to docs-site/src/content/docs/packs/<slug>.md.
 
-    Cross-pack links (../other-pack/README.md) → other-pack/
-    Links outside packs/ that resolve in the repo → GitHub URL.
+    Pack-home links (../other-pack/README.md) → other-pack/
+    Other repository files, including files beside the README → GitHub URL.
     """
     packs_root = (REPO_ROOT / "packs").resolve()
     repo_root = REPO_ROOT.resolve()
@@ -610,7 +647,10 @@ def _rewrite_pack_readme(text: str, pack_src_path: Path) -> str:
             # e.g. ../credential-brokers/README.md → ../credential-brokers/
             rel = resolved.relative_to(packs_root)
             pack_name = rel.parts[0]
-            return f"{prefix}{pack_name}/{anchor})"
+            if resolved.is_dir() or rel.parts[1:] == ("README.md",):
+                return f"{prefix}{pack_name}/{anchor})"
+            repo_rel = resolved.relative_to(repo_root)
+            return f"{prefix}{GITHUB_BASE}/{repo_rel}{anchor})"
 
         if _is_relative_to(resolved, repo_root):
             rel = resolved.relative_to(repo_root)
@@ -643,14 +683,14 @@ def _rewrite_guide(text: str, guide_src_path: Path) -> str:
         except Exception:
             return m.group(0)
 
-        # Within guides/ → keep relative (Starlight resolves them)
-        if _is_relative_to(resolved, guides_root):
-            if resolved.is_dir():
-                # Bare directory link → index
-                return m.group(0)
-            if resolved.exists():
-                return m.group(0)
-            # Stale link within guides/ — fall through
+        # Within guides/ → route to the mirrored page from the docs root.
+        # A relative source link cannot be preserved: Starlight serves each
+        # Markdown file as a directory route, so `sibling.md` from
+        # `/guide-name/` would incorrectly become `/guide-name/sibling/`.
+        if _is_relative_to(resolved, guides_root) and resolved.exists():
+            site_url = _guide_site_url(resolved, guides_root)
+            return f"{prefix}{site_url}{anchor})"
+        # Stale link within guides/ — fall through
 
         # Within repo but outside guides/ → GitHub URL
         if _is_relative_to(resolved, repo_root):
@@ -661,6 +701,26 @@ def _rewrite_guide(text: str, guide_src_path: Path) -> str:
 
     result = re.sub(r"(\]\()([^)#\"'\s]+)(#[^)]+)?\)", replace, text)
     return _strip_md_suffixes(result)
+
+
+def _guide_site_url(path: Path, guides_root: Path) -> str:
+    """Return the base-qualified technical-doc URL for a guide source path."""
+    source = path / "README.md" if path.is_dir() else path
+    rel = source.relative_to(guides_root)
+
+    if source.suffix == ".md" and source.exists():
+        frontmatter = _parse_frontmatter(source.read_text(encoding="utf-8"))
+        slug = _normalise_guide_slug(frontmatter.get("slug"), source)
+        if not slug:
+            parts = list(rel.parts)
+            if parts[-1] == "README.md":
+                parts = parts[:-1]
+            else:
+                parts[-1] = Path(parts[-1]).stem
+            slug = "/".join(("guides", *parts))
+        return f"{SITE_BASE}/{slug}/"
+
+    return f"{SITE_BASE}/guides/{rel.as_posix()}"
 
 
 def _is_relative_to(path: Path, base: Path) -> bool:
@@ -691,10 +751,12 @@ def _rewrite_contributing(text: str) -> str:
         except Exception:
             return m.group(0)
 
-        # Links within guides/ → site-relative (guides/ is in the site)
-        if _is_relative_to(resolved, guides_root):
-            rel = resolved.relative_to(guides_root)
-            return f"{prefix}guides/{rel}{anchor})"
+        # Links within guides/ → base-qualified mirrored guide route.
+        # CONTRIBUTING is served from /docs/contributing/, so a `guides/...`
+        # href would otherwise nest under that page.
+        if _is_relative_to(resolved, guides_root) and resolved.exists():
+            site_url = _guide_site_url(resolved, guides_root)
+            return f"{prefix}{site_url}{anchor})"
 
         # Any other repo-relative link → GitHub URL
         if _is_relative_to(resolved, repo_root):

@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Phase 4B regression check: verify every active pack appears in guides/README.md
-All-packs table.
+Verify every active pack has a direct guide-home link in guides/README.md.
 
 Exit 0 = all packs accounted for.
 Exit 1 = at least one active pack is absent from the guide index.
@@ -40,50 +39,55 @@ def discover_active_packs() -> list[str]:
     return packs
 
 
-def extract_indexed_packs(guide_index: Path) -> set[str]:
-    """
-    Extract pack IDs from the '## All packs' table in guides/README.md.
-    Only scans between the '## All packs' heading and the next '##' heading
-    to avoid false-positives from role/loop tables earlier in the file.
+def extract_linked_packs(guide_index: Path) -> set[str]:
+    """Extract pack IDs from direct ``<pack>/`` guide-home links.
+
+    The guide root may organize discovery by outcome, role, or another reader
+    need. Requiring one direct link per active pack preserves complete coverage
+    without requiring a duplicate all-packs table or a specific page layout.
     """
     if not guide_index.exists():
         return set()
     content = guide_index.read_text(encoding="utf-8")
-    # Slice to the "## All packs" section only
-    match = re.search(r"^## All packs\b", content, re.MULTILINE)
-    if not match:
-        return set()
-    section_start = match.end()
-    next_heading = re.search(r"^##", content[section_start:], re.MULTILINE)
-    if next_heading:
-        section = content[section_start : section_start + next_heading.start()]
-    else:
-        section = content[section_start:]
-    # Match rows like: | [`core`](core/) | ...
-    return set(re.findall(r"\|\s*\[`([a-z][a-z\-]+)`\]", section))
+    return set(re.findall(r"\]\(([a-z][a-z0-9-]*)/\)", content))
 
 
-def main() -> int:
-    active_packs = discover_active_packs()
-    indexed_packs = extract_indexed_packs(GUIDE_INDEX)
-
-    missing = [
+def find_missing_packs(
+    active_packs: list[str], indexed_packs: set[str]
+) -> list[str]:
+    """Return active packs that have no required direct guide-home link."""
+    return [
         p for p in active_packs
         if p not in indexed_packs and p not in GUIDE_OPTIONAL_PACKS
     ]
+
+
+def report_coverage(active_packs: list[str], indexed_packs: set[str]) -> int:
+    """Report guide-index coverage and return its process exit code."""
+    missing = find_missing_packs(active_packs, indexed_packs)
 
     if missing:
         print("check-guide-index: FAIL — active packs missing from guides/README.md:")
         for p in missing:
             print(f"  ✗ {p}")
         guide_index_rel = GUIDE_INDEX.relative_to(REPO_ROOT)
-        print(f"\nFix: add each missing pack to the 'All packs' table in {guide_index_rel}")
+        print(
+            "\nFix: add a direct '<pack>/' guide-home link for each missing "
+            f"pack in {guide_index_rel}"
+        )
         return 1
 
     print(
         f"check-guide-index: OK — all {len(active_packs)} active packs present in guide index"
     )
     return 0
+
+
+def main() -> int:
+    """Check the repository guide index."""
+    return report_coverage(
+        discover_active_packs(), extract_linked_packs(GUIDE_INDEX)
+    )
 
 
 if __name__ == "__main__":
