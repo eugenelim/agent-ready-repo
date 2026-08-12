@@ -4,8 +4,10 @@ import SiteLayout from '../../components/layout/SiteLayout.astro';
 import Section from '../../components/layout/Section.astro';
 import { withBase } from '../../lib/paths';
 import StatusChip from '../../components/primitives/StatusChip.astro';
-
-const MARKETPLACE = 'agent-ready-repo';
+import {
+  catalogueOutcomes,
+  catalogueRoles,
+} from '../../lib/catalogue-navigation';
 
 // SDLC value-stream order (RFC-0064 three-altitude model + the three loops):
 // core anchors first, then strategy → research → shaping → design →
@@ -20,16 +22,20 @@ const SDLC_ORDER = [
   'experience-design',
   'architect',
   'contracts',
+  'frontend-engineering',
   'iac-terraform',
   'release-engineering',
   'governance-extras',
-  'user-guide-diataxis',
+  'product-documentation',
   'converters',
   'monorepo-extras',
   'catalogue-curation',
   'credential-brokers',
   'atlassian',
   'figma',
+  'github',
+  'linear',
+  'user-guide-diataxis',
 ];
 
 const allPacks = await getCollection('packs');
@@ -50,15 +56,15 @@ const packs = allPacks
       scope: e.data.scope,
       tagline: e.data.tagline,
       skillCount: e.data.skills.length,
-      cliCmd: e.data.installCommand,
-      // Only user-capable packs reach the Claude-plugin route; `null` renders
-      // no plugin block at all rather than a command the pack forbids.
-      pluginCmd: e.data.pluginInstallable
-        ? `claude plugin install ${slug}@${MARKETPLACE}`
-        : null,
       detailUrl: withBase(`/packs/${slug}/`),
     };
   });
+
+const roles = catalogueRoles.map((role) => {
+  const outcome = catalogueOutcomes.find(({ id }) => id === role.outcomeId);
+  if (!outcome) throw new Error(`Unknown catalogue outcome: ${role.outcomeId}`);
+  return { ...role, outcome: outcome.title, href: `#${outcome.id}` };
+});
 ---
 
 <SiteLayout
@@ -73,16 +79,55 @@ const packs = allPacks
         Every pack.<br />Your way.
       </h1>
       <p class="cat-hero__body">
-        {packs.length} packs for the full SDLC. Every one of them installs with
-        <code>agentbundle</code>; the packs that install at user scope are also
-        Claude plugins — their cards say so.
+        Start with the work you need to accomplish, then choose the packs that
+        produce it. The complete {packs.length}-pack inventory stays below for
+        readers who already know what they need.
       </p>
     </div>
   </section>
 
+  <!-- ── Outcome and role discovery ──────────────────────────────────── -->
+  <Section tone="surface-alt" labelledby="outcomes-heading">
+    <h2 id="outcomes-heading" class="outcomes__heading">What do you need to change?</h2>
+    <p class="outcomes__intro">
+      Packs are the stable installation layer. These paths are curated views over
+      that inventory, so the same pack can support more than one outcome.
+    </p>
+
+    <ul class="outcome-grid" role="list">
+      {catalogueOutcomes.map((outcome) => (
+        <li class="outcome-card" id={outcome.id}>
+          <h3>{outcome.title}</h3>
+          <p>{outcome.cataloguePromise}</p>
+          <ul class="outcome-card__packs" aria-label={`Packs for ${outcome.title}`}>
+            {outcome.packs.map((pack) => (
+              <li><a href={withBase(`/packs/${pack}/`)}>{pack}</a></li>
+            ))}
+          </ul>
+        </li>
+      ))}
+    </ul>
+
+    <h2 class="roles__heading">Or start with your role</h2>
+    <ul class="role-grid" role="list">
+      {roles.map((role) => (
+        <li>
+          <a href={role.href}>
+            <strong>{role.name}</strong>
+            <span>{role.outcome} →</span>
+          </a>
+        </li>
+      ))}
+    </ul>
+  </Section>
+
   <!-- ── Catalogue grid ───────────────────────────────────────────────── -->
   <Section tone="surface" labelledby="cat-grid-heading">
-    <h2 id="cat-grid-heading" class="visually-hidden">All packs</h2>
+    <h2 id="cat-grid-heading" class="cat-grid__heading">Browse every pack</h2>
+    <p class="cat-grid__intro">
+      Pack detail pages carry the exact scope, dependencies, install routes,
+      shipped primitives, journey, and guides.
+    </p>
 
     <ul class="cat-grid" role="list">
       {packs.map((pack) => (
@@ -104,79 +149,11 @@ const packs = allPacks
             </div>
           </a>
 
-          <!-- Install blocks — outside the navigating anchor -->
-          <div class="install-blocks">
-            <div class="install-block">
-              <div class="install-block__label">CLI</div>
-              <div class="install-block__row">
-                <code class="install-block__cmd">{pack.cliCmd}</code>
-                <button
-                  class="copy-btn"
-                  data-cmd={pack.cliCmd}
-                  aria-label={`Copy CLI install command for ${pack.name}`}
-                  type="button"
-                >
-                  <span class="copy-btn__icon" aria-hidden="true">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
-                      <path d="M2 10V2.5A1.5 1.5 0 0 1 3.5 1H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                    </svg>
-                  </span>
-                  <span class="copy-btn__label">Copy</span>
-                </button>
-              </div>
-            </div>
-
-            {pack.pluginCmd && (
-              <div class="install-block install-block--plugin">
-                <div class="install-block__label">Plugin</div>
-                <div class="install-block__row">
-                  <code class="install-block__cmd install-block__cmd--truncate">{pack.pluginCmd}</code>
-                  <button
-                    class="copy-btn"
-                    data-cmd={pack.pluginCmd}
-                    aria-label={`Copy Claude plugin install command for ${pack.name}`}
-                    type="button"
-                  >
-                    <span class="copy-btn__icon" aria-hidden="true">
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="4" y="4" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.25"/>
-                        <path d="M2 10V2.5A1.5 1.5 0 0 1 3.5 1H10" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                      </svg>
-                    </span>
-                    <span class="copy-btn__label">Copy</span>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </li>
       ))}
     </ul>
   </Section>
 </SiteLayout>
-
-<script>
-  document.querySelectorAll<HTMLButtonElement>('.copy-btn').forEach((btn) => {
-    btn.addEventListener('click', async () => {
-      const cmd = btn.dataset.cmd ?? '';
-      try {
-        await navigator.clipboard.writeText(cmd);
-        const label = btn.querySelector<HTMLElement>('.copy-btn__label');
-        if (label) {
-          label.textContent = 'Copied!';
-          btn.classList.add('copy-btn--success');
-          setTimeout(() => {
-            label.textContent = 'Copy';
-            btn.classList.remove('copy-btn--success');
-          }, 2000);
-        }
-      } catch {
-        // Clipboard API unavailable — command is still visible and selectable.
-      }
-    });
-  });
-</script>
 
 <style>
   /* ── Hero ──────────────────────────────────────────────────────────── */
@@ -225,7 +202,94 @@ const packs = allPacks
     background: none;
   }
 
+  /* ── Outcome and role discovery ───────────────────────────────────── */
+  .outcomes__heading,
+  .roles__heading {
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .outcomes__intro,
+  .cat-grid__intro {
+    color: var(--ds-on-surface-2);
+    font-size: var(--ds-type-body-lg);
+    margin-bottom: var(--ds-space-7);
+    max-width: 64ch;
+  }
+
+  .outcome-grid {
+    display: grid;
+    gap: var(--ds-space-5);
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    margin-bottom: var(--ds-space-8);
+  }
+
+  .outcome-card {
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+    padding: var(--ds-space-6);
+    scroll-margin-top: var(--ds-space-7);
+  }
+
+  .outcome-card h3,
+  .outcome-card p {
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .outcome-card p {
+    color: var(--ds-on-surface-2);
+  }
+
+  .outcome-card__packs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--ds-space-2);
+  }
+
+  .outcome-card__packs a {
+    background-color: var(--ds-accent-subtle);
+    border-radius: var(--ds-radius-pill);
+    display: inline-block;
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    padding: 0.2rem 0.6rem;
+  }
+
+  .role-grid {
+    display: grid;
+    gap: var(--ds-space-3);
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+
+  .role-grid a {
+    background-color: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+    display: block;
+    padding: var(--ds-space-4);
+    text-decoration: none;
+  }
+
+  .role-grid a:hover {
+    border-color: var(--ds-accent);
+  }
+
+  .role-grid strong,
+  .role-grid span {
+    display: block;
+  }
+
+  .role-grid span {
+    color: var(--ds-accent-deep);
+    font-size: var(--ds-type-sm);
+    margin-top: var(--ds-space-2);
+  }
+
   /* ── Grid ──────────────────────────────────────────────────────────── */
+  .cat-grid__heading {
+    margin-bottom: var(--ds-space-3);
+  }
+
   .cat-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -301,116 +365,8 @@ const packs = allPacks
     color: var(--ds-accent);
   }
 
-  /* ── Install blocks ─────────────────────────────────────────────────── */
-  .install-blocks {
-    border-top: 1px solid var(--ds-border);
-  }
-
-  .install-block {
-    background-color: var(--ds-hero-bg);
-    padding: var(--ds-space-3) var(--ds-space-5);
-  }
-
-  .install-block--plugin {
-    border-top: 1px solid var(--ds-hero-border);
-  }
-
-  .install-block__label {
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    text-transform: uppercase;
-    letter-spacing: var(--ds-track-label);
-    color: var(--ds-hero-fg-muted);
-    margin-bottom: var(--ds-space-1);
-  }
-
-  .install-block__row {
-    display: flex;
-    align-items: center;
-    gap: var(--ds-space-3);
-    min-width: 0;
-  }
-
-  .install-block__cmd {
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-mono-sm);
-    color: var(--ds-hero-fg);
-    flex: 1;
-    min-width: 0;
-    line-height: var(--ds-lead-mono);
-    user-select: all;
-  }
-
-  .install-block__cmd--truncate {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-  }
-
-  @media (max-width: 480px) {
-    .install-block__row {
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .copy-btn {
-      align-self: flex-start;
-    }
-  }
-
-  /* ── Copy button ────────────────────────────────────────────────────── */
-  .copy-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: var(--ds-space-1);
-    flex-shrink: 0;
-    background-color: var(--ds-hero-elevated);
-    border: 1px solid var(--ds-hero-border-card);
-    border-radius: var(--ds-radius-sm);
-    color: var(--ds-hero-fg-muted);
-    font-family: var(--ds-font-mono);
-    font-size: var(--ds-type-xs);
-    font-weight: var(--ds-weight-medium);
-    padding: 0.3rem 0.6rem;
-    cursor: pointer;
-    transition:
-      background-color var(--ds-dur-quick) var(--ds-ease-std),
-      color var(--ds-dur-quick) var(--ds-ease-std),
-      border-color var(--ds-dur-quick) var(--ds-ease-std);
-  }
-
-  .copy-btn:hover {
-    background-color: var(--ds-accent-subtle-dk);
-    border-color: var(--ds-accent);
-    color: var(--ds-accent);
-  }
-
-  .copy-btn--success {
-    background-color: var(--ds-accent-subtle-dk);
-    border-color: var(--ds-accent);
-    color: var(--ds-accent);
-  }
-
-  .copy-btn__icon {
-    display: flex;
-    align-items: center;
-  }
-
-  /* ── Accessibility ──────────────────────────────────────────────────── */
-  .visually-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-
   @media (prefers-reduced-motion: reduce) {
-    .cat-card,
-    .copy-btn {
+    .cat-card {
       transition: none;
     }
   }

@@ -1728,6 +1728,41 @@ open = [
   # conjunctive gates, so this entry has no machine-readable `needs` edge and
   # remains non-dispatchable until a separate spec is approved.
   {slug = "capture-work-alias-removal", source = "spec/work-intake-migration-docs AC14"},
+
+  # The canonical adopter-facing `guides/` tree is mirrored into the public
+  # technical docs, but `agentbundle catalogue package --flavor source` includes
+  # only `guides/_shared/`, not the pack-specific guide corpus. An organization
+  # that distributes an archive therefore does not distribute the complete
+  # adopter guidance beside its packs and profiles.
+  # Fix: decide the archive layout and inclusion semantics, add package and
+  # install coverage, update the distribution contract and adopter docs, and
+  # ship the resulting `agentbundle` release. Keep this separate from the
+  # documentation-entry-navigation work: changing the allowlist is an engine
+  # and release-boundary decision. Unblocks: now; no tracked prerequisite.
+  {slug = "catalogue-package-guides", source = "spec/documentation-entry-navigation"},
+
+  # `python3 tools/build-site.py --dry-run` currently calls mkdir for generated
+  # docs directories before honoring dry-run, so read-only verification fails
+  # even though no generated content should be written. Fix: make dry-run
+  # side-effect-free from process start, add a construction test using a
+  # non-writable output tree, and document it as the supported source-only site
+  # routing check. Unblocks: now; no tracked prerequisite.
+  {slug = "build-site-dry-run-write-free", source = "spec/documentation-entry-navigation AC15"},
+
+  # A full generated-HTML crawl performed after the documentation-entry
+  # navigation build found 67 older unresolved internal targets across 53,871
+  # checked links: 60 in the legacy guide corpus and 7 in other unchanged pages.
+  # The 12 entry, contributor, catalogue, core, changelog, and immediate Get
+  # Started surfaces corrected by that spec are clean. A source-only audit cannot see
+  # these failures because Astro resolves relative links from rendered directory
+  # routes. Fix as one atomic change: correct the affected guide sources or
+  # projection rules, then add a generated-HTML internal href/fragment audit to
+  # the site CI gate. Do not enable the gate before remediation, because that
+  # would deliberately leave main failing. Affected areas: guides/, any owning
+  # build-site rewriter, Makefile/site CI, and focused construction coverage.
+  # Unblocks when the work runs in a writable site-build environment or CI; no
+  # tracked prerequisite.
+  {slug = "rendered-site-link-debt", source = "spec/documentation-entry-navigation AC15"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1850,7 +1885,8 @@ status    = "active"
 milestone = "M2 · Authoring Discovery + Information Architecture"
 # Milestone advance (Phase 0, 2026-07-31): M1 (Shaping + Contract Convergence) is
 # complete. Waves 1 and 2 shipped; research and shaping entries completed and
-# removed from the active queue; information-architecture design now active.
+# removed from the active queue; information-architecture design and its
+# current-route implementation shipped in documentation-entry-navigation.
 # Wave 3 next engine wave (Approved spec + implementation-ready plan).
 
 ["ini-007".shaping_queue]
@@ -1858,27 +1894,12 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 # audience research and contract inventory artifacts; Wave 2 delivered the
 # optional-pack-integration-contract shape; the catalogue-semantics-release-shape
 # delivered the Wave 4 (Approved) spec. The IA design item is now the active work.
-active = [
-  # Design: technical docs IA for five audiences. Prerequisites satisfied:
-  # audience research (catalogue-audience-discovery.md, Wave 1 artifact) and
-  # semantic/index shape (catalogue-semantics-release-shape, Wave 4 Approved spec).
-  # Remaining deliverable (do not execute in Phase 0):
-  #   - "Use" (consumer) vs "Build or evaluate" (builder/evaluator) entry routes
-  #     on the docs-site home and the marketing site;
-  #   - top-level "Build a Catalogue" docs-site navigation (D9 structure outline);
-  #   - /evaluate/ marketing route structure and content outline (D10);
-  #   - pack integration relationship presentation (how D6 integrations surface);
-  #   - root README routing (evaluate → authoring hub; build → catalogue init;
-  #     contribute → CONTRIBUTING path);
-  #   - navigation-depth acceptance targets (≤2 clicks from any entry point to
-  #     the first actionable step for each audience);
-  #   - neutral-index factual ownership (what catalogue-index.json provides vs
-  #     what editorial narrative provides — no duplication);
-  #   - README, JOURNEY, guide, and editorial narrative ownership map.
-  # Unblocks: Wave 6 (docs-site IA implementation, needs this design) and
-  #   Wave 7 (marketing evaluator, needs Wave 6).
-  {slug = "catalogue-discovery-information-architecture", type = "design"},
-]
+# Catalogue discovery IA completed 2026-08-12. The cross-surface design,
+# content-ownership map, audience routes, and navigation-depth contract live in
+# docs/specs/documentation-entry-navigation/notes/information-architecture.md.
+# Its current-route implementation shipped below. Wave 6 and Wave 7 retain
+# only the Wave 4/index-dependent work the current implementation cannot own.
+active = []
 backlog = []
 
 ["ini-007".work]
@@ -1888,6 +1909,7 @@ shipped = [
   "spec/pack-test-boundary-remaining-packs",  # completes ADR-0071 — no pack ships tests in its runtime payload
   "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate
   "spec/catalogue-wave2-pack-integrations",     # 0.27.0 — D6 integrations schema + verifier + show + pilots + hub
+  "spec/documentation-entry-navigation",        # current-route hub-and-spoke README, marketing, docs, guide, and contributor IA
 ]
 queue   = [
 
@@ -1959,32 +1981,32 @@ queue   = [
   # release comparison; release evidence in catalogue-manifest.json; regression tests.
   {path = "spec/catalogue-wave5-release-integrity", needs = "work:spec/catalogue-wave4-semantic-contracts-index"},
 
-  # Wave 6 — Technical docs information architecture. Gated on Wave 4 + IA design
-  # + the docs-site design refresh (ini-002): both touch docs-site/astro.config.ts
-  # and the Starlight theme; the refresh owns the visual system (tokens, type,
-  # sidebar/link presentation, eyebrow group labels), so Wave 6 is IA/structure
-  # ONLY — new sections, routes, and sidebar reorganization on top of the
-  # refreshed theme, with no restyling and no token changes.
-  # Deliver: "Build a Catalogue" top-level docs-site section; generated field references;
-  # index consumption; "Use" vs "Build" home routes; sidebar links verified.
-  {path = "spec/catalogue-wave6-technical-docs-ia", needs = ["work:spec/catalogue-wave4-semantic-contracts-index", "shape:catalogue-discovery-information-architecture", "ini-002:work:spec/docs-site-design-refresh"]},
+  # Wave 6 — Index-backed technical catalogue reference. Gated on Wave 4 and
+  # the current-route editorial/navigation foundation. The foundation already
+  # delivers outcome/role routing and "Use" vs "Build" home paths without
+  # changing the refreshed visual system. Do not repeat that work here.
+  # Remaining deliverable: a top-level "Build a Catalogue" sidebar/reference
+  # section; generated field references; neutral catalogue-index consumption;
+  # and deep sidebar links verified against the generated inventory. No restyling.
+  {path = "spec/catalogue-wave6-technical-docs-ia", needs = ["work:spec/catalogue-wave4-semantic-contracts-index", "work:spec/documentation-entry-navigation", "ini-002:work:spec/docs-site-design-refresh"]},
 
-  # Wave 7 — Marketing evaluator surfaces. Gated on Wave 6.
-  # Deliver: /evaluate/ page; catalogue+pack pages consume neutral-index facts;
-  # composition relationship view; no visual system redesign.
+  # Wave 7 — Index-backed marketing evaluator surfaces. Gated on Wave 6.
+  # The current-route foundation already delivers outcome/role discovery,
+  # catalogue breadth, and the self-host story. Do not repeat those sections.
+  # Remaining deliverable: /evaluate/; catalogue and pack pages consuming
+  # neutral-index facts; and the optional-integration relationship view. No
+  # visual system redesign.
   {path = "spec/catalogue-wave7-marketing-evaluator", needs = "work:spec/catalogue-wave6-technical-docs-ia"},
 
-  # Wave 8 — Repository README and contributing convergence. Gated on Wave 1.
-  # May run in parallel with Waves 4-7. Deliver: "Evaluate or build a catalogue"
-  # section; fork language replaced; pack table generated or flagship subset;
-  # CONTRIBUTING updated with portable authoring rules + integration authoring rule.
-  {path = "spec/catalogue-wave8-readme-contributing", needs = "work:spec/catalogue-wave1-contract-convergence"},
+  # Wave 8 was superseded before implementation by the shipped cross-surface
+  # documentation-entry-navigation spec above.
 
-  # Wave 9 — First-party migration and closeout. Gated on Waves 2, 5, 7, 8.
+  # Wave 9 — First-party migration and closeout. Gated on Waves 2, 5, 7 and
+  # the Wave 8 replacement.
   # Deliver: all packs+profiles migrated; drift fixes; strict-resolution policy;
   # complete site projection; old external catalogues verified valid; security+
   # quality reviews clean; workspace.toml closed out.
-  {path = "spec/catalogue-wave9-migration-closeout", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:spec/catalogue-wave5-release-integrity", "work:spec/catalogue-wave7-marketing-evaluator", "work:spec/catalogue-wave8-readme-contributing"]},
+  {path = "spec/catalogue-wave9-migration-closeout", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:spec/catalogue-wave5-release-integrity", "work:spec/catalogue-wave7-marketing-evaluator", "work:spec/documentation-entry-navigation"]},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 name: Core
 pluginInstallable: false
 scope: repo
-tagline: "The build loop. Spec → shipped code. Supervised."
+tagline: "The agentic build loop that cannot self-certify."
 skills:
   - work-loop
   - new-spec
@@ -16,6 +16,6 @@ docsUrl: /docs/guides/core/
 journeyUrl: /journeys/core/
 ---
 
-Core is the engine of the build loop. After installing it, every coding task runs through `work-loop`: plan → execute → verify → adversarial review. Mechanical gates (lint, typecheck, tests) and three specialist reviewers run every diff before it reaches a decision point — whether that decision is yours at a keyboard or your harness answering a gate programmatically.
+Core is a complete build system for coding agents. Non-trivial work runs through `work-loop`: surface assumptions → plan → implement → lint, typecheck, and test → cold independent review → fix or finish. The adversarial reviewer is the hard review gate; security and quality lenses join when the diff warrants them. Fingerprinted findings expose stasis instead of letting the agent repeat the same failed approach.
 
-The loop cannot self-certify. It always stops at plan approval and PR merge. Who answers those gates — a person or a control harness — is up to you.
+The loop scales its ceremony with risk, but it never self-certifies. It stops at plan approval, unresolved boundaries, repeated findings, and PR merge. Who answers those gates—a person or a control harness—is up to you.

@@ -1,106 +1,105 @@
 ---
-title: Get Started
-description: From zero to your first loop in under five minutes.
+title: Get started
+description: Install a supervised agent workflow matched to the work you need to do.
 ---
 
 import { Tabs, TabItem } from '@astrojs/starlight/components';
 import PromptBlock from '../../../components/primitives/PromptBlock.astro';
 
-agent-ready-repo ships the complete AI operating model for software teams. This guide gets you from zero to your first loop in under five minutes.
+Start with a real task whose result you can verify. Most software teams should start with `core`: it is the catalogue's flagship build system, not merely a sample. Product, design, infrastructure, research, and catalogue work remain first-class starting points alongside it.
 
-## What you're installing
+## What a pack installs
 
-When you install a pack, you get:
+Depending on the pack and adapter, an installation can add:
 
-- **Skills** — slash commands your agent runs on request (`/work-loop`, `/new-spec`, `/bug-fix`)
-- **Subagents** — specialist reviewers that read your diff cold (`adversarial-reviewer`, `security-reviewer`, `quality-engineer`)
-- **Hooks** — automation that fires at session start and before a PR opens
-- **Seeds** — scaffolding for your repo's governance docs
+- **Skills** — repeatable workflows your agent discovers from your request.
+- **Subagents** — specialist executors or reviewers that receive bounded tasks.
+- **Hooks and commands** — adapter-supported automation and explicit entry points.
+- **Seeds and configuration** — repository scaffolding or pack defaults delivered through declared contracts.
 
-Everything lands as files in your repo (or your home directory for user-scope packs). No runtime, no service, no lock-in.
+The result is a set of readable files in your repository or user-scope agent directory. `agentbundle` installs and upgrades them; it is not a hosted agent runtime.
 
-## Step 1: Install the CLI
+## Step 1: install the CLI
 
 ```bash
 python -m pip install agentbundle
 ```
 
-The `agentbundle` CLI manages pack installation, upgrade, and discovery. One-time setup — upgrade it like any other pip package.
+Before any real install, add `--dry-run` to preview the rendered files and any preserved companions.
 
-## Step 2: Pick your starting point
+Claude users can also [add this catalogue as a plugin marketplace](/agent-ready-repo/docs/getting-started/install/#route-2-claude-plugins) for user-scope packs. `core` and other repo-scoped packs install with `agentbundle` so the workflow is shared and versioned with the project.
+
+## Step 2: choose your starting work
 
 <Tabs>
-  <TabItem label="Just the build loop">
-    The flagship pack. Works in any repo, any stack.
+  <TabItem label="Build and review">
+    Install the flagship supervised work loop into a repository:
 
     ```bash
     agentbundle install --pack core
     ```
 
-    You get: `work-loop`, `new-spec`, `bug-fix`, four reviewer subagents, session-start and pre-PR hooks.
+    Start with a feature or bug whose tests and diff you can inspect. The loop makes assumptions explicit, plans against the repository's real contracts, implements, runs mechanical gates, and sends the diff into a cold independent review. It fixes findings until clean, stops if progress stalls, and never crosses the human merge gate for you.
   </TabItem>
-  <TabItem label="Full company OS">
-    All three loops — discovery, build, release.
+  <TabItem label="Product decisions">
+    Install the portable strategy, evidence, and shaping workflows you need:
+
+    ```bash
+    agentbundle install --pack product-strategy --scope user
+    agentbundle install --pack desk-research --scope user
+    agentbundle install --pack product-engineering --scope user
+    ```
+
+    You can install these independently. Together they move from a strategic question or uncertain idea through evidence and competing shapes to a decision brief a delivery team can act on. A human ratifies the bet before it crosses into implementation.
+  </TabItem>
+  <TabItem label="Infrastructure and release">
+    Install the supervised build spine, reviewable Terraform workflow, and release loop into the repository:
 
     ```bash
     agentbundle install --pack core
-    agentbundle install --pack product-engineering --scope user
+    agentbundle install --pack iac-terraform
     agentbundle install --pack release-engineering
     ```
+
+    `iac-terraform` stops at a reviewable plan; it never runs `terraform apply`. `release-engineering` converges in an ephemeral environment and stops at the human production gate. Add user-scope `architect` and `contracts` when the system and interface decisions also need shaping.
   </TabItem>
-  <TabItem label="Inception profile">
-    For taking a raw idea from zero to a buildable repo.
+  <TabItem label="Curated profile">
+    Use a profile when its single-scope pack set matches your starting job:
 
     ```bash
+    agentbundle list-profiles
     agentbundle install --profile inception
     ```
 
-    Lands: `desk-research` + `product-engineering` + `architect`
-  </TabItem>
-  <TabItem label="Solution architect">
-    Design, research, and API contracts.
-
-    ```bash
-    agentbundle install --profile solution-architect
-    ```
-
-    Lands: `architect` + `desk-research` + `contracts`
+    `inception` supports idea-to-buildable-repo work; `solution-architect` groups architecture, research, and contracts; `full-ceremony` adds the repository governance set around `core`.
   </TabItem>
 </Tabs>
 
-## Step 3: Adapt to your repo
+## Step 3: make the first request
 
-After install, open your agent and run:
-
-```
-/adapt-to-project
-```
-
-This reads your repo's stack and conventions, then tailors the installed skills to match. It fills in the command stubs in your `AGENTS.md` and wires up the hooks correctly.
-
-## Step 4: Use the loop
-
-Your first real task:
+Use natural language. Installed skills are discovered from the work you ask for.
 
 <PromptBlock
   speaker="You"
-  prompt="Implement <feature> with the work-loop."
+  prompt="Implement the smallest testable version of <feature> with the work-loop."
   mode="read-only"
 />
 
-The build loop will:
+Other credible first requests:
 
-1. **Plan** — name the files it'll touch, write the tests, name what it won't change
-2. **Execute** — red-green-refactor or goal-based, depending on the task
-3. **Gate** — lint, typecheck, tests must all pass
-4. **Review** — adversarial reviewer reads the diff cold in a fresh context
-5. **Decide** — fix blockers, defer nits, ship
+- **Product:** “Compare the evidence for these three product bets and help me place one bounded bet.”
+- **Infrastructure:** “Design the deployment boundary, then generate a reviewable Terraform plan. Do not apply it.”
+- **Catalogue owner:** “Initialize a catalogue for our organization and show me the contracts I need to customize.”
 
----
+## Step 4: inspect the result and boundary
 
-## What's next
+The first-value artifact should be something you can judge in minutes: a decision brief, architecture note, contract, tested diff, Terraform plan, documentation change, or release-readiness record. Check what the agent did, what remains unverified, and which decision it surfaced to a human.
 
-- [Install routes](install/) — CLI, Claude Plugins, APM, and local clone
-- [The three loops explained](three-loops/) — how discovery, build, and release compose
-- [Choose your packs](../packs/) — the full catalogue with one-liner descriptions
-- [Adapter support matrix](../guides/_shared/reference/adapter-support/) — what works in your agent
+## Continue
+
+- [Choose work by outcome and role](/agent-ready-repo/docs/).
+- [Browse every pack](/agent-ready-repo/docs/packs/).
+- [Compare install routes](/agent-ready-repo/docs/guides/_shared/explanation/install-routes/).
+- [Check adapter support](/agent-ready-repo/docs/guides/_shared/reference/adapter-support/).
+- [Install a profile](/agent-ready-repo/docs/guides/_shared/how-to/install-a-profile/).
+- [Understand the three loops](/agent-ready-repo/docs/getting-started/three-loops/).

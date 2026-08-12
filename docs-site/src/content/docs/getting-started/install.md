@@ -130,4 +130,4 @@ The pack's README documents which scope it defaults to. Override with `--scope u
 
 Installs never silently overwrite your edits. If a file you've modified would be overwritten, it lands as `<name>.upstream` instead — a companion file you merge at your own pace. Your edits are always preserved.
 
-[File safety contract explained](../guides/_shared/explanation/file-safety-contract/)
+[File safety contract explained](/agent-ready-repo/docs/guides/_shared/explanation/file-safety-contract/)

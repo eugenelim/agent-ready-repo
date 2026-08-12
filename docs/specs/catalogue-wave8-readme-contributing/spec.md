@@ -1,6 +1,7 @@
 # Spec: catalogue-wave8-readme-contributing
 
-- **Status:** Approved
+- **Status:** Archived
+- **Superseded by:** [`documentation-entry-navigation`](../documentation-entry-navigation/spec.md) — the replacement removes the hand-maintained README pack table, migrates its adopter information to canonical public surfaces, and absorbs this spec's CONTRIBUTING requirements.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076 D1–D4](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
@@ -9,6 +10,9 @@
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
+
+> Archived before implementation on 2026-08-12. The replacement spec is the
+> authoritative contract; the unchecked criteria below remain historical.
 
 Mode: full (public interface: README.md and CONTRIBUTING.md are public-facing documents;
 structural: adds a named section to README.md)
@@ -123,7 +127,7 @@ change is required; this wave touches documentation only.
 - [ ] AC2: The subsection heading `### Evaluate or build a catalogue` produces
   an anchor that is reachable via the README navigation link strip at the top of
   the file (or the navigation link strip is updated to include it). Either the
-  existing `[The Catalogue](#the-catalogue)` link covers it, or a new link is
+  then-existing `The Catalogue` README link covers it, or a new link is
   added — either is acceptable; do not add a link that does not resolve.
 
 ### Phase B — README.md: Fork language and pack table
