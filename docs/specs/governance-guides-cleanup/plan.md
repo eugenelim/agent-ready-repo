@@ -94,7 +94,7 @@ Build the guard from its black-box CLI contract first, then use it to inventory 
 - Inventory all mechanical candidates, classify spec-slug judgment cases against real directories and authority language, and patch only the Type-A pointer or citation clause.
 - Delink or repoint deprecated-stream references without touching the compatibility pack.
 
-**Done when:** the real guard is clean, focused searches show no stale stream name, and manual review records which real/pending spec citations were removed versus which examples were retained.
+**Done when:** the real guard is clean, focused searches show no stale stream name, and manual review records which real/pending spec citations were removed versus which examples were retained — recorded in [`notes/scrub-judgment.md`](notes/scrub-judgment.md).
 
 ### T3: Documentation CI runs the guard whenever its inputs change
 
@@ -167,4 +167,5 @@ The scrub and CI guard ship atomically in one reversible repository change. Ther
 - 2026-08-12: Added reference-style Markdown link coverage after adversarial review and aligned CI verification wording.
 - 2026-08-12: Added a narrow existing route-docs lint assertion update after `build-check` still required `user-guide-diataxis` in `install-routes.md`.
 - 2026-08-12: Recorded the adopter-visible guide change in `docs/product/changelog.md` and widened the spec's `docs/` boundary to authorize it (AC12).
+- 2026-08-12: Wrote the T2 spec-slug judgment record the Done-when required; it was the loop's one unwritten artifact.
 - 2026-08-12: Added reference-style Markdown link coverage after adversarial review and aligned CI verification wording.
