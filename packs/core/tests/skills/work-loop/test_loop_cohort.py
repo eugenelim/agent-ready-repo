@@ -2832,10 +2832,11 @@ def test_ac1_fence_tracking_follows_commonmark(tmp: Path) -> None:
     ok(name)
 
 
-def test_ac5_nested_fence_plan_stays_normalizable(tmp: Path) -> None:
-    """AC5 regression fixture for a plan carrying nested, odd-count fences."""
+def test_ac5_nested_fence_plan_stays_normalizable() -> None:
+    """AC5 regression fixture for a valid plan with an odd raw fence count."""
     name = "ac5-nested-fence-plan-stays-normalizable"
-    base = """# Plan\n\n### T1: Example\n\n```markdown\n~~~text\nexample\n~~~\n```\n\n```text\nunclosed fixture fence\n"""
+    base = """# Plan\n\n### T1: Example\n\n```markdown\n```toml\nvalue = 1\n```\n```\n```\n"""
+    assert base.count("```") == 5
     same = (canonical_contract(base + "\n### T9\n\n- [ ] T9 done\n", ac_section_only=False)
             == canonical_contract(base + "\n### T9\n\n- [x] T9 done\n", ac_section_only=False))
-    ok(name) if same else fail(name, "ticking a task in a real plan moved the digest")
+    ok(name) if same else fail(name, "ticking a task after nested fences moved the digest")
