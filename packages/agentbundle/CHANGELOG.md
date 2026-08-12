@@ -13,7 +13,8 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 - **Workspace MCP status now consumes canonical routing eligibility.** Ready
   work is limited to dispatchable canonical queue specs, blocked entries carry
   stable findings, and malformed workspace state fails closed without leaking
-  raw exception text or absolute paths.
+  raw exception text or absolute paths. Trusted-mode package installs retain a
+  byte-identical engine fallback when no repository projection is available.
 
 ## [0.33.1] — 2026-08-12
 

@@ -225,26 +225,22 @@ def _is_skill_present(dispatch_skill: str | None, repo_root: Path) -> bool:
 # ── workspace_status_engine discovery ────────────────────────────────────────
 
 def _load_workspace_status_engine(repo_root: Path):
-    """Import workspace_status_engine from the projected adapter skills directory."""
+    """Import the canonical engine from an installed or packaged projection."""
     import importlib.util
 
-    # Checkout-relative paths are valid for trusted-repo sessions only. When running
-    # in isolated mode (`python -I`), skip them — a malicious checkout could replace
-    # these scripts and defeat the -I isolation guarantee. Stage 1 targets trusted-repo
-    # sessions; untrusted-repo (-I) use requires the engine to ship with the package.
+    # All current candidates are enabled for trusted-repo sessions only. Keep the
+    # existing explicit refusal in isolated mode until that spawn contract lands.
     candidates: list[Path] = []
     if not sys.flags.isolated:
         candidates = [
             repo_root / ".claude/skills/workspace-status/scripts/workspace_status_engine.py",
             repo_root / ".agents/skills/workspace-status/scripts/workspace_status_engine.py",
             repo_root / ".kiro/skills/workspace-status/scripts/workspace_status_engine.py",
+            Path(__file__).resolve().parent / "_data/workspace_status_engine.py",
+            # Development fallback before the package projection is refreshed.
+            Path(__file__).resolve().parents[3]
+            / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py",
         ]
-    # Package-relative source path (development / pre-build-self; also the only
-    # candidate in isolated mode, where __file__ is inside site-packages):
-    candidates.append(
-        Path(__file__).resolve().parents[3]
-        / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
-    )
     for path in candidates:
         if path.exists():
             spec = importlib.util.spec_from_file_location("workspace_status_engine", path)

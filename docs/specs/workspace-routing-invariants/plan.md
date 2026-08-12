@@ -1,7 +1,7 @@
 # Plan: Workspace routing invariants
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially,
@@ -86,7 +86,7 @@ Traces to: AC3, AC6, AC13, AC16–AC25.
 
 ### Dependencies & integration
 
-The CLI imports the engine beside it. `workspace-mcp` loads the projected engine and only projects its evaluation. `work-loop` invokes the canonical status/preflight surface. Group 4 later uses the same evaluation before guarded lifecycle writes. Traces to: AC19–AC22.
+The CLI imports the engine beside it. `workspace-mcp` loads the installed projection first, then a byte-identical packaged projection when an extracted source distribution has no core-pack checkout; it only projects the engine evaluation. `work-loop` invokes the canonical status/preflight surface. Group 4 later uses the same evaluation before guarded lifecycle writes. Traces to: AC19–AC22.
 
 ## Tasks
 
@@ -240,3 +240,4 @@ The CLI imports the engine beside it. `workspace-mcp` loads the projected engine
 - 2026-08-09: Initial plan derived from accepted RFC-0083, the Group 2 task boundary, and confirmed assumptions.
 - 2026-08-10: Pre-execution review defined the finding registry, aligned provenance fields with Group 2, strengthened path/error/receipt/determinism/skill-safety coverage, corrected the projection-test path, and materialized red TDD stubs.
 - 2026-08-10: Mid-execution review selected the RFC-delegated coordination-receipt TOML encoding after a synthetic workspace receipt table was found to violate the index-only boundary; the loop state was reset for reapproval without discarding implementation work.
+- 2026-08-12: Post-rebase verification added a byte-identical packaged engine projection so trusted-mode MCP tests remain self-contained in the extracted source distribution while installed core-pack projections retain precedence.

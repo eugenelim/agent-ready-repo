@@ -71,6 +71,27 @@ def test_t3_work_loop_step0_requires_canonical_preflight() -> None:
     assert "Do not re-read raw `[work].queue` or `[work].active`" in normalized
 
 
+def test_packaged_engine_projection_matches_canonical_source() -> None:
+    source = (
+        CORE_PACK
+        / ".apm"
+        / "skills"
+        / SKILL_NAME
+        / "scripts"
+        / "workspace_status_engine.py"
+    )
+    packaged = (
+        REPO_ROOT
+        / "packages"
+        / "agentbundle"
+        / "agentbundle"
+        / "_data"
+        / "workspace_status_engine.py"
+    )
+
+    assert packaged.read_bytes() == source.read_bytes()
+
+
 def test_t4_repair_determinism_projection_and_release_surface() -> None:
     engine_path = (
         CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status_engine.py"

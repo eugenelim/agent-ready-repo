@@ -441,6 +441,9 @@ python3 -m agentbundle.workspace_mcp
 > spawn mode (`python3 -I -m agentbundle.workspace_mcp`) is planned for
 > Stage 2 and will require a stable non-editable install.
 
+In trusted mode, workspace status prefers an installed core-pack projection and
+falls back to the byte-identical engine projection bundled with `agentbundle`.
+
 **Inject the session instruction** so the agent knows to use the tools:
 
 ```python

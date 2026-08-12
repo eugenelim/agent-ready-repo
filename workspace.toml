@@ -2023,10 +2023,9 @@ milestone = "Wave 2 · Routing invariants"
 ["ini-008".work]
 shipped = [
   "spec/normalized-intake-workspace-contracts",
-]
-active = [
   {path = "spec/workspace-routing-invariants", kind = "spec", source = {mode = "repo-origin"}, summary = "Make lifecycle, reconciliation, and dispatch routing deterministic", needs = ["work:spec/normalized-intake-workspace-contracts"]},
 ]
+active = []
 queue = [
   {path = "spec/work-intake-surface", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = ["work:spec/normalized-intake-workspace-contracts", "work:spec/workspace-routing-invariants"]},
   {path = "spec/tracker-intake-adapters", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = ["work:spec/normalized-intake-workspace-contracts", "work:spec/work-intake-surface"]},
