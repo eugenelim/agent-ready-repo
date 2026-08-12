@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import re
 import sys
 import tomllib
 from pathlib import Path
@@ -88,7 +89,13 @@ def validate_sequencing(workflow: str, evidence_present: bool) -> list[str]:
             "rollout (docs/guides/how-to/publisher-app-rollout.md) or restore "
             "the interim identity"
         )
-    if "contents: write" in workflow and mode == "app":
+    # Anchor to a mapping key at line start. A bare substring test also matches
+    # the token step's own `permission-contents: write`, which is the App's
+    # requested installation scope, not a GITHUB_TOKEN grant.
+    grants_write = re.search(
+        r"(?m)^\s+contents:\s+write\s*(?:#.*)?$", workflow
+    )
+    if grants_write and mode == "app":
         errors.append(
             "App-token publisher must keep GITHUB_TOKEN read-only"
         )
@@ -133,6 +140,44 @@ def _has_publishable_hook_pack(root: Path) -> bool:
             if source.is_dir() and any(item.is_file() for item in source.rglob("*")):
                 return True
     return False
+
+
+# Internal settings must not enter the repository. These keys are the ones a
+# well-meaning regeneration would reintroduce, because they are what the live
+# API returns alongside the structural state we do want.
+FORBIDDEN_IDENTIFIER_KEYS = (
+    "actor_id",
+    "app_id_value",
+    "installation_id",
+    "ruleset_id",
+    "account_id",
+    "node_id",
+)
+
+
+def _identifier_leaks(value: object, path: str = "evidence") -> list[str]:
+    """Return every forbidden identifier key reachable inside `value`.
+
+    Walks rather than checking known locations: the point is to catch an
+    identifier wherever a future capture change puts it, including a bare `id`
+    on the app block, which is where this leaked the first time.
+    """
+    errors: list[str] = []
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            here = f"{path}.{key}"
+            if key in FORBIDDEN_IDENTIFIER_KEYS or (
+                key == "id" and path != "evidence"
+            ):
+                errors.append(
+                    f"{here} carries an internal identifier; evidence records "
+                    "identities_agree, never the identifiers themselves"
+                )
+            errors.extend(_identifier_leaks(nested, here))
+    elif isinstance(value, list):
+        for index, nested in enumerate(value):
+            errors.extend(_identifier_leaks(nested, f"{path}[{index}]"))
+    return errors
 
 
 def _load(path: Path) -> dict:
@@ -214,29 +259,23 @@ def compare_evidence(desired: dict, evidence: dict) -> list[str]:
     ):
         errors.append("evidence branch, app, and environment must be objects")
     else:
-        branch_without_id = json.loads(json.dumps(observed_branch))
-        observed_bypass = branch_without_id.get("bypass", {})
-        bypass_actor_id = (
-            observed_bypass.pop("actor_id", None)
-            if isinstance(observed_bypass, dict)
-            else None
-        )
-        app_without_id = dict(observed_app)
-        app_id = app_without_id.pop("id", None)
-        environment_without_id = dict(observed_environment)
-        environment_app_id = environment_without_id.pop("app_id_value", None)
-        if branch_without_id != desired.get("branch"):
+        if observed_branch != desired.get("branch"):
             errors.append("evidence branch differs from desired control")
-        if app_without_id != desired.get("app"):
+        if observed_app != desired.get("app"):
             errors.append("evidence app differs from desired control")
-        if environment_without_id != desired.get("environment"):
+        if observed_environment != desired.get("environment"):
             errors.append("evidence environment differs from desired control")
-        normalized_ids = {str(value) for value in (bypass_actor_id, app_id, environment_app_id)}
-        if None in (bypass_actor_id, app_id, environment_app_id) or len(normalized_ids) != 1:
+        # The three-way identity agreement is asserted, not restated. Carrying
+        # the App ID three times would publish an internal identifier for no
+        # gain; the capture tool compares them against live state and records
+        # only the verdict, which must be explicitly true.
+        if evidence.get("identities_agree") is not True:
             errors.append(
-                "ruleset bypass, app installation, and environment variable "
-                "must identify the same publisher App ID"
+                "evidence must assert identities_agree: true — the ruleset "
+                "bypass actor, the App installation, and the environment's App "
+                "ID variable all naming the same App"
             )
+        errors.extend(_identifier_leaks(evidence))
     if evidence.get("canary") != desired.get("canary"):
         errors.append("evidence canary differs from desired control")
     observed_at = evidence.get("observed_at")

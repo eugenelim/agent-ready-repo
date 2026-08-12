@@ -307,6 +307,7 @@ def main() -> int:
         "permissions:\n  contents: read\n"
         "    environment: claude-plugin-publish\n"
         "      - uses: actions/create-github-app-token@" + "0" * 40 + "\n"
+        "          permission-contents: write\n"
         "        persist-credentials: false\n"
     )
     interim_shape = (

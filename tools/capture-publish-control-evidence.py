@@ -3,8 +3,13 @@
 
 Reads the live ruleset, environment, and App installation through `gh api` and
 emits the shape `tools/lint-claude-plugin-publish-control.py` compares against
-`.github/claude-plugin-publish-control.json`. Nothing secret is read or written:
-the App ID is a public identifier, and only structural booleans accompany it.
+`.github/claude-plugin-publish-control.json`.
+
+The artifact carries NO identifiers — no App ID, installation ID, ruleset ID, or
+account ID. Those are internal settings and do not belong in the repository. The
+three-way identity agreement they used to evidence is computed here against live
+state and recorded as the single `identities_agree` boolean; the lint refuses any
+evidence file that reintroduces a raw identifier.
 
 The canary outcomes are deliberately NOT inferred. They record pushes the
 operator performed, not state the API holds, so asserting them from a settings
@@ -12,17 +17,28 @@ read would make the evidence self-confirming — exactly the failure mode the
 desired-state/evidence split exists to prevent. Pass them explicitly once the
 canary sequence in docs/guides/how-to/publisher-app-rollout.md has been run.
 
+The installation read authenticates as the App, because no user-token route to
+it exists: `gh`'s OAuth token is refused by `/user/installations` (403) and
+`/repos/{repo}/installation` is App-only (404). So the private key is required
+here, and must not be deleted until this step has run.
+
 Usage:
     python3 tools/capture-publish-control-evidence.py --repo owner/name \\
+        --private-key ~/.config/github-apps/claude-plugin-publisher.pem \\
         --ordinary-update rejected --publisher-app-update accepted
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import json
+import re
 import subprocess
 import sys
+import time
+import urllib.error
+import urllib.request
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -42,6 +58,19 @@ CANARY_BRANCH = "refs/heads/claude-plugins-dist-control-canary"
 
 class CaptureError(RuntimeError):
     """A live observation could not be made or did not match the contract."""
+
+
+def _validate_repo(repo: str) -> str:
+    """Return `repo` if it is a bare `owner/name`, else raise.
+
+    Keeps a stray path segment out of the API URLs assembled below, so the
+    fixed-scheme guarantee those calls rely on is actually true.
+    """
+    if not re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", repo):
+        raise CaptureError(
+            f"--repo must be a bare owner/name, got {repo!r}"
+        )
+    return repo
 
 
 def _gh_api(path: str) -> object:
@@ -70,7 +99,11 @@ def _gh_api(path: str) -> object:
 
 
 def observe_branch(repo: str, target: str) -> dict:
-    """Return the sanitized ruleset protecting `target`."""
+    """Return the sanitized ruleset for `target`, plus its bypass actor id.
+
+    The actor id is returned for comparison only and never reaches the
+    artifact — see build_evidence.
+    """
     rulesets = _gh_api(f"repos/{repo}/rulesets")
     if not isinstance(rulesets, list):
         raise CaptureError("ruleset listing was not a JSON array")
@@ -96,9 +129,8 @@ def observe_branch(repo: str, target: str) -> dict:
                 "actor_type": actor.get("actor_type"),
                 "actor_binding": "environment_app_id",
                 "mode": actor.get("bypass_mode"),
-                "actor_id": actor.get("actor_id"),
             },
-        }
+        }, actor.get("actor_id")
     raise CaptureError(
         f"no active ruleset targets {target}; create it before capturing "
         "evidence (runbook step 3)"
@@ -106,7 +138,11 @@ def observe_branch(repo: str, target: str) -> dict:
 
 
 def observe_environment(repo: str) -> dict:
-    """Return the sanitized protected-environment policy and its App ID."""
+    """Return the sanitized environment policy, plus its App ID variable value.
+
+    The App ID is returned for comparison only and never reaches the
+    artifact — see build_evidence.
+    """
     env = _gh_api(f"repos/{repo}/environments/{ENVIRONMENT_NAME}")
     reviewers = 0
     prevent_self_review = False
@@ -135,54 +171,138 @@ def observe_environment(repo: str) -> dict:
         "allow_admin_bypass": bool(env.get("can_admins_bypass")),
         "app_id_variable": APP_ID_VARIABLE,
         "private_key_secret": "CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY",
-        "app_id_value": variable.get("value"),
-    }
+    }, variable.get("value")
 
 
-def observe_app(app_id: object) -> dict:
+def _b64url(raw: bytes) -> str:
+    """Return base64url without padding, as JWT requires."""
+    return base64.urlsafe_b64encode(raw).decode().rstrip("=")
+
+
+def _mint_app_jwt(app_id: object, key_path: Path) -> str:
+    """Return a short-lived RS256 JWT asserting the App's own identity.
+
+    Signing shells out to `openssl` to keep this tool pure-stdlib: RS256 needs
+    an RSA implementation the standard library does not provide, and adding a
+    crypto dependency for one signature in an operator-run script is not worth
+    the supply-chain surface.
+    """
+    header = _b64url(b'{"alg":"RS256","typ":"JWT"}')
+    issued = int(time.time()) - 60
+    claims = json.dumps(
+        {"iat": issued, "exp": issued + 600, "iss": str(app_id)},
+        separators=(",", ":"),
+    )
+    signing_input = f"{header}.{_b64url(claims.encode())}"
+    try:
+        completed = subprocess.run(
+            ["openssl", "dgst", "-sha256", "-sign", str(key_path), "-binary"],
+            input=signing_input.encode(),
+            check=False,
+            capture_output=True,
+        )
+    except FileNotFoundError:
+        raise CaptureError("`openssl` is required to sign the App JWT") from None
+    if completed.returncode != 0:
+        raise CaptureError(
+            "could not sign the App JWT with "
+            f"{key_path}: {completed.stderr.decode().strip()}"
+        )
+    return f"{signing_input}.{_b64url(completed.stdout)}"
+
+
+def _app_api(path: str, jwt: str) -> object:
+    """Return parsed JSON from an App-authenticated (JWT) GitHub API read."""
+    request = urllib.request.Request(
+        f"https://api.github.com/{path}",
+        headers={
+            "Authorization": f"Bearer {jwt}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    try:
+        # nosec B310 — the scheme is a fixed literal above, and every path
+        # segment interpolated into it is either a constant or a `--repo` value
+        # already constrained to `owner/name` by _validate_repo.
+        with urllib.request.urlopen(request, timeout=30) as response:  # nosec B310
+            return json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404 and path.endswith("/installation"):
+            raise CaptureError(
+                "the App is not installed on this repository (404). Install it "
+                "on this repository only, then re-run (runbook step 1)"
+            ) from None
+        raise CaptureError(f"GET {path} failed: HTTP {exc.code}") from None
+    except urllib.error.URLError as exc:
+        raise CaptureError(f"GET {path} failed: {exc.reason}") from None
+
+
+def observe_app(repo: str, app_id: object, key_path: Path) -> dict:
     """Return the sanitized installation scope and permissions of the App.
 
-    Read through `/user/installations` rather than `/repos/{repo}/installation`:
-    the latter is documented for App (JWT) authentication and 403s under the
-    user token `gh` holds, which would make this step unrunnable by the very
-    operator the runbook addresses.
+    Authenticates AS the App. Neither user-token route works here: `gh`'s OAuth
+    token is not authorized for `/user/installations` (403), and
+    `/repos/{repo}/installation` is App-only by design (404/401). Signing a JWT
+    with the private key the operator already holds is the only path that reads
+    installation permissions authoritatively rather than taking them on trust.
     """
-    listing = _gh_api("user/installations")
-    installations = listing.get("installations", [])
-    for installation in installations:
-        if str(installation.get("app_id")) != str(app_id):
-            continue
-        permissions = {
-            key: value
-            for key, value in (installation.get("permissions") or {}).items()
-            if value == "write"
-        }
-        selection = installation.get("repository_selection")
-        return {
-            "installation_scope": (
-                "selected_repository" if selection == "selected" else selection
-            ),
-            "permissions": permissions,
-            "id": installation.get("app_id"),
-        }
-    raise CaptureError(
-        f"no installation visible for App ID {app_id!r}; confirm the App is "
-        "installed on this repository and that `gh` is authenticated as an "
-        "account that can see it (runbook step 1)"
-    )
+    jwt = _mint_app_jwt(app_id, key_path)
+    identity = _app_api("app", jwt)
+    if str(identity.get("id")) != str(app_id):
+        raise CaptureError(
+            f"private key belongs to App {identity.get('id')!r}, but the "
+            f"environment variable names {app_id!r}; they must be the same App"
+        )
+    installation = _app_api(f"repos/{repo}/installation", jwt)
+    permissions = {
+        key: value
+        for key, value in (installation.get("permissions") or {}).items()
+        if value == "write"
+    }
+    selection = installation.get("repository_selection")
+    return {
+        "installation_scope": (
+            "selected_repository" if selection == "selected" else selection
+        ),
+        "permissions": permissions,
+    }, installation.get("app_id")
 
 
-def build_evidence(repo: str, target: str, canary: dict) -> dict:
+def build_evidence(
+    repo: str, target: str, canary: dict, key_path: Path
+) -> dict:
     """Assemble the full sanitized evidence document."""
-    # Environment first: its App ID variable is what selects the installation,
-    # and compare_evidence requires the ruleset bypass actor, the installation,
-    # and this variable to resolve to one identity.
-    environment = observe_environment(repo)
+    # Environment first: its App ID variable is what selects the installation.
+    environment, environment_app_id = observe_environment(repo)
+    branch, bypass_actor_id = observe_branch(repo, target)
+    app, installation_app_id = observe_app(repo, environment_app_id, key_path)
+
+    # The three identities are compared HERE and only the verdict is recorded.
+    # Committing the App ID three times would publish an internal identifier
+    # into the repository for no gain: the artifact is a record that the check
+    # passed against live state, and re-running this tool re-verifies it. Same
+    # trust model as the canary outcomes above.
+    identities = {
+        str(value)
+        for value in (bypass_actor_id, installation_app_id, environment_app_id)
+    }
+    identities_agree = (
+        None not in (bypass_actor_id, installation_app_id, environment_app_id)
+        and len(identities) == 1
+    )
+    if not identities_agree:
+        raise CaptureError(
+            "the ruleset bypass actor, the App installation, and the "
+            "environment's App ID variable do not all name the same App; fix "
+            "the mismatch in settings before capturing evidence"
+        )
     return {
         "version": 1,
-        "branch": observe_branch(repo, target),
-        "app": observe_app(environment["app_id_value"]),
+        "branch": branch,
+        "app": app,
         "environment": environment,
+        "identities_agree": identities_agree,
         "canary": canary,
         "observed_at": datetime.now(UTC).isoformat(),
         "observation_source": "github-api-sanitized",
@@ -192,6 +312,13 @@ def build_evidence(repo: str, target: str, canary: dict) -> dict:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo", required=True, help="owner/name")
+    parser.add_argument(
+        "--private-key",
+        type=Path,
+        required=True,
+        help="path to the publisher App's PEM; used only to sign a short-lived "
+        "JWT for the App-only installation read, never written anywhere",
+    )
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument(
         "--target",
@@ -225,7 +352,10 @@ def main(argv: list[str] | None = None) -> int:
         "live_branch_negative_tested": args.live_branch_negative_tested,
     }
     try:
-        evidence = build_evidence(args.repo, args.target, canary)
+        _validate_repo(args.repo)
+        evidence = build_evidence(
+            args.repo, args.target, canary, args.private_key
+        )
     except CaptureError as exc:
         print(f"capture-publish-control-evidence: {exc}", file=sys.stderr)
         return 1

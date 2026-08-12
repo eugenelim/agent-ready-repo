@@ -438,7 +438,7 @@ invalid one before it reaches `merge_json`.
   executable append surface, not safe disclosure metadata; an integration
   assertion proves each hook appears only once in the plugin manifest.
 
-- [ ] **AC35 — Only the reviewed publisher can update executable plugin
+- [x] **AC35 — Only the reviewed publisher can update executable plugin
   content.** Before authored hooks can publish, all of the following are true:
 
   1. An active branch ruleset targets exactly
@@ -488,7 +488,7 @@ invalid one before it reaches `merge_json`.
   Until they do, the workflow holds the interim publisher identity required by
   AC36 — merging the compiler early must not strand publication.
 
-- [ ] **AC36 — The publisher identity matches the provisioning state.** The
+- [x] **AC36 — The publisher identity matches the provisioning state.** The
   workflow authenticates with the identity that actually exists, and a
   construction test refuses any other pairing. Concretely:
 
@@ -508,6 +508,12 @@ invalid one before it reaches `merge_json`.
   5. Full-SHA pinning of every external `uses:` action, the publication-control
      lint step, and the cross-workflow construction gate of AC35 clause 5 hold
      in **both** states; they are not conditioned on provisioning.
+  6. **No internal identifier enters the repository.** The evidence artifact
+     records no App ID, installation ID, ruleset ID, account ID, or node ID. The
+     three-way identity agreement of AC35 clause 6 is computed against live
+     state at capture time and committed as a single asserted boolean. The lint
+     walks the artifact and fails on any forbidden identifier key, so a future
+     capture change cannot quietly reintroduce one.
 
   This criterion exists because the App-token step merged ahead of its
   credentials, leaving publication broken on `main` while every gate stayed

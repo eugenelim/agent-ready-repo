@@ -57,11 +57,9 @@ def main() -> int:
         check(f"mutated {name} fails", bool(lint.validate_desired(changed)))
 
     evidence = copy.deepcopy(desired)
-    evidence["branch"]["bypass"]["actor_id"] = 12345
-    evidence["app"]["id"] = 12345
-    evidence["environment"]["app_id_value"] = "12345"
     evidence.update(
         {
+            "identities_agree": True,
             "observed_at": "2026-08-10T00:00:00Z",
             "observation_source": "github-api-sanitized",
         }
@@ -69,7 +67,7 @@ def main() -> int:
     check("matching independent evidence passes", not lint.compare_evidence(desired, evidence))
 
     mutations = {
-        "bypass actor": ("branch", "bypass", "actor_id", 67890),
+        "bypass actor": ("branch", "bypass", "actor_type", "OrganizationAdmin"),
         "exact target": ("branch", "target", None, "refs/heads/main"),
         "environment branch": ("environment", "deployment_branches", None, ["*"]),
         "reviewer policy": ("environment", "required_reviewers", None, 0),
@@ -83,6 +81,41 @@ def main() -> int:
         else:
             changed[group][key][nested] = value
         check(f"mutated {name} fails", bool(lint.compare_evidence(desired, changed)))
+
+    for label, mutate in (
+        ("absent", lambda e: e.pop("identities_agree")),
+        ("false", lambda e: e.update(identities_agree=False)),
+        ("truthy-but-not-true", lambda e: e.update(identities_agree="yes")),
+    ):
+        changed = copy.deepcopy(evidence)
+        mutate(changed)
+        check(
+            f"identities_agree {label} fails",
+            bool(lint.compare_evidence(desired, changed)),
+        )
+
+    for label, path in (
+        ("app id", ("app", "id")),
+        ("bypass actor_id", ("branch", "bypass", "actor_id")),
+        ("environment app_id_value", ("environment", "app_id_value")),
+    ):
+        changed = copy.deepcopy(evidence)
+        cursor = changed
+        for key in path[:-1]:
+            cursor = cursor[key]
+        cursor[path[-1]] = 4242424
+        check(
+            f"a leaked {label} fails",
+            bool(lint.compare_evidence(desired, changed)),
+        )
+    check(
+        "a nested identifier anywhere is caught by the walk",
+        bool(lint._identifier_leaks({"a": {"b": [{"node_id": "x"}]}})),
+    )
+    check(
+        "a clean evidence body reports no leaks",
+        not lint._identifier_leaks(evidence),
+    )
 
     with tempfile.TemporaryDirectory() as raw:
         root = Path(raw)
@@ -139,6 +172,7 @@ def main() -> int:
         "permissions:\n  contents: read\n"
         "    environment: claude-plugin-publish\n"
         "      - uses: actions/create-github-app-token@" + "0" * 40 + "\n"
+        "          permission-contents: write\n"
         "        persist-credentials: false\n"
     )
     interim_workflow = (

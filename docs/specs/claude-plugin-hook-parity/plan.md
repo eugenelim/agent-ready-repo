@@ -400,6 +400,27 @@ expected and actual sides derive from the same source does not count.
 ### T13 — Owner rollout and live publication-control evidence
 **Depends on:** T12, T14 · **Mode:** Operational verification
 
+> **Rolled out 2026-08-12.** Steps 1–4 are complete and evidenced in
+> `publish-control-evidence.json`. The dedicated publisher App is installed on
+> this repository only, with `contents: write` as its sole write permission; the
+> `claude-plugin-publish` environment is `main`-only with one required reviewer,
+> self-review prevented, and admin bypass off; an active ruleset targets
+> `refs/heads/claude-plugins-dist` restricting updates, deletions, and force
+> pushes, with the App as its only always-bypass actor. No App, installation,
+> ruleset, or account identifier is recorded here or in the evidence — those are
+> internal settings, and the lint refuses an evidence file carrying one.
+> Canary probes both landed as required — an ordinary owner push was rejected
+> (`GH013 … push declined due to repository rule violations`) and the same commit
+> pushed with an App installation token was accepted (`Bypassed rule violations
+> …`); the canary ref was then deleted with the App identity and the ruleset
+> retargeted to the live branch, which was never used as a negative probe.
+>
+> **Step 5 is NOT done.** The frozen-artifact errata — `claude-plugins-manifest-correctness`,
+> `claude-plugin-route-scope`, and ADR-0072's dated branch-integrity statements —
+> have not been written, and the named frozen-artifact sweep has not been run.
+> The spec must not move to `Shipped`, and no hook-bearing user-capable pack may
+> publish, until that is closed.
+
 > **Re-sequenced 2026-08-12 (see T14).** The workflow's App-token step merged in
 > #916 ahead of this task, so the publisher could not authenticate and every
 > push to `main` failed at the minting step for eight consecutive commits. T14

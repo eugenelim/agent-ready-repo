@@ -64,34 +64,57 @@ downloadable exactly once. Do this by hand.
    `actions/create-github-app-token` expects. Do not convert it to PKCS#8, and
    do not move it inside the repository.
 7. **Install App** → select **Only select repositories** → this repository only.
-8. Note the **App ID** from the App's settings page.
+   Creating the App does **not** install it, and an uninstalled App fails much
+   later with an opaque 404 during step 4. Install it now, from
+   `https://github.com/settings/apps/<app-name>/installations`.
+8. Note the **App ID** from the App's settings page — the 6–8 digit numeric
+   field. Not the Client ID (`Iv1.`/`Lv1.`) and not the App slug.
+
+Before going further, confirm in the browser that the App's **Install App** page
+lists this repository under *Installed*. There is no user-token API call that can
+check this — the authoritative read is App-authenticated and happens in step 4,
+which is late to discover a missed install.
 
 ## Step 2 — Configure the protected environment
 
 The environment already exists but holds nothing. Give it the policy ADR-0079
 specifies, then the credentials.
 
+The environment already exists but holds nothing. This whole step is scriptable
+— reviewer policy included.
+
 ```bash
 REPO=<owner/name>
 APP_ID=<app id from step 1>          # numeric App ID, not the Client ID
 KEY=~/.config/github-apps/claude-plugin-publisher.pem
-
-# main-only deployments, owner approval required, no admin bypass.
-gh api -X PUT "repos/$REPO/environments/claude-plugin-publish" \
-  -F "can_admins_bypass=false" \
-  -F "deployment_branch_policy[protected_branches]=false" \
-  -F "deployment_branch_policy[custom_branch_policies]=true"
-
-gh api -X POST \
-  "repos/$REPO/environments/claude-plugin-publish/deployment-branch-policies" \
-  -f "name=main" -f "type=branch"
+USER_ID=$(gh api user --jq .id)      # required-reviewer id, not the login
 ```
 
-Add yourself as a required reviewer with **prevent self-review** enabled, in
-**Settings → Environments → claude-plugin-publish**. The REST API cannot set
-`prevent_self_review`, so this part is browser-only too.
+The reviewer list is an array of objects, which `-F` cannot express, so send a
+JSON body. Setting all four policies in one `PUT` also avoids a window where the
+environment holds credentials under a weaker policy:
 
-Then store the credentials — the App ID as a *variable*, the key as a *secret*:
+```bash
+gh api --method PUT "repos/$REPO/environments/claude-plugin-publish" \
+  --input - <<JSON
+{
+  "wait_timer": 0,
+  "prevent_self_review": true,
+  "can_admins_bypass": false,
+  "reviewers": [{"type": "User", "id": $USER_ID}],
+  "deployment_branch_policy": {
+    "protected_branches": false,
+    "custom_branch_policies": true
+  }
+}
+JSON
+
+gh api --method POST \
+  "repos/$REPO/environments/claude-plugin-publish/deployment-branch-policies" \
+  -f name=main -f type=branch
+```
+
+Only then store the credentials — App ID as a *variable*, key as a *secret*:
 
 ```bash
 gh variable set CLAUDE_PLUGIN_PUBLISHER_APP_ID \
@@ -101,10 +124,26 @@ gh secret set CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY \
   --env claude-plugin-publish --repo "$REPO" < "$KEY"
 ```
 
-**Keep the `.pem` until step 3 is done** — the canary's positive probe signs a
-JWT with it. Delete it after that, not here. If you lose it at any point,
-generate a new key on the App, re-run the `gh secret set` line, and delete the
-superseded key from the App's page; the App ID does not change.
+Confirm what actually stuck, rather than assuming the `PUT` honoured every key:
+
+```bash
+gh api "repos/$REPO/environments/claude-plugin-publish" \
+  --jq '{can_admins_bypass, policy: .deployment_branch_policy,
+         rules: [.protection_rules[] | {type, prevent_self_review,
+                 reviewers: [.reviewers[]?.reviewer.login]}]}'
+gh variable list --env claude-plugin-publish --repo "$REPO"
+gh secret list --env claude-plugin-publish --repo "$REPO"
+```
+
+Expect `can_admins_bypass: false`, a `required_reviewers` rule with
+`prevent_self_review: true` naming you, and `main` as the only deployment
+branch.
+
+**Keep the `.pem` until step 4 has run.** Step 3's positive probe signs a JWT
+with it, and so does step 4's installation read — CI's copy in the environment
+secret is not reachable from your shell. If you lose it at any point, generate a
+new key on the App, re-run the `gh secret set` line, and delete the superseded
+key from the App's page; the App ID does not change.
 
 ## Step 3 — Prove the ruleset on the canary branch first
 
@@ -179,10 +218,6 @@ Then clean up and retarget the ruleset to `refs/heads/claude-plugins-dist`:
 
 ```bash
 git push origin --delete claude-plugins-dist-control-canary
-
-# The key has now served both of its uses. CI reads it from the environment
-# secret from here on, so the local copy is pure liability.
-rm ~/.config/github-apps/claude-plugin-publisher.pem
 ```
 
 > If your GitHub plan cannot express an App-only bypass or a required
@@ -194,15 +229,28 @@ rm ~/.config/github-apps/claude-plugin-publisher.pem
 ```bash
 python3 tools/capture-publish-control-evidence.py \
   --repo "$REPO" \
+  --private-key "$KEY" \
   --ordinary-update rejected \
   --publisher-app-update accepted
 ```
 
 This writes `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`
-from live API state. It reads no secret — only the App ID, which is a public
-identifier, plus structural booleans. The two canary outcomes are passed
-explicitly rather than inferred, so the evidence cannot confirm itself from a
-settings read.
+from live API state. Nothing secret reaches the artifact — only the App ID, which
+is a public identifier, plus structural booleans. The two canary outcomes are
+passed explicitly rather than inferred, so the evidence cannot confirm itself
+from a settings read.
+
+The key is needed because the installation read is App-authenticated. There is no
+user-token route to it: `gh`'s OAuth token is refused by `/user/installations`
+(403), and `/repos/{repo}/installation` is App-only (404). The tool signs a
+ten-minute JWT, reads the installation, and keeps the key nowhere.
+
+Once this has run and the lint below is green, the local key has no further use
+— CI reads its own copy from the environment secret:
+
+```bash
+rm "$KEY"
+```
 
 Verify it against the independently authored desired state:
 

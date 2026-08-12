@@ -36,21 +36,23 @@ concurrency:
   group: publish-claude-plugins
   cancel-in-progress: true
 
-# Publisher identity is SEQUENCED, not free-form — see spec AC36. While
-# `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json` is absent,
-# the dedicated publisher App of ADR-0079 does not exist yet, so this workflow
-# publishes with the generic Actions app. Once that evidence lands, the App-token
-# shape becomes mandatory and this interim shape fails its own construction test.
-# Do not hand-edit toward either shape: the ordering is enforced by
-# tools/lint-claude-plugin-publish-control.py and tools/test-publish-claude-plugins.py.
+# Publisher identity is SEQUENCED, not free-form — see spec AC36. The dedicated
+# publisher App of ADR-0079 is provisioned, so the App-token shape below is the
+# only legal one: `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`
+# exists, and while it does, reverting to a `contents: write` GITHUB_TOKEN
+# publisher fails both tools/lint-claude-plugin-publish-control.py (which runs
+# inside this job) and tools/test-publish-claude-plugins.py. If the App is ever
+# decommissioned, delete the evidence file in the same commit that changes this
+# workflow — the two must move together.
 # Rollout runbook: docs/guides/how-to/publisher-app-rollout.md
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment: claude-plugin-publish
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -76,13 +78,20 @@ jobs:
 
       - name: Configure git identity
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "claude-plugin-publisher[bot]"
+          git config user.email "claude-plugin-publisher[bot]@users.noreply.github.com"
 
-      # Interim identity (AC36 clause 2). The token still reaches Git only
-      # through the publisher's non-logged child environment, so the checkout
-      # stays credential-free and no token appears in argv or a remote URL.
+      - name: Mint repository-scoped publisher token
+        id: publisher-token
+        uses: actions/create-github-app-token@67018539274d69449ef7c02e8e71183d1719ab42  # v2.1.4
+        with:
+          app-id: ${{ vars.CLAUDE_PLUGIN_PUBLISHER_APP_ID }}
+          private-key: ${{ secrets.CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+          permission-contents: write
+
       - name: Publish to claude-plugins-dist branch
         run: python3 tools/catalogue/publish_claude_plugins.py
         env:
-          CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ steps.publisher-token.outputs.token }}
