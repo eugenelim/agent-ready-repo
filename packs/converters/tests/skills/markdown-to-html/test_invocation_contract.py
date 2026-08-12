@@ -9,8 +9,8 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
-SKILL_ROOT = REPO_ROOT / "packs" / "converters" / ".apm" / "skills" / "markdown-to-html"
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "markdown-to-html"
 ENTRY_POINTS = ("render.js",)
 TEXT_SUFFIXES = {".js", ".json", ".md", ".py", ".toml"}
 

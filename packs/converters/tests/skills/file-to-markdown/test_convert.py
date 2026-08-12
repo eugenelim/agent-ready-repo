@@ -973,11 +973,11 @@ def test_glob_covers_new_high_risk_modules():
     assert "contract.py" in _ALL_SCRIPTS and "convert.py" in _ALL_SCRIPTS
 
 
-def _ast_names_attrs_and_strings(name: str):
+def _ast_names_attrs_and_strings(path: Path):
     """Return (referenced Name/Attribute identifiers, string-literal values) for a
     production module — AST-based, so `#` comments never match (only real code +
     docstring/string constants, which we return separately)."""
-    tree = _ast.parse((_SCRIPTS / name).read_text("utf-8"))
+    tree = _ast.parse(path.read_text("utf-8"))
     idents: set[str] = set()
     strings: list[str] = []
     for node in _ast.walk(tree):
@@ -995,7 +995,7 @@ def test_no_remote_services_symbols_referenced_anywhere():
     (AST — a `#` comment naming the forbidden symbol as prose does not count)."""
     forbidden = {"enable_remote_services", "PictureDescriptionApiOptions"}
     for name in _ALL_SCRIPTS:
-        idents, _ = _ast_names_attrs_and_strings(name)
+        idents, _ = _ast_names_attrs_and_strings(_SCRIPTS / name)
         hit = forbidden & idents
         assert not hit, f"{name} references remote-VLM symbol(s) {hit}"
 
@@ -1005,7 +1005,7 @@ def test_tier3_constructed_only_in_tier3_module():
     tier3.py, and the string literal "3-managed-api" appears only in contract.py's
     enum definition — checked as two distinct AST node classes."""
     for name in _ALL_SCRIPTS:
-        idents, strings = _ast_names_attrs_and_strings(name)
+        idents, strings = _ast_names_attrs_and_strings(_SCRIPTS / name)
         # tier3.py constructs it; contract.py is the enum definition (name + the
         # TIERS frozenset membership) — every other production module must not
         # reference the name at all.

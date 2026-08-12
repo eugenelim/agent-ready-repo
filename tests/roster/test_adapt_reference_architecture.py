@@ -1,10 +1,9 @@
-"""Goal-based presence / invariant checks for the reference-architecture feature.
+"""Roster checks spanning core's reference-architecture assets and guides.
 
-Owned by `core`: every pack subject is core's `adapt-to-project` skill — its
-`assets/reference.md` template, its SKILL.md, and the CONVENTIONS seed. The
-four guides it checks are this feature's own documentation trail; the
-`guides/architect/` prefix is a guide-tree path, not a dependency on the
-architect pack.
+Every pack subject is core's `adapt-to-project` skill — its
+`assets/reference.md` template, its SKILL.md, and the CONVENTIONS seed. The four
+guides are repository documentation; `guides/architect/` is a guide-tree path,
+not a dependency on the architect pack.
 
 Covers, per the spec's Testing Strategy:
   - T1: the arc42 template asset exists, is arc42-shaped, stack-neutral,
@@ -29,8 +28,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-# packs/core/tests/skills/adapt-to-project/ -> repo root
-REPO_ROOT = Path(__file__).resolve().parents[5]
+# tests/roster/ -> repo root
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 ADAPT_SKILL_DIR = REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "adapt-to-project"
 TEMPLATE = ADAPT_SKILL_DIR / "assets" / "reference.md"

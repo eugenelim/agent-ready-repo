@@ -26,11 +26,48 @@ from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.contract import load as load_contract
 from agentbundle.scope import shipped_adapters_from_contract
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 CORE_PACK = REPO_ROOT / "packs" / "core"
 SKILL_NAME = "workspace-status"
 _SCRIPTS = ("workspace_status.py", "workspace_status_engine.py")
+_SCHEMAS = REPO_ROOT / "contracts" / "jsonschema"
+
+
+def _load_workspace_status_engine():
+    path = (
+        CORE_PACK
+        / ".apm"
+        / "skills"
+        / SKILL_NAME
+        / "scripts"
+        / "workspace_status_engine.py"
+    )
+    spec = importlib.util.spec_from_file_location(
+        "workspace_status_engine_contract", path
+    )
+    engine = importlib.util.module_from_spec(spec)
+    sys.modules["workspace_status_engine_contract"] = engine
+    spec.loader.exec_module(engine)
+    return engine
+
+
+def test_t1_group2_schema_constants_match_engine() -> None:
+    engine = _load_workspace_status_engine()
+    workspace_schema = json.loads(
+        (_SCHEMAS / "workspace-entry.schema.json").read_text(encoding="utf-8")
+    )
+    intake_schema = json.loads(
+        (_SCHEMAS / "normalized-intake.schema.json").read_text(encoding="utf-8")
+    )
+
+    assert tuple(workspace_schema["required"]) == engine.WORKSPACE_ENTRY_REQUIRED_FIELDS
+    assert tuple(
+        workspace_schema["$defs"]["artifactKind"]["enum"]
+    ) == engine.WORKSPACE_ARTIFACT_KINDS
+    assert tuple(
+        intake_schema["properties"]["action"]["enum"]
+    ) == engine.NORMALIZED_INTAKE_ACTIONS
 
 
 def _documented_finding_rows(text: str) -> dict[str, tuple[str, str]]:
@@ -765,7 +802,3 @@ class EndToEndCLITests(unittest.TestCase):
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertTrue(data.get("workspace_present"), "workspace_present should be True for the real repo")
-
-
-if __name__ == "__main__":
-    unittest.main()

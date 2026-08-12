@@ -97,6 +97,9 @@ jobs:
         if: steps.changes.outputs.skip_sast != 'true'
         run: pip install -r tools/requirements-sast.txt
 
+      - name: Install agentbundle (editable) + pytest
+        run: python -m pip install -e packages/agentbundle/ pytest
+
       - name: Run make build-check
         # Pass SKIP_SAST=1 only when the diff touches no SAST-relevant file; the
         # Makefile then skips the SAST/SCA leg while still running every drift
@@ -105,9 +108,6 @@ jobs:
 
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
-
-      - name: Install agentbundle (editable) + pytest
-        run: python -m pip install -e packages/agentbundle/ pytest
 
       - name: Install ruff + mypy
         run: pip install ruff mypy
@@ -185,7 +185,7 @@ jobs:
       # credbroker, not httpx.
       - name: pytest credbroker floor precedence (credbroker-user-scope T1)
         working-directory: packages/agentbundle
-        run: python -m pytest ../../packs/credential-brokers/tests/pack/test_floor_precedence.py
+        run: python -m pytest ../../tests/roster/test_credential_broker_floor_precedence.py
 
       # credbroker T9: RFC-0023 retired the shared-libs → consumer-scripts
       # projection (and its build-check drift gate). The standing net that
@@ -293,7 +293,6 @@ jobs:
           python tools/lint-conformance-portability.py --root .
           python -m pytest tests/ -q
           python -m pytest packs/architect/tests/pack/ -q
-          python -m pytest packs/catalogue-curation/tests/pack/ -q
           python -m pytest packs/core/tests/pack/ -q
           python -m pytest packs/core/tests/skills/workspace-status/ -q
           python -m pytest packs/credential-brokers/tests/pack/ -q
@@ -352,7 +351,7 @@ jobs:
         working-directory: packages/agentbundle
         run: >-
           python -m pytest
-          ../../packs/architect/tests/pack/test_design_reviewer_projection.py
+          ../../tests/roster/test_architect_design_reviewer_projection.py
           ../../packs/architect/tests/pack/test_design_reviewer_rubric_parity.py
 
       # enriched-pack-manifest (RFC-0031): the manifest layer's contract +
@@ -398,8 +397,8 @@ jobs:
           tests/unit/test_install_event_dropped_wirings.py
           tests/unit/test_validate_hook_wiring_per_file_compatibility.py
 
-      - name: pytest core work-loop activation hook (pack-owned)
-        run: python -m pytest packs/core/tests/hooks/test_work_loop_hook.py
+      - name: pytest core work-loop activation hook (roster-owned)
+        run: python -m pytest tests/roster/test_core_work_loop_hook.py
 
       # CLI-hygiene sweep (agentbundle-cli-hygiene spec): the shared confirm
       # helper, uninstall --dry-run/--yes/confirm, install --force confirm +

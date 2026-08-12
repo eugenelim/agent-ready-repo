@@ -8,7 +8,7 @@ Tier2HardFail/HTTP mappings need a live keychain/server, so the catch-all's
 shape is asserted by source. Behavioral checks self-skip when deps aren't
 installed (the import guard exits 2 before main runs).
 
-Run: python3 test_exit_codes.py     (exit 0 = all assertions pass)
+Run with pytest.
 """
 from __future__ import annotations
 
@@ -16,6 +16,8 @@ import os
 import pathlib
 import subprocess
 import sys
+
+import pytest
 
 HERE = pathlib.Path(__file__).resolve().parents[3] / ".apm" / "skills" \
     / "figma" / "scripts"
@@ -68,6 +70,7 @@ def _deps_installed() -> bool:
     return not (proc.returncode == 2 and "missing dependency" in proc.stderr)
 
 
+@pytest.mark.skipif(not _deps_installed(), reason="optional skill dependencies are not installed")
 def test_token_on_cli_rejected_exits_1_without_leak() -> None:
     secret = "SECRET-tok-abc123"  # noqa: S105 — test literal, not a real cred
     proc = _run("whoami", "--token", secret)
@@ -75,6 +78,7 @@ def test_token_on_cli_rejected_exits_1_without_leak() -> None:
     assert secret not in proc.stdout and secret not in proc.stderr, "token leaked"
 
 
+@pytest.mark.skipif(not _deps_installed(), reason="optional skill dependencies are not installed")
 def test_outofset_token_flag_value_scrubbed() -> None:
     # A token under a flag OUTSIDE the deny-set must not have its value
     # echoed by argparse's error(); the scrubbing parser redacts it. The
@@ -87,6 +91,7 @@ def test_outofset_token_flag_value_scrubbed() -> None:
     assert "<scrubbed>" in proc.stderr, "value not scrubbed by the parser"
 
 
+@pytest.mark.skipif(not _deps_installed(), reason="optional skill dependencies are not installed")
 def test_help_exits_0() -> None:
     proc = _run("--help")
     assert proc.returncode == 0, f"--help should exit 0, got {proc.returncode}"
@@ -134,36 +139,3 @@ def test_access_error_mapped_to_user_action() -> None:
     assert SRC.index(hint) < SRC.index("except FigmaError as exc:"), (
         "top-level AccessError handler must precede its parent except FigmaError"
     )
-
-
-_BEHAVIORAL = {
-    "test_token_on_cli_rejected_exits_1_without_leak",
-    "test_outofset_token_flag_value_scrubbed",
-    "test_help_exits_0",
-}
-
-
-def main() -> int:
-    deps = _deps_installed()
-    tests = {k: v for k, v in sorted(globals().items()) if k.startswith("test_")}
-    failures: list[str] = []
-    skipped = 0
-    for name, fn in tests.items():
-        if name in _BEHAVIORAL and not deps:
-            skipped += 1
-            continue
-        try:
-            fn()
-        except AssertionError as exc:
-            failures.append(f"{name}: {exc}")
-    for f in failures:
-        sys.stderr.write(f"FAIL {f}\n")
-    if failures:
-        return 1
-    note = f" ({skipped} behavioral skipped — deps not installed)" if skipped else ""
-    sys.stderr.write(f"ok — {len(tests) - skipped} checks passed{note}\n")
-    return 0
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

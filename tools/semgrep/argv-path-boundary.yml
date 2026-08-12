@@ -40,7 +40,7 @@
 #   * Argv handed to a helper. `_validated_root(args.root)` is an argument, not
 #     a conversion, so a helper that validates NOTHING is indistinguishable
 #     from one that validates correctly. That is why the behavioural test
-#     (packs/core/tests/skills/work-loop/test-root-validation.py, wired into
+#     (tests/roster/test_work_loop_root_validation.py, wired into
 #     docs.yml) is the real guard and this rule is only the tripwire.
 # Treat a green result here as "the obvious regression did not happen", never
 # as "the boundary is validated".

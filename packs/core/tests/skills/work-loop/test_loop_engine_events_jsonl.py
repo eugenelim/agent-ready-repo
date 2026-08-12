@@ -9,8 +9,8 @@ from pathlib import Path
 import pytest
 
 _SCRIPTS = (
-    Path(__file__).resolve().parents[5]
-    / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts"
+    Path(__file__).resolve().parents[3]
+    / ".apm" / "skills" / "work-loop" / "scripts"
 )
 _LOOP_ENGINE = _SCRIPTS / "loop-engine.py"
 _LOOP_COHORT = _SCRIPTS / "loop-cohort.py"

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-CORE_SEEDS = REPO_ROOT / "packs" / "core" / "seeds"
+PACK_ROOT = Path(__file__).resolve().parents[2]
+CORE_SEEDS = PACK_ROOT / "seeds"
 
 
 def test_agents_md_has_no_legacy_skill_delimiters() -> None:

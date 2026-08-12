@@ -21,12 +21,10 @@ from pathlib import Path
 
 import pytest
 
-# packs/core/tests/skills/adapt-to-project/ -> repo root
-REPO_ROOT = Path(__file__).resolve().parents[5]
+# packs/core/tests/skills/adapt-to-project/ -> owning pack
+PACK_ROOT = Path(__file__).resolve().parents[3]
 SKILL_BODY = (
-    REPO_ROOT
-    / "packs"
-    / "core"
+    PACK_ROOT
     / ".apm"
     / "skills"
     / "adapt-to-project"

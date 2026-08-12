@@ -20,8 +20,8 @@ import subprocess
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-HOOK = REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "session-start.py"
+PACK_ROOT = Path(__file__).resolve().parents[2]
+HOOK = PACK_ROOT / ".apm" / "hooks" / "session-start.py"
 
 
 def _load_hook_module():

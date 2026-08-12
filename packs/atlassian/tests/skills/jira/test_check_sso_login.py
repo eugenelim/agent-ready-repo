@@ -33,8 +33,8 @@ from pathlib import Path
 
 import pytest
 
-_REPO_ROOT = Path(__file__).resolve().parents[5]
-_SKILL_ROOT = _REPO_ROOT / "packs/atlassian/.apm/skills/jira"
+_PACK_ROOT = Path(__file__).resolve().parents[3]
+_SKILL_ROOT = _PACK_ROOT / ".apm/skills/jira"
 if str(_SKILL_ROOT) not in sys.path:
     sys.path.insert(0, str(_SKILL_ROOT))
 
@@ -876,7 +876,7 @@ def test_version_floor_guard_does_not_gate_the_token_path(token_path, monkeypatc
 def test_requirements_pin_the_floor_in_both_skills():         # STUB: AC30
     # Both consuming skills: confluence-crawler inherits the mirrored files, so
     # a pin on only one side leaves it importing an API its loader now needs.
-    skills_dir = _REPO_ROOT / "packs/atlassian/.apm/skills"
+    skills_dir = _PACK_ROOT / ".apm/skills"
     for skill in ("jira", "confluence-crawler"):
         text = (skills_dir / skill / "requirements.txt").read_text(encoding="utf-8")
         assert "credbroker>=0.5.0" in text, f"{skill} does not pin the floor"

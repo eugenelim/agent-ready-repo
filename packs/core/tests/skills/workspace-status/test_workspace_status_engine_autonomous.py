@@ -10,16 +10,14 @@ from types import SimpleNamespace
 
 import pytest
 
+_PACK_ROOT = Path(__file__).resolve().parents[3]
 _ENGINE_PATH = (
-    Path(__file__).resolve().parents[5]
-    / "packs" / "core" / ".apm" / "skills" / "workspace-status" / "scripts"
+    _PACK_ROOT / ".apm" / "skills" / "workspace-status" / "scripts"
     / "workspace_status_engine.py"
 )
 _CONTRACT_FIXTURES = (
-    Path(__file__).resolve().parents[5]
-    / "packs/core/tests/pack/fixtures/work-intake-contracts"
+    _PACK_ROOT / "tests" / "pack" / "fixtures" / "work-intake-contracts"
 )
-_SCHEMAS = Path(__file__).resolve().parents[5] / "contracts/jsonschema"
 
 
 def _load_engine():
@@ -31,22 +29,8 @@ def _load_engine():
     return mod
 
 
-def test_t1_group2_typed_contract_surface() -> None:
+def test_t1_group2_pack_contract_surface() -> None:
     mod = _load_engine()
-
-    workspace_schema = json.loads(
-        (_SCHEMAS / "workspace-entry.schema.json").read_text(encoding="utf-8")
-    )
-    intake_schema = json.loads(
-        (_SCHEMAS / "normalized-intake.schema.json").read_text(encoding="utf-8")
-    )
-    assert tuple(workspace_schema["required"]) == mod.WORKSPACE_ENTRY_REQUIRED_FIELDS
-    assert tuple(
-        workspace_schema["$defs"]["artifactKind"]["enum"]
-    ) == mod.WORKSPACE_ARTIFACT_KINDS
-    assert tuple(
-        intake_schema["properties"]["action"]["enum"]
-    ) == mod.NORMALIZED_INTAKE_ACTIONS
 
     valid_target = json.loads(
         (

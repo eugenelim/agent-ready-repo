@@ -8,6 +8,7 @@ step assembly (which command, in what order) and Windows-cleanliness of spawned 
 from __future__ import annotations
 
 import argparse
+import ast
 import contextlib
 import io
 import sys
@@ -19,6 +20,88 @@ from unittest import mock
 # Import from tools/repo/ (the real implementation, not the shim at tools/).
 sys.path.insert(0, str(Path(__file__).resolve().parent / "repo"))
 import build_gate_chain as gc  # noqa: E402
+
+
+class PackSkillPytestShapeTest(unittest.TestCase):
+    """Every Python pack skill test exposes real pytest collection nodes."""
+
+    def test_pack_skill_tests_use_pytest_shape(self):
+        root = Path(__file__).resolve().parents[1]
+        failures: list[str] = []
+        aggregate_names = {
+            "FAILURES", "failures", "SKIPPED", "skipped", "SKIPS", "RAN", "ran",
+        }
+        test_files = sorted((root / "packs").glob("*/tests/skills/**/test*.py"))
+        self.assertTrue(test_files, "no Python pack skill tests found")
+        for path in test_files:
+            tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+            functions = {
+                node.name
+                for node in tree.body
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+            }
+            classes = {
+                node.name
+                for node in tree.body
+                if isinstance(node, ast.ClassDef)
+                and any(
+                    isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+                    and item.name.startswith("test")
+                    for item in node.body
+                )
+            }
+            if not any(name.startswith("test") for name in functions) and not classes:
+                failures.append(f"{path.relative_to(root)}: no pytest collection node")
+            if "main" in functions:
+                failures.append(f"{path.relative_to(root)}: standalone main() remains")
+            for node in tree.body:
+                if isinstance(node, ast.If):
+                    names = {item.id for item in ast.walk(node.test) if isinstance(item, ast.Name)}
+                    if "__name__" in names:
+                        failures.append(f"{path.relative_to(root)}: __main__ guard remains")
+                if isinstance(node, (ast.Assign, ast.AnnAssign)):
+                    targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                    for target in targets:
+                        if isinstance(target, ast.Name) and target.id in aggregate_names:
+                            failures.append(
+                                f"{path.relative_to(root)}: aggregate state {target.id} remains"
+                            )
+            legacy = sorted(name for name in functions if name.startswith(("case_", "layer_")))
+            if legacy:
+                failures.append(f"{path.relative_to(root)}: undiscoverable cases {legacy}")
+        self.assertEqual(failures, [], "\n".join(failures))
+
+
+class CiPytestProvisioningTest(unittest.TestCase):
+    """CI provisions pytest before entering pytest-backed gate paths."""
+
+    def test_build_check_installs_pytest_before_make_build_check(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/build-check.yml").read_text(encoding="utf-8")
+
+        install = workflow.index(
+            "run: python -m pip install -e packages/agentbundle/ pytest"
+        )
+        build_check = workflow.index("- name: Run make build-check")
+
+        self.assertLess(install, build_check)
+
+    def test_docs_jobs_install_pytest_before_pytest_backed_steps(self):
+        root = Path(__file__).resolve().parents[1]
+        workflow = (root / ".github/workflows/docs.yml").read_text(encoding="utf-8")
+        jobs = {
+            "lint-knowledge": ("loop-cohort", "run: python3 -m pytest"),
+            "loop-cohort": ("hooks", "run: bash packs/core/tests/skills/work-loop/test-loop-cohort.sh"),
+        }
+
+        for job, (next_job, first_pytest_step) in jobs.items():
+            with self.subTest(job=job):
+                block = workflow.split(f"  {job}:\n", 1)[1].split(f"\n  {next_job}:\n", 1)[0]
+                setup = block.index("uses: actions/setup-python@")
+                install = block.index("run: python -m pip install pytest")
+                invocation = block.index(first_pytest_step)
+                self.assertLess(setup, install)
+                self.assertLess(install, invocation)
 
 
 class RunChainTest(unittest.TestCase):
@@ -104,11 +187,11 @@ class BuildSelfChainTest(unittest.TestCase):
 EXPECTED_SCRIPT_STEPS = [
     "tools/catalogue/pre_pr_catalogue.py",
     "tools/catalogue/check_contract_parity.py",
-    "packs/core/tests/skills/work-loop/test-lint-spec-status.py",
+    "packs/core/tests/skills/work-loop/test_lint_spec_status.py",
     ".claude/skills/work-loop/scripts/lint-spec-status.py",
-    "packs/core/tests/skills/receive-brief/test-lint-brief-coverage.py",
+    "packs/core/tests/skills/receive-brief/test_lint_brief_coverage.py",
     ".claude/skills/receive-brief/scripts/lint-brief-coverage.py",
-    "packs/core/tests/skills/work-loop/test-lint-traceability.py",
+    "packs/core/tests/skills/work-loop/test_lint_traceability.py",
     ".claude/skills/work-loop/scripts/lint-traceability.py",
     "tools/test_workspace_status.py",
     "tools/test_workspace_status_cli.py",
@@ -197,7 +280,7 @@ class BuildCheckChainTest(unittest.TestCase):
         self.assertIn("tools/catalogue/pre_pr_catalogue.py", script_path)
 
     def test_script_steps_are_windows_clean(self):
-        """Every spawned argv is [sys.executable, path] with no shell token."""
+        """Every spawned argv is a shell-free Python script or pytest call."""
         seen: list[list[str]] = []
 
         def fake_run(argv, check, env=None):
@@ -207,11 +290,19 @@ class BuildCheckChainTest(unittest.TestCase):
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
-        # Every script step must be [sys.executable, script_path] — no cwd, no
-        # arguments, no shell. See EXPECTED_SCRIPT_STEPS for the list.
+        pytest_paths = {
+            "packs/core/tests/skills/work-loop/test_lint_spec_status.py",
+            "packs/core/tests/skills/receive-brief/test_lint_brief_coverage.py",
+            "packs/core/tests/skills/work-loop/test_lint_traceability.py",
+        }
         for argv in seen[1:]:  # skip first (module step has extra args)
             self.assertEqual(argv[0], sys.executable)
-            self.assertEqual(len(argv), 2)
+            path = Path(argv[3] if argv[1:3] == ["-m", "pytest"] else argv[1]).as_posix()
+            if path in pytest_paths:
+                self.assertEqual(argv[1:3], ["-m", "pytest"])
+                self.assertEqual(argv[-1], "-q")
+            else:
+                self.assertEqual(len(argv), 2)
             for token in argv:
                 self.assertNotIn(token, ("bash", "sh", "-c"))
                 self.assertFalse(token.endswith(".sh"))
@@ -228,7 +319,10 @@ class BuildCheckChainTest(unittest.TestCase):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
         # seen[0] = module step (catalogue build); seen[1:] = script steps.
-        spawned = [Path(argv[1]).as_posix() for argv in seen[1:]]
+        spawned = [
+            Path(argv[3] if argv[1:3] == ["-m", "pytest"] else argv[1]).as_posix()
+            for argv in seen[1:]
+        ]
         self.assertEqual(spawned, EXPECTED_SCRIPT_STEPS)
 
 

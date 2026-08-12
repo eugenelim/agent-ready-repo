@@ -103,10 +103,10 @@ def _repo_root() -> Path:
 #     `make pre-pr`, `make build-check`, and `make ci`. Re-listing it here
 #     would duplicate a gated check.
 TESTS: list[tuple[str, list[str]]] = [
-    ("append-knowledge", [sys.executable,
-                          "packs/core/tests/skills/work-loop/test-append-knowledge.py"]),
-    ("lint-knowledge", [sys.executable,
-                        "packs/core/tests/skills/work-loop/test-lint-knowledge.py"]),
+    ("append-knowledge", [sys.executable, "-m", "pytest", "-q",
+                          "packs/core/tests/skills/work-loop/test_append_knowledge.py"]),
+    ("lint-knowledge", [sys.executable, "-m", "pytest", "-q",
+                        "tests/roster/test_work_loop_lint_knowledge.py"]),
     ("lint-sso-config", [sys.executable, "tools/test-lint-sso-config.py"]),
     ("lint-skill-spec", [sys.executable, "-m", "pytest",
                               "packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py",
@@ -116,8 +116,8 @@ TESTS: list[tuple[str, list[str]]] = [
     ("pack-test-boundary-self-test",
      [sys.executable, "tools/test-lint-pack-test-boundary.py"]),
     ("pre-pr", ["bash", "tools/test-pre-pr.sh"]),
-    ("root-validation", [sys.executable,
-                         "packs/core/tests/skills/work-loop/test-root-validation.py"]),
+    ("root-validation", [sys.executable, "-m", "pytest", "-q",
+                         "tests/roster/test_work_loop_root_validation.py"]),
     ("semgrep-argv-boundary", [sys.executable, "tools/test-semgrep-argv-boundary.py"]),
     ("session-start", ["bash", "packs/core/tests/hooks/test_session_start_projection.sh"]),
     ("session-start-source", ["bash", "packs/core/tests/hooks/test_session_start_bash.sh"]),

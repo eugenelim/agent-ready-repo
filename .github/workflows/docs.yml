@@ -23,10 +23,10 @@ on:
       - 'packs/**/.apm/skills/**'
       - '.claude/skills/work-loop/scripts/lint-knowledge.py'
       - 'packs/core/.apm/skills/work-loop/scripts/lint-knowledge.py'
-      - 'packs/core/tests/skills/work-loop/test-lint-knowledge.py'
+      - 'tests/roster/test_work_loop_lint_knowledge.py'
       - '.claude/skills/work-loop/scripts/append-knowledge.py'
       - 'packs/core/.apm/skills/work-loop/scripts/append-knowledge.py'
-      - 'packs/core/tests/skills/work-loop/test-append-knowledge.py'
+      - 'packs/core/tests/skills/work-loop/test_append_knowledge.py'
       - 'profiles/**'
       - 'packs/**'
       - '.claude/skills/work-loop/scripts/loop-cohort.py'
@@ -39,13 +39,13 @@ on:
       - 'packs/core/.apm/skills/work-loop/scripts/loop-engine.py'
       - 'packs/core/.apm/skills/work-loop/scripts/check-spec-status.py'
       - 'packs/core/.apm/skills/work-loop/scripts/_statelock.py'
-      - 'packs/core/tests/skills/work-loop/test-loop-cohort.py'
-      - 'packs/core/tests/skills/work-loop/test-loop-engine.py'
-      - 'packs/core/tests/skills/work-loop/test-statelock.py'
-      - 'packs/core/tests/skills/work-loop/test-loop-concurrency.py'
+      - 'packs/core/tests/skills/work-loop/test_loop_cohort.py'
+      - 'packs/core/tests/skills/work-loop/test_loop_engine.py'
+      - 'packs/core/tests/skills/work-loop/test_statelock.py'
+      - 'packs/core/tests/skills/work-loop/test_loop_concurrency.py'
       - 'packs/core/tests/skills/work-loop/test-loop-cohort.sh'
-      - 'packs/core/tests/skills/work-loop/test-root-validation.py'
-      - 'packs/core/tests/skills/work-loop/test-fingerprint-width.py'
+      - 'tests/roster/test_work_loop_root_validation.py'
+      - 'packs/core/tests/skills/work-loop/test_fingerprint_width.py'
       - 'packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py'
       - 'packs/core/.apm/skills/work-loop/scripts/lint-traceability.py'
       - 'tools/semgrep/**'
@@ -94,28 +94,38 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pytest
+        run: python -m pip install pytest
       - name: Run knowledge-base linter
         run: python .claude/skills/work-loop/scripts/lint-knowledge.py
       - name: Self-test the linter (validation rules + schema/guidance drift)
-        run: python3 packs/core/tests/skills/work-loop/test-lint-knowledge.py
+        run: python3 -m pytest tests/roster/test_work_loop_lint_knowledge.py -q
       - name: append-knowledge self-test
-        run: python3 packs/core/tests/skills/work-loop/test-append-knowledge.py
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_append_knowledge.py -q
 
   loop-cohort:
     name: Caps enforcer self-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install pytest
+        run: python -m pip install pytest
       - name: Self-test loop-cohort Phase-1 (schema, init pair, check verbs, review)
         run: bash packs/core/tests/skills/work-loop/test-loop-cohort.sh
       - name: Python test suite — loop-cohort
-        run: python3 packs/core/tests/skills/work-loop/test-loop-cohort.py
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort.py -q
       - name: Python test suite — loop-engine FSM
-        run: python3 packs/core/tests/skills/work-loop/test-loop-engine.py
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_engine.py -q
       - name: Python test suite — CLI path-argument boundary validators
-        run: python3 packs/core/tests/skills/work-loop/test-root-validation.py
+        run: python3 -m pytest tests/roster/test_work_loop_root_validation.py -q
       - name: Python test suite — review-fingerprint algorithm + width contract
-        run: python3 packs/core/tests/skills/work-loop/test-fingerprint-width.py
+        run: python3 -m pytest packs/core/tests/skills/work-loop/test_fingerprint_width.py -q
       - name: Pack runtime boundary (no pack's .apm/ carries tests; projection is clean)
         run: python3 tools/lint-pack-test-boundary.py
       - name: Pack runtime boundary — self-test (falsified in both directions)

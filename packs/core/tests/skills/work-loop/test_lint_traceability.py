@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Self-test for `.apm/skills/work-loop/scripts/lint-traceability.py` (the structural-orphan lint).
+"""Pytest coverage for the structural-orphan lint.
 
 Builds fixture workspaces in a tempdir and runs the linter as a subprocess
 against the documented `python <skill>/scripts/lint-traceability.py --root <dir>`
@@ -25,6 +25,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 # The pack ships tests under packs/<pack>/tests/ and runtime primitives under
 # packs/<pack>/.apm/ — tests are visible in the catalogue and never installed.
 _SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
@@ -34,13 +36,10 @@ if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
     raise SystemExit(f"subject dir not found at {SCRIPT_DIR} — check the parents[] depth")
 LINTER = SCRIPT_DIR / "lint-traceability.py"
 
-FAILURES: list[str] = []
-SKIPS: list[str] = []
-
 
 def expect(cond: bool, msg: str) -> None:
-    if not cond:
-        FAILURES.append(msg)
+    """Assert a condition through pytest instead of aggregate state."""
+    assert cond, msg
 
 
 def symlink_or_skip(
@@ -55,11 +54,8 @@ def symlink_or_skip(
         link.symlink_to(target, target_is_directory=target_is_directory)
     except (OSError, NotImplementedError) as exc:
         if os.environ.get("CI"):
-            FAILURES.append(f"{name}: CI must support this symlink regression: {exc}")
-        else:
-            SKIPS.append(name)
-            print(f"SKIP: {name}: symlink creation unavailable ({exc})")
-        return False
+            pytest.fail(f"{name}: CI must support this symlink regression: {exc}")
+        pytest.skip(f"{name}: symlink creation unavailable ({exc})")
     return True
 
 
@@ -151,7 +147,7 @@ def _chain_nodes_edges():
 # No-op / graceful degradation
 # --------------------------------------------------------------------------
 
-def case_noop_empty() -> None:
+def test_noop_empty() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         rc, out, err = run(Path(tmp))
         expect(rc == 0, f"empty → exit 0, got {rc}")
@@ -159,7 +155,7 @@ def case_noop_empty() -> None:
         expect(err.strip() == "", f"empty → no stderr, got: {err!r}")
 
 
-def case_noop_specs_contracts_packages_only() -> None:
+def test_noop_specs_contracts_packages_only() -> None:
     """A repo with specs, contracts, and components but NO discovery anchor must
     no-op — the critical false-activation guard (this bundle's own self-host)."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -173,7 +169,7 @@ def case_noop_specs_contracts_packages_only() -> None:
         expect(out.strip() == "", f"no anchor → no stdout (no chain), got: {out!r}")
 
 
-def case_degrades_malformed_sidecar() -> None:
+def test_degrades_malformed_sidecar() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write(root / "docs" / "discovery" / "d" / "_state" / "traceability.json",
@@ -191,7 +187,7 @@ def case_degrades_malformed_sidecar() -> None:
 # Sidecar-authoritative path
 # --------------------------------------------------------------------------
 
-def case_sidecar_converged() -> None:
+def test_sidecar_converged() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         nodes, edges = _chain_nodes_edges()
@@ -202,7 +198,7 @@ def case_sidecar_converged() -> None:
         expect("sidecar (authoritative)" in out, f"reports sidecar source: {out}")
 
 
-def case_sidecar_orphan_and_strict() -> None:
+def test_sidecar_orphan_and_strict() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         nodes, edges = _chain_nodes_edges()
@@ -218,7 +214,7 @@ def case_sidecar_orphan_and_strict() -> None:
         expect(rc2 == 1, f"orphan + --strict → exit 1, got {rc2}")
 
 
-def case_sidecar_dangling_endpoint() -> None:
+def test_sidecar_dangling_endpoint() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         nodes, edges = _chain_nodes_edges()
@@ -229,7 +225,7 @@ def case_sidecar_dangling_endpoint() -> None:
         expect("ghost" in err and "DANGLING" in err, f"dangling on stderr: {err}")
 
 
-def case_sidecar_cycle() -> None:
+def test_sidecar_cycle() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         nodes = [{"id": "a", "kind": "spec"}, {"id": "b", "kind": "spec"}]
@@ -240,7 +236,7 @@ def case_sidecar_cycle() -> None:
         expect("CYCLE" in err, f"cycle reported on stderr: {err}")
 
 
-def case_sidecar_self_edge() -> None:
+def test_sidecar_self_edge() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         nodes = [{"id": "a", "kind": "spec"}]
@@ -251,7 +247,7 @@ def case_sidecar_self_edge() -> None:
         expect("self-referential" in err.lower(), f"self-edge reported: {err}")
 
 
-def case_sidecar_cycle_three_node() -> None:
+def test_sidecar_cycle_three_node() -> None:
     """A 3-node cycle exercises the multi-hop stack-slice reconstruction (the
     2-node case and self-edge don't)."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -266,7 +262,7 @@ def case_sidecar_cycle_three_node() -> None:
         expect("CYCLE" in err, f"3-node cycle reported: {err}")
 
 
-def case_deep_chain_no_crash() -> None:
+def test_deep_chain_no_crash() -> None:
     """A long linear sidecar chain must terminate (iterative DFS), not overflow
     the recursion limit — the degrade-never-crash contract on untrusted input."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -282,7 +278,7 @@ def case_deep_chain_no_crash() -> None:
                f"no crash on a deep chain: {err[:200]}")
 
 
-def case_drift_warn_only() -> None:
+def test_drift_warn_only() -> None:
     """A spec present on disk but absent from an authoritative sidecar is
     DRIFT — warn-only (exit 0), this spec's firm shipped contract."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -298,7 +294,7 @@ def case_drift_warn_only() -> None:
                f"drift reported warn-only: {out}")
 
 
-def case_layout_base_escape_confined() -> None:
+def test_layout_base_escape_confined() -> None:
     """A layout `[traceability]` base that escapes `--root` (absolute / `..`) is
     ignored, not read — the path-confinement guard."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -313,7 +309,7 @@ def case_layout_base_escape_confined() -> None:
 
 
 # STUB: AC2 — configured bases with circular resolution fail closed, not open.
-def case_layout_base_circular_symlink_is_ignored_without_degrading() -> None:
+def test_layout_base_circular_symlink_is_ignored_without_degrading() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp).resolve()
         if not symlink_or_skip(
@@ -357,7 +353,7 @@ def case_layout_base_circular_symlink_is_ignored_without_degrading() -> None:
         expect("degraded" not in err, f"circular base reached fail-open handler: {err}")
 
 
-def case_catalog_symlink_confined() -> None:
+def test_catalog_symlink_confined() -> None:
     """A `catalog-info.yaml` symlinked outside `--root` is not followed — the
     nested-read confinement. Skipped where symlinks aren't permitted (Windows)."""
     with tempfile.TemporaryDirectory() as tmp, \
@@ -377,7 +373,7 @@ def case_catalog_symlink_confined() -> None:
                f"escaping catalog-info.yaml symlink not read: {out}{err}")
 
 
-def case_sidecar_unknown_schema_degrades() -> None:
+def test_sidecar_unknown_schema_degrades() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         nodes, edges = _chain_nodes_edges()
@@ -396,7 +392,7 @@ def case_sidecar_unknown_schema_degrades() -> None:
 # Standalone derive-from-artifacts path
 # --------------------------------------------------------------------------
 
-def case_standalone_clean() -> None:
+def test_standalone_clean() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -408,7 +404,7 @@ def case_standalone_clean() -> None:
         expect("derived from artifacts" in out, f"reports derived source: {out}")
 
 
-def case_standalone_backward_orphan() -> None:
+def test_standalone_backward_orphan() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -422,7 +418,7 @@ def case_standalone_backward_orphan() -> None:
                f"spec:beta backward orphan: {out}")
 
 
-def case_standalone_forward_orphan() -> None:
+def test_standalone_forward_orphan() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -434,7 +430,7 @@ def case_standalone_forward_orphan() -> None:
                f"spec:alpha forward orphan: {out}")
 
 
-def case_standalone_orphan_component() -> None:
+def test_standalone_orphan_component() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -446,7 +442,7 @@ def case_standalone_orphan_component() -> None:
                f"unparented component is a backward orphan: {out}")
 
 
-def case_terminal_exemption() -> None:
+def test_terminal_exemption() -> None:
     """component (leaf) is never a forward orphan; the discovery root is never a
     backward orphan."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -460,7 +456,7 @@ def case_terminal_exemption() -> None:
                f"leaf component not a forward orphan: {out}")
 
 
-def case_layer_skip_globally_unpopulated() -> None:
+def test_layer_skip_globally_unpopulated() -> None:
     """A spec→component edge across the globally-unpopulated contract/service/…
     layers is fine (skip to nearest populated); the spec is not orphaned for
     'skipping' an everywhere-empty layer."""
@@ -478,7 +474,7 @@ def case_layer_skip_globally_unpopulated() -> None:
 # Cross-repo endpoint states
 # --------------------------------------------------------------------------
 
-def case_crossrepo_pinned() -> None:
+def test_crossrepo_pinned() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -490,7 +486,7 @@ def case_crossrepo_pinned() -> None:
         expect("meta-repo/federated" in out, f"rollup → federated posture: {out}")
 
 
-def case_crossrepo_unpinned() -> None:
+def test_crossrepo_unpinned() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -501,7 +497,7 @@ def case_crossrepo_unpinned() -> None:
         expect("unpinned" in out, f"unpinned soft-warning: {out}")
 
 
-def case_crossrepo_unresolvable() -> None:
+def test_crossrepo_unresolvable() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -513,7 +509,7 @@ def case_crossrepo_unresolvable() -> None:
         expect("unknown / not-yet-catalogued" in out, f"honest gap term: {out}")
 
 
-def case_dangling_local_target() -> None:
+def test_dangling_local_target() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -527,7 +523,7 @@ def case_dangling_local_target() -> None:
                f"dangling node not also an orphan: {out}")
 
 
-def case_up_field_fallthrough_reference() -> None:
+def test_up_field_fallthrough_reference() -> None:
     """A cross-repo-shaped (unresolvable) `Contract:` must not shadow a valid
     `Brief:` up-edge: up-fields are alternatives, the first that resolves wins,
     and a well-formed cross-repo reference is not a defect."""
@@ -543,7 +539,7 @@ def case_up_field_fallthrough_reference() -> None:
                f"spec parented via Brief is not an orphan: {out}")
 
 
-def case_dangling_up_field_still_fires() -> None:
+def test_dangling_up_field_still_fires() -> None:
     """A *dangling* (missing-local-shaped) up-field is a hard violation in
     every mode, fired even when a sibling up-field resolves — but the spec is NOT
     also a backward orphan (the resolving Brief gives it a producer)."""
@@ -574,7 +570,7 @@ _HEALTHY_NODES = [
 _HEALTHY_EDGES = [{"from": "o", "to": "spec-h"}, {"from": "spec-h", "to": "comp-h"}]
 
 
-def case_reach_dead_end_subtree_whole_not_just_tip() -> None:
+def test_reach_dead_end_subtree_whole_not_just_tip() -> None:
     """The preconverge "whole subtree" case: a locally-edged dead-end branch where
     every interior node has a producer AND a consumer edge, but the branch never
     reaches a leaf. Presence flags only the tip (no out-edge); reachability flags
@@ -610,7 +606,7 @@ def case_reach_dead_end_subtree_whole_not_just_tip() -> None:
         expect(rc2 == 1, f"UNREACHABLE + --strict → exit 1, got {rc2}")
 
 
-def case_reach_floating_subtree_disconnected_from_root() -> None:
+def test_reach_floating_subtree_disconnected_from_root() -> None:
     """The forward-from-root clause: a subtree internally edged and even reaching a
     leaf, but with no path from `root`, is flagged (its source is a presence
     backward orphan; its leaf — passed by presence — is UNREACHABLE)."""
@@ -630,7 +626,7 @@ def case_reach_floating_subtree_disconnected_from_root() -> None:
         expect(rc == 0, f"informational by default → exit 0, got {rc}")
 
 
-def case_reach_federated_resolved_terminus_not_flagged() -> None:
+def test_reach_federated_resolved_terminus_not_flagged() -> None:
     """Open-world: a branch whose leaf is a rollup-RESOLVED satisfied-by-reference
     endpoint reaches a clean terminus across the boundary — never flagged."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -653,7 +649,7 @@ def case_reach_federated_resolved_terminus_not_flagged() -> None:
         expect(rc2 == 0, f"--strict + only a resolved federated leaf → exit 0, got {rc2}")
 
 
-def case_reach_unresolvable_tip_surfaced_never_silently_green() -> None:
+def test_reach_unresolvable_tip_surfaced_never_silently_green() -> None:
     """The fabricated-edge boundary: a stranded tip whose only out-edge is an
     UNRESOLVABLE (forged-eligible) cross-repo token is NOT a clean terminus — the
     branch is surfaced as a distinct informational finding, never silently green and
@@ -684,7 +680,7 @@ def case_reach_unresolvable_tip_surfaced_never_silently_green() -> None:
                f"--strict does NOT promote an unresolvable hop, got {rc2}: {out2}")
 
 
-def case_reach_dangling_adjacent_not_double_reported() -> None:
+def test_reach_dangling_adjacent_not_double_reported() -> None:
     """One-break-one-class: a node whose sole producer edge has a *dangling
     source* (the producer is a missing-local target) is surfaced by the DANGLING
     violation, not ALSO as UNREACHABLE."""
@@ -704,7 +700,7 @@ def case_reach_dangling_adjacent_not_double_reported() -> None:
                f"the dangling-edge consumer is not also UNREACHABLE: {out}")
 
 
-def case_reach_skips_without_root() -> None:
+def test_reach_skips_without_root() -> None:
     """Graceful, isolated degradation: a sidecar with no declared root, or a root
     absent from the inventory, skips ONLY the reachability pass (a note, no crash)."""
     with tempfile.TemporaryDirectory() as tmp:
@@ -727,7 +723,7 @@ def case_reach_skips_without_root() -> None:
         expect("Traceback" not in err, f"no crash on an absent-root sidecar: {err}")
 
 
-def case_reach_degenerate_cases() -> None:
+def test_reach_degenerate_cases() -> None:
     """Degenerate graphs: a single-node root==leaf is clean; an empty-edge graph
     strands non-root nodes (caught by presence; reachability adds nothing — the
     non-overlap property); a self-loop is termination-safe."""
@@ -777,7 +773,7 @@ def case_reach_degenerate_cases() -> None:
 # Container-embedded + file-backed recognition
 # --------------------------------------------------------------------------
 
-def case_container_and_file_recognition() -> None:
+def test_container_and_file_recognition() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         # intent ladder: outcome + opportunity (kinds) + capability (level)
@@ -817,7 +813,7 @@ def case_container_and_file_recognition() -> None:
                f"exactly the 8 recognized nodes: {out}")
 
 
-def case_screen_nested_brief_recognized() -> None:
+def test_screen_nested_brief_recognized() -> None:
     """A per-screen brief nested under a flow folder
     (`screens/<slug>/<screen>.md` — the shape `user-flow` emits) is
     recognized: `recognize_screens` walks the screens base recursively (the
@@ -845,7 +841,7 @@ def case_screen_nested_brief_recognized() -> None:
 
 
 # STUB: AC2 — an outside marker must not make an in-root directory a component.
-def case_component_marker_symlink_outside_root_is_not_recognized() -> None:
+def test_component_marker_symlink_outside_root_is_not_recognized() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
@@ -876,7 +872,7 @@ def case_component_marker_symlink_outside_root_is_not_recognized() -> None:
 
 
 # STUB: AC2 — recursive discovery prunes outside and circular children before descent.
-def case_iter_dirs_prunes_unresolvable_children_before_descent() -> None:
+def test_iter_dirs_prunes_unresolvable_children_before_descent() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
@@ -923,7 +919,7 @@ def case_iter_dirs_prunes_unresolvable_children_before_descent() -> None:
 
 
 # STUB: AC2 — node IDs derive from canonical confined component paths.
-def case_component_alias_uses_canonical_id() -> None:
+def test_component_alias_uses_canonical_id() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp).resolve()
         real = root / "packages" / "real"
@@ -951,7 +947,7 @@ def case_component_alias_uses_canonical_id() -> None:
 # Structural-only / output-shape / stdlib / no-hardcoded-path NFRs
 # --------------------------------------------------------------------------
 
-def case_no_semantic_vocabulary() -> None:
+def test_no_semantic_vocabulary() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -965,7 +961,7 @@ def case_no_semantic_vocabulary() -> None:
             expect(term not in blob, f"no semantic vocabulary ({term!r}): {blob}")
 
 
-def case_output_shape() -> None:
+def test_output_shape() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_brief(root, "b")
@@ -978,7 +974,7 @@ def case_output_shape() -> None:
                f"one-line summary present: {out}")
 
 
-def case_strict_never_promotes_softs() -> None:
+def test_strict_never_promotes_softs() -> None:
     """--strict promotes orphans but NEVER unresolvable-cross-repo / unpinned."""
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
@@ -989,7 +985,7 @@ def case_strict_never_promotes_softs() -> None:
         expect(rc == 0, f"--strict + only unresolvable-cross-repo → exit 0, got {rc}")
 
 
-def case_stdlib_only() -> None:
+def test_stdlib_only() -> None:
     import ast
     tree = ast.parse(LINTER.read_text(encoding="utf-8"))
     stdlib = {"__future__", "argparse", "json", "re", "subprocess", "sys",
@@ -1004,7 +1000,7 @@ def case_stdlib_only() -> None:
         expect(mod in stdlib, f"only stdlib imports, found {mod!r}")
 
 
-def case_no_hardcoded_path() -> None:
+def test_no_hardcoded_path() -> None:
     """Every quoted artifact-root segment (`"docs"`/`"packages"` — the giveaway
     of a path shortcut) must live inside the path-defaults registry block."""
     lines = LINTER.read_text(encoding="utf-8").splitlines()
@@ -1019,25 +1015,4 @@ def case_no_hardcoded_path() -> None:
         return
     for i, ln in enumerate(lines):
         if re.search(r'"(docs|packages)"', ln) and not (start < i < end):
-            FAILURES.append(f"hardcoded artifact path at line {i + 1}: {ln.strip()}")
-
-
-def main() -> int:
-    cases = [v for k, v in sorted(globals().items()) if k.startswith("case_")]
-    for case in cases:
-        try:
-            case()
-        except Exception as exc:  # a crashing case is itself a failure
-            FAILURES.append(f"{case.__name__} raised {exc!r}")
-    if FAILURES:
-        print(f"test-lint-traceability: {len(FAILURES)} failure(s):", file=sys.stderr)
-        for f in FAILURES:
-            print(f"  - {f}", file=sys.stderr)
-        return 1
-    suffix = f"; {len(SKIPS)} skipped" if SKIPS else ""
-    print(f"test-lint-traceability: {len(cases) - len(SKIPS)} case(s) passed{suffix}.")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
+            pytest.fail(f"hardcoded artifact path at line {i + 1}: {ln.strip()}")

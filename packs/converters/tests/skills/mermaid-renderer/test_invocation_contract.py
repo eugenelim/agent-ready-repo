@@ -6,8 +6,8 @@ import ast
 import re
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
-SKILL_ROOT = REPO_ROOT / "packs" / "converters" / ".apm" / "skills" / "mermaid-renderer"
+PACK_ROOT = Path(__file__).resolve().parents[3]
+SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "mermaid-renderer"
 ENTRY_POINTS = ("render_mermaid.py",)
 TEXT_SUFFIXES = {".js", ".json", ".md", ".py", ".toml"}
 WINDOWS_RENDERER_SOURCE = SKILL_ROOT / "scripts" / "render_mermaid.py"

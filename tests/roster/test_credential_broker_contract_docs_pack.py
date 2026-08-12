@@ -1,10 +1,10 @@
-"""Pack-owned credential-brokers guide assertion pending relocation."""
+"""Repository roster assertion spanning a pack and its published guide."""
 
 from __future__ import annotations
 
 import pathlib
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]  # pack tests -> repository root
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 
 
 def test_ac43_guide_walks_broker_first():

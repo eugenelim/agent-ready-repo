@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Self-test for append-knowledge.py — the canonical knowledge-base writer.
+"""Pytest coverage for append-knowledge.py — the canonical knowledge-base writer.
 
-Run: python3 test-append-knowledge.py
-Exit 0 = all pass; exit non-zero = at least one failure.
+Run with pytest.
 
 Each case asserts on observable bytes or exit codes rather than on the
 script's internals, and each was written against a mutation: remove the
@@ -18,10 +17,12 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import threading
 import time
+from collections.abc import Iterator
 from pathlib import Path
+
+import pytest
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -31,22 +32,14 @@ _SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loo
 SCRIPT = _SKILL_DIR / "scripts" / "append-knowledge.py"
 STATELOCK = _SKILL_DIR / "scripts" / "_statelock.py"
 
-FAILURES: list[str] = []
-SKIPPED: list[str] = []
-RAN = 0
-
 
 def ok(name: str) -> None:
-    global RAN
-    RAN += 1
-    print(f"  ✓ {name}")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, reason: str) -> None:
-    global RAN
-    RAN += 1
-    FAILURES.append(name)
-    print(f"  ✖ {name}: {reason}", file=sys.stderr)
+    """Fail the independently collected pytest case immediately."""
+    pytest.fail(f"{name}: {reason}")
 
 
 def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
@@ -56,12 +49,7 @@ def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
     except (OSError, NotImplementedError) as exc:
         if os.environ.get("CI"):
             fail(name, f"CI must support this symlink regression: {exc}")
-        else:
-            global RAN
-            RAN += 1
-            SKIPPED.append(name)
-            print(f"  - {name}: skipped — symlink creation unavailable ({exc})")
-        return False
+        pytest.skip(f"{name}: symlink creation unavailable ({exc})")
     return True
 
 
@@ -70,6 +58,20 @@ def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
 # real one — otherwise a passing test would be writing to the repo's own
 # knowledge base, and the confinement case could not be expressed at all.
 CWD: Path | None = None
+
+
+@pytest.fixture
+def target(tmp_path: Path) -> Iterator[Path]:
+    """Provide each writer case an isolated repository and knowledge file."""
+    global CWD
+    CWD = tmp_path
+    subprocess.run(["git", "init", "-q", str(CWD)], capture_output=True, check=True)
+    root = CWD / "docs" / "knowledge"
+    root.mkdir(parents=True)
+    try:
+        yield root / "patterns.jsonl"
+    finally:
+        CWD = None
 
 
 def _recognized_stale_record(token: str = "a" * 32) -> str:
@@ -869,64 +871,3 @@ def test_stale_break_race_reports_only_explicit_lock_loss(target: Path) -> None:
         fail(name, f"{completed} completed + {lost} explicit losses != {expected}")
     else:
         ok(name)
-
-
-def main() -> int:
-    global CWD
-    if not SCRIPT.is_file():
-        print(f"✖ test-append-knowledge: subject not found at {SCRIPT}",
-              file=sys.stderr)
-        return 1
-    with tempfile.TemporaryDirectory() as td:
-        CWD = Path(td)
-        subprocess.run(["git", "init", "-q", str(CWD)],
-                       capture_output=True, check=True)
-        root = CWD / "docs" / "knowledge"
-        root.mkdir(parents=True)
-        for case in (
-            test_non_ascii_body_lands_raw,
-            test_id_allocation_tolerates_gaps,
-            test_missing_trailing_newline_does_not_join,
-            test_out_of_root_target_refused,
-            test_symlink_escape_refused,
-            test_decoy_git_dir_does_not_move_the_root,
-            test_control_character_refused_before_write,
-            test_rejected_entry_leaves_file_byte_identical,
-            test_preexisting_lint_failure_is_named,
-            test_absent_target_is_created,
-            test_post_lint_failure_leaves_target_identical,
-            test_lint_runs_out_of_process,
-            test_exclusive_lock_actually_excludes,
-            test_lock_release_only_unlinks_what_it_owns,
-            test_break_does_not_take_a_successors_lock,
-            test_stale_break_race_reports_only_explicit_lock_loss,
-            test_stale_directory_lock_is_refused,
-            test_recognized_stale_statelock_record_is_recovered,
-            test_dangling_symlink_lock_is_bounded,
-            test_lock_timeout_reports_instead_of_hanging,
-            test_zero_width_carriers_beyond_cf_refused,
-            test_zero_width_run_refused_by_the_writer,
-            test_non_regular_file_target_refused,
-            test_missing_parent_dir_refused,
-            test_non_utf8_target_reports_not_tracebacks,
-            test_length_caps_enforced_at_the_boundary,
-            test_newline_refused_outside_body,
-            test_invisible_formatting_characters_refused,
-            test_concurrent_appends_do_not_lose_entries,
-            test_file_mode_is_preserved,
-        ):
-            case(root / "patterns.jsonl")
-
-    print()
-    if FAILURES:
-        print(f"✖ test-append-knowledge: {len(FAILURES)} of {RAN} cases failed",
-              file=sys.stderr)
-        return 1
-    passed = RAN - len(SKIPPED)
-    suffix = f"; {len(SKIPPED)} skipped" if SKIPPED else ""
-    print(f"✓ test-append-knowledge: passed ({passed}/{RAN} cases{suffix}).")
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())

@@ -12,9 +12,9 @@ import pytest
 from jsonschema import Draft202012Validator
 from jsonschema.validators import validator_for
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[2]
 SCHEMA_PATH = ROOT / "contracts/jsonschema/workspace-entry.schema.json"
-FIXTURE_ROOT = Path(__file__).resolve().parent / "fixtures/work-intake-contracts/workspace"
+FIXTURE_ROOT = ROOT / "packs/core/tests/pack/fixtures/work-intake-contracts/workspace"
 
 SEMANTIC_FIELDS = {"path", "kind", "source", "summary", "needs"}
 SOURCE_DECISION_FIELDS = {
@@ -193,7 +193,7 @@ def test_lifecycle_fixture_covers_memberships_minimal_intents_and_defects() -> N
         entry = memberships[f"ini-001.{collection}"][0]
         artifact = spec_artifacts[entry["path"]]
         assert artifact["Status"] == expected_status
-        assert artifact["plan"] == str(Path(entry["path"]).with_name("plan.md"))
+        assert artifact["plan"] == Path(entry["path"]).with_name("plan.md").as_posix()
         assert _valid_work_contract(
             collection,
             entry["kind"],

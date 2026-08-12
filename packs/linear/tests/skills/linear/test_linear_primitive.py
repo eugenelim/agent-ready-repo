@@ -18,11 +18,9 @@ import pytest
 
 httpx = pytest.importorskip("httpx")
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+PACK_ROOT = Path(__file__).resolve().parents[3]
 LINEAR_SCRIPT = (
-    REPO_ROOT
-    / "packs"
-    / "linear"
+    PACK_ROOT
     / ".apm"
     / "skills"
     / "linear"

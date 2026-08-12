@@ -20,6 +20,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Active user-facing documentation files to check.
@@ -55,23 +57,16 @@ def _find_stale_installs(text: str) -> list[str]:
     return stale
 
 
-def test_site_install_md_uses_marketplace_qualifier():
-    text = _read(
-        REPO_ROOT / "docs-site" / "src" / "content" / "docs" / "getting-started" / "install.md"
-    )
+@pytest.mark.parametrize(
+    "path",
+    _ACTIVE_DOCS,
+    ids=lambda path: path.relative_to(REPO_ROOT).as_posix(),
+)
+def test_active_doc_uses_marketplace_qualifier(path: Path) -> None:
+    text = _read(path)
     stale = _find_stale_installs(text)
     assert not stale, (
-        "docs-site/src/content/docs/getting-started/install.md contains stale plugin install forms "  # noqa: E501
-        f"without @marketplace qualifier: {stale!r}. "
-        "Use: claude plugin install <pack>@agent-ready-repo"
-    )
-
-
-def test_root_readme_uses_marketplace_qualifier():
-    text = _read(REPO_ROOT / "README.md")
-    stale = _find_stale_installs(text)
-    assert not stale, (
-        "README.md contains stale plugin install forms "
+        f"{path.relative_to(REPO_ROOT).as_posix()} contains stale plugin install forms "
         f"without @marketplace qualifier: {stale!r}. "
         "Use: claude plugin install <pack>@agent-ready-repo"
     )

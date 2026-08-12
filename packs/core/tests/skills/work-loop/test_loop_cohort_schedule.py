@@ -14,8 +14,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
-LC_PATH = REPO_ROOT / "packs/core/.apm/skills/work-loop/scripts/loop-cohort.py"
+PACK_ROOT = Path(__file__).resolve().parents[3]
+LC_PATH = PACK_ROOT / ".apm/skills/work-loop/scripts/loop-cohort.py"
 
 
 def _load():

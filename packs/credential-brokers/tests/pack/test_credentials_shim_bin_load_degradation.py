@@ -38,9 +38,9 @@ import textwrap
 import unittest
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[4]  # pack tests -> repository root
+PACK_ROOT = Path(__file__).resolve().parents[2]
 SHIM_SOURCE = (
-    REPO_ROOT / "packs" / "credential-brokers" / ".apm"
+    PACK_ROOT / ".apm"
     / "shared-libs" / "credentials_shim.py"
 )
 

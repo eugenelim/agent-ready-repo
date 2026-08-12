@@ -10,8 +10,7 @@ from pathlib import Path
 
 import pytest
 
-REPO_ROOT = Path(__file__).resolve().parents[4]
-PACK = REPO_ROOT / "packs" / "credential-brokers" / ".apm"
+PACK = Path(__file__).resolve().parents[2] / ".apm"
 
 
 def _clean_env() -> dict[str, str]:

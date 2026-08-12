@@ -24,11 +24,9 @@ from pathlib import Path
 import pytest
 
 # Locate the flow-metrics module under the catalogue's pack tree.
-_REPO_ROOT = Path(__file__).resolve().parents[5]
+_PACK_ROOT = Path(__file__).resolve().parents[3]
 _FLOW_METRICS_SCRIPTS = (
-    _REPO_ROOT
-    / "packs"
-    / "atlassian"
+    _PACK_ROOT
     / ".apm"
     / "skills"
     / "flow-metrics"

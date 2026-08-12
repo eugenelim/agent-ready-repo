@@ -37,7 +37,7 @@ import pathlib
 import subprocess
 import sys
 
-REPO_ROOT = pathlib.Path(__file__).resolve().parents[4]  # pack tests -> repository root
+REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 PACKS = REPO_ROOT / "packs"
 
 _FAKE_CREDBROKER = (

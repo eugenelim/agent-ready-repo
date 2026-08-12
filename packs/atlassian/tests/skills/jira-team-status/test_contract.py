@@ -413,7 +413,3 @@ class TestCrossSkillBoundaries(unittest.TestCase):
         """Triage must not apply agent-execution bar as universal team quality bar."""
         self.assertIn("don't apply the agent-execution bar", self.triage.lower(),
                       "Triage Don't rule must prohibit misapplying the agent-execution bar")
-
-
-if __name__ == "__main__":
-    unittest.main()

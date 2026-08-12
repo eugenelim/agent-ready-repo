@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
-"""Tests for check-base-freshness.py.
+"""Pytest coverage for check-base-freshness.py.
 
-Run: python3 test-check-base-freshness.py
-Exit 0 = all pass; exit non-zero = at least one failure.
+Run with pytest.
 """
 
 from __future__ import annotations
@@ -10,8 +9,9 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
+
+import pytest
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -26,21 +26,13 @@ if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
     raise SystemExit(f"subject dir not found at {SCRIPT_DIR} — check the parents[] depth")
 FRESHNESS = SCRIPT_DIR / "check-base-freshness.py"
 
-failures: list[str] = []
-ran = 0
-
 
 def ok(name: str) -> None:
-    global ran
-    ran += 1
-    print(f"ok   [{name}]")
+    """Pytest reports the independently collected case."""
 
 
 def fail(name: str, reason: str) -> None:
-    global ran
-    ran += 1
-    failures.append(name)
-    print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+    pytest.fail(f"{name}: {reason}")
 
 
 def run_freshness(cwd: Path, *args: str) -> tuple[int, str, str]:
@@ -69,7 +61,7 @@ def git(cwd: Path, *args: str) -> None:
 # ---------------------------------------------------------------------------
 
 
-def case_no_remote(tmp: Path) -> None:
+def test_no_remote(tmp: Path) -> None:
     """No remote → exit 0, status ok."""
     repo = tmp / "no-remote"
     repo.mkdir()
@@ -93,7 +85,7 @@ def case_no_remote(tmp: Path) -> None:
     ok("no_remote")
 
 
-def case_target_flag_bad_form(tmp: Path) -> None:
+def test_target_flag_bad_form(tmp: Path) -> None:
     """--target without slash → exit 1 with a clear error."""
     repo = tmp / "flag-bad"
     repo.mkdir()
@@ -118,7 +110,7 @@ def case_target_flag_bad_form(tmp: Path) -> None:
     ok("target_flag_bad_form")
 
 
-def case_no_remote_rebase_in_progress(tmp: Path) -> None:
+def test_no_remote_rebase_in_progress(tmp: Path) -> None:
     """Local-only repo with rebase in progress → exit 1, not exit 0.
 
     Regression guard for P2-A: the rebase check must run before the
@@ -150,7 +142,7 @@ def case_no_remote_rebase_in_progress(tmp: Path) -> None:
     ok("no_remote_rebase_in_progress")
 
 
-def case_rebase_in_progress(tmp: Path) -> None:
+def test_rebase_in_progress(tmp: Path) -> None:
     """rebase-merge directory present → exit 1, message mentions 'already in progress'."""
     origin = tmp / "rip-origin"
     origin.mkdir()
@@ -186,7 +178,7 @@ def case_rebase_in_progress(tmp: Path) -> None:
     ok("rebase_in_progress")
 
 
-def case_fresh_head(tmp: Path) -> None:
+def test_fresh_head(tmp: Path) -> None:
     """Clone whose HEAD already equals origin/main → exit 0, status ok."""
     origin = tmp / "fresh-origin"
     origin.mkdir()
@@ -217,7 +209,7 @@ def case_fresh_head(tmp: Path) -> None:
     ok("fresh_head")
 
 
-def case_behind_surfaces(tmp: Path) -> None:
+def test_behind_surfaces(tmp: Path) -> None:
     """Feature branch behind integration target → exit 1, surface with rebase command."""
     origin = tmp / "behind-origin"
     origin.mkdir()
@@ -259,7 +251,7 @@ def case_behind_surfaces(tmp: Path) -> None:
     ok("behind_surfaces")
 
 
-def case_target_slashed_remote(tmp: Path) -> None:
+def test_target_slashed_remote(tmp: Path) -> None:
     """--target REMOTE/BRANCH where REMOTE itself contains a slash is parsed correctly."""
     origin = tmp / "slashed-origin"
     origin.mkdir()
@@ -301,7 +293,7 @@ def case_target_slashed_remote(tmp: Path) -> None:
     ok("target_slashed_remote")
 
 
-def case_target_ambiguous_remote(tmp: Path) -> None:
+def test_target_ambiguous_remote(tmp: Path) -> None:
     """--target whose prefix matches two configured remotes → exit 1 with 'ambiguous'."""
     origin = tmp / "ambig-origin"
     origin.mkdir()
@@ -363,7 +355,7 @@ def case_target_ambiguous_remote(tmp: Path) -> None:
     ok("target_ambiguous_remote")
 
 
-def case_multi_remote_surfaces(tmp: Path) -> None:
+def test_multi_remote_surfaces(tmp: Path) -> None:
     """Multiple remotes without --target → exit 1, message names them."""
     origin = tmp / "multi-origin"
     origin.mkdir()
@@ -402,7 +394,7 @@ def case_multi_remote_surfaces(tmp: Path) -> None:
     ok("multi_remote_surfaces")
 
 
-def case_target_empty_string(tmp: Path) -> None:
+def test_target_empty_string(tmp: Path) -> None:
     """--target= (empty string) → exit 1, message says empty."""
     origin = tmp / "empty-tgt-origin"
     origin.mkdir()
@@ -434,7 +426,7 @@ def case_target_empty_string(tmp: Path) -> None:
     ok("target_empty_string")
 
 
-def case_no_common_ancestor(tmp: Path) -> None:
+def test_no_common_ancestor(tmp: Path) -> None:
     """Target and HEAD share no common ancestor → exit 1, unsafe rebase message."""
     # Build two unrelated repos, wire orphan-remote as a "remote" in clone.
     orphan = tmp / "orphan-origin"
@@ -480,7 +472,7 @@ def case_no_common_ancestor(tmp: Path) -> None:
     ok("no_common_ancestor")
 
 
-def case_fetch_missing_branch(tmp: Path) -> None:
+def test_fetch_missing_branch(tmp: Path) -> None:
     """--target names a branch the remote does not have → 'not found on remote'."""
     origin = tmp / "missing-branch-origin"
     origin.mkdir()
@@ -512,7 +504,7 @@ def case_fetch_missing_branch(tmp: Path) -> None:
     ok("fetch_missing_branch")
 
 
-def case_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
+def test_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
     """A transport failure whose stderr echoes 'remote ref' is NOT a missing branch.
 
     Regression guard: the classifier used to accept any stderr containing the
@@ -571,7 +563,7 @@ def case_fetch_transport_error_mentioning_remote_ref(tmp: Path) -> None:
     ok("fetch_transport_error_mentioning_remote_ref")
 
 
-def case_dirty_tree_says_commit_not_stash(tmp: Path) -> None:
+def test_dirty_tree_says_commit_not_stash(tmp: Path) -> None:
     """Behind the target with a dirty tree → commit guidance, never 'git stash'.
 
     refs/stash is not a per-worktree ref: every linked worktree of a repository
@@ -638,7 +630,7 @@ def case_dirty_tree_says_commit_not_stash(tmp: Path) -> None:
         ok(name)
 
 
-def case_unmerged_files_message_is_truthful(tmp: Path) -> None:
+def test_unmerged_files_message_is_truthful(tmp: Path) -> None:
     """Behind the target with conflicts → no advice that would commit the markers.
 
     'git commit -a' stages and commits an unmerged file with its conflict
@@ -708,47 +700,3 @@ def case_unmerged_files_message_is_truthful(tmp: Path) -> None:
         )
         return
     ok("unmerged_files_message_is_truthful")
-
-
-def main() -> int:
-    orig_cwd = Path.cwd()
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmp = Path(tmpdir)
-        tests = [
-            case_no_remote,
-            case_no_remote_rebase_in_progress,
-            case_target_flag_bad_form,
-            case_rebase_in_progress,
-            case_fresh_head,
-            case_target_slashed_remote,
-            case_target_ambiguous_remote,
-            case_multi_remote_surfaces,
-            case_behind_surfaces,
-            case_target_empty_string,
-            case_no_common_ancestor,
-            case_fetch_missing_branch,
-            case_fetch_transport_error_mentioning_remote_ref,
-            case_dirty_tree_says_commit_not_stash,
-            case_unmerged_files_message_is_truthful,
-        ]
-        try:
-            for t in tests:
-                try:
-                    t(tmp)
-                except Exception as exc:
-                    fail(t.__name__, f"uncaught exception: {exc}")
-        finally:
-            import os
-            os.chdir(orig_cwd)
-
-    total = ran
-    passed = total - len(failures)
-    print(f"\n{passed}/{total} passed")
-    if failures:
-        print("Failed:", ", ".join(failures), file=sys.stderr)
-        return 1
-    return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
