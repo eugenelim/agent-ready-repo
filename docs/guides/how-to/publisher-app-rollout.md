@@ -48,8 +48,21 @@ downloadable exactly once. Do this by hand.
 4. Uncheck **Active** under Webhook; this App never receives events.
 5. Under **Where can this GitHub App be installed?**, choose **Only on this
    account**.
-6. Create it, then **Generate a private key** and keep the downloaded `.pem`
-   somewhere you can paste from once.
+6. Create it, then **Generate a private key**. The `.pem` downloads immediately
+   and is never shown again; the `SHA256:` string on the page afterwards is a
+   fingerprint, not the key. Move the file out of your download directory to
+   somewhere owner-only, because you need it twice (step 2 and step 3):
+
+   ```bash
+   mkdir -p ~/.config/github-apps && chmod 700 ~/.config/github-apps
+   mv ~/Downloads/<app-name>.*.private-key.pem \
+      ~/.config/github-apps/claude-plugin-publisher.pem
+   chmod 600 ~/.config/github-apps/claude-plugin-publisher.pem
+   ```
+
+   Leave it PKCS#1 (`-----BEGIN RSA PRIVATE KEY-----`) — that is what
+   `actions/create-github-app-token` expects. Do not convert it to PKCS#8, and
+   do not move it inside the repository.
 7. **Install App** → select **Only select repositories** → this repository only.
 8. Note the **App ID** from the App's settings page.
 
@@ -60,7 +73,8 @@ specifies, then the credentials.
 
 ```bash
 REPO=<owner/name>
-APP_ID=<app id from step 1>
+APP_ID=<app id from step 1>          # numeric App ID, not the Client ID
+KEY=~/.config/github-apps/claude-plugin-publisher.pem
 
 # main-only deployments, owner approval required, no admin bypass.
 gh api -X PUT "repos/$REPO/environments/claude-plugin-publish" \
@@ -84,11 +98,13 @@ gh variable set CLAUDE_PLUGIN_PUBLISHER_APP_ID \
   --env claude-plugin-publish --repo "$REPO" --body "$APP_ID"
 
 gh secret set CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY \
-  --env claude-plugin-publish --repo "$REPO" < /path/to/private-key.pem
+  --env claude-plugin-publish --repo "$REPO" < "$KEY"
 ```
 
-Delete the `.pem` afterwards. If you lose it, generate a new key on the App and
-re-run the `gh secret set` line — the App ID does not change.
+**Keep the `.pem` until step 3 is done** — the canary's positive probe signs a
+JWT with it. Delete it after that, not here. If you lose it at any point,
+generate a new key on the App, re-run the `gh secret set` line, and delete the
+superseded key from the App's page; the App ID does not change.
 
 ## Step 3 — Prove the ruleset on the canary branch first
 
@@ -119,7 +135,7 @@ Do not wait for step 5 — the workflow publishes to the live branch, not the
 canary, so it cannot serve as this probe and the ordering would be circular.
 
 ```bash
-KEY=/path/to/private-key.pem
+KEY=~/.config/github-apps/claude-plugin-publisher.pem
 b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
 
 # A GitHub App JWT is valid for at most 10 minutes.
@@ -163,6 +179,10 @@ Then clean up and retarget the ruleset to `refs/heads/claude-plugins-dist`:
 
 ```bash
 git push origin --delete claude-plugins-dist-control-canary
+
+# The key has now served both of its uses. CI reads it from the environment
+# secret from here on, so the local copy is pure liability.
+rm ~/.config/github-apps/claude-plugin-publisher.pem
 ```
 
 > If your GitHub plan cannot express an App-only bypass or a required
