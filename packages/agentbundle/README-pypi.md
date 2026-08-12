@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.33.1
+
+If you maintain a catalogue with repository-level tests, `agentbundle catalogue
+verify --root .` now recognizes the top-level `tests/` tree as
+repository-owned. Those paths no longer produce `[info] unclassified` notices;
+genuinely unknown paths still do, and the notices remain informational.
+
 **Install into a repo** — so everyone who clones it gets the pack. `core` is the flagship pack, the loop itself:
 
 ```bash

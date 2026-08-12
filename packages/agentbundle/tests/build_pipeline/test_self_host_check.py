@@ -802,6 +802,13 @@ class ExcludedGlobTests(unittest.TestCase):
         self.assertFalse(_is_excluded(Path("misc/future-owner.txt")))
         self.assertFalse(_is_excluded(Path(".agentbundle/bin/future.py")))
 
+    def test_top_level_test_boundary_is_anchored(self) -> None:
+        """The catalogue test root excludes descendants, not sibling names."""
+        from agentbundle.build.self_host import _is_excluded
+
+        self.assertTrue(_is_excluded(Path("tests/future-owner/probe.txt")))
+        self.assertFalse(_is_excluded(Path("tests.md")))
+
     def test_post_2026_05_25_shrink_leaves_only_conventions(self) -> None:
         """Per the 2026-05-25 amendment: PROJECTED_README_OVERRIDES
         shrank from 20 to 1 entry; only `docs/CONVENTIONS.md` remains.
@@ -1670,6 +1677,34 @@ class InfoLineUnclassifiedTests(unittest.TestCase):
                 )
             self.assertEqual(exit_code, 0)  # info lines don't fail the build
             self.assertIn('[info] unclassified: "stray-note.md"', buf.getvalue())
+
+    def test_top_level_catalogue_tests_are_not_reported_unclassified(self) -> None:
+        """Catalogue test modules and fixtures share one owned root."""
+        import io
+        from contextlib import redirect_stderr
+
+        from agentbundle.build.self_host import _emit_info_for_unclassified
+
+        visible = [
+            Path("tests/conformance/test_pack_metadata.py"),
+            Path("tests/fixtures/install_snapshot/core.paths.txt"),
+            Path("tests/roster/test_install_snapshot.py"),
+            Path("misc/future-owner.txt"),
+        ]
+        stderr = io.StringIO()
+        with (
+            patch(
+                "agentbundle.build.self_host._git_visible_paths",
+                return_value=visible,
+            ),
+            redirect_stderr(stderr),
+        ):
+            _emit_info_for_unclassified(Path("/repo"), set())
+
+        self.assertEqual(
+            stderr.getvalue(),
+            '[info] unclassified: "misc/future-owner.txt"\n',
+        )
 
     @unittest.skipIf(os.name != "posix", "symlink semantics require POSIX")
     def test_unclassified_symlink_surfaces_as_info(self) -> None:
