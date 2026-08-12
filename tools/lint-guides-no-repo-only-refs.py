@@ -19,9 +19,22 @@ Rare legitimate exceptions may add
 above it. The reason is required and should explain why the shipped reference
 is safe.
 
-Known limitation: rule 3 cannot identify a citation to a pending spec whose
-directory does not exist yet. Human review must remove those citations; this
-tool is the regression fence for real records, not a substitute for the scrub.
+Known limitations — this is a regression fence, not a proof of absence:
+
+  * Rule 3 cannot identify a citation to a pending spec whose directory does
+    not exist yet. Human review must remove those; see
+    ``docs/specs/governance-guides-cleanup/notes/scrub-judgment.md``.
+  * Rule 3 is also allow-by-default in the other direction: an untouched guide
+    starts failing the day someone creates a ``docs/specs/`` directory whose
+    name collides with an invented tutorial slug.
+  * Rule 1 sees inline and reference-style Markdown link targets. It does not
+    see raw HTML anchors (``<a href=...>``), CommonMark autolinks, bare
+    unlinked paths in prose or fenced blocks, or a reference definition whose
+    target sits on the following line.
+  * Rule 2 is case-sensitive by design, so lowercase ``rfc-0071`` passes.
+  * Only the final component of ``--guides-root`` is checked for being a link.
+    A symlinked ancestor is followed; resolved children are still confined to
+    the selected root.
 
 Exit codes:
   0  no violations
@@ -55,6 +68,7 @@ MARKDOWN_LINK_RE = re.compile(
 MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
     r"^[ \t]{0,3}\[[^\]\n]+\]:[ \t]*(?P<target><[^>\n]+>|\S+)"
 )
+EXTERNAL_URL_RE = re.compile(r"(?:[A-Za-z][A-Za-z0-9+.-]*:)?//")
 GOVERNANCE_SEGMENTS = {"adr", "rfc", "specs"}
 
 
@@ -91,10 +105,21 @@ def _is_relative_to(path: Path, root: Path) -> bool:
 
 
 def _is_junction(path: Path) -> bool:
-    """Detect Windows junctions where the running Python exposes the API."""
+    """Detect Windows junctions, failing closed when the API is unavailable.
+
+    `Path.is_junction` landed in Python 3.12 but this repository supports 3.11,
+    so a plain `getattr` fallback of `False` would turn every junction check
+    into a silent no-op on the supported floor. Junctions only exist on
+    Windows, so absence is safe on POSIX and an error there.
+    """
 
     checker = getattr(path, "is_junction", None)
     if checker is None:
+        if os.name == "nt":
+            raise LintUsageError(
+                "cannot detect Windows junctions on this interpreter "
+                "(Path.is_junction requires Python 3.12); refusing to scan"
+            )
         return False
     try:
         return bool(checker())
@@ -112,6 +137,12 @@ def _runtime_roots(guides_argument: str) -> tuple[Path, Path, Path]:
         raise LintUsageError(f"guides root resolves outside repository root: {guides_raw}")
     if guides_raw.is_symlink() or _is_junction(guides_raw):
         raise LintUsageError(f"linked guides root is not allowed: {guides_raw}")
+    # Note: `is_symlink` inspects only the final component. A symlinked
+    # *ancestor* of the selected root is followed. Requiring the argument to be
+    # canonical would reject that, but also rejects ordinary paths on platforms
+    # where a system directory is itself a link (macOS `/var`), so the
+    # confinement that actually holds is of resolved children to the selected
+    # root, below. See the module docstring's Known limitations.
     if not guides_root.is_dir():
         raise LintUsageError(f"guides root is not a directory: {guides_raw}")
 
@@ -225,6 +256,12 @@ def _target_reasons(target: str) -> list[str]:
     """Return violation reasons for one Markdown link destination."""
 
     target = target.strip("<>")
+    # Only repository-relative destinations can point at a repo-only record.
+    # An external URL that happens to contain `/rfc/` or `changelog` — the
+    # RFC Editor, keepachangelog.com — is a legitimate citation with no
+    # in-repo fix available, so exempt it rather than force an allow marker.
+    if EXTERNAL_URL_RE.match(target):
+        return []
     path = target.split("#", 1)[0].split("?", 1)[0].replace("\\", "/")
     lower_path = path.lower()
     segments = {segment for segment in lower_path.split("/") if segment not in {"", ".", ".."}}

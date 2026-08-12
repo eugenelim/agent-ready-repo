@@ -71,11 +71,34 @@ tool's display format. Editing them would falsify the tutorial.
 `docs/specs/fix-login-bug`, `docs/specs/workspace-core`,
 `docs/specs/capture-work-v2`. Throwaway slugs that teach the workflow.
 
+**A pack name stating a fact about the shipped pack** —
+`_shared/explanation/install-routes.md` enumerates the packs declaring
+`allowed-scopes = ["repo"]`, and `user-guide-diataxis` is one:
+`packs/user-guide-diataxis/pack.toml` still ships it with that scope. The first
+pass deleted the name and weakened `tools/lint-plugin-route-docs.py` so the
+guide would still pass, which made the enumeration false and tripped the spec's
+"never weaken a detection rule" boundary. Both were reverted in review round 2.
+`product-documentation` is `["repo", "user"]` and correctly does not appear
+there.
+
 ## Also in scope
 
-`user-guide-diataxis` no longer appears anywhere in `guides/` (0 files); each
-site now reads `product-documentation`. The `packs/user-guide-diataxis/`
-compatibility shim is untouched, per the spec's Never-do.
+`user-guide-diataxis` no longer appears in `guides/` as a *reference* — no link
+into the non-existent `guides/user-guide-diataxis/` tree, no prose sending the
+reader there. `product-documentation/README.md` keeps the supersession fact
+without the dangling link. The name survives only in the factual scope
+enumeration above. The `packs/user-guide-diataxis/` compatibility shim is
+untouched, per the spec's Never-do.
+
+## Corrections from review round 2
+
+Three scrub defects that the first loop's manual-QA pass missed, all fixed and
+detailed in [`adversarial-review-2.md`](adversarial-review-2.md): a sentence
+terminator removed along with a citation in `_shared/how-to/author-a-skill.md`;
+the destroyed supersession statement in `product-documentation/README.md`; and a
+surviving repo-only pointer, `` (`../../adr/`) ``, in
+`_shared/explanation/README.md` — backticked rather than linked, so structurally
+invisible to the guard.
 
 ## Verification
 

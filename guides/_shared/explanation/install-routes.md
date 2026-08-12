@@ -20,8 +20,8 @@ Four ways to install a pack from this catalogue:
 > global cache and `claude plugin install` defaults to `--scope user`, so the
 > marketplace carries only packs that permit a user-scope install. A pack
 > declaring `allowed-scopes = ["repo"]` — `core`, `governance-extras`,
-> `iac-terraform`, `monorepo-extras`, `release-engineering` — installs with
-> `agentbundle install` instead. That is
+> `iac-terraform`, `monorepo-extras`, `release-engineering`,
+> `user-guide-diataxis` — installs with `agentbundle install` instead. That is
 > the route they are scoped for, not a gap.
 
 > **Already added the marketplace before 2026-08?** Run

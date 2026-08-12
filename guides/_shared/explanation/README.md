@@ -25,7 +25,8 @@ A good explanation:
 
 - Step-by-step instructions. Tutorial or how-to.
 - Authoritative parameter lists. Reference.
-- Decisions written for the team. Those are ADRs (`../../adr/`).
+- Decisions written for the team. Those are ADRs, and they live in the
+  repository rather than in these guides.
 
 ## Explanation vs. ADRs vs. architecture
 

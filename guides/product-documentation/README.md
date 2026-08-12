@@ -51,6 +51,8 @@ agentbundle install --pack product-documentation
 
 Scope: `--scope repo` (default) or `--scope user` (available across all repos).
 
-## Package name
+## Replaces
 
-Install this pack as `product-documentation`.
+This pack supersedes the deprecated `user-guide-diataxis` pack. If you have
+`user-guide-diataxis@0.3.0` installed, you already have this pack as a
+dependency.

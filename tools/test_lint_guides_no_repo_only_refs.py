@@ -10,6 +10,9 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LINT_SCRIPT = REPO_ROOT / "tools" / "lint-guides-no-repo-only-refs.py"
+# Duplicated rather than imported: the script's filename is hyphenated, so it
+# is not importable as a module. AC6 pins this exact string.
+OK_MESSAGE = "OK — no repo-only governance references in guides/"
 
 
 def _run_lint(tmp_path: Path, markdown: str) -> subprocess.CompletedProcess[str]:
@@ -68,6 +71,33 @@ def test_numbered_governance_tokens_fail(tmp_path: Path, token: str) -> None:
     assert token in result.stdout
 
 
+# AC2 — an external URL is not a repo-only reference, even when its path
+# carries a governance-looking segment. Without this the gate reddens on
+# citations that have no in-repo fix.
+@pytest.mark.parametrize(
+    "target",
+    [
+        "https://www.rfc-editor.org/rfc/rfc7231",
+        "https://keepachangelog.com/en/1.1.0/",
+        "//cdn.example.com/specs/index.html",
+    ],
+)
+def test_external_url_targets_pass(tmp_path: Path, target: str) -> None:
+    result = _run_lint(tmp_path, f"See [the source]({target}).\n")
+
+    assert result.returncode == 0, result.stdout
+
+
+# AC3 — the digit window and the hyphen are both load-bearing. Without these,
+# widening `\d{2,4}` to `\d+` or dropping the hyphen keeps every other test
+# green while the rule starts eating IETF numbers like `RFC 9728`.
+@pytest.mark.parametrize("text", ["ADR-1", "ADR-12345", "RFC 9728", "RFC 1918"])
+def test_non_record_tokens_pass(tmp_path: Path, text: str) -> None:
+    result = _run_lint(tmp_path, f"Mentions {text} in passing.\n")
+
+    assert result.returncode == 0, result.stdout
+
+
 # STUB: AC4 — a spec citation is rejected when its slug exists under docs/specs.
 @pytest.mark.parametrize("citation", ["spec/real-record", "docs/specs/real-record/spec.md"])
 def test_real_spec_slug_citations_fail(tmp_path: Path, citation: str) -> None:
@@ -110,6 +140,26 @@ def test_allow_marker_suppresses_same_or_next_line(
     result = _run_lint(tmp_path, markdown)
 
     assert result.returncode == 0
+    # Without this, the test stays green if the token rule is broken to a
+    # no-op, the file is skipped, or ALLOW_RE widens to any HTML comment.
+    assert result.stdout.strip() == OK_MESSAGE
+
+
+# AC5 — the paired control: identical markdown minus the marker must fail, so
+# the test above can only pass because suppression happened.
+def test_same_markdown_without_marker_fails(tmp_path: Path) -> None:
+    result = _run_lint(tmp_path, "See RFC-0071.\n")
+
+    assert result.returncode == 1
+    assert "RFC-0071" in result.stdout
+
+
+# AC5 — the reason is required; a bare marker must not suppress.
+def test_reasonless_allow_marker_does_not_suppress(tmp_path: Path) -> None:
+    result = _run_lint(tmp_path, "See RFC-0071. <!-- guides-lint: allow -->\n")
+
+    assert result.returncode == 1
+    assert "RFC-0071" in result.stdout
 
 
 # STUB: AC1/AC6 — the real command exposes help and exact clean output.

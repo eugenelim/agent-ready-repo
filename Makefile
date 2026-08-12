@@ -326,7 +326,8 @@ test:
 		tools/test_contract_parity.py \
 		tools/test_release_check.py \
 		tools/test_scaffold_projection.py \
-		tools/test_conformance_portability.py -q
+		tools/test_conformance_portability.py \
+		tools/test_lint_guides_no_repo_only_refs.py -q
 
 # Local CI gate. Exactly one workflow is watched: build-check.yml.
 # tools/lint-ci-parity.py — chained into build-check — holds a disposition per

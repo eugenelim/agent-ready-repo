@@ -96,23 +96,24 @@ Build the guard from its black-box CLI contract first, then use it to inventory 
 
 **Done when:** the real guard is clean, focused searches show no stale stream name, and manual review records which real/pending spec citations were removed versus which examples were retained — recorded in [`notes/scrub-judgment.md`](notes/scrub-judgment.md).
 
-### T3: Documentation CI runs the guard whenever its inputs change
+### T3: CI runs the guard whenever its inputs change, and runs its tests
 
 **Depends on:** T1
 
-**Touches:** .github/workflows/docs.yml
+**Touches:** .github/workflows/docs.yml, Makefile, .github/workflows/build-check.yml
 
 **Verification mode:** goal-based check
 
 **Tests:**
 - `no stub (goal-based)` — workflow inspection confirms a direct `python3 tools/lint-guides-no-repo-only-refs.py` step and both required pull-request path filters (AC9).
 - `no stub (goal-based)` — `SKIP_SAST=1 make build-check` accepts the workflow and full catalogue gate chain (AC9–AC10).
+- `no stub (goal-based)` — the guard's test file is named in the `Makefile` `test` target and the mirrored `build-check.yml` pytest step, so AC1–AC6's tests run in CI (AC13).
 
 **Approach:**
 - Add the two path triggers beside the existing documentation/tool triggers.
 - Add one named run step in the documentation job that owns guide validation, matching direct-Python invocation style.
 
-**Done when:** all three workflow strings are present and the build gate passes.
+**Done when:** all three workflow strings are present, the guard's test file is registered in both the `Makefile` `test` target and the `build-check.yml` pytest step, and the build gate passes.
 
 ### T4: The integrated documentation and lint surface is clean
 
@@ -149,6 +150,23 @@ Build the guard from its black-box CLI contract first, then use it to inventory 
 
 **Done when:** all 19 touched guides validate with frontmatter and none retain a navigation-baseline entry.
 
+### T6: The adopter-visible change is recorded where adopters read it
+
+**Depends on:** T2
+
+**Touches:** docs/product/changelog.md
+
+**Verification mode:** manual QA
+
+**Tests:**
+- `no stub (manual QA)` — read the `[Unreleased]` entries as a guide reader: they name what changed for the reader, avoid contributor framing, and do not claim the guides are installed locally (AC12).
+
+**Approach:**
+- One entry for the removed references, one for the sidebar-label shift the frontmatter migration causes.
+- State plainly that no pack version changes, since the section is otherwise package-versioned.
+
+**Done when:** both entries read correctly to someone who has never seen this repository, and the manual-QA read is recorded in `notes/`.
+
 ## Rollout
 
 The scrub and CI guard ship atomically in one reversible repository change. There is no deployment, data migration, infrastructure, feature flag, or external-system sequencing.
@@ -168,4 +186,4 @@ The scrub and CI guard ship atomically in one reversible repository change. Ther
 - 2026-08-12: Added a narrow existing route-docs lint assertion update after `build-check` still required `user-guide-diataxis` in `install-routes.md`.
 - 2026-08-12: Recorded the adopter-visible guide change in `docs/product/changelog.md` and widened the spec's `docs/` boundary to authorize it (AC12).
 - 2026-08-12: Wrote the T2 spec-slug judgment record the Done-when required; it was the loop's one unwritten artifact.
-- 2026-08-12: Added reference-style Markdown link coverage after adversarial review and aligned CI verification wording.
+- 2026-08-12: Second review round (adversarial + quality + security, the last two never run in the first loop). Fixed a sentence the scrub broke, restored the `product-documentation` supersession statement and the `user-guide-diataxis` scope enumeration, reverted the route-docs lint weakening, registered the guard's tests with the repository test gates (AC13, T6 for AC12), exempted external URLs from rule 1, closed the junction fail-open, and narrowed AC1/AC8 to what the code and the corpus actually support.

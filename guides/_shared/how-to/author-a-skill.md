@@ -284,9 +284,8 @@ Two things make a Tier-B eval worth writing:
 
 The **full** Tier-B grading (LLM-judge, pass-rate deltas, with/without-skill) is
 a future RFC. But a **lightweight** check — run the skill and validate its
-outputs against deterministic post-conditions — is available now in-harness
-Add an optional `expect` block to an eval to make it
-runner-gradable:
+outputs against deterministic post-conditions — is available now in-harness.
+Add an optional `expect` block to an eval to make it runner-gradable:
 
 ```json
 {"id": 1, "prompt": "Turn this Markdown into a Word doc using report.docx",

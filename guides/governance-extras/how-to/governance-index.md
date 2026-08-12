@@ -87,8 +87,9 @@ automatically if they are absent during Stage 0.
 ## Optional lint
 
 You can add a CI check that reads the index and verifies each referenced ADR
-file exists at the path encoded in the filename (e.g. `docs/adr/<NNNN>-*.md`
-for `ADR-<NNNN>`). This prevents stale references after ADR renumbering. The
+file exists at the path encoded in its number — an entry reading `ADR-<NNNN>`
+must have a matching `docs/adr/<NNNN>-*.md` on disk, where `<NNNN>` is the
+ADR's four-digit ordinal. This prevents stale references after renumbering. The
 lint is optional — the manifest's value is primarily read-time speed, not
 compile-time enforcement.
 

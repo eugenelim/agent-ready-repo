@@ -37,9 +37,6 @@ GATE = "lint-plugin-route-docs"
 # while a doc kept offering the pack.
 REPO_ONLY = ("core", "governance-extras", "iac-terraform", "monorepo-extras",
              "release-engineering", "user-guide-diataxis", "catalogue-curation")
-GUIDE_REPO_ONLY_REFERENCES = tuple(
-    pack for pack in REPO_ONLY if pack not in {"catalogue-curation", "user-guide-diataxis"}
-)
 
 
 # Both spellings. A doc may write either; a site constrained for only one is
@@ -71,7 +68,7 @@ SITES: list[tuple[str, list[str], list[str]]] = [
     ("guides/_shared/explanation/install-routes.md",
      [], ["The plugin route is user-scope only",
           "derived into each **published** pack's"]
-        + [f"`{p}`" for p in GUIDE_REPO_ONLY_REFERENCES]),
+        + [f"`{p}`" for p in REPO_ONLY if p != "catalogue-curation"]),
     ("guides/_shared/explanation/pack-catalogue.md",
      _NO_REPO_ONLY_OFFER, ["install-routes.md"]),
     ("guides/core/how-to/adapt-to-project.md",

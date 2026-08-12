@@ -30,7 +30,7 @@ Adopters receive a `guides/` tree whose Markdown does not point into repository-
 
 - Ask before widening the scrub or guard beyond Type-A governance records and changelogs.
 - Ask before adding an escape marker to a guide instead of fixing the reference.
-- Ask before changing repository files outside `guides/`, `guide-nav-baseline.toml`, the new lint tool and test, the existing route-docs lint assertion needed by `build-check`, `.github/workflows/docs.yml`, `workspace.toml`, `docs/specs/governance-guides-cleanup/`, the authorized `docs/specs/README.md` index row, and the authorized `docs/product/changelog.md` entry.
+- Ask before changing repository files outside `guides/`, `guide-nav-baseline.toml`, the new lint tool and test, the existing route-docs lint assertion needed by `build-check`, `.github/workflows/docs.yml`, `workspace.toml`, `docs/specs/governance-guides-cleanup/`, the authorized `docs/specs/README.md` index row, the authorized `docs/product/changelog.md` entry, and the `Makefile` / `.github/workflows/build-check.yml` lines that register the guard's test file with the repository test gates.
 
 ### Never do
 
@@ -47,23 +47,25 @@ Adopters receive a `guides/` tree whose Markdown does not point into repository-
 - CI wiring uses a **goal-based check** against the workflow plus the repository build gate (AC9).
 - The integrated adopter-facing result uses **goal-based checks** through all requested guide validators and tests, plus a **manual QA** scan for malformed Markdown (AC10).
 - Frontmatter migration uses **goal-based checks** through `validate_guides.py` and the guide-site regression tests, plus manual verification that only scrub-touched guides were migrated (AC11).
-- The changelog entry uses **manual QA**: read the `[Unreleased]` entry as an adopter and confirm it names the user-visible effect without contributor framing (AC12).
-- Construction coverage: one TDD task with a compilable red test file; three goal/manual tasks with no stubs.
+- The changelog entry uses **manual QA**: read the `[Unreleased]` entries as an adopter and confirm they name the user-visible effect without contributor framing (AC12).
+- Test-gate registration uses a **goal-based check**: the test file appears in both the `Makefile` `test` target and the `build-check.yml` pytest step, and `make test` collects it (AC13).
+- Construction coverage: one TDD task with a compilable red test file; four goal/manual tasks with no stubs.
 
 ## Acceptance Criteria
 
-- [x] AC1: `python tools/lint-guides-no-repo-only-refs.py` recursively scans `guides/**/*.md`; `--guides-root` selects a fixture or alternate root, and `--help` succeeds. The CLI canonicalizes its repository, guides, and real-spec roots; refuses symlink or junction directories before descent; records each resolved directory before processing so cycles fail closed; rejects any selected root or resolved child that escapes its designated root; and exits 2 with a concise error when path resolution raises `OSError` or `RuntimeError`.
+- [x] AC1: `python tools/lint-guides-no-repo-only-refs.py` recursively scans `guides/**/*.md`; `--guides-root` selects a fixture or alternate root, and `--help` succeeds. The CLI canonicalizes its repository, guides, and real-spec roots; refuses a selected root or a descended directory whose own final component is a symlink or Windows junction, failing closed rather than no-opping where the junction API is unavailable; records each resolved directory before processing so cycles fail closed; confines every resolved child to its designated root; and exits 2 with a concise error when path resolution raises `OSError` or `RuntimeError`. A symlinked *ancestor* of the selected root is followed — requiring a canonical argument would reject ordinary paths on platforms where a system directory is itself a link — and the module docstring records this alongside the rules' other coverage gaps.
 - [x] AC2: Markdown link targets containing an `adr`, `rfc`, or `specs` path segment, or `changelog` in any path component or filename regardless of case, fail with `path:line: <reason>` diagnostics.
 - [x] AC3: standalone `ADR-` or `RFC-` tokens followed by two through four digits fail with `path:line: <reason>` diagnostics.
 - [x] AC4: `spec/<slug>` and `docs/specs/<slug>` references fail only when the slug is a real directory below the runtime repository's `docs/specs/`; angle-bracket placeholders, `spec/plan`, `spec/loop`, `spec/slice`, commands with `<slug>`, and invented examples absent from that tree pass.
 - [x] AC5: an inline `<!-- guides-lint: allow <reason> -->` marker on the violating line or immediately above it suppresses that line's violations; the script header documents this escape hatch and the pending-spec limitation.
 - [x] AC6: any violation exits 1; a clean scan exits 0 and prints exactly `OK — no repo-only governance references in guides/`.
 - [x] AC7: every Type-A reference in `guides/**/*.md` is removed, including real and pending spec citations found by human judgment, while the task's named concept, placeholder, command, and invented-example cases remain unchanged.
-- [x] AC8: every `user-guide-diataxis` mention in `guides/` points readers to `product-documentation` instead, without changing the compatibility pack under `packs/`.
+- [x] AC8: every `user-guide-diataxis` *reference* in `guides/` — a link into the non-existent `guides/user-guide-diataxis/` tree, or prose directing the reader there — is delinked or repointed at `product-documentation`, preserving the supersession fact rather than deleting it. The pack's name is retained where a guide states a fact about the shipped pack itself, notably the `allowed-scopes = ["repo"]` enumeration in `install-routes.md`, because `packs/user-guide-diataxis/` still ships with that scope and dropping it would make the enumeration false. The compatibility pack under `packs/` is unchanged.
 - [x] AC9: `.github/workflows/docs.yml` invokes the new guard in the existing direct-Python style and its pull-request path filter includes `guides/**` and `tools/lint-guides-no-repo-only-refs.py`.
 - [x] AC10: all requested verification commands pass, the primary guard is exercised end to end, and the scrub leaves no empty Markdown targets or orphaned link text.
-- [x] AC11: all 19 guides changed by the scrub have schema-valid `title`, `summary`, `pack`, and `kind` frontmatter; their transitional entries are absent from `guide-nav-baseline.toml`; and no otherwise-untouched guide is migrated.
-- [x] AC12: `docs/product/changelog.md` carries one `[Unreleased]` entry describing the adopter-visible guide change, written for guide readers rather than contributors, and states that no pack version changes.
+- [x] AC11: all 19 guide *pages* changed by the scrub have schema-valid `title`, `summary`, `pack`, and `kind` frontmatter, and the 16 of them that carried a transitional `guide-nav-baseline.toml` entry no longer do; no otherwise-untouched guide is migrated. Section index READMEs are excluded — no `guides/**/<quadrant>/README.md` carries frontmatter or a baseline entry anywhere in the repository, so `_shared/explanation/README.md`, whose prose was corrected in review, is deliberately not migrated.
+- [x] AC12: `docs/product/changelog.md` carries `[Unreleased]` entries describing the adopter-visible guide changes — the removed references and the sidebar-label shift — written for guide readers rather than contributors, and stating that no pack version changes.
+- [x] AC13: `tools/test_lint_guides_no_repo_only_refs.py` is registered in the `Makefile` `test` target and the matching `.github/workflows/build-check.yml` pytest step, so the tests pinning AC1–AC6 execute in CI rather than only on the author's machine.
 
 ## Assumptions
 
@@ -76,4 +78,4 @@ Adopters receive a `guides/` tree whose Markdown does not point into repository-
 - Process: current local refs are accepted despite unavailable remote freshness verification (source: user authorization 2026-08-12).
 - Process: `docs/specs/README.md` carries the required active-spec index row (source: user authorization 2026-08-12).
 - Product: every guide touched by the scrub is migrated to required frontmatter in the same change (source: user authorization 2026-08-12).
-- Process: the adopter-visible guide change is recorded in `docs/product/changelog.md` even though no package version changes, widening the original `docs/` boundary (source: user authorization 2026-08-12).
+- Process: the adopter-visible guide change is recorded in `docs/product/changelog.md` even though no package version changes. `docs/CONVENTIONS.md` requires the changelog to be updated in the same PR as any user-visible change, so the original `docs/` boundary was mis-scoped rather than deliberately tight; widening it corrects the boundary (source: `docs/CONVENTIONS.md` § living docs, confirmed by user 2026-08-12).
