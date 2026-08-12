@@ -30,11 +30,11 @@ Adopters receive a `guides/` tree whose Markdown does not point into repository-
 
 - Ask before widening the scrub or guard beyond Type-A governance records and changelogs.
 - Ask before adding an escape marker to a guide instead of fixing the reference.
-- Ask before changing repository files outside `guides/`, `guide-nav-baseline.toml`, the new lint tool and test, the existing route-docs lint assertion needed by `build-check`, `.github/workflows/docs.yml`, `workspace.toml`, `docs/specs/governance-guides-cleanup/`, and the authorized `docs/specs/README.md` index row.
+- Ask before changing repository files outside `guides/`, `guide-nav-baseline.toml`, the new lint tool and test, the existing route-docs lint assertion needed by `build-check`, `.github/workflows/docs.yml`, `workspace.toml`, `docs/specs/governance-guides-cleanup/`, the authorized `docs/specs/README.md` index row, and the authorized `docs/product/changelog.md` entry.
 
 ### Never do
 
-- Never edit anything elsewhere under `docs/` beyond `docs/specs/governance-guides-cleanup/` and the authorized `docs/specs/README.md` index row.
+- Never edit anything elsewhere under `docs/` beyond `docs/specs/governance-guides-cleanup/`, the authorized `docs/specs/README.md` index row, and the `docs/product/changelog.md` entry recording this adopter-visible guide change.
 - Never remove or reword the kept concept, placeholder, command, or invented-example usages named in the task.
 - Never weaken a detection rule to make an offending guide pass.
 - Never modify or retire `packs/user-guide-diataxis/`.
@@ -47,6 +47,7 @@ Adopters receive a `guides/` tree whose Markdown does not point into repository-
 - CI wiring uses a **goal-based check** against the workflow plus the repository build gate (AC9).
 - The integrated adopter-facing result uses **goal-based checks** through all requested guide validators and tests, plus a **manual QA** scan for malformed Markdown (AC10).
 - Frontmatter migration uses **goal-based checks** through `validate_guides.py` and the guide-site regression tests, plus manual verification that only scrub-touched guides were migrated (AC11).
+- The changelog entry uses **manual QA**: read the `[Unreleased]` entry as an adopter and confirm it names the user-visible effect without contributor framing (AC12).
 - Construction coverage: one TDD task with a compilable red test file; three goal/manual tasks with no stubs.
 
 ## Acceptance Criteria
@@ -62,6 +63,7 @@ Adopters receive a `guides/` tree whose Markdown does not point into repository-
 - [x] AC9: `.github/workflows/docs.yml` invokes the new guard in the existing direct-Python style and its pull-request path filter includes `guides/**` and `tools/lint-guides-no-repo-only-refs.py`.
 - [x] AC10: all requested verification commands pass, the primary guard is exercised end to end, and the scrub leaves no empty Markdown targets or orphaned link text.
 - [x] AC11: all 19 guides changed by the scrub have schema-valid `title`, `summary`, `pack`, and `kind` frontmatter; their transitional entries are absent from `guide-nav-baseline.toml`; and no otherwise-untouched guide is migrated.
+- [x] AC12: `docs/product/changelog.md` carries one `[Unreleased]` entry describing the adopter-visible guide change, written for guide readers rather than contributors, and states that no pack version changes.
 
 ## Assumptions
 
@@ -74,3 +76,4 @@ Adopters receive a `guides/` tree whose Markdown does not point into repository-
 - Process: current local refs are accepted despite unavailable remote freshness verification (source: user authorization 2026-08-12).
 - Process: `docs/specs/README.md` carries the required active-spec index row (source: user authorization 2026-08-12).
 - Product: every guide touched by the scrub is migrated to required frontmatter in the same change (source: user authorization 2026-08-12).
+- Process: the adopter-visible guide change is recorded in `docs/product/changelog.md` even though no package version changes, widening the original `docs/` boundary (source: user authorization 2026-08-12).

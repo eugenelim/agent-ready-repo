@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Shipped guides no longer point at records you don't receive.** Guide pages
+  across the `_shared`, `core`, `atlassian`, `credential-brokers`,
+  `governance-extras`, and `product-documentation` trees cited repository-only
+  decision records, specs, and changelogs, so those links dangled in every
+  installed copy. The citations are gone and the surrounding explanation stays;
+  generic guidance like "record an ADR", `<feature>` placeholders, and
+  documented commands are untouched. Stale `user-guide-diataxis` references now
+  point at `product-documentation`. No pack version changes.
+
 ### [agentbundle][0.33.3] — 2026-08-12
 
 #### Changed

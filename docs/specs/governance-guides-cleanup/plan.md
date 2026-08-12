@@ -166,4 +166,5 @@ The scrub and CI guard ship atomically in one reversible repository change. Ther
 - 2026-08-12: Added the user-authorized frontmatter migration for the scrub-touched guides and required navigation-baseline cleanup.
 - 2026-08-12: Added reference-style Markdown link coverage after adversarial review and aligned CI verification wording.
 - 2026-08-12: Added a narrow existing route-docs lint assertion update after `build-check` still required `user-guide-diataxis` in `install-routes.md`.
+- 2026-08-12: Recorded the adopter-visible guide change in `docs/product/changelog.md` and widened the spec's `docs/` boundary to authorize it (AC12).
 - 2026-08-12: Added reference-style Markdown link coverage after adversarial review and aligned CI verification wording.
