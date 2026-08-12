@@ -12,6 +12,7 @@ warn-only doc-reference invariant.
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -68,11 +69,26 @@ def git_init_commit(root: Path) -> None:
 
 
 FAILURES: list[str] = []
+SKIPS: list[str] = []
 
 
 def expect(cond: bool, msg: str) -> None:
     if not cond:
         FAILURES.append(msg)
+
+
+def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
+    """Create a required symlink, recording a real skip only outside CI."""
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError) as exc:
+        if os.environ.get("CI"):
+            FAILURES.append(f"{name}: CI must support this symlink regression: {exc}")
+        else:
+            SKIPS.append(name)
+            print(f"SKIP: {name}: symlink creation unavailable ({exc})")
+        return False
+    return True
 
 
 def case_clean() -> None:
@@ -87,7 +103,7 @@ def case_invariant_i_out_of_vocab() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)
         write_spec(root, "bad", "Drafting", "- [ ] AC1\n")
-        rc, _, err = run_lint(root)
+        rc, out, err = run_lint(root)
         expect(rc == 1, f"out-of-vocab 'Drafting' should exit 1, got {rc}")
         expect("invariant (i)" in err, f"expected invariant (i) msg: {err}")
 
@@ -167,6 +183,94 @@ def case_invariant_iv_resolves_workspace_slug() -> None:
                    "- [ ] AC1 (deferred: some-deferred-item)\n")
         rc, _, err = run_lint(root)
         expect(rc == 0, f"deferral to workspace.toml slug should resolve, got {rc}: {err}")
+
+
+# STUB: AC1 — repository metadata must not be read through an outside symlink.
+def case_workspace_symlink_outside_root_does_not_resolve_deferral() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        sandbox = Path(tmp)
+        root = sandbox / "repo"
+        root.mkdir()
+        outside = sandbox / "outside-workspace.toml"
+        outside.write_text(
+            '# workspace-content-sentinel\n[[backlog.open]]\nslug = "outside-only-anchor"\n',
+            encoding="utf-8",
+        )
+        if not symlink_or_skip(
+            "workspace symlink confinement", root / "workspace.toml", outside
+        ):
+            return
+        write_spec(
+            root,
+            "deferring",
+            "Draft",
+            "- [ ] AC1 (deferred: outside-only-anchor)\n",
+        )
+
+        rc, out, err = run_lint(root)
+
+        expect(rc == 1, f"outside workspace symlink must not resolve an anchor: {err}")
+        expect("invariant (iv)" in err, f"expected unresolved-anchor diagnostic: {err}")
+        expect(
+            "workspace-content-sentinel" not in out + err,
+            f"outside workspace content leaked to diagnostics: {out} {err}",
+        )
+
+
+# STUB: AC1 — link and code-reference probes must not consult outside targets.
+def case_reference_candidates_outside_root_do_not_resolve() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        sandbox = Path(tmp)
+        root = sandbox / "repo"
+        root.mkdir()
+        (sandbox / "outside.md").write_text("outside-doc-sentinel\n", encoding="utf-8")
+        (sandbox / "outside.py").write_text("outside_code_sentinel = 1\n", encoding="utf-8")
+        write_spec_body(
+            root,
+            "escaping-refs",
+            "See [outside](../../../../outside.md) and "
+            "`../../../../outside.py`.",
+        )
+
+        rc, out, err = run_lint(root)
+
+        expect(rc == 0, f"reference findings remain warn-only, got {rc}: {err}")
+        expect("outside.md" in err, f"outside doc target must not resolve: {err}")
+        expect("outside.py" in err, f"outside code target must not resolve: {err}")
+        expect(
+            "outside-doc-sentinel" not in out + err
+            and "outside_code_sentinel" not in out + err,
+            f"outside reference content leaked to diagnostics: {out} {err}",
+        )
+
+
+# CONTRACT CONTROL: AC1 — the existing contract-file confinement stays pinned.
+def case_contract_file_symlink_outside_root_does_not_resolve() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        sandbox = Path(tmp)
+        root = sandbox / "repo"
+        root.mkdir()
+        outside = sandbox / "outside-contract.yaml"
+        outside.write_text(
+            "openapi: 3.1.0\nx-spec: [docs/specs/orders/]\n"
+            "outside-contract-sentinel: true\n",
+            encoding="utf-8",
+        )
+        contract = root / "contracts" / "openapi" / "orders.yaml"
+        contract.parent.mkdir(parents=True)
+        if not symlink_or_skip("contract-file symlink confinement", contract, outside):
+            return
+        write_spec_with_contract(root, "orders", "`contracts/openapi/orders.yaml`")
+
+        rc, out, err = run_lint(root)
+
+        expect(rc == 0, f"contract finding remains warn-only, got {rc}: {err}")
+        expect("does not resolve to a file" in err,
+               f"outside contract symlink must be rejected before read: {err}")
+        expect(
+            "outside-contract-sentinel" not in out + err,
+            f"outside contract content leaked to diagnostics: {out} {err}",
+        )
 
 
 def case_invariant_ii_born_shipped_fails() -> None:
@@ -375,6 +479,38 @@ def case_v_extensionless_registry_and_dangling() -> None:
                f"dangling Contract: ref should warn (v), warn-only: {err2}")
 
 
+# STUB: AC1 — the contract registry must not be read through an outside symlink.
+def case_contract_registry_symlink_outside_root_does_not_supply_backref() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        sandbox = Path(tmp)
+        root = sandbox / "repo"
+        root.mkdir()
+        token = "contracts/proto/payments/v1/payments.proto"
+        write_contract(root, token, 'syntax = "proto3";\n')
+        outside = sandbox / "outside-registry.md"
+        outside.write_text(
+            f"- `{token}` → docs/specs/payments/ outside-registry-sentinel\n",
+            encoding="utf-8",
+        )
+        if not symlink_or_skip(
+            "contract-registry symlink confinement",
+            root / "contracts" / "REGISTRY.md",
+            outside,
+        ):
+            return
+        write_spec_with_contract(root, "payments", f"`{token}`")
+
+        rc, out, err = run_lint(root)
+
+        expect(rc == 0, f"registry finding remains warn-only, got {rc}: {err}")
+        expect("lacks a backward" in err,
+               f"outside registry must not satisfy the back-reference: {err}")
+        expect(
+            "outside-registry-sentinel" not in out + err,
+            f"outside registry content leaked to diagnostics: {out} {err}",
+        )
+
+
 def case_multiline_comment_not_matched() -> None:
     """Regression: a **Status:** inside a multiline HTML comment must not
     be returned before the live status field (parse_status was applying
@@ -413,6 +549,9 @@ def main() -> int:
         case_invariant_i_missing_status,
         case_invariant_ii_born_shipped_fails,
         case_invariant_iv_resolves_workspace_slug,
+        case_workspace_symlink_outside_root_does_not_resolve_deferral,
+        case_reference_candidates_outside_root_do_not_resolve,
+        case_contract_file_symlink_outside_root_does_not_resolve,
         case_invariant_iv_missing_anchor,
         case_invariant_iv_placeholder_ignored,
         case_invariant_iii_warn_only,
@@ -424,6 +563,7 @@ def main() -> int:
         case_v_forward_without_backward_warns,
         case_v_no_contracts_noop,
         case_v_extensionless_registry_and_dangling,
+        case_contract_registry_symlink_outside_root_does_not_supply_backref,
         case_multiline_comment_not_matched,
     ):
         case()
@@ -432,7 +572,8 @@ def main() -> int:
             print(f"FAIL: {f}", file=sys.stderr)
         print(f"test-lint-spec-status: {len(FAILURES)} failure(s).", file=sys.stderr)
         return 1
-    print("test-lint-spec-status: all invariant cases pass.")
+    suffix = f" ({len(SKIPS)} skipped)" if SKIPS else ""
+    print(f"test-lint-spec-status: all executed invariant cases pass{suffix}.")
     return 0
 
 

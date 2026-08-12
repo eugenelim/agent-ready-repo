@@ -29,8 +29,10 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 _SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
 SCRIPT = _SKILL_DIR / "scripts" / "append-knowledge.py"
+STATELOCK = _SKILL_DIR / "scripts" / "_statelock.py"
 
 FAILURES: list[str] = []
+SKIPPED: list[str] = []
 RAN = 0
 
 
@@ -47,11 +49,39 @@ def fail(name: str, reason: str) -> None:
     print(f"  ✖ {name}: {reason}", file=sys.stderr)
 
 
+def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
+    """Create a required symlink, recording a real skip only outside CI."""
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError) as exc:
+        if os.environ.get("CI"):
+            fail(name, f"CI must support this symlink regression: {exc}")
+        else:
+            global RAN
+            RAN += 1
+            SKIPPED.append(name)
+            print(f"  - {name}: skipped — symlink creation unavailable ({exc})")
+        return False
+    return True
+
+
 # The subject resolves its confinement root from `git rev-parse` against the
 # child's cwd, so every case runs inside a throwaway git repo rather than the
 # real one — otherwise a passing test would be writing to the repo's own
 # knowledge base, and the confinement case could not be expressed at all.
 CWD: Path | None = None
+
+
+def _recognized_stale_record(token: str = "a" * 32) -> str:
+    """Return a stale record in the shipped `_statelock` wire format."""
+    return f"statelock1 {token} 999999999\n"
+
+
+def _load_statelock(module_name: str):
+    spec = importlib.util.spec_from_file_location(module_name, str(STATELOCK))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def run(*args: str, timeout: float = 90.0) -> subprocess.CompletedProcess[str]:
@@ -179,10 +209,7 @@ def test_symlink_escape_refused(target: Path) -> None:
     link = target.parent / "sneaky.jsonl"
     if link.exists() or link.is_symlink():
         link.unlink()
-    try:
-        link.symlink_to(real)
-    except (OSError, NotImplementedError):
-        ok(f"{name} (skipped — no symlink support)")
+    if not symlink_or_skip(name, link, real):
         return
     proc = run(*_append_args(link))
     if proc.returncode == 0:
@@ -474,9 +501,7 @@ def test_exclusive_lock_actually_excludes(target: Path) -> None:
     and the unconditional release then deleted its successor's lock. Three
     processes ended up in the critical section at once."""
     name = "exclusive-lock-actually-excludes"
-    spec = importlib.util.spec_from_file_location("_ak", str(SCRIPT))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load_statelock("_ak_lock_exclusion")
     target.write_text("", encoding="utf-8")
     inside, overlaps, guard = [], [], threading.Lock()
 
@@ -509,9 +534,7 @@ def test_lock_timeout_reports_instead_of_hanging(target: Path) -> None:
     budget to prove a property that has nothing to do with its length.
     """
     name = "lock-timeout-reports-instead-of-hanging"
-    spec = importlib.util.spec_from_file_location("_ak4", str(SCRIPT))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load_statelock("_ak_lock_timeout")
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
     lock.write_text("someone-else", encoding="utf-8")
@@ -521,11 +544,11 @@ def test_lock_timeout_reports_instead_of_hanging(target: Path) -> None:
             with mod.exclusive(target, timeout=2.0):
                 fail(name, "acquired a lock held by someone else")
                 return
-        except mod.LockUnavailable as exc:
+        except mod.StateLockError as exc:
             elapsed = time.monotonic() - started
             if elapsed > 20:
                 fail(name, f"took {elapsed:.0f}s for a 2s budget — not bounded")
-            elif "did not free" not in str(exc):
+            elif "not reclaimed" not in str(exc) and "holds no record" not in str(exc):
                 fail(name, f"unexpected message: {exc}")
             else:
                 ok(name)
@@ -609,16 +632,20 @@ def test_lock_release_only_unlinks_what_it_owns(target: Path) -> None:
     After a stale takeover the displaced holder must NOT remove its successor's
     lock — otherwise every waiter behind it acquires at once."""
     name = "lock-release-only-unlinks-what-it-owns"
-    spec = importlib.util.spec_from_file_location("_ak2", str(SCRIPT))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load_statelock("_ak_lock_release")
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
     # Enter, then let a "takeover" replace our lock with a foreign token.
     cm = mod.exclusive(target, timeout=5.0, stale_after=0.01)
     cm.__enter__()
     lock.write_text("someone-elses-token", encoding="utf-8")
-    cm.__exit__(None, None, None)
+    try:
+        cm.__exit__(None, None, None)
+    except mod.StateLockLost:
+        pass
+    else:
+        fail(name, "lost-lock release did not report StateLockLost")
+        return
     if not lock.exists():
         fail(name, "release removed a lock it no longer owned — this is the cascade")
         return
@@ -634,34 +661,32 @@ def test_break_does_not_take_a_successors_lock(target: Path) -> None:
     manager exists to prevent. Reproduced by scheduling the successor's
     acquisition inside `Path.replace`, which is the window itself."""
     name = "break-does-not-take-a-successors-lock"
-    spec = importlib.util.spec_from_file_location("_ak5", str(SCRIPT))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load_statelock("_ak_lock_reclaim_race")
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
     # An abandoned lock: old enough that the waiter judges it stale.
-    lock.write_text("abandoned-token", encoding="utf-8")
+    lock.write_text(_recognized_stale_record(), encoding="utf-8")
     os.utime(lock, (time.time() - 9999, time.time() - 9999))
 
-    real_replace = Path.replace
+    real_rename = Path.rename
     fired = []
 
-    def racing_replace(self: Path, dst: object) -> object:
+    def racing_rename(self: Path, dst: object) -> object:
         # The successor acquires in the gap between the stat and this rename.
         if self == lock and not fired:
             fired.append(True)
             lock.unlink()
-            lock.write_text("successor-token", encoding="utf-8")
-        return real_replace(self, dst)
+            lock.write_text(_recognized_stale_record("b" * 32), encoding="utf-8")
+        return real_rename(self, dst)
 
-    Path.replace = racing_replace
+    Path.rename = racing_rename
     try:
         acquired = False
         with contextlib.suppress(Exception), mod.exclusive(
                 target, timeout=0.5, stale_after=1.0):
             acquired = True
     finally:
-        Path.replace = real_replace
+        Path.rename = real_rename
     if acquired:
         fail(name, "acquired while a live successor held the lock")
         return
@@ -671,7 +696,8 @@ def test_break_does_not_take_a_successors_lock(target: Path) -> None:
     if not lock.exists():
         fail(name, "the successor's lock was taken and never put back")
         return
-    if lock.read_text(encoding="utf-8") != "successor-token":
+    expected_successor = _recognized_stale_record("b" * 32)
+    if lock.read_text(encoding="utf-8") != expected_successor:
         fail(name, f"lock now holds {lock.read_text(encoding='utf-8')!r}, "
                    f"not the successor's token")
         return
@@ -679,11 +705,10 @@ def test_break_does_not_take_a_successors_lock(target: Path) -> None:
     ok(name)
 
 
-def test_stale_directory_lock_is_broken_not_fatal(target: Path) -> None:
-    """AC17a. A directory at the lock path used to be unbreakable and reported.
-    Breaking by rename makes it recoverable instead: the rename frees the path,
-    which is the whole point, and clearing the renamed entry is best-effort."""
-    name = "stale-directory-lock-is-broken-not-fatal"
+# STUB: AC4 — only a recognized regular lock record is eligible for recovery.
+def test_stale_directory_lock_is_refused(target: Path) -> None:
+    """A directory at the lock path is not a lock record and fails closed."""
+    name = "stale-directory-lock-is-refused"
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
     lock.mkdir()
@@ -691,32 +716,15 @@ def test_stale_directory_lock_is_broken_not_fatal(target: Path) -> None:
     os.utime(lock, (old, old))
     try:
         proc = run(*_append_args(target))
-        if proc.returncode != 0:
-            fail(name, f"an abandoned directory lock was fatal: "
+        if proc.returncode == 0:
+            fail(name, "a non-regular lock path was reclaimed")
+        elif not lock.is_dir():
+            fail(name, "the writer altered the unrecognized lock directory")
+        elif "regular file" not in (proc.stdout + proc.stderr):
+            fail(name, f"refusal did not explain the lock type: "
                        f"{(proc.stdout + proc.stderr)[:160]}")
-        elif lock.exists():
-            fail(name, "the lock path was not freed")
         else:
-            # Two assertions, because neither alone holds. A glob cannot work:
-            # `exclusive` clears the renamed entry before returning. And a
-            # behavioural check cannot work off Windows, where `:` is a legal
-            # filename character — so the helper's output is checked for
-            # reserved characters, and the call site is pinned structurally so
-            # the rename cannot quietly go back to inlining the `pid:nonce`
-            # token. Same shape as `test_loop_cohort_schedule.py`'s
-            # `inspect.getsource` guards.
-            spec = importlib.util.spec_from_file_location("_ak6", str(SCRIPT))
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            probe = mod.stale_name("patterns.jsonl.lock", "deadbeef" * 4)
-            bad = set(probe) & set('<>:"/\\|?*')
-            if bad:
-                fail(name, f"stale name is not Windows-legal: {sorted(bad)}")
-            elif "stale_name(" not in inspect.getsource(mod.exclusive):
-                fail(name, "exclusive() no longer builds its rename target via "
-                           "stale_name(), so the Windows-legal guarantee is unpinned")
-            else:
-                ok(name)
+            ok(name)
     finally:
         for leftover in target.parent.glob(f"{lock.name}*"):
             if leftover.is_dir():
@@ -725,20 +733,40 @@ def test_stale_directory_lock_is_broken_not_fatal(target: Path) -> None:
                 leftover.unlink(missing_ok=True)
 
 
+# STUB: AC4 — append delegates recognized stale recovery to `_statelock`.
+def test_recognized_stale_statelock_record_is_recovered(target: Path) -> None:
+    name = "recognized-stale-statelock-record-is-recovered"
+    target.write_text("", encoding="utf-8")
+    lock = target.with_name(target.name + ".lock")
+    lock.write_text(_recognized_stale_record(), encoding="utf-8")
+    old = time.time() - 10_000
+    os.utime(lock, (old, old))
+
+    proc = run(*_append_args(target))
+
+    spec = importlib.util.spec_from_file_location("_ak_statelock_stub", str(SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    source_file = Path(inspect.getsourcefile(inspect.unwrap(mod.exclusive)) or "").name
+    if proc.returncode != 0:
+        fail(name, f"recognized stale record was not recovered: {proc.stderr[:160]}")
+    elif source_file != "_statelock.py":
+        fail(name, f"append still owns a custom lock implementation in {source_file!r}")
+    elif lock.exists():
+        fail(name, "recognized stale lock remained after successful append")
+    else:
+        ok(name)
+
+
 def test_dangling_symlink_lock_is_bounded(target: Path) -> None:
     """AC17a. `O_EXCL` raises FileExistsError for a dangling symlink while
     `stat` raises FileNotFoundError — the branch that once `continue`d past both
     the deadline and the sleep, busy-spinning a core forever."""
     name = "dangling-symlink-lock-is-bounded"
-    spec = importlib.util.spec_from_file_location("_ak5", str(SCRIPT))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    mod = _load_statelock("_ak_dangling_lock")
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
-    try:
-        lock.symlink_to(target.parent / "does-not-exist")
-    except (OSError, NotImplementedError):
-        ok(f"{name} (skipped — no symlink support)")
+    if not symlink_or_skip(name, lock, target.parent / "does-not-exist"):
         return
     try:
         started = time.monotonic()
@@ -746,12 +774,12 @@ def test_dangling_symlink_lock_is_bounded(target: Path) -> None:
             with mod.exclusive(target, timeout=2.0):
                 fail(name, "acquired through a dangling-symlink lock")
                 return
-        except mod.LockUnavailable as exc:
+        except mod.StateLockError as exc:
             elapsed = time.monotonic() - started
             if elapsed > 20:
                 fail(name, f"busy-spun for {elapsed:.0f}s on a 2s budget")
-            elif "could not be inspected" not in str(exc):
-                fail(name, f"message did not name the un-inspectable lock: {exc}")
+            elif "regular file" not in str(exc):
+                fail(name, f"message did not name the invalid lock type: {exc}")
             else:
                 ok(name)
     finally:
@@ -777,47 +805,68 @@ def test_zero_width_run_refused_by_the_writer(target: Path) -> None:
         ok(name)
 
 
-def test_losing_a_stale_break_race_is_a_retry_not_a_refusal(target: Path) -> None:
-    """AC17a. When several waiters cross `stale_after` together they all try to
-    break the same abandoned lock; the losers get FileNotFoundError from their
-    unlink. That is "someone else already removed it — retry", not "cannot be
-    removed", which is how a won race turned into a spurious refusal.
+def test_stale_break_race_reports_only_explicit_lock_loss(target: Path) -> None:
+    """AC17a. Stale-break contenders either complete or report lock loss.
 
     Threaded rather than subprocess: the window between one waiter's unlink and
     the next one's is microseconds, and ~26ms of process spawn per waiter is far
     too coarse to land in it — a subprocess version of this ran 24 attempts
-    without once reproducing.
+    without once reproducing. A contender that moved a successor's lock can
+    admit that successor before restoring it; the displaced holder must then
+    report `StateLockLost` after its body. That explicit fail-closed result is
+    part of `_statelock`'s contract, not a spurious acquisition refusal.
     """
-    name = "losing-a-stale-break-race-is-a-retry-not-a-refusal"
-    spec = importlib.util.spec_from_file_location("_ak3", str(SCRIPT))
-    mod = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mod)
+    name = "stale-break-race-reports-only-explicit-lock-loss"
+    mod = _load_statelock("_ak_stale_race")
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
-    refusals: list[str] = []
+    completed = 0
+    lost = 0
+    entered = 0
+    unexpected: list[str] = []
+    counters_lock = threading.Lock()
 
     def contend(barrier: threading.Barrier) -> None:
+        nonlocal completed, entered, lost
         barrier.wait()
         try:
-            with mod.exclusive(target, timeout=20.0, stale_after=0.001):
+            with mod.exclusive(target, timeout=20.0, stale_after=5.0):
+                with counters_lock:
+                    entered += 1
                 time.sleep(0.001)
-        except mod.LockUnavailable as exc:
-            refusals.append(str(exc))
+            with counters_lock:
+                completed += 1
+        except mod.StateLockLost:
+            with counters_lock:
+                lost += 1
+        except mod.StateLockError as exc:
+            with counters_lock:
+                unexpected.append(f"{type(exc).__name__}: {exc}")
 
-    for _ in range(40):
-        lock.write_text("abandoned", encoding="utf-8")
+    rounds = 40
+    contenders_per_round = 6
+    for _ in range(rounds):
+        lock.write_text(_recognized_stale_record(), encoding="utf-8")
         old = time.time() - 10_000          # backdate past stale_after
         os.utime(lock, (old, old))
-        barrier = threading.Barrier(6)
-        threads = [threading.Thread(target=contend, args=(barrier,)) for _ in range(6)]
+        barrier = threading.Barrier(contenders_per_round)
+        threads = [
+            threading.Thread(target=contend, args=(barrier,))
+            for _ in range(contenders_per_round)
+        ]
         for th in threads:
             th.start()
         for th in threads:
             th.join()
         lock.unlink(missing_ok=True)
-    if refusals:
-        fail(name, f"{len(refusals)} waiter(s) refused after losing a break race; "
-                   f"first: {refusals[0][:120]}")
+    expected = rounds * contenders_per_round
+    if unexpected:
+        fail(name, f"{len(unexpected)} unexpected refusal(s); first: "
+                   f"{unexpected[0][:160]}")
+    elif entered != expected:
+        fail(name, f"only {entered}/{expected} contenders entered the lock body")
+    elif completed + lost != expected:
+        fail(name, f"{completed} completed + {lost} explicit losses != {expected}")
     else:
         ok(name)
 
@@ -850,8 +899,9 @@ def main() -> int:
             test_exclusive_lock_actually_excludes,
             test_lock_release_only_unlinks_what_it_owns,
             test_break_does_not_take_a_successors_lock,
-            test_losing_a_stale_break_race_is_a_retry_not_a_refusal,
-            test_stale_directory_lock_is_broken_not_fatal,
+            test_stale_break_race_reports_only_explicit_lock_loss,
+            test_stale_directory_lock_is_refused,
+            test_recognized_stale_statelock_record_is_recovered,
             test_dangling_symlink_lock_is_bounded,
             test_lock_timeout_reports_instead_of_hanging,
             test_zero_width_carriers_beyond_cf_refused,
@@ -872,7 +922,9 @@ def main() -> int:
         print(f"✖ test-append-knowledge: {len(FAILURES)} of {RAN} cases failed",
               file=sys.stderr)
         return 1
-    print(f"✓ test-append-knowledge: passed ({RAN} cases).")
+    passed = RAN - len(SKIPPED)
+    suffix = f"; {len(SKIPPED)} skipped" if SKIPPED else ""
+    print(f"✓ test-append-knowledge: passed ({passed}/{RAN} cases{suffix}).")
     return 0
 
 

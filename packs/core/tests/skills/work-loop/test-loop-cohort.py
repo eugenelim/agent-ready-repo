@@ -8,9 +8,12 @@ Exit 0 = all pass; exit non-zero = at least one failure.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
+import io
 import json
+import os
 import sys
 import tempfile
 import uuid
@@ -42,6 +45,7 @@ CLEAN_SUBSTRING = _mod.CLEAN_SUBSTRING
 # ── helpers ───────────────────────────────────────────────────────────────
 
 failures: list[str] = []
+skipped: list[str] = []
 ran = 0
 
 
@@ -56,6 +60,22 @@ def fail(name: str, reason: str) -> None:
     ran += 1
     failures.append(name)
     print(f"FAIL [{name}]: {reason}", file=sys.stderr)
+
+
+def symlink_or_skip(name: str, link: Path, target: Path | str) -> bool:
+    """Create a required symlink, recording a real skip only outside CI."""
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError) as exc:
+        if os.environ.get("CI"):
+            fail(name, f"CI must support this symlink regression: {exc}")
+        else:
+            global ran
+            ran += 1
+            skipped.append(name)
+            print(f"skip [{name}]: symlink creation unavailable ({exc})")
+        return False
+    return True
 
 
 def run_cohort(*args, spec_dir=None):
@@ -316,6 +336,116 @@ def test_status_absent(tmp: Path) -> None:
     rc, _, _ = run_cohort("status", str(spec_dir))
     if rc == 0:
         fail(name, "expected non-zero when state.json absent")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — status must not follow a managed cohort-state symlink.
+def test_status_rejects_symlinked_cohort_state(tmp: Path) -> None:
+    name = "status-rejects-symlinked-cohort-state"
+    spec_dir = make_spec_dir(tmp, name)
+    sentinel = "outside-cohort-state-sentinel"
+    outside = tmp / f"{name}-outside.json"
+    outside.write_text(
+        json.dumps({
+            "schema_version": 1,
+            "run_id": str(uuid.uuid4()),
+            "feature": sentinel,
+        }),
+        encoding="utf-8",
+    )
+    if not symlink_or_skip(name, spec_dir / "state.json", outside):
+        return
+
+    rc, out, err = run_cohort("status", str(spec_dir), "--json")
+
+    if rc == 0:
+        fail(name, "symlinked state.json was accepted")
+    elif sentinel in out + err:
+        fail(name, "outside cohort-state content reached command output")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — a descriptor whose identity changes during the read is rejected.
+def test_cohort_state_reader_rejects_identity_change(tmp: Path) -> None:
+    name = "cohort-state-reader-rejects-identity-change"
+    sentinel = "identity-change-sentinel"
+    spec_dir = make_spec_dir(tmp, name)
+    path = spec_dir / "state.json"
+    path.write_text(
+        json.dumps({
+            "schema_version": 1,
+            "run_id": str(uuid.uuid4()),
+            "feature": sentinel,
+        }),
+        encoding="utf-8",
+    )
+    import os
+    real_fstat = os.fstat
+    calls = 0
+
+    def changed_fstat(fd: int):
+        nonlocal calls
+        calls += 1
+        observed = real_fstat(fd)
+        if calls < 2:
+            return observed
+        fields = list(observed)
+        fields[1] += 1  # st_ino
+        return os.stat_result(fields)
+
+    _mod.os.fstat = changed_fstat
+    try:
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            rc = _mod.cmd_status(
+                _mod.argparse.Namespace(spec_dir=str(spec_dir), json=True)
+            )
+    finally:
+        _mod.os.fstat = real_fstat
+    output = stdout.getvalue() + stderr.getvalue()
+    if rc == 0:
+        fail(name, "public status accepted an identity-changing state read")
+    elif calls < 2:
+        fail(name, "public status did not verify descriptor identity twice")
+    elif sentinel in output:
+        fail(name, f"identity-changing content reached output: {output!r}")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — managed state has the same 8 MiB cap as shipped file readers.
+def test_cohort_state_reader_rejects_over_limit_file(tmp: Path) -> None:
+    name = "cohort-state-reader-rejects-over-limit-file"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "state.json").write_bytes(b"x" * (8 * 1024 * 1024 + 1))
+
+    rc, out, err = run_cohort("status", str(spec_dir), "--json")
+
+    if rc == 0:
+        fail(name, "over-limit state.json was accepted")
+    elif "8388608" not in out + err and "8 MiB" not in out + err:
+        fail(name, f"failure did not identify the managed-state size cap: {out} {err}")
+    else:
+        ok(name)
+
+
+# STUB: AC3 — managed cohort state must be a regular file.
+def test_cohort_state_reader_rejects_non_regular_path(tmp: Path) -> None:
+    name = "cohort-state-reader-rejects-non-regular-path"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "state.json").mkdir()
+
+    rc, out, err = run_cohort("status", str(spec_dir), "--json")
+
+    if rc == 0:
+        fail(name, "directory state.json was accepted")
+    elif "Traceback" in out + err:
+        fail(name, f"non-regular state escaped the diagnostic boundary: {out} {err}")
+    elif "regular file" not in out + err:
+        fail(name, f"failure did not identify the required file type: {out} {err}")
     else:
         ok(name)
 
@@ -2785,6 +2915,10 @@ def main() -> int:
             test_init_phase1_field_set,
             test_pre_phase1_state_fails_identity,
             test_status_absent,
+            test_status_rejects_symlinked_cohort_state,
+            test_cohort_state_reader_rejects_identity_change,
+            test_cohort_state_reader_rejects_over_limit_file,
+            test_cohort_state_reader_rejects_non_regular_path,
             test_status_json_after_init,
             test_status_is_read_only,
             test_status_null_to_value_transition,
@@ -2870,7 +3004,10 @@ def main() -> int:
             except Exception as exc:
                 fail(t.__name__, f"uncaught exception: {exc}")
 
-    print(f"\n{ran - len(failures)}/{ran} passed", end="")
+    passed = ran - len(failures) - len(skipped)
+    print(f"\n{passed}/{ran} passed", end="")
+    if skipped:
+        print(f"; {len(skipped)} skipped", end="")
     if failures:
         print(f"  FAILED: {', '.join(failures)}", file=sys.stderr)
         return 1

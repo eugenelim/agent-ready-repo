@@ -226,3 +226,15 @@ The validator normalises and asserts directory-ness; it does not restrict
    into a diagnostic), so it is not wasted even if Snyk still flags.
 3. **No adopter passes a `--root` that fails the new directory assertion.**
    AC5 covers the valid cases; AC6 makes the failure mode explicit.
+
+## Erratum — 2026-08-11
+
+Downstream Snyk Code findings against core 2.5.6 disproved assumptions 1 and 2
+as blanket statements. The highlighted operator-selected root flows remain
+safe, but a same-class sweep found genuine adjacent gaps: unconfined metadata
+and reference probes, recursive descent before canonical pruning, managed
+state reads that followed symlinks, and `append-knowledge.py`'s weaker custom
+lock reader. [`core-path-confinement`](../core-path-confinement/spec.md) owns
+the corrective implementation and the per-finding disposition. A zero CodeQL
+result and an argv-boundary validator are useful evidence, not proof that every
+derived filesystem operation is safe.

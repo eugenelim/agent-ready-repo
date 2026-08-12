@@ -48,6 +48,7 @@ import importlib.util
 import json
 import os
 import re
+import stat
 import subprocess
 import sys
 import tempfile
@@ -63,6 +64,7 @@ TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 
 PHASES = ("implement", "review", "gates-failed")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
+_MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
 
 CLEAN_SUBSTRING = "Clean — ready to commit."
 # Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
@@ -130,17 +132,79 @@ def state_path_for(spec_dir: Path) -> Path:
     return spec_dir / "state.json"
 
 
+def _read_managed_json(path: Path, label: str) -> dict:
+    """Read a bounded regular JSON file without following or racing a symlink."""
+    try:
+        before = os.lstat(path)
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise ValueError(f"{label} cannot be examined: {exc}") from exc
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError(f"{label} must be a regular file")
+    if before.st_size > _MAX_MANAGED_JSON_BYTES:
+        raise ValueError(
+            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
+        )
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise ValueError(f"{label} cannot be opened safely: {exc}") from exc
+    try:
+        try:
+            opened = os.fstat(fd)
+            if not stat.S_ISREG(opened.st_mode):
+                raise ValueError(f"{label} must be a regular file")
+            identity = (before.st_dev, before.st_ino)
+            if (opened.st_dev, opened.st_ino) != identity:
+                raise ValueError(f"{label} changed while being opened")
+            chunks: list[bytes] = []
+            remaining = _MAX_MANAGED_JSON_BYTES + 1
+            while remaining:
+                chunk = os.read(fd, min(64 * 1024, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            raw = b"".join(chunks)
+            after_fd = os.fstat(fd)
+        except OSError as exc:
+            raise ValueError(f"{label} could not be read safely: {exc}") from exc
+    finally:
+        os.close(fd)
+    try:
+        after_path = os.lstat(path)
+    except OSError as exc:
+        raise ValueError(f"{label} changed while being read") from exc
+    if (
+        (after_fd.st_dev, after_fd.st_ino) != identity
+        or (after_path.st_dev, after_path.st_ino) != identity
+    ):
+        raise ValueError(f"{label} changed while being read")
+    if len(raw) > _MAX_MANAGED_JSON_BYTES:
+        raise ValueError(
+            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
+        )
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{label} is not valid UTF-8") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} malformed: {exc.msg} at line {exc.lineno}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{label} root must be an object")
+    return data
+
+
 def read_state(spec_dir: Path) -> dict:
     path = state_path_for(spec_dir)
-    if not path.exists():
-        raise FileNotFoundError(f"state.json missing at {path}")
     try:
-        data = json.loads(path.read_text())
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"state.json malformed: {exc.msg} at line {exc.lineno}") from exc
-    if not isinstance(data, dict):
-        raise ValueError("state.json root must be an object")
-    return data
+        return _read_managed_json(path, "state.json")
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"state.json missing at {path}") from exc
 
 
 def write_state_atomic(spec_dir: Path, state: dict) -> None:
