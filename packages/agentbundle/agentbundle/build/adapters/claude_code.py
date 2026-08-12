@@ -23,6 +23,7 @@ from typing import Iterator
 # wiring lands in a settings file (not in agents) — the uniformity
 # keeps the phases predictable, which the spec calls for.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
+from agentbundle.build.projection_io import copy_projected_file, ensure_directory_no_follow
 from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.merge_json import project_merge_json
 
@@ -36,12 +37,29 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
             yield primitive_name
 
 
-def project(pack_path: Path, contract: dict, output_root: Path) -> None:
+def project(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Single-pack convenience wrapper. Delegates to `project_packs`."""
-    project_packs([pack_path], contract, output_root)
+    project_packs(
+        [pack_path],
+        contract,
+        output_root,
+        preserve_existing_metadata=preserve_existing_metadata,
+    )
 
 
-def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
+def project_packs(
+    pack_paths: list[Path],
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Project every pack in `pack_paths` in order, then run the
     shared orphan-sweep post-pass on the `skill` target directory.
 
@@ -53,7 +71,12 @@ def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> 
     another that ships the union complement.
     """
     for pack_path in pack_paths:
-        _project_single(pack_path, contract, output_root)
+        _project_single(
+            pack_path,
+            contract,
+            output_root,
+            preserve_existing_metadata=preserve_existing_metadata,
+        )
     _sweep_skill_orphans(pack_paths, contract, output_root)
 
 
@@ -135,7 +158,13 @@ def _sweep_skill_orphans(pack_paths: list[Path], contract: dict, output_root: Pa
     sweep_orphans(target_dir, expected_names)
 
 
-def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
+def _project_single(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool,
+) -> None:
     adapter_block = contract["adapter"]["claude-code"]
     rules_by_primitive = {
         entry["primitive"]: entry
@@ -156,7 +185,12 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
             )
         elif mode == "direct-file":
             _resolve_target(output_root, rule["target-path"])  # confinement check
-            _project_direct_file(source_dir, output_root, rule["target-path"])
+            _project_direct_file(
+                source_dir,
+                output_root,
+                rule["target-path"],
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
         elif mode == "merge-json":
             project_merge_json(source_dir, output_root, rule)
         else:
@@ -207,10 +241,22 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
             )
 
 
-def _project_direct_file(source_dir: Path, output_root: Path, target_prefix: str) -> None:
+def _project_direct_file(
+    source_dir: Path,
+    output_root: Path,
+    target_prefix: str,
+    *,
+    preserve_existing_metadata: bool,
+) -> None:
     target_dir = output_root / target_prefix.rstrip("/")
-    target_dir.mkdir(parents=True, exist_ok=True)
+    ensure_directory_no_follow(output_root, target_dir.relative_to(output_root))
     for entry in sorted(source_dir.iterdir()):
         if entry.is_file():
             destination = target_dir / entry.name
-            shutil.copy2(entry, destination, follow_symlinks=False)
+            copy_projected_file(
+                entry,
+                destination,
+                base=output_root,
+                metadata="stat",
+                preserve_existing_metadata=preserve_existing_metadata,
+            )

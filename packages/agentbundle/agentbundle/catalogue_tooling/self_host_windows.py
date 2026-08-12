@@ -84,15 +84,6 @@ def run_windows_compat(root: Path) -> int:
             [py, "-m", "pytest", str(root / "packs" / "core" / "tests" / "hooks")],
             root,
         ),
-        # credbroker's own suite. The cross-platform process-tree kill lives
-        # here (POSIX process groups vs `taskkill`), and until this runs green on
-        # Windows the `taskkill` arm and the reserved-device-name grammar are
-        # reasoned, not verified.
-        (
-            "credbroker suite (process-tree kill parity)",
-            [py, "-m", "pytest"],
-            root / "packages" / "credbroker",
-        ),
         # Atlassian SSO suites (asyncio + SSL-context wiring is platform-sensitive).
         # Pack tests live outside the runtime payload.
         #

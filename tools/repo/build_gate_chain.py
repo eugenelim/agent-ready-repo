@@ -289,6 +289,10 @@ def build_check(args: argparse.Namespace) -> int:
             "tools", "test-lint-ci-parity.py",
         ),
         _script_step(
+            "test-build-check-windows-workflow",
+            "tools", "test-build-check-windows-workflow.py",
+        ),
+        _script_step(
             "lint-ci-parity",
             "tools", "lint-ci-parity.py",
         ),

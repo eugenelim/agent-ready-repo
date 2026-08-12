@@ -24,11 +24,15 @@ name: build-check-windows
 #   agentbundle catalogue self-host --check --windows --root .
 #
 # That command encapsulates the bundler build, the self-host drift gates,
-# and the path-sensitive / encoding-sensitive pytest suite that this job
-# exists to verify. The canonical test list lives in
+# and the AgentBundle/pack path-sensitive and encoding-sensitive pytest suite
+# that this job exists to verify. The canonical test list lives in
 # agentbundle/catalogue_tooling/self_host_windows.py — edit it there,
 # not here — so adding a new Windows-specific test requires only a Python
 # change, not a YAML edit.
+#
+# CredBroker's package suite runs in its own parallel Windows job below. Keep it
+# separate so a slow package suite cannot consume the AgentBundle compatibility
+# job's wall-clock budget, and so failures name their owning package directly.
 #
 # Core agentbundle verify tasks (the full pytest suite in build-check.yml)
 # remain Linux-only and are not duplicated here.
@@ -51,10 +55,13 @@ on:
       - "*.md"
 
 jobs:
-  build-check-windows:
-    name: make build-check (windows)
+  agentbundle-windows:
+    name: AgentBundle compatibility (windows)
     runs-on: windows-latest
-    timeout-minutes: 10
+    # Dependency setup plus the remaining 15 sequential portability stages can
+    # exceed the old 10-minute ceiling on a cold runner. CredBroker's package
+    # suite is split below, so 15 minutes remains a bounded compatibility budget.
+    timeout-minutes: 15
     env:
       # Force UTF-8 for stdio. Windows Python defaults to cp1252,
       # which can't encode the `✓`/`✖` glyphs the lint and pre-pr
@@ -91,3 +98,47 @@ jobs:
         # catalogue build → self-host drift check → path-sensitive pytest suite
         # → experience lint → pre-pr aggregator. Stops on first failure.
         run: agentbundle catalogue self-host --check --windows --root .
+
+  credbroker-tests-windows:
+    name: pytest credbroker (windows)
+    runs-on: windows-latest
+    timeout-minutes: 10
+    env:
+      PYTHONUTF8: "1"
+      PYTHONIOENCODING: "utf-8"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: 'pip'
+          cache-dependency-path: packages/credbroker/pyproject.toml
+
+      - name: Install CredBroker test dependencies
+        run: python -m pip install -e packages/credbroker pytest
+
+      - name: Run CredBroker suite
+        working-directory: packages/credbroker
+        run: python -m pytest
+
+  build-check-windows:
+    name: make build-check (windows)
+    if: ${{ always() }}
+    needs:
+      - agentbundle-windows
+      - credbroker-tests-windows
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Require both Windows suites
+        env:
+          AGENTBUNDLE_RESULT: ${{ needs.agentbundle-windows.result }}
+          CREDBROKER_RESULT: ${{ needs.credbroker-tests-windows.result }}
+        run: |
+          if [ "$AGENTBUNDLE_RESULT" != "success" ] || [ "$CREDBROKER_RESULT" != "success" ]; then
+            echo "Windows suites failed: agentbundle=$AGENTBUNDLE_RESULT credbroker=$CREDBROKER_RESULT" >&2
+            exit 1
+          fi
+          echo "Windows suites passed"

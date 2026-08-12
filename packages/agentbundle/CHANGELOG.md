@@ -6,6 +6,26 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.33.3] — 2026-08-12
+
+### Changed
+
+- The Windows compatibility command now owns AgentBundle and pack portability
+  checks. This repository runs CredBroker's package suite in a separate,
+  parallel Windows CI job; the existing aggregate check remains blocking on
+  both suites.
+
+### Fixed
+
+- `catalogue self-host --write` now updates writable existing seed and adapter
+  files in place without attempting owner-only timestamp or mode changes. This
+  supports checkouts whose files are owned by a different user while preserving
+  their inode, ownership, and mode; modification time advances naturally when
+  content changes, and `--check` still reports mode drift that the writer cannot
+  repair. Safe rollback is bounded to projected files no larger than 64 MiB;
+  write-only files retain content-write compatibility but cannot be restored if
+  their write fails after truncation.
+
 ## [0.33.2] — 2026-08-12
 
 ### Fixed

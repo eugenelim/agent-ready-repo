@@ -1,6 +1,6 @@
 # Spec: core pack path confinement
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (security boundary and shipped public-interface behavior)
@@ -124,7 +124,7 @@ Unrelated argv-to-path sites remain in the existing
   `_validated_root` shape are corrected with this evidence. Snyk Code findings
   that remain intentional are dispositioned downstream through supported
   issue controls, not a repo-wide file exclusion.
-- [ ] **AC9 — Verification.** Targeted work-loop and workspace-status tests,
+- [x] **AC9 — Verification.** Targeted work-loop and workspace-status tests,
   pack conformance, projection drift, lint, and the repository build/SAST
   gate pass in a writable environment. Any unavailable local gate is reported
   as environment-blocked rather than represented as passing.
@@ -152,8 +152,9 @@ Initial verification ran in the writable developer environment on 2026-08-11:
 leg including catalogue verification, projection drift, Bandit, dependency
 audit, Semgrep plus its construction tests, Ruff, mypy, and the complete test
 matrix. A subsequent CodeQL result required an owner-only event-log creation
-mask, and Linux CI exposed an obsolete stale-lock test expectation; AC9 remains
-open until those amendments rerun.
+mask, and Linux CI exposed an obsolete stale-lock test expectation. Those
+amendments and their final verification are complete (source: maintainer
+confirmation 2026-08-12).
 
 PLAN materializes red stubs for AC1–AC4 in the existing script suites. TDD
 coverage: AC1–AC4 covered; AC5–AC9 use goal-based verification and therefore

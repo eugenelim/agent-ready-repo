@@ -38,15 +38,37 @@ from agentbundle.build.projections.kiro_ide_hook import project as kiro_ide_hook
 _ADAPTER = "kiro-ide"
 
 
-def project(pack_path: Path, contract: dict, output_root: Path) -> None:
+def project(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Single-pack convenience wrapper. Delegates to `project_packs`."""
-    project_packs([pack_path], contract, output_root)
+    project_packs(
+        [pack_path],
+        contract,
+        output_root,
+        preserve_existing_metadata=preserve_existing_metadata,
+    )
 
 
-def project_packs(pack_paths: list[Path], contract: dict, output_root: Path) -> None:
+def project_packs(
+    pack_paths: list[Path],
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool = False,
+) -> None:
     """Project every pack in `pack_paths` using the kiro-ide adapter block."""
     for pack_path in pack_paths:
-        _project_single(pack_path, contract, output_root)
+        _project_single(
+            pack_path,
+            contract,
+            output_root,
+            preserve_existing_metadata=preserve_existing_metadata,
+        )
     _sweep_skill_orphans(pack_paths, contract, output_root)
 
 
@@ -99,7 +121,13 @@ def _iter_primitives(contract: dict) -> Iterator[str]:
             yield primitive_name
 
 
-def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
+def _project_single(
+    pack_path: Path,
+    contract: dict,
+    output_root: Path,
+    *,
+    preserve_existing_metadata: bool,
+) -> None:
     adapter_block = contract["adapter"][_ADAPTER]
     array_form = {e["primitive"]: e for e in adapter_block.get("projection", [])}
     table_form = adapter_block.get("projections", {}) or {}
@@ -109,7 +137,13 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
         # dispatch to the dedicated projector directly.
         if primitive_name == "kiro-ide-hook":
             rule = table_form.get("kiro-ide-hook", {})
-            _dispatch_kiro_ide_hook(pack_path, output_root, rule, contract)
+            _dispatch_kiro_ide_hook(
+                pack_path,
+                output_root,
+                rule,
+                contract,
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
             continue
 
         prim_def = contract["primitive"].get(primitive_name)
@@ -121,10 +155,23 @@ def _project_single(pack_path: Path, contract: dict, output_root: Path) -> None:
 
         if primitive_name in array_form:
             rule = array_form[primitive_name]
-            _dispatch_array_form(primitive_name, source_dir, output_root, rule, contract)
+            _dispatch_array_form(
+                primitive_name,
+                source_dir,
+                output_root,
+                rule,
+                contract,
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
         else:
             rule = table_form[primitive_name]
-            _dispatch_table_form(primitive_name, source_dir, output_root, rule)
+            _dispatch_table_form(
+                primitive_name,
+                source_dir,
+                output_root,
+                rule,
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
 
 
 def _dispatch_array_form(
@@ -133,6 +180,8 @@ def _dispatch_array_form(
     output_root: Path,
     rule: dict,
     contract: dict,
+    *,
+    preserve_existing_metadata: bool,
 ) -> None:
     mode = rule["mode"]
     if mode == "direct-directory":
@@ -141,7 +190,12 @@ def _dispatch_array_form(
         if primitive_name == "agent":
             _project_agent_as_md(source_dir, output_root, rule, contract)
         else:
-            _project_direct_file(source_dir, output_root, rule["target-path"])
+            _project_direct_file(
+                source_dir,
+                output_root,
+                rule["target-path"],
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
     else:
         raise ValueError(f"kiro-ide: unhandled array-form mode {mode!r} for {primitive_name}")
 
@@ -151,6 +205,8 @@ def _dispatch_table_form(
     source_dir: Path,
     output_root: Path,
     rule: dict,
+    *,
+    preserve_existing_metadata: bool,
 ) -> None:
     mode = rule.get("mode")
     effective_mode = mode["repo"] if isinstance(mode, dict) else mode
@@ -159,7 +215,12 @@ def _dispatch_table_form(
         target = rule.get("target")
         target_template = target.get("repo") if isinstance(target, dict) else target
         if target_template:
-            _project_direct_file_template(source_dir, output_root, target_template)
+            _project_direct_file_template(
+                source_dir,
+                output_root,
+                target_template,
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
 
 
 def _dispatch_kiro_ide_hook(
@@ -167,6 +228,8 @@ def _dispatch_kiro_ide_hook(
     output_root: Path,
     rule: dict,
     contract: dict,
+    *,
+    preserve_existing_metadata: bool,
 ) -> None:
     """Delegate kiro-ide-hook projection to the dedicated projector.
 
@@ -193,6 +256,7 @@ def _dispatch_kiro_ide_hook(
         output_root,
         target_template=target_template,
         hook_body_target_dir=hook_body_target_dir,
+        preserve_existing_metadata=preserve_existing_metadata,
     )
 
 

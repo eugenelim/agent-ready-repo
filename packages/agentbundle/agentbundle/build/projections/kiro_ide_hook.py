@@ -33,8 +33,12 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from pathlib import Path
+
+from agentbundle.build.projection_io import (
+    copy_projected_file,
+    ensure_directory_no_follow,
+)
 
 
 class KiroIdeHookRefusal(Exception):
@@ -68,6 +72,8 @@ def project(
     output_root: Path,
     target_template: str,
     hook_body_target_dir: str,
+    *,
+    preserve_existing_metadata: bool = False,
 ) -> None:
     """Project every ``.apm/kiro-ide-hooks/<name>.kiro.hook`` under
     *pack_path* into *output_root* per the *target_template* shape.
@@ -127,7 +133,10 @@ def project(
             .replace("<name>", bare_name)
         )
         target_path = output_root / resolved_target.lstrip("/")
-        target_path.parent.mkdir(parents=True, exist_ok=True)
+        ensure_directory_no_follow(
+            output_root,
+            target_path.parent.relative_to(output_root),
+        )
 
         raw_bytes = entry.read_bytes()
 
@@ -150,11 +159,23 @@ def project(
                 and isinstance(parsed.get("then"), dict)
                 and parsed["then"].get("type") == "askAgent"
             ):
-                shutil.copy2(entry, target_path, follow_symlinks=False)
+                copy_projected_file(
+                    entry,
+                    target_path,
+                    base=output_root,
+                    metadata="stat",
+                    preserve_existing_metadata=preserve_existing_metadata,
+                )
                 continue
             # Non-askAgent without placeholders — also byte-copy. No
             # scan surface; nothing to rewrite.
-            shutil.copy2(entry, target_path, follow_symlinks=False)
+            copy_projected_file(
+                entry,
+                target_path,
+                base=output_root,
+                metadata="stat",
+                preserve_existing_metadata=preserve_existing_metadata,
+            )
             continue
 
         # Otherwise: parse, expand, re-emit. The parse step also
