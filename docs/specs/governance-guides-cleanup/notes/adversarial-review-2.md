@@ -42,11 +42,15 @@ extended T3 now own it.
 backticked, so not a Markdown link, so invisible to rule 1, and the target does
 not resolve. AC7 claims *every* Type-A reference is gone. Reworded.
 
-**Junction detection was a fail-open no-op on the supported floor.**
+**Junction detection was a silent no-op on the supported floor.**
 `_is_junction` used `getattr(path, "is_junction", None)` returning `False` when
 absent, but `Path.is_junction` is Python 3.12+ and this repository supports
-3.11. All four junction checks were dead code there while AC1 claimed junction
-refusal. Now raises on Windows when the API is unavailable.
+3.11, and every CI job pins 3.11. All four junction checks were dead code there
+while AC1 claimed junction refusal. It now warns on stderr on Windows. I first
+made it raise, then backed that out: the guard's only CI home is the Ubuntu
+`docs.yml` job, so hard-failing would make the tool unusable for a Windows
+maintainer on the supported floor to close a gap that resolved-child
+confinement already backstops. Loud beats fatal here; the silence was the bug.
 
 **External URLs would have reddened the gate.** Rule 1 matched any target whose
 path carried `/rfc/` or `changelog`, with no scheme check — so a citation of

@@ -69,6 +69,8 @@ MARKDOWN_REFERENCE_DEFINITION_RE = re.compile(
     r"^[ \t]{0,3}\[[^\]\n]+\]:[ \t]*(?P<target><[^>\n]+>|\S+)"
 )
 EXTERNAL_URL_RE = re.compile(r"(?:[A-Za-z][A-Za-z0-9+.-]*:)?//")
+# One-shot latch so the junction-unavailable warning is emitted once per run.
+_JUNCTION_WARNED: list[bool] = []
 GOVERNANCE_SEGMENTS = {"adr", "rfc", "specs"}
 
 
@@ -105,21 +107,27 @@ def _is_relative_to(path: Path, root: Path) -> bool:
 
 
 def _is_junction(path: Path) -> bool:
-    """Detect Windows junctions, failing closed when the API is unavailable.
+    """Detect Windows junctions, warning when the API is unavailable.
 
     `Path.is_junction` landed in Python 3.12 but this repository supports 3.11,
-    so a plain `getattr` fallback of `False` would turn every junction check
-    into a silent no-op on the supported floor. Junctions only exist on
-    Windows, so absence is safe on POSIX and an error there.
+    so a plain `getattr` fallback of `False` turns every junction check into a
+    silent no-op on the supported floor. Junctions only exist on Windows, so
+    absence is safe on POSIX and warned about there.
     """
 
     checker = getattr(path, "is_junction", None)
     if checker is None:
-        if os.name == "nt":
-            raise LintUsageError(
-                "cannot detect Windows junctions on this interpreter "
-                "(Path.is_junction requires Python 3.12); refusing to scan"
+        if os.name == "nt" and not _JUNCTION_WARNED:
+            # Loud rather than fatal: refusing to run would make the tool
+            # unusable on the supported floor, and resolved children are still
+            # confined to the selected root, so an escape is still caught.
+            print(
+                "warning: this interpreter cannot detect Windows junctions "
+                "(Path.is_junction requires Python 3.12) — junction checks are "
+                "skipped; child paths remain confined to the selected root",
+                file=sys.stderr,
             )
+            _JUNCTION_WARNED.append(True)
         return False
     try:
         return bool(checker())
