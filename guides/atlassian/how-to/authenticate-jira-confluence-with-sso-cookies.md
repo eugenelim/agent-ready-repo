@@ -1,3 +1,10 @@
+---
+title: "Authenticate Jira and Confluence with an SSO web session"
+summary: "Configure read-only Jira and Confluence skills to authenticate through a securely stored corporate SSO browser session."
+pack: atlassian
+kind: how-to
+---
+
 # Authenticate Jira / Confluence with an SSO web session
 
 **Use this when:** Your Atlassian Data Center instance blocks personal access tokens and requires corporate SSO sign-in for Jira reads or Confluence space crawls.
@@ -8,7 +15,7 @@ On an Atlassian **Data Center** instance fronted by corporate SSO where personal
 access tokens are blocked, [`jira`](../../../../packs/atlassian/.apm/skills/jira/)
 reads and [`confluence-crawler`](../../../../packs/atlassian/.apm/skills/confluence-crawler/)
 can authenticate by a captured web session (a cookie jar) instead of a token. This
-is the `auth: sso-cookie` path (RFC-0035); both skills keep a `creds` (token)
+is the `auth: sso-cookie` path; both skills keep a `creds` (token)
 fallback, so nothing changes for token users.
 
 > **Scope.** Data Center only, **reads only** (JQL search, get issue/project/user;

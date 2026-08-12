@@ -1,3 +1,10 @@
+---
+title: "How to install a user-scope pack into Kiro"
+summary: "Install a user-scope-capable catalogue pack into Kiro's shared skills directory and track it for upgrades."
+pack: _shared
+kind: how-to
+---
+
 # How to: install a user-scope pack into Kiro
 
 **Use this when:** You use Kiro and want to install a user-scope-capable pack from the catalogue into `~/.kiro/skills/`.
@@ -68,4 +75,3 @@ Removes the `~/.kiro/skills/<pack>/` tree the pack owns and updates `~/.agentbun
 - [Install agentbundle from a clone](install-agentbundle-from-clone.md)
 - [Install a user-scope pack into Codex](install-user-scope-pack-into-codex.md)
 - [Upgrade an installed pack](upgrade-packs.md)
-- [`docs/rfc/0011-pack-allowed-adapters.md`](../../../rfc/0011-pack-allowed-adapters.md) — the contract

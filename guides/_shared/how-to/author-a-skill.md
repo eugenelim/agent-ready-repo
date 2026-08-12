@@ -1,3 +1,10 @@
+---
+title: "How to author a skill"
+summary: "Create a lint-clean skill that follows the catalogue's structure, dependency, script, and evaluation standards."
+pack: _shared
+kind: how-to
+---
+
 # How to author a skill
 
 **Use this when:** You are authoring a new skill — writing the SKILL.md, scripts, and evals — and need to meet the catalogue's structural and lint-enforced standards.
@@ -41,7 +48,7 @@ Use the section order the shipped skills share, so a reader always knows where t
 
 ## Naming your skill
 
-Use the verb taxonomy from [ADR-0054](../../../adr/0054-session-arc-verb-taxonomy-and-pack-type-classification.md) to pick the right name:
+Use this verb taxonomy to pick the right name:
 
 | Verb | Meaning | Activation phrasing |
 | --- | --- | --- |
@@ -220,7 +227,7 @@ out.
 
 The headless mode above needs the `claude` CLI. Where you don't have it —
 **Kiro IDE**, or an interactive session where you'd rather not shell out — there
-is a second, **lower-fidelity** mode (RFC-0037 § Errata E2). The host agent
+is a second, **lower-fidelity** mode. The host agent
 itself is the detector: for each query it dispatches a **fresh, read-only
 sub-context** (Claude Code's subagent; Kiro's agent-spawn) given the covered
 skills' `description:`s, and asks which it would activate. Drive it as a
@@ -278,7 +285,7 @@ Two things make a Tier-B eval worth writing:
 The **full** Tier-B grading (LLM-judge, pass-rate deltas, with/without-skill) is
 a future RFC. But a **lightweight** check — run the skill and validate its
 outputs against deterministic post-conditions — is available now in-harness
-(RFC-0037 § Errata E3). Add an optional `expect` block to an eval to make it
+Add an optional `expect` block to an eval to make it
 runner-gradable:
 
 ```json

@@ -1,3 +1,10 @@
+---
+title: "How to preview an install or upgrade with --dry-run"
+summary: "Preview every file action an agentbundle install or upgrade would take without writing to disk."
+pack: _shared
+kind: how-to
+---
+
 # How to preview an install or upgrade with `--dry-run`
 
 **Use this when:** You want to see exactly which files an install or upgrade would create, overwrite, or preserve as companions before committing any writes.
@@ -72,7 +79,7 @@ The closing `dry-run: … Nothing written.` line counts the plan by action and r
 - It previews the **rendered adapter projection** (the `.claude/…`, `tools/…` files). It does **not** yet enumerate the governance **seeds** an install also delivers at repo scope (`AGENTS.md`, `docs/CHARTER.md`, `docs/CONVENTIONS.md`) — those use a different, content-equality delivery path. A real install still creates them; the preview just doesn't list them (tracked in `workspace.toml [backlog]` as `projection-dry-run-governance-seeds`).
 - It does **not** preview `--force`'s destructive cleanup. `agentbundle install --dry-run --force` is refused up front, because `--force` removes leftover files and rewrites state — operations a read-only preview must not perform. Run `--dry-run` without `--force` to preview, or `--force` without `--dry-run` to apply.
 - A present Tier-2 collision does **not** change the exit code — a successful preview exits 0 even with companions in the plan. `--dry-run` is informational; `agentbundle diff` is the verb that gates on drift.
-- If the read-only pre-flight itself would fail (catalogue unresolvable, spec-version mismatch, adapter resolution refused, a path that escapes the jail, pack not installed for `upgrade`, or a pre-RFC-0012 / orphan state install would refuse), `--dry-run` reports it on stderr and exits non-zero — exactly as the real run would at that stage, still writing nothing.
+- If the read-only pre-flight itself would fail (catalogue unresolvable, spec-version mismatch, adapter resolution refused, a path that escapes the jail, pack not installed for `upgrade`, or a legacy / orphan state install would refuse), `--dry-run` reports it on stderr and exits non-zero — exactly as the real run would at that stage, still writing nothing.
 
 ## Related
 

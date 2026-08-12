@@ -1,3 +1,10 @@
+---
+title: "The core pack as a system"
+summary: "Understand how the core pack combines planning, verification, review, and stateful iteration into a reliable delivery loop."
+pack: core
+kind: explanation
+---
+
 # The core pack as a system
 
 The other packs in this catalogue are accessories — workflows, doc shapes, credentialed primitives. `core` is the pack you'd lose sleep about losing. It ships the *discipline* that turns "the agent wrote some code" into "the agent shipped code that survived a cold adversarial read." This page explains the parts, how they fit together, and why the result is more productive than vibe-coding or the closest competing approaches (GitHub's Spec Kit and Kiro IDE's spec-driven mode).
@@ -114,7 +121,7 @@ Spec Kit's spec-driven loop terminates at `/implement` — there's no state-mach
 | Iteration cap and stasis detection | — | ✓ |
 | Works outside Kiro | — (IDE-coupled) | ✓ (every supported harness) |
 | Boundaries-driven scope control | — | ✓ (structural `Never do` + declined-pattern register) |
-| Hook into editor lifecycle events | ✓ (native to Kiro) | designed in [RFC-0005](../../../rfc/0005-user-scope-hook-support.md) as `kiro-ide-hook`; the primitive isn't declared in `adapter.toml` v0.5 yet |
+| Hook into editor lifecycle events | ✓ (native to Kiro) | represented as `kiro-ide-hook`; the primitive isn't declared in `adapter.toml` v0.5 yet |
 
 Kiro's "do" mode is one-shot per task: if the generated code is wrong, the user re-prompts. The core pack's loop iterates *within* the task — failing gates send you back to FIX, reviewer findings send you back to FIX, fingerprint stasis sends you to a human. The user isn't the retry loop; the tool is.
 

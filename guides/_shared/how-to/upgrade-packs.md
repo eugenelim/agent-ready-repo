@@ -1,3 +1,10 @@
+---
+title: "How to upgrade an installed pack"
+summary: "Upgrade a catalogue pack while preserving local edits as reviewable upstream companion files."
+pack: _shared
+kind: how-to
+---
+
 # How to upgrade an installed pack
 
 **Use this when:** You want to move an installed pack to a newer version — whether a whole pack, a single primitive, or resolving companion files left by a previous upgrade.
@@ -10,7 +17,7 @@ Move an installed pack to a newer version, with the conflict handling you expect
 
 - A pack already installed from this catalogue via one of the three routes (Claude Code plugin marketplace, APM, or the `agentbundle` CLI).
 - For the catalogue-native flow: the `agentbundle` CLI on your PATH.
-- For catalogue-level safety on APM and Claude-plugin installs: a one-time `agentbundle init-state` run after the original install — see [RFC-0001 § Adopter file safety contract](../../../rfc/0001-bundle-distribution-by-adapter-spec.md#adopter-file-safety-contract).
+- For catalogue-level safety on APM and Claude-plugin installs: a one-time `agentbundle init-state` run after the original install.
 
 ## Pick the right granularity
 
@@ -60,5 +67,4 @@ Not supported in v0.1. To roll back: `agentbundle uninstall --pack <pack>` and r
 
 ## Related
 
-- [How to adapt a freshly-installed pack](../../../specs/adapt-to-project/spec.md) — the skill that walks `*.upstream.<ext>` companions.
-- [RFC-0001 § Adopter file safety contract](../../../rfc/0001-bundle-distribution-by-adapter-spec.md#adopter-file-safety-contract) — the underlying guarantees.
+- [How to adapt a freshly-installed pack](../../core/how-to/adapt-to-project.md) — the skill that walks `*.upstream.<ext>` companions.

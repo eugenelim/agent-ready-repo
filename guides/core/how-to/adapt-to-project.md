@@ -1,3 +1,10 @@
+---
+title: "How to adapt a freshly installed pack to your project"
+summary: "Tailor a newly installed pack's seed content and merge companion files without losing project-specific conventions."
+pack: core
+kind: how-to
+---
+
 # How to adapt a freshly-installed pack to your project
 
 **Use this when:** You have just installed a pack and need to tailor its seed content (AGENTS.md, CHARTER.md, conventions) to your project's name, stack, and existing conventions.
@@ -62,6 +69,4 @@ The class-2 walk is a no-op if no companions are on disk; the other three classe
 
 ## Related
 
-- [`docs/specs/adapt-to-project/spec.md`](../../../specs/adapt-to-project/spec.md) — the authoritative spec (LLM skill + CLI split, marker formats, exit conditions).
 - [How to upgrade an installed pack](../../_shared/how-to/upgrade-packs.md) — companion merges from upgrades flow through this skill too.
-- [RFC-0001 § Adopter file safety contract](../../../rfc/0001-bundle-distribution-by-adapter-spec.md#adopter-file-safety-contract) — the guarantee the skill relies on (Tier-2 files survive install and upgrade).

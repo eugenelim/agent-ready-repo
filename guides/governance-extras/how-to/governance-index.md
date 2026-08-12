@@ -1,3 +1,10 @@
+---
+title: "How to set up a governance index"
+summary: "Create a YAML index that maps architectural domains to the decision records and standards contributors need to load."
+pack: governance-extras
+kind: how-to
+---
+
 # How to set up a governance index
 
 **Use this when:** You need a single YAML manifest mapping architectural domains to their ADRs and standards files so agents and contributors load only the relevant files.
@@ -56,7 +63,7 @@ your repo's *own* standard files.
 domains:
   tagging:
     question: "What tags/labels are mandatory on every resource?"
-    adrs: [ADR-0004]
+    adrs: [ADR-<NNNN>]
     standards: [docs/standards/tagging.md]
 ```
 
@@ -80,8 +87,8 @@ automatically if they are absent during Stage 0.
 ## Optional lint
 
 You can add a CI check that reads the index and verifies each referenced ADR
-file exists at the path encoded in the filename (e.g. `docs/adr/0004-*.md`
-for `ADR-0004`). This prevents stale references after ADR renumbering. The
+file exists at the path encoded in the filename (e.g. `docs/adr/<NNNN>-*.md`
+for `ADR-<NNNN>`). This prevents stale references after ADR renumbering. The
 lint is optional — the manifest's value is primarily read-time speed, not
 compile-time enforcement.
 

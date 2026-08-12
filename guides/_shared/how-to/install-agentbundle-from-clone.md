@@ -1,3 +1,10 @@
+---
+title: "How to install agentbundle from a clone"
+summary: "Install agentbundle as an editable package so the CLI and pack content stay synchronized with a local catalogue clone."
+pack: _shared
+kind: how-to
+---
+
 # How to install `agentbundle` from a clone
 
 **Use this when:** You need to run the `agentbundle` CLI from a local clone of the catalogue — for development, an org fork, or environments where a PyPI install is unavailable.
@@ -6,7 +13,7 @@
 
 You're here because the `agentbundle` CLI drives pack install, validation, adapt, and build. All four [README install routes](../../../../README.md#install) ship pack content — skills, agents, hooks — but not the CLI, so every route converges here for the pip install.
 
-> **Credentialed skills don't resolve credentials through the `agentbundle` wheel.** Since 0.2.0 (RFC-0013) they no longer import from `agentbundle.credentials`, and since [RFC-0023](../../../rfc/0023-credential-manager-broker.md) the `auth: creds` resolver is the standalone, pip-installable [`credbroker`](../../../../packages/credbroker) library, imported in-process (`from credbroker import …`) — it replaced the build-projected `credentials_shim` sibling. From a clone, install it alongside the CLI: `python -m pip install -e ./packages/credbroker`. (The no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of the [credentialed-skill how-to](../../credential-brokers/how-to/add-a-credentialed-skill.md).) The CLI itself remains pip-installed from this clone; what changed is that the *Python skill bodies* resolve credentials through `credbroker`, not the agentbundle wheel.
+> **Credentialed skills don't resolve credentials through the `agentbundle` wheel.** The `auth: creds` resolver is the standalone, pip-installable [`credbroker`](../../../../packages/credbroker) library, imported in-process (`from credbroker import …`). From a clone, install it alongside the CLI: `python -m pip install -e ./packages/credbroker`. (The no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of the [credentialed-skill how-to](../../credential-brokers/how-to/add-a-credentialed-skill.md).) The CLI itself remains pip-installed from this clone; the *Python skill bodies* resolve credentials through `credbroker`, not the agentbundle wheel.
 
 Smoke test for the install:
 
@@ -54,7 +61,7 @@ The clone carries two things in one repo, and the `pip install` step ties them t
 your-clone/
 ├── packs/                          ← catalogue source (install verb reads this)
 │   ├── core/.apm/skills/…
-│   ├── credential-brokers/.apm/   ← shim + setup skill (RFC-0013)
+│   ├── credential-brokers/.apm/   ← resolver + setup skill
 │   └── atlassian/.apm/skills/…
 └── packages/agentbundle/           ← CLI source (pip install -e links here)
     └── agentbundle/
@@ -112,5 +119,4 @@ The pip install remains the right default when nothing blocks it; the zipapp is 
 
 - README install routes: [`README.md § Install`](../../../../README.md#install)
 - Adding a credentialed skill: [`add-a-credentialed-skill.md`](../../credential-brokers/how-to/add-a-credentialed-skill.md)
-- Loader contract: [`docs/specs/skill-secrets/spec.md` § AC3, AC4c](../../../specs/skill-secrets/spec.md)
 - Package source: [`packages/agentbundle/`](../../../../packages/agentbundle)

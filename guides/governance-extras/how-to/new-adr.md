@@ -1,3 +1,10 @@
+---
+title: "How to record a decision with an ADR"
+summary: "Record an architectural decision with a durable tradeoff, sequential identifier, and index entry."
+pack: governance-extras
+kind: how-to
+---
+
 # How to record a decision (ADR)
 
 **Use this when:** You've made (or are formally proposing) an architectural decision with a concrete tradeoff and need it durably recorded in `docs/adr/`.
@@ -127,7 +134,7 @@ A previously-accepted ADR no longer reflects the team's call. You do *not* edit 
 
 1. Run `new-adr` for the new decision. In Context, name the prior ADR you're superseding and what changed since it was written.
 2. Set the new ADR's frontmatter `Supersedes:` to the old ADR's number.
-3. After the new ADR is Accepted, update the old ADR's frontmatter `Status:` from `Accepted` to `Superseded by ADR-<NNNN>` — with the actual four-digit number of the new ADR substituted in (e.g. `Superseded by ADR-0023`). Leave the old body alone — it's history.
+3. After the new ADR is Accepted, update the old ADR's frontmatter `Status:` from `Accepted` to `Superseded by ADR-<NNNN>` — with the actual four-digit number of the new ADR substituted in. Leave the old body alone — it's history.
 
 If the reversal is contested or non-obvious, the reversal should go through an RFC first; the accepted RFC then produces this superseding ADR as follow-on. See [`docs/CONVENTIONS.md` § RFC](../../../CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) for the trigger conditions.
 

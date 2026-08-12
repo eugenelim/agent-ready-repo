@@ -1,9 +1,16 @@
+---
+title: "Pack Config and Operation Log API"
+summary: "Reference the stable Python APIs for resolving pack directories, loading configuration, and recording operations."
+pack: _shared
+kind: reference
+---
+
 # Pack Config and Operation Log API
 
 > **Audience:** pack authors writing Python or shell scripts that need to resolve
 > a user-scope directory, read configuration, or record operations.
 >
-> **Added in:** agentbundle 0.21.0 (RFC-0074).
+> **Added in:** agentbundle 0.21.0.
 
 ---
 
@@ -41,7 +48,7 @@ def pack_dir(
 ) -> Path
 ```
 
-**Resolution order (ADR-0058):**
+**Resolution order:**
 1. If `state` rows for the pack exist, read `user-root` from them. All rows must agree; `PackRootConflict` raised if they disagree.
 2. If no rows exist, fall back to `~/.agentbundle` (or `home / ".agentbundle"` when `home=` is given).
 
@@ -74,7 +81,7 @@ def load_pack_config(
 ) -> dict
 ```
 
-**Two-layer cascade (ADR-0059):**
+**Two-layer cascade:**
 
 | Layer | Source | Precedence |
 |---|---|---|

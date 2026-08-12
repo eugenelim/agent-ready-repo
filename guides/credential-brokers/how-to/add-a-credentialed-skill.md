@@ -1,10 +1,17 @@
+---
+title: "How to add a credentialed skill"
+summary: "Build a lint-clean authenticated skill that uses the correct broker and keeps credentials outside the model boundary."
+pack: credential-brokers
+kind: how-to
+---
+
 # How to add a credentialed skill
 
 **Use this when:** your skill calls an external authenticated service (API token, vendor CLI, or corporate SSO) and the credential must never pass through the model.
 **Prerequisites:** target service's auth shape identified, namespace name chosen, and the `credential-brokers` pack installed if you're using the `creds` or `sso-cookie` broker.
 **Result:** a scaffolded, lint-passing credentialed skill directory with the correct broker wired, a `### Security rules (non-negotiable)` block in `SKILL.md`, and banded exit-code handling in `scripts/cli.py`.
 
-This is a one-page walk-through for authoring a credentialed primitive — a skill that calls an authenticated external API on behalf of the user. The architecture rule ([RFC-0006 § 1](../../../rfc/0006-skill-secrets-storage.md#1-two-layer-architecture-skills-dont-hold-credentials), preserved verbatim by [RFC-0013](../../../rfc/0013-credential-broker-contract.md)) is *skills don't hold credentials*; a Python CLI under the skill's `scripts/` directory owns the secret on disk and constructs the API call inside its own process. The LLM never sees the token as a tool argument.
+This is a one-page walk-through for authoring a credentialed primitive — a skill that calls an authenticated external API on behalf of the user. The architecture rule is *skills don't hold credentials*; a Python CLI under the skill's `scripts/` directory owns the secret on disk and constructs the API call inside its own process. The LLM never sees the token as a tool argument.
 
 For a runnable, shipped reference, read a real consumer — [`packs/atlassian/.apm/skills/jira/`](../../../../packs/atlassian/.apm/skills/jira) is a live `auth: creds` credentialed-CLI whose `scripts/_client.py` resolves a PAT via the `credbroker` library; this guide is the procedure that gets you to your own.
 
@@ -24,8 +31,8 @@ You need:
 
 - **`env`** — the credential is a plain environment variable (`<NAMESPACE>_<KEY>`). Catalogue contributes naming convention and lint; no runtime resolver. Pick this for CI runners, ephemeral containers, and adopters whose threat model permits process env.
 - **`cli`** — the primitive shells out to a vendor-authenticated binary (`gh`, `aws`, `kubectl`, `gcloud`). Vendor CLI owns the credential. Pick this when the user has already authenticated the vendor binary on their PATH.
-- **`creds`** — static token resolved via the three-tier model (env → OS keychain → 0600 dotfile floor). Resolution comes from the [`credbroker`](../../../rfc/0023-credential-manager-broker.md) library (`pip install credbroker`), imported in-process — declare it in your skill's `requirements.txt` (Step 9). Pick this for static API tokens / PATs.
-- **`sso-cookie`** — session cookie acquired via a browser SSO flow. Your skill imports [`credbroker`](../../../rfc/0023-credential-manager-broker.md) and calls `load_sso_cookies` / `refresh_sso_session`; the library subprocess-invokes the `sso-broker.py` engine on your behalf. Pick this for corporate-SSO endpoints (e.g. enterprise Jira / Confluence behind Okta or AzureAD).
+- **`creds`** — static token resolved via the three-tier model (env → OS keychain → 0600 dotfile floor). Resolution comes from the `credbroker` library (`pip install credbroker`), imported in-process — declare it in your skill's `requirements.txt` (Step 9). Pick this for static API tokens / PATs.
+- **`sso-cookie`** — session cookie acquired via a browser SSO flow. Your skill imports `credbroker` and calls `load_sso_cookies` / `refresh_sso_session`; the library subprocess-invokes the `sso-broker.py` engine on your behalf. Pick this for corporate-SSO endpoints (e.g. enterprise Jira / Confluence behind Okta or AzureAD).
 
 The rest of this guide picks `creds` as the worked example because it's the most common case. The verbatim per-broker `### Security rules (non-negotiable)` block you embed in your `SKILL.md` is given inline in [Step 7](#step-7--embed-the-security-rules-block-in-skillmd), one per broker; copy the one matching your choice.
 
@@ -128,9 +135,9 @@ def main(argv: list[str] | None = None) -> int:
     ...
 ```
 
-`credbroker`'s stdlib core pulls no third-party dependency; the optional `credbroker[crypto]` extra adds an encrypted-at-rest vault (Argon2id → AES-256-GCM) as the Tier-3 floor where it's installed. The architectural rule from RFC-0006 is preserved — cleartext stays inside your interpreter's process boundary.
+`credbroker`'s stdlib core pulls no third-party dependency; the optional `credbroker[crypto]` extra adds an encrypted-at-rest vault (Argon2id → AES-256-GCM) as the Tier-3 floor where it's installed. The architectural rule above still applies: cleartext stays inside your interpreter's process boundary.
 
-**Use the banded exit codes** (see [`docs/specs/credentialed-cli-exit-code-contract`](../../../specs/credentialed-cli-exit-code-contract/spec.md)): `0` ok, `1` functional/operational error (the catch-all bucket; the message carries the cause), `2` the user must act (credentials, 401/403, a missing dependency), with `3–9` reserved for future credential/auth codes. Then wrap your entry point in a top-level `except Exception` so no failure escapes as a traceback — `Tier2HardFailError` and anything unexpected map to `1` (print the exception *type*, never `str(exc)`, on the unexpected path). Do **not** use `except BaseException`: `SystemExit` (your own input-validation exits) and `KeyboardInterrupt` (`130`) must pass through.
+**Use the banded exit codes:** `0` ok, `1` functional/operational error (the catch-all bucket; the message carries the cause), `2` the user must act (credentials, 401/403, a missing dependency), with `3–9` reserved for future credential/auth codes. Then wrap your entry point in a top-level `except Exception` so no failure escapes as a traceback — `Tier2HardFailError` and anything unexpected map to `1` (print the exception *type*, never `str(exc)`, on the unexpected path). Do **not** use `except BaseException`: `SystemExit` (your own input-validation exits) and `KeyboardInterrupt` (`130`) must pass through.
 
 For **`auth: env`** — just `os.environ["<NAMESPACE>_<KEY>"]`. The lint asserts at least one read per declared key.
 
@@ -312,7 +319,7 @@ credbroker
 python -m pip install -r requirements.txt
 ```
 
-[RFC-0023](../../../rfc/0023-credential-manager-broker.md) replaced the build-projected `credentials_shim` sibling with the pip-installable `credbroker` library, imported in-process — so there is no `make build-self` projection step for the resolver, and no `scripts/`-vendored shim to keep in sync. In a fresh repo checkout, before either the floor or a pip install is in place, `from credbroker import …` fails with `ModuleNotFoundError: credbroker`. For local development, install from the repo path: `python -m pip install -e ./packages/credbroker`. For locked-down sites, see *Installing without PyPI (corporate)* just below.
+The `credbroker` library is pip-installable and imported in-process, so there is no `make build-self` projection step for the resolver and no `scripts/`-vendored shim to keep in sync. In a fresh repo checkout, before either the floor or a pip install is in place, `from credbroker import …` fails with `ModuleNotFoundError: credbroker`. For local development, install from the repo path: `python -m pip install -e ./packages/credbroker`. For locked-down sites, see *Installing without PyPI (corporate)* just below.
 
 ### How `credbroker` reaches `sys.path` — the layered model
 
@@ -391,9 +398,6 @@ Both lints exit 0 against the worked example; aim for the same.
 
 ## Reference
 
-- Spec: [`docs/specs/credential-broker-contract/spec.md`](../../../specs/credential-broker-contract/spec.md)
-- RFC: [`docs/rfc/0013-credential-broker-contract.md`](../../../rfc/0013-credential-broker-contract.md) (the four-broker contract); [`docs/rfc/0023-credential-manager-broker.md`](../../../rfc/0023-credential-manager-broker.md) (the `credbroker` library that replaced the projected shim for `auth: creds`)
-- ADR: [`docs/adr/0003-credential-broker-contract.md`](../../../adr/0003-credential-broker-contract.md)
 - Reference consumer (runnable, shipped): [`packs/atlassian/.apm/skills/jira/`](../../../../packs/atlassian/.apm/skills/jira) — a live `auth: creds` credentialed CLI
 - Explanation: [`guides/credential-brokers/explanation/credentialed-skills.md`](../explanation/credentialed-skills.md)
 - Related how-to: [How to author a skill](../../_shared/how-to/author-a-skill.md) — the general skill-authoring standards (structure, cross-platform scripts, the three-tier dependency policy); the `auth: cli` broker is where credential and tool-presence concerns meet.
