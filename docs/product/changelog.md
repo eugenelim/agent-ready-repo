@@ -18,6 +18,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [agentbundle][0.33.2] — 2026-08-12
+
+#### Fixed
+
+- **Workspace MCP status uses the canonical routing result.** The public MCP
+  status surface now denies malformed workspace state with sanitized findings
+  and exposes only canonical dispatchable queue work as ready.
+
+### [core][2.5.8] — 2026-08-12
+
+#### Changed
+
+- **Workspace status now publishes canonical routing findings and receipt
+  rules.** The workspace reference and status skill document every canonical
+  finding, safe recovery action, cross-repository coordination receipt block,
+  and invalid receipt recovery path.
+
+#### Fixed
+
+- **Workspace repair preserves structured queue entries when moving shipped
+  work.** `repair-apply` now carries the retained inline TOML entry into
+  `[work].shipped` instead of replacing it with a bare path, while keeping
+  fingerprint, confinement, atomic write, and comment-preservation checks.
+
 ### [core][2.5.7] — 2026-08-11
 
 #### Fixed
@@ -118,7 +142,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   timeout, and server failures never trigger recovery. Crawls and token-based
   authentication keep their existing behavior. When automatic recovery cannot
   proceed, the error tells the user which existing manual setup action to run.
-
 ### [core][2.5.1] — 2026-08-09
 
 #### Changed

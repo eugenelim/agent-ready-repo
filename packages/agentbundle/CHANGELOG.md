@@ -6,6 +6,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.33.2] — 2026-08-12
+
+### Fixed
+
+- **Workspace MCP status now consumes canonical routing eligibility.** Ready
+  work is limited to dispatchable canonical queue specs, blocked entries carry
+  stable findings, and malformed workspace state fails closed without leaking
+  raw exception text or absolute paths.
+
 ## [0.33.1] — 2026-08-12
 
 ### Fixed

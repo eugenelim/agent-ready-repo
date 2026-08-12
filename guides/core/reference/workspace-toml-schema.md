@@ -139,6 +139,45 @@ needs = [
 ]
 ```
 
+When a cross-repository dependency names a containing brief, that local brief
+must contain exactly one fenced block whose info string is exactly
+`toml coordination-receipts`. The block is parsed as TOML; surrounding prose and
+other fenced blocks are inert.
+
+Valid receipt block:
+
+```toml coordination-receipts
+[[coordination_receipts]]
+id = "remote-prereq"
+remote_kind = "brief"
+remote_ref = "example-service://projects/example-artifact"
+accepted_revision = "remote-rev-9"
+required_status = "Shipped"
+reported_status = "Shipped"
+reviewed_by = "Example Reviewer"
+reviewed_at = "2026-08-10T00:00:00Z"
+refresh_conflict = false
+```
+
+Representative invalid receipt block:
+
+```toml coordination-receipts
+[[coordination_receipts]]
+id = "remote-prereq"
+remote_kind = "brief"
+remote_ref = "example-service://projects/example-artifact"
+accepted_revision = "remote-rev-8"
+required_status = "Shipped"
+reported_status = "Shipped"
+reviewed_by = "Example Reviewer"
+reviewed_at = "2026-08-10T00:00:00Z"
+refresh_conflict = false
+```
+
+The invalid example fails because its `accepted_revision` does not match the
+dependency's pinned revision. Recovery: replace it with a reviewed receipt
+matching the pinned dependency; the finding code is `invalid_receipt`.
+
 Priority, affinity, rationale, and suggested order are not dependencies.
 
 ## Lifecycle Membership
@@ -201,6 +240,33 @@ A Ready brief with zero child specs is valid and useful planning state. It is
 visible in `workspace-status`, but it is not dispatchable. Implementation begins
 only when a selected slice has a spec, its sibling plan, Approved status, and a
 target entry in `work.queue`.
+
+## Canonical Findings
+
+Every refusal is visible as a stable code with a safe next action.
+
+| Code | Why blocked | Safe action |
+| --- | --- | --- |
+| `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
+| `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
+| `legacy_entry` | Supported compatibility form; visible but never dispatchable. | Materialize and register a canonical target entry. |
+| `unsupported_legacy` | Legacy-like form outside accepted compatibility fixtures. | Route the item manually; do not infer a target entry. |
+| `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
+| `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
+| `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
+| `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
+| `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
+| `unregistered_work` | Supplied or active spec has no unique matching workspace membership. | Register or reconcile the canonical entry explicitly. |
+| `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. | Remove the duplicate after choosing the authoritative membership. |
+| `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
+| `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
+| `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
+| `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
+| `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
+| `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
+| `invalid_receipt` | Cross-repository receipt is incomplete, mismatched, or conflicted. | Replace it with a reviewed receipt matching the pinned dependency. |
+| `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
+| `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is missing or inconsistent. | Install or select a consistent versioned configuration, then rerun. |
 
 ## Minimal Intent
 

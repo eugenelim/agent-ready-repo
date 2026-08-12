@@ -9,13 +9,18 @@ Coverage:
 
 from __future__ import annotations
 
+import hashlib
+import importlib.util
 import json
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
+from typing import Any
 
 from agentbundle.build.adapters import ADAPTERS
 from agentbundle.build.contract import load as load_contract
@@ -26,6 +31,459 @@ CONTRACT_PATH = REPO_ROOT / "contracts" / "adapter.toml"
 CORE_PACK = REPO_ROOT / "packs" / "core"
 SKILL_NAME = "workspace-status"
 _SCRIPTS = ("workspace_status.py", "workspace_status_engine.py")
+
+
+def _documented_finding_rows(text: str) -> dict[str, tuple[str, str]]:
+    rows: dict[str, tuple[str, str]] = {}
+    for code, reason, action in re.findall(
+        r"^\| `([^`]+)` \| ([^|]+) \| ([^|]+) \|$",
+        text,
+        flags=re.MULTILINE,
+    ):
+        rows[code] = (reason.strip(), action.strip())
+    return rows
+
+
+def _sha256_file(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _product_release_heading_version(text: str, name: str) -> str:
+    match = re.search(rf"^### \[{re.escape(name)}\]\[([^\]]+)\]", text, re.MULTILINE)
+    assert match, f"missing {name} changelog heading"
+    return match.group(1)
+
+
+def test_t3_work_loop_step0_requires_canonical_preflight() -> None:
+    skill = (CORE_PACK / ".apm" / "skills" / "work-loop" / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+
+    normalized = " ".join(skill.split())
+    assert "canonical.ready" in normalized
+    assert "only queue-ready set" in normalized
+    assert "matching `canonical.ready` evaluation" in normalized
+    assert "matching `canonical.active`" in normalized
+    assert "Raw workspace `[work].queue` membership never authorizes PLAN" in normalized
+    assert "Raw `[work].active` membership never authorizes PLAN" in normalized
+    assert "collect all paths in `[\"ini-NNN\".work].active`" not in skill
+    assert "use it and proceed to PLAN" not in skill
+    assert "Do not re-read raw `[work].queue` or `[work].active`" in normalized
+
+
+def test_t4_repair_determinism_projection_and_release_surface() -> None:
+    engine_path = (
+        CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status_engine.py"
+    )
+    spec = importlib.util.spec_from_file_location("workspace_status_engine_t4", engine_path)
+    engine = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("workspace_status_engine_t4", engine)
+    spec.loader.exec_module(engine)
+
+    fixture = Path(tempfile.mkdtemp())
+    workspace_path = fixture / "workspace.toml"
+    spec_dir = fixture / "docs" / "specs" / "t4"
+    spec_path = spec_dir / "spec.md"
+    plan_path = spec_dir / "plan.md"
+    schema_dir = fixture / "schemas"
+    adapter_contract = fixture / "adapter.toml"
+    contract_versions_path = fixture / "contract_versions.json"
+
+    def write_workspace(extra_ini: bool = False) -> None:
+        extra = """
+["ini-002"]
+name = "Empty"
+status = "active"
+milestone = "M2"
+
+["ini-002".work]
+queue = []
+active = []
+shipped = []
+
+["ini-002".shaping_queue]
+active = []
+backlog = []
+""" if extra_ini else ""
+        workspace_path.write_text(
+            """\
+["ini-001"]
+name = "T4"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/t4/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "T4 deterministic identity", needs = []}]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []
+""" + extra,
+            encoding="utf-8",
+        )
+
+    def provenance_digest(metadata: object) -> str:
+        return hashlib.sha256(
+            json.dumps({
+                "parent": metadata.parent,
+                "ref": metadata.ref,
+                "revision": metadata.revision,
+                "refresh_conflict": metadata.refresh_conflict,
+            }, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+
+    def derive_identity_inputs(
+        *,
+        schema_paths: list[Path],
+        tracker_profile: dict[str, str],
+        routing_version: str,
+    ) -> tuple[object, dict[str, object]]:
+        workspace_data = engine.parse_workspace(workspace_path)
+        canonical_result = engine.run_canonical_reconciliation(workspace_data, fixture)
+        status, status_fp = engine.extract_spec_status_with_fingerprint(spec_path)
+        assert status == "Approved"
+        assert status_fp is not None
+        metadata = engine._metadata_from_root(
+            fixture,
+            canonical_result.memberships[0].entry,
+        )
+        contract_versions = tuple(json.loads(contract_versions_path.read_text()))
+        return canonical_result, {
+            "schema_ids": tuple(path.name for path in schema_paths),
+            "schema_content_digests": {
+                path.name: _sha256_file(path) for path in schema_paths
+            },
+            "contract_versions": contract_versions,
+            "semantic_workspace_digest": hashlib.sha256(
+                json.dumps(workspace_data, sort_keys=True).encode("utf-8")
+            ).hexdigest(),
+            "artifact_status_fingerprints": {"docs/specs/t4/spec.md": status_fp},
+            "artifact_provenance_fingerprints": {
+                "docs/specs/t4/spec.md": provenance_digest(metadata)
+            },
+            "adapter_contract_version": _sha256_file(adapter_contract),
+            "tracker_profile": tracker_profile,
+            "routing_configuration_version": routing_version,
+        }
+
+    try:
+        spec_dir.mkdir(parents=True)
+        schema_dir.mkdir()
+        write_workspace()
+        spec_path.write_text(
+            "# Spec: T4\n\n- **Status:** Approved\n- **Brief:** none\n",
+            encoding="utf-8",
+        )
+        plan_path.write_text("# Plan: T4\n", encoding="utf-8")
+        schema_paths = [
+            schema_dir / "workspace-entry.schema.json",
+            schema_dir / "normalized-intake.schema.json",
+        ]
+        shutil.copy2(REPO_ROOT / "contracts/jsonschema/workspace-entry.schema.json", schema_paths[0])
+        shutil.copy2(
+            REPO_ROOT / "contracts/jsonschema/normalized-intake.schema.json",
+            schema_paths[1],
+        )
+        shutil.copy2(CONTRACT_PATH, adapter_contract)
+        contract_versions_path.write_text(json.dumps([
+            engine.WORKSPACE_ENTRY_CONTRACT_VERSION,
+            engine.NORMALIZED_INTAKE_CONTRACT_VERSION,
+        ]), encoding="utf-8")
+        canonical, base = derive_identity_inputs(
+            schema_paths=schema_paths,
+            tracker_profile={"id": "profile-a", "version": "profile-v1"},
+            routing_version=engine.ROUTING_CONFIGURATION_VERSION,
+        )
+        assert engine.canonical_result_identity(canonical, **base) == engine.canonical_result_identity(
+            canonical,
+            **base,
+        )
+        baseline_identity = engine.canonical_result_identity(canonical, **base)
+        baseline_snapshot = engine.canonical_result_snapshot(canonical, **base)
+        baseline_classification = {
+            key: baseline_snapshot[key]
+            for key in ("evaluations", "legacy_memberships", "findings")
+        }
+
+        def assert_identity_changes(
+            *,
+            schema_paths_arg: list[Path] | None = None,
+            tracker_profile: dict[str, str] | None = None,
+            routing_version: str | None = None,
+            classification_stable: bool = True,
+        ) -> None:
+            changed_canonical, changed_inputs = derive_identity_inputs(
+                schema_paths=schema_paths_arg or schema_paths,
+                tracker_profile=tracker_profile or {"id": "profile-a", "version": "profile-v1"},
+                routing_version=routing_version or engine.ROUTING_CONFIGURATION_VERSION,
+            )
+            assert engine.canonical_result_identity(
+                changed_canonical,
+                **changed_inputs,
+            ) != baseline_identity
+            if classification_stable:
+                changed_snapshot = engine.canonical_result_snapshot(
+                    changed_canonical,
+                    **changed_inputs,
+                )
+                assert {
+                    key: changed_snapshot[key]
+                    for key in ("evaluations", "legacy_memberships", "findings")
+                } == baseline_classification
+
+        renamed_schema = schema_dir / "workspace-entry-renamed.schema.json"
+        schema_paths[0].rename(renamed_schema)
+        schema_paths[0] = renamed_schema
+        assert_identity_changes(schema_paths_arg=schema_paths)
+        renamed_schema.rename(schema_dir / "workspace-entry.schema.json")
+        schema_paths[0] = schema_dir / "workspace-entry.schema.json"
+
+        schema_paths[0].write_text(
+            schema_paths[0].read_text(encoding="utf-8") + "\n",
+            encoding="utf-8",
+        )
+        assert_identity_changes(schema_paths_arg=schema_paths)
+        shutil.copy2(REPO_ROOT / "contracts/jsonschema/workspace-entry.schema.json", schema_paths[0])
+
+        contract_versions_path.write_text(json.dumps([
+            "workspace-entry.v2",
+            engine.NORMALIZED_INTAKE_CONTRACT_VERSION,
+        ]), encoding="utf-8")
+        assert_identity_changes()
+        contract_versions_path.write_text(json.dumps([
+            engine.WORKSPACE_ENTRY_CONTRACT_VERSION,
+            engine.NORMALIZED_INTAKE_CONTRACT_VERSION,
+        ]), encoding="utf-8")
+
+        write_workspace(extra_ini=True)
+        assert_identity_changes()
+        write_workspace()
+
+        spec_path.write_text(
+            "# Spec: T4\n\n- **Status:** Approved \n- **Brief:** none\n",
+            encoding="utf-8",
+        )
+        assert_identity_changes()
+        spec_path.write_text(
+            "# Spec: T4\n\n- **Status:** Approved\n- **Brief:** none\n",
+            encoding="utf-8",
+        )
+
+        spec_path.write_text(
+            "# Spec: T4\n\n- **Status:** Approved\n- **Brief:** none\n- **Ref:** example-service://stable\n",
+            encoding="utf-8",
+        )
+        assert_identity_changes()
+        spec_path.write_text(
+            "# Spec: T4\n\n- **Status:** Approved\n- **Brief:** none\n",
+            encoding="utf-8",
+        )
+
+        adapter_contract.write_text(
+            adapter_contract.read_text(encoding="utf-8") + "\n# local mutation\n",
+            encoding="utf-8",
+        )
+        assert_identity_changes()
+        shutil.copy2(CONTRACT_PATH, adapter_contract)
+
+        assert_identity_changes(tracker_profile={"id": "profile-b", "version": "profile-v1"})
+        assert_identity_changes(tracker_profile={"id": "profile-a", "version": "profile-v2"})
+        assert_identity_changes(routing_version="workspace-routing.v2")
+
+        workspace_for_subprocess = engine.parse_workspace(workspace_path)
+        script = f"""
+import importlib.util, sys
+path = {str(engine_path)!r}
+spec = importlib.util.spec_from_file_location('workspace_status_engine_t4_subprocess', path)
+engine = importlib.util.module_from_spec(spec)
+sys.modules.setdefault('workspace_status_engine_t4_subprocess', engine)
+spec.loader.exec_module(engine)
+workspace = {workspace_for_subprocess!r}
+canonical = engine.run_canonical_reconciliation(workspace, None)
+print(engine.canonical_result_identity(canonical, **{base!r}))
+"""
+        first = subprocess.check_output([sys.executable, "-c", script], text=True)
+        second = subprocess.check_output([sys.executable, "-c", script], text=True)
+        assert first == second
+    finally:
+        shutil.rmtree(fixture, ignore_errors=True)
+
+    skill = (CORE_PACK / ".apm" / "skills" / SKILL_NAME / "SKILL.md").read_text(
+        encoding="utf-8"
+    )
+    reference = (
+        REPO_ROOT / "guides" / "core" / "reference" / "workspace-toml-schema.md"
+    ).read_text(encoding="utf-8")
+    finding_codes = set(engine._FINDING_NEXT_ACTIONS)
+    for text in (skill, reference):
+        documented_findings = _documented_finding_rows(text)
+        assert set(documented_findings) >= finding_codes
+        for code in finding_codes:
+            reason, action = documented_findings[code]
+            assert reason
+            assert action
+    for text in (skill, reference):
+        assert "```toml coordination-receipts" in text
+        assert "invalid_receipt" in text
+        assert "refresh_conflict = false" in text
+        receipt_blocks = re.findall(
+            r"```toml coordination-receipts\n(.*?)\n```",
+            text,
+            flags=re.DOTALL,
+        )
+        assert receipt_blocks
+        parsed_receipts = [
+            receipt
+            for block in receipt_blocks
+            for receipt in tomllib.loads(block)["coordination_receipts"]
+        ]
+        assert any(
+            set(receipt) == engine._COORDINATION_RECEIPT_FIELDS
+            and receipt["accepted_revision"] == "remote-rev-9"
+            for receipt in parsed_receipts
+        )
+        for receipt in parsed_receipts:
+            assert set(receipt).issubset(engine._COORDINATION_RECEIPT_FIELDS)
+
+    pack_version = tomllib.loads((CORE_PACK / "pack.toml").read_text(encoding="utf-8"))[
+        "pack"
+    ]["version"]
+    plugin_version = json.loads(
+        (CORE_PACK / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
+    )["version"]
+    assert pack_version == plugin_version
+    marketplace = REPO_ROOT / ".claude-plugin" / "marketplace.json"
+    assert marketplace.exists()
+    marketplace_plugins = json.loads(marketplace.read_text(encoding="utf-8"))["plugins"]
+    core_plugins = [plugin for plugin in marketplace_plugins if plugin["name"] == "core"]
+    assert core_plugins == []
+    pyproject_version = tomllib.loads(
+        (REPO_ROOT / "packages/agentbundle/pyproject.toml").read_text(encoding="utf-8")
+    )["project"]["version"]
+    version_py = (
+        REPO_ROOT / "packages/agentbundle/agentbundle/version.py"
+    ).read_text(encoding="utf-8")
+    version_match = re.search(r'^CLI_VERSION = "([^"]+)"$', version_py, re.MULTILINE)
+    assert version_match
+    assert pyproject_version == version_match.group(1)
+    package_changelog = (
+        REPO_ROOT / "packages/agentbundle/CHANGELOG.md"
+    ).read_text(encoding="utf-8")
+    assert re.search(
+        rf"^## \[{re.escape(pyproject_version)}\] — \d{{4}}-\d{{2}}-\d{{2}}$",
+        package_changelog,
+        re.MULTILINE,
+    )
+    product_changelog = (REPO_ROOT / "docs/product/changelog.md").read_text(encoding="utf-8")
+    assert _product_release_heading_version(product_changelog, "agentbundle") == pyproject_version
+    assert _product_release_heading_version(product_changelog, "core") == pack_version
+
+    for adapter_name in shipped_adapters_from_contract():
+        assert adapter_name in ADAPTERS
+
+
+def test_production_identity_derives_repository_inputs() -> None:
+    engine_path = (
+        CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status_engine.py"
+    )
+    spec = importlib.util.spec_from_file_location("workspace_status_engine_identity", engine_path)
+    engine = importlib.util.module_from_spec(spec)
+    sys.modules.setdefault("workspace_status_engine_identity", engine)
+    spec.loader.exec_module(engine)
+    fixture = Path(tempfile.mkdtemp())
+    try:
+        contract_dir = fixture / "contracts"
+        schema_dir = contract_dir / "jsonschema"
+        spec_dir = fixture / "docs" / "specs" / "identity"
+        schema_dir.mkdir(parents=True)
+        spec_dir.mkdir(parents=True)
+        workspace_path = fixture / "workspace.toml"
+        workspace_template = '''\
+["ini-001"]
+name = "Identity"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/identity/spec.md", kind = "spec", source = {mode = "repo-origin", tracker_profile = {id = "%s", version = "%s"}}, summary = "%s", needs = []}]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = []
+'''
+        workspace_path.write_text(
+            workspace_template % ("profile-a", "v1", "initial"), encoding="utf-8"
+        )
+        spec_path = spec_dir / "spec.md"
+        spec_path.write_text(
+            "# Identity\n\n- **Status:** Approved\n- **Brief:** none\n",
+            encoding="utf-8",
+        )
+        (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        workspace_schema = schema_dir / "workspace-entry.schema.json"
+        intake_schema = schema_dir / "normalized-intake.schema.json"
+        adapter_contract = contract_dir / "adapter.toml"
+        shutil.copy2(
+            REPO_ROOT / "contracts/jsonschema/workspace-entry.schema.json",
+            workspace_schema,
+        )
+        shutil.copy2(
+            REPO_ROOT / "contracts/jsonschema/normalized-intake.schema.json",
+            intake_schema,
+        )
+        shutil.copy2(CONTRACT_PATH, adapter_contract)
+
+        def identity() -> str:
+            workspace = engine.parse_workspace(workspace_path)
+            result = engine.run_canonical_reconciliation(workspace, fixture)
+            return engine.canonical_repository_identity(workspace, result, fixture)
+
+        baseline = identity()
+        workspace_schema.write_text(
+            workspace_schema.read_text(encoding="utf-8") + "\n",
+            encoding="utf-8",
+        )
+        assert identity() != baseline
+        shutil.copy2(
+            REPO_ROOT / "contracts/jsonschema/workspace-entry.schema.json",
+            workspace_schema,
+        )
+        adapter_contract.write_text(
+            adapter_contract.read_text(encoding="utf-8") + "\n# mutation\n",
+            encoding="utf-8",
+        )
+        assert identity() != baseline
+        shutil.copy2(CONTRACT_PATH, adapter_contract)
+        workspace_path.write_text(
+            workspace_template % ("profile-b", "v1", "initial"), encoding="utf-8"
+        )
+        assert identity() != baseline
+        workspace_path.write_text(
+            workspace_template % ("profile-a", "v1", "summary-only change"),
+            encoding="utf-8",
+        )
+        assert identity() == baseline
+        spec_path.write_text(
+            "# Identity\n\n- **Status:** Approved \n- **Brief:** none\n",
+            encoding="utf-8",
+        )
+        assert identity() != baseline
+        spec_path.write_text(
+            "# Identity\n\n- **Status:** Approved\n- **Brief:** none\n",
+            encoding="utf-8",
+        )
+        previous_routing_version = engine.ROUTING_CONFIGURATION_VERSION
+        engine.ROUTING_CONFIGURATION_VERSION = "workspace-routing.v2"
+        try:
+            assert identity() != baseline
+        finally:
+            engine.ROUTING_CONFIGURATION_VERSION = previous_routing_version
+    finally:
+        shutil.rmtree(fixture, ignore_errors=True)
 
 
 class SourceInvariantTests(unittest.TestCase):
@@ -61,6 +519,8 @@ class SourceInvariantTests(unittest.TestCase):
 
 class AdapterProjectionTests(unittest.TestCase):
     """Both scripts appear under every shipped adapter's projection."""
+
+    contract: Any = None
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -181,36 +641,46 @@ class AdapterProjectionTests(unittest.TestCase):
 
 
 class RealTreeProjectionTests(unittest.TestCase):
-    """Real-tree invariant: scripts present in the self-hosted .claude/ projection."""
+    """Real-tree invariant: self-hosted scripts are byte-identical to source."""
 
-    _projected_scripts = (
-        REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts"
+    _source_scripts = CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts"
+    _projected_script_dirs = (
+        REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts",
+        REPO_ROOT / ".agents" / "skills" / SKILL_NAME / "scripts",
     )
 
     def test_scripts_in_real_tree_projection(self) -> None:
-        """Both scripts must be present in the self-hosted projection.
+        """Both self-hosted projections must match the pack sources.
 
         If this test fails, run `make build-self` (or
         `python3 -m agentbundle catalogue self-host --root . --write --force`)
         to regenerate the projection.
         """
-        if not self._projected_scripts.is_dir():
-            self.skipTest(
-                f"self-hosted scripts/ not found at {self._projected_scripts} — "
-                "run make build-self to generate projection"
+        for projected_scripts in self._projected_script_dirs:
+            self.assertTrue(
+                projected_scripts.is_dir(),
+                f"self-hosted scripts/ not found at {projected_scripts}",
             )
-        for name in _SCRIPTS:
-            with self.subTest(script=name):
-                self.assertTrue(
-                    (self._projected_scripts / name).is_file(),
-                    f"{name} absent from self-hosted projection at {self._projected_scripts}",
-                )
+            for name in _SCRIPTS:
+                with self.subTest(projection=projected_scripts, script=name):
+                    projected = projected_scripts / name
+                    source = self._source_scripts / name
+                    self.assertTrue(
+                        projected.is_file(),
+                        f"{name} absent from self-hosted projection at {projected_scripts}",
+                    )
+                    self.assertEqual(
+                        projected.read_bytes(),
+                        source.read_bytes(),
+                        f"{projected} is stale; regenerate the self-hosted projection",
+                    )
 
 
 class EndToEndCLITests(unittest.TestCase):
     """Installed CLI executed end-to-end; result recorded."""
 
     _cli = REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
+    _skip_reason: str | None = None
 
     @classmethod
     def setUpClass(cls) -> None:

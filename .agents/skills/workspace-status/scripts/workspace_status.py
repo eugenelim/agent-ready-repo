@@ -28,40 +28,78 @@ import json
 import os
 import sys
 import tempfile
+import tomllib
 from pathlib import Path, PurePosixPath
+from typing import Any
 
-sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="strict")
+if hasattr(sys.stderr, "reconfigure"):
+    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 # Prevent Python from writing __pycache__ into the installed skill tree.
 sys.dont_write_bytecode = True
 
+_PUBLIC_PATH_CHARS = frozenset(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-/"
+)
+_ENGINE_BOUND = False
+analyze: Any = None
+analyze_bounded: Any = None
+explain_item: Any = None
+compute_type2_cleanup: Any = None
+compute_repair_plan: Any = None
+extract_spec_status: Any = None
+extract_spec_status_with_fingerprint: Any = None
+parse_workspace: Any = None
+run_canonical_reconciliation: Any = None
+canonical_repository_identity: Any = None
+_safe_spec_path: Any = None
+_spec_slug_from_workspace_path: Any = None
+_repair_entry_eligibility: Any = None
+
 # ── Load engine from the same scripts/ directory ──────────────────────────────
 
-_here = Path(__file__).parent
-_engine_path = _here / "workspace_status_engine.py"
 
-try:
-    _engine_spec = importlib.util.spec_from_file_location(
-        "workspace_status_engine", _engine_path
-    )
-    _engine_mod = importlib.util.module_from_spec(_engine_spec)  # type: ignore[arg-type]
-    # Register before exec_module so dataclass annotation resolution (from __future__ import
-    # annotations + sys.modules lookup) works correctly.
-    sys.modules.setdefault("workspace_status_engine", _engine_mod)
-    _engine_spec.loader.exec_module(_engine_mod)  # type: ignore[union-attr]
-    analyze = _engine_mod.analyze
-    analyze_bounded = _engine_mod.analyze_bounded
-    explain_item = _engine_mod.explain_item
-    compute_type2_cleanup = _engine_mod.compute_type2_cleanup
-    compute_repair_plan = _engine_mod.compute_repair_plan
-    extract_spec_status = _engine_mod.extract_spec_status
-    extract_spec_status_with_fingerprint = _engine_mod.extract_spec_status_with_fingerprint
-    _safe_spec_path = _engine_mod._safe_spec_path
-except Exception as _load_err:
-    # Engine load failure must be exit 2, not exit 1 (reserved for absent workspace).
-    # Emit only the exception type — the message may include the engine's install path.
-    print(f"workspace-status: engine load failed: {type(_load_err).__name__}", file=sys.stderr)
-    sys.exit(2)
+def _bind_engine() -> bool:
+    """Load the sibling engine after subcommand parsing.
+
+    Status-like public commands can then emit the canonical deny JSON with the
+    requested mode instead of leaking an import traceback or installed path.
+    """
+    global _ENGINE_BOUND
+    if _ENGINE_BOUND:
+        return True
+    engine_path = Path(__file__).parent / "workspace_status_engine.py"
+    try:
+        engine_spec = importlib.util.spec_from_file_location(
+            "workspace_status_engine", engine_path
+        )
+        engine_mod = importlib.util.module_from_spec(engine_spec)  # type: ignore[arg-type]
+        # Register before exec_module so dataclass annotation resolution works
+        # with `from __future__ import annotations`.
+        sys.modules.setdefault("workspace_status_engine", engine_mod)
+        engine_spec.loader.exec_module(engine_mod)  # type: ignore[union-attr]
+    except Exception:
+        return False
+    globals().update({
+        "analyze": engine_mod.analyze,
+        "analyze_bounded": engine_mod.analyze_bounded,
+        "explain_item": engine_mod.explain_item,
+        "compute_type2_cleanup": engine_mod.compute_type2_cleanup,
+        "compute_repair_plan": engine_mod.compute_repair_plan,
+        "extract_spec_status": engine_mod.extract_spec_status,
+        "extract_spec_status_with_fingerprint": (
+            engine_mod.extract_spec_status_with_fingerprint
+        ),
+        "parse_workspace": engine_mod.parse_workspace,
+        "run_canonical_reconciliation": engine_mod.run_canonical_reconciliation,
+        "canonical_repository_identity": engine_mod.canonical_repository_identity,
+        "_safe_spec_path": engine_mod._safe_spec_path,
+        "_spec_slug_from_workspace_path": engine_mod._spec_slug_from_workspace_path,
+        "_repair_entry_eligibility": engine_mod._repair_entry_eligibility,
+    })
+    _ENGINE_BOUND = True
+    return True
 
 
 # ── Subcommand routing ────────────────────────────────────────────────────────
@@ -74,11 +112,14 @@ _VALID_OPERATION_TYPES = frozenset({"queue-to-shipped", "queue-remove"})
 # ── Serialisation helpers ─────────────────────────────────────────────────────
 
 def _work_entry_dict(entry, ini_slug: str) -> dict:
+    public_path = _public_canonical_path(entry.path)
     return {
-        "path": entry.path,
-        "slug": entry.slug,
-        "needs": entry.needs,
-        "ini_slug": ini_slug,
+        "path": public_path,
+        "slug": _public_canonical_slug(entry.path),
+        # Shipped compatibility records are not dispatch inputs. Omitting their
+        # legacy needs prevents an unsafe raw value bypassing canonical redaction.
+        "needs": [],
+        "ini_slug": _public_ini_slug(ini_slug),
     }
 
 
@@ -86,9 +127,9 @@ def _classification_dict(c) -> dict:
     return {
         "path": c.entry.path,
         "slug": c.entry.slug,
-        "needs": c.entry.needs,
-        "ini_slug": c.ini_slug,
-        "blocking_needs": c.blocking_needs,
+        "needs": _public_needs(c.entry.needs),
+        "ini_slug": _public_ini_slug(c.ini_slug),
+        "blocking_needs": _public_needs(c.blocking_needs),
     }
 
 
@@ -96,14 +137,18 @@ def _shaping_dict(c) -> dict:
     return {
         "slug": c.entry.slug,
         "entry_type": c.entry.entry_type,
-        "needs": c.entry.needs,
-        "ini_slug": c.ini_slug,
-        "blocking_needs": c.blocking_needs,
+        "needs": _public_needs(c.entry.needs),
+        "ini_slug": _public_ini_slug(c.ini_slug),
+        "blocking_needs": _public_needs(c.blocking_needs),
     }
 
 
 def _shaping_entry_dict(e) -> dict:
-    return {"slug": e.slug, "entry_type": e.entry_type, "needs": e.needs}
+    return {
+        "slug": e.slug,
+        "entry_type": e.entry_type,
+        "needs": _public_needs(e.needs),
+    }
 
 
 def _repo_backlog_entry_dict(entry) -> dict:
@@ -118,10 +163,392 @@ def _repo_backlog_entry_dict(entry) -> dict:
 def _finding_dict(f) -> dict:
     return {
         "finding_type": f.finding_type,
-        "spec_path": f.spec_path,
+        "spec_path": _public_canonical_path(f.spec_path),
         "spec_status": f.spec_status,
-        "ini_slug": f.ini_slug,
+        "ini_slug": _public_ini_slug(f.ini_slug, allow_empty=True),
         "list_name": f.list_name,
+    }
+
+
+def _public_canonical_path(value: object) -> str:
+    if not isinstance(value, str) or not value:
+        return "workspace.toml"
+    if any(char not in _PUBLIC_PATH_CHARS for char in value):
+        return "workspace.toml"
+    if "\\" in value or (len(value) >= 2 and value[1] == ":"):
+        return "workspace.toml"
+    try:
+        candidate = PurePosixPath(value)
+    except Exception:
+        return "workspace.toml"
+    if candidate.is_absolute() or value != candidate.as_posix():
+        return "workspace.toml"
+    if not candidate.parts or any(
+        part in {"", ".", ".."} or part.endswith(":") for part in candidate.parts
+    ):
+        return "workspace.toml"
+    return value
+
+
+def _public_canonical_slug(path: object) -> str:
+    public_path = _public_canonical_path(path)
+    if public_path.startswith("spec/") and public_path.count("/") == 1:
+        return public_path.removeprefix("spec/")
+    if (
+        public_path.startswith("docs/specs/")
+        and public_path.endswith("/spec.md")
+        and public_path.count("/") == 3
+    ):
+        return public_path.split("/")[2]
+    return public_path
+
+
+def _is_public_slug_segment(value: object) -> bool:
+    if not isinstance(value, str) or not 1 <= len(value) <= 200:
+        return False
+    slug_chars = _PUBLIC_PATH_CHARS - frozenset("./")
+    return value[0] in slug_chars - frozenset("_-") and all(
+        char in slug_chars for char in value
+    )
+
+
+def _is_public_ini_slug(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 7
+        and value.startswith("ini-")
+        and value[4:].isascii()
+        and value[4:].isdigit()
+    )
+
+
+def _public_ini_slug(value: object, *, allow_empty: bool = False) -> str:
+    if allow_empty and value == "":
+        return ""
+    return value if _is_public_ini_slug(value) else "workspace"
+
+
+def _public_work_path(value: object) -> str:
+    public_path = _public_canonical_path(value)
+    parts = public_path.split("/")
+    if (
+        len(parts) == 2
+        and parts[0] == "spec"
+        and _is_public_slug_segment(parts[1])
+    ):
+        return public_path
+    if (
+        len(parts) == 4
+        and parts[:2] == ["docs", "specs"]
+        and _is_public_slug_segment(parts[2])
+        and parts[3] == "spec.md"
+    ):
+        return public_path
+    return "workspace.toml"
+
+
+def _public_need(value: object) -> str:
+    if not isinstance(value, str) or not 1 <= len(value) <= 1000:
+        return "workspace.toml"
+    parts = value.split(":")
+    if len(parts) == 2:
+        prefix, target = parts
+        if prefix in {"shape", "research", "strategy", "backlog"}:
+            return value if _is_public_slug_segment(target) else "workspace.toml"
+        if prefix == "work":
+            return value if _public_work_path(target) == target else "workspace.toml"
+        if prefix == "brief":
+            return value if _public_brief_path(target) == target else "workspace.toml"
+    if (
+        len(parts) == 3
+        and _is_public_ini_slug(parts[0])
+        and parts[1] == "work"
+        and _public_work_path(parts[2]) == parts[2]
+    ):
+        return value
+    return "workspace.toml"
+
+
+def _public_needs(values: object) -> list[str]:
+    if not isinstance(values, list):
+        return ["workspace.toml"]
+    return [_public_need(value) for value in values]
+
+
+def _public_brief_path(value: object, *, allow_empty: bool = False) -> str:
+    if allow_empty and value == "":
+        return ""
+    public_path = _public_canonical_path(value)
+    parts = public_path.split("/")
+    if (
+        len(parts) == 4
+        and parts[:3] == ["docs", "product", "briefs"]
+        and parts[3].endswith(".md")
+        and _is_public_slug_segment(parts[3].removesuffix(".md"))
+    ):
+        return public_path
+    return "workspace.toml"
+
+
+def _public_brief_paths(values: object) -> list[str]:
+    if not isinstance(values, list):
+        return ["workspace.toml"]
+    return [_public_brief_path(value) for value in values]
+
+
+def _public_brief_queue_path(value: object, *, allow_empty: bool = False) -> str:
+    if allow_empty and value == "":
+        return ""
+    public_path = _public_canonical_path(value)
+    parts = public_path.split("/")
+    if (
+        len(parts) == 2
+        and parts[0] == "briefs"
+        and _is_public_slug_segment(parts[1])
+    ):
+        return public_path
+    return _public_brief_path(value, allow_empty=allow_empty)
+
+
+def _public_brief_queue_paths(values: object) -> list[str]:
+    if not isinstance(values, list):
+        return ["workspace.toml"]
+    return [_public_brief_queue_path(value) for value in values]
+
+
+def _canonical_finding_dict(f) -> dict:
+    return {
+        "code": f.code,
+        "path": _public_canonical_path(f.path),
+        "dispatchable": f.dispatchable,
+        "next_action": f.next_action,
+    }
+
+
+def _canonical_failure_payload(mode: str, code: str = "configuration_mismatch") -> dict:
+    next_actions = {
+        "configuration_mismatch": (
+            "Install or select a consistent versioned configuration, then rerun."
+        ),
+        "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
+    }
+    finding = {
+        "code": code,
+        "path": "workspace.toml",
+        "dispatchable": False,
+        "next_action": next_actions.get(code, next_actions["configuration_mismatch"]),
+    }
+    return {
+        "schema_version": 1,
+        "mode": mode,
+        "workspace_present": True,
+        "workspace_root": ".",
+        "canonical": {
+            "performed": True,
+            "bounded": mode != "reconcile",
+            "findings": [finding],
+            "evaluations": [],
+            "legacy_memberships": [],
+            "ready": [],
+            "active": [],
+            "blocked": [{
+                "path": "workspace.toml",
+                "slug": "workspace.toml",
+                "kind": "workspace",
+                "ini_slug": "workspace",
+                "collection": "workspace",
+                "dispatchable": False,
+                "findings": [finding],
+            }],
+        },
+    }
+
+
+def _canonical_evaluation_dict(e) -> dict:
+    return {
+        "path": _public_canonical_path(e.entry.path),
+        "slug": _public_canonical_slug(e.entry.path),
+        "kind": e.entry.kind,
+        "ini_slug": e.ini_slug,
+        "collection": e.collection,
+        "dispatchable": e.dispatchable,
+        "findings": [_canonical_finding_dict(f) for f in e.findings],
+    }
+
+
+def _canonical_legacy_dict(m) -> dict:
+    return {
+        "path": _public_canonical_path(m.entry.path),
+        "slug": _public_canonical_slug(m.entry.path),
+        "kind": m.entry.kind,
+        "ini_slug": m.ini_slug,
+        "collection": m.collection,
+        "dispatchable": False,
+        "findings": [_canonical_finding_dict(m.entry.finding)],
+    }
+
+
+def _is_work_spec_item(item: dict) -> bool:
+    return item.get("kind") == "spec" and str(item.get("collection", "")).startswith("work.")
+
+
+def _canonical_projection(root: Path, result) -> dict:
+    workspace = parse_workspace(root / "workspace.toml")
+    canonical = run_canonical_reconciliation(workspace, root)
+    evaluations = [_canonical_evaluation_dict(e) for e in canonical.evaluations]
+    legacy_memberships = [_canonical_legacy_dict(m) for m in canonical.legacy_memberships]
+    return {
+        "performed": True,
+        "bounded": not result.global_scan_performed,
+        "input_identity": canonical_repository_identity(workspace, canonical, root),
+        "findings": [_canonical_finding_dict(f) for f in canonical.findings],
+        "evaluations": evaluations,
+        "legacy_memberships": legacy_memberships,
+        "ready": [
+            item
+            for item in evaluations
+            if item["dispatchable"]
+            and item["kind"] == "spec"
+            and item["collection"] == "work.queue"
+        ],
+        "active": [
+            item
+            for item in evaluations
+            if item["kind"] == "spec"
+            and item["collection"] == "work.active"
+            and not item["findings"]
+        ],
+        "blocked": [
+            item
+            for item in evaluations
+            if not item["dispatchable"] and item["findings"]
+        ]
+        + legacy_memberships,
+    }
+
+
+def _explain_selector_targets(selector: str) -> tuple[str, str] | None:
+    """Return canonical and legacy work paths for a confined selector."""
+    if not isinstance(selector, str) or not selector or len(selector) > 240:
+        return None
+    if "\\" in selector or (len(selector) >= 2 and selector[1] == ":"):
+        return None
+    parts = selector.split("/")
+    if any(part in {"", ".", ".."} for part in parts):
+        return None
+
+    if len(parts) == 1:
+        slug = parts[0]
+    elif len(parts) == 2 and parts[0] == "spec":
+        slug = parts[1]
+    elif (
+        (len(parts) == 3 and parts[:2] == ["docs", "specs"])
+        or (
+            len(parts) == 4
+            and parts[:2] == ["docs", "specs"]
+            and parts[3] == "spec.md"
+        )
+    ):
+        slug = parts[2]
+    else:
+        return None
+
+    if (
+        not slug
+        or len(slug) > 200
+        or not slug[0].isalnum()
+        or any(not (char.isascii() and (char.isalnum() or char in "_-")) for char in slug)
+    ):
+        return None
+    return f"docs/specs/{slug}/spec.md", f"spec/{slug}"
+
+
+def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
+    """Explain one canonical or accepted legacy work entry without path I/O."""
+    normalized_selector = selector
+    if selector.endswith("/"):
+        directory_parts = selector[:-1].split("/")
+        if len(directory_parts) == 3 and directory_parts[:2] == ["docs", "specs"]:
+            normalized_selector = selector[:-1]
+    targets = _explain_selector_targets(normalized_selector)
+    public_selector = _public_canonical_path(normalized_selector)
+    if targets is None:
+        return public_selector, {"selector_status": "not_found"}
+
+    canonical_path, legacy_path = targets
+    projection = _canonical_projection(root, result)
+    candidates = [
+        item
+        for item in [
+            *projection["evaluations"],
+            *projection["legacy_memberships"],
+        ]
+        if item["kind"] == "spec"
+        and str(item["collection"]).startswith("work.")
+        and item["path"] in {canonical_path, legacy_path}
+    ]
+    by_initiative: dict[str, list[dict]] = {}
+    for candidate in candidates:
+        by_initiative.setdefault(candidate["ini_slug"], []).append(candidate)
+
+    if not by_initiative:
+        matching_findings = [
+            finding
+            for finding in projection["findings"]
+            if finding["path"] == canonical_path
+        ]
+        if matching_findings:
+            return public_selector, {
+                "selector_status": "not_found",
+                "findings": matching_findings,
+            }
+        return public_selector, {
+            "selector_status": "not_found",
+            "findings": [{
+                "code": "unregistered_work",
+                "path": canonical_path,
+                "dispatchable": False,
+                "next_action": (
+                    "Register or reconcile the canonical entry explicitly."
+                ),
+            }],
+        }
+    if len(by_initiative) > 1:
+        return public_selector, {
+            "selector_status": "ambiguous",
+            "matches": [
+                {"path": items[0]["path"], "ini_slug": ini_slug}
+                for ini_slug, items in sorted(by_initiative.items())
+            ],
+        }
+
+    ini_slug, matches = next(iter(by_initiative.items()))
+    priority = {"work.active": 0, "work.shipped": 1, "work.queue": 2}
+    item = min(matches, key=lambda candidate: priority.get(candidate["collection"], 3))
+    collection = item["collection"]
+    if collection == "work.active":
+        classification = "active"
+    elif collection == "work.shipped":
+        classification = "shipped"
+    elif item["dispatchable"]:
+        classification = "ready"
+    else:
+        classification = "blocked"
+    finding_codes = [finding["code"] for finding in item["findings"]]
+    return public_selector, {
+        "selector_status": "matched",
+        "explained_item": {
+            "path": item["path"],
+            "slug": item["slug"],
+            "ini_slug": ini_slug,
+            "list": collection.removeprefix("work."),
+            "classification": classification,
+            "blocking_needs": finding_codes,
+            "dependencies": [],
+            "downstream_unblocked": [],
+            "dispatchable": item["dispatchable"],
+            "findings": item["findings"],
+        },
     }
 
 
@@ -129,9 +556,9 @@ def _brief_queue_dict(bq) -> dict | None:
     if bq is None:
         return None
     return {
-        "executing": bq.executing,
-        "ready": bq.ready,
-        "draft": bq.draft,
+        "executing": _public_brief_queue_path(bq.executing, allow_empty=True),
+        "ready": _public_brief_queue_paths(bq.ready),
+        "draft": _public_brief_queue_paths(bq.draft),
     }
 
 
@@ -149,7 +576,6 @@ def _build_json(root: Path, result, mode: str) -> dict:
     # reconciliation.* spans all initiatives (including paused/closed) — mirroring analyze().
     # A type2_cleanup_ops entry may therefore reference an ini_slug absent from initiatives[].
     initiatives_out: list[dict] = []
-    active_entries: list[dict] = []
     shipped_entries: list[dict] = []
     # active_shaping_entries: per-entry provenance for shaping_queue.active.
     # Includes ALL active entries (signals and non-signals) so that shape: dep
@@ -161,21 +587,19 @@ def _build_json(root: Path, result, mode: str) -> dict:
         if ini.status != "active":
             continue
         initiatives_out.append({
-            "slug": ini.slug,
-            "name": ini.name,
-            "status": ini.status,
-            "milestone": ini.milestone,
+            "slug": _public_ini_slug(ini.slug),
+            "name": "workspace.toml",
+            "status": ini.status if ini.status in {"active", "paused", "closed"} else "invalid",
+            "milestone": "workspace.toml",
             "brief_queue": _brief_queue_dict(ini.brief_queue),
             "queue_empty": len(ini.work.queue) == 0,
         })
-        for e in ini.work.active:
-            active_entries.append(_work_entry_dict(e, ini.slug))
         for e in ini.work.shipped:
             shipped_entries.append(_work_entry_dict(e, ini.slug))
         for e in ini.shaping.active:
             active_shaping_entries.append({
                 "slug": e.slug,
-                "ini_slug": ini.slug,
+                "ini_slug": _public_ini_slug(ini.slug),
                 "entry_type": e.entry_type,
             })
 
@@ -188,31 +612,48 @@ def _build_json(root: Path, result, mode: str) -> dict:
             spec_path=f.spec_path,
             spec_status=f.spec_status,
         )
+        op["ini_slug"] = _public_ini_slug(op.get("ini_slug"))
+        op["path"] = _public_canonical_path(op.get("path"))
         type2_cleanup_ops.append(op)
 
     types_performed = [1, 2, 3] if result.global_scan_performed else [2, 3]
 
+    canonical = _canonical_projection(root, result)
+    canonical_failed = any(
+        finding["code"] in {"invalid_workspace", "configuration_mismatch"}
+        for finding in canonical["findings"]
+    )
+    if canonical_failed:
+        type2_cleanup_ops = []
     return {
         "schema_version": 1,
         "mode": mode,
         "workspace_present": True,
-        "workspace_root": str(root.resolve()),
+        "workspace_root": ".",
         "scan": _scan_dict(result),
         "initiatives": initiatives_out,
         "work": {
-            "ready": [_classification_dict(c) for c in result.ready],
-            "blocked": [_classification_dict(c) for c in result.blocked],
-            "active": active_entries,
+            "ready": canonical["ready"],
+            "blocked": [item for item in canonical["blocked"] if _is_work_spec_item(item)],
+            "active": canonical["active"],
             "shipped": shipped_entries,
         },
         "shaping": {
-            "ready": [_shaping_dict(c) for c in result.ready_shaping],
-            "signals": [_shaping_dict(c) for c in result.signals],
-            "blocked": [_shaping_dict(c) for c in result.blocked_shaping],
-            "active_entries": active_shaping_entries,
+            "ready": [] if canonical_failed else [
+                _shaping_dict(c) for c in result.ready_shaping
+            ],
+            "signals": [] if canonical_failed else [
+                _shaping_dict(c) for c in result.signals
+            ],
+            "blocked": [] if canonical_failed else [
+                _shaping_dict(c) for c in result.blocked_shaping
+            ],
+            "active_entries": [] if canonical_failed else active_shaping_entries,
             # [backlog].open typed entries (workspace-level, not per-initiative).
             # work-loop's shaping-item guard checks this list for slug matches.
-            "top_level_backlog": [_shaping_entry_dict(e) for e in result.top_level_backlog],
+            "top_level_backlog": [] if canonical_failed else [
+                _shaping_entry_dict(e) for e in result.top_level_backlog
+            ],
         },
         "repo_backlog": {
             "open": [_repo_backlog_entry_dict(e) for e in result.repo_backlog],
@@ -226,6 +667,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
             "type3": [_finding_dict(f) for f in result.type3],
             "type2_cleanup_ops": type2_cleanup_ops,
         },
+        "canonical": canonical,
         "diagnostics": {
             "workspace_files_read": 1,
             "spec_files_read": result.files_read,
@@ -238,19 +680,54 @@ def _build_explain_json(root: Path, result, selector: str, explain_result: dict)
         "schema_version": 1,
         "mode": "explain",
         "workspace_present": True,
-        "workspace_root": str(root.resolve()),
+        "workspace_root": ".",
         "scan": _scan_dict(result),
         "selector": selector,
+        "canonical": _canonical_projection(root, result),
         **explain_result,
     }
 
 
 def _build_repair_plan_json(root: Path, result, plan) -> dict:
     base = _build_json(root, result, "repair-plan")
+    canonical_failed = any(
+        finding["code"] in {"invalid_workspace", "configuration_mismatch"}
+        for finding in base["canonical"]["findings"]
+    )
+    automatic_operations: list[dict] = []
+    for operation in [] if canonical_failed else plan.automatic_operations:
+        item = dataclasses.asdict(operation)
+        public_path = _public_canonical_path(item["spec_path"])
+        item["ini_slug"] = _public_ini_slug(item["ini_slug"])
+        item["spec_path"] = public_path
+        item["finding_id"] = (
+            f"type2:{item['ini_slug']}:queue:{public_path}"
+        )
+        operation_content = {
+            key: value for key, value in item.items() if key != "operation_id"
+        }
+        item["operation_id"] = hashlib.sha256(json.dumps(
+            operation_content,
+            sort_keys=True,
+            separators=(",", ":"),
+            ensure_ascii=True,
+        ).encode("ascii")).hexdigest()
+        automatic_operations.append(item)
+    manual_findings: list[dict] = []
+    for finding in [] if canonical_failed else plan.manual_findings:
+        item = dataclasses.asdict(finding)
+        public_path = _public_canonical_path(item["spec_path"])
+        item["ini_slug"] = _public_ini_slug(item["ini_slug"], allow_empty=True)
+        item["spec_path"] = public_path
+        item["finding_id"] = (
+            f"type{item['finding_type']}:{item['ini_slug']}:"
+            f"{item['list_name']}:{public_path}"
+        )
+        manual_findings.append(item)
     base["workspace_fingerprint"] = plan.workspace_fingerprint
-    base["plan_id"] = plan.plan_id
-    base["automatic_operations"] = [dataclasses.asdict(op) for op in plan.automatic_operations]
-    base["manual_findings"] = [dataclasses.asdict(mf) for mf in plan.manual_findings]
+    base["automatic_operations"] = automatic_operations
+    base["manual_findings"] = manual_findings
+    base["plan_id"] = _recompute_plan_id(base)
     return base
 
 
@@ -357,34 +834,44 @@ def _apply_operations(
     doc = tomlkit.parse(workspace_toml_bytes.decode("utf-8"))
     applied = 0
     per_op: list[dict] = []
+    applied_spec_checks: list[tuple[str, str, str, Path, str, str | None]] = []
 
     for op in operations:
         spec_path = op["spec_path"]
+        public_spec_path = _public_work_path(spec_path)
         ini_slug = op["ini_slug"]
         expected_status = op["spec_status"]
         expected_fp = op.get("spec_status_fingerprint", "")
 
         # Confinement + re-verify spec status from disk
-        slug = spec_path.removeprefix("spec/")
+        slug = _spec_slug_from_workspace_path(spec_path)
         spec_file = _safe_spec_path(root, slug)
         if spec_file is None:
             per_op.append(
-                {"path": spec_path, "applied": False, "reason": "spec_status_unreadable"}
+                {"path": public_spec_path, "applied": False, "reason": "spec_status_unreadable"}
             )
             continue
         current_status, current_fp = extract_spec_status_with_fingerprint(spec_file)
         if current_status is None:
             per_op.append(
-                {"path": spec_path, "applied": False, "reason": "spec_status_unreadable"}
+                {"path": public_spec_path, "applied": False, "reason": "spec_status_unreadable"}
             )
             continue
         if current_status != expected_status:
-            per_op.append({"path": spec_path, "applied": False, "reason": "spec_status_changed"})
+            per_op.append({
+                "path": public_spec_path,
+                "applied": False,
+                "reason": "spec_status_changed",
+            })
             continue
         # Fingerprint check: detect changes to the status line that keep the token the same
         if expected_fp and current_fp and current_fp != expected_fp:
             per_op.append(
-                {"path": spec_path, "applied": False, "reason": "spec_status_fingerprint_changed"}
+                {
+                    "path": public_spec_path,
+                    "applied": False,
+                    "reason": "spec_status_fingerprint_changed",
+                }
             )
             continue
 
@@ -394,28 +881,67 @@ def _apply_operations(
         elif current_status == "Archived":
             effective_op_type = "queue-remove"
         else:
-            per_op.append({"path": spec_path, "applied": False, "reason": "spec_status_changed"})
+            per_op.append({
+                "path": public_spec_path,
+                "applied": False,
+                "reason": "spec_status_changed",
+            })
+            continue
+        still_eligible, _eligibility_reason = _repair_entry_eligibility(
+            workspace_path,
+            ini_slug,
+            spec_path,
+            effective_op_type,
+        )
+        if not still_eligible:
+            per_op.append({
+                "path": public_spec_path,
+                "applied": False,
+                "reason": "canonical_repair_ineligible",
+            })
             continue
 
         ini_section = doc.get(ini_slug)
         if ini_section is None:
-            per_op.append({"path": spec_path, "applied": False, "reason": "initiative_not_found"})
+            per_op.append({
+                "path": public_spec_path,
+                "applied": False,
+                "reason": "initiative_not_found",
+            })
             continue
         work = ini_section.get("work", {})
         queue = work.get("queue", [])
 
         # In-place removal: find and delete first matching entry
         removed = False
+        moved_entry = None
+        structured_refused = False
         for i, entry in enumerate(queue):
-            entry_path = entry if isinstance(entry, str) else entry.get("path", "")
+            entry_path = (
+                entry
+                if isinstance(entry, str)
+                else entry.get("path", "") if isinstance(entry, dict) else ""
+            )
             if entry_path == spec_path:
+                if effective_op_type == "queue-to-shipped" and not isinstance(entry, dict):
+                    structured_refused = True
+                    break
+                moved_entry = entry
                 del queue[i]
                 removed = True
                 break
 
+        if structured_refused:
+            per_op.append({
+                "path": public_spec_path,
+                "applied": False,
+                "reason": "structured_entry_required",
+            })
+            continue
+
         if not removed:
             per_op.append(
-                {"path": spec_path, "applied": False, "reason": "entry_not_found_in_queue"}
+                {"path": public_spec_path, "applied": False, "reason": "entry_not_found_in_queue"}
             )
             continue
 
@@ -423,11 +949,22 @@ def _apply_operations(
             if "shipped" not in work:
                 work["shipped"] = tomlkit.array()
             shipped = work["shipped"]
-            existing = {e if isinstance(e, str) else e.get("path", "") for e in shipped}
+            existing = {
+                e if isinstance(e, str) else e.get("path", "") if isinstance(e, dict) else ""
+                for e in shipped
+            }
             if spec_path not in existing:
-                shipped.append(spec_path)
+                shipped.append(moved_entry)
 
-        per_op.append({"path": spec_path, "applied": True})
+        per_op.append({"path": public_spec_path, "applied": True})
+        applied_spec_checks.append((
+            ini_slug,
+            spec_path,
+            effective_op_type,
+            spec_file,
+            current_status,
+            current_fp,
+        ))
         applied += 1
 
     # Only write when at least one operation succeeded
@@ -455,6 +992,29 @@ def _apply_operations(
         _expected_fp = hashlib.sha256(workspace_toml_bytes).hexdigest()
         if _precheck_fp != _expected_fp:
             raise RuntimeError("workspace_concurrent_write")
+        for (
+            _ini_slug,
+            _spec_path,
+            _op_type,
+            _spec_file,
+            _observed_status,
+            _observed_fp,
+        ) in applied_spec_checks:
+            _live_status, _live_fp = extract_spec_status_with_fingerprint(_spec_file)
+            if (
+                _live_status is None
+                or _live_status != _observed_status
+                or _live_fp != _observed_fp
+            ):
+                raise RuntimeError("workspace_concurrent_write")
+            _still_eligible, _eligibility_reason = _repair_entry_eligibility(
+                workspace_path,
+                _ini_slug,
+                _spec_path,
+                _op_type,
+            )
+            if not _still_eligible:
+                raise RuntimeError("workspace_concurrent_write")
         Path(tmp_path).replace(workspace_path)
         tmp_path = None
     finally:
@@ -522,6 +1082,18 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = Path(args.root)
 
+    if not _bind_engine():
+        if subcommand in {"status", "reconcile", "explain"}:
+            _emit(_canonical_failure_payload(subcommand, "configuration_mismatch"))
+        else:
+            _emit({
+                "schema_version": 1,
+                "mode": subcommand,
+                "applied": False,
+                "reason": "engine_load_failed",
+            })
+        return 2
+
     try:
         # Validate root before checking workspace.toml.
         # If root is a file (not a dir), Path.exists() returns False via ENOTDIR
@@ -545,7 +1117,7 @@ def main(argv: list[str] | None = None) -> int:
                     "schema_version": 1,
                     "mode": subcommand,
                     "workspace_present": False,
-                    "workspace_root": str(root.resolve()),
+                    "workspace_root": ".",
                 })
                 return 1
             # Path-confinement: if workspace.toml is a symlink, verify the target
@@ -557,10 +1129,7 @@ def main(argv: list[str] | None = None) -> int:
                 try:
                     _ws_toml_resolved.relative_to(root.resolve())
                 except (OSError, RuntimeError, ValueError):
-                    print(
-                        "workspace-status error: workspace.toml symlink escapes repository root",
-                        file=sys.stderr,
-                    )
+                    _emit(_canonical_failure_payload(subcommand, "configuration_mismatch"))
                     return 2
 
         if subcommand == "repair-plan":
@@ -974,8 +1543,8 @@ def main(argv: list[str] | None = None) -> int:
 
         if subcommand == "explain":
             result = analyze_bounded(root)
-            explain_result = explain_item(result, args.item)
-            data = _build_explain_json(root, result, args.item, explain_result)
+            public_selector, explain_result = _canonical_explain(root, result, args.item)
+            data = _build_explain_json(root, result, public_selector, explain_result)
         elif subcommand == "status":
             result = analyze_bounded(root)
             data = _build_json(root, result, "status")
@@ -986,16 +1555,12 @@ def main(argv: list[str] | None = None) -> int:
         _emit(data)
         return 0
     except Exception as exc:
-        _msg = str(exc)
-        # Redact the resolved (canonical) path first — covers symlink-redirected paths
-        # (e.g. /var/... → /private/var/... on macOS).
-        with contextlib.suppress(OSError, RuntimeError):
-            _msg = _msg.replace(str(root.resolve()), "<root>")
-        # Also redact the raw --root argument when it is absolute; skip when relative
-        # ("." or a short name) to avoid corrupting unrelated parts of the message.
-        if root.is_absolute():
-            _msg = _msg.replace(str(root), "<root>")
-        print(f"workspace-status error: {type(exc).__name__}: {_msg}", file=sys.stderr)
+        code = (
+            "invalid_workspace"
+            if isinstance(exc, tomllib.TOMLDecodeError)
+            else "configuration_mismatch"
+        )
+        _emit(_canonical_failure_payload(subcommand, code))
         return 2
 
 

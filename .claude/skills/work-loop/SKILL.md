@@ -75,18 +75,40 @@ Skip entirely if `workspace.toml` is absent. If present:
 1. Read it. Surface an orientation block:
    - **Initiative:** `name` from `["ini-NNN"]` (all `status = "active"` sections).
    - **Milestone:** `milestone` from `["ini-NNN"]`.
-   - **Active spec** (argless invocations only; skip when a spec path was given): collect all paths in `["ini-NNN".work].active` across active initiatives.
-     If exactly one, include "Beginning on `docs/specs/<slug>/spec.md`" in this
-     orientation block.
-     - Zero → surface "No active spec found — run `workspace-status` to see what's ready to start." Stop.
-     - More than one → list all, ask the user to pick. Stop.
-   - **Stale-queue check.** For each active initiative, for each entry in `.work.queue` and `.work.active`: resolve the path (bare string → as-is; inline object → `path` field; `slug` is shaping-queue only), strip the `spec/` prefix, read `docs/specs/<slug>/spec.md`. If `**Status:**` is `Shipped` (ignoring trailing `<!-- -->` comments), emit a non-blocking warning: `workspace.toml drift: <path> is in <queue|active> but spec.md shows Status: Shipped — move it to shipped in workspace.toml.` Path in both lists: warn once, name both. Missing `spec.md` or any status other than `Shipped` → skip without error.
+   - **Canonical preflight:** use `workspace-status` canonical reconciliation output for
+     dispatch decisions and active-resume selection. `canonical.ready` is the only
+     queue-ready set; any matching `canonical.blocked` or `canonical.findings` entry
+     blocks autonomous start with its stable `code`, `path`, and `next_action`.
+     Retained `legacy_memberships` are visible context only and never dispatch.
+     - Supplied spec path: continue only when the path has a matching
+       `canonical.ready` evaluation for a new start or matching `canonical.active`
+       evaluation for a resume. Otherwise stop and surface the matching canonical
+       finding, or `unregistered_work` if no canonical evaluation exists.
+     - Argless queued start: select only the first `canonical.ready` item. Raw
+       workspace `[work].queue` membership never authorizes PLAN.
+     - Active resume: accept only a matching `canonical.active` item. Raw
+       `[work].active` membership never authorizes PLAN when canonical findings,
+       legacy membership, missing artifact, missing plan, unapproved spec, or any
+       other canonical refusal is present.
+   - **Active spec** (argless invocations only; skip when a spec path was given):
+     collect all items from `canonical.active`, not raw `workspace.toml`. If exactly
+     one, include "Resuming `docs/specs/<slug>/spec.md`" in this orientation block.
+     - Zero → use `canonical.ready` for a queued start; if no item exists, surface "No canonical ready or active spec found — run `workspace-status` to see blocked findings." Stop.
+     - More than one → list all canonical active items and ask the user to pick. Stop.
+   - **Stale-queue check.** Use the `workspace-status` reconciliation/canonical
+     findings for drift warnings. Do not re-read raw `[work].queue` or
+     `[work].active` membership to authorize start or resume; raw membership is
+     advisory only after canonical preflight has accepted the item.
 
 2. **Shaping-item guard.** Derive slug (strip `docs/specs/` prefix + trailing `/`). Check all active initiatives' `[shaping_queue].active`, `.backlog`, and `[backlog].open` typed entries for a slug match. On match, stop: "This is a `[shape]` item (`type = <subtype>`); use `<skill>` — `work-loop` is for build items only." (shape→`frame-intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`frame-intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
 
 After orientation:
-- If a spec path was supplied, use it and proceed directly to PLAN.
-- Otherwise, exactly one active item → strip the `spec/` prefix, read `docs/specs/<slug>/spec.md` and `plan.md`, then proceed to PLAN.
+- If a spec path was supplied and matched `canonical.ready` or `canonical.active`, use
+  that canonical evaluation and proceed to PLAN.
+- Otherwise, exactly one canonical active item → read its `spec.md` and `plan.md`,
+  then proceed to PLAN.
+- Otherwise, exactly one selected canonical ready item → read its `spec.md` and
+  `plan.md`, then proceed to PLAN.
 
 ## Step 1. PLAN
 

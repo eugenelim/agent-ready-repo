@@ -93,9 +93,9 @@ explained_item                   — item details when selector_status is "match
 matches                          — initiative slugs with colliding entries when "ambiguous" (explain only)
 initiatives              — list of active initiatives (slug, name, status, milestone, brief_queue)
 initiatives[].brief_queue — {executing, ready, draft} or null
-work.ready     — list of ready-to-start build entries; each carries ini_slug and blocking_needs
-work.blocked   — list of blocked build entries; each carries ini_slug and blocking_needs
-work.active    — list of currently in-progress build entries; each carries ini_slug
+work.ready     — compatibility alias for canonical dispatchable work.queue specs
+work.blocked   — compatibility alias for canonical non-dispatchable work entries
+work.active    — compatibility alias for canonical valid work.active specs
 work.shipped   — list of shipped build entries; each carries ini_slug
 shaping.ready  — list of ready shaping entries (from active AND backlog); each carries ini_slug and blocking_needs
 shaping.signals — list of active-context signal entries; each carries ini_slug
@@ -104,11 +104,84 @@ shaping.active_entries — list of all shaping_queue.active entries; each carrie
 reconciliation.type1             — untracked live specs (empty in status/explain; 1 not in types_performed)
 reconciliation.type2             — stale queue/active entries
 reconciliation.type3             — prematurely-shipped entries
-reconciliation.type2_cleanup_ops — cleanup operations per Type 2 finding
+reconciliation.type2_cleanup_ops — non-authoritative Type 2 repair descriptors
+canonical.ready                  — canonical dispatchable work.queue specs only
+canonical.active                 — canonical valid work.active specs; resumable, not queue-ready
+canonical.blocked                — canonical non-dispatchable entries and retained legacy memberships
+canonical.findings               — stable finding code/path/dispatchable/next_action records (no raw artifact text)
+canonical.legacy_memberships     — retained legacy context; always non-dispatchable
 diagnostics.spec_files_read      — number of spec.md files examined (status + reconcile only)
 ```
 
-### 1a. Subcommand guidance
+### 1a. Canonical findings
+
+Every canonical refusal carries a stable code, repository-relative path,
+`dispatchable:false`, and one safe next action:
+
+| Code | Why blocked | Safe action |
+| --- | --- | --- |
+| `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
+| `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
+| `legacy_entry` | Supported compatibility form; visible but never dispatchable. | Materialize and register a canonical target entry. |
+| `unsupported_legacy` | Legacy-like form outside accepted compatibility fixtures. | Route the item manually; do not infer a target entry. |
+| `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
+| `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
+| `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
+| `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
+| `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
+| `unregistered_work` | Supplied or active spec has no unique matching workspace membership. | Register or reconcile the canonical entry explicitly. |
+| `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. | Remove the duplicate after choosing the authoritative membership. |
+| `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
+| `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
+| `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
+| `unsatisfied_dependency` | A known dependency lacks its kind-specific terminal state. | Complete or explicitly revise the dependency. |
+| `missing_dependency` | A dependency target cannot be resolved locally. | Materialize or correct the dependency target. |
+| `dependency_cycle` | The hard-dependency graph contains a cycle. | Break the cycle through an explicit plan change. |
+| `invalid_receipt` | Cross-repository receipt is incomplete, mismatched, or conflicted. | Replace it with a reviewed receipt matching the pinned dependency. |
+| `inactive_initiative` | Work belongs to a paused or closed initiative. | Reactivate the initiative explicitly or move the work through governance. |
+| `configuration_mismatch` | Versioned schema, adapter/profile, or routing identity is missing or inconsistent. | Install or select a consistent versioned configuration, then rerun. |
+
+### 1b. Coordination receipts
+
+Cross-repository dependencies that reference a containing brief require exactly
+one fenced block in that local brief with info string
+`toml coordination-receipts`. The block is TOML; surrounding prose and other
+fences are ignored.
+
+Valid receipt block:
+
+```toml coordination-receipts
+[[coordination_receipts]]
+id = "remote-prereq"
+remote_kind = "brief"
+remote_ref = "example-service://projects/example-artifact"
+accepted_revision = "remote-rev-9"
+required_status = "Shipped"
+reported_status = "Shipped"
+reviewed_by = "Example Reviewer"
+reviewed_at = "2026-08-10T00:00:00Z"
+refresh_conflict = false
+```
+
+Representative invalid receipt block:
+
+```toml coordination-receipts
+[[coordination_receipts]]
+id = "remote-prereq"
+remote_kind = "brief"
+remote_ref = "example-service://projects/example-artifact"
+accepted_revision = "remote-rev-8"
+required_status = "Shipped"
+reported_status = "Shipped"
+reviewed_by = "Example Reviewer"
+reviewed_at = "2026-08-10T00:00:00Z"
+refresh_conflict = false
+```
+
+Recovery for `invalid_receipt`: replace it with a reviewed receipt matching the
+pinned dependency.
+
+### 1c. Subcommand guidance
 
 | Subcommand | When to use | Type 1 walk | Writes |
 |------------|-------------|-------------|--------|
@@ -124,9 +197,9 @@ diagnostics.spec_files_read      — number of spec.md files examined (status + 
 
 **`repair-plan`** — runs a full reconciliation scan (Type 1+2+3) and builds a deterministic repair plan for all automatically-resolvable Type 2 queue findings: queue entries whose spec shows `Shipped` (moved to `[work].shipped`) or `Archived` (removed from `[work].queue`). Emits a JSON plan to stdout and writes it to `.workspace-repair-plan.json` (override with `--plan-file`). The plan includes a SHA-256 fingerprint of `workspace.toml` so that `repair-apply` can detect stale plans. Type 1 and Type 3 findings, and any Type 2 `active`-list entries, appear in `manual_findings` — they require human review. `Approved` entries are never touched automatically. Exit 0 on success (including empty plan); exit 1 if workspace.toml is absent; exit 2 if the plan file cannot be written (stdout is still emitted).
 
-**`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
+**`repair-apply`** — loads the plan file written by `repair-plan` (default `.workspace-repair-plan.json`; override with `--plan-file`), verifies the SHA-256 fingerprint against the current `workspace.toml`, and applies each operation atomically via `tempfile.mkstemp`. Re-reads each spec's `Status` from disk at apply time; skips the operation (with a `skipped` record in `per_operation`) if the status has changed since the plan was made. Immediately before replacing `workspace.toml`, it revalidates every spec whose operation would be applied and aborts the whole write if any status or status-line fingerprint changed. Requires `tomlkit` to preserve TOML comments; exits 2 if `tomlkit` is unavailable. The write is skipped entirely when `operations_applied == 0` (no stray temp files). Exit 0 on success or all-skipped; exit 2 for any structural error (fingerprint mismatch, plan not found, parse error, invalid schema).
 
-### 1b. Repair workflow
+### 1d. Repair workflow
 
 Use `repair-plan` + `repair-apply` to deterministically clean up stale queue entries without manual `workspace.toml` editing:
 
@@ -167,6 +240,11 @@ reason             — error reason string when applied:false (top-level field, 
 
 **When `mode == "explain"`:** render the focused lookup result below and stop — skip §§3–5. The explain JSON omits `reconciliation`, `work`, `shaping`, and `diagnostics`; those fields must not be read.
 
+If `canonical.findings` contains any record for the explained path, surface the
+canonical `code`, `path`, and `next_action` first and do not describe the item
+as startable. Retained `canonical.legacy_memberships` are blocked compatibility
+records; show their finding and migration action, never a start prompt.
+
 - `selector_status: "matched"` → surface the `explained_item` object: path, slug, ini_slug, list, classification, blocking_needs, dependencies, downstream_unblocked
 - `selector_status: "not_found"` → report the selector was not found in any active initiative's work queue (shaping items and items in paused/closed initiatives also return `not_found`)
 - `selector_status: "ambiguous"` → list the initiative slugs in `matches` and ask which initiative the user is working in. The CLI does not accept an initiative-prefix qualifier — re-invoking `explain` with the same selector will still return `ambiguous`. Use `status` for context on the relevant initiative.
@@ -202,29 +280,28 @@ Let N = total count across all three finding types. When N > 0, output before th
     (2) the workspace.toml entry was moved before the work was done.
 ```
 
-When Type 2 findings exist, build the cleanup offer using `reconciliation.type2_cleanup_ops`. For any Type 2 entry whose `list_name` is `active`, ask first: "Is `<path>` actively being worked on in this session?" — if the user says yes, **exclude all ops for that `(ini_slug, path)` pair** from the confirmed-operation set (both the active-list op and any queue-list op for the same path, to avoid partially applying a cleanup that leaves the path in both `active` and `shipped`). Build the _confirmed set_ (all ops except those excluded) before showing the offer. Then append:
+When Type 2 findings exist, treat `reconciliation.type2_cleanup_ops` as
+non-authoritative display metadata only. Never write `workspace.toml` from those
+descriptors and never manually convert a structured entry to a bare string.
+Append:
 
 ```
 Stale entries found — clean up now?
-  Shipped entries move to [work].shipped (bare string, `needs` dropped).
-  Archived entries are removed from [work].queue or [work].active.
-  Reply Y to apply, or edit workspace.toml manually.
+  Run repair-plan to identify canonically eligible queue repairs.
+  Active-list findings and every ambiguous or unsupported entry remain manual.
+  Reply Y to generate and review the repair plan.
 ```
 
 **Cleanup write — after Y confirmation (Type 2 only):**
 
-Apply only the _confirmed set_ of operations (do not re-read `type2_cleanup_ops`). Each op describes:
-- `ini_slug` — initiative to modify
-- `source_list` — list to remove the entry from (`queue` or `active`)
-- `target_list` — list to add it to (`shipped`) or `null` (Archived: remove only)
-- `path` — the entry path
-- `written_form` — TOML source literal for text insertion (Shipped only; e.g. `"spec/foo"` with surrounding quotes)
-
-When appending to `[work].shipped`, deduplicate by `path`: skip the append if the path is already present (a path in both `queue` and `active` produces two ops; apply the source-list removal for each but append at most once).
-
-Use a comment-preserving write — targeted text insertion or `tomlkit`; never a `tomllib` + `tomli_w` round-trip (strips comments).
-- **Text insertion:** append `written_form` as-is (it is already a correctly-quoted TOML string literal, including surrounding `"` characters).
-- **`tomlkit` structured API:** append `path` (the raw string value); `tomlkit` handles quoting automatically. Do not pass `written_form` to `tomlkit` — it would persist the surrounding quote characters as part of the path value.
+Invoke `repair-plan` using the argv form in §1 and show its
+`automatic_operations` and `manual_findings`. Apply nothing if the user does not
+confirm that exact plan. After confirmation, invoke `repair-apply --yes`; it is
+the only cleanup writer. It preserves the complete structured entry when moving
+Shipped queue work, removes only explicitly eligible Archived queue work, keeps
+active-list findings manual, revalidates canonical eligibility, and performs a
+comment-preserving atomic write. Never edit `workspace.toml` directly as a
+fallback for a skipped or manual finding.
 
 **Main output sections:**
 
@@ -261,6 +338,12 @@ Format output in four sections (omit sections with no entries):
   - Not found by any path (dependency belongs to a paused initiative) → omit the status annotation.
 
 **Needs-resolution modes (`analyze_bounded` / `is_need_satisfied`):** `workspace_status()` (used by workspace-mcp) calls `analyze_bounded(autonomous_dispatch=True)`, which applies conservative semantics. All other callers use `autonomous_dispatch=False` (default, human-session semantics). The difference:
+
+Autonomous dispatch consumers must use `canonical.ready` as the ready set. A
+valid `work.active` item appears in `canonical.active` as resumable context,
+not queue-ready. Invalid entries
+and retained legacy memberships remain visible under `canonical.blocked` and
+`canonical.findings`, but never dispatch.
 
 | Need | `autonomous_dispatch=False` (default) | `autonomous_dispatch=True` |
 |------|---------------------------------------|---------------------------|
@@ -327,12 +410,16 @@ Using the JSON data from Step 1 — do not re-read `workspace.toml` or recompute
 
 From the JSON result:
 
-- `active_spec` = first entry in `work.active` (if any)
-- `next_queue` = first entry in `work.ready` (JSON field, already resolved; first in list order)
-- `unblocked` = all entries in `work.ready`
+- `active_spec` = first entry in `canonical.active` (if any)
+- `next_queue` = first entry in `canonical.ready` (JSON field, already resolved; first in list order)
+- `unblocked` = all entries in `canonical.ready`
 - `next_shape` = first entry in `shaping.ready` whose `entry_type` is not `signal` AND for which `shaping.active_entries` contains an entry matching all of `slug`, `ini_slug`, and `entry_type` (a signal named `x` in active does not make a non-signal `x` in ready count as active); fall back to the first `shaping.ready` non-signal entry with no such full match (backlog-ready)
 
-**Path resolution:** entries in `work.ready`, `work.active`, etc. carry a `path` field (e.g. `"spec/m1-workspace-core"`). Strip the `spec/` prefix to get the slug; use `docs/specs/<slug>/` for file-system commands.
+If `canonical.blocked` or `canonical.findings` is non-empty for a candidate,
+surface the stable `code`, `path`, and `next_action`; do not select it as
+`next_queue` or `active_spec`.
+
+**Path resolution:** entries in `canonical.ready`, `canonical.active`, etc. carry a `path` field (e.g. `"docs/specs/<slug>/spec.md"`). Strip `docs/specs/` and trailing `/spec.md` to get the slug; use `docs/specs/<slug>/` for file-system commands.
 
 **5b. ASCII dependency graph (when ≥2 unblocked work items)**
 
@@ -346,9 +433,9 @@ Work queue — parallel opportunities:
   <slug-C>  [blocked by <dep-slug>]
 ```
 
-- Right-pad the slug column to the longest slug for alignment. Use the bare path (with `spec/` prefix preserved) for both `[ready]` and `[blocked by]` rows — e.g. `spec/alpha [ready]` and `spec/gamma [blocked by spec/alpha]`.
-- Entries in `work.ready`: annotate `[ready]`.
-- Entries in `work.blocked`: annotate `[blocked by <dep-slug>]`, where `<dep-slug>` is the first entry in that item's `blocking_needs` with the queue-prefix domain stripped.
+- Right-pad the slug column to the longest slug for alignment. Use each canonical item's `path` field.
+- Entries in `canonical.ready`: annotate `[ready]`.
+- Entries in `canonical.blocked`: annotate with the first finding `code`; surface its `next_action` instead of recomputing a dependency reason.
 
 **5c. Harness detection and parallel-session offer (when graph rendered)**
 
