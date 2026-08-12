@@ -46,14 +46,22 @@ def test_event_snapshot_and_restricted_split() -> None:
         "PermissionRequest",
         "PermissionDenied",
     } == KNOWN_EVENTS - PUBLISHABLE_EVENTS
-    snapshot_path = (
-        Path(__file__).resolve().parent
-        / "fixtures"
-        / "claude-code-2.1.226-hook-events.json"
-    )
-    snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
-    assert set(snapshot["accepted_events"]) == KNOWN_EVENTS
-    assert set(snapshot["known_but_unpublishable"]) == KNOWN_EVENTS - PUBLISHABLE_EVENTS
+    # Bind to every recorded client snapshot, not one pinned filename: a new
+    # version file then auto-binds, and what the test asserts is cross-version
+    # agreement rather than agreement with a single stale observation.
+    fixtures = Path(__file__).resolve().parent / "fixtures"
+    snapshots = sorted(fixtures.glob("claude-code-*-hook-events.json"))
+    if not snapshots:
+        # Governance tree absent (staged sdist); the pure-code invariants above
+        # still ran unconditionally.
+        return
+    for snapshot_path in snapshots:
+        snapshot = json.loads(snapshot_path.read_text(encoding="utf-8"))
+        assert set(snapshot["accepted_events"]) == KNOWN_EVENTS, snapshot_path.name
+        assert (
+            set(snapshot["known_but_unpublishable"])
+            == KNOWN_EVENTS - PUBLISHABLE_EVENTS
+        ), snapshot_path.name
 
 
 @pytest.mark.parametrize(

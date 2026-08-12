@@ -25,7 +25,8 @@ name: Publish Claude plugin packages
 # is NECESSARY BUT NOT SUFFICIENT — the schemas mirror an upstream contract we
 # do not own, so only the real client can detect upstream drift (ADR-0072). Real-client validation (`claude plugin validate`) must be
 # run locally before merging PRs that touch the plugin build pipeline.
-# Client version used for local validation: Claude Code 2.1.226.
+# Client version used for local validation: Claude Code 2.1.228
+# (2026-08-12; accepted event set identical to 2.1.226 — see AC18).
 
 on:
   push:

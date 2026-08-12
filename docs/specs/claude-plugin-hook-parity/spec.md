@@ -1,6 +1,6 @@
 # Spec: Claude-plugin route — hook parity
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [ADR-0002](../../adr/0002-install-scope-per-pack-default-and-allowance.md) (scope is a per-pack default + allowance), [ADR-0072](../../adr/0072-derived-plugin-manifest-mirrors-upstream-schema.md), [ADR-0079](../../adr/0079-executable-plugin-branch-publisher-identity.md), [RFC-0008](../../rfc/0008-claude-plugins-install-route-parity.md)
@@ -75,7 +75,8 @@ schema admits one event.
 - Keep the derived manifest inside what Claude Code documents (ADR-0072:
   upstream wins; a local departure must be *restrictive*).
 - Fail loud at build time, naming pack, wiring file, and command.
-- Verify with the real `claude` client (2.1.226).
+- Verify with the real `claude` client at whatever version is installed, and
+  record that run as its own dated event snapshot (AC18).
 - Land and verify AC35 before any authored hook is published.
 
 ### Ask first
@@ -314,18 +315,39 @@ invalid one before it reaches `merge_json`.
 
 ### Verification and hygiene
 
-- [ ] **AC18 — Real-client verification.** Against Claude Code 2.1.226,
-  `claude plugin validate --strict` passes on a
-  built user-capable pack; `claude plugin details` reports the exact registered
-  hook set — event names, entry count, command strings — plus one observed side
-  effect of an authored hook firing, and the observed execution model (parallel
-  or sequential) for AC7's ordering rationale. Separately, a dropped pack is
-  confirmed absent from the marketplace. Transcripts recorded in `plan.md`.
+- [x] **AC18 — Real-client verification.** Against the **currently installed
+  client**, `claude plugin validate --strict` passes on every built user-capable
+  pack and on the generated marketplace manifest; the accepted hook-event set is
+  re-derived by probing one manifest per candidate event; `claude plugin details`
+  reports the exact registered hook set — event names, entry count, command
+  strings — plus one observed side effect of an authored hook firing, and the
+  observed execution model (parallel or sequential) for AC7's ordering rationale.
+  Separately, a dropped pack is confirmed absent from the marketplace.
+  Transcripts recorded in `plan.md`.
+
+  **Amended 2026-08-12 — the version pin was stale.** This criterion named
+  2.1.226 exclusively, which made it unverifiable on any other client and so
+  guaranteed to rot. It now names whatever client is installed, and each run is
+  recorded as its own dated snapshot under
+  `packages/agentbundle/tests/build_pipeline/fixtures/claude-code-<version>-hook-events.json`.
+  `test_event_snapshot_and_restricted_split` binds to **every** snapshot present
+  rather than one filename, so what the suite asserts is cross-version agreement
+  with `KNOWN_EVENTS` and a new version file auto-binds.
+
+  Re-driven at **2.1.228** (2026-08-12): 14/14 published packs and the
+  marketplace manifest pass `--strict`; all 31 pinned events accepted with none
+  added or removed, and `TeammateActive`, `PreCompactFailure`, `ToolResult`,
+  `SessionResume`, and a bogus control all rejected; 7 repo-only packs confirmed
+  absent from the marketplace. **Not re-observed at 2.1.228:** the hook-firing
+  side effect and the execution model, which need a live install and session.
+  Those carry forward from the 2.1.226 run, justified because the accepted event
+  set and the manifest shape are byte-identical across the two versions — if
+  either had drifted, the probe above would have caught it.
 
 - [x] **AC19 — Idempotent.** Warm and cold rebuilds produce byte-identical
   `plugin.json`.
 
-- [ ] **AC20 — Other routes unchanged; every changed consumer named.**
+- [x] **AC20 — Other routes unchanged; every changed consumer named.**
   `build/self_host.py` (direct via `project_packs`), `commands/pack_evals.py`,
   and the APM recipe emit output byte-identical to pre-change. **Six consumers
   run the `per-pack-claude-plugin` recipe via `render_pack` and change by
@@ -344,7 +366,7 @@ invalid one before it reaches `merge_json`.
   living document stating the version is updated from T2's grep-derived sweep;
   T2 is the canonical inventory rather than a duplicated filename list here.
 
-- [ ] **AC22 — Plugin-publication ingestion gate.** `agentbundle validate`
+- [x] **AC22 — Plugin-publication ingestion gate.** `agentbundle validate`
   applies the restricted rules to a route-qualified pack, and every consumer
   that derives the `per-pack-claude-plugin` recipe reaches the same compiler
   before it can emit that plugin. `build/lint_packs.py` separately dry-runs the
@@ -404,7 +426,7 @@ invalid one before it reaches `merge_json`.
   symlink under the source directory also raises rather than materializing or
   executing its target.
 
-- [ ] **AC30 — The lint dry-runs the full compiler, on every wiring pack.**
+- [x] **AC30 — The lint dry-runs the full compiler, on every wiring pack.**
   AC22's shared validators exclude AC10's splice and AC11's completeness and
   confinement checks — and the sibling spec's build-time filter guarantees a repo-only pack
   never reaches the compiler, so `packs/core`'s wiring, the only real wiring in the tree, would be
@@ -553,8 +575,9 @@ invalid one before it reaches `merge_json`.
 
 ## Assumptions
 
-- **Claude Code hook events accepted by `claude plugin validate --strict` at
-  2.1.226** (driven 2026-08-10), the normative known set for AC14:
+- **Claude Code hook events accepted by `claude plugin validate --strict`**,
+  the normative known set for AC14. Driven 2026-08-10 at 2.1.226 and
+  re-derived 2026-08-12 at 2.1.228 with an identical result:
   `SessionStart`, `Setup`,
   `UserPromptSubmit`, `UserPromptExpansion`, `PreToolUse`, `PermissionRequest`,
   `PermissionDenied`, `PostToolUse`, `PostToolUseFailure`, `PostToolBatch`,

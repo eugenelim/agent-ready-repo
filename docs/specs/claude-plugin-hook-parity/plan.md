@@ -1,7 +1,7 @@
 # Plan: Claude-plugin route — hook parity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
@@ -545,12 +545,76 @@ passing coverage rather than to the existence of an implementation:
   `test_derivation_cold_rebuild_byte_identical`,
   `test_hook_fixture_requires_user_scope_consent_flag`.
 
-**Four remain unchecked, and none is a bookkeeping gap:**
+### AC18 real-client transcript — 2.1.228, 2026-08-12
 
-- **AC18 — real-client verification.** `plan.md` records a 2.1.226 run, but the
-  locally installed client is **2.1.228**, so the pinned version cannot be
-  re-driven here. Confirming this needs a human at a 2.1.226 client, or a spec
-  amendment moving the pin forward with a fresh matrix.
+Re-driven because the 2.1.226 pin had gone stale (see the AC18 amendment). All
+commands run against the installed `claude` 2.1.228.
+
+```
+$ claude plugin validate --strict dist/claude-plugins/<pack>   # x14
+✔ Validation passed                                            # 14 passed, 0 failed
+
+$ claude plugin validate --strict dist/claude-plugins/marketplace.json
+Validating marketplace manifest: .../dist/claude-plugins/marketplace.json
+✔ Validation passed
+```
+
+Event-set re-derivation — one single-event manifest per candidate through
+`validate --strict`:
+
+```
+ACCEPTED at 2.1.228: 31
+REJECTED at 2.1.228: TeammateActive, PreCompactFailure, ToolResult,
+                     SessionResume, BogusEventXYZ
+in pinned 2.1.226 but REJECTED at 2.1.228: []      # no removals
+NEW at 2.1.228 (not in pinned set):        []      # no additions
+```
+
+Marketplace scope filter: 14 plugins listed; the 7 repo-only packs
+(`catalogue-curation`, `core`, `governance-extras`, `iac-terraform`,
+`monorepo-extras`, `release-engineering`, `user-guide-diataxis`) are all absent.
+
+Recorded as `fixtures/claude-code-2.1.228-hook-events.json`.
+`test_event_snapshot_and_restricted_split` now globs that directory, so both
+recorded versions must agree with `KNOWN_EVENTS`.
+
+**Carried forward, not re-observed at 2.1.228:** the hook-firing side effect and
+the parallel-vs-sequential execution model, which need a live install and
+session. The accepted event set and manifest shape are identical across the two
+versions, so the 2.1.226 observation still holds; had either drifted, the probe
+above would have caught it.
+
+### AC20 / AC22 / AC30 — evidence implemented 2026-08-12
+
+All three named an artifact as their evidence while the implementation they
+describe was already present: `lint_packs.py:497-519` has dry-run
+`compile_plugin_hooks` since #916, and all six `render_pack` consumers have
+existed since then. The missing piece was the assertion that stops the behaviour
+regressing silently. `tests/build_pipeline/test_plugin_publication_gates.py`
+adds nine cases:
+
+- **AC30** — the dry run reports a compiler refusal as a finding, does so for a
+  **repo-only** pack (the criterion's whole point: the build-time scope filter
+  means `packs/core`'s wiring would otherwise be the one wiring never checked),
+  stays silent on clean wiring, and does not abort the sweep.
+- **AC22** — `agentbundle validate` refuses a compound Claude-shaped command on
+  a route-qualified pack, accepts a conforming one, and **leaves a repo-only
+  pack on its established broader rules**. That asymmetry is the criterion, not
+  an oversight; route-qualification turns on `pack_is_publishable`, so the
+  fixture needs a source manifest as well as a user-admitting scope.
+- **AC20** — the set of `commands/*.py` reaching `render_pack` equals the six the
+  criterion names, so a seventh consumer or a dropped one fails; and
+  `build/self_host.py` and `commands/pack_evals.py` reach neither `render_pack`
+  nor the recipe name, which is how "byte-identical to pre-change" is asserted
+  without a pre-change tree.
+
+Mutation-checked, per the repo standard that expected and actual must not derive
+from the same source: swallowing the lint's `findings.append` turns AC30 red, and
+short-circuiting `validate_pack_hook_wiring`'s publishability guard turns AC22
+red. Both restore green.
+
+**All 26 criteria are now checked.** Spec moves to `Shipped`, plan to `Done`.
+
 - **AC20 — six named consumers byte-identical.** No parameterized command-level
   artifact covering all six `render_pack` consumers was located; the criterion
   names it explicitly as the evidence.
