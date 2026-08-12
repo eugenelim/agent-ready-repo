@@ -55,6 +55,9 @@ normalize_for_shaping_guard = _engine_mod.normalize_for_shaping_guard
 parse_workspace = _engine_mod.parse_workspace
 run_reconciliation = _engine_mod.run_reconciliation
 compute_repair_plan = _engine_mod.compute_repair_plan
+canonical_result_identity = _engine_mod.canonical_result_identity
+canonical_result_snapshot = _engine_mod.canonical_result_snapshot
+run_canonical_reconciliation = _engine_mod.run_canonical_reconciliation
 RepairOperation = _engine_mod.RepairOperation
 ManualFinding = _engine_mod.ManualFinding
 RepairPlan = _engine_mod.RepairPlan
@@ -1278,45 +1281,36 @@ def case_extract_repo_backlog_preserves_declared_display_data() -> None:
            "empty repo backlog is empty")
 
 
-# ── AC3g: workspace-status Type 2 cleanup mutation shape ────────────────────────
+# ── AC3g: workspace-status Type 2 cleanup ownership ───────────────────────────
 # NOTE: work-loop (≥ a46d6f46) no longer writes active/shipped to workspace.toml.
 # Its finish checklist only sets spec.md Status: Shipped. Cleanup of stale
-# active/queue entries is workspace-status's Type 2 cleanup write.
+# active/queue entries is workspace-status's repair-plan/repair-apply write.
 
 def case_type2_cleanup_ownership() -> None:
     """AC3g: workspace-status owns Type 2 cleanup; work-loop does not mutate queue/active/shipped.
 
     work-loop (≥ a46d6f46) only sets spec.md Status: Shipped at completion.
     Stale queue/active entries are workspace-status's responsibility (Type 2).
-    compute_type2_cleanup describes the write the skill would perform after Y confirmation.
+    compute_type2_cleanup is display-only; repair-plan/repair-apply owns writes.
 
     Caller provides exact (ini_slug, source_list) from the ReconciliationFinding;
-    the function does not search — it maps the finding to the mutation shape.
+    the function does not search and never emits mutation instructions.
     """
-    # Shipped, in active → remove from active, append to shipped
-    mut = compute_type2_cleanup("ini-001", "active", "spec/stale-active", "Shipped")
-    expect(mut["source_list"] == "active", f"[AC3g] source=active: {mut}")
-    expect(mut["target_list"] == "shipped", f"[AC3g] target=shipped: {mut}")
-    expect(mut["written_form"] == '"spec/stale-active"', f"[AC3g] bare string form: {mut}")
-
-    # Shipped, in queue → remove from queue, append to shipped
-    mut2 = compute_type2_cleanup("ini-001", "queue", "spec/stale-queued", "Shipped")
-    expect(mut2["source_list"] == "queue", f"[AC3g] source=queue: {mut2}")
-    expect(mut2["target_list"] == "shipped", f"[AC3g] target=shipped: {mut2}")
-
-    # Archived, in active → remove from active, NOT added to shipped
-    mut3 = compute_type2_cleanup("ini-001", "active", "spec/stale-active-archived",
-                                  "Archived")
-    expect(mut3["source_list"] == "active", f"[AC3g] Archived source=active: {mut3}")
-    expect(mut3["target_list"] is None,
-           f"[AC3g] Archived target=None (remove only): {mut3}")
-
-    # Archived, in queue → remove from queue, NOT added to shipped
-    mut4 = compute_type2_cleanup("ini-001", "queue", "spec/stale-queued-archived",
-                                  "Archived")
-    expect(mut4["source_list"] == "queue", f"[AC3g] Archived source=queue: {mut4}")
-    expect(mut4["target_list"] is None,
-           f"[AC3g] Archived target=None (remove only): {mut4}")
+    descriptors = [
+        compute_type2_cleanup("ini-001", "active", "spec/stale-active", "Shipped"),
+        compute_type2_cleanup("ini-001", "queue", "spec/stale-queued", "Shipped"),
+        compute_type2_cleanup(
+            "ini-001", "active", "spec/stale-active-archived", "Archived"
+        ),
+        compute_type2_cleanup(
+            "ini-001", "queue", "spec/stale-queued-archived", "Archived"
+        ),
+    ]
+    for descriptor in descriptors:
+        expect(descriptor["authoritative"] is False, f"[AC3g] display only: {descriptor}")
+        expect(descriptor["next_action"] == "repair-plan", f"[AC3g] repair route: {descriptor}")
+        expect("target_list" not in descriptor, f"[AC3g] no write target: {descriptor}")
+        expect("written_form" not in descriptor, f"[AC3g] no bare write: {descriptor}")
 
 
 # ── AC3a: DAG all needs prefix forms ─────────────────────────────────────────
@@ -1506,7 +1500,7 @@ _WL_FINISH_START = r'^## Finish checklist'
 _WL_FINISH_END = r'Conventional commit format'
 
 _WORK_LOOP_CONTRACT_HASH = (
-    "c739285ae95ad891fddb2f6463624e2ef1793e1694e6711543c4d6eb1e4d72f6"
+    "4c1a53ad560c2d2cf92bf1d56d8fcefd0801ad664607a0b32e0e8809bc4f569f"
 )
 _WORK_LOOP_FINISH_HASH = (
     "7a6ac4f28a6aeee56dc608867213efdc6b29646ceb35e090c60bf97a6b764baa"
@@ -1603,41 +1597,29 @@ def test_work_loop_contract_anchor() -> None:
     assert after == before, "\n".join(FAILURES[before:])
 
 
-# ── Type 2 cleanup mutation contract ─────────────────────────────────────────
+# ── Type 2 cleanup compatibility projection ──────────────────────────────────
 #
-# The engine is read-only; it describes the SHAPE of the cleanup write but does
-# not perform it. The following cases cover:
-#   - Shipped entry in queue → mutation: queue removed, appended to shipped
-#   - Shipped entry in active → mutation: active removed, appended to shipped
-#   - Archived entry in queue → mutation: queue removed, NOT added to shipped
-#   - Entry absent → no mutation
-#
-# Acceptance gaps (not exercised here; to be covered in Order 1):
-#   - Comment-preserving TOML write (tomlkit) — engine is read-only
-#   - Y-confirmation boundary — model-layer behavior, not algorithmic
-#   - Deduplication in [work].shipped — tomlkit write path, not engine
-#   - Type 1/Type 3 findings do NOT trigger a cleanup offer — not tested here
+# The legacy status field remains descriptive only. It must route every eligible
+# Type 2 finding to repair-plan without exposing a mutation target or serialized
+# bare-string form. Repair-plan/repair-apply owns all actual writes.
 
 def case_type2_cleanup_mutation_contract() -> None:
-    # Shipped in active → active removed, appended to shipped
-    mut = compute_type2_cleanup("ini-001", "active", "spec/stale-active-shipped", "Shipped")
-    expect(mut["source_list"] == "active", "[cleanup] source=active for shipped-in-active")
-    expect(mut["target_list"] == "shipped", "[cleanup] target=shipped for shipped-in-active")
-    expect(
-        mut["written_form"] == '"spec/stale-active-shipped"',
-        "[cleanup] bare string form for shipped entry",
-    )
-
-    # Shipped in queue → queue removed, appended to shipped
-    mut2 = compute_type2_cleanup("ini-001", "queue", "spec/stale-queue-shipped", "Shipped")
-    expect(mut2["source_list"] == "queue", "[cleanup] source=queue for shipped-in-queue")
-    expect(mut2["target_list"] == "shipped", "[cleanup] target=shipped")
-
-    # Archived in active → removed only, NOT added to shipped
-    mut3 = compute_type2_cleanup("ini-001", "active", "spec/stale-active-archived",
-                                  "Archived")
-    expect(mut3["source_list"] == "active", "[cleanup] Archived source=active")
-    expect(mut3["target_list"] is None, "[cleanup] Archived target=None (remove only)")
+    descriptors = [
+        compute_type2_cleanup(
+            "ini-001", "active", "spec/stale-active-shipped", "Shipped"
+        ),
+        compute_type2_cleanup(
+            "ini-001", "queue", "spec/stale-queue-shipped", "Shipped"
+        ),
+        compute_type2_cleanup(
+            "ini-001", "active", "spec/stale-active-archived", "Archived"
+        ),
+    ]
+    for descriptor in descriptors:
+        expect(descriptor["authoritative"] is False, "[cleanup] descriptor is display-only")
+        expect(descriptor["next_action"] == "repair-plan", "[cleanup] routes to repair-plan")
+        expect("target_list" not in descriptor, "[cleanup] no mutation target")
+        expect("written_form" not in descriptor, "[cleanup] no bare-string write")
 
 
 def case_type1_type3_no_cleanup() -> None:
@@ -1828,11 +1810,11 @@ def case_shaping_classifications() -> None:
 # ── F3: duplicate-source cleanup representability ─────────────────────────────
 
 def case_type2_cleanup_duplicate_source() -> None:
-    """When a path appears in both active AND queue, both cleanup operations are representable.
+    """Duplicate findings remain visible without authorizing either write.
 
     run_reconciliation emits two Type 2 findings (one list_name='active',
     one list_name='queue'). compute_type2_cleanup's caller-provides-source API
-    can describe both — the old search-based API returned only 'active'.
+    can describe both, while repair-plan keeps duplicate membership manual.
     """
     mut_active = compute_type2_cleanup("ini-001", "active", "spec/in-both", "Shipped")
     mut_queue = compute_type2_cleanup("ini-001", "queue", "spec/in-both", "Shipped")
@@ -1841,10 +1823,12 @@ def case_type2_cleanup_duplicate_source() -> None:
            "[dup] active-source mutation representable")
     expect(mut_queue["source_list"] == "queue",
            "[dup] queue-source mutation representable")
-    expect(mut_active["target_list"] == "shipped",
-           "[dup] active mutation target=shipped")
-    expect(mut_queue["target_list"] == "shipped",
-           "[dup] queue mutation target=shipped")
+    expect(mut_active["authoritative"] is False,
+           "[dup] active descriptor is display-only")
+    expect(mut_queue["authoritative"] is False,
+           "[dup] queue descriptor is display-only")
+    expect("target_list" not in mut_active and "target_list" not in mut_queue,
+           "[dup] descriptors do not authorize writes")
     expect(
         mut_active["path"] == mut_queue["path"] == "spec/in-both",
         "[dup] same path in both mutations",
@@ -2886,6 +2870,26 @@ def test_compute_repair_plan_queue_archived() -> None:
     _run_case(case_compute_repair_plan_queue_archived)
 
 
+def test_compute_repair_plan_bare_archived_duplicate_is_manual() -> None:
+    _run_case(case_compute_repair_plan_bare_archived_duplicate_is_manual)
+
+
+def test_compute_repair_plan_bare_archived_unsupported_string_is_manual() -> None:
+    _run_case(case_compute_repair_plan_bare_archived_unsupported_string_is_manual)
+
+
+def test_compute_repair_plan_bare_archived_top_level_duplicate_is_manual() -> None:
+    _run_case(case_compute_repair_plan_bare_archived_top_level_duplicate_is_manual)
+
+
+def test_compute_repair_plan_bare_archived_cross_initiative_duplicate_is_manual() -> None:
+    _run_case(case_compute_repair_plan_bare_archived_cross_initiative_duplicate_is_manual)
+
+
+def test_compute_repair_plan_bare_archived_second_queue_duplicate_is_manual() -> None:
+    _run_case(case_compute_repair_plan_bare_archived_second_queue_duplicate_is_manual)
+
+
 def test_compute_repair_plan_active_source_is_manual() -> None:
     _run_case(case_compute_repair_plan_active_source_is_manual)
 
@@ -2926,6 +2930,18 @@ def test_compute_repair_plan_operation_has_spec_status_fingerprint() -> None:
     _run_case(case_compute_repair_plan_operation_has_spec_status_fingerprint)
 
 
+def test_compute_repair_plan_invalid_structured_source_is_manual() -> None:
+    _run_case(case_compute_repair_plan_invalid_structured_source_is_manual)
+
+
+def test_compute_repair_plan_malformed_structured_needs_is_manual() -> None:
+    _run_case(case_compute_repair_plan_malformed_structured_needs_is_manual)
+
+
+def test_compute_repair_plan_provenance_mismatch_is_manual() -> None:
+    _run_case(case_compute_repair_plan_provenance_mismatch_is_manual)
+
+
 def _make_finding(finding_type: int, spec_path: str, spec_status: str,
                   ini_slug: str, list_name: str):
     from workspace_status_engine import ReconciliationFinding
@@ -2948,11 +2964,25 @@ def _make_result(type1=None, type2=None, type3=None):
 def case_compute_repair_plan_queue_shipped():
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
-        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/foo/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Foo", needs = []}]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
         spec_dir = root / "docs" / "specs" / "foo"
         spec_dir.mkdir(parents=True)
         (spec_dir / "spec.md").write_text("- **Status:** Shipped\n", encoding="utf-8")
-        f = _make_finding(2, "spec/foo", "Shipped", "ini-001", "queue")
+        (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        f = _make_finding(2, "docs/specs/foo/spec.md", "Shipped", "ini-001", "queue")
         result = _make_result(type2=[f])
         plan = compute_repair_plan(result, root / "workspace.toml")
         expect(len(plan.automatic_operations) == 1, "2B shipped: expected 1 auto op")
@@ -2961,7 +2991,10 @@ def case_compute_repair_plan_queue_shipped():
             op.operation_type == "queue-to-shipped",
             f"2B shipped: op_type={op.operation_type!r}",
         )
-        expect(op.spec_path == "spec/foo", f"2B shipped: spec_path={op.spec_path!r}")
+        expect(
+            op.spec_path == "docs/specs/foo/spec.md",
+            f"2B shipped: spec_path={op.spec_path!r}",
+        )
         expect(op.spec_status == "Shipped", f"2B shipped: spec_status={op.spec_status!r}")
         expect(op.ini_slug == "ini-001", f"2B shipped: ini_slug={op.ini_slug!r}")
         expect(len(plan.manual_findings) == 0, "2B shipped: expected 0 manual findings")
@@ -2970,7 +3003,20 @@ def case_compute_repair_plan_queue_shipped():
 def case_compute_repair_plan_queue_archived():
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
-        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = ["spec/bar"]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
         spec_dir = root / "docs" / "specs" / "bar"
         spec_dir.mkdir(parents=True)
         (spec_dir / "spec.md").write_text("- **Status:** Archived\n", encoding="utf-8")
@@ -2982,6 +3028,175 @@ def case_compute_repair_plan_queue_archived():
         expect(op.operation_type == "queue-remove", f"2B archived: op_type={op.operation_type!r}")
         expect(op.spec_status == "Archived", f"2B archived: spec_status={op.spec_status!r}")
         expect(len(plan.manual_findings) == 0, "2B archived: expected 0 manual")
+
+
+def case_compute_repair_plan_bare_archived_duplicate_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = ["spec/bar"]
+active = ["docs/specs/bar/spec.md"]
+shipped = []
+""",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs" / "specs" / "bar"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Archived\n", encoding="utf-8")
+        f = _make_finding(2, "spec/bar", "Archived", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B dup archived: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B dup archived: expected 1 manual")
+        expect(
+            plan.manual_findings[0].reason == "type2-queue-canonical-blocked",
+            f"2B dup archived: reason={plan.manual_findings[0].reason!r}",
+        )
+
+
+def case_compute_repair_plan_bare_archived_unsupported_string_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = ["foo"]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs" / "specs" / "foo"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Archived\n", encoding="utf-8")
+        f = _make_finding(2, "foo", "Archived", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B unsupported: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B unsupported: expected 1 manual")
+        expect(
+            plan.manual_findings[0].reason == "type2-queue-canonical-blocked",
+            f"2B unsupported: reason={plan.manual_findings[0].reason!r}",
+        )
+
+
+def case_compute_repair_plan_bare_archived_top_level_duplicate_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_text(
+            """\
+[backlog]
+open = [{slug = "bar", type = "spec", source = "repo-origin", summary = "Backlog alias", needs = []}]
+closed = []
+
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = ["spec/bar"]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs" / "specs" / "bar"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Archived\n", encoding="utf-8")
+        f = _make_finding(2, "spec/bar", "Archived", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B top dup: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B top dup: expected 1 manual")
+        expect(
+            plan.manual_findings[0].reason == "type2-queue-canonical-blocked",
+            f"2B top dup: reason={plan.manual_findings[0].reason!r}",
+        )
+
+
+def case_compute_repair_plan_bare_archived_cross_initiative_duplicate_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = ["spec/bar"]
+active = []
+shipped = []
+
+["ini-002"]
+name = "Other"
+status = "active"
+milestone = "M2"
+
+["ini-002".work]
+queue = []
+active = []
+shipped = ["docs/specs/bar/spec.md"]
+""",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs" / "specs" / "bar"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Archived\n", encoding="utf-8")
+        f = _make_finding(2, "spec/bar", "Archived", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B cross dup: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B cross dup: expected 1 manual")
+        expect(
+            plan.manual_findings[0].reason == "type2-queue-canonical-blocked",
+            f"2B cross dup: reason={plan.manual_findings[0].reason!r}",
+        )
+
+
+def case_compute_repair_plan_bare_archived_second_queue_duplicate_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = ["spec/bar", "docs/specs/bar/spec.md"]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs" / "specs" / "bar"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Archived\n", encoding="utf-8")
+        f = _make_finding(2, "spec/bar", "Archived", "ini-001", "queue")
+        result = _make_result(type2=[f])
+        plan = compute_repair_plan(result, root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B queue dup: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B queue dup: expected 1 manual")
+        expect(
+            plan.manual_findings[0].reason == "type2-queue-canonical-blocked",
+            f"2B queue dup: reason={plan.manual_findings[0].reason!r}",
+        )
 
 
 def case_compute_repair_plan_active_source_is_manual():
@@ -3038,18 +3253,33 @@ def case_compute_repair_plan_approved_not_eligible():
 def case_compute_repair_plan_path_in_queue_and_active():
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
-        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/dual/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Dual", needs = []}]
+active = ["spec/dual"]
+shipped = []
+""",
+            encoding="utf-8",
+        )
         spec_dir = root / "docs" / "specs" / "dual"
         spec_dir.mkdir(parents=True)
         (spec_dir / "spec.md").write_text("- **Status:** Shipped\n", encoding="utf-8")
-        fq = _make_finding(2, "spec/dual", "Shipped", "ini-001", "queue")
+        (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        fq = _make_finding(2, "docs/specs/dual/spec.md", "Shipped", "ini-001", "queue")
         fa = _make_finding(2, "spec/dual", "Shipped", "ini-001", "active")
         result = _make_result(type2=[fq, fa])
         plan = compute_repair_plan(result, root / "workspace.toml")
-        # queue finding → automatic op; active finding → manual; not collapsed
-        expect(len(plan.automatic_operations) == 1, "2B dual: expected 1 auto op (queue)")
-        expect(len(plan.manual_findings) == 1, "2B dual: expected 1 manual (active)")
-        expect(plan.manual_findings[0].reason == "type2-active-source", "2B dual: manual reason")
+        expect(len(plan.automatic_operations) == 0, "2B dual: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 2, "2B dual: expected 2 manual findings")
+        reasons = {mf.reason for mf in plan.manual_findings}
+        expect("type2-queue-canonical-blocked" in reasons, f"2B dual: reasons={reasons}")
+        expect("type2-active-source" in reasons, f"2B dual: reasons={reasons}")
 
 
 def case_compute_repair_plan_duplicate_path_in_queue():
@@ -3107,14 +3337,30 @@ def case_compute_repair_plan_operation_has_spec_status_fingerprint():
     """2B: auto operations include spec_status_fingerprint (SHA-256 of status line)."""
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
-        (root / "workspace.toml").write_bytes(b"[ini-001]\n")
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/my-feature/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "My feature", needs = []}]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
         spec_dir = root / "docs" / "specs" / "my-feature"
         spec_dir.mkdir(parents=True)
         status_line = "- **Status:** Shipped"
         (spec_dir / "spec.md").write_text(
             f"# My Feature\n\n{status_line}\n", encoding="utf-8"
         )
-        f = _make_finding(2, "spec/my-feature", "Shipped", "ini-001", "queue")
+        (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        f = _make_finding(
+            2, "docs/specs/my-feature/spec.md", "Shipped", "ini-001", "queue"
+        )
         result = _make_result(type2=[f])
         plan = compute_repair_plan(result, root / "workspace.toml")
         expect(len(plan.automatic_operations) == 1,
@@ -3123,6 +3369,106 @@ def case_compute_repair_plan_operation_has_spec_status_fingerprint():
         expected_fp = hashlib.sha256(status_line.encode("utf-8")).hexdigest()
         expect(op.spec_status_fingerprint == expected_fp,
                f"2B op-fp: got {op.spec_status_fingerprint!r}, expected {expected_fp!r}")
+
+
+def case_compute_repair_plan_invalid_structured_source_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/bad-source/spec.md", kind = "spec", source = {mode = "tracker-origin"}, summary = "Bad source", needs = []}]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs" / "specs" / "bad-source"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Shipped\n", encoding="utf-8")
+        (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        f = _make_finding(2, "docs/specs/bad-source/spec.md", "Shipped", "ini-001", "queue")
+        plan = compute_repair_plan(_make_result(type2=[f]), root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B bad source: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B bad source: expected 1 manual")
+        expect(
+            plan.manual_findings[0].reason == "type2-queue-canonical-blocked",
+            f"2B bad source: reason={plan.manual_findings[0].reason!r}",
+        )
+
+
+def case_compute_repair_plan_malformed_structured_needs_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/bad-needs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Bad needs", needs = [{type = "local", kind = "spec"}]}]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs" / "specs" / "bad-needs"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text("- **Status:** Archived\n", encoding="utf-8")
+        (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        f = _make_finding(2, "docs/specs/bad-needs/spec.md", "Archived", "ini-001", "queue")
+        plan = compute_repair_plan(_make_result(type2=[f]), root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B bad needs: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B bad needs: expected 1 manual")
+        expect(
+            plan.manual_findings[0].reason == "type2-queue-canonical-blocked",
+            f"2B bad needs: reason={plan.manual_findings[0].reason!r}",
+        )
+
+
+def case_compute_repair_plan_provenance_mismatch_is_manual():
+    with tempfile.TemporaryDirectory() as td:
+        root = Path(td)
+        (root / "workspace.toml").write_text(
+            """\
+["ini-001"]
+name = "Test"
+status = "active"
+milestone = "M1"
+
+["ini-001".work]
+queue = [{path = "docs/specs/prov/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/right.md"}, summary = "Provenance", needs = []}]
+active = []
+shipped = []
+""",
+            encoding="utf-8",
+        )
+        spec_dir = root / "docs" / "specs" / "prov"
+        spec_dir.mkdir(parents=True)
+        (spec_dir / "spec.md").write_text(
+            "- **Status:** Shipped\n- **Brief:** docs/product/briefs/wrong.md\n",
+            encoding="utf-8",
+        )
+        (spec_dir / "plan.md").write_text("# Plan\n", encoding="utf-8")
+        brief_dir = root / "docs" / "product" / "briefs"
+        brief_dir.mkdir(parents=True)
+        (brief_dir / "right.md").write_text("- **Status:** Shipped\n", encoding="utf-8")
+        (brief_dir / "wrong.md").write_text("- **Status:** Shipped\n", encoding="utf-8")
+        f = _make_finding(2, "docs/specs/prov/spec.md", "Shipped", "ini-001", "queue")
+        plan = compute_repair_plan(_make_result(type2=[f]), root / "workspace.toml")
+        expect(len(plan.automatic_operations) == 0, "2B provenance: expected 0 auto ops")
+        expect(len(plan.manual_findings) == 1, "2B provenance: expected 1 manual")
+        expect(
+            plan.manual_findings[0].reason == "type2-queue-canonical-blocked",
+            f"2B provenance: reason={plan.manual_findings[0].reason!r}",
+        )
 
 
 # ── Runner ────────────────────────────────────────────────────────────────────
@@ -3194,6 +3540,26 @@ CASES = [
     ("2B compute_repair_plan_queue_shipped", case_compute_repair_plan_queue_shipped),
     ("2B compute_repair_plan_queue_archived", case_compute_repair_plan_queue_archived),
     (
+        "2B compute_repair_plan_bare_archived_duplicate_is_manual",
+        case_compute_repair_plan_bare_archived_duplicate_is_manual,
+    ),
+    (
+        "2B compute_repair_plan_bare_archived_unsupported_string_is_manual",
+        case_compute_repair_plan_bare_archived_unsupported_string_is_manual,
+    ),
+    (
+        "2B compute_repair_plan_bare_archived_top_level_duplicate_is_manual",
+        case_compute_repair_plan_bare_archived_top_level_duplicate_is_manual,
+    ),
+    (
+        "2B compute_repair_plan_bare_archived_cross_initiative_duplicate_is_manual",
+        case_compute_repair_plan_bare_archived_cross_initiative_duplicate_is_manual,
+    ),
+    (
+        "2B compute_repair_plan_bare_archived_second_queue_duplicate_is_manual",
+        case_compute_repair_plan_bare_archived_second_queue_duplicate_is_manual,
+    ),
+    (
         "2B compute_repair_plan_active_source_is_manual",
         case_compute_repair_plan_active_source_is_manual,
     ),
@@ -3226,6 +3592,18 @@ CASES = [
     (
         "2B compute_repair_plan_operation_has_spec_status_fingerprint",
         case_compute_repair_plan_operation_has_spec_status_fingerprint,
+    ),
+    (
+        "2B compute_repair_plan_invalid_structured_source_is_manual",
+        case_compute_repair_plan_invalid_structured_source_is_manual,
+    ),
+    (
+        "2B compute_repair_plan_malformed_structured_needs_is_manual",
+        case_compute_repair_plan_malformed_structured_needs_is_manual,
+    ),
+    (
+        "2B compute_repair_plan_provenance_mismatch_is_manual",
+        case_compute_repair_plan_provenance_mismatch_is_manual,
     ),
 ]
 

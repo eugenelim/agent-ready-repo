@@ -87,7 +87,7 @@ _EXPECTED_STUB_MODULE_HASHES = {
     "test_workspace_mcp_stdin.py":
         "1b9996595f5d4c8efe2f3d2b1a51b7a2570a155e9ed99779e92a71c66ee21965",
     "test_workspace_mcp_tools.py":
-        "1041a23bd0467dc88bf03cac468c35f70d4d95abb56e891a9cdae21c36bed654",
+        "9e2826148352cda97c18b9b84468a334d3682c883172bb5a28a3c0361f905d83",
 }
 
 

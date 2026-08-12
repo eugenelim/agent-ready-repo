@@ -35,9 +35,10 @@ import sys
 import tempfile
 import threading
 import time
+import tomllib
 import uuid as _uuid_mod
 from concurrent.futures import ThreadPoolExecutor
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -61,6 +62,9 @@ _BRIDGE_POLL_INTERVAL = 0.2  # 200 ms
 
 # Slug safety: ^[a-zA-Z0-9._-]+$, not "." or "..", not starting with "-"
 _SAFE_SLUG_RE = re.compile(r"^[a-zA-Z0-9._-]+$")
+_PUBLIC_PATH_CHARS = frozenset(
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-/"
+)
 
 # ── Lifecycle manifest (built-in defaults) ────────────────────────────────────
 #
@@ -221,26 +225,22 @@ def _is_skill_present(dispatch_skill: str | None, repo_root: Path) -> bool:
 # ── workspace_status_engine discovery ────────────────────────────────────────
 
 def _load_workspace_status_engine(repo_root: Path):
-    """Import workspace_status_engine from the projected adapter skills directory."""
+    """Import the canonical engine from an installed or packaged projection."""
     import importlib.util
 
-    # Checkout-relative paths are valid for trusted-repo sessions only. When running
-    # in isolated mode (`python -I`), skip them — a malicious checkout could replace
-    # these scripts and defeat the -I isolation guarantee. Stage 1 targets trusted-repo
-    # sessions; untrusted-repo (-I) use requires the engine to ship with the package.
+    # All current candidates are enabled for trusted-repo sessions only. Keep the
+    # existing explicit refusal in isolated mode until that spawn contract lands.
     candidates: list[Path] = []
     if not sys.flags.isolated:
         candidates = [
             repo_root / ".claude/skills/workspace-status/scripts/workspace_status_engine.py",
             repo_root / ".agents/skills/workspace-status/scripts/workspace_status_engine.py",
             repo_root / ".kiro/skills/workspace-status/scripts/workspace_status_engine.py",
+            Path(__file__).resolve().parent / "_data/workspace_status_engine.py",
+            # Development fallback before the package projection is refreshed.
+            Path(__file__).resolve().parents[3]
+            / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py",
         ]
-    # Package-relative source path (development / pre-build-self; also the only
-    # candidate in isolated mode, where __file__ is inside site-packages):
-    candidates.append(
-        Path(__file__).resolve().parents[3]
-        / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
-    )
     for path in candidates:
         if path.exists():
             spec = importlib.util.spec_from_file_location("workspace_status_engine", path)
@@ -581,6 +581,246 @@ class _EventBridge(threading.Thread):
 
 # ── _WorkspaceStatusTool ──────────────────────────────────────────────────────
 
+def _public_canonical_path(value: object) -> str:
+    if not isinstance(value, str) or not value:
+        return "workspace.toml"
+    if any(char not in _PUBLIC_PATH_CHARS for char in value):
+        return "workspace.toml"
+    if "\\" in value or (len(value) >= 2 and value[1] == ":"):
+        return "workspace.toml"
+    try:
+        candidate = PurePosixPath(value)
+    except Exception:
+        return "workspace.toml"
+    if candidate.is_absolute() or value != candidate.as_posix():
+        return "workspace.toml"
+    if not candidate.parts or any(
+        part in {"", ".", ".."} or part.endswith(":") for part in candidate.parts
+    ):
+        return "workspace.toml"
+    return value
+
+
+def _public_canonical_slug(path: object) -> str:
+    public_path = _public_canonical_path(path)
+    if public_path.startswith("spec/") and public_path.count("/") == 1:
+        return public_path.removeprefix("spec/")
+    if (
+        public_path.startswith("docs/specs/")
+        and public_path.endswith("/spec.md")
+        and public_path.count("/") == 3
+    ):
+        return public_path.split("/")[2]
+    return public_path
+
+
+def _is_public_slug_segment(value: object) -> bool:
+    if not isinstance(value, str) or not 1 <= len(value) <= 200:
+        return False
+    slug_chars = _PUBLIC_PATH_CHARS - frozenset("./")
+    return value[0] in slug_chars - frozenset("_-") and all(
+        char in slug_chars for char in value
+    )
+
+
+def _is_public_ini_slug(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and len(value) == 7
+        and value.startswith("ini-")
+        and value[4:].isascii()
+        and value[4:].isdigit()
+    )
+
+
+def _public_ini_slug(value: object) -> str:
+    if isinstance(value, str) and _is_public_ini_slug(value):
+        return value
+    return "workspace"
+
+
+def _public_work_path(value: object) -> str:
+    public_path = _public_canonical_path(value)
+    parts = public_path.split("/")
+    if (
+        len(parts) == 2
+        and parts[0] == "spec"
+        and _is_public_slug_segment(parts[1])
+    ):
+        return public_path
+    if (
+        len(parts) == 4
+        and parts[:2] == ["docs", "specs"]
+        and _is_public_slug_segment(parts[2])
+        and parts[3] == "spec.md"
+    ):
+        return public_path
+    return "workspace.toml"
+
+
+def _public_brief_path(value: object) -> str:
+    public_path = _public_canonical_path(value)
+    parts = public_path.split("/")
+    if (
+        len(parts) == 4
+        and parts[:3] == ["docs", "product", "briefs"]
+        and parts[3].endswith(".md")
+        and _is_public_slug_segment(parts[3].removesuffix(".md"))
+    ):
+        return public_path
+    return "workspace.toml"
+
+
+def _public_need(value: object) -> str:
+    if not isinstance(value, str) or not 1 <= len(value) <= 1000:
+        return "workspace.toml"
+    parts = value.split(":")
+    if len(parts) == 2:
+        prefix, target = parts
+        if prefix in {"shape", "research", "strategy", "backlog"}:
+            return value if _is_public_slug_segment(target) else "workspace.toml"
+        if prefix == "work":
+            return value if _public_work_path(target) == target else "workspace.toml"
+        if prefix == "brief":
+            return value if _public_brief_path(target) == target else "workspace.toml"
+    if (
+        len(parts) == 3
+        and _is_public_ini_slug(parts[0])
+        and parts[1] == "work"
+        and _public_work_path(parts[2]) == parts[2]
+    ):
+        return value
+    return "workspace.toml"
+
+
+def _public_needs(values: object) -> list[str]:
+    if not isinstance(values, list):
+        return ["workspace.toml"]
+    return [_public_need(value) for value in values]
+
+
+def _canonical_finding_dict(finding: Any) -> dict[str, Any]:
+    return {
+        "code": finding.code,
+        "path": _public_canonical_path(finding.path),
+        "dispatchable": bool(finding.dispatchable),
+        "next_action": finding.next_action,
+    }
+
+
+def _failure_finding(code: str) -> dict[str, Any]:
+    next_actions = {
+        "configuration_mismatch": (
+            "Install or select a consistent versioned configuration, then rerun."
+        ),
+        "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
+    }
+    return {
+        "code": code,
+        "path": "workspace.toml",
+        "dispatchable": False,
+        "next_action": next_actions.get(code, next_actions["configuration_mismatch"]),
+    }
+
+
+def _canonical_failure_projection(code: str = "configuration_mismatch") -> dict[str, Any]:
+    finding = _failure_finding(code)
+    blocked = {
+        "ini_slug": "workspace",
+        "collection": "workspace",
+        "path": "workspace.toml",
+        "kind": "workspace",
+        "slug": "workspace.toml",
+        "dispatchable": False,
+        "findings": [finding],
+    }
+    return {
+        "_legacy_analysis_allowed": False,
+        "findings": [finding],
+        "evaluations": [],
+        "legacy_memberships": [],
+        "ready": [],
+        "active": [],
+        "blocked": [blocked],
+    }
+
+
+def _canonical_eval_dict(evaluation: Any) -> dict[str, Any]:
+    return {
+        "ini_slug": evaluation.ini_slug,
+        "collection": evaluation.collection,
+        "path": _public_canonical_path(evaluation.entry.path),
+        "kind": evaluation.entry.kind,
+        "slug": _public_canonical_slug(evaluation.entry.path),
+        "dispatchable": bool(evaluation.dispatchable),
+        "findings": [_canonical_finding_dict(f) for f in evaluation.findings],
+    }
+
+
+def _canonical_legacy_dict(membership: Any) -> dict[str, Any]:
+    return {
+        "ini_slug": membership.ini_slug,
+        "collection": membership.collection,
+        "path": _public_canonical_path(membership.entry.path),
+        "kind": membership.entry.kind,
+        "slug": _public_canonical_slug(membership.entry.path),
+        "dispatchable": False,
+        "findings": [_canonical_finding_dict(membership.entry.finding)],
+    }
+
+
+def _is_canonical_work_spec(item: dict[str, Any]) -> bool:
+    return item.get("kind") == "spec" and str(item.get("collection", "")).startswith("work.")
+
+
+def _canonical_status_projection(engine: Any, repo_root: Path) -> dict[str, Any] | None:
+    workspace_path = repo_root / "workspace.toml"
+    try:
+        workspace_path.lstat()
+        if workspace_path.is_symlink():
+            resolved = workspace_path.resolve()
+            resolved.relative_to(repo_root.resolve())
+        workspace = engine.parse_workspace(workspace_path)
+        canonical = engine.run_canonical_reconciliation(workspace, repo_root)
+    except tomllib.TOMLDecodeError as exc:
+        _log.warning("workspace_status: canonical parse failed: %s", type(exc).__name__)
+        return _canonical_failure_projection("invalid_workspace")
+    except Exception as exc:
+        _log.warning("workspace_status: canonical reconciliation failed: %s", type(exc).__name__)
+        return _canonical_failure_projection("configuration_mismatch")
+
+    evaluations = [_canonical_eval_dict(e) for e in canonical.evaluations]
+    legacy_memberships = [_canonical_legacy_dict(m) for m in canonical.legacy_memberships]
+    return {
+        "_legacy_analysis_allowed": True,
+        "input_identity": engine.canonical_repository_identity(
+            workspace, canonical, repo_root
+        ),
+        "findings": [_canonical_finding_dict(f) for f in canonical.findings],
+        "evaluations": evaluations,
+        "legacy_memberships": legacy_memberships,
+        "ready": [
+            item
+            for item in evaluations
+            if item["dispatchable"]
+            and item["kind"] == "spec"
+            and item["collection"] == "work.queue"
+        ],
+        "active": [
+            item
+            for item in evaluations
+            if item["kind"] == "spec"
+            and item["collection"] == "work.active"
+            and not item["findings"]
+        ],
+        "blocked": [
+            item
+            for item in evaluations
+            if not item["dispatchable"] and item["findings"]
+        ] + legacy_memberships,
+    }
+
+
 class _WorkspaceStatusTool:
     """Implements the workspace_status() MCP tool.
 
@@ -616,46 +856,49 @@ class _WorkspaceStatusTool:
 
         try:
             engine = self._get_engine()
-            result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
         except Exception as exc:
-            _log.warning("workspace_status: analyze_bounded failed: %s", exc)
-            return {"error": f"workspace_status analysis failed: {exc}", **fsm_state}
+            _log.warning("workspace_status: engine load failed: %s", type(exc).__name__)
+            canonical_projection = _canonical_failure_projection()
+            canonical_projection.pop("_legacy_analysis_allowed", None)
+            return {
+                "ready": [],
+                "shaping": [],
+                "blocked": canonical_projection["blocked"],
+                "active": [],
+                "canonical": canonical_projection,
+                **fsm_state,
+            }
 
         ready_items: list[dict] = []
         blocked_items: list[dict] = []
         shaping_items: list[dict] = []
         active_items: list[dict] = []
-
-        # Active work items (the "active" key)
-        for ini in result.initiatives:
-            if ini.status not in ("active",):
-                continue
-            for entry in ini.work.active:
-                if not _is_safe_slug(ini.slug) or not _is_safe_slug(entry.slug):
-                    _log.warning("workspace_status: unsafe slug in active item; skipping")
-                    continue
-                manifest = _LIFECYCLE_MANIFEST.get("work", {})
-                active_items.append({
-                    "ini_slug": ini.slug,
-                    "type": "work",
-                    "slug": entry.slug,
-                    "dispatch_skill": manifest.get("dispatch_skill"),
-                    "output_pattern": manifest.get("output_pattern"),
-                    "has_gates": manifest.get("has_gates", False),
-                    "required_pack": manifest.get("required_pack"),
-                })
+        canonical_projection = _canonical_status_projection(engine, repo_root)
+        legacy_analysis_allowed = bool(
+            canonical_projection.pop("_legacy_analysis_allowed", False)
+        )
+        if any(
+            finding.get("code") in {"invalid_workspace", "configuration_mismatch"}
+            for finding in canonical_projection.get("findings", [])
+        ):
+            legacy_analysis_allowed = False
 
         # Work queue items (ready / blocked)
-        for cls in result.ready:
-            entry = cls.entry
-            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
-                _log.warning("workspace_status: unsafe slug in ready item; skipping")
+        manifest = _LIFECYCLE_MANIFEST.get("work", {})
+        for candidate in canonical_projection["ready"]:
+            if (
+                not _is_safe_slug(candidate["ini_slug"])
+                or not _is_safe_slug(candidate["slug"])
+            ):
+                _log.warning("workspace_status: unsafe slug in canonical ready item; skipping")
                 continue
-            manifest = _LIFECYCLE_MANIFEST.get("work", {})
             item: dict[str, Any] = {
-                "ini_slug": cls.ini_slug,
+                "ini_slug": candidate["ini_slug"],
                 "type": "work",
-                "slug": entry.slug,
+                "slug": candidate["slug"],
+                "path": candidate["path"],
+                "dispatchable": True,
+                "findings": candidate["findings"],
                 "dispatch_skill": manifest.get("dispatch_skill"),
                 "output_pattern": manifest.get("output_pattern"),
                 "has_gates": manifest.get("has_gates", False),
@@ -665,27 +908,56 @@ class _WorkspaceStatusTool:
             if skill and not _is_skill_present(skill, repo_root):
                 item["available"] = False
             ready_items.append(item)
-
-        for cls in result.blocked:
-            entry = cls.entry
-            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
-                _log.warning("workspace_status: unsafe slug in blocked item; skipping")
+        for candidate in canonical_projection["blocked"]:
+            if not _is_canonical_work_spec(candidate):
                 continue
-            manifest = _LIFECYCLE_MANIFEST.get("work", {})
-            item = {
-                "ini_slug": cls.ini_slug,
+            if (
+                not _is_safe_slug(candidate["ini_slug"])
+                or not _is_safe_slug(candidate["slug"])
+            ):
+                _log.warning("workspace_status: unsafe slug in canonical blocked item; skipping")
+                continue
+            blocked_items.append({
+                "ini_slug": candidate["ini_slug"],
                 "type": "work",
-                "slug": entry.slug,
+                "slug": candidate["slug"],
+                "path": candidate["path"],
+                "dispatchable": False,
+                "findings": candidate["findings"],
                 "dispatch_skill": manifest.get("dispatch_skill"),
                 "output_pattern": manifest.get("output_pattern"),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
-                "unmet_needs": cls.blocking_needs,
-            }
-            blocked_items.append(item)
+            })
+        for candidate in canonical_projection["active"]:
+            if (
+                not _is_safe_slug(candidate["ini_slug"])
+                or not _is_safe_slug(candidate["slug"])
+            ):
+                _log.warning("workspace_status: unsafe slug in canonical active item; skipping")
+                continue
+            active_items.append({
+                "ini_slug": candidate["ini_slug"],
+                "type": "work",
+                "slug": candidate["slug"],
+                "path": candidate["path"],
+                "dispatchable": False,
+                "findings": [],
+                "dispatch_skill": manifest.get("dispatch_skill"),
+                "output_pattern": manifest.get("output_pattern"),
+                "has_gates": manifest.get("has_gates", False),
+                "required_pack": manifest.get("required_pack"),
+            })
+
+        result = None
+        if legacy_analysis_allowed:
+            try:
+                result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
+            except Exception as exc:
+                _log.warning("workspace_status: analyze_bounded failed: %s", type(exc).__name__)
 
         # Shaping items (ready + blocked, excluding signals)
-        for cls in result.blocked_shaping:
+        for cls in result.blocked_shaping if result is not None else []:
             entry = cls.entry
             item_type = entry.entry_type
             if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
@@ -693,21 +965,21 @@ class _WorkspaceStatusTool:
                 continue
             manifest = _LIFECYCLE_MANIFEST.get(item_type, {})
             item = {
-                "ini_slug": cls.ini_slug,
+                "ini_slug": _public_ini_slug(cls.ini_slug),
                 "type": item_type,
                 "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
                 "output_pattern": manifest.get("output_pattern"),
                 "has_gates": manifest.get("has_gates", False),
                 "required_pack": manifest.get("required_pack"),
-                "unmet_needs": cls.blocking_needs,
+                "unmet_needs": _public_needs(cls.blocking_needs),
             }
             skill = manifest.get("dispatch_skill")
             if skill and not _is_skill_present(skill, repo_root):
                 item["available"] = False
             shaping_items.append(item)
 
-        for cls in result.ready_shaping:
+        for cls in result.ready_shaping if result is not None else []:
             entry = cls.entry
             item_type = entry.entry_type
             if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
@@ -715,7 +987,7 @@ class _WorkspaceStatusTool:
                 continue
             manifest = _LIFECYCLE_MANIFEST.get(item_type, {})
             item = {
-                "ini_slug": cls.ini_slug,
+                "ini_slug": _public_ini_slug(cls.ini_slug),
                 "type": item_type,
                 "slug": entry.slug,
                 "dispatch_skill": manifest.get("dispatch_skill"),
@@ -751,6 +1023,7 @@ class _WorkspaceStatusTool:
             "shaping": shaping_items,
             "blocked": blocked_items,
             "active": active_items,
+            "canonical": canonical_projection,
             **fsm_state,
         }
 
@@ -1601,20 +1874,19 @@ class _StdioLoop:
                     "Returns the current workspace queue and active-run state. "
                     "Call this at session start before doing any work. "
                     "Response fields: "
-                    "ready[] — items that may be dispatchable, each with "
-                    "ini_slug, type, slug, and dispatch_skill; "
+                    "ready[] — canonical dispatchable work.queue specs only, each with "
+                    "ini_slug, type, slug, path, dispatchable, findings, and dispatch_skill; "
                     "dispatchable items omit the 'available' field (treat absent as eligible); "
                     "items where available=false require an optional pack (see required_pack); "
-                    "items with a non-empty unmet_needs list have unresolved dependencies; "
-                    "only dispatch items where 'available' is absent (not false) and "
-                    "'unmet_needs' is absent or empty; "
-                    "blocked[] — items whose dependency needs are not yet met; "
-                    "active[] — items currently in progress; "
+                    "only dispatch items where dispatchable=true and 'available' is absent "
+                    "(not false); "
+                    "blocked[] — canonical non-dispatchable work entries with findings; "
+                    "active[] — canonical valid work.active specs for resume, not queue-ready; "
                     "shaping[] — informational only in Stage 1; non-FSM items (research, design, "
                     "shape, strategy) whose skill flows are not yet shipped (Stage 3); "
                     "do not dispatch shaping items in Stage 1 — selecting one opens a bound "
-                    "session with no usable skill flow; same available/required_pack/unmet_needs "
-                    "fields as ready[] for readiness visibility; "
+                    "session with no usable skill flow; shaping items may carry "
+                    "available, required_pack, and unmet_needs for readiness visibility; "
                     "current_state — current work-loop phase name (null when idle OR when this "
                     "session is not bound to a valid spec — see below); "
                     "gate_pending — true when human input is required before work can continue "

@@ -1,7 +1,7 @@
 # Plan: Workspace routing invariants
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially,
@@ -9,13 +9,13 @@
 
 ## Approach
 
-Extend the canonical workspace engine in four layers. First, replace permissive raw objects with typed target and legacy parsing that implements both Group 2 contracts. Second, make reconciliation produce stable findings and drive one positive dispatch predicate with kind-specific dependency checks. Third, route CLI, MCP, and work-loop preflight through that result. Last, preserve structured entries during repair, document every finding, and prove determinism across clean processes and installed projections. The reader lands before any target-state writer changes.
+Extend the canonical workspace engine in four layers. First, replace permissive raw objects with typed target and legacy parsing that implements both Group 2 contracts and the spec's canonical finding registry. Second, make reconciliation produce those findings and drive one positive dispatch predicate with kind-specific dependency checks. Third, route CLI, MCP, and work-loop preflight through that result. Last, preserve structured entries during repair, document every finding, and prove determinism across clean processes and installed projections. The reader lands before any target-state writer changes.
 
 ## Constraints
 
 - Depends on `normalized-intake-workspace-contracts` T4.
 - RFC-0083 fixes dispatch conditions, lifecycle memberships, authority rules, dependency satisfaction, compatibility behavior, and fail-closed semantics.
-- The two Group 1 ADRs are approval prerequisites; their identifiers remain unstated until assigned.
+- ADR-0077 and ADR-0078 are approval prerequisites.
 - `contracts/jsonschema/normalized-intake.schema.json` and `contracts/jsonschema/workspace-entry.schema.json` are authoritative. Runtime code implements them without importing `jsonschema`.
 - `workspace_status_engine.py` remains the single classification/reconciliation implementation used by CLI and MCP.
 - `status` remains bounded; `reconcile` may perform the global spec scan. Bounded mode must still validate every declared entry.
@@ -57,6 +57,7 @@ Extend the canonical workspace engine in four layers. First, replace permissive 
 - artifact metadata needed for status/provenance checks
 - stable findings with code, path, membership, detail, and next action
 - dispatch evaluations carrying `dispatchable` and all blocking finding codes
+- the AC18 determinism identity, without a second or weaker field definition
 
 The engine reads the Group 2 schema constants/enums into code and tests parity against the schema files. Traces to: AC1–AC3, AC17–AC19 · both JSON Schemas.
 
@@ -71,7 +72,7 @@ The schemas remain authoritative; code-schema parity tests catch enum or require
 
 ### Failure, edge cases & resilience
 
-All malformed or ambiguous inputs produce findings and no execution action. Missing targets and dependency cycles are explicit. Path validation precedes file reads. Remote receipt checks are local-only. Full reconciliation includes paused/closed initiative corruption without dispatching it. Repair refuses stale fingerprints and every non-mechanical conflict. Traces to: AC3, AC5–AC15, AC23–AC24.
+All malformed or ambiguous inputs produce canonical findings and no execution action. Every artifact-like path is confined before reads. Missing targets and dependency cycles are explicit. Remote receipt checks parse only the exact fenced TOML block from the confined containing brief and validate the complete receipt key. Exceptions are redacted to repository-relative labels. Full reconciliation includes paused/closed initiative corruption without dispatching it. Repair refuses stale fingerprints and every non-mechanical conflict. Traces to: AC3, AC5–AC15, AC19, AC23–AC24, AC27.
 
 ### Quality attributes (NFRs)
 
@@ -85,7 +86,7 @@ Traces to: AC3, AC6, AC13, AC16–AC25.
 
 ### Dependencies & integration
 
-The CLI imports the engine beside it. `workspace-mcp` loads the projected engine and only projects its evaluation. `work-loop` invokes the canonical status/preflight surface. Group 4 later uses the same evaluation before guarded lifecycle writes. Traces to: AC19–AC22.
+The CLI imports the engine beside it. `workspace-mcp` loads the installed projection first, then a byte-identical packaged projection when an extracted source distribution has no core-pack checkout; it only projects the engine evaluation. `work-loop` invokes the canonical status/preflight surface. Group 4 later uses the same evaluation before guarded lifecycle writes. Traces to: AC19–AC22.
 
 ## Tasks
 
@@ -99,11 +100,14 @@ The CLI imports the engine beside it. `workspace-mcp` loads the projected engine
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the typed contract surface (`NormalizedIntake`, `WorkspaceEntry`, compatibility records, and `validate_normalized_intake`) imported by the pytest cases below is created by this task from the upstream RFC-0083 schemas and is unavailable at PLAN. The first EXECUTE action materializes these cases as compilable failing tests before any production-engine edit.
+`stub: true`
+
+**Stub:** materialized — `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py::test_t1_group2_typed_contract_surface` is a compilable red pytest stub and remains red until replaced by the cases below.
 
 - Target entries parse all five required fields and preserve source/dependency detail. Traces to: AC1–AC2.
 - Every Group 2 legacy fixture becomes an explicit non-dispatchable compatibility entry. Traces to: AC2.
 - Invalid fields, kinds, paths, authority records, and unsupported extensions produce stable validation findings without partial entries. Traces to: AC3, AC6.
+- Every malformed and compatibility fixture maps to the exact canonical finding code and safe action. Traces to: AC3, AC19, AC25.
 - Normalized-intake records implement action and authority conditionals from the schema. Traces to: AC1.
 - Code enums and required fields match both schema files.
 
@@ -127,13 +131,15 @@ The CLI imports the engine beside it. `workspace-mcp` loads the projected engine
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the finding model and `evaluate_dispatch` contract imported by the pytest cases below are created by this task and are unavailable at PLAN. The first EXECUTE action materializes these cases as compilable failing tests before any reconciliation, dependency, or dispatch production edit.
+`stub: true`
+
+**Stub:** materialized — `packs/core/tests/skills/workspace-status/test_workspace_status_engine_autonomous.py::test_t2_positive_dispatch_and_reconciliation_surface` covers the existing T2 matrix, while `test_t2_coordination_receipt_block_contract` is the compilable red stub for the amended AC13 encoding and remains red until replaced by the fenced-block cases below.
 
 - Missing spec and plan produce `missing_artifact` and `missing_plan` and are never ready. Traces to: AC4–AC5.
 - Path confinement, duplicate membership, impossible transitions, provenance mismatch, and refresh conflicts each fail closed with the expected code. Traces to: AC6–AC10.
 - Kind-specific dependency matrices cover every satisfied/unsatisfied status. Traces to: AC11.
 - Missing targets and cycles produce `missing_dependency` and `dependency_cycle`. Traces to: AC12.
-- Receipt fixtures require the full local key and perform no network access. Traces to: AC13.
+- Receipt fixtures use the spec's exact `toml coordination-receipts` block in a confined containing brief. They vary block count, TOML validity, exact fields, duplicate ids, matching local brief path, id, accepted revision, remote kind, both statuses, reviewer, timezone-bearing timestamp, and conflict independently; every omission or mismatch produces `invalid_receipt`, surrounding prose and other fences remain inert, and no case performs network access. Traces to: AC13.
 - Ready-without-spec and paused/closed initiative fixtures behave as specified. Traces to: AC14–AC15.
 - `evaluate_dispatch` is true only for the exact AC4 conjunction; removing any one fact makes it false.
 
@@ -157,12 +163,15 @@ The CLI imports the engine beside it. `workspace-mcp` loads the projected engine
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the finding-aware CLI/MCP/work-loop projection contract asserted by the pytest cases below is created by this task and is unavailable at PLAN. The first EXECUTE action materializes these cases as compilable failing tests before any CLI, MCP, or work-loop production edit; goal-based integration checks follow once the red cases pass.
+`stub: true`
+
+**Stub:** materialized — `packages/agentbundle/tests/test_workspace_mcp_tools.py::test_t3_canonical_eligibility_projection` is a compilable red pytest stub and remains red until replaced by cross-surface cases; goal-based integration checks follow once the red cases pass.
 
 - CLI status/reconcile/explain serialize the same codes, affected artifact, dispatchability, and next action. Traces to: AC19.
 - MCP `ready` contains only dispatchable queue entries; invalid work appears with finding codes and no absolute paths. Traces to: AC20.
 - Work-loop preflight refuses each fail-closed fixture and accepts one eligible queued contract plus one valid resumable active contract. Traces to: AC21–AC22.
 - Comment-only changes produce identical CLI/MCP/work-loop decisions. Traces to: AC16.
+- Untrusted comments, summaries, source text, and exception messages never become instructions or leak absolute paths/raw payloads through CLI, MCP, or work-loop output. Traces to: AC19, AC27.
 - Existing bounded/global scan-cost tests remain valid.
 
 **Approach:**
@@ -179,18 +188,22 @@ The CLI imports the engine beside it. `workspace-mcp` loads the projected engine
 
 **Depends on:** T3
 
-**Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `tools/test_workspace_status.py`, `tools/test_workspace_status_cli.py`, `packages/agentbundle/agentbundle/build/tests/test_workspace_status_projection.py`, `packages/agentbundle/tests/test_workspace_mcp_tools.py`, `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/workspace-status/SKILL.md`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `docs/product/changelog.md`
+**Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `tools/test_workspace_status.py`, `tools/test_workspace_status_cli.py`, `packages/agentbundle/tests/build_pipeline/test_workspace_status_projection.py`, `packages/agentbundle/tests/test_workspace_mcp_tools.py`, `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/workspace-status/SKILL.md`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `docs/product/changelog.md`
 
 **Verification mode:** TDD and goal-based check
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the structured repair-preservation and canonical determinism surfaces asserted by the pytest cases below are created by this task and are unavailable at PLAN. The first EXECUTE action materializes these cases as compilable failing tests before any repair, serializer, projection, or release-metadata production edit; goal-based gates follow after the TDD slice is green.
+`stub: true`
+
+**Stub:** materialized — `packages/agentbundle/tests/build_pipeline/test_workspace_status_projection.py::test_t4_repair_determinism_projection_and_release_surface` is a compilable red pytest stub and remains red until replaced by repair, determinism, projection, and release cases; goal-based gates follow after the TDD slice is green.
 
 - Repair preserves structured entry fields, refuses non-mechanical findings, detects concurrent changes, and never emits a bare target entry. Traces to: AC23–AC24.
 - Every finding fixture appears in status documentation with one safe next action. Traces to: AC25.
-- Two fresh subprocesses emit identical canonical results for the determinism corpus. Traces to: AC16–AC18.
+- The workspace reference and workspace-status docs show the exact `toml coordination-receipts` block, one valid and representative invalid example, its conditional requirement for referenced containing briefs, and the `invalid_receipt` safe next action. Traces to: AC13, AC25.
+- Two fresh subprocesses emit identical canonical results for the determinism corpus; one mutation test for each AC18 identity field proves that schema ids, contract versions and content digests, the semantic workspace snapshot, canonical artifact status and provenance fingerprints, adapter-contract version, tracker-profile id/version when present, and routing-configuration version each change the input identity independently. Traces to: AC16–AC18.
 - Installed/source projections match across shipped adapters.
+- Shipped skill content preserves tool authority, contains no repository-internal governance citation, and reaches projections only through the canonical self-host pipeline. Traces to: AC27.
 - Pack/plugin and package versions match their release rules; catalogue and package gates pass.
 
 **Approach:**
@@ -198,7 +211,7 @@ The CLI imports the engine beside it. `workspace-mcp` loads the projected engine
 - Update repair-plan eligibility and `_apply_operations` to move the retained structured TOML item rather than appending `spec_path`.
 - Keep fingerprint, confinement, atomic replace, permission, and comment-preservation protections.
 - Add canonical result serialization that excludes elapsed time and absolute root from determinism comparisons.
-- Document every finding and safe action in `workspace-status` and the workspace reference.
+- Document every finding and safe action in `workspace-status` and the workspace reference, including the exact coordination-receipt fenced block, valid/invalid examples, conditional block requirement, and `invalid_receipt` recovery.
 - Bump release metadata required by the pack and public MCP output changes, then regenerate projections once.
 
 **Done when:** repair, determinism, documentation coverage, projection parity, core pack tests, agentbundle tests, catalogue gates, lint, and build checks all pass.
@@ -225,3 +238,6 @@ The CLI imports the engine beside it. `workspace-mcp` loads the projected engine
 ## Changelog
 
 - 2026-08-09: Initial plan derived from accepted RFC-0083, the Group 2 task boundary, and confirmed assumptions.
+- 2026-08-10: Pre-execution review defined the finding registry, aligned provenance fields with Group 2, strengthened path/error/receipt/determinism/skill-safety coverage, corrected the projection-test path, and materialized red TDD stubs.
+- 2026-08-10: Mid-execution review selected the RFC-delegated coordination-receipt TOML encoding after a synthetic workspace receipt table was found to violate the index-only boundary; the loop state was reset for reapproval without discarding implementation work.
+- 2026-08-12: Post-rebase verification added a byte-identical packaged engine projection so trusted-mode MCP tests remain self-contained in the extracted source distribution while installed core-pack projections retain precedence.
