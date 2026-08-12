@@ -99,3 +99,12 @@ Boundaries on the decision:
 - [PEP 610](https://peps.python.org/pep-0610/) — `direct_url.json` carries `dir_info.editable` and an absolute `file://` url, and MUST NOT be created for index installs.
 - [Cargo config](https://doc.rust-lang.org/cargo/reference/config.html), [npm config](https://docs.npmjs.com/cli/v11/using-npm/config/), [pip configuration](https://pip.pypa.io/en/stable/topics/configuration/) — the layered-config-plus-baked-default prior art, and the project-over-user precedent this decision deliberately does **not** extend to `source`.
 - CHARTER Principle 3 — the habit-not-infrastructure bar this decision clears.
+
+## Erratum (2026-08-11)
+
+RFC-0085 replaces the editable/local source marker pair named in this frozen
+ADR. A catalogue source now requires root `catalogue.toml` plus literal root
+`packs/`; `.claude-plugin/marketplace.json` is a conditional Claude adapter
+artifact rather than source identity. Canonicalize-before-walk, the enclosing
+Git-root bound, the five-layer precedence chain as subsequently extended, and
+the no-repo-source/no-cwd trust decisions are unchanged. Approver: eugenelim.

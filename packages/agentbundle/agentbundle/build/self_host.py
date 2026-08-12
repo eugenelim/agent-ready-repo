@@ -310,6 +310,11 @@ def _effective_adapters(preferred_adapter: str | None) -> tuple[str, ...]:
     return SELF_HOST_ADAPTERS
 
 
+def projects_claude_artifacts(preferred_adapter: str | None) -> bool:
+    """Return whether self-host projection includes Claude project artifacts."""
+    return "claude-code" in _effective_adapters(preferred_adapter)
+
+
 def _project_all_adapters(
     output_root: Path,
     packs_dir: Path,
@@ -1268,7 +1273,7 @@ def run_self_host(
     # preferred-adapter is kiro-ide or kiro-cli (or any other adapter not in
     # SELF_HOST_ADAPTERS), those artifacts are neither written nor expected in
     # the drift check.
-    _project_claude_artifacts = "claude-code" in _effective_adapters(preferred_adapter)
+    project_claude_artifacts = projects_claude_artifacts(preferred_adapter)
 
     if dry_run:
         with tempfile.TemporaryDirectory(prefix="agentbundle-shadow-") as shadow_str:
@@ -1286,11 +1291,11 @@ def run_self_host(
             except ValueError as exc:
                 print(f"self-host: {exc}", file=sys.stderr)
                 return 4
-            if _project_claude_artifacts:
+            if project_claude_artifacts:
                 _aggregate_marketplace(packs_dir, shadow, owner=owner, name=marketplace_name)
                 _recreate_claude_symlink(shadow, force_copy=no_symlink)
             extra_marker_paths = list(seed_map.keys())
-            if _project_claude_artifacts:
+            if project_claude_artifacts:
                 extra_marker_paths.append(Path(".claude-plugin") / "marketplace.json")
             if agents_path is not None:
                 extra_marker_paths.append(Path("AGENTS.md"))
@@ -1347,11 +1352,11 @@ def run_self_host(
     except ValueError as exc:
         print(f"self-host: {exc}", file=sys.stderr)
         return 4
-    if _project_claude_artifacts:
+    if project_claude_artifacts:
         _aggregate_marketplace(packs_dir, working_tree, owner=owner, name=marketplace_name)
         _recreate_claude_symlink(working_tree, force_copy=no_symlink)
     extra_marker_paths = list(seed_map.keys())
-    if _project_claude_artifacts:
+    if project_claude_artifacts:
         extra_marker_paths.append(Path(".claude-plugin") / "marketplace.json")
     if agents_path is not None:
         extra_marker_paths.append(Path("AGENTS.md"))

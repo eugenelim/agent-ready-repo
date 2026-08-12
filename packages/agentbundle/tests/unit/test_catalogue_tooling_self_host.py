@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
 from agentbundle.catalogue_tooling.results import SelfHostResult
 from agentbundle.catalogue_tooling.self_host import check_self_host, write_self_host
 
@@ -172,6 +173,14 @@ def test_effective_adapters_none_uses_full_list():
     assert _effective_adapters(None) == SELF_HOST_ADAPTERS
 
 
+@pytest.mark.parametrize("preferred_adapter", [None, "claude-code", "codex"])
+def test_projects_claude_artifacts_for_default_and_allowed_adapters(preferred_adapter):
+    """Default and already-allowed adapters retain Claude projection."""
+    from agentbundle.build.self_host import projects_claude_artifacts
+
+    assert projects_claude_artifacts(preferred_adapter) is True
+
+
 # ---------------------------------------------------------------------------
 # _project_all_adapters direct verification
 # ---------------------------------------------------------------------------
@@ -232,9 +241,12 @@ def test_effective_adapters_none_includes_claude_code():
     assert "claude-code" in _effective_adapters(None)
 
 
-def test_run_self_host_kiro_ide_skips_claude_artifacts(tmp_path):
-    """run_self_host with preferred_adapter='kiro-ide' does not call
-    _aggregate_marketplace or _recreate_claude_symlink."""
+@pytest.mark.parametrize("projects_claude", [False, True])
+def test_run_self_host_claude_artifacts_follow_shared_predicate(
+    tmp_path,
+    projects_claude,
+):
+    """The generation boundary delegates Claude artifacts to one predicate."""
     from unittest.mock import MagicMock
 
     from agentbundle.build.self_host import run_self_host
@@ -244,7 +256,9 @@ def test_run_self_host_kiro_ide_skips_claude_artifacts(tmp_path):
         "discovery-schema-version = 1\n"
         "[adapt]\n"
         "owner = 'test'\n"
-        "project-name = 'test'\n"
+        "project-name = 'test'\n",
+        encoding="utf-8",
+        newline="\n",
     )
     packs_dir = tmp_path / "packs"
     packs_dir.mkdir()
@@ -253,6 +267,10 @@ def test_run_self_host_kiro_ide_skips_claude_artifacts(tmp_path):
     fake_discovery.markers = {"owner": "test", "project-name": "test"}
 
     with (
+        patch(
+            "agentbundle.build.self_host.projects_claude_artifacts",
+            return_value=projects_claude,
+        ) as mock_policy,
         patch("agentbundle.build.self_host._aggregate_marketplace") as mock_mkt,
         patch("agentbundle.build.self_host._recreate_claude_symlink") as mock_sym,
         patch("agentbundle.build.self_host._project_all_adapters"),
@@ -274,8 +292,9 @@ def test_run_self_host_kiro_ide_skips_claude_artifacts(tmp_path):
             preferred_adapter="kiro-ide",
         )
 
-    mock_mkt.assert_not_called()
-    mock_sym.assert_not_called()
+    mock_policy.assert_called_once_with("kiro-ide")
+    assert mock_mkt.call_count == int(projects_claude)
+    assert mock_sym.call_count == int(projects_claude)
 
 
 # ── RFC-0082: the destructive-write guard covers this entry point too ────

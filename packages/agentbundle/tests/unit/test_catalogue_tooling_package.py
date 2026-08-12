@@ -23,6 +23,7 @@ from agentbundle.catalogue_tooling.package import (
     _write_archive,
     package_catalogue,
 )
+from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 
 # ---------------------------------------------------------------------------
 # Fixture helpers
@@ -40,6 +41,25 @@ def _make_catalogue(
     """Create a minimal valid catalogue root for Wave 4 tests."""
     root = tmp_path / "catalogue"
     root.mkdir()
+    config_text = emit_catalogue_toml(
+        name="test-catalogue",
+        display_name="Test Catalogue",
+        description="A catalogue fixture for package tests.",
+        minimum_agentbundle_version="0.33.0",
+        owner_name="Example Maintainer",
+        preferred_adapter="claude-code",
+    ).replace(
+        '  ".claude-plugin/marketplace.json",\n]',
+        '  ".claude-plugin/marketplace.json",\n'
+        '  "LICENSE-APACHE",\n'
+        '  "LICENSE-MIT",\n'
+        "]",
+    )
+    (root / "catalogue.toml").write_text(
+        config_text,
+        encoding="utf-8",
+        newline="\n",
+    )
 
     # Pack
     pack_dir = root / "packs" / "core"
@@ -66,7 +86,13 @@ def _make_catalogue(
     profiles_dir = root / "profiles"
     profiles_dir.mkdir()
     (profiles_dir / "default.toml").write_text(
-        '[profile]\nname = "default"\n', encoding="utf-8", newline="\n"
+        'scope = "repo"\n'
+        'description = "Default package test profile."\n'
+        "\n"
+        "[[packs]]\n"
+        'pack = "core"\n',
+        encoding="utf-8",
+        newline="\n",
     )
 
     if with_agents_md:
@@ -85,7 +111,7 @@ def _make_catalogue(
         cp_dir = root / ".claude-plugin"
         cp_dir.mkdir()
         (cp_dir / "marketplace.json").write_text(
-            '{"packs": ["core"]}\n', encoding="utf-8", newline="\n"
+            '{"plugins": []}\n', encoding="utf-8", newline="\n"
         )
 
     return root
@@ -434,11 +460,13 @@ def test_compat_alias_deprecation_warning(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Extracted archive passes verify_catalogue (round-trip)
+# Installable archive remains distinct from a source catalogue
 # ---------------------------------------------------------------------------
 
 
-def test_extracted_archive_valid_local_catalogue(tmp_path: Path) -> None:
+def test_packaged_archive_passes_archive_verification_without_source_config(
+    tmp_path: Path,
+) -> None:
     root = _make_catalogue(tmp_path)
     output = tmp_path / "out"
 
@@ -450,21 +478,12 @@ def test_extracted_archive_valid_local_catalogue(tmp_path: Path) -> None:
     assert result.ok
 
     archive = output / "catalogues" / "b" / "releases" / "0.1.0" / "catalogue-0.1.0.tar.gz"
-    extract_dir = tmp_path / "extracted"
-    extract_dir.mkdir()
-
     with tarfile.open(fileobj=io.BytesIO(archive.read_bytes()), mode="r:gz") as tf:
-        for member in tf.getmembers():
-            dest = extract_dir / member.name
-            dest.parent.mkdir(parents=True, exist_ok=True)
-            if member.isreg():
-                fobj = tf.extractfile(member)
-                if fobj is not None:
-                    dest.write_bytes(fobj.read())
+        assert "catalogue.toml" not in {member.name for member in tf.getmembers()}
 
-    from agentbundle.catalogue_tooling.verify import verify_catalogue
+    from agentbundle.catalogue_tooling.archive import verify_archive
 
-    verify_result = verify_catalogue(extract_dir)
+    verify_result = verify_archive(archive)
     assert verify_result.ok, [d.message for d in verify_result.diagnostics]
 
 

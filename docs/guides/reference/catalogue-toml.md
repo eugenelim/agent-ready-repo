@@ -1,7 +1,8 @@
 # catalogue.toml reference
 
-`catalogue.toml` sits at the root of any pack catalogue (the same directory that contains `packs/`).
-It is the single file that makes a directory a recognised catalogue.
+`catalogue.toml` sits at the root of any source catalogue. Together with a
+literal root `packs/` directory, it identifies that directory as a catalogue;
+neither marker is sufficient by itself.
 
 ## Required fields
 

@@ -160,3 +160,14 @@ Filled in on acceptance:
 - Spec: [`docs/specs/convenient-install-defaults/`](../specs/convenient-install-defaults/spec.md) — optional `catalogue` on install/upgrade, the four-layer chain, PEP 610 detection (with a real editable-install construction test + the canonicalize / repo-bounded-walk-up ACs), `_data/install-defaults.toml`, `config set source`.
 - Adopter guide note: the private-fork "blank `install-defaults`, rely on editable detection" pattern.
 - Possible follow-on RFCs: the **in-repo adapter override** (the deferred Claude-Code-style repo-overrides-user precedence for the projection target); integrity-pinning for catalogue fetches; default resolution for the `list-packs`/`list-profiles` query verbs.
+
+## Erratum (2026-08-11)
+
+RFC-0085 supersedes every local-source marker claim in this frozen RFC.
+Editable discovery and validated local defaults now recognize a catalogue
+source through root `catalogue.toml` plus literal root `packs/`, not through
+`packs/` plus `.claude-plugin/marketplace.json`. The marketplace is a
+Claude-specific generated artifact whose requirement follows the effective
+self-host adapter set. The canonicalized, repository-bounded walk, source
+precedence, no-cwd rule, and accident-guard-not-trust-control rationale remain
+unchanged. Approver: eugenelim.

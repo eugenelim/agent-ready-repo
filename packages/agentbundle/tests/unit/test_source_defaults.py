@@ -1,4 +1,4 @@
-"""Unit tests for the four-layer catalogue-source default resolver
+"""Unit tests for the five-layer catalogue-source default resolver
 (`agentbundle.source_defaults`).
 
 Covers T1 (packaged default reader), T3 (editable detection, hardened), and
@@ -57,6 +57,11 @@ def _direct_url(path: Path, *, editable: bool = True, host: str = "") -> str:
 
 
 def _make_markers(root: Path) -> None:
+    (root / "packs").mkdir(parents=True, exist_ok=True)
+    (root / "catalogue.toml").write_text("schema = 1\n", encoding="utf-8", newline="\n")
+
+
+def _make_legacy_markers(root: Path) -> None:
     (root / "packs").mkdir(parents=True, exist_ok=True)
     cp = root / ".claude-plugin"
     cp.mkdir(parents=True, exist_ok=True)
@@ -147,6 +152,19 @@ def test_scheme_gate_accepts_local_path_with_markers(tmp_path):
     assert _is_valid_source(str(tmp_path)) is True
 
 
+def test_scheme_gate_accepts_catalogue_toml_and_packs_without_marketplace(tmp_path):
+    (tmp_path / "catalogue.toml").write_text("schema = 1\n", encoding="utf-8")
+    (tmp_path / "packs").mkdir()
+    assert _is_valid_source(str(tmp_path)) is True
+
+
+def test_scheme_gate_rejects_legacy_packs_and_marketplace_without_catalogue_toml(
+    tmp_path,
+):
+    _make_legacy_markers(tmp_path)
+    assert _is_valid_source(str(tmp_path)) is False
+
+
 def test_scheme_gate_rejects_local_path_without_markers(tmp_path):
     assert _is_valid_source(str(tmp_path)) is False
 
@@ -230,7 +248,7 @@ def test_editable_stops_at_first_match_inside_clone(tmp_path):
 
 
 def test_editable_markers_above_git_root_not_matched(tmp_path, capsys):
-    # A packs/ + marketplace.json pair in a parent ABOVE the .git root is never
+    # A catalogue.toml + packs/ pair in a parent ABOVE the .git root is never
     # matched (repo-bounded ascent); the clone itself has no markers.
     parent = tmp_path / "parent"
     clone = parent / "clone"
@@ -267,6 +285,19 @@ def test_editable_symlink_canonicalized_before_walk(tmp_path):
         pytest.skip("symlinks unsupported on this platform/filesystem")
     dist = _FakeDist(_direct_url(link))
     assert _detect_editable_source(dist) == str(clone.resolve())
+
+
+def test_editable_symlink_loop_defers_without_exception(tmp_path, capsys):
+    loop = tmp_path / "loop"
+    try:
+        loop.symlink_to(loop, target_is_directory=True)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlinks unsupported on this platform/filesystem")
+    dist = _FakeDist(_direct_url(loop))
+    assert _detect_editable_source(dist) is None
+    err = capsys.readouterr().err
+    assert "cannot resolve editable install path" in err
+    assert "deferring to packaged default" in err
 
 
 # ---------------------------------------------------------------------------

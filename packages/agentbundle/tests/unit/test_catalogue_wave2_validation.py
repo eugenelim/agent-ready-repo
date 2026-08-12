@@ -12,6 +12,7 @@ from pathlib import Path
 import pytest
 
 # This import fails until Task 2 adds _step_integration_validation — that IS the red stub.
+from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.catalogue_tooling.verify import _step_integration_validation, verify_catalogue
 
 # ── Fixtures / helpers ────────────────────────────────────────────────────────
@@ -32,6 +33,20 @@ def _write_pack_toml(pack_dir: Path, name: str, integrations: list[dict] | None 
 
 
 def _make_pack(root: Path, name: str, integrations: list[dict] | None = None) -> Path:
+    config = root / "catalogue.toml"
+    if not config.exists():
+        config.write_text(
+            emit_catalogue_toml(
+                name="test-catalogue",
+                display_name="Test Catalogue",
+                description="A catalogue fixture for integration validation tests.",
+                minimum_agentbundle_version="0.33.0",
+                owner_name="Example Maintainer",
+                preferred_adapter="kiro-ide",
+            ),
+            encoding="utf-8",
+            newline="\n",
+        )
     pack_dir = root / "packs" / name
     pack_dir.mkdir(parents=True)
     _write_pack_toml(pack_dir, name, integrations)
@@ -253,7 +268,7 @@ def test_pipeline_self_target_produces_cat_v_019(tmp_path):
     entry = _valid_entry(pack="declaring")  # self-target
     pack_dir = _make_pack(tmp_path, "declaring", [entry])
     _add_skill(pack_dir, "consumer-skill")
-    result = verify_catalogue(tmp_path)
+    result = verify_catalogue(tmp_path, continue_on_error=True)
     assert not result.ok
     codes = [d.code for d in result.diagnostics]
     assert any("CAT-V-019" in c for c in codes), codes
@@ -266,7 +281,7 @@ def test_pipeline_duplicate_id_produces_cat_v_019(tmp_path):
         _valid_entry(id="dupe", pack="absent-pack"),
     ])
     _add_skill(pack_dir, "consumer-skill")
-    result = verify_catalogue(tmp_path)
+    result = verify_catalogue(tmp_path, continue_on_error=True)
     assert not result.ok
     codes = [d.code for d in result.diagnostics]
     assert any("CAT-V-019" in c for c in codes), codes

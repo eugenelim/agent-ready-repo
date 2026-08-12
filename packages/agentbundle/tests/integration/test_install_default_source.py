@@ -18,6 +18,7 @@ import io
 import shutil
 from pathlib import Path
 
+from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.commands import install, list_packs, list_profiles
 from agentbundle.user_config import UserConfig
 
@@ -31,10 +32,21 @@ FIXTURE_CORE = (
 
 
 def _local_catalogue(tmp_path: Path) -> Path:
-    """A tmp catalogue holding both markers (`packs/` + the marketplace file)
-    and a representative fixture core pack."""
+    """A source catalogue with both identity markers and a representative pack."""
     cat = tmp_path / "cat"
     (cat / "packs").mkdir(parents=True)
+    (cat / "catalogue.toml").write_text(
+        emit_catalogue_toml(
+            name="test-catalogue",
+            display_name="Test Catalogue",
+            description="A catalogue fixture for default-source tests.",
+            minimum_agentbundle_version="0.33.0",
+            owner_name="Example Maintainer",
+            preferred_adapter="claude-code",
+        ),
+        encoding="utf-8",
+        newline="\n",
+    )
     shutil.copytree(FIXTURE_CORE, cat / "packs" / "core", symlinks=False)
     cp = cat / ".claude-plugin"
     cp.mkdir()

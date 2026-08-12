@@ -5,8 +5,8 @@ Uses example.test placeholders only — no real credentials or external URIs.
 
 Wave 4 note: helpers are now in agentbundle.catalogue_tooling.package but
 re-exported from agentbundle.commands.package_catalogue for backward compat.
-Fixtures now include LICENSE-APACHE, LICENSE-MIT, and .claude-plugin/marketplace.json
-per the updated Wave 4 allowlist.
+Fixtures now include source identity, LICENSE-APACHE, LICENSE-MIT, and
+.claude-plugin/marketplace.json per the updated Wave 4 allowlist.
 """
 
 from __future__ import annotations
@@ -24,6 +24,7 @@ from unittest import mock
 
 import pytest
 from agentbundle import cli
+from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.commands import package_catalogue
 from agentbundle.commands.package_catalogue import (
     _compute_file_digests,
@@ -53,11 +54,30 @@ def _make_fixture_catalogue(
 ) -> Path:
     """Create a minimal valid catalogue root under tmp_path.
 
-    Wave 4: creates LICENSE-APACHE and LICENSE-MIT (not generic LICENSE),
-    and .claude-plugin/marketplace.json per the updated allowlist.
+    Creates root catalogue.toml + packs/ source identity, LICENSE-APACHE and
+    LICENSE-MIT (not generic LICENSE), and the marketplace allowlist entry.
     """
     root = tmp_path / "catalogue"
     root.mkdir()
+    config_text = emit_catalogue_toml(
+        name="test-catalogue",
+        display_name="Test Catalogue",
+        description="A catalogue fixture for compatibility package tests.",
+        minimum_agentbundle_version="0.33.0",
+        owner_name="Example Maintainer",
+        preferred_adapter="claude-code",
+    ).replace(
+        '  ".claude-plugin/marketplace.json",\n]',
+        '  ".claude-plugin/marketplace.json",\n'
+        '  "LICENSE-APACHE",\n'
+        '  "LICENSE-MIT",\n'
+        "]",
+    )
+    (root / "catalogue.toml").write_text(
+        config_text,
+        encoding="utf-8",
+        newline="\n",
+    )
 
     # One pack
     pack_dir = root / "packs" / "core"
@@ -71,7 +91,13 @@ def _make_fixture_catalogue(
         profiles_dir = root / "profiles"
         profiles_dir.mkdir()
         (profiles_dir / "default.toml").write_text(
-            '[profile]\nname = "default"\n', encoding="utf-8", newline="\n"
+            'scope = "repo"\n'
+            'description = "Default compatibility package test profile."\n'
+            "\n"
+            "[[packs]]\n"
+            'pack = "core"\n',
+            encoding="utf-8",
+            newline="\n",
         )  # noqa: E501
 
     if with_contracts:
@@ -96,7 +122,7 @@ def _make_fixture_catalogue(
         claude_plugin_dir = root / ".claude-plugin"
         claude_plugin_dir.mkdir()
         (claude_plugin_dir / "marketplace.json").write_text(
-            '{"packs": ["core"]}\n', encoding="utf-8", newline="\n"
+            '{"plugins": []}\n', encoding="utf-8", newline="\n"
         )
 
     for extra in extra_dirs or []:

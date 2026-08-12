@@ -43,7 +43,7 @@ _WIN_DRIVE_RE = re.compile(r"^[A-Za-z]:[\\/]")
 _ORG_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
 
 _MARKER_DIR = "packs"
-_MARKER_FILE = (".claude-plugin", "marketplace.json")
+_MARKER_FILE = "catalogue.toml"
 
 # The exact substring the spec pins for the all-layers-empty error. Names the
 # real surface: the catalogue is a trailing positional argument, not a
@@ -65,17 +65,25 @@ _UNSET: object = object()
 
 
 def _has_catalogue_markers(root: Path) -> bool:
-    """True iff *root* holds both catalogue markers (``packs/`` +
-    ``.claude-plugin/marketplace.json``)."""
-    return (root / _MARKER_DIR).is_dir() and (
-        root / _MARKER_FILE[0] / _MARKER_FILE[1]
-    ).is_file()
+    """Return whether *root* holds ``catalogue.toml`` and literal ``packs/``."""
+    try:
+        resolved_root = root.resolve(strict=True)
+        config = (resolved_root / _MARKER_FILE).resolve(strict=True)
+        packs = (resolved_root / _MARKER_DIR).resolve(strict=True)
+    except (OSError, RuntimeError):
+        return False
+    return (
+        config.is_file()
+        and config.is_relative_to(resolved_root)
+        and packs.is_dir()
+        and packs.is_relative_to(resolved_root)
+    )
 
 
 def _local_path_has_markers(value: str) -> bool:
     try:
         root = Path(value).resolve()
-    except OSError:
+    except (OSError, RuntimeError):
         return False
     return _has_catalogue_markers(root)
 
@@ -361,7 +369,12 @@ def _detect_editable_source(dist: object, *, stream: TextIO | None = None) -> st
     pkg_path = Path(raw)
     try:
         pkg_root = pkg_path.resolve(strict=True)
-    except OSError:
+    except (OSError, RuntimeError) as exc:
+        print(
+            f"agentbundle: cannot resolve editable install path {pkg_path}: {exc}; "
+            "deferring to packaged default.",
+            file=stream,
+        )
         return None
 
     git_root = _enclosing_git_root(pkg_root)
@@ -379,7 +392,7 @@ def _detect_editable_source(dist: object, *, stream: TextIO | None = None) -> st
 
     print(
         f"agentbundle: editable install detected at {pkg_root} but no catalogue "
-        f"root (packs/ + .claude-plugin/marketplace.json) found at or above it "
+        f"root (catalogue.toml + packs/) found at or above it "
         f"within the repository {git_root}; deferring to packaged default.",
         file=stream,
     )

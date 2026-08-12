@@ -4,8 +4,8 @@ clone root against a **real** `pip install -e`, not a mocked
 
 Builds its own throwaway venv, editable-installs a copy of agentbundle into
 it, then runs `_detect_editable_source` against the real PEP 610 record and
-asserts it walks up to the clone root (the dir holding `packs/` +
-`.claude-plugin/marketplace.json`).
+asserts it walks up to the clone root (the dir holding `catalogue.toml` +
+`packs/`).
 
 Slow (venv + editable build). `make build-check` runs no pytest, so this is
 wired into CI explicitly in `build-check.yml`.
@@ -48,12 +48,15 @@ def test_editable_detection_against_real_install(tmp_path):
     # catalogue markers below; no repository metadata is otherwise required.
     (clone / ".git").mkdir()
     (clone / "packs").mkdir()
-    marketplace = clone / ".claude-plugin" / "marketplace.json"
-    marketplace.parent.mkdir()
-    marketplace.write_text('{"name":"fixture","plugins":[]}\n', encoding="utf-8")
+    (clone / "catalogue.toml").write_text(
+        "schema = 1\n", encoding="utf-8", newline="\n"
+    )
 
     venv_dir = tmp_path / "venv"
-    venv.create(venv_dir, with_pip=True, system_site_packages=True)
+    # Keep the metadata corpus isolated. With system site-packages enabled, a
+    # second editable agentbundle install can win `_load_distribution()`'s
+    # record-bearing scan and point detection at an unrelated workspace.
+    venv.create(venv_dir, with_pip=True, system_site_packages=False)
     bindir = venv_dir / ("Scripts" if sys.platform == "win32" else "bin")
     py = bindir / ("python.exe" if sys.platform == "win32" else "python")
 
@@ -109,5 +112,5 @@ def test_editable_detection_against_real_install(tmp_path):
     detected = detect.stdout.strip()
     assert detected == str(clone.resolve()), (
         f"editable detection resolved to {detected!r}, expected the clone root "
-        f"{str(clone.resolve())!r}"
+        f"{str(clone.resolve())!r}; stderr={detect.stderr!r}"
     )

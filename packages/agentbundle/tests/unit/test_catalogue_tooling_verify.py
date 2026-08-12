@@ -11,8 +11,9 @@ Monkeypatching strategy:
     return a non-None mock so that step 2 (lint) is reached, then patches
     lint_catalogue to return an ERROR result — triggering the CAT-V-002 path
     without needing a fully-valid catalogue.toml on disk.
-  - All other tests use a real (empty) tmp_path so that load_catalogue_config
-    returns None and every config-dependent step skips gracefully.
+  - Structural and formatter tests use focused real or constructed results.
+    Dedicated missing-config tests prove lint failure reaches verify and its
+    CLI JSON surface.
 """
 
 from __future__ import annotations
@@ -24,6 +25,7 @@ import sys
 from pathlib import Path
 
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity, VerifyResult
+from agentbundle.catalogue_tooling.toml_emit import emit_catalogue_toml
 from agentbundle.catalogue_tooling.verify import (
     render_json,
     render_table,
@@ -66,18 +68,38 @@ def _make_error_diag(code: str = "CAT-V-999", message: str = "test error") -> Di
 # ---------------------------------------------------------------------------
 
 
-def test_verify_empty_dir_passes(tmp_path):
-    """An empty directory has no catalogue.toml; all steps skip gracefully → ok=True."""
+def test_verify_empty_dir_reports_missing_catalogue(tmp_path):
+    """An empty source root fails verify through the lint step."""
     result = verify_catalogue(tmp_path)
-    assert result.ok, [d.message for d in result.diagnostics]
+    assert result.ok is False
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["CAT-V-002"]
 
 
-def test_verify_no_tools_dir_needed(tmp_path):
-    """External catalogue portability (T5): no Makefile or tools/ dir required → ok=True."""
-    # A minimal directory that has no build tooling at all.
+def test_verify_non_catalogue_with_agents_file_reports_missing_catalogue(tmp_path):
+    """An unrelated AGENTS.md does not make a config-less root a catalogue."""
     (tmp_path / "AGENTS.md").write_text("# Catalogue\n", encoding="utf-8", newline="\n")
     result = verify_catalogue(tmp_path)
-    assert result.ok, [d.message for d in result.diagnostics]
+    assert result.ok is False
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["CAT-V-002"]
+
+
+def test_verify_invalid_config_path_reports_diagnostic(tmp_path):
+    """Invalid configured paths remain inside the verify result contract."""
+    config = emit_catalogue_toml(
+        name="test-catalogue",
+        display_name="Test Catalogue",
+        description="A catalogue fixture with an invalid configured path.",
+        minimum_agentbundle_version="0.33.0",
+        owner_name="Example Maintainer",
+        preferred_adapter="kiro-ide",
+    ).replace('packs        = "packs"', 'packs        = "../outside"')
+    (tmp_path / "catalogue.toml").write_text(config, encoding="utf-8", newline="\n")
+    (tmp_path / "packs").mkdir()
+
+    result = verify_catalogue(tmp_path)
+
+    assert result.ok is False
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["CAT-V-001"]
 
 
 def test_verify_result_has_expected_fields(tmp_path):
@@ -210,7 +232,7 @@ def test_cli_verify_help():
 
 
 def test_cli_verify_format_json(tmp_path):
-    """agentbundle catalogue verify --root <empty> --format json → valid JSON with 'ok'."""
+    """CLI JSON reports the missing-catalogue lint failure."""
     proc = subprocess.run(
         [
             sys.executable,
@@ -226,11 +248,10 @@ def test_cli_verify_format_json(tmp_path):
         capture_output=True,
         text=True,
     )
-    # An empty dir passes verification; exit code 0.
-    assert proc.returncode == 0, proc.stderr
+    assert proc.returncode == 1, proc.stderr
     doc = json.loads(proc.stdout)
-    assert "ok" in doc
-    assert doc["ok"] is True
+    assert doc["ok"] is False
+    assert [diagnostic["code"] for diagnostic in doc["diagnostics"]] == ["CAT-V-002"]
 
 
 # ---------------------------------------------------------------------------

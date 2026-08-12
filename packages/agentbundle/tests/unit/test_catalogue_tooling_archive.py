@@ -7,9 +7,8 @@ Coverage:
 Test archive construction uses tarfile directly (in-memory via io.BytesIO
 or written to tmp_path).  No external fixtures required.
 
-Case (verify_catalogue round-trip after extraction) is exercised only in
-test_archive_valid_passes_all; other pipeline tests stop before it fires
-because they trigger safety errors that cause early return.
+Installable archives are validated as archives rather than as source
+catalogues; they intentionally need not contain ``catalogue.toml``.
 """
 
 from __future__ import annotations
@@ -56,9 +55,8 @@ def _make_manifest_bytes(files: dict[str, bytes]) -> bytes:
 def _make_valid_archive(tmp_path: Path, extra_data_files: dict[str, bytes] | None = None) -> Path:
     """Create a minimal, fully-valid catalogue .tar.gz at tmp_path/test.tar.gz.
 
-    Uses AGENTS.md as the catalogue marker so that the round-trip
-    (verify_catalogue on the extracted dir) passes without a catalogue.toml
-    or any packs — all verify steps that require config skip gracefully.
+    Uses AGENTS.md as the installable-archive marker and intentionally omits
+    the source-only ``catalogue.toml`` marker.
     """
     catalogue_marker = b"# AGENTS\n"
     files: dict[str, bytes] = {"AGENTS.md": catalogue_marker}
@@ -93,6 +91,13 @@ def test_traversal_detected():
     diags = check_members([m])
     codes = [d.code for d in diags]
     assert "CAT-V-ARC-005" in codes
+
+
+def test_windows_separator_traversal_detected():
+    """Backslash traversal is rejected on every host, including POSIX."""
+    m = tarfile.TarInfo(name=r"..\..\target")
+    diags = check_members([m])
+    assert [d.code for d in diags] == ["CAT-V-ARC-005"]
 
 
 def test_symlink_in_archive_detected():
@@ -147,13 +152,43 @@ def test_clean_members_no_diags():
 def test_archive_valid_passes_all(tmp_path):
     """A minimal valid .tar.gz with correct manifest → ok=True.
 
-    Uses AGENTS.md as the catalogue marker.  The round-trip succeeds
-    because verify_catalogue on a dir with only AGENTS.md (no catalogue.toml)
-    skips all config-dependent steps and returns ok=True.
+    Uses AGENTS.md as the installable-archive marker; source identity is not
+    required for this distinct artifact type.
     """
     archive_path = _make_valid_archive(tmp_path)
     result = verify_archive(archive_path)
     assert result.ok, [d.message for d in result.diagnostics]
+
+
+def test_archive_malformed_marketplace_fails_archive_semantics(tmp_path):
+    """A digest-valid malformed marketplace is rejected without source lint."""
+    archive_path = _make_valid_archive(
+        tmp_path,
+        extra_data_files={".claude-plugin/marketplace.json": b"{"},
+    )
+
+    result = verify_archive(archive_path)
+
+    assert not result.ok
+    assert any(d.code == "CAT-V-ARC-017" for d in result.diagnostics)
+
+
+def test_archive_invalid_marketplace_entry_fails_schema(tmp_path):
+    """A parseable marketplace still has every plugin entry schema-checked."""
+    archive_path = _make_valid_archive(
+        tmp_path,
+        extra_data_files={
+            ".claude-plugin/marketplace.json": b'{"plugins":[{"name":"bad"}]}'
+        },
+    )
+
+    result = verify_archive(archive_path)
+
+    assert not result.ok
+    assert any(
+        d.code == "CAT-V-ARC-017" and "marketplace entry 'bad'" in d.message
+        for d in result.diagnostics
+    )
 
 
 def test_archive_digest_mismatch_fails(tmp_path):

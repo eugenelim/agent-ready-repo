@@ -85,6 +85,7 @@
 | [0082](0082-test-ownership-boundaries-and-inclusion.md) | Test ownership boundaries and per-surface inclusion — every test owned by the engine, the catalogue, or one pack, each with its own tree; `packages/<pkg>/<pkg>/` is the engine's runtime export boundary; inclusion decided per surface *and* per owner, so `agentbundle catalogue init` ships a catalogue that can verify itself. | Accepted | 2026-08-07 | 2026-08-08 |
 | [0083](0083-work-intake-and-artifact-routing.md) | Work intake and artifact routing — classify incoming work by content and altitude, route feature intents through a shippability gate, replace `capture-work` with standalone `work-intake`, make workspace dispatch deterministic from canonical artifacts, and transfer tracker authority explicitly by lifecycle. | Accepted | 2026-08-08 | 2026-08-08 |
 | [0084](0084-sso-destination-trust-boundary.md) | Single sign-on destination trust boundary | Accepted | 2026-08-11 | 2026-08-11 |
+| [0085](0085-catalogue-source-identity.md) | Catalogue source identity | Accepted | 2026-08-11 | 2026-08-11 |
 
 ## Adding a new RFC
 
