@@ -9,7 +9,7 @@
  * into scripts/template.html.
  *
  * Usage:
- *   node scripts/render.js <input.md>
+ *   node '<skill-dir>/scripts/render.js' <input.md>
  *     [--output <file.html>]
  *     [--title <title>]      # default: first H1, or filename
  *     [--subtitle <text>]    # optional header subtitle
@@ -20,20 +20,69 @@
 const fs = require('fs');
 const path = require('path');
 
-let marked, hljs;
-try {
-  marked = require('marked');
-  hljs = require('highlight.js');
-} catch (e) {
-  // Resolve the skill directory so the install hint matches the user's
-  // actual layout (works whether the skill is checked out at its
-  // source location or copied into ~/.claude/skills/markdown-to-html/).
-  const skillDir = path.dirname(__dirname);
-  console.error(
-    'error: missing dependency `marked` or `highlight.js`. Install with:\n' +
-    `  (cd "${skillDir}" && npm install)`
+function renderWindowsCommand(argv, fallback) {
+  const safePart = /^[A-Za-z0-9 _./:\\-]+$/;
+  if (argv.some((value) => !value || !safePart.test(value))) {
+    return `${fallback} (use an argv-capable terminal)`;
+  }
+  return argv.map((value) => value.includes(' ') ? `"${value}"` : value).join(' ');
+}
+
+function renderPosixCommand(argv) {
+  return argv.map((value) => `'${value.replace(/'/g, `'"'"'`)}'`).join(' ');
+}
+
+function renderCommand(argv, fallback, platform = process.platform) {
+  if (platform === 'win32') {
+    return renderWindowsCommand(argv, fallback);
+  }
+  return renderPosixCommand(argv);
+}
+
+function dependencyInstallHint(skillDir, platform = process.platform) {
+  return renderCommand(
+    ['npm', '--prefix', skillDir, 'install'],
+    "install this skill's npm dependencies from its installed directory",
+    platform
   );
-  process.exit(1);
+}
+
+function displayProgram() {
+  const fallback = 'the installed render.js entry point';
+  try {
+    const scriptsDir = fs.realpathSync(__dirname);
+    const entry = fs.realpathSync(__filename);
+    const relative = path.relative(scriptsDir, entry);
+    if (relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative) || !fs.statSync(entry).isFile()) {
+      return fallback;
+    }
+    const argv = [process.execPath, entry];
+    return renderCommand(argv, fallback);
+  } catch (error) {
+    return fallback;
+  }
+}
+
+const RENDER_PROGRAM = displayProgram();
+let marked, hljs;
+
+function loadDependencies() {
+  try {
+    marked = require('marked');
+    hljs = require('highlight.js');
+    return true;
+  } catch (error) {
+    // Resolve the skill directory so the install hint matches the user's
+    // actual layout (works whether the skill is checked out at its
+    // source location or copied into an installed skill directory).
+    const skillDir = path.dirname(__dirname);
+    const installHint = dependencyInstallHint(skillDir);
+    console.error(
+      'error: missing dependency `marked` or `highlight.js`. Install with:\n' +
+      `  ${installHint}`
+    );
+    return false;
+  }
 }
 
 // --- theme palettes -------------------------------------------------------
@@ -80,7 +129,7 @@ function parseArgs(argv) {
   return args;
 }
 
-const HELP = `Usage: node scripts/render.js <input.md> [options]
+const HELP = `Usage: ${RENDER_PROGRAM} <input.md> [options]
 
 Options:
   --output FILE       Output HTML path (default: input with .html extension)
@@ -198,6 +247,9 @@ function main() {
   if (args.help || !args.input) {
     console.log(HELP);
     process.exit(args.help ? 0 : 1);
+  }
+  if (!loadDependencies()) {
+    process.exit(1);
   }
 
   const inputPath = path.resolve(args.input);
@@ -395,4 +447,8 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-main();
+if (require.main === module) {
+  main();
+}
+
+module.exports = { dependencyInstallHint, renderWindowsCommand };

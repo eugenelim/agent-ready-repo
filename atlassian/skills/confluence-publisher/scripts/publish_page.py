@@ -2,14 +2,14 @@
 
 Invocation examples:
 
-    python scripts/publish_page.py --check
-    python scripts/publish_page.py --page-id 12345 --input report.md
-    python scripts/publish_page.py \
+    python '<skill-dir>/scripts/publish_page.py' --check
+    python '<skill-dir>/scripts/publish_page.py' --page-id 12345 --input report.md
+    python '<skill-dir>/scripts/publish_page.py' \
         --url 'https://acme.atlassian.net/wiki/spaces/ENG/pages/12345/Foo' --input report.md
-    python scripts/publish_page.py --from-frontmatter --input crawled/handbook.md
-    python scripts/publish_page.py \
+    python '<skill-dir>/scripts/publish_page.py' --from-frontmatter --input crawled/handbook.md
+    python '<skill-dir>/scripts/publish_page.py' \
         --space ENG --title 'Q3 Roadmap' --parent-id 555 --input roadmap.md
-    python scripts/publish_page.py --page-id 42 --input report.md --dry-run
+    python '<skill-dir>/scripts/publish_page.py' --page-id 42 --input report.md --dry-run
 
 Credentials are resolved via the ``credbroker`` library
 (Tier 1 env → Tier 2 OS keyring → Tier 3 dotfile); run
@@ -27,11 +27,12 @@ import argparse
 import contextlib
 import logging
 import re
+import shlex
 import sys
 from pathlib import Path
 from urllib.parse import urljoin
 
-# Bootstrap when invoked as ``python scripts/publish_page.py`` so the
+# Bootstrap when invoked as ``python '<skill-dir>/scripts/publish_page.py'`` so the
 # relative imports of sibling modules (e.g. ``_client``) resolve
 # against the siblings in this directory. Gated on
 # ``__spec__ is None`` so the block only fires for true file-path
@@ -127,6 +128,38 @@ TOKEN_CLI_FLAGS = frozenset({
 })
 
 
+def _render_windows_command(argv: list[str], fallback: str) -> str:
+    """Render only cmd/PowerShell-inert Windows argv; refuse everything else."""
+    safe_punctuation = frozenset(" _./:\\-")
+    if any(
+        not value
+        or any(
+            not char.isascii()
+            or (not char.isalnum() and char not in safe_punctuation)
+            for char in value
+        )
+        for value in argv
+    ):
+        return f"{fallback} (use an argv-capable terminal)"
+    return " ".join(f'"{value}"' if " " in value else value for value in argv)
+
+
+def _display_program() -> str:
+    """Return a shell-safe display form for this verified installed entry."""
+    fallback = "the installed publish_page.py entry point"
+    try:
+        entry = Path(__file__).resolve(strict=True)
+        entry.relative_to(entry.parent.resolve(strict=True))
+        if not entry.is_file():
+            return fallback
+    except (OSError, RuntimeError, ValueError):
+        return fallback
+    argv = [sys.executable, str(entry)]
+    if sys.platform == "win32":
+        return _render_windows_command(argv, fallback)
+    return shlex.join(argv)
+
+
 def _reject_token_on_cli(argv: list[str]) -> None:
     """Confluence tokens / PATs are secret; refuse to accept them as CLI args."""
     for arg in argv:
@@ -185,8 +218,12 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    program = _display_program()
     parser = _ScrubbingArgumentParser(
-        description=__doc__,
+        prog=program,
+        description=(__doc__ or "").replace(
+            "python '<skill-dir>/scripts/publish_page.py'", program
+        ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--check", action="store_true",

@@ -21,6 +21,35 @@ Table — When presenting several items that share the same fields, render a Mar
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 Diagram / flow — For relationships or flow, emit a fenced ```mermaid block (it renders in chat and artifacts). If the surface is terminal-only, fall back to an ASCII box-and-arrow sketch.
 
+## Installed entry-point contract
+
+Treat `<skill-dir>` as the installer-supplied directory containing this active
+`SKILL.md`; never infer it from the current working directory, user input, an
+environment variable, or a profile path. Replace `<skill-dir>` with that actual
+validated directory before executing or relaying any command; never send the
+placeholder to a runtime or user. Before every invocation of `figma.py`:
+
+1. Canonicalize `<skill-dir>`, its `scripts/` child, and the expected entry
+   point, resolving symlinks. Require the entry point to be a regular file and
+   its resolved path to remain beneath the canonical `scripts/` directory.
+2. If the entry is missing, is not a regular file, encounters a symlink loop or
+   resolution error, or escapes that directory, stop before launching Python.
+   Report only `error: installed skill entry point is unavailable: <entry>`,
+   substituting the basename. Do not expose an absolute, home, profile,
+   environment, or protected path; do not relay raw runtime stderr; and do not
+   offer credential, SSO-capture, token, scope, or dependency remediation.
+3. Invoke with a discrete argument vector, for example
+   `["<python>", "<skill-dir>/scripts/figma.py", "..."]`, so spaces, both quote characters, `$()`, backticks, and
+   variable-shaped text cannot be expanded by a shell. Keep the project root as
+   the working directory so user content paths retain their documented meaning.
+4. If only a shell string is available, use a single-quoted literal path on
+   POSIX or PowerShell and refuse paths containing a single quote. On cmd.exe,
+   use a double-quoted path and refuse paths containing `"`, `%`, or `!`.
+   If the adapter cannot represent the path safely, refuse instead of invoking.
+
+Interpret exit codes only after this preflight succeeds and the entry point
+actually runs.
+
 ## Instructions
 
 You are a Figma query agent. Authentication, retries, image downloads,
@@ -77,7 +106,7 @@ python -m pip install -r requirements.txt
 Then verify connectivity:
 
 ```bash
-python scripts/figma.py check
+python '<skill-dir>/scripts/figma.py' check
 ```
 
 - Exit code 0 → authenticated, proceed.
@@ -125,22 +154,22 @@ Any other shape is rejected at the CLI with an error.
 
 | Intent | Command |
 |---|---|
-| Who am I? | `python scripts/figma.py whoami` |
-| Fetch a file (full) | `python scripts/figma.py get-file FILE_KEY` |
-| Fetch a file (page list only) | `python scripts/figma.py get-file FILE_KEY --depth 1` |
-| Fetch specific nodes | `python scripts/figma.py get-nodes FILE_KEY --ids 1:2,1:3` |
-| Lightweight file metadata | `python scripts/figma.py get-file-meta FILE_KEY` |
-| Version history | `python scripts/figma.py list-versions FILE_KEY` |
-| Render a frame as PNG | `python scripts/figma.py export-images FILE_KEY --ids 1:2 --format png --output ./out` |
-| List comments | `python scripts/figma.py list-comments FILE_KEY` |
-| Post a comment (file-level) | `python scripts/figma.py post-comment FILE_KEY --message "text"` |
-| Post a comment pinned to a node | `python scripts/figma.py post-comment FILE_KEY --message "text" --node-id 1:2` |
-| Reply to a comment thread | `python scripts/figma.py post-comment FILE_KEY --message "text" --reply-to <COMMENT_ID>` |
-| FigJam connector graph → Mermaid | `python scripts/figma.py figjam-to-mermaid FILE_KEY NODE_ID` |
-| Local variables (Enterprise) | `python scripts/figma.py get-variables FILE_KEY` |
-| Published variables (Enterprise) | `python scripts/figma.py get-variables FILE_KEY --published` |
-| Dev resources (Dev Mode) | `python scripts/figma.py list-dev-resources FILE_KEY` |
-| Endpoint not wrapped above | `python scripts/figma.py raw GET <path> [--param k=v ...]` |
+| Who am I? | `python '<skill-dir>/scripts/figma.py' whoami` |
+| Fetch a file (full) | `python '<skill-dir>/scripts/figma.py' get-file FILE_KEY` |
+| Fetch a file (page list only) | `python '<skill-dir>/scripts/figma.py' get-file FILE_KEY --depth 1` |
+| Fetch specific nodes | `python '<skill-dir>/scripts/figma.py' get-nodes FILE_KEY --ids 1:2,1:3` |
+| Lightweight file metadata | `python '<skill-dir>/scripts/figma.py' get-file-meta FILE_KEY` |
+| Version history | `python '<skill-dir>/scripts/figma.py' list-versions FILE_KEY` |
+| Render a frame as PNG | `python '<skill-dir>/scripts/figma.py' export-images FILE_KEY --ids 1:2 --format png --output ./out` |
+| List comments | `python '<skill-dir>/scripts/figma.py' list-comments FILE_KEY` |
+| Post a comment (file-level) | `python '<skill-dir>/scripts/figma.py' post-comment FILE_KEY --message "text"` |
+| Post a comment pinned to a node | `python '<skill-dir>/scripts/figma.py' post-comment FILE_KEY --message "text" --node-id 1:2` |
+| Reply to a comment thread | `python '<skill-dir>/scripts/figma.py' post-comment FILE_KEY --message "text" --reply-to <COMMENT_ID>` |
+| FigJam connector graph → Mermaid | `python '<skill-dir>/scripts/figma.py' figjam-to-mermaid FILE_KEY NODE_ID` |
+| Local variables (Enterprise) | `python '<skill-dir>/scripts/figma.py' get-variables FILE_KEY` |
+| Published variables (Enterprise) | `python '<skill-dir>/scripts/figma.py' get-variables FILE_KEY --published` |
+| Dev resources (Dev Mode) | `python '<skill-dir>/scripts/figma.py' list-dev-resources FILE_KEY` |
+| Endpoint not wrapped above | `python '<skill-dir>/scripts/figma.py' raw GET <path> [--param k=v ...]` |
 
 Global flags:
 
@@ -153,7 +182,7 @@ Global flags:
 Each subcommand has additional flags beyond what the intent table
 above shows (depth limits, geometry, render-format options, SVG
 tuning, version pinning, pagination cursors). Run
-`python scripts/figma.py <subcommand> --help` for the full surface.
+`python '<skill-dir>/scripts/figma.py' <subcommand> --help` for the full surface.
 
 ### Step 4: Reading file structure
 
@@ -183,11 +212,11 @@ S3 fetches.
 
 ```bash
 # Render two frames at 2x as PNG
-python scripts/figma.py export-images FILE_KEY \
+python '<skill-dir>/scripts/figma.py' export-images FILE_KEY \
   --ids 1:2,1:3 --format png --scale 2 --output ./renders
 
 # Render the same frames as SVG
-python scripts/figma.py export-images FILE_KEY \
+python '<skill-dir>/scripts/figma.py' export-images FILE_KEY \
   --ids 1:2,1:3 --format svg --output ./renders
 ```
 
@@ -281,23 +310,23 @@ right scope.
 
 ```bash
 # Probe a file cheaply before deciding whether to fetch the full tree
-python scripts/figma.py get-file-meta abc123XYZ
+python '<skill-dir>/scripts/figma.py' get-file-meta abc123XYZ
 
 # Discover the pages, then drill into one
-python scripts/figma.py get-file abc123XYZ --depth 1
-python scripts/figma.py get-nodes abc123XYZ --ids 1:2 --depth 3
+python '<skill-dir>/scripts/figma.py' get-file abc123XYZ --depth 1
+python '<skill-dir>/scripts/figma.py' get-nodes abc123XYZ --ids 1:2 --depth 3
 
 # Render the "Login flow" frame at 2x as PNG, into ./renders
-python scripts/figma.py export-images abc123XYZ --ids 1:2 \
+python '<skill-dir>/scripts/figma.py' export-images abc123XYZ --ids 1:2 \
   --format png --scale 2 --output ./renders
 
 # Post a comment pinned to a specific button frame
-python scripts/figma.py post-comment abc123XYZ \
+python '<skill-dir>/scripts/figma.py' post-comment abc123XYZ \
   --message "Spacing here doesn't match the 8pt grid." \
   --node-id 1:42
 
 # Convert a FigJam architecture diagram to Mermaid
-python scripts/figma.py figjam-to-mermaid abc123XYZ 1:2 \
+python '<skill-dir>/scripts/figma.py' figjam-to-mermaid abc123XYZ 1:2 \
   --output diagram.md
 ```
 

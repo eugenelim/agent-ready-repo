@@ -18,6 +18,35 @@ Crawl a Confluence space (Cloud or Server/Data Center) and write each page as Ma
 
 Key–value / one record — For a single record's fields, use an aligned key: value list, not a two-row table.
 
+## Installed entry-point contract
+
+Treat `<skill-dir>` as the installer-supplied directory containing this active
+`SKILL.md`; never infer it from the current working directory, user input, an
+environment variable, or a profile path. Replace `<skill-dir>` with that actual
+validated directory before executing or relaying any command; never send the
+placeholder to a runtime or user. Before every invocation of `crawl_space.py` or `setup_sso.py`:
+
+1. Canonicalize `<skill-dir>`, its `scripts/` child, and the expected entry
+   point, resolving symlinks. Require the entry point to be a regular file and
+   its resolved path to remain beneath the canonical `scripts/` directory.
+2. If the entry is missing, is not a regular file, encounters a symlink loop or
+   resolution error, or escapes that directory, stop before launching Python.
+   Report only `error: installed skill entry point is unavailable: <entry>`,
+   substituting the basename. Do not expose an absolute, home, profile,
+   environment, or protected path; do not relay raw runtime stderr; and do not
+   offer credential, SSO-capture, token, scope, or dependency remediation.
+3. Invoke with a discrete argument vector, for example
+   `["<python>", "<skill-dir>/scripts/crawl_space.py", "..."]`, so spaces, both quote characters, `$()`, backticks, and
+   variable-shaped text cannot be expanded by a shell. Keep the project root as
+   the working directory so user content paths retain their documented meaning.
+4. If only a shell string is available, use a single-quoted literal path on
+   POSIX or PowerShell and refuse paths containing a single quote. On cmd.exe,
+   use a double-quoted path and refuse paths containing `"`, `%`, or `!`.
+   If the adapter cannot represent the path safely, refuse instead of invoking.
+
+Interpret exit codes only after this preflight succeeds and the entry point
+actually runs.
+
 ## Instructions
 
 You are a Confluence export agent. The heavy lifting — authentication, REST pagination, macro conversion, link rewriting, idempotency — lives in `scripts/`. Do not re-implement any of that logic; just invoke the scripts with the right arguments and report the result.
@@ -87,7 +116,7 @@ the token (`creds`) path above. On the SSO-cookie path:
   automatic attempt shows no browser window and obtains its sign-in destination
   only from CredBroker's registered profile. It never uses `login_url` from
   `sso-config.toml` as an automatic destination.
-- Request manual setup with `python scripts/setup_sso.py` only when `--check`
+- Request manual setup with `python '<skill-dir>/scripts/setup_sso.py'` only when `--check`
   says automatic recovery refused or failed. That helper opens a browser for
   interactive sign-in, so do not run any setup helper for them.
 
@@ -102,13 +131,13 @@ python -m pip install -r requirements.txt
 Then verify connectivity:
 
 ```bash
-python scripts/crawl_space.py --check
+python '<skill-dir>/scripts/crawl_space.py' --check
 ```
 
 - Exit code 0 → authenticated, proceed.
 - Exit code 2 → read the bounded error. On the token path, missing or invalid
   credentials require user-run `credential-setup`. On the SSO path, request
-  user-run `python scripts/setup_sso.py` only when the message says the single
+  user-run `python '<skill-dir>/scripts/setup_sso.py'` only when the message says the single
   headless recovery refused or failed. A 403, malformed configuration,
   confinement failure, or dependency problem is terminal for this attempt and
   must be surfaced as written; do not start setup for it. Stop here.
@@ -149,7 +178,7 @@ Invoke the crawler with the user's arguments. Only these flags are supported:
 Example:
 
 ```bash
-python scripts/crawl_space.py --space ENG --depth 3 --output ./out
+python '<skill-dir>/scripts/crawl_space.py' --space ENG --depth 3 --output ./out
 ```
 
 ### Step 3: Interpret the output

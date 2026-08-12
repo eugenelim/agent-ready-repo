@@ -27,16 +27,17 @@ import json
 import logging
 import os
 import secrets
+import shlex
 import ssl
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, AsyncIterator, Mapping
 from urllib.parse import urlparse
 
 import httpx
 
 if TYPE_CHECKING:
-    from pathlib import Path
-
     from _sso_config import SsoConfig
 
 log = logging.getLogger("jira.client")
@@ -60,9 +61,43 @@ class AuthError(JiraError):
     pass
 
 
+def _render_windows_command(argv: list[str], fallback: str) -> str:
+    """Render only cmd/PowerShell-inert Windows argv; refuse everything else."""
+    safe_punctuation = frozenset(" _./:\\-")
+    if any(
+        not value
+        or any(
+            not char.isascii()
+            or (not char.isalnum() and char not in safe_punctuation)
+            for char in value
+        )
+        for value in argv
+    ):
+        return f"{fallback} (use an argv-capable terminal)"
+    return " ".join(f'"{value}"' if " " in value else value for value in argv)
+
+
+def operator_command(entry_name: str, *args: str) -> str:
+    """Render a bounded command for a verified entry in this scripts directory."""
+    fallback = f"the installed {entry_name} entry point"
+    try:
+        scripts_dir = Path(__file__).resolve(strict=True).parent
+        entry = (scripts_dir / entry_name).resolve(strict=True)
+        entry.relative_to(scripts_dir)
+        if not entry.is_file():
+            return fallback
+    except (OSError, RuntimeError, ValueError):
+        return fallback
+
+    argv = [sys.executable, str(entry), *args]
+    if sys.platform == "win32":
+        return _render_windows_command(argv, fallback)
+    return shlex.join(argv)
+
+
 # The one place this command is spelled. `jira.py` imports it rather than
 # repeating the literal — renaming the flag should be one edit, not three.
-REGISTER_COMMAND = "python scripts/jira.py check --register"
+REGISTER_COMMAND = operator_command("jira.py", "check", "--register")
 
 
 class SsoSessionUnavailable(AuthError):

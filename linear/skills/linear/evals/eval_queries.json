@@ -1,0 +1,19 @@
+[
+  {"query": "Fetch Linear issue ENG-123", "should_trigger": true},
+  {"query": "Show the sub-issues under this Linear issue", "should_trigger": true},
+  {"query": "Read all issues in this Linear project", "should_trigger": true},
+  {"query": "Check whether my Linear credentials work", "should_trigger": true},
+  {"query": "Get the title and description for LIN-42", "should_trigger": true},
+  {"query": "List the work items in this Linear project", "should_trigger": true},
+  {"query": "Look up the owning project for this Linear issue", "should_trigger": true},
+  {"query": "Read Linear issue LIN-77 as JSON", "should_trigger": true},
+
+  {"query": "Turn Linear issue LIN-42 into a product brief", "should_trigger": false},
+  {"query": "Sync this existing brief with its Linear issue", "should_trigger": false},
+  {"query": "Update the status of Linear issue LIN-42", "should_trigger": false},
+  {"query": "Post a comment on this Linear issue", "should_trigger": false},
+  {"query": "Create a new issue in Linear", "should_trigger": false},
+  {"query": "Fetch Jira issue PROJ-42", "should_trigger": false},
+  {"query": "Draft a product brief from this email", "should_trigger": false},
+  {"query": "Show the current workspace implementation queue", "should_trigger": false}
+]

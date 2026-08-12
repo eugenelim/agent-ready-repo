@@ -4,21 +4,23 @@
     {
       "id": 1,
       "prompt": "Render notes/weekly.md as a self-contained HTML page.",
-      "expected_output": "The agent installs npm dependencies if needed, then invokes `node scripts/render.js notes/weekly.md`. The script writes the HTML to `notes/weekly.html` (default extension swap) and prints OUTPUT/SECTIONS/MERMAID lines. The agent reports the output path.",
+      "expected_output": "The agent checks dependencies with `npm --prefix '<skill-dir>' ls --depth=0 --silent marked highlight.js`; if needed and approved, it installs them with `npm --prefix '<skill-dir>' install`. It then invokes `node '<skill-dir>/scripts/render.js' notes/weekly.md`. The script writes the HTML to `notes/weekly.html` (default extension swap) and prints OUTPUT/SECTIONS/MERMAID lines. The agent reports the output path.",
       "assertions": [
-        "Agent runs `npm install` from the skill directory before first use (or confirms node_modules/ already exists)",
-        "Agent invokes `node scripts/render.js notes/weekly.md` (flag order may vary)",
+        "Agent checks dependencies with `npm --prefix '<skill-dir>' ls --depth=0 --silent marked highlight.js`",
+        "If dependencies are absent and the user approves, Agent runs `npm --prefix '<skill-dir>' install`",
+        "Agent invokes `node '<skill-dir>/scripts/render.js' notes/weekly.md` (flag order may vary)",
         "Agent does NOT pass --output unless the user asked for a non-default path",
         "Agent does NOT hand-write HTML, CSS, or template strings",
-        "Agent reports the OUTPUT: path printed by the script back to the user"
+        "Agent reports the OUTPUT: path printed by the script back to the user",
+        "Agent resolves and preflights the installed `<skill-dir>/scripts/render.js` regular file before launch"
       ]
     },
     {
       "id": 2,
       "prompt": "Render docs/architecture.md to architecture.html with the green accent theme and a 'v3 draft' subtitle.",
-      "expected_output": "The agent invokes `node scripts/render.js docs/architecture.md --output architecture.html --theme green --subtitle \"v3 draft\"`. The script writes the file with green accent CSS variables and the subtitle text in the header.",
+      "expected_output": "The agent invokes `node '<skill-dir>/scripts/render.js' docs/architecture.md --output architecture.html --theme green --subtitle \"v3 draft\"`. The script writes the file with green accent CSS variables and the subtitle text in the header.",
       "assertions": [
-        "Agent invokes `node scripts/render.js docs/architecture.md` (flag order may vary)",
+        "Agent invokes `node '<skill-dir>/scripts/render.js' docs/architecture.md` (flag order may vary)",
         "Agent passes `--output architecture.html`",
         "Agent passes `--theme green`",
         "Agent passes `--subtitle \"v3 draft\"` (quoted string)",
@@ -52,7 +54,7 @@
       "prompt": "Render this markdown but the output isn't styling code blocks correctly.",
       "expected_output": "The agent diagnoses the renderer (highlight.js) rather than rewriting the HTML by hand. It checks the language tag on the fence, runs the script with --verbose if available, or inspects the output's <pre><code> structure. It does NOT replace the script with a hand-written renderer.",
       "assertions": [
-        "Agent investigates the script behavior (re-runs render.js, inspects output) before concluding",
+        "Agent investigates the script behavior (re-runs <skill-dir>/scripts/render.js, inspects output) before concluding",
         "Agent does NOT replace the rendered HTML by hand-editing it",
         "Agent does NOT propose using a different tool (pandoc, etc.) without first investigating"
       ]
@@ -60,7 +62,7 @@
     {
       "id": 6,
       "prompt": "Render every .md file under docs/ to HTML.",
-      "expected_output": "The agent uses a shell loop: `for f in docs/*.md; do node scripts/render.js \"$f\"; done`. Each invocation writes a sibling .html file. The agent does NOT try to pass a glob to the renderer (the script takes a single file).",
+      "expected_output": "The agent uses a shell loop: `for f in docs/*.md; do node '<skill-dir>/scripts/render.js' \"$f\"; done`. Each invocation writes a sibling .html file. The agent does NOT try to pass a glob to the renderer (the script takes a single file).",
       "assertions": [
         "Agent uses a shell loop (for, find, or xargs) over the matching files",
         "Agent passes one file per render.js invocation",
@@ -81,16 +83,36 @@
     {
       "id": 8,
       "prompt": "Render sample.md as a self-contained HTML page.",
-      "expected_output": "The agent ensures the npm deps are present, then invokes `node scripts/render.js sample.md`, which writes `sample.html` (default extension swap) and prints OUTPUT/SECTIONS/MERMAID. The agent reports the output path and does not hand-write the HTML.",
-      "files": ["evals/files/sample.md"],
+      "expected_output": "The agent ensures the npm deps are present, then invokes `node '<skill-dir>/scripts/render.js' sample.md`, which writes `sample.html` (default extension swap) and prints OUTPUT/SECTIONS/MERMAID. The agent reports the output path and does not hand-write the HTML.",
+      "files": [
+        "evals/files/sample.md"
+      ],
       "assertions": [
-        "Agent invokes `node scripts/render.js` on sample.md (does not hand-write the HTML)",
+        "Agent invokes `node '<skill-dir>/scripts/render.js'` on sample.md (does not hand-write the HTML)",
         "Agent reports the OUTPUT path rather than pasting the HTML into chat"
       ],
       "expect": {
-        "produces": ["sample.html"],
-        "output_contains": ["OUTPUT:", "SECTIONS:"]
+        "produces": [
+          "sample.html"
+        ],
+        "output_contains": [
+          "OUTPUT:",
+          "SECTIONS:"
+        ]
       }
+    },
+    {
+      "id": 9,
+      "prompt": "The installed Markdown to HTML skill cannot find render.js. Please install the missing Node package and continue.",
+      "expected_output": "The agent stops before launching the runtime because the installed render.js entry point failed preflight. It reports only `error: installed skill entry point is unavailable: render.js` and treats this as an installation or invocation failure, not an exit-code result.",
+      "assertions": [
+        "Agent does not launch Python or Node and does not interpret the failure as an entry-point exit code",
+        "Agent reports only the basename render.js or the generic `<skill-dir>/scripts/render.js` form",
+        "Agent does not expose an absolute install, home, profile, environment, or protected path and does not relay raw runtime stderr",
+        "Agent does not recommend or invoke a dependency installation command",
+        "Agent does not recommend or invoke node_modules",
+        "Agent does not recommend or invoke missing Node package"
+      ]
     }
   ]
 }

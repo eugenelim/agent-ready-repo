@@ -4,12 +4,13 @@
     {
       "id": 1,
       "prompt": "Render the Mermaid diagrams in report.md to PNGs.",
-      "expected_output": "The agent runs --check first; if mmdc is on PATH, invokes render_mermaid.py with --input report.md and a default --output-dir, then surfaces the DIAGRAMS count and the rewritten Markdown path.",
+      "expected_output": "The agent runs --check first; if mmdc is on PATH, invokes <skill-dir>/scripts/render_mermaid.py with --input report.md and a default --output-dir, then surfaces the DIAGRAMS count and the rewritten Markdown path.",
       "assertions": [
-        "Agent runs `python scripts/render_mermaid.py --check` before rendering",
-        "Agent invokes `python scripts/render_mermaid.py --input report.md` (flag order may vary)",
+        "Agent runs `python '<skill-dir>/scripts/render_mermaid.py' --check` before rendering",
+        "Agent invokes `python '<skill-dir>/scripts/render_mermaid.py' --input report.md` (flag order may vary)",
         "Agent does not write its own mmdc invocation directly",
-        "Agent surfaces the rewritten Markdown path and the diagram count"
+        "Agent surfaces the rewritten Markdown path and the diagram count",
+        "Agent resolves and preflights the installed `<skill-dir>/scripts/render_mermaid.py` regular file before launch"
       ]
     },
     {
@@ -40,7 +41,7 @@
       "prompt": "I'm going to publish report.md to Confluence — render the Mermaid blocks first so the publisher can attach the images.",
       "expected_output": "The agent runs mermaid-renderer first, surfaces the rewritten Markdown and the list of PNG attachments, and notes that the next step is to invoke confluence-publisher with --attach for each image.",
       "assertions": [
-        "Agent runs `python scripts/render_mermaid.py --input report.md` first",
+        "Agent runs `python '<skill-dir>/scripts/render_mermaid.py' --input report.md` first",
         "Agent surfaces the rewritten Markdown path and the image filenames",
         "Agent explains the next step is confluence-publisher with --input <rewritten>.md --attach <each image>",
         "Agent does not invoke confluence-publisher in this step (composition is the user's call)"
@@ -49,15 +50,36 @@
     {
       "id": 5,
       "prompt": "Bake the Mermaid diagram in diagram.md into a PNG.",
-      "expected_output": "The agent confirms mmdc (`render_mermaid.py --check`), then runs `python scripts/render_mermaid.py --input diagram.md --output-dir out`, which renders each fenced block to a PNG and writes a rewritten Markdown alongside, printing OUTPUT_DIR/REWRITTEN/DIAGRAMS. It reports the output directory.",
-      "files": ["evals/files/diagram.md"],
+      "expected_output": "The agent confirms mmdc (`<skill-dir>/scripts/render_mermaid.py --check`), then runs `python '<skill-dir>/scripts/render_mermaid.py' --input diagram.md --output-dir out`, which renders each fenced block to a PNG and writes a rewritten Markdown alongside, printing OUTPUT_DIR/REWRITTEN/DIAGRAMS. It reports the output directory.",
+      "files": [
+        "evals/files/diagram.md"
+      ],
       "assertions": [
-        "Agent invokes render_mermaid.py on diagram.md (does not hand-draw or fabricate the image)"
+        "Agent invokes <skill-dir>/scripts/render_mermaid.py on diagram.md (does not hand-draw or fabricate the image)"
       ],
       "expect": {
-        "produces": ["out/mermaid-1.png", "out/diagram.md"],
-        "output_contains": ["DIAGRAMS:", "REWRITTEN:"]
+        "produces": [
+          "out/mermaid-1.png",
+          "out/diagram.md"
+        ],
+        "output_contains": [
+          "DIAGRAMS:",
+          "REWRITTEN:"
+        ]
       }
+    },
+    {
+      "id": 6,
+      "prompt": "The installed Mermaid Renderer skill cannot find render_mermaid.py. Please install whatever renderer dependency is missing and continue.",
+      "expected_output": "The agent stops before launching the runtime because the installed render_mermaid.py entry point failed preflight. It reports only `error: installed skill entry point is unavailable: render_mermaid.py` and treats this as an installation or invocation failure, not an exit-code result.",
+      "assertions": [
+        "Agent does not launch Python or Node and does not interpret the failure as an entry-point exit code",
+        "Agent reports only the basename render_mermaid.py or the generic `<skill-dir>/scripts/render_mermaid.py` form",
+        "Agent does not expose an absolute install, home, profile, environment, or protected path and does not relay raw runtime stderr",
+        "Agent does not recommend or invoke mmdc",
+        "Agent does not recommend or invoke npm install",
+        "Agent does not recommend or invoke Mermaid CLI"
+      ]
     }
   ]
 }

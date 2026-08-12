@@ -1,0 +1,19 @@
+[
+  {"query": "Sync this product brief with Linear issue LIN-123", "should_trigger": true},
+  {"query": "Catch this brief up with changes from its Linear issue", "should_trigger": true},
+  {"query": "Refresh the brief outcome and stories from Linear", "should_trigger": true},
+  {"query": "Show me the Linear changes before updating this brief", "should_trigger": true},
+  {"query": "Re-fetch LIN-88 and sync only its sourced brief fields", "should_trigger": true},
+  {"query": "Update this draft brief from the linked Linear issue", "should_trigger": true},
+  {"query": "Compare the current brief with Linear and apply approved changes", "should_trigger": true},
+  {"query": "Catch up the user stories in this brief from Linear", "should_trigger": true},
+
+  {"query": "Turn Linear issue LIN-123 into a new brief", "should_trigger": false},
+  {"query": "Fetch Linear issue LIN-123", "should_trigger": false},
+  {"query": "Change the scope section in this product brief", "should_trigger": false},
+  {"query": "Sync this brief with Jira issue PROJ-42", "should_trigger": false},
+  {"query": "Update Linear issue LIN-123 from the brief", "should_trigger": false},
+  {"query": "Create a specification from this approved brief", "should_trigger": false},
+  {"query": "Review the quality of this product brief", "should_trigger": false},
+  {"query": "Archive this shipped brief", "should_trigger": false}
+]
