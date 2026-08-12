@@ -805,48 +805,68 @@ def test_zero_width_run_refused_by_the_writer(target: Path) -> None:
         ok(name)
 
 
-def test_losing_a_stale_break_race_is_a_retry_not_a_refusal(target: Path) -> None:
-    """AC17a. When several waiters cross `stale_after` together they all try to
-    break the same abandoned lock; the losers get FileNotFoundError from their
-    unlink. That is "someone else already removed it — retry", not "cannot be
-    removed", which is how a won race turned into a spurious refusal.
+def test_stale_break_race_reports_only_explicit_lock_loss(target: Path) -> None:
+    """AC17a. Stale-break contenders either complete or report lock loss.
 
     Threaded rather than subprocess: the window between one waiter's unlink and
     the next one's is microseconds, and ~26ms of process spawn per waiter is far
     too coarse to land in it — a subprocess version of this ran 24 attempts
-    without once reproducing. The abandoned fixture is 10,000 seconds old, but
-    `stale_after` remains comfortably above the 1ms live hold: reclaiming a live
-    contender would correctly raise `StateLockLost` and invalidate this race
-    harness rather than exercise the intended abandoned-lock retry.
+    without once reproducing. A contender that moved a successor's lock can
+    admit that successor before restoring it; the displaced holder must then
+    report `StateLockLost` after its body. That explicit fail-closed result is
+    part of `_statelock`'s contract, not a spurious acquisition refusal.
     """
-    name = "losing-a-stale-break-race-is-a-retry-not-a-refusal"
+    name = "stale-break-race-reports-only-explicit-lock-loss"
     mod = _load_statelock("_ak_stale_race")
     target.write_text("", encoding="utf-8")
     lock = target.with_name(target.name + ".lock")
-    refusals: list[str] = []
+    completed = 0
+    lost = 0
+    entered = 0
+    unexpected: list[str] = []
+    counters_lock = threading.Lock()
 
     def contend(barrier: threading.Barrier) -> None:
+        nonlocal completed, entered, lost
         barrier.wait()
         try:
             with mod.exclusive(target, timeout=20.0, stale_after=5.0):
+                with counters_lock:
+                    entered += 1
                 time.sleep(0.001)
+            with counters_lock:
+                completed += 1
+        except mod.StateLockLost:
+            with counters_lock:
+                lost += 1
         except mod.StateLockError as exc:
-            refusals.append(str(exc))
+            with counters_lock:
+                unexpected.append(f"{type(exc).__name__}: {exc}")
 
-    for _ in range(40):
+    rounds = 40
+    contenders_per_round = 6
+    for _ in range(rounds):
         lock.write_text(_recognized_stale_record(), encoding="utf-8")
         old = time.time() - 10_000          # backdate past stale_after
         os.utime(lock, (old, old))
-        barrier = threading.Barrier(6)
-        threads = [threading.Thread(target=contend, args=(barrier,)) for _ in range(6)]
+        barrier = threading.Barrier(contenders_per_round)
+        threads = [
+            threading.Thread(target=contend, args=(barrier,))
+            for _ in range(contenders_per_round)
+        ]
         for th in threads:
             th.start()
         for th in threads:
             th.join()
         lock.unlink(missing_ok=True)
-    if refusals:
-        fail(name, f"{len(refusals)} waiter(s) refused after losing a break race; "
-                   f"first: {refusals[0][:120]}")
+    expected = rounds * contenders_per_round
+    if unexpected:
+        fail(name, f"{len(unexpected)} unexpected refusal(s); first: "
+                   f"{unexpected[0][:160]}")
+    elif entered != expected:
+        fail(name, f"only {entered}/{expected} contenders entered the lock body")
+    elif completed + lost != expected:
+        fail(name, f"{completed} completed + {lost} explicit losses != {expected}")
     else:
         ok(name)
 
@@ -879,7 +899,7 @@ def main() -> int:
             test_exclusive_lock_actually_excludes,
             test_lock_release_only_unlinks_what_it_owns,
             test_break_does_not_take_a_successors_lock,
-            test_losing_a_stale_break_race_is_a_retry_not_a_refusal,
+            test_stale_break_race_reports_only_explicit_lock_loss,
             test_stale_directory_lock_is_refused,
             test_recognized_stale_statelock_record_is_recovered,
             test_dangling_symlink_lock_is_bounded,

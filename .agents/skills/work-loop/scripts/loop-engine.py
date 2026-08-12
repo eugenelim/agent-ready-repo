@@ -242,7 +242,7 @@ def _open_regular_event_log(path: Path) -> tuple[int, tuple[int, int]]:
             before = os.lstat(path)
         except FileNotFoundError:
             try:
-                fd = os.open(path, flags | os.O_CREAT | os.O_EXCL, 0o666)
+                fd = os.open(path, flags | os.O_CREAT | os.O_EXCL, 0o600)
             except FileExistsError:
                 continue
             except OSError as exc:

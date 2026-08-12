@@ -13,6 +13,7 @@ import importlib.util
 import io
 import json
 import os
+import stat
 import subprocess
 import sys
 import tempfile
@@ -440,6 +441,32 @@ def test_append_rejects_event_log_identity_change(tmp: Path) -> None:
         fail(name, "append mutated the event log before verifying identity")
     elif "changed while being opened" not in refusal:
         fail(name, f"identity-change refusal was not explicit: {refusal!r}")
+    else:
+        ok(name)
+
+
+# AC3 — a newly created event log is private even under a permissive umask.
+def test_init_creates_owner_only_event_log(tmp: Path) -> None:
+    name = "init-creates-owner-only-event-log"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(exist_ok=True)
+    event_path = loop_dir / "events.jsonl"
+    event_path.unlink(missing_ok=True)
+    spec_dir = make_spec_dir(tmp, name)
+
+    prior_umask = os.umask(0)
+    try:
+        rc, _, err = run_engine("init", str(spec_dir), "--mode", "code")
+    finally:
+        os.umask(prior_umask)
+
+    if rc != 0:
+        fail(name, f"init failed while creating the event log: {err!r}")
+    elif not event_path.is_file():
+        fail(name, "init did not create events.jsonl")
+    elif stat.S_IMODE(event_path.stat().st_mode) & 0o077:
+        fail(name, f"event log is group/world accessible: "
+                   f"{stat.filemode(event_path.stat().st_mode)}")
     else:
         ok(name)
 
@@ -3228,6 +3255,7 @@ def main() -> int:
             test_init_rejects_non_regular_event_log,
             test_append_rejects_non_regular_event_log,
             test_append_rejects_event_log_identity_change,
+            test_init_creates_owner_only_event_log,
             test_reset_deletes_engine_state,
             test_reset_idempotent,
             test_reset_leaves_state_json_intact,

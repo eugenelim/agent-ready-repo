@@ -1,6 +1,6 @@
 # Plan: core pack path confinement
 
-- **Status:** Done
+- **Status:** Executing
 - **Spec:** [`spec.md`](spec.md)
 - **Mode:** full
 
@@ -50,6 +50,7 @@ and release metadata only after behavior is green.
   - `test-loop-engine.py::{test_recover_pending_rejects_symlink,test_recover_pending_rejects_symlinked_parent,test_recover_pending_rejects_non_regular_path,test_recover_pending_rejects_over_limit_file,test_recover_pending_rejects_identity_change}` — `# STUB: AC3`; exercise the actual recovery sink and assert no external sentinel is replayed or mutated through its target or parent.
   - `test-loop-engine.py::{test_init_rejects_dangling_event_log_symlink,test_append_rejects_dangling_event_log_symlink}` — `# STUB: AC3`; exercise both event-log creation paths and assert no external file is created.
   - `test-loop-engine.py::{test_init_rejects_non_regular_event_log,test_append_rejects_non_regular_event_log,test_append_rejects_event_log_identity_change}` — `# STUB: AC3`; cover shared event-log type and pre-write identity checks through both callers.
+  - `test-loop-engine.py::test_init_creates_owner_only_event_log` — constructs an event log through the public init path and rejects any group/world permission bits.
   - stub: true
 - **Approach:** Exercise public command functions or subprocess entry points so parsing-only tests cannot pass without reaching the sink.
 - **Done when:** The current implementation fails the new boundary tests for the expected read path.

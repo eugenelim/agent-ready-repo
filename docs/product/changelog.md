@@ -26,8 +26,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Spec-status and traceability checks confine repository-derived probes before
   use; work-loop state and pending-event JSON is bounded and read through a
   verified regular-file descriptor; event-log creation refuses links and
-  identity changes; and knowledge appends use the shared no-follow state lock.
-  Intentional operator-selected scan roots remain valid.
+  identity changes and creates owner-only files; and knowledge appends use the
+  shared no-follow state lock. Intentional operator-selected scan roots remain
+  valid.
 
 ### [core][2.5.6] — 2026-08-11
 

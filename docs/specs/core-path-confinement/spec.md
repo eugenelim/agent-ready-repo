@@ -1,6 +1,6 @@
 # Spec: core pack path confinement
 
-- **Status:** Shipped
+- **Status:** Implementing
 - **Owner:** maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** full (security boundary and shipped public-interface behavior)
@@ -96,8 +96,8 @@ Unrelated argv-to-path sites remain in the existing
   content; recovery also rejects a linked or non-directory `.loop-run` parent
   before accessing any child. Event-log initialization and append reject
   symlinked, non-regular, or identity-changing paths without creating or
-  mutating the external target. Normal state/status/recovery behavior remains
-  compatible.
+  mutating the external target, and newly created event logs are owner-only.
+  Normal state/status/recovery behavior remains compatible.
 - [x] **AC4 — Knowledge lock.** `append-knowledge.py` uses the existing
   `_statelock` ownership and no-follow semantics rather than its weaker custom
   lock implementation. A symlink or non-regular lock fails closed without
@@ -124,7 +124,7 @@ Unrelated argv-to-path sites remain in the existing
   `_validated_root` shape are corrected with this evidence. Snyk Code findings
   that remain intentional are dispositioned downstream through supported
   issue controls, not a repo-wide file exclusion.
-- [x] **AC9 — Verification.** Targeted work-loop and workspace-status tests,
+- [ ] **AC9 — Verification.** Targeted work-loop and workspace-status tests,
   pack conformance, projection drift, lint, and the repository build/SAST
   gate pass in a writable environment. Any unavailable local gate is reported
   as environment-blocked rather than represented as passing.
@@ -146,12 +146,14 @@ cannot execute pytest fixtures or generated-output gates. The tests remain
 mandatory and will be run as the final external verification set; this is not
 a permanent skip.
 
-Final verification ran in the writable developer environment on 2026-08-11:
+Initial verification ran in the writable developer environment on 2026-08-11:
 `test-append-knowledge.py` passed 30/30 cases,
 `test-lint-traceability.py` passed 44/44 cases, and `make ci` completed every
 leg including catalogue verification, projection drift, Bandit, dependency
 audit, Semgrep plus its construction tests, Ruff, mypy, and the complete test
-matrix.
+matrix. A subsequent CodeQL result required an owner-only event-log creation
+mask, and Linux CI exposed an obsolete stale-lock test expectation; AC9 remains
+open until those amendments rerun.
 
 PLAN materializes red stubs for AC1–AC4 in the existing script suites. TDD
 coverage: AC1–AC4 covered; AC5–AC9 use goal-based verification and therefore
