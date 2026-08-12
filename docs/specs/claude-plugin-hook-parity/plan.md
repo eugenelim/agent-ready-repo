@@ -415,11 +415,19 @@ expected and actual sides derive from the same source does not count.
 > …`); the canary ref was then deleted with the App identity and the ruleset
 > retargeted to the live branch, which was never used as a negative probe.
 >
-> **Step 5 is NOT done.** The frozen-artifact errata — `claude-plugins-manifest-correctness`,
-> `claude-plugin-route-scope`, and ADR-0072's dated branch-integrity statements —
-> have not been written, and the named frozen-artifact sweep has not been run.
-> The spec must not move to `Shipped`, and no hook-bearing user-capable pack may
-> publish, until that is closed.
+> **Step 5 is complete.** The live-evidence lint passes
+> (`tools/lint-claude-plugin-publish-control.py --require-live-evidence`), and the
+> frozen-artifact errata are written and Approver-signed:
+> `claude-plugins-manifest-correctness` (Assumption 4's "does not exist today"),
+> `claude-plugin-route-scope` (the unrestricted-ordinary-push residual), ADR-0072
+> (branch protection as an unmet precondition), and ADR-0079 itself (Confirmation
+> satisfied, plus the ordering rule it had omitted and the no-identifier
+> narrowing). `wire-session-start-hook`'s 2026-08-08 erratum already records both
+> of its facts and was verified rather than duplicated, as AC23 requires. The
+> named frozen-artifact sweep found no further Shipped/Accepted premise, so T13
+> needed no amendment. The tip-content residual — marketplace entries pinning a
+> mutable branch rather than an immutable SHA — is explicitly **not** closed and
+> remains an accepted risk.
 
 > **Re-sequenced 2026-08-12 (see T14).** The workflow's App-token step merged in
 > #916 ahead of this task, so the publisher could not authenticate and every

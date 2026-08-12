@@ -354,7 +354,7 @@ invalid one before it reaches `merge_json`.
   user-scope shapes remain owned by their existing validators and keep their
   established bytes.
 
-- [ ] **AC23 — Frozen specs superseded by errata, not edited.**
+- [x] **AC23 — Frozen specs superseded by errata, not edited.**
   `docs/specs/wire-session-start-hook/spec.md` is `Status: Shipped` and pins the
   `claude-plugins/<pack>/.claude/settings.local.json` layout throughout. It
   receives an erratum recording that AC17 supersedes that layout and that its

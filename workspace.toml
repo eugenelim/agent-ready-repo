@@ -79,7 +79,15 @@ ready     = []
 draft     = []
 
 ["ini-002".work]
-active  = []
+# Registered 2026-08-12. This spec had been in flight since 2026-08-07 without
+# ever appearing in a queue, which is how its owner-run rollout task (T13) was
+# left outstanding while the code half of ADR-0079 merged — publication on main
+# then failed for eight consecutive commits with nothing surfacing it. The
+# publisher control is now live and evidenced; what keeps this Implementing is
+# the hook compiler's own criteria, not the publisher boundary.
+active  = [
+  {path = "spec/claude-plugin-hook-parity", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
+]
 shipped = [
   "spec/engine-export-boundary",                    # PR #898 — RFC-0082 engine export boundary (agentbundle 0.30.0)
   # Docs-site design refresh (2026-08-05): Starlight tech docs restyled to a
