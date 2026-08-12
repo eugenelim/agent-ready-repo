@@ -485,6 +485,33 @@ invalid one before it reaches `merge_json`.
   The compiler may merge before the settings rollout, because no published pack
   currently ships hooks, but the feature cannot be marked Shipped and a
   hook-bearing user-capable pack cannot publish until all six items pass.
+  Until they do, the workflow holds the interim publisher identity required by
+  AC36 — merging the compiler early must not strand publication.
+
+- [ ] **AC36 — The publisher identity matches the provisioning state.** The
+  workflow authenticates with the identity that actually exists, and a
+  construction test refuses any other pairing. Concretely:
+
+  1. Provisioning state is read offline from one signal: whether
+     `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`
+     exists. No test or lint may reach the network to decide it.
+  2. **Unprovisioned** (no evidence file) — the workflow publishes with the
+     generic Actions app: `contents: write`, no `claude-plugin-publish`
+     environment reference, no app-token-minting action, and no reference to
+     the app ID or private key. This is an interim state, not the end state.
+  3. **Provisioned** (evidence file present) — every AC35 clause-3 and clause-4
+     requirement applies unchanged, and the interim shape is forbidden.
+  4. The two states are mutually exclusive and jointly exhaustive: the lint and
+     the construction test fail when the workflow is in App-token shape without
+     evidence, and equally when evidence exists but the workflow still holds the
+     interim identity. Neither direction may be satisfied by deleting the check.
+  5. Full-SHA pinning of every external `uses:` action, the publication-control
+     lint step, and the cross-workflow construction gate of AC35 clause 5 hold
+     in **both** states; they are not conditioned on provisioning.
+
+  This criterion exists because the App-token step merged ahead of its
+  credentials, leaving publication broken on `main` while every gate stayed
+  green. A workflow that cannot authenticate is a failure the suite must name.
 
 ## Testing Strategy
 

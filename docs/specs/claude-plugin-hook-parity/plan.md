@@ -398,7 +398,16 @@ the command that turns red, and restoration followed by green. A mutation whose
 expected and actual sides derive from the same source does not count.
 
 ### T13 — Owner rollout and live publication-control evidence
-**Depends on:** T12 · **Mode:** Operational verification
+**Depends on:** T12, T14 · **Mode:** Operational verification
+
+> **Re-sequenced 2026-08-12 (see T14).** The workflow's App-token step merged in
+> #916 ahead of this task, so the publisher could not authenticate and every
+> push to `main` failed at the minting step for eight consecutive commits. T14
+> restored the interim publisher, made the ordering mechanically enforced, and
+> built the tooling steps 4–5 below assume. What remains here is only the part
+> that needs a human at github.com: steps 1–4's settings and canary. Run
+> `python3 tools/capture-publish-control-evidence.py` for step 4's snapshot and
+> follow [`docs/guides/how-to/publisher-app-rollout.md`](../../guides/how-to/publisher-app-rollout.md).
 
 **Done when:** the owner completes AC35's external settings and canary sequence;
 `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json` contains the
@@ -432,6 +441,50 @@ Owner settings, sequenced before the live target is enabled:
 The live branch is never the target of the negative probe. If the GitHub plan or
 repository ownership model cannot express the app-only bypass or required
 environment reviewer, Surface; do not weaken the bypass list.
+
+### T14 — Re-sequence the publisher identity and enforce the ordering
+**Depends on:** none · **Mode:** TDD + goal-based check
+
+Satisfies AC36. #916 enabled the live target before T13 provisioned it, which
+the plan's own "sequenced before the live target is enabled" forbade. AC35
+clause 5's construction tests still passed, because they assert the *end-state*
+workflow shape and never ask whether the credentials it names exist. The fix is
+to make provisioning state and workflow shape one invariant, checked both ways.
+
+**Tests:** extend `tools/test-publish-claude-plugins.py` — derive the mode from
+the presence of `publish-control-evidence.json`, then assert the matching shape.
+Two red-first mutations: the current `main` state (App shape, no evidence) must
+fail, and a synthetic provisioned-but-interim state must fail. AC35's SHA-pin,
+control-lint, and cross-workflow assertions stay unconditional. Add
+`tools/test-lint-claude-plugin-publish-control.py` cases for the same invariant
+at the lint layer, including a fixture where deleting the check turns the suite
+red.
+
+**Done when:** `python3 tools/test-publish-claude-plugins.py` and
+`python3 tools/test-lint-claude-plugin-publish-control.py` exit 0; `make
+build-check` is green; and a real push to `main` completes the publish job and
+updates `claude-plugins-dist`.
+
+1. Restore the interim publisher in `.github/workflows/publish-claude-plugins.yml`:
+   `contents: write`, no `environment:`, no token-minting step, checkout at its
+   default credential behaviour, `github-actions[bot]` identity. Keep the
+   full-SHA action pins and the publication-control lint step — both are
+   improvements from #916 that are independent of the identity.
+2. Teach `tools/lint-claude-plugin-publish-control.py` the mode invariant, so
+   the gate that already runs inside the publish job is the one that refuses a
+   mismatch. Export the mode helper for reuse rather than restating the regexes.
+3. Add `tools/capture-publish-control-evidence.py` — pure-stdlib, reads live
+   ruleset/environment/app state via `gh api`, emits the sanitized evidence
+   shape `compare_evidence` expects. This is T13 step 4's "capture sanitized
+   API state" made runnable instead of hand-written.
+4. Write [`docs/guides/how-to/publisher-app-rollout.md`](../../guides/how-to/publisher-app-rollout.md)
+   — the maintainer runbook for T13 steps 1–4, with the exact `gh` commands for
+   every part that is scriptable and an explicit marker on the browser-only App
+   creation.
+
+Reverting the identity is not a retreat from ADR-0079: the ADR's end state is
+unchanged and AC36 clause 4 now makes the interim state self-terminating — once
+evidence lands, the interim shape fails its own test.
 
 ## Risks
 

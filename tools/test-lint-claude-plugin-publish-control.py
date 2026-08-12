@@ -134,6 +134,109 @@ def main() -> int:
             == 1,
         )
 
+    # AC36 — identity/provisioning sequencing, both directions.
+    app_workflow = (
+        "permissions:\n  contents: read\n"
+        "    environment: claude-plugin-publish\n"
+        "      - uses: actions/create-github-app-token@" + "0" * 40 + "\n"
+        "        persist-credentials: false\n"
+    )
+    interim_workflow = (
+        "permissions:\n  contents: write\n"
+        "          CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n"
+        "        persist-credentials: false\n"
+    )
+    check(
+        "app identity is detected",
+        lint.detect_publisher_mode(app_workflow) == "app",
+    )
+    check(
+        "interim identity is detected",
+        lint.detect_publisher_mode(interim_workflow) == "interim",
+    )
+    check(
+        "a two-identity publisher is detected as mixed",
+        lint.detect_publisher_mode(app_workflow + interim_workflow) == "mixed",
+    )
+    check(
+        "an identity-less publisher is detected as unknown",
+        lint.detect_publisher_mode("permissions:\n  contents: read\n") == "unknown",
+    )
+    check(
+        "provisioned + app identity passes sequencing",
+        not lint.validate_sequencing(app_workflow, True),
+    )
+    check(
+        "unprovisioned + interim identity passes sequencing",
+        not lint.validate_sequencing(interim_workflow, False),
+    )
+    check(
+        "unprovisioned + app identity fails sequencing",
+        bool(lint.validate_sequencing(app_workflow, False)),
+    )
+    check(
+        "provisioned + interim identity fails sequencing",
+        bool(lint.validate_sequencing(interim_workflow, True)),
+    )
+    check(
+        "mixed identity fails sequencing in both provisioning states",
+        bool(lint.validate_sequencing(app_workflow + interim_workflow, False))
+        and bool(lint.validate_sequencing(app_workflow + interim_workflow, True)),
+    )
+    check(
+        "a persisted-credential checkout fails in either identity",
+        bool(lint.validate_sequencing(
+            interim_workflow.replace("        persist-credentials: false\n", ""),
+            False,
+        ))
+        and bool(lint.validate_sequencing(
+            app_workflow.replace("        persist-credentials: false\n", ""),
+            True,
+        )),
+    )
+
+    # The sequencing rule reaches the CLI, not just the helper: a workflow that
+    # cannot authenticate must turn the gate that runs inside the publish job red.
+    with tempfile.TemporaryDirectory() as raw:
+        root = Path(raw)
+        desired_path = root / "desired.json"
+        desired_path.write_text(json.dumps(desired), encoding="utf-8")
+        workflow_path = root / "publish.yml"
+        workflow_path.write_text(app_workflow, encoding="utf-8")
+        check(
+            "lint CLI refuses an app-token workflow with no evidence",
+            lint.main(
+                [
+                    "--desired",
+                    str(desired_path),
+                    "--evidence",
+                    str(root / "absent.json"),
+                    "--root",
+                    str(root),
+                    "--workflow",
+                    str(workflow_path),
+                ]
+            )
+            == 1,
+        )
+        workflow_path.write_text(interim_workflow, encoding="utf-8")
+        check(
+            "lint CLI accepts the interim workflow with no evidence",
+            lint.main(
+                [
+                    "--desired",
+                    str(desired_path),
+                    "--evidence",
+                    str(root / "absent.json"),
+                    "--root",
+                    str(root),
+                    "--workflow",
+                    str(workflow_path),
+                ]
+            )
+            == 0,
+        )
+
     if failures:
         print(f"test-lint-claude-plugin-publish-control: FAIL ({len(failures)})")
         return 1

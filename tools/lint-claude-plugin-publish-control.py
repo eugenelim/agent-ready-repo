@@ -19,6 +19,85 @@ EVIDENCE_PATH = (
     / "claude-plugin-hook-parity"
     / "publish-control-evidence.json"
 )
+WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "publish-claude-plugins.yml"
+
+# AC36 — the workflow must authenticate with the identity that actually exists.
+# Presence of the committed evidence file is the only offline signal for whether
+# the ADR-0079 publisher App was ever provisioned; nothing here touches the
+# network. Markers are matched against step/permission syntax rather than prose
+# so the file's own explanatory comments cannot flip the detected mode.
+APP_IDENTITY_MARKERS = (
+    "uses: actions/create-github-app-token@",
+    "environment: claude-plugin-publish",
+    "${{ vars.CLAUDE_PLUGIN_PUBLISHER_APP_ID }}",
+    "${{ secrets.CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY }}",
+)
+INTERIM_IDENTITY_MARKERS = (
+    "CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+)
+
+
+def detect_publisher_mode(workflow: str) -> str:
+    """Classify the publisher workflow's authentication identity.
+
+    Returns ``app`` (ADR-0079 end state), ``interim`` (generic Actions app),
+    ``mixed`` when both shapes appear, or ``unknown`` when neither does. The
+    last two are always violations: a publisher that names two identities, or
+    none, cannot be reasoned about by the sequencing rule below.
+    """
+    has_app = any(marker in workflow for marker in APP_IDENTITY_MARKERS)
+    has_interim = any(marker in workflow for marker in INTERIM_IDENTITY_MARKERS)
+    if has_app and has_interim:
+        return "mixed"
+    if has_app:
+        return "app"
+    if has_interim:
+        return "interim"
+    return "unknown"
+
+
+def validate_sequencing(workflow: str, evidence_present: bool) -> list[str]:
+    """Return violations of the identity/provisioning ordering (AC36).
+
+    Both directions fail closed. Shipping the App-token shape before the
+    credentials exist is what broke publication on `main`; leaving the interim
+    shape after provisioning would silently keep the generic Actions app as a
+    writer the ruleset is meant to exclude.
+    """
+    errors: list[str] = []
+    mode = detect_publisher_mode(workflow)
+    if mode == "mixed":
+        errors.append(
+            "publisher workflow declares both the App-token and interim "
+            "identities; exactly one must be present"
+        )
+    elif mode == "unknown":
+        errors.append(
+            "publisher workflow declares no recognized publish identity; "
+            "expected the App-token step or the interim GITHUB_TOKEN mapping"
+        )
+    elif evidence_present and mode != "app":
+        errors.append(
+            "publisher App is provisioned (evidence present) but the workflow "
+            "still holds the interim identity; restore the App-token step"
+        )
+    elif not evidence_present and mode != "interim":
+        errors.append(
+            "publisher workflow mints an App token but no provisioning "
+            "evidence exists; the job cannot authenticate — complete the "
+            "rollout (docs/guides/how-to/publisher-app-rollout.md) or restore "
+            "the interim identity"
+        )
+    if "contents: write" in workflow and mode == "app":
+        errors.append(
+            "App-token publisher must keep GITHUB_TOKEN read-only"
+        )
+    if "persist-credentials: false" not in workflow:
+        errors.append(
+            "publisher checkout must not persist ambient credentials in either "
+            "identity mode"
+        )
+    return errors
 
 
 def _load_pack_scope_module():
@@ -174,6 +253,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--desired", type=Path, default=DESIRED_PATH)
     parser.add_argument("--evidence", type=Path, default=EVIDENCE_PATH)
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
+    parser.add_argument("--workflow", type=Path, default=WORKFLOW_PATH)
     parser.add_argument("--require-live-evidence", action="store_true")
     args = parser.parse_args(argv)
 
@@ -183,6 +263,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lint-claude-plugin-publish-control: {exc}", file=sys.stderr)
         return 1
     errors = validate_desired(desired)
+    try:
+        workflow = args.workflow.read_text(encoding="utf-8")
+    except OSError as exc:
+        errors.append(f"cannot read {args.workflow}: {exc}")
+    else:
+        errors.extend(validate_sequencing(workflow, args.evidence.exists()))
     if args.evidence.exists():
         try:
             evidence = _load(args.evidence)

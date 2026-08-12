@@ -275,15 +275,78 @@ def main() -> int:
     )
     publisher_path = repo_root / ".github" / "workflows" / "publish-claude-plugins.yml"
     publisher = publisher_path.read_text(encoding="utf-8")
-    _check("publisher GITHUB_TOKEN is read-only",
-           re.search(r"(?m)^permissions:\n  contents: read$", publisher) is not None
-           and re.search(
-               r"(?m)^\s+contents:\s+write\s*(?:#.*)?$", publisher
-           ) is None,
-           "publisher must not grant the generic Actions app write access")
-    _check("publisher uses the protected environment",
-           "environment: claude-plugin-publish" in publisher,
-           "environment missing")
+
+    # AC36 — the asserted shape follows the provisioning state, because
+    # asserting the end-state shape unconditionally is exactly how an
+    # unauthenticatable publisher stayed green for eight consecutive commits.
+    # Provisioning is read from the committed evidence file only; this suite is
+    # hermetic and must never reach the network to decide which shape is legal.
+    evidence_path = (
+        repo_root / "docs" / "specs" / "claude-plugin-hook-parity"
+        / "publish-control-evidence.json"
+    )
+    provisioned = evidence_path.exists()
+    _control_spec = importlib.util.spec_from_file_location(
+        "lint_claude_plugin_publish_control",
+        repo_root / "tools" / "lint-claude-plugin-publish-control.py",
+    )
+    control = importlib.util.module_from_spec(_control_spec)
+    _control_spec.loader.exec_module(control)
+
+    expected_mode = "app" if provisioned else "interim"
+    _check("publisher identity matches the provisioning state",
+           control.detect_publisher_mode(publisher) == expected_mode,
+           f"expected {expected_mode} identity, got "
+           f"{control.detect_publisher_mode(publisher)}")
+    _check("the live publisher satisfies its own sequencing rule",
+           not control.validate_sequencing(publisher, provisioned),
+           f"got {control.validate_sequencing(publisher, provisioned)}")
+
+    # Both mutation directions, independent of which state the repo is in now.
+    app_shape = (
+        "permissions:\n  contents: read\n"
+        "    environment: claude-plugin-publish\n"
+        "      - uses: actions/create-github-app-token@" + "0" * 40 + "\n"
+        "        persist-credentials: false\n"
+    )
+    interim_shape = (
+        "permissions:\n  contents: write\n"
+        "          CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n"
+        "        persist-credentials: false\n"
+    )
+    _check("minting an app token without provisioning evidence is refused",
+           bool(control.validate_sequencing(app_shape, False)),
+           "an unauthenticatable publisher passed the sequencing rule")
+    _check("keeping the interim identity after provisioning is refused",
+           bool(control.validate_sequencing(interim_shape, True)),
+           "the generic Actions app survived the app-only rollout")
+    _check("a publisher naming both identities is refused",
+           bool(control.validate_sequencing(app_shape + interim_shape, False))
+           and bool(control.validate_sequencing(app_shape + interim_shape, True)),
+           "a two-identity publisher was accepted")
+    _check("a publisher naming no identity is refused",
+           bool(control.validate_sequencing("permissions:\n  contents: read\n", False)),
+           "an identity-less publisher was accepted")
+
+    if provisioned:
+        _check("publisher GITHUB_TOKEN is read-only",
+               re.search(r"(?m)^permissions:\n  contents: read$", publisher)
+               is not None
+               and re.search(
+                   r"(?m)^\s+contents:\s+write\s*(?:#.*)?$", publisher
+               ) is None,
+               "publisher must not grant the generic Actions app write access")
+        _check("publisher uses the protected environment",
+               "environment: claude-plugin-publish" in publisher,
+               "environment missing")
+    else:
+        _check("interim publisher carries no protected-environment reference",
+               "environment: claude-plugin-publish" not in publisher,
+               "interim publisher references an environment that holds no "
+               "credentials, which blocks the job on a nonexistent approval")
+        _check("interim publisher mints no app token",
+               "uses: actions/create-github-app-token@" not in publisher,
+               "interim publisher would mint a token it has no key for")
     _check("checkout credentials are not persisted",
            "persist-credentials: false" in publisher,
            "checkout would leave ambient credentials")
@@ -292,25 +355,35 @@ def main() -> int:
            bool(uses_refs) and all(
                re.fullmatch(r"[^@]+@[0-9a-f]{40}", ref) for ref in uses_refs
            ), f"got {uses_refs}")
+    # Match the executed step, not a prose mention: the header comment names
+    # this script too, and a `find` on the bare path would score the comment.
     control_gate = publisher.find(
-        "tools/lint-claude-plugin-publish-control.py"
+        "run: python3 tools/lint-claude-plugin-publish-control.py"
     )
-    token_mint = publisher.find(
-        "name: Mint repository-scoped publisher token"
+    _check("the publication-control gate is an executed step",
+           control_gate >= 0,
+           "control state is never verified during publication")
+    if provisioned:
+        token_mint = publisher.find(
+            "name: Mint repository-scoped publisher token"
+        )
+        _check("publication-control lint runs before token minting",
+               0 <= control_gate < token_mint,
+               "publisher can mint credentials before control state is verified")
+    # The token mapping is single-valued and bound to the final publish step in
+    # both identities; only its source changes with the mode.
+    token_source = (
+        "${{ steps.publisher-token.outputs.token }}" if provisioned
+        else "${{ secrets.GITHUB_TOKEN }}"
     )
-    _check("publication-control lint runs before token minting",
-           0 <= control_gate < token_mint,
-           "publisher can mint credentials before control state is verified")
-    token_reference = "${{ steps.publisher-token.outputs.token }}"
-    _check("short-lived token reaches only the final publisher step",
-           publisher.count(token_reference) == 1
+    _check("the publish token reaches only the final publisher step",
+           publisher.count(token_source) == 1
            and re.search(
                r"name: Publish to claude-plugins-dist branch[\s\S]*?"
-               r"CLAUDE_PLUGIN_PUBLISH_TOKEN: "
-               r"\$\{\{ steps\.publisher-token\.outputs\.token \}\}",
+               r"CLAUDE_PLUGIN_PUBLISH_TOKEN: " + re.escape(token_source),
                publisher,
            ) is not None,
-           "token output is missing, duplicated, or attached to an earlier step")
+           "publish token is missing, duplicated, or attached to an earlier step")
     workflow_texts = {
         path: path.read_text(encoding="utf-8")
         for path in workflows
