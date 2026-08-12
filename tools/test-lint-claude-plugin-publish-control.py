@@ -43,6 +43,13 @@ def main() -> int:
             ("environment", "required_reviewers"),
             0,
         ),
+        # Re-enabling self-review prevention reintroduces the deadlock the
+        # ADR-0079 erratum of 2026-08-12 records: the sole reviewer is always
+        # the triggering actor, so no publication is approvable by anyone.
+        "desired self-review policy": (
+            ("environment", "prevent_self_review"),
+            True,
+        ),
         "desired canary result": (
             ("canary", "ordinary_update"),
             "accepted",

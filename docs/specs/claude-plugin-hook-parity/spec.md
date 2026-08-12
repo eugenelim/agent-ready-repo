@@ -609,3 +609,31 @@ invalid one before it reaches `merge_json`.
   traceable to the commit that produced it while `ref` stays mutable. AC35
   controls who may update the ref; it does not make the ref immutable or give an
   adopter an independently verifiable content digest.
+
+## Errata
+
+Corrections below are Approver-signed. The spec body above is preserved
+unchanged; errata supersede where noted. (Approver: eugenelim, 2026-08-12.)
+
+- **2026-08-12 — AC35 clause 4's `prevent_self_review` requirement is
+  withdrawn.** Clause 4 requires the environment to "require the repository
+  owner's approval" and AC35 clause 6's evidence pinned
+  `prevent_self_review: true`. Together those made the gate **unsatisfiable** on
+  this repository: the sole required reviewer is also the only person who
+  merges, so they are always the deployment's triggering actor and GitHub
+  withholds the approval control from them; `can_admins_bypass: false` removed
+  the override. The first real publication after rollout sat in `waiting` with
+  `current_user_can_approve: false`, approvable by nobody.
+
+  AC35's canary probes passed anyway because they minted an App token directly
+  rather than routing through the environment — the approval path was never
+  exercised until a live publish. That is a gap in the criterion's evidence, not
+  only in the settings.
+
+  The environment now sets `prevent_self_review: false`, and the desired-state
+  contract and lint expectation follow. Every other clause stands unchanged: one
+  required reviewer, `main`-only deployments, `can_admins_bypass: false`, and
+  the App-only ruleset bypass. Publication still waits for a deliberate human
+  release; what is withdrawn is the claim that the releaser is a second pair of
+  eyes, which a single-maintainer repository cannot supply. See the matching
+  [ADR-0079 erratum](../../adr/0079-executable-plugin-branch-publisher-identity.md#errata).

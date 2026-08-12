@@ -285,7 +285,12 @@ def validate_desired(desired: dict) -> list[str]:
         "name": "claude-plugin-publish",
         "deployment_branches": ["main"],
         "required_reviewers": 1,
-        "prevent_self_review": True,
+        # False by necessity, not preference — see the ADR-0079 erratum of
+        # 2026-08-12. One required reviewer who is also the only person who
+        # merges is always the triggering actor, so self-review prevention made
+        # the gate unsatisfiable rather than strict: no publication could be
+        # approved by anyone, including the reviewer.
+        "prevent_self_review": False,
         "allow_admin_bypass": False,
         "app_id_variable": "CLAUDE_PLUGIN_PUBLISHER_APP_ID",
         "private_key_secret": "CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY",

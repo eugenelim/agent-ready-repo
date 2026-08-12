@@ -24,7 +24,7 @@
       "main"
     ],
     "required_reviewers": 1,
-    "prevent_self_review": true,
+    "prevent_self_review": false,
     "allow_admin_bypass": false,
     "app_id_variable": "CLAUDE_PLUGIN_PUBLISHER_APP_ID",
     "private_key_secret": "CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY"
@@ -36,6 +36,6 @@
     "publisher_app_update": "accepted",
     "live_branch_negative_tested": false
   },
-  "observed_at": "2026-08-12T15:50:59.127353+00:00",
+  "observed_at": "2026-08-12T17:24:21.761309+00:00",
   "observation_source": "github-api-sanitized"
 }

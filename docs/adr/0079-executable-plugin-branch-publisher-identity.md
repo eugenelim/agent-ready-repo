@@ -142,6 +142,26 @@ errata supersede where noted. This ADR is Accepted → Frozen
   evidence is refused, and so is the interim publisher once evidence lands. The
   decision is unchanged; it is now sequenced.
 
+- **2026-08-12 — `prevent_self_review` is disabled; the gate was unsatisfiable.**
+  The *Decision* above specifies an environment that "requires owner approval"
+  together with self-review prevention. On a repository where one person merges
+  every change, that person is always the deployment's triggering actor, so
+  GitHub withholds the approval control from the only account that holds it —
+  and with `can_admins_bypass` false there is no override. The first real
+  publication after rollout sat in `waiting` with
+  `current_user_can_approve: false` and **could not be approved by anyone**.
+
+  The canary probes did not catch this because they minted an App token directly
+  rather than routing through the environment, so the approval path was never
+  exercised end to end until a live publish.
+
+  `prevent_self_review` is therefore now `false`. The reviewer requirement
+  stands: every publication still waits for a human to release it deliberately,
+  and `can_admins_bypass` stays `false` so the gate cannot be stepped around.
+  What is lost is the second pair of eyes, which a single-maintainer repository
+  could never actually supply. Restoring `true` requires a second trusted
+  reviewer account, and would otherwise reintroduce the deadlock.
+
 - **2026-08-12 — no internal identifier is recorded.** The *Confirmation*
   signal "sanitized live settings snapshots" is narrowed: the evidence artifact
   carries no App, installation, ruleset, account, or node ID. The three-way

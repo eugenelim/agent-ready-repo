@@ -24,7 +24,7 @@
       "main"
     ],
     "required_reviewers": 1,
-    "prevent_self_review": true,
+    "prevent_self_review": false,
     "allow_admin_bypass": false,
     "app_id_variable": "CLAUDE_PLUGIN_PUBLISHER_APP_ID",
     "private_key_secret": "CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY"
