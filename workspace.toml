@@ -399,6 +399,19 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # The publish job's environment gate asks a human to release executable plugin
+  # code adopters install, but GitHub's approval UI shows only the environment
+  # name and a comment box — nothing about what is being published. A summary
+  # step cannot fix it: `environment:` is job-level, so the whole job blocks on
+  # approval and nothing in it runs first. AC35 clause 3 also pins build and
+  # publish to one job, and constrains any cross-job artifact handoff to verify a
+  # producer-recorded digest before the token-bearing push. Fix: a SEPARATE
+  # non-gated workflow on the same push that posts a preview to the run summary —
+  # packs changed vs the current claude-plugins-dist, added/removed plugins, and
+  # any hook entries being registered. It feeds nothing into the publish job, so
+  # clause 3 is untouched; it only gives the approver something to read. Needs a
+  # spec note, since it changes what AC35's approval step means in practice.
+  {slug = "publish-approval-preview-summary", source = "spec/claude-plugin-hook-parity AC35"},
   # catalogue-tooling-ci-gates.yml Gate B builds a synthetic external catalogue
   # with `agentbundle catalogue build`, so an engine change can redden it while
   # every `make` target stays green — it did, on spec/claude-plugin-route-scope,
