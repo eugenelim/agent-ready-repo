@@ -40,7 +40,9 @@ PyPI release before downstream repos can consume them.
 
 After bumping: tag `agentbundle-vX.Y.Z` and push to PyPI via the standard release process.
 
-**Two-step closeout.** Marking a spec `Status: Shipped` and updating `workspace.toml` are post-publication changes — the PyPI artifact does not exist until after the version-bump PR merges. Do not include these in the version-bump PR; land them in a follow-on change after the release is confirmed.
+Every release-bearing change under `packages/` must update that package's `README-pypi.md`; do not tag while the checked-in PyPI description still describes the prior release.
+
+The version-bump PR may mark its spec `Shipped` and plan `Done`; update `workspace.toml` after publication is confirmed.
 
 ## No internal-governance markers in source
 

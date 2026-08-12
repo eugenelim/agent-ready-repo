@@ -420,6 +420,7 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "guides/**/*.md",
     "web/**",
     "profiles/**",
+    "tests/**",
     # Seeded-once / adopter-curated files (Manual semantics).
     "workspace.toml",  # Seeded once; adopter-curated thereafter
     # Manual seed-projected root path (amendment 2026-05-25). The subtree

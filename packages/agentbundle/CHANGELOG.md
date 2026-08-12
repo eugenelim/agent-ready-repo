@@ -6,6 +6,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.33.1] — 2026-08-12
+
+### Fixed
+
+- The self-host classifier now recognizes the repository-owned top-level
+  `tests/` tree, so catalogue verification no longer reports conformance,
+  roster, or fixture paths as unclassified.
+
 ## [0.33.0] — 2026-08-11
 
 ### Changed
