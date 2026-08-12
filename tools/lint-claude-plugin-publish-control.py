@@ -33,8 +33,39 @@ APP_IDENTITY_MARKERS = (
     "${{ vars.CLAUDE_PLUGIN_PUBLISHER_APP_ID }}",
     "${{ secrets.CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY }}",
 )
+APP_IDENTITY_MARKERS = APP_IDENTITY_MARKERS + (
+    "CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ steps.publisher-token.outputs.token }}",
+)
 INTERIM_IDENTITY_MARKERS = (
     "CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}",
+)
+
+# A write grant in block style (`  contents: write`), a quoted scalar
+# (`contents: 'write'`), or flow style (`{ contents: write }`). A bare
+# `"contents: write" in text` test also matched the token step's own
+# `permission-contents: write`; an unquoted-only anchor missed the quoted form.
+WRITE_GRANT = re.compile(
+    r"(?m)(?:^\s+|[{,]\s*)contents:\s*['\"]?write['\"]?\s*(?=$|[},#\s])"
+)
+PERSIST_CREDENTIALS_FALSE = re.compile(
+    r"(?m)^\s+persist-credentials:\s*['\"]?false['\"]?\s*(?:#.*)?$"
+)
+CHECKOUT_STEP = re.compile(r"uses:\s*actions/checkout@")
+
+# Every key the evidence artifact may carry. An allowlist, not a denylist: the
+# denylist was fail-open at the top level, which is the one place an unexpected
+# key survives `compare_evidence`'s exact-dict comparison of the known blocks.
+ALLOWED_EVIDENCE_KEYS = frozenset(
+    {
+        "version",
+        "branch",
+        "app",
+        "environment",
+        "identities_agree",
+        "canary",
+        "observed_at",
+        "observation_source",
+    }
 )
 
 
@@ -46,12 +77,17 @@ def detect_publisher_mode(workflow: str) -> str:
     last two are always violations: a publisher that names two identities, or
     none, cannot be reasoned about by the sequencing rule below.
     """
-    has_app = any(marker in workflow for marker in APP_IDENTITY_MARKERS)
+    present = [marker for marker in APP_IDENTITY_MARKERS if marker in workflow]
     has_interim = any(marker in workflow for marker in INTERIM_IDENTITY_MARKERS)
-    if has_app and has_interim:
+    if present and has_interim:
         return "mixed"
-    if has_app:
+    if len(present) == len(APP_IDENTITY_MARKERS):
         return "app"
+    if present:
+        # Some App markers but not all. Requiring every marker is what stops a
+        # publisher that merely names the protected environment while sourcing
+        # its token from an arbitrary secret from passing as the App identity.
+        return "incomplete-app"
     if has_interim:
         return "interim"
     return "unknown"
@@ -89,21 +125,31 @@ def validate_sequencing(workflow: str, evidence_present: bool) -> list[str]:
             "rollout (docs/guides/how-to/publisher-app-rollout.md) or restore "
             "the interim identity"
         )
-    # Anchor to a mapping key at line start. A bare substring test also matches
-    # the token step's own `permission-contents: write`, which is the App's
-    # requested installation scope, not a GITHUB_TOKEN grant.
-    grants_write = re.search(
-        r"(?m)^\s+contents:\s+write\s*(?:#.*)?$", workflow
-    )
-    if grants_write and mode == "app":
+    if mode == "incomplete-app":
+        missing = [m for m in APP_IDENTITY_MARKERS if m not in workflow]
+        errors.append(
+            "publisher workflow names the App identity only partially; "
+            f"missing {missing}. Naming the protected environment while "
+            "sourcing the token elsewhere is not the App identity"
+        )
+    if mode == "app" and WRITE_GRANT.search(workflow):
         errors.append(
             "App-token publisher must keep GITHUB_TOKEN read-only"
         )
-    if "persist-credentials: false" not in workflow:
+    # One `persist-credentials: false` per checkout step, matched as a mapping
+    # key rather than a substring: a bare test was satisfied by a comment, and a
+    # second checkout step omitting the option would leave the ambient token in
+    # .git/config for the rest of the job that later holds the publisher token.
+    checkouts = len(CHECKOUT_STEP.findall(workflow))
+    disclaimers = len(PERSIST_CREDENTIALS_FALSE.findall(workflow))
+    if checkouts and disclaimers < checkouts:
         errors.append(
-            "publisher checkout must not persist ambient credentials in either "
-            "identity mode"
+            f"{checkouts} checkout step(s) but {disclaimers} "
+            "`persist-credentials: false` setting(s); every checkout in the "
+            "publisher must refuse to persist ambient credentials"
         )
+    elif not checkouts:
+        errors.append("publisher workflow has no checkout step to constrain")
     return errors
 
 
@@ -147,6 +193,10 @@ def _has_publishable_hook_pack(root: Path) -> bool:
 # API returns alongside the structural state we do want.
 FORBIDDEN_IDENTIFIER_KEYS = (
     "actor_id",
+    "app_id",
+    "login",
+    "email",
+    "token",
     "app_id_value",
     "installation_id",
     "ruleset_id",
@@ -166,9 +216,15 @@ def _identifier_leaks(value: object, path: str = "evidence") -> list[str]:
     if isinstance(value, dict):
         for key, nested in value.items():
             here = f"{path}.{key}"
-            if key in FORBIDDEN_IDENTIFIER_KEYS or (
-                key == "id" and path != "evidence"
-            ):
+            # Top level is allowlisted: `compare_evidence` compares the known
+            # blocks by exact dict equality, so an unexpected key survives only
+            # here. Deeper levels use the denylist plus a bare `id`.
+            if path == "evidence" and key not in ALLOWED_EVIDENCE_KEYS:
+                errors.append(
+                    f"{here} is not an allowed evidence key; the artifact "
+                    f"carries exactly {sorted(ALLOWED_EVIDENCE_KEYS)}"
+                )
+            elif key in FORBIDDEN_IDENTIFIER_KEYS or key == "id":
                 errors.append(
                     f"{here} carries an internal identifier; evidence records "
                     "identities_agree, never the identifiers themselves"
@@ -213,10 +269,16 @@ def validate_desired(desired: dict) -> list[str]:
     app = desired.get("app")
     expected_app = {
         "installation_scope": "selected_repository",
-        "permissions": {"contents": "write"},
+        # metadata:read is mandatory and cannot be removed from a GitHub App;
+        # pinning the exact full map is what makes a broader installation — an
+        # added administration:read or secrets:read — fail the comparison.
+        "permissions": {"contents": "write", "metadata": "read"},
     }
     if app != expected_app:
-        errors.append("publisher app must be repository-scoped with only contents:write")
+        errors.append(
+            "publisher app must be repository-scoped with exactly "
+            "contents:write plus the mandatory metadata:read"
+        )
 
     environment = desired.get("environment")
     expected_environment = {
@@ -315,8 +377,24 @@ def main(argv: list[str] | None = None) -> int:
             errors.append(str(exc))
         else:
             errors.extend(compare_evidence(desired, evidence))
-    elif args.require_live_evidence or _has_publishable_hook_pack(args.root):
-        errors.append(f"live evidence is required but absent: {args.evidence}")
+    elif (
+        desired.get("control_status") == "decommissioned"
+        and not args.require_live_evidence
+    ):
+        # The only way to legitimately run without evidence: an explicit,
+        # reviewable edit to the committed contract in the same commit.
+        pass
+    else:
+        # Unconditional by default. Gating this on --require-live-evidence or on
+        # _has_publishable_hook_pack (still False while no user-capable pack
+        # ships hooks) meant a commit deleting the evidence file re-legalized the
+        # generic-Actions publisher with every gate green — exactly what AC36
+        # clause 4 forbids.
+        errors.append(
+            f"live evidence is required but absent: {args.evidence}. To stand "
+            "the control down, set control_status: decommissioned in the "
+            "desired-state file in the same commit"
+        )
 
     for error in errors:
         print(f"lint-claude-plugin-publish-control: {error}", file=sys.stderr)

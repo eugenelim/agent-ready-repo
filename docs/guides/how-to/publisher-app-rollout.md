@@ -14,17 +14,36 @@ may update `claude-plugins-dist`, the mutable branch adopters install executable
 plugin code from. The code half of that decision has shipped. The settings half
 — the App, the protected environment, and the branch ruleset — is this runbook.
 
-Until you finish it, two things are true and both are deliberate:
+> ### ✅ Completed 2026-08-12 — this procedure is now historical
+>
+> The rollout is done. The App is installed, the environment is configured, and an
+> active ruleset protects `refs/heads/claude-plugins-dist` with the App as its
+> only bypass actor. See the [ADR-0079
+> errata](../../adr/0079-executable-plugin-branch-publisher-identity.md#errata)
+> and the committed evidence at
+> `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`.
+>
+> **Do not run these steps against the live control.** Step 3 deletes a branch
+> and retargets the ruleset; step 5 restores a workflow shape that is already
+> in place. Follow this document only to rebuild the control from nothing — after
+> a key compromise, or when standing the same control up in another repository.
+> Read it end to end first.
 
-- The publisher runs with the generic Actions app (`contents: write`). That is
+While the rollout was outstanding, two things were true and both were deliberate:
+
+- The publisher ran with the generic Actions app (`contents: write`). That was
   the interim identity required by spec **AC36**, not an oversight.
-- `claude-plugins-dist` has **no ruleset**, so it is not yet protected from an
-  ordinary write. This is the exposure ADR-0079 exists to close.
+- `claude-plugins-dist` had **no ruleset**, so it was not protected from an
+  ordinary write. That was the exposure ADR-0079 exists to close.
 
 The ordering is mechanically enforced in both directions. You cannot ship the
 App-token workflow before the credentials exist, and once the evidence file
 lands, the interim workflow fails its own construction test — so the final step
 of this runbook is not optional bookkeeping, it is what makes CI green again.
+Deleting the evidence file does **not** re-open the interim state: the lint
+requires evidence unconditionally, and standing the control down means setting
+`control_status: decommissioned` in `.github/claude-plugin-publish-control.json`
+in the same commit.
 
 ## Before you start
 
@@ -78,10 +97,8 @@ which is late to discover a missed install.
 ## Step 2 — Configure the protected environment
 
 The environment already exists but holds nothing. Give it the policy ADR-0079
-specifies, then the credentials.
-
-The environment already exists but holds nothing. This whole step is scriptable
-— reviewer policy included.
+specifies, then the credentials. This whole step is scriptable — reviewer policy
+included.
 
 ```bash
 REPO=<owner/name>
@@ -186,25 +203,41 @@ sig=$(printf '%s.%s' "$header" "$payload" \
   | openssl dgst -sha256 -sign "$KEY" -binary | b64)
 JWT="$header.$payload.$sig"
 
-# Authenticating AS the App, so /repos/{repo}/installation is available here
-# (it is not available to the user token `gh` holds — that is why
-# capture-publish-control-evidence.py reads /user/installations instead).
-INSTALL_ID=$(curl -sf -H "Authorization: Bearer $JWT" \
+# Authenticating AS the App, so /repos/{repo}/installation is available here.
+# It is NOT available to the user token `gh` holds, which is why
+# capture-publish-control-evidence.py signs its own JWT for the same read.
+# Headers go in on stdin, never in argv: another local process can read
+# /proc/<pid>/cmdline, and this JWT can mint repository write tokens.
+auth_config() { printf 'header = "Authorization: Bearer %s"\n' "$JWT"; }
+
+INSTALL_ID=$(auth_config | curl -sf -K - \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/repos/$REPO/installation" | jq -r .id)
 
-APP_TOKEN=$(curl -sf -X POST -H "Authorization: Bearer $JWT" \
+APP_TOKEN=$(auth_config | curl -sf -K - -X POST \
   -H "Accept: application/vnd.github+json" \
   "https://api.github.com/app/installations/$INSTALL_ID/access_tokens" \
   | jq -r .token)
 
 git commit --allow-empty -m "canary: publisher app identity"
-git push "https://x-access-token:$APP_TOKEN@github.com/$REPO" \
-  HEAD:claude-plugins-dist-control-canary        # expect ACCEPTED
+
+# Push to `origin` with the token supplied as a Git config header in the child
+# environment — the same channel tools/catalogue/publish_claude_plugins.py uses
+# (`_git_auth_env`). A credential-bearing remote URL would land the token in
+# argv, in `.git/config`, and in git's error output.
+GIT_CONFIG_COUNT=1 \
+GIT_CONFIG_KEY_0="http.https://github.com/.extraheader" \
+GIT_CONFIG_VALUE_0="AUTHORIZATION: basic $(printf 'x-access-token:%s' \
+  "$APP_TOKEN" | openssl base64 -A)" \
+GIT_TERMINAL_PROMPT=0 \
+  git push origin HEAD:claude-plugins-dist-control-canary   # expect ACCEPTED
 ```
 
-That token expires in an hour and is scoped to `contents: write` on this
-repository only. Nothing needs to be stored.
+That token expires in an hour and carries the App's installation permissions on
+this repository only. Nothing needs to be stored. Note it is **not** narrowed the
+way CI's is — the publish workflow passes `permission-contents: write` when it
+mints, while this recipe takes the full installation set; keep the shell it lives
+in short-lived.
 
 > **If you would rather skip the JWT dance:** you can take the first successful
 > publish on the live branch (after step 5) as the positive signal instead, and
@@ -235,10 +268,11 @@ python3 tools/capture-publish-control-evidence.py \
 ```
 
 This writes `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`
-from live API state. Nothing secret reaches the artifact — only the App ID, which
-is a public identifier, plus structural booleans. The two canary outcomes are
-passed explicitly rather than inferred, so the evidence cannot confirm itself
-from a settings read.
+from live API state. The artifact carries **no identifier at all** — not the App
+ID, installation ID, ruleset ID, or account ID — only structural booleans and
+the asserted `identities_agree` verdict (AC36 clause 6). The two canary outcomes
+are passed explicitly rather than inferred, so the evidence cannot confirm
+itself from a settings read.
 
 The key is needed because the installation read is App-authenticated. There is no
 user-token route to it: `gh`'s OAuth token is refused by `/user/installations`

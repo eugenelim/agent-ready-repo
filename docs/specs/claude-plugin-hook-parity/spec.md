@@ -482,6 +482,15 @@ invalid one before it reaches `merge_json`.
      bypass actor, exact target, environment branch/reviewer policy, or either
      canary result makes the lint fail.
 
+     The snapshot is only valid for a ruleset that is **enforcing**. Capture
+     refuses a ruleset whose `enforcement` is not `active`, whose `target` is not
+     `branch`, or whose `conditions.ref_name.exclude` matches the protected ref —
+     each of those still lists its rules, so reporting protection from rule types
+     alone would certify an unprotected branch. Capture likewise refuses an
+     environment payload missing a protection field rather than defaulting it,
+     and records the App's **complete** permission map so an installation holding
+     `contents: write` plus any additional scope fails the comparison.
+
   The compiler may merge before the settings rollout, because no published pack
   currently ships hooks, but the feature cannot be marked Shipped and a
   hook-bearing user-capable pack cannot publish until all six items pass.

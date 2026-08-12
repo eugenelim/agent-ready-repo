@@ -107,10 +107,26 @@ def observe_branch(repo: str, target: str) -> dict:
     rulesets = _gh_api(f"repos/{repo}/rulesets")
     if not isinstance(rulesets, list):
         raise CaptureError("ruleset listing was not a JSON array")
+    inactive: list[str] = []
     for summary in rulesets:
         detail = _gh_api(f"repos/{repo}/rulesets/{summary['id']}")
         conditions = detail.get("conditions", {}).get("ref_name", {})
         if target not in conditions.get("include", []):
+            continue
+        # `enforcement` is the load-bearing word in "an ACTIVE ruleset targets
+        # exactly ..." (AC35 clause 1). A ruleset left in `evaluate` (dry-run)
+        # or flipped to `disabled` still lists its rules, so reporting from rule
+        # types alone would certify an unprotected branch as protected. Same for
+        # a matching `exclude`, which silently removes the target from scope.
+        name = str(detail.get("name"))
+        if detail.get("enforcement") != "active":
+            inactive.append(f"{name!r} is {detail.get('enforcement')!r}")
+            continue
+        if detail.get("target") != "branch":
+            inactive.append(f"{name!r} targets {detail.get('target')!r}")
+            continue
+        if target in (conditions.get("exclude") or []):
+            inactive.append(f"{name!r} excludes the target ref")
             continue
         rules = {rule["type"] for rule in detail.get("rules", [])}
         bypass = detail.get("bypass_actors", [])
@@ -131,6 +147,13 @@ def observe_branch(repo: str, target: str) -> dict:
                 "mode": actor.get("bypass_mode"),
             },
         }, actor.get("actor_id")
+    if inactive:
+        raise CaptureError(
+            f"a ruleset matches {target} but is not enforcing: "
+            + "; ".join(inactive)
+            + ". Set enforcement to Active and remove any exclude before "
+            "capturing evidence"
+        )
     raise CaptureError(
         f"no active ruleset targets {target}; create it before capturing "
         "evidence (runbook step 3)"
@@ -163,6 +186,11 @@ def observe_environment(repo: str) -> dict:
     variable = _gh_api(
         f"repos/{repo}/environments/{ENVIRONMENT_NAME}/variables/{APP_ID_VARIABLE}"
     )
+    if "can_admins_bypass" not in env:
+        raise CaptureError(
+            "the environment payload has no can_admins_bypass field; refusing "
+            "to record a protection that was never observed"
+        )
     return {
         "name": ENVIRONMENT_NAME,
         "deployment_branches": branches,
@@ -211,6 +239,16 @@ def _mint_app_jwt(app_id: object, key_path: Path) -> str:
     return f"{signing_input}.{_b64url(completed.stdout)}"
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse redirects so a bearer JWT is never forwarded to another host."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # noqa: D102
+        raise CaptureError(
+            f"refusing a {code} redirect to {newurl!r}; the App JWT must not "
+            "leave api.github.com"
+        )
+
+
 def _app_api(path: str, jwt: str) -> object:
     """Return parsed JSON from an App-authenticated (JWT) GitHub API read."""
     request = urllib.request.Request(
@@ -222,10 +260,13 @@ def _app_api(path: str, jwt: str) -> object:
         },
     )
     try:
-        # nosec B310 — the scheme is a fixed literal above, and every path
-        # segment interpolated into it is either a constant or a `--repo` value
-        # already constrained to `owner/name` by _validate_repo.
-        with urllib.request.urlopen(request, timeout=30) as response:  # nosec B310
+        # nosec B310 — the scheme is a fixed literal above, every interpolated
+        # path segment is a constant or a `--repo` value already constrained by
+        # _validate_repo, and redirects are refused outright. That last point
+        # matters: the default opener copies request headers across a redirect,
+        # which would forward this JWT to another host.
+        opener = urllib.request.build_opener(_NoRedirect)
+        with opener.open(request, timeout=30) as response:  # nosec B310
             return json.loads(response.read())
     except urllib.error.HTTPError as exc:
         if exc.code == 404 and path.endswith("/installation"):
@@ -255,11 +296,11 @@ def observe_app(repo: str, app_id: object, key_path: Path) -> dict:
             f"environment variable names {app_id!r}; they must be the same App"
         )
     installation = _app_api(f"repos/{repo}/installation", jwt)
-    permissions = {
-        key: value
-        for key, value in (installation.get("permissions") or {}).items()
-        if value == "write"
-    }
+    # The complete map, not just write scopes. Filtering to writes made an App
+    # holding contents:write PLUS administration:read or secrets:read compare
+    # equal to the desired set, so "a broader installation is refused" was false
+    # for every read scope.
+    permissions = dict(installation.get("permissions") or {})
     selection = installation.get("repository_selection")
     return {
         "installation_scope": (

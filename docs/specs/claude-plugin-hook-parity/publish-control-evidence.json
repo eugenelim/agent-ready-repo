@@ -14,7 +14,8 @@
   "app": {
     "installation_scope": "selected_repository",
     "permissions": {
-      "contents": "write"
+      "contents": "write",
+      "metadata": "read"
     }
   },
   "environment": {
@@ -35,6 +36,6 @@
     "publisher_app_update": "accepted",
     "live_branch_negative_tested": false
   },
-  "observed_at": "2026-08-12T14:46:53.555406+00:00",
+  "observed_at": "2026-08-12T15:50:59.127353+00:00",
   "observation_source": "github-api-sanitized"
 }

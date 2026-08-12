@@ -307,12 +307,18 @@ def main() -> int:
         "permissions:\n  contents: read\n"
         "    environment: claude-plugin-publish\n"
         "      - uses: actions/create-github-app-token@" + "0" * 40 + "\n"
+        "          app-id: ${{ vars.CLAUDE_PLUGIN_PUBLISHER_APP_ID }}\n"
+        "          private-key: ${{ secrets.CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY }}\n"
         "          permission-contents: write\n"
+        "          CLAUDE_PLUGIN_PUBLISH_TOKEN: "
+        "${{ steps.publisher-token.outputs.token }}\n"
+        "      - uses: actions/checkout@" + "0" * 40 + "\n"
         "        persist-credentials: false\n"
     )
     interim_shape = (
         "permissions:\n  contents: write\n"
         "          CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n"
+        "      - uses: actions/checkout@" + "0" * 40 + "\n"
         "        persist-credentials: false\n"
     )
     _check("minting an app token without provisioning evidence is refused",

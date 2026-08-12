@@ -14,7 +14,8 @@
   "app": {
     "installation_scope": "selected_repository",
     "permissions": {
-      "contents": "write"
+      "contents": "write",
+      "metadata": "read"
     }
   },
   "environment": {

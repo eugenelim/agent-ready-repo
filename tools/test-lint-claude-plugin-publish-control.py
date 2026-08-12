@@ -172,12 +172,18 @@ def main() -> int:
         "permissions:\n  contents: read\n"
         "    environment: claude-plugin-publish\n"
         "      - uses: actions/create-github-app-token@" + "0" * 40 + "\n"
+        "          app-id: ${{ vars.CLAUDE_PLUGIN_PUBLISHER_APP_ID }}\n"
+        "          private-key: ${{ secrets.CLAUDE_PLUGIN_PUBLISHER_PRIVATE_KEY }}\n"
         "          permission-contents: write\n"
+        "          CLAUDE_PLUGIN_PUBLISH_TOKEN: "
+        "${{ steps.publisher-token.outputs.token }}\n"
+        "      - uses: actions/checkout@" + "0" * 40 + "\n"
         "        persist-credentials: false\n"
     )
     interim_workflow = (
         "permissions:\n  contents: write\n"
         "          CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n"
+        "      - uses: actions/checkout@" + "0" * 40 + "\n"
         "        persist-credentials: false\n"
     )
     check(
@@ -220,14 +226,80 @@ def main() -> int:
     check(
         "a persisted-credential checkout fails in either identity",
         bool(lint.validate_sequencing(
-            interim_workflow.replace("        persist-credentials: false\n", ""),
+            interim_workflow.replace("        persist-credentials: false\n", "", 1),
             False,
         ))
         and bool(lint.validate_sequencing(
-            app_workflow.replace("        persist-credentials: false\n", ""),
+            app_workflow.replace("        persist-credentials: false\n", "", 1),
             True,
         )),
     )
+
+    partial_app = (
+        "permissions:\n  contents: read\n"
+        "    environment: claude-plugin-publish\n"
+        "          CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.MY_PAT }}\n"
+        "      - uses: actions/checkout@" + "0" * 40 + "\n"
+        "        persist-credentials: false\n"
+    )
+    check(
+        "a partial app identity is detected as incomplete-app",
+        lint.detect_publisher_mode(partial_app) == "incomplete-app",
+    )
+    check(
+        "a partial app identity fails sequencing in both provisioning states",
+        bool(lint.validate_sequencing(partial_app, True))
+        and bool(lint.validate_sequencing(partial_app, False)),
+    )
+    check(
+        "a quoted write grant is caught alongside the app identity",
+        bool(lint.validate_sequencing(
+            app_workflow.replace(
+                "permissions:\n  contents: read\n",
+                "permissions:\n  contents: read\n    permissions:\n"
+                "      contents: 'write'\n",
+            ),
+            True,
+        )),
+    )
+    check(
+        "a flow-style write grant is caught",
+        bool(lint.WRITE_GRANT.search("permissions: { contents: write }\n")),
+    )
+    check(
+        "the token step's permission-contents is not read as a write grant",
+        not lint.WRITE_GRANT.search("          permission-contents: write\n"),
+    )
+    check(
+        "a commented-out persist-credentials does not satisfy the check",
+        bool(lint.validate_sequencing(
+            interim_workflow.replace(
+                "        persist-credentials: false\n",
+                "      # persist-credentials: false is set below\n",
+            ),
+            False,
+        )),
+    )
+    check(
+        "a second checkout without the option fails",
+        bool(lint.validate_sequencing(
+            interim_workflow + "      - uses: actions/checkout@" + "1" * 40 + "\n",
+            False,
+        )),
+    )
+    check(
+        "a workflow with no checkout step fails",
+        bool(lint.validate_sequencing(
+            "permissions:\n  contents: write\n"
+            "          CLAUDE_PLUGIN_PUBLISH_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n",
+            False,
+        )),
+    )
+    for key in ("app_id", "login", "email", "token", "surprise_field"):
+        check(
+            f"a top-level {key} in evidence fails",
+            bool(lint._identifier_leaks({key: "x"})),
+        )
 
     # The sequencing rule reaches the CLI, not just the helper: a workflow that
     # cannot authenticate must turn the gate that runs inside the publish job red.
@@ -253,9 +325,11 @@ def main() -> int:
             )
             == 1,
         )
+        # Deleting the evidence file must NOT re-legalize the interim
+        # publisher: that is the mode switch AC36 clause 4 forbids.
         workflow_path.write_text(interim_workflow, encoding="utf-8")
         check(
-            "lint CLI accepts the interim workflow with no evidence",
+            "lint CLI refuses missing evidence even for the interim workflow",
             lint.main(
                 [
                     "--desired",
@@ -268,7 +342,52 @@ def main() -> int:
                     str(workflow_path),
                 ]
             )
+            == 1,
+        )
+        # The one legal no-evidence state: an explicit, reviewable opt-out in
+        # the committed contract, paired with the interim identity.
+        decommissioned = copy.deepcopy(desired)
+        decommissioned["control_status"] = "decommissioned"
+        decom_path = root / "decommissioned.json"
+        decom_path.write_text(json.dumps(decommissioned), encoding="utf-8")
+        check(
+            "decommissioned contract + interim workflow is accepted",
+            lint.main(
+                [
+                    "--desired", str(decom_path),
+                    "--evidence", str(root / "absent.json"),
+                    "--root", str(root),
+                    "--workflow", str(workflow_path),
+                ]
+            )
             == 0,
+        )
+        app_path = root / "app.yml"
+        app_path.write_text(app_workflow, encoding="utf-8")
+        check(
+            "decommissioned contract still refuses the app workflow",
+            lint.main(
+                [
+                    "--desired", str(decom_path),
+                    "--evidence", str(root / "absent.json"),
+                    "--root", str(root),
+                    "--workflow", str(app_path),
+                ]
+            )
+            == 1,
+        )
+        check(
+            "--require-live-evidence overrides the decommission opt-out",
+            lint.main(
+                [
+                    "--desired", str(decom_path),
+                    "--evidence", str(root / "absent.json"),
+                    "--root", str(root),
+                    "--workflow", str(workflow_path),
+                    "--require-live-evidence",
+                ]
+            )
+            == 1,
         )
 
     if failures:
