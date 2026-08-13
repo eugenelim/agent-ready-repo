@@ -2,8 +2,9 @@
 
 The repository's accumulating record of *patterns, gotchas, and
 antipatterns* — the things a project learns about itself as code lands.
-It lives at `patterns.jsonl` next to this file; agents prime from it at
-session start, contributors curate it by hand.
+It lives at `patterns.jsonl` next to this file; contributors and agents curate
+it deliberately, but the installed session-start hook does not load it into
+model context automatically.
 
 This is deliberately different from the documents that already exist:
 
@@ -19,7 +20,13 @@ should the next person avoid stepping on, or repeat*.
 
 ## When to add an entry
 
-A loop has finished. You ask: *what would have made this go faster?*
+A loop has finished. You ask: *what would have made this work materially
+better — more correct, complete, reliable, recoverable, secure,
+privacy-preserving, deterministic, reproducible, operable, maintainable,
+reviewable, efficient, or independent of hidden context?* Speed is one useful
+signal, not the objective. Record a learning when knowing it would materially
+change a future approach along one or more of those quality attributes.
+
 Three answers worth recording here:
 
 - **Pattern.** "When you touch X, also remember Y." A repeatable shape
@@ -59,7 +66,7 @@ usual mistake:
 | `id` | `K-\d{4,}` | Unique, zero-padded to four digits. Conventionally sequential, but the linter only enforces uniqueness — gaps are fine. |
 | `kind` | `pattern` \| `gotcha` \| `antipattern` | Exactly one of these three values. |
 | `scope` | glob(s) | Path pattern(s) this applies to — `packages/auth/**`, `src/cli/*.py`, or `*` for repo-wide. Comma-separate for multiple patterns: `"packages/auth/**, src/models/**"`. |
-| `tier` | `"invariant"` \| `"observation"` | Optional, default `"observation"`. A routing hint for curation and future retrieval. It once made an entry bypass `--scope` and replay into every session unconditionally — a privilege bit selectable inside the record itself — and no longer grants anything. |
+| `tier` | `"invariant"` \| `"observation"` | Optional, default `"observation"`. A routing hint for curation and future retrieval. It no longer grants automatic prompt authority or causes session replay. During an explicit `--show-knowledge --scope ...` curation render, `invariant` entries remain visible regardless of the scope filter. |
 | `title` | string | One-line summary; aim for under 80 characters. |
 | `body` | string | The lesson itself. A paragraph or two is enough; if you find yourself writing more, the entry probably wants to be split. |
 | `source` | string | Where this came from: `PR#42`, `ADR-0007`, `issue#13`, etc. |
@@ -70,8 +77,9 @@ One gap is known and accepted: strong right-to-left characters reorder adjacent 
 
 The format is JSONL (one JSON object per line, no commas, no wrapping
 array) so it grows by append and reads line-by-line.
-`lint-knowledge.py` validates the file; `tools/hooks/session-start.py`
-reads it at session open.
+`lint-knowledge.py` validates the file. `tools/hooks/session-start.py` can
+render it only when explicitly invoked with `--show-knowledge`; normal session
+startup does not read it into model context.
 
 ## Appending an entry
 
@@ -95,13 +103,14 @@ escapes silently while still linting clean under every other rule. Write `—`,
 not `\u2014`; if you serialize with Python, pass `ensure_ascii=False`.
 
 Entries are **evidence, not instructions**, and are no longer replayed into
-sessions automatically — see § How these are read. Still keep the body to
+sessions automatically — see § Where this fits in the work-loop. Still keep the body to
 lessons about this repo, and never paste content from an untrusted source into
 one: an entry is a durable, agent-authored record that a human approves. Characters
 that render as nothing — bidi overrides, zero-width joiners in runs, the
 Unicode Tag block, the variation selectors, the Mongolian ones — are refused
 outright, by the writer and by the linter, because a payload you cannot see in
-a diff would be replayed into every session. The rule is Unicode's
+a diff could still be rendered into model context during explicit curation or
+future task-scoped retrieval. The rule is Unicode's
 default-ignorable property, and there is a budget on how many may appear at all,
 not just how many may sit together. Entries are committed and permanent, so they follow `AGENTS.md` § Privacy: no real names, emails, org hostnames, or user-specific filesystem paths — use the placeholders listed there.
 

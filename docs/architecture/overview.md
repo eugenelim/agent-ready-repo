@@ -24,6 +24,7 @@
 │   ├── adr/              # architecture decisions (frozen history)
 │   ├── specs/            # feature specs and plans
 │   ├── architecture/     # this directory — internals for contributors
+│   ├── knowledge/        # living practitioner observations captured by core
 │   ├── product/          # roadmap + changelog
 │   └── guides/           # maintainer-only tooling and repository guidance
 ├── web/                  # authored marketing and catalogue site
@@ -95,6 +96,10 @@ One file per non-trivial subsystem:
   (env / OS keyring / `~/.agentbundle/credentials.env`), the four
   brokers (`creds` / `env` / `cli` / `sso-cookie`), the
   credentialed-primitive contract, and the substring trap.
+- [`knowledge-capture.md`](knowledge-capture.md) — the `core` pack's current
+  capture and read boundaries plus the layered target lifecycle: shared
+  candidates, topic distillation, file-based storage, explicit enquiry, and
+  optional cross-project promotion.
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md)
   — proposed target architecture for routing work intake between intents,
   briefs, specs, trackers, and `workspace.toml`; an input to follow-on

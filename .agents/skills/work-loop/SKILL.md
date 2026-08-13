@@ -469,7 +469,14 @@ Refuse to declare done until every item is true. (**Light mode:** `quality-engin
 
 ## Capture learnings
 
-Before the PR is opened: *What would have made this loop go faster?*
+Before the PR is opened: *What would have made this work materially better —
+more correct, complete, reliable, recoverable, secure, privacy-preserving,
+deterministic, reproducible, operable, maintainable, reviewable, efficient, or
+independent of hidden context?*
+
+Speed is one useful signal, not the objective. Capture a learning when knowing
+it would materially change a future approach along one or more of those quality
+attributes.
 
 Write the **generalizable lesson**, not the incident report. Strip PR details; write what you'd tell a new team member. If the only thing you can write is "in PR#42 we had to…", it's not ready.
 
