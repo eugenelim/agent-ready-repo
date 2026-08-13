@@ -12,19 +12,33 @@ Here we implement it:
   - Tier-3 — every path the state file does not record under any pack.
             Read-only to the CLI.
 
-`write_jailed` is the only sanctioned write call. Every command that
-writes routes through it so the path-jail check (refusal of any
-`../`-style escape from the configured root) is non-optional.
+`write_jailed` and `write_files_no_follow` are the sanctioned write calls,
+and they do **not** offer the same guarantees. Commands route through the
+primitive that matches their write shape:
+
+  - `write_jailed` — root-confined. Refuses any `../`-style escape from the
+    configured root. Use it for every path derived from pack or catalogue
+    content.
+  - `write_files_no_follow` — link refusal only, **no root confinement**. It
+    writes wherever the caller points, so it is for operator-designated
+    output directories (an explicit `--output` argument) and nothing else.
+    A caller holding an untrusted `output_dir` must `assert_under` a root
+    first.
 """
 
 from __future__ import annotations
 
+import contextlib
 import enum
+import errno
 import hashlib
 import os
 import re as _re
+import secrets
 import shutil
+import stat
 import tempfile
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Iterable
 
@@ -397,6 +411,389 @@ def write_jailed(
         tmp.unlink(missing_ok=True)
         raise
     return target.resolve()
+
+
+def _is_reparse_point(path_stat: os.stat_result) -> bool:
+    """Return whether *path_stat* represents a Windows reparse point.
+
+    Canonical definition for the package — ``build.projection_io`` imports
+    this rather than keeping a second copy, so a fix to junction detection
+    lands in exactly one place.
+    """
+    attributes = getattr(path_stat, "st_file_attributes", 0)
+    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
+    return bool(attributes & reparse_flag)
+
+
+def _secure_dir_fd_available() -> bool:
+    """Return whether descriptor-anchored no-follow writes are supported.
+
+    Split out as a named function so tests can force the portable branch on
+    a POSIX host; the fallback ships to Windows adopters and would otherwise
+    never execute under CI.
+    """
+    return os.name == "posix" and all(
+        hasattr(os, flag) for flag in ("O_DIRECTORY", "O_NOFOLLOW")
+    )
+
+
+def _validate_flat_batch_name(name: str) -> None:
+    """Require one portable filename with no path syntax."""
+    if not name or name in {".", ".."} or "/" in name or "\\" in name:
+        raise PathJailError(f"refusing unsafe output filename: {name!r}")
+    if Path(name).name != name:
+        raise PathJailError(f"refusing non-flat output filename: {name!r}")
+    assert_portable_name(name)
+
+
+def _prepare_batch_directory_portable(output_dir: Path) -> Path:
+    """Create the resolved *output_dir*, refusing a link/reparse leaf."""
+    resolved = _resolve_batch_ancestors(output_dir)
+    try:
+        try:
+            existing_stat = resolved.lstat()
+        except FileNotFoundError:
+            existing_stat = None
+        if existing_stat is not None and (
+            stat.S_ISLNK(existing_stat.st_mode) or _is_reparse_point(existing_stat)
+        ):
+            raise ValueError("output directory is a symlink or reparse point")
+        resolved.mkdir(parents=True, exist_ok=True)
+        output_stat = resolved.lstat()
+    except ValueError:
+        raise
+    except OSError as exc:
+        raise WriteError(f"cannot prepare output directory: {exc}") from exc
+    if stat.S_ISLNK(output_stat.st_mode) or _is_reparse_point(output_stat):
+        raise ValueError("output directory is a symlink or reparse point")
+    if not stat.S_ISDIR(output_stat.st_mode):
+        raise ValueError("output path is not a regular directory")
+    return resolved
+
+
+def _resolve_batch_ancestors(output_dir: Path) -> Path:
+    """Resolve *output_dir*'s ancestors while refusing a linked final component.
+
+    AC9 scopes link refusal to ``output_dir`` itself and to existing
+    destinations. Refusing every symlinked *ancestor* additionally breaks
+    ordinary paths — ``/tmp`` is a symlink to ``private/tmp`` on macOS, and
+    a symlinked ``$HOME`` or checkout does the same on Linux — so ancestors
+    are resolved normally and only the leaf is held to lstat.
+    """
+    if output_dir.is_symlink():
+        raise ValueError("output directory is a symlink or reparse point")
+    parent = output_dir.absolute().parent
+    return parent.resolve() / output_dir.name
+
+
+def _open_or_create_batch_directory_posix(absolute: Path) -> int:
+    """Open/create every POSIX directory component without following links.
+
+    *absolute* must already have come through :func:`_resolve_batch_ancestors`,
+    so any symlink encountered during the walk appeared after resolution and
+    is refused — the descriptor stays anchored for the whole write phase.
+    """
+    directory_flags = (
+        os.O_RDONLY
+        | os.O_DIRECTORY
+        | os.O_NOFOLLOW
+        | getattr(os, "O_CLOEXEC", 0)
+    )
+    try:
+        directory_fd = os.open(absolute.anchor, directory_flags)
+    except OSError as exc:
+        raise WriteError("cannot open output path root safely") from exc
+
+    try:
+        for part in absolute.parts[1:]:
+            try:
+                component_stat = os.stat(
+                    part, dir_fd=directory_fd, follow_symlinks=False
+                )
+            except FileNotFoundError:
+                try:
+                    os.mkdir(part, dir_fd=directory_fd)
+                except FileExistsError:
+                    pass
+                except OSError as exc:
+                    raise WriteError("cannot create output directory safely") from exc
+                try:
+                    component_stat = os.stat(
+                        part, dir_fd=directory_fd, follow_symlinks=False
+                    )
+                except OSError as exc:
+                    raise WriteError("cannot inspect output directory safely") from exc
+
+            if stat.S_ISLNK(component_stat.st_mode) or _is_reparse_point(
+                component_stat
+            ):
+                raise ValueError("output path contains a symlink or reparse point")
+            if not stat.S_ISDIR(component_stat.st_mode):
+                raise ValueError("output path contains a non-directory component")
+
+            try:
+                child_fd = os.open(part, directory_flags, dir_fd=directory_fd)
+            except OSError as exc:
+                raise WriteError("cannot open output directory safely") from exc
+            os.close(directory_fd)
+            directory_fd = child_fd
+        return directory_fd
+    except Exception:
+        os.close(directory_fd)
+        raise
+
+
+def _preflight_destination_stat(
+    destination_stat: os.stat_result, *, name: str
+) -> None:
+    """Refuse a link/reparse point or non-regular existing destination."""
+    if stat.S_ISLNK(destination_stat.st_mode) or _is_reparse_point(destination_stat):
+        raise ValueError(f"destination {name!r} is a symlink or reparse point")
+    if not stat.S_ISREG(destination_stat.st_mode):
+        raise ValueError(f"destination {name!r} is not a regular file")
+
+
+def _write_all(fd: int, content: bytes) -> None:
+    """Write all bytes to an open file descriptor.
+
+    Canonical definition for the package — ``build.projection_io`` imports
+    this rather than keeping a second copy.
+    """
+    view = memoryview(content)
+    while view:
+        written = os.write(fd, view)
+        if written == 0:
+            raise WriteError(errno.EIO, "write made no progress")
+        view = view[written:]
+
+
+def _write_files_posix(
+    output_dir: Path,
+    files: list[tuple[str, bytes]],
+    directory_fd: int,
+    mode: int,
+) -> list[Path]:
+    """Write a preflighted batch relative to one held POSIX directory fd."""
+    temporary_names: list[str] = []
+    pending_temporary_names: set[str] = set()
+    try:
+        if not stat.S_ISDIR(os.fstat(directory_fd).st_mode):
+            raise ValueError("output path is not a regular directory")
+
+        before: dict[str, tuple[int, int, int] | None] = {}
+        for name, _content in files:
+            try:
+                destination_stat = os.stat(
+                    name, dir_fd=directory_fd, follow_symlinks=False
+                )
+            except FileNotFoundError:
+                before[name] = None
+            else:
+                _preflight_destination_stat(destination_stat, name=name)
+                before[name] = (
+                    destination_stat.st_dev,
+                    destination_stat.st_ino,
+                    destination_stat.st_mode,
+                )
+
+        for name, content in files:
+            for _attempt in range(100):
+                temporary_name = f".{name}.{secrets.token_hex(8)}.tmp"
+                try:
+                    temporary_fd = os.open(
+                        temporary_name,
+                        os.O_WRONLY
+                        | os.O_CREAT
+                        | os.O_EXCL
+                        | os.O_NOFOLLOW
+                        | getattr(os, "O_CLOEXEC", 0),
+                        0o600,
+                        dir_fd=directory_fd,
+                    )
+                except FileExistsError:
+                    continue
+                break
+            else:
+                raise WriteError("cannot allocate a unique temporary output file")
+
+            temporary_names.append(temporary_name)
+            pending_temporary_names.add(temporary_name)
+            try:
+                _write_all(temporary_fd, content)
+                os.fchmod(temporary_fd, mode)
+            finally:
+                os.close(temporary_fd)
+
+        # Revalidate the complete destination set after every temporary file exists
+        # and before the first public contract is replaced.
+        for name, expected in before.items():
+            try:
+                current_stat = os.stat(
+                    name, dir_fd=directory_fd, follow_symlinks=False
+                )
+            except FileNotFoundError:
+                current = None
+            else:
+                _preflight_destination_stat(current_stat, name=name)
+                current = (current_stat.st_dev, current_stat.st_ino, current_stat.st_mode)
+            if current != expected:
+                raise ValueError(f"destination {name!r} changed during export preflight")
+
+        written: list[Path] = []
+        for temporary_name, (name, _content) in zip(
+            temporary_names, files, strict=True
+        ):
+            try:
+                os.replace(
+                    temporary_name,
+                    name,
+                    src_dir_fd=directory_fd,
+                    dst_dir_fd=directory_fd,
+                )
+            except OSError as exc:
+                # Name the split point: earlier entries are already replaced.
+                raise WriteError(f"cannot export {name!r}: {exc}") from exc
+            pending_temporary_names.remove(temporary_name)
+            written.append(output_dir / name)
+        return written
+    except WriteError:
+        raise  # already carries the specific failing filename
+    except OSError as exc:
+        raise WriteError(f"cannot export files safely: {exc}") from exc
+    finally:
+        # Close the descriptor even if cleanup raises, and never let a
+        # cleanup error replace the original security exception.
+        try:
+            for temporary_name in pending_temporary_names:
+                with contextlib.suppress(OSError):
+                    os.unlink(temporary_name, dir_fd=directory_fd)
+        finally:
+            os.close(directory_fd)
+
+
+def _assert_directory_not_link(path: Path) -> None:
+    """Refuse a symlink or reparse point at *path* itself.
+
+    Ancestors are resolved by :func:`_resolve_batch_ancestors` before this
+    runs, so a link appearing here appeared after resolution — which is the
+    race this revalidation exists to catch.
+    """
+    try:
+        path_stat = path.lstat()
+    except FileNotFoundError:
+        return
+    if stat.S_ISLNK(path_stat.st_mode) or _is_reparse_point(path_stat):
+        raise ValueError("output path contains a symlink or reparse point")
+
+
+def _write_files_portable(
+    output_dir: Path, files: list[tuple[str, bytes]], mode: int
+) -> list[Path]:
+    """Portable fallback revalidating the output directory around every phase.
+
+    Unlike the POSIX branch this cannot hold a descriptor, so it revalidates
+    rather than anchors: a local attacker racing the window between
+    revalidation and replacement is detected, not prevented. Callers that
+    need prevention must run on POSIX.
+    """
+    _assert_directory_not_link(output_dir)
+    before: dict[str, tuple[int, int, int] | None] = {}
+    for name, _content in files:
+        destination = output_dir / name
+        try:
+            destination_stat = destination.lstat()
+        except FileNotFoundError:
+            before[name] = None
+        else:
+            _preflight_destination_stat(destination_stat, name=name)
+            before[name] = (
+                destination_stat.st_dev,
+                destination_stat.st_ino,
+                destination_stat.st_mode,
+            )
+
+    temporary_paths: list[Path] = []
+    pending_temporary_paths: set[Path] = set()
+    try:
+        for name, content in files:
+            descriptor, temporary_raw = tempfile.mkstemp(
+                prefix=f".{name}.", suffix=".tmp", dir=output_dir
+            )
+            temporary = Path(temporary_raw)
+            temporary_paths.append(temporary)
+            pending_temporary_paths.add(temporary)
+            try:
+                _write_all(descriptor, content)
+                os.fchmod(descriptor, mode)
+            finally:
+                os.close(descriptor)
+
+        _assert_directory_not_link(output_dir)
+        for name, expected in before.items():
+            destination = output_dir / name
+            try:
+                destination_stat = destination.lstat()
+            except FileNotFoundError:
+                current = None
+            else:
+                _preflight_destination_stat(destination_stat, name=name)
+                current = (
+                    destination_stat.st_dev,
+                    destination_stat.st_ino,
+                    destination_stat.st_mode,
+                )
+            if current != expected:
+                raise ValueError(f"destination {name!r} changed during export preflight")
+
+        written: list[Path] = []
+        for temporary, (name, _content) in zip(temporary_paths, files, strict=True):
+            _assert_directory_not_link(output_dir)
+            try:
+                temporary.replace(output_dir / name)
+            except OSError as exc:
+                raise WriteError(f"cannot export {name!r}: {exc}") from exc
+            pending_temporary_paths.remove(temporary)
+            written.append(output_dir / name)
+        return written
+    except WriteError:
+        raise  # already carries the specific failing filename
+    except OSError as exc:
+        raise WriteError(f"cannot export files safely: {exc}") from exc
+    finally:
+        for temporary in pending_temporary_paths:
+            with contextlib.suppress(OSError):
+                temporary.unlink()
+
+
+def write_files_no_follow(
+    output_dir: Path, files: Mapping[str, bytes], *, mode: int = 0o644
+) -> list[Path]:
+    """Atomically replace a flat file batch without following link targets.
+
+    Every filename and existing destination is preflighted before any public
+    destination changes. POSIX holds the output-directory descriptor across
+    preflight, temporary creation, and replacement. Other platforms revalidate
+    the output directory before replacement — detection, not prevention,
+    against a local attacker racing that window.
+
+    Provides link refusal only. It performs **no root confinement**: callers
+    holding an untrusted *output_dir* must ``assert_under`` a root first.
+
+    *mode* is applied to each written file; the default is readable so an
+    exported reference copy is usable from a shared directory.
+    """
+    # Snapshot once. `Mapping` promises no stable iteration order, and the
+    # writers pair content to filenames positionally — re-iterating could
+    # silently write one entry's bytes under another entry's name.
+    ordered = list(files.items())
+    for name, _content in ordered:
+        _validate_flat_batch_name(name)
+    if _secure_dir_fd_available():
+        resolved = _resolve_batch_ancestors(output_dir)
+        directory_fd = _open_or_create_batch_directory_posix(resolved)
+        return _write_files_posix(resolved, ordered, directory_fd, mode)
+    resolved = _prepare_batch_directory_portable(output_dir)
+    return _write_files_portable(resolved, ordered, mode)
 
 
 _PACK_PRIMITIVE_TYPES: tuple[str, ...] = (

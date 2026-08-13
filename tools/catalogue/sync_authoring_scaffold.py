@@ -101,6 +101,42 @@ def _check(verbose: bool) -> list[str]:
             drifts.append(rel)
             if verbose:
                 print(f"  DRIFT: {rel}")
+    drifts.extend(_check_manifest(verbose=verbose))
+    return drifts
+
+
+def _check_manifest(*, verbose: bool = False) -> list[str]:
+    """Report drift between manifest.json's hashes and the projected files.
+
+    Content equality between the repo root and _data/ is not sufficient:
+    `agentbundle catalogue init` verifies these recorded SHA-256s at adopter
+    runtime and fails init on a mismatch, so a stale manifest breaks adopters
+    while a content-only check reports "ok".
+    """
+    manifest_path = _DATA_ROOT / "manifest.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        if verbose:
+            print("  DRIFT: manifest.json is missing")
+        return ["manifest.json (missing)"]
+    except (OSError, json.JSONDecodeError):
+        if verbose:
+            print("  DRIFT: manifest.json is unreadable")
+        return ["manifest.json (unreadable)"]
+
+    recorded = manifest.get("files", {})
+    expected = {
+        rel: hashlib.sha256((_DATA_ROOT / rel).read_bytes()).hexdigest()
+        for _src, rel in _SYNC_PAIRS
+        if (_DATA_ROOT / rel).exists()
+    }
+    drifts = []
+    for rel in sorted(set(recorded) | set(expected)):
+        if recorded.get(rel) != expected.get(rel):
+            drifts.append(f"manifest.json:{rel}")
+            if verbose:
+                print(f"  DRIFT: manifest.json hash for {rel}")
     return drifts
 
 

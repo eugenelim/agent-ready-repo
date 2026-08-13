@@ -1,0 +1,12 @@
+adapter.schema.json
+adapter.toml
+catalogue.schema.json
+guide.schema.json
+marketplace-entry.schema.json
+pack.schema.json
+plugin-manifest.derived.schema.json
+plugin-manifest.schema.json
+profile.schema.json
+skill-manifest.schema.json
+skill.schema.json
+target-vocab.toml

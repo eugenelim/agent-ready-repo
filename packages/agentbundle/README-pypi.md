@@ -14,17 +14,25 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
-## What's new in 0.33.3
+## What's new in 0.34.0
 
-`agentbundle catalogue self-host --write` now updates writable existing files
-without attempting owner-only timestamp or mode changes. This supports CI and
-development checkouts where projected files are owned by a different user;
-ownership, inode, and mode remain intact, while `--check` continues to report
-mode drift that the writer cannot repair.
+Inspect the exact public contracts bundled with the installed AgentBundle
+version without network access:
 
-The Windows compatibility command covers AgentBundle and pack portability;
-CredBroker maintainers should run that package's test suite separately on
-Windows.
+```bash
+agentbundle catalogue contracts list
+agentbundle catalogue contracts show pack.schema.json
+agentbundle catalogue contracts export --output ./reference-contracts
+```
+
+`list` and `show` are read-only. `export` writes reference copies through a
+no-follow, preflighted batch writer; those copies do not override the contracts
+AgentBundle uses for validation.
+
+Successful `agentbundle catalogue init` output now points to the scaffolded
+`guides/_shared/reference/catalogue-authoring-standards.md`, contract discovery,
+and catalogue verification. The guide's bundled-contract section documents all
+three commands. JSON init output remains unchanged.
 
 **Install into a repo** — so everyone who clones it gets the pack. `core` is the flagship pack, the loop itself:
 
@@ -242,6 +250,10 @@ agentbundle catalogue init --target /path/to/new-catalogue
 ```
 
 Scaffolds `catalogue.toml`, the required directory tree (`packs/`, `profiles/`, `contracts/`, `.claude-plugin/`), and a starter `marketplace.json`. Skips files that already exist; reports conflicts without overwriting. Pass `--dry-run` to preview.
+
+After initialization, use `agentbundle catalogue contracts list` to find the
+contract names bundled with your installed version. `show` prints one contract;
+`export --output <dir>` copies the full public set for offline reference.
 
 **Bootstrap a self-hosted enterprise catalogue** from an existing source:
 

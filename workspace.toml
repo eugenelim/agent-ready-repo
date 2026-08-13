@@ -1925,21 +1925,14 @@ shipped = [
   "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate
   "spec/catalogue-wave2-pack-integrations",     # 0.27.0 — D6 integrations schema + verifier + show + pilots + hub
   "spec/documentation-entry-navigation",        # current-route hub-and-spoke README, marketing, docs, guide, and contributor IA
+  {path = "docs/specs/catalogue-source-identity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Define adapter-neutral local catalogue source identity", needs = []},
+
+  # Wave 3 — Enterprise authoring discovery. 0.34.0 — bundled-contract inspection CLI
+  # (agentbundle catalogue contracts list/show/export), init next-step hints, and
+  # authoring-hub section 12 for offline readers.
+  {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}]},
 ]
 queue   = [
-
-  # Adapter-neutral catalogue source identity (RFC-0085). Independent of the
-  # numbered discovery waves; this closes the current Claude-marketplace
-  # coupling in local source discovery and catalogue lint/verify. It owns the
-  # agentbundle 0.33.0 release bump, so serialize it with any other package
-  # version-bump change before merge.
-  "spec/catalogue-source-identity",
-
-  # Wave 3 — Enterprise authoring discovery. Gated on Wave 2.
-  # Deliver: catalogue-authoring-standards.md in init scaffold; bundled-contract
-  # inspection CLI surface (agentbundle catalogue contracts list/show/export); offline
-  # navigation verified; init updated; link + cold-read tests pass.
-  {path = "spec/catalogue-wave3-enterprise-authoring-discovery", needs = "work:spec/catalogue-wave2-pack-integrations"},
 
   # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
   # Wave 2 (already shipped). Serialized AFTER Wave 3 to avoid concurrent agentbundle
@@ -1961,7 +1954,9 @@ queue   = [
   # Non-goals: neutral index generation; JOURNEY indexing; lifecycle; release integrity;
   # first-party migration; site work.
   # Source spec: docs/specs/catalogue-verifier-correctness/spec.md
-  {path = "spec/catalogue-verifier-correctness", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:spec/catalogue-wave3-enterprise-authoring-discovery"]},
+  # Wave 3's need uses its canonical path: `work:` needs match shipped entry paths by
+  # exact string, and Wave 3 is registered (and will ship) under the canonical form.
+  {path = "spec/catalogue-verifier-correctness", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"]},
 
   # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
   # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump

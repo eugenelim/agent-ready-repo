@@ -15,6 +15,10 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Literal
 
+from agentbundle.safety import _is_reparse_point as _safety_is_reparse_point
+from agentbundle.safety import _secure_dir_fd_available as _safety_secure_dir_fd_available
+from agentbundle.safety import _write_all as _safety_write_all
+
 
 class ProjectionTypeError(OSError):
     """A projected target exists but is not a regular file."""
@@ -30,9 +34,11 @@ def render_diagnostic_path(path: Path) -> str:
 
 
 def _secure_dir_fd_available() -> bool:
-    return os.name == "posix" and all(
-        hasattr(os, name) for name in ("O_DIRECTORY", "O_NOFOLLOW")
-    )
+    """Re-exported from ``agentbundle.safety`` — see that module for the rule.
+
+    Kept as a module-level name so tests can monkeypatch it here.
+    """
+    return _safety_secure_dir_fd_available()
 
 
 def _validate_relative(relative: Path) -> None:
@@ -40,10 +46,7 @@ def _validate_relative(relative: Path) -> None:
         raise ValueError(f"projection path must stay relative to its base: {relative}")
 
 
-def _is_reparse_point(path_stat: os.stat_result) -> bool:
-    attributes = getattr(path_stat, "st_file_attributes", 0)
-    reparse_flag = getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0)
-    return bool(attributes & reparse_flag)
+_is_reparse_point = _safety_is_reparse_point
 
 
 def _validate_fallback_path(
@@ -159,14 +162,7 @@ def open_directory_no_follow(base: Path, relative: Path) -> Iterator[int | None]
         os.close(base_fd)
 
 
-def _write_all(file_descriptor: int, content: bytes) -> None:
-    """Write all ``content`` to an open descriptor."""
-    view = memoryview(content)
-    while view:
-        written = os.write(file_descriptor, view)
-        if written == 0:
-            raise OSError(errno.EIO, "projection write made no progress")
-        view = view[written:]
+_write_all = _safety_write_all
 
 
 def _read_bounded(

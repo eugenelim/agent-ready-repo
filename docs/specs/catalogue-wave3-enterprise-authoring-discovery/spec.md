@@ -1,11 +1,11 @@
 # Spec: catalogue-wave3-enterprise-authoring-discovery
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076 D5](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md)
-- **Contract:** `packages/agentbundle/agentbundle/commands/catalogue_contracts.py` (new), `packages/agentbundle/agentbundle/catalogue_tooling/contracts_inspector.py` (new)
-- **Shape:** new CLI surface + init UX update + hub section + tests
+- **Contract:** none
+- **Shape:** mixed
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
@@ -40,6 +40,8 @@ Wave 3 claims `agentbundle catalogue contracts` and marks OQ1 resolved in RFC-00
 - Keep `contracts/` and `agentbundle/_data/` byte-identical. This wave adds no new
   contracts but must not disturb byte-parity for existing ones. Run
   `python3 tools/catalogue/check_contract_parity.py` before committing.
+- Generate the bundled positive inventory from `contracts/` and verify it before
+  committing. Run `python3 tools/catalogue/sync_contract_inventory.py --check`.
 - Sync `catalogue-authoring-standards.md` to the scaffold after every hub edit.
   Run `python3 tools/catalogue/sync_authoring_scaffold.py --check` before committing.
 - Add `Engine-Change-RFC: RFC-0076` to the commit(s) that add the new CLI subcommand.
@@ -75,22 +77,25 @@ Wave 3 claims `agentbundle catalogue contracts` and marks OQ1 resolved in RFC-00
 
 ## Testing Strategy
 
-- **OQ1 resolution (AC1):** goal-based — `grep '- \[x\] OQ1 resolved'
-  docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md` returns a match
-  after T7. Distinct from CLI registration; verified in T7 Done-when, not by `--help`.
+- **OQ1 resolution (AC1):** goal-based — the RFC checkbox remains checked and this
+  spec's OQ1 resolution paragraph records the detailed namespace-reconciliation
+  evidence. Distinct from CLI registration; verified in T7 Done-when, not by `--help`.
 - **CLI registration (AC2–AC5):** goal-based — `--help` on the new subcommand group and
   each sub-subcommand exits 0 with the expected flags and positionals visible.
-- **Contracts inspector (AC6–AC10):** TDD — `test_catalogue_wave3_contracts_inspector.py`
-  unit tests: list membership derived from canonical contracts/ source (not frozen count),
-  kind mapping, show returns content for valid name / None for invalid, export writes all
-  files with matching content.
+- **Contracts inspector (AC6–AC10):** TDD — package tests in
+  `test_catalogue_wave3_contracts_inspector.py` verify the bundled positive inventory,
+  private `_data` exclusion, kind mapping, show behavior, byte-exact export, and
+  zero-write unsafe-destination failures. Repo-owned `tools/test_contract_parity.py`
+  verifies the generated inventory against canonical `contracts/`, including a stale
+  inventory failure, without making the shipped sdist suite depend on checkout files.
 - **contracts list output (AC11–AC12):** TDD — `test_catalogue_wave3_contracts_cli.py`
-  calls the handler with a namespace; asserts table rows and JSON array structure.
-- **contracts show output (AC13–AC14):** TDD — valid name exits 0 with non-empty stdout;
-  invalid name exits non-zero.
-- **contracts export output (AC15–AC17):** TDD — output directory created; all contract
-  files written (count derived from contracts/ authority); "reference copies only" notice
-  in stderr; symlink target exits 2.
+  invokes `agentbundle.cli.main()` with public argv and asserts exact table headers,
+  complete rows, and a JSON array whose required values are strings.
+- **contracts show output (AC13–AC14):** TDD — public CLI invocation for a valid name
+  exits 0 with full content; an invalid name exits 1 with one-line stderr and no traceback.
+- **contracts export output (AC15–AC17):** TDD — public CLI invocation creates the
+  output directory and all inventory members; exact reference-copy notice is in stderr;
+  output and destination link/non-regular failures exit 2 without a traceback or leak.
 - **Init next-step output (AC18–AC19):** TDD — success table output contains the hub
   path and contracts-list hint; JSON output schema unchanged.
 - **Hub section 12 (AC20–AC22):** goal-based — section present; scaffold sync check
@@ -98,123 +103,148 @@ Wave 3 claims `agentbundle catalogue contracts` and marks OQ1 resolved in RFC-00
 - **Cold-read + offline navigation (AC23–AC24):** TDD —
   `test_catalogue_wave3_offline_navigation.py`: list → show each → assert non-empty;
   export → compare to show content.
-- **Engine change + version (AC25–AC26):** grep confirms version strings; git log
-  confirms Engine-Change-RFC footer; grep confirms `0.28.0` or `[Unreleased]` entry
-  present in `docs/product/changelog.md` (AC26).
-- **Regression (AC27–AC30):** `SKIP_SAST=1 make build-check` and pytest exit 0;
+- **Engine change + version (AC25–AC26):** grep confirms `0.34.0` in both version
+  authorities and all three release documents; git log confirms the
+  `Engine-Change-RFC: RFC-0076` footer.
+- **Regression (AC27–AC30):** `make build-check` (SAST included) and pytest exit 0;
   AGENTS.md line counts pass.
 
 ## Acceptance Criteria
 
 ### Phase A — OQ1 resolution and CLI registration
 
-- [ ] AC1: RFC-0076 OQ1 is marked resolved. The OQ1 checkbox in
+- [x] AC1: RFC-0076 OQ1 is marked resolved. The OQ1 checkbox in
   `docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md` is checked.
-  The resolved text states: "`agentbundle catalogue contracts` is confirmed unoccupied.
-  ini-005 is complete; `catalogue-tooling-rewire` was never authored and no `catalogue
-  contracts` subcommand was registered. Wave 3 claims this path. The command is
-  specified but not yet implemented."
+  This spec's **OQ1 resolution** paragraph records the supporting facts: the namespace
+  was unoccupied, ini-005 was complete, `catalogue-tooling-rewire` was never authored,
+  and Wave 3 claims the command path.
 
-- [ ] AC2: `agentbundle catalogue contracts --help` exits 0 and lists three
+- [x] AC2: `agentbundle catalogue contracts --help` exits 0 and lists three
   subcommands: `list`, `show`, `export`.
 
-- [ ] AC3: `agentbundle catalogue contracts list --help` exits 0 and shows a
+- [x] AC3: `agentbundle catalogue contracts list --help` exits 0 and shows a
   `--format` flag accepting `table` (default) and `json`.
 
-- [ ] AC4: `agentbundle catalogue contracts show --help` exits 0 and shows a
+- [x] AC4: `agentbundle catalogue contracts show --help` exits 0 and shows a
   `<name>` positional.
 
-- [ ] AC5: `agentbundle catalogue contracts export --help` exits 0 and shows an
+- [x] AC5: `agentbundle catalogue contracts export --help` exits 0 and shows an
   `--output` flag (required).
 
 ### Phase B — Contracts inspector module
 
-- [ ] AC6: `agentbundle.catalogue_tooling.contracts_inspector` exists. It exports:
+- [x] AC6: `agentbundle.catalogue_tooling.contracts_inspector` exists. It exports:
   - `ContractInfo` — a dataclass with fields `name: str`, `kind: str`, `file: str`.
   - `list_bundled_contracts() -> list[ContractInfo]`
   - `show_contract(name: str) -> str | None`
   - `export_contracts(output_dir: Path) -> list[str]`
+  - `ContractResourceError` — raised when the bundled inventory is missing,
+    empty, or malformed, or when a listed resource cannot be read. Load-bearing
+    for the CLI's exit-code contract: `list`/`show` map it to exit 1, `export`
+    to exit 2.
 
-- [ ] AC7: `list_bundled_contracts()` returns all files present in both `contracts/`
-  and `agentbundle/_data/`, minus the `_data/`-only internal files
-  (`install-defaults.toml`, `install-marker.py`) and the `catalogue-scaffold/`
-  subdirectory. The implementation derives membership from `contracts/` as the
-  canonical authority — do not maintain a second manually synchronized list. At the
-  time this spec was approved, the set contained 11 entries:
-  `adapter.schema.json`, `adapter.toml`, `catalogue.schema.json`, `guide.schema.json`,
-  `pack.schema.json`, `plugin-manifest.derived.schema.json`,
-  `plugin-manifest.schema.json`, `profile.schema.json`, `skill-manifest.schema.json`,
-  `skill.schema.json`, `target-vocab.toml`. Each `ContractInfo.kind` is
-  `"json-schema"` for `*.schema.json` files and `"toml"` for `*.toml` files.
-  The implementation and tests must derive expected membership from
-  `python3 tools/catalogue/check_contract_parity.py` (or the equivalent contracts/
-  directory scan) rather than from a frozen count constant.
+- [x] AC7: `list_bundled_contracts()` returns exactly the names in a packaged positive
+  inventory generated from the canonical `contracts/` directory. Unknown future files
+  placed in `agentbundle/_data/` are excluded unless the generated inventory names them;
+  `_data/`-only internals and the `catalogue-scaffold/` subtree therefore fail closed.
+  The inventory contains every canonical `*.json` and `*.toml` contract and is verified
+  by repository tooling, not maintained as a second hand-authored roster. This AC is the
+  single canonical statement of the bundled-contract count; other sections reference it
+  rather than restating a number that would drift independently. Each
+  `ContractInfo.kind` is `"json-schema"` for `*.schema.json` files, `"toml"` for
+  `*.toml` files, and `"json"` for any other `*.json` contract. An empty inventory is
+  rejected as malformed — it means a truncated build, not a bundle with no contracts.
+  The implementation reads only the packaged inventory at runtime; build tooling and
+  tests derive the expected inventory from a `contracts/` directory scan rather than a
+  frozen count constant.
 
-- [ ] AC8: `show_contract(name)` returns the full UTF-8 string content of the named
+- [x] AC8: `show_contract(name)` returns the full UTF-8 string content of the named
   bundled file when `name` is one of the public contract names (derived dynamically
   from `list_bundled_contracts()`). Returns `None` when
   `name` is not in the known set. `show_contract` with a name containing `/` or `\`
   returns `None` (path-separator rejection, no ValueError).
 
-- [ ] AC9: `export_contracts(output_dir)` creates `output_dir` if absent; copies each
+- [x] AC9: `export_contracts(output_dir)` creates `output_dir` if absent; copies each
   bundled contract's bytes to `output_dir / contract.file`; returns the list of relative
-  filenames written (same order as `list_bundled_contracts()`). Raises `ValueError`
-  if `output_dir` is a symlink (checked via `output_dir.is_symlink()` — lstat, does not
-  follow the link — not `output_dir.resolve().is_symlink()`, which always returns False
-  after following).
+  filenames written (same order as `list_bundled_contracts()`). Before writing any file,
+  it raises `ValueError` if `output_dir` is a symlink or if any existing destination is
+  a symlink or non-regular file. The output-directory check uses
+  `output_dir.is_symlink()` — lstat, does not follow the link — not
+  `output_dir.resolve().is_symlink()`, which always returns False after following.
+  Link refusal is scoped to `output_dir` itself and to each destination. A symlinked
+  **ancestor** is resolved normally and accepted — `/tmp` is a symlink to `private/tmp`
+  on macOS, and a symlinked `$HOME` or checkout is common on Linux, so refusing
+  ancestors would break the ordinary AC15 flow on most developer machines.
+  After the complete preflight, writes use a repository-owned descriptor-held no-follow
+  batch primitive: on POSIX the output-directory descriptor remains open for every
+  temporary-file creation and atomic replacement; the portability fallback revalidates
+  the output directory before replacement, which is detection rather than prevention
+  against a local attacker racing that window. Direct `Path.write_text()` /
+  `Path.write_bytes()` writes are forbidden.
+  Exported files are written `0o644` — they are reference copies an adopter may place
+  in a shared directory, so they must not land unreadable.
+  The primitive (`safety.write_files_no_follow`) provides link refusal only and
+  performs **no root confinement**, unlike `write_jailed` (ADR-0017,
+  `core-path-confinement`). That is sound here because `--output` is operator-supplied,
+  not derived from pack or catalogue content; any future caller passing an untrusted
+  `output_dir` must `assert_under` a root first.
 
-- [ ] AC10: `list_bundled_contracts()`, `show_contract()`, and `export_contracts()` all
+- [x] AC10: `list_bundled_contracts()`, `show_contract()`, and `export_contracts()` all
   use `importlib.resources` to access bundled files. None depend on the source
   `contracts/` directory being present at runtime.
 
 ### Phase C — contracts command handler
 
-- [ ] AC11: `agentbundle catalogue contracts list` (table output, default) prints a
+- [x] AC11: `agentbundle catalogue contracts list` (table output, default) prints a
   table with column headers `NAME`, `KIND`, `FILE` and one data row per bundled contract.
-  All 11 contracts appear. Exit code 0. Note: RFC-0076 D5's candidate column list
-  includes `version`; Wave 3 omits it because bundled contracts carry no uniform version
-  field — the agentbundle version (returned by `--version`) is the governing version for
-  the entire bundled set.
+  All public contracts appear (the AC7 inventory set). Exit code 0. Note: RFC-0076
+  D5's candidate column list includes `version`; Wave 3 omits it because bundled
+  contracts carry no uniform version field — the agentbundle version (returned by
+  `--version`) is the governing version for the entire bundled set.
 
-- [ ] AC12: `agentbundle catalogue contracts list --format json` prints a JSON array
+- [x] AC12: `agentbundle catalogue contracts list --format json` prints a JSON array
   to stdout where each element has at minimum `"name"`, `"kind"`, `"file"` keys and
   valid string values. Exit code 0.
 
-- [ ] AC13: `agentbundle catalogue contracts show pack.schema.json` prints the full
+- [x] AC13: `agentbundle catalogue contracts show pack.schema.json` prints the full
   content of the bundled `pack.schema.json` to stdout. Exit code 0.
 
-- [ ] AC14: `agentbundle catalogue contracts show nonexistent-name.json` prints a
+- [x] AC14: `agentbundle catalogue contracts show nonexistent-name.json` prints a
   one-line error message to stderr naming the unrecognized contract, and exits non-zero
   (exit code 1). No traceback is shown.
 
-- [ ] AC15: `agentbundle catalogue contracts export --output <tmpdir>` creates `<tmpdir>`,
-  writes all 11 contract files into it (one file per contract), and prints a file manifest
-  to stdout listing each written filename. Exit code 0.
+- [x] AC15: `agentbundle catalogue contracts export --output <tmpdir>` creates `<tmpdir>`,
+  writes every contract returned by `list_bundled_contracts()` into it (one file per
+  contract), and prints a file manifest to stdout listing each written filename. Exit
+  code 0.
 
-- [ ] AC16: `agentbundle catalogue contracts export --output <tmpdir>` prints the
+- [x] AC16: `agentbundle catalogue contracts export --output <tmpdir>` prints the
   following notice to stderr (exact phrase match for the core sentence):
   "These are reference copies only. They do not override the contracts used for
   validation by this agentbundle version."
 
-- [ ] AC17: `agentbundle catalogue contracts export --output <symlink-path>` where
+- [x] AC17: `agentbundle catalogue contracts export --output <symlink-path>` where
   `<symlink-path>` resolves to a symlink exits with code 2 and a clear error message
-  to stderr. No files are written.
+  to stderr. A pre-existing symlink or non-regular file at any contract destination is
+  refused the same way. No files are written when preflight fails, and no traceback or
+  internal path is exposed. Tests place the unsafe destination after at least one valid
+  inventory member and prove that no earlier contract file was created.
 
 ### Phase D — Init command next-step output
 
-- [ ] AC18: `agentbundle catalogue init <target>` (table output) on success emits a
+- [x] AC18: `agentbundle catalogue init <target>` (table output) on success emits a
   "Next steps:" block containing at minimum:
   - A reference to `guides/_shared/reference/catalogue-authoring-standards.md` (the
     authoring hub, scaffolded into the new catalogue).
   - The hint `agentbundle catalogue contracts list` to view bundled contract schemas.
 
-- [ ] AC19: `agentbundle catalogue init <target> --format json` output is unchanged —
+- [x] AC19: `agentbundle catalogue init <target> --format json` output is unchanged —
   the JSON schema for `InitResult` is not modified by this wave. No `next_steps` key
   is added to the JSON output.
 
 ### Phase E — Hub section 12 and scaffold sync
 
-- [ ] AC20: `guides/_shared/reference/catalogue-authoring-standards.md` gains section
+- [x] AC20: `guides/_shared/reference/catalogue-authoring-standards.md` gains section
   "12. Bundled contract inspection" (after section 11). The section includes:
   - A statement that bundled contracts can be listed, inspected, and exported without
     network access using the running agentbundle version.
@@ -224,46 +254,57 @@ Wave 3 claims `agentbundle catalogue contracts` and marks OQ1 resolved in RFC-00
   - The "reference copies only" notice inline.
   - No RFC, ADR, or spec path citations.
 
-- [ ] AC21: `python3 tools/catalogue/sync_authoring_scaffold.py --check` exits 0 after
+- [x] AC21: `python3 tools/catalogue/sync_authoring_scaffold.py --check` exits 0 after
   the hub update. The scaffold copy at
   `packages/agentbundle/agentbundle/_data/catalogue-scaffold/guides/_shared/reference/catalogue-authoring-standards.md`
   matches the updated live file.
 
-- [ ] AC22: The updated hub section 12 contains no host CI workflow requirements, Make
-  target requirements, or internal governance citations.
+- [x] AC22: The updated hub section 12 contains no host CI workflow requirements, Make
+  target requirements, or internal governance citations. An explicit absence check covers
+  `.github/workflows`, `make `, `RFC-`, `docs/rfc/`, `ADR`, `docs/adr/`, and `docs/specs/`.
 
 ### Phase F — Cold-read and offline navigation
 
-- [ ] AC23: A pytest test in `test_catalogue_wave3_offline_navigation.py` exercises the
+- [x] AC23: A pytest test in `test_catalogue_wave3_offline_navigation.py` exercises the
   full cold-read path: calls `list_bundled_contracts()`, then calls `show_contract(name)`
   for every returned `ContractInfo.name`, and asserts that every call returns a non-None,
   non-empty string. The test does not make network requests (stdlib `socket` is not
   opened during the test run, verified by the test).
 
-- [ ] AC24: A pytest test in `test_catalogue_wave3_offline_navigation.py` calls
-  `export_contracts(tmp_path)` and asserts: (a) exactly 11 files are written;
+- [x] AC24: A pytest test in `test_catalogue_wave3_offline_navigation.py` calls
+  `export_contracts(tmp_path)` and asserts: (a) exactly the dynamically listed public
+  contracts are written (the AC7 inventory set);
   (b) each written file's byte content matches the corresponding `show_contract(name)`
   return value encoded as UTF-8; (c) no symlinks exist in `tmp_path`.
 
 ### Phase G — Engine change, version, changelog, regression
 
-- [ ] AC25: `packages/agentbundle/pyproject.toml` version is bumped to the next
+- [x] AC25: `packages/agentbundle/pyproject.toml` version is bumped to the next
   available AgentBundle minor version after inspecting current HEAD at implementation
-  time (Wave 2 shipped as `0.27.0`; the next minor is `0.28.0` unless another branch
-  has claimed it — verify before opening the PR). `agentbundle/version.py`
+  time (current HEAD is `0.33.3`; Wave 3 reserves `0.34.0` unless another branch claims
+  it before merge). `agentbundle/version.py`
   `CLI_VERSION` is set to match in lockstep. At least one commit in the PR contains
-  `Engine-Change-RFC: RFC-0076` in its message.
+  `Engine-Change-RFC: RFC-0076` in its message. Verified before merge: `main` is still
+  at `0.33.3`, so no other in-flight branch claimed `0.34.0`; the footer is carried by
+  the commit that adds the CLI subcommand.
 
-- [ ] AC26: `docs/product/changelog.md` has an `[Unreleased]` or `0.28.0` entry
+- [x] AC26: `packages/agentbundle/CHANGELOG.md` and `docs/product/changelog.md` have
+  `0.34.0` entries
   describing: (a) the new `agentbundle catalogue contracts` CLI surface (`list`, `show`,
   `export`); (b) the `catalogue init` next-step guidance addition; (c) hub section 12.
+  `packages/agentbundle/README-pypi.md` describes the same new CLI surface and reports
+  `0.34.0` in its current-release section.
 
 ### Regression
 
-- [ ] AC27: `SKIP_SAST=1 make build-check` exits 0 after all changes.
-- [ ] AC28: `python3 -m pytest packages/agentbundle/tests/ -q` exits 0 after all changes.
-- [ ] AC29: `wc -l packs/AGENTS.md` ≤ 150.
-- [ ] AC30: `wc -l AGENTS.md` ≤ 250.
+- [x] AC27: `make build-check` exits 0 after all changes, **with the SAST/SCA leg
+  included** — not the `SKIP_SAST=1` variant, which prints an explicit INCOMPLETE
+  banner. This wave adds filesystem-primitive code under `packages/` and a new
+  script under `tools/`, both inside `SAST_DIRS`, so the skipped variant would
+  omit exactly the code the scanners exist to cover.
+- [x] AC28: `python3 -m pytest packages/agentbundle/tests/ -q` exits 0 after all changes.
+- [x] AC29: `wc -l packs/AGENTS.md` ≤ 150.
+- [x] AC30: `wc -l AGENTS.md` ≤ 250.
 
 ## Assumptions
 
@@ -273,16 +314,12 @@ Wave 3 claims `agentbundle catalogue contracts` and marks OQ1 resolved in RFC-00
 - **Technical:** Nested subparsers within `agentbundle catalogue contracts` are
   supported by the existing argparse wiring (verified: `oplog` uses the same three-level
   pattern in `cli.py`).
-- **Technical:** `importlib.resources` can enumerate and read all files in the
-  `agentbundle._data` package directory — verified at HEAD: all 11 contract files are
-  present in `packages/agentbundle/agentbundle/_data/`.
-- **Technical:** Version `0.28.0` is the next minor from `0.27.0` (Wave 2). Verify
+- **Technical:** `importlib.resources` can read the generated inventory and its named
+  files from `agentbundle._data`; verified at HEAD for the AC7 inventory set.
+- **Technical:** Version `0.34.0` is the next minor from current HEAD `0.33.3`. Verify
   before opening the PR that no other in-flight branch has claimed this version number.
-- **Technical:** The 11 public contracts that appear in both `contracts/` and `_data/`
-  are: `adapter.schema.json`, `adapter.toml`, `catalogue.schema.json`, `guide.schema.json`,
-  `pack.schema.json`, `plugin-manifest.derived.schema.json`, `plugin-manifest.schema.json`,
-  `profile.schema.json`, `skill-manifest.schema.json`, `skill.schema.json`,
-  `target-vocab.toml`. The `install-defaults.toml` file is `_data/`-only and excluded.
+- **Technical:** The generated positive inventory, checked against `contracts/`, is the
+  sole runtime membership authority; `_data/` enumeration is not a public-discovery API.
 - **Deferred:** Adding a `catalogue contracts check` command that validates a given local
   file against the bundled schema (useful for adopter-local contract validation). Out of
   scope for Wave 3; file under `backlog` if the need surfaces.

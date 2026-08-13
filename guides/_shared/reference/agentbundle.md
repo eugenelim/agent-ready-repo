@@ -175,6 +175,11 @@ packaging a catalogue in CI. For the full pipeline contract — publication
 ordering, exit codes, responsibility boundaries, and JSON output shapes — see
 the [Catalogue CI contract](catalogue-ci-contract.md).
 
+`agentbundle catalogue contracts list|show|export` enumerates, prints, or copies
+the contract files bundled with the running version, with no network access.
+See section 12 of the
+[catalogue authoring standards](catalogue-authoring-standards.md).
+
 ## Other subcommands
 
 See `agentbundle --help` for the full set (`list-packs`, `list-profiles`, `list-targets`, `list-installed`, `validate`, `render`, `adapt`, `diff`, `upgrade`, `uninstall`, `reconcile`, etc.). Each has its own `--help` page documenting its flags.
