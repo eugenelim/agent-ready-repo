@@ -29,6 +29,10 @@ How the code is *currently* organized. Not why (that's in
   replaced the build-projected `credentials_shim` of RFC-0013),
   the four-broker contract (`creds` / `env` / `cli` / `sso-cookie`),
   the credentialed-primitive model, and the substring trap.
+- [`knowledge-capture.md`](knowledge-capture.md) — the concept-first memory
+  model and its layers: shared capture, distillation, topic lifecycle,
+  file-based storage, explicit enquiry, security, and optional cross-project
+  promotion.
 
 Add one more `<subsystem>.md` whenever a non-trivial subsystem grows up
 that doesn't fit cleanly under an existing page. Each describes the

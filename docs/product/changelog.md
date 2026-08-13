@@ -54,6 +54,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Section 12 records the offline commands and their read/write boundary, and the
   same section ships in the initialization scaffold.
 
+### [core][2.5.9] — 2026-08-12
+
+#### Changed
+
+- **Work-loop captures more than speed improvements.** Its closeout review now
+  asks whether a reusable learning would have improved correctness,
+  reliability, security, determinism, operability, maintainability,
+  efficiency, or independence from hidden context. Speed remains one signal,
+  not the objective.
+- **Repository knowledge has a lifecycle architecture.** Maintainers now have
+  a concept-first reference for shared candidate capture, topic distillation,
+  file-based canonical storage, explicit safe enquiry, freshness, and optional
+  cross-project promotion. Normal session start continues to leave captured
+  observations out of model context.
+
 ### [agentbundle][0.33.3] — 2026-08-12
 
 #### Changed

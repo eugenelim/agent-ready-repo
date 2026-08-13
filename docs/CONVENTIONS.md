@@ -872,14 +872,15 @@ and curation conventions live in
 `architecture/` describes *current structure*; `guides/` is for
 *users*. Knowledge entries are practitioner residue — the things you
 learn by building, not by deciding or documenting. They earn a home
-because they're scoped to globs (an agent priming for `packages/auth`
-should see the auth gotchas, not every lesson the repo ever learned)
+because they're scoped to globs (a deliberate retrieval for `packages/auth`
+should return the auth gotchas, not every lesson the repo ever learned)
 and kept current (edit or remove entries as the codebase changes —
 git history is the record; see `docs/knowledge/README.md § Curation`).
 
-**How agents see it.** `tools/hooks/session-start.py` reads the file
-at session open and prints the entries — optionally filtered by a
-path or narrower glob. Matching uses Python's `fnmatch` with the
+**How agents see it.** The normal session-start hook does not load the file into
+model context. An operator can explicitly invoke
+`tools/hooks/session-start.py --show-knowledge`, optionally filtered by a path
+or narrower glob, for curation. Matching uses Python's `fnmatch` with the
 caller's `--scope` value as the *path* argument and the entry's
 stored glob as the *pattern*, so an agent working in
 `packages/auth/server.ts` gets entries scoped to `packages/auth/**`
@@ -1017,8 +1018,8 @@ template adopter knows when to wire each one up.
 - **Profile C** — same as B, plus the [knowledge base](#knowledge-base)
   is actively populated (`docs/knowledge/patterns.jsonl`). The
   `session-start` hook is shipped pre-wired by the install pipeline,
-  so the knowledge base shows up in Claude Code session context out
-  of the box.
+  but knowledge remains out of automatic session context; explicit
+  `--show-knowledge` rendering is available for curation.
 
 ### Above Profile C
 

@@ -2,6 +2,18 @@
   "skill_name": "work-loop",
   "evals": [
     {
+      "id": "capture-learnings-quality-attributes",
+      "prompt": "You have completed a work-loop and are at Capture learnings. What should you ask, and is speed the deciding criterion?",
+      "expected_output": "Ask what would have made the work materially better across relevant quality attributes: correctness or completeness, reliability or recoverability, security or privacy, determinism or reproducibility, operability, maintainability or reviewability, efficiency, and independence from hidden context. Speed is one useful signal, not the objective. Capture a generalizable learning only when it would materially change a future approach.",
+      "assertions": [
+        "Response says speed is one signal rather than the sole objective",
+        "Response considers correctness and reliability",
+        "Response considers security or privacy and determinism or reproducibility",
+        "Response considers operability or maintainability and efficiency",
+        "Response captures only a generalizable learning that would change a future approach"
+      ]
+    },
+    {
       "id": "phase1-sequential-wave-routing",
       "prompt": "You are running the work-loop in code mode (Phase 1). The schedule has 3 waves. Wave 0 is complete. What is the correct next action to advance to wave 1 and begin implementing it?",
       "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0` to advance the engine state (the engine guard validates the wave is complete), then `loop-cohort wave advance <spec-dir> --from-index 0 --expect-run-id $run_id` to advance the cohort wave pointer. Do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
