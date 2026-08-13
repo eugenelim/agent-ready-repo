@@ -64,6 +64,36 @@ backlog = [
   # site-design-system-spec, and P5's Astro project index; reference those owners.
   # Blocked until the contract is ratified and all three pilots complete.
   {slug = "portfolio-outcome-entry-surfaces", type = "design", needs = ["work:spec/portfolio-pack-first-value-contract", "work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
+  # Project knowledge measured-scale follow-on. Slice 1 deliberately retains closed
+  # classification/month journals unchanged; deleting individual observations would
+  # break the append-only evidence model and Git would retain the history anyway.
+  # Shape a whole-partition retention/compaction policy only after the adoption
+  # closeout measures repository growth and confirms that every capture in an eligible
+  # partition has one terminal disposition. Affected surface: docs/knowledge/
+  # observation journals, project-knowledge --distill, and its lifecycle contracts.
+  {slug = "project-knowledge-observation-retention-policy", type = "shape", needs = "work:docs/specs/project-knowledge-adoption-closeout/spec.md"},
+  # Project knowledge measured-scale follow-on. The committed body-free topic map and
+  # bounded lexical routing are the portable baseline; richer indexes add invalidation,
+  # privacy, and platform costs without current evidence. Shape derived local indexing
+  # only if adoption-closeout measurements show corpus size or enquiry latency exceeds
+  # published budgets. Any index must be rebuildable, disposable, gitignored, and never
+  # authoritative or committed. Affected surface: project-knowledge --enquire and local
+  # cache/index tooling; no database or embedding dependency is presumed.
+  {slug = "project-knowledge-derived-index-scaling", type = "shape", needs = "work:docs/specs/project-knowledge-adoption-closeout/spec.md"},
+  # Optional durability follow-on, not part of the portable core. Repo journals cannot
+  # save pre-gate scratch or an uncommitted capture when a worktree is discarded, but
+  # core cannot assume a writable user directory or service. After adoption-closeout
+  # measures material loss and identifies a supported storage capability, shape a
+  # separate RFC governing project identity, privacy, deletion, availability, and
+  # reconciliation with the repository journal. No implicit probing or fallback store.
+  {slug = "project-knowledge-external-capture-backend", type = "shape", needs = "work:docs/specs/project-knowledge-adoption-closeout/spec.md"},
+  # Eventual cross-project capability requiring its own RFC and governance. Only
+  # reviewed, sanitized topics may be explicitly exported; observations and scratch
+  # never cross the boundary. The receiving project must treat imported material as
+  # untrusted evidence and adopt it through its own distillation boundary. Shape only
+  # after the portable lifecycle's adoption closeout supplies real tenancy, audience,
+  # privacy, ownership, and deletion requirements; do not assume an external backend.
+  {slug = "multi-project-knowledge-bank", type = "shape", needs = "work:docs/specs/project-knowledge-adoption-closeout/spec.md"},
 ]
 
 ["ini-002".brief_queue]
@@ -130,6 +160,58 @@ shipped = [
   {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
 ]
 queue   = [
+  # Project knowledge lifecycle roadmap — RFC-0077 / ADR-0081 / ADR-0082.
+  # This sequence is adaptive: at each completed slice, compare measured behavior and
+  # repository evidence with the remaining entries. Update, split, combine, reorder, or
+  # retire later entries through normal review when their assumed shape has changed;
+  # queue comments are a roadmap, while each approved spec is the implementation truth.
+
+  # Slice 1 — approved foundation spec and plan. Replace the flat hot JSONL corpus with
+  # strict shared capture contracts, one confined cross-platform writer, classification/
+  # month observation journals, terminal dispositions, stable per-topic JSON, a
+  # deterministic committed topic map, source-relative freshness, intentional retirement,
+  # and explicit committed-only enquiry as bounded untrusted evidence. It also migrates
+  # patterns.jsonl and cuts work-loop over without changing its closeout question. This
+  # consolidates the former knowledge replay-size, replay/trust-separation, and unlocked
+  # append-writer backlog findings. Affected surface: core project-knowledge and work-loop
+  # skills, knowledge contracts/scripts/tests, docs/knowledge/, projections, and release.
+  {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
+
+  # Slice 2 — authoring semantic-gate integrations. Add explicit scratch triage and shared
+  # project-knowledge handoffs to brief, RFC, ADR, spec, and plan authoring workflows.
+  # Normative decisions stay in their owning artifacts; only reusable supporting practice
+  # residue is captured. Each workflow owns gate timing and free-form scratch, never locates
+  # the private writer, and may distill only its capture receipts. Enquiry requires a
+  # separately declared competency question/read boundary. Start by reassessing this and
+  # every later slice against foundation evidence; reshape the roadmap before speccing if
+  # the foundation changes the integration seam.
+  {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-foundation/spec.md"}]},
+
+  # Slice 3 — review and research integrations. Extend the proven handoff to selected
+  # architecture, adversarial, security, quality, and research workflows at stable meaning
+  # boundaries. Capture conclusions and reusable method residue, never transcripts, raw
+  # source corpora, or recalled secrets. Retrieval stays explicit, scoped to declared
+  # competency questions, and cannot amplify authority. Reassess the catalogue selection,
+  # gate timing, and whether review and research remain one spec after Slice 2 evidence.
+  {path = "docs/specs/project-knowledge-review-research-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate bounded project knowledge with review and research workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-authoring-integrations/spec.md"}]},
+
+  # Slice 4 — engineering and operational integrations. Introduce explicit enquiry and
+  # semantic-gate capture where demonstrated useful in work-loop execution, diagnosis,
+  # contract acquisition, verification, and operational workflows. Route recurring
+  # hard-to-discover paths toward scoped agent instructions and repeated verification gaps
+  # toward normal work intake; never edit instructions or tooling automatically. Reassess
+  # the skill set and split boundaries after Slice 3 rather than treating this list as fixed.
+  {path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with engineering and operational workflows", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-review-research-integrations/spec.md"}]},
+
+  # Slice 5 — portable-lifecycle adoption closeout. Audit the catalogue to document which
+  # workflows should and should not integrate, evaluate capture precision, disposition
+  # completeness, retrieval usefulness/abstention, privacy refusals, latency, corpus growth,
+  # and instruction/tool-routing outcomes, then close residual docs and eval gaps. Its
+  # evidence is the gate for retention, richer local indexes, any external capture backend,
+  # and a separately governed multi-project bank. Reassess whether this remains one closeout
+  # spec after Slice 4; it must not implement those conditional follow-ons itself.
+  {path = "docs/specs/project-knowledge-adoption-closeout/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Evaluate and close out the portable project knowledge lifecycle", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md"}]},
+
   # P5 · Adopt — gated on adopter-persona research (evidence base)
   {path = "spec/m6-astro-project-index",         needs = "research:adopter-persona"},  # Astro site: PM-facing project index from docs/product/projects/
   {path = "spec/m6-enterprise-rollout-playbook", needs = "research:adopter-persona"},  # champion→CTO→platform→engineers; staged rollout + retro template
@@ -433,30 +515,6 @@ open = [
   # before shortening anything, since the per-target 1024 cap was set to help
   # activation, not hurt it. Needs an eval-backed pass, not a prose sweep.
   {slug = "codex-skill-description-budget", source = "spec/pack-description-quality"},
-    # docs/knowledge/patterns.jsonl is replayed into every session in full, and
-    # append-knowledge.py makes appending frictionless with no ratchet: the linter
-    # counts entries but caps neither count nor bytes, and every tier="invariant"
-    # entry is emitted regardless of scope. 45 KB / 47 entries today, growing
-    # monotonically as a per-session context and cost tax. Fix: fail the lint above
-    # a stated ceiling so growth forces a curation decision. Deliberately out of
-    # scope for loop-tooling-mandated-writes — that spec governs what may be in an
-    # entry, not how many there may be, and a ceiling is a policy call, not a
-    # security control.
-  {slug = "knowledge-replay-has-no-size-ratchet", source = "spec/loop-tooling-mandated-writes"},
-    # docs/knowledge/patterns.jsonl serves three incompatible roles at once: raw
-    # agent-generated memory, curated guidance, and ambient instructions granted
-    # prompt authority by the SessionStart hook, which is wired with no --scope and
-    # no matcher so it emits every entry on start, resume, clear, compact and fork.
-    # tier="invariant" is a privilege bit selectable inside the raw capture format:
-    # any accepted record can request unconditional repo-wide replay, and the linter
-    # sees only a valid enum. Character-level guards make review effective; they
-    # cannot make instructional prose safe to inject. Fix: split capture from policy
-    # — an untrusted append-only event log never read at session start, a reviewed
-    # active-card projection, and task-time scoped retrieval instead of startup
-    # replay; deprecate the invariant bypass. Needs its own RFC and a revision to
-    # RFC-0077, which currently keeps patterns.jsonl as the canonical surface.
-    # Sequenced after loop-cohort-state-rmw-unlocked.
-  {slug = "knowledge-capture-replay-trust-separation", source = "spec/loop-tooling-mandated-writes"},
     # statelock_core.exclusive() unlinks the lockfile and fails closed when the token write
     # _statelock.exclusive() unlinks the lockfile and fails closed when the token write
     # fails after O_CREAT|O_EXCL, so a torn create cannot wedge a spec. The path is reasoned
@@ -487,14 +545,6 @@ open = [
     # lock with a documented acquisition order relative to the per-spec lock. Unblocks: needs
     # design — a second lock scope risks deadlock without an ordering rule.
   {slug = "loop-outbox-cross-spec-rmw", source = "spec/loop-cohort-state-lock"},
-    # append-knowledge.py reads docs/knowledge/patterns.jsonl, computes next_id as
-    # max(existing)+1, writes a temp file, lints it, then os.replace — the same unguarded
-    # read-modify-write, so two concurrent appends collide on an id or lose an entry. Not
-    # covered by loop-cohort-state-lock, which scopes to state.json and engine-state.json.
-    # Fix: wrap the read-through-replace in statelock's exclusive(); the open question is
-    # where the lock sits relative to the lint-the-candidate step. Unblocks: after
-    # loop-cohort-state-lock ships (reuses its sibling _statelock.py).
-  {slug = "append-knowledge-rmw-unlocked", source = "spec/loop-cohort-state-lock", needs = "work:spec/loop-cohort-state-lock"},
     # loop-cohort.py's _resolve_spec_dir (:110) only rejects a literal '..'; it does not
     # confine the resolved path under the repo root the way loop-engine.py's twin (:514) does,
     # and it follows a symlinked spec_dir because resolve() runs before any check. So an
