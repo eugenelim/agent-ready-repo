@@ -1270,3 +1270,59 @@ Following acceptance:
   navigation, and routing examples.
 - Maintainer documentation: workspace and adapter contract guides, architecture
   updates, routing-evaluation guidance, pack references, and README corrections.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, Approver-signed.
+
+- **2026-08-13 (Approver: eugenelim) — § *Delivery plan and exit criteria* is
+  reanchored after Groups 2 and 3 shipped. The seven-group decomposition is a
+  forecast, not part of the decision; Groups 4–7 are re-cut against shipped
+  reality before each is built.**
+
+  The decision this RFC records — that work intake and artifact routing should
+  exist in the shape described in § *Proposal* — stands unchanged. What did not
+  survive contact is the *delivery forecast*. Groups 1–7 were cut in one pass on
+  2026-08-09, when nothing had shipped and the visible horizon was Group 2. Group
+  2 landed 2026-08-10 (`normalized-intake-workspace-contracts`, 25/25 ACs) and
+  Group 3 on 2026-08-12 (`workspace-routing-invariants`, 27/27 ACs). Between them
+  they changed the substrate that Groups 4–7 were specified against.
+
+  **The concrete drift.** Group 3 made canonical routing the enforced contract.
+  Its own initiative's queue was never migrated to that contract, so on
+  2026-08-13 every `ini-008` work entry — including the two this RFC records as
+  shipped — still used the legacy `spec/<slug>` form, produced
+  `invalid_artifact_path` findings, and was non-dispatchable. The initiative
+  shipped the rule that made its own remaining work unroutable. The four
+  unstarted specs also reference the shipped surfaces at very uneven depth
+  (`work-intake-migration-docs` names `canonical` 14 times and `dispatchable`
+  five; `tracker-intake-adapters` names neither), so their exposure to the change
+  differs and a single blanket revision would be wrong.
+
+  **What changes.** Groups 4–7 remain the intended sequence and their exit
+  criteria remain the target. Each is re-cut immediately before it is built,
+  against what has actually shipped, rather than treated as settled by this
+  document. Re-cutting may split, merge, or retire a group's spec; that is a
+  plan correction and does not require superseding this RFC. A change to
+  § *Proposal* — the decision itself — still would.
+
+  **Why an erratum rather than a new RFC.** Freezing a perishable forecast inside
+  an immutable decision record is what made this expensive: correcting a plan
+  should not cost a governance cycle. The split follows established practice —
+  Kubernetes KEPs keep durable Motivation/Proposal and rewritable Graduation
+  Criteria in one document with friction rising as it matures ("You do not need a
+  new KEP to move from beta to GA"); Python PEPs freeze Standards-track at Final
+  while Process/Informational stay Active; IETF pushes the perishable phase into
+  Internet-Drafts upstream of the frozen RFC. This repo already has the mechanism
+  (RFC-0011, RFC-0013 § Errata); it simply had not been applied to a delivery
+  plan.
+
+  **The missing control.** Nothing detected the drift — it surfaced only when a
+  human asked. Detection belongs in tooling, not vigilance: a staleness check
+  that flags a queued spec whose declared `needs` shipped after that spec was
+  last revised, in the shape of an architectural fitness function. Tracked as
+  `ini-008-anchor-staleness-check` in `workspace.toml [backlog].open`.
+
+  Recorded in `workspace.toml` (`["ini-008"]` milestone and `["ini-008".work]`
+  entries) and in the four `*-reanchor` backlog items.
