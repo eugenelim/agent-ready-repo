@@ -44,6 +44,8 @@ _ORG_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
 
 _MARKER_DIR = "packs"
 _MARKER_FILE = "catalogue.toml"
+# An extracted release archive's identity file; catalogue.toml is never shipped.
+_ARCHIVE_MARKER_FILE = "catalogue-manifest.json"
 
 # The exact substring the spec pins for the all-layers-empty error. Names the
 # real surface: the catalogue is a trailing positional argument, not a
@@ -65,19 +67,31 @@ _UNSET: object = object()
 
 
 def _has_catalogue_markers(root: Path) -> bool:
-    """Return whether *root* holds ``catalogue.toml`` and literal ``packs/``."""
+    """Return whether *root* holds an identity file and literal ``packs/``.
+
+    Two shapes are a catalogue. A source checkout carries ``catalogue.toml``.
+    An extracted release archive carries ``catalogue-manifest.json`` instead:
+    ``catalogue_tooling/package.py`` deliberately filters ``catalogue.toml``
+    out of every archive, so requiring it would reject the offline install
+    flow's own artifact. ``packs/`` is required either way, so accepting the
+    second identity file does not admit arbitrary directories.
+    """
     try:
         resolved_root = root.resolve(strict=True)
-        config = (resolved_root / _MARKER_FILE).resolve(strict=True)
         packs = (resolved_root / _MARKER_DIR).resolve(strict=True)
     except (OSError, RuntimeError):
         return False
-    return (
-        config.is_file()
-        and config.is_relative_to(resolved_root)
-        and packs.is_dir()
-        and packs.is_relative_to(resolved_root)
-    )
+    if not (packs.is_dir() and packs.is_relative_to(resolved_root)):
+        return False
+
+    for marker in (_MARKER_FILE, _ARCHIVE_MARKER_FILE):
+        try:
+            config = (resolved_root / marker).resolve(strict=True)
+        except (OSError, RuntimeError):
+            continue
+        if config.is_file() and config.is_relative_to(resolved_root):
+            return True
+    return False
 
 
 def _local_path_has_markers(value: str) -> bool:

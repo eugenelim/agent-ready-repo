@@ -165,7 +165,24 @@ def test_scheme_gate_rejects_legacy_packs_and_marketplace_without_catalogue_toml
     assert _is_valid_source(str(tmp_path)) is False
 
 
+def test_scheme_gate_accepts_extracted_release_archive(tmp_path):
+    # `catalogue package` deliberately never ships catalogue.toml
+    # (catalogue_tooling/package.py filters it out), so an extracted release
+    # archive is identified by catalogue-manifest.json + packs/. Rejecting that
+    # shape makes the offline install flow — Gate E — impossible.
+    (tmp_path / "catalogue-manifest.json").write_text('{"schema": 2}\n', encoding="utf-8")
+    (tmp_path / "packs").mkdir()
+    assert _is_valid_source(str(tmp_path)) is True
+
+
 def test_scheme_gate_rejects_local_path_without_markers(tmp_path):
+    assert _is_valid_source(str(tmp_path)) is False
+
+
+def test_scheme_gate_rejects_manifest_without_packs(tmp_path):
+    # One identity file is not enough on its own — packs/ is still required, so
+    # widening the marker set does not admit arbitrary directories.
+    (tmp_path / "catalogue-manifest.json").write_text('{"schema": 2}\n', encoding="utf-8")
     assert _is_valid_source(str(tmp_path)) is False
 
 
