@@ -1,7 +1,7 @@
 # Plan: Catalogue source identity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as implementation evidence develops.
@@ -363,3 +363,5 @@ before upgrading by adding a valid root `catalogue.toml` and literal root
   adversarial, quality, and security implementation reviews were clean.
 - 2026-08-11: Added the `pyproject.toml`-selected PyPI long description to T3
   so the 0.33.0 package page carries the source-identity migration contract.
+- 2026-08-12: Closed T4 after confirming agentbundle 0.33.0 was published to
+  PyPI; moved the spec and plan to their terminal lifecycle states.
