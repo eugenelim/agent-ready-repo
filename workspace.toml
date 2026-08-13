@@ -1743,6 +1743,37 @@ open = [
   # remains non-dispatchable until a separate spec is approved.
   {slug = "capture-work-alias-removal", source = "spec/work-intake-migration-docs AC14"},
 
+  # ── ini-008 reanchor: refresh open specs on shipped Group 2/3 reality ───────
+  # RFC-0083 Groups 2 and 3 shipped AFTER these four specs were authored
+  # (specs #903 2026-08-09; Group 2 #905 2026-08-10; Group 3 #928 2026-08-12), so
+  # each spec's assumptions predate the contracts and routing rules it builds on.
+  # Each item below proposes ONE spec/plan refresh loop, run immediately before
+  # that spec's build loop, reanchoring it on what actually shipped: the
+  # structured workspace entry schema (Group 2) and canonical routing, typed
+  # needs, fail-closed dispatch and RoutingFinding codes (Group 3).
+  # Slugs are deliberately distinct from the spec slugs: work-loop's shaping-item
+  # guard refuses to build any spec whose slug matches a [backlog].open entry.
+  # Non-dispatchable by construction — [backlog].open is a display projection and
+  # is never passed to the dispatch classifiers.
+  {slug = "work-intake-surface-reanchor", type = "spec", source = "spec/work-intake-surface", summary = "Reanchor the intake-surface spec/plan on shipped Group 2/3 contracts before its build loop"},
+  {slug = "tracker-intake-adapters-reanchor", type = "spec", source = "spec/tracker-intake-adapters", summary = "Reanchor the tracker-adapters spec/plan on the shipped normalized-intake contract"},
+  {slug = "tracker-refresh-writeback-reanchor", type = "spec", source = "spec/tracker-refresh-writeback", summary = "Reanchor the refresh/write-back spec/plan on shipped lifecycle and authority rules"},
+  {slug = "work-intake-migration-docs-reanchor", type = "spec", source = "spec/work-intake-migration-docs", summary = "Reanchor the migration/docs spec/plan on shipped canonical routing and finding codes"},
+  # Anchor-staleness fitness function. Nothing detected that Group 3 (#928) had
+  # invalidated four unstarted Group 4-7 specs — it surfaced only because a human
+  # asked. The reanchor items above are the one-off correction; this is the control
+  # that stops it recurring. Shape: for each spec in work.queue, if any declared
+  # `needs` target reached Shipped AFTER that spec's last revision, emit a
+  # `stale_anchor` finding and refuse dispatch until the spec is re-approved.
+  # Modelled on architectural fitness functions (ThoughtWorks' "dependency drift
+  # fitness function") — a continuously-run check, not a review ritual, because the
+  # documented failure mode of decision records is neglect rather than bad edits.
+  # Typed `spec` (not `design`): a bare typed shaping object here is a legacy
+  # shape that yields `legacy_entry`, and this item will produce a spec anyway.
+  # Needs a design pass first: `needs` carries no timestamp, so the comparison
+  # has to come from git history or a new recorded field.
+  {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Detect queued specs whose shipped dependencies moved after the spec was last revised"},
+
   # The canonical adopter-facing `guides/` tree is mirrored into the public
   # technical docs, but `agentbundle catalogue package --flavor source` includes
   # only `guides/_shared/`, not the pack-specific guide corpus. An organization
@@ -2028,17 +2059,36 @@ queue   = [
 ["ini-008"]
 name      = "Work Intake and Artifact Routing"
 status    = "active"
-milestone = "Wave 2 · Routing invariants"
+milestone = "Wave 3 · Intake surface"
 
 ["ini-008".work]
+# Entries are canonical target records (RFC-0083 delivery groups). Each carries its
+# own path, kind, source, summary and typed `needs`, so it is dispatchable without
+# reading a neighbouring comment. Legacy `spec/<slug>` strings are NOT valid here:
+# `workspace-routing-invariants` (Group 3, shipped) made canonical routing the
+# enforced contract, and a legacy path yields `invalid_artifact_path` and refuses
+# dispatch. Needs are typed objects — the canonical parser rejects bare strings.
 shipped = [
-  "spec/normalized-intake-workspace-contracts",
-  {path = "spec/workspace-routing-invariants", kind = "spec", source = {mode = "repo-origin"}, summary = "Make lifecycle, reconciliation, and dispatch routing deterministic", needs = ["work:spec/normalized-intake-workspace-contracts"]},
+  # Group 2 — transient normalized-intake contract + structured workspace entry
+  # schema (provenance, authority, summary, dependencies, lifecycle, validation).
+  {path = "docs/specs/normalized-intake-workspace-contracts/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize intake and workspace contracts", needs = []},
+  # Group 3 — parsing, reconciliation, status and dispatch enforce the target
+  # rules: a missing spec or plan fails closed; comments cannot change routing.
+  {path = "docs/specs/workspace-routing-invariants/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make lifecycle, reconciliation, and dispatch routing deterministic", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}]},
 ]
 active = []
 queue = [
-  {path = "spec/work-intake-surface", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = ["work:spec/normalized-intake-workspace-contracts", "work:spec/workspace-routing-invariants"]},
-  {path = "spec/tracker-intake-adapters", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = ["work:spec/normalized-intake-workspace-contracts", "work:spec/work-intake-surface"]},
-  {path = "spec/tracker-refresh-writeback", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = ["work:spec/normalized-intake-workspace-contracts", "work:spec/workspace-routing-invariants", "work:spec/work-intake-surface", "work:spec/tracker-intake-adapters"]},
-  {path = "spec/work-intake-migration-docs", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = ["work:spec/normalized-intake-workspace-contracts", "work:spec/workspace-routing-invariants", "work:spec/work-intake-surface", "work:spec/tracker-intake-adapters", "work:spec/tracker-refresh-writeback"]},
+  # Group 4 — standalone `work-intake`; corrects author-brief, receive-brief,
+  # new-spec, work-loop, workspace-status; `capture-work` becomes the alias.
+  # Exit: start/remember/status work with no optional shaping pack.
+  {path = "docs/specs/work-intake-surface/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}]},
+  # Group 5 — Jira, Jira Align, Linear and GitHub adapters converge on the shared
+  # contract. Acquisition and normalization stay adapter-specific.
+  {path = "docs/specs/tracker-intake-adapters/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}]},
+  # Group 6 — origin-aware refresh, conflict resolution, execution locks and
+  # limited post-execution write-back across supported trackers.
+  {path = "docs/specs/tracker-refresh-writeback/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Review tracker deltas and constrain lifecycle-aware write-back", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}]},
+  # Group 7 — reconcile legacy workspaces, publish the alias window and removal
+  # criteria, finish cross-links, run the full evaluation matrix.
+  {path = "docs/specs/work-intake-migration-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Migrate legacy entries and document intake compatibility", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-intake-adapters/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/tracker-refresh-writeback/spec.md"}]},
 ]
