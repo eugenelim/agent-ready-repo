@@ -32,3 +32,12 @@ directory's purpose ahead of that work.
   promoted into `rfc-candidates.md` (M3).
 - **`workspace-status`** (after M3 ships): surfaces the candidate count
   at session start — "N rfc candidates · M roadmap intents".
+
+## Supporting evidence
+
+Registers cite evidence; the evidence itself lives beside them when it was
+produced by a repo-governance question rather than a product question.
+
+- `adaptive-planning-survey.md` — applied survey behind the RFC-0083 delivery-plan
+  erratum: how governance artifacts stay revisable without losing decision
+  traceability. Confidence-tagged, with an explicit Known-unknowns section.

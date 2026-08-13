@@ -15,3 +15,5 @@ note the reason.
 
 | Problem | Source | Surfaced by | Date | Priority | Disposition |
 |---|---|---|---|---|---|
+| Governance artifacts freeze a perishable delivery plan inside an immutable decision record, so correcting a forecast costs a full RFC cycle. Candidate: generalise a durable/perishable split into `CONVENTIONS.md` § Document lifecycle (cf. Kubernetes KEP graduation criteria, PEP `Provisional`). | RFC-0083 § Errata (2026-08-13) | `work-loop` / ini-008 reanchor | 2026-08-13 | Medium | Open — evidence in [`adaptive-planning-survey.md`](adaptive-planning-survey.md) |
+| No automated signal detects that a queued spec's shipped dependencies moved after it was approved; drift surfaced only on human inspection. Candidate: an anchor-staleness fitness function as a repo-wide routing invariant, not a per-initiative fix. | RFC-0083 § Errata (2026-08-13) | `work-loop` / ini-008 reanchor | 2026-08-13 | Medium | Open — tracked as `ini-008-anchor-staleness-check` in `workspace.toml [backlog].open` |
