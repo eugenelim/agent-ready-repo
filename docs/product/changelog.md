@@ -18,7 +18,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`agentbundle install` now recovers on corporate networks that inspect TLS.**
+  On a network where a proxy re-signs HTTPS traffic with a private certificate
+  authority, a catalogue fetch failed with
+  `CERTIFICATE_VERIFY_FAILED: unable to get local issuer certificate`, because
+  the authority is installed in the operating system's trust store and Python
+  reads its own certificate file instead. On macOS, `agentbundle` now retries
+  once against the administrator-controlled trust anchors the operating system
+  already provides, and says so on stderr. Verification stays strict throughout:
+  the retry adds trust anchors, never removes one, and no flag or variable
+  disables verification. One caveat stated plainly: macOS lets an administrator
+  mark a certificate *Never Trust*, and this fallback does not read those
+  markings, so such a certificate is still used as an anchor — bounded to a
+  keychain only an administrator can write. The login keychain is never read. Set
+  `AGENTBUNDLE_NO_SYSTEM_TRUST=1` to opt out. Windows needs no fallback — Python already
+  loads the Windows certificate store, honouring per-certificate trust settings —
+  and Linux needs none provided the authority is installed in `/etc/ssl/certs`.
+  A WSL distribution does not inherit the Windows store; install the authority
+  into the distribution or set `AGENTBUNDLE_CA_BUNDLE`.
+- **`AGENTBUNDLE_NO_SYSTEM_TRUST`** — opt out of the fallback above.
+
+### Fixed
+
+- **`AGENTBUNDLE_CA_BUNDLE` now works on `git+https://` catalogue sources.** The
+  reference documentation described it as covering HTTPS catalogue sources, but
+  only the `catalogue+https://` and `archive+https://` paths read it — the
+  `git+https://` path ignored it entirely, so adopters who followed the
+  documentation still could not install. `SSL_CERT_FILE`, `SSL_CERT_DIR`, and
+  `REQUESTS_CA_BUNDLE` are honoured there too, with `AGENTBUNDLE_CA_BUNDLE`
+  taking precedence. Note the semantics differ by source form and this is now
+  documented: `git+https://` *adds* your bundle to the default trust store,
+  while `catalogue+https://` and `archive+https://` *replace* it.
+- **A catalogue fetch can no longer hang indefinitely.** The request now carries
+  an explicit 30-second timeout, so a proxy that accepts the connection and
+  never answers fails instead of stalling.
+- **A failed catalogue fetch explains what to do next.** The error previously
+  surfaced only the raw OpenSSL string; it now names the probable cause and
+  gives ordered troubleshooting steps.
+
 ### Changed
+
+- **Setting `AGENTBUNDLE_CA_BUNDLE` to a path that does not exist now fails a
+  `git+https://` install that previously succeeded.** The variable was ignored
+  on that path before, so a fleet-wide export pointing at a file absent on this
+  host was harmless; it now raises before any connection is made. Unset it, or
+  correct the path.
+
 
 - **Published guides no longer point at records you can't read.** Guide pages
   across the `_shared`, `core`, `atlassian`, `credential-brokers`,

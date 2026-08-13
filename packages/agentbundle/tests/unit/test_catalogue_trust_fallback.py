@@ -1,0 +1,295 @@
+"""Two-attempt catalogue fetch — spec/catalogue-corporate-trust-store T3/T4.
+
+Coverage:
+  T3 — retry sequencing, opt-out, unchanged single-connection path
+  T4 — remediation text, explicit timeout
+
+``urlopen`` is stubbed throughout; no real network calls. Placeholder host names
+only, per the convention in test_https_catalogue.py.
+"""
+
+from __future__ import annotations
+
+import io
+import ssl
+import sys
+import tarfile
+import urllib.error
+import urllib.request
+
+import pytest
+from agentbundle import catalogue, system_trust
+from agentbundle.catalogue import CatalogueError
+
+URL = "https://example.test/owner/repo/archive/refs/heads/main.tar.gz"
+
+
+def _tarball() -> bytes:
+    """A minimal, valid gzip tarball with one top-level directory."""
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        payload = b"catalogue\n"
+        info = tarfile.TarInfo("repo-main/pack.toml")
+        info.size = len(payload)
+        tf.addfile(info, io.BytesIO(payload))
+    return buf.getvalue()
+
+
+def _verify_error() -> urllib.error.URLError:
+    """The real shape urllib produces: URLError wrapping the SSL error.
+
+    urlopen never lets ssl.SSLCertVerificationError escape directly, so a fetch
+    that matched on the bare exception type would never fire the fallback.
+    """
+    return urllib.error.URLError(
+        ssl.SSLCertVerificationError(
+            1,
+            "[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: "
+            "unable to get local issuer certificate (_ssl.c:1032)",
+        )
+    )
+
+
+class _Stub:
+    """Records each urlopen call and replays a scripted outcome per call."""
+
+    def __init__(self, outcomes):
+        self.outcomes = list(outcomes)
+        self.calls: list[dict] = []
+
+    def __call__(self, url, *args, **kwargs):
+        self.calls.append({"url": url, "kwargs": kwargs})
+        outcome = self.outcomes.pop(0)
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return io.BytesIO(outcome)
+
+
+@pytest.fixture
+def no_env(monkeypatch):
+    for var in (
+        "AGENTBUNDLE_CA_BUNDLE",
+        "AGENTBUNDLE_NO_SYSTEM_TRUST",
+        "SSL_CERT_FILE",
+        "SSL_CERT_DIR",
+        "REQUESTS_CA_BUNDLE",
+    ):
+        monkeypatch.delenv(var, raising=False)
+
+
+# ---------------------------------------------------------------------------
+# T3 — sequencing
+# ---------------------------------------------------------------------------
+
+
+def test_clean_verification_makes_exactly_one_connection(monkeypatch, tmp_path, no_env):
+    """The unchanged-behaviour guarantee."""
+    stub = _Stub([_tarball()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    catalogue._fetch_and_extract(URL, tmp_path)
+    assert len(stub.calls) == 1
+    assert (tmp_path / "repo-main" / "pack.toml").exists()
+
+
+def _an_anchor_pem() -> str:
+    """A real, parseable CA certificate to stand in for keychain material."""
+    ders = ssl.create_default_context().get_ca_certs(binary_form=True)
+    if not ders:
+        pytest.skip("interpreter has an empty default trust store")
+    return ssl.DER_cert_to_PEM_cert(ders[0])
+
+
+def test_verification_failure_retries_once_with_system_anchors(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    stub = _Stub([_verify_error(), _tarball()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    assert len(stub.calls) == 2, "expected exactly one retry"
+    assert (tmp_path / "repo-main" / "pack.toml").exists()
+    captured = capsys.readouterr()
+    assert "example.test" in captured.err
+    assert captured.out == "", "nothing may go to stdout"
+
+
+def test_retry_uses_a_different_context_carrying_the_anchors(
+    monkeypatch, tmp_path, no_env
+):
+    """Without this, the retry could re-dial the same context and still pass.
+
+    The previous version of this test stubbed the anchors to None, so it would
+    have passed against an implementation that dropped the anchors entirely.
+    """
+    stub = _Stub([_verify_error(), _tarball()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    first = stub.calls[0]["kwargs"]["context"]
+    second = stub.calls[1]["kwargs"]["context"]
+    assert second is not first, "the retry must build a fresh context"
+    assert second.verify_mode is ssl.CERT_REQUIRED
+    assert second.check_hostname is True
+
+
+def test_no_retry_when_no_system_anchors_are_available(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """On a platform with no administrator trust store, do not pretend.
+
+    A second connection against an identical context is noise, and announcing
+    anchors that were never consulted misdirects the adopter.
+    """
+    monkeypatch.setattr(sys, "platform", "linux")
+    stub = _Stub([_verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda: None)
+
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+
+    assert len(stub.calls) == 1, "must not re-dial with an identical context"
+    assert "macOS-only" in str(exc.value)
+    assert "retrying with" not in capsys.readouterr().err
+
+
+def test_empty_admin_keychain_on_macos_names_the_real_cause(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """On macOS the fallback DID apply — it just found nothing.
+
+    Blaming the platform here would misdirect an adopter whose authority is
+    installed in a store this deliberately does not read.
+    """
+    monkeypatch.setattr(sys, "platform", "darwin")
+    stub = _Stub([_verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda: None)
+
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+
+    message = str(exc.value)
+    assert "administrator keychain holds no certificates" in message
+    assert "macOS-only" not in message, "must not blame the platform on macOS"
+    assert len(stub.calls) == 1
+
+
+def test_fallback_notice_fires_once(monkeypatch, tmp_path, capsys, no_env):
+    stub = _Stub([_verify_error(), _tarball()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    catalogue._fetch_and_extract(URL, tmp_path)
+    err = capsys.readouterr().err
+    assert err.count("retrying with operating-system trust anchors") == 1, err
+
+
+def test_non_certificate_error_does_not_retry(monkeypatch, tmp_path, no_env):
+    """A timeout must not become doubled load."""
+    stub = _Stub([urllib.error.URLError(TimeoutError("timed out"))])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    with pytest.raises(CatalogueError):
+        catalogue._fetch_and_extract(URL, tmp_path)
+    assert len(stub.calls) == 1
+
+
+def test_opt_out_suppresses_the_retry(monkeypatch, tmp_path, no_env):
+    monkeypatch.setenv("AGENTBUNDLE_NO_SYSTEM_TRUST", "1")
+    stub = _Stub([_verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+    assert len(stub.calls) == 1, "opt-out must not retry"
+    message = str(exc.value)
+    assert "CERTIFICATE_VERIFY_FAILED" in message
+    assert "was not attempted" in message, "must say the fallback did not run"
+    assert "did not complete the chain" not in message, (
+        "must not claim anchors were exhausted when they were never consulted"
+    )
+    assert "Set AGENTBUNDLE_NO_SYSTEM_TRUST=1" not in message, (
+        "must not advise setting a variable the adopter has already set"
+    )
+
+
+def test_retry_failure_raises_catalogue_error(monkeypatch, tmp_path, no_env):
+    stub = _Stub([_verify_error(), _verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    with pytest.raises(CatalogueError):
+        catalogue._fetch_and_extract(URL, tmp_path)
+    assert len(stub.calls) == 2
+
+
+# ---------------------------------------------------------------------------
+# T4 — remediation text and timeout
+# ---------------------------------------------------------------------------
+
+
+def test_unrepairable_failure_names_cause_and_next_action(monkeypatch, tmp_path, no_env):
+    stub = _Stub([_verify_error(), _verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+    message = str(exc.value)
+    assert "inspect" in message.lower(), "must name the probable cause"
+    assert "AGENTBUNDLE_CA_BUNDLE" in message, "must name the next action"
+    assert URL in message, "must keep naming what was attempted"
+    assert "local clone" in message, "must offer the no-HTTPS route"
+    assert "codeload.github.com" in message, "must name the second-host wall"
+
+
+def test_message_does_not_recommend_a_virtualenv_as_a_fix(monkeypatch, tmp_path, no_env):
+    """A venv inherits its base interpreter's trust store unchanged.
+
+    Recommending one is cargo-cult: it appears to work only when the venv was
+    built from a *different* interpreter whose store already trusted the
+    network. The message must point at the interpreter, not the venv.
+    """
+    stub = _Stub([_verify_error(), _verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+    message = str(exc.value)
+    assert "get_default_verify_paths" in message, "must show how to compare stores"
+    assert "does NOT change trust" in message, "must debunk the venv folk remedy"
+
+
+def test_fetch_passes_an_explicit_timeout(monkeypatch, tmp_path, no_env):
+    stub = _Stub([_tarball()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    catalogue._fetch_and_extract(URL, tmp_path)
+    assert stub.calls[0]["kwargs"].get("timeout"), "a black-holing proxy must not hang"
+
+
+def test_missing_ca_bundle_path_still_raises_before_any_connection(
+    monkeypatch, tmp_path, no_env
+):
+    monkeypatch.setenv("AGENTBUNDLE_CA_BUNDLE", str(tmp_path / "absent.pem"))
+    stub = _Stub([_tarball()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+    assert "absent.pem" in str(exc.value)
+    assert not stub.calls, "a typo must be caught before dialing out"
+
+
+def test_read_phase_failures_are_wrapped_not_leaked(monkeypatch, tmp_path, no_env):
+    """A stall or TLS error mid-body escapes urlopen unwrapped.
+
+    urlopen only wraps connect-phase failures, so these reach the caller as
+    bare exceptions and would break the module's documented promise that an
+    unreachable URL raises CatalogueError.
+    """
+    for raw in (TimeoutError("read timed out"), ssl.SSLError("decryption failed")):
+        stub = _Stub([raw])
+        monkeypatch.setattr(urllib.request, "urlopen", stub)
+        with pytest.raises(CatalogueError) as exc:
+            catalogue._fetch_and_extract(URL, tmp_path)
+        assert URL in str(exc.value)
+        assert len(stub.calls) == 1, "a non-certificate failure must not retry"

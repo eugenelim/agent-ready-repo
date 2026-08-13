@@ -14,25 +14,42 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
-## What's new in 0.34.0
+## What's new in 0.35.0
 
-Inspect the exact public contracts bundled with the installed AgentBundle
-version without network access:
+**Installs now work on corporate networks that inspect TLS.** If your employer
+runs a proxy that re-signs HTTPS traffic, an install used to fail like this and
+leave you nothing to act on:
 
-```bash
-agentbundle catalogue contracts list
-agentbundle catalogue contracts show pack.schema.json
-agentbundle catalogue contracts export --output ./reference-contracts
+```
+install: Failed to fetch catalogue archive: … —
+  [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed:
+  unable to get local issuer certificate
 ```
 
-`list` and `show` are read-only. `export` writes reference copies through a
-no-follow, preflighted batch writer; those copies do not override the contracts
-AgentBundle uses for validation.
+The certificate authority your IT team installed is in the operating system's
+trust store, and Python does not read that store on macOS. AgentBundle now
+recovers on its own:
 
-Successful `agentbundle catalogue init` output now points to the scaffolded
-`guides/_shared/reference/catalogue-authoring-standards.md`, contract discovery,
-and catalogue verification. The guide's bundled-contract section documents all
-three commands. JSON init output remains unchanged.
+```
+agentbundle: certificate verification failed for github.com;
+  retrying with operating-system trust anchors
+```
+
+Verification stays strict throughout — the retry *adds* trust anchors and never
+removes one, and no flag or environment variable can disable verification. Only
+the administrator keychain is read; your login keychain never is, because it is
+writable without administrator rights. Set `AGENTBUNDLE_NO_SYSTEM_TRUST=1` to
+opt out and see the underlying error.
+
+`AGENTBUNDLE_CA_BUNDLE` also works on `git+https://` sources now — previously
+only the `catalogue+https://` and `archive+https://` forms read it, so following
+the documentation did not help. `SSL_CERT_FILE`, `SSL_CERT_DIR`, and
+`REQUESTS_CA_BUNDLE` are honoured there too. See
+[Corporate networks](#corporate-networks) below.
+
+When a fetch still fails, the error names the likely cause and ordered next
+steps, and the request now carries a 30-second timeout so a proxy that accepts
+the connection and never answers fails instead of hanging.
 
 **Install into a repo** — so everyone who clones it gets the pack. `core` is the flagship pack, the loop itself:
 
@@ -472,6 +489,51 @@ Pass exactly one environment variable when spawning to set the session mode:
 or `WORKSPACE_MCP_DISPATCHED_ITEM` (`ini_slug/type:slug`) for non-FSM shaping
 items. Setting neither gives discovery-only mode (git writes disabled). Setting
 both is unsupported — only one selects the mode.
+
+## Corporate networks
+
+macOS is the only platform where Python ignores the operating system's trust
+store, which is why the automatic fallback above is macOS-only:
+
+| Platform | Trust source | Needs anything from you? |
+| --- | --- | --- |
+| **Windows** | Python loads the Windows `CA` and `ROOT` stores and honours each certificate's trust settings | No — a root pushed by Group Policy or Intune already works |
+| **Linux** | OpenSSL reads `/etc/ssl/certs` | No, once the authority is installed there |
+| **WSL** | Same as Linux — a WSL distribution does **not** inherit the Windows certificate store | **Yes** — see below |
+| **macOS** | OpenSSL reads a PEM file; the keychain is invisible to it | No — this is the case the fallback handles |
+
+If your IT team gives you a CA bundle, point AgentBundle at it directly:
+
+```bash
+export AGENTBUNDLE_CA_BUNDLE=/path/to/corporate-ca.pem
+agentbundle install --pack core
+```
+
+On `git+https://` sources that bundle is **added** to the default trust store, so
+a bundle holding only your private authority still verifies public hosts. On
+`catalogue+https://` and `archive+https://` it **replaces** the store, pinning
+verification to your own authority — useful for an internal Artifactory mirror.
+
+**WSL** is the case most likely to catch out a Windows-standardised organisation:
+your IT team pushes the authority to Windows, Windows tools pick it up, and
+nothing inside the WSL distribution does. Export it from Windows (Certificate
+Manager → Trusted Root Certification Authorities → Export as Base-64 X.509), then
+install it in the distribution:
+
+```bash
+sudo cp corporate-ca.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+```
+
+Two things no certificate configuration can fix: a proxy that requires Kerberos
+or NTLM authentication, and an egress allowlist that permits `github.com` but not
+`codeload.github.com` — a GitHub archive fetch redirects across both hosts.
+
+A note on virtualenvs, since it comes up: creating one does **not** change TLS
+trust. A virtualenv inherits its base interpreter's certificate store unchanged.
+If an install works under one `python3` and not another, the interpreters differ,
+not the environment — compare them with
+`python3 -c "import ssl; print(ssl.get_default_verify_paths())"`.
 
 ## Credentials
 

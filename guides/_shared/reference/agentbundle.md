@@ -162,10 +162,90 @@ Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4 (the org Artifactory boot
 | Variable | Default | Purpose |
 | -------- | ------- | ------- |
 | `AGENTBUNDLE_HTTP_BEARER_TOKEN` | unset | Bearer token sent as `Authorization: Bearer <token>` on `catalogue+https://` and `archive+https://` requests. **Secret — do not log or persist to version control.** Example: `AGENTBUNDLE_HTTP_BEARER_TOKEN=<token> agentbundle install --pack core` |
-| `AGENTBUNDLE_CA_BUNDLE` | unset | Absolute path to a PEM CA bundle for TLS verification of HTTPS catalogue sources. Set when your Artifactory instance uses a corporate or self-signed certificate. Raises `CatalogueError` if the path does not exist. Example: `AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem agentbundle install --pack core` |
+| `AGENTBUNDLE_CA_BUNDLE` | unset | Absolute path to a PEM CA bundle for TLS verification, honoured on every catalogue source form. Raises `CatalogueError` if the path does not exist — including on `git+https://`, where the variable was previously ignored. **Semantics differ by source form:** on `git+https://` the bundle is *added* to the default trust store; on `catalogue+https://` and `archive+https://` it *replaces* it, which pins verification to your own authority. Example: `AGENTBUNDLE_CA_BUNDLE=/etc/ssl/corp-ca.pem agentbundle install --pack core` |
+| `SSL_CERT_FILE`, `SSL_CERT_DIR`, `REQUESTS_CA_BUNDLE` | unset | Standard OpenSSL-family trust-store paths, honoured on `git+https://` sources only — the `catalogue+https://` and `archive+https://` paths read `AGENTBUNDLE_CA_BUNDLE` alone. Precedence is `AGENTBUNDLE_CA_BUNDLE`, then `SSL_CERT_FILE`, then `REQUESTS_CA_BUNDLE`; anchors are added to the default store, never substituted for it. A stale `REQUESTS_CA_BUNDLE` is ignored harmlessly. A stale `SSL_CERT_FILE` or `SSL_CERT_DIR` is **not** recoverable: OpenSSL resolves its default paths from those variables, so a bad value leaves the trust store empty and every fetch fails verification. Unset them rather than pointing them at a missing file. |
+| `AGENTBUNDLE_NO_SYSTEM_TRUST` | unset | When set to any non-empty value, disables the operating-system trust fallback described in [Corporate networks](#corporate-networks) below. The underlying verification error is still reported, with the troubleshooting guidance appended. |
 | `AGENTBUNDLE_NO_REMOTE` | unset | When set to any non-empty value, skips Layer 3 (org Artifactory bootstrap) and Layer 4 (editable-install detection), falling through to Layer 5. Use on hosts that cannot reach Artifactory, or in CI pipelines that resolve a local catalogue. Example: `AGENTBUNDLE_NO_REMOTE=1 agentbundle install --pack core /path/to/local-catalogue` |
 | `HTTPS_PROXY` | unset | Proxy URL for outbound HTTPS requests. Read automatically by Python's `urllib.request.ProxyHandler`; no `agentbundle`-specific wiring needed. Example: `HTTPS_PROXY=http://proxy.example.com:3128 agentbundle install --pack core` |
 | `NO_PROXY` | unset | Comma-separated list of hostnames that bypass the HTTPS proxy. Read automatically by Python's `urllib.request.ProxyHandler`. Example: `NO_PROXY=internal.example.com,localhost` |
+
+## Corporate networks
+
+On a network that inspects TLS traffic, a proxy re-signs outbound HTTPS with a
+private root certificate authority. That authority is installed in the operating
+system's trust store by your IT department, but Python reads its own certificate
+file rather than the OS store, so a catalogue fetch fails with:
+
+```
+[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate
+```
+
+`agentbundle` recovers from this on its own. When verification fails, it retries
+once against the administrator-controlled trust anchors the operating system
+already provides, and reports that it did so:
+
+```
+agentbundle: certificate verification failed for github.com; retrying with
+operating-system trust anchors
+```
+
+The fallback reads one store: `/Library/Keychains/System.keychain`, the
+administrator keychain. Your login keychain is never read, because it is
+writable without administrator rights and a certificate landing there is not an
+IT trust decision. Apple's own root program is not read either — the retry
+already starts from the certificates Python trusts by default, so importing a
+second curated root set would widen trust for no gain.
+
+Verification stays strict: hostname checking and full chain validation apply on
+every attempt, the fallback only ever *adds* trust anchors, and no flag or
+variable disables verification. One caveat worth stating plainly: macOS lets an
+administrator mark a certificate *Never Trust*, and the fallback does not read
+those markings, so such a certificate is still used as an anchor. It is bounded
+to a keychain only an administrator can write.
+
+### Why the fallback is macOS-only
+
+macOS is the only platform where Python ignores the operating system's trust
+store. `ssl.SSLContext.load_default_certs` has a Windows branch and no macOS
+branch, so:
+
+| Platform | Trust source | Needs the fallback? |
+| --- | --- | --- |
+| **Windows** | Python loads the Windows `CA` and `ROOT` stores directly, honouring each certificate's trust settings | **No.** A root your IT team pushes by Group Policy or Intune is already trusted. |
+| **Linux** | OpenSSL reads `/etc/ssl/certs` | No, provided the authority was installed there (`update-ca-certificates`). |
+| **WSL** | Same as Linux — a WSL distribution does **not** inherit the Windows certificate store | **Yes, and the fallback cannot help.** See below. |
+| **macOS** | OpenSSL reads a PEM file; the keychain is invisible to it | Yes — this is the case the fallback exists for. |
+
+On Windows and Linux the install fails with a message saying no operating-system
+anchors were available, rather than silently retrying against the same trust
+store. On those platforms a verification failure has some *other* cause, so
+reach for the troubleshooting steps in the error rather than assuming a
+missing corporate root.
+
+### WSL
+
+WSL is the case most likely to surprise a Windows-standardised organisation. Your
+IT team pushes the corporate authority to the Windows certificate store, Windows
+tools pick it up, and anything inside the WSL distribution does not — the two
+have separate trust stores. Install the authority into the distribution, or point
+`AGENTBUNDLE_CA_BUNDLE` at it:
+
+```bash
+# Debian/Ubuntu, from inside the WSL distribution
+sudo cp corporate-ca.crt /usr/local/share/ca-certificates/
+sudo update-ca-certificates
+```
+
+Export the authority from Windows first (Certificate Manager → Trusted Root
+Certification Authorities → Export as Base-64 X.509).
+### Egress allowlists
+
+- A GitHub archive fetch redirects `github.com` →
+  `codeload.github.com`. If your proxy permits only the first host, the fetch
+  fails after certificates are working. Both hosts need to be reachable.
+
+To opt out and see the raw verification error, set
+`AGENTBUNDLE_NO_SYSTEM_TRUST=1`.
 
 ## Catalogue CI
 

@@ -20,7 +20,14 @@ deferred to v1.1.
 Unreachable URLs raise ``CatalogueError`` with the tarball URL in the
 message so the caller can report exactly what was attempted.
 
-No subprocess calls anywhere in this module.
+TLS trust is delegated to ``system_trust.py``: the fetch honours the
+corporate CA-bundle environment variables, and a certificate-verification
+failure is retried exactly once against operating-system trust anchors,
+announced on stderr. Verification is never weakened on any path.
+
+No subprocess calls in this module. The macOS keychain export that the
+trust fallback needs lives in ``system_trust.py``, which this module
+imports lazily and delegates to.
 """
 
 from __future__ import annotations
@@ -28,11 +35,23 @@ from __future__ import annotations
 import atexit
 import re
 import shutil
+import ssl
+import sys
 import tarfile
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
+
+# A black-holing corporate proxy accepts the connection and never answers, so an
+# unbounded fetch hangs forever rather than failing. The value matches
+# https_catalogue._HTTP_TIMEOUT deliberately: both fetch archives over the same
+# networks, and one number is easier to reason about than two. urllib applies it
+# per socket operation, not to the whole transfer, so a large archive on a slow
+# link is unaffected — only 30s of silence trips it.
+_FETCH_TIMEOUT_S = 30
 
 _SSH_PREFIX = "git+ssh://"
 _HTTPS_PREFIX = "git+https://"
@@ -144,18 +163,203 @@ def _github_archive_url(owner: str, repo: str, ref: str) -> str:
     return f"https://github.com/{owner}/{repo}/archive/{ref}.tar.gz"
 
 
+def _is_cert_verification_failure(exc: BaseException) -> bool:
+    """True when *exc* is a certificate-verification failure.
+
+    ``urlopen`` never lets ``ssl.SSLCertVerificationError`` escape directly — it
+    wraps it in ``URLError.reason`` — so matching the bare exception type would
+    silently never fire the fallback. Both shapes are accepted.
+    """
+    if isinstance(exc, ssl.SSLCertVerificationError):
+        return True
+    reason = getattr(exc, "reason", None)
+    return isinstance(reason, ssl.SSLCertVerificationError)
+
+
+def _verification_failure_message(
+    url: str,
+    detail: object,
+    *,
+    fallback_note: str,
+    offer_opt_out: bool = True,
+) -> str:
+    """Explain a verification failure in terms of the adopter's next action.
+
+    A raw OpenSSL string tells an adopter behind a TLS-inspecting proxy nothing
+    they can act on, which is how this failure reaches a maintainer instead of
+    being self-served.
+
+    *fallback_note* keeps the diagnosis honest — the caller states what actually
+    happened to the operating-system fallback, because claiming the anchors were
+    exhausted when they were never consulted sends the adopter after the wrong
+    cause. *offer_opt_out* is false once the adopter has already opted out, so
+    the message never advises setting a variable that is already set.
+    """
+    host = urllib.parse.urlsplit(url).netloc
+    steps = [
+        "  1. Install from a local clone — needs no HTTPS at all:\n"
+        "       git clone <catalogue-repo> && agentbundle install --pack "
+        "<pack> ./<clone>",
+        "  2. Ask your IT team for the corporate CA bundle, then:\n"
+        "       export AGENTBUNDLE_CA_BUNDLE=/path/to/corporate-ca.pem",
+        "  3. Check whether a different Python already trusts this network. "
+        "Interpreters\n"
+        "     do not share a certificate store, so one may work where another "
+        "fails:\n"
+        '       python3 -c "import ssl; print(ssl.get_default_verify_paths())"\n'
+        "     Run that under each python3 on your PATH. If one differs and "
+        "works, point\n"
+        "     SSL_CERT_FILE at its cafile. Creating a virtualenv does NOT "
+        "change trust —\n"
+        "     a venv inherits its base interpreter's store unchanged.",
+        "  4. Confirm your proxy allows every host in the redirect chain. A "
+        "GitHub\n"
+        "     archive fetch redirects github.com to codeload.github.com; an "
+        "allowlist\n"
+        "     permitting only the first host fails here even once "
+        "certificates work.",
+    ]
+    if offer_opt_out:
+        steps.append(
+            "  5. Set AGENTBUNDLE_NO_SYSTEM_TRUST=1 to see the raw "
+            "verification error."
+        )
+    body = "\n\n".join(steps)
+    return (
+        f"Failed to fetch catalogue archive: {url} — {detail}\n"
+        "\n"
+        f"The certificate for {host} could not be verified. {fallback_note} On a "
+        "corporate network this usually means a TLS-inspecting proxy re-signs "
+        "traffic with a private root CA that Python does not read.\n"
+        "\n"
+        "Troubleshooting, cheapest first:\n"
+        "\n"
+        f"{body}"
+    )
+
+
+def _system_trust_module():
+    """Import ``system_trust`` lazily.
+
+    Deferred so this module keeps making no subprocess call of its own, and to
+    avoid a circular import — ``system_trust`` raises ``CatalogueError``.
+    """
+    from agentbundle import system_trust
+
+    return system_trust
+
+
 def _fetch_and_extract(url: str, dest: Path) -> None:
-    try:
+    system_trust = _system_trust_module()
+
+    def attempt(context: ssl.SSLContext) -> None:
         # B310: constant github.com archive base assembled from parsed owner/repo/ref.
-        with urllib.request.urlopen(url) as resp, tarfile.open(fileobj=resp, mode="r|gz") as tf:  # nosec B310
+        with urllib.request.urlopen(  # nosec B310
+            url, timeout=_FETCH_TIMEOUT_S, context=context
+        ) as resp, tarfile.open(fileobj=resp, mode="r|gz") as tf:
             # filter="data" rejects unsafe members (absolute paths, ..
             # links, devices, setuid bits) — Python 3.12+ default but
             # explicit for 3.11 compatibility and to silence the 3.14
             # DeprecationWarning. Path-jail is belt; this is braces.
             tf.extractall(path=dest, filter="data")
-    except urllib.error.URLError as exc:
+
+    try:
+        attempt(system_trust.build_context())
+    except (urllib.error.URLError, ssl.SSLError, TimeoutError) as exc:
+        # ssl.SSLError and TimeoutError are caught alongside URLError because
+        # urlopen only wraps failures raised during connect. A stall or TLS
+        # error while the tarball body is still streaming escapes unwrapped,
+        # which would break this module's documented promise that an
+        # unreachable URL raises CatalogueError.
+        detail = getattr(exc, "reason", None) or exc
+        if not _is_cert_verification_failure(exc):
+            raise CatalogueError(
+                f"Failed to fetch catalogue archive: {url} — {detail}"
+            ) from exc
+        if system_trust.system_trust_disabled():
+            raise CatalogueError(
+                _verification_failure_message(
+                    url,
+                    detail,
+                    fallback_note=(
+                        "The operating-system trust fallback was not attempted, "
+                        "because AGENTBUNDLE_NO_SYSTEM_TRUST is set."
+                    ),
+                    offer_opt_out=False,
+                )
+            ) from exc
+        # Resolve the anchors BEFORE announcing anything. On a platform with no
+        # administrator trust store to read, a second connection against an
+        # identical context would be pure noise, and claiming the anchors "did
+        # not complete the chain" would send the adopter after the wrong cause.
+        anchors = system_trust.system_anchor_pem()
+        if not anchors:
+            # Two different causes, and conflating them misdirects the adopter.
+            # Off macOS the fallback does not apply at all. *On* macOS it applied
+            # and found an empty administrator keychain, which means the
+            # authority is installed somewhere this deliberately does not read.
+            if sys.platform == "darwin":
+                note = (
+                    "The administrator keychain holds no certificates to retry "
+                    "with, so the authority is likely installed somewhere else — "
+                    "a login keychain, or an application's own store. Only "
+                    "/Library/Keychains/System.keychain is read, because it is "
+                    "the one store that requires administrator rights to write."
+                )
+            else:
+                note = (
+                    f"No operating-system trust anchors were consulted on "
+                    f"{sys.platform}: the automatic fallback is macOS-only, "
+                    "because macOS is the only platform where Python ignores "
+                    "the operating system's trust store."
+                )
+            raise CatalogueError(
+                _verification_failure_message(url, detail, fallback_note=note)
+            ) from exc
+        _retry_with_system_trust(url, dest, attempt, anchors)
+    except tarfile.TarError as exc:
         raise CatalogueError(
-            f"Failed to fetch catalogue archive: {url} — {exc.reason}"
+            f"Failed to extract tarball from {url}: {exc}"
+        ) from exc
+
+
+def _retry_with_system_trust(
+    url: str,
+    dest: Path,
+    attempt: Callable[[ssl.SSLContext], None],
+    anchors: str,
+) -> None:
+    """Retry *attempt* once against operating-system trust *anchors*.
+
+    Announced on stderr unconditionally: a trust decision the adopter cannot see
+    is a trust decision they cannot audit. Bounded at one extra attempt, reached
+    only for a certificate-verification failure — never a timeout, DNS failure,
+    or HTTP error — and only when *anchors* actually exist, so the notice never
+    describes work that did not happen.
+    """
+    system_trust = _system_trust_module()
+    host = urllib.parse.urlsplit(url).netloc
+    print(
+        f"agentbundle: certificate verification failed for {host}; "
+        "retrying with operating-system trust anchors",
+        file=sys.stderr,
+    )
+    exhausted = (
+        "The operating-system trust anchors did not complete the chain either."
+    )
+    # Attempt 1 may have extracted part of the archive before failing mid-stream.
+    # Clearing the destination keeps the retry from layering a second download
+    # over the first and producing a catalogue that is a mix of both.
+    shutil.rmtree(dest, ignore_errors=True)
+    dest.mkdir(parents=True, exist_ok=True)
+    try:
+        attempt(system_trust.build_context(system_anchors=anchors))
+    except (urllib.error.URLError, ssl.SSLError, TimeoutError) as exc:
+        # Same tuple as the first attempt: a read-phase stall or TLS error is not
+        # wrapped by urlopen and would otherwise escape as a bare exception.
+        detail = getattr(exc, "reason", None) or exc
+        raise CatalogueError(
+            _verification_failure_message(url, detail, fallback_note=exhausted)
         ) from exc
     except tarfile.TarError as exc:
         raise CatalogueError(

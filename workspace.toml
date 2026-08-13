@@ -1808,6 +1808,30 @@ open = [
   # Unblocks when the work runs in a writable site-build environment or CI; no
   # tracked prerequisite.
   {slug = "rendered-site-link-debt", source = "spec/documentation-entry-navigation AC15"},
+  # The macOS trust fallback reads administrator keychains with
+  # `security find-certificate -a -p`, which dumps every certificate and does
+  # not consult per-certificate trust settings. A certificate an administrator
+  # explicitly marked "Never Trust" is therefore still loaded as an anchor.
+  # Bounded today by reading admin-controlled keychains only and by augmenting
+  # rather than replacing the default store, so the fallback can only widen
+  # trust to material an administrator installed. Closing this means reading
+  # the trust-settings domain (`security dump-trust-settings -d`) and filtering
+  # the dump against it.
+  { slug = "catalogue-trust-store-trust-settings", source = "spec/catalogue-corporate-trust-store — Never Trust criterion" },
+  # WSL-aware diagnosis for the catalogue trust fallback. Windows itself needs no
+  # fallback — Python's `load_default_certs` loads the Windows CA and ROOT stores
+  # and honours per-certificate trust settings — but a WSL distribution reports
+  # `sys.platform == "linux"` and does NOT inherit that store, so a corporate
+  # authority pushed to Windows by Group Policy or Intune is invisible inside WSL
+  # until installed into the distribution. Today such an adopter gets the generic
+  # "no operating-system trust anchors were available on this platform (linux)"
+  # message, which is true but does not name the actionable cause. The work:
+  # detect WSL (`WSL_DISTRO_NAME`, or "microsoft" in /proc/version) and emit
+  # guidance naming the two-trust-store split plus the update-ca-certificates
+  # remedy. Documentation-and-message scope only — do not reach across the
+  # boundary to read the Windows store via interop; that would auto-trust
+  # material from outside the distribution's own trust domain.
+  { slug = "catalogue-trust-store-wsl-diagnosis", source = "spec/catalogue-corporate-trust-store — WSL guidance criterion" },
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
