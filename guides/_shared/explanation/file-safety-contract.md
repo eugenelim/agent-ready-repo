@@ -1,3 +1,10 @@
+---
+title: "The file-safety contract"
+summary: "Understand how pack installs and upgrades preserve adopter edits through the catalogue's three-tier file-safety model."
+pack: _shared
+kind: explanation
+---
+
 # The file-safety contract
 
 When you install a pack from this catalogue, the install verb writes files into your repo — `AGENTS.md`, `docs/CHARTER.md`, skill directories, hooks. If you've already edited any of those files (or the upgrade you're running has new content for them), what happens?
@@ -22,7 +29,7 @@ If `agentbundle install` would write `AGENTS.md` and you already have one, it dr
 
 ### Upgrade collision (after CLI install or `agentbundle init-state`)
 
-The CLI records a SHA-256 of every projected file in `.agentbundle-state.toml` at install time. On the next `agentbundle upgrade --pack <name> <catalogue>`, any file whose content diverged since install (Tier-2) gets a `*.upstream.<ext>` companion dropped next to it; your edited file is left alone and the CLI continues without prompting. The upgrade then reports on stderr how many files were kept and the companion path of each, so you can find them. The merge UI lives in the `adapt-to-project` skill, which you re-invoke after the upgrade to walk the new companions one at a time. RFC-0001's original draft specified a richer in-CLI prompt with a `<path>.pre-update.bak` overwrite path; that prompt was superseded by this deterministic companion-drop design (RFC-0001 § Errata, 2026-06-11) — the CLI never clobbers or prompts, and the keep/merge/overwrite choice lives in `adapt-to-project`.
+The CLI records a SHA-256 of every projected file in `.agentbundle-state.toml` at install time. On the next `agentbundle upgrade --pack <name> <catalogue>`, any file whose content diverged since install (Tier-2) gets a `*.upstream.<ext>` companion dropped next to it; your edited file is left alone and the CLI continues without prompting. The upgrade then reports on stderr how many files were kept and the companion path of each, so you can find them. The merge UI lives in the `adapt-to-project` skill, which you re-invoke after the upgrade to walk the new companions one at a time. The CLI never clobbers or prompts; the keep/merge/overwrite choice lives in `adapt-to-project`.
 
 ### Tier-3 (everything else)
 
@@ -55,21 +62,13 @@ The Tier model above applies to **seeds** (`AGENTS.md`, `docs/CHARTER.md`, gover
 - **CLI route** (`agentbundle install`) writes the seeds directly into your repo (repo root and `docs/`) with the first-install companion behaviour described above, and records them in `.agentbundle-state.toml`.
 - **APM and Claude-plugin routes** ship the seeds *inside* the installed artifact (the APM package / the Claude-managed plugin cache), but do not place repo-root governance docs in your working tree — the plugin cache and APM HookIntegrator project primitives, not seeds, and the install-marker `SessionStart` hook writes only the marker. To land the seeds, run `agentbundle install` or `agentbundle scaffold --pack <name> --output .` (the `agentbundle` CLI those routes already need on PATH).
 
-A session-time auto-copy of seeds out of the plugin cache would cross the "the catalogue cannot intercept APM/plugins" line above; it is deliberately not done. See [RFC-0001 § Errata](../../../rfc/0001-bundle-distribution-by-adapter-spec.md#errata).
+A session-time auto-copy of seeds out of the plugin cache would cross the "the catalogue cannot intercept APM/plugins" line above; it is deliberately not done.
 
 ## Why this exists
 
 The simplest alternative would have been: overwrite Tier-1 files on install, ask the adopter to put `AGENTS.md` and `docs/CHARTER.md` into `.gitignore` if they want to edit, and let `git diff` handle the rest. We rejected that because the files the catalogue ships are *deliberately* the ones adopters need to edit — `AGENTS.md` is the project's agent context; `docs/CHARTER.md` is the project's own mission statement. Asking an adopter to gitignore those is asking them not to use the catalogue's most load-bearing seeds.
 
 Tier-2 + companions are the design that lets the catalogue ship opinionated seeds *and* respect adopter edits — both, not either-or. The cost is a slightly more involved merge step (the `adapt-to-project` skill), which is worth it because the alternative (silent overwrite) destroys trust on the first upgrade.
-
-## Where the contract is authoritative
-
-This page is *explanation* — it tells you what to expect and why. The authoritative source for the contract's exact behaviour is the RFC that specified it:
-
-[**RFC-0001 § Adopter file safety contract**](../../../rfc/0001-bundle-distribution-by-adapter-spec.md#adopter-file-safety-contract)
-
-If this page and RFC-0001 disagree, RFC-0001 wins and this page is the bug.
 
 ## Related
 

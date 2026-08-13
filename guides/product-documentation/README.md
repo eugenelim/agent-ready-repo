@@ -1,3 +1,10 @@
+---
+title: "Product Documentation guides"
+summary: "Find the product-documentation pack's workflows for creating, revising, auditing, and verifying adopter-facing guides."
+pack: product-documentation
+kind: reference
+---
+
 # Product Documentation guides
 
 Documentation for the `product-documentation` pack — create, revise, retrofit, audit, and verify user-facing docs grounded in what your pack actually ships.
@@ -46,4 +53,6 @@ Scope: `--scope repo` (default) or `--scope user` (available across all repos).
 
 ## Replaces
 
-This pack supersedes [`user-guide-diataxis`](../user-guide-diataxis/). If you have `user-guide-diataxis@0.3.0` installed, you already have this pack as a dependency.
+This pack supersedes the deprecated `user-guide-diataxis` pack. If you have
+`user-guide-diataxis@0.3.0` installed, you already have this pack as a
+dependency.

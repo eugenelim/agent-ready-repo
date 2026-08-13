@@ -1,3 +1,10 @@
+---
+title: "The Digital Experience Contract"
+summary: "Understand how one shared contract connects product strategy, experience design, engineering, and delivery evidence."
+pack: core
+kind: explanation
+---
+
 # The Digital Experience Contract
 
 The Digital Experience Contract is a shared markdown template that connects four discipline packs across a single product's lifecycle. It is the answer to one failure mode: artifacts that each pass their own rubric but produce a product experience that is locally polished and globally broken — a strategy with no adoption hypothesis, a design with no implementation evidence, a build that declares done at lint pass.
@@ -49,4 +56,4 @@ This rule is what makes the contract safe across partial installations. An adopt
 
 ---
 
-*Governed by RFC-0071 (Digital Experience Doctrine, Area A / D1). The four pack copies of the template must be byte-identical; use `tools/check-contract-drift.py --root .` to verify. Relevant pack journey pages: [product-strategy](/guides/product-strategy/), [experience-design](/guides/experience-design/), [core](/guides/core/). The product-engineering journey page is pending `spec/product-engineering-shaping-doctrine`.*
+*The four pack copies of the template must be byte-identical; use `tools/check-contract-drift.py --root .` to verify. Relevant pack journey pages: [product-strategy](/guides/product-strategy/), [experience-design](/guides/experience-design/), [core](/guides/core/).*

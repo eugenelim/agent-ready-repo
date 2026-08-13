@@ -18,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Published guides no longer point at records you can't read.** Guide pages
+  across the `_shared`, `core`, `atlassian`, `credential-brokers`,
+  `governance-extras`, and `product-documentation` trees cited this
+  repository's own decision records and specs, so those links went nowhere for
+  anyone reading the published guides. The citations are gone and the
+  surrounding explanation stays; generic guidance like "record an ADR",
+  `<feature>` placeholders, and documented commands are untouched. References
+  pointing readers at the retired `user-guide-diataxis` guide tree now point at
+  `product-documentation`, which supersedes it.
+- **Some guide sidebar labels changed.** Nineteen pages gained the frontmatter
+  the guide site reads. For the sixteen that previously carried a shorter
+  hand-written navigation label, the sidebar now shows the page's own title
+  instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
+  to your project". No page moved and no link changed. No pack version changes.
+
 ### [agentbundle][0.33.3] — 2026-08-12
 
 #### Changed

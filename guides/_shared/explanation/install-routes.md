@@ -1,3 +1,10 @@
+---
+title: "Install routes"
+summary: "Compare the catalogue's four installation routes and choose the one that fits your agent tool, scope, and upgrade needs."
+pack: _shared
+kind: explanation
+---
+
 # Install routes
 
 Four ways to install a pack from this catalogue:
@@ -26,7 +33,7 @@ Four ways to install a pack from this catalogue:
 
 The same pack content lands every way; the differences are in mechanics (state tracking, where the marker drops, how upgrades work). This page explains *why* there are four and how to pick.
 
-> **Caveat — route 3 still requires route 4's pip install today.** [RFC-0003](../../../rfc/0003-spec-and-cli.md) § F-cli-dist's release artifact (zipapp / wheel / Homebrew) hasn't shipped yet, so until it does, getting `agentbundle` onto `$PATH` means running route 4's `python -m pip install -e packages/agentbundle/` step against a local clone. Route 3's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
+> **Caveat — route 3 still requires route 4's pip install today.** The release artifact (zipapp / wheel / Homebrew) hasn't shipped yet, so until it does, getting `agentbundle` onto `$PATH` means running route 4's `python -m pip install -e packages/agentbundle/` step against a local clone. Route 3's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
 
 ## The install→adapt chain
 
@@ -52,7 +59,7 @@ The writer template at [`packages/agentbundle/templates/install-marker.py`](../.
 
 **You're on Claude Code, you have a GitHub remote, and you don't mind auto-update.** Use the Claude-plugins route. One line of setup, one line per pack, and `/plugin update` keeps you current.
 
-**You're in another IDE (Cursor, Copilot, Gemini, Codex, Windsurf, OpenCode).** Use APM. The same `<owner>/<catalogue>/<pack>` target works; APM's `HookIntegrator` projects the hooks for whichever IDE you're in. RFC-0010 closes the install→adapt chain on the four hook-capable APM targets — Claude Code (asserted in CI), Cursor, Gemini, Copilot (deferred to manual QA per AC17). The other three targets — Codex, OpenCode, Windsurf — have no hook surface in APM, so the per-pack README documents `agentbundle adapt` as the explicit manual gesture instead.
+**You're in another IDE (Cursor, Copilot, Gemini, Codex, Windsurf, OpenCode).** Use APM. The same `<owner>/<catalogue>/<pack>` target works; APM's `HookIntegrator` projects the hooks for whichever IDE you're in. The install→adapt chain works on the four hook-capable APM targets — Claude Code (asserted in CI), Cursor, Gemini, Copilot (deferred to manual QA). The other three targets — Codex, OpenCode, Windsurf — have no hook surface in APM, so the per-pack README documents `agentbundle adapt` as the explicit manual gesture instead.
 
 **You want pinned versions and full state tracking.** Use the reference CLI. `agentbundle install` hashes every projected file into `.agentbundle-state.toml` at install time, so upgrade-time safety is exact from day one. The other routes need a one-shot `agentbundle init-state` after install to reach the same baseline.
 
@@ -70,21 +77,21 @@ After `init-state`, all four routes behave identically on upgrade — collisions
 
 ## Codex skills (shipped)
 
-[RFC-0009](../../../rfc/0009-codex-native-skills.md) made Codex skills a first-class projection — `direct-directory` writes to `.agents/skills/<name>/SKILL.md` instead of the old managed-block inline shape. [RFC-0011](../../../rfc/0011-pack-allowed-adapters.md) then made Codex user-scope-capable, so the same skills also project to `~/.agents/skills/` when an adopter passes `--scope user` against a pack declaring `codex` in its `allowed-adapters`. The four catalogue user-scope packs (`atlassian`, `figma`, `converters`, `contracts`) all do; see the [Codex user-scope how-to](../how-to/install-user-scope-pack-into-codex.md). A future RFC would add a `codex-plugins` install route (sibling to `claude-plugins`) so Codex's own plugin manager can install these packs without going through the CLI/APM routes — that work isn't opened yet.
+Codex skills are a first-class projection: `direct-directory` writes to `.agents/skills/<name>/SKILL.md` instead of the old managed-block inline shape. The same skills also project to `~/.agents/skills/` when an adopter passes `--scope user` against a pack declaring `codex` in its `allowed-adapters`. The four catalogue user-scope packs (`atlassian`, `figma`, `converters`, `contracts`) all do; see the [Codex user-scope how-to](../how-to/install-user-scope-pack-into-codex.md). A future RFC would add a `codex-plugins` install route (sibling to `claude-plugins`) so Codex's own plugin manager can install these packs without going through the CLI/APM routes — that work isn't opened yet.
 
 ## The `--adapter` override
 
-Adopters with multiple IDE homes populated (`~/.claude/` plus `~/.kiro/`, say) can override the resolver's first-match-wins pick by passing `--adapter <name>` to `agentbundle install`. The flag is admitted at **both scopes** (RFC-0012) — at user scope it must name a user-scope-capable adapter from the pack's `allowed-adapters`; at repo scope every shipped adapter is admissible (Copilot included). The pinned refuse-and-explain messages name the field and the contract version, so failed installs are loud, not silent. See [RFC-0011](../../../rfc/0011-pack-allowed-adapters.md) for the six-step (0–5) resolver this flag participates in, plus [RFC-0012](../../../rfc/0012-repo-scope-per-adapter-projection.md) for the scope-branched resolution at steps 0, 1, 4, and 5.
+Adopters with multiple IDE homes populated (`~/.claude/` plus `~/.kiro/`, say) can override the resolver's first-match-wins pick by passing `--adapter <name>` to `agentbundle install`. The flag is admitted at **both scopes**: at user scope it must name a user-scope-capable adapter from the pack's `allowed-adapters`; at repo scope every shipped adapter is admissible (Copilot included). The pinned refuse-and-explain messages name the field and the contract version, so failed installs are loud, not silent.
 
 ## `--emit-install-routes` — catalogue-publishing opt-in
 
-Pre-RFC-0012, `agentbundle install --pack X --scope repo .` produced dist-tree artifacts (`<repo>/claude-plugins/<pack>/`, `<repo>/apm/<pack>/`) regardless of adapter choice. RFC-0012 flips the default at repo scope to per-IDE projection (the same shape user scope has used since RFC-0004); the dist-tree producer becomes an explicit opt-in via `--emit-install-routes`:
+At repo scope, `agentbundle install --pack X --scope repo .` defaults to per-IDE projection. The dist-tree producer (`<repo>/claude-plugins/<pack>/`, `<repo>/apm/<pack>/`) is an explicit opt-in via `--emit-install-routes`:
 
 ```
 agentbundle install --pack architect --scope repo --emit-install-routes .
 ```
 
-Catalogue maintainers scripting the dist-tree shape for publishing pipelines add this one flag to their existing invocations. The `claude-plugins/<pack>/` half is emitted only for packs the plugin route carries — a repo-only pack like `core` yields `apm/<pack>/` alone. The flag is bound to `--scope repo` and mutually exclusive with `--adapter` at that scope (the dist-tree producer doesn't pick a single adapter). It carries a `DeprecationWarning` from day one and is targeted for removal in the next minor — see [RFC-0012 § *Alternatives* #6](../../../rfc/0012-repo-scope-per-adapter-projection.md).
+Catalogue maintainers scripting the dist-tree shape for publishing pipelines add this one flag to their existing invocations. The `claude-plugins/<pack>/` half is emitted only for packs the plugin route carries — a repo-only pack like `core` yields `apm/<pack>/` alone. The flag is bound to `--scope repo` and mutually exclusive with `--adapter` at that scope (the dist-tree producer doesn't pick a single adapter). It carries a `DeprecationWarning` and is targeted for removal in the next minor.
 
 ## Where to read next
 

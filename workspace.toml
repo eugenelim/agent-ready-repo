@@ -1919,6 +1919,7 @@ backlog = []
 ["ini-007".work]
 active  = []
 shipped = [
+  "spec/governance-guides-cleanup",              # shipped-guide governance-reference scrub + CI regression guard
   "spec/catalogue-verify-classification",       # AgentBundle 0.30.1 / core 2.5.2 — complete self-host classification + special-rail drift parity
   "spec/pack-test-boundary-remaining-packs",  # completes ADR-0071 — no pack ships tests in its runtime payload
   "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate

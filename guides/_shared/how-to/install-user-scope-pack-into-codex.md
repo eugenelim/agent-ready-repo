@@ -1,3 +1,10 @@
+---
+title: "How to install a user-scope pack into Codex"
+summary: "Install a user-scope-capable catalogue pack into Codex's shared skills directory and track it for upgrades."
+pack: _shared
+kind: how-to
+---
+
 # How to: install a user-scope pack into Codex
 
 **Use this when:** You use Codex and want to install a user-scope-capable pack from the catalogue into `~/.agents/skills/`.
@@ -62,5 +69,3 @@ agentbundle uninstall --pack figma --scope user
 - [Install agentbundle from a clone](install-agentbundle-from-clone.md)
 - [Install a user-scope pack into Kiro](install-user-scope-pack-into-kiro.md)
 - [Upgrade an installed pack](upgrade-packs.md)
-- [`docs/rfc/0011-pack-allowed-adapters.md`](../../../rfc/0011-pack-allowed-adapters.md)
-- [`docs/rfc/0009-codex-native-skills.md`](../../../rfc/0009-codex-native-skills.md) — the projection that writes to `~/.agents/skills/`

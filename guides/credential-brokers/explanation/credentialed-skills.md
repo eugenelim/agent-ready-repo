@@ -1,8 +1,15 @@
+---
+title: "Credentialed skills"
+summary: "Understand how credentialed primitives call authenticated services without exposing secrets to the agent or model."
+pack: credential-brokers
+kind: explanation
+---
+
 # Credentialed skills
 
 The `atlassian` and `figma` packs ship credentialed primitives — `jira`, `figma`, `confluence-publisher`, `confluence-crawler`. Each one calls an authenticated API on your behalf. None of them ever take your token on argv, in an env-var the agent can echo, or in a string the LLM can see.
 
-This page explains the model: why skills don't hold secrets, what a credentialed primitive actually is, where your token lives, and why the CLI has no `creds get` subcommand. The authoritative source is [RFC-0006](../../../rfc/0006-skill-secrets-storage.md); the implementation spec is [`docs/specs/skill-secrets/spec.md`](../../../specs/skill-secrets/spec.md).
+This page explains the model: why skills don't hold secrets, what a credentialed primitive actually is, where your token lives, and why the CLI has no `creds get` subcommand.
 
 ## Skills don't hold secrets — primitives do
 
@@ -81,5 +88,4 @@ If you switch machines or rotate the token, you re-run the `credential-setup` sk
 
 - [How to add a credentialed skill](../how-to/add-a-credentialed-skill.md) — if you're authoring a new credentialed primitive.
 - [`docs/architecture/credentials.md`](../../../architecture/credentials.md) — the contributor-facing internals of the loader.
-- [RFC-0006](../../../rfc/0006-skill-secrets-storage.md) — the authoritative source on the three-tier design.
 - [The `jira` skill](../../../../packs/atlassian/.apm/skills/jira) — a runnable `auth: creds` credentialed primitive shipped in the `atlassian` pack.

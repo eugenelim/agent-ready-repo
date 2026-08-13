@@ -19,10 +19,6 @@ slug = "guides/core"
 label = "Overview"
 
 [[entry]]
-slug = "guides/core/explanation/core-pack"
-label = "The Core Pack"
-
-[[entry]]
 slug = "guides/core/explanation/foundation-vs-map"
 label = "Foundation vs Map"
 
@@ -41,10 +37,6 @@ label = "Why a Brief Layer"
 [[entry]]
 slug = "guides/core/explanation/why-the-plan-owns-the-lld"
 label = "Why the Plan Owns LLD"
-
-[[entry]]
-slug = "guides/core/how-to/adapt-to-project"
-label = "Adapt to Project"
 
 [[entry]]
 slug = "guides/core/how-to/bug-fix"
@@ -323,10 +315,6 @@ slug = "guides/atlassian/how-to/work-with-jira"
 label = "Work with Jira"
 
 [[entry]]
-slug = "guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies"
-label = "Authenticate with SSO"
-
-[[entry]]
 slug = "guides/atlassian/how-to/crawl-and-publish-confluence"
 label = "Crawl Confluence"
 
@@ -367,10 +355,6 @@ slug = "guides/governance-extras"
 label = "Overview"
 
 [[entry]]
-slug = "guides/governance-extras/how-to/new-adr"
-label = "New ADR"
-
-[[entry]]
 slug = "guides/governance-extras/how-to/new-rfc"
 label = "New RFC"
 
@@ -388,18 +372,6 @@ label = "new-package"
 
 [[entry]]
 slug = "guides/credential-brokers"
-label = "Overview"
-
-[[entry]]
-slug = "guides/credential-brokers/explanation/credentialed-skills"
-label = "Credentialed Skills"
-
-[[entry]]
-slug = "guides/credential-brokers/how-to/add-a-credentialed-skill"
-label = "Add a Credentialed Skill"
-
-[[entry]]
-slug = "guides/product-documentation"
 label = "Overview"
 
 [[entry]]
@@ -427,24 +399,12 @@ slug = "guides/_shared/explanation/the-three-loops"
 label = "The Three Loops"
 
 [[entry]]
-slug = "guides/_shared/explanation/file-safety-contract"
-label = "File Safety Contract"
-
-[[entry]]
-slug = "guides/_shared/explanation/install-routes"
-label = "Install Routes"
-
-[[entry]]
 slug = "guides/_shared/explanation/pack-catalogue"
 label = "Pack Catalogue"
 
 [[entry]]
 slug = "guides/_shared/explanation/shaping-a-new-engagement"
 label = "Shaping an Engagement"
-
-[[entry]]
-slug = "guides/_shared/how-to/author-a-skill"
-label = "Author a Skill"
 
 [[entry]]
 slug = "guides/_shared/how-to/build-an-org-stack-pack"
@@ -455,32 +415,8 @@ slug = "guides/_shared/how-to/install-a-profile"
 label = "Install a Profile"
 
 [[entry]]
-slug = "guides/_shared/how-to/install-agentbundle-from-clone"
-label = "Install from Clone"
-
-[[entry]]
-slug = "guides/_shared/how-to/install-user-scope-pack-into-codex"
-label = "Install User Scope (Codex)"
-
-[[entry]]
-slug = "guides/_shared/how-to/install-user-scope-pack-into-kiro"
-label = "Install User Scope (Kiro)"
-
-[[entry]]
-slug = "guides/_shared/how-to/preview-install-or-upgrade"
-label = "Preview Install"
-
-[[entry]]
 slug = "guides/_shared/how-to/run-a-full-inception"
 label = "Run a Full Inception"
-
-[[entry]]
-slug = "guides/_shared/how-to/upgrade-packs"
-label = "Upgrade Packs"
-
-[[entry]]
-slug = "guides/_shared/reference/adapter-support"
-label = "Adapter Support Matrix"
 
 [[entry]]
 slug = "guides/_shared/reference/agentbundle"

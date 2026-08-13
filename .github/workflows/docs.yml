@@ -1,5 +1,8 @@
 name: docs
 
+permissions:
+  contents: read
+
 on:
   pull_request:
     paths:
@@ -13,11 +16,13 @@ on:
       - 'docs-site/AGENTS.md'
       - 'docs-site/**/AGENTS.md'
       - 'guides/AGENTS.md'
+      - 'guides/**'
       - 'web/AGENTS.md'
       - 'web/**/AGENTS.md'
       - '.claude/**'
       - '.github/pull_request_template.md'
       - 'tools/lint-agents-md.py'
+      - 'tools/lint-guides-no-repo-only-refs.py'
       - 'packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py'
       - 'packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py'
       - 'packs/**/.apm/skills/**'
@@ -76,6 +81,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run AGENTS.md linter
         run: python tools/lint-agents-md.py
+
+  lint-guides-no-repo-only-refs:
+    name: Shipped guides contain no repo-only governance references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run shipped-guide governance-reference linter
+        run: python3 tools/lint-guides-no-repo-only-refs.py
 
   lint-skill-spec:
     name: agentskills.io spec
