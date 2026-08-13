@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.34.0] — 2026-08-12
+
+### Added
+
+- `agentbundle catalogue contracts list`, `show`, and `export` expose the exact
+  public contracts bundled with the running AgentBundle version without network
+  access. Exported files are reference copies and cannot override runtime
+  validation contracts.
+- Successful plain `catalogue init` output now points adopters to the scaffolded
+  authoring standards guide, bundled-contract discovery, and catalogue
+  verification. The JSON result schema is unchanged.
+
+### Changed
+
+- The scaffolded authoring standards reference now documents offline bundled
+  contract inspection and the read/write boundary of each command.
+
 ## [0.33.3] — 2026-08-12
 
 ### Changed

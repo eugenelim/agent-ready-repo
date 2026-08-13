@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from pathlib import Path
+from unittest import mock
 
 import pytest
 from agentbundle import safety
@@ -285,3 +287,208 @@ def test_assert_projection_jailed_outside_prefix(tmp_path):
 def test_assert_projection_jailed_empty_relpaths(tmp_path):
     """Empty relpaths iterable → no exception."""
     safety.assert_projection_jailed(tmp_path, [], [".claude/"], command="test")
+
+
+class TestWriteFilesNoFollow:
+    """Direct tests for the batch write primitive.
+
+    Reaching it only through `contracts_inspector` with the real 12-contract
+    inventory leaves its rejection branches, its retry loop, and its entire
+    portable fallback unexercised.
+    """
+
+    def test_writes_a_flat_batch(self, tmp_path: Path) -> None:
+        written = safety.write_files_no_follow(
+            tmp_path / "out", {"a.json": b"alpha", "b.toml": b"beta"}
+        )
+
+        assert [path.name for path in written] == ["a.json", "b.toml"]
+        assert (tmp_path / "out" / "a.json").read_bytes() == b"alpha"
+        assert (tmp_path / "out" / "b.toml").read_bytes() == b"beta"
+
+    def test_default_mode_is_readable_and_mode_is_honoured(
+        self, tmp_path: Path
+    ) -> None:
+        safety.write_files_no_follow(tmp_path / "d", {"a.json": b"x"})
+        assert (tmp_path / "d" / "a.json").stat().st_mode & 0o444
+
+        safety.write_files_no_follow(tmp_path / "e", {"a.json": b"x"}, mode=0o600)
+        assert not (tmp_path / "e" / "a.json").stat().st_mode & 0o044
+
+    @pytest.mark.parametrize(
+        "name", ["", ".", "..", "nested/a.json", "back\\a.json", "CON.json", "a. "]
+    )
+    def test_refuses_unsafe_filenames(self, tmp_path: Path, name: str) -> None:
+        with pytest.raises(safety.PathJailError):
+            safety.write_files_no_follow(tmp_path / "out", {name: b"x"})
+
+    def test_content_pairs_with_its_own_name_for_any_mapping(
+        self, tmp_path: Path
+    ) -> None:
+        """A Mapping with unstable iteration order must not cross-pair.
+
+        The writers pair content to filenames positionally, so re-iterating
+        the caller's Mapping would write one entry's bytes under another
+        entry's name.
+        """
+
+        class ShufflingMapping(Mapping):
+            def __init__(self, data: dict[str, bytes]) -> None:
+                self._data = data
+                self._calls = 0
+
+            def __getitem__(self, key: str) -> bytes:
+                return self._data[key]
+
+            def __len__(self) -> int:
+                return len(self._data)
+
+            def __iter__(self):
+                # Reverse the order on every subsequent traversal.
+                self._calls += 1
+                keys = list(self._data)
+                return iter(keys if self._calls % 2 else list(reversed(keys)))
+
+        payload = {"a.json": b"alpha", "b.json": b"beta", "c.json": b"gamma"}
+        safety.write_files_no_follow(tmp_path / "out", ShufflingMapping(payload))
+
+        for name, content in payload.items():
+            assert (tmp_path / "out" / name).read_bytes() == content
+
+    def test_revalidates_destinations_after_temporaries_exist(
+        self, tmp_path: Path
+    ) -> None:
+        """The TOCTOU revalidation must actually fire.
+
+        Planting the unsafe destination *before* the call only exercises the
+        first preflight; this plants it during the temp-write phase, which is
+        the window the held descriptor exists to defend.
+        """
+        output = tmp_path / "out"
+        output.mkdir()
+        external = tmp_path / "external"
+        external.write_text("unchanged", encoding="utf-8")
+
+        real_write_all = safety._write_all
+        planted = False
+
+        def plant_then_write(fd: int, content: bytes) -> None:
+            nonlocal planted
+            result = real_write_all(fd, content)
+            if not planted:
+                planted = True
+                try:
+                    (output / "b.json").symlink_to(external)
+                except OSError:
+                    pytest.skip("symlink creation unavailable")
+            return result
+
+        with (
+            mock.patch.object(safety, "_write_all", plant_then_write),
+            pytest.raises(ValueError, match="symlink|reparse"),
+        ):
+            safety.write_files_no_follow(output, {"a.json": b"alpha", "b.json": b"beta"})
+
+        assert external.read_text(encoding="utf-8") == "unchanged"
+        assert not (output / "a.json").exists()
+
+    def test_revalidation_detects_a_swapped_destination(self, tmp_path: Path) -> None:
+        """The identity comparison branch of the revalidation must fire.
+
+        A destination swapped for a *different regular file* mid-write passes
+        the symlink/regular-file preflight, so only the recorded
+        (dev, ino, mode) comparison can catch it.
+        """
+        output = tmp_path / "out"
+        output.mkdir()
+        (output / "b.json").write_text("original", encoding="utf-8")
+
+        real_write_all = safety._write_all
+        swapped = False
+
+        def swap_then_write(fd: int, content: bytes) -> None:
+            nonlocal swapped
+            result = real_write_all(fd, content)
+            if not swapped:
+                swapped = True
+                replacement = tmp_path / "replacement"
+                replacement.write_text("swapped", encoding="utf-8")
+                replacement.replace(output / "b.json")
+            return result
+
+        with (
+            mock.patch.object(safety, "_write_all", swap_then_write),
+            pytest.raises(ValueError, match="changed during export preflight"),
+        ):
+            safety.write_files_no_follow(output, {"a.json": b"alpha", "b.json": b"beta"})
+
+        assert not (output / "a.json").exists()
+
+
+class TestWriteFilesNoFollowPortableBranch:
+    """Force the non-POSIX fallback on a POSIX host.
+
+    The branch is selected by `_secure_dir_fd_available()`, so on Linux and
+    macOS CI it is never executed — it would otherwise ship to Windows
+    adopters with no assertion behind it on any platform.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _force_portable(self):
+        with mock.patch.object(safety, "_secure_dir_fd_available", lambda: False):
+            yield
+
+    def test_writes_a_flat_batch(self, tmp_path: Path) -> None:
+        written = safety.write_files_no_follow(
+            tmp_path / "out", {"a.json": b"alpha", "b.toml": b"beta"}
+        )
+
+        assert [path.name for path in written] == ["a.json", "b.toml"]
+        assert (tmp_path / "out" / "a.json").read_bytes() == b"alpha"
+
+    def test_refuses_symlinked_output_directory(self, tmp_path: Path) -> None:
+        real = tmp_path / "real"
+        real.mkdir()
+        link = tmp_path / "link"
+        try:
+            link.symlink_to(real, target_is_directory=True)
+        except OSError:
+            pytest.skip("symlink creation unavailable")
+
+        with pytest.raises(ValueError, match="symlink|reparse"):
+            safety.write_files_no_follow(link, {"a.json": b"x"})
+
+        assert list(real.iterdir()) == []
+
+    def test_accepts_symlinked_ancestor(self, tmp_path: Path) -> None:
+        real = tmp_path / "real"
+        real.mkdir()
+        link = tmp_path / "link"
+        try:
+            link.symlink_to(real, target_is_directory=True)
+        except OSError:
+            pytest.skip("symlink creation unavailable")
+
+        safety.write_files_no_follow(link / "nested", {"a.json": b"alpha"})
+
+        assert (real / "nested" / "a.json").read_bytes() == b"alpha"
+
+    def test_refuses_symlinked_destination_without_writing(
+        self, tmp_path: Path
+    ) -> None:
+        output = tmp_path / "out"
+        output.mkdir()
+        external = tmp_path / "external"
+        external.write_text("unchanged", encoding="utf-8")
+        try:
+            (output / "b.json").symlink_to(external)
+        except OSError:
+            pytest.skip("symlink creation unavailable")
+
+        with pytest.raises(ValueError, match="symlink|reparse"):
+            safety.write_files_no_follow(
+                output, {"a.json": b"alpha", "b.json": b"beta"}
+            )
+
+        assert external.read_text(encoding="utf-8") == "unchanged"
+        assert not (output / "a.json").exists()

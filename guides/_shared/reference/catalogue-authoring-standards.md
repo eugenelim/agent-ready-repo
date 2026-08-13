@@ -407,6 +407,23 @@ every optional pack.
 
 ---
 
+## 12. Bundled contract inspection
+
+List, inspect, or export the contracts bundled with the running AgentBundle version
+without network access:
+
+```bash
+agentbundle catalogue contracts list
+agentbundle catalogue contracts show <name>
+agentbundle catalogue contracts export --output <dir>
+```
+
+`list` and `show` are read-only. `export` writes one regular file per listed contract
+to the selected directory. These are reference copies only. They do not override the
+contracts used for validation by this agentbundle version.
+
+---
+
 ## Journey format
 
 > **Not yet available.** Wave 4 of the catalogue-contracts initiative will define the

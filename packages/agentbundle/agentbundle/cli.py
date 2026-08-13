@@ -1049,6 +1049,40 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     _init_p.set_defaults(func=_lazy("catalogue_init"))
 
+    # catalogue contracts
+    _contracts_p = cat_subs.add_parser(
+        "contracts",
+        help="Inspect contracts bundled with this agentbundle version.",
+    )
+    _contracts_subs = _contracts_p.add_subparsers(
+        dest="contracts_sub", metavar="<sub>"
+    )
+    _contracts_p.set_defaults(func=_lazy("catalogue_contracts"))
+
+    _contracts_list_p = _contracts_subs.add_parser(
+        "list", help="List all bundled contracts."
+    )
+    _contracts_list_p.add_argument(
+        "--format", choices=("table", "json"), default="table"
+    )
+    _contracts_list_p.set_defaults(func=_lazy("catalogue_contracts"))
+
+    _contracts_show_p = _contracts_subs.add_parser(
+        "show", help="Show content of a bundled contract."
+    )
+    _contracts_show_p.add_argument(
+        "name", metavar="<name>", help="Contract name (from 'contracts list')."
+    )
+    _contracts_show_p.set_defaults(func=_lazy("catalogue_contracts"))
+
+    _contracts_export_p = _contracts_subs.add_parser(
+        "export", help="Export all bundled contracts to a directory."
+    )
+    _contracts_export_p.add_argument(
+        "--output", required=True, metavar="<dir>", help="Output directory."
+    )
+    _contracts_export_p.set_defaults(func=_lazy("catalogue_contracts"))
+
     # --- lint packs --- (Wave 2; implemented)
     lint_parser = subparsers.add_parser(
         "lint",

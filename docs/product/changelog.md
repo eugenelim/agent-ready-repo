@@ -35,6 +35,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
 
+### [agentbundle][0.34.0] — 2026-08-12
+
+#### Added
+
+- **Bundled contracts are available offline from the CLI.**
+  `agentbundle catalogue contracts list`, `show`, and `export` enumerate,
+  inspect, or copy the exact public contracts shipped with the running version.
+  Exported files are reference copies and do not change validation behavior.
+- **New catalogues point authors to their next checks.** Successful plain
+  `catalogue init` output now identifies the scaffolded authoring standards
+  guide, bundled-contract discovery command, and catalogue verification. JSON
+  output remains unchanged.
+
+#### Changed
+
+- **The authoring standards reference documents bundled contract inspection.**
+  Section 12 records the offline commands and their read/write boundary, and the
+  same section ships in the initialization scaffold.
+
 ### [agentbundle][0.33.3] — 2026-08-12
 
 #### Changed

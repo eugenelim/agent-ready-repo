@@ -1,6 +1,6 @@
 # Spec: Catalogue source identity
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0085; RFC-0046; ADR-0036

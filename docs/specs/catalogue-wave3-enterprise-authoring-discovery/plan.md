@@ -1,11 +1,16 @@
 # Plan: catalogue-wave3-enterprise-authoring-discovery
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Mode and declined patterns
 
 Mode: full (new public CLI interface + multi-feature).
+
+**PLAN stub tally:** T2, T3, T4, and T6 have compilable red pytest stubs in their
+`Tests:` subsections; T1, T5, and T7 record `no stub (mode)`. (Task-ID bookkeeping
+belongs to the plan, not the spec's Testing Strategy — the spec is a contract and
+should not ride the plan's revision cycle.)
 
 Declined:
 - Tempted to implement `contracts check <file> <schema>` (validates a local file against
@@ -15,7 +20,8 @@ Declined:
   addition; tracked as `(deferred: init-result-json-next-steps)` in spec.
 - Tempted to auto-discover contract names from the `contracts/` source directory at
   runtime; declining — the inspector must be air-gapped and `importlib.resources` is the
-  correct source; build-time parity is enforced by `check_contract_parity.py`.
+  correct source. A generated positive inventory is packaged beside the contracts and
+  build-time parity is enforced by repository tooling, so unknown `_data` files fail closed.
 - Tempted to replace the `catalogue_tooling_stub.py` dispatch; declining — the stub only
   handles unregistered subcommands; `contracts` will be fully registered in `cli.py`.
 
@@ -27,12 +33,16 @@ Declined:
 - Domain claim: `oplog` demonstrates three-level subparsers in the existing CLI.
   Verified: `cli.py` lines ~1175–1187 register `oplog show` and `oplog clear` via
   nested `add_subparsers`.
-- Domain claim: 11 public contracts. Verified by comparing `contracts/*.schema.json`,
-  `contracts/*.toml` against `_data/*.schema.json`, `_data/*.toml` at HEAD.
-  `install-defaults.toml` is `_data/`-only; excluded.
+- Domain claim: the canonical `contracts/` scan currently yields 12 public contracts.
+  Verified against their byte-identical `_data/` counterparts at HEAD. The count is
+  non-normative; the generated inventory remains the runtime membership authority.
 - Resolve-vs-surface disposition: OQ1 (RFC-0076) requires a surface-level spec decision
   (check for conflict) before implementing. Verification at PLAN time is sufficient —
   the spec records the resolution in AC1 and in the RFC.
+- Anchor-test sweep: existing exact-content coupling is limited to the authoring-scaffold
+  sync test/tool and the AgentBundle version lockstep test. T5 runs the scaffold sync;
+  T7 updates both version authorities. No other hash, snapshot, or fixed-count anchor was
+  found for the files this plan changes.
 
 ## Task list
 
@@ -54,9 +64,11 @@ Parallel opportunities on first wave: T1, T2, T4, T5 (all independent).
 
 **Verification mode:** goal-based
 
+**Depends on:** none
+
 **Touches:** `packages/agentbundle/agentbundle/cli.py`
 
-**Tests:** none (goal-based)
+**Tests:** no stub (mode); public help invocations in Done-when.
 
 **Approach:**
 
@@ -102,14 +114,27 @@ agentbundle catalogue contracts export --help  # exit 0, shows --output
 
 **Touches:**
 - `packages/agentbundle/agentbundle/catalogue_tooling/contracts_inspector.py` (new)
+- `packages/agentbundle/agentbundle/safety.py`
+- `packages/agentbundle/agentbundle/_data/public-contracts.txt` (generated)
 - `packages/agentbundle/tests/unit/test_catalogue_wave3_contracts_inspector.py` (new)
+- `tools/catalogue/sync_contract_inventory.py` (new)
+- `tools/catalogue/check_contract_parity.py`
+- `tools/test_contract_parity.py`
+- `packages/agentbundle/tests/unit/test_safety.py`
+- `packages/agentbundle/agentbundle/build/projection_io.py`
+
+**Depends on:** none
 
 **Tests (write these red first):**
 
+`stub: true`
+
 ```python
 # test_catalogue_wave3_contracts_inspector.py
+# Generated at PLAN; these assertions compile but import a not-yet-present module.
 
 from pathlib import Path
+from importlib.resources import files as resource_files
 import pytest
 from agentbundle.catalogue_tooling.contracts_inspector import (
     ContractInfo, list_bundled_contracts, show_contract, export_contracts,
@@ -121,19 +146,22 @@ from agentbundle.catalogue_tooling.contracts_inspector import (
 _DATA_ONLY = {"install-defaults.toml", "install-marker.py"}
 
 def _expected_names() -> set:
-    """Return the set of public contract names from the contracts/ directory.
+    """Return public contract names from the packaged positive inventory.
 
-    Matches the parity tool: only .json and .toml files (excludes README.md etc.)
-    and excludes _data/-only internals.
+    Reads `_data/public-contracts.txt`, NOT the checkout's contracts/
+    directory: the shipped sdist suite must not depend on checkout files.
+    Repo-owned tools/test_contract_parity.py owns the contracts/ comparison.
     """
-    contracts_dir = Path(__file__).parent.parent.parent.parent.parent / "contracts"
-    return {
-        p.name for p in contracts_dir.iterdir()
-        if p.is_file()
-        and p.suffix in {".json", ".toml"}
-        and p.name not in _DATA_ONLY
-    }
+    inventory = resource_files("agentbundle").joinpath(
+        "_data", "public-contracts.txt"
+    ).read_text(encoding="utf-8")
+    return set(inventory.splitlines())
 
+
+def _bundled_bytes(name: str) -> bytes:
+    return resource_files("agentbundle").joinpath("_data", name).read_bytes()
+
+# STUB: AC6, AC7 — public membership comes from the generated positive inventory
 class TestListBundledContracts:
     def test_returns_at_least_one_contract(self):
         result = list_bundled_contracts()
@@ -142,6 +170,29 @@ class TestListBundledContracts:
     def test_names_match_contracts_directory(self):
         names = {c.name for c in list_bundled_contracts()}
         assert names == _expected_names()
+
+    def test_unlisted_data_file_remains_private(self, tmp_path, monkeypatch):
+        data = tmp_path / "_data"
+        data.mkdir()
+        names = ["pack.schema.json"]
+        (data / "public-contracts.txt").write_text(
+            "\n".join(names) + "\n", encoding="utf-8"
+        )
+        sentinel = '{"sentinel": "bundled-only"}\n'
+        (data / "pack.schema.json").write_text(sentinel, encoding="utf-8")
+        (data / "skill.schema.json").write_text("{}", encoding="utf-8")
+        (data / "future-private.schema.json").write_text("{}", encoding="utf-8")
+        monkeypatch.setattr(
+            "agentbundle.catalogue_tooling.contracts_inspector._data_dir",
+            lambda: data,
+        )
+        assert [item.name for item in list_bundled_contracts()] == names
+        assert show_contract("pack.schema.json") == sentinel
+        assert show_contract("skill.schema.json") is None
+        out = tmp_path / "export"
+        assert export_contracts(out) == names
+        assert {path.name for path in out.iterdir()} == set(names)
+        assert (out / "pack.schema.json").read_text(encoding="utf-8") == sentinel
 
     def test_kind_json_schema_for_schema_files(self):
         for c in list_bundled_contracts():
@@ -161,6 +212,7 @@ class TestListBundledContracts:
         names = {c.name for c in list_bundled_contracts()}
         assert "install-marker.py" not in names
 
+# STUB: AC8, AC10 — show is inventory-bounded and reads bundled UTF-8 content
 class TestShowContract:
     def test_returns_content_for_valid_name(self):
         content = show_contract("pack.schema.json")
@@ -181,6 +233,13 @@ class TestShowContract:
         assert content is not None
         json.loads(content)  # must not raise
 
+    def test_every_show_matches_bundled_resource(self):
+        for contract in list_bundled_contracts():
+            assert show_contract(contract.name) == _bundled_bytes(
+                contract.file
+            ).decode("utf-8")
+
+# STUB: AC9 — export preflights all names and writes through no-follow primitives
 class TestExportContracts:
     def test_creates_output_dir(self, tmp_path):
         out = tmp_path / "exported"
@@ -190,16 +249,16 @@ class TestExportContracts:
     def test_writes_expected_files(self, tmp_path):
         out = tmp_path / "out"
         written = export_contracts(out)
-        assert len(written) == len(_expected_names())
+        expected = [contract.file for contract in list_bundled_contracts()]
+        assert written == expected
+        assert {path.name for path in out.iterdir()} == set(expected)
 
     def test_content_matches_show(self, tmp_path):
         out = tmp_path / "out"
         written = export_contracts(out)
         for fname in written:
             disk = (out / fname).read_bytes()
-            shown = show_contract(fname)
-            assert shown is not None
-            assert disk == shown.encode("utf-8")
+            assert disk == _bundled_bytes(fname)
 
     def test_no_symlinks_in_output(self, tmp_path):
         out = tmp_path / "out"
@@ -211,32 +270,55 @@ class TestExportContracts:
         real = tmp_path / "real"
         real.mkdir()
         link = tmp_path / "link"
-        link.symlink_to(real)
+        try:
+            link.symlink_to(real)
+        except OSError:
+            pytest.skip("symlink creation unavailable")
         with pytest.raises(ValueError, match="symlink"):
             export_contracts(link)
+
+    def test_refuses_late_symlink_destination_before_writing(self, tmp_path):
+        out = tmp_path / "out"
+        out.mkdir()
+        external = tmp_path / "external"
+        external.write_text("unchanged", encoding="utf-8")
+        contracts = list_bundled_contracts()
+        assert len(contracts) > 1
+        unsafe = contracts[-1].file
+        try:
+            (out / unsafe).symlink_to(external)
+        except OSError:
+            pytest.skip("symlink creation unavailable")
+        with pytest.raises(ValueError, match="symlink"):
+            export_contracts(out)
+        assert external.read_text(encoding="utf-8") == "unchanged"
+        assert {path.name for path in out.iterdir()} == {unsafe}
+
+    def test_refuses_late_directory_destination_before_writing(self, tmp_path):
+        out = tmp_path / "out"
+        out.mkdir()
+        contracts = list_bundled_contracts()
+        assert len(contracts) > 1
+        unsafe = contracts[-1].file
+        (out / unsafe).mkdir()
+        with pytest.raises(ValueError, match="regular file"):
+            export_contracts(out)
+        assert {path.name for path in out.iterdir()} == {unsafe}
 ```
 
 **Approach:**
 
 Define `ContractInfo` as a `dataclasses.dataclass` with `name: str`, `kind: str`, `file: str`.
 
-Derive public contract membership by scanning the bundled `_data/` package directory via
-`importlib.resources` and excluding `_data/`-only internals (`install-defaults.toml`,
-`install-marker.py`) and the `catalogue-scaffold/` subtree. Do not maintain a second
-manually synchronized frozenset — use `contracts/` (via parity tool) as the canonical
-authority; the runtime scan of `_data/` (which mirrors `contracts/`) is the air-gapped
-equivalent. The explicit exclusion list prevents internal defaults from surfacing as public
-contracts when new `_data/`-only files are added.
+Add `tools/catalogue/sync_contract_inventory.py` with `--write` and `--check` modes. It
+scans canonical top-level `contracts/*.json` and `contracts/*.toml` files, sorts their
+names, and renders newline-terminated `_data/public-contracts.txt`. Extend
+`check_contract_parity.py` to fail when this inventory differs from the same source scan,
+so the existing build gate enforces both byte parity and inventory parity. The inventory
+is generated output, not a second hand-authored list.
 
-Define the internal exclusions as a module-level frozenset:
-```python
-_DATA_ONLY_NAMES: frozenset[str] = frozenset({"install-defaults.toml", "install-marker.py"})
-```
-
-Do **not** define a `_PUBLIC_CONTRACTS` frozenset — contract membership is derived at
-runtime from the `_data/` bundle so it stays correct when new public contracts are added.
-
-Use `importlib.resources.files("agentbundle").joinpath("_data")` to enumerate and load:
+Use `importlib.resources.files("agentbundle").joinpath("_data")` to load the inventory
+and named resources:
 
 ```python
 from importlib.resources import files as _res_files
@@ -245,17 +327,22 @@ def _data_dir():
     return _res_files("agentbundle").joinpath("_data")
 ```
 
-`list_bundled_contracts()`: iterate the `_data/` package directory contents; include only
-entries whose name ends in `.json` or `.toml`, is not in `_DATA_ONLY_NAMES`, and is not
-inside the `catalogue-scaffold/` subtree; sort by name; build and return `ContractInfo` list.
+`list_bundled_contracts()`: read `public-contracts.txt`; validate that every non-empty
+line is a flat safe filename ending in `.json` or `.toml`, reject duplicates, sort by name,
+and build `ContractInfo` objects. Do not enumerate `_data/`; unlisted files stay private.
 
 `show_contract(name)`: reject names with `/` or `\` (return None, no ValueError); build
 the member set from `list_bundled_contracts()` names; return None if not in that set;
 read content via `_data_dir().joinpath(name).read_text(encoding="utf-8")`.
 
-`export_contracts(output_dir)`: check for symlink via `output_dir.is_symlink()` (lstat,
-does **not** call `.resolve()` first — `.resolve().is_symlink()` always returns False after
-following the symlink); create dir; write each contract; return list of filenames.
+`export_contracts(output_dir)`: load all inventory bytes, then call a new sanctioned
+`safety.write_files_no_follow(output_dir, files)` batch primitive. That primitive rejects
+an output-directory symlink/reparse point, creates the directory if absent, holds its
+descriptor open on POSIX, preflights **every** named destination with no following, and
+only then creates sibling temporary files and atomically replaces each destination through
+the held descriptor. The portability fallback revalidates components and existing targets
+with `lstat`; no direct `Path.write_bytes()` call is allowed. Update `safety.py`'s module
+contract to name both sanctioned write primitives.
 
 **Done when:** `python3 -m pytest packages/agentbundle/tests/unit/test_catalogue_wave3_contracts_inspector.py -q` exits 0.
 
@@ -273,92 +360,168 @@ following the symlink); create dir; write each contract; return list of filename
 
 **Tests (write these red first):**
 
+`stub: true`
+
 ```python
 # test_catalogue_wave3_contracts_cli.py
+# Generated at PLAN; invokes the public parser/dispatch boundary.
 
-import argparse, io, json, sys
-from pathlib import Path
-from unittest.mock import patch
+import contextlib
+import io
+import json
+from importlib.resources import files as resource_files
+
 import pytest
 
-def _make_ns(**kwargs):
-    ns = argparse.Namespace()
-    for k, v in kwargs.items():
-        setattr(ns, k, v)
-    return ns
+from agentbundle import cli
+from agentbundle.catalogue_tooling.contracts_inspector import list_bundled_contracts
 
+
+def _run(*argv: str) -> tuple[int, str, str]:
+    out, err = io.StringIO(), io.StringIO()
+    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+        try:
+            code = cli.main(list(argv))
+        except SystemExit as exc:
+            code = int(exc.code or 0)
+    return code, out.getvalue(), err.getvalue()
+
+# STUB: AC11, AC12 — public list output has exact headers and typed JSON values
 class TestListSubcommand:
-    def test_table_output_contains_all_public_contracts(self, capsys):
-        from agentbundle.commands.catalogue_contracts import run
-        from agentbundle.catalogue_tooling.contracts_inspector import list_bundled_contracts
-        ns = _make_ns(contracts_sub="list", format="table")
-        rc = run(ns)
-        out = capsys.readouterr().out
+    def test_table_output_contains_all_public_contracts(self):
+        rc, out, err = _run("catalogue", "contracts", "list")
         assert rc == 0
-        assert "pack.schema.json" in out
-        assert out.count("\n") >= 1 + len(list_bundled_contracts())  # header + N data rows
+        assert err == ""
+        lines = out.splitlines()
+        assert lines[0].split() == ["NAME", "KIND", "FILE"]
+        actual = [tuple(line.split()) for line in lines[1:] if line.strip()]
+        expected = [
+            (contract.name, contract.kind, contract.file)
+            for contract in list_bundled_contracts()
+        ]
+        assert actual == expected
 
-    def test_json_output_is_array_of_all_contracts(self, capsys):
-        from agentbundle.commands.catalogue_contracts import run
-        from agentbundle.catalogue_tooling.contracts_inspector import list_bundled_contracts
-        ns = _make_ns(contracts_sub="list", format="json")
-        rc = run(ns)
-        out = capsys.readouterr().out
+    def test_json_output_is_array_of_all_contracts(self):
+        rc, out, err = _run(
+            "catalogue", "contracts", "list", "--format", "json"
+        )
         assert rc == 0
+        assert err == ""
         data = json.loads(out)
         assert isinstance(data, list)
-        assert len(data) == len(list_bundled_contracts())
-        assert all("name" in item and "kind" in item and "file" in item for item in data)
+        assert all(
+            all(isinstance(item[key], str) for key in ("name", "kind", "file"))
+            for item in data
+        )
+        actual = [(item["name"], item["kind"], item["file"]) for item in data]
+        expected = [
+            (contract.name, contract.kind, contract.file)
+            for contract in list_bundled_contracts()
+        ]
+        assert actual == expected
 
+# STUB: AC13, AC14 — public show emits content or a one-line no-traceback error
 class TestShowSubcommand:
-    def test_valid_name_exits_0(self, capsys):
-        from agentbundle.commands.catalogue_contracts import run
-        ns = _make_ns(contracts_sub="show", name="pack.schema.json")
-        rc = run(ns)
-        out = capsys.readouterr().out
+    def test_valid_name_exits_0(self):
+        rc, out, err = _run(
+            "catalogue", "contracts", "show", "pack.schema.json"
+        )
         assert rc == 0
-        assert len(out) > 0
+        expected = resource_files("agentbundle").joinpath(
+            "_data", "pack.schema.json"
+        ).read_text(encoding="utf-8")
+        assert out == expected
+        assert err == ""
 
-    def test_invalid_name_exits_1(self, capsys):
-        from agentbundle.commands.catalogue_contracts import run
-        ns = _make_ns(contracts_sub="show", name="does-not-exist.json")
-        rc = run(ns)
-        err = capsys.readouterr().err
+    def test_invalid_name_exits_1(self):
+        rc, out, err = _run(
+            "catalogue", "contracts", "show", "does-not-exist.json"
+        )
         assert rc == 1
-        assert "does-not-exist.json" in err or "not found" in err.lower()
+        assert out == ""
+        assert "does-not-exist.json" in err
+        assert len(err.splitlines()) == 1
+        assert "Traceback" not in err
 
+# STUB: AC15, AC16, AC17 — public export manifests files and contains failures
 class TestExportSubcommand:
-    def test_creates_files_exits_0(self, tmp_path, capsys):
-        from agentbundle.commands.catalogue_contracts import run
-        from agentbundle.catalogue_tooling.contracts_inspector import list_bundled_contracts
+    def test_creates_files_exits_0(self, tmp_path):
         out_dir = tmp_path / "exported"
-        ns = _make_ns(contracts_sub="export", output=str(out_dir))
-        rc = run(ns)
-        captured = capsys.readouterr()
+        rc, out, err = _run(
+            "catalogue", "contracts", "export", "--output", str(out_dir)
+        )
         assert rc == 0
         files = list(out_dir.iterdir())
-        expected_count = len(list_bundled_contracts())
-        assert len(files) == expected_count
-        # Each written filename must appear in stdout manifest (AC15)
+        assert len(files) == len(list_bundled_contracts())
         for f in files:
-            assert f.name in captured.out, f"{f.name!r} missing from stdout manifest"
+            assert f.name in out
+            assert f.read_bytes() == resource_files("agentbundle").joinpath(
+                "_data", f.name
+            ).read_bytes()
+        assert err == (
+            "These are reference copies only. They do not override the contracts "
+            "used for validation by this agentbundle version.\n"
+        )
 
-    def test_prints_reference_notice(self, tmp_path, capsys):
-        from agentbundle.commands.catalogue_contracts import run
-        ns = _make_ns(contracts_sub="export", output=str(tmp_path / "out"))
-        run(ns)
-        err = capsys.readouterr().err
-        assert "reference copies only" in err.lower()
-
-    def test_symlink_output_exits_2(self, tmp_path, capsys):
-        from agentbundle.commands.catalogue_contracts import run
+    def test_symlink_output_exits_2(self, tmp_path):
         real = tmp_path / "real"
         real.mkdir()
         link = tmp_path / "link"
-        link.symlink_to(real)
-        ns = _make_ns(contracts_sub="export", output=str(link))
-        rc = run(ns)
+        try:
+            link.symlink_to(real)
+        except OSError:
+            pytest.skip("symlink creation unavailable")
+        rc, stdout, err = _run(
+            "catalogue", "contracts", "export", "--output", str(link)
+        )
         assert rc == 2
+        assert stdout == ""
+        assert "symlink" in err.lower()
+        assert "Traceback" not in err
+        assert "agentbundle/_data" not in err
+        assert "packages/agentbundle" not in err
+        assert list(real.iterdir()) == []
+
+    def test_late_symlink_destination_exits_2_without_writes(self, tmp_path):
+        out = tmp_path / "out"
+        out.mkdir()
+        external = tmp_path / "external"
+        external.write_text("unchanged", encoding="utf-8")
+        contracts = list_bundled_contracts()
+        unsafe = contracts[-1].file
+        try:
+            (out / unsafe).symlink_to(external)
+        except OSError:
+            pytest.skip("symlink creation unavailable")
+        rc, stdout, err = _run(
+            "catalogue", "contracts", "export", "--output", str(out)
+        )
+        assert rc == 2
+        assert stdout == ""
+        assert "symlink" in err.lower()
+        assert "Traceback" not in err
+        assert "agentbundle/_data" not in err
+        assert "packages/agentbundle" not in err
+        assert external.read_text(encoding="utf-8") == "unchanged"
+        assert {path.name for path in out.iterdir()} == {unsafe}
+
+    def test_late_directory_destination_exits_2_without_writes(self, tmp_path):
+        out = tmp_path / "out"
+        out.mkdir()
+        contracts = list_bundled_contracts()
+        assert len(contracts) > 1
+        unsafe = contracts[-1].file
+        (out / unsafe).mkdir()
+        rc, stdout, err = _run(
+            "catalogue", "contracts", "export", "--output", str(out)
+        )
+        assert rc == 2
+        assert stdout == ""
+        assert "regular file" in err.lower()
+        assert "Traceback" not in err
+        assert "agentbundle/_data" not in err
+        assert "packages/agentbundle" not in err
+        assert {path.name for path in out.iterdir()} == {unsafe}
 ```
 
 **Approach:**
@@ -377,16 +540,18 @@ def run(args: argparse.Namespace) -> int:
         return 1
 ```
 
-`_run_list`: call `list_bundled_contracts()`; format as table (left-padded columns) or JSON array.
+`_run_list`: call `list_bundled_contracts()`; format as a `NAME KIND FILE` table or JSON array.
 
-`_run_show`: call `show_contract(name)`; print to stdout; return 0 or 1.
+`_run_show`: call `show_contract(name)`; use `sys.stdout.write(content)` so the full
+bundled text is emitted byte-for-byte without an extra newline; return 0 or 1.
 
-`_run_export`: check symlink via `Path(args.output).is_symlink()` (lstat — do **not**
-call `.resolve()` first, as `.resolve().is_symlink()` is always False); exit 2 if symlink.
-Otherwise call `export_contracts(Path(args.output))`; print each returned filename to
-stdout (the file manifest); print reference notice to stderr; return 0.
+`_run_export`: call `export_contracts(Path(args.output))`, which owns all destination
+preflight. Catch `ValueError` and `OSError`, emit one concise error without a traceback,
+and return 2. On success, print each returned filename to stdout (the file manifest),
+print the reference notice to stderr, and return 0.
 
-**Done when:** `python3 -m pytest packages/agentbundle/tests/unit/test_catalogue_wave3_contracts_cli.py -q` exits 0.
+**Done when:** the test file above passes and direct `python3 -m agentbundle catalogue
+contracts ...` smoke invocations match the same stdout/stderr/exit-code contract.
 
 ---
 
@@ -402,15 +567,18 @@ stdout (the file manifest); print reference notice to stderr; return 0.
 
 **Tests (write these red first):**
 
+`stub: true`
+
 ```python
 # test_catalogue_wave3_init_nextsteps.py
+# Generated at PLAN; imports the existing handler and asserts the new output contract.
 
 import io, json, sys, argparse
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 import pytest
 
-def _make_success_result(name="test-cat", target="/tmp/test-cat"):
+def _make_success_result(name="test-cat", target="test-cat"):
     from agentbundle.catalogue_tooling.results import (
         InitResult, InitCatalogueMeta, InitSummary, InitVerification
     )
@@ -434,12 +602,13 @@ def _make_success_result(name="test-cat", target="/tmp/test-cat"):
         summary=InitSummary(create=3, already_present=0, conflict=0, total=3),
     )
 
+# STUB: AC18, AC19 — successful plain init gains hints without changing JSON
 class TestInitNextSteps:
     def test_success_table_output_contains_next_steps(self, tmp_path, capsys):
         from agentbundle.commands import catalogue_init
         target = tmp_path / "cat"
         target.mkdir()
-        with patch("agentbundle.commands.catalogue_init.init_catalogue") as mock:
+        with patch("agentbundle.catalogue_tooling.initialise.init_catalogue") as mock:
             mock.return_value = _make_success_result(target=str(target))
             ns = argparse.Namespace(
                 preset=None, target=str(target),
@@ -457,7 +626,7 @@ class TestInitNextSteps:
         from agentbundle.commands import catalogue_init
         target = tmp_path / "cat"
         target.mkdir()
-        with patch("agentbundle.commands.catalogue_init.init_catalogue") as mock:
+        with patch("agentbundle.catalogue_tooling.initialise.init_catalogue") as mock:
             mock.return_value = _make_success_result(target=str(target))
             ns = argparse.Namespace(
                 preset=None, target=str(target),
@@ -475,7 +644,7 @@ class TestInitNextSteps:
         from agentbundle.commands import catalogue_init
         target = tmp_path / "cat"
         target.mkdir()
-        with patch("agentbundle.commands.catalogue_init.init_catalogue") as mock:
+        with patch("agentbundle.catalogue_tooling.initialise.init_catalogue") as mock:
             mock.return_value = _make_success_result(target=str(target))
             ns = argparse.Namespace(
                 preset=None, target=str(target),
@@ -493,7 +662,7 @@ class TestInitNextSteps:
         from agentbundle.commands import catalogue_init
         target = tmp_path / "cat"
         target.mkdir()
-        with patch("agentbundle.commands.catalogue_init.init_catalogue") as mock:
+        with patch("agentbundle.catalogue_tooling.initialise.init_catalogue") as mock:
             mock.return_value = _make_success_result(target=str(target))
             ns = argparse.Namespace(
                 preset=None, target=str(target),
@@ -541,8 +710,10 @@ Emit nothing extra in the dry-run success path (dry-run is a preview, not a comp
 **Touches:**
 - `guides/_shared/reference/catalogue-authoring-standards.md`
 - `packages/agentbundle/agentbundle/_data/catalogue-scaffold/guides/_shared/reference/catalogue-authoring-standards.md`
+- `packages/agentbundle/agentbundle/_data/catalogue-scaffold/manifest.json` (generated)
+- `tools/catalogue/sync_authoring_scaffold.py`
 
-**Tests:** none (goal-based)
+**Tests:** no stub (mode); deterministic sync and content-absence checks in Done-when.
 
 **Approach:**
 
@@ -566,12 +737,15 @@ Exported files are reference copies only — they do not override the contracts 
 for validation by this agentbundle version.
 ```
 
-Run `python3 tools/catalogue/sync_authoring_scaffold.py` to sync the scaffold copy.
+Run `python3 tools/catalogue/sync_authoring_scaffold.py --write` to sync the scaffold copy.
 
 **Done when:**
 ```bash
 python3 tools/catalogue/sync_authoring_scaffold.py --check  # exit 0
 grep -c "Bundled contract inspection" guides/_shared/reference/catalogue-authoring-standards.md  # 1
+# Scope the following absence check to section 12.
+! sed -n '/^## 12\. Bundled contract inspection/,$p' guides/_shared/reference/catalogue-authoring-standards.md \
+  | grep -E '\.github/workflows|make |RFC-|docs/rfc/|ADR|docs/adr/|docs/specs/'
 ```
 
 ---
@@ -587,8 +761,11 @@ grep -c "Bundled contract inspection" guides/_shared/reference/catalogue-authori
 
 **Tests (write these red first):**
 
+`stub: true`
+
 ```python
 # test_catalogue_wave3_offline_navigation.py
+# Generated at PLAN; imports the not-yet-present inspector contract.
 
 import socket, contextlib
 from pathlib import Path
@@ -597,6 +774,7 @@ from agentbundle.catalogue_tooling.contracts_inspector import (
     list_bundled_contracts, show_contract, export_contracts,
 )
 
+# STUB: AC23 — every positively inventoried contract is readable without sockets
 class TestColdReadPath:
     def test_all_listed_names_can_be_shown(self):
         """Full cold-read: list → show each → non-empty content."""
@@ -607,18 +785,19 @@ class TestColdReadPath:
             assert content is not None, f"show_contract({info.name!r}) returned None"
             assert len(content) > 0, f"show_contract({info.name!r}) returned empty string"
 
-    def test_no_network_during_cold_read(self, monkeypatch):
-        """List + show every contract without opening any socket."""
-        original_connect = socket.socket.connect
+    def test_no_network_during_cold_read(self, monkeypatch, tmp_path):
+        """List + show + export every contract without opening any socket."""
+        def no_socket(*args, **kwargs):
+            raise AssertionError("Socket opened during cold-read test")
 
-        def no_connect(self, *args, **kwargs):
-            raise AssertionError("Network call made during cold-read test")
-
-        monkeypatch.setattr(socket.socket, "connect", no_connect)
+        monkeypatch.setattr(socket, "socket", no_socket)
         contracts = list_bundled_contracts()
         for info in contracts:
             show_contract(info.name)  # must not open network
+        written = export_contracts(tmp_path / "offline-export")
+        assert written == [contract.file for contract in contracts]
 
+# STUB: AC24 — export bytes equal show bytes and create no links
 class TestExportMatchesShow:
     def test_exported_files_match_show_content(self, tmp_path):
         """Each exported file's bytes match show_contract() for the same name."""
@@ -652,21 +831,23 @@ class TestExportMatchesShow:
 **Touches:**
 - `packages/agentbundle/pyproject.toml`
 - `packages/agentbundle/agentbundle/version.py`
+- `packages/agentbundle/CHANGELOG.md`
+- `packages/agentbundle/README-pypi.md`
 - `docs/product/changelog.md`
 
-**Tests:** none (goal-based)
+**Tests:** no stub (mode); release-document, footer, and regression checks in Done-when.
 
 **Approach:**
 
-1. Inspect current HEAD version: `grep '^version' packages/agentbundle/pyproject.toml`.
-   Bump `pyproject.toml` `version` and `version.py` `CLI_VERSION` to the next available
-   AgentBundle minor version according to repository release policy. Verify that no other
-   branch has already claimed that minor before opening the PR.
-2. Add changelog entry (match 0.27.0 shape).
-3. Verify OQ1 compatibility: confirm RFC-0076 OQ1 checkbox is already checked
-   (`- [x] OQ1 resolved in Wave 3 spec`) and that the accepted resolution remains
-   compatible with the Wave 3 implementation. No RFC mutation is required — OQ1 was
-   resolved at spec approval time.
+1. Current HEAD is AgentBundle `0.33.3`. Bump `pyproject.toml` `version` and
+   `version.py` `CLI_VERSION` to `0.34.0`, the next available minor according to
+   repository release policy. Verify that no other branch has claimed that minor before
+   opening the PR.
+2. Add matching package and product changelog entries and update `README-pypi.md` so
+   the published package page documents the new contract-inspection surface.
+3. Verify OQ1 compatibility: confirm RFC-0076's OQ1 checkbox is already checked and
+   the spec's OQ1 resolution paragraph retains the detailed namespace evidence. No RFC
+   mutation is required; the RFC intentionally points to the spec as the resolution record.
 4. Verify `init-result-json-next-steps` already exists in `workspace.toml [backlog].open`
    (present as of Phase 0 reconciliation, 2026-07-31). Do NOT create a duplicate entry.
    Reference: `{slug = "init-result-json-next-steps", source = "spec/catalogue-wave3-enterprise-authoring-discovery"}`.
@@ -679,10 +860,35 @@ SKIP_SAST=1 make build-check   # exit 0
 python3 -m pytest packages/agentbundle/tests/ -q   # exit 0
 python3 tools/catalogue/check_contract_parity.py   # exit 0
 python3 tools/catalogue/sync_authoring_scaffold.py --check  # exit 0
-# Replace <VER> with the actual version selected
-grep "<VER>" packages/agentbundle/pyproject.toml   # 1 match
-grep "<VER>" packages/agentbundle/agentbundle/version.py  # 1 match
-grep -F '- [x] OQ1 resolved' docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md  # 1 match (already checked; verify unchanged)
+python3 tools/catalogue/sync_contract_inventory.py --check  # exit 0
+grep "0.34.0" packages/agentbundle/pyproject.toml   # 1 match
+grep "0.34.0" packages/agentbundle/agentbundle/version.py  # 1 match
+grep "0.34.0" packages/agentbundle/CHANGELOG.md   # 1+ match (AC26)
+grep "0.34.0" packages/agentbundle/README-pypi.md   # 1+ match (AC26)
+grep -F -- '- [x] OQ1 resolved' docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md  # 1 match (already checked; verify unchanged)
+grep -F '**OQ1 resolution (RFC-0076):**' docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md  # 1 match
 grep "init-result-json-next-steps" workspace.toml   # 1+ match (pre-existing; no duplicate)
-grep -E "<VER>|\[Unreleased\]" docs/product/changelog.md   # 1+ match (AC26)
+grep "0.34.0" docs/product/changelog.md   # 1+ match (AC26)
+git log --format=%B origin/main..HEAD | grep -F 'Engine-Change-RFC: RFC-0076'  # 1+ match
 ```
+
+## Changelog
+
+- 2026-08-12: Reconstruction pass after the worktree loss. Replayed the recorded
+  `apply_patch` stream, then closed the three reviewers' findings: scoped export link
+  refusal to the output directory and its destinations (a symlinked *ancestor* such as
+  macOS `/tmp` had made the AC15 flow fail outright), made exports `0o644`, added a
+  testable branch seam so the non-POSIX write path executes under CI, snapshotted the
+  batch `Mapping` order, taught `sync_authoring_scaffold --check` to validate the
+  manifest hashes it writes, gave `check_contract_parity` a single shared contract scan,
+  and repaired two `workspace.toml` routing edges. Moved the T2 stub's `_expected_names`
+  off the checkout `contracts/` directory and onto the packaged inventory, matching the
+  spec's amended Testing Strategy.
+
+- 2026-08-12: Rebased the approved plan on AgentBundle 0.33.3, reserved 0.34.0,
+  made the 12-contract inventory dynamic, added package release-document coupling,
+  and required destination-symlink preflight for safe export.
+- 2026-08-12: Pre-execution review replaced fail-open `_data` discovery with a
+  generated positive inventory, required descriptor-held no-follow batch writes and
+  late-destination atomic-preflight tests, moved CLI assertions to the public parser,
+  materialised the PLAN-time red stubs, and tightened release/footer/hub absence gates.
