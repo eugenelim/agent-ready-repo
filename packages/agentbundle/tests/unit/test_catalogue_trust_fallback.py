@@ -15,6 +15,7 @@ import os
 import ssl
 import sys
 import tarfile
+import types
 import urllib.error
 import urllib.request
 
@@ -313,7 +314,7 @@ def test_empty_store_message_names_the_real_cause(monkeypatch, tmp_path, no_env)
 
     message = str(exc.value)
     assert "trusts ZERO certificate authorities" in message
-    assert "Install Certificates.command" in message
+    assert "3.x" not in message, "the version placeholder must never reach an adopter"
     # Softened from an absolute after security review: a populated capath is
     # excluded before we get here, but a store can still be empty AND the
     # network inspected.
@@ -357,14 +358,21 @@ def test_successful_empty_store_recovery_still_tells_the_adopter(
     monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
 
     monkeypatch.setattr(sys, "platform", "darwin")
+    # Pin the hint too, not just the platform: the command is derived from the
+    # running interpreter's version and only exists on a python.org framework
+    # build, so asserting it unpinned depends on the developer's machine.
+    monkeypatch.setattr(
+        catalogue,
+        "_install_certificates_hint",
+        lambda: 'open "/Applications/Python 3.14/Install Certificates.command"',
+    )
     catalogue._fetch_and_extract(URL, tmp_path)
 
     err = capsys.readouterr().err
     assert "trusts no certificate authorities" in err
     assert "does not fix the interpreter" in err
-    # Pin the platform: the remedy is macOS-specific, so asserting it without
-    # pinning passes on a developer's Mac and fails on a Linux runner.
     assert "Install Certificates.command" in err
+    assert "3.x" not in err, "the version placeholder must never reach an adopter"
     assert (tmp_path / "repo-main" / "pack.toml").exists(), "install must still succeed"
 
 
@@ -447,3 +455,26 @@ def test_symlink_archive_extracts_where_symlinks_cannot_be_created(
     claude = tmp_path / "repo-main" / "CLAUDE.md"
     assert claude.exists(), "the link target must be copied when links are unavailable"
     assert claude.read_text() == "# agents\n", "copy must carry the target's content"
+
+
+def test_certificate_hint_carries_a_real_version_or_is_omitted(monkeypatch, tmp_path):
+    """Never print a path an adopter has to edit before it works.
+
+    The hint is derived from the running interpreter and returned only when the
+    script actually exists, so a non-framework build gets the portable advice
+    instead of a command that would fail.
+    """
+    hint = catalogue._install_certificates_hint()
+    if hint is not None:
+        assert "3.x" not in hint
+        assert f"{sys.version_info.major}.{sys.version_info.minor}" in hint
+
+    # A version whose script cannot exist must yield no hint at all. A bare
+    # tuple will not do: the code reads .major/.minor off version_info.
+    monkeypatch.setattr(
+        catalogue.sys,
+        "version_info",
+        types.SimpleNamespace(major=3, minor=99),
+        raising=False,
+    )
+    assert catalogue._install_certificates_hint() is None

@@ -163,6 +163,22 @@ def _github_archive_url(owner: str, repo: str, ref: str) -> str:
     return f"https://github.com/{owner}/{repo}/archive/{ref}.tar.gz"
 
 
+def _install_certificates_hint() -> str | None:
+    """The python.org certificate-setup command, with the real version in it.
+
+    Printing a literal "Python 3.x" placeholder means the adopter cannot paste
+    what they are shown — and the adopters who see this message are the ones who
+    least need an extra substitution step. Returns ``None`` when the script is
+    not present, which is the signal that this interpreter is not a python.org
+    framework build and the advice would be wrong.
+    """
+    minor = f"{sys.version_info.major}.{sys.version_info.minor}"
+    script = Path(f"/Applications/Python {minor}/Install Certificates.command")
+    if script.is_file():
+        return f'open "{script}"'
+    return None
+
+
 def _is_cert_verification_failure(exc: BaseException) -> bool:
     """True when *exc* is a certificate-verification failure.
 
@@ -205,15 +221,21 @@ def _verification_failure_message(
         # Almost certainly, not certainly: a populated capath is excluded before
         # we get here, but the store could still be empty *and* the network
         # inspected.
-        remedy = (
-            '       open "/Applications/Python 3.x/Install Certificates.command"\n'
-            "     Or point it at the system bundle:\n"
-            "       export SSL_CERT_FILE=/etc/ssl/cert.pem"
-            if sys.platform == "darwin"
-            else "       install your certificate authorities into this "
-            "interpreter's trust\n"
-            "     store, or set SSL_CERT_FILE to a PEM bundle containing them"
-        )
+        hint = _install_certificates_hint() if sys.platform == "darwin" else None
+        if hint:
+            remedy = (
+                f"       {hint}\n"
+                "     Or point it at the system bundle:\n"
+                "       export SSL_CERT_FILE=/etc/ssl/cert.pem"
+            )
+        elif sys.platform == "darwin":
+            remedy = "       export SSL_CERT_FILE=/etc/ssl/cert.pem"
+        else:
+            remedy = (
+                "       install your certificate authorities into this "
+                "interpreter's trust\n"
+                "     store, or set SSL_CERT_FILE to a PEM bundle containing them"
+            )
         steps.append(
             "This Python trusts ZERO certificate authorities, so every HTTPS\n"
             "     request from it fails — almost certainly not a corporate-proxy\n"
@@ -406,13 +428,16 @@ def _retry_with_system_trust(
             "the administrator keychain plus the system public certificate "
             "bundle" if sys.platform == "darwin" else "operating-system trust anchors"
         )
-        fix = (
-            '  open "/Applications/Python 3.x/Install Certificates.command"\n'
-            "  (or: export SSL_CERT_FILE=/etc/ssl/cert.pem)"
-            if sys.platform == "darwin"
-            else "  install your certificate authorities into this interpreter's\n"
-            "  trust store, or set SSL_CERT_FILE to a PEM bundle"
-        )
+        hint = _install_certificates_hint() if sys.platform == "darwin" else None
+        if hint:
+            fix = f"  {hint}\n  (or: export SSL_CERT_FILE=/etc/ssl/cert.pem)"
+        elif sys.platform == "darwin":
+            fix = "  export SSL_CERT_FILE=/etc/ssl/cert.pem"
+        else:
+            fix = (
+                "  install your certificate authorities into this interpreter's\n"
+                "  trust store, or set SSL_CERT_FILE to a PEM bundle"
+            )
         print(
             f"agentbundle: this Python trusts no certificate authorities, so "
             f"verification failed for {host}. Retrying against {extra} — this "
