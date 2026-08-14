@@ -628,7 +628,7 @@ def _rewrite_pack_readme(text: str, pack_src_path: Path) -> str:
     """Rewrite links in pack READMEs moved from packs/<slug>/README.md
     to docs-site/src/content/docs/packs/<slug>.md.
 
-    Pack-home links (../other-pack/README.md) → other-pack/
+    Pack-home links (../other-pack/README.md) → base-qualified pack route.
     Other repository files, including files beside the README → GitHub URL.
     """
     packs_root = (REPO_ROOT / "packs").resolve()
@@ -644,11 +644,12 @@ def _rewrite_pack_readme(text: str, pack_src_path: Path) -> str:
             return m.group(0)
 
         if _is_relative_to(resolved, packs_root):
-            # e.g. ../credential-brokers/README.md → ../credential-brokers/
+            # A pack README is served at /docs/packs/<slug>/, so a bare sibling
+            # slug would incorrectly nest below the current pack route.
             rel = resolved.relative_to(packs_root)
             pack_name = rel.parts[0]
             if resolved.is_dir() or rel.parts[1:] == ("README.md",):
-                return f"{prefix}{pack_name}/{anchor})"
+                return f"{prefix}{SITE_BASE}/packs/{pack_name}/{anchor})"
             repo_rel = resolved.relative_to(repo_root)
             return f"{prefix}{GITHUB_BASE}/{repo_rel}{anchor})"
 

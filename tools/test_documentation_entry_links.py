@@ -23,6 +23,7 @@ DOC_SOURCES = (
     "CONTRIBUTING.md",
     "guides/README.md",
     "guides/_shared/explanation/pack-catalogue.md",
+    "guides/core/how-to/run-a-live-demo.md",
     "docs-site/src/content/docs/index.mdx",
     "docs-site/src/content/docs/getting-started/index.mdx",
     "docs-site/src/content/docs/getting-started/install.md",
@@ -199,6 +200,10 @@ def test_changed_markdown_links_resolve() -> None:
         source = REPO_ROOT / rel
         content = _strip_fences(source.read_text(encoding="utf-8"))
         for raw in MARKDOWN_LINK_RE.findall(content):
+            if raw.startswith("#"):
+                if raw[1:] not in _anchors_for(source):
+                    failures.append(f"{rel}: missing local anchor {raw}")
+                continue
             target, anchor = _split_anchor(raw)
             parsed = urlparse(target)
             if parsed.scheme in {"http", "https"}:
@@ -210,9 +215,7 @@ def test_changed_markdown_links_resolve() -> None:
                 if failure:
                     failures.append(f"{rel}: {failure}")
                 continue
-            if target.startswith(("mailto:", "#")):
-                if target.startswith("#") and target[1:] not in _anchors_for(source):
-                    failures.append(f"{rel}: missing local anchor {target}")
+            if target.startswith("mailto:"):
                 continue
             if target.startswith(SITE_BASE):
                 failure = _check_site_route(

@@ -91,7 +91,7 @@ Naming the skill is the reliable form. The `work-loop` description also matches 
 
 ### What it does
 
-The full procedure lives in [the `work-loop` SKILL.md](../../../../packs/core/.apm/skills/work-loop/SKILL.md). The short version:
+The full procedure lives in [the `work-loop` SKILL.md](../../../packs/core/.apm/skills/work-loop/SKILL.md). The short version:
 
 - **PLAN** — reads `spec.md` and `plan.md`, picks verification modes if not already set, designs construction tests up front, and asks you to name the **declined-pattern register**: one to three things you were tempted to add (a layer, a flag, a defensive wrapper) and explicitly declined. The register pairs with the spec's Boundaries section so REVIEW can catch drift toward declined temptations as self-contradiction in the diff. Pre-EXECUTE adversarial review fires automatically on spec amendments or on any of the four structural triggers (new module, new dependency, new abstraction, new top-level directory).
 - **EXECUTE** — implements task by task. TDD-mode tasks run red-green-refactor; goal-based tasks run the `Done when:` one-liner; manual-QA tasks record the visual check.
@@ -123,7 +123,7 @@ Once `approve-plan` runs (during the G-plan sequence after the plan approver fir
 
 ### Parallel implementers (supervisor mode)
 
-Parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 — those verbs exit non-zero without touching `state.json`. The full parallel-dispatch design (opt-in, gated, wave-scheduled) is documented in [`references/supervisor-mode.md`](../../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md) for future phases.
+Parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 — those verbs exit non-zero without touching `state.json`. The full parallel-dispatch design (opt-in, gated, wave-scheduled) is documented in [`references/supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md) for future phases.
 
 ## Pitfalls
 
@@ -151,7 +151,7 @@ For bug-shaped work that crosses multiple files, see [how to fix a bug](bug-fix.
 
 - [The core pack as a system](../explanation/core-pack.md) — why the loop exists and how the parts compose.
 - [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale.
-- [`new-spec` skill](../../../../packs/core/.apm/skills/new-spec/SKILL.md) — authoritative procedure for the planning skill.
-- [`work-loop` skill](../../../../packs/core/.apm/skills/work-loop/SKILL.md) — authoritative procedure for the loop itself.
+- [`new-spec` skill](../../../packs/core/.apm/skills/new-spec/SKILL.md) — authoritative procedure for the planning skill.
+- [`work-loop` skill](../../../packs/core/.apm/skills/work-loop/SKILL.md) — authoritative procedure for the loop itself.
 - [How to fix a bug](bug-fix.md) — `bug-fix` is the entry point for bug-shaped work.
 - [How to adapt the pack to your project](adapt-to-project.md) — post-install setup; do this before your first feature.

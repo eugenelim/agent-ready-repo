@@ -53,7 +53,7 @@ The mechanism is identical across routes:
 | APM | `.apm/hooks/install-marker.{json,py}`, projected via APM's `HookIntegrator`, runs the same canonical writer. |
 | Local clone | Same as Reference CLI — the clone route uses the same `install` verb. |
 
-The writer template at [`packages/agentbundle/templates/install-marker.py`](../../../../packages/agentbundle/templates/install-marker.py) is the single source of truth; every route projects a copy of it. That's the unifying invariant: *one writer, one marker, one read-side*.
+The writer template at [`packages/agentbundle/templates/install-marker.py`](../../../packages/agentbundle/templates/install-marker.py) is the single source of truth; every route projects a copy of it. That's the unifying invariant: *one writer, one marker, one read-side*.
 
 ## Pick by where you live
 

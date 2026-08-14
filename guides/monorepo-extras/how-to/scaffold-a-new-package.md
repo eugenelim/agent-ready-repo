@@ -47,4 +47,4 @@ If you find yourself copying the root `AGENTS.md`, stop. The agent already has t
 ## See also
 
 - [What `new-package` generates](../reference/new-package.md) — the files, the template, and the conventions each carries.
-- The skill itself: [`new-package`](../../../../packs/monorepo-extras/.apm/skills/new-package/SKILL.md).
+- The skill itself: [`new-package`](../../../packs/monorepo-extras/.apm/skills/new-package/SKILL.md).

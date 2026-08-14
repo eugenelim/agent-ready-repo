@@ -57,4 +57,4 @@ The full flag list is in the [reference](../reference/converter-skills.md#mermai
 
 - Feed the bundle onward: `confluence-publisher` turns the image refs into Confluence image macros, and [`markdown-to-html`](convert-markdown-to-html-and-email.md) uses the rendered images for fully-offline HTML.
 - Need the source Markdown first? [Convert documents to Markdown](convert-documents-to-markdown.md).
-- The skill itself: [`mermaid-renderer`](../../../../packs/converters/.apm/skills/mermaid-renderer/SKILL.md).
+- The skill itself: [`mermaid-renderer`](../../../packs/converters/.apm/skills/mermaid-renderer/SKILL.md).

@@ -11,9 +11,9 @@ kind: how-to
 **Prerequisites:** A local clone of the catalogue and Python ≥ 3.11 on PATH; see "Before you start".
 **Result:** `agentbundle` installed as an editable package so the CLI and pack content stay in sync with your clone via `git pull`.
 
-You're here because the `agentbundle` CLI drives pack install, validation, adapt, and build. All four [README install routes](../../../../README.md#install) ship pack content — skills, agents, hooks — but not the CLI, so every route converges here for the pip install.
+You're here because the `agentbundle` CLI drives pack install, validation, adapt, and build. All four [installation routes](/agent-ready-repo/docs/getting-started/install/) ship pack content — skills, agents, hooks — but not the CLI, so every route converges here for the pip install.
 
-> **Credentialed skills don't resolve credentials through the `agentbundle` wheel.** The `auth: creds` resolver is the standalone, pip-installable [`credbroker`](../../../../packages/credbroker) library, imported in-process (`from credbroker import …`). From a clone, install it alongside the CLI: `python -m pip install -e ./packages/credbroker`. (The no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of the [credentialed-skill how-to](../../credential-brokers/how-to/add-a-credentialed-skill.md).) The CLI itself remains pip-installed from this clone; the *Python skill bodies* resolve credentials through `credbroker`, not the agentbundle wheel.
+> **Credentialed skills don't resolve credentials through the `agentbundle` wheel.** The `auth: creds` resolver is the standalone, pip-installable [`credbroker`](../../../packages/credbroker) library, imported in-process (`from credbroker import …`). From a clone, install it alongside the CLI: `python -m pip install -e ./packages/credbroker`. (The no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of the [credentialed-skill how-to](../../credential-brokers/how-to/add-a-credentialed-skill.md).) The CLI itself remains pip-installed from this clone; the *Python skill bodies* resolve credentials through `credbroker`, not the agentbundle wheel.
 
 Smoke test for the install:
 
@@ -117,6 +117,6 @@ The pip install remains the right default when nothing blocks it; the zipapp is 
 
 ## Reference
 
-- README install routes: [`README.md § Install`](../../../../README.md#install)
+- Installation routes: [Get started — Install](/agent-ready-repo/docs/getting-started/install/)
 - Adding a credentialed skill: [`add-a-credentialed-skill.md`](../../credential-brokers/how-to/add-a-credentialed-skill.md)
-- Package source: [`packages/agentbundle/`](../../../../packages/agentbundle)
+- Package source: [`packages/agentbundle/`](../../../packages/agentbundle)

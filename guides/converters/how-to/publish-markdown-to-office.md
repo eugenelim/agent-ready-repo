@@ -92,6 +92,6 @@ scanning, so you own keeping them current.
 - Every flag and stdout marker: [Converter skills reference](../reference/converter-skills.md).
 - Coming the other way? [Convert documents to Markdown](convert-documents-to-markdown.md).
 - The skill sources:
-  [`markdown-to-docx`](../../../../packs/converters/.apm/skills/markdown-to-docx/SKILL.md),
-  [`markdown-to-pptx`](../../../../packs/converters/.apm/skills/markdown-to-pptx/SKILL.md),
-  [`markdown-to-xlsx`](../../../../packs/converters/.apm/skills/markdown-to-xlsx/SKILL.md).
+  [`markdown-to-docx`](../../../packs/converters/.apm/skills/markdown-to-docx/SKILL.md),
+  [`markdown-to-pptx`](../../../packs/converters/.apm/skills/markdown-to-pptx/SKILL.md),
+  [`markdown-to-xlsx`](../../../packs/converters/.apm/skills/markdown-to-xlsx/SKILL.md).

@@ -79,4 +79,4 @@ The CLI uses banded exit codes. The two you'll see most:
 ## See also
 
 - [The `figma` skill reference](../reference/figma-skill.md) — every subcommand, flag, and exit code.
-- [The `figma` skill itself](../../../../packs/figma/.apm/skills/figma/SKILL.md) — the source of truth the agent reads.
+- [The `figma` skill itself](../../../packs/figma/.apm/skills/figma/SKILL.md) — the source of truth the agent reads.

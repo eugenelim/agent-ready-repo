@@ -60,4 +60,4 @@ You don't dedupe, sort, or write the frontmatter yourself — the reconciler is 
 - Got Mermaid in the result? [Render Mermaid diagrams to images](render-mermaid-diagrams.md).
 - Want a shareable page? [Convert Markdown to HTML](convert-markdown-to-html-and-email.md).
 - Every flag and output marker: [Converter skills reference](../reference/converter-skills.md).
-- The skill itself: [`file-to-markdown`](../../../../packs/converters/.apm/skills/file-to-markdown/SKILL.md).
+- The skill itself: [`file-to-markdown`](../../../packs/converters/.apm/skills/file-to-markdown/SKILL.md).

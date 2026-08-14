@@ -4,7 +4,7 @@ A thin, uniform interface to the Figma REST API. Reads files, nodes, metadata, v
 
 Figma is SaaS-only (`api.figma.com`). There is no on-prem variant.
 
-The source of truth is the skill itself: [`packs/figma/.apm/skills/figma/`](../../../../packs/figma/.apm/skills/figma/SKILL.md). The agent invokes the CLI at `scripts/figma.py`; you do not call it by hand. Run `python scripts/figma.py <subcommand> --help` for the exact flag surface of any subcommand.
+The source of truth is the skill itself: [`packs/figma/.apm/skills/figma/`](../../../packs/figma/.apm/skills/figma/SKILL.md). The agent invokes the CLI at `scripts/figma.py`; you do not call it by hand. Run `python scripts/figma.py <subcommand> --help` for the exact flag surface of any subcommand.
 
 ## Credentials
 

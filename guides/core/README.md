@@ -20,6 +20,7 @@ Task-oriented recipes for a problem you already have.
 - [Review a branch or PR you didn't write](how-to/review-someone-elses-pr.md) — point the reviewers at anyone's diff.
 - [Intake an external brief into a product brief](how-to/intake-an-external-brief.md) — turn unstructured external input (email, message, issue) into a DoR-ready product brief.
 - [Receive a product brief and decompose it into specs](how-to/receive-a-product-brief-and-decompose-it-into-specs.md) — turn a multi-feature handoff into shippable specs.
+- [Run a 30-minute live workflow demo](how-to/run-a-live-demo.md) — show technical, enterprise, or non-technical teams the canonical Core and Product Engineering handoffs on their own repository.
 - [Decide and record your foundation during inception](how-to/record-your-foundation-during-inception.md) — the ADR + `reference.md` you write before the first feature.
 
 ## Reference

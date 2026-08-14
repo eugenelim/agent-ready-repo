@@ -2,7 +2,7 @@
 
 The authoritative description of what the `new-package` skill produces and the conventions the `packages/_example/` template carries.
 
-Skill source: [`new-package`](../../../../packs/monorepo-extras/.apm/skills/new-package/SKILL.md).
+Skill source: [`new-package`](../../../packs/monorepo-extras/.apm/skills/new-package/SKILL.md).
 
 ## Trigger
 

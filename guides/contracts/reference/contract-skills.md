@@ -6,7 +6,7 @@ The `contracts` pack ships two skills. Both apply a contract-design *method* ove
 
 Generates an OpenAPI 3.1 API contract.
 
-- **Source:** [`packs/contracts/.apm/skills/api-contract/SKILL.md`](../../../../packs/contracts/.apm/skills/api-contract/SKILL.md)
+- **Source:** [`packs/contracts/.apm/skills/api-contract/SKILL.md`](../../../packs/contracts/.apm/skills/api-contract/SKILL.md)
 - **Activates on:** API design, REST contract authoring, OpenAPI spec creation.
 - **Inputs:** user stories, domain models, plain-English requirements, existing partial specs.
 - **Output:** a single, complete, valid OpenAPI 3.1 YAML document that downstream tooling (code generators, test generators, mock servers, SDK builders) consumes without modification.
@@ -33,7 +33,7 @@ Top-level keys of the emitted document: `openapi: "3.1.0"`, `info`, `servers`, `
 
 Authors an AsyncAPI event contract for a stream you produce.
 
-- **Source:** [`packs/contracts/.apm/skills/event-contract/SKILL.md`](../../../../packs/contracts/.apm/skills/event-contract/SKILL.md)
+- **Source:** [`packs/contracts/.apm/skills/event-contract/SKILL.md`](../../../packs/contracts/.apm/skills/event-contract/SKILL.md)
 - **Activates on:** event-driven API design, event/message contract authoring, AsyncAPI spec creation.
 - **Inputs:** user stories, domain models, plain-English requirements, an existing partial contract, the producing service's emitted events.
 - **Output:** a single, complete, valid AsyncAPI YAML document — `channels`, `operations`, `components.messages`, `components.schemas` — with the active envelope composed into the messages.

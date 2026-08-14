@@ -17,6 +17,7 @@ import SkillRecord from '../components/primitives/SkillRecord.astro';
 import StatusChip from '../components/primitives/StatusChip.astro';
 import TaskSwitcher from '../components/primitives/TaskSwitcher.astro';
 import WriteConfirmation from '../components/primitives/WriteConfirmation.astro';
+import { withBase } from '../lib/paths';
 ---
 
 <SiteLayout
@@ -100,7 +101,7 @@ import WriteConfirmation from '../components/primitives/WriteConfirmation.astro'
     </section>
 
     <!-- ── PromptBlock ── -->
-    <section class="fixture-section">
+    <section id="example" class="fixture-section">
       <h2>PromptBlock</h2>
       <PromptBlock
         speaker="Agent"
@@ -116,7 +117,7 @@ import WriteConfirmation from '../components/primitives/WriteConfirmation.astro'
     </section>
 
     <!-- ── AgentClarification ── -->
-    <section class="fixture-section">
+    <section id="setup" class="fixture-section">
       <h2>AgentClarification</h2>
       <AgentClarification
         question="Which project should I assign these issues to?"
@@ -130,7 +131,7 @@ import WriteConfirmation from '../components/primitives/WriteConfirmation.astro'
     </section>
 
     <!-- ── ExpectedResult / ResultPreview ── -->
-    <section class="fixture-section">
+    <section id="expected-result" class="fixture-section">
       <h2>ExpectedResult</h2>
       <ExpectedResult
         summary="3 issues created in project Alpha"
@@ -142,26 +143,26 @@ import WriteConfirmation from '../components/primitives/WriteConfirmation.astro'
         ]}
         warnings={['Rate limit: 2 requests remaining']}
         followUp={[
-          { label: 'View issues', href: '/issues' },
-          { label: 'Run again', href: '/run' },
+          { label: 'View issues', href: '#expected-result' },
+          { label: 'Run again', href: '#journey-rail' },
         ]}
       />
     </section>
 
     <!-- ── DecisionBand ── -->
-    <section class="fixture-section">
+    <section id="decision-band" class="fixture-section">
       <h2>DecisionBand</h2>
       <DecisionBand
         summary="3 issues will be created and assigned immediately."
         consequence="This cannot be undone without manually closing each issue."
-        primaryAction={{ label: 'Confirm', href: '/confirm' }}
-        secondaryAction={{ label: 'Cancel', href: '/cancel' }}
+        primaryAction={{ label: 'Confirm', href: '#write-confirmation' }}
+        secondaryAction={{ label: 'Cancel', href: '#decision-band' }}
         scope="Affects: Project Alpha, Project Beta"
       />
     </section>
 
     <!-- ── WriteConfirmation ── -->
-    <section class="fixture-section">
+    <section id="write-confirmation" class="fixture-section">
       <h2>WriteConfirmation</h2>
       <WriteConfirmation
         objects={['Issue #1042', 'Issue #1043']}
@@ -172,19 +173,19 @@ import WriteConfirmation from '../components/primitives/WriteConfirmation.astro'
         protectedFields={['ID', 'Created at']}
         writeCount={2}
         consequence="Both issues will be updated immediately."
-        onConfirm="/confirm"
-        onCancel="/cancel"
+        onConfirm="#write-confirmation"
+        onCancel="#decision-band"
       />
     </section>
 
     <!-- ── PageHero ── -->
-    <section class="fixture-section">
+    <section id="overview" class="fixture-section">
       <h2>PageHero</h2>
       <PageHero
         title="Automate your issue workflow"
         outcome="Create, triage, and close GitHub issues with a single prompt."
-        primaryAction={{ label: 'Get started', href: '/get-started' }}
-        secondaryAction={{ label: 'See an example', href: '/example' }}
+        primaryAction={{ label: 'Get started', href: withBase('/docs/getting-started/') }}
+        secondaryAction={{ label: 'See an example', href: '#example' }}
         badge="Beta"
         proof="Used in 200+ projects"
       />
@@ -220,7 +221,7 @@ import WriteConfirmation from '../components/primitives/WriteConfirmation.astro'
     </section>
 
     <!-- ── JourneyRail ── -->
-    <section class="fixture-section">
+    <section id="journey-rail" class="fixture-section">
       <h2>JourneyRail</h2>
       <JourneyRail
         stages={[
@@ -234,7 +235,7 @@ import WriteConfirmation from '../components/primitives/WriteConfirmation.astro'
     </section>
 
     <!-- ── SkillRecord ── -->
-    <section class="fixture-section">
+    <section id="reference" class="fixture-section">
       <h2>SkillRecord</h2>
       <SkillRecord
         name="new-issue"
@@ -252,8 +253,8 @@ import WriteConfirmation from '../components/primitives/WriteConfirmation.astro'
       <h2>NextAction</h2>
       <div class="fixture-column">
         <NextAction type="prompt" label="Assign all open issues to current milestone" />
-        <NextAction type="guide" label="How to set up GitHub authentication" href="/guides/github-auth" />
-        <NextAction type="stage" label="Move to review stage" href="/review" />
+        <NextAction type="guide" label="How to authenticate for GitHub milestone intake" href={withBase('/docs/guides/github/how-to/intake-a-github-milestone-as-a-brief/#prerequisites')} />
+        <NextAction type="stage" label="Move to review stage" href="#decision-band" />
         <NextAction type="decision" label="Choose a project before continuing" />
         <NextAction
           type="prompt"

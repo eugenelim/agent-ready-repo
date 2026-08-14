@@ -69,6 +69,16 @@ def test_pack_sibling_file_links_to_repository_source() -> None:
     )
 
 
+def test_pack_home_links_use_base_qualified_sibling_route() -> None:
+    source = BUILD_SITE.REPO_ROOT / "packs/atlassian/README.md"
+    rewritten = BUILD_SITE._rewrite_pack_readme(
+        "[Credentials](../credential-brokers/README.md)", source
+    )
+    assert rewritten == (
+        "[Credentials](/agent-ready-repo/docs/packs/credential-brokers/)"
+    )
+
+
 def test_changelog_guide_link_escapes_changelog_route() -> None:
     rewritten = BUILD_SITE._rewrite_changelog(
         "[Vision](../guides/product-engineering/how-to/"

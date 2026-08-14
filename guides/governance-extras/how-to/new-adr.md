@@ -168,7 +168,7 @@ The RFC carried the debate; its accepted outcome lists "one or more ADRs to reco
 - [How to propose a change (RFC)](new-rfc.md) — the inverse: when the decision isn't yet made, open an RFC.
 - [How to plan and execute non-trivial work](../../core/how-to/plan-and-execute-non-trivial-work.md) — the spec/loop workflow for feature-shaped changes that aren't ADRs.
 - [The core pack as a system](../../core/explanation/core-pack.md) — where ADRs sit in the wider doc hierarchy.
-- [`new-adr` skill](../../../../packs/governance-extras/.apm/skills/new-adr/SKILL.md) — authoritative procedure (preconditions, template, pushback rules).
-- [`new-rfc` skill](../../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure for the proposal skill.
+- [`new-adr` skill](../../../packs/governance-extras/.apm/skills/new-adr/SKILL.md) — authoritative procedure (preconditions, template, pushback rules).
+- [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure for the proposal skill.
 - [`docs/CONVENTIONS.md` § ADR](../../../CONVENTIONS.md#2-adr--architecture-decision-records--docsadr) — the immutability rule, status values, when-to-write tests.
 - [`docs/CONVENTIONS.md` § Document lifecycle](../../../CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance; ADRs are why the living layer can stay honest about the present.

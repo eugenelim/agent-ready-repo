@@ -8,7 +8,7 @@ You're publishing an event stream — an order placed, a shipment dispatched, a 
 
 ## Before you start
 
-- The `contracts` pack is installed (the skill lives at [`packs/contracts/.apm/skills/event-contract/`](../../../../packs/contracts/.apm/skills/event-contract/SKILL.md)).
+- The `contracts` pack is installed (the skill lives at [`packs/contracts/.apm/skills/event-contract/`](../../../packs/contracts/.apm/skills/event-contract/SKILL.md)).
 - You know your **active standard** — the event-design ruleset (Axis A, Zalando-events by default) and the message envelope (Axis B, CloudEvents 1.0.2 by default). See [contract-first design](../explanation/contract-first-design.md) for what the two axes are and how to swap either.
 
 ## Check first: do you produce or consume?
