@@ -222,6 +222,38 @@ store. On those platforms a verification failure has some *other* cause, so
 reach for the troubleshooting steps in the error rather than assuming a
 missing corporate root.
 
+### When Python trusts nothing at all
+
+A separate failure with the same error text, and the first one reported from the
+field. A python.org macOS installer build ships without a configured certificate
+store: until its `Install Certificates.command` runs, the interpreter trusts
+**zero** authorities and every HTTPS request fails — no proxy involved.
+
+Check it directly:
+
+```bash
+python3 -c "import ssl; print(ssl.get_default_verify_paths())"
+```
+
+`cafile=None` with no `capath` means the store is unconfigured. Fix it once:
+
+```bash
+open "/Applications/Python 3.x/Install Certificates.command"
+# or point the interpreter at the system bundle
+export SSL_CERT_FILE=/etc/ssl/cert.pem
+```
+
+`agentbundle` also repairs this case automatically on macOS: when it finds an
+empty trust store it reads the system public certificate bundle
+(`/etc/ssl/cert.pem`) alongside the administrator keychain, because the
+administrator keychain holds private roots and cannot complete a public chain on
+its own. That file is Apple's own TLS-purpose export — deliberately not a dump of
+`SystemRootCertificates.keychain`, which additionally carries code-signing and
+other single-purpose roots that have no business anchoring a TLS chain. The
+recovery is announced on stderr and names the wider trust set. It rescues the
+install; it does not fix the interpreter, so run the command above to stop every
+other tool failing the same way.
+
 ### WSL
 
 WSL is the case most likely to surprise a Windows-standardised organisation. Your

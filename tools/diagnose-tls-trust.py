@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import os
 import pathlib
+import re
 import shutil
 import socket
 import ssl
@@ -146,6 +147,18 @@ def report_trust_store() -> None:
         print(f"CAs loaded : ERROR {exc}")
         return
     print(f"CAs loaded : {count}")
+    if count == 0:
+        print(
+            "\n>> THIS IS ALMOST CERTAINLY YOUR PROBLEM. This interpreter trusts\n"
+            ">> ZERO certificate authorities, so every HTTPS request from it fails —\n"
+            ">> not just ones crossing an inspecting proxy. A python.org macOS build\n"
+            ">> needs its certificate step run once:\n"
+            '>>   open "/Applications/Python 3.x/Install Certificates.command"\n'
+            ">> Or point it at the system bundle:\n"
+            ">>   export SSL_CERT_FILE=/etc/ssl/cert.pem\n"
+            ">> Read section 5 before assuming interception: a public issuer there\n"
+            ">> with 'Verify return code: 0' means nothing is intercepting you."
+        )
     if sys.platform == "win32":
         print("note       : Windows also loads the OS certificate store directly")
     elif sys.platform == "darwin":
@@ -166,30 +179,84 @@ def report_environment() -> None:
     print(f"urllib sees proxies: {urllib.request.getproxies()}")
 
 
+_PRINTABLE = re.compile(rb"[ -~]{4,64}")
+_PUBLIC_HINTS = (
+    "DigiCert", "Sectigo", "USERTrust", "ISRG", "Let's Encrypt", "Baltimore",
+    "GlobalSign", "Amazon", "Google Trust", "Entrust", "GoDaddy", "Comodo",
+    "VeriSign", "Certum", "QuoVadis", "Actalis", "Buypass", "SSL.com",
+)
+
+
+def _readable_names(der: bytes) -> list[str]:
+    """Pull human-readable strings out of a certificate.
+
+    Crude on purpose: parsing X.509 properly needs a dependency this repository
+    refuses, and a person reading this output only needs to recognise whether the
+    issuer is a public authority or their own organisation.
+    """
+    out = []
+    for match in _PRINTABLE.findall(der):
+        text = match.decode("ascii", "replace").strip()
+        if len(text) >= 4 and not text.startswith(("http", "//")) and " " in text or (
+            len(text) >= 8 and text.isprintable()
+        ):
+            out.append(text)
+    return out
+
+
 def report_chain(url: str) -> None:
     heading("5. certificate chain the server presents")
-    openssl = shutil.which("openssl")
     host = urlsplit(url).hostname or ""
-    if not openssl:
-        print("openssl CLI not found — skipping")
+
+    # Pure Python first: `openssl` is usually absent on Windows, and this check
+    # is the one that distinguishes an inspected network from a broken store.
+    chain: list[bytes] = []
+    try:
+        probe = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        # A bare SSLContext permits TLS 1.0/1.1. This probe only reads the
+        # certificate the server presents, but there is no reason to offer
+        # obsolete versions while doing it.
+        probe.minimum_version = ssl.TLSVersion.TLSv1_2
+        probe.check_hostname = False
+        probe.verify_mode = ssl.CERT_NONE  # inspection only; nothing is trusted
+        with (
+            socket.create_connection((host, 443), timeout=30) as sock,
+            probe.wrap_socket(sock, server_hostname=host) as tls,
+        ):
+            getter = getattr(tls, "get_unverified_chain", None)
+            if getter is not None:
+                chain = list(getter() or [])
+            elif tls.getpeercert(binary_form=True):
+                chain = [tls.getpeercert(binary_form=True)]
+    except OSError as exc:
+        print(f"could not connect to inspect the chain: {exc}")
         return
-    out = run(
-        [openssl, "s_client", "-connect", f"{host}:443", "-servername", host],
-        timeout=45,
-    )
-    lines = [
-        ln.strip()
-        for ln in out.splitlines()
-        if ln.strip().startswith(("0 s:", "1 s:", "2 s:", "3 s:"))
-        or "Verify return code" in ln
-    ]
-    print("\n".join(lines) if lines else "(no chain returned)")
-    print(
-        "\n>> A public chain is issued by a well-known authority (DigiCert, Sectigo,\n"
-        ">> ISRG, and so on). An issuer naming a security vendor or your employer\n"
-        ">> means TLS is being intercepted on this network — which is expected on\n"
-        ">> many corporate networks and is not, by itself, a problem."
-    )
+
+    if not chain:
+        print("connected, but this Python cannot expose the chain "
+              "(needs 3.13+ for get_unverified_chain)")
+        return
+
+    top = _readable_names(chain[-1])
+    print(f"chain length: {len(chain)}")
+    print("issuer-most certificate mentions:")
+    for name in top[:8]:
+        print(f"    {name}")
+
+    joined = " ".join(top)
+    if any(hint.lower() in joined.lower() for hint in _PUBLIC_HINTS):
+        print(
+            "\n>> That is a PUBLIC certificate authority, so your network is NOT\n"
+            ">> intercepting this connection. If the fetch still fails, the problem\n"
+            ">> is this interpreter's trust store — see section 3."
+        )
+    else:
+        print(
+            "\n>> No well-known public authority appears above. If you recognise a\n"
+            ">> security vendor or your own organisation, TLS is being intercepted\n"
+            ">> on this network — expected in many companies, and the case the\n"
+            ">> corporate CA bundle exists for."
+        )
 
 
 def report_fetch(url: str) -> bool:
@@ -250,6 +317,50 @@ def report_keychain_retry(url: str) -> None:
         )
 
 
+def report_windows_stores() -> None:
+    """Windows keeps its own certificate store, and Python reads it directly.
+
+    So a Windows failure is *not* the macOS story: the corporate root is usually
+    already trusted. This section exists to show whether it actually is, because
+    the earlier assumption that Windows needs nothing turned out to be worth
+    verifying rather than asserting.
+    """
+    heading("7. Windows certificate stores")
+    enum = getattr(ssl, "enum_certificates", None)
+    if enum is None:
+        print("ssl.enum_certificates unavailable — not a Windows interpreter")
+        return
+    server_auth = "1.3.6.1.5.5.7.3.1"
+    for store in ("ROOT", "CA"):
+        try:
+            entries = enum(store)
+        except (OSError, PermissionError) as exc:
+            print(f"  {store:<5} could not be read: {exc}")
+            continue
+        total = len(entries)
+        usable = sum(
+            1
+            for _cert, encoding, trust in entries
+            if encoding == "x509_asn" and (trust is True or server_auth in (trust or ()))
+        )
+        print(f"  {store:<5} {total:>4} certificates, {usable:>4} usable for server auth")
+    print(
+        "\n>> Python loads these stores automatically, so a root your IT team\n"
+        ">> pushed by Group Policy or Intune should already be trusted. If the\n"
+        ">> fetch still fails, check in this order:\n"
+        ">>   1. Section 5 — is the chain actually being intercepted?\n"
+        ">>   2. Is the interception root in CurrentUser rather than LocalMachine,\n"
+        ">>      or restricted by trust settings so it is not usable for server\n"
+        ">>      auth (compare the two counts above)?\n"
+        ">>   3. Does the proxy require NTLM or Kerberos authentication? Python's\n"
+        ">>      urllib cannot satisfy either, and no certificate fixes it.\n"
+        ">>   4. Is codeload.github.com allowed as well as github.com? An archive\n"
+        ">>      fetch redirects across both.\n"
+        ">> If none of those explain it, send this whole output — the assumption\n"
+        ">> that Windows needs no help is exactly what needs testing here."
+    )
+
+
 def main() -> None:
     url = sys.argv[1] if len(sys.argv) > 1 else DEFAULT_URL
     report_interpreter()
@@ -258,7 +369,9 @@ def main() -> None:
     report_environment()
     report_chain(url)
     ok = report_fetch(url)
-    if not ok and sys.platform == "darwin":
+    if not ok and sys.platform == "win32":
+        report_windows_stores()
+    elif not ok and sys.platform == "darwin":
         report_keychain_retry(url)
     elif not ok and sys.platform == "linux":
         heading("7. Linux and WSL")

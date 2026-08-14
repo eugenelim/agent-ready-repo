@@ -397,3 +397,64 @@ block shipping, and whether one corporate host is enough evidence for D4. Both
 are already decided and recorded — the residual is deferred with a register
 entry, the exclusion ships on a measured no-op — so listing them as open would
 have been theatre.
+
+## Errata
+
+The body above is frozen. Corrections are appended here, and where this section
+disagrees with the body, this section is authoritative.
+
+### Current state
+
+| Decision | As accepted | In force |
+| --- | --- | --- |
+| D4 | Apple's `SystemRootCertificates.keychain` is never read. | Still never read as a primary source. When the default trust store holds zero anchors, the system public certificate bundle `/etc/ssl/cert.pem` — Apple's TLS-purpose export — is read alongside the administrator keychain; the keychain is a fallback only if that file is absent. The administrator-keychain-only rule governs every other case, and the login keychain is still never read. |
+
+### History
+
+**2026-08-14 — D4 narrowed, not reversed.** An adopter on `agentbundle` 0.35.0
+reported a failing install whose diagnosis this RFC gets wrong. Their evidence:
+`github.com` presented the genuine public chain with `Verify return code: 0
+(ok)` — nothing was intercepting them — while their python.org macOS
+interpreter reported `cafile: None` and **zero** trusted authorities, because
+its `Install Certificates.command` step had never run. Every HTTPS request from
+that interpreter failed, not only ones crossing a proxy.
+
+The fallback could not repair it, by construction. `System.keychain` holds
+private roots; the public root needed to verify `github.com` is in Apple's root
+program, which D4 excluded. Measured on a corporate host: Apple's keychain
+verifies `github.com` on its own (158 anchors), the administrator keychain does
+not (21 anchors).
+
+A second review round then narrowed the remedy itself. Reading
+`SystemRootCertificates.keychain` would have imported 158 certificates including
+14 Apple-operated ones and four single-purpose roots — `Apple Platform Code
+Signing`, `Developer ID Certification Authority`, `Apple Platform Bootstrap` —
+none of which carry an EKU extension, so OpenSSL's server-auth purpose check does
+not exclude them and Apple's own trust-setting restrictions are discarded by
+`find-certificate`. `/etc/ssl/cert.pem` carries 128 certificates and zero
+Apple-operated roots, is root-owned, and needs no subprocess. The claim that
+Apple's keychain "is exactly the curated public program" was wrong; the file is.
+
+D4's reasoning was sound for the case it examined and too broad for the case it
+did not. With an intact store, Apple's root program adds nothing measurable
+while widening trust — that still holds, and it still governs. With an **empty**
+store there is no trust to widen: loading Apple's curated public program is
+strictly additive from nothing, and it is precisely the set the interpreter was
+supposed to have. Reading it in that one state is therefore narrower in effect
+than D4's blanket exclusion was in intent.
+
+Also corrected: the failure message previously attributed an empty store to a
+TLS-inspecting proxy, which sent this adopter after a cause that did not exist.
+An empty store is now named as its own diagnosis, with the interpreter-level fix
+as the first troubleshooting step and the proxy framing suppressed.
+
+What did not change: verification strictness, the login-keychain exclusion, the
+one-retry bound, and the administrator-only rule for any interpreter with a
+working trust store.
+
+**Standing correction to this RFC's framing.** The body treats corporate TLS
+interception as the problem. The first confirmed field report was not
+interception at all — it was an unconfigured interpreter. Both faults produce
+the same OpenSSL string, and this RFC over-weighted the first. A future reader
+should not infer from the body that interception is the common cause; on the
+evidence so far, it is not the only one and may not be the more frequent.

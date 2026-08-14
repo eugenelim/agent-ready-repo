@@ -11,6 +11,7 @@ only, per the convention in test_https_catalogue.py.
 from __future__ import annotations
 
 import io
+import os
 import ssl
 import sys
 import tarfile
@@ -104,7 +105,7 @@ def test_verification_failure_retries_once_with_system_anchors(
 ):
     stub = _Stub([_verify_error(), _tarball()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
 
     catalogue._fetch_and_extract(URL, tmp_path)
 
@@ -125,7 +126,7 @@ def test_retry_uses_a_different_context_carrying_the_anchors(
     """
     stub = _Stub([_verify_error(), _tarball()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
 
     catalogue._fetch_and_extract(URL, tmp_path)
 
@@ -147,7 +148,7 @@ def test_no_retry_when_no_system_anchors_are_available(
     monkeypatch.setattr(sys, "platform", "linux")
     stub = _Stub([_verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda: None)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: None)
 
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(URL, tmp_path)
@@ -168,7 +169,7 @@ def test_empty_admin_keychain_on_macos_names_the_real_cause(
     monkeypatch.setattr(sys, "platform", "darwin")
     stub = _Stub([_verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda: None)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: None)
 
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(URL, tmp_path)
@@ -182,7 +183,7 @@ def test_empty_admin_keychain_on_macos_names_the_real_cause(
 def test_fallback_notice_fires_once(monkeypatch, tmp_path, capsys, no_env):
     stub = _Stub([_verify_error(), _tarball()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     catalogue._fetch_and_extract(URL, tmp_path)
     err = capsys.readouterr().err
     assert err.count("retrying with operating-system trust anchors") == 1, err
@@ -218,7 +219,7 @@ def test_opt_out_suppresses_the_retry(monkeypatch, tmp_path, no_env):
 def test_retry_failure_raises_catalogue_error(monkeypatch, tmp_path, no_env):
     stub = _Stub([_verify_error(), _verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     with pytest.raises(CatalogueError):
         catalogue._fetch_and_extract(URL, tmp_path)
     assert len(stub.calls) == 2
@@ -232,7 +233,7 @@ def test_retry_failure_raises_catalogue_error(monkeypatch, tmp_path, no_env):
 def test_unrepairable_failure_names_cause_and_next_action(monkeypatch, tmp_path, no_env):
     stub = _Stub([_verify_error(), _verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(URL, tmp_path)
     message = str(exc.value)
@@ -252,7 +253,7 @@ def test_message_does_not_recommend_a_virtualenv_as_a_fix(monkeypatch, tmp_path,
     """
     stub = _Stub([_verify_error(), _verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(URL, tmp_path)
     message = str(exc.value)
@@ -293,3 +294,156 @@ def test_read_phase_failures_are_wrapped_not_leaked(monkeypatch, tmp_path, no_en
             catalogue._fetch_and_extract(URL, tmp_path)
         assert URL in str(exc.value)
         assert len(stub.calls) == 1, "a non-certificate failure must not retry"
+
+
+def test_empty_store_message_names_the_real_cause(monkeypatch, tmp_path, no_env):
+    """Your user's exact state: zero anchors, no proxy, admin keychain no help.
+
+    The old message blamed a TLS-inspecting proxy, which was actively
+    misleading — nothing was intercepting them.
+    """
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: True)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
+    stub = _Stub([_verify_error(), _verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+
+    message = str(exc.value)
+    assert "trusts ZERO certificate authorities" in message
+    assert "Install Certificates.command" in message
+    # Softened from an absolute after security review: a populated capath is
+    # excluded before we get here, but a store can still be empty AND the
+    # network inspected.
+    assert "almost certainly not a corporate-proxy" in message
+    assert "TLS-inspecting proxy" not in message, "must not blame a proxy here"
+
+
+def test_empty_store_asks_for_public_roots(monkeypatch, tmp_path, no_env):
+    """The fallback must widen to Apple's roots only in the empty-store case."""
+    calls: list[bool] = []
+
+    def anchors(*, include_public_roots: bool = False):
+        calls.append(include_public_roots)
+        return _an_anchor_pem()
+
+    monkeypatch.setattr(system_trust, "system_anchor_pem", anchors)
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: True)
+    catalogue._fetch_and_extract(URL, tmp_path)
+    assert calls == [True], "empty store must request the public roots"
+
+    calls.clear()
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: False)
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+    catalogue._fetch_and_extract(URL, tmp_path)
+    assert calls == [False], "intact store must not request the public roots"
+
+
+def test_successful_empty_store_recovery_still_tells_the_adopter(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """Recovering the fetch must not silently mask a broken interpreter.
+
+    The anchors are loaded in memory for this process only, so the adopter's
+    next pip or requests call fails the same way. A green install with no
+    explanation is how that goes unnoticed.
+    """
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: True)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+
+    monkeypatch.setattr(sys, "platform", "darwin")
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    err = capsys.readouterr().err
+    assert "trusts no certificate authorities" in err
+    assert "does not fix the interpreter" in err
+    # Pin the platform: the remedy is macOS-specific, so asserting it without
+    # pinning passes on a developer's Mac and fails on a Linux runner.
+    assert "Install Certificates.command" in err
+    assert (tmp_path / "repo-main" / "pack.toml").exists(), "install must still succeed"
+
+
+def test_empty_store_notice_off_macos_omits_mac_only_advice(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """The same misdirection this change removes, in the other direction.
+
+    Telling a Linux adopter to open an /Applications path is the macOS-only
+    remedy leaking onto a platform that cannot use it.
+    """
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: True)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    err = capsys.readouterr().err
+    assert "trusts no certificate authorities" in err
+    assert "Install Certificates.command" not in err
+    assert "SSL_CERT_FILE" in err
+
+
+def test_intact_store_recovery_keeps_the_short_notice(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """The corporate case is not an unconfigured interpreter — don't say it is."""
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: False)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    err = capsys.readouterr().err
+    assert "retrying with operating-system trust anchors" in err
+    assert "trusts no certificate authorities" not in err
+
+
+def _tarball_with_symlink() -> bytes:
+    """A catalogue-shaped archive: a regular file, then a symlink pointing back.
+
+    This is the real shape — the catalogue carries CLAUDE.md -> AGENTS.md, and
+    the target precedes the link in the archive.
+    """
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        payload = b"# agents\n"
+        target = tarfile.TarInfo("repo-main/AGENTS.md")
+        target.size = len(payload)
+        tf.addfile(target, io.BytesIO(payload))
+        link = tarfile.TarInfo("repo-main/CLAUDE.md")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "AGENTS.md"
+        tf.addfile(link)
+    return buf.getvalue()
+
+
+def test_symlink_archive_extracts_where_symlinks_cannot_be_created(
+    monkeypatch, tmp_path, no_env
+):
+    """Windows regression: os.symlink fails, so tarfile copies the target instead.
+
+    That fallback re-reads a member that already went past, which a forward-only
+    stream cannot do — the field error was
+    'seeking backwards is not allowed'. Simulated here by making os.symlink
+    fail, so the case is covered on every platform rather than only on Windows.
+    """
+    def no_symlinks(*a, **k):
+        raise OSError("symbolic link privilege not held")
+
+    monkeypatch.setattr(os, "symlink", no_symlinks)
+    monkeypatch.setattr(
+        urllib.request, "urlopen", _Stub([_tarball_with_symlink()])
+    )
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    assert (tmp_path / "repo-main" / "AGENTS.md").exists()
+    claude = tmp_path / "repo-main" / "CLAUDE.md"
+    assert claude.exists(), "the link target must be copied when links are unavailable"
+    assert claude.read_text() == "# agents\n", "copy must carry the target's content"

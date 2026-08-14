@@ -58,21 +58,35 @@ from pathlib import Path
 
 from agentbundle.catalogue import CatalogueError
 
-# One keychain, deliberately. ``System.keychain`` needs administrator or MDM
-# rights to write, and it is where a corporate proxy root actually lands — so it
-# is the only store that holds the material this feature exists to find.
-#
-# Apple's ``SystemRootCertificates.keychain`` is *not* read. The retry context
-# already starts from ``create_default_context()``, so the public roots are
-# present; adding Apple's root program on top would widen trust to a second,
-# independently curated set for no gain. Measured on a corporate host: reading
-# System.keychain alone produced exactly the same anchor count as reading both,
-# i.e. Apple's keychain contributed nothing while enlarging the trust surface on
-# the one fetch path with no post-transport integrity check.
+# The administrator keychain, always. It needs administrator or MDM rights to
+# write, and it is where a corporate proxy root actually lands — so it is the
+# store that holds the material this feature exists to find.
 #
 # The user's ``login.keychain-db`` is absent and must stay absent: it is writable
 # without administrator rights, so a root landing there is not an IT decision.
 _ADMIN_KEYCHAINS = ("/Library/Keychains/System.keychain",)
+
+# Apple's public TLS roots, read **only** when the default trust store holds no
+# anchors — see ``system_anchor_pem``. RFC-0086 D4 excluded Apple's material
+# outright; the erratum narrows that to this one state, where an interpreter
+# trusts nothing and the administrator keychain cannot repair it because it holds
+# private roots.
+#
+# Read the *file*, not the keychain, and the distinction is load-bearing.
+# ``/etc/ssl/cert.pem`` is Apple's own TLS-purpose export: root-owned, and
+# measured on a current host it carries 128 certificates and **zero**
+# Apple-operated roots. Dumping ``SystemRootCertificates.keychain`` instead
+# yields 158, of which 14 are Apple-operated and several are single-purpose —
+# ``Apple Platform Code Signing {ECC,RSA} Root CA``, ``Developer ID
+# Certification Authority``, ``Apple Platform Bootstrap ECC Root CA``. None of
+# those carry an EKU extension, so OpenSSL's server-auth purpose check does not
+# exclude them; Apple confines them through trust settings, which
+# ``find-certificate`` discards. Trusting code-signing roots for TLS is not what
+# an unconfigured interpreter was missing. The file also needs no subprocess.
+_APPLE_TLS_BUNDLE = "/etc/ssl/cert.pem"
+
+# Fallback only, if the export above is absent on some macOS version.
+_APPLE_ROOT_KEYCHAIN = "/System/Library/Keychains/SystemRootCertificates.keychain"
 
 _SECURITY_BIN = "/usr/bin/security"
 
@@ -136,8 +150,47 @@ def resolve_trust_paths(env: dict | None = None) -> tuple[str | None, str | None
     return (cafile or None, capath or None)
 
 
-def system_anchor_pem() -> str | None:
-    """Return administrator-keychain certificates as PEM text, or ``None``.
+def default_store_is_empty(env: dict | None = None) -> bool:
+    """True when this interpreter trusts no certificate authority at all.
+
+    Distinct from a corporate-network failure and far more common than it looks:
+    a python.org macOS interpreter whose ``Install Certificates.command`` was
+    never run reports ``cafile=None`` and loads zero anchors, so *every* HTTPS
+    request fails, not just ones crossing an inspecting proxy.
+
+    Zero is the trigger, deliberately — not a threshold. A small store may be a
+    legitimate pinned bundle; an empty one cannot verify anything and is always
+    a broken or unconfigured interpreter.
+
+    A populated ``capath`` disqualifies the interpreter from this diagnosis even
+    when the count reads zero: OpenSSL loads a hashed directory lazily, so
+    ``get_ca_certs()`` reports nothing until a certificate from it has been used.
+    Such an interpreter may well be verifying fine, and calling it empty would
+    both widen its trust and tell an adopter behind a real proxy that their
+    problem is something else.
+    """
+    # One try around everything: resolve_trust_paths raises CatalogueError (a
+    # ValueError) on a bundle path that vanished between the caller's first
+    # attempt and this check, and this helper is called from inside an `except`
+    # block where an escape would mask the original error.
+    try:
+        capath = resolve_trust_paths(env)[1] or ssl.get_default_verify_paths().capath
+        if capath:
+            with contextlib.suppress(OSError):
+                if any(Path(capath).iterdir()):
+                    return False
+        return not build_context(env).get_ca_certs()
+    except (OSError, ssl.SSLError, ValueError):
+        return False
+
+
+def system_anchor_pem(*, include_public_roots: bool = False) -> str | None:
+    """Return operating-system keychain certificates as PEM text, or ``None``.
+
+    Reads the administrator keychain. When *include_public_roots* is set — which
+    the caller decides by asking ``default_store_is_empty`` — Apple's root
+    program is read as well, because an interpreter that trusts nothing cannot be
+    repaired from private roots alone.
 
     macOS only, because it is the only platform where Python does not already
     consult the operating system's trust store — see the module docstring. Every
@@ -157,8 +210,23 @@ def system_anchor_pem() -> str | None:
     if sys.platform != "darwin":
         return None
 
+    keychains = _ADMIN_KEYCHAINS
     chunks: list[str] = []
-    for keychain in _ADMIN_KEYCHAINS:
+
+    if include_public_roots:
+        bundle = Path(_APPLE_TLS_BUNDLE)
+        loaded = False
+        with contextlib.suppress(OSError):
+            text = bundle.read_text(encoding="utf-8", errors="replace")
+            if _PEM_MARKER in text:
+                chunks.append(text)
+                loaded = True
+        if not loaded:
+            # The export is missing; fall back to the keychain rather than
+            # leaving an interpreter that trusts nothing with no route at all.
+            keychains = (*_ADMIN_KEYCHAINS, _APPLE_ROOT_KEYCHAIN)
+
+    for keychain in keychains:
         argv = [_SECURITY_BIN, "find-certificate", "-a", "-p", keychain]
         try:
             out = _RUNNER(argv)

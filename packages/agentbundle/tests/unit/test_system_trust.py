@@ -280,13 +280,14 @@ def test_no_shipped_module_can_disable_verification():
     assert offenders == [], f"verification-disabling constructs found: {offenders}"
 
 
-def test_apple_root_program_keychain_is_not_read():
-    """Only the administrator store is consulted.
+def test_the_default_keychain_tuple_is_administrator_only():
+    """The *default* mode consults the administrator store and nothing else.
 
-    The retry context already carries the public roots from
-    create_default_context(), so importing Apple's separately curated root
-    program would widen trust for no gain on the one fetch path that has no
-    post-transport integrity check.
+    Scoped deliberately: the empty-store mode does reach Apple's public TLS
+    export (RFC-0086 Errata). With any working trust store this holds, because
+    the retry already carries Python's own roots and a second root program would
+    widen trust for no gain on a fetch path with no post-transport integrity
+    check.
     """
     joined = " ".join(system_trust._ADMIN_KEYCHAINS)
     assert "/Library/Keychains/System.keychain" in joined
@@ -343,3 +344,76 @@ def test_a_process_wide_ssl_override_cannot_weaken_the_context(monkeypatch):
     ctx = system_trust.build_context({})
     assert ctx.verify_mode is ssl.CERT_REQUIRED, "a global override weakened the fetch"
     assert ctx.check_hostname is True
+
+
+# ---------------------------------------------------------------------------
+# Empty default trust store — RFC-0086 erratum
+# ---------------------------------------------------------------------------
+
+
+def test_empty_store_is_detected(monkeypatch, tmp_path):
+    """The field case: a python.org interpreter with no certificates configured.
+
+    Reproduced by pointing SSL_CERT_FILE at an empty PEM, which is what an
+    unconfigured interpreter reports as: cafile set, zero anchors loaded.
+    """
+    empty = tmp_path / "empty.pem"
+    empty.write_text("")
+    # Must be the real environment, not an injected mapping: OpenSSL resolves
+    # SSL_CERT_FILE through its own default paths inside create_default_context,
+    # before this code sees it. An injected dict cannot reproduce the state.
+    monkeypatch.setenv("SSL_CERT_FILE", str(empty))
+    monkeypatch.setenv("SSL_CERT_DIR", str(tmp_path / "no-such-dir"))
+    assert system_trust.default_store_is_empty() is True
+
+
+def test_intact_store_is_not_reported_empty():
+    if not ssl.create_default_context().get_ca_certs():
+        pytest.skip("this interpreter genuinely has an empty store")
+    assert system_trust.default_store_is_empty({}) is False
+
+
+def test_apple_roots_are_read_only_when_the_store_is_empty(monkeypatch, tmp_path):
+    """The erratum's whole point, and the bound on it.
+
+    RFC-0086 D4 excluded Apple's root program outright. That was too broad: an
+    interpreter trusting nothing cannot be repaired from the administrator
+    keychain, which holds private roots. It stays excluded with an intact store.
+    """
+    seen: list[list[str]] = []
+
+    def runner(argv):
+        seen.append(argv)
+        return _real_pem(tmp_path).read_text()
+
+    monkeypatch.setattr(system_trust, "_RUNNER", runner)
+    monkeypatch.setattr(sys, "platform", "darwin")
+
+    admin_only = system_trust.system_anchor_pem()
+    flat = " ".join(part for argv in seen for part in argv)
+    assert "/Library/Keychains/System.keychain" in flat
+    assert "SystemRootCertificates" not in flat, "intact store must not read Apple's roots"
+    assert "login" not in flat.lower()
+
+    seen.clear()
+    widened = system_trust.system_anchor_pem(include_public_roots=True)
+    flat = " ".join(part for argv in seen for part in argv)
+    assert "/Library/Keychains/System.keychain" in flat, "admin keychain still read"
+    assert "login" not in flat.lower(), "login keychain never read, in either mode"
+    # Public roots come from Apple's TLS-purpose export, not a keychain dump: the
+    # dump carries code-signing and Apple-operated roots that /etc/ssl/cert.pem
+    # excludes, and reading the file needs no subprocess at all.
+    if Path(system_trust._APPLE_TLS_BUNDLE).is_file():
+        assert "SystemRootCertificates" not in flat, (
+            "the keychain is a fallback only, used when the export is missing"
+        )
+        assert widened is not None
+        assert widened.count("BEGIN CERTIFICATE") > admin_only.count("BEGIN CERTIFICATE")
+
+
+def test_empty_store_detection_survives_a_broken_bundle(monkeypatch, tmp_path):
+    """A stale path must not make the helper raise inside an except block."""
+    # AGENTBUNDLE_CA_BUNDLE is the one that raises CatalogueError on a missing
+    # path; REQUESTS_CA_BUNDLE never does, so testing it proved nothing.
+    monkeypatch.setenv("AGENTBUNDLE_CA_BUNDLE", str(tmp_path / "absent.pem"))
+    assert system_trust.default_store_is_empty() is False
