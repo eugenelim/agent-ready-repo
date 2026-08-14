@@ -123,6 +123,14 @@ jobs:
       - name: Check rendered internal links
         run: python3 tools/check-rendered-site-links.py --build-dir build
 
+      # Rendered-output assertions (single <h1> per page, summary reaches the
+      # page as meta description + deck, every table in a focusable scroll
+      # region, one primary hero CTA, labelled footer columns). They read
+      # build/, so this is the only job in the repo where they can run — and
+      # without them the tech-site-polish-batch defects regress silently.
+      - name: Assert rendered-output invariants
+        run: npm test --prefix web
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:

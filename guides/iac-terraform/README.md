@@ -5,7 +5,7 @@ pack: iac-terraform
 kind: reference
 ---
 
-# `iac-terraform` — guides
+# IaC (Terraform) guides
 
 An opt-in accelerator for Terraform and OpenTofu IaC generation. Two skills —
 `generate-iac` (seven-stage governance-to-plan loop) and `reconcile-iac` (drift audit

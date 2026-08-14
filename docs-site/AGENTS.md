@@ -19,6 +19,7 @@ mermaid is bundled (no runtime script CDN calls).
 | [`@fontsource-variable/inter`](https://fontsource.org/fonts/inter) | `5.3.0` | Body/UI sans (`'Inter Variable'`), matches `web/` |
 | [`@fontsource/jetbrains-mono`](https://fontsource.org/fonts/jetbrains-mono) | `5.3.0` | Code mono (weights 400/500/600/700), matches `web/` |
 | [`mermaid`](https://mermaid.js.org) | `11.16.1` | Diagram rendering — bundled + lazy-imported in `src/components/Footer.astro` with `securityLevel: 'strict'`; replaced the former jsdelivr runtime script |
+| [`unist-util-visit`](https://github.com/syntax-tree/unist-util-visit) | `5.1.0` | AST walker for the two markdown-pipeline plugins in `astro.config.ts` (mermaid fences, `src/plugins/rehype-scrollable-tables.ts`). Previously resolved only through transitive hoisting; declared explicitly so an `npm install` dedupe cannot redden the docs build |
 
 Supply-chain posture: the lockfile's only `"hasInstallScript": true`
 entries must stay within the versioned `allowScripts` keys in
@@ -108,3 +109,14 @@ check locally: run the build sequence above and inspect `build/docs/`.
 - Starlight is pinned; its internal class names (`.site-title`,
   `.sidebar-content`, `.sl-markdown-content`, …) are a styling contract —
   re-verify against `node_modules/@astrojs/starlight` after any upgrade.
+  Two touchpoints depend on Starlight internals beyond class names and need
+  the same re-verification: the `PageTitle` override in
+  `src/components/PageTitle.astro` reads `Astro.locals.starlightRoute.entry.data`
+  and must keep `id="_top"` on the `<h1>` (Starlight's `PAGE_TITLE_ID`, which
+  its skip link and on-this-page overview both target); and the
+  `rehypeScrollableTables` plugin (`src/plugins/rehype-scrollable-tables.ts`,
+  wired in `astro.config.ts`) wraps markdown tables in a focusable scroll
+  region, and the paired rule in our `src/styles/starlight.css` overrides
+  Starlight's own `table { display: block; overflow: auto }` — which lives in
+  `node_modules/@astrojs/starlight/style/markdown.css`, not in our file — so
+  the wrapper, not the table, is the scroll container.

@@ -5,7 +5,7 @@ pack: _shared
 kind: how-to
 ---
 
-# How to: install a user-scope pack into Codex
+# How to install a user-scope pack into Codex
 
 **Use this when:** You use Codex and want to install a user-scope-capable pack from the catalogue into `~/.agents/skills/`.
 **Prerequisites:** Codex CLI installed and `agentbundle` CLI on your PATH; see [Prerequisites](#prerequisites).

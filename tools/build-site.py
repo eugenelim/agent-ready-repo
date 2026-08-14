@@ -110,20 +110,23 @@ def _inject_frontmatter(text: str, path: Path) -> str:
     """Prepend minimal Starlight frontmatter (title: ) if none present.
 
     Starlight's docsSchema() requires a `title` field. Files without YAML
-    frontmatter get one derived from their first H1 heading, or from the
+    frontmatter get one derived from a leading H1 heading, or from the
     filename as a fallback.
     """
     if text.startswith("---"):
         return text  # already has frontmatter
-    # Extract first H1 as the title, then strip it from the body so Starlight
-    # doesn't render it as a second <h1> beneath its generated page title.
-    m = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
-    if m:
-        title = m.group(1).strip().replace('"', '\\"')
-        # Remove the H1 line (and any blank line immediately after it) from body
-        body = text[: m.start()] + text[m.end() :]
-        body = body.lstrip("\n")
+    # Take the title from a *leading* H1 and strip that same heading, so
+    # Starlight doesn't render it a second time beneath its own page title.
+    heading = leading_h1(text)
+    if heading is not None:
+        title = heading.strip().replace('"', '\\"')
+        body = _strip_leading_h1(text)
     else:
+        print(
+            f"  warn  {_relpath(path)}: no leading H1 — page title derived from "
+            "the filename",
+            file=sys.stderr,
+        )
         title = path.stem.replace("-", " ").replace("_", " ").title()
         body = text
     return f'---\ntitle: "{title}"\n---\n\n' + body
@@ -183,12 +186,56 @@ def _normalise_guide_slug(
     return None
 
 
+# Counters for the two silent body/frontmatter transforms, reported alongside
+# the per-stage counts the rest of this module prints. Without them, a change
+# that stops the summary→description mapping firing would drop the meta
+# description from 46 pages and leave the build green with nothing to compare.
+_TRANSFORM_COUNTS = {"h1_stripped": 0, "summary_mapped": 0}
+
+_LEADING_H1_RE = re.compile(r"\A#[ \t]+(.+?)[ \t]*(?:\n|\Z)")
+
+
+def leading_h1(body: str) -> str | None:
+    """Return the text of the body's *leading* ``# `` heading, or None.
+
+    The single definition of "the page-title H1". ``tools/lint-guide-titles.py``
+    imports this rather than re-deriving it: the lint's whole job is to guard an
+    invariant this module defines, so a second copy of the rule could drift and
+    the gate would stop guarding without failing.
+
+    Anchored to the start deliberately. A free ``re.search`` for ``^# `` would
+    also match a shell comment inside a fenced code block — there are 42 such
+    lines across 14 guides — so it would promote a bash comment to the page
+    title, and, worse, silently delete it from the code sample. Anchoring is
+    what keeps this transform lossless.
+    """
+    m = _LEADING_H1_RE.match(body.lstrip("\n"))
+    return m.group(1) if m else None
+
+
+def _strip_leading_h1(body: str) -> str:
+    """Drop a leading ``# `` heading so Starlight's title is the only H1.
+
+    Starlight renders ``title:`` as the page ``<h1>``. A body H1 on top of that
+    produces two — and, because the two strings are maintained independently,
+    usually two *different* ones.
+    """
+    stripped = body.lstrip("\n")
+    m = _LEADING_H1_RE.match(stripped)
+    if not m:
+        return body
+    _TRANSFORM_COUNTS["h1_stripped"] += 1
+    return stripped[m.end():].lstrip("\n")
+
+
 def _strip_guide_metadata(text: str) -> str:
     """Remove guide-specific frontmatter fields before writing to the docs-site.
 
     Keeps Starlight-required/compatible fields (title, description, sidebar, etc.).
-    Preserves H1 headings in the body (guide authors who add explicit frontmatter
-    are responsible for removing the H1 if they don't want it duplicated by Starlight).
+    Drops the body's leading H1 whenever the frontmatter carries a ``title``,
+    which is the field Starlight renders as the page heading — keeping both
+    produced 38 double-titled pages. A guide with frontmatter but no ``title``
+    keeps its H1, because that heading is then the page's only title source.
     """
     import yaml
     if not text.startswith("---"):
@@ -204,25 +251,38 @@ def _strip_guide_metadata(text: str) -> str:
     if not isinstance(data, dict):
         return text
 
+    body = text[end + 4:]
+    if data.get("title"):
+        body = _strip_leading_h1(body)
+
+    # `summary` is the guide-vocabulary name for what Starlight calls
+    # `description`. Carry it across rather than dropping it with the other
+    # guide-only fields: it feeds <meta name="description">, the search
+    # snippet, and the rendered deck. An explicit `description` wins.
+    if data.get("summary") and not data.get("description"):
+        data = dict(data)
+        data["description"] = str(data["summary"]).strip()
+        _TRANSFORM_COUNTS["summary_mapped"] += 1
+
     # Exclude None values so yaml.safe_dump doesn't emit `key: null` noise.
     cleaned = {
         k: v for k, v in data.items()
         if k not in _GUIDE_ONLY_FIELDS and v is not None
     }
     if cleaned == {k: v for k, v in data.items() if v is not None}:
-        return text  # nothing to strip
+        # Frontmatter needs no rewrite; the body may still have lost its H1.
+        return text[: end + 4] + "\n\n" + body.lstrip("\n")
 
     # Reconstruct frontmatter
     if not cleaned:
         # All fields were guide-only; keep an empty frontmatter block so Starlight
         # doesn't inject a duplicate title from H1 (injection only fires when no ---)
-        return "---\n---\n\n" + text[end + 4:].lstrip("\n")
+        return "---\n---\n\n" + body.lstrip("\n")
 
     fm_body = yaml.safe_dump(
         cleaned, default_flow_style=False, sort_keys=False, allow_unicode=True,
     ).rstrip("\n")
     fm_text = "---\n" + fm_body + "\n---"
-    body = text[end + 4:]
     return fm_text + "\n\n" + body.lstrip("\n")
 
 
@@ -836,7 +896,7 @@ def build_pack_index(packs: list[dict], out_dir: Path, dry_run: bool = False) ->
         '---\ntitle: "Pack Catalogue"\n'
         f'description: "{len(packs)} curated packs for the AI operating model."\n'
         "---\n\n"
-        "# Pack Catalogue\n\n"
+        # No body H1 — Starlight renders `title:` as the page heading.
         f"{len(packs)} curated packs — each distilled from the best practices of its discipline\n"
         "through practitioner research and RFC-and-ADR governance.\n\n"
         "Install any pack in one command:\n\n"
@@ -1118,6 +1178,10 @@ def main() -> None:
     print("build-site: mirroring guides …")
     n = mirror_guides(guides_src, SITE_DOCS, dry_run=args.dry_run)
     print(f"  {n} files from guides/")
+    print(
+        f"  {_TRANSFORM_COUNTS['h1_stripped']} body H1(s) stripped, "
+        f"{_TRANSFORM_COUNTS['summary_mapped']} summary→description"
+    )
 
     print("build-site: copying changelog …")
     changelog_src = REPO_ROOT / "docs" / "product" / "changelog.md"

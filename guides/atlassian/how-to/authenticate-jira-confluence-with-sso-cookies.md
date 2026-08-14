@@ -5,7 +5,7 @@ pack: atlassian
 kind: how-to
 ---
 
-# Authenticate Jira / Confluence with an SSO web session
+# Authenticate Jira and Confluence with an SSO web session
 
 **Use this when:** Your Atlassian Data Center instance blocks personal access tokens and requires corporate SSO sign-in for Jira reads or Confluence space crawls.
 **Prerequisites:** The `jira` or `confluence-crawler` skill installed; an enterprise-edited `references/sso-config.toml` pointing at your corporate instance.

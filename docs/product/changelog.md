@@ -18,6 +18,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Documentation pages no longer show two titles.** 38 of 216 published pages
+  rendered the frontmatter title and the body heading stacked on top of each
+  other, usually with different wording — "Run an Audit" above "How-to: Run a
+  frontend-engineering audit". Pages now show one title, and a new check keeps
+  the two in step so they cannot drift apart again.
+- **Wide tables in the documentation can be scrolled with the keyboard.** A
+  table wider than the page scrolled horizontally but could not be reached
+  without a mouse, and screen readers announced every one of them identically.
+  Each now takes focus and is named after the section it belongs to.
+- **The marketing home page no longer scrolls sideways on a phone.** The
+  adapter comparison table pushed the page 114 px wider than the screen at
+  common phone widths.
+- **The install panel's "Copy install commands" button is legible.** It was
+  rendering in the light-theme palette on the dark terminal, below the
+  readable-contrast floor.
+
 ### Changed
 
 - **A live-demo guide now maps three roles through one coherent problem space.**
@@ -29,6 +47,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fragment target is missing. Existing broken guide, pack, and component-demo
   targets have been repaired at their authored sources or owning projection
   rules.
+- **Documentation pages carry a one-line summary under the title.** The
+  `summary` each guide already declared now reaches the page — as the visible
+  standfirst, the search-result snippet, and the link-preview description.
+- **Documentation prose is calmer to read.** Inline code is no longer tinted in
+  the accent colour, so paragraphs and reference tables that name files and
+  commands read as prose instead of a field of coloured chips.
+- **The marketing hero fits a phone screen.** The headline and intro were
+  taking more than a full screen, pushing the main action out of sight; it is
+  now visible without scrolling. The secondary action reads as a link rather
+  than a second equally-weighted button.
+- **The site footer carries labelled columns** (Product, Docs, Project) instead
+  of three links, and the mobile navigation drawer rows are full-width, properly
+  sized touch targets.
+- **Nine guides had their heading reconciled with their title.** Where the two
+  disagreed, the title now wins; the wording of those nine is queued for a
+  follow-up editorial pass.
 - **Published guides no longer point at records you can't read.** Guide pages
   across the `_shared`, `core`, `atlassian`, `credential-brokers`,
   `governance-extras`, and `product-documentation` trees cited this

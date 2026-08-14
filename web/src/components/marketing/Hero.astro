@@ -96,15 +96,54 @@ import { withBase } from '../../lib/paths';
     border-color: var(--ds-cta-primary-bg-hover);
   }
 
+  /* Secondary action reads as a link, not a second primary. Two filled-weight
+     buttons side by side gave the zone no focal point; the pill treatment is
+     reserved for the one action we actually want taken. Keeps a 44px touch
+     height. */
   .hero__cta--ghost {
     background-color: transparent;
     color: var(--ds-cta-ghost-fg);
-    border-color: var(--ds-cta-ghost-border);
+    border-color: transparent;
+    font-weight: var(--ds-weight-medium);
+    /* No inline padding: the link's left edge lines up with the primary
+       pill's. `gap` restores the space before the arrow that inline-flex
+       collapses out of the markup's whitespace text node. */
+    padding-inline: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4em;
+    min-height: 44px;
   }
 
   .hero__cta--ghost:hover {
-    background-color: var(--ds-cta-ghost-bg-hover);
     color: var(--ds-hero-fg);
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  /* ── Mobile: get the primary CTA above the fold ────────────────────────
+     At 390×844 the display-scale headline plus an 18px four-sentence deck
+     pushed the primary CTA roughly 450px below the fold. Step both down and
+     tighten the top padding; no new tokens, and desktop is untouched. */
+  @media (max-width: 768px) {
+    .hero__inner {
+      padding-top: var(--ds-space-7);
+    }
+
+    .hero__headline {
+      font-size: var(--ds-type-h2);
+      max-width: 22ch;
+      margin-bottom: var(--ds-space-4);
+    }
+
+    .hero__subhead {
+      font-size: var(--ds-type-body);
+      margin-bottom: var(--ds-space-5);
+    }
+
+    .hero__actions {
+      gap: var(--ds-space-2);
+    }
   }
 
   /* One-shot fade-in on load — 300ms, guarded. Static by default for

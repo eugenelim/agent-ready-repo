@@ -6,7 +6,7 @@ kind: how-to
 journey: frontend-engineering
 ---
 
-# How-to: Write a page/screen contract
+# Write a Page/Screen Contract
 
 Use this when you are about to build or materially change a web surface and need to decide how much contract is warranted. The result is either a completed page/screen contract, a proportional subset for a smaller change, or an explicit no-contract decision for trivial work.
 

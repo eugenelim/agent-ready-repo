@@ -5,7 +5,7 @@ pack: frontend-engineering
 kind: reference
 ---
 
-# `frontend-engineering` — the skills and the reviewer
+# Frontend Engineering Pack
 
 The `frontend-engineering` pack installs 9 skills and one reviewer agent.
 This page gives one-line descriptions and the correct trigger for each.

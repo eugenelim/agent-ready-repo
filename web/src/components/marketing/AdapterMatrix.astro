@@ -18,7 +18,12 @@ const agents = [
 <Section tone="surface" labelledby="adapters-heading">
   <h3 id="adapters-heading" class="adapters__headline">One install. Every major agent.</h3>
 
-  <div class="adapters__scroll">
+  <div
+    class="adapters__scroll"
+    role="region"
+    aria-label="Adapter capability matrix (scrollable)"
+    tabindex="0"
+  >
     <table class="adapters__table">
       <thead>
         <tr>
@@ -58,6 +63,16 @@ const agents = [
 
   .adapters__scroll {
     overflow-x: auto;
+    /* Establishes the containing block for the absolutely-positioned
+       .visually-hidden cell labels. Without it their containing block is the
+       initial one, so they escape this scroller's clip and widen the page body
+       (114 px of horizontal scroll at 375 px). */
+    position: relative;
+  }
+
+  .adapters__scroll:focus-visible {
+    outline: 2px solid var(--ds-accent);
+    outline-offset: 2px;
   }
 
   .adapters__table {

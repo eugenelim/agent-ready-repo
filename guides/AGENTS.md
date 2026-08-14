@@ -29,6 +29,19 @@ Required: `title`, `summary`, `pack`, `kind`. Optional: `slug`, `order`,
 `kind` (`tutorial` | `how-to` | `reference` | `explanation`) is a page contract,
 not a directory choice — it records what the page does for the reader.
 
+`summary` is published: `build-site.py` maps it onto Starlight's `description`,
+which becomes the page's `<meta name="description">`, its search snippet, and
+the deck rendered under the title. Write it for a reader who has not opened the
+page.
+
+**`title` and the body H1 must agree.** Starlight renders `title:` as the page
+`<h1>`, so `build-site.py` strips a *leading* body H1 to avoid a second one.
+Keep the H1 and make it match — `guides/_shared/**` ships verbatim into adopter
+catalogues and bundles where frontmatter never renders, so a page with no H1
+opens with no heading there. `tools/lint-guide-titles.py` fails CI on a
+divergence, and on a body H1 that is not the first block (the build cannot strip
+that one, so it renders as a second `<h1>`).
+
 ## Navigation is generated
 
 `tools/build-site.py` collates this tree into an inventory, then projects it
@@ -73,6 +86,7 @@ no config to edit.
 ```bash
 python3 tools/validate_guides.py     # frontmatter + duplicate slugs
 python3 tools/check-guide-index.py   # index coverage
+python3 tools/lint-guide-titles.py   # title vs body H1
 python3 tools/build-site.py          # mirror; inspect reported paths
 ```
 

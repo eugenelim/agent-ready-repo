@@ -5,7 +5,7 @@ pack: _shared
 kind: how-to
 ---
 
-# How to: install a user-scope pack into Kiro
+# How to install a user-scope pack into Kiro
 
 **Use this when:** You use Kiro and want to install a user-scope-capable pack from the catalogue into `~/.kiro/skills/`.
 **Prerequisites:** Kiro CLI installed with `~/.kiro/` present and `agentbundle` CLI on your PATH; see [Prerequisites](#prerequisites).

@@ -113,24 +113,29 @@ const tabs = [
     background-color: var(--ds-hero-border-card);
   }
 
-  /* Terminal-context overrides for CopyButton — dark surface, hero palette. */
-  .copy-btn.install-copy-btn {
+  /* Terminal-context theming for CopyButton — dark surface, hero palette.
+     Set as inherited custom properties on the bar rather than as descendant
+     selectors: CopyButton renders in its own component scope, so the previous
+     `.copy-btn.install-copy-btn { … }` block here never matched and the button
+     kept the light-zone palette on the dark terminal (12 px text at 3.43:1,
+     under the 4.5:1 floor). */
+  .terminal__bar {
+    --copy-btn-bg: var(--ds-hero-elevated);
+    --copy-btn-border: var(--ds-hero-border-card);
+    /* fg-2 for hierarchy against the terminal chrome. Both dark-zone tokens
+       clear the floor comfortably (fg-2 12.4:1, fg-muted 7.3:1 on the hero
+       ground); the 3.4:1 failure above came from the light-zone default
+       rendering, not from a dark-zone token being too dim. */
+    --copy-btn-fg: var(--ds-hero-fg-2);
+    --copy-btn-bg-hover: var(--ds-accent-subtle-dk);
+    --copy-btn-fg-hover: var(--ds-accent);
+    --copy-btn-bg-success: var(--ds-accent-subtle-dk);
+    --copy-btn-fg-success: var(--ds-accent);
+    --copy-btn-border-success: var(--ds-accent);
+  }
+
+  .terminal__bar :global(.copy-btn.install-copy-btn) {
     margin-left: auto;
-    background-color: var(--ds-hero-elevated);
-    border-color: var(--ds-hero-border-card);
-    color: var(--ds-hero-fg-muted);
-  }
-
-  .copy-btn.install-copy-btn:hover {
-    background-color: var(--ds-accent-subtle-dk);
-    border-color: var(--ds-accent);
-    color: var(--ds-accent);
-  }
-
-  .copy-btn.install-copy-btn.copy-btn--success {
-    background-color: var(--ds-accent-subtle-dk);
-    border-color: var(--ds-accent);
-    color: var(--ds-accent);
   }
 
   /* ── CSS-only tabs ─────────────────────────────────────────────────── */

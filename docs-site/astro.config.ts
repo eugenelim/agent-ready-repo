@@ -2,6 +2,7 @@ import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
 import sidebarConfig from './src/sidebar-config.json';
 import { visit } from 'unist-util-visit';
+import { rehypeScrollableTables } from './src/plugins/rehype-scrollable-tables';
 
 // Remark plugin: transform ```mermaid blocks to a plain HTML placeholder
 // before Expressive Code processes them. EC never sees language-mermaid;
@@ -33,6 +34,7 @@ export default defineConfig({
   // docs-site-design-refresh spec's AC9 path).
   markdown: {
     remarkPlugins: [remarkMermaid],
+    rehypePlugins: [rehypeScrollableTables],
   },
   integrations: [
     starlight({
@@ -72,6 +74,7 @@ export default defineConfig({
       components: {
         Banner: './src/components/Banner.astro',
         Footer: './src/components/Footer.astro',
+        PageTitle: './src/components/PageTitle.astro',
       },
       // Mermaid is bundled (exact pin) and lazily imported in
       // Footer.astro's client script — no runtime CDN calls.

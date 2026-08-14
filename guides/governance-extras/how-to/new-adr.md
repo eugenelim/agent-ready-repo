@@ -5,7 +5,7 @@ pack: governance-extras
 kind: how-to
 ---
 
-# How to record a decision (ADR)
+# How to record a decision with an ADR
 
 **Use this when:** You've made (or are formally proposing) an architectural decision with a concrete tradeoff and need it durably recorded in `docs/adr/`.
 **Prerequisites:** `governance-extras` pack installed and a decision that is architectural in scope, made, and has a real tradeoff — see [Prerequisites](#prerequisites) below.

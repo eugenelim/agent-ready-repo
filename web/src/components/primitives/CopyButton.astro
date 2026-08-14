@@ -59,10 +59,14 @@ const {
     display: inline-flex;
     align-items: center;
     gap: var(--ds-space-2);
-    background: transparent;
-    border: 1px solid var(--ds-border);
+    /* Themable slots so a dark-zone host (the install terminal) can retint the
+       button by setting custom properties on an ancestor. Component-scoped
+       selectors cannot reach across the component boundary; inherited custom
+       properties can. */
+    background: var(--copy-btn-bg, transparent);
+    border: 1px solid var(--copy-btn-border, var(--ds-border));
     border-radius: var(--ds-radius-sm);
-    color: var(--ds-on-surface-muted);
+    color: var(--copy-btn-fg, var(--ds-on-surface-muted));
     font-size: var(--ds-type-xs);
     font-family: var(--ds-font-mono);
     padding: 0.25rem 0.6rem;
@@ -74,7 +78,8 @@ const {
   }
 
   .copy-btn:hover {
-    color: var(--ds-accent-deep);
+    background: var(--copy-btn-bg-hover, var(--copy-btn-bg, transparent));
+    color: var(--copy-btn-fg-hover, var(--ds-accent-deep));
     border-color: var(--ds-accent);
   }
 
@@ -84,8 +89,9 @@ const {
   }
 
   .copy-btn--success {
-    color: var(--ds-state-success-fg);
-    border-color: var(--ds-state-success-border);
+    background: var(--copy-btn-bg-success, var(--copy-btn-bg, transparent));
+    color: var(--copy-btn-fg-success, var(--ds-state-success-fg));
+    border-color: var(--copy-btn-border-success, var(--ds-state-success-border));
   }
 
   .copy-btn__live {

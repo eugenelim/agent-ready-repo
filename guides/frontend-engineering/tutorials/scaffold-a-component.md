@@ -5,7 +5,7 @@ pack: frontend-engineering
 kind: tutorial
 ---
 
-# Tutorial: Scaffold a component from a screen brief
+# Scaffold a Component
 
 This tutorial walks the full `frontend-engineering` create-mode workflow on a
 concrete example: a **notification card** component with loading, empty,
