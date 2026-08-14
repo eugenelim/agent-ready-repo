@@ -182,6 +182,7 @@ def _verification_failure_message(
     *,
     fallback_note: str,
     offer_opt_out: bool = True,
+    empty_store: bool = False,
 ) -> str:
     """Explain a verification failure in terms of the adopter's next action.
 
@@ -196,13 +197,26 @@ def _verification_failure_message(
     the message never advises setting a variable that is already set.
     """
     host = urllib.parse.urlsplit(url).netloc
-    steps = [
-        "  1. Install from a local clone — needs no HTTPS at all:\n"
+
+    # Numbered at render time: the empty-store step only appears when it applies,
+    # and a hardcoded list would misnumber every step after it.
+    steps: list[str] = []
+    if empty_store:
+        steps.append(
+            "This Python trusts ZERO certificate authorities, so every HTTPS\n"
+            "     request from it fails — this is not a corporate-proxy problem.\n"
+            "     A python.org macOS install needs its certificate step run once:\n"
+            '       open "/Applications/Python 3.x/Install Certificates.command"\n'
+            "     Or point it at the system bundle:\n"
+            "       export SSL_CERT_FILE=/etc/ssl/cert.pem"
+        )
+    steps += [
+        "Install from a local clone — needs no HTTPS at all:\n"
         "       git clone <catalogue-repo> && agentbundle install --pack "
         "<pack> ./<clone>",
-        "  2. Ask your IT team for the corporate CA bundle, then:\n"
+        "Ask your IT team for the corporate CA bundle, then:\n"
         "       export AGENTBUNDLE_CA_BUNDLE=/path/to/corporate-ca.pem",
-        "  3. Check whether a different Python already trusts this network. "
+        "Check whether a different Python already trusts this network. "
         "Interpreters\n"
         "     do not share a certificate store, so one may work where another "
         "fails:\n"
@@ -212,7 +226,7 @@ def _verification_failure_message(
         "     SSL_CERT_FILE at its cafile. Creating a virtualenv does NOT "
         "change trust —\n"
         "     a venv inherits its base interpreter's store unchanged.",
-        "  4. Confirm your proxy allows every host in the redirect chain. A "
+        "Confirm your proxy allows every host in the redirect chain. A "
         "GitHub\n"
         "     archive fetch redirects github.com to codeload.github.com; an "
         "allowlist\n"
@@ -221,16 +235,24 @@ def _verification_failure_message(
     ]
     if offer_opt_out:
         steps.append(
-            "  5. Set AGENTBUNDLE_NO_SYSTEM_TRUST=1 to see the raw "
-            "verification error."
+            "Set AGENTBUNDLE_NO_SYSTEM_TRUST=1 to see the raw verification error."
         )
-    body = "\n\n".join(steps)
+    body = "\n\n".join(f"  {n}. {s}" for n, s in enumerate(steps, start=1))
+
+    if empty_store:
+        diagnosis = (
+            f"The certificate for {host} could not be verified. {fallback_note}"
+        )
+    else:
+        diagnosis = (
+            f"The certificate for {host} could not be verified. {fallback_note} On "
+            "a corporate network this usually means a TLS-inspecting proxy "
+            "re-signs traffic with a private root CA that Python does not read."
+        )
     return (
         f"Failed to fetch catalogue archive: {url} — {detail}\n"
         "\n"
-        f"The certificate for {host} could not be verified. {fallback_note} On a "
-        "corporate network this usually means a TLS-inspecting proxy re-signs "
-        "traffic with a private root CA that Python does not read.\n"
+        f"{diagnosis}\n"
         "\n"
         "Troubleshooting, cheapest first:\n"
         "\n"
@@ -292,7 +314,13 @@ def _fetch_and_extract(url: str, dest: Path) -> None:
         # administrator trust store to read, a second connection against an
         # identical context would be pure noise, and claiming the anchors "did
         # not complete the chain" would send the adopter after the wrong cause.
-        anchors = system_trust.system_anchor_pem()
+        # An interpreter with an empty trust store is a different fault from an
+        # inspected network: nothing verifies, and the administrator keychain
+        # alone cannot repair it because it holds private roots, not public ones.
+        # Observed in the field on a python.org macOS build whose
+        # Install Certificates.command was never run.
+        empty_store = system_trust.default_store_is_empty()
+        anchors = system_trust.system_anchor_pem(include_public_roots=empty_store)
         if not anchors:
             # Two different causes, and conflating them misdirects the adopter.
             # Off macOS the fallback does not apply at all. *On* macOS it applied
@@ -314,9 +342,11 @@ def _fetch_and_extract(url: str, dest: Path) -> None:
                     "the operating system's trust store."
                 )
             raise CatalogueError(
-                _verification_failure_message(url, detail, fallback_note=note)
+                _verification_failure_message(
+                    url, detail, fallback_note=note, empty_store=empty_store
+                )
             ) from exc
-        _retry_with_system_trust(url, dest, attempt, anchors)
+        _retry_with_system_trust(url, dest, attempt, anchors, empty_store=empty_store)
     except tarfile.TarError as exc:
         raise CatalogueError(
             f"Failed to extract tarball from {url}: {exc}"
@@ -328,6 +358,8 @@ def _retry_with_system_trust(
     dest: Path,
     attempt: Callable[[ssl.SSLContext], None],
     anchors: str,
+    *,
+    empty_store: bool = False,
 ) -> None:
     """Retry *attempt* once against operating-system trust *anchors*.
 
@@ -344,9 +376,16 @@ def _retry_with_system_trust(
         "retrying with operating-system trust anchors",
         file=sys.stderr,
     )
-    exhausted = (
-        "The operating-system trust anchors did not complete the chain either."
-    )
+    if empty_store:
+        exhausted = (
+            "This Python trusts no certificate authority at all — its trust store "
+            "is empty — and the operating-system anchors did not complete the "
+            "chain either."
+        )
+    else:
+        exhausted = (
+            "The operating-system trust anchors did not complete the chain either."
+        )
     # Attempt 1 may have extracted part of the archive before failing mid-stream.
     # Clearing the destination keeps the retry from layering a second download
     # over the first and producing a catalogue that is a mix of both.
@@ -359,7 +398,9 @@ def _retry_with_system_trust(
         # wrapped by urlopen and would otherwise escape as a bare exception.
         detail = getattr(exc, "reason", None) or exc
         raise CatalogueError(
-            _verification_failure_message(url, detail, fallback_note=exhausted)
+            _verification_failure_message(
+                url, detail, fallback_note=exhausted, empty_store=empty_store
+            )
         ) from exc
     except tarfile.TarError as exc:
         raise CatalogueError(

@@ -128,7 +128,7 @@ def test_attempt_one_genuinely_fails_against_an_unknown_authority(
     tls_server, tmp_path, monkeypatch
 ):
     """The premise: without the authority, real TLS verification fails."""
-    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda: None)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: None)
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(tls_server, tmp_path)
     assert "could not be verified" in str(exc.value)
@@ -145,7 +145,7 @@ def test_the_fallback_recovers_a_real_failing_handshake(
     import agentbundle.system_trust as st
 
     original = st.system_anchor_pem
-    st.system_anchor_pem = lambda: tls_fixtures["ca_pem"]
+    st.system_anchor_pem = lambda **k: tls_fixtures["ca_pem"]
     try:
         catalogue._fetch_and_extract(tls_server, tmp_path)
     finally:
@@ -166,7 +166,7 @@ def test_a_dirty_dump_still_recovers(tls_server, tls_fixtures, tmp_path):
 
     garbage = "-----BEGIN CERTIFICATE-----\nnot base64\n-----END CERTIFICATE-----\n"
     original = st.system_anchor_pem
-    st.system_anchor_pem = lambda: garbage + tls_fixtures["ca_pem"] + garbage
+    st.system_anchor_pem = lambda **k: garbage + tls_fixtures["ca_pem"] + garbage
     try:
         catalogue._fetch_and_extract(tls_server, tmp_path)
     finally:
@@ -181,7 +181,7 @@ def test_opt_out_refuses_to_recover(tls_server, tls_fixtures, tmp_path, monkeypa
     import agentbundle.system_trust as st
 
     original = st.system_anchor_pem
-    st.system_anchor_pem = lambda: tls_fixtures["ca_pem"]
+    st.system_anchor_pem = lambda **k: tls_fixtures["ca_pem"]
     try:
         with pytest.raises(CatalogueError) as exc:
             catalogue._fetch_and_extract(tls_server, tmp_path)

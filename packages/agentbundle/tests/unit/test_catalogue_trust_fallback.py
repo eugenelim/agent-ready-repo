@@ -104,7 +104,7 @@ def test_verification_failure_retries_once_with_system_anchors(
 ):
     stub = _Stub([_verify_error(), _tarball()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
 
     catalogue._fetch_and_extract(URL, tmp_path)
 
@@ -125,7 +125,7 @@ def test_retry_uses_a_different_context_carrying_the_anchors(
     """
     stub = _Stub([_verify_error(), _tarball()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
 
     catalogue._fetch_and_extract(URL, tmp_path)
 
@@ -147,7 +147,7 @@ def test_no_retry_when_no_system_anchors_are_available(
     monkeypatch.setattr(sys, "platform", "linux")
     stub = _Stub([_verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda: None)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: None)
 
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(URL, tmp_path)
@@ -168,7 +168,7 @@ def test_empty_admin_keychain_on_macos_names_the_real_cause(
     monkeypatch.setattr(sys, "platform", "darwin")
     stub = _Stub([_verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda: None)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: None)
 
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(URL, tmp_path)
@@ -182,7 +182,7 @@ def test_empty_admin_keychain_on_macos_names_the_real_cause(
 def test_fallback_notice_fires_once(monkeypatch, tmp_path, capsys, no_env):
     stub = _Stub([_verify_error(), _tarball()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     catalogue._fetch_and_extract(URL, tmp_path)
     err = capsys.readouterr().err
     assert err.count("retrying with operating-system trust anchors") == 1, err
@@ -218,7 +218,7 @@ def test_opt_out_suppresses_the_retry(monkeypatch, tmp_path, no_env):
 def test_retry_failure_raises_catalogue_error(monkeypatch, tmp_path, no_env):
     stub = _Stub([_verify_error(), _verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     with pytest.raises(CatalogueError):
         catalogue._fetch_and_extract(URL, tmp_path)
     assert len(stub.calls) == 2
@@ -232,7 +232,7 @@ def test_retry_failure_raises_catalogue_error(monkeypatch, tmp_path, no_env):
 def test_unrepairable_failure_names_cause_and_next_action(monkeypatch, tmp_path, no_env):
     stub = _Stub([_verify_error(), _verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(URL, tmp_path)
     message = str(exc.value)
@@ -252,7 +252,7 @@ def test_message_does_not_recommend_a_virtualenv_as_a_fix(monkeypatch, tmp_path,
     """
     stub = _Stub([_verify_error(), _verify_error()])
     monkeypatch.setattr(urllib.request, "urlopen", stub)
-    monkeypatch.setattr(system_trust, "system_anchor_pem", _an_anchor_pem)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     with pytest.raises(CatalogueError) as exc:
         catalogue._fetch_and_extract(URL, tmp_path)
     message = str(exc.value)
@@ -293,3 +293,47 @@ def test_read_phase_failures_are_wrapped_not_leaked(monkeypatch, tmp_path, no_en
             catalogue._fetch_and_extract(URL, tmp_path)
         assert URL in str(exc.value)
         assert len(stub.calls) == 1, "a non-certificate failure must not retry"
+
+
+def test_empty_store_message_names_the_real_cause(monkeypatch, tmp_path, no_env):
+    """Your user's exact state: zero anchors, no proxy, admin keychain no help.
+
+    The old message blamed a TLS-inspecting proxy, which was actively
+    misleading — nothing was intercepting them.
+    """
+    monkeypatch.setattr(sys, "platform", "darwin")
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: True)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
+    stub = _Stub([_verify_error(), _verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+
+    message = str(exc.value)
+    assert "trusts ZERO certificate authorities" in message
+    assert "Install Certificates.command" in message
+    assert "not a corporate-proxy problem" in message
+    assert "TLS-inspecting proxy" not in message, "must not blame a proxy here"
+
+
+def test_empty_store_asks_for_public_roots(monkeypatch, tmp_path, no_env):
+    """The fallback must widen to Apple's roots only in the empty-store case."""
+    calls: list[bool] = []
+
+    def anchors(*, include_public_roots: bool = False):
+        calls.append(include_public_roots)
+        return _an_anchor_pem()
+
+    monkeypatch.setattr(system_trust, "system_anchor_pem", anchors)
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: True)
+    catalogue._fetch_and_extract(URL, tmp_path)
+    assert calls == [True], "empty store must request the public roots"
+
+    calls.clear()
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: False)
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+    catalogue._fetch_and_extract(URL, tmp_path)
+    assert calls == [False], "intact store must not request the public roots"

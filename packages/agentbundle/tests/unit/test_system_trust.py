@@ -343,3 +343,63 @@ def test_a_process_wide_ssl_override_cannot_weaken_the_context(monkeypatch):
     ctx = system_trust.build_context({})
     assert ctx.verify_mode is ssl.CERT_REQUIRED, "a global override weakened the fetch"
     assert ctx.check_hostname is True
+
+
+# ---------------------------------------------------------------------------
+# Empty default trust store — RFC-0086 erratum
+# ---------------------------------------------------------------------------
+
+
+def test_empty_store_is_detected(monkeypatch, tmp_path):
+    """The field case: a python.org interpreter with no certificates configured.
+
+    Reproduced by pointing SSL_CERT_FILE at an empty PEM, which is what an
+    unconfigured interpreter reports as: cafile set, zero anchors loaded.
+    """
+    empty = tmp_path / "empty.pem"
+    empty.write_text("")
+    # Must be the real environment, not an injected mapping: OpenSSL resolves
+    # SSL_CERT_FILE through its own default paths inside create_default_context,
+    # before this code sees it. An injected dict cannot reproduce the state.
+    monkeypatch.setenv("SSL_CERT_FILE", str(empty))
+    assert system_trust.default_store_is_empty() is True
+
+
+def test_intact_store_is_not_reported_empty():
+    if not ssl.create_default_context().get_ca_certs():
+        pytest.skip("this interpreter genuinely has an empty store")
+    assert system_trust.default_store_is_empty({}) is False
+
+
+def test_apple_roots_are_read_only_when_the_store_is_empty(monkeypatch, tmp_path):
+    """The erratum's whole point, and the bound on it.
+
+    RFC-0086 D4 excluded Apple's root program outright. That was too broad: an
+    interpreter trusting nothing cannot be repaired from the administrator
+    keychain, which holds private roots. It stays excluded with an intact store.
+    """
+    seen: list[list[str]] = []
+
+    def runner(argv):
+        seen.append(argv)
+        return _real_pem(tmp_path).read_text()
+
+    monkeypatch.setattr(system_trust, "_RUNNER", runner)
+    monkeypatch.setattr(sys, "platform", "darwin")
+
+    system_trust.system_anchor_pem()
+    flat = " ".join(part for argv in seen for part in argv)
+    assert "SystemRootCertificates" not in flat, "intact store must not read Apple's roots"
+
+    seen.clear()
+    system_trust.system_anchor_pem(include_public_roots=True)
+    flat = " ".join(part for argv in seen for part in argv)
+    assert "SystemRootCertificates" in flat, "empty store must reach the public roots"
+    assert "/Library/Keychains/System.keychain" in flat, "admin keychain still read"
+    assert "login" not in flat.lower(), "login keychain never read, in either mode"
+
+
+def test_empty_store_detection_survives_a_broken_bundle(monkeypatch, tmp_path):
+    """A stale path must not make the helper raise inside an except block."""
+    monkeypatch.setenv("REQUESTS_CA_BUNDLE", str(tmp_path / "absent.pem"))
+    assert system_trust.default_store_is_empty() in (True, False)

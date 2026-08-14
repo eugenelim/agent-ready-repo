@@ -3,7 +3,7 @@
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0086 (decisions D1–D4)
+- **Constrained by:** RFC-0086 (decisions D1–D4, as narrowed by its Errata)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none
@@ -52,7 +52,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
   host and the trust source. A trust decision the adopter cannot see is a
   trust decision they cannot audit.
 - Read trust material only from `/Library/Keychains/System.keychain`, the one
-  store that requires administrator rights to write.
+  store that requires administrator rights to write — except when the default
+  trust store holds zero anchors, where Apple's root program is read as well
+  because nothing else can repair an interpreter that trusts nothing
+  (RFC-0086 Errata, 2026-08-14).
+- Name an empty trust store as its own diagnosis rather than attributing it to a
+  TLS-inspecting proxy. The two faults produce the same OpenSSL error and have
+  entirely different fixes.
 - Preserve today's trust decisions and connection count when no relevant
   environment variable is set and the default store verifies successfully. One
   deviation is intentional and is not "unchanged": passing an explicit context
@@ -76,9 +82,12 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - Read the user's login keychain (`~/Library/Keychains/login.keychain-db`).
   It is writable without administrator rights, so a root landing there is not
   an IT trust decision.
-- Read Apple's `/System/Library/Keychains/SystemRootCertificates.keychain`. The
-  retry context already carries Python's default roots, so importing a second
-  curated root program widens trust for no measured gain (RFC-0086 D4).
+- Read Apple's `/System/Library/Keychains/SystemRootCertificates.keychain` when
+  the default trust store holds any anchors at all. With an intact store the
+  retry already carries Python's public roots, so importing a second curated
+  root program widens trust for no measured gain (RFC-0086 D4). The one
+  exception is in *Always do*: a store holding **zero** anchors has no trust to
+  widen, and the administrator keychain cannot repair it.
 - Add an `--insecure` flag, a `verify=False` path, `CERT_NONE`, or any
   environment variable that disables verification
   (`docs/CONVENTIONS.md:1201`, `:1218`).
@@ -169,6 +178,9 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] `agentbundle install` is exercised end to end against a source that fails
       under the default store, and the observed stderr and exit code are
       recorded in the PR.
+- [x] An interpreter whose default trust store holds zero anchors is detected,
+      named as its own cause, and repaired by additionally reading Apple's root
+      program; the failure text omits the proxy framing in that case.
 - [ ] Administrator "Never Trust" settings honoured (deferred: catalogue-trust-store-trust-settings)
 - [ ] WSL adopters get guidance naming the Windows/distribution trust-store split (deferred: catalogue-trust-store-wsl-diagnosis)
 

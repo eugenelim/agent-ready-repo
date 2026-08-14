@@ -146,6 +146,18 @@ def report_trust_store() -> None:
         print(f"CAs loaded : ERROR {exc}")
         return
     print(f"CAs loaded : {count}")
+    if count == 0:
+        print(
+            "\n>> THIS IS ALMOST CERTAINLY YOUR PROBLEM. This interpreter trusts\n"
+            ">> ZERO certificate authorities, so every HTTPS request from it fails —\n"
+            ">> not just ones crossing an inspecting proxy. A python.org macOS build\n"
+            ">> needs its certificate step run once:\n"
+            '>>   open "/Applications/Python 3.x/Install Certificates.command"\n'
+            ">> Or point it at the system bundle:\n"
+            ">>   export SSL_CERT_FILE=/etc/ssl/cert.pem\n"
+            ">> Read section 5 before assuming interception: a public issuer there\n"
+            ">> with 'Verify return code: 0' means nothing is intercepting you."
+        )
     if sys.platform == "win32":
         print("note       : Windows also loads the OS certificate store directly")
     elif sys.platform == "darwin":

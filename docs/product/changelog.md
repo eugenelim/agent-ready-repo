@@ -44,6 +44,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
 
+### [agentbundle][0.35.1] — 2026-08-14
+
+#### Fixed
+
+- **An install now recovers when Python trusts no certificate authority at all.**
+  A python.org macOS interpreter ships without a configured certificate store —
+  until its `Install Certificates.command` runs it trusts zero authorities, and
+  every HTTPS request fails whether or not your network inspects traffic. The
+  previous release read this as a probable corporate proxy, which sent the first
+  affected adopter after a cause that did not exist, and its recovery could not
+  help because the administrator keychain holds private roots and cannot complete
+  a public certificate chain. `agentbundle` now recognises an empty trust store,
+  says so plainly, offers the one-command interpreter fix first, and repairs the
+  case automatically on macOS by also reading Apple's root program. Nothing
+  changes for an interpreter with a working store.
+
 ### [agentbundle][0.35.0] — 2026-08-14
 
 #### Added

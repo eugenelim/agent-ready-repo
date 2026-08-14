@@ -6,6 +6,23 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.35.1] — 2026-08-14
+
+### Fixed
+
+- **An install now recovers when Python trusts no certificate authority at all.**
+  A python.org macOS interpreter ships without a configured certificate store:
+  until its `Install Certificates.command` runs, it trusts **zero** authorities
+  and every HTTPS request fails. 0.35.0 reported this as a probable
+  TLS-inspecting proxy, which was misleading — the first field report was not
+  intercepted at all — and its fallback could not repair it, because the
+  administrator keychain holds private roots and cannot complete a public chain.
+  `agentbundle` now detects an empty trust store, names it as its own cause with
+  the interpreter-level fix as the first troubleshooting step, and repairs it on
+  macOS by reading Apple's root program alongside the administrator keychain.
+  With a working trust store nothing changes: Apple's root program stays unread,
+  exactly as before.
+
 ## [0.35.0] — 2026-08-13
 
 ### Added
