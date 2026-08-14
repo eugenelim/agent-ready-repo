@@ -213,6 +213,10 @@ def report_chain(url: str) -> None:
     chain: list[bytes] = []
     try:
         probe = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        # A bare SSLContext permits TLS 1.0/1.1. This probe only reads the
+        # certificate the server presents, but there is no reason to offer
+        # obsolete versions while doing it.
+        probe.minimum_version = ssl.TLSVersion.TLSv1_2
         probe.check_hostname = False
         probe.verify_mode = ssl.CERT_NONE  # inspection only; nothing is trusted
         with (

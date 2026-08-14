@@ -356,13 +356,37 @@ def test_successful_empty_store_recovery_still_tells_the_adopter(
     monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
     monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
 
+    monkeypatch.setattr(sys, "platform", "darwin")
     catalogue._fetch_and_extract(URL, tmp_path)
 
     err = capsys.readouterr().err
     assert "trusts no certificate authorities" in err
     assert "does not fix the interpreter" in err
+    # Pin the platform: the remedy is macOS-specific, so asserting it without
+    # pinning passes on a developer's Mac and fails on a Linux runner.
     assert "Install Certificates.command" in err
     assert (tmp_path / "repo-main" / "pack.toml").exists(), "install must still succeed"
+
+
+def test_empty_store_notice_off_macos_omits_mac_only_advice(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """The same misdirection this change removes, in the other direction.
+
+    Telling a Linux adopter to open an /Applications path is the macOS-only
+    remedy leaking onto a platform that cannot use it.
+    """
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: True)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    err = capsys.readouterr().err
+    assert "trusts no certificate authorities" in err
+    assert "Install Certificates.command" not in err
+    assert "SSL_CERT_FILE" in err
 
 
 def test_intact_store_recovery_keeps_the_short_notice(
