@@ -18,7 +18,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Added
+### Changed
+
+- **Published guides no longer point at records you can't read.** Guide pages
+  across the `_shared`, `core`, `atlassian`, `credential-brokers`,
+  `governance-extras`, and `product-documentation` trees cited this
+  repository's own decision records and specs, so those links went nowhere for
+  anyone reading the published guides. The citations are gone and the
+  surrounding explanation stays; generic guidance like "record an ADR",
+  `<feature>` placeholders, and documented commands are untouched. References
+  pointing readers at the retired `user-guide-diataxis` guide tree now point at
+  `product-documentation`, which supersedes it.
+- **Some guide sidebar labels changed.** Nineteen pages gained the frontmatter
+  the guide site reads. For the sixteen that previously carried a shorter
+  hand-written navigation label, the sidebar now shows the page's own title
+  instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
+  to your project". No page moved and no link changed. No pack version changes.
+
+### [agentbundle][0.35.0] — 2026-08-14
+
+#### Added
 
 - **`agentbundle install` now recovers on corporate networks that inspect TLS.**
   On a network where a proxy re-signs HTTPS traffic with a private certificate
@@ -40,7 +59,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   into the distribution or set `AGENTBUNDLE_CA_BUNDLE`.
 - **`AGENTBUNDLE_NO_SYSTEM_TRUST`** — opt out of the fallback above.
 
-### Fixed
+#### Fixed
 
 - **`AGENTBUNDLE_CA_BUNDLE` now works on `git+https://` catalogue sources.** The
   reference documentation described it as covering HTTPS catalogue sources, but
@@ -58,29 +77,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   surfaced only the raw OpenSSL string; it now names the probable cause and
   gives ordered troubleshooting steps.
 
-### Changed
+#### Changed
 
 - **Setting `AGENTBUNDLE_CA_BUNDLE` to a path that does not exist now fails a
   `git+https://` install that previously succeeded.** The variable was ignored
   on that path before, so a fleet-wide export pointing at a file absent on this
   host was harmless; it now raises before any connection is made. Unset it, or
   correct the path.
-
-
-- **Published guides no longer point at records you can't read.** Guide pages
-  across the `_shared`, `core`, `atlassian`, `credential-brokers`,
-  `governance-extras`, and `product-documentation` trees cited this
-  repository's own decision records and specs, so those links went nowhere for
-  anyone reading the published guides. The citations are gone and the
-  surrounding explanation stays; generic guidance like "record an ADR",
-  `<feature>` placeholders, and documented commands are untouched. References
-  pointing readers at the retired `user-guide-diataxis` guide tree now point at
-  `product-documentation`, which supersedes it.
-- **Some guide sidebar labels changed.** Nineteen pages gained the frontmatter
-  the guide site reads. For the sixteen that previously carried a shorter
-  hand-written navigation label, the sidebar now shows the page's own title
-  instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
-  to your project". No page moved and no link changed. No pack version changes.
 
 ### [agentbundle][0.34.0] — 2026-08-12
 
