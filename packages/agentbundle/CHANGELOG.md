@@ -6,6 +6,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.35.2] — 2026-08-14
+
+### Fixed
+
+- **The certificate-setup command in the trust-failure message is now
+  copy-pasteable.** It printed a literal `Python 3.x` placeholder, so the one
+  audience that sees this message — an adopter whose interpreter trusts nothing —
+  had to know to substitute their own version before the command would run. It
+  now carries the running interpreter's actual version, and is omitted entirely
+  when the script does not exist, so a non-python.org build gets the portable
+  `SSL_CERT_FILE` advice instead of a command that would fail.
+
 ## [0.35.1] — 2026-08-14
 
 ### Fixed
