@@ -178,6 +178,10 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - [x] `agentbundle install` is exercised end to end against a source that fails
       under the default store, and the observed stderr and exit code are
       recorded in the PR.
+- [x] A catalogue archive containing a symlink extracts on a platform that
+      cannot create symlinks: the archive is read from a seekable source so
+      `tarfile`'s copy-the-target fallback succeeds instead of raising
+      `seeking backwards is not allowed`.
 - [x] An interpreter whose default trust store holds zero anchors is detected,
       named as its own cause, and repaired by additionally reading Apple's root
       program; the failure text omits the proxy framing in that case.

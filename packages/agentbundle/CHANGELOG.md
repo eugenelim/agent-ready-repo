@@ -10,6 +10,16 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 
 ### Fixed
 
+- **Installing on Windows no longer fails with "seeking backwards is not
+  allowed".** A catalogue carries symlinks (`CLAUDE.md` → `AGENTS.md`). Windows
+  refuses to create them without Developer Mode or the `SeCreateSymbolicLink`
+  privilege, so `tarfile` falls back to copying the link target — which means
+  re-reading an archive member that the forward-only stream had already passed.
+  The archive is now buffered to a seekable temporary file before extraction, so
+  the fallback works and the link is materialised as a copy of its target. macOS
+  and Linux were never affected, because `os.symlink` succeeds there. Nothing to
+  do with certificates, despite arriving in the same reports.
+
 - **An install now recovers when Python trusts no certificate authority at all.**
   A python.org macOS interpreter ships without a configured certificate store:
   until its `Install Certificates.command` runs, it trusts **zero** authorities

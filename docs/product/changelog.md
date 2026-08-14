@@ -48,6 +48,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Fixed
 
+- **Installing on Windows no longer fails with "seeking backwards is not
+  allowed".** A catalogue contains symlinks, and Windows will not create them
+  without Developer Mode enabled. Python's tar reader then falls back to copying
+  what the link points at, which it could not do while reading the download as a
+  one-pass stream. The download is now buffered before extraction, so the link
+  becomes a copy of its target and the install completes. macOS and Linux were
+  never affected. This was never a certificate problem, though it surfaced
+  alongside one.
+
 - **An install now recovers when Python trusts no certificate authority at all.**
   A python.org macOS interpreter ships without a configured certificate store —
   until its `Install Certificates.command` runs it trusts zero authorities, and

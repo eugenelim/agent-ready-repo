@@ -11,6 +11,7 @@ only, per the convention in test_https_catalogue.py.
 from __future__ import annotations
 
 import io
+import os
 import ssl
 import sys
 import tarfile
@@ -313,7 +314,10 @@ def test_empty_store_message_names_the_real_cause(monkeypatch, tmp_path, no_env)
     message = str(exc.value)
     assert "trusts ZERO certificate authorities" in message
     assert "Install Certificates.command" in message
-    assert "not a corporate-proxy problem" in message
+    # Softened from an absolute after security review: a populated capath is
+    # excluded before we get here, but a store can still be empty AND the
+    # network inspected.
+    assert "almost certainly not a corporate-proxy" in message
     assert "TLS-inspecting proxy" not in message, "must not blame a proxy here"
 
 
@@ -337,3 +341,85 @@ def test_empty_store_asks_for_public_roots(monkeypatch, tmp_path, no_env):
     monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
     catalogue._fetch_and_extract(URL, tmp_path)
     assert calls == [False], "intact store must not request the public roots"
+
+
+def test_successful_empty_store_recovery_still_tells_the_adopter(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """Recovering the fetch must not silently mask a broken interpreter.
+
+    The anchors are loaded in memory for this process only, so the adopter's
+    next pip or requests call fails the same way. A green install with no
+    explanation is how that goes unnoticed.
+    """
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: True)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    err = capsys.readouterr().err
+    assert "trusts no certificate authorities" in err
+    assert "does not fix the interpreter" in err
+    assert "Install Certificates.command" in err
+    assert (tmp_path / "repo-main" / "pack.toml").exists(), "install must still succeed"
+
+
+def test_intact_store_recovery_keeps_the_short_notice(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """The corporate case is not an unconfigured interpreter — don't say it is."""
+    monkeypatch.setattr(system_trust, "default_store_is_empty", lambda *a, **k: False)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: _an_anchor_pem())
+    monkeypatch.setattr(urllib.request, "urlopen", _Stub([_verify_error(), _tarball()]))
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    err = capsys.readouterr().err
+    assert "retrying with operating-system trust anchors" in err
+    assert "trusts no certificate authorities" not in err
+
+
+def _tarball_with_symlink() -> bytes:
+    """A catalogue-shaped archive: a regular file, then a symlink pointing back.
+
+    This is the real shape — the catalogue carries CLAUDE.md -> AGENTS.md, and
+    the target precedes the link in the archive.
+    """
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w:gz") as tf:
+        payload = b"# agents\n"
+        target = tarfile.TarInfo("repo-main/AGENTS.md")
+        target.size = len(payload)
+        tf.addfile(target, io.BytesIO(payload))
+        link = tarfile.TarInfo("repo-main/CLAUDE.md")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "AGENTS.md"
+        tf.addfile(link)
+    return buf.getvalue()
+
+
+def test_symlink_archive_extracts_where_symlinks_cannot_be_created(
+    monkeypatch, tmp_path, no_env
+):
+    """Windows regression: os.symlink fails, so tarfile copies the target instead.
+
+    That fallback re-reads a member that already went past, which a forward-only
+    stream cannot do — the field error was
+    'seeking backwards is not allowed'. Simulated here by making os.symlink
+    fail, so the case is covered on every platform rather than only on Windows.
+    """
+    def no_symlinks(*a, **k):
+        raise OSError("symbolic link privilege not held")
+
+    monkeypatch.setattr(os, "symlink", no_symlinks)
+    monkeypatch.setattr(
+        urllib.request, "urlopen", _Stub([_tarball_with_symlink()])
+    )
+
+    catalogue._fetch_and_extract(URL, tmp_path)
+
+    assert (tmp_path / "repo-main" / "AGENTS.md").exists()
+    claude = tmp_path / "repo-main" / "CLAUDE.md"
+    assert claude.exists(), "the link target must be copied when links are unavailable"
+    assert claude.read_text() == "# agents\n", "copy must carry the target's content"

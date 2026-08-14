@@ -407,7 +407,7 @@ disagrees with the body, this section is authoritative.
 
 | Decision | As accepted | In force |
 | --- | --- | --- |
-| D4 | Apple's `SystemRootCertificates.keychain` is never read. | Read **only** when the default trust store holds zero anchors. The administrator-keychain-only rule still governs every other case, and the login keychain is still never read. |
+| D4 | Apple's `SystemRootCertificates.keychain` is never read. | Still never read as a primary source. When the default trust store holds zero anchors, the system public certificate bundle `/etc/ssl/cert.pem` — Apple's TLS-purpose export — is read alongside the administrator keychain; the keychain is a fallback only if that file is absent. The administrator-keychain-only rule governs every other case, and the login keychain is still never read. |
 
 ### History
 
@@ -424,6 +424,16 @@ private roots; the public root needed to verify `github.com` is in Apple's root
 program, which D4 excluded. Measured on a corporate host: Apple's keychain
 verifies `github.com` on its own (158 anchors), the administrator keychain does
 not (21 anchors).
+
+A second review round then narrowed the remedy itself. Reading
+`SystemRootCertificates.keychain` would have imported 158 certificates including
+14 Apple-operated ones and four single-purpose roots — `Apple Platform Code
+Signing`, `Developer ID Certification Authority`, `Apple Platform Bootstrap` —
+none of which carry an EKU extension, so OpenSSL's server-auth purpose check does
+not exclude them and Apple's own trust-setting restrictions are discarded by
+`find-certificate`. `/etc/ssl/cert.pem` carries 128 certificates and zero
+Apple-operated roots, is root-owned, and needs no subprocess. The claim that
+Apple's keychain "is exactly the curated public program" was wrong; the file is.
 
 D4's reasoning was sound for the case it examined and too broad for the case it
 did not. With an intact store, Apple's root program adds nothing measurable

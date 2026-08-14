@@ -244,10 +244,15 @@ export SSL_CERT_FILE=/etc/ssl/cert.pem
 ```
 
 `agentbundle` also repairs this case automatically on macOS: when it finds an
-empty trust store it reads Apple's root program alongside the administrator
-keychain, because the administrator keychain holds private roots and cannot
-complete a public chain on its own. The failure message names an empty store
-explicitly rather than blaming a proxy.
+empty trust store it reads the system public certificate bundle
+(`/etc/ssl/cert.pem`) alongside the administrator keychain, because the
+administrator keychain holds private roots and cannot complete a public chain on
+its own. That file is Apple's own TLS-purpose export — deliberately not a dump of
+`SystemRootCertificates.keychain`, which additionally carries code-signing and
+other single-purpose roots that have no business anchoring a TLS chain. The
+recovery is announced on stderr and names the wider trust set. It rescues the
+install; it does not fix the interpreter, so run the command above to stop every
+other tool failing the same way.
 
 ### WSL
 

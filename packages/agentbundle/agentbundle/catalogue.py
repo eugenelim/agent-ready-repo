@@ -202,13 +202,22 @@ def _verification_failure_message(
     # and a hardcoded list would misnumber every step after it.
     steps: list[str] = []
     if empty_store:
-        steps.append(
-            "This Python trusts ZERO certificate authorities, so every HTTPS\n"
-            "     request from it fails — this is not a corporate-proxy problem.\n"
-            "     A python.org macOS install needs its certificate step run once:\n"
+        # Almost certainly, not certainly: a populated capath is excluded before
+        # we get here, but the store could still be empty *and* the network
+        # inspected.
+        remedy = (
             '       open "/Applications/Python 3.x/Install Certificates.command"\n'
             "     Or point it at the system bundle:\n"
             "       export SSL_CERT_FILE=/etc/ssl/cert.pem"
+            if sys.platform == "darwin"
+            else "       install your certificate authorities into this "
+            "interpreter's trust\n"
+            "     store, or set SSL_CERT_FILE to a PEM bundle containing them"
+        )
+        steps.append(
+            "This Python trusts ZERO certificate authorities, so every HTTPS\n"
+            "     request from it fails — almost certainly not a corporate-proxy\n"
+            "     problem. Fix the interpreter's trust store:\n" + remedy
         )
     steps += [
         "Install from a local clone — needs no HTTPS at all:\n"
@@ -275,15 +284,29 @@ def _fetch_and_extract(url: str, dest: Path) -> None:
     system_trust = _system_trust_module()
 
     def attempt(context: ssl.SSLContext) -> None:
+        # Buffer to a seekable temporary file rather than extracting straight
+        # from the response, because "r|gz" is forward-only and that breaks on
+        # Windows. A catalogue carries symlinks (CLAUDE.md -> AGENTS.md); when
+        # os.symlink is unavailable — the default on Windows without Developer
+        # Mode or SeCreateSymbolicLink — tarfile falls back to copying the link
+        # target, which means re-reading a member the stream has already passed.
+        # On a forward-only stream that raises
+        # "seeking backwards is not allowed"; "r:gz" over a real file lets the
+        # fallback do its job. Observed in the field on Windows; macOS and Linux
+        # never hit it because os.symlink succeeds there.
+        #
         # B310: constant github.com archive base assembled from parsed owner/repo/ref.
         with urllib.request.urlopen(  # nosec B310
             url, timeout=_FETCH_TIMEOUT_S, context=context
-        ) as resp, tarfile.open(fileobj=resp, mode="r|gz") as tf:
-            # filter="data" rejects unsafe members (absolute paths, ..
-            # links, devices, setuid bits) — Python 3.12+ default but
-            # explicit for 3.11 compatibility and to silence the 3.14
-            # DeprecationWarning. Path-jail is belt; this is braces.
-            tf.extractall(path=dest, filter="data")
+        ) as resp, tempfile.TemporaryFile() as spool:
+            shutil.copyfileobj(resp, spool)
+            spool.seek(0)
+            with tarfile.open(fileobj=spool, mode="r:gz") as tf:
+                # filter="data" rejects unsafe members (absolute paths, ..
+                # links, devices, setuid bits) — Python 3.12+ default but
+                # explicit for 3.11 compatibility and to silence the 3.14
+                # DeprecationWarning. Path-jail is belt; this is braces.
+                tf.extractall(path=dest, filter="data")
 
     try:
         attempt(system_trust.build_context())
@@ -371,11 +394,38 @@ def _retry_with_system_trust(
     """
     system_trust = _system_trust_module()
     host = urllib.parse.urlsplit(url).netloc
-    print(
-        f"agentbundle: certificate verification failed for {host}; "
-        "retrying with operating-system trust anchors",
-        file=sys.stderr,
-    )
+    if empty_store:
+        # Recovering the fetch is not the same as fixing the interpreter: the
+        # anchors are loaded in memory for this process only. Saying so is the
+        # difference between a one-off rescue and quietly masking a broken
+        # Python that will fail the adopter's next pip or requests call.
+        # Name the wider trust set explicitly. The narrow decision was already
+        # auditable; this one adds a public root set on top, and a trust decision
+        # the adopter cannot see is one they cannot audit.
+        extra = (
+            "the administrator keychain plus the system public certificate "
+            "bundle" if sys.platform == "darwin" else "operating-system trust anchors"
+        )
+        fix = (
+            '  open "/Applications/Python 3.x/Install Certificates.command"\n'
+            "  (or: export SSL_CERT_FILE=/etc/ssl/cert.pem)"
+            if sys.platform == "darwin"
+            else "  install your certificate authorities into this interpreter's\n"
+            "  trust store, or set SSL_CERT_FILE to a PEM bundle"
+        )
+        print(
+            f"agentbundle: this Python trusts no certificate authorities, so "
+            f"verification failed for {host}. Retrying against {extra} — this "
+            "rescues the install but does not fix the interpreter, so every "
+            "other tool will keep failing. To stop that:\n" + fix,
+            file=sys.stderr,
+        )
+    else:
+        print(
+            f"agentbundle: certificate verification failed for {host}; "
+            "retrying with operating-system trust anchors",
+            file=sys.stderr,
+        )
     if empty_store:
         exhausted = (
             "This Python trusts no certificate authority at all — its trust store "
