@@ -6,6 +6,61 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.35.0] — 2026-08-13
+
+### Added
+
+- **Corporate-network trust for `git+https://` catalogue sources.** On a network
+  that inspects TLS, a proxy re-signs HTTPS traffic with a private certificate
+  authority your IT team installs in the operating system's trust store. Python
+  does not read that store on macOS, so a catalogue fetch failed with
+  `CERTIFICATE_VERIFY_FAILED` and nothing actionable to do about it. When
+  verification fails, `agentbundle` now retries once against the administrator
+  keychain (`/Library/Keychains/System.keychain`) and reports on stderr that it
+  did so. Verification stays strict: the retry adds trust anchors, never removes
+  one, and no flag or environment variable disables verification. One caveat:
+  macOS lets an administrator mark a certificate *Never Trust*, and this
+  fallback does not read those markings, so such a certificate is still used as
+  an anchor — bounded to a keychain only an administrator can write. Your login
+  keychain is never read, because it is writable without administrator rights.
+- **`AGENTBUNDLE_NO_SYSTEM_TRUST`** — set to any non-empty value to disable that
+  fallback and see the underlying verification error.
+
+Windows needs no fallback: Python already loads the Windows `CA` and `ROOT`
+stores and honours each certificate's trust settings. Linux needs none once the
+authority is installed in `/etc/ssl/certs`. A WSL distribution does **not**
+inherit the Windows certificate store, so install the authority into the
+distribution or set `AGENTBUNDLE_CA_BUNDLE`.
+
+### Fixed
+
+- **`AGENTBUNDLE_CA_BUNDLE` now works on `git+https://` sources.** The reference
+  documentation described it as covering HTTPS catalogue sources, but only the
+  `catalogue+https://` and `archive+https://` paths read it — `git+https://`
+  ignored it entirely, so adopters who followed the documentation still could not
+  install. `SSL_CERT_FILE`, `SSL_CERT_DIR`, and `REQUESTS_CA_BUNDLE` are honoured
+  there too, with `AGENTBUNDLE_CA_BUNDLE` taking precedence, then `SSL_CERT_FILE`,
+  then `REQUESTS_CA_BUNDLE`. Note the semantics differ by source form and this is
+  now documented: on `git+https://` your bundle is **added** to the default trust
+  store, so a bundle holding only a private authority still verifies the
+  `github.com` → `codeload.github.com` redirect; on the other two forms it
+  **replaces** the store, pinning verification to your own authority.
+- **A catalogue fetch can no longer hang indefinitely.** The request carries an
+  explicit 30-second timeout, matching the HTTPS catalogue paths, so a proxy that
+  accepts the connection and never answers fails instead of stalling.
+- **A failed catalogue fetch explains what to do next.** The error previously
+  surfaced only the raw OpenSSL string; it now names the probable cause and gives
+  ordered troubleshooting steps, including that different Python interpreters do
+  not share a certificate store — and that creating a virtualenv does not change
+  trust, since a virtualenv inherits its base interpreter's store unchanged.
+
+### Changed
+
+- **Setting `AGENTBUNDLE_CA_BUNDLE` to a path that does not exist now fails a
+  `git+https://` install that previously succeeded.** The variable was ignored on
+  that path before, so a fleet-wide export pointing at a file absent on this host
+  was harmless. Unset it, or correct the path.
+
 ## [0.34.0] — 2026-08-12
 
 ### Added

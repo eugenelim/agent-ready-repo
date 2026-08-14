@@ -86,6 +86,7 @@
 | [0083](0083-work-intake-and-artifact-routing.md) | Work intake and artifact routing — classify incoming work by content and altitude, route feature intents through a shippability gate, replace `capture-work` with standalone `work-intake`, make workspace dispatch deterministic from canonical artifacts, and transfer tracker authority explicitly by lifecycle. | Accepted | 2026-08-08 | 2026-08-08 |
 | [0084](0084-sso-destination-trust-boundary.md) | Single sign-on destination trust boundary | Accepted | 2026-08-11 | 2026-08-11 |
 | [0085](0085-catalogue-source-identity.md) | Catalogue source identity | Accepted | 2026-08-11 | 2026-08-11 |
+| [0086](0086-corporate-network-trust.md) | Corporate-network trust for catalogue fetches | Accepted | 2026-08-13 | 2026-08-14 |
 
 ## Adding a new RFC
 
