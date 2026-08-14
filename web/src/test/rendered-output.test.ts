@@ -39,6 +39,16 @@ function walk(dir: string, match: (name: string) => boolean, out: string[] = [])
   return out;
 }
 
+/**
+ * Budget for the whole-site scans.
+ *
+ * These parse every one of ~217 built pages, so they are nowhere near vitest's
+ * 5s default: 2.9-4.4s on an idle CI runner and 18.5s on a loaded developer
+ * machine. Leaving them on the default passed CI by luck and would have flaked
+ * the first time a runner was contended. 60s matches fixture-axe.test.ts.
+ */
+const SCAN_TIMEOUT_MS = 60_000;
+
 const docsPages = walk(DOCS_ROOT, (n) => n === 'index.html');
 const homePage = join(BUILD_ROOT, 'index.html');
 
@@ -106,7 +116,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       }))
       .filter((r) => r.count > 1);
     expect(offenders, `pages with multiple <h1>: ${JSON.stringify(offenders)}`).toEqual([]);
-  });
+  }, SCAN_TIMEOUT_MS);
 
   it('AC3: every guide declaring a summary publishes it as meta description and deck', () => {
     const declared = declaredSummaries();
@@ -125,7 +135,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       else if (deck !== summary) missing.push(`${srcRel}: deck is "${deck}"`);
     }
     expect(missing, `summary did not reach the page:\n${missing.join('\n')}`).toEqual([]);
-  });
+  }, SCAN_TIMEOUT_MS);
 
   it('AC8: every markdown table sits in a focusable scroll region', () => {
     const offenders: string[] = [];
@@ -140,7 +150,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
       }
     }
     expect(offenders, `unwrapped tables: ${offenders.join(', ')}`).toEqual([]);
-  });
+  }, SCAN_TIMEOUT_MS);
 
   // Pinned to one many-table page. skipIf, not an early return: a return
   // reports a green pass for a test that asserted nothing — the shape this

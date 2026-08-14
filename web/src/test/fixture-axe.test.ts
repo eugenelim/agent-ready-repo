@@ -63,5 +63,10 @@ describe('docs page axe (T21)', () => {
     if (!existsSync(DOCS_HTML)) return;
     document.body.innerHTML = loadBodyHtml(DOCS_HTML);
     await assertNoBlockingViolations('docs/getting-started');
-  }, 20000); // Starlight HTML is large; 20s timeout
+    // Starlight HTML is large and axe walks all of it in jsdom. The 20s this
+    // carried was set against a developer machine; the suite had never run in
+    // CI until pages.yml started invoking it, and the first CI run took 23.1s
+    // and timed out. 60s is ~2.5x the observed CI figure — headroom for a cold
+    // or contended runner, still short enough to fail fast on a real hang.
+  }, 60000);
 });
