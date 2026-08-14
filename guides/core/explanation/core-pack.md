@@ -135,7 +135,7 @@ The loop has cost. It pays back on non-trivial work and is friction on:
 - Throwaway exploration and spikes (the work-loop skill explicitly excludes these).
 - Genuine one-off scripts that won't be maintained.
 
-For everything else — features, multi-file bug fixes, refactors, migrations, schema changes — the math is decisive. The [`work-loop` skill](../../../../packs/core/.apm/skills/work-loop/SKILL.md) itself enumerates its scope of application; the discipline applies forward-looking, not retroactively.
+For everything else — features, multi-file bug fixes, refactors, migrations, schema changes — the math is decisive. The [`work-loop` skill](../../../packs/core/.apm/skills/work-loop/SKILL.md) itself enumerates its scope of application; the discipline applies forward-looking, not retroactively.
 
 ## Where to read next
 
@@ -143,4 +143,4 @@ For everything else — features, multi-file bug fixes, refactors, migrations, s
 - [Install routes](../../_shared/explanation/install-routes.md) — the four ways to install `core` and the install→adapt chain that closes on first session.
 - [`docs/CONVENTIONS.md` § How we do non-trivial work](../../../CONVENTIONS.md#how-we-do-non-trivial-work) — the contributor-side rationale, deeper than this page.
 - [The token economy of the loop](token-economy.md) — what the loop wastes, what it spends on purpose, and why the cold reviewer is worth its cost.
-- [The `work-loop` skill itself](../../../../packs/core/.apm/skills/work-loop/SKILL.md) — the authoritative procedure. Loaded by the agent when a non-trivial task starts.
+- [The `work-loop` skill itself](../../../packs/core/.apm/skills/work-loop/SKILL.md) — the authoritative procedure. Loaded by the agent when a non-trivial task starts.

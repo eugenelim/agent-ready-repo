@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **A live-demo guide now maps three roles through one coherent problem space.**
+  Peer champions can run a 30-minute repository demonstration using Core's
+  direct technical path, Core's structured enterprise handoff, or user-scoped
+  Product Engineering shaping followed by a visible Core delivery handoff.
+- **Published-site links are checked after rendering.** The complete marketing
+  and technical-docs build now refuses publication when an internal page or
+  fragment target is missing. Existing broken guide, pack, and component-demo
+  targets have been repaired at their authored sources or owning projection
+  rules.
 - **Published guides no longer point at records you can't read.** Guide pages
   across the `_shared`, `core`, `atlassian`, `credential-brokers`,
   `governance-extras`, and `product-documentation` trees cited this

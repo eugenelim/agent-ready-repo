@@ -13,7 +13,7 @@ kind: how-to
 
 This is a one-page walk-through for authoring a credentialed primitive — a skill that calls an authenticated external API on behalf of the user. The architecture rule is *skills don't hold credentials*; a Python CLI under the skill's `scripts/` directory owns the secret on disk and constructs the API call inside its own process. The LLM never sees the token as a tool argument.
 
-For a runnable, shipped reference, read a real consumer — [`packs/atlassian/.apm/skills/jira/`](../../../../packs/atlassian/.apm/skills/jira) is a live `auth: creds` credentialed-CLI whose `scripts/_client.py` resolves a PAT via the `credbroker` library; this guide is the procedure that gets you to your own.
+For a runnable, shipped reference, read a real consumer — [`packs/atlassian/.apm/skills/jira/`](../../../packs/atlassian/.apm/skills/jira) is a live `auth: creds` credentialed-CLI whose `scripts/_client.py` resolves a PAT via the `credbroker` library; this guide is the procedure that gets you to your own.
 
 > **When to use this** — your skill calls an external service that takes API tokens, Bearer auth, or session cookies via corporate SSO. If your skill only shells out to a binary the user has already authenticated on PATH (`gh`, `git`, `kubectl`) and the vendor binary owns the credential end-to-end, the `auth: cli` broker fits; everything else picks a different broker below.
 
@@ -333,7 +333,7 @@ Because the bootstrap **appends** (never prepends) the floor, a pip-installed `c
 
 ### Installing without PyPI (corporate)
 
-`credbroker` does **not** require PyPI. The [`release-credbroker`](../../../../.github/workflows/release-credbroker.yml) workflow builds a platform-independent wheel (`credbroker-<version>-py3-none-any.whl`) and an sdist on every change to the package and validates them with `twine check`, so a locked-down or air-gapped site can install from a wheel it hosts or copies in:
+`credbroker` does **not** require PyPI. The [`release-credbroker`](../../../.github/workflows/release-credbroker.yml) workflow builds a platform-independent wheel (`credbroker-<version>-py3-none-any.whl`) and an sdist on every change to the package and validates them with `twine check`, so a locked-down or air-gapped site can install from a wheel it hosts or copies in:
 
 - **From an internal package index** (Artifactory, Nexus, a private mirror):
 
@@ -398,6 +398,6 @@ Both lints exit 0 against the worked example; aim for the same.
 
 ## Reference
 
-- Reference consumer (runnable, shipped): [`packs/atlassian/.apm/skills/jira/`](../../../../packs/atlassian/.apm/skills/jira) — a live `auth: creds` credentialed CLI
+- Reference consumer (runnable, shipped): [`packs/atlassian/.apm/skills/jira/`](../../../packs/atlassian/.apm/skills/jira) — a live `auth: creds` credentialed CLI
 - Explanation: [`guides/credential-brokers/explanation/credentialed-skills.md`](../explanation/credentialed-skills.md)
 - Related how-to: [How to author a skill](../../_shared/how-to/author-a-skill.md) — the general skill-authoring standards (structure, cross-platform scripts, the three-tier dependency policy); the `auth: cli` broker is where credential and tool-presence concerns meet.

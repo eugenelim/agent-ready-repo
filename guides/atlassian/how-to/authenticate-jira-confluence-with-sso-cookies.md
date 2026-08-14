@@ -12,8 +12,8 @@ kind: how-to
 **Result:** A registered SSO session in the broker's secured store so both skills authenticate via captured web session instead of a token — and a `jira.py check` that re-establishes it, headlessly, when it expires.
 
 On an Atlassian **Data Center** instance fronted by corporate SSO where personal
-access tokens are blocked, [`jira`](../../../../packs/atlassian/.apm/skills/jira/)
-reads and [`confluence-crawler`](../../../../packs/atlassian/.apm/skills/confluence-crawler/)
+access tokens are blocked, [`jira`](../../../packs/atlassian/.apm/skills/jira/)
+reads and [`confluence-crawler`](../../../packs/atlassian/.apm/skills/confluence-crawler/)
 can authenticate by a captured web session (a cookie jar) instead of a token. This
 is the `auth: sso-cookie` path; both skills keep a `creds` (token)
 fallback, so nothing changes for token users.

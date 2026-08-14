@@ -16,7 +16,7 @@ User-scope packs travel across projects via your IDE's per-user configuration di
 ## Prerequisites
 
 - Kiro CLI installed; `~/.kiro/` exists. The resolver detects Kiro by probing for this directory — if it isn't present yet, run any Kiro command once (e.g. `kiro --version`) to scaffold the home tree before installing.
-- The agentbundle CLI installed. The fastest route is the [from-clone install](install-agentbundle-from-clone.md); see also the [zipapp release](../../../../README.md#install) on the README.
+- The agentbundle CLI installed. The fastest route is the [from-clone install](install-agentbundle-from-clone.md); see also the [zipapp fallback](install-agentbundle-from-clone.md#fallback-build-the-zipapp).
 
 ## Install
 

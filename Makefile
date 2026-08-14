@@ -315,7 +315,7 @@ test:
 	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q --collect-only | grep -c '::' || true); \
 	 if [ "$$n" -lt 7 ]; then echo "packs/desk-research/tests/skills/desk-research-project-start/ collected $$n, expected >= 7" >&2; exit 1; fi
 	$(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q
-	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_build_site_routing.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py -q
+	$(PYTHON) -m pytest tools/test_build_gate_chain.py tools/test_catalogue_tooling_rewire.py tools/test_catalogue_tooling_docs.py tools/test_validate_guides.py tools/test_check_guide_index.py tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py tools/test_build_site_link_rewrites.py tools/test_check_rendered_site_links.py tools/test_build_site_routing.py tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py -q
 	$(PYTHON) -m pytest tools/test_workspace_status.py tools/test_workspace_status_cli.py -q
 	$(PYTHON) -m pytest tools/test_check_artifact_contents.py -q
 	$(PYTHON) -m pytest \
@@ -355,7 +355,7 @@ ci: build-check pre-pr lint-ruff lint-mypy test
 # Build order is load-bearing: web/ build cleans build/; docs-site/ build
 # writes into build/docs/. This matches .github/workflows/pages.yml.
 
-.PHONY: site-sync site-build site-serve
+.PHONY: site-sync site-build site-link-check site-serve
 
 site-sync:  ## Aggregate repo content into docs-site/src/content/docs/ (run before build/serve)
 	$(PYTHON) tools/build-site.py
@@ -363,6 +363,9 @@ site-sync:  ## Aggregate repo content into docs-site/src/content/docs/ (run befo
 site-build: site-sync  ## Build full site → build/ (marketing) + build/docs/ (Starlight)
 	npm run build --prefix web
 	npm run build --prefix docs-site
+
+site-link-check: site-build  ## Build both sites, then audit emitted internal links
+	$(PYTHON) tools/check-rendered-site-links.py --build-dir build
 
 site-serve: site-sync  ## Start Starlight dev server at http://localhost:4321
 	npm run dev --prefix docs-site

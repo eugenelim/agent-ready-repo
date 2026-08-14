@@ -18,7 +18,7 @@ The skills in the `converters` pack, their inputs, outputs, flags, and prerequis
 
 Convert documents and images to Markdown. Two branches, selected by input type.
 
-**Source:** [`packs/converters/.apm/skills/file-to-markdown/`](../../../../packs/converters/.apm/skills/file-to-markdown/SKILL.md)
+**Source:** [`packs/converters/.apm/skills/file-to-markdown/`](../../../packs/converters/.apm/skills/file-to-markdown/SKILL.md)
 
 ### Inputs
 
@@ -80,7 +80,7 @@ The agent reads each detail tile and writes `<dir>/extractions.json`, choosing o
 
 Extract ` ```mermaid ` fenced blocks from a Markdown file, render each to an image, and write a rewritten Markdown file with each fence replaced by an image reference. The original input is not modified.
 
-**Source:** [`packs/converters/.apm/skills/mermaid-renderer/`](../../../../packs/converters/.apm/skills/mermaid-renderer/SKILL.md)
+**Source:** [`packs/converters/.apm/skills/mermaid-renderer/`](../../../packs/converters/.apm/skills/mermaid-renderer/SKILL.md)
 
 ### Prerequisites
 
@@ -127,7 +127,7 @@ Stdout: `OUTPUT_DIR`, `REWRITTEN`, `DIAGRAMS`.
 
 Convert a Markdown file to a self-contained, styled HTML page (sticky header, sidebar nav, syntax-highlighted code, callout boxes, Mermaid diagrams, print-ready). For documents, not slides.
 
-**Source:** [`packs/converters/.apm/skills/markdown-to-html/`](../../../../packs/converters/.apm/skills/markdown-to-html/SKILL.md)
+**Source:** [`packs/converters/.apm/skills/markdown-to-html/`](../../../packs/converters/.apm/skills/markdown-to-html/SKILL.md)
 
 ### Prerequisites
 
@@ -180,7 +180,7 @@ Writes the HTML file and prints three stdout lines:
 
 Fill a branded Word template from a Markdown artifact. Template-fill via `docxtpl` — the designer's cover page, styles, headers, and logo survive; the skill never converts Markdown into a fresh document.
 
-**Source:** [`packs/converters/.apm/skills/markdown-to-docx/`](../../../../packs/converters/.apm/skills/markdown-to-docx/SKILL.md)
+**Source:** [`packs/converters/.apm/skills/markdown-to-docx/`](../../../packs/converters/.apm/skills/markdown-to-docx/SKILL.md)
 
 ### Prerequisites
 
@@ -214,7 +214,7 @@ Stdout: `OUTPUT:`, `FILLED:`, `WARNING:`, and `GUIDANCE:` (emitted instead of `O
 
 Fill a branded PowerPoint template from a Markdown artifact. Template-fill via `python-pptx` — the slide master, theme, fonts, and placed logo survive.
 
-**Source:** [`packs/converters/.apm/skills/markdown-to-pptx/`](../../../../packs/converters/.apm/skills/markdown-to-pptx/SKILL.md)
+**Source:** [`packs/converters/.apm/skills/markdown-to-pptx/`](../../../packs/converters/.apm/skills/markdown-to-pptx/SKILL.md)
 
 ### Prerequisites
 
@@ -248,7 +248,7 @@ Stdout: `OUTPUT:`, `FILLED:`, `WARNING:`. `python-pptx` evaluates no template co
 
 Fill a branded Excel template from a Markdown artifact. Template-fill via `openpyxl` — writes into named ranges and Excel Tables only, so formatting, formulas, and charts survive.
 
-**Source:** [`packs/converters/.apm/skills/markdown-to-xlsx/`](../../../../packs/converters/.apm/skills/markdown-to-xlsx/SKILL.md)
+**Source:** [`packs/converters/.apm/skills/markdown-to-xlsx/`](../../../packs/converters/.apm/skills/markdown-to-xlsx/SKILL.md)
 
 ### Prerequisites
 
@@ -282,7 +282,7 @@ Stdout: `OUTPUT:`, `FILLED:`, `WARNING:`, and `GUIDANCE:` (when the workbook has
 
 Convert Outlook `.msg` email files to Markdown, preserving headers (From, To, CC, Date), body content, and attachment metadata.
 
-**Source:** [`packs/converters/.apm/skills/msg-to-markdown/`](../../../../packs/converters/.apm/skills/msg-to-markdown/SKILL.md)
+**Source:** [`packs/converters/.apm/skills/msg-to-markdown/`](../../../packs/converters/.apm/skills/msg-to-markdown/SKILL.md)
 
 ### Prerequisites
 

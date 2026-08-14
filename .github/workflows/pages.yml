@@ -19,6 +19,8 @@ on:
       # The offer assertion and the scope mirror it reads. Without these an
       # edit that disables the check triggers no run at all.
       - 'tools/check-site-plugin-offers.py'
+      - 'tools/check-rendered-site-links.py'
+      - 'tools/test_check_rendered_site_links.py'
       - 'tools/pack_scope.py'
       - '.github/workflows/pages.yml'
   pull_request:
@@ -39,6 +41,8 @@ on:
       # The offer assertion and the scope mirror it reads. Without these an
       # edit that disables the check triggers no run at all.
       - 'tools/check-site-plugin-offers.py'
+      - 'tools/check-rendered-site-links.py'
+      - 'tools/test_check_rendered_site_links.py'
       - 'tools/pack_scope.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -115,6 +119,9 @@ jobs:
         run: npm run build --prefix docs-site
         env:
           ASTRO_TELEMETRY_DISABLED: "1"
+
+      - name: Check rendered internal links
+        run: python3 tools/check-rendered-site-links.py --build-dir build
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3

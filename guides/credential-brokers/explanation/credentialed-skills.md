@@ -88,4 +88,4 @@ If you switch machines or rotate the token, you re-run the `credential-setup` sk
 
 - [How to add a credentialed skill](../how-to/add-a-credentialed-skill.md) — if you're authoring a new credentialed primitive.
 - [`docs/architecture/credentials.md`](../../../architecture/credentials.md) — the contributor-facing internals of the loader.
-- [The `jira` skill](../../../../packs/atlassian/.apm/skills/jira) — a runnable `auth: creds` credentialed primitive shipped in the `atlassian` pack.
+- [The `jira` skill](../../../packs/atlassian/.apm/skills/jira) — a runnable `auth: creds` credentialed primitive shipped in the `atlassian` pack.

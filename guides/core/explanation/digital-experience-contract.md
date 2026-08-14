@@ -56,4 +56,4 @@ This rule is what makes the contract safe across partial installations. An adopt
 
 ---
 
-*The four pack copies of the template must be byte-identical; use `tools/check-contract-drift.py --root .` to verify. Relevant pack journey pages: [product-strategy](/guides/product-strategy/), [experience-design](/guides/experience-design/), [core](/guides/core/).*
+*The four pack copies of the template must be byte-identical; use `tools/check-contract-drift.py --root .` to verify. Relevant pack journey pages: [product-strategy](../../product-strategy/), [experience-design](../../experience-design/), [core](../).*

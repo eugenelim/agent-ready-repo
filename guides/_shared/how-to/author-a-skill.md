@@ -111,7 +111,7 @@ Any dependency outside the Python standard library — a CLI binary, a pip/npm p
 2. **Detect.** The first action of any workflow checks the dependency is present, before any real work — a `--check` verb on your helper script that uses `shutil.which("<tool>")` and exits `0` (present) / `2` (absent). (`shutil.which` finds *binaries*; probe a library package with an import / `require.resolve` instead — see the variations below.) Where a version floor matters, also parse `<tool> --version` and compare.
 3. **Fail clean.** On absence, stop and emit a precise remediation string — the exact install command from `## Prerequisites`. Do not improvise around the missing tool (no hand-rolled fallback, no third-party web service).
 
-[`mermaid-renderer`](../../../../packs/converters/.apm/skills/mermaid-renderer) is the reference:
+[`mermaid-renderer`](../../../packs/converters/.apm/skills/mermaid-renderer) is the reference:
 
 ````markdown
 ## Prerequisites
@@ -163,8 +163,8 @@ Never:
 
 ### Variations on Tier 1 detection
 
-- **A pip/npm package, not a binary.** Probe presence with an import / `require.resolve`, not `shutil.which` (which finds binaries, not library packages); on absence, declare the install line and stop — [`file-to-markdown`](../../../../packs/converters/.apm/skills/file-to-markdown) is the detect-and-stop model. A skill that goes further and *installs* on consent is Tier 2, not Tier 1 ([`markdown-to-html`](../../../../packs/converters/.apm/skills/markdown-to-html)).
-- **A sibling skill.** Detect by invoking that skill's own `check` verb and reading its exit code; on failure, point the user at the sibling's setup rather than reaching into its internals ([`flow-metrics`](../../../../packs/atlassian/.apm/skills/flow-metrics), in the atlassian pack → `jira: check`).
+- **A pip/npm package, not a binary.** Probe presence with an import / `require.resolve`, not `shutil.which` (which finds binaries, not library packages); on absence, declare the install line and stop — [`file-to-markdown`](../../../packs/converters/.apm/skills/file-to-markdown) is the detect-and-stop model. A skill that goes further and *installs* on consent is Tier 2, not Tier 1 ([`markdown-to-html`](../../../packs/converters/.apm/skills/markdown-to-html)).
+- **A sibling skill.** Detect by invoking that skill's own `check` verb and reading its exit code; on failure, point the user at the sibling's setup rather than reaching into its internals ([`flow-metrics`](../../../packs/atlassian/.apm/skills/flow-metrics), in the atlassian pack → `jira: check`).
 - **A vendor CLI the user authenticated** (`gh`, `git`, `kubectl`). Presence detection still applies; the credential dimension is the `auth: cli` broker — see the credentialed-skill guide.
 
 ## Evals — does the skill activate, and does it do the job?
@@ -414,5 +414,5 @@ Full reference and CLI equivalents: [`guides/_shared/reference/pack-config-api.m
 - [Output rendering directives](../reference/output-rendering.md) — the canonical directive catalog for `## Output rendering`.
 - [Skill UX patterns](../reference/skill-ux-patterns.md) — craft rules: column alignment, truncation, command bar, delete-gate box.
 - [Skill script conventions](../reference/skill-script-conventions.md) — flag conventions, docblocks, shared-libs, pack-config API.
-- [`mermaid-renderer`](../../../../packs/converters/.apm/skills/mermaid-renderer) — the Tier-1 reference: `## Prerequisites` + a `shutil.which` `--check` verb + an explicit "don't auto-install" rule.
+- [`mermaid-renderer`](../../../packs/converters/.apm/skills/mermaid-renderer) — the Tier-1 reference: `## Prerequisites` + a `shutil.which` `--check` verb + an explicit "don't auto-install" rule.
 - [`docs/CONVENTIONS.md`](../../../CONVENTIONS.md) § Skills — when to add a skill at all (the three-times rule).

@@ -85,6 +85,6 @@ For a folder of emails, loop the convert command over each `.msg` file.
 
 ## Next steps
 
-- The source for both skills: [`markdown-to-html`](../../../../packs/converters/.apm/skills/markdown-to-html/SKILL.md) and [`msg-to-markdown`](../../../../packs/converters/.apm/skills/msg-to-markdown/SKILL.md).
+- The source for both skills: [`markdown-to-html`](../../../packs/converters/.apm/skills/markdown-to-html/SKILL.md) and [`msg-to-markdown`](../../../packs/converters/.apm/skills/msg-to-markdown/SKILL.md).
 - Every flag and output marker: [Converter skills reference](../reference/converter-skills.md).
 - Coming the other way? [Convert documents to Markdown](convert-documents-to-markdown.md).

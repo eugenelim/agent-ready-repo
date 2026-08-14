@@ -4,9 +4,9 @@
 **Prerequisites:** A concrete artifact to paste or point at; the `architect` pack installed.
 **Result:** A verdict (SHIP IT / SHIP WITH CHANGES / MAJOR REWRITE / WRONG ARTIFACT), findings ordered by severity with suggested fixes, and strengths to preserve.
 
-> Get a severity-tagged critique of a design doc, diagram, RFC, or ADR out of the `architect-review` skill. Assumes you have a finished-enough artifact and want findings, not a conversation. Want to *produce* an artifact instead? Reach for [`architect-design`](../../../../packs/architect/.apm/skills/architect-design) or [`architect-diagram`](diagram-a-system.md).
+> Get a severity-tagged critique of a design doc, diagram, RFC, or ADR out of the `architect-review` skill. Assumes you have a finished-enough artifact and want findings, not a conversation. Want to *produce* an artifact instead? Reach for [`architect-design`](../../../packs/architect/.apm/skills/architect-design) or [`architect-diagram`](diagram-a-system.md).
 
-You have an artifact and you want to know what's wrong with it. Paste it, ask for a review, and the [`architect-review`](../../../../packs/architect/.apm/skills/architect-review) skill walks the right rubric for its type and hands back a verdict plus findings ordered by severity. Reviews render inline; they're throwaway by design.
+You have an artifact and you want to know what's wrong with it. Paste it, ask for a review, and the [`architect-review`](../../../packs/architect/.apm/skills/architect-review) skill walks the right rubric for its type and hands back a verdict plus findings ordered by severity. Reviews render inline; they're throwaway by design.
 
 ## Just ask
 
@@ -64,7 +64,7 @@ There's a second mode, orthogonal to artifact type: ask whether a *design* is we
 
 ## An independent review — the `design-reviewer` subagent
 
-`architect-review` runs **inline**, in the thread you're already in. That's the right tool when you're reviewing someone else's artifact. But when you just *authored* the design — especially through [`architect-design`](../../../../packs/architect/.apm/skills/architect-design)'s convergence loop — reviewing it in the same thread marks your own homework: the context that wrote the draft is biased toward agreeing with it.
+`architect-review` runs **inline**, in the thread you're already in. That's the right tool when you're reviewing someone else's artifact. But when you just *authored* the design — especially through [`architect-design`](../../../packs/architect/.apm/skills/architect-design)'s convergence loop — reviewing it in the same thread marks your own homework: the context that wrote the draft is biased toward agreeing with it.
 
 For that case the pack ships a sibling **subagent**, `design-reviewer`. It runs the exact same rubric, verdict, and severity / mechanical-judgment tagging, but in a **forked context that hasn't seen the authoring** — seeded only with the artifact, the agreed concept, and the constraints. It's **read-only** (`Read, Grep, Glob`): it flags, it never rewrites your design, and it returns the findings block with no narration. Reach for it when independence matters more than staying in-thread; it's the *fresh-context (preferred)* rung of the convergence loop, with the inline skill and a disciplined cold re-read as the weaker fallbacks. The subagent is self-contained — installing it doesn't require the skill, though where both are present they share one rubric.
 
@@ -80,7 +80,7 @@ If your repo has a `docs/architecture/reference.md`, the review measures the art
 
 The skill pushes back rather than reviewing when:
 
-- **Nothing concrete is attached.** "Review our architecture" with no artifact is a design conversation, not a review. Route to [`architect-design`](../../../../packs/architect/.apm/skills/architect-design).
+- **Nothing concrete is attached.** "Review our architecture" with no artifact is a design conversation, not a review. Route to [`architect-design`](../../../packs/architect/.apm/skills/architect-design).
 - **The artifact is too thin to critique.** A two-bullet outline is a discussion; the skill won't critique tumbleweeds.
 - **You want a conversation, not findings.** If you're still shaping the idea, switch to a design surface.
 - **You wrote it this session.** Reviewing your own fresh draft is marking your own homework. The skill asks you (or another agent) to drive the critique — reach for the [`design-reviewer` subagent](#an-independent-review--the-design-reviewer-subagent) to get that independent pass.

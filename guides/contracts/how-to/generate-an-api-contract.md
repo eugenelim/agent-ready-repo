@@ -8,7 +8,7 @@ You have requirements — user stories, a domain model, plain-English prose, or 
 
 ## Before you start
 
-- The `contracts` pack is installed (the skill lives at [`packs/contracts/.apm/skills/api-contract/`](../../../../packs/contracts/.apm/skills/api-contract/SKILL.md)).
+- The `contracts` pack is installed (the skill lives at [`packs/contracts/.apm/skills/api-contract/`](../../../packs/contracts/.apm/skills/api-contract/SKILL.md)).
 - You know your **active standard**. The bundled default is Zalando; if your org plugged in its own base + delta bundle, the skill reads that instead. See [contract-first design](../explanation/contract-first-design.md) for what the standard is and how to swap it.
 - You're the *producer* of this API — you own the resources it exposes.
 

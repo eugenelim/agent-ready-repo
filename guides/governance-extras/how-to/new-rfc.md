@@ -40,7 +40,7 @@ Before invoking, check that the change clears at least one of these bars, lifted
 - It adds, removes, or modifies a top-level directory or convention.
 - You expect any reasonable contributor to want a say.
 
-If none of these fire — the change fits in one package and preserves public interfaces — push back on yourself. A normal PR is enough. [`AGENTS.md`](../../../../AGENTS.md) carries the same rule for *substantive* CHARTER edits: those go through RFC, but trivial ones (typos, broken links) ship as PRs.
+If none of these fire — the change fits in one package and preserves public interfaces — push back on yourself. A normal PR is enough. [`AGENTS.md`](../../../AGENTS.md) carries the same rule for *substantive* CHARTER edits: those go through RFC, but trivial ones (typos, broken links) ship as PRs.
 
 > **Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's get input on X" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Lead with `use the new-rfc skill to …` whenever you want the discipline to trigger reliably.
 
@@ -142,7 +142,7 @@ An accepted RFC is rarely the last artifact. It points at concrete follow-on wor
 
 The RFC's job is done once the follow-on artifacts exist. It stays as history.
 
-A published RFC can still need a correction later — a spec finds a gap, a later RFC reframes a decision. You record it *inside* the RFC (never by editing the frozen body), under an `## Errata` section for a Frozen RFC or `## Amendments` for an in-flight one, following the `new-rfc` skill's [Recording corrections (Errata / Amendments)](../../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) convention — append-only, with an optional two-layer current-state-over-audit-trail structure once corrections accumulate. The skill is the canonical home for the rules; this guide just points at it.
+A published RFC can still need a correction later — a spec finds a gap, a later RFC reframes a decision. You record it *inside* the RFC (never by editing the frozen body), under an `## Errata` section for a Frozen RFC or `## Amendments` for an in-flight one, following the `new-rfc` skill's [Recording corrections (Errata / Amendments)](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) convention — append-only, with an optional two-layer current-state-over-audit-trail structure once corrections accumulate. The skill is the canonical home for the rules; this guide just points at it.
 
 ## Pitfalls
 
@@ -172,6 +172,6 @@ A published RFC can still need a correction later — a spec finds a gap, a late
 - [How to record a decision (ADR)](new-adr.md) — the inverse skill; use it when the discussion is done.
 - [How to plan and execute non-trivial work](../../core/how-to/plan-and-execute-non-trivial-work.md) — what an accepted RFC's feature follow-on looks like.
 - [The core pack as a system](../../core/explanation/core-pack.md) — where governance-extras fits relative to `core`.
-- [`new-rfc` skill](../../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure, including the research-phase gating rules.
+- [`new-rfc` skill](../../../packs/governance-extras/.apm/skills/new-rfc/SKILL.md) — authoritative procedure, including the research-phase gating rules.
 - [`docs/CONVENTIONS.md` § RFC](../../../CONVENTIONS.md#3-rfc--request-for-comments--docsrfc) — the lifecycle, filename rule, and when-to / when-not-to.
 - [`docs/CONVENTIONS.md` § Document lifecycle](../../../CONVENTIONS.md#document-lifecycle) — living vs. frozen vs. governance, and why RFCs sit in their own bucket.
