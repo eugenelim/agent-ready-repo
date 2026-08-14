@@ -1178,10 +1178,6 @@ def main() -> None:
     print("build-site: mirroring guides …")
     n = mirror_guides(guides_src, SITE_DOCS, dry_run=args.dry_run)
     print(f"  {n} files from guides/")
-    print(
-        f"  {_TRANSFORM_COUNTS['h1_stripped']} body H1(s) stripped, "
-        f"{_TRANSFORM_COUNTS['summary_mapped']} summary→description"
-    )
 
     print("build-site: copying changelog …")
     changelog_src = REPO_ROOT / "docs" / "product" / "changelog.md"
@@ -1223,6 +1219,15 @@ def main() -> None:
         )
         sys.exit(1)
 
+    # Whole-build totals, printed last: the two transforms run across the guide
+    # mirror AND the pack-README copies, so a per-stage line would attribute
+    # pack strips to the guides stage. `--dry-run` short-circuits copy_file
+    # before the transform, so its totals are lower by design.
+    print(
+        f"build-site: {_TRANSFORM_COUNTS['h1_stripped']} body H1(s) stripped, "
+        f"{_TRANSFORM_COUNTS['summary_mapped']} summary→description"
+        + (" (dry run — copies short-circuited)" if args.dry_run else "")
+    )
     print("build-site: done." + (" (dry run)" if args.dry_run else ""))
 
 

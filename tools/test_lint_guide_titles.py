@@ -5,7 +5,14 @@ Both are load-bearing and neither was covered: `_strip_leading_h1` rewrites ever
 one of the 216 generated docs pages, and the lint is the gate that keeps the
 frontmatter title and the body H1 from drifting apart again.
 
-Run directly (`python3 tools/test_lint_guide_titles.py`) or via `make test`.
+Run directly: `python3 tools/test_lint_guide_titles.py`. Exit code is the
+result. CI runs it in the `lint-guide-titles` job of `.github/workflows/docs.yml`.
+
+NOT a pytest module, deliberately. `check()` records failures and returns rather
+than raising, so a pytest run would collect the entry points, swallow every
+failure, and report green — the exact vacuous-pass shape this file exists to
+prevent elsewhere. The entry points are `_run_*` so pytest cannot collect them;
+if you convert this to pytest, convert `check()` to a bare `assert` first.
 """
 from __future__ import annotations
 
@@ -49,7 +56,7 @@ def write(tmp: Path, filename: str, text: str) -> Path:
 # leading_h1 / _strip_leading_h1 — the transform that rewrites every page
 # ---------------------------------------------------------------------------
 
-def test_leading_h1() -> None:
+def _run_leading_h1() -> None:
     print("leading_h1 / _strip_leading_h1")
 
     check(
@@ -92,7 +99,7 @@ def test_leading_h1() -> None:
 # _strip_guide_metadata — H1 removal + summary -> description
 # ---------------------------------------------------------------------------
 
-def test_strip_guide_metadata() -> None:
+def _run_strip_guide_metadata() -> None:
     print("_strip_guide_metadata")
 
     out = build_site._strip_guide_metadata(
@@ -142,7 +149,7 @@ def test_strip_guide_metadata() -> None:
 # the lint
 # ---------------------------------------------------------------------------
 
-def test_lint() -> None:
+def _run_lint() -> None:
     print("lint-guide-titles")
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
@@ -228,11 +235,50 @@ def test_lint() -> None:
         p = write(tmp, "broken.md", '---\ntitle: "A\n  bad: [\n---\n\n# X\n')
         check("(j) malformed frontmatter is not this gate's problem", lint.check_file(p) is None)
 
+        # The leading H1 matching the title does not excuse a SECOND body H1 —
+        # the build strips only the first, so the rest still render as <h1>.
+        p = write(
+            tmp,
+            "two-h1.md",
+            '---\ntitle: "Alpha"\n---\n\n# Alpha\n\nprose\n\n# A Second Real H1\n\nmore\n',
+        )
+        msg = lint.check_file(p)
+        check("(k) a matching leading H1 plus a second body H1 is reported", msg is not None)
+        check(
+            "(k2) with the not-first-block message",
+            bool(msg) and "not the first block" in msg,
+            str(msg),
+        )
+
+        # A frontmatterless guide takes its title from a leading H1; a
+        # non-leading one survives the build the same way.
+        p = write(tmp, "nofm-stray.md", "Intro paragraph.\n\n# Stray Heading\n\nmore\n")
+        check(
+            "(l) a frontmatterless guide with a non-leading H1 is reported",
+            lint.check_file(p) is not None,
+        )
+
+        p = write(tmp, "nofm-ok.md", "# Leading Heading\n\nprose\n")
+        check("(l2) a frontmatterless guide with only a leading H1 passes", lint.check_file(p) is None)
+
+        # `====` under a table row or list item is a divider, not a setext H1.
+        p = write(
+            tmp,
+            "divider.md",
+            '---\ntitle: "Alpha"\n---\n\n# Alpha\n\n| a | b |\n| - | - |\n'
+            "| 1 | 2 |\n============\n\nmore\n",
+        )
+        check(
+            "(m) an ASCII divider under a table row is not a setext H1",
+            lint.check_file(p) is None,
+            str(lint.check_file(p)),
+        )
+
 
 def main() -> int:
-    test_leading_h1()
-    test_strip_guide_metadata()
-    test_lint()
+    _run_leading_h1()
+    _run_strip_guide_metadata()
+    _run_lint()
     print()
     if FAILURES:
         print(f"test-lint-guide-titles: {len(FAILURES)} failure(s)", file=sys.stderr)

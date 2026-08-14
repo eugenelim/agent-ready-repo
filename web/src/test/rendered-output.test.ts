@@ -142,17 +142,22 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     expect(offenders, `unwrapped tables: ${offenders.join(', ')}`).toEqual([]);
   });
 
-  it('AC8: scroll regions are distinguishable to a screen reader', () => {
-    const page = join(DOCS_ROOT, 'guides/_shared/reference/agentbundle/index.html');
-    if (!existsSync(page)) return; // page renamed — AC8 above still covers the wrapping
-    const labels = [...doc(page).querySelectorAll('.table-scroll')].map((el) =>
-      el.getAttribute('aria-label')
-    );
-    expect(labels.length).toBeGreaterThan(1);
-    expect(new Set(labels).size, `duplicate region labels: ${labels.join(' | ')}`).toBe(
-      labels.length
-    );
-  });
+  // Pinned to one many-table page. skipIf, not an early return: a return
+  // reports a green pass for a test that asserted nothing — the shape this
+  // file's header warns about.
+  const MANY_TABLES = join(DOCS_ROOT, 'guides/_shared/reference/agentbundle/index.html');
+  it.skipIf(!existsSync(MANY_TABLES))(
+    'AC8: scroll regions are distinguishable to a screen reader',
+    () => {
+      const labels = [...doc(MANY_TABLES).querySelectorAll('.table-scroll')].map((el) =>
+        el.getAttribute('aria-label')
+      );
+      expect(labels.length).toBeGreaterThan(1);
+      expect(new Set(labels).size, `duplicate region labels: ${labels.join(' | ')}`).toBe(
+        labels.length
+      );
+    }
+  );
 });
 
 describe.skipIf(!webBuilt)('built marketing output', () => {

@@ -38,7 +38,7 @@
 **What demonstrates done**
 
 Full build (`build-site.py` → `web` → `docs-site`), then: a Python parse of
-`build/docs/**/index.html` showing 0 multi-`h1` pages and ≥46 pages carrying a
+`build/docs/**/index.html` showing 0 multi-`h1` pages and ≥47 pages carrying a
 non-empty meta description; the new lint failing on a divergent fixture and
 passing on the tree; a Playwright + axe sweep over both surfaces at
 360/375/390/414/1440 px reporting 0 body overflow, 0 serious violations, and
@@ -101,7 +101,7 @@ and T2's lint keeps it inverted.
 
 **Tests:** goal-based. `Done when:` after a full build, a Python parse of
 `build/docs/**/index.html` reports `0` pages whose `<main>` contains more than
-one `<h1>` (baseline 38).
+one `<h1>` (baseline 38 of 217).
 
 **Approach:** in `_strip_guide_metadata`, after the frontmatter block is
 parsed, remove the first `^#\s+` heading from the body the same way
@@ -115,7 +115,8 @@ case explicitly rather than assuming.
 **Tests:** TDD. Fixtures: (a) frontmatter title and body H1 identical → pass;
 (b) differing beyond case/punctuation ("freshly installed" vs
 "freshly-installed") → fail with both strings in the message; (c) no body H1
-→ pass; (d) no frontmatter → pass. Red stub written before implementation.
+→ pass; (d) no frontmatter → pass. (Written after the lint, in response to a review finding — not
+red-stub-first as originally planned.)
 
 **Approach:** `tools/lint-guide-titles.py` walks `guides/**.md`,
 normalises case, hyphens, and terminal punctuation, exits non-zero on
@@ -127,12 +128,13 @@ invocation so the existing `paths:` trigger convention holds.
 
 **Tests:** goal-based + visual QA. `Done when:` every guide declaring
 `summary:` emits a non-empty `<meta name="description">` in its built page
-(baseline 0 of 46), and a screenshot shows the string as a muted line between
+(baseline 0 of 47), and a screenshot shows the string as a muted line between
 the title and the first body paragraph.
 
-**Approach:** drop `summary` from `_GUIDE_ONLY_FIELDS` and map it onto
-`description` when the guide does not already declare one (2 guides do —
-theirs wins). Add `docs-site/src/components/PageTitle.astro` rendering the
+**Approach:** keep `summary` in `_GUIDE_ONLY_FIELDS` and copy it onto
+`description` before the strip, when the guide does not already declare one.
+(No guide declares an explicit `description` today; the branch exists so that a
+future one wins over its `summary`.) Add `docs-site/src/components/PageTitle.astro` rendering the
 title plus, when present, the description as a deck; register it in the
 `components` map. Style the deck in `starlight.css` at the muted foreground
 token, re-running `check-docs-contrast.py`.
@@ -145,7 +147,8 @@ token, re-running `check-docs-contrast.py`.
 `guides/_shared/reference/agentbundle` page at 360/375/390/414 px (baseline
 1–3).
 
-**Approach:** rehype plugin in `astro.config.ts` wrapping each `<table>` in a
+**Approach:** rehype plugin in `src/plugins/rehype-scrollable-tables.ts`,
+wired from `astro.config.ts`, wrapping each `<table>` in a
 `<div class="table-scroll" tabindex="0" role="region" aria-label="…">`; move
 the horizontal scroll onto the wrapper in `starlight.css` and give it a
 visible `:focus-visible` ring. Build-time, no runtime JS. Starlight already
@@ -242,7 +245,7 @@ assertion cannot go permanently green.
   already records that re-verification is required after any Starlight upgrade.
   Add the two new touchpoints to that note.
 - **~~`title`-less guides.~~ Resolved at PLAN.** Enumerated before editing: all
-  46 guides carrying frontmatter declare a `title`, and 37 of them also carry a
+  47 guides carrying frontmatter declare a `title`, and 38 of them also carry a
   body H1. T1's strip therefore never removes a page's only heading source. The
   38th duplicate is the generated `packs/index.md`, which builds its own H1 on
   top of a frontmatter title — a separate line in the same generator, fixed in

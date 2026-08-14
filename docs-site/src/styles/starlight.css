@@ -325,7 +325,7 @@ main h1 {
 
 /* Tables: 2px head rule, 1px row rules.
    The scroll lives on the .table-scroll wrapper the rehype plugin emits
-   (astro.config.ts) rather than on the table, so the scrollable box is the
+   (src/plugins/rehype-scrollable-tables.ts) rather than on the table, so the scrollable box is the
    one that carries tabindex and can be reached by keyboard. */
 .sl-markdown-content .table-scroll {
   overflow-x: auto;

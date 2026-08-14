@@ -1918,13 +1918,13 @@ open = [
   # Unblocks when: ready now.
   { slug = "guide-typed-asides-conversion" },
 
-  # 142 of 188 guides carry no frontmatter at all, so they have no `summary:`
+  # 142 of 189 guides carry no frontmatter at all, so they have no `summary:`
   # and therefore no page-specific meta description — Starlight falls back to
   # the site-level description on every one of them, which means no distinct
   # social-preview text, no search-engine snippet, and no Pagefind result
   # snippet. spec/tech-site-polish-batch built the plumbing (build-site.py maps
   # `summary:` -> Starlight `description`, and the PageTitle override renders it
-  # as a visible deck), and 46 guides already benefit; this item is the content
+  # as a visible deck), and 47 guides already benefit; this item is the content
   # backfill for the remaining 142. Deliberately NOT auto-generated from first
   # paragraphs — that was declined during the batch because it would ship 142
   # unreviewed strings into meta tags and social previews. Each needs a human
@@ -1949,14 +1949,18 @@ open = [
   { slug = "site-shared-chrome-band" },
 
   # tools/lint-guide-titles.py (added by spec/tech-site-polish-batch) found 9
-  # guides whose frontmatter title and body H1 disagreed. The H1s were deleted
-  # because the generator now strips them at build time, so they were dead text
-  # in source — but that means the WEAKER of the two strings is what publishes:
+  # guides whose frontmatter title and body H1 disagreed. The H1s were
+  # RECONCILED to match `title:` — not deleted. Deletion was considered and
+  # rejected: guides/_shared/** ships verbatim into adopter catalogues and
+  # bundles where frontmatter never renders, so a deleted H1 leaves those files
+  # opening with no heading at all. Reconciling means the frontmatter title is
+  # what publishes, and in most cases that is the WEAKER of the two strings:
   # "Scaffold a Component" beat "Tutorial: Scaffold a component from a screen
   # brief"; "Run an Audit" beat "How-to: Run a frontend-engineering audit";
   # "Frontend Engineering Pack" beat "`frontend-engineering` — the skills and
   # the reviewer"; "IaC (Terraform) guides" beat "`iac-terraform` — guides".
-  # No content is lost (the old H1s are in git history at the batch's commit).
+  # Two of the nine went the other way (the longer string won). No content is
+  # lost — the old H1s are in git history at the batch's commit.
   # Fix: pick the better wording for those 9 and put it in `title:`. Files: the
   # 9 guides listed in that commit. Watch: guide-nav-baseline.toml resolves
   # sidebar labels from a frozen baseline before falling back to the page title,

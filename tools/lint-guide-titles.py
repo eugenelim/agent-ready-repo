@@ -70,6 +70,9 @@ def normalise(text: str) -> str:
 _FENCE_RE = re.compile(r"^\s*(```|~~~)")
 _ATX_H1_RE = re.compile(r"^#[ \t]+(.+?)[ \t]*$")
 _SETEXT_H1_RE = re.compile(r"^=+\s*$")
+# Table rows, list items, blockquotes, and fence/indent markers cannot be the
+# text half of a setext heading.
+_NOT_A_HEADING_RE = re.compile(r"^(\||[-*+]\s|\d+[.)]\s|>|#|=|\s{4,})")
 
 
 def _rel(path: Path) -> Path:
@@ -78,6 +81,22 @@ def _rel(path: Path) -> Path:
         return path.relative_to(REPO_ROOT)
     except ValueError:
         return path
+
+
+def _stray_message(path: Path, body: str, title: str | None) -> str | None:
+    """Report a non-leading body H1, which the build cannot strip."""
+    stray = _stray_body_h1(body)
+    if stray is None:
+        return None
+    source = f"    title: {title}\n" if title else ""
+    return (
+        f"{_rel(path)}: body H1 is not the first block, so the build cannot "
+        "strip it\n"
+        f"{source}"
+        f"    H1:    {stray}\n"
+        "    It will render as a second <h1> beneath the page title. Move it to\n"
+        "    the top of the body, demote it to '##', or delete it."
+    )
 
 
 def _stray_body_h1(body: str) -> str | None:
@@ -98,8 +117,14 @@ def _stray_body_h1(body: str) -> str | None:
         m = _ATX_H1_RE.match(line)
         if m and i > 0:
             return m.group(1)
-        if _SETEXT_H1_RE.match(line) and i > 0 and lines[i - 1].strip():
-            return lines[i - 1].strip()
+        if _SETEXT_H1_RE.match(line) and i > 0:
+            prev = lines[i - 1].strip()
+            # A run of `=` only underlines a heading when the line above could
+            # be one. Without this guard an ASCII divider under a table row,
+            # list item, or blockquote reads as a setext H1 and fails CI on a
+            # file that renders perfectly.
+            if prev and not _NOT_A_HEADING_RE.match(prev):
+                return prev
     return None
 
 
@@ -114,10 +139,17 @@ def split_frontmatter(text: str) -> tuple[str, str] | None:
 
 
 def check_file(path: Path) -> str | None:
-    """Return an error message when title and body H1 diverge, else None."""
-    parts = split_frontmatter(path.read_text(encoding="utf-8"))
+    """Return an error message when a guide would render two `<h1>`s, else None."""
+    text = path.read_text(encoding="utf-8")
+    parts = split_frontmatter(text)
+
     if parts is None:
-        return None  # no frontmatter — build-site.py derives the title from the H1
+        # No frontmatter: build-site.py derives the title from a *leading* H1,
+        # so there is no title to diverge from — but a non-leading H1 still
+        # survives the build and renders beneath the generated title. Checked
+        # unconditionally; the strip is anchored, so anything past the first
+        # block is a second heading regardless of where the title came from.
+        return _stray_message(path, text, title=None)
     yaml_block, body = parts
 
     # Parsed with yaml, not a line regex: build-site.py parses the same block
@@ -132,30 +164,20 @@ def check_file(path: Path) -> str | None:
         return None
 
     title = data.get("title")
-    if not isinstance(title, str) or not title.strip():
-        return None  # no title — the H1 is the only title source
+    title = title if isinstance(title, str) and title.strip() else None
+
+    # A stray (non-leading) H1 renders as a second <h1> whether or not the
+    # leading one matches, so this runs unconditionally — checking it only when
+    # there is no leading H1 misses `# Alpha` … `# A Second Real H1`.
+    stray = _stray_message(path, body, title)
+    if stray is not None:
+        return stray
+
+    if title is None:
+        return None  # no title — the leading H1 is the only title source
 
     h1 = leading_h1(body)
-    if h1 is None:
-        # The build only strips a *leading* H1, so a body H1 that sits after a
-        # comment, a badge line, or as a setext underline survives and renders
-        # as a second <h1> — the exact defect this gate exists to prevent. Look
-        # for one, skipping fenced code (42 `# ` lines across 14 guides are
-        # shell comments in bash samples, not headings).
-        stray = _stray_body_h1(body)
-        if stray is None:
-            return None
-        rel = _rel(path)
-        return (
-            f"{rel}: body H1 is not the first block, so the build cannot strip "
-            "it\n"
-            f"    title: {title}\n"
-            f"    H1:    {stray}\n"
-            "    It will render as a second <h1> beneath the page title. Move it\n"
-            "    to the top of the body, or delete it."
-        )
-
-    if normalise(title) == normalise(h1):
+    if h1 is None or normalise(title) == normalise(h1):
         return None
 
     return (
