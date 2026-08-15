@@ -279,14 +279,26 @@ main h1 {
   text-decoration-color: var(--doc-accent-strong);
 }
 
-/* Inline code: tinted chips */
+/* Inline code: quiet mono on a neutral ground.
+   Deliberately NOT accent-coloured. This prose names files and commands
+   constantly, so an accent-tinted chip turned whole paragraphs — and most of
+   the reference tables — into a mosaic of blue. The accent hue is reserved for
+   links and active state; code keeps the mono voice and a low-contrast ground. */
 .sl-markdown-content code:not(:where(.expressive-code *)) {
   font-family: var(--doc-font-mono);
   font-size: 0.85em;
-  background-color: var(--sl-color-bg-inline-code);
-  color: var(--doc-accent-strong);
+  /* --doc-surface, not the --sl-color-bg-inline-code slot: that slot resolves
+     to the accent tint in the dark theme, which is exactly the blue wash this
+     rule exists to remove. The slot keeps its value for Starlight's own uses. */
+  background-color: var(--doc-surface);
+  color: var(--doc-text);
   border-radius: 4px;
   padding: 0.15em 0.4em;
+}
+
+/* Links keep the accent even when their label is code. */
+.sl-markdown-content a code:not(:where(.expressive-code *)) {
+  color: inherit;
 }
 
 /* At heading scale the chip box competes with the serif for hierarchy —
@@ -311,7 +323,33 @@ main h1 {
   padding: 0;
 }
 
-/* Tables: 2px head rule, 1px row rules */
+/* Tables: 2px head rule, 1px row rules.
+   The scroll lives on the .table-scroll wrapper the rehype plugin emits
+   (src/plugins/rehype-scrollable-tables.ts) rather than on the table, so the scrollable box is the
+   one that carries tabindex and can be reached by keyboard. */
+.sl-markdown-content .table-scroll {
+  overflow-x: auto;
+  /* Contains any absolutely-positioned descendant, so a wide table cannot
+     push the page body sideways. */
+  position: relative;
+}
+
+.sl-markdown-content .table-scroll:focus-visible {
+  outline: 2px solid var(--doc-accent);
+  outline-offset: 2px;
+}
+
+/* Starlight's base rule makes the table itself `display:block; overflow:auto`,
+   so the table — not the wrapper — was the scroll container, and axe kept
+   flagging it as an unfocusable scrollable region. Hand the scroll to the
+   wrapper and let the table lay out as a table again, which also restores
+   column alignment on wide reference tables. */
+.sl-markdown-content .table-scroll > table {
+  display: table;
+  overflow: visible;
+  min-width: 100%;
+}
+
 .sl-markdown-content table {
   font-size: 0.875rem;
 }

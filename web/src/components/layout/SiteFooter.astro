@@ -1,19 +1,65 @@
 ---
-// Footer — dark zone. Section 9 ("Build Your Org") closer is added in T6 above
-// these links; for now this is the minimal footer (GitHub, PyPI, Docs).
+// Footer — dark zone. Labelled column groups rather than a flat link row: this
+// is the last thing on every marketing page, and a three-link strip was
+// carrying none of the site's navigable surface. Every href below resolves to
+// a route that exists in the build; do not add a column entry without one.
 import { withBase } from '../../lib/paths';
 const year = new Date().getFullYear();
+
+const columns = [
+  {
+    label: 'Product',
+    links: [
+      { text: 'How it works', href: withBase('/#three-loops') },
+      { text: 'Use cases', href: withBase('/#use-cases') },
+      { text: 'Catalogue', href: withBase('/catalogue/') },
+      { text: 'Packs', href: withBase('/packs/') },
+      { text: 'Journeys', href: withBase('/journeys/') },
+    ],
+  },
+  {
+    label: 'Docs',
+    links: [
+      { text: 'Get started', href: withBase('/docs/getting-started/') },
+      { text: 'Install', href: withBase('/docs/getting-started/install/') },
+      { text: 'The three loops', href: withBase('/docs/getting-started/three-loops/') },
+      { text: 'All docs', href: withBase('/docs/') },
+    ],
+  },
+  {
+    label: 'Project',
+    links: [
+      { text: 'Changelog', href: withBase('/docs/changelog/') },
+      { text: 'Contributing', href: withBase('/docs/contributing/') },
+      { text: 'Claude plugins', href: withBase('/plugins/') },
+      { text: 'GitHub', href: 'https://github.com/eugenelim/agent-ready-repo' },
+      { text: 'PyPI', href: 'https://pypi.org/project/agentbundle/' },
+    ],
+  },
+];
 ---
 
 <footer class="footer">
   <div class="footer__inner">
-    <p class="footer__brand">agent-ready-repo</p>
-    <nav class="footer__links" aria-label="Footer">
-      <a href={withBase('/docs/')} rel="noopener">Docs</a>
-      <a href="https://github.com/eugenelim/agent-ready-repo" rel="noopener">GitHub</a>
-      <a href="https://pypi.org/project/agentbundle/" rel="noopener">PyPI</a>
+    <div class="footer__brandcol">
+      <p class="footer__brand">agent-ready-repo</p>
+      <p class="footer__tag">The supervised AI operating model for software teams.</p>
+    </div>
+
+    <nav class="footer__cols" aria-label="Footer">
+      {columns.map((col) => (
+        <div class="footer__col">
+          <h2 class="footer__collabel">{col.label}</h2>
+          <ul class="footer__list">
+            {col.links.map((l) => (
+              <li><a href={l.href} rel="noopener">{l.text}</a></li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </nav>
-    <p class="footer__copy">© {year} · The supervised AI operating model for software teams.</p>
+
+    <p class="footer__copy">© {year} · agent-ready-repo</p>
   </div>
 </footer>
 
@@ -26,11 +72,10 @@ const year = new Date().getFullYear();
   .footer__inner {
     max-width: var(--ds-content-max);
     margin-inline: auto;
-    padding: var(--ds-space-7) var(--ds-content-pad-x);
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: var(--ds-space-4) var(--ds-space-6);
+    padding: var(--ds-space-8) var(--ds-content-pad-x) var(--ds-space-7);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    gap: var(--ds-space-7) var(--ds-space-8);
   }
 
   .footer__brand {
@@ -39,24 +84,75 @@ const year = new Date().getFullYear();
     color: var(--ds-hero-fg);
   }
 
-  .footer__links {
-    display: flex;
-    gap: var(--ds-space-5);
+  .footer__tag {
+    margin-top: var(--ds-space-2);
+    font-size: var(--ds-type-sm);
+    color: var(--ds-hero-fg-muted);
+    max-width: 34ch;
   }
 
-  .footer__links a {
+  .footer__cols {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--ds-space-6);
+  }
+
+  .footer__collabel {
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: var(--ds-track-label);
+    color: var(--ds-hero-fg);
+    margin-bottom: var(--ds-space-3);
+  }
+
+  .footer__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-space-2);
+  }
+
+  .footer__list a {
     color: var(--ds-hero-fg-2);
     font-size: var(--ds-type-sm);
   }
 
-  .footer__links a:hover {
+  .footer__list a:hover {
     color: var(--ds-accent);
     text-decoration: none;
   }
 
   .footer__copy {
-    flex-basis: 100%;
+    grid-column: 1 / -1;
+    padding-top: var(--ds-space-5);
+    border-top: 1px solid var(--ds-hero-border);
     font-size: var(--ds-type-sm);
     color: var(--ds-hero-fg-muted);
+  }
+
+  @media (max-width: 768px) {
+    .footer__inner {
+      grid-template-columns: minmax(0, 1fr);
+      gap: var(--ds-space-6);
+    }
+
+    .footer__cols {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--ds-space-5) var(--ds-space-4);
+    }
+
+    /* 44px rows so the column links are real touch targets on a phone. */
+    .footer__list a {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+    }
+
+    .footer__list {
+      gap: 0;
+    }
   }
 </style>

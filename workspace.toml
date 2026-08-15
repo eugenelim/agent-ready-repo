@@ -1831,6 +1831,182 @@ open = [
   # boundary to read the Windows store via interop; that would auto-trust
   # material from outside the distribution's own trust domain.
   { slug = "catalogue-trust-store-wsl-diagnosis", source = "spec/catalogue-corporate-trust-store — WSL guidance criterion" },
+  # ---------------------------------------------------------------------------
+  # Tech-site design review 2026-08-14 — deferred findings + implementation
+  # surfacings.
+  #
+  # Source: an in-session design review of both site surfaces (`web/` marketing
+  # at `/`, `docs-site/` Starlight docs at `/docs/`) rendered at 1440x900 and
+  # 360/375/390/414 phone widths in light and dark, benchmarked against an
+  # external reference docs site (supplied in-session; deliberately not named
+  # in-tree). The review produced 2 blockers, 7 majors, 8 minors. The mechanical
+  # subset shipped as spec/tech-site-polish-batch; these are the rest, plus
+  # three items that only surfaced while implementing it.
+  #
+  # Items 1-6 are the deferred review findings; 7-8 surfaced during
+  # implementation; 9-10 need design work before they are specs.
+  # Only one hard dependency: docs-sidebar-guide-tree needs
+  # docs-landing-orientation-hub. Everything else is parallel-safe.
+  # ---------------------------------------------------------------------------
+
+  # The docs landing page is built like a marketing page, not an orientation
+  # hub: at 1440x900 it shows a three-line ~90px serif headline, a four-line
+  # tagline, and two stacked pill CTAs (both filled, both primary blue, no
+  # hierarchy) and nothing else above the fold — first CTA top edge at y=621,
+  # right half of the viewport empty. The documentation genre rubric wants three
+  # things above the fold: one "start here" promise, one entry point per content
+  # type named by what the reader accomplishes, and prominent search. Search is
+  # already there (Pagefind) and is better than the reference's — it has none.
+  # The other two are missing. The reference fits its title, deck, four section
+  # headings and eleven description-bearing cards in the same pixels at a ~32px
+  # title. Fix: demote the hero to title + one-line deck, lead with a grouped
+  # card grid (one card per pack/section carrying the one-line description that
+  # spec/tech-site-polish-batch already plumbed through as `description`), and
+  # make the second CTA a text link. Files: docs-site/src/content/docs/index.mdx,
+  # docs-site/src/styles/starlight.css. Decision already taken: display-scale
+  # type stays on the marketing surface only.
+  # Unblocks when: ready now.
+  { slug = "docs-landing-orientation-hub" },
+
+  # The docs sidebar goes two levels deep (group -> pack) but guide pages live
+  # four levels deep (guides/<pack>/<quadrant>/<page>) and appear nowhere in it
+  # — no item is highlighted and the tree never expands to the current page, so
+  # on a 217-page site the reader has no sense of position or of what is nearby.
+  # Knock-on that makes this more than cosmetic: Starlight derives its prev/next
+  # pager from sidebar order, so there is NO pagination on any guide page today
+  # — the page ends at its last section and drops straight into the footer. The
+  # reference site, at 26 pages, still ships a two-card pager. Fix: put guide
+  # pages into the sidebar tree under their pack and quadrant with current-page
+  # state and ancestor expansion; pagination returns for free. Files:
+  # tools/build-site.py (generate_sidebar_config), docs-site/astro.config.ts,
+  # site.toml [guide_groups]. Watch: ~220 sidebar entries will need a default
+  # collapse state, and guides/_shared (39 pages) plus guides/_reference need a
+  # placement decision.
+  # Unblocks when: docs-landing-orientation-hub lands (the hub decides the
+  # section taxonomy the sidebar mirrors).
+  { slug = "docs-sidebar-guide-tree", needs = ["backlog:docs-landing-orientation-hub"] },
+
+  # Docs pages have no breadcrumb — just a small detached "← Platform" back-link
+  # floating above the title, which tells the reader how to leave rather than
+  # where they are. URL depth is docs/guides/<pack>/<quadrant>/<page> across ~220
+  # pages; the reference ships a real trail (Docs / Automation / Playbooks, middle
+  # segment clickable) for a flat 26-page site. Starlight has no built-in
+  # breadcrumb, so this needs a component override rendering into the content
+  # column rather than above it. Files: new docs-site/src/components/ override
+  # registered in astro.config.ts `components`, docs-site/src/styles/starlight.css.
+  # Note: docs-site/AGENTS.md records that Starlight internals are a pinned
+  # styling contract — add any new override to that list (the PageTitle override
+  # and rehypeScrollableTables plugin from spec/tech-site-polish-batch are
+  # already recorded there).
+  # Unblocks when: ready now.
+  { slug = "docs-breadcrumb-trail" },
+
+  # Typed callouts are effectively unused: 3 of 188 guides use Starlight `:::`
+  # asides while 74 use plain `>` blockquotes — and those blockquotes are
+  # carrying real callout load (the recurring "If you don't see this: ..."
+  # recovery notes in tutorials, the "Skipped markers don't disappear" pitfalls
+  # in how-tos). They render as an undifferentiated thin grey rule with no icon,
+  # no tint and no label, at the same visual weight as body text. The reference
+  # uses tinted, icon-led Note/Tip/Warning boxes on 24 of its 26 pages; this is
+  # the single largest scannability gap between the two documentation surfaces.
+  # Fix: classify each load-bearing blockquote (note / tip / caution) and
+  # convert, then document the typed aside as the default for any non-quotation
+  # aside in the catalogue authoring standards. Decision already taken:
+  # Starlight's aside vocabulary (note/tip/caution/danger) is fixed by the
+  # framework, so this does NOT wait on site-design-principles. Scope: leave
+  # genuine quotations as blockquotes.
+  # Unblocks when: ready now.
+  { slug = "guide-typed-asides-conversion" },
+
+  # 142 of 189 guides carry no frontmatter at all, so they have no `summary:`
+  # and therefore no page-specific meta description — Starlight falls back to
+  # the site-level description on every one of them, which means no distinct
+  # social-preview text, no search-engine snippet, and no Pagefind result
+  # snippet. spec/tech-site-polish-batch built the plumbing (build-site.py maps
+  # `summary:` -> Starlight `description`, and the PageTitle override renders it
+  # as a visible deck), and 47 guides already benefit; this item is the content
+  # backfill for the remaining 142. Deliberately NOT auto-generated from first
+  # paragraphs — that was declined during the batch because it would ship 142
+  # unreviewed strings into meta tags and social previews. Each needs a human
+  # one-liner. Consider batching by pack. Files: guides/**/*.md frontmatter.
+  # Unblocks when: ready now.
+  { slug = "guide-summary-backfill" },
+
+  # The marketing site and the docs site are two visually disconnected products.
+  # At /docs/ the Starlight chrome replaces everything: the header loses the
+  # marketing nav (leaving title + search + GitHub icon) and the footer loses
+  # every link. The reference keeps one header and one footer across both
+  # surfaces, so a docs reader is one click from every top-level destination.
+  # Also: the marketing nav renders "Docs ↗" with an external-link arrow and a
+  # dimmer colour than its siblings, which reads as leaving the product. Fix:
+  # a shared header band and shared footer across both surfaces; drop the ↗ and
+  # match sibling colour. HAZARD: docs-site/AGENTS.md explicitly forbids aligning
+  # docs colour to web/'s amber system without a new spec, and the two palettes
+  # are deliberately separate (see spec/docs-site-design-refresh). Shared chrome
+  # must either stay palette-neutral or amend that rule through an RFC — do not
+  # quietly work around it.
+  # Unblocks when: ready now, but confirm the palette question first.
+  { slug = "site-shared-chrome-band" },
+
+  # tools/lint-guide-titles.py (added by spec/tech-site-polish-batch) found 9
+  # guides whose frontmatter title and body H1 disagreed. The H1s were
+  # RECONCILED to match `title:` — not deleted. Deletion was considered and
+  # rejected: guides/_shared/** ships verbatim into adopter catalogues and
+  # bundles where frontmatter never renders, so a deleted H1 leaves those files
+  # opening with no heading at all. Reconciling means the frontmatter title is
+  # what publishes, and in most cases that is the WEAKER of the two strings:
+  # "Scaffold a Component" beat "Tutorial: Scaffold a component from a screen
+  # brief"; "Run an Audit" beat "How-to: Run a frontend-engineering audit";
+  # "Frontend Engineering Pack" beat "`frontend-engineering` — the skills and
+  # the reviewer"; "IaC (Terraform) guides" beat "`iac-terraform` — guides".
+  # Two of the nine went the other way (the longer string won). No content is
+  # lost — the old H1s are in git history at the batch's commit.
+  # Fix: pick the better wording for those 9 and put it in `title:`. Files: the
+  # 9 guides listed in that commit. Watch: guide-nav-baseline.toml resolves
+  # sidebar labels from a frozen baseline before falling back to the page title,
+  # so a title change may not move the sidebar label — check both.
+  # Unblocks when: ready now.
+  { slug = "guide-title-wording-review" },
+
+  # Test coverage landed for tools/lint-guide-titles.py and build-site.py's
+  # leading_h1 / _strip_leading_h1 / _strip_guide_metadata transforms
+  # (tools/test_lint_guide_titles.py, 33 assertions, wired into the docs
+  # workflow). What is still uncovered: the rehype table-wrapper in
+  # docs-site/src/plugins/rehype-scrollable-tables.ts has no unit test — its
+  # only coverage is the built-output assertion in
+  # web/src/test/rendered-output.test.ts, which proves the emitted HTML but not
+  # the hast-level edge cases (already-wrapped table, table inside an aside or
+  # blockquote, root-level table). A unit test needs a test runner in
+  # docs-site/, which is a new dependency and therefore an AGENTS.md
+  # dependency-table entry — hence deferred rather than bundled.
+  # Unblocks when: ready now; decide whether docs-site earns a test runner.
+  { slug = "rehype-plugin-unit-tests" },
+
+  # Docs pages carry a large number of interactive elements under the WCAG 2.2
+  # 24x24 target-size minimum — 40-47 on the docs landing, 12-26 on content
+  # pages at 360-414px. Many are inline links in prose (exempt under the
+  # inline-in-text carve-out) and several are Starlight-owned (`.sl-anchor-link`
+  # heading anchors measure 24x35). Needs a design pass to separate the genuine
+  # failures from the exempt and the framework-owned before any fix is specced —
+  # which is why this is shaping, not build. Note the marketing surface was
+  # already fixed in spec/tech-site-polish-batch (drawer links went from 17px to
+  # 44px full-width rows).
+  # Unblocks when: ready now.
+  { slug = "docs-tap-target-audit", type = "design" },
+
+  # There is no docs/design/principles/ artefact for either site surface, so the
+  # in-session design review could trace none of its findings to a project
+  # principle — every finding had to map to the accessibility quality floor, a
+  # recognized usability heuristic, or a genre rubric, and pure aesthetic calls
+  # had to be quarantined as unarbitrable "director's notes". Without this, taste
+  # arguments about the two surfaces have no arbiter and every future review
+  # re-litigates them. Known open questions it should settle: whether the two
+  # palettes stay deliberately divergent (amber/dark-hero marketing vs cobalt/
+  # cool-neutral docs — currently mandated by docs-site/AGENTS.md); whether the
+  # docs surface should use display serif at H1/H2 scale at all; and whether the
+  # product wants an illustrative register (it currently has none).
+  # Unblocks when: ready now.
+  { slug = "site-design-principles", type = "design" },
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

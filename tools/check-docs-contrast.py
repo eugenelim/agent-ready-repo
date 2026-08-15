@@ -27,6 +27,11 @@ PAIRS = [
     ("--doc-text-faint", "--doc-ground"),
     ("--doc-accent-strong", "--doc-ground"),
     ("--doc-accent-strong", "--doc-surface"),
+    # Inline code — neutral text on the neutral surface (it is deliberately not
+    # accent-tinted; see the inline-code rule in starlight.css).
+    ("--doc-text", "--doc-surface"),
+    # The page deck rendered by the PageTitle override.
+    ("--sl-color-gray-3", "--doc-ground"),
     ("--doc-code-text", "--doc-code-ground"),
     ("--ds-state-success-fg", "--ds-state-success-bg"),
     ("--ds-state-danger-fg", "--ds-state-danger-bg"),

@@ -5,7 +5,7 @@ pack: frontend-engineering
 kind: how-to
 ---
 
-# How-to: Run a frontend-engineering audit
+# Run an Audit
 
 Use this guide when you need to audit an **existing surface** — a component,
 a page, or a set of pages you did not build. The output is an audit report and,
