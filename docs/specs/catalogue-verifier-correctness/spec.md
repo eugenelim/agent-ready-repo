@@ -1,6 +1,6 @@
 # Spec: catalogue-verifier-correctness
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) (portable verifier is D1/D2 infrastructure); [catalogue-wave2-pack-integrations](../catalogue-wave2-pack-integrations/spec.md) (step 19 defines integration-verification scope)
@@ -127,14 +127,29 @@ this spec at implementation time.
 
 ### Phase A — Plugin path correction
 
-- [ ] AC1: `_step_plugin_validation` (step 4) resolves the plugin manifest at
+- [x] AC1: `_step_plugin_validation` (step 4) resolves the plugin manifest at
   `pack_dir / ".claude-plugin" / "plugin.json"`, not at `pack_dir / "plugin.json"`.
   A unit test confirms: a pack with only `.claude-plugin/plugin.json` passes step 4;
   a pack with only `plugin.json` (wrong path) produces a finding.
 
-- [ ] AC2: `_step_version_parity` (step 5) resolves the plugin manifest at the same
+  **Manifest presence is not required; the pack root is not a manifest location.**
+  A `plugin.json` at the pack root is a CAT-V-004 finding whether or not the
+  canonical manifest is also present — a root copy is invisible to every consumer
+  while looking present in the tree. A pack with no manifest anywhere is *not* a
+  finding: verify runs against adopter catalogues, `catalogue lint` already treats
+  the manifest as optional, and an unconditional error fails every manifest-less
+  pack (including the packaging suite's own fixtures).
+  `docs/architecture/pack-layout.md` still requires the manifest of *first-party*
+  packs; that is a publication-route rule enforced by `build/main.py`, not a
+  portable-verifier rule.
+
+- [x] AC2: `_step_version_parity` (step 5) resolves the plugin manifest at the same
   corrected path as AC1. A unit test confirms version-parity check uses the `.claude-plugin/`
   path and correctly detects version mismatches.
+
+> **Phase A landed ahead of the rest of this spec** — see [plan T1](plan.md) for
+> the task record, coverage, observed verification output, and the release
+> reasoning. AC3 onward are untouched.
 
 ### Phase B — Profile validation
 

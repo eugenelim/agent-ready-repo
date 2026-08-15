@@ -6,6 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.35.3] — 2026-08-15
+
+### Fixed
+
+- **`catalogue verify` now actually checks pack manifests.** Steps 4 and 5
+  looked for the manifest at `<pack>/plugin.json`, but every pack — in this
+  repo and in a scaffolded catalogue — keeps it at
+  `<pack>/.claude-plugin/plugin.json`. The probes missed on every pack and
+  skipped it, so CAT-V-004 (manifest parses) and CAT-V-005 (pack.toml and
+  plugin.json agree on name and version) had never fired: a `pack.toml` version
+  bump without the matching `plugin.json` bump passed verify silently. Both
+  steps now read the real path, and a `plugin.json` at the pack root is reported
+  as misplaced rather than skipped. A pack with no manifest at all stays clean —
+  verify runs against adopter catalogues, and requiring one would fail every
+  manifest-less pack.
+
+  **Upgrading:** two error diagnostics that could never fire are now live, so a
+  catalogue that passed `agentbundle catalogue verify` on 0.35.2 may report
+  CAT-V-004 or CAT-V-005 on 0.35.3. Both point at a real defect — a manifest
+  that is misplaced or unparseable, or a `pack.toml` and `plugin.json` that
+  disagree on name or version. Released as a patch, not a minor: the next minor
+  is reserved for the rest of `spec/catalogue-verifier-correctness` and Wave 4,
+  which are pinned to the same number.
+
 ## [0.35.2] — 2026-08-14
 
 ### Fixed
