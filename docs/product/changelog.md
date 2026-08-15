@@ -78,6 +78,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
 
+### [agentbundle][0.35.2] — 2026-08-14
+
+#### Fixed
+
+- **The certificate-setup command shown on a trust failure can now be pasted as
+  is.** It previously printed `Python 3.x` as a placeholder, leaving the adopter
+  to work out their own version first. It now names the actual version, and is
+  left out altogether when that setup script is not present on the machine.
+
 ### [agentbundle][0.35.1] — 2026-08-14
 
 #### Fixed

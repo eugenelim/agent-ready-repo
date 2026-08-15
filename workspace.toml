@@ -139,11 +139,11 @@ shipped = [
   "spec/catalogue-test-carve-out",         # ADR-0075 ownership carve-out + shipped catalogue conformance + sdist test graft
   "spec/workspace-status-simplification-order-2b", # repair-plan + repair-apply; post-publication closeout
   "spec/workspace-mcp",                    # RFC-0078 Stage 1; deferred follow-ons remain in backlog
+  {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
 ]
 queue   = [
   # P5 · Adopt — gated on adopter-persona research (evidence base)
   {path = "spec/m6-astro-project-index",         needs = "research:adopter-persona"},  # Astro site: PM-facing project index from docs/product/projects/
-  {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},  # ≥3 team types; ≤30-min shaping→brief→spec narration on org's own repo
   {path = "spec/m6-enterprise-rollout-playbook", needs = "research:adopter-persona"},  # champion→CTO→platform→engineers; staged rollout + retro template
 ]
 
@@ -2161,12 +2161,9 @@ shipped = [
   # (agentbundle catalogue contracts list/show/export), init next-step hints, and
   # authoring-hub section 12 for offline readers.
   {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}]},
+  {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
 ]
 queue   = [
-
-  # Follow-on from documentation-entry-navigation AC15. The approved spec
-  # remediates the whole rendered-link corpus before enabling its Pages gate.
-  {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
 
   # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
   # Wave 2 (already shipped). Serialized AFTER Wave 3 to avoid concurrent agentbundle
