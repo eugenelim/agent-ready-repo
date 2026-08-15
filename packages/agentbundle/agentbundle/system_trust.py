@@ -210,7 +210,7 @@ def system_anchor_pem(*, include_public_roots: bool = False) -> str | None:
     if sys.platform != "darwin":
         return None
 
-    keychains = _ADMIN_KEYCHAINS
+    keychains: tuple[str, ...] = _ADMIN_KEYCHAINS
     chunks: list[str] = []
 
     if include_public_roots:
