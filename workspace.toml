@@ -32,13 +32,6 @@ milestone = "P5 · Adopt (M1–M5 shipped)"
 parent    = "INI-001"
 
 ["ini-002".shaping_queue]
-# adopter-persona: COMPLETE (2026-08-02). Desk-research only; participant sessions
-# deferred. Two-segment hypothesis (FDE-mediated enterprise / solo engineer) confirmed
-# as a pathway framing complementary to the five-segment posture model. Five cross-
-# segment design requirements identified. Three P5 m6-* work items are now unblocked.
-# Brief: docs/product/research/adopter-persona-brief.md
-# Comparison matrix: docs/product/research/adopter-persona-comparison-matrix.md
-# Project (personal vault): efforts/research/2026-07-22-adopter-persona; phase=synthesize.
 active  = []
 backlog = [
   # Signal items — hand-authored by strategist; ongoing, non-graduating
@@ -82,63 +75,58 @@ draft     = []
 active  = []
 shipped = [
   {path = "spec/claude-plugin-hook-parity", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
-  "spec/engine-export-boundary",                    # PR #898 — RFC-0082 engine export boundary (agentbundle 0.30.0)
-  # Docs-site design refresh (2026-08-05): Starlight tech docs restyled to a
-  # display-serif + enterprise-cobalt design language; fonts + mermaid
-  # self-hosted (CDN script removed); per-site AGENTS.md split. Boundary
-  # held: NO sidebar-IA changes — docs IA structure is owned by ini-007
-  # Wave 6 (see its needs entry).
+  "spec/engine-export-boundary",
   "spec/docs-site-design-refresh",
-  "spec/work-loop-step0-observability",              # core 1.0.2 — Step 0 Branch-1 echo in orientation block
-  "spec/product-documentation-pack",            # PR this branch — product-documentation pack (Phase 1)
-  "spec/agentbundle-first-value-handoff",          # PR this branch — first-value handoff block in agentbundle install
-  "spec/catalogue-curation",                # PR #614
-  "spec/m2-frame-situation",     # frame-situation PE skill
-  "spec/m1-workspace-core",      # Batch 2
-  "spec/m1-work-queue",          # Batch 3
-  "spec/m1-brief-queue",         # Batch 4
-  "spec/m1-governance-integration", # Batch 5
-  "spec/spec-A-workspace-status-rename", # RFC-0067 Change A
+  "spec/work-loop-step0-observability",
+  "spec/product-documentation-pack",
+  "spec/agentbundle-first-value-handoff",
+  "spec/catalogue-curation",
+  "spec/m2-frame-situation",
+  "spec/m1-workspace-core",
+  "spec/m1-work-queue",
+  "spec/m1-brief-queue",
+  "spec/m1-governance-integration",
+  "spec/spec-A-workspace-status-rename",
   "spec/new-rfc-followon-queue-write",
-  "spec/queue-add",              # PR #566
-  "spec/work-loop-queue-shipped-fix", # Fix done-step + stale-queue warning + line-177 path bug
-  "spec/spec-D-pack-workflow-guide",  # Pack workflow design guide + CONTRIBUTING step 0
-  "spec/spec-B-pack-status-skills",  # RFC-0067 Change B: desk-research-project-status + experience-status + design type
-  "spec/rfc-0064-errata-workspace-integrity", # Amendment to RFC-0064 documenting session-fragmentation gap
-  "spec/workspace-status-next-actions", # Add ### 6. Next-actions closing step to workspace-status
-  "spec/workspace-status-queue-reconciliation", # PR #573 — reconciliation step
-  "spec/m3-backlog-absorption",                # Migrate docs/backlog.md → workspace.toml [backlog]
-  "spec/capture-work",                         # Rename queue-add → capture-work; classify/triage + mode tags + work-loop guard
-  "spec/spec-C-workloop-argless-resume",       # RFC-0067 Change C: argless resume + three-branch active-spec routing
-  "spec/workspace-journey-guides-and-planning-doctrine", # RFC-0064 P1 Orient+Capture: 6 guides + phase-slice doctrine
-  "spec/author-brief-docs",                   # RFC-0064 P3: how-to + DoR gate fields reference
-  "spec/m2-diverge-solutions",                # diverge-solutions PE skill (step 3 of six-step shaping sequence)
-  "spec/m2-lean-canvas-and-initiative-brief",  # lean-canvas PE skill + Lean Canvas initiative brief
-  "spec/m2-place-bet",                         # place-bet PE skill + worked example + how-to guide
-  "spec/m2-identify-opportunities",            # identify-opportunities PE skill + template + example + guide
-  "spec/m2-map-capabilities",                  # map-capabilities PE skill + template + examples + how-to guide
-  "spec/m2-frame-intent-jtbd",                 # PR #599 — JTBD three-tier elicitation into frame-intent; back-compat assessed in spec
-  "spec/m5-jira-align-brief-intake",           # atlassian pack 0.4.0; jira-align-brief-intake skill; 1-way intake, config-guided field map
-  "spec/m5-github-brief-intake",              # github pack + github-brief-intake skill + how-to guide
-  "spec/portfolio-pack-first-value-contract",  # PR #602 — 17-pack first-value contract migration + lint gate
-  "spec/m6-role-journey-guides",              # RFC-0064 P5: role journey guide (PM / engineer / agent)
-  "spec/portfolio-first-run-pilot-governance-extras", # RFC-0064 Amendment #4 preview-confirm write pilot
-  "spec/m5-linear-brief-intake-and-sync",            # first-time intake + delta sync
-  "spec/portfolio-first-run-pilot-architect",         # RFC-0064 Amendment #4 local/no-credential pilot
-  "spec/portfolio-first-run-pilot-figma",             # RFC-0064 Amendment #4 credentialed read-only pilot
-  "spec/m5-tracker-guides",                    # PR #615 — tracker decision tree + vocabulary mapping table
-  "spec/new-guide-conversation-first",         # user-guide-diataxis 0.2.0: conversation-first doctrine (spec.md=Shipped; moved from queue)
-  "spec/site-ui-primitives",                  # Phase 2C: 16 reusable UI primitives — spec confirmed Shipped; moved from queue 2026-07-29
-  "spec/atlassian-sso-cookie-selector-integration-test", # AC5: wired test_auth_selector.py into sso parity gate
-  "spec/credbroker-security-hardening",                  # credbroker test-suite security hardening
-  "spec/flaky-sso-store-concurrency-on-windows",         # credential-brokers 0.3.2 — stable first-use SSO locking on Windows
-  "spec/site-design-system-spec",                        # site token spec + zone-violation lint
-  "spec/jira-check-sso-auto-login",       # jira check SSO auto-recovery in credbroker; credbroker 0.5.0 + engine errata RFC-0035/0013
-  "spec/confluence-crawler-check-auto-login", # confluence-crawler SSO --check bounded headless recovery
-  "spec/catalogue-curation-qa-coverage",   # closes the 4 deferred catalogue-curation QA paths
-  "spec/catalogue-test-carve-out",         # ADR-0075 ownership carve-out + shipped catalogue conformance + sdist test graft
-  "spec/workspace-status-simplification-order-2b", # repair-plan + repair-apply; post-publication closeout
-  "spec/workspace-mcp",                    # RFC-0078 Stage 1; deferred follow-ons remain in backlog
+  "spec/queue-add",
+  "spec/work-loop-queue-shipped-fix",
+  "spec/spec-D-pack-workflow-guide",
+  "spec/spec-B-pack-status-skills",
+  "spec/rfc-0064-errata-workspace-integrity",
+  "spec/workspace-status-next-actions",
+  "spec/workspace-status-queue-reconciliation",
+  "spec/m3-backlog-absorption",
+  "spec/capture-work",
+  "spec/spec-C-workloop-argless-resume",
+  "spec/workspace-journey-guides-and-planning-doctrine",
+  "spec/author-brief-docs",
+  "spec/m2-diverge-solutions",
+  "spec/m2-lean-canvas-and-initiative-brief",
+  "spec/m2-place-bet",
+  "spec/m2-identify-opportunities",
+  "spec/m2-map-capabilities",
+  "spec/m2-frame-intent-jtbd",
+  "spec/m5-jira-align-brief-intake",
+  "spec/m5-github-brief-intake",
+  "spec/portfolio-pack-first-value-contract",
+  "spec/m6-role-journey-guides",
+  "spec/portfolio-first-run-pilot-governance-extras",
+  "spec/m5-linear-brief-intake-and-sync",
+  "spec/portfolio-first-run-pilot-architect",
+  "spec/portfolio-first-run-pilot-figma",
+  "spec/m5-tracker-guides",
+  "spec/new-guide-conversation-first",
+  "spec/site-ui-primitives",
+  "spec/atlassian-sso-cookie-selector-integration-test",
+  "spec/credbroker-security-hardening",
+  "spec/flaky-sso-store-concurrency-on-windows",
+  "spec/site-design-system-spec",
+  "spec/jira-check-sso-auto-login",
+  "spec/confluence-crawler-check-auto-login",
+  "spec/catalogue-curation-qa-coverage",
+  "spec/catalogue-test-carve-out",
+  "spec/workspace-status-simplification-order-2b",
+  "spec/workspace-mcp",
   {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
 ]
 queue   = [
@@ -155,53 +143,15 @@ queue   = [
 # definition of done so digital work is complete only when it produces an
 # observable outcome, not merely a valid artifact or green build.
 #
-# Introduces the Digital Experience Contract as the shared cross-pack primitive.
-# Closes all phantom handoffs (design-system-foundations, copy-direction
-# boundary, ux-writing). Requires the following pre-implementation
-# decisions to be ratified in RFC-0071 before any M1+ spec starts:
-#   1. Contract storage: pack-local references/digital-experience-contract.md
-#      with deterministic drift check (preserves independent installability).
-#   2. ux-writing stays in product-engineering; frontmatter boundary
-#      wording updated in both packs.
-#   3. design-system-foundations as new XD skill (distinct job: apply the
-#      token taxonomy; distinct from design-system which derives the method).
-#   4. copy-direction extends tone-of-voice frontmatter; not a new skill.
-#      SUPERSEDED: RFC-0062 Accepted 2026-07-23; copy-direction implemented as a
-#      full new skill per RFC-0062 design — see shipped entry spec/xd-copy-direction.
-#   5. FE four modes (create/retrofit/audit/verify) as conditional sections
-#      within one SKILL.md, not separate skills.
 # ─────────────────────────────────────────────────────────────────────────────
 ["ini-003"]
 name      = "Digital Experience Doctrine"
 status    = "active"
 milestone = "M2 · Adoption + Shaping Doctrine"
-# Milestone advance (Phase 0 reconciliation, 2026-08-01): M1 (Contract + Governance)
-# is complete. spec/rfc-digital-product-experience-doctrine and
-# spec/digital-experience-contract both Shipped 2026-07-23; M2a/M2b are the first
-# genuinely unfinished items and are now unblocked (digital-experience-contract
-# shipped). The XD prerequisite (xd-copy-direction, RFC-0062 implementation) is also
-# unblocked.
 
 ["ini-003".work]
 active  = []
 queue   = [
-
-  # M1 · Digital Experience Contract
-  # Problem: no shared artifact connects strategy → PE → XD → FE. Each
-  #   discipline outputs isolated artifacts with no continuity check across
-  #   outcomes, terminology, first-success events, or journey.
-  # Deliver: canonical contract schema (markdown template, schema-version: "1.0")
-  #   in each pack's references/ with deterministic drift check; ownership map;
-  #   risk modes (explore/pilot/production field sets); graceful capability-detection
-  #   rules (safe fallback + provisional label when a skill is absent).
-  #   Site/guide: short explanation guide in guides/core/explanation/ describing
-  #   the contract, its three risk modes, and which skills read/write which fields;
-  #   a brief cross-reference note added to each affected pack's journey page (web/
-  #   and site/) pointing to the contract explanation.
-  # Done: all four packs reference the same field set; drift check green;
-  #   explanation guide published; pack journey pages reference the contract.
-  # spec/digital-experience-contract — Shipped 2026-07-23; moved to shipped below.
-  # {path = "spec/digital-experience-contract", needs = "work:spec/rfc-digital-product-experience-doctrine"},
 
   # M2a · Product Strategy Adoption Doctrine
   # Problem: product-strategy pack doesn't explicitly own adoption hypothesis,
@@ -246,7 +196,6 @@ queue   = [
   # Done: PE output always includes first-success + thin slice + learning contract;
   #   gate language is human-readable; weak fixtures fail; pack page + journey
   #   + relevant how-to guides updated.
-  # Note: ux-writing rename shipped separately in spec/ux-writing-rename.
   {path = "spec/product-engineering-shaping-doctrine", needs = "work:spec/digital-experience-contract"},
 
   # M3b · XD Design Token Taxonomy rename + Design System Foundations (RFC-0071 D3a+D3b)
@@ -376,11 +325,11 @@ queue   = [
   {path = "spec/digital-product-guides-update", needs = "work:spec/cross-pack-experience-eval"},
 ]
 shipped = [
-  "spec/rfc-digital-product-experience-doctrine",  # Shipped 2026-07-23 — governance gate; unlocks all 11 downstream ini-003 specs
-  "spec/digital-experience-contract",              # Shipped 2026-07-23
-  "spec/xd-copy-direction",                        # Shipped 2026-08-02 — RFC-0062 impl; copy-direction skill + four-way boundary + tov re-scope
-  "spec/frontend-engineering-doctrine-update",     # Shipped 2026-08-09 — jobs-first pack page, journey, guides, evals, and QA
-  "spec/xd-skill-boundaries",                      # Shipped 2026-08-10 — 20-skill routing boundaries, evals, adopter pages, and rendered QA
+  "spec/rfc-digital-product-experience-doctrine",
+  "spec/digital-experience-contract",
+  "spec/xd-copy-direction",
+  "spec/frontend-engineering-doctrine-update",
+  "spec/xd-skill-boundaries",
 ]
 
 ["ini-003".shaping_queue]
@@ -853,11 +802,6 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "curation-guard-silent-base-skip", source = "spec/local-gate-ci-parity review"},
 
-  # version-parity-probes-wrong-path: shipped in agentbundle 0.35.3. It turned
-  # out to duplicate T1 (AC1/AC2) of spec/catalogue-verifier-correctness, which
-  # already owned the same correction, so the fix landed against that spec:
-  # AC1/AC2 are ticked, plan T1 is marked DONE, and the spec resumes at T2.
-
   # `catalogue_tooling/lint.py` carries the same defect verify.py just shed:
   # `_check_plugin_json` and `_check_name_version_parity` both probe
   # `self._dir / "plugin.json"` while every pack keeps the manifest at
@@ -1329,11 +1273,6 @@ open = [
   #   profile's guide content is authored; premature guide content will drift).
   {slug = "digital-product-profile", needs = "ini-003:work:spec/digital-product-guides-update"},
 
-  # frontend-engineering-pack-split — resolved. The core resident skill was deleted,
-  # committed projected copies removed via git rm, and DXC template copy migrated to
-  # the FE pack (ADR-0057, 2026-07-27). The contract anchor path updated in
-  # check_contract_drift.py. deferred AC in spec/digital-experience-contract closed.
-
   # RFC-0059 Non-goals. The honest counterpart to catalogue assimilation: cleanly
   # retire a skill/agent/hook or deprecate a pack with tombstones. Deferred as rare;
   # build when the need is real, not speculatively.
@@ -1603,17 +1542,10 @@ open = [
   {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
   {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
 
-  # ── Pack-journey phase 2B follow-ons ─────────────────────────────────────────
-  # pack-journeys-lint-contract-gate: resolved. atlassian.md and user-guide-diataxis.md
-  # updated to fixed label set (You provide / Agent does / You decide / Output); live gate
-  # enabled in tools/catalogue/pre_pr_catalogue.py. Closed by this PR.
-
   # ── Starlight migration follow-ons ─────────────────────────────────────────
   # RFC required before a new top-level directory is permanent (AGENTS.md §"Check before acting").
   # Mirrors RFC-0061 (web/) precedent.
   {slug = "starlight-migration-rfc", summary = "Open RFC for the docs-site/ top-level directory (mirrors RFC-0061 precedent)", source = "spec/starlight-migration"},
-
-  # catalogue-init-sh-phase2: shipped in 0.26.0 — all deferred ACs resolved.
 
   # ── Adopter-SAST follow-ons (spec/pack-script-root-boundary-validation) ────
   # An adopter's org Snyk Code scan reports CWE-23 path-traversal against the
@@ -2033,30 +1965,7 @@ open = [
 name      = "AgentBundle Portable Catalogue Tooling"
 status    = "complete"
 milestone = "M1 · Portable Engine + Public CLI (complete)"
-# Brief: establish agentbundle/catalogue_tooling/ as the portable catalogue
-# engine, publish the agentbundle catalogue * and agentbundle lint packs CLI
-# surface, introduce catalogue.toml as the configuration layer, and rewire
-# the home repository to use the new public commands.
-# 16-bucket brief: .context/attachments/PB6fwW/pasted_text_2026-07-24_16-11-28.txt
-#
-# Phase 0 reconciliation (2026-07-31): Initiative closed. The three remaining
-# queue entries (catalogue-tooling-rewire, catalogue-tooling-docs,
-# catalogue-tooling-ci-gates) were superseded before any spec was authored:
-#   - Rewire: no spec dir or spec.md was ever authored. The agentbundle catalogue
-#     CLI surface (lint, verify, build, self-host, package, sync-defaults, init)
-#     was established by shipped ini-005 specs. The D5/D7 contract and index
-#     commands are claimed by ini-007 Waves 3 and 4. No rewire spec is needed;
-#     the `contracts` and `index` namespaces are confirmed unoccupied by ini-005.
-#   - Docs: superseded by Wave 1 (catalogue-authoring-standards.md hub, D4),
-#     ini-006 (catalogue-ci-contract.md guide), Wave 3 (hub §12 + init next-
-#     steps), and Wave 8 (README/CONTRIBUTING); no residual doc gap requires a
-#     separate ini-005 spec. AGENTS.local.md and packs/AGENTS.md cover the
-#     host-repository policy boundary.
-#   - CI gates: fully superseded by ini-006 (complete, provider-neutral CI
-#     contract) and Wave 1 (check_contract_parity.py CI gate). The accepted
-#     CI-neutral boundary is the operative policy; no provider-specific ini-005
-#     CI spec is warranted.
-# Successor: ini-007 owns all remaining catalogue engine and discovery work.
+# Closed. Successor: ini-007 owns all remaining catalogue engine and discovery work.
 
 ["ini-005".shaping_queue]
 active  = []
@@ -2072,36 +1981,14 @@ shipped = [
   "spec/catalogue-tooling-verify",
   "spec/catalogue-tooling-package-enhanced",
 ]
-queue   = [
-  # All queue entries superseded — see Phase 0 reconciliation comment above.
-  # No residual work remains under ini-005; successor is ini-007.
-]
+queue   = []
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ini-006 · Catalogue CI Contract
-#
-# Create one canonical, provider-neutral catalogue CI contract at
-# guides/_shared/catalogue-ci-contract.md. The contract defines the portable
-# commands, outputs, exit behavior, publication ordering, evidence, and
-# responsibility boundaries that any organization can implement in its chosen
-# CI system.
-#
-# The contract must not prescribe, generate, copy, or depend on CI workflows
-# or a particular CI provider.
-#
-# Responsibility boundary:
-#   AgentBundle owns: valid catalogue definition, portable lint/verify/package,
-#     deterministic archive, stable JSON and exit-code contracts.
-#   Organization CI owns: when commands run, secrets, upload, publication
-#     serialization, artifact retention, rollback approval.
-#   Host repository owns: CI workflow implementation, trigger config, internal
-#     governance, tests proving the portable contract works.
-#
-# Non-goals: agentbundle catalogue init, self-hosted preset, CI workflow
-#   generators, Artifactory upload command, complete export-catalogue replacement,
-#   top-level catalogue/ directory.
-#
-# Source brief: .context/attachments/7w1trN/pasted_text_2026-07-28_18-19-01.txt
+# ini-006 · Catalogue CI Contract — complete.
+# Delivered guides/_shared/catalogue-ci-contract.md: the portable,
+# provider-neutral commands, outputs, exit behavior, publication ordering,
+# evidence, and responsibility boundaries. That guide is the contract; read it
+# rather than this banner.
 # ─────────────────────────────────────────────────────────────────────────────
 ["ini-006"]
 name      = "Catalogue CI Contract"
@@ -2119,9 +2006,7 @@ shipped = [
   "spec/catalogue-ci-export-boundary",
   "spec/catalogue-ci-documentation",
 ]
-queue   = [
-  # All M1–M2 entries shipped; see work.shipped above.
-]
+queue   = []
 
 # ─────────────────────────────────────────────────────────────────────────────
 # ini-007 · Catalogue Contracts, Composition, Semantics, and Discovery
@@ -2145,34 +2030,20 @@ queue   = [
 name      = "Catalogue Contracts, Composition, Semantics, and Discovery"
 status    = "active"
 milestone = "M2 · Authoring Discovery + Information Architecture"
-# Milestone advance (Phase 0, 2026-07-31): M1 (Shaping + Contract Convergence) is
-# complete. Waves 1 and 2 shipped; research and shaping entries completed and
-# removed from the active queue; information-architecture design and its
-# current-route implementation shipped in documentation-entry-navigation.
-# Wave 3 next engine wave (Approved spec + implementation-ready plan).
 
 ["ini-007".shaping_queue]
-# All research and shaping entries from M1 are complete. Wave 1 delivered the
-# audience research and contract inventory artifacts; Wave 2 delivered the
-# optional-pack-integration-contract shape; the catalogue-semantics-release-shape
-# delivered the Wave 4 (Approved) spec. The IA design item is now the active work.
-# Catalogue discovery IA completed 2026-08-12. The cross-surface design,
-# content-ownership map, audience routes, and navigation-depth contract live in
-# docs/specs/documentation-entry-navigation/notes/information-architecture.md.
-# Its current-route implementation shipped below. Wave 6 and Wave 7 retain
-# only the Wave 4/index-dependent work the current implementation cannot own.
 active = []
 backlog = []
 
 ["ini-007".work]
 active  = []
 shipped = [
-  "spec/governance-guides-cleanup",              # shipped-guide governance-reference scrub + CI regression guard
-  "spec/catalogue-verify-classification",       # AgentBundle 0.30.1 / core 2.5.2 — complete self-host classification + special-rail drift parity
-  "spec/pack-test-boundary-remaining-packs",  # completes ADR-0071 — no pack ships tests in its runtime payload
-  "spec/catalogue-wave1-contract-convergence",  # 0.26.1 — schema sync + authoring hub + parity gate
-  "spec/catalogue-wave2-pack-integrations",     # 0.27.0 — D6 integrations schema + verifier + show + pilots + hub
-  "spec/documentation-entry-navigation",        # current-route hub-and-spoke README, marketing, docs, guide, and contributor IA
+  "spec/governance-guides-cleanup",
+  "spec/catalogue-verify-classification",
+  "spec/pack-test-boundary-remaining-packs",
+  "spec/catalogue-wave1-contract-convergence",
+  "spec/catalogue-wave2-pack-integrations",
+  "spec/documentation-entry-navigation",
   {path = "docs/specs/catalogue-source-identity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Define adapter-neutral local catalogue source identity", needs = []},
 
   # Wave 3 — Enterprise authoring discovery. 0.34.0 — bundled-contract inspection CLI
@@ -2256,9 +2127,6 @@ queue   = [
   # neutral-index facts; and the optional-integration relationship view. No
   # visual system redesign.
   {path = "spec/catalogue-wave7-marketing-evaluator", needs = "work:spec/catalogue-wave6-technical-docs-ia"},
-
-  # Wave 8 was superseded before implementation by the shipped cross-surface
-  # documentation-entry-navigation spec above.
 
   # Wave 9 — First-party migration and closeout. Gated on Waves 2, 5, 7 and
   # the Wave 8 replacement.
