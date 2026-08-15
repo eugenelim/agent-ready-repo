@@ -127,6 +127,11 @@ def _step_pack_schema(
     return diags
 
 
+def _plugin_json_path(pack_dir: Path) -> Path:
+    """Manifest location for a pack — the only one the build pipeline reads."""
+    return pack_dir / ".claude-plugin" / "plugin.json"
+
+
 def _step_plugin_validation(
     root: Path, config: object | None, pack: str | None, tmpdir: Path
 ) -> list[Diagnostic]:
@@ -144,9 +149,18 @@ def _step_plugin_validation(
             continue
         if pack and pack_dir.name != pack:
             continue
-        plugin_json = pack_dir / "plugin.json"
+        # The pack root is not a manifest location. A plugin.json there is
+        # invisible to every consumer while looking present in the tree —
+        # whether it is a misplaced manifest or a leftover stale copy.
+        if (pack_dir / "plugin.json").exists():
+            diags.append(_err(
+                "CAT-V-004",
+                "plugin.json is at the pack root; it belongs at .claude-plugin/plugin.json",
+                pack=pack_dir.name,
+            ))
+        plugin_json = _plugin_json_path(pack_dir)
         if not plugin_json.exists():
-            continue
+            continue  # a pack need not ship a manifest; catalogue lint agrees
         try:
             json.loads(plugin_json.read_text(encoding="utf-8"))
         except Exception as exc:
@@ -172,7 +186,7 @@ def _step_version_parity(
         if pack and pack_dir.name != pack:
             continue
         pack_toml_path = pack_dir / "pack.toml"
-        plugin_json_path = pack_dir / "plugin.json"
+        plugin_json_path = _plugin_json_path(pack_dir)
         if not pack_toml_path.exists() or not plugin_json_path.exists():
             continue
         try:

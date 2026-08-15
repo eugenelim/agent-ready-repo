@@ -78,6 +78,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
 
+### [agentbundle][0.35.3] — 2026-08-15
+
+#### Fixed
+
+- **`catalogue verify` now actually checks your pack manifests.** Two of its
+  checks looked for `plugin.json` at the top of each pack folder, but packs keep
+  it in `.claude-plugin/`. They never found it, so they never ran: a pack whose
+  `pack.toml` and `plugin.json` disagreed on name or version passed verification,
+  and so did a manifest that was corrupt or filed in the wrong place. Both checks
+  now read the right location.
+- **Upgrading:** a catalogue that passed on 0.35.2 may now report CAT-V-004 or
+  CAT-V-005. Each one is a real defect that was previously invisible — a manifest
+  sitting at the pack root instead of in `.claude-plugin/`, a manifest that will
+  not parse, or a `pack.toml` and `plugin.json` that disagree. A pack with no
+  manifest at all is still fine.
+
 ### [agentbundle][0.35.2] — 2026-08-14
 
 #### Fixed

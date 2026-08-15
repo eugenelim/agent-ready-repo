@@ -1,6 +1,6 @@
 # Plan: catalogue-verifier-correctness
 
-- **Status:** Drafting
+- **Status:** Executing
 - **Spec:** [`spec.md`](spec.md)
 
 ## Mode and declined patterns
@@ -111,7 +111,48 @@ finding per the "Boundaries / Never do" rule.
 
 ---
 
-## T1 — Plugin path correction (steps 4 and 5)
+## T1 — Plugin path correction (steps 4 and 5) — DONE
+
+Landed ahead of this plan's own loop, via the `version-parity-probes-wrong-path`
+backlog item, which turned out to duplicate this task. Both steps read
+`pack_dir / ".claude-plugin" / "plugin.json"`.
+`tests/integration/test_catalogue_verify_plugin_path.py` (the file *Done when*
+below names) holds eight cases — the three stubbed below, plus:
+
+- a root-level `plugin.json` beside a correct one is still a finding,
+- a pack with no manifest anywhere is not a finding,
+- a malformed manifest is a finding (parse error *and* misplacement),
+- a name mismatch is a CAT-V-005 finding,
+- a version mismatch is a CAT-V-005 finding.
+
+Every asserting case plants a contradicting decoy at the legacy root path, so
+reverting the probe reds the suite rather than passing on a lucky miss
+(confirmed by reverting `_plugin_json_path` and re-running).
+
+Verified on the real CLI: `python3 -m agentbundle catalogue verify --root .`
+reports `ok=true` with no diagnostics on this repo; injecting a
+`pack.toml`/`plugin.json` version mismatch into `packs/contracts/` flips it to
+`ok=false` with `CAT-V-005 contracts pack.toml version '99.0.0' != plugin.json
+version '0.3.5'`.
+
+**Deviation from the Approach below**, recorded as an AC1 amendment in
+[spec.md](spec.md): the missing-manifest branch stays a silent skip, and the
+CAT-V-004 finding fires on a `plugin.json` at the *pack root* instead. An
+unconditional missing-manifest error reds 20+ packaging tests whose fixture
+catalogues ship no manifest, and `catalogue lint` already treats the manifest as
+optional. That lint branch is currently unreachable for the same path reason
+(see the `lint-plugin-json-probes-wrong-path` backlog entry) — so the parity
+argument is a statement of intent for both gates, not an appeal to live
+behaviour; whoever fixes lint should keep the two aligned.
+
+**Release:** shipped as agentbundle **0.35.3** — a patch, mid-plan. Not the minor
+T12 claims: 0.36.0 is reserved for the rest of this plan and Wave 4's AC29, which
+`workspace.toml` flags as a collision hazard. T12 still bumps a minor on top of
+0.35.3, and its changelog entry covers T0 and T2–T11 only — T1 is already
+published in the 0.35.3 sections of `packages/agentbundle/CHANGELOG.md` and
+`docs/product/changelog.md`.
+
+Resume this plan at T2. The rest of the task is left below as the record.
 
 **Verification mode:** TDD
 
@@ -1074,9 +1115,9 @@ A separate seed fixture at `seeds/AGENTS.md` (recognized path) contains both
 **Depends on:** T0–T11
 
 **Touches (this PR):**
-- `packages/agentbundle/pyproject.toml`
-- `packages/agentbundle/agentbundle/version.py`
-- `docs/product/changelog.md`
+- `packages/agentbundle/pyproject.toml` — already bumped to 0.35.3 at T1; bump again
+- `packages/agentbundle/agentbundle/version.py` — same
+- `docs/product/changelog.md` — already carries a 0.35.3 section covering T1 only
 
 **Touches (post-publish follow-on PR):**
 - `docs/specs/catalogue-verifier-correctness/spec.md` (Status: Implementing → Shipped)
@@ -1087,7 +1128,7 @@ A separate seed fixture at `seeds/AGENTS.md` (recognized path) contains both
 **Approach:**
 
 1. Inspect current HEAD version and bump to next available AgentBundle minor.
-2. Add changelog entry covering: plugin path correction; profile schema validation;
+2. Add changelog entry covering: profile schema validation;
    dependency (with version range) / adapter / output-drift / package-preflight / fixture
    implementations; host-only leak extracted to repository-local tooling; all public
    "18-step" references updated to "19-step"; regression coverage added for PyYAML guard
@@ -1119,7 +1160,8 @@ grep "19-step" packages/agentbundle/agentbundle/catalogue_tooling/verify.py   # 
 
 - T11 may not start until T1–T10 all pass gates — the portability test validates the
   cumulative result of all corrections.
-- T12 must be last; version must not be bumped until all other tasks pass gates.
+- T12 must be last; no *further* version bump until T0–T11 pass gates. T1 shipped
+  ahead of the plan and already consumed a patch (0.35.3) — see the T1 record.
 - No step may be left returning `return []` without a real implementation or a
   `NotImplemented` finding — silent empty results are the root cause of this spec.
 

@@ -853,15 +853,33 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "curation-guard-silent-base-skip", source = "spec/local-gate-ci-parity review"},
 
-  # `verify.py:_step_version_parity` probes `pack_dir / "plugin.json"`, but
-  # every pack keeps it at `pack_dir / ".claude-plugin" / "plugin.json"`, so the
-  # CAT-V-005 parity check silently no-ops. A pack.toml bump without the
-  # matching plugin.json bump passes `make build-check`; only the agentbundle
-  # pytest suite catches it. Hit during pack-test-boundary (core 2.2.0).
-  # Fix: probe the `.claude-plugin/` path; add a regression test that a
-  #   mismatched pair fails verify. Requires an agentbundle release.
+  # version-parity-probes-wrong-path: shipped in agentbundle 0.35.3. It turned
+  # out to duplicate T1 (AC1/AC2) of spec/catalogue-verifier-correctness, which
+  # already owned the same correction, so the fix landed against that spec:
+  # AC1/AC2 are ticked, plan T1 is marked DONE, and the spec resumes at T2.
+
+  # `catalogue_tooling/lint.py` carries the same defect verify.py just shed:
+  # `_check_plugin_json` and `_check_name_version_parity` both probe
+  # `self._dir / "plugin.json"` while every pack keeps the manifest at
+  # `.claude-plugin/plugin.json`, so CAT-L007 (invalid JSON), CAT-L008 (missing
+  # name/version key) and CAT-L009 (pack.toml/plugin.json parity) never fire.
+  # Left out of the verify.py fix deliberately: a separate gate with separate
+  # diagnostic codes, and bundling it would have hidden the named fix.
+  # Fix: same shape — probe `.claude-plugin/plugin.json`, add regression tests
+  #   per code, and lift verify.py's `_plugin_json_path` helper to a shared spot
+  #   in catalogue_tooling rather than copying the literal a third time. All 22
+  #   packs are clean today, so turning the checks on should be green; confirm
+  #   before merging. Requires an agentbundle release (Gate G).
+  #   Also fold in two verify residuals that the path fix made reachable and the
+  #   spec's "never silently swallow" rail forbids: step 5 guards on `if pt_name
+  #   and pj_name`, so a manifest missing the `name` or `version` key passes
+  #   parity silently (verify has no CAT-L008 equivalent); and its
+  #   `except Exception: continue` now runs for real, so an unparseable
+  #   pack.toml or plugin.json skips parity with no diagnostic of its own.
+  #   Neither escapes the pipeline today — steps 3 and 4 report the parse error
+  #   separately — which is why they are recorded rather than fixed in the T1 PR.
   # Unblocks when: picked up — no dependency.
-  {slug = "version-parity-probes-wrong-path", source = "spec/pack-test-boundary review"},
+  {slug = "lint-plugin-json-probes-wrong-path", source = "spec/catalogue-verifier-correctness T1 review"},
 
   # ADRs have no errata mechanism. `docs/CONVENTIONS.md` freezes the body, the
   # shipped new-adr template says only the Status line moves, and the `## Errata`
