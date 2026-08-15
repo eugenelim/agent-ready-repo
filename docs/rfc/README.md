@@ -87,6 +87,7 @@
 | [0084](0084-sso-destination-trust-boundary.md) | Single sign-on destination trust boundary | Accepted | 2026-08-11 | 2026-08-11 |
 | [0085](0085-catalogue-source-identity.md) | Catalogue source identity | Accepted | 2026-08-11 | 2026-08-11 |
 | [0086](0086-corporate-network-trust.md) | Corporate-network trust for catalogue fetches | Accepted | 2026-08-13 | 2026-08-14 |
+| [0087](0087-okf-knowledge-projection.md) | OKF knowledge projection | Accepted | 2026-08-15 | 2026-08-15 |
 
 ## Adding a new RFC
 

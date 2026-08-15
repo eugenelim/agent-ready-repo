@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/okf-agentbundle-extension-v1.schema.json",
+  "title": "AgentBundle OKF concept extension v1",
+  "description": "Closed contract for an OKF 0.2 concept's x-agentbundle projection intent.",
+  "type": "object",
+  "contract_version": "agentbundle-okf-concept-extension.v1",
+  "x-spec": ["docs/specs/okf-authoring-projection/"],
+  "additionalProperties": false,
+  "required": ["profile", "skill"],
+  "properties": {
+    "profile": {
+      "const": "agentbundle-okf/v1"
+    },
+    "skill": {
+      "$ref": "#/$defs/skillProjection"
+    }
+  },
+  "$defs": {
+    "skillName": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "bundleRelativeFile": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*[\\u0000-\\u001F\\u007F<>:\"|?*\\\\])(?!.*//)(?!\\.\\.?$)(?!\\.\\.?/)(?!.*\\/\\.\\.?(?:\\/|$))(?!.*[. ](?:\\/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))(?!.*\\/(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$)).+$"
+    },
+    "skillProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "description", "instruction-section"],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/skillName"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1024,
+          "pattern": "^(?=.*\\S)[^\\r\\n]+$"
+        },
+        "instruction-section": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "pattern": "^(?!\\s)(?=.*\\S)[^\\r\\n#]*\\S$"
+        },
+        "include": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/bundleRelativeFile"
+          }
+        }
+      }
+    }
+  }
+}
