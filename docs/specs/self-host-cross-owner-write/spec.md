@@ -1,6 +1,6 @@
 # Spec: self-host cross-owner write
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** maintainers
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0002](../../rfc/0002-self-hosting.md),
@@ -95,38 +95,38 @@ checks have no stubs by mode.
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** When self-host real-write overwrites an existing projected
+- [x] **AC1.** When self-host real-write overwrites an existing projected
   regular file on a seed or adapter direct-file rail, it updates the bytes in
   the same inode without calling `copymode`, `copystat`, `chmod`, or `utime` for
   that destination. Ownership and mode remain unchanged; modification time may
   advance because content changed. Write-only destinations are supported but
   cannot be rolled back after truncation if their content write fails.
-- [ ] **AC2.** Metadata preservation covers seed projection and every adapter
+- [x] **AC2.** Metadata preservation covers seed projection and every adapter
   direct-file rail reachable through the effective self-host adapter set,
   including non-default `preferred-adapter` selections.
-- [ ] **AC3.** A newly created seed file inherits source mode, while a newly
+- [x] **AC3.** A newly created seed file inherits source mode, while a newly
   created adapter direct-file target inherits source mode and, on POSIX,
   timestamps.
-- [ ] **AC4.** Dry-run and ordinary non-self-host adapter projections retain
+- [x] **AC4.** Dry-run and ordinary non-self-host adapter projections retain
   source metadata behavior. On POSIX, self-host check still reports a mode
   difference between source and an existing destination.
-- [ ] **AC5.** Content-copy, path, and file-type errors still propagate; the fix
+- [x] **AC5.** Content-copy, path, and file-type errors still propagate; the fix
   does not broadly catch `PermissionError` or `OSError`.
-- [ ] **AC6.** Existing-file overwrites are confined beneath the selected root,
+- [x] **AC6.** Existing-file overwrites are confined beneath the selected root,
   open the destination without following links, verify the opened target is the
   expected single-link regular file, and refuse symlink, hard-link, directory,
   or identity races before writing any bytes.
-- [ ] **AC7.** If an in-place write or final truncate fails, self-host attempts
+- [x] **AC7.** If an in-place write or final truncate fails, self-host attempts
   to restore the original bytes through the held file descriptor and exits
   nonzero. A restoration failure is attached to the original error rather than
   swallowed. A source or existing destination larger than 64 MiB refuses before
   truncation so the rollback snapshot stays bounded. A write-only destination
   propagates write failure without rollback because no snapshot is possible.
-- [ ] **AC8.** AgentBundle version pins are prepared as `0.33.3`, and its
+- [x] **AC8.** AgentBundle version pins are prepared as `0.33.3`, and its
   changelog explains the cross-owner self-host correction, natural mtime update,
   and unresolved-mode tradeoff. Publication and Shipped closeout occur in the
   required follow-on after this implementation change merges.
-- [ ] **AC9.** Focused regression tests, the complete AgentBundle test suite,
+- [x] **AC9.** Focused regression tests, the complete AgentBundle test suite,
   Ruff, Mypy, and `SKIP_SAST=1 make build-check` pass. The existing Windows
   aggregate check remains blocking on parallel AgentBundle and CredBroker jobs.
 
