@@ -517,18 +517,6 @@ open = [
     # from a subprocess killed between create and write, or a filesystem that returns ENOSPC
     # on write. Unblocks: now — it is a test-coverage gap, not a defect.
   {slug = "statelock-token-write-failure-test", source = "spec/loop-cohort-state-lock"},
-    # agentbundle/statelock.py:74-78 hot-spins forever on a dangling-symlink lock path:
-    # open(O_CREAT|O_EXCL) fails EEXIST on a symlink while Path.stat() follows it and raises
-    # FileNotFoundError, whose handler `continue`s with no deadline check and no sleep, so
-    # StateLockTimeout never fires. Confirmed against the SHIPPED package: 98.4% CPU, still
-    # spinning after 6s with timeout=2.0. One planted file wedges every state-mutating verb.
-    # The work-loop now has its own hardened lock (ADR-0074: deliberately separate, since the
-    # two guard different files for different consumers), so this module keeps the defect on its
-    # own. Fix: port the four hardening items from
-    # packs/core/.apm/skills/work-loop/scripts/_statelock.py — deadline check on every retry
-    # path, os.lstat + refuse a non-regular lock path, inode+token ownership, link-based reclaim
-    # restore. Needs an agentbundle release. Unblocks: now — it does not depend on the skill.
-  {slug = "agentbundle-statelock-symlink-spin", source = "spec/loop-cohort-state-lock"},
     # loop-engine's _recover_pending reads the repo-global .loop-run/events.pending and then
     # calls _recover_engine_state_tmp(pending_spec_dir) for whatever spec that record names,
     # so a transition on spec A — holding only A's per-spec lock — can promote or delete spec
