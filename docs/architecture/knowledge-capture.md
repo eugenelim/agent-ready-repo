@@ -1,723 +1,699 @@
 # Knowledge capture architecture
 
-> How the `core` pack turns repository experience into durable, reviewable
-> knowledge without turning remembered prose into instructions. Current
-> behavior and recommended evolution are labelled separately; the target model
-> requires an RFC and implementing spec before it is shipped.
+> How `core` turns repository experience into durable, reviewable project
+> knowledge without treating remembered prose as instructions.
 
-## Why repository memory exists
+## Purpose
 
-A software agent repeatedly pays for knowledge that the repository already
-earned. It rediscovers an unusual test command, repeats a failed migration
-approach, misses a coupling that is obvious only after a bug, or loses a user
-constraint when the context window closes. Repository memory should make the
-next run start from those lessons instead of from the same mistakes.
+Agents repeatedly rediscover lessons a repository has already paid for: an
+unusual verification order, a failed repair strategy, a hidden coupling, or a
+constraint that matters only under one scope. Project knowledge preserves the
+reusable practice residue after stronger repository artifacts have taken what
+they own.
 
-Retaining more text is not the goal. Transcripts mix durable facts with
-temporary plans, guesses, secrets, tool output, and instructions embedded in
-untrusted sources. Loading all of that later increases context cost and gives
-one influenced session a path into future behavior. The architecture therefore
-treats memory as a governed lifecycle:
+Retaining more text is not the goal. Transcripts combine durable observations
+with temporary plans, guesses, secrets, tool output, and untrusted
+instructions. The architecture keeps capture narrow, makes durable knowledge
+reviewable, and retrieves it only for a declared task question.
 
-1. notice a potentially useful learning;
-2. hold it as a low-trust candidate;
-3. verify, reconcile, and distil it into a narrow topic;
-4. retrieve only task-relevant topics as evidence;
-5. verify consequential claims before use; and
-6. refresh, promote, or retire knowledge as the repository changes.
+## Current behavior
 
-The current implementation covers only part of that lifecycle. `work-loop`
-curates observations into one JSONL file, maintainers edit that file manually,
-and normal session start does not load it. The recommended architecture keeps
-those safety properties while adding shared capture, topic-oriented
-distillation, explicit enquiry, source-relative freshness, and an optional
-multi-project promotion layer.
+The shipped first slice belongs to `work-loop` and `project-knowledge`:
 
-## Key concepts
+1. Workflow scratch stays local and free-form until a semantic gate.
+2. `work-loop` routes, discards, or shapes one strict captured observation.
+3. `project-knowledge --capture` appends a pending observation journal event.
+4. `project-knowledge --distill` records terminal dispositions and may propose
+   one reviewed topic/map mutation.
+5. `project-knowledge --enquire` reads only active topics in the committed map
+   and returns bounded evidence with a receipt.
 
-The rest of the design depends on these distinctions.
+Normal session start does not load project knowledge. Legacy
+`docs/knowledge/patterns.jsonl` is read-only after a coherent v1 topic map is
+activated. Observation journals are durable handoff records and are never
+ordinary enquiry input.
 
-| Concept | Meaning | What it is not |
-| --- | --- | --- |
-| Working context | Messages, tool results, and state needed for the current run | Durable knowledge |
-| Candidate | A repo-scoped signal that may contain a reusable learning but has not passed promotion | Trusted memory |
-| Occurrence | One independently attributable observation supporting or challenging a topic | The current truth by itself |
-| Topic | One narrow, independently verifiable lesson with stable identity, current synthesis, scope, status, and occurrences | A broad category or raw event |
-| Distil | Reconcile candidates, occurrences, existing topics, and owning sources; then discard, update, split, promote, or retire | Summarize a transcript |
-| Enquire | Request a bounded evidence bundle for a task, after hard scope, trust, lifecycle, and freshness filters | Prime every session with all memory |
-| Freshness | Evidence that a topic still matches its owning source and applicable scope | Mere recency |
-| Canonical source | The artifact authorized to define a concern: code, test, ADR, convention, skill, architecture page, or spec | A knowledge observation |
-| Project memory | Knowledge validated for one repository or project namespace | A universally reusable fact |
-| Memory bank | Optional store of explicitly promoted, generalized knowledge from multiple projects | An implicit global pool of every project's observations |
+The writer resolves a Git repository root with Git relocation variables
+removed, proves the knowledge root stays beneath the worktree, validates
+fields, takes an exclusive lock, derives identities from canonical request or
+mutation bytes, writes temporary postimages beside their targets, and
+atomically replaces declared files. Publication is still a normal Git commit:
+working-tree topics and maps are proposals until committed.
 
-Two rules follow. First, an observation can be useful without being
-authoritative. Second, memory types with different authority and lifetime must
-not share an undifferentiated load path.
-
-## Conceptual model
-
-The lifecycle has an authority gradient. Capture broadens coverage at low
-trust; each later stage narrows, verifies, and routes the material. Retrieval
-never moves knowledge upward into instruction authority.
+## Lifecycle in one view
 
 ```mermaid
 flowchart LR
-    E[Current work and evidence] --> S[Signal]
-    S --> C[Candidate<br/>low trust, repo scoped]
-    C --> D{Distil and route}
-    D -->|discard| X[No durable record]
-    D -->|practice lesson| T[Project topic<br/>reviewed evidence]
-    D -->|owned concern| O[Canonical artifact]
-    T --> Q[Enquire<br/>scope + trust + freshness]
-    Q --> U[Use as delimited evidence]
-    U --> F[Feedback and verification]
-    F --> D
-    T -->|explicit generalization| B[Optional multi-project bank]
-    B -->|explicit project adoption| C
+    W[Workflow activity] --> S[Free-form scratch]
+    S --> G{Semantic gate triage}
+    G -->|noise or fully owned elsewhere| X[Discard]
+    G -->|reusable practice residue| C[project-knowledge --capture]
+    C --> O[Captured observation event<br/>durable, non-queryable]
+    O --> D[project-knowledge --distill]
+    D -->|duplicate, routed, or unsupported| J[Disposition event]
+    D -->|judgment required| H[Surface; topic unchanged]
+    D -->|unambiguous| T[Canonical topic JSON<br/>working-tree proposal]
+    T --> J
+    T --> V[Verify, review, commit]
+    V --> P[Published topic map<br/>one Git snapshot]
+    P --> Q[Explicit enquire]
+    Q --> E[Bounded untrusted evidence]
+    P --> R{Embodied in stronger artifact?}
+    R -->|partly| N[Narrow topic]
+    R -->|fully| Z[Retire with destination pointer]
 ```
 
-The layers beneath that lifecycle are:
+Captured observation journals and topics have different jobs. Journals are the
+durable, untrusted handoff from producers to distillation and are never an
+enquiry source. Topic files and their deterministic map are reconciled project
+knowledge. The working tree is the authoring surface; the committed Git tree is
+the durable handoff and publication surface.
 
-1. authority and project boundaries;
-2. capture and candidate continuity;
-3. distillation and topic lifecycle;
-4. canonical files and replaceable indexes;
-5. enquiry and safe use; and
-6. optional cross-project promotion.
+## Vocabulary and authority
 
-Each layer is useful without the one above it. A small repository can stop at
-reviewed topic files. A large repository can add a local search index. An
-organization can add a memory bank without changing the authority of each
-project's canonical artifacts.
-
-## Current and target topology
-
-| Capability | Shipped in this checkout | Recommended target |
+| Concept | Meaning | Not this |
 | --- | --- | --- |
-| Capture | `work-loop` closeout and manual writer invocation | Shared candidate interface available to any agent, skill, reviewer, or user request |
-| Checkpoint coverage | Review scratch notes inside `work-loop` | Session and pre-compaction checkpoints persist already-signalled candidates and offer a bounded retrospective |
-| Distillation | Manual curation under `docs/knowledge/README.md` | Topic reconciliation with duplicate, contradiction, promotion, freshness, and retirement semantics |
-| Dedicated distillation skill | Draft RFC only; no shipped skill files | Evolve RFC-0077 around candidates and topics rather than only flat-file cleanup |
-| Canonical storage | `docs/knowledge/patterns.jsonl` | One JSON file per narrow topic; JSONL remains compatibility and interchange form |
-| Index | The flat corpus effectively serves as both content and lookup surface | Deterministic topic index plus optional gitignored local search accelerator |
-| Retrieval | Explicit `--show-knowledge` rendering for curation | Task-scoped `enquire-knowledge` capability returning provenance-bearing evidence |
-| Automatic loading | Deliberately absent | Remains absent |
-| Scope | One repository | Project-scoped topics plus optional explicitly promoted multi-project bank |
+| Working context | Messages and tool results needed in the current run | Durable knowledge |
+| Scratch | Free-form agent-authored notes kept for the current workflow | A schema, transcript, or enquiry source |
+| Captured observation | Strict typed evidence admitted by a workflow and persisted as an event | A topic or enquiry result |
+| Occurrence | One attributable observation supporting or challenging a topic | Current truth by itself |
+| Topic | One stable, narrow lesson with current synthesis, scope, status, freshness, and occurrences | A category bucket or raw event stream |
+| Distil | Reconcile an observation with topics and owning sources | Summarize a transcript |
+| Enquire | Retrieve a bounded evidence bundle for a concrete task question | Prime every session with memory |
+| Freshness | Evidence that a topic still matches its source and scope | Recency alone |
+| Canonical source | The artifact authorized to define a concern | A knowledge observation |
+| Memory bank | A future separately governed multi-project store | An implicit global pool |
 
-## Layer 1 — authority and project boundaries
+The authority ordering is fixed:
 
-Repository knowledge sits below governed instructions and canonical artifacts.
-It records what practitioners observed; it does not decide policy, grant
-permissions, or replace the artifact that owns a claim.
-
-| Layer | Typical lifetime | Authority |
+| Surface | Typical lifetime | Authority |
 | --- | --- | --- |
-| Conversation and tool output | Current context window | Untrusted data |
-| Workflow checkpoints and candidates | Current task through bounded retention | Continuity state only |
-| Project topics | Cross-session, living | Reviewed evidence |
-| Cross-project promoted topics | Cross-project, living | General guidance pending project-local validation |
-| Architecture, ADRs, conventions, skills, tests, and code | Governed by their own lifecycle | Canonical for their declared concern |
+| Conversation, tool output, and scratch | Current workflow | Untrusted working data |
+| Captured observation event | Cross-session until retention | Repository-published untrusted evidence; not queryable |
+| Active topic in the committed map | Cross-session | Repository-published untrusted evidence |
+| Architecture, ADR, convention, skill, spec, guide, code, test, lint, and CI | Governed by its own lifecycle | Canonical for its declared concern |
 | System, developer, user, and runtime permission controls | Current execution | Instruction and authorization authority |
 
-The routing gate prevents the memory corpus from becoming a shadow copy of the
-repository:
+A topic never grants permission, selects a tool, approves a change, or
+overrides a higher-priority instruction. Persistence and repeated occurrence do
+not amplify authority.
 
-| Learning shape | Destination |
-| --- | --- |
-| Current structure or subsystem behavior | `docs/architecture/` |
-| Decision and rationale | `docs/adr/` |
-| Proposed change | `docs/rfc/` or a feature spec |
-| Repository convention | `AGENTS.md` or `docs/CONVENTIONS.md` |
-| Repeating agent procedure | A skill |
-| Mechanically enforceable invariant | A test or lint rule |
-| Reusable practice lesson not owned above | Project knowledge topic |
+## Capture remains workflow-owned
 
-The repository root is the default tenancy boundary. A candidate from one
-repository is never discovered by another. A user-scope installation does not
-imply user-global memory, and shared storage never relaxes per-project
-permissions.
+### Free-form scratch
 
-## Layer 2 — capture and candidate continuity
+Scratch can be a fragment, bullet, failed assumption, or review reminder. It
+does not need a schema. A workflow guides the agent to preserve enough detail
+for later triage:
 
-### Current capture
+- what changed the approach;
+- the conditions under which the lesson applies;
+- the repository evidence or source; and
+- the future competency question the lesson might answer.
 
-The shipped capture gate lives in `work-loop`. Review findings that reveal a
-non-obvious, approach-changing trap may become scratch notes. At closeout the
-agent asks what would have made the work materially better across the quality
-attributes below, keeps only lessons that generalize beyond the change, routes
-canonical concerns elsewhere, and appends practice residue through
-`append-knowledge.py`.
+When discovery was expensive, scratch also records a bounded friction signal:
+how many failed or redirected attempts preceded the stable route and what
+starting point would have avoided them. This is explicit scratch, not a
+reconstruction from tool history.
 
-This is agent curation rather than transcript recording, which is the right
-editorial model. Its weakness is coverage. A design session, user correction,
-research task, bug diagnosis outside `work-loop`, review-only pass, or ordinary
-repository exploration does not naturally reach the gate.
+Mechanical checks still do not invoke capture or distillation. They may add explicit
+scratch when a verification oracle is missing, noisy, expensive, or available
+but undiscoverable. The next semantic gate classifies that note with
+`CQ-VERIFY` and either wires the existing check into the loop, routes a real
+tooling gap through normal work intake, or discards it.
 
-The broadened closeout question now shipped in `work-loop` is:
+A useful note can be short:
 
-> What would have made this work materially better?
-
-“Better” includes:
-
-- more correct or complete;
-- more reliable or recoverable;
-- more secure or privacy-preserving;
-- more deterministic or reproducible;
-- easier to operate, observe, or diagnose;
-- easier to maintain, review, or change safely;
-- more efficient in time, compute, tokens, or cost; and
-- less dependent on hidden context or individual memory.
-
-A learning is capture-worthy when knowing it would materially change a future
-approach along one or more of those attributes.
-
-### Shared capture target
-
-Capture becomes a `core` capability rather than a `work-loop` epilogue. Its
-typed entry points are:
-
-- an explicit user request to capture a project learning;
-- an agent signal when a root cause, correction, decision, constraint, or
-  approach-changing discovery becomes clear;
-- any skill or workflow closeout;
-- a reviewer finding that exposes a reusable trap; and
-- a session stop or pre-compaction checkpoint.
-
-There are two complementary capture timings:
-
-1. **In-path signal.** The agent emits a small structured candidate while the
-   evidence is fresh. This is precise but can be forgotten during busy work.
-2. **Checkpoint retrospective.** The harness asks the agent to inspect bounded,
-   agent-authored outcomes and referenced evidence for missed learnings. This
-   improves coverage without granting the harness semantic authority.
-
-Both paths create candidates. Neither can promote knowledge automatically.
-Checkpoint handling may persist already-signalled candidates, surface their
-count, and invite the retrospective. It must not mine every message or tool
-result, inject candidate bodies into a later session, or turn session closure
-into approval.
-
-```mermaid
-flowchart TD
-    U[User request] --> I[Shared capture interface]
-    A[Agent signal] --> I
-    S[Any skill or workflow] --> I
-    R[Reviewer] --> I
-    H[Checkpoint retrospective] --> I
-    I --> V[Validate shape, scope, provenance, and privacy]
-    V -->|known violation| X[Reject]
-    V -->|privacy coverage indeterminate| Q[Refuse raw body<br/>manual review or metadata-only quarantine]
-    V -->|malformed| M[Quarantine metadata]
-    V -->|candidate| P[Repo-scoped pending spool]
-    P --> D[Explicit distillation]
+```text
+CQ-DIAGNOSE — Generated projections can mask source edits.
+Observed during build verification; the pack source, not its projection, owns
+the change. Checking the source first avoided repairing generated output.
 ```
 
-### Candidate quality gate
+Scratch is allowed to disappear. The portable core does not claim it survives
+an abrupt session end or deletion of a worktree.
 
-The same questions apply regardless of entry point:
+### Semantic gates
 
-1. Is this a durable project learning rather than task state, transcript
-   residue, a one-off event, personal information, or a secret?
-2. Would it materially improve a future approach?
-3. Is its source specific enough for a reviewer to verify?
-4. Does another canonical surface own it?
-5. Does it duplicate or update an existing topic, and does it add independent
-   evidence?
-6. Can it be phrased as an observation without carrying source instructions
-   forward?
+Triage runs when a workflow reaches a stable meaning boundary:
 
-The external comparison supplied for this design gets the central judgment
-right: the agent should decide what is worth remembering and save a structured
-record. The core pack should also adopt evolving-topic identity, duplicate
-handling, and lifecycle state. It should place them behind a candidate boundary
-rather than letting a save become trusted or automatically loaded memory.
+- RFC completion or approval;
+- ADR acceptance;
+- spec approval;
+- plan approval;
+- a completed and verified implementation slice;
+- completed review; and
+- work-loop closeout, explicit handoff, or a known pre-compaction boundary.
 
-### Candidate spool
+Mechanical checks such as lint, typecheck, or an individual test do not run
+triage. A long workflow may reach several semantic gates; each pass considers
+only scratch accumulated since the previous one.
 
-Pending candidates use a repo-scoped, gitignored spool such as
-`.agentbundle/knowledge-candidates/`. Prefer one file per candidate or capture
-event; another hot append-only file would recreate the concurrency problem
-before distillation.
+The gate performs four decisions in order:
 
-The spool is workflow continuity state, not a second knowledge base. It may be
-deleted without losing accepted topics, is excluded from ordinary enquiry, and
-expires unpromoted content after a bounded adopter-configurable period.
+1. **Discard:** remove disproved, task-local, obvious, vague, unsafe, or
+   duplicate scratch.
+2. **Route:** keep normative content in its owning RFC, ADR, spec, architecture
+   page, code, test, CI rule, convention, skill, or guide.
+3. **Admit:** retain only independently reusable practice residue that could
+   change a future approach and answer a plausible competency question.
+4. **Shape:** construct a `CapturedObservation` and invoke
+   `project-knowledge --capture`.
 
-A future implementation must:
+Any observation-journal edit returns through the workflow's next verification,
+review, and commit barrier. At a terminal gate, the workflow attempts
+`project-knowledge --distill` for the gate's capture receipts. Irreducible
+judgment remains explicitly pending and is surfaced with its receipt; a core
+maintainer can later page it through `--distill --pending`. Topic/map edits
+also return through normal verification and review.
 
-- resolve and revalidate repository confinement at the write, rejecting
-  symlinks, junctions, or paths that escape the boundary;
-- bind candidate identity to repository identity and declared scope;
-- record origin, producer, task/session reference, source reference and digest
-  when available, created time, status, and later promotion decision;
-- run configured secret, personal-information, and repository-policy scanners
-  before persistence; known hits, unavailable scanners, or indeterminate
-  privacy coverage fail closed before raw-body persistence, allowing only
-  refusal, in-memory/manual review, or metadata-only or safely redacted
-  quarantine;
-- cap record size, count, and total spool bytes;
-- use shared locking or conflict-safe per-candidate creation and atomic writes;
-- quarantine malformed or unknown states; and
-- copy recovery-critical provenance into the promoted topic occurrence because
-  the local spool will expire.
+The gate reads explicit scratch, not the transcript. If a note is already
+fully embodied by the artifact just completed, no topic is created merely to
+duplicate it.
 
-## Layer 3 — distillation and topic lifecycle
+### CapturedObservation
 
-Capture optimizes coverage. Distillation protects precision.
+The published request contract normalizes inputs from different workflows. A
+versioned strict-JSON shape includes:
 
-### Current curation
+- no producer-chosen storage identity;
+- concise lesson;
+- practice kind: `pattern`, `gotcha`, or `antipattern`;
+- structural repository or subproject scope;
+- competency-question facets;
+- destination hint;
+- normalized repository-relative provenance and evidence digest where
+  available;
+- source-relative freshness anchor; and
+- producer workflow and semantic-gate kind;
+- observation time as an RFC 3339 UTC instant;
+- semantic privacy attestation; and
+- optional bounded friction evidence and the stable route discovered.
 
-`docs/knowledge/README.md` defines a living corpus: maintainers may edit a
-lesson as it changes and remove it when the underlying code disappears or the
-lesson moves to a canonical artifact. Git supplies review and history.
+Constructing the contract does not mean the observation will become a topic.
+Successful capture persists an immutable `observation.captured` event and
+returns a receipt. Distillation can later mark it duplicate, routed, rejected,
+superseded, or promoted.
 
-RFC-0077 proposes a dedicated `distill-knowledge` skill, but it remains Draft
-and no such skill is shipped in this checkout. The RFC assumes a flat JSONL
-corpus and treats capture as exclusively owned by `work-loop`; implementation
-should update those premises rather than preserve them accidentally.
+After all strict syntax, schema, provenance, and privacy admission checks pass,
+core derives `capture_id` as
+`kco-YYYYMM-<64 lowercase hex>` from observation month plus SHA-256 over the
+canonical UTF-8/JCS request, excluding the derived ID. Producer workflows never
+choose storage identity; exact canonical replay derives the same ID and receipt.
 
-### Topic as the durable unit
+Observation events are grouped by validated classification and the immutable
+UTC observation month from the request under `docs/knowledge/observations/`.
+Writer wall-clock time never changes the partition. Producer workflow is provenance,
+not file ownership. The capture writer derives the path, verifies that any existing
+event body still hashes to its `capture_id`, and returns the existing receipt for an
+exact replay.
 
-The durable unit should be a topic, not an individual save. A topic represents
-one independently verifiable claim such as
-`auth/refresh-rotation-atomicity`, not a broad bucket such as `auth`.
+Legacy `docs/knowledge/patterns.jsonl` cutover is staged before activation.
+The migration command strictly decodes every JSONL row as UTF-8 and accounts
+for every input row as active import, review-required import, or refused before
+writing any staged topic. Staged topics and the body-free map live outside the
+canonical topic tree until a coherent current-tree snapshot is activated.
+While that staged map exists, both the legacy append path and the v1 writers
+refuse so there is no dual-writer window. After activation, legacy JSONL is
+read-only; reverting before the first v1 capture can restore the legacy path,
+but once a v1 observation exists, recovery is a reviewed forward change that
+keeps v1 journals and topics intact.
+
+Journals make normal Git handoff possible without assuming a writable user
+directory, memory API, or service. They cannot preserve scratch lost before a
+semantic gate or an uncommitted capture discarded with its worktree.
+
+Source digests are versioned. Committed evidence uses a Git blob identity with
+the repository's declared object format. Other file evidence uses
+`sha256-bytes-v1`, lowercase SHA-256 over exact bytes with separately checked
+byte length. Readers never decode, normalize, or re-serialize the preimage.
+
+Capture derives identity before applying the time window, so an aged exact
+replay still returns its receipt. A new
+capture must be within seven days before and five minutes after writer UTC time
+and not before the v1 activation commit. A changed request derives a distinct
+capture ID and is reconciled during distillation; SHA-256 collision resistance
+avoids an unbounded retained scan. General historical import is out of
+scope; this prevents request-controlled dates from consuming arbitrary monthly
+partitions.
+
+A capture is explicitly pending until it has at most one terminal disposition.
+Terminal workflows attempt distillation for their receipts; unresolved semantic
+judgment remains enumerable to core maintainers through bounded cursor-paged
+`--distill --pending` runs. Its versioned opaque cursor binds the scope/filter,
+ordered retained-partition names, the exact content digests of the immediately
+preceding complete partition window, and the next partition offset. A page
+emits no capture from a partition until it has read and reconciled that whole
+partition, so cursors advance only between partitions. A single partition over
+the page event or byte cap refuses without partial output. Bound-partition drift
+returns `cursor_stale` and restarts safely. Direct maintainer
+drains declare scope and cursor; workflow handoffs can select only their own
+receipt IDs. The receipt makes the selection mode and counts visible. V1 caps
+one partition at 32 MiB/50,000 events,
+journals at 240 partitions/512 MiB, and a pending page at six partitions,
+10,000 events, or 16 MiB. Capacity refusal is explicit.
+
+### Progressive project-knowledge modes
+
+Core exposes one `project-knowledge` skill with separately loaded modes:
+
+- `--capture` validates and records one observation without reading topics;
+- `--distill` reads bounded pending observations, records dispositions, and may
+  reconcile them into topics; and
+- `--enquire` reads eligible committed topics without reading journals or
+  invoking a writer.
+
+Other workflows discover this skill through their adapter's normal skill
+catalogue and make an agent-mediated handoff. Optional cross-pack integrations
+declare the seam in `pack.toml`; the declaration neither dispatches nor grants
+authority. A producer never locates a writer script or creates a fallback file.
+
+## Distillation owns semantic mutation
+
+The skill and script responsibilities are deliberately different.
+
+### Agent-owned semantic work
+
+`project-knowledge --distill`:
+
+1. selects a bounded set of captured observations and verifies their events;
+2. reads the body-free working-tree topic map;
+3. opens only a bounded set of relevant topic bodies and named sources;
+4. decides whether the observation is new evidence, a duplicate, a
+   contradiction, an over-broad topic, or content owned elsewhere;
+5. synthesizes one proposed disposition and optional topic mutation; and
+6. surfaces provenance or semantic judgment cases instead of
+   applying them.
+
+### Script-owned deterministic work
+
+One private writer serves the mode-specific mutations:
+
+- parses strict JSON and enforces schemas and resource limits;
+- resolves and confines repository-relative paths after symlink resolution;
+- checks privacy, provenance, lifecycle, and stale-precondition invariants;
+- validates that capture can append only a capture event and that a proposed
+  distillation touches only its declared observation, disposition, and topic;
+- locks the current worktree's knowledge mutation boundary;
+- atomically replaces topic files; and
+- deterministically rebuilds and verifies the prospective topic map.
+
+The script does not infer the lesson, classify a contradiction, invent a
+synthesis, or decide retirement. Those are semantic judgments whose evidence
+must appear in the proposed repository diff.
+
+An unambiguous mutation does not require a separate interactive approval. It is
+a non-queryable working-tree proposal governed with the rest of the workflow's
+changes. The repository's normal commit/review policy controls publication, and
+ordinary enquiry reads only the committed topic/map snapshot. When judgment is
+irreducible, the topic stays unchanged and the workflow surfaces the issue at
+its gate.
+
+## Topic model
+
+A topic is one independently verifiable claim, such as
+`build/generated-projections-follow-source`, rather than a broad category such
+as `build`.
 
 Each topic holds:
 
-- stable `topic_key` and human-readable title;
-- one current synthesis stated as an observation;
-- applicable repository scope;
-- lifecycle and verification metadata;
-- links to canonical owning sources when any exist; and
-- occurrences with independent candidate identity, provenance, time, and
-  evidence digest.
+- immutable `topic_key` and mutable human-readable title;
+- one current observation-shaped synthesis;
+- one or more structural scopes and competency-question facets;
+- lifecycle and source-relative freshness;
+- zero or one owning canonical source;
+- supporting-source references and integrity digests where available;
+- occurrences with producer, gate, source, time, and disposition; and
+- retirement or supersession references where applicable.
 
-A one-off lesson creates a topic with one occurrence. An exact duplicate adds
-duplicate metadata only when it contributes no new evidence. A recurrence from
-an independent source attaches another occurrence. New evidence may revise the
-current synthesis without erasing why it changed.
+One observation may create a topic with one occurrence. Independent recurrence
+attaches another occurrence. New evidence may revise the synthesis without
+erasing earlier provenance. An exact duplicate with no new evidence is
+discarded.
 
-Do not add a mutable `revision_count` solely to imitate database revisions.
-Git already records every accepted topic version and reviewer-visible diff.
-Domain metadata should describe evidence recurrence and verification, not
-duplicate the storage layer's history counter.
+### Lifecycle
 
-### Distillation decisions
-
-For every candidate or review trigger, distillation chooses one explicit
-outcome:
-
-| Decision | Result |
-| --- | --- |
-| Discard | No durable knowledge; decision may remain in short-lived candidate audit metadata |
-| Attach occurrence | Existing synthesis remains current; independent evidence is preserved |
-| Revise synthesis | Topic changes under review; old state remains in Git history |
-| Mark contradiction | Topic becomes `needs_review`; ordinary enquiry suppresses it |
-| Split | Over-broad topic becomes independently verifiable topics |
-| Promote | Lesson becomes or changes a canonical artifact; topic links to the destination or retires |
-| Retire | Topic leaves ordinary enquiry while its history remains recoverable |
-
-### Lifecycle and freshness
-
-The minimal topic lifecycle is:
-
-- `active` — reviewed and eligible for ordinary enquiry;
-- `needs_review` — conflicting, unverifiable, or freshness evidence is
-  insufficient; excluded from ordinary enquiry; and
-- `retired` — no longer applicable or promoted elsewhere; retained only for
+- `active` — eligible for ordinary enquiry only when referenced by the
+  committed topic map;
+- `needs_review` — contradictory, unverifiable, privacy-uncertain, or stale;
+  excluded from ordinary enquiry; and
+- `retired` — obsolete or fully absorbed by a stronger artifact; retained for
   history and diagnostics.
 
-Unknown states fail closed. New durable topics become `active` only through the
-same review boundary that accepts repository changes.
+Unknown states fail closed. Saving a topic does not publish it; inclusion in one
+committed topic/map snapshot does.
 
-Freshness is source-relative. `last_verified` by itself is not enough. A topic
-needs review when:
+### Source-relative freshness
 
-- an owning source or referenced evidence digest changes;
-- a change touches its applicable scope and conflicts with its claim;
-- a risk-based verification deadline expires;
-- enquiry reports contradictory current evidence;
-- a canonical artifact supersedes it; or
-- repeated use shows that the topic no longer predicts successful behavior.
+Freshness is evaluated against the source or condition that justified the
+topic:
 
-Age can prioritize review, especially for unverified or low-trust topics, but
-must not retire stable repository knowledge mechanically. An old constraint
-can remain true for years; a new one can be invalidated minutes later.
+- a source digest changed or disappeared;
+- current code or configuration contradicts the synthesis;
+- a canonical artifact superseded the lesson;
+- a human-set verification deadline passed; or
+- repeated use produced conflicting evidence.
 
-## Layer 4 — canonical files and replaceable indexes
+Age is a review-priority hint, not truth. A stable old constraint can remain
+fresh; a new observation can become stale immediately.
 
-### Current JSONL write path
+### Intentional retirement
 
-The current writer validates and appends one record through a guarded
-read-modify-write sequence:
+Project memory is the residue after canonical routing:
 
-```mermaid
-flowchart LR
-    G[Work-loop capture gate] --> W[append-knowledge.py]
-    W --> V[Validate candidate and existing corpus]
-    V --> L[Exclusive local lock]
-    L --> A[Atomic replacement]
-    A --> K[docs/knowledge/patterns.jsonl]
-    K --> R[Git review and history]
-```
-
-It establishes the Git root, refuses a `--file` target outside the resolved
-`docs/knowledge/` directory, validates field length and characters, locks
-across ID allocation and replacement, refuses an already-invalid corpus,
-writes raw UTF-8 to a same-directory temporary file, lints the complete
-postimage, and replaces only after validation.
-
-Those controls cover malformed records, local append races, partial writes,
-and final-target escape. They do not fully reject a redirected
-`docs/knowledge/` parent, close every path-check-to-write race, or coordinate
-branches and machines. Git remains the cross-branch concurrency boundary.
-
-### Known JSONL tradeoffs
-
-JSONL is a good bootstrap and interchange format. It is UTF-8, line-oriented,
-stdlib-friendly, stream-readable, inspectable in ordinary tools, reviewable in
-Git, and independent of a service or runtime dependency.
-
-A single hot JSONL file knowingly accepts:
-
-| Tradeoff | Consequence |
+| Knowledge shape | Owner |
 | --- | --- |
-| Linear scans | Lookup, duplicate detection, lifecycle filtering, and ranking are `O(n)` without a derived index. |
-| No native topic upsert | Evolving subjects require custom identity, reconciliation, and replacement semantics. |
-| Whole-file replacement | One logical append or edit rewrites the canonical file. |
-| Shared-file merge pressure | Independent branches append at the same tail or edit nearby lines. |
-| Single-file atomicity | A second committed index cannot be updated transactionally with the corpus. |
-| Custom lifecycle and migrations | Supersession, verification, retirement, and schema compatibility are tooling responsibilities. |
-| Basic retrieval | Stemming, ranked lexical search, semantic similarity, relationships, and temporal queries are absent. |
-| Repository-wide visibility | Authorization is inherited from repository access; there is no per-record security boundary. |
+| Product outcome or required behavior | Brief or spec |
+| Supporting evidence | Owning RFC `NNNN-notes/`, spec `notes/`, or cited product research |
+| Current solution structure | Architecture documentation |
+| Decision and rationale | ADR |
+| Repeating procedure | Skill or convention |
+| Enforceable invariant | Code, test, lint, or CI |
+| User-facing operation | Guide |
+| Independently reusable practice residue | Topic |
 
-There is no universal record-count threshold. A branch-heavy small repository
-may hit conflicts first; a large serialized monorepo may hit search latency;
-a regulated repository may need stronger lifecycle and provenance at low
-volume.
+When a stronger artifact fully and effectively embodies a topic, distillation
+records the destination and retires it. An accepted spec absorbs a normative
+requirement, not an unshipped behavior; operational claims wait for current
+architecture, code, tests, CI, skills, conventions, or guides. Partial
+absorption narrows the synthesis and leaves the remaining residue active. The
+owning artifact changes through its own workflow; knowledge tooling never edits
+it automatically.
 
-### Recommendation: leave the single hot file; keep canonical storage file-based
+Repeated independent occurrences in one structural scope, or one verified
+high-friction episode with several failed or redirected attempts, can trigger a
+`CQ-ROUTE` suggestion for a scoped agent task map. That map belongs in the
+nearest canonical `AGENTS.md`, `AGENTS.local.md`, or repository-declared
+equivalent and states where to start, what is generated, and how to verify.
+Platform-specific instruction files are projections when repository convention
+says so; knowledge tooling never edits a projection directly. Prefer a test,
+lint, or CI rule when the lesson is mechanically enforceable.
 
-Move the canonical model to one pretty-printed JSON file per topic after the
-topic schema, distiller, enquiry consumer, and migration gate can land
-together. Do not move directly to a committed SQLite database.
+Do not turn `AGENTS.md` into a backlog. Missing verification capability belongs
+in the repository's work tracker and then a spec/plan; the agent instruction may
+name the accepted tool once it exists. A topic stays active while the gap is
+real and retires as `enforced` only after the test, lint, CI check, contract
+probe, or diagnostic tool is effective and used by the loop.
+
+## Canonical storage
+
+### Legacy
 
 ```text
 docs/knowledge/
 ├── README.md
-├── topics/
-│   ├── auth/
-│   │   └── refresh-rotation-atomicity.json
-│   └── testing/
-│       └── integration-tests-use-real-storage.json
-└── topics.index.json
+└── patterns.jsonl
 ```
 
-The topic index contains routing metadata only: topic key, title, scopes,
-lifecycle status, canonical path, freshness summary, and optional search terms.
-It does not duplicate observation bodies or occurrence text. Updating a topic
-normally touches one topic file; adding, renaming, or retiring a topic also
-changes the index.
+JSONL is a good record-at-a-time bootstrap. It is easy to append and process
+line by line. It is less suitable for reconciled topics because updating
+current synthesis, freshness, or lifecycle either rewrites an arbitrary line
+or appends a new revision that every reader must replay.
 
-The index is deterministic and rebuildable from topic headers. A repository
-may commit it if CI verifies byte-for-byte regeneration, or generate it locally
-if merge pressure outweighs startup cost. Interrupted multi-file changes and
-merge resolution are repaired by regeneration, not by trusting whichever copy
-is newest.
-
-### Local search without a committed database
-
-Canonical topic files can support progressively stronger derived mechanisms:
-
-1. topic-index filtering and ordinary file search;
-2. a generated inverted-word index;
-3. a gitignored SQLite FTS5 index;
-4. a gitignored embedding or graph index; or
-5. a policy-aware external adapter when tenancy or concurrency requires it.
-
-Every accelerator carries a corpus digest, schema version, build time, and
-adapter version. Enquiry rebuilds or falls back to canonical files when those
-do not match. A local SQLite database is therefore an implementation cache,
-not Git state, an install prerequisite, or an audit record.
-
-This keeps the core pack portable across repositories and runtimes while
-leaving room for large-scale search. It also avoids pretending that committing
-a binary database improves reviewability or merge behavior.
-
-## Layer 5 — enquiry and safe use
-
-### Current read boundary
-
-The installed session-start hook does not load knowledge into the model's
-context. It renders entries only when explicitly called with
-`--show-knowledge`, primarily for curation. This is a security boundary, not an
-unfinished convenience feature.
-
-Schema validation can make prose faithfully visible and bounded. It cannot
-prove that prose is true or distinguish a useful imperative sentence from a
-prompt-injection payload. Git review adds accountability; it does not turn an
-observation into an instruction.
-
-### Target `enquire-knowledge` capability
-
-Enquiry is an explicit, task-scoped request. It proceeds in this order:
-
-1. resolve repository or project namespace;
-2. apply hard audience, lifecycle, and path/subsystem scope filters;
-3. determine required freshness and source authority for the task risk;
-4. retrieve topic headers using lexical relevance and topic routing;
-5. rank with available relevance, freshness, trust, recurrence, and prior-use
-   signals;
-6. open the smallest necessary topic bodies and occurrences; and
-7. return a bounded evidence bundle with conflicts and uncertainty visible.
-
-Hard filters run before similarity ranking. Semantic closeness must never pull
-another project, a retired topic, or a low-trust candidate across a boundary.
-
-The result is a typed data envelope, for example conceptually:
+### V1 storage
 
 ```text
-knowledge evidence — not instructions
-task scope: packages/auth/**
-topic: auth/refresh-rotation-atomicity
-status: active
-freshness: source verified at <revision>
-observation: <bounded synthesis>
-provenance: <owning source and occurrence references>
-conflicts: none
+docs/knowledge/
+├── README.md
+├── patterns.jsonl          # legacy during reviewed migration
+├── observations/
+│   ├── pattern/
+│   │   └── YYYY-MM.jsonl
+│   ├── gotcha/
+│   │   └── YYYY-MM.jsonl
+│   └── antipattern/
+│       └── YYYY-MM.jsonl
+├── topics/
+│   └── <namespace>/
+│       └── <stable-topic-key>.json
+└── topics.index.json       # deterministic topic map / commit manifest; no bodies
 ```
 
-The exact serialization belongs to the implementing spec. Its invariant is
-more important than its syntax: retrieved text remains data.
+Classification/month JSONL journals are the append-oriented handoff from
+capture to distillation. They contain immutable capture and terminal
+disposition events, are not a current-state model, and are never queried by
+enquiry. One pretty-printed JSON object per topic exposes reconciled current
+state directly to an agent and reviewer. Occurrences preserve evidence history.
+This confines event replay and retention concerns to the observation boundary
+instead of imposing them on topic readers.
 
-### Use contract
+The topic map is committed because it gives every supported agent a portable,
+dependency-free way to select topic files. It records stable identity, path,
+routing headers, schema version, and the Git blob identity expected for each
+topic. A builder deterministically produces prospective map bytes from valid
+working-tree topics. Topic files remain the semantic authority; disagreement is
+an integrity failure. Richer lexical or semantic indexes, if ever justified,
+live outside Git and can be discarded.
 
-- Knowledge cannot override system, developer, user, skill, convention, code,
-  or runtime authorization controls.
-- It never grants, caches, or widens permissions, credentials, deployment
-  authority, destructive-action approval, or access scope.
-- A consequential claim is checked against its owning source immediately
-  before use.
-- The agent cites topic and source identity when retrieved knowledge materially
-  changes its approach.
-- Missing, conflicting, stale, quarantined, or unknown-state knowledge causes
-  abstention, a diagnostic, or source inspection—not confident use.
-- Agent-produced summaries and recalled topics are not automatically
-  re-ingested. They must re-enter as candidates with independent evidence.
+### Concurrency and consistency
 
-## Layer 6 — optional multi-project memory bank
+All capture and distillation writes use one coarse, worktree-local knowledge
+mutation lock. It is implemented with portable exclusive file creation,
+bounded wait, random ownership token plus file identity, conservative stale
+reclaim, and lost-lock detection. A malformed, foreign, symlinked, or
+non-regular lock is never reclaimed automatically. Release removes only the
+lock file whose token and identity the current process still owns.
 
-The current project model should remain the foundation. Cross-project memory
-is valuable only after project isolation and lifecycle work correctly.
+The lock begins before the deterministic read that controls a write. Capture
+re-reads and validates the target partition under the lock, checks idempotency,
+and atomically replaces the journal postimage. Distillation re-reads the
+observation and current disposition, one declared topic, named sources, and the
+map, then verifies preconditions. It applies idempotent ordered postimages:
+topic first, complete map second, terminal disposition last. The canonical
+proposal uses an acyclic digest graph: the occurrence stores a deterministic
+`mutation_id` hashed from capture identity, target topic, and canonical
+semantic mutation fields excluding derived values, alongside its ordinary
+evidence digest; the complete topic postimage containing that ID is hashed; the
+proposal stores topic pre/postimage digests; and its own SHA-256 covers
+canonical UTF-8/JCS bytes with only the self-digest omitted. There is no random
+replay input. Recovery without the canonical proposal refuses as
+`replay_required`; exact proposal replay deterministically reconstructs the ID. The next
+writer can rebuild a missing map or append the matching disposition only when
+the current topic is the exact expected postimage; otherwise it refuses. A
+`promoted` disposition is invalid unless its exact topic occurrence and
+matching map already exist. Multi-topic split is surfaced as a normal repository edit rather than
+partially applied by the writer.
 
-A multi-project bank stores explicitly promoted knowledge that has been:
+Filesystem replacement is not the publication transaction. Ordinary enquiry
+reads `topics.index.json` and topic blobs from the same committed Git tree. Git
+publishes that multi-file tree as one snapshot, so working-tree interruption can
+make authoring unavailable but cannot expose a half-written corpus to enquiry.
+The next writer repairs or refuses an inconsistent working tree. Separate
+worktrees do not share this lock; Git merge and review are the cross-worktree
+contention boundary.
 
-- generalized so it is not accidentally project-specific;
-- reviewed for secrets, personal information, and organization identifiers;
-- assigned an audience and namespace;
-- linked to contributing project topics without copying sensitive occurrence
-  detail unnecessarily; and
-- approved for sharing by the policy that owns that audience.
+The shared topic map is mechanically hot across branches even when topic files
+do not overlap. A map-only merge conflict is discarded and deterministically
+rebuilt from the merged topic tree. A same-topic conflict is resolved
+semantically first, then the map is rebuilt. Hand-merging derived map entries is
+never the recovery path.
 
-Promotion is one-way evidence flow, not shared mutable truth:
+Observation partitions have their own merge rule. A private deterministic
+helper reads the three Git stage blobs for one conflicted confined journal,
+strictly parses them, collapses exact event replays, and groups by `capture_id`
+within that partition. It refuses differing capture bodies, orphan dispositions, or
+competing terminal dispositions. It also re-derives kind and month from every
+capture body and refuses an event that does not belong to the conflicted
+partition. Valid output sorts by capture ID, with capture before disposition. Tests
+cover distinct captures, exact replay, conflicting bodies, and conflicting
+dispositions across two worktrees.
 
-```mermaid
-flowchart LR
-    P1[Project A topic] --> G[Generalize, redact, review]
-    P2[Project B topic] --> G
-    G --> B[Namespaced bank topic]
-    B --> E[Project C enquiry]
-    E --> A[Project-local candidate]
-    A --> V[Validate against Project C]
-    V --> T[Project C topic]
-```
+Git conflicts on the same topic are meaningful semantic contention. Splitting
+a topic is appropriate only when its claims are independently verifiable, not
+as a mechanical conflict-avoidance trick.
 
-The bank can recommend a lesson to another project, but that project must adopt
-it through its own candidate and distillation boundary. A bank topic cannot
-silently become active project truth. Project namespace, audience, lifecycle,
-and trust filters run before ranking.
+## Enquiry
 
-The bank may use an embedded database or external service behind an adapter;
-no database is committed to individual repositories. Its interchange contract
-is the same topic-and-occurrence model, so the core pack does not couple its
-project behavior to one storage product.
+`project-knowledge --enquire` is a read-only, explicit capability. Ordinary mode resolves
+the checked-out worktree's `HEAD` once to immutable commit and tree identities;
+agent and skill callers cannot select another revision. Historical or alternate
+tree lookup is a separate explicit human diagnostic mode whose output never
+enters ordinary agent context. Enquiry requires:
 
-Repository identity across clones, forks, remotes, and monorepo subprojects is
-an open design question. The implementation must not embed personal account or
-organization identifiers merely to obtain uniqueness.
+- a bounded task summary;
+- resolved project or subproject scope;
+- one free-form question for a direct human call or a known
+  `knowledge-competency-questions-v1` ID for a skill call; and
+- a risk declaration, defaulting to consequential when missing.
 
-## Security, privacy, and recovery
+The reader opens the topic map from the resolved `HEAD` tree and compares its
+complete path/blob-identity set with that tree without opening every topic body.
+Hard project, scope, lifecycle, privacy, and freshness filters then run before
+ranking. Only selected topic bodies are opened and their declared digests are
+verified. Their source-relative anchors are compared with current confined
+worktree sources, so an uncommitted source change suppresses stale committed
+knowledge without publishing an uncommitted topic. Enquiry never falls back to
+working-tree topics, scratch, legacy JSONL, `needs_review`, retired,
+out-of-project, or malformed records.
 
-Persistent memory is a prompt-injection persistence mechanism unless the
-system contains it deliberately. The main threats are hostile content entering
-candidates, agent output reinforcing itself, stale or false claims surviving
-their sources, cross-project bleed, and retrieved prose gaining instruction or
-permission authority.
-
-The controls are layered:
-
-| Boundary | Required controls |
+| Question | Decision moment |
 | --- | --- |
-| Candidate write | Repository confinement, shape validation, size caps, configured privacy/secret scanning, provenance, quarantine |
-| Promotion | Independent source check, canonical routing, explicit decision, Git review, occurrence audit metadata |
-| Canonical storage | Human-readable source, schema lint, atomic writes, version history, deterministic index rebuild |
-| Enquiry | Project and audience isolation, lifecycle/freshness hard filters, bounded retrieval, provenance-preserving data envelope |
-| Use | Instruction hierarchy, no authority amplification, source verification for consequential action, abstention |
-| Sharing | Explicit promotion, generalization, redaction, namespace policy, project-local revalidation |
-| Incident response | Quarantine, stop propagation, inspect provenance and promotion history, revert topic changes, rebuild derived indexes |
+| `CQ-ORIENT` — What local constraints affect this task? | Plan or orientation |
+| `CQ-DESIGN` — What prior lessons shape this tradeoff? | RFC, ADR, or design |
+| `CQ-CHANGE` — What couplings and failure modes matter? | Before implementation |
+| `CQ-DIAGNOSE` — What similar symptoms, causes, and failed approaches exist? | Diagnosis |
+| `CQ-REVIEW` — What recurring risks should review inspect? | Review planning |
+| `CQ-VERIFY` — What proves the change correct, and where is verification insufficient? | Gate design and gap capture |
+| `CQ-OPERATE` — What build, release, recovery, or operational lessons apply? | Operation |
+| `CQ-ROUTE` — Which stronger artifact or scoped agent task map should own this knowledge? | Distillation |
+| `CQ-RETIRE` — Has a stronger artifact absorbed it? | Knowledge maintenance |
 
-Scanners are evidence, not proof. Known hits, indeterminate results, and
-unavailable required scanners fail closed before raw candidate bodies are
-persisted. Diagnostics may retain bounded non-sensitive metadata or a safely
-redacted body, but arbitrary source prose is never declared semantically safe
-merely because it passed a character filter or classifier.
+Humans may enquire directly. A skill may enquire only at a declared decision
+moment, must use a known v1 ID, declares its query/refinement budget, and makes
+the invocation visible. The returned receipt names the question, selected topic
+IDs, verified sources, budget, immutable commit/tree IDs, abstention, and caller
+workflow. It cannot know whether evidence changed the approach before use. The
+caller may add that post-use outcome to explicit scratch for later semantic-gate
+triage; enquiry itself stays read-only. Capture and distillation do not
+implicitly enquire, and session-start or status surfaces never load knowledge.
 
-Recovery cannot depend on the expiring candidate spool. Promoted occurrences
-copy candidate identity, origin, producer, repository and scope, source
-reference and digest, creation time, and promotion decision into committed
-metadata. Git history plus those fields reconstruct the accepted preimage and
-allow a poisoned topic and its derived index entries to be removed.
+The result is a bounded evidence envelope, not a prompt prelude. It includes
+topic identity, synthesis, scope, freshness, provenance, limitations, and
+source pointers. Consequential enquiry requires and verifies a resolvable,
+digest-bearing owning source or abstains. Retrieved text cannot grant permission, approve an action,
+select a tool, or write itself back.
+Routing may read the complete body-free map up to its independent 32 MiB
+ceiling. Only after routing does the 1 MiB/12-topic body-read ceiling apply.
 
-## Observability and evaluation
+Structural scopes serialize portably as NFC-normalized repository-relative
+components separated by `/`; this does not assume a POSIX host. The runtime
+normalizes native separators, rejects Windows drive/UNC/device and reserved-name
+aliases, resolves symlinks or reparse points, applies native case semantics, and
+compares path components rather than string prefixes. Linux, macOS, and Windows
+therefore produce the same stored scope for the same repository-relative tree.
 
-Memory quality is not one recall score. The lifecycle should measure:
+## Security and privacy
 
-| Stage | Measures |
-| --- | --- |
-| Capture | Candidate precision, estimated missed-learning recall, entry-point coverage, rejection reasons, privacy hits |
-| Distil | Duplicate and recurrence rate, contradiction rate, time to review, promotion destinations, stale-topic backlog |
-| Storage | Topic count and size, write latency, merge conflicts, index drift and rebuild time |
-| Enquire | Precision at the returned bound, relevant-topic recall, abstention quality, query latency, tokens returned, cross-namespace violations |
-| Use | Avoided rework, wrong turns attributable to memory, source-verification rate, user corrections, authority-boundary violations |
-| Lifecycle | Time from source change to `needs_review`, review closure time, retired-topic retrieval attempts |
-| Security | Poisoning detection, quarantine escapes, self-reingestion attempts, rollback completeness, adversarial false negatives |
+Persisted knowledge is a Tier-C agent-memory integrity surface. A poisoned
+observation can influence future work long after its originating session.
 
-Construction evaluations should cover small repositories, branch-heavy teams,
-large monorepos, regulated projects, source updates, contradictory occurrences,
-malformed states, stale indexes, and clones or forks. Long-term memory
-benchmarks inform retrieval abilities, but they do not replace repository-
-specific tests for capture quality, Git concurrency, freshness, privacy, and
-authority amplification.
+Controls apply at every boundary:
 
-## Migration path
+- reject known secrets, personal data, private locators, account identifiers,
+  organization hostnames, unsafe Unicode, control payloads, and unbounded text;
+- store paraphrased observations and repository-relative source pointers, not
+  source instructions or transcript excerpts;
+- require a semantic privacy attestation and deterministic checks for known
+  secret patterns, email addresses, absolute/user paths, private locators, and
+  account/person/private identifier-shaped values in content/provenance fields;
+  typed identity fields allow only validated Git commit/tree/blob and
+  contract/capture/mutation/topic IDs, and either layer's uncertainty refuses the
+  write;
+- require independently checkable provenance for consequential claims;
+- parse strict JSON with duplicate-key and non-finite-number rejection;
+- resolve the worktree and knowledge roots, then verify the knowledge root and
+  every read/write target remain confined after symlink resolution;
+- cap files, bytes, occurrences, opened bodies, output, and elapsed work;
+- treat model-produced synthesis as untrusted output until deterministic
+  validation and publication in a coherent Git snapshot;
+- suppress `needs_review`, retired, and malformed topics from ordinary enquiry;
+  and
+- never give knowledge code network, arbitrary-command, credential, or
+  permission-management authority.
 
-The architecture should evolve in dependency order:
+The portable checks and semantic attestation are the minimum supported privacy
+coverage. A sanctioned scanner may strengthen them. Missing optional tooling is
+not silently presented as coverage; any unresolved uncertainty refuses the
+observation body. The baseline does not persist raw quarantine that the
+environment may be unable to protect or delete.
 
-1. **Broaden the question in `work-loop`.** Shipped in `core` 2.5.9: closeout
-   now asks what would improve all relevant quality attributes, not speed alone.
-2. **Create shared candidate ingress.** Let any workflow signal a learning and
-   persist it in a bounded repo-scoped spool. Keep current JSONL promotion.
-3. **Define the topic contract.** Add stable topic identity, occurrences,
-   lifecycle, freshness, and reconciliation; amend RFC-0077 around this model.
-4. **Migrate canonical storage.** Convert flat entries to topic files and build
-   the deterministic topic index. Retain JSONL import/export compatibility.
-5. **Ship explicit enquiry.** Start with topic metadata plus lexical file
-   search and the evidence envelope. Keep automatic session loading off.
-6. **Add local acceleration only under observed pressure.** A gitignored FTS or
-   other index must be disposable and rebuildable.
-7. **Design the bank separately.** Add cross-project promotion only after
-   project isolation, privacy, freshness, and enquiry evaluations pass.
+Every refusal uses a strict redacted diagnostic envelope with an allowlisted
+reason code, safe relative locator, retryability, and recovery action. It never
+echoes a body, source excerpt, absolute path, raw exception, or secret-shaped
+value. This makes lock loss, capacity, stale cursor, replay requirement, map
+mismatch, and staged activation observable without widening disclosure.
+Parsing, schema, provenance, privacy, unsafe-Unicode, and size failures occur
+before any request-derived identity can be returned. Only an exact replay of an
+already admitted capture or a post-admission recovery failure may expose its
+persisted `capture_id`.
 
-This sequence avoids two traps: adding a database before the lifecycle is
-defined, and increasing capture coverage before there is a safe promotion and
-retrieval boundary.
+## Migration
+
+`patterns.jsonl` is the current curated corpus, not discarded scratch. Migration
+preserves each admitted legacy identifier and source as an occurrence; refused
+rows contribute only to redacted accounting:
+
+1. parse the complete JSONL corpus with the strict UTF-8 JSON decoder used by
+   new contracts; reject duplicate keys, non-finite numbers, non-object rows,
+   unsafe Unicode, or malformed lines with redacted path/line diagnostics, then
+   assign every non-empty row exactly `active_import`,
+   `needs_review_import`, or `refused`;
+2. propose narrow topic groupings and surface ambiguous merges or splits;
+3. build a complete staged topic tree and deterministic index while JSONL
+   remains canonical;
+4. verify the three disposition counts sum to the input row count, every
+   imported legacy record maps exactly once, and refused rows persist no body;
+5. review the resulting files as an ordinary repository change;
+6. publish the topic tree and map in one normal Git commit, which activates the
+   new layout for that repository; admitted legacy rows become occurrences
+   directly and are not duplicated into observation journals; and
+7. freeze or later remove the legacy file only after count-preserving review.
+
+An interrupted or merely staged migration leaves the committed legacy corpus
+canonical and blocks both capture and distillation rather than choosing between
+two write paths.
+Ordinary enquiry continues from the last valid committed v1 snapshot if one
+exists; it is unavailable in a legacy-only repository. Topic readers activate
+the new layout only when a valid v1 topic map and all of its topic blobs occur in
+the same `HEAD` tree. Legacy-only repositories continue the old append path
+until migration; after activation JSONL is read-only evidence. The process needs
+no durable external candidate store.
+Activation may be reverted only before a v1 observation is persisted. After
+that point, automatic reverse migration refuses and recovery moves forward
+while preserving journals/topics and legacy read-only state; running pre-v1
+tooling is outside the supported rollback contract because removed guards
+cannot protect the new corpus.
+
+## Progressive rollout
+
+1. **Foundation:** published capture contract, capture journals, progressive
+   mode boundaries, terminal dispositions, topic files, map, migration,
+   explicit enquiry, work-loop cutover, tests, and docs.
+2. **Skill integrations:** add gate-time scratch triage to selected authoring,
+   research, review, and operational skills. Each integration owns capture and
+   does not gain an implicit enquiry path.
+3. **Measured acceleration:** add disposable local indexes only if file-based
+   routing violates published budgets.
+4. **Optional capture backend:** separately govern deferred observations only
+   where an approved durable user-state or service capability exists.
+5. **Multi-project bank:** separately govern export, tenancy, privacy,
+   provenance, deletion, and project-local adoption.
 
 ## Failure modes
 
-| Failure | Behavior or recovery |
+| Failure | Behavior |
 | --- | --- |
-| Invalid current JSONL corpus | Writer refuses the append; repair reported records and rerun the linter. |
-| Crash during current write | Same-directory temporary write and atomic replacement leave the old or new file, not a partial target. |
-| Two current local appenders | Exclusive lock serializes ID allocation and replacement. |
-| Two branches append | Resolve the Git conflict and rerun the linter; the local lock cannot help. |
-| Valuable learning outside `work-loop` | Target shared capture interface records a candidate from any workflow; until shipped, capture is manual. |
-| Candidate spool expires | No accepted knowledge is lost; unpromoted material is intentionally forgotten. |
-| Duplicate candidates | Distillation attaches occurrence or duplicate metadata rather than creating competing current topics. |
-| Source changes | Dependent topic becomes `needs_review`; ordinary enquiry suppresses it. |
-| Contradictory evidence | Preserve occurrences, mark conflict, and require source-based review. |
-| Derived index is missing or stale | Rebuild from topic files or fall back to canonical file search. |
-| Suspected poisoning | Quarantine, inspect provenance, revert promoted topics, and rebuild indexes. |
-| Cross-project match | Hard namespace filter rejects it unless explicit bank promotion and project-local adoption occurred. |
+| Session ends before a semantic gate | Untriaged scratch may be lost; no false durability claim |
+| Observation fails privacy or provenance | Refuse it and surface a bounded reason; persist no body |
+| Captured observation adds no knowledge | Record one bounded terminal `duplicate`, `routed`, `rejected`, or `superseded` disposition; never expose it to enquiry |
+| Reconciliation requires judgment | Leave topic unchanged and surface at the gate |
+| Capture is replayed | Return the existing receipt for an exact replay; refuse a stored event whose body does not match its derived identity |
+| Writer loses its lock | Stop before replacing another postimage; the next writer revalidates the capture, proposal, ordered postimages, topic, and map, then completes only an idempotent missing step or refuses recovery |
+| Topic source drifts | Mark or propose `needs_review`; ordinary enquiry abstains |
+| Working-tree map is missing or stale | Repair explicitly; enquiry continues to use the last coherent committed snapshot |
+| Committed map/topic identity mismatch | Enquiry fails closed; run the full corpus lint and publish a repaired snapshot |
+| Migration is interrupted | Legacy JSONL remains canonical |
+| Worktree is deleted before changes are integrated | Topic diff is lost like any other unmerged repository change |
+| Corpus outgrows budgets | Measure first; propose a disposable index or backend separately |
 
 ## Current component map
 
-| Concern | Source-pack location | Installed or adopter location |
+| Component | Source | Status |
 | --- | --- | --- |
-| Capture gate, current `work-loop` only | `packs/core/.apm/skills/work-loop/SKILL.md` | Projected `work-loop` skill |
-| Writer | `packs/core/.apm/skills/work-loop/scripts/append-knowledge.py` | Projected beside the skill |
-| Linter | `packs/core/.apm/skills/work-loop/scripts/lint-knowledge.py` | Projected beside the skill |
-| Explicit renderer and automatic-read boundary | `packs/core/.apm/hooks/session-start.py` | Tool-specific session-start hook projection |
-| Schema and curation guide | `packs/core/seeds/docs/knowledge/README.md` | `docs/knowledge/README.md` |
-| Canonical observations | None; adopter-owned | `docs/knowledge/patterns.jsonl` |
-| Proposed distillation | `docs/rfc/0077-distill-knowledge.md` | Not shipped |
+| Capture guidance | `.agents/skills/work-loop/SKILL.md` projection of core source | Shipped |
+| Writer | `.agents/skills/work-loop/scripts/append-knowledge.py` projection | Shipped |
+| Linter | `.agents/skills/work-loop/scripts/lint-knowledge.py` projection | Shipped |
+| Canonical observations | `docs/knowledge/patterns.jsonl` | Shipped |
+| Explicit curation render | `tools/hooks/session-start.py --show-knowledge` | Shipped |
+| Capture journals and progressive `project-knowledge` modes | RFC-0077 and foundation spec | Proposed |
+| Topic contracts, distillation, and explicit enquiry | RFC-0077 and foundation spec | Proposed |
 
-## Research grounding
+## Architectural decisions
 
-The accompanying
-[agent-memory lifecycle methodology](../product/research/agent-memory-lifecycle-methodology.md)
-contains the full stage model, evidence synthesis, maturity ladder, failure
-modes, confidence assessment, and known unknowns. The architecture is grounded
-in these primary and official sources:
-
-- [Generative Agents](https://arxiv.org/abs/2304.03442) demonstrates an
-  observation, reflection, retrieval, and planning lifecycle.
-- [LangMem core concepts](https://langchain-ai.github.io/langmem/concepts/conceptual_guide/)
-  separates semantic, episodic, and procedural memory; hot-path and background
-  formation; consolidation; namespaces; and storage-neutral core operations.
-- [OpenAI Agents SDK agent memory](https://openai.github.io/openai-agents-python/sandbox/memory/)
-  separates session history from distilled file memory, uses two-phase
-  extraction and consolidation, and progressively discloses detail.
-- [LangGraph persistence](https://docs.langchain.com/oss/python/langgraph/persistence)
-  separates thread checkpoints from cross-thread stores.
-- [LongMemEval](https://arxiv.org/abs/2410.10813) evaluates information
-  extraction, multi-session reasoning, temporal reasoning, knowledge updates,
-  and abstention as distinct memory abilities.
-- [Hindsight](https://aclanthology.org/2026.acl-demo.27/) separates facts,
-  experiences, synthesized observations, and opinions and combines lexical,
-  semantic, graph, and temporal retrieval.
-- [OWASP Top 10 for Agentic Applications 2026](https://genai.owasp.org/download/52117/)
-  treats memory poisoning as persistent corruption and recommends validation,
-  segmentation, provenance, retention, prevention of self-reingestion,
-  trust-aware retrieval, quarantine, rollback, and review.
-- [Effective context engineering for AI agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
-  and [effective long-running harnesses](https://www.anthropic.com/engineering/effective-harnesses-for-long-running-agents)
-  support structured notes, progressive disclosure, and explicit handoff
-  artifacts rather than reliance on compaction or exhaustive context.
-- [SQLite FTS5](https://sqlite.org/fts5.html) documents a viable local search
-  accelerator and the consistency duties that keep it derived rather than
-  authoritative.
-
-## Decisions and open implementation questions
-
-The recommended decisions are:
-
-- retain agent judgment and structured saves, but save to low-trust candidates;
-- make capture available from every workflow through one shared interface;
-- combine in-path signals with bounded checkpoint retrospection, never
-  automatic transcript-to-memory promotion;
-- expand the closeout lens beyond speed to correctness, reliability, security,
-  determinism, operability, maintainability, efficiency, and context
-  independence;
-- make topics, not individual entries, the durable evolving unit;
-- preserve independent occurrences and source-relative freshness;
-- move from one hot JSONL file to per-topic JSON when consumers can migrate
-  atomically, while keeping JSONL as portable interchange;
-- make the shared knowledge index topic-oriented and rebuildable;
-- keep full-text, embedding, graph, or embedded-database indexes local,
-  disposable, and out of Git;
-- ship explicit task-scoped enquiry before any automatic read path;
-- treat retrieved memory as untrusted evidence with no authority amplification;
-  and
-- keep canonical project artifacts authoritative and project topics scoped
-  evidence, while making cross-project sharing an explicit, namespaced
-  promotion and adoption workflow.
-
-Implementation still needs evidence for:
-
-- checkpoint capabilities and safe degradation across every supported adapter;
-- candidate and topic schemas, repository identity, and migration compatibility;
-- topic granularity across representative repository types;
-- freshness triggers and risk-based verification defaults;
-- lexical baseline quality before selecting any local index adapter;
-- construction and adversarial evaluation thresholds; and
-- governance, privacy, and ownership of a future multi-project bank.
+1. Canonical project knowledge uses per-topic JSON with a deterministic,
+   body-free topic map published in the same Git snapshot; JSONL is
+   legacy/interchange rather than reconciled current state.
+2. One progressive `project-knowledge` skill keeps capture, distillation, and
+   enquiry as mode-specific authority boundaries. The portable baseline
+   persists admitted observations in non-queryable classification/month
+   journals; distillation alone may promote them into topics.

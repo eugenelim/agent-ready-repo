@@ -1,0 +1,14 @@
+{
+  "mutation_id": "4bafe681183c0adc52bb046e46cfe5cac1978ad8060af02d3ad896f16cd11802",
+  "proposal_digest": {
+    "byte_length": 1276,
+    "kind": "sha256-bytes-v1",
+    "sha256": "82da9a7c40e7e1f7c74db417d2fe707d73c70c70b00c510f4b41c3bf327efa93"
+  },
+  "schema_version": "mutation-proposal-vector.v1",
+  "topic_postimage_digest": {
+    "byte_length": 1477,
+    "kind": "sha256-bytes-v1",
+    "sha256": "923f5a4f4b13d2213cb56ce5b235326c0bb80b7dcc2e25dedec7d0f4e3eb44d6"
+  }
+}

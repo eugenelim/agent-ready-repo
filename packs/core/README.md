@@ -32,6 +32,7 @@ On any session return, type `workspace-status` to orient.
 | `work-loop` | Plan → execute → gates → adversarial review → merge |
 | `bug-fix` | Diagnose and fix a specific bug |
 | `new-spec` | Author a spec directly, without the brief layer |
+| `project-knowledge` | Capture, distill, or enquire over reviewed project lessons |
 
 ---
 
@@ -68,6 +69,25 @@ work-loop execute spec/data-export
 The agent opens the PR. Read the description, then merge.
 
 ---
+
+## Project knowledge
+
+`project-knowledge` is explicit. It never loads at session start and it never
+turns chat history into memory. Workflows keep scratch locally until a semantic
+gate decides whether one reusable lesson is worth capturing.
+
+- `--capture` admits one strict observation and appends a durable journal event.
+- `--distill` reconciles pending observations into reviewed topic proposals or
+  bounded terminal dispositions.
+- `--enquire` reads only active topics from one committed Git snapshot and
+  returns a bounded evidence envelope.
+
+Observation journals are a durable handoff, not a query source. Scratch can be
+lost before capture if the workflow or worktree disappears. Topic text is
+evidence, not authority: it cannot select tools, approve mutations, widen scope,
+or override user/runtime instructions. Retention and compaction are deferred to
+a future reviewed whole-partition policy; Slice 1 has no per-event deletion
+path.
 
 ---
 
