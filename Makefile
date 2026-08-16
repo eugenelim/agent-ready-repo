@@ -116,12 +116,11 @@ else \
 fi
 endef
 
-# Portable verify then repo-only policy gates.
-# Step 1 (portable): lint, build, schema, self-host drift — via agentbundle catalogue verify.
-# Step 2 (repo-only): build output validation, pre-pr aggregator, spec/traceability linters.
+# The cross-platform chain owns portable verification, the persistent build,
+# and repo-only policy gates. Keeping the sequence there gives the Make target
+# and the make-free Windows command one source of truth.
 # Windows contributors: python tools/repo/build_gate_chain.py build-check
 build-check:
-	$(PYTHON) -m agentbundle catalogue verify --root .
 	$(PYTHON) tools/repo/build_gate_chain.py build-check --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
 	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
 	# checks above fail quickly before the slower, network-bound scanners.
@@ -143,8 +142,8 @@ build-check:
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
 # deps. Chained into build-check above so the repo's single native gate runs it
 # locally and in build-check.yml CI. Not added to tools/hooks/pre-pr.py or
-# tools/pre-pr-catalogue.py (the Windows CI path runs the former; Semgrep has no
-# Windows support). Linux/macOS only (Semgrep).
+# tools/catalogue/pre_pr_catalogue.py (the Windows CI path runs the former;
+# Semgrep has no Windows support). Linux/macOS only (Semgrep).
 #
 # These four Semgrep rules are excluded as duplicates of findings already
 # dispositioned for Bandit, with no coverage loss (Bandit still flags new

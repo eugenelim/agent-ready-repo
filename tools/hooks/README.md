@@ -78,11 +78,14 @@ conventions on its own tree and don't apply to an adopter's repo.
 Exits non-zero on the first failure; a missing tool is skipped, not fatal.
 
 **This catalogue's own full gate** is the repo-native, never-projected
-`tools/catalogue/pre_pr_catalogue.py`: it runs `agentbundle catalogue verify`
-(which includes agent-artifact lint at step 11) plus `lint-agents-md`,
-`lint-build` and `agentbundle catalogue lint --deep`,
-then delegates to the shipped `pre-pr.py`. `make pre-pr` and `make build-check`
-run it. See [`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement).
+`tools/catalogue/pre_pr_catalogue.py`. Standalone `make pre-pr` runs portable
+`agentbundle catalogue verify` (which includes agent-artifact lint at step 11),
+then the catalogue gates such as `lint-agents-md`, `lint-build`, and
+`agentbundle catalogue lint --deep`, before delegating to the shipped
+`pre-pr.py`. `make build-check` instead reaches the same aggregator through
+`tools/repo/build_gate_chain.py` with `--skip-verify`, after the chain has
+already completed portable verification. See
+[`docs/CONVENTIONS.md` § Enforcement](../../docs/CONVENTIONS.md#enforcement).
 
 ## Runtime
 

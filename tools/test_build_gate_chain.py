@@ -21,6 +21,9 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent / "repo"))
 import build_gate_chain as gc  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parent / "catalogue"))
+import pre_pr_catalogue as pre_pr  # noqa: E402
+
 
 class PackSkillPytestShapeTest(unittest.TestCase):
     """Every Python pack skill test exposes real pytest collection nodes."""
@@ -225,9 +228,187 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/repo/check_contract_drift.py",
 ]
 
+EXPECTED_PRE_PR_REPO_STEPS = [
+    ("agents-md hygiene", [sys.executable, "tools/lint-agents-md.py"]),
+    (
+        "skill-spec lint",
+        [
+            sys.executable,
+            "-m",
+            "agentbundle",
+            "catalogue",
+            "lint",
+            "--root",
+            ".",
+            "--deep",
+        ],
+    ),
+    ("build lint", [sys.executable, "tools/lint-build.py"]),
+    ("sso-config lint", [sys.executable, "tools/lint-sso-config.py"]),
+    (
+        "sso-config lint self-test",
+        [sys.executable, "tools/test-lint-sso-config.py"],
+    ),
+    (
+        "knowledge-surface parity",
+        [sys.executable, "tools/lint-knowledge-surface-parity.py"],
+    ),
+    (
+        "knowledge-surface parity self-test",
+        [sys.executable, "tools/test-lint-knowledge-surface-parity.py"],
+    ),
+    (
+        "pack-evals runner self-test",
+        [sys.executable, "tools/test-run-pack-evals.py"],
+    ),
+    (
+        "pack-evals workflow posture",
+        [sys.executable, "tools/test-pack-evals-workflow.py"],
+    ),
+    (
+        "pack-journey sync",
+        [sys.executable, "tools/build-site.py", "--journeys-only"],
+    ),
+    (
+        "web-journey parity",
+        [sys.executable, "tools/lint-web-journey-parity.py"],
+    ),
+    (
+        "web-journey parity self-test",
+        [sys.executable, "tools/test-lint-web-journey-parity.py"],
+    ),
+    (
+        "pack-journey lint",
+        [sys.executable, "tools/lint-pack-journeys.py"],
+    ),
+    (
+        "pack-journey lint self-test",
+        [sys.executable, "tools/test-lint-pack-journeys.py"],
+    ),
+    (
+        "journey-contract lint",
+        [sys.executable, "tools/lint-journey-contract.py"],
+    ),
+    (
+        "journey-contract lint self-test",
+        [sys.executable, "tools/test-lint-journey-contract.py"],
+    ),
+]
+
+EXPECTED_VERIFY_ARGV = [
+    sys.executable,
+    "-m",
+    "agentbundle",
+    "catalogue",
+    "verify",
+    "--root",
+    ".",
+]
+
 
 class BuildCheckChainTest(unittest.TestCase):
     """`build_check` assembles every Windows-clean step, in order, no SAST."""
+
+    # STUB: AC1, AC2, AC4
+    def test_portable_verify_and_build_argv_are_exact(self):
+        """The parent runs exact portable commands before repository gates."""
+        seen: list[list[str]] = []
+
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
+            seen.append(list(argv))
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            gc.build_check(
+                argparse.Namespace(packs_dir="packs", output_dir="custom-dist")
+            )
+
+        self.assertEqual(
+            seen[:2],
+            [
+                EXPECTED_VERIFY_ARGV,
+                [
+                    sys.executable,
+                    "-m",
+                    "agentbundle",
+                    "catalogue",
+                    "build",
+                    "--root",
+                    ".",
+                    "--output",
+                    "custom-dist",
+                ],
+            ],
+        )
+        self.assertEqual(seen.count(EXPECTED_VERIFY_ARGV), 1)
+
+    # STUB: AC1, AC3, AC4
+    def test_nested_pre_pr_skips_only_its_portable_verify(self):
+        """The parent passes an explicit skip while standalone stays verify-first."""
+        seen: list[list[str]] = []
+
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
+            seen.append(list(argv))
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
+
+        nested = next(
+            argv for argv in seen
+            if Path(argv[1]).as_posix().endswith("tools/catalogue/pre_pr_catalogue.py")
+        )
+        self.assertEqual(nested[2:], ["--skip-verify"])
+
+    # STUB: AC4
+    def test_pre_pr_modes_preserve_one_ordered_fail_fast_sequence(self):
+        """Standalone verifies first; nested mode omits only that event."""
+        repo_events = [
+            ("repo", label, argv) for label, argv in EXPECTED_PRE_PR_REPO_STEPS
+        ]
+        hook_event = (
+            "hook",
+            "shipped pre-pr",
+            [sys.executable, "tools/hooks/pre-pr.py"],
+        )
+
+        def assert_mode(argv: list[str], verify_first: bool) -> None:
+            events: list[tuple[str, str, list[str]]] = []
+
+            def fake_repo_gate(label, command, env=None):
+                events.append(("repo", label, list(command)))
+
+            def fake_subprocess(command, check, **kwargs):
+                command = list(command)
+                if command == EXPECTED_VERIFY_ARGV:
+                    events.append(("verify", "catalogue verify", command))
+                elif command == hook_event[2]:
+                    events.append(hook_event)
+                else:
+                    self.fail(f"unexpected direct subprocess: {command!r}")
+                return mock.Mock(returncode=0)
+
+            with (
+                mock.patch.object(pre_pr, "_repo_root", return_value=gc.REPO_ROOT),
+                mock.patch.object(pre_pr, "_run", fake_repo_gate),
+                mock.patch.object(pre_pr.subprocess, "run", fake_subprocess),
+            ):
+                self.assertEqual(pre_pr.main(argv), 0)
+
+            expected = [
+                *(
+                    [("verify", "catalogue verify", EXPECTED_VERIFY_ARGV)]
+                    if verify_first
+                    else []
+                ),
+                *repo_events,
+                hook_event,
+            ]
+            self.assertEqual(events, expected)
+
+        for argv, verify_first in (([], True), (["--skip-verify"], False)):
+            with self.subTest(argv=argv):
+                assert_mode(argv, verify_first)
 
     def test_full_step_sequence(self):
         order: list[str] = []
@@ -243,35 +424,13 @@ class BuildCheckChainTest(unittest.TestCase):
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # 1 module step (catalogue build) + the script steps + the two
+        # 2 module steps (catalogue verify + build) + the script steps + the two
         # directory-scoped steps, each of which spawns twice: a `--collect-only`
         # floor probe and then the run itself.
         _CWD_STEPS = 2
         self.assertEqual(
-            len(order), 1 + len(EXPECTED_SCRIPT_STEPS) + _CWD_STEPS * 2
+            len(order), 2 + len(EXPECTED_SCRIPT_STEPS) + _CWD_STEPS * 2
         )
-
-    def test_first_step_is_catalogue_build(self):
-        """The first step must invoke agentbundle catalogue build."""
-        seen: list[list[str]] = []
-
-        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
-            seen.append(list(argv))
-            # `--collect-only` output for the floor probe: enough `::`
-            # lines that any wired floor is satisfied under mocking.
-            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
-
-        with mock.patch.object(gc.subprocess, "run", fake_run):
-            args = argparse.Namespace(packs_dir="packs", output_dir="dist")
-            gc.build_check(args)
-
-        first = seen[0]
-        self.assertIn("-m", first)
-        self.assertIn("agentbundle", first)
-        self.assertIn("catalogue", first)
-        self.assertIn("build", first)
-        self.assertIn("--output", first)
-        self.assertIn("dist", first)
 
     def test_pre_pr_step_uses_new_path(self):
         """pre-pr-catalogue must call tools/catalogue/pre_pr_catalogue.py."""
@@ -287,8 +446,8 @@ class BuildCheckChainTest(unittest.TestCase):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
             gc.build_check(args)
 
-        # Find the pre-pr-catalogue step (index 1 = second call; first is catalogue build).
-        pre_pr_argv = seen[1]
+        # The pre-PR step follows the catalogue verify and persistent build.
+        pre_pr_argv = seen[2]
         # Path should contain tools/catalogue/pre_pr_catalogue.py
         script_path = Path(pre_pr_argv[1]).as_posix()
         self.assertIn("tools/catalogue/pre_pr_catalogue.py", script_path)
@@ -316,13 +475,17 @@ class BuildCheckChainTest(unittest.TestCase):
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
-        for argv, cwd in seen[1:]:  # skip first (module step has extra args)
+        for argv, cwd in seen[2:]:  # skip verify + build module steps
             self.assertEqual(argv[0], sys.executable)
             if argv[1:3] == ["-m", "pytest"]:
                 # `-q` is present but not necessarily last: a floor probe
                 # appends `--collect-only` after it.
                 self.assertIn("-q", argv)
                 self.assertGreater(len(argv), 3, "a pytest step needs a target")
+            elif Path(argv[1]).as_posix().endswith(
+                "tools/catalogue/pre_pr_catalogue.py"
+            ):
+                self.assertEqual(argv[2:], ["--skip-verify"])
             else:
                 # A plain script step: interpreter + one script path.
                 self.assertEqual(len(argv), 2)
@@ -370,7 +533,7 @@ class BuildCheckChainTest(unittest.TestCase):
 
     def test_spawned_script_paths_in_order(self):
         """The spawned script paths match the expected gate order."""
-        seen: list[list[str]] = []
+        seen: list[tuple[list[str], object]] = []
 
         def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append((list(argv), cwd))
@@ -381,12 +544,13 @@ class BuildCheckChainTest(unittest.TestCase):
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
-        # seen[0] = module step (catalogue build); seen[1:] = script steps.
+        # seen[0:2] = module steps (catalogue verify + build); the rest are
+        # script or directory-scoped steps.
         # Directory-scoped steps are excluded: they name no repo-root path (the
         # cwd is the target), so they belong to the cwd test, not this one.
         spawned = [
             Path(argv[3] if argv[1:3] == ["-m", "pytest"] else argv[1]).as_posix()
-            for argv, cwd in seen[1:]
+            for argv, cwd in seen[2:]
             if cwd is None
         ]
         self.assertEqual(spawned, EXPECTED_SCRIPT_STEPS)

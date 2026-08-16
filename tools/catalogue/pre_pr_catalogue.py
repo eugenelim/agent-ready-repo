@@ -8,13 +8,17 @@ This script then runs the repo-specific policy gates that are never projected
 to adopters (spec state, traceability, brief coverage, and the
 catalogue-internal linters).
 
-`make pre-pr` and `make build-check` run this (via the shim at
-tools/pre-pr-catalogue.py); the `docs.yml` CI aggregator (`hooks` job) targets
-it directly. Exits non-zero on the first failure.
+`make pre-pr` and the `docs.yml` CI aggregator (`hooks` job) run this directly.
+The build-check chain reaches it through ``tools/repo/build_gate_chain.py`` and
+passes ``--skip-verify`` because the chain owns portable verification.
+``tools/pre-pr-catalogue.py`` remains a compatibility shim for legacy callers;
+all standalone callers remain verification-first.
+Exits non-zero on the first failure.
 """
 
 from __future__ import annotations
 
+import argparse
 import os
 import subprocess
 import sys
@@ -73,23 +77,37 @@ def _run(label: str, argv: list[str], env: dict | None = None) -> None:
     print(f"pre-pr: ✓ {label}")
 
 
-def main() -> int:
+def _build_parser() -> argparse.ArgumentParser:
+    """Build the repo-only pre-PR command parser."""
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--skip-verify",
+        action="store_true",
+        help="Skip portable verification already completed by the build-check chain.",
+    )
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run portable verification unless delegated, then every repository gate."""
+    args = _build_parser().parse_args(argv)
     repo_root = _repo_root()
     os.chdir(repo_root)
 
     py = sys.executable  # parent interpreter for child scripts
 
-    # Step 1: portable verification — lint, build output, schema, self-host drift.
-    # Delegates to the canonical engine; never duplicate portable logic here.
-    rc = subprocess.run(
-        [py, "-m", "agentbundle", "catalogue", "verify", "--root", "."],
-        check=False,
-        env=_agentbundle_env(),
-    )
-    if rc.returncode != 0:
-        print("pre-pr: ✖ catalogue verify failed", file=sys.stderr)
-        sys.exit(rc.returncode)
-    print("pre-pr: ✓ catalogue verify")
+    if not args.skip_verify:
+        # Step 1: portable verification — lint, build output, schema, self-host drift.
+        # Delegates to the canonical engine; never duplicate portable logic here.
+        rc = subprocess.run(
+            [py, "-m", "agentbundle", "catalogue", "verify", "--root", "."],
+            check=False,
+            env=_agentbundle_env(),
+        )
+        if rc.returncode != 0:
+            print("pre-pr: ✖ catalogue verify failed", file=sys.stderr)
+            sys.exit(rc.returncode)
+        print("pre-pr: ✓ catalogue verify")
 
     # Step 2: repo-specific gates (catalogue-internal checks + adopter-facing hook).
     _run("agents-md hygiene", [py, "tools/lint-agents-md.py"])

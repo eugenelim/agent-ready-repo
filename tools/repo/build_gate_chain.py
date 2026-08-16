@@ -90,12 +90,14 @@ def _handler_step(label: str, func: Callable[[argparse.Namespace], int], **ns_kw
     return (label, _thunk)
 
 
-def _script_step(label: str, *path_parts: str) -> Step:
-    """Wrap a repo-relative Python script as a chain step."""
+def _script_step(label: str, *path_parts: str, args: tuple[str, ...] = ()) -> Step:
+    """Wrap a repo-relative Python script and its arguments as a chain step."""
     script = Path(*path_parts)
 
-    def _thunk(script=script) -> int:
-        return subprocess.run([sys.executable, str(script)], check=False).returncode
+    def _thunk(script=script, args=args) -> int:
+        return subprocess.run(
+            [sys.executable, str(script), *args], check=False
+        ).returncode
 
     return (label, _thunk)
 
@@ -204,26 +206,30 @@ def build_self(args: argparse.Namespace) -> int:
 
 
 def build_check(args: argparse.Namespace) -> int:
-    """`build-check` chain: every Windows-clean step after `agentbundle catalogue verify`.
+    """`build-check` chain: every Windows-clean build and policy gate.
 
-    The portable verify (lint, build, schema, self-host drift) runs before this
-    chain is invoked — via `make build-check` or the caller. This chain handles
-    the repo-specific gates: build output for manifest validation, the manifest
-    validator itself, the catalogue pre-PR aggregator, the spec/traceability
-    policy linters, the two repo-own lints that were previously CI-only (the
-    catalogue-curation guard and the experience-agnosticism lint), and the
-    CI-parity gate that keeps that list from silently falling behind
-    build-check.yml again.
+    The chain owns portable verification so direct make-free invocation has the
+    same coverage as the Make target. It then materializes build output and runs
+    the repo-specific gates. The nested pre-PR aggregator skips only its own
+    portable verification because this chain has already completed it.
 
     The SAST leg is intentionally omitted (Semgrep has no Windows support and
     is conditional) — it stays Makefile-appended after this chain.
     """
     steps: list[Step] = [
         _module_step(
+            "catalogue-verify",
+            "catalogue", "verify", "--root", ".",
+        ),
+        _module_step(
             "catalogue-build",
             "catalogue", "build", "--root", ".", "--output", args.output_dir,
         ),
-        _script_step("pre-pr-catalogue", "tools", "catalogue", "pre_pr_catalogue.py"),
+        _script_step(
+            "pre-pr-catalogue",
+            "tools", "catalogue", "pre_pr_catalogue.py",
+            args=("--skip-verify",),
+        ),
         _script_step(
             "check-contract-parity",
             "tools", "catalogue", "check_contract_parity.py",
@@ -439,10 +445,10 @@ def _build_parser() -> argparse.ArgumentParser:
 
     bc = sub.add_parser(
         "build-check",
-        help="catalogue build, validate-manifests, pre-pr-catalogue, spec-status, "
+        help="catalogue verify, build, pre-pr-catalogue, spec-status, "
              "brief-coverage, traceability, workspace-status tests, "
              "catalogue-curation guard, experience-agnosticism lint, CI parity "
-             "(no portable verify, no SAST).",
+             "(no SAST).",
     )
     bc.add_argument("--packs-dir", default="packs", help="Ignored (resolved via --root .).")
     bc.add_argument(
