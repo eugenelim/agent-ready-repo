@@ -51,6 +51,30 @@ _URL_KEYS = ("base_url", "login_url", "success_url_pattern")
 # carry a separator) can't match, but a pasted JSESSIONID/crowd-token value does.
 _COOKIE_VALUE_SHAPE = re.compile(r"^[A-Za-z0-9_\-+=]{20,}$")
 
+# The `[sso].profile` grammar, RESTATED from `credbroker._sso`. It is restated
+# rather than imported on purpose: this lint is pure-stdlib and must run against
+# a bare checkout with nothing pip-installed. `tools/test-lint-sso-config.py`
+# asserts both constants equal the engine's whenever credbroker IS importable,
+# so the copy cannot drift silently — a copied security constant with no drift
+# guard is how two definitions diverge.
+#
+# Why it matters here: `profile` composes a filesystem path under
+# `~/.agentbundle/browser-state/<profile>`, so a traversal value is a
+# confinement escape (CWE-22/CWE-73). The engine already refuses at runtime;
+# this moves the refusal to build time so such a value never ships in an
+# adopter-facing reference config.
+_SSO_PROFILE_PATTERN = r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$"
+_PROFILE_RE = re.compile(_SSO_PROFILE_PATTERN)
+
+# Case-insensitive Win32 reserved device names. On Windows ``CON.toml`` resolves
+# to the console device regardless of the directory it is written to, so this is
+# part of the grammar rather than an optional extra.
+_RESERVED_DEVICE_NAMES = frozenset({
+    "CON", "PRN", "AUX", "NUL",
+    "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
+    "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+})
+
 
 def _host_of(value: str) -> str:
     return (urlsplit(value).hostname or "").lower()
@@ -66,6 +90,31 @@ def _walk_strings(obj: object):
     elif isinstance(obj, list):
         for v in obj:
             yield from _walk_strings(v)
+
+
+def _profile_findings(path: Path, profile: object) -> list[str]:
+    """Apply the engine's `[sso].profile` grammar at build time.
+
+    ``re.fullmatch`` rather than ``re.match``: the pattern's ``$`` matches before
+    a trailing newline, so ``re.match`` would admit ``"jira\\n"`` — which reaches
+    the engine's argv and its path composition.
+    """
+    if not isinstance(profile, str):
+        return [
+            f"{path}: [sso].profile must be a string, got "
+            f"{type(profile).__name__}"
+        ]
+    findings: list[str] = []
+    if not _PROFILE_RE.fullmatch(profile):
+        findings.append(
+            f"{path}: [sso].profile {profile!r} must match {_SSO_PROFILE_PATTERN} "
+            f"(1–64 chars, leading alphanumeric, then alphanumerics, '.', '_', '-')"
+        )
+    if profile.split(".", 1)[0].upper() in _RESERVED_DEVICE_NAMES:
+        findings.append(
+            f"{path}: [sso].profile {profile!r} is a Windows reserved device name"
+        )
+    return findings
 
 
 def lint_file(path: Path) -> list[str]:
@@ -89,6 +138,9 @@ def lint_file(path: Path) -> list[str]:
     unknown = sorted(set(sso) - _ALLOWED_SSO_KEYS)
     if unknown:
         findings.append(f"{path}: unknown [sso] keys (outside the schema): {unknown}")
+
+    if "profile" in sso:
+        findings.extend(_profile_findings(path, sso["profile"]))
 
     for key in _URL_KEYS:
         if key in sso:
