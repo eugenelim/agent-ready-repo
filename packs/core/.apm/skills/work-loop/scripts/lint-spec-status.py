@@ -275,12 +275,23 @@ def contract_header_refs(spec_text: str) -> list[tuple[int, str]]:
 
 def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
     """Return (lineno, line) for every checklist item inside the
-    `## Acceptance Criteria` section."""
+    `## Acceptance Criteria` section.
+
+    The heading match is case-INSENSITIVE, and that is the whole point. It was
+    case-sensitive, so a spec whose heading read `## Acceptance criteria`
+    collected zero criteria and its AC-completeness invariant passed
+    *vacuously* — the check reported success on a spec it had not read. That
+    silently un-gated 18 specs before it was noticed, and the number only grows,
+    because nothing tells an author which casing the linter wants.
+
+    A vacuous pass is the worst failure mode a gate has: it is indistinguishable
+    from a real one at the call site.
+    """
     lines = spec_text.splitlines()
     out: list[tuple[int, str]] = []
     in_ac = False
     for lineno, line in enumerate(lines, start=1):
-        if re.match(r"^##\s+Acceptance Criteria\b", line):
+        if re.match(r"^##\s+Acceptance Criteria\b", line, re.IGNORECASE):
             in_ac = True
             continue
         if in_ac and re.match(r"^##\s+", line):

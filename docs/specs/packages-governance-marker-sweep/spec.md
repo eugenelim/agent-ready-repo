@@ -29,7 +29,7 @@ Nearly every line is a distinct sentence, so this is tiered-automation-then-per-
 regex pass. The brief's advance estimate (~1k) counted the `RFC`/`ADR` ordinals; the AC-citation
 class is the larger half.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] AC1 — `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b|\bACs?\s*-?#?\s*[0-9]+[a-z]?(\([a-z]\))?\b|docs/(specs|rfc|adr|contracts)/[a-z0-9]' packages/ --exclude='AGENTS*.md' --exclude='CHANGELOG.md'` resolves entirely to the retained set enumerated in AC5 — no comment, no docstring, no message string.
 - [x] AC1a — **The AC pattern matches the spaced and hashed forms too.** `\bAC-?[0-9]+[a-z]?\b` cannot match `AC #7`, `AC 4`, or `ACs 1-15`; 31 sites survived the first pass because of it. It is the second under-match of this kind — the precedent sweep's `\bAC-?[0-9]+\b` missed `AC6a` for the same reason, a `\b` that cannot follow a digit with a letter after it. The pattern is now `\bACs?\s*-?#?\s*[0-9]+[a-z]?(\([a-z]\))?\b` everywhere it appears: this spec's Verification block and `packages/AGENTS.local.md`.

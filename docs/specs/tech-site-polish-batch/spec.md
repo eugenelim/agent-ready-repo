@@ -61,7 +61,7 @@ design system, the rendered page does not honour it.
   title is an editorial call this spec does not make; it is queued as
   `guide-title-wording-review`.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — No generated docs page renders more than one `<h1>`.** Measured
   by parsing `build/docs/**/index.html`: pages with `len(<h1> in <main>) > 1`

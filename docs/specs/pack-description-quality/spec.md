@@ -51,7 +51,7 @@ description. Pack discoverability is already carried by the separate
 `[pack].keywords` and `[pack].categories` fields, so shortening the description
 costs no findability.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] AC1. `guides/_shared/reference/catalogue-authoring-standards.md` § 2
       carries the authoring standard: the outcome-first shape and the named

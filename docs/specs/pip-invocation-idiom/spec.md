@@ -20,7 +20,7 @@ installs (AC1–AC3) and the front-door PyPI one-liners (AC8) — in
 **documentation and CI configuration** from `pip install …` to
 `python -m pip install …`. Third-party dependency installs are out of scope.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] AC1 — Every runnable `pip install -e …` command in `AGENTS.md`,
   `Makefile`, `docs/architecture/catalogue.md`, `docs-site/src/content/docs/`,

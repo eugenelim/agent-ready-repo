@@ -131,7 +131,7 @@ must contain the information an adopter needs to continue.
 - Turn install scope, adapter support, skill count, or pack names into the
   first-level discovery taxonomy.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — README is a router.** `README.md` is at most 90 lines and contains:
   one product definition; one compact flagship case; one supported quickstart;

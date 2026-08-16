@@ -75,7 +75,7 @@ Unrelated argv-to-path sites remain in the existing
   root, or exclude an entire shipped file from Snyk Code.
 - Put real secrets or user-specific paths in fixtures or diagnostics.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — Spec-status confinement.** `lint-spec-status.py` resolves and
   confines `workspace.toml`, the contract registry, contract files, and every

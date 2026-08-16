@@ -68,7 +68,7 @@ accepted Phase 1 Option-A architecture.
 - Expand into Phase 2 concerns.
 - Use sleeps, timing races, or process killing.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — `wave-passed` window A:** a fresh process that finds `last_event:
   wave-passed` and `last_event_context: {completed_wave_index: N}` in engine state

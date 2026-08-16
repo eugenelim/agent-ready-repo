@@ -175,7 +175,7 @@ documents this). Constraining it to a fixed parent would break legitimate use.
 The validator normalises and asserts directory-ness; it does not restrict
 *which* directory.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1** — `lint-traceability.py` reads `--root` through `_validated_root()`. **Corrected during review:** the helper is called *from* the function holding `parse_args()`, not inlined into it. The original wording ("in the same function") was not met and would not have been, since a module-local helper is the readable form. What matters is that the normalise-and-check is a single hop from the argv read rather than scattered across the call graph — but note this means OSS Semgrep still cannot connect them, and the check is existence/type, not containment. Assumption 2's confidence rests on Snyk being interprocedural, which it is.
 - [x] **AC2** — `lint-spec-status.py` likewise, **plus** the confinement it never had: `_within()`, `_confined()` and a size-guarded `_read()` ported from `lint-traceability.py`, applied at the spec glob, the contract join, and both reads; and `_CONTRACT_TOKEN_RE` tightened to reject `.`/`..` segments.

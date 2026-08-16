@@ -58,7 +58,7 @@ touching the per-quadrant framework READMEs):
 7. `guides/README.md` — add the new `_shared` explanation under the
    "Not tied to one pack" section.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] AC1 — Each of guides 1–3 is a true **how-to**: titled by the reader's
   problem, no reteaching of basics, names the real variations/pitfalls,

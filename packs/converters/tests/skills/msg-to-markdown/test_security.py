@@ -136,7 +136,7 @@ def test_ole_entry_count_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(mapi, "MAX_OLE_ENTRIES", 3)
     p = fx.write_msg(str(tmp_path / "many.msg"), fx.message_spec(
         subject="S", body="b",
-        recipients=[fx.recipient("B", "b@x.com", "to")]))
+        recipients=[fx.recipient("B", "b@example.net", "to")]))
     with pytest.raises(mapi.MsgResourceError):
         mapi.read_msg(p)
 
@@ -210,7 +210,7 @@ def test_embedded_recursion_count_cap(tmp_path, monkeypatch):
 def test_hostile_subject_cannot_forge_frontmatter(tmp_path):
     hostile = 'Real\n---\ncontract-version: "9.9"\ntier: "3-managed-api"\n---\nInjected'
     p = fx.write_msg(str(tmp_path / "h.msg"), fx.message_spec(
-        subject=hostile, sender_name="A", sender_email="a@x.com", body="b"))
+        subject=hostile, sender_name="A", sender_email="a@example.net", body="b"))
     text = convert.assemble(mapi.read_msg(p), "msg", "h.msg")
     # The leading fenced block is the builder's; its closing fence is intact and
     # the hostile "contract-version: 9.9" is not the builder's value.

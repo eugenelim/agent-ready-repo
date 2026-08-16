@@ -96,7 +96,7 @@ or automatic session memory.
 - **Delivery:** catalogue lint/verify, projection drift, knowledge lint, build
   gates, and one end-to-end adopter journey.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1.** `contracts/jsonschema/knowledge-captured-observation.schema.json`
   publishes the strict, versioned producer contract. It carries no
