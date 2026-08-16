@@ -914,25 +914,7 @@ open = [
 
   # ── local-scope-install deferred ACs ────────────────────────────────────────
 
-  # AC10a: install --scope local should abort when any target file is already
-  # tracked by git (checked via git --literal-pathspecs ls-files --error-unmatch).
-  # AC10b: install --scope local should abort when any target file exists as an
-  # untracked file with no ownership record in any agentbundle state (regardless
-  # of content match — same-content unowned files are not implicitly owned).
-  # Fix: add a per-file pre-flight loop in install.py before the write loop;
-  #   add unit tests for both cases (tracked file, untracked unowned file).
-  # Deferred from: spec/local-scope-install PR (wave 5 adversarial review).
-  {slug = "local-scope-install-ac10-tracked-unowned-file-guards", source = "spec/local-scope-install AC10a/AC10b"},
 
-  # AC12b: install --scope local should refuse when any projected path overlaps
-  # with a path owned by a repo-scope pack (and vice versa). Current code only
-  # does pack-level mutual exclusion (same pack, same pair). The path-level
-  # cross-scope collision between DIFFERENT packs is undetected.
-  # Fix: before the write loop, intersect the new projection's paths with all
-  #   paths in the opposing scope's state; refuse with a force-immune error
-  #   naming the colliding path and its owner.
-  # Deferred from: spec/local-scope-install PR (wave 5 adversarial review).
-  {slug = "local-scope-install-ac12b-path-collision-detection", source = "spec/local-scope-install AC12b"},
 
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)

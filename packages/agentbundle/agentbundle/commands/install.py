@@ -127,6 +127,86 @@ def _check_source_conflict(
     return "\n".join(lines)
 
 
+def _owner_of(relpath: str, states: list[tuple[str, object]]) -> str | None:
+    """Return "<scope>:<pack>" if any state records ownership of *relpath*."""
+    for scope_name, state in states:
+        if state is None:
+            continue
+        for (pack, _adapter), pack_state in getattr(state, "packs", {}).items():
+            if relpath in getattr(pack_state, "files", {}):
+                return f"{scope_name}:{pack}"
+    return None
+
+
+def _local_preflight_refusal(
+    *,
+    root: Path,
+    pack_name: str,
+    relpaths: list[str],
+    repo_state: object,
+    user_state: object,
+    local_state: object,
+) -> str | None:
+    """Reasons a local-scope install must refuse, or ``None`` to proceed.
+
+    Local scope promises to leave no trace: files are git-invisible via an
+    exclude block, and uninstall restores the tree exactly. Each check below is
+    a case where that promise cannot be kept, so refusing is the only honest
+    outcome — and all three are ``--force``-immune, because ``--force`` cannot
+    make a deletion reversible.
+    """
+    from agentbundle.local_exclude import tracked_paths
+
+    # AC10a — a tracked target. Writing over it would make the file dirty in
+    # git while the exclude block claims it is invisible, and uninstall would
+    # delete a file the repository owns.
+    tracked = tracked_paths(root, relpaths)
+    if tracked:
+        listed = "\n  ".join(tracked[:10])
+        more = f"\n  … and {len(tracked) - 10} more" if len(tracked) > 10 else ""
+        return (
+            f"refusing --scope local: {len(tracked)} target path(s) are already "
+            f"tracked by git:\n  {listed}{more}\n"
+            "A local install must leave no trace, and it cannot delete a tracked "
+            "file on uninstall. This refusal is not overridable with --force."
+        )
+
+    # AC10b — an untracked file with no ownership record anywhere. Matching
+    # content does NOT grant ownership: uninstall would delete a file this tool
+    # never created, which is the exact-restoration guarantee broken.
+    states = [("repo", repo_state), ("user", user_state), ("local", local_state)]
+    unowned = [
+        rel for rel in relpaths
+        if (root / rel).exists() and _owner_of(rel, states) is None
+    ]
+    if unowned:
+        listed = "\n  ".join(unowned[:10])
+        more = f"\n  … and {len(unowned) - 10} more" if len(unowned) > 10 else ""
+        return (
+            f"refusing --scope local: {len(unowned)} target path(s) already exist "
+            f"and are not owned by any agentbundle install:\n  {listed}{more}\n"
+            "Identical content would not make them ours — uninstall would delete "
+            "a file this tool did not create. Move or remove them first. This "
+            "refusal is not overridable with --force."
+        )
+
+    # AC12b — path-level collision with the opposing scope, across ANY pack.
+    # The pack-level mutual exclusion upstream only catches the same pack
+    # installed at both scopes; two DIFFERENT packs projecting the same path
+    # slipped through, and the second install would silently take ownership of
+    # the first's file.
+    for rel in relpaths:
+        owner = _owner_of(rel, [("repo", repo_state)])
+        if owner is not None:
+            return (
+                f"refusing --scope local: {rel} is already owned by "
+                f"{owner} at repo scope. Local and repo installs cannot share a "
+                "projected path — uninstalling either would delete the other's "
+                "file. This refusal is not overridable with --force."
+            )
+    return None
+
+
 def run(args: argparse.Namespace) -> int:
     """Entry point for ``agentbundle install``.
 
@@ -1242,6 +1322,22 @@ def run(args: argparse.Namespace) -> int:
                     "companion.",
                     file=sys.stderr,
                 )
+                return 1
+
+        # ── Local-scope pre-flight: refuse before writing anything ────────────
+        # Runs BEFORE the exclude block and before any file write, so a refusal
+        # leaves no footprint at all — which is the guarantee local scope sells.
+        if plan.scope == "local":
+            _refusal = _local_preflight_refusal(
+                root=plan.root,
+                pack_name=pack_name,
+                relpaths=sorted(projection.keys()),
+                repo_state=repo_state,
+                user_state=user_state,
+                local_state=local_state,
+            )
+            if _refusal is not None:
+                print(f"install: {_refusal}", file=sys.stderr)
                 return 1
 
         # ── Local-scope: write exclude block before files (commit order) ───────

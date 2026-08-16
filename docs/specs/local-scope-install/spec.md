@@ -119,7 +119,7 @@ they don't own or haven't permanently adopted it.
   outside a git working tree.
 - [x] AC9: `agentbundle install --scope local --emit-install-routes` is refused with
   an error that references RFC-0008 for the plugins route's own local-scope behaviour.
-- [ ] AC10 (deferred: local-scope-install-ac10-tracked-unowned-file-guards): `agentbundle install --scope local` fails (no partial writes) when:
+- [x] AC10: `agentbundle install --scope local` fails (no partial writes) when:
   (a) any target file is already tracked by git (checked via
   `git --literal-pathspecs ls-files --error-unmatch <path>`); or
   (b) any target file exists as an untracked file that has **no ownership record**
@@ -139,7 +139,7 @@ they don't own or haven't permanently adopted it.
   (`--scope user` coexists with a local install — user-scope files land in `~/.claude/`
   outside the working tree and are unaffected by the exclude block; user/local
   coexistence is explicitly permitted by RFC-0080.)
-- [ ] AC12b (deferred: local-scope-install-ac12b-path-collision-detection): Cross-scope path collision (not just same-pack) is detected and refused:
+- [x] AC12b: Cross-scope path collision (not just same-pack) is detected and refused:
   if a local install's projected paths overlap with any path owned by a repo-scope
   pack (or vice versa), the install is refused with a `--force`-immune error naming
   the colliding path and its owner.

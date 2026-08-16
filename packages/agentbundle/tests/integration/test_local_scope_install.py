@@ -375,3 +375,191 @@ def test_rollback_on_write_failure(git_repo: Path) -> None:
         assert current_exclude == prior_exclude, (
             "Exclude block should be restored to pre-install state after rollback"
         )
+
+
+# ---------------------------------------------------------------------------
+# AC10 / AC12b — local-scope pre-flight refusals
+#
+# Local scope promises to leave no trace: files are git-invisible via an
+# exclude block, and uninstall restores the tree exactly. Each case below is
+# one where that promise cannot be kept, so the install must refuse BEFORE
+# writing anything. All three are --force-immune: --force cannot make a
+# deletion reversible.
+# ---------------------------------------------------------------------------
+
+
+def _assert_no_footprint(repo: Path) -> None:
+    """A refusal must leave nothing of *ours* behind.
+
+    Deliberately does not assert the projected path is absent: several of these
+    cases refuse precisely because a file is already sitting there, and that
+    file belongs to someone else. What must be absent is anything this tool
+    would have created — the exclude block and the local state file.
+    """
+    assert "agentbundle:local" not in _exclude_content(repo), (
+        "a refusal left an exclude block behind"
+    )
+    assert not (repo / ".agentbundle-local-state.toml").exists(), (
+        "a refusal left a state file behind"
+    )
+
+
+def test_ac10a_refuses_when_a_target_is_tracked_by_git(tmp_path, capsys) -> None:
+    """A tracked target cannot be taken over.
+
+    Writing over it makes the file dirty in git while the exclude block claims
+    it is invisible, and uninstall would delete a file the repository owns.
+    """
+    from agentbundle.commands.install import run as install_run
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    target = repo / _EXPECTED_SKILL_RELPATH
+    target.parent.mkdir(parents=True)
+    target.write_text("committed content\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-q", "-m", "seed"],
+        check=True,
+    )
+
+    assert install_run(_install_args(repo)) == 1
+    err = capsys.readouterr().err
+    assert "tracked by git" in err
+    assert "--force" in err, "the message must say the refusal is not forceable"
+    assert target.read_text(encoding="utf-8") == "committed content\n", (
+        "the tracked file was modified by a run that refused"
+    )
+
+
+def test_ac10a_refusal_is_force_immune(tmp_path, capsys) -> None:
+    from agentbundle.commands.install import run as install_run
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    target = repo / _EXPECTED_SKILL_RELPATH
+    target.parent.mkdir(parents=True)
+    target.write_text("committed\n", encoding="utf-8")
+    subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+    subprocess.run(
+        ["git", "-C", str(repo), "-c", "user.email=t@t", "-c", "user.name=t",
+         "commit", "-q", "-m", "seed"],
+        check=True,
+    )
+
+    args = _install_args(repo)
+    args.force = True
+    assert install_run(args) == 1
+    assert "tracked by git" in capsys.readouterr().err
+
+
+def test_ac10b_refuses_an_untracked_unowned_target(tmp_path, capsys) -> None:
+    from agentbundle.commands.install import run as install_run
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    target = repo / _EXPECTED_SKILL_RELPATH
+    target.parent.mkdir(parents=True)
+    target.write_text("someone else's file\n", encoding="utf-8")
+
+    assert install_run(_install_args(repo)) == 1
+    err = capsys.readouterr().err
+    assert "not owned by any agentbundle install" in err
+    assert target.read_text(encoding="utf-8") == "someone else's file\n"
+    _assert_no_footprint(repo)
+
+
+def test_ac10b_identical_content_does_not_grant_ownership(tmp_path, capsys) -> None:
+    """The case the AC calls out by name.
+
+    A pre-existing file whose bytes happen to match the projection is still not
+    ours. Treating content equality as ownership would delete it on uninstall,
+    breaking exact restoration for a file this tool never created.
+    """
+    from agentbundle.commands.install import run as install_run
+    from agentbundle.commands.uninstall import run as uninstall_run
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+
+    # Install once to learn the exact projected bytes, then start clean.
+    assert install_run(_install_args(repo)) == 0
+    projected = (repo / _EXPECTED_SKILL_RELPATH).read_text(encoding="utf-8")
+    assert uninstall_run(_uninstall_args(repo)) == 0
+
+    target = repo / _EXPECTED_SKILL_RELPATH
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(projected, encoding="utf-8")  # byte-identical, still not ours
+
+    assert install_run(_install_args(repo)) == 1
+    assert "Identical content would not make them ours" in capsys.readouterr().err
+    assert target.exists(), "the unowned file was removed by a refusing run"
+
+
+def test_a_clean_repo_still_installs(tmp_path) -> None:
+    """The guards must not refuse the ordinary case."""
+    from agentbundle.commands.install import run as install_run
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    assert install_run(_install_args(repo)) == 0
+    assert (repo / _EXPECTED_SKILL_RELPATH).exists()
+    assert _git_status(repo) == "", "a local install must stay git-invisible"
+
+
+def test_reinstalling_over_our_own_files_is_not_refused(tmp_path) -> None:
+    """Ownership is what the guard keys on, not mere existence.
+
+    Without this, AC10b would refuse every legitimate reinstall — the files it
+    is looking at are the ones we put there.
+    """
+    from agentbundle.commands.install import run as install_run
+    from agentbundle.commands.uninstall import run as uninstall_run
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+    assert install_run(_install_args(repo)) == 0
+    assert uninstall_run(_uninstall_args(repo)) == 0
+    assert install_run(_install_args(repo)) == 0, "a clean reinstall was refused"
+
+
+def test_ac12b_refuses_a_path_owned_by_a_different_repo_scope_pack(
+    tmp_path, capsys
+) -> None:
+    """Path-level cross-scope collision, across DIFFERENT packs.
+
+    The pack-level mutual exclusion upstream (AC11/AC12) only catches the *same*
+    pack installed at both scopes. Two different packs projecting the same path
+    slipped through entirely, and the local install would silently take
+    ownership of a file the repo-scope pack owns — so uninstalling either would
+    delete the other's file.
+    """
+    from agentbundle.commands.install import run as install_run
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    _git_init(repo)
+
+    # A *different* pack already owns the path this install would project.
+    (repo / ".agentbundle-state.toml").write_text(
+        'schema-version = "0.4"\n\n'
+        '[pack.some-other-pack.adapters.claude-code]\n'
+        'installed-version = "1.0.0"\n'
+        'source = "/nonexistent"\n'
+        'install-route = "cli"\n'
+        'scope = "repo"\n'
+        'user-root = "~/.agentbundle"\n'
+        'primitives = ["skill"]\n\n'
+        '[pack.some-other-pack.adapters.claude-code.files]\n'
+        f'"{_EXPECTED_SKILL_RELPATH}" = {{ from-pack-version = "1.0.0", sha = "x" }}\n',
+        encoding="utf-8",
+    )
+
+    assert install_run(_install_args(repo)) == 1
+    err = capsys.readouterr().err
+    assert "already owned by" in err
+    assert "some-other-pack" in err, "the message must name the colliding owner"
+    assert _EXPECTED_SKILL_RELPATH in err, "the message must name the colliding path"
+    assert "--force" in err
+    _assert_no_footprint(repo)

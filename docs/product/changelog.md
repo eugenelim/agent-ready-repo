@@ -116,6 +116,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
 
+### [agentbundle][0.37.0] — 2026-08-16
+
+#### Changed
+
+- **A local-scope install now stops rather than quietly taking over a file that
+  is not its own.** It refuses when a target is already committed to git, when a
+  file is sitting there that no install created, or when another installed pack
+  already owns that path — and it stops before writing anything, so a refusal
+  leaves your tree untouched. This protects the promise local scope makes:
+  uninstalling puts everything back exactly as it was. Reinstalling over files
+  it already owns still works as before.
+
 ### [agentbundle][0.36.2] — 2026-08-16
 
 #### Fixed
