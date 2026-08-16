@@ -108,6 +108,84 @@ gives you decision history *without* the burden of keeping it in sync.
 Living docs can be honest about the present because they don't have to
 also be a record of how we got here. That's what ADRs are for.
 
+### A spec directory freezes as a unit, when the spec ships
+
+`shipped specs/*` above means the whole directory — `spec.md` **and** `plan.md`.
+This needs saying because the plan template's own contract line reads "Unlike
+the spec, this document is allowed to change as you learn", which sounds like a
+standing exemption and is not one. That licence is **phase-scoped**: it holds
+while the plan is `Drafting` or `Executing` — while there is still something to
+learn. Once the plan is `Done` and the spec is `Shipped`, the work is over and
+both documents are history. A plan that stayed editable forever would be a
+second, unversioned account of what we did, competing with the ADR that records
+why.
+
+So: before ship, the plan is Living and you edit it freely. After ship, it is
+Frozen and gets exactly the same treatment as its spec.
+
+### Superseding a frozen document
+
+A later decision often reverses part of an earlier one. The earlier document
+still describes what was true when it shipped, so it is not wrong — but a
+reader who starts there must not be left following a rule we no longer keep.
+
+**The pointer goes in the `Status` field, and only there.** That is the one
+field this table already makes mutable on a frozen document, so no new
+exemption is needed. Form:
+
+```
+- **Status:** Shipped (superseded in part by ADR-NNNN — <what changed>; everything else stands)
+- **Status:** Done (superseded in part by ADR-NNNN — <what changed>; everything else stands)   # plan.md
+```
+
+Four rules, each earning its place:
+
+1. **Say "in part" and say which part.** A bare "superseded" invites a reader
+   to discard a document that is mostly still correct.
+2. **Point at the ADR, not at the spec that implemented it.** The ADR is the
+   decision record and is where the reasoning lives.
+3. **Annotate both ends — between ADRs.** The superseding ADR names what it
+   supersedes; the superseded ADR points forward. A one-way pointer only helps
+   readers who already arrived from the right side.
+
+   The **spec end is deliberately one-way**: ADRs do not cite specs (see
+   § *Cite upward*), so a superseded spec points at the ADR and the ADR does not
+   point back. That is the intended asymmetry, not a gap to close.
+4. **Do not change the body's meaning — including "just adding a line".** An
+   append is a body edit. The residue is real and accepted: someone who greps
+   mid-file still lands on the old rule with no pointer in view. The mitigation
+   is that the *operative* instruction lives in a Living file at the point of
+   use (a config header, a linter's message), not that the frozen record is
+   patched.
+
+   **Carve-out: meaning-preserving mechanical rewrites are allowed** — a path
+   or link rename, a moved file's reference, a repo-wide identifier change.
+   `84d79223` ("lift `docs/guides/` to `guides/`") rewrote references across
+   156 files under `docs/specs/`, shipped specs included, and was right to.
+   What freezes is the *record of the decision*, not the spelling of a path
+   that has since moved; a frozen document with dangling links is a worse
+   record, not a purer one. The test is whether a reader's understanding of
+   what was decided changes. If it does, it is not mechanical.
+
+These four rules are **convention-enforced, not machine-enforced**: the linter
+checks the status token's vocabulary and nothing else. A reviewer is the only
+thing standing between a supersession and a one-way, unscoped, or body-editing
+annotation.
+
+**Not `Constrained by:`.** It is the better semantic fit — it is the field that
+cites governing decisions — but it is a record of what governed the spec *at
+ship time*, and that record is still accurate. Editing it would rewrite history
+rather than annotate it, and would extend mutability to a second field for no
+gain. (`Constrained by:` *can* carry a supersession clause —
+`docs/specs/copilot-full-parity/spec.md` does exactly that — so the argument is
+that `Status` is the shorter carrier already licensed here, not that it is the
+only one capable of it.)
+
+The work-loop's `lint-spec-status.py` reads only the leading token (it
+truncates at the delimiters listed in § *Spec metadata contract*), so the
+annotated form still satisfies invariant (i). Confirm that by running it against
+the edited file, not by trusting this paragraph.
+
 ---
 
 ## 1. Charter — `docs/CHARTER.md`
@@ -266,14 +344,18 @@ on, so the criteria pin what's actually intended.)
 **`plan.md` is the implementation strategy.** It enumerates the changes —
 "add a `<thing>` to package X, modify `<other thing>` in package Y, write tests
 for cases A, B, C". It's the work-breakdown for the spec. It is allowed to
-change as you learn things.
+change as you learn things — **while the plan is `Drafting` or `Executing`**.
+Once it is `Done` and the spec `Shipped`, the directory freezes as a unit; see
+§ *A spec directory freezes as a unit, when the spec ships*.
 
 **Lifecycle:** specs are **living documents** for the duration of a feature's
 implementation. If implementation diverges from the spec, the spec is wrong;
-update it in the same PR. After the feature ships, the spec stays as
-documentation of the feature's contract — but at that point the *code is the
-truth*, and the spec is reference material that should be updated alongside
-behavior changes.
+update it in the same PR. After the feature ships the spec **freezes**: at that
+point the *code is the truth*, and the spec becomes the record of what was
+agreed, not a description of current behaviour. A later behaviour change is
+recorded where it belongs — in the code, and in an ADR if it reverses a
+decision — never by rewriting the shipped spec. When a later decision reverses
+part of one, annotate its Status field; see § *Superseding a frozen document*.
 
 Guards, pre-checks, and invariant-enforcement added during implementation are
 ACs, not implementation details — if they affect observable behavior (exit
@@ -300,6 +382,14 @@ mechanical rule.
   `Draft | Approved | Implementing | Shipped | Archived`. (Plans carry their own
   vocabulary, `Drafting | Approved | Executing | Done` — a separate field, separate set.)
   Approved means the spec/plan contract has received human approval. In `spec.md` it means the scope is accepted; in `plan.md` it means the implementation strategy is accepted. Before code changes begin, an implementation run moves `spec.md` to `Implementing`.
+  There is **no `Superseded` token**, and `Archived` is not a substitute — a
+  superseded spec usually shipped and is still live. A supersession is recorded
+  as a parenthetical *annotation* on the existing token
+  (`Shipped (superseded in part by ADR-NNNN — …)`), which is the only edit a
+  frozen spec accepts. Form and rules:
+  [§ Superseding a frozen document](#superseding-a-frozen-document).
+  The linter reads only the leading token — it truncates at the first ` (`,
+  ` →`, or `<!--` — so annotated statuses satisfy the vocabulary rule.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:
   `- [ ]` when open, `- [x]` when met. "Done" is the checklist, not an opinion.
 - **Deferral token.** A criterion that ships *unmet on purpose* is not left

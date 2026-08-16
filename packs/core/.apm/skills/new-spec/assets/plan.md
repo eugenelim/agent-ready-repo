@@ -4,9 +4,11 @@
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
-> document is allowed to change as you learn. When it changes substantially
-> (a different approach, not just a re-ordering), note why in the changelog
-> at the bottom.
+> document is allowed to change as you learn — while its Status is `Drafting`
+> or `Executing`. When it changes substantially (a different approach, not just
+> a re-ordering), note why in the changelog at the bottom. Once it is `Done`
+> and the spec is `Shipped`, the directory freezes as a unit
+> (`docs/CONVENTIONS.md` § Document lifecycle).
 
 <!-- **Light-mode lean fill.** For low-risk work running the `work-loop`
 skill's light mode, only Approach + a short Tasks list are required.

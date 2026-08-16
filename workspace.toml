@@ -1615,6 +1615,19 @@ open = [
   # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
+  # 12 shipped specs cite an ADR that a later ADR superseded, with no forward
+  # pointer on their Status line. Surveyed in docs/specs/frozen-spec-supersession
+  # (see its Survey table) and deliberately NOT fixed there, because the fix is
+  # not mechanical: citing ADR-0017 does not mean a spec taught the reversed
+  # nosec spelling -- most cite it for the gate itself, which stands. Each needs
+  # a judgment about whether the superseded SUB-decision is one that spec relied
+  # on, and ADR-0040/0042 supersede different sub-decisions than ADR-0084 does.
+  # Stamping "superseded in part" onto specs that are wholly unaffected is worse
+  # than no annotation.
+  # The mechanism to apply is now written down: CONVENTIONS.md
+  # "Superseding a frozen document". Work is the judgment, not the edit.
+  {slug = "frozen-spec-supersession-survey", summary = "Decide, per spec, whether each of the 12 shipped specs citing a superseded ADR relied on the superseded sub-decision, and annotate only those", source = "spec/frozen-spec-supersession"},
+
   # The publication-control evidence artifact records NO repository field:
   # build_evidence emits version, branch, app, environment, identities_agree,
   # canary, observed_at, observation_source -- and the committed
