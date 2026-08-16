@@ -762,6 +762,14 @@ open = [
   #       CI — exactly the divergence this spec exists to end.
   # CI is unaffected: build-check.yml uses fetch-depth: 0 and an explicit
   # `--base origin/main`, so both directions are local-only today.
+  # OBSERVED IN THE WILD 2026-08-16 (spec/agentbundle-engine-stragglers, PR #953):
+  # direction (a) fired exactly as described. A full local `make build-check`
+  # reported "complete — every leg of this target was invoked, SAST/SCA included"
+  # while the path-gate had silently gated nothing; the same changeset then failed
+  # in CI on a missing `Engine-Change-RFC:` trailer for packages/agentbundle/**.
+  # The local run was not merely less informative than CI — it was affirmatively
+  # reassuring while being wrong, which is the whole complaint. This is a concrete
+  # reproduction, not a hypothetical: raise the priority accordingly.
   # Fix: scope `has_exemption` to commits reachable only from HEAD (closes (b)),
   #   and have the guard report base absence/staleness loudly — deciding whether
   #   the local invocation fails closed while CI's stays fail-open. Touches a gate
