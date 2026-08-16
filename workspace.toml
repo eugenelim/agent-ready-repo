@@ -799,6 +799,11 @@ open = [
   # The local run was not merely less informative than CI — it was affirmatively
   # reassuring while being wrong, which is the whole complaint. This is a concrete
   # reproduction, not a hypothetical: raise the priority accordingly.
+  # Recurred twice more the same day (PRs #953, #957), both times on a
+  # changeset that a full local `make build-check` had just called complete.
+  # Three reproductions in one session is the argument for making the local
+  # invocation fail closed rather than warn: the failure mode is not a missed
+  # signal, it is a false green that costs a CI round trip every time.
   # Fix: scope `has_exemption` to commits reachable only from HEAD (closes (b)),
   #   and have the guard report base absence/staleness loudly — deciding whether
   #   the local invocation fails closed while CI's stays fail-open. Touches a gate
