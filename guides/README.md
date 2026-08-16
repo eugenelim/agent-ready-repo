@@ -8,7 +8,7 @@ Use this catalogue to add repeatable, supervised ways of working to your agent. 
 | --- | --- | --- |
 | **Decide what to build** | [`product-strategy`](product-strategy/) for strategic choices | [`desk-research`](desk-research/) for evidence, then [`product-engineering`](product-engineering/) to shape a build-ready bet |
 | **Design the product and system** | [`experience-design`](experience-design/) for journeys and surfaces | [`architect`](architect/), [`contracts`](contracts/), and [`frontend-engineering`](frontend-engineering/) for the system, interfaces, and implementation |
-| **Start, remember, build, and review software** | [`core`](core/) to route work into a durable artifact and supervised loop | [`governance-extras`](governance-extras/) for durable decisions and [`monorepo-extras`](monorepo-extras/) for package scaffolding |
+| **Build and review software** | [`core`](core/) to route work into a durable artifact and supervised loop | [`governance-extras`](governance-extras/) for durable decisions and [`monorepo-extras`](monorepo-extras/) for package scaffolding |
 | **Provision and release safely** | [`iac-terraform`](iac-terraform/) for reviewable infrastructure plans | [`release-engineering`](release-engineering/) for deployed validation and the human production gate, supervised by [`core`](core/) |
 | **Work with team systems and evidence** | [`atlassian`](atlassian/), [`github`](github/), [`linear`](linear/), or [`figma`](figma/) | [`converters`](converters/) for source material and [`credential-brokers`](credential-brokers/) for credential-safe access |
 | **Document what ships** | [`product-documentation`](product-documentation/) | [`converters`](converters/) and the guide for the pack whose behavior you are documenting |
