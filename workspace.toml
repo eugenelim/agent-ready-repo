@@ -64,6 +64,27 @@ backlog = [
   # site-design-system-spec, and P5's Astro project index; reference those owners.
   # Blocked until the contract is ratified and all three pilots complete.
   {slug = "portfolio-outcome-entry-surfaces", type = "design", needs = ["work:spec/portfolio-pack-first-value-contract", "work:spec/portfolio-first-run-pilot-architect", "work:spec/portfolio-first-run-pilot-figma", "work:spec/portfolio-first-run-pilot-governance-extras"]},
+  # TRANSITION-STATE DEFECT, observed 2026-08-16 while a work-loop run tried to
+  # record two learnings. The work-loop's mandated "Capture learnings" step has
+  # no working writer today, and both halves fail quietly enough to look fine:
+  #   - packs/core/.apm/skills/work-loop/scripts/append-knowledge.py prints
+  #     "retired writer; use project-knowledge --capture" and EXITS 0. A caller
+  #     that does not read stdout believes it wrote.
+  #   - `project-knowledge --capture` refuses `staged_dual_writer`.
+  #     knowledge_store.py `_assert_v1_writer_allowed` refuses while no committed
+  #     v1 map exists AND the legacy source is present — exactly this repo:
+  #     docs/knowledge/patterns.jsonl is still there, the v1 store is not active.
+  # So every work-loop run in this window completes its finish checklist with the
+  # learning silently dropped. This is the transition, not the destination — but
+  # the transition has no stated end date and the failure is invisible.
+  # Fix (either order): finish the migration (`--migrate-legacy` then
+  #   `--activate-staged`), and INDEPENDENTLY make the retired writer exit
+  #   non-zero so a caller cannot mistake its notice for a successful write. The
+  #   second half is worth doing even if the migration is weeks away.
+  # Unblocks when: picked up. The exit-code half has no dependency; the migration
+  #   rewrites the knowledge store, so it is not a ride-along.
+  {slug = "knowledge-capture-has-no-working-writer", source = "pre-flight/2026-08-16"},
+
   # Project knowledge measured-scale follow-on. Slice 1 deliberately retains closed
   # classification/month journals unchanged; deleting individual observations would
   # break the append-only evidence model and Git would retain the history anyway.
