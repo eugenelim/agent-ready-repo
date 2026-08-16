@@ -26,13 +26,24 @@ gate that fails open exactly when the environment is degraded. So a verdict of
 everything else is a tool error. `tools/test-audit-npm.py` pins that path,
 because a live run against a healthy registry never reaches it.
 
+**And why reading the payload is still not enough.** One failure survives every
+payload check: a registry or mirror that answers the bulk-advisory endpoint with
+HTTP 200 and an empty body. Measured against a local stub, that yields
+`auditReportVersion: 2`, `vulnerabilities: {}`, no `error` key, and a full
+`metadata.dependencies` block — the last because npm computes it from the
+lockfile locally and never receives it from the registry. The result is
+byte-identical to a genuinely clean audit. No amount of payload inspection
+distinguishes them, so the gate first audits a **canary**: a pin with a
+permanent published advisory. If the endpoint does not report that, it is not
+reporting anything, and the run is a tool error rather than a pass.
+
 Lockfiles are **discovered**, not listed, so a third npm project cannot be added
 without the gate noticing. `node_modules/` and dot-directories are pruned:
 lockfiles inside an installed tree are dependency artifacts, not projects, and
 whether they exist at all depends on who last ran `npm ci`.
 
 Usage:
-    audit-npm.py [--root .] [--allowlist tools/npm-audit-allowlist.toml]
+    audit-npm.py [--root .]
 
 Exit codes — three outcomes, deliberately distinguishable (same reasoning as
 `tools/test-all.py`: "found advisories" and "never actually ran" are different
@@ -42,8 +53,8 @@ facts, and reporting the second as the first is how a gate sits green for weeks)
      allowlisted (each printed).
   1  at least one non-allowlisted advisory at or above the blocking threshold.
   2  the gate could not run: npm absent, unreadable or unparseable audit output,
-     an error payload, an unrecognised report schema, a malformed allowlist, or
-     no lockfile discovered at all.
+     an error payload, an unrecognised report schema, a malformed allowlist,
+     no lockfile discovered at all, or a canary probe that came back silent.
 """
 
 from __future__ import annotations
@@ -52,6 +63,7 @@ import argparse
 import json
 import subprocess  # nosec B404 - invokes `npm` with a fixed, non-shell argv
 import sys
+import tempfile
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -64,15 +76,44 @@ _REPO_ROOT = Path(__file__).resolve().parents[1]
 LOCKFILE_NAME = "package-lock.json"
 DEFAULT_ALLOWLIST = "tools/npm-audit-allowlist.toml"
 
-# Matches the `--audit-level=high` passed to npm. npm's own flag decides its
-# exit code; this set decides ours, and ours is the one that gates. Keeping both
+# Matches the `--audit-level` passed to npm. npm's own flag decides its exit
+# code; this set decides ours, and ours is the one that gates. Keeping both
 # means a future npm that changes its threshold semantics cannot quietly widen
 # the gate.
-BLOCKING_SEVERITIES = frozenset({"high", "critical"})
-AUDIT_LEVEL = "high"
+#
+# `moderate`, not `high`: both lockfiles were clean at moderate the day this
+# threshold was set, so raising the bar cost nothing. The cheapest moment to
+# raise a bar is while you are already above it — deferring means tightening on
+# a day when there *is* a moderate finding, which turns a one-word diff into an
+# argument.
+BLOCKING_SEVERITIES = frozenset({"moderate", "high", "critical"})
+AUDIT_LEVEL = "moderate"
 
 # Directories that never contain a *project* lockfile.
 _PRUNED_DIR_NAMES = frozenset({"node_modules"})
+
+# ── The canary ──────────────────────────────────────────────────────────────
+# A pin with a permanent, long-published advisory, audited in a throwaway
+# lockfile before the real projects are.
+#
+# The failure this exists to catch is measured, not imagined. An npm registry
+# or mirror that answers the bulk-advisory endpoint with HTTP 200 and an empty
+# body produces a report that is *byte-identical to a clean one*:
+# `auditReportVersion: 2`, `vulnerabilities: {}`, no `error` key, and a full,
+# plausible `metadata.dependencies` block — because that block is computed
+# locally from the lockfile and never comes from the registry at all. Every
+# other guard in this module reads the payload, and the payload looks perfect.
+#
+# So the payload cannot answer "did anything actually get checked?". Only a
+# known-positive can. If the endpoint does not report this pin, it is not
+# reporting anything, and a green run over the real lockfiles means nothing.
+#
+# Same reasoning the `sast` recipe already applies to
+# `tools/test-semgrep-argv-boundary.py`: a scan that is silent when it works and
+# silent when it has been broken into a no-op cannot tell you which it did.
+CANARY_PACKAGE = "lodash"
+CANARY_VERSION = "4.17.11"
+CANARY_ADVISORY = "GHSA-jf85-cpcp-j695"  # prototype pollution; critical
 
 
 class AuditError(Exception):
@@ -190,6 +231,44 @@ def advisory_id(via: dict) -> str:
     raise AuditError(f"advisory entry has neither a usable `url` nor a `source`: {via!r}")
 
 
+def _require_report(report: object) -> dict:
+    """Return the payload's `vulnerabilities` map, or raise AuditError.
+
+    The single place the AC1a fail-closed rule is enforced: anything that is not
+    a recognisable `npm audit` report raises rather than reading as clean. Shared
+    by `evaluate` and the canary probe so the two cannot drift apart.
+    """
+    if not isinstance(report, dict):
+        raise AuditError(f"audit output is not a JSON object (got {type(report).__name__})")
+    if "error" in report:
+        detail = report["error"]
+        if isinstance(detail, dict):
+            detail = detail.get("summary") or detail.get("code") or detail
+        raise AuditError(
+            f"npm audit reported an error instead of a report: "
+            f"{detail or report.get('message') or '(no detail)'}"
+        )
+    if "auditReportVersion" not in report:
+        raise AuditError(
+            "audit output carries no `auditReportVersion` — refusing to read an "
+            "unrecognised payload as a clean result"
+        )
+    vulnerabilities = report.get("vulnerabilities", {})
+    if not isinstance(vulnerabilities, dict):
+        raise AuditError("audit output's `vulnerabilities` is not an object")
+    return vulnerabilities
+
+
+def canary_is_live(report: object) -> bool:
+    """Did this audit of the canary lockfile actually report the canary advisory?
+
+    False means the advisory endpoint answered without reporting a pin that has
+    carried a published advisory for years — so it is not reporting anything,
+    and a clean result over the real lockfiles proves nothing.
+    """
+    return CANARY_PACKAGE in _require_report(report)
+
+
 def evaluate(report: object, allowlist: dict[str, dict[str, str]]) -> Verdict:
     """Classify a parsed `npm audit --json` payload.
 
@@ -203,21 +282,7 @@ def evaluate(report: object, allowlist: dict[str, dict[str, str]]) -> Verdict:
     chains, and suppressing a root correctly suppresses everything downstream of
     it.
     """
-    if not isinstance(report, dict):
-        raise AuditError(f"audit output is not a JSON object (got {type(report).__name__})")
-    if "error" in report:
-        detail = report["error"]
-        if isinstance(detail, dict):
-            detail = detail.get("summary") or detail.get("code") or detail
-        raise AuditError(f"npm audit reported an error instead of a report: {detail}")
-    if "auditReportVersion" not in report:
-        raise AuditError(
-            "audit output carries no `auditReportVersion` — refusing to read an "
-            "unrecognised payload as a clean result"
-        )
-    vulnerabilities = report.get("vulnerabilities", {})
-    if not isinstance(vulnerabilities, dict):
-        raise AuditError("audit output's `vulnerabilities` is not an object")
+    vulnerabilities = _require_report(report)
 
     blocking: dict[str, Finding] = {}
     suppressed: dict[str, Finding] = {}
@@ -301,6 +366,54 @@ def run_audit(project_dir: Path) -> object:
         ) from exc
 
 
+def run_canary_probe() -> None:
+    """Prove the advisory endpoint answers, before trusting a clean result.
+
+    Writes a throwaway lockfile pinning the canary and audits it. Nothing is
+    installed and nothing outside the tmpdir is touched.
+    """
+    manifest = {
+        "name": "npm-sca-gate-canary",
+        "version": "1.0.0",
+        "dependencies": {CANARY_PACKAGE: CANARY_VERSION},
+    }
+    lock = {
+        "name": "npm-sca-gate-canary",
+        "version": "1.0.0",
+        "lockfileVersion": 3,
+        "requires": True,
+        "packages": {
+            "": manifest,
+            f"node_modules/{CANARY_PACKAGE}": {
+                "version": CANARY_VERSION,
+                "resolved": (
+                    f"https://registry.npmjs.org/{CANARY_PACKAGE}/-/"
+                    f"{CANARY_PACKAGE}-{CANARY_VERSION}.tgz"
+                ),
+            },
+        },
+    }
+    with tempfile.TemporaryDirectory(prefix="npm-sca-canary-") as tmp:
+        probe_dir = Path(tmp)
+        (probe_dir / "package.json").write_text(json.dumps(manifest), encoding="utf-8")
+        (probe_dir / "package-lock.json").write_text(json.dumps(lock), encoding="utf-8")
+        if not canary_is_live(run_audit(probe_dir)):
+            raise AuditError(
+                f"the advisory endpoint reported nothing for {CANARY_PACKAGE}@"
+                f"{CANARY_VERSION} ({CANARY_ADVISORY}), which has carried a published "
+                f"advisory for years. The endpoint is not answering with real data, so "
+                f"a clean result over this repo's lockfiles would be meaningless. Check "
+                f"the configured registry (`npm config get registry`) — a mirror that "
+                f"returns 200 with no advisories produces a report indistinguishable "
+                f"from a clean one. If the advisory itself was withdrawn, repin the "
+                f"canary in tools/audit-npm.py."
+            )
+    print(
+        f"audit-npm: advisory endpoint confirmed live "
+        f"({CANARY_PACKAGE}@{CANARY_VERSION} reported as expected)."
+    )
+
+
 def _describe(finding: Finding) -> str:
     """`<package>: <title>`, without repeating the package when the advisory
     title already leads with it (npm's own titles usually do)."""
@@ -353,6 +466,13 @@ def main(argv: list[str]) -> int:
 
     if allowlist:
         print(f"audit-npm: {len(allowlist)} allowlisted advisory(ies) in {allowlist_path.name}")
+
+    # Before trusting any clean result, prove the endpoint answers at all.
+    try:
+        run_canary_probe()
+    except AuditError as exc:
+        print(f"audit-npm: {exc}", file=sys.stderr)
+        return 2
 
     blocked = False
     for lockfile in lockfiles:

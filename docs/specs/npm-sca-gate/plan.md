@@ -134,7 +134,7 @@ contributor changing the linter looks.
 
 ### T4 — remediate both lockfiles (AC5)
 
-**Tests:** goal-based + manual QA. `Done when:` `npm audit --audit-level=high`
+**Tests:** goal-based + manual QA. `Done when:` `npm audit --audit-level=moderate`
 reports 0 in each; `git diff --stat` shows no `package.json`; the
 `hasInstallScript` set is unchanged in both.
 

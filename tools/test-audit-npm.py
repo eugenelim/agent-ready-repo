@@ -92,6 +92,25 @@ CRITICAL = _report(("evil", "critical", [_advisory("evil", "critical", "GHSA-ddd
 
 MODERATE = _report(("postcss", "moderate", [_advisory("postcss", "moderate", "GHSA-1111-2222-3333", 3)]))
 
+LOW = _report(("trivial", "low", [_advisory("trivial", "low", "GHSA-4444-5555-6666", 4)]))
+
+# What the canary probe sees when the endpoint is answering, and when a mirror
+# returns 200 with an empty advisory set. The second is byte-identical in shape
+# to a clean audit — including the locally-computed metadata block — which is
+# the whole reason the canary exists.
+CANARY_LIVE = _report(("lodash", "critical", [_advisory("lodash", "critical", "GHSA-jf85-cpcp-j695", 5)]))
+
+CANARY_SILENT = {
+    "auditReportVersion": 2,
+    "vulnerabilities": {},
+    "metadata": {
+        "vulnerabilities": {"info": 0, "low": 0, "moderate": 0, "high": 0,
+                            "critical": 0, "total": 0},
+        "dependencies": {"prod": 455, "dev": 0, "optional": 119, "peer": 2,
+                         "peerOptional": 0, "total": 573},
+    },
+}
+
 # A high advisory plus a package that is only vulnerable *through* it — the
 # string-`via` chain link. Suppressing the root advisory must suppress the chain.
 CHAINED = _report(
@@ -142,13 +161,21 @@ def main() -> int:
         return 1
     m = _load_subject()
 
-    print("evaluate() — severity threshold")
+    print("evaluate() — severity threshold (moderate and above)")
     check("clean_report_passes", m.evaluate(CLEAN, {}).blocking == [])
     check("high_finding_blocks", [f.advisory_id for f in m.evaluate(HIGH, {}).blocking]
           == ["GHSA-aaaa-bbbb-cccc"])
     check("critical_finding_blocks", [f.advisory_id for f in m.evaluate(CRITICAL, {}).blocking]
           == ["GHSA-dddd-eeee-ffff"])
-    check("moderate_finding_does_not_block", m.evaluate(MODERATE, {}).blocking == [])
+    check("moderate_finding_blocks", [f.advisory_id for f in m.evaluate(MODERATE, {}).blocking]
+          == ["GHSA-1111-2222-3333"])
+    check("low_finding_does_not_block", m.evaluate(LOW, {}).blocking == [])
+    # The npm flag and our own blocking set are two separate decisions about the
+    # same threshold; if they drift, npm's exit code and our verdict disagree.
+    check("threshold_flag_matches_blocking_set",
+          m.AUDIT_LEVEL == "moderate"
+          and sorted(m.BLOCKING_SEVERITIES) == ["critical", "high", "moderate"],
+          f"AUDIT_LEVEL={m.AUDIT_LEVEL} BLOCKING={sorted(m.BLOCKING_SEVERITIES)}")
 
     print("evaluate() — allowlist")
     allow = {"GHSA-aaaa-bbbb-cccc": {"reason": "r", "unblocked_when": "u"}}
@@ -175,6 +202,20 @@ def main() -> int:
     # the guard above must not turn every via-less entry into a hard error.
     check("nonblocking_without_via_passes",
           m.evaluate(_report(("quiet", "low", [])), {}).blocking == [])
+
+    print("canary_is_live() — the check no payload inspection can make")
+    check("canary_live_when_endpoint_answers", m.canary_is_live(CANARY_LIVE) is True)
+    check("canary_silent_when_mirror_returns_empty", m.canary_is_live(CANARY_SILENT) is False,
+          "a 200-with-no-advisories mirror must NOT read as live")
+    # The point of the canary, stated as an assertion: the silent-mirror payload
+    # is a perfectly valid report that evaluate() passes. Only the canary
+    # separates it from a genuinely clean tree.
+    check("silent_mirror_payload_passes_evaluate_by_design",
+          m.evaluate(CANARY_SILENT, {}).blocking == [])
+    expect_error("canary_probe_rejects_error_payload", lambda: m.canary_is_live(ERROR_PAYLOAD))
+    expect_error("canary_probe_rejects_versionless_payload", lambda: m.canary_is_live(NO_VERSION))
+    check("canary_pin_is_declared",
+          bool(m.CANARY_PACKAGE) and bool(m.CANARY_VERSION) and m.CANARY_ADVISORY.startswith("GHSA-"))
 
     print("load_allowlist() — incomplete entries are a tool error, not a pass")
     with tempfile.TemporaryDirectory() as tmp:

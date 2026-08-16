@@ -968,6 +968,16 @@ open = [
   #   allowScripts, or repin so it dedupes to 2.3.3).
   {slug = "npm-allowscripts-enforcement", summary = "Make the documented allowScripts install-script invariant machine-checked for both npm projects, after dispositioning web's pre-existing playwright/fsevents@2.3.2 divergence", source = "spec/npm-sca-gate"},
 
+  # The npm allowlist's `unblocked_when` is prose tools/audit-npm.py never
+  #   reads, so a suppression can sit forever with a stale justification.
+  #   ADR-0017's .snyk policy carries a machine-checked `expires`; mirroring it
+  #   here would make a rotting suppression fail the gate rather than ride
+  #   along. Deliberately not built while tools/npm-audit-allowlist.toml is
+  #   empty — there is nothing to expire yet, and the shape should be decided
+  #   against a real first entry rather than guessed.
+  # Unblocks when: the allowlist gains its first entry.
+  {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
+
   # Unrelated finds from spec/npm-sca-gate — both cost that loop real time.
   #
   # Self-test mutates a tracked file: tools/test-lint-pack-test-boundary.py

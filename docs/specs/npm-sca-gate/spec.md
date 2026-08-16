@@ -103,7 +103,7 @@ gate is the deliverable.
 
 - [ ] **AC1 (gate exists and is discovered, not listed).** `tools/audit-npm.py`
       walks the repo for `package-lock.json` files, excluding `node_modules/`,
-      and audits each at `--audit-level=high` with `--package-lock-only`. It
+      and audits each at `--audit-level=moderate` with `--package-lock-only`. It
       exits 0 when every project is clean, 1 on any non-allowlisted advisory at
       or above `high`, and 2 on a tool error. The three exit codes are
       distinguishable, matching `tools/test-all.py`'s precedent that "failed"
@@ -119,6 +119,22 @@ gate is the deliverable.
       from "no vulnerabilities", and `npm audit` uses a non-zero exit for both
       "found advisories" and "could not run", so the distinction has to be made
       from the payload rather than the exit code.
+- [ ] **AC1b (a positive control, because the payload cannot prove coverage).**
+      Before auditing any project lockfile, the gate audits a **canary** — a
+      throwaway lockfile pinning a package version with a permanent published
+      advisory (`lodash@4.17.11`, GHSA-jf85-cpcp-j695). If that audit reports no
+      advisory for the canary, the run is a tool error (exit 2), not a pass.
+
+      This exists because AC1a is necessary but **not sufficient**, which was
+      measured rather than assumed. Against a local stub returning HTTP 200 with
+      an empty advisory body, `npm audit` emits `auditReportVersion: 2`,
+      `vulnerabilities: {}`, **no** `error` key, and a complete, plausible
+      `metadata.dependencies` block (573 deps) — the last because npm computes
+      dependency counts locally from the lockfile and never receives them from
+      the registry. The payload is byte-identical to a genuinely clean audit, so
+      no amount of payload inspection can separate them. Only a known-positive
+      can. The relevant threat is mundane rather than exotic: an internal npm
+      mirror whose advisory endpoint is unimplemented or misconfigured.
 - [ ] **AC2 (chained into the existing gate, both directions).** `make sast`
       runs `tools/test-audit-npm.py` then `tools/audit-npm.py`, positioned with
       the other SCA legs. Both npm lockfiles are added to the `SAST_CONFIG`
@@ -148,8 +164,14 @@ gate is the deliverable.
       the only thing that can prove them. It is registered in
       `tools/test-all.py`'s `TESTS`, so it runs in the umbrella suite rather
       than only when someone remembers.
+
+      It additionally covers AC1b: the canary reads as live when the endpoint
+      answers and **not** live against the silent-mirror payload — and asserts
+      that the same silent-mirror payload *passes* `evaluate()`, which is the
+      whole justification for the canary existing, written as an executable
+      claim rather than a comment.
 - [ ] **AC5 (today's findings remediated).** `docs-site/package-lock.json` and
-      `web/package-lock.json` are updated so `npm audit --audit-level=high`
+      `web/package-lock.json` are updated so `npm audit --audit-level=moderate`
       reports zero vulnerabilities in each. Both `package.json` files are
       **unchanged** — the fixes are transitive. `web/`'s moderate `postcss`
       advisory is fixed in the same pass because the same `npm audit fix`
@@ -198,9 +220,10 @@ gate is the deliverable.
 
 | AC | Mode | Mechanism |
 |---|---|---|
-| AC1, AC3, AC4 | TDD | `tools/test-audit-npm.py` against synthetic `npm audit` JSON fixtures — no network, no npm, deterministic |
+| AC1, AC1a, AC3, AC4 | TDD | `tools/test-audit-npm.py` against synthetic `npm audit` JSON fixtures — no network, no npm, deterministic |
+| AC1b | Manual QA (adversarial) | Stand up a local stub answering the bulk-advisory endpoint with HTTP 200 and an empty body, point `npm_config_registry` at it, and run the gate: it must exit **2** naming the silent endpoint, not 0. Re-run against the real registry: exit 0 with the canary confirmed. Both observed and recorded in the PR — the fixture half is covered by the row above |
 | AC2 | Goal-based | `make sast` reaches the leg; `make -s print-sast-config` names both lockfiles |
-| AC5 | Goal-based + manual QA | `npm audit --audit-level=high` in each project reports 0; `git diff` shows both `package.json` untouched; install-script audit re-run over both lockfiles |
+| AC5 | Goal-based + manual QA | `npm audit --audit-level=moderate` in each project reports 0; `git diff` shows both `package.json` untouched; install-script audit re-run over both lockfiles |
 | AC6, AC7, AC8 | Goal-based | `tools/lint-agents-md.py` line caps; `lint-spec-status.py` deferral-anchor resolution |
 | AC9 | Manual QA | `make ci` observed green locally; CI observed green on the PR |
 
@@ -224,10 +247,17 @@ and `tools/test-audit-requirements.py`.
   on contributor machines that already build either site. The gate fails loudly
   rather than skipping when it is absent, so this assumption is checked at run
   time rather than trusted.
-- Auditing at `high` matches the existing gate's tuning (Bandit runs at
-  `--severity-level medium --confidence-level medium`; the moderate `postcss`
-  finding is fixed opportunistically but not gated). Tightening to `moderate` is
-  a later decision, deliberately not taken here.
+- **Auditing at `moderate`.** This spec originally set the threshold at `high`
+  to match the existing gate's tuning (Bandit runs `--severity-level medium
+  --confidence-level medium`) and deferred any tightening. That was reversed
+  during implementation, on evidence: fixing `web/`'s moderate `postcss`
+  advisory left **both lockfiles clean at `moderate`**, so raising the bar cost
+  nothing. The cheapest moment to raise a bar is while you are already above it
+  — deferring means tightening on a day when there *is* a moderate finding,
+  which turns a one-word diff into an argument. `low` and `info` remain
+  ungated; `moderate` is also the level Bandit's `medium` most nearly
+  corresponds to, so the gate is now *more* consistent with ADR-0017's tuning,
+  not less.
 - **Deferred (recorded in `[backlog].open`; AC8 verifies presence at ship
   time):** Dependabot wiring for automated bump PRs — deferral slug
   `npm-dependabot-wiring`. Machine enforcement of the `allowScripts`

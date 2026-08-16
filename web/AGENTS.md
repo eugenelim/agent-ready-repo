@@ -44,12 +44,16 @@ is used directly. Test runner entry point: `npm test` (`vitest run`).
 Two controls, only one of them automated:
 
 - **Known-CVE scanning is wired** (ADR-0083, `docs/specs/npm-sca-gate/`).
-  `tools/audit-npm.py` runs `npm audit --audit-level=high` over this lockfile as
+  `tools/audit-npm.py` runs `npm audit --audit-level=moderate` over this lockfile as
   a leg of `make sast`, so it gates locally and in `build-check.yml`. Both npm
   lockfiles are in the Makefile's `SAST_CONFIG`, so a lockfile-only diff still
   triggers the gate. Fix a finding with `npm audit fix --package-lock-only`;
   suppress one only when there is no fix, via a reasoned entry in
-  `tools/npm-audit-allowlist.toml`.
+  `tools/npm-audit-allowlist.toml`. The gate audits a known-vulnerable
+  **canary** pin first — a mirror whose advisory endpoint returns
+  200-with-nothing produces a report identical to a clean one, so a green run
+  is only trustworthy if the canary reported. Exit 2 (tool error) is distinct
+  from exit 1 (findings); never read it as a pass.
 - **Install-script vetting is by hand, and this lockfile already diverges.**
   `package.json` `allowScripts` vets `esbuild@0.28.1` and `fsevents@2.3.3`, but
   the lockfile also carries `playwright/node_modules/fsevents@2.3.2`, which is

@@ -111,9 +111,54 @@ fixtures, because a live run against a healthy registry never reaches them.
 
 ### Threshold and scope
 
-Blocking at `high` (with `critical`), matching the existing gate's tuning
-(Bandit runs medium/medium). Lockfiles are **discovered** by walking the tree,
-not listed, so a third npm project cannot be added without the gate noticing.
+Blocking at **`moderate`** and above. The first draft of this decision said
+`high`, on the reasoning that it matched Bandit's medium/medium tuning and that
+tightening could come later. Implementation reversed it on evidence: remediating
+`web/`'s moderate `postcss` advisory left both lockfiles clean at `moderate`, so
+the bar could be raised for free. A threshold is cheapest to raise while you are
+already above it; deferring guarantees the tightening lands on a day when
+something is failing it. `low` and `info` stay ungated.
+
+Lockfiles are **discovered** by walking the tree, not listed, so a third npm
+project cannot be added without the gate noticing.
+
+### Why a canary probe — reading the payload is not sufficient
+
+The rule above ("clean requires `auditReportVersion`") is necessary and **not
+sufficient**, which we measured rather than argued.
+
+Pointed at a local stub that answers the bulk-advisory endpoint with HTTP 200
+and an empty body, `npm audit` returns:
+
+```json
+{ "auditReportVersion": 2, "vulnerabilities": {},
+  "metadata": { "dependencies": { "total": 573, "...": "..." } } }
+```
+
+No `error` key. A correct report version. A full and entirely plausible
+dependency count — because **npm computes `metadata.dependencies` locally from
+the lockfile and never receives it from the registry.** The payload is
+byte-identical to a genuinely clean audit. No inspection of it can tell the two
+apart, which also rules out the obvious cross-check (comparing the audited
+dependency count against the lockfile's package count); that number is local
+knowledge and stays correct while the advisory data is missing entirely.
+
+The threat is mundane: an internal npm mirror — Artifactory, Nexus, Verdaccio —
+whose advisory endpoint is unimplemented, misconfigured, or silently degraded.
+ADR-0017 § Context establishes that this repo lives alongside an org-managed
+scanning estate, so a non-default registry is a realistic configuration rather
+than a hypothetical one.
+
+So the gate audits a **canary** first: a throwaway lockfile pinning
+`lodash@4.17.11`, whose critical prototype-pollution advisory
+(GHSA-jf85-cpcp-j695) has been published for years. If the endpoint does not
+report it, the endpoint is not reporting anything, and the run is a tool error
+rather than a pass.
+
+This is the same argument the `sast` recipe already makes for
+`tools/test-semgrep-argv-boundary.py`: a scan that is silent when it works and
+silent when it has been broken into a no-op cannot tell you which one happened,
+so something known-positive has to be run through it.
 
 ## Consequences
 
@@ -141,9 +186,18 @@ not listed, so a third npm project cannot be added without the gate noticing.
   mode this whole gate exists to avoid.
 
 **Neutral / to revisit:**
-- **Tightening to `--audit-level=moderate`.** Not taken now; `web/`'s moderate
-  `postcss` finding was fixed opportunistically rather than gated, so the
-  tightening is cheap whenever it is wanted.
+- **Tightening to `low`.** Not taken. `moderate` is the floor that maps most
+  nearly onto Bandit's `medium`; going lower would gate advisory noise that the
+  Python half of the same gate deliberately ignores.
+- **The canary pin is a maintenance item.** If GHSA-jf85-cpcp-j695 is ever
+  withdrawn, the probe goes silent and the gate wedges closed — loudly, with an
+  error naming the fix (repin the canary). Failing closed on a withdrawn
+  advisory is the correct direction for the error to point, but it is a real
+  future interrupt and is recorded here so it is diagnosable at a glance.
+- **The allowlist's `unblocked_when` is prose the gate never reads.** ADR-0017's
+  `.snyk` policy carries a machine-checked `expires`; mirroring that here would
+  stop a suppression rotting indefinitely. Deliberately not built while the
+  allowlist is empty — there is nothing to expire yet.
 - **Dependabot** (`npm-dependabot-wiring`) — complementary automation, left to
   the repo owner.
 - **Machine enforcement of the `allowScripts` install-script invariant**

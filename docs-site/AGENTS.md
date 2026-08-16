@@ -24,12 +24,17 @@ mermaid is bundled (no runtime script CDN calls).
 Supply-chain posture, two controls:
 
 - **Known-CVE scanning is wired** (ADR-0083, `docs/specs/npm-sca-gate/`).
-  `tools/audit-npm.py` runs `npm audit --audit-level=high` over this
+  `tools/audit-npm.py` runs `npm audit --audit-level=moderate` over this
   lockfile as a leg of `make sast`, so it gates locally and in
   `build-check.yml`. Both lockfiles are in the Makefile's `SAST_CONFIG`,
   so a lockfile-only diff still triggers the gate. Fix a finding with
   `npm audit fix --package-lock-only`; suppress one only when there is no
   fix, via a reasoned entry in `tools/npm-audit-allowlist.toml`.
+  The gate audits a known-vulnerable **canary** pin first — a mirror whose
+  advisory endpoint returns 200-with-nothing produces a report identical to
+  a clean one, so a green run is only trustworthy if the canary reported.
+  Exit 2 (tool error) is distinct from exit 1 (findings); never read it as
+  a pass.
 - **Install-script vetting is still by hand.** The lockfile's only
   `"hasInstallScript": true` entries must stay within the versioned
   `allowScripts` keys in `package.json` (`esbuild@0.28.1`,
