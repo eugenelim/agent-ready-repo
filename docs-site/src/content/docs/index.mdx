@@ -2,7 +2,7 @@
 title: Agent-ready catalogue documentation
 description: Choose, install, operate, and build catalogues of supervised agent workflows.
 hero:
-  tagline: Choose, install, operate, and build catalogues of supervised agent workflows. Start with the work you need to accomplish; pack names and installation details come next.
+  tagline: Choose, install, operate, and build catalogues of supervised agent workflows.
   actions:
     - text: Choose a starting point
       link: /agent-ready-repo/docs/getting-started/
@@ -11,21 +11,57 @@ hero:
     - text: Browse every pack
       link: /agent-ready-repo/docs/packs/
       icon: right-arrow
+      variant: minimal
 ---
+
+import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 ## Choose what you want to achieve
 
-| I need to… | Start here |
-| --- | --- |
-| **Decide what to build** | [Product strategy](/agent-ready-repo/docs/guides/product-strategy/), [evidence-grounded research](/agent-ready-repo/docs/guides/desk-research/), then [product shaping](/agent-ready-repo/docs/guides/product-engineering/) |
-| **Design the product and system** | [Experience design](/agent-ready-repo/docs/guides/experience-design/), [architecture](/agent-ready-repo/docs/guides/architect/), [contracts](/agent-ready-repo/docs/guides/contracts/), and [frontend engineering](/agent-ready-repo/docs/guides/frontend-engineering/) |
-| **Build and review software** | The [`core` supervised work loop](/agent-ready-repo/docs/guides/core/) |
-| **Provision and release safely** | [Architecture](/agent-ready-repo/docs/guides/architect/), [Terraform planning](/agent-ready-repo/docs/guides/iac-terraform/), and [release engineering](/agent-ready-repo/docs/guides/release-engineering/) |
-| **Work with team systems and evidence** | [Atlassian](/agent-ready-repo/docs/guides/atlassian/), [GitHub](/agent-ready-repo/docs/guides/github/), [Linear](/agent-ready-repo/docs/guides/linear/), [Figma](/agent-ready-repo/docs/guides/figma/), and [converters](/agent-ready-repo/docs/guides/converters/) |
-| **Document what ships** | [Product documentation](/agent-ready-repo/docs/guides/product-documentation/) |
-| **Build and govern a catalogue** | [Create a catalogue](/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/), then apply the [authoring standards](/agent-ready-repo/docs/guides/_shared/reference/catalogue-authoring-standards/) |
+Start with the supervised build loop, or choose the outcome closest to the work in front of you.
 
-The [`core` build loop](/agent-ready-repo/docs/guides/core/) is the catalogue's flagship and its strongest standalone product: spec and plan before code, mechanical gates before claims, a cold independent review before handoff, stasis detection when the loop stops making progress, and a human decision before merge. The catalogue extends that supervised-work model beyond coding; it does not dilute the build loop.
+<div class="docs-hub__lead" aria-label="Featured starting point">
+  <LinkCard
+    title="Build and review software"
+    href="/agent-ready-repo/docs/guides/core/"
+    description="Take a brief or spec through implementation, mechanical gates, independent review, and a human merge decision."
+  />
+</div>
+
+<div class="docs-hub__supporting">
+  <CardGrid>
+    <LinkCard
+      title="Decide what to build"
+      href="/agent-ready-repo/docs/guides/product-strategy/"
+      description="Move from strategy and evidence to a bounded decision brief a delivery team can act on."
+    />
+    <LinkCard
+      title="Design the product and system"
+      href="/agent-ready-repo/docs/guides/experience-design/"
+      description="Connect customer intent to journeys, architecture, interfaces, and an implementable surface."
+    />
+    <LinkCard
+      title="Provision and release safely"
+      href="/agent-ready-repo/docs/guides/architect/"
+      description="Make system decisions explicit, produce a reviewable infrastructure plan, validate the deployed whole, and stop before irreversible action."
+    />
+    <LinkCard
+      title="Work with team systems and evidence"
+      href="/agent-ready-repo/docs/guides/atlassian/"
+      description="Bring trackers, source material, design files, and credentials into agent work without hiding provenance or mutation."
+    />
+    <LinkCard
+      title="Document what ships"
+      href="/agent-ready-repo/docs/guides/product-documentation/"
+      description="Create, restructure, audit, and verify documentation against the behavior your product actually ships."
+    />
+    <LinkCard
+      title="Build and govern a catalogue"
+      href="/agent-ready-repo/docs/guides/_shared/how-to/create-a-catalogue/"
+      description="Create an organization-owned catalogue, curate packs and profiles, validate contracts, and distribute one governed system."
+    />
+  </CardGrid>
+</div>
 
 ## Choose by role
 
