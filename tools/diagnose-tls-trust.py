@@ -36,7 +36,7 @@ import re
 import shutil
 import socket
 import ssl
-import subprocess  # nosec B404 - fixed argv, no shell, read-only diagnostics
+import subprocess  # nosec B404  # list argv, no shell, read-only diagnostics
 import sys
 import urllib.error
 import urllib.request
@@ -98,7 +98,9 @@ def fetch(url: str, context: ssl.SSLContext | None = None) -> tuple[bool, str]:
 def run(argv: list[str], timeout: int = 60) -> str:
     """Run *argv*, returning stdout, or "" if it fails."""
     try:
-        proc = subprocess.run(  # nosec B603 - fixed argv, no shell
+        # argv[0] comes from shutil.which at both call sites, not a literal;
+        # the remaining args are constants and there is no shell.
+        proc = subprocess.run(  # nosec B603  # list argv, no shell
             argv, capture_output=True, text=True, timeout=timeout, check=False
         )
     except (OSError, subprocess.SubprocessError, ValueError):

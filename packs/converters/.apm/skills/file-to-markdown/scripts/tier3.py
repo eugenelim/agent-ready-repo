@@ -39,8 +39,11 @@ import safe_io
 _ALLOWED_KEYS = frozenset({"endpoint-allowlist", "residency-region"})
 
 # Wildcard / scheme-less catch-alls rejected outright. (B104 false positive:
-# `0.0.0.0` here is a value we REJECT from the egress allowlist, not a bind.)
-_REJECT_LITERALS = frozenset({"", "*", ".", "0.0.0.0", "::"})  # nosec B104
+# `0.0.0.0` here is a value we REJECT from the egress allowlist, not a bind —
+# hence the name. Bound to its own statement so the nosec covers one value;
+# see this repo's `bandit.yaml` for why.)
+_REJECT_ANY_IPV4 = "0.0.0.0"  # nosec B104
+_REJECT_LITERALS = frozenset({"", "*", ".", _REJECT_ANY_IPV4, "::"})
 
 # Metadata / loopback hostnames rejected in disguise. NON-EXHAUSTIVE — the
 # connect-time block in the adopter transport is authoritative; this only reduces

@@ -61,7 +61,7 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess  # nosec B404 - invokes `npm` with a fixed, non-shell argv
+import subprocess  # nosec B404  # invokes `npm` with a list argv, no shell
 import sys
 import tempfile
 import tomllib
@@ -337,7 +337,7 @@ def run_audit(project_dir: Path) -> object:
         f"--audit-level={AUDIT_LEVEL}",
     ]
     try:
-        completed = subprocess.run(  # nosec B603 - fixed argv, shell=False, no user input
+        completed = subprocess.run(  # nosec B603  # list argv of constants, no shell
             argv,
             cwd=project_dir,
             capture_output=True,

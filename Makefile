@@ -216,7 +216,15 @@ sast:
 	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v npm       >/dev/null 2>&1 || { echo "make sast: npm not found — install Node.js (>=24, per docs-site/package.json engines) for the npm SCA leg" >&2; exit 1; }
-	bandit -r $(SAST_DIRS) -c bandit.yaml --severity-level medium --confidence-level medium -q
+	# Bandit's stderr is a gate signal, not chatter (ADR-0084): under -q it
+	# carries only diagnostics about the scan's own integrity — a `# nosec` it
+	# could not parse, one that matched no finding, a file it could not read —
+	# and none of those move its exit code. run-bandit-gate.py fails on any of
+	# them. The self-test below proves it, for the same reason the two
+	# self-tests further down exist: this gate is silent when it works and
+	# would be just as silent if it were simplified back into a no-op.
+	python3 tools/test-sast-stderr-gate.py
+	python3 tools/run-bandit-gate.py $(SAST_DIRS)
 	# The filter below stands in front of pip-audit, so a bug that drops a
 	# *third-party* pin would take this gate green over an unaudited dependency.
 	# Prove it before trusting it.
