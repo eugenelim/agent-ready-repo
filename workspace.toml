@@ -968,6 +968,34 @@ open = [
   #   allowScripts, or repin so it dedupes to 2.3.3).
   {slug = "npm-allowscripts-enforcement", summary = "Make the documented allowScripts install-script invariant machine-checked for both npm projects, after dispositioning web's pre-existing playwright/fsevents@2.3.2 divergence", source = "spec/npm-sca-gate"},
 
+  # Unrelated finds from spec/npm-sca-gate — both cost that loop real time.
+  #
+  # Self-test mutates a tracked file: tools/test-lint-pack-test-boundary.py
+  #   appends a deliberately-violating `lint-selftest-scratch` target to the
+  #   REAL Makefile to prove the boundary linter fires, then restores it
+  #   (~lines 560-610). Any `git add -A` during that window commits the
+  #   injected violation, and the local re-run then passes because the file was
+  #   restored — so it only fails in CI, against a tree the developer cannot
+  #   reproduce. That happened on PR #961. Fix: build the fixture in a tmpdir
+  #   copy, or drive the linter with a --makefile argument, so no tracked file
+  #   is ever mid-mutation. Same pattern is worth auditing across tools/test-*.
+  # Unblocks when: picked up — no dependency.
+  {slug = "selftest-mutates-tracked-makefile", summary = "Stop tools/test-lint-pack-test-boundary.py from mutating the real Makefile in place; a concurrent git add -A commits its injected violation and the failure surfaces only in CI", source = "spec/npm-sca-gate (unrelated find)"},
+
+  # project-knowledge --capture refuses: a well-formed capture request built
+  #   against the contract in packs/core/tests/skills/project-knowledge/
+  #   knowledge_test_support.py `valid_capture_request` is rejected with
+  #   {"reason_code": "staged_dual_writer", "recovery_action": "fix_request",
+  #   "retryable": false}. The store appears to be sitting in a staged
+  #   lifecycle state from the project-knowledge foundation work (#952), so
+  #   `--activate-staged` is likely the missing maintainer step. This matters
+  #   because work-loop's finish checklist *mandates* routing learnings through
+  #   this seam — every loop currently has to record a named skip instead.
+  # Unblocks when: a core maintainer confirms whether --activate-staged is the
+  #   intended one-time transition, and runs it (or the diagnostic is corrected
+  #   to say what the producer should actually fix).
+  {slug = "project-knowledge-capture-staged-dual-writer", summary = "project-knowledge --capture rejects contract-valid requests with staged_dual_writer, blocking the work-loop's mandated learning-capture step", source = "spec/npm-sca-gate (unrelated find)"},
+
   # The credential-brokers pack's shipped .apm/** carries RFC-0023/RFC-0006 citations
   # in credential-setup/scripts/setup.py and user-libs/credbroker/ (files:
   # __init__.py, _core.py, _vault.py). The pack is frozen by RFC-0013 (§4/§4d);
