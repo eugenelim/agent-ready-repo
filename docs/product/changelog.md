@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Catalogue linting checks pack manifests it used to skip.** Three checks —
+  is the plugin manifest valid JSON, does it declare a name and version, do
+  those match `pack.toml` — looked for the manifest in the wrong folder, so
+  they passed on every pack without ever reading one. They now check the real
+  file. A catalogue that linted clean before may report a genuine problem now;
+  the 22 packs shipped here are unaffected.
+- **`agentbundle list-targets --help` lists every editor it supports.** It
+  named six and left out Cursor and Gemini.
+
 - **Documentation pages no longer show two titles.** 38 of 216 published pages
   rendered the frontmatter title and the body heading stacked on top of each
   other, usually with different wording — "Run an Audit" above "How-to: Run a

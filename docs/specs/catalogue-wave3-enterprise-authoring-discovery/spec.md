@@ -323,7 +323,11 @@ Wave 3 claims `agentbundle catalogue contracts` and marks OQ1 resolved in RFC-00
 - **Deferred:** Adding a `catalogue contracts check` command that validates a given local
   file against the bundled schema (useful for adopter-local contract validation). Out of
   scope for Wave 3; file under `backlog` if the need surfaces.
-- **Deferred:** Surfacing `next_steps` in the `InitResult` JSON output (for consistency
-  with `SelfHostedInitResult`). Wave 3 emits hints only in table output; JSON schema is
-  unchanged. Tracked as `(deferred: init-result-json-next-steps)` in
-  `workspace.toml [backlog].open`.
+- **Deferred, and since resolved:** Surfacing `next_steps` in the `InitResult` JSON
+  output (for consistency with `SelfHostedInitResult`). Wave 3 emitted hints only in
+  table output and left the JSON schema unchanged.
+
+  **Resolved 2026-08-16** by `spec/agentbundle-engine-stragglers` (agentbundle
+  0.36.0): `InitResult` carries `next_steps`, the JSON branch emits it, and the
+  table renderer now prints that same list instead of holding a second copy. The
+  backlog entry is closed and the deferral marker is retired.

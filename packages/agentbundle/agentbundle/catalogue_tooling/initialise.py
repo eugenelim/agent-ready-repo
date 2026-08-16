@@ -21,6 +21,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import tempfile
 from dataclasses import dataclass
 from pathlib import Path, PurePosixPath
@@ -995,4 +996,29 @@ def init_catalogue(
         files=file_plan,
         verification=InitVerification(ok=True, diagnostic_count=0),
         summary=summary,
+        next_steps=_build_next_steps(str(target.resolve())),
     )
+
+
+def _build_next_steps(target: str) -> list[str]:
+    """Post-init guidance for a successful, non-dry-run init.
+
+    Single source for both the JSON `next_steps` field and the table
+    renderer's bullets — they were separate before, which is how the two
+    outputs drift.
+    """
+    # Anchor the path to the initialized target: the guide lives at
+    # <target>/guides/..., so a bare relative path only resolves if the
+    # reader has already cd'd in.
+    standards_path = shlex.quote(
+        f"{target.rstrip('/')}/guides/_shared/reference/"
+        "catalogue-authoring-standards.md"
+    )
+    # No surrounding quotes: shlex.quote already adds them when the target
+    # needs them, and nesting produces an uncopyable command.
+    verify_command = f"agentbundle catalogue verify --root {shlex.quote(target)}"
+    return [
+        f"See {standards_path} for authoring standards.",
+        "Run 'agentbundle catalogue contracts list' to view bundled contract schemas.",
+        f"Run {verify_command} to validate your catalogue.",
+    ]

@@ -6,6 +6,59 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.36.0] — 2026-08-16
+
+### Fixed
+
+- **`catalogue lint` now actually checks pack manifests** — the linter half of
+  the fix 0.35.3 made to `catalogue verify`. `_check_plugin_json` and
+  `_check_name_version_parity` looked for the manifest at `<pack>/plugin.json`
+  while every pack keeps it at `<pack>/.claude-plugin/plugin.json`, so
+  CAT-L007 (manifest parses), CAT-L008 (manifest has `name` and `version`) and
+  CAT-L009 (`pack.toml` and `plugin.json` agree) had never fired against a real
+  pack. All three now read the real path.
+
+  The manifest location is now stated once, in
+  `catalogue_tooling/manifest.py`, and imported by both the linter and the
+  verifier — the two copies of that path are what let them disagree for as long
+  as they did.
+
+  **Upgrading:** three error diagnostics that could never fire are now live, so
+  a catalogue that passed `agentbundle catalogue lint` on 0.35.3 may report
+  CAT-L007, CAT-L008, or CAT-L009 on 0.36.0. Each points at a real defect. All
+  22 packs in this repo's catalogue pass unchanged.
+
+- **The `list-targets` help text named six adapters when there were eight.**
+  `agentbundle list-targets --help` omitted `cursor` and `gemini`, and spelled
+  the others in a form the verb does not print. The text now matches the
+  registry, and a test fails if the two drift apart again.
+
+- **Gate G's release-impact check no longer watches a deleted directory.** Its
+  path table listed `docs/contracts/`, removed by ADR-0055, and omitted the
+  `contracts/` tree that replaced it. Contract changes still tripped the gate
+  through their packaged twins, so nothing escaped in practice — but a contract
+  file without a twin (`catalogue.schema.json`, `guide.schema.json`) would
+  have.
+
+### Added
+
+- **`catalogue init --format json` now emits `next_steps`.** The self-hosted
+  init verb already returned the field; the plain one printed the same guidance
+  to the terminal and left it out of the JSON, so an automation consumer got
+  next steps from one verb and not the other. Both now carry it, and the
+  terminal output is rendered from the same list rather than a second copy.
+
+### Changed
+
+- **BREAKING — `render_packs_to_dir()` now requires an `aggregate_scope`
+  argument.** It hard-coded `"catalogue"`, so rendering a repo-only subset
+  through this helper printed the catalogue's exclusion notices where the
+  single-pack helper stays silent. The parameter is required and has no
+  default, matching `run_recipe()`: a default is what lets a caller inherit the
+  wrong disclosure policy without noticing. Pass `"catalogue"` to keep the old
+  behaviour, or `"single-pack"` when rendering a subset. The function had no
+  callers in this repository.
+
 ## [0.35.3] — 2026-08-15
 
 ### Fixed

@@ -74,13 +74,23 @@ def _add_pack(
     pack_toml: str | None = None,
     plugin_json: str | None = None,
 ) -> Path:
-    """Create a pack directory under root/packs/ with optional pack files."""
+    """Create a pack directory under root/packs/ with optional pack files.
+
+    The manifest lands at `.claude-plugin/plugin.json` — the only location any
+    real pack uses, and the only one the build pipeline reads. It used to be
+    written to the pack root, which matched a bug in the linter's probe rather
+    than reality: fixture and probe agreed with each other and disagreed with
+    every shipped pack, so CAT-L007/8/9 passed here while never firing in
+    production. A root-level manifest is `verify.py`'s CAT-V-004, not lint's.
+    """
     pack_dir = root / "packs" / dir_name
     pack_dir.mkdir(parents=True, exist_ok=True)
     if pack_toml is not None:
         (pack_dir / "pack.toml").write_text(pack_toml, encoding="utf-8", newline="\n")
     if plugin_json is not None:
-        (pack_dir / "plugin.json").write_text(plugin_json, encoding="utf-8", newline="\n")
+        manifest = pack_dir / ".claude-plugin" / "plugin.json"
+        manifest.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write_text(plugin_json, encoding="utf-8", newline="\n")
     return pack_dir
 
 
@@ -373,6 +383,53 @@ def test_cat_l007_unparse_plugin_json(tmp_path, monkeypatch):
     result = lint_catalogue(tmp_path)
     codes = [d.code for d in result.diagnostics]
     assert "CAT-L007" in codes
+
+
+# ---------------------------------------------------------------------------
+# 8b. test_cat_l008_missing_required_key
+# ---------------------------------------------------------------------------
+
+
+def test_cat_l008_missing_required_key(tmp_path, monkeypatch):
+    """plugin.json without a `version` key → CAT-L008 error.
+
+    CAT-L008 had no test at all while the probe read the pack root: the code
+    was unreachable against any real pack, so nothing noticed the gap.
+    """
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    _add_pack(
+        tmp_path,
+        "pack-a",
+        pack_toml=_PACK_A_TOML,
+        plugin_json='{"name": "pack-a"}',
+    )
+    result = lint_catalogue(tmp_path)
+    l008 = [d for d in result.diagnostics if d.code == "CAT-L008"]
+    assert l008, "expected CAT-L008 when plugin.json omits a required key"
+    assert "version" in l008[0].message
+
+
+def test_manifest_at_pack_root_is_not_read_by_lint(tmp_path, monkeypatch):
+    """A root-level plugin.json is invisible to lint — that case is verify's.
+
+    Pins the boundary the path fix establishes: lint reads only
+    `.claude-plugin/plugin.json`, and `verify.py` reports a root-level manifest
+    as CAT-V-004. Without this, a future "helpful" fallback to the pack root
+    would silently restore the bug.
+    """
+    monkeypatch.setattr(_lp_module, "lint_pack", lambda pack_dir: [])
+    monkeypatch.setattr(_lint_module, "_load_pack_schema", lambda: None)
+    _setup_markers(tmp_path)
+    pack_dir = _add_pack(tmp_path, "pack-a", pack_toml=_PACK_A_TOML)
+    # Deliberately misplaced: invalid JSON at the location lint must NOT read.
+    (pack_dir / "plugin.json").write_text(
+        "{ not valid json }", encoding="utf-8", newline="\n"
+    )
+    result = lint_catalogue(tmp_path)
+    codes = [d.code for d in result.diagnostics]
+    assert "CAT-L007" not in codes
 
 
 # ---------------------------------------------------------------------------

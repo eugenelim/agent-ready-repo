@@ -367,14 +367,6 @@ open = [
   # and no local command would have caught it. Fix: a `make` target that extracts
   # the fixture heredoc and runs the same command, chained into `make ci`.
   {slug = "catalogue-gate-b-no-local-target", source = "spec/claude-plugin-route-scope"},
-  # render_packs_to_dir hard-codes aggregate_scope="catalogue", so an adopter
-  # rendering a repo-only subset through that public helper gets the
-  # catalogue's exclusion lines on stderr where the single-pack sibling is
-  # silent. (It raised a ValueError until round thirteen made both writers
-  # warn-and-continue; the surviving asymmetry is disclosure only.) No in-repo
-  # caller, so nothing catches it. Fix: take the scope as a parameter,
-  # matching run_recipe.
-  {slug = "plugin-render-packs-scope-parameter", source = "spec/claude-plugin-route-scope"},
   # agentbundle-install-marker-importable-path — the wheel ships
   # agentbundle/_data/install-marker.py at a path that is not importable, which
   # `check-wheel-contents` reports as W004. Surfaced while measuring artifacts for
@@ -685,27 +677,6 @@ open = [
   # Unblocks when: picked up — needs a decision on amending a Shipped spec.
   {slug = "phase4b-docsurl-instruction-stale", source = "spec/marketing-docs-link-repair (out of scope)"},
 
-  # Two ADR-0055 / v0.13 stragglers found while reconciling docs/architecture/
-  # against the real agentbundle surface. Both are engine-or-tooling edits, so
-  # the docs-only PR that found them deliberately left them.
-  # 1. `list-targets`' own argparse help in packages/agentbundle/agentbundle/cli.py
-  #    still names six targets ("claude-code, kiro-ide, kiro-cli, kiro
-  #    (deprecated → kiro-ide), copilot, codex") and omits cursor + gemini. The
-  #    verb's *output* is correct — only the help string is stale. cli.py is a
-  #    release-impacting path, so this needs a version bump + changelog entry.
-  # 2. tools/repo/check_release_impact.py's RELEASE_IMPACTING_PREFIXES still
-  #    lists "docs/contracts/", a directory ADR-0055 deleted, and does NOT list
-  #    "contracts/". Not a live hole today: contracts/adapter.toml is a
-  #    byte-identical twin of packages/agentbundle/agentbundle/_data/adapter.toml
-  #    (test_contract_files_byte_identical), which IS listed — so a real contract
-  #    change still trips the gate via the packaged copy. It is dead config that
-  #    would become a hole the moment a contracts/ file stops having a packaged
-  #    twin (e.g. catalogue.schema.json, guide.schema.json).
-  # Fix: (1) regenerate the help string from the adapter registry so it cannot
-  #   drift again; (2) swap the prefix to "contracts/" and add a test that a
-  #   contracts/-only change without a release indicator exits 1.
-  # Unblocks when: picked up — no dependency.
-  {slug = "agentbundle-surface-doc-reconciliation-engine-stragglers", source = "spec/agentbundle-surface-doc-reconciliation (out of scope)"},
 
   # Three XD-chain structural invariants lost their only implementation. The
   # deterministic checker `tools/check-xd-chain.py` and its `xd-chain-gate.yml`
@@ -798,28 +769,27 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "curation-guard-silent-base-skip", source = "spec/local-gate-ci-parity review"},
 
-  # `catalogue_tooling/lint.py` carries the same defect verify.py just shed:
-  # `_check_plugin_json` and `_check_name_version_parity` both probe
-  # `self._dir / "plugin.json"` while every pack keeps the manifest at
-  # `.claude-plugin/plugin.json`, so CAT-L007 (invalid JSON), CAT-L008 (missing
-  # name/version key) and CAT-L009 (pack.toml/plugin.json parity) never fire.
-  # Left out of the verify.py fix deliberately: a separate gate with separate
-  # diagnostic codes, and bundling it would have hidden the named fix.
-  # Fix: same shape — probe `.claude-plugin/plugin.json`, add regression tests
-  #   per code, and lift verify.py's `_plugin_json_path` helper to a shared spot
-  #   in catalogue_tooling rather than copying the literal a third time. All 22
-  #   packs are clean today, so turning the checks on should be green; confirm
-  #   before merging. Requires an agentbundle release (Gate G).
-  #   Also fold in two verify residuals that the path fix made reachable and the
-  #   spec's "never silently swallow" rail forbids: step 5 guards on `if pt_name
-  #   and pj_name`, so a manifest missing the `name` or `version` key passes
-  #   parity silently (verify has no CAT-L008 equivalent); and its
-  #   `except Exception: continue` now runs for real, so an unparseable
-  #   pack.toml or plugin.json skips parity with no diagnostic of its own.
-  #   Neither escapes the pipeline today — steps 3 and 4 report the parse error
-  #   separately — which is why they are recorded rather than fixed in the T1 PR.
+  # NARROWED 2026-08-16 by spec/agentbundle-engine-stragglers (agentbundle
+  # 0.36.0). The headline defect is FIXED: lint.py's two probes now read
+  # `.claude-plugin/plugin.json`, CAT-L007/L008/L009 fire for the first time,
+  # each has a regression test that fails against the old probe path, and the
+  # manifest location now lives once in `catalogue_tooling/manifest.py` rather
+  # than as a literal in both lint.py and verify.py. All 22 packs stayed green.
+  #
+  # REMAINING SCOPE — the two verify.py residuals the entry folded in, both
+  # deliberately NOT fixed there because each needs a NEW diagnostic code, and
+  # adding a code is a contract change with its own review rather than a path
+  # fix riding along:
+  #   1. `_step_version_parity` guards on `if pt_name and pj_name`, so a
+  #      manifest missing the `name` or `version` key passes parity silently —
+  #      verify has no CAT-L008 equivalent to report it with.
+  #   2. Its `except Exception: continue` now runs for real, so an unparseable
+  #      pack.toml or plugin.json skips parity with no diagnostic of its own.
+  # Neither escapes the pipeline today — steps 3 and 4 report the parse error
+  # separately — which is why this is a completeness gap, not a live hole.
+  # Fix: decide the code(s), then close both in one change.
   # Unblocks when: picked up — no dependency.
-  {slug = "lint-plugin-json-probes-wrong-path", source = "spec/catalogue-verifier-correctness T1 review"},
+  {slug = "verify-parity-silent-skip-codes", source = "spec/agentbundle-engine-stragglers AC12"},
 
   # ADRs have no errata mechanism. `docs/CONVENTIONS.md` freezes the body, the
   # shipped new-adr template says only the Status line moves, and the `## Errata`
@@ -964,15 +934,6 @@ open = [
   # Unblocks when: someone wants to close the profiles/ gap in a focused quick-win PR.
   {slug = "profiles-agents-normative-pointer", source = "spec/catalogue-wave1-contract-convergence"},
 
-  # spec/catalogue-wave3-enterprise-authoring-discovery deferred AC. InitResult JSON
-  # output lacks a next_steps field (SelfHostedInitResult has one; consistency gap).
-  # Wave 3 emits next-step hints only in table output; JSON schema is unchanged.
-  # Fix: add next_steps: list[str] to InitResult in catalogue_tooling/results.py and
-  #   populate in init_catalogue(); update catalogue_init.py JSON branch to include the
-  #   field; update tests/unit/test_catalogue_tooling_init.py JSON snapshot.
-  # File: packages/agentbundle/agentbundle/catalogue_tooling/results.py + initialise.py.
-  # Unblocks when: an automation consumer needs next_steps in the JSON output.
-  {slug = "init-result-json-next-steps", source = "spec/catalogue-wave3-enterprise-authoring-discovery"},
 
   # docs-site-design-refresh deferrals (spec Assumptions). SCA: no npm audit/
   # Dependabot wiring exists repo-wide; docs-site now vendors mermaid's transitive
