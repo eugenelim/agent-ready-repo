@@ -97,3 +97,15 @@ material update to the imported survey. If any can supply the native adapter
 fixture and exact connection/grant boundary without enabling its state export,
 cookie, plugin, model, cloud, desktop-observation, or broad action surfaces, the
 broker decision must be reopened before acceptance.
+## 2026-08-16 rerun
+
+This run's conclusion is superseded by the
+[2026-08-16 Experimental rerun](2026-08-16-experimental-rerun.md#s4--substitution-candidates).
+At the time of the rerun, the verdict was **Blocked against D2 as written**.
+The current `agent-browser` candidate can bridge to native Playwright objects,
+correcting the earlier ABI-fit rationale; its broader authenticated-session
+authority is the evidence-based rejection reason. The approver subsequently
+adopted the two-stage gate, so the authoritative current verdict is **Partial
+under amended D2** until every candidate has a reviewed inspection disposition
+and every candidate that clears inspection passes the common corpus under the
+required execution controls.

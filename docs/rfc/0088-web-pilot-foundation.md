@@ -21,6 +21,8 @@
   - [`S5 — cross-pack provider vertical`](0088-notes/spikes/s5-cross-pack-provider-vertical.md)
   - [`S6 — browser-session taxonomy`](0088-notes/spikes/s6-browser-session-taxonomy.md)
   - [`Synthetic fixture source archive`](0088-notes/spikes/experimental-fixture-source-archive.md)
+  - [`2026-08-16 Experimental rerun`](0088-notes/spikes/2026-08-16-experimental-rerun.md)
+  - [`Experimental rerun evidence archive`](0088-notes/spikes/experimental-rerun-evidence-archive.md)
 
 `web-pilot` is the proposed name of an opt-in AgentBundle pack that would own
 a local authenticated-browser runtime. A **provider pack** is a normal
@@ -892,3 +894,161 @@ authorizes implementation:
 - A separate provider-adoption RFC/spec for each existing pack after the foundation is available; mutation paths remain out of scope.
 
 No follow-on artifact is created while this RFC is Draft or Experimental.
+
+## Amendments
+
+### Current Experimental state
+
+This section is the authoritative current contract where it differs from the
+2026-08-15 body or ledger. The historical ledger remains as the audit trail for
+the first run.
+
+**Safety-critical D2 supersession:** do not execute the historical decision
+table's execute-all instruction. The adopted two-stage rule in
+[S4 gate decision](#s4-gate-decision) is authoritative.
+
+| Spike | Current verdict | Decision effect | Remaining exit gate |
+| --- | --- | --- | --- |
+| [S1](0088-notes/spikes/2026-08-16-experimental-rerun.md#s1--persistent-bind-lifecycle) | **Partial** | Launch, bind, CLI attachment, same-live-context handoff, reconnect, crash relaunch, and clean reuse are demonstrated twice on bundled Chromium and system Chrome on macOS arm64 | Real attachment lifetime expiry; seeded stale-versus-ambiguous lock decisions; recognized typed refusal assertions |
+| [S2](0088-notes/spikes/2026-08-16-experimental-rerun.md#s2--artifact-host-and-dependency-gate) | **Partial** | A lockfile scanner and High/Critical threshold are feasible; native host-owned Playwright objects reach an adapter | Compose native Playwright with a separately sanitized child host and parent-owned release validation; finish database, waiver, inventory, browser-binary, and error-classification policy |
+| [S3](0088-notes/spikes/2026-08-16-experimental-rerun.md#s3--safety-rail-limits) | **Partial** | Direct browser/network channels and several mitigations are now measured; D13's trusted-code claim is strengthened | Prove or disable unresolved site-controlled egress, including connected-address/DNS enforcement, WebRTC, WebTransport, and Service-Worker-handled page requests; complete redirect and WebSocket cases |
+| [S4](0088-notes/spikes/2026-08-16-experimental-rerun.md#s4--substitution-candidates) | **Partial under amended D2** | The approver adopted the two-stage inspection-then-execution gate; existing evidence identifies one authority-widening candidate and two inspection-only exclusions | Re-disposition every exact candidate against the amended gate with an unavoidable surface and falsifiable revisit trigger; run the common corpus only for candidates that clear inspection, always under a sanitized environment |
+| [S5](0088-notes/spikes/2026-08-16-experimental-rerun.md#s5--cross-pack-vertical) | **Partial** | Exact-grant construction and same-live-session reuse are demonstrated | Exercise host-owned candidate display/discard and resolve/test connection-wide residue trust versus stronger isolation |
+| [S6](0088-notes/spikes/s6-browser-session-taxonomy.md) | **Pass, unchanged** | Opaque `browser-session` taxonomy remains feasible | Convention amendment still waits for acceptance |
+
+S1 through S5 remain open. No initial support matrix is accepted, D17 has a
+viable scanner but not a complete accepted policy, and no implementation or
+follow-on artifact is authorized.
+
+### Security and runtime corrections in force
+
+1. **Adapter-host separation is mandatory.** A capable executable adapter runs
+   in a separate child process under an explicit environment allowlist and the
+   intended filesystem, process, native-addon, and network restrictions. The
+   parent owns authorization, schema validation, redaction, two-phase
+   finalization, and release. Importing the adapter into the broker process
+   cannot support a sanitized-environment claim because it shares `process.env`,
+   filesystem/process modules, and host mutation authority. S2 must compose
+   this child boundary with the real host-owned native Playwright connection;
+   isolated unit demonstrations do not satisfy the gate.
+2. **Dashboard and repair attachment is credential-equivalent.** Attachment
+   authorization covers both establishment and the resulting session. The
+   attached session has an idle timeout and forced detach on identity change,
+   disconnect, browser/broker crash, or repair completion. Attachment stdout or
+   stderr never routes to an agent or model: any supervised capture goes only
+   to the confined diagnostics store behind an opaque handle. The broker event
+   loop must remain responsive while handoff is possible, and attachment
+   failure is detected by a bounded timeout rather than child exit status.
+3. **Native-adapter trust is connection-wide unless stronger isolation is
+   proven.** Exact grants isolate invocation and result release; they do not
+   erase routes, init scripts, patched globals, listeners, sockets, or other
+   state an admitted adapter leaves in the shared Page or BrowserContext. Until
+   S5 proves an isolation/teardown contract, approval must disclose that every
+   consumer sharing a connection inherits residue risk from every admitted
+   native adapter digest that executes there. Fresh pages and best-effort
+   cleanup are safety rails, not isolation from trusted native code.
+4. **Third-party candidate execution is itself an admission event.** Every
+   candidate command runs from an exact inspected artifact only after its
+   dependencies are scanned, with an explicit environment allowlist and a
+   fresh synthetic profile. The 2026-08-16 S4 run inherited credential-class
+   session state; no credential value was promoted, but that run does not
+   satisfy sanitized execution and the affected external session state requires
+   operator rotation/review.
+5. **Supply-chain coverage includes more than the npm lock.** The acceptance
+   policy blocks on High/Critical findings, fails closed on scanner/database
+   failure, disables silent ignore files, asserts database freshness and source
+   integrity, emits a separate nonblocking all-severity inventory, records the
+   scanned lock digest, and distinguishes findings from infrastructure failure.
+   Browser installation additionally uses an approved download host and verifies
+   the exact browser-revision digest or signature; a clean Node lock does not
+   cover the browser payload.
+6. **Output schemas are closed.** Every object level rejects additional
+   properties. Parent-owned validation rejects malformed and extra
+   credential-shaped fields before any result, artifact handle, diagnostic
+   handle, or checkpoint can be released.
+
+### Network corrections in force
+
+The original statement that live adapters reject forbidden destination classes
+after DNS resolution and on every redirect/connection is an invariant, not a
+capability established by `browserContext.route()`. Current evidence shows that
+the route API exposes the requested hostname rather than the connected address,
+and `route.continue()` can follow a cross-origin redirect without a second route
+callback. Those paths are not treated as enforced until an egress control proves
+them.
+
+- For routed HTTP, the sanctioned handler performs the request with redirects
+  disabled, inspects each `Location`, reapplies origin, method, scheme, port,
+  destination-class, and hop-count policy, and fulfills only after the complete
+  bounded chain is allowed. Playwright documents `maxRedirects: 0` for both
+  [`route.fetch()`](https://playwright.dev/docs/api/class-route) and the
+  [`APIRequestContext`](https://playwright.dev/docs/api/class-apirequestcontext);
+  the Experimental evidence proves only the first denied redirect, not the
+  allowed chain or connected-address guarantee.
+- HTTP routing does not cover WebSockets. The broker installs
+  [`browserContext.routeWebSocket()`](https://playwright.dev/docs/api/class-browsercontext)
+  before any page exists and compares a canonical transport tuple that maps
+  `ws` to `http` and `wss` to `https`; cleartext and secure transports do not
+  become interchangeable merely because host and port match. WSS, redirects,
+  connected-address checks, and proxy interaction remain open.
+- The host-provided request wrapper is the sanctioned convenience path for
+  trusted adapters and enforces origin, method, redirect, deadline, and size
+  policy before using the context-associated client. It is a rail, not a
+  boundary: the native Page and BrowserContext necessarily expose the raw
+  request client, whose methods bypass browser routing.
+- Site-controlled egress is separate from malicious-adapter bypass. WebRTC,
+  WebTransport, Service-Worker-handled page requests, WebSockets, redirects,
+  and connected-address/DNS behavior each require a prevent, detect, disable,
+  or explicit acceptance-blocker disposition. D13 does not excuse an
+  uncontrolled channel initiated by untrusted website JavaScript.
+- Page-route precedence, route removal, raw Node egress, and direct use of the
+  raw request client remain evidence that capable admitted adapters are trusted
+  code. No JavaScript-level rail is described as a sandbox.
+
+### S4 gate decision
+
+The 2026-08-16 evidence corrects one rationale: a CDP-owning candidate can
+supply native Playwright Page and BrowserContext objects. The provisional
+Playwright choice now rests on effective authority and endpoint control, not an
+assumption that every alternative lacks a native-object bridge. Credential or
+storage export outside the grant boundary, persistent credential stores,
+desktop capture, extension/plugin relays, self-update, a second browser-driver
+copy, or a stable unauthenticated debugging endpoint are material widening.
+
+The approver adopted the two-stage gate on 2026-08-16. This current-state rule
+supersedes D2's historical execute-all wording:
+
+1. Inspect every exact in-scope candidate for unavoidable credential,
+   authority, dependency, update, and private-endpoint violations before any
+   candidate process runs.
+2. A static exclusion must name the exact offending surface, show that the
+   surface is unavoidable in the proposed constrained mode, and carry a
+   falsifiable revisit trigger.
+3. Only candidates that clear inspection execute the common S1/S3 lifecycle,
+   handoff, native-ABI, crash-recovery, and containment corpus. Every such
+   execution uses an explicit environment allowlist, scanned dependencies, and
+   a fresh synthetic profile.
+4. Reopen the provisional Playwright choice if a candidate passes both stages
+   and removes material lifecycle responsibility without widening effective
+   authority.
+
+The decision changes the evaluation rule, not the evidence verdict. S4 is
+Partial until every candidate has a reviewed disposition under the amended
+gate and every candidate that clears inspection has passed the common corpus.
+The earlier candidate execution that inherited session state cannot satisfy a
+sanitized-execution requirement.
+
+### Amendment history / audit trail
+
+- **2026-08-16 — second Experimental run.** Promoted the manifested rerun
+  evidence, corrected its overclaimed S1/S2/S5 verdicts through destination
+  adversarial and security review, recorded the network and attachment
+  findings, preserved D13's trusted-code posture, completed targeted
+  adversarial, security-design, quality/testability, and cold-reader review,
+  and left S1 through S5 open.
+- **2026-08-16 — D2 approver disposition.** Adopted the two-stage
+  inspection-then-execution gate. This avoids executing candidates already
+  proven to violate admission constraints while retaining an exact,
+  falsifiable disposition for every candidate. Reclassified S4 from Blocked
+  against the undecided D2 rule to Partial under the amended rule; no candidate
+  exclusion or execution row was silently converted to a pass.

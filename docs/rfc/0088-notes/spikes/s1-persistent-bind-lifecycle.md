@@ -89,3 +89,10 @@ root and outside the repository.
 - S1 must be rerun in an environment that can launch Chromium and expose the
   dashboard. Targeted architecture, security, and quality review is required
   after that evidence lands.
+## 2026-08-16 rerun
+
+This run's conclusion is superseded by the
+[2026-08-16 Experimental rerun](2026-08-16-experimental-rerun.md#s1--persistent-bind-lifecycle).
+The current verdict is **Partial**: real browser lifecycle coverage now passes,
+but attachment expiry, seeded stale-lock recovery, and typed ownership
+predicates remain open.

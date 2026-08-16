@@ -92,3 +92,10 @@ outside the repository.
   maintained vulnerability database is available, require a controlled
   vulnerable-fixture failure, then send the decision-changing result through
   security and quality review.
+## 2026-08-16 rerun
+
+This run's conclusion is superseded by the
+[2026-08-16 Experimental rerun](2026-08-16-experimental-rerun.md#s2--artifact-host-and-dependency-gate).
+The current verdict is **Partial**: the dependency scanner and native object
+path are viable, but the child-process environment boundary and parent-owned
+output validation were not exercised end to end.

@@ -83,3 +83,10 @@ preserves D13 exactly: capable adapters remain trusted code, and the browser
 rails are not called enforced read-only. Rerun the entire browser/network
 corpus after S1 clears; security review must classify each channel as prevent,
 detect-after-the-fact, or cannot observe.
+## 2026-08-16 rerun
+
+This run's conclusion is superseded by the
+[2026-08-16 Experimental rerun](2026-08-16-experimental-rerun.md#s3--safety-rail-limits).
+The current verdict remains **Partial**. Redirect, WebSocket, and request-client
+mitigations were demonstrated only as defense-in-depth rails; connected-address
+enforcement and several site-controlled channels remain unproved.

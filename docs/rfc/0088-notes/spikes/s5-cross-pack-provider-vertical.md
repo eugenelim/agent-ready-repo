@@ -116,3 +116,10 @@ launcher without a new primitive. It also validates the exact grant tuple and
 the validation/behavior split in a throwaway construction harness. S5 cannot
 exit until the same-browser row runs after S1; the current result does not prove
 malicious same-user caller isolation.
+## 2026-08-16 rerun
+
+This run's conclusion is superseded by the
+[2026-08-16 Experimental rerun](2026-08-16-experimental-rerun.md#s5--cross-pack-provider-vertical).
+The current verdict is **Partial**: the exact prior harness digest and
+same-live-session vertical reproduce, while host-owned candidate rejection and
+cross-consumer browser-residue isolation remain open.
