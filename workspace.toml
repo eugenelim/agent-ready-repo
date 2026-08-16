@@ -1641,6 +1641,40 @@ open = [
   # PR, which was comment-format-only and added no gate.
   {slug = "bandit-nosec-form-lint", summary = "Add a tools/ check enforcing the `# nosec <ID>  # <reason>` form -- ID mandatory, reason only after a second `#` -- and wire it into make build-check", source = "spec/bandit-nosec-comment-hygiene"},
 
+  # 7 of the 13 pytest files named on Makefile:349 (`make test`) are a run step
+  # in NO workflow: test_validate_guides, test_check_guide_index,
+  # test_catalogue_navigation, test_documentation_entry_links,
+  # test_build_site_link_rewrites, test_check_rendered_site_links,
+  # test_build_site_routing. So they gate `make ci` locally and nothing
+  # remotely. Counted per-file across all of .github/workflows/, not just
+  # build-check.yml -- an earlier draft of this entry said 9 because it grepped
+  # build-check.yml alone and missed Gate F.
+  #   - test_check_rendered_site_links appears in pages.yml:23,45 but only as a
+  #     `paths:` trigger, never as a run step. Easy to miscount as covered.
+  #   - test_catalogue_tooling_rewire and _docs ARE run, by Gate F of
+  #     catalogue-tooling-ci-gates.yml:513,515 -- so they are NOT in this list.
+  #     Note though that workflow's paths-ignore covers docs/**, guides/**,
+  #     docs-site/** and web/**, so it does not gate doc-surface PRs either.
+  #     Do not "fix" those two here; that would duplicate Gate F.
+  # This is not theoretical: it is exactly how #958 merged green while leaving
+  # main red on test_catalogue_navigation, the failure PR #967 recorded as a
+  # known skip and this entry's sibling spec then fixed.
+  # Fix: add the seven as explicit build-check.yml steps (or one grouped step)
+  # and give each its lint-ci-parity disposition. Wiring one alone was declined
+  # in guides-readme-outcome-label-drift -- partial coverage reads as coverage.
+  {slug = "catalogue-site-tests-absent-from-ci", summary = "Wire the 7 catalogue/site pytest files from Makefile:349 that are a run step in no GitHub workflow into build-check.yml, with lint-ci-parity dispositions", source = "spec/guides-readme-outcome-label-drift"},
+
+  # docs/specs/bandit-nosec-comment-hygiene/spec.md § Known skip points at the
+  # register entry `pre-existing-guides-readme-outcome-label-drift`, which
+  # guides-readme-outcome-label-drift closed -- so that prose pointer now
+  # dangles. lint-spec-status.py invariant (iv) only checks `(deferred: <slug>)`
+  # markers, so nothing catches it. The spec is Frozen (CONVENTIONS § Document
+  # lifecycle: bodies cannot change), so the annotation has to use whatever
+  # mechanism frozen-spec-supersession-convention settles -- almost certainly a
+  # status-line annotation rather than a body append. Unblocks when that lands;
+  # this spec is then its first caller.
+  {slug = "bandit-hygiene-known-skip-dangling-pointer", summary = "Annotate bandit-nosec-comment-hygiene's § Known skip to record that its register entry was closed, using the frozen-doc mechanism from frozen-spec-supersession-convention", source = "spec/guides-readme-outcome-label-drift"},
+
   # tools/capture-publish-control-evidence.py:_validate_repo accepts
   # `[A-Za-z0-9._-]+/[A-Za-z0-9._-]+`, which matches `../..`; urllib sends the
   # selector unnormalised, so `--repo ../../app` reaches a different

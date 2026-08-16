@@ -9,10 +9,12 @@
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
 
-<!-- Mode: light (no risk trigger fired). Checked the published-interface
-trigger explicitly: it does NOT fire. `guides/` ships to adopters, but this
-restores a label to the value the canonical map already publishes on every
-other surface — it removes a divergence rather than introducing one. -->
+<!-- Mode: light. Routed by AGENTS.md § How we work's cosmetic/tightly-local
+carve-out: one table cell, behaviour-preserving, verified by a named test that
+already exists. Not by an exception to the published-interface trigger — that
+trigger is stated unconditionally and `guides/` is shipped adopter copy this
+diff changes visibly, so claiming it "does not fire" would be inventing an
+exception the trigger list does not contain. -->
 
 ## Objective
 
@@ -30,14 +32,22 @@ green, and the capability #958 was describing survives.
 The navigation source, `web/src/lib/catalogue-navigation.ts`. Three independent
 reasons:
 
-1. **It says so, and the wiring backs it.** Its own header calls it the
-   "Canonical outcome and role routes"; `PackCatalogue.astro` and
-   `catalogue/index.astro` import it rather than restating it, and
-   `test_marketing_surfaces_import_the_canonical_map` fails if either declares
-   its own list. The markdown entry points are aligned consumers — the test
-   docstring calls them "authored for their medium".
+1. **A test contract binds the markdown surfaces to it.** The binding authority
+   is `tools/test_catalogue_navigation.py` (added by #927), which names
+   `NAVIGATION_SOURCE` and asserts its titles appear in both
+   `MARKDOWN_SURFACES`. Its docstring frames the split: the marketing surfaces
+   "import one outcome map", while the markdown entry points "remain authored
+   for their medium, so this test keeps their labels aligned". Aligned to what
+   is not symmetric — the map is the source, the markdown is the consumer.
+
+   Note the source's own header is narrower than this and cannot carry the
+   argument alone: it reads "Canonical outcome and role routes **for the
+   marketing site**", and its second paragraph binds only "those two entry
+   surfaces". It claims no authority over the adopter-facing `guides/` tree.
+   The test does.
 2. **The drift is one-sided.** `Start, remember, build, and review software`
-   occurs exactly once repo-wide (`guides/README.md:11`). #958
+   occurred exactly once repo-wide before this change (`guides/README.md:11`);
+   after it, only this spec quotes the string. #958
    (`feat(core): add canonical work-intake routing`) reworded that one cell and
    left the source, `docs-site/src/content/docs/index.mdx`, and both marketing
    surfaces on the canonical wording. One consumer moved; the source did not.
@@ -67,14 +77,14 @@ So `guides/README.md` is realigned to the source, not the reverse.
   `docs-site/src/content/docs/index.mdx`. The gate is not moved to meet the
   code.
 
-- [x] **AC4 — the full navigation contract passes.**
-  `python3 -m pytest tools/test_catalogue_navigation.py -q` reports 4 passed —
-  not just the one previously-failing case, since the pack-membership and
+- [x] **AC4 — the full navigation contract passes**, not just the
+  previously-failing case: § Testing Strategy's pytest run reports zero
+  failures across every case in the file, since the pack-membership and
   role-route cases read the same source.
 
-- [x] **AC5 — the pack-link contract still holds.**
-  `python3 tools/check-guide-index.py` exits 0. It verifies every active pack
-  has a guide-home link in this file; the edited row carries three of them.
+- [x] **AC5 — the pack-link contract still holds.** § Testing Strategy's
+  `check-guide-index.py` run exits 0. It verifies every active pack has a
+  guide-home link in this file; the edited row carries three of them.
 
 - [x] **AC6 — the backlog entry is dispositioned.**
   `pre-existing-guides-readme-outcome-label-drift` is removed from
@@ -90,17 +100,18 @@ So `guides/README.md` is realigned to the source, not the reverse.
   between a published label and its source; that is the test working.
 - Never edit the canonical map to match the consumer. That inverts the
   direction the whole navigation contract is built around.
-- Never touch the other five outcome rows, the role list, or the flagship
+- Never touch the other six outcome rows, the role list, or the flagship
   paragraph below the table.
 
 ## Testing Strategy
 
 Goal-based check — the failing gate is the test:
 
-- `python3 -m pytest tools/test_catalogue_navigation.py -q` → 4 passed
-  (currently 1 failed, 3 passed).
+- `python3 -m pytest tools/test_catalogue_navigation.py -q` → zero failures
+  (was 1 failed, 3 passed).
 - `python3 tools/check-guide-index.py` → exit 0.
 - `SKIP_SAST=1 make build-check` → the repo policy gates that read `guides/`.
+- `SKIP_SAST=1 make ci` → exit 0, which is the claim this PR actually makes.
 
 ## Assumptions
 
@@ -119,8 +130,34 @@ Goal-based check — the failing gate is the test:
   strings.
 - **A new lint that pins markdown labels to the source automatically.**
   `test_markdown_entry_points_keep_canonical_outcome_labels` already is that
-  lint. It fired correctly and was skipped, not missing.
-- **Fixing the known-skip paragraph in the `bandit-nosec-comment-hygiene`
-  spec.** That spec is Shipped; its § Known skip is an accurate record of the
-  tree it shipped against. Editing it would rewrite history to describe a
-  present that spec never saw.
+  lint, and it is correct. What it is not is *enforced*: it is named only at
+  `Makefile:349`, inside `make test`, and appears in no workflow under
+  `.github/workflows/`. So it never ran on #958's PR — which is why that PR
+  merged green and left `main` red for everyone who ran `make ci` locally. A
+  second copy of the same lint would inherit the same gap; wiring is the fix,
+  and it is deferred below rather than half-done here.
+- **Wiring the test into `build-check.yml` in this PR.** The gap is not one
+  test: 7 of the 13 files on `Makefile:349` are a run step in no workflow
+  (`test_validate_guides`, `test_check_guide_index`, `test_catalogue_navigation`,
+  `test_documentation_entry_links`, `test_build_site_link_rewrites`,
+  `test_check_rendered_site_links`, `test_build_site_routing`). Wiring one and
+  leaving six would read as coverage that is not there, and every added step
+  needs a `lint-ci-parity` disposition. Deferred as
+  `catalogue-site-tests-absent-from-ci` so the recurrence risk is registered
+  rather than lost with the entry this PR closes.
+
+  Counted per-file across all of `.github/workflows/`. Two traps, both of which
+  produced a wrong count on the first pass: `test_check_rendered_site_links`
+  appears in `pages.yml` only as a `paths:` trigger, never as a run step; and
+  `test_catalogue_tooling_rewire` / `_docs` *are* run, by Gate F of
+  `catalogue-tooling-ci-gates.yml`, so they are not in the list — though that
+  workflow's `paths-ignore` covers `docs/**`, `guides/**`, `docs-site/**` and
+  `web/**`, so it does not gate doc-surface PRs either.
+- **Appending a resolution line to the `bandit-nosec-comment-hygiene` spec's
+  § Known skip**, which points at the register entry this PR removes. That
+  spec is Frozen (`docs/CONVENTIONS.md` § Document lifecycle: "Status fields
+  can change …, bodies cannot"), and appending to a body is a body edit however
+  additive it reads. The legal mechanism for annotating a frozen spec is
+  exactly what `frozen-spec-supersession-convention` is deciding; pre-empting
+  it with a one-off body edit here would prejudge that decision. Deferred, with
+  that spec named as a caller once the convention lands.
