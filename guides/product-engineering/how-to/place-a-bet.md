@@ -1,3 +1,10 @@
+---
+title: How to place a bet
+summary: Commit a selected solution as the bet that anchors capability mapping.
+pack: product-engineering
+kind: how-to
+---
+
 # How to place a bet
 
 **Use this when:** You have evaluated your solution options and are ready to commit the team to a chosen direction and produce the `bet.md` artifact that `map-capabilities` will reason against.
@@ -89,7 +96,9 @@ or low.
 ## How to hand the bet to `map-capabilities`
 
 When `bet.md` is written, the skill prints a `workspace.toml` transition
-suggestion — a TOML snippet you apply via `capture-work` or manual edit.
+suggestion. Treat it as routing input: use `work-intake` to materialize the
+canonical artifact and register schema-valid lifecycle state. Do not paste a
+comment-backed or slug-only entry manually.
 
 To hand off: run `map-capabilities` and point it to the committed bet at
 `<output_dir>/shaping/<slug>/bet.md`. It will use the option, assumptions,
@@ -116,4 +125,4 @@ the absence of a structured artifact is visible in the audit trail.
 - `diverge-solutions` — step 3; generates structured comparable options
 - `explore-options` — an alternative way to surface options for the betting table
 - `map-capabilities` — step 6; uses `bet.md` as the anchor for capability mapping
-- `capture-work` — applies the `workspace.toml` transition the skill suggests
+- `work-intake` — records the suggested transition through canonical artifact-first intake

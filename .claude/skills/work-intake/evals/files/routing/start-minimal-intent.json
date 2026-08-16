@@ -1,0 +1,19 @@
+{
+  "contract_version": "normalized-intake.v1",
+  "action": "start",
+  "content": {
+    "outcomes": ["Make future work intake easier to understand."],
+    "constraints": ["Keep the opportunity independent of any shaping pack."],
+    "evidence": [],
+    "behaviors": [],
+    "assumptions": ["The opportunity needs shaping before a delivery contract exists."],
+    "named_gaps": ["Choose the first independently shippable behavior later."]
+  },
+  "source": {
+    "mode": "repo-origin",
+    "locator": "notes/work-intake-opportunity.md",
+    "revision": "local-rev-1"
+  },
+  "constraints": {},
+  "proposed_authority": "repo-origin"
+}

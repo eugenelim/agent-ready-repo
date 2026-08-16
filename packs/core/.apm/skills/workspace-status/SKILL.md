@@ -1,6 +1,12 @@
 ---
 name: workspace-status
 description: Use this skill to orient at session start, check initiative queue state, or see what's ready to work on next. Reads workspace.toml and surfaces ready-to-start items, blocked items with reason, parallel candidates, and active signals. Triggers on "workspace status", "where am I", "orient me", "session start", "what's ready", "show the queue", "what's next", "what should I work on", "check workspace", or any cold-start orientation request. Offers to initialise workspace.toml if absent. Also reconciles and repairs workspace.toml drift — generates and applies repair plans for stale queue entries. Triggers on "clean up stale specs", "run repair-plan", "apply the workspace repair plan", "fix queue drift", "reconcile workspace", or any workspace repair or cleanup request.
+allowed-tools: Read Write Edit Bash
+metadata:
+  type: skill
+  boundaries:
+    - filesystem_write
+    - filesystem_read_untrusted
 ---
 
 # Skill: workspace-status
@@ -268,7 +274,7 @@ Let N = total count across all three finding types. When N > 0, output before th
   [Gate: render this subsection only when 1 is in reconciliation.types_performed.
    When absent: omit this subsection — the global Type 1 audit notice at the top
    of §2 already informs the user; do not emit a second notice here.]
-  - `spec/<slug>` (Status: Approved) — add to [work].queue or run capture-work
+  - `spec/<slug>` (Status: Approved) — add to [work].queue through `work-intake`
 
   Stale queue/active entries (spec shows Shipped or Archived):
   - `spec/<slug>` in [ini-002 work].queue — Status: Shipped
@@ -451,7 +457,7 @@ Emit the following choices in order. Omit any whose source is empty; renumber se
 - **Active spec:** `work-loop docs/specs/<slug>/` — continue active spec. Present when `active_spec` is non-empty.
 - **Next queue item:** `work-loop docs/specs/<slug>/` — next unblocked queue item. Present when `next_queue` is non-empty.
 - **First shaping item:** skill command per Step 3 routing table for the entry's type. Present when `next_shape` is non-empty. If the required pack is not installed, emit `requires \`<pack-name>\` pack — install to work this item` instead of the skill command.
-- **Start new work (always — final choice):** `new-spec` · `new-rfc` · `new-adr` · `capture-work`
+- **Start or remember work (always — final choice):** `work-intake`
 
 ## See also
 

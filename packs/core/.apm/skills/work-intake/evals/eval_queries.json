@@ -1,0 +1,19 @@
+[
+  {"query": "Let's start work on this normalized request", "should_trigger": true},
+  {"query": "Do this task from the intake envelope", "should_trigger": true},
+  {"query": "Remember this for later instead of implementing now", "should_trigger": true},
+  {"query": "Show workspace status before I choose the next item", "should_trigger": true},
+  {"query": "Refresh the requirements for this registered artifact", "should_trigger": true},
+  {"query": "Use work-intake for this tracker-origin request", "should_trigger": true},
+  {"query": "Start a minimal intent from this opportunity", "should_trigger": true},
+  {"query": "Record this ambiguous request as draft with gaps", "should_trigger": true},
+
+  {"query": "Write an architecture decision record for this choice", "should_trigger": false},
+  {"query": "Generate a slide deck from this outline", "should_trigger": false},
+  {"query": "Convert this PDF to Markdown", "should_trigger": false},
+  {"query": "Run a security review on this diff", "should_trigger": false},
+  {"query": "Create a new reusable skill", "should_trigger": false},
+  {"query": "Search the web for current pricing", "should_trigger": false},
+  {"query": "Render this Mermaid diagram", "should_trigger": false},
+  {"query": "Open the spreadsheet and format column B", "should_trigger": false}
+]

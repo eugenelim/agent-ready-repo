@@ -1,0 +1,19 @@
+[
+  {"query": "Capture this follow-up work item for later.", "should_trigger": true},
+  {"query": "Add this task to the work queue without starting it.", "should_trigger": true},
+  {"query": "Remember this implementation idea as future work.", "should_trigger": true},
+  {"query": "Queue this follow-up through capture-work.", "should_trigger": true},
+  {"query": "Capture the cleanup we found and route it through intake.", "should_trigger": true},
+  {"query": "Save this deferred work item with the compatibility alias.", "should_trigger": true},
+  {"query": "Record this follow-on task for a later session.", "should_trigger": true},
+  {"query": "Use capture-work to remember this request.", "should_trigger": true},
+
+  {"query": "Start implementing the approved spec now.", "should_trigger": false},
+  {"query": "Show workspace status and next actions.", "should_trigger": false},
+  {"query": "Write a new feature spec.", "should_trigger": false},
+  {"query": "Receive this product brief and mark it Ready.", "should_trigger": false},
+  {"query": "Author a brief from this customer note.", "should_trigger": false},
+  {"query": "Run the work loop for this item.", "should_trigger": false},
+  {"query": "Diagnose this failing request handler.", "should_trigger": false},
+  {"query": "Render this Markdown proof artifact.", "should_trigger": false}
+]

@@ -1,8 +1,15 @@
-# How to receive a product brief and decompose it into specs
+---
+title: Receive a product brief and confirm delivery slices
+summary: Pass the human Ready gate and create specs only for confirmed slices.
+pack: core
+kind: how-to
+---
 
-**Use this when:** A multi-feature product brief lands in your lap and you need to cut it into independently shippable specs and get them into the build queue.
+# How to receive a product brief and confirm delivery slices
+
+**Use this when:** A Draft multi-feature product brief needs a human Ready decision, with a slice cut now or later.
 **Prerequisites:** The `core` pack installed, a brief in any form (pasted document, file, or link), and a sense of which repo's slice of the work you own.
-**Result:** Feature-sized specs scaffolded in `docs/specs/`, each back-linked to the brief, with coverage tracked automatically by the bundled lint.
+**Result:** A Ready brief in workspace state; if you confirm a slice, a feature-sized spec back-linked to it.
 
 Someone handed you a product brief — a PRD, a solution document, a packet of requirements that spans several features — and you need to turn it into work your team can actually ship. The `receive-brief` skill (shipped in `core`) is the entry point. This guide walks the path from "here's a brief" through "feature-sized specs are in the normal build loop and a coverage map tracks them automatically."
 
@@ -20,7 +27,7 @@ You need:
 
 | Situation | Skill to invoke |
 | --- | --- |
-| You have unstructured external input (email, stakeholder message, Linear issue) and need to author a brief from it first | `author-brief` |
+| You have unstructured source material and have not chosen an artifact route | `work-intake` |
 | You received a multi-feature brief and need to route it into delivery | `receive-brief` |
 | You're authoring one feature yourself, from scratch | `new-spec` |
 | You're recording a decision already made | `new-adr` |
@@ -33,9 +40,9 @@ The tell for `receive-brief` is **multiplicity authored by someone else**: one o
 
 2. **Answer the elicitation for the load-bearing fields.** The skill insists on only two things: the **Outcome** (the problem and the user-facing result) and the **Scope / Non-goals** (where this repo's slice begins and ends). Everything else — success metrics, appetite, user stories — it *offers* and you can supply or skip. It surfaces gaps rather than inventing answers.
 
-3. **Confirm the proposed decomposition.** The skill cuts the brief into slices, each one independently shippable and testable, and **shows you the cut before scaffolding anything**. Read it: does each slice ship on its own? Is anything in the brief left uncovered? Is any slice too big for one feature-sized spec? Approve, or push back and have it re-cut.
+3. **Decide whether the brief is Ready.** Review the outcome, scope, constraints and appetite, assumptions and risks, plus source provenance and revision. Passing this gate moves the whole structured entry from Draft to Ready atomically. It does not require a spec.
 
-4. **Let it scaffold and back-link the specs.** For each confirmed slice the skill chains `new-spec` to create `spec.md` + `plan.md`, stamps a `Brief:` back-link on the spec, and adds a row to the brief's Spec map. The brief lands at `docs/product/briefs/<slug>.md`.
+4. **Choose whether to cut a slice now.** You can stop with a Ready brief and zero specs. If you confirm one independently shippable slice, the skill chains `new-spec` to create `spec.md` + `plan.md`, stamps a `Brief:` back-link on the spec, and adds the materialized spec to the brief's Spec map.
 
 5. **Build each slice with `work-loop`, as usual.** The derived specs are ordinary specs — nothing about the brief changes how you build them. As each ships, the brief's coverage map rolls up automatically (next step).
 
@@ -55,7 +62,7 @@ It reads each spec's `Status:` field, follows the `Brief:` back-links, and repor
 
 - **If the brief is one slice of a cross-repo effort:** record the external coordinator's id in the brief's optional `Epic:` field. You own this repo's slice only — the pointer is the nod to the wider effort, not a hub you build.
 
-- **If you only want to scaffold some slices now:** that's fine. A brief can grow its Spec map over time as slices get picked up; a spec can even predate its brief. The `Brief:` back-link is what ties them together.
+- **If you do not want to scaffold a slice now:** stop at Ready with an empty Spec map. A brief can grow its map over time as slices are confirmed; no placeholder spec is required.
 
 ## Common pitfalls
 

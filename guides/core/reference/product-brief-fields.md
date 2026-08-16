@@ -1,3 +1,10 @@
+---
+title: Product brief fields
+summary: Fields, lifecycle gates, spec maps, and provenance links for Core product briefs.
+pack: core
+kind: reference
+---
+
 # Product brief fields
 
 Authoritative field list for a **product brief** and the linkage fields it stamps on derived specs. A brief lives at `docs/product/briefs/<slug>.md`. Use `author-brief` to draft a brief from unstructured external input (email, stakeholder message, Linear issue); use `receive-brief` to receive a formed brief and decompose it into specs. For how to use either skill, see [Intake an external brief into a product brief](../how-to/intake-an-external-brief.md) or [Receive a product brief and decompose it into specs](../how-to/receive-a-product-brief-and-decompose-it-into-specs.md); for why the layer exists, see [Why a brief layer](../explanation/why-a-brief-layer.md).
@@ -22,22 +29,31 @@ Authoritative field list for a **product brief** and the linkage fields it stamp
 | `Scope / Non-goals` | **yes** | The boundary of this repo's slice. Non-goals are as load-bearing as scope — they stop the decomposition from sprawling. |
 | `Appetite` | optional | A *constraint*, not an estimate: how much time/effort the outcome is worth ("a few weeks, not a quarter"). Bounds the decomposition. |
 | `User stories` | optional (Shape B) | Stories with ids (`US-1`, `US-2`, …). Present → decomposition groups stories into specs and coverage is story-granular. Absent → Shape A, spec-granular coverage. |
-| `Spec map` | yes | The coverage table. One row per derived spec; the Status column is **auto-derived** by the coverage lint (never hand-edited). Shape B adds a `Story` column. |
-| `Rabbit holes` | optional (≥1 for DoR) | Named design traps, constraints, or out-of-bounds explorations to avoid. Optional in general use; ≥1 is required to reach `Ready` per the DoR gate. |
-| `Status` | set by skill | Lifecycle marker. Set by the authoring skill: `Draft` (by `author-brief`); `Ready` (by `receive-brief`, after decomposition is confirmed). |
+| `Assumptions / Risks` | optional until Ready | Named assumptions or risks that could change the outcome or delivery boundary. At least one is required to reach `Ready`. |
+| `Spec map` | section required for Ready; rows optional | The coverage table. One row per materialized spec; the Status column is **auto-derived** by the coverage lint (never hand-edited). Shape B adds a `Story` column. A Ready brief may have zero rows. |
+| `Rabbit holes` | optional | Named design traps, constraints, or out-of-bounds explorations to avoid. |
+| `Source` | optional until Ready | Durable source provenance. Tracker-origin work also records the reviewed source revision. |
+| `Status` | set by skill | Lifecycle marker. Set by the authoring skill: `Draft` (by `author-brief`); `Ready` (by `receive-brief`, after the human Ready gate). Ready does not imply that a slice or spec exists. |
 
 ## DoR gate
 
-A brief is **Ready** — eligible for decomposition by `receive-brief` — when it satisfies all four eligibility fields. These are required to reach `Ready`, not required in general:
+A brief is **Ready** — eligible for decomposition by `receive-brief` — only
+when the human confirms the canonical gate below. These fields are required to
+reach `Ready`, not required for a Draft:
 
 | Field | Requirement |
 | --- | --- |
 | `Outcome` | Present and non-empty |
-| `Appetite` | Present (a default is acceptable) |
-| `Rabbit holes` | ≥1 named entry |
-| `Spec map` | ≥1 placeholder row |
+| In-scope and out-of-scope boundaries | Both explicit |
+| Constraints or appetite | Present and non-empty |
+| Named assumptions or risks | At least one |
+| Durable source provenance | Present; tracker-origin work includes the reviewed source revision |
+| `Spec map` | Section present; placeholder rows are not required |
 
-`author-brief` elicits these fields and sets `Status: Draft`. Only `receive-brief` sets `Status: Ready`, after decomposition is confirmed.
+`author-brief` may elicit these fields but always sets `Status: Draft` and does
+not certify readiness. `receive-brief` owns this gate and is the only skill that
+sets `Status: Ready`, after human confirmation. A Ready brief may have zero
+materialized specs and remains non-executable until the user confirms a slice.
 
 ## The Spec map
 
@@ -55,7 +71,7 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 - The **first** column is the spec slug (`docs/specs/<slug>/`).
 - The **last** column is the auto-derived status — leave it to the lint.
-- A brief is **delivered** only when its map is non-empty *and* every mapped spec is `Shipped`. An empty map is never vacuously delivered.
+- A brief is **delivered** only when its map is non-empty *and* every mapped spec is `Shipped`. A Ready brief with an empty map is valid but not delivered.
 
 ## Linkage fields on derived specs
 

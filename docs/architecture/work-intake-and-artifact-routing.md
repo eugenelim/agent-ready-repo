@@ -1,8 +1,13 @@
 # Work intake and artifact routing
 
-> **Proposed architecture.** This describes where the repository should go next. It is not a claim about what the current skills, parser, or `workspace.toml` already do.
+> **Current architecture.** Core implements the standalone intake, canonical
+> artifact, deterministic workspace-index, and processor boundaries described
+> here. Tracker-owned refresh remains unavailable until a compatible adapter
+> implements the refresh contract.
 
-We need one way to answer a basic question: given some work, what is the first local artifact worth creating? Today the answer varies by skill and tracker. That leaves us with a few awkward outcomes: a one-spec change wrapped in a brief, a tracker collection treated as a requirement, or a queue comment doing the job of a spec.
+`work-intake` answers one basic question: given some work, what is the first
+local artifact worth creating? The route comes from content and altitude, not a
+tracker label or whichever downstream skill the user happened to name.
 
 This paper sets a common model. [RFC-0083](../rfc/0083-work-intake-and-artifact-routing.md) adopts it. [ADR-0077](../adr/0077-feature-projection-and-tracker-authority.md) refines part 2 of [ADR-0019](../adr/0019-product-intent-ontology-and-brief-projection.md): an app-scale feature no longer becomes a brief by default, and tracker authority follows explicit lifecycle rules. [ADR-0078](../adr/0078-standalone-intake-and-deterministic-workspace-index.md) records standalone intake, deterministic workspace indexing, and the shared layout boundary. [ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)'s decision on `Level` and `Scale` remains intact. So do [ADR-0009](../adr/0009-product-brief-layer-and-plan-owned-lld.md)'s brief layer and plan-owned LLD.
 
@@ -14,7 +19,10 @@ This design should let an adopter bring in work without knowing the local skill 
 
 The result is testable: every dispatchable entry resolves to a spec and plan; deleting or rewriting comments does not change routing; and two sessions reading the same files report the same ready, blocked, active, and reconciliation sets.
 
-It does not build a tracker replacement, a cross-repo control plane, or a new product-process mandate. It does not make every team create intents before writing a spec. It also does not change any skill, schema, parser, RFC, ADR, or `workspace.toml` in this change.
+It does not build a tracker replacement, a cross-repo control plane, or a new
+product-process mandate. It does not make every team create intents before
+writing a spec. Tracker refresh is a separate adapter-owned capability and does
+not mutate repository state while unavailable.
 
 ## The model
 
@@ -325,14 +333,15 @@ A Ready brief can sit untouched long enough for its source or assumptions to age
 
 The operational failure to watch is a broken reference at session start. `workspace-status` needs to show it plainly, and dispatch needs to stop before an agent starts work from a comment.
 
-## What conflicts today
+## What the migration resolves
 
-This table separates evidence from the conclusion we should draw from it.
+This table preserves the pre-migration evidence and the resolution implemented
+by this architecture.
 
 | Topic | Evidence | What it means | Proposed fix |
 | --- | --- | --- | --- |
 | Raw brief input | [receive-brief](../../packs/core/.apm/skills/receive-brief/SKILL.md) says it receives PRDs/packets and accepts pasted documents, links, and verbal sketches. Its anti-pattern says raw email or Linear input must first use `author-brief`. | The entry rule is unclear. | `author-brief` makes Draft briefs from unstructured multi-spec input; `receive-brief` processes an existing brief. |
-| Captures | [capture-work](../../packs/core/.apm/skills/capture-work/SKILL.md) writes only `workspace.toml`, creates no spec, and asks for comments sufficient to write a full spec later. | Comments can become the real requirements store. | Replace it with `work-intake`; captures stay non-dispatchable until an artifact exists. |
+| Captures | Before this migration, `capture-work` wrote only `workspace.toml`, created no spec, and asked for comments sufficient to write a full spec later. | Comments could become the real requirements store. | `work-intake` now materializes an artifact first; captures stay non-dispatchable until that artifact exists, and `capture-work` is only a compatibility alias. |
 | One issue | The [tracker guide](../../guides/_shared/how-to/choose-a-tracker-integration.md) says one issue is not a brief. The proposed [PM journey](../product/journeys/pm-intakes-from-tracker.md) and [RFC-0064](../rfc/0064-ini-001-ai-native-ecosystem.md) describe issue-to-brief intake. | Container names are doing too much routing work. | Use outcome coherence and shippability, not the object name. |
 | Feature equals brief | [ADR-0019](../adr/0019-product-intent-ontology-and-brief-projection.md) and [decompose-intent](../../packs/product-engineering/.apm/skills/decompose-intent/SKILL.md) make an app-scale feature a brief. | A one-spec change gets an empty wrapper. | Adopt the feature gate through an ADR refinement. |
 | Tracker authority | The [intent reference](../../guides/product-engineering/reference/intent-fields-and-modes.md) calls trackers one-way renders. [Linear sync](../../packs/linear/.apm/skills/linear-brief-sync/SKILL.md) imports reviewed deltas and locks at Executing. | “One-way” does not explain the Linear path. | Name repo-origin and tracker-origin modes. |

@@ -1,0 +1,19 @@
+[
+  {"query": "Author a draft brief from this stakeholder note and register it for later.", "should_trigger": true},
+  {"query": "Turn this issue body into a product brief, but do not decompose it yet.", "should_trigger": true},
+  {"query": "Create a brief from this email thread and leave it in Draft.", "should_trigger": true},
+  {"query": "Intake this larger product idea as a brief before we choose slices.", "should_trigger": true},
+  {"query": "Write a draft brief from this requirements summary.", "should_trigger": true},
+  {"query": "Capture this multi-feature handoff as a product brief artifact.", "should_trigger": true},
+  {"query": "Make a DoR-ready draft brief from this unstructured request.", "should_trigger": true},
+  {"query": "Convert this stakeholder message into a registered brief.", "should_trigger": true},
+
+  {"query": "Decompose this ready brief into confirmed specs.", "should_trigger": false},
+  {"query": "Write a spec for a single export setting.", "should_trigger": false},
+  {"query": "Show me workspace status before I pick up work.", "should_trigger": false},
+  {"query": "Remember this small follow-up for later.", "should_trigger": false},
+  {"query": "Fix the defect described in this failing test.", "should_trigger": false},
+  {"query": "Record an architecture decision for our queue choice.", "should_trigger": false},
+  {"query": "Create a new reusable agent skill.", "should_trigger": false},
+  {"query": "Refresh requirements for an existing registered artifact.", "should_trigger": false}
+]

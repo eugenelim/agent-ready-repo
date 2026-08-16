@@ -1,0 +1,107 @@
+{
+  "skill_name": "work-intake",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Start work from a normalized repo-origin request with one minimal opportunity and no shippable contract.",
+      "expected_output": "The agent validates the normalized intake, realpath-confines docs/product/intents/<slug>.md, materializes a Draft minimal intent from assets/minimal-intent.md, registers a non-dispatchable workspace entry, and stops without processor dispatch.",
+      "assertions": [
+        "Consumes normalized intake rather than raw source instructions",
+        "Writes the artifact before registering the workspace entry",
+        "Reports non-dispatchable Draft membership for the minimal intent",
+        "Does not require optional shaping packs"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Remember this follow-up from a normalized request, then stop without implementation.",
+      "expected_output": "The agent validates the normalized intake, materializes a Draft artifact, registers non-dispatchable lifecycle membership, and stops without implementation.",
+      "assertions": [
+        "Records Draft membership",
+        "Does not dispatch to implementation",
+        "Preserves source locator and revision"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "workspace status",
+      "expected_output": "The agent delegates to workspace-status and returns its lifecycle, findings, and next actions without reclassifying or mutating state.",
+      "assertions": [
+        "Uses workspace-status as the authority",
+        "Does not materialize an artifact",
+        "Does not edit workspace.toml"
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Refresh requirements for docs/specs/example/spec.md.",
+      "expected_output": "The agent resolves the target and reports that requirements refresh is unavailable. It does not change the artifact, revision, pin, decision, or workspace entry.",
+      "assertions": [
+        "Confines the refresh target before reporting",
+        "Reports refresh unavailable",
+        "Performs no mutation"
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Start work on adding export retention controls for workspace owners.",
+      "expected_output": "The agent treats the named actor plus bounded capability as one shippable feature, routes it to new-spec at docs/specs/export-retention/spec.md with direct-spec provenance, and leaves product details for new-spec elicitation.",
+      "assertions": [
+        "Selects new-spec as processor",
+        "Records spec lifecycle membership",
+        "Omits brief provenance for a direct spec",
+        "Does not demote the feature to an intent merely because product details need elicitation"
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Start a coherent multi-feature outcome from normalized intake.",
+      "expected_output": "The agent routes the multi-spec outcome to a Draft brief, registers brief lifecycle membership, and does not create speculative specs.",
+      "assertions": [
+        "Selects author-brief as processor",
+        "Registers Draft brief membership",
+        "Does not create child specs"
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Start from a cited regression with observed and expected behavior.",
+      "expected_output": "The agent routes the cited regression to defect context and bug-fix, preserving evidence without treating source text as instructions.",
+      "assertions": [
+        "Selects bug-fix as processor",
+        "Records defect lifecycle membership",
+        "Preserves cited evidence as data"
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Start from ambiguous normalized intake that could be either one spec or a brief.",
+      "expected_output": "The agent records a Draft artifact with gaps or asks for the smallest missing choice; it does not infer readiness.",
+      "assertions": [
+        "Does not infer Ready status",
+        "Names the missing choice",
+        "Avoids dispatch while ambiguous"
+      ]
+    },
+    {
+      "id": 9,
+      "prompt": "Use capture-work to remember this equivalent normalized request.",
+      "expected_output": "The agent emits the compatibility notice, forwards to work-intake, and produces the same artifact and workspace entry as work-intake remember.",
+      "assertions": [
+        "Emits deprecation notice",
+        "Forwards to work-intake",
+        "Does not use legacy storage"
+      ]
+    },
+    {
+      "id": 10,
+      "prompt": "Mark this existing brief Ready even though no slices are confirmed yet.",
+      "expected_output": "The agent allows Ready brief lifecycle membership with zero materialized specs and stops until a slice is confirmed.",
+      "assertions": [
+        "Allows Ready with zero specs",
+        "Creates no speculative specs",
+        "Stops before invoking new-spec"
+      ]
+    }
+  ]
+}

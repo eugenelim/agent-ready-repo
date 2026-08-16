@@ -1,16 +1,28 @@
 # core
 
-Supervised coding — from brief to merged PR.
+Route work into the right durable artifact, then carry approved specs through a
+supervised build loop.
 
 ---
 
 ## Start here
 
-Type `author-brief` and paste any idea, email thread, or issue.
+Start with an ordinary request. You do not need to know which artifact or skill
+owns it.
 
 ```text
-  brief   docs/product/briefs/data-export.md   (draft)
-  queued  sprint-8/data-export → ready
+Start work on adding export retention controls for workspace owners.
+```
+
+`work-intake` classifies the request from its content. It creates the canonical
+artifact, registers it in `workspace.toml`, and invokes a processor only after
+both writes succeed. Ambiguous or deferred work stays Draft and cannot dispatch.
+
+```text
+  action      start
+  artifact    docs/specs/export-retention/spec.md
+  membership  awaiting approval
+  processor   new-spec
 ```
 
 On any session return, type `workspace-status` to orient.
@@ -27,11 +39,12 @@ On any session return, type `workspace-status` to orient.
 
 | Say this | What happens |
 |----------|-------------|
+| `work-intake` | Start work, remember it for later, inspect status, or request a requirements refresh |
 | `workspace-status` | Orient — what's ready, blocked, and done |
-| `author-brief` | Turn any idea, email, or issue into a queued brief |
 | `work-loop` | Plan → execute → gates → adversarial review → merge |
 | `bug-fix` | Diagnose and fix a specific bug |
 | `new-spec` | Author a spec directly, without the brief layer |
+| `capture-work` | Compatibility alias for `work-intake`; new guidance should not use it |
 | `project-knowledge` | Capture, distill, or enquire over reviewed project lessons |
 
 ---
@@ -39,14 +52,27 @@ On any session return, type `workspace-status` to orient.
 ## How a session runs
 
 ```text
-author-brief [paste your idea]
+work-intake [describe the outcome or change]
 
-  brief   docs/product/briefs/data-export.md
-  queued  sprint-8/data-export → ready
+  artifact    docs/product/briefs/data-export.md
+  membership  draft · non-dispatchable
+  processor   author-brief
 ```
 
 ```text
-work-loop docs/product/briefs/data-export.md
+receive-brief docs/product/briefs/data-export.md
+
+  brief  Ready
+  slice  streaming-csv-export
+
+new-spec streaming-csv-export
+
+  spec  docs/specs/data-export/spec.md
+  plan  docs/specs/data-export/plan.md
+```
+
+```text
+work-loop docs/specs/data-export/spec.md
 
   mode: light — no risk triggers
 
@@ -103,6 +129,7 @@ HookIntegrator-covered adopters can also run this to opt out of hooks.
 
 ---
 
-→ **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.  
-→ **Go deeper:** the `core` guides in `guides/core/`.  
-→ **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.
+- **How it works:** [DESIGN.md](DESIGN.md) — philosophy, architecture, and decision log.
+- **Go deeper:** the `core` guides in `guides/core/`.
+- **Route a request:** [start or remember work](../../guides/core/how-to/start-or-remember-work.md).
+- **Headless / harness dispatch:** [run a headless session](../../guides/core/how-to/run-headless-session.md) — drive sessions from a control harness without a human in the loop.
