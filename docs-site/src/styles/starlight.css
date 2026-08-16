@@ -162,6 +162,69 @@ site-search kbd {
   color: var(--doc-text-muted);
 }
 
+/* ── Docs landing orientation hub ───────────────────────────────────────── */
+
+/* Starlight reserves an empty image column and display-scale hero spacing even
+   when the landing has no art. The docs home is an orientation surface: give
+   the copy the full content width and bring its first decision into view. */
+[data-has-hero] .hero {
+  grid-template-columns: minmax(0, 1fr);
+  padding-block: clamp(1.5rem, 4vw, 2.5rem) 1rem;
+}
+
+[data-has-hero] .hero .stack {
+  gap: 1.25rem;
+  text-align: start;
+}
+
+[data-has-hero] .hero .copy {
+  gap: 0.65rem;
+  align-items: flex-start;
+}
+
+[data-has-hero] .hero .copy > * {
+  max-width: 68ch;
+}
+
+[data-has-hero] .hero h1 {
+  max-width: 24ch;
+  font-size: var(--sl-text-4xl);
+}
+
+[data-has-hero] .hero .tagline {
+  font-size: var(--sl-text-lg);
+  line-height: 1.5;
+}
+
+[data-has-hero] .hero .actions {
+  justify-content: flex-start;
+}
+
+.sl-markdown-content .docs-hub__lead,
+.sl-markdown-content .docs-hub__supporting {
+  margin-top: 1rem;
+}
+
+.docs-hub__lead .sl-link-card {
+  border-inline-start: 3px solid var(--doc-accent-strong);
+  padding: 1.25rem;
+  box-shadow: none;
+}
+
+.docs-hub__lead .sl-link-card .title {
+  font-size: var(--sl-text-xl);
+}
+
+.docs-hub__supporting .sl-link-card {
+  box-shadow: none;
+}
+
+@media (max-width: 49.999rem) {
+  [data-has-hero] .hero h1 {
+    font-size: var(--sl-text-3xl);
+  }
+}
+
 /* ── Sidebar ────────────────────────────────────────────────────────────── */
 
 nav.sidebar .sidebar-pane {
@@ -384,18 +447,50 @@ main h1 {
   height: auto;
 }
 
-/* ── Banner ("← Platform") ──────────────────────────────────────────────── */
+/* ── Breadcrumbs ────────────────────────────────────────────────────────── */
 
-/* Hairline-separated inline breadcrumb, not a filled band — hairlines are
-   the only chrome in this design language. */
-.sl-banner {
-  background-color: var(--sl-color-bg);
+.breadcrumbs {
+  margin-top: 1rem;
+  color: var(--doc-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.breadcrumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.breadcrumbs li {
+  display: inline-flex;
+  min-width: 0;
+  align-items: baseline;
+}
+
+.breadcrumbs li + li::before {
+  content: '/';
+  margin-inline: 0.45rem;
+  color: var(--doc-text-faint);
+}
+
+.breadcrumbs a {
   color: var(--doc-accent-strong);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  text-align: start;
-  border-bottom: 1px solid var(--doc-rule);
-  box-shadow: none;
+  text-decoration: none;
+}
+
+.breadcrumbs a:hover {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.breadcrumbs [aria-current='page'] {
+  color: var(--doc-heading);
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 /* ── Prev/next pagination (custom Footer) ───────────────────────────────── */

@@ -10,9 +10,12 @@
 //
 // The id is Starlight's PAGE_TITLE_ID ('_top') — its skip-link and its
 // on-this-page overview entry both target it, so it must stay on the <h1>.
+import Breadcrumbs from './Breadcrumbs.astro';
+
 const { title, description } = Astro.locals.starlightRoute.entry.data;
 ---
 
+<Breadcrumbs />
 <h1 id="_top">{title}</h1>
 {description && <p class="page-deck">{description}</p>}
 
