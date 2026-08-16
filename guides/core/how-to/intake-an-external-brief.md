@@ -5,7 +5,7 @@ pack: core
 kind: how-to
 ---
 
-# How to intake external source material into a product brief
+# Intake external source material into a product brief
 
 **Use this when:** Intake has identified a coherent multi-feature outcome that needs a Draft brief.
 **Prerequisites:** The `core` pack installed and normalized source content to hand; no existing brief file at the target slug path.

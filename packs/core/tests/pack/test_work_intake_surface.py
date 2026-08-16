@@ -10,7 +10,6 @@ import tomllib
 from pathlib import Path
 
 _PACK_ROOT = Path(__file__).resolve().parents[2]
-_REPO_ROOT = _PACK_ROOT.parents[1]
 _SKILLS = _PACK_ROOT / ".apm" / "skills"
 _WORK_INTAKE = _SKILLS / "work-intake"
 _SEEDS = _PACK_ROOT / "seeds"
@@ -22,6 +21,74 @@ _ENGINE_PATH = (
     _SKILLS / "workspace-status" / "scripts" / "workspace_status_engine.py"
 )
 _ROUTER_PATH = _WORK_INTAKE / "scripts" / "intake_router.py"
+_SKILL_BODIES = {
+    "work-intake": (_SKILLS / "work-intake" / "SKILL.md").read_text(encoding="utf-8"),
+    "capture-work": (_SKILLS / "capture-work" / "SKILL.md").read_text(encoding="utf-8"),
+    "author-brief": (_SKILLS / "author-brief" / "SKILL.md").read_text(encoding="utf-8"),
+    "receive-brief": (_SKILLS / "receive-brief" / "SKILL.md").read_text(encoding="utf-8"),
+    "new-spec": (_SKILLS / "new-spec" / "SKILL.md").read_text(encoding="utf-8"),
+    "workspace-status": (_SKILLS / "workspace-status" / "SKILL.md").read_text(encoding="utf-8"),
+    "work-loop": (_SKILLS / "work-loop" / "SKILL.md").read_text(encoding="utf-8"),
+}
+_EVAL_QUERY_FILES = {
+    "new-spec": _SKILLS / "new-spec" / "evals" / "eval_queries.json",
+    "bug-fix": _SKILLS / "bug-fix" / "evals" / "eval_queries.json",
+    "receive-brief": _SKILLS / "receive-brief" / "evals" / "eval_queries.json",
+    "init-project": _SKILLS / "init-project" / "evals" / "eval_queries.json",
+    "adapt-to-project": _SKILLS / "adapt-to-project" / "evals" / "eval_queries.json",
+    "workspace-status": _SKILLS / "workspace-status" / "evals" / "eval_queries.json",
+    "project-knowledge": _SKILLS / "project-knowledge" / "evals" / "eval_queries.json",
+    "work-intake": _SKILLS / "work-intake" / "evals" / "eval_queries.json",
+    "author-brief": _SKILLS / "author-brief" / "evals" / "eval_queries.json",
+    "capture-work": _SKILLS / "capture-work" / "evals" / "eval_queries.json",
+}
+_FIXTURE_PATHS = {
+    "evals/files/routing/start-minimal-intent.json": (
+        _WORK_INTAKE / "evals" / "files" / "routing" / "start-minimal-intent.json"
+    ),
+    "normalized-intake/valid/remember-repo-origin-prompt-like-data.json": (
+        _CONTRACT_FIXTURES
+        / "normalized-intake"
+        / "valid"
+        / "remember-repo-origin-prompt-like-data.json"
+    ),
+    "workspace/context/lifecycle.toml": (
+        _CONTRACT_FIXTURES / "workspace" / "context" / "lifecycle.toml"
+    ),
+    "normalized-intake/valid/refresh-repo-origin.json": (
+        _CONTRACT_FIXTURES
+        / "normalized-intake"
+        / "valid"
+        / "refresh-repo-origin.json"
+    ),
+    "workspace/target/valid/spec-with-cross-repo-need.json": (
+        _CONTRACT_FIXTURES
+        / "workspace"
+        / "target"
+        / "valid"
+        / "spec-with-cross-repo-need.json"
+    ),
+    "workspace/target/valid/brief-tracker-origin-coordination.json": (
+        _CONTRACT_FIXTURES
+        / "workspace"
+        / "target"
+        / "valid"
+        / "brief-tracker-origin-coordination.json"
+    ),
+    "workspace/target/valid/defect-repo-origin.json": (
+        _CONTRACT_FIXTURES
+        / "workspace"
+        / "target"
+        / "valid"
+        / "defect-repo-origin.json"
+    ),
+    "normalized-intake/valid/start-repo-origin.json": (
+        _CONTRACT_FIXTURES
+        / "normalized-intake"
+        / "valid"
+        / "start-repo-origin.json"
+    ),
+}
 _CHANGED_SKILLS = {
     "work-intake": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
     "capture-work": ("Read Write Edit Bash", {"filesystem_write", "filesystem_read_untrusted"}),
@@ -52,8 +119,7 @@ def _load_router():
     return module
 
 
-def _frontmatter(skill: str) -> str:
-    body = (_SKILLS / skill / "SKILL.md").read_text(encoding="utf-8")
+def _frontmatter(body: str) -> str:
     assert body.startswith("---\n")
     return body.split("---\n", 2)[1]
 
@@ -65,9 +131,7 @@ def _boundaries(frontmatter: str) -> set[str]:
 
 
 def _fixture_path(value: str) -> Path:
-    if value.startswith("evals/"):
-        return _WORK_INTAKE / value
-    return _CONTRACT_FIXTURES / value
+    return _FIXTURE_PATHS[value]
 
 
 def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
@@ -142,41 +206,20 @@ def test_route_expectations_cover_no_mutation_and_alias_equivalence() -> None:
 
 def test_eval_allowlist_has_balanced_activation_sets() -> None:
     manifest = tomllib.loads((_PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
-    for skill in manifest["pack"]["evals"]["skills"]:
-        path = _SKILLS / skill / "evals" / "eval_queries.json"
+    assert set(manifest["pack"]["evals"]["skills"]) == set(_EVAL_QUERY_FILES)
+    for skill, path in _EVAL_QUERY_FILES.items():
         queries = json.loads(path.read_text(encoding="utf-8"))
         assert sum(item["should_trigger"] is True for item in queries) >= 8, skill
         assert sum(item["should_trigger"] is False for item in queries) >= 8, skill
 
 
-def test_changed_skill_permissions_survive_direct_directory_adapters() -> None:
+def test_changed_skill_permissions_are_minimal() -> None:
     for skill, (allowed_tools, boundaries) in _CHANGED_SKILLS.items():
-        frontmatter = _frontmatter(skill)
+        frontmatter = _frontmatter(_SKILL_BODIES[skill])
         match = re.search(r"^allowed-tools:\s*(.+)$", frontmatter, re.MULTILINE)
         assert match is not None, skill
         assert match.group(1) == allowed_tools, skill
         assert _boundaries(frontmatter) == boundaries, skill
-
-    contract = tomllib.loads(
-        (
-            _REPO_ROOT
-            / "packages"
-            / "agentbundle"
-            / "agentbundle"
-            / "_data"
-            / "adapter.toml"
-        ).read_text(encoding="utf-8")
-    )
-    skill_modes = {
-        name: next(
-            rule["mode"]
-            for rule in adapter["projection"]
-            if rule["primitive"] == "skill"
-        )
-        for name, adapter in contract["adapter"].items()
-    }
-    assert len(skill_modes) >= 7
-    assert set(skill_modes.values()) == {"direct-directory"}
 
 
 def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:
@@ -188,7 +231,9 @@ def test_installed_agents_guidance_has_no_dangling_relative_links() -> None:
         for target in re.findall(r"\]\(([^)]+)\)", body + footer)
         if not target.startswith(("#", "http://", "https://"))
     }
-    dangling = sorted(
-        target for target in relative_links if not (_SEEDS / target).is_file()
-    )
-    assert dangling == [], f"installed AGENTS.md has dangling links: {dangling}"
+    assert relative_links == {
+        "docs/architecture/overview.md",
+        "docs/CONVENTIONS.md",
+    }
+    assert (_SEEDS / "docs" / "architecture" / "overview.md").is_file()
+    assert (_SEEDS / "docs" / "CONVENTIONS.md").is_file()

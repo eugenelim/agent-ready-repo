@@ -5,7 +5,7 @@ pack: core
 kind: how-to
 ---
 
-# How to receive a product brief and confirm delivery slices
+# Receive a product brief and confirm delivery slices
 
 **Use this when:** A Draft multi-feature product brief needs a human Ready decision, with a slice cut now or later.
 **Prerequisites:** The `core` pack installed, a brief in any form (pasted document, file, or link), and a sense of which repo's slice of the work you own.
