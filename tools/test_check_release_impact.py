@@ -33,6 +33,22 @@ def test_contracts_tree_is_release_impacting() -> None:
     assert is_release_impacting("contracts/adapter.toml") is True
 
 
+def test_contracts_markdown_is_documentation_not_contract_surface() -> None:
+    """A README *about* the contracts is not itself a contract.
+
+    Regression for an over-match introduced with the `contracts/` prefix: it is a
+    whole-directory match, so the first docs-only PR touching
+    `contracts/README.md` was told to cut an agentbundle release. What the CLI
+    bundles byte-identically into `_data/` is the contract files; no Markdown in
+    this tree has a packaged twin.
+    """
+    assert is_release_impacting("contracts/README.md") is False
+    assert is_release_impacting("contracts/AGENTS.md") is False
+    # The carve-out is for Markdown only — real contracts still gate.
+    assert is_release_impacting("contracts/adapter.toml") is True
+    assert is_release_impacting("contracts/jsonschema/whatever.schema.json") is True
+
+
 def test_a_contracts_only_change_without_an_indicator_fails() -> None:
     """The end-to-end predicate pair Gate G composes: impacting + no indicator."""
     changed = ["contracts/catalogue.schema.json"]
