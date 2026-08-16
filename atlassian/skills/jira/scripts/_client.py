@@ -513,6 +513,32 @@ class JiraClient:
 
     # --- identity / health -------------------------------------------------
 
+    def _json(self, resp):
+        """Decode a 2xx body, treating a non-JSON one as an expired SSO session.
+
+        On the **cookie path** a 2xx is not on its own evidence of a live
+        session: an SSO reverse proxy commonly answers an expired one with
+        ``200`` plus the IdP login page. `whoami` guarded that; every other read
+        method called ``resp.json()`` directly, so the same login page reached
+        them as a ``ValueError`` and surfaced as a generic exit 1 — "invalid
+        JSON" where the true cause is "your session expired", which sends the
+        operator debugging the wrong thing.
+
+        On the token path the guard does not apply: a non-JSON 2xx there is a
+        genuine server or proxy fault, not an expired session, and reporting it
+        as one would be its own wrong answer. The original exception propagates.
+        """
+        try:
+            return resp.json()
+        except ValueError as exc:  # incl. json.JSONDecodeError
+            if self._auth_mode == "sso-cookie":
+                raise SsoSessionUnavailable(
+                    f"the SSO session for profile {self._profile} returned a "
+                    f"non-JSON body (an IdP login page is the usual cause); "
+                    f"the session has expired"
+                ) from exc
+            raise
+
     async def whoami(self) -> dict:
         """Return the authenticated user record.
 
@@ -527,27 +553,23 @@ class JiraClient:
         exit 0, which is worse than a missed recovery.
         """
         resp = await self._request("GET", f"{self._api}/myself")
+        # The non-JSON half of this guard now lives in `_json`, which every read
+        # path shares. What stays here is the half that is genuinely specific to
+        # `whoami`: a *parseable* body carrying no identity. Only this endpoint
+        # promises an identity, so only here can its absence be diagnosed.
+        data = self._json(resp)
         if self._auth_mode == "sso-cookie":
-            try:
-                data = resp.json()
-            except ValueError as exc:  # incl. json.JSONDecodeError
-                raise SsoSessionUnavailable(
-                    f"the SSO session for profile {self._profile} returned a "
-                    f"non-JSON body (an IdP login page is the usual cause); "
-                    f"the session has expired"
-                ) from exc
             if identity_of(data) is None:
                 raise SsoSessionUnavailable(
                     f"the SSO session for profile {self._profile} returned no "
                     f"identity; the session has expired"
                 )
             return data
-        data = resp.json()
         return data if isinstance(data, dict) else {"value": data}
 
     async def server_info(self) -> dict:
         resp = await self._request("GET", f"{self._api}/serverInfo")
-        return resp.json()
+        return self._json(resp)
 
     # --- issue operations --------------------------------------------------
 
@@ -566,7 +588,7 @@ class JiraClient:
         resp = await self._request(
             "GET", f"{self._api}/issue/{issue_key}", params=params or None
         )
-        return resp.json()
+        return self._json(resp)
 
     async def create_issue(self, body: Mapping[str, Any]) -> dict:
         """POST /issue with a body that already has the `{"fields": {...}}`
@@ -579,7 +601,7 @@ class JiraClient:
         resp = await self._request("POST", f"{self._api}/issue", json_body=payload)
         if not resp.content:
             return {}
-        return resp.json()
+        return self._json(resp)
 
     async def update_issue(
         self, issue_key: str, body: Mapping[str, Any], *, notify_users: bool = True
@@ -608,7 +630,7 @@ class JiraClient:
         resp = await self._request(
             "GET", f"{self._api}/issue/{issue_key}/transitions"
         )
-        data = resp.json()
+        data = self._json(resp)
         return data.get("transitions", []) if isinstance(data, dict) else []
 
     async def transition_issue(
@@ -656,7 +678,7 @@ class JiraClient:
             f"{self._api}/issue/{issue_key}/comment",
             json_body=payload,
         )
-        return resp.json() if resp.content else {}
+        return self._json(resp) if resp.content else {}
 
     async def add_attachment(self, issue_key: str, file_path: Path) -> list[dict]:
         """POST /issue/{key}/attachments. Requires the
@@ -674,7 +696,7 @@ class JiraClient:
         )
         if not resp.content:
             return []
-        data = resp.json()
+        data = self._json(resp)
         return data if isinstance(data, list) else [data]
 
     # --- JQL search --------------------------------------------------------
@@ -722,7 +744,7 @@ class JiraClient:
                 resp = await self._request(
                     "POST", f"{self._api}/search/jql", json_body=body
                 )
-                data = resp.json()
+                data = self._json(resp)
                 issues = data.get("issues", []) if isinstance(data, dict) else []
                 if not issues:
                     return
@@ -754,7 +776,7 @@ class JiraClient:
                 resp = await self._request(
                     "GET", f"{self._api}/search", params=params
                 )
-                data = resp.json()
+                data = self._json(resp)
                 issues = data.get("issues", []) if isinstance(data, dict) else []
                 if not issues:
                     return
@@ -771,7 +793,7 @@ class JiraClient:
 
     async def get_project(self, key_or_id: str) -> dict:
         resp = await self._request("GET", f"{self._api}/project/{key_or_id}")
-        return resp.json()
+        return self._json(resp)
 
     async def iter_projects(
         self,
@@ -794,7 +816,7 @@ class JiraClient:
             resp = await self._request(
                 "GET", f"{self._api}/project/search", params=params
             )
-            data = resp.json()
+            data = self._json(resp)
             values = data.get("values", []) if isinstance(data, dict) else []
             if not values:
                 return
@@ -828,7 +850,7 @@ class JiraClient:
         if not params:
             raise ValueError("account_id (cloud) or username/key (server) is required")
         resp = await self._request("GET", f"{self._api}/user", params=params)
-        return resp.json()
+        return self._json(resp)
 
     async def iter_users(
         self,
@@ -856,7 +878,7 @@ class JiraClient:
                 }
                 path = f"{self._api}/user/search"
             resp = await self._request("GET", path, params=params)
-            data = resp.json()
+            data = self._json(resp)
             users = data if isinstance(data, list) else data.get("values", [])
             if not users:
                 return
@@ -888,7 +910,7 @@ class JiraClient:
             return None
         ctype = resp.headers.get("content-type", "")
         if "json" in ctype:
-            return resp.json()
+            return self._json(resp)
         return resp.text
 
 

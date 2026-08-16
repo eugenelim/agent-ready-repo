@@ -412,23 +412,43 @@ class ConfluenceClient:
 
     # --- High-level operations ---
 
-    async def whoami(self) -> dict:
-        resp = await self._request("GET", "/rest/api/user/current")
-        if self._auth_mode == "sso-cookie":
-            try:
-                data = resp.json()
-            except ValueError as exc:
+    def _json(self, resp):
+        """Decode a 2xx body, treating a non-JSON one as an expired SSO session.
+
+        Mirrors the jira client's decoder, and exists for the same reason: on
+        the cookie path an SSO proxy answers an expired session with ``200``
+        plus the IdP login page, so a bare ``resp.json()`` surfaces "invalid
+        JSON" where the true cause is "your session expired" — sending the
+        operator to debug a parser instead of re-authenticating.
+
+        On the token path the original error propagates: a non-JSON 2xx there is
+        a server or proxy fault, not an expiry, and saying otherwise would be its
+        own wrong answer.
+        """
+        try:
+            return resp.json()
+        except ValueError as exc:
+            if self._auth_mode == "sso-cookie":
                 raise SsoSessionUnavailable(
                     f"the SSO session for profile {self._profile} returned a "
                     "non-JSON body; the session has expired"
                 ) from exc
+            raise
+
+    async def whoami(self) -> dict:
+        resp = await self._request("GET", "/rest/api/user/current")
+        # The non-JSON half now lives in `_json`, shared by every read. What is
+        # specific to whoami is a *parseable* body carrying no identity — only
+        # this endpoint promises one, so only here can its absence be diagnosed.
+        data = self._json(resp)
+        if self._auth_mode == "sso-cookie":
             if identity_of(data) is None:
                 raise SsoSessionUnavailable(
                     f"the SSO session for profile {self._profile} returned no "
                     "identity; the session has expired"
                 )
             return data
-        return resp.json()
+        return data
 
     async def get_space_homepage_id(self, space_key: str) -> str | None:
         resp = await self._request(
@@ -436,7 +456,7 @@ class ConfluenceClient:
             f"/rest/api/space/{space_key}",
             params={"expand": "homepage"},
         )
-        data = resp.json()
+        data = self._json(resp)
         home = data.get("homepage") or {}
         hid = home.get("id")
         return str(hid) if hid else None
@@ -452,7 +472,7 @@ class ConfluenceClient:
                 )
             },
         )
-        d = resp.json()
+        d = self._json(resp)
         ancestors = d.get("ancestors") or []
         parent_id = str(ancestors[-1]["id"]) if ancestors else None
         labels = tuple(
@@ -492,7 +512,7 @@ class ConfluenceClient:
                 f"/rest/api/content/{page_id}/child/page",
                 params={"start": start, "limit": PAGE_SIZE, "expand": "version"},
             )
-            data = resp.json()
+            data = self._json(resp)
             for item in data.get("results", []):
                 yield item
             size = int(data.get("size", 0))
@@ -508,7 +528,7 @@ class ConfluenceClient:
                 f"/rest/api/content/{page_id}/child/attachment",
                 params={"start": start, "limit": PAGE_SIZE},
             )
-            data = resp.json()
+            data = self._json(resp)
             for item in data.get("results", []):
                 ext = item.get("extensions") or {}
                 links = item.get("_links") or {}

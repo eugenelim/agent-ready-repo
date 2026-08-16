@@ -331,7 +331,7 @@ Run the full GATES suite in order:
 3. **CSS token enforcement** (GATES phase step 3, if stylelint is configured)
 4. **Visual QA checklist** (GATES phase step 4) — confirm all 18 applicable states are present
 
-After running all four gates, generate the evidence manifest (see Evidence manifest section below) with the results.
+After running all four gates, generate the evidence manifest (see Evidence manifest section below) with the results. On a production-tier surface, the manifest's two production fields are part of that output: record the security/privacy and reliability review status, routing anything you cannot answer to `security-reviewer` or `quality-engineer` and recording that it is outstanding. A gate run that reports four green gates while saying nothing about either is the shape this manifest exists to prevent.
 
 ---
 
@@ -602,6 +602,30 @@ FE cannot claim completion (create or retrofit) or a passing gate run (verify) w
 | analytics events | Confirmation of measurement events firing on primary action completion |
 | known exceptions | Documented, accepted gaps with rationale and owner — not a place to hide problems |
 | unverified items | Items that could not be verified in this session with reason (no Chromium, no network, etc.) |
+
+**Additional fields for a production surface (2 more, 13 in total):**
+
+The Digital Experience Contract carries a *Security and Privacy* and a
+*Reliability* field at production tier, and this manifest did not require the
+evidence behind either. The gap showed up as adopter-facing prose being narrowed
+to avoid claiming coverage FE does not have — the honest short-term fix, but it
+left the contract asking for something nothing collected.
+
+**Record status and handoff. Do not perform the review.** FE does not own
+security review or reliability engineering, and these fields must not read as a
+claim that it does. A field whose honest value is "not reviewed — routed to
+`security-reviewer`, outstanding" is doing its job: it makes the gap visible at
+the moment someone is deciding whether to ship.
+
+| Field | What to record |
+|---|---|
+| security/privacy review status | What user data this surface handles (inputs, storage, third-party calls) and the state of its security review: reviewed and by whom, routed and outstanding, or explicitly not applicable with a reason. Auth, secrets, and user-input boundaries stay `security-reviewer`'s call — record the handoff and its outcome, never a verdict of your own. |
+| reliability/recovery status | The surface's error-handling and recovery path: what the user sees when a request fails, whether errors are monitored and by whom, and any SLO or alerting owner. Where FE cannot answer — error rates, alerting thresholds — name the `quality-engineer` or platform owner the question went to, and whether it is answered. |
+
+Both are required only for **production**-tier surfaces, matching the contract's
+own `Required: production+` annotation. On an explore- or pilot-tier surface,
+record them as not-applicable-at-this-tier rather than leaving them blank, so a
+reader can tell the difference between "not needed yet" and "nobody looked".
 
 ---
 
