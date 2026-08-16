@@ -1,6 +1,6 @@
 # Spec: SAST/SCA tooling (Bandit + pip-audit + Semgrep)
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0084](../../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) — the Bandit suppression-comment form this spec teaches was reversed; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017
