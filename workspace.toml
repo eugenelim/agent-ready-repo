@@ -757,19 +757,20 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "ci-parity-docs-yml-out-of-scope", source = "spec/local-gate-ci-parity (scope)"},
 
-  # `tools/repo/build_gate_chain.py`'s step contract is `[sys.executable, <script>]`
-  # with no cwd and no arguments — asserted by
-  # `test_build_gate_chain.py::test_script_steps_are_windows_clean`. Several CI
-  # gates are `working-directory` pytest invocations against skill `scripts/`
-  # dirs (catalogue-curation's assimilate-primitive/assimilate-repo suites, the
-  # credential-setup suite, the converters evals-disposition loop). They are
-  # pure-stdlib and could run locally, but the chain has no vocabulary for them,
-  # so they sit in lint-ci-parity.py's EXEMPTIONS with that as the stated reason.
-  # Fix: add a cwd-aware step kind (`_pytest_step(label, cwd, *targets)`) that
-  #   stays Windows-clean (no shell, no `cd &&`), relax the argv-length assertion
-  #   to a shell-token assertion, then move those exemptions into the chain.
+  # Split out of gate-chain-step-vocabulary 2026-08-16 when the cwd half
+  # shipped (spec/gate-chain-cwd-steps). The chain now has `_pytest_step_cwd`,
+  # and the credential-setup gate moved from CI-only to locally covered.
+  # The catalogue-curation skill-script step did NOT move, and the reason has
+  # changed: it is no longer a missing step kind. That CI step carries its own
+  # shell body which counts collected tests per suite and asserts a FLOOR,
+  # because its invocations are directory-scoped with no filenames — so a suite
+  # that fails to land reduces the count and the step still exits 0. Porting it
+  # means reimplementing that floor in Python, not adding a step kind.
+  # Fix: give the chain a step kind that asserts a minimum collected count
+  #   (parse `pytest -q` output, or use `--collect-only -q` and count), then
+  #   move the exemption.
   # Unblocks when: picked up — no dependency.
-  {slug = "gate-chain-step-vocabulary", source = "spec/local-gate-ci-parity review"},
+  {slug = "gate-chain-curation-count-floor", source = "spec/gate-chain-cwd-steps"},
 
   # `tools/lint-catalogue-curation-guard.py`'s path-gate layer exits 0 with only a
   # stderr note when git or the `--base` ref is unavailable. It is now wired into

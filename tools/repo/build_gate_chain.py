@@ -95,6 +95,31 @@ def _pytest_step(label: str, *path_parts: str) -> Step:
     return (label, _thunk)
 
 
+def _pytest_step_cwd(label: str, cwd: str, *targets: str) -> Step:
+    """Wrap a pytest run that must execute FROM a directory.
+
+    Some suites are directory-scoped by construction: their `conftest.py` puts
+    the skill's `scripts/` on `sys.path`, so running them from the repo root
+    collects nothing useful. CI expresses that with `working-directory:`; the
+    chain had no vocabulary for it, so those gates were CI-only and a local
+    `make build-check` could not run them at all.
+
+    Windows-clean, which is the whole reason this is a step kind rather than a
+    shell string: `subprocess`'s own `cwd=` moves the child, so there is no
+    `cd &&`, no shell, and no POSIX-only quoting. The argv stays a plain list.
+    """
+    directory = Path(cwd)
+
+    def _thunk(directory=directory, targets=targets) -> int:
+        return subprocess.run(
+            [sys.executable, "-m", "pytest", *targets, "-q"],
+            cwd=str(REPO_ROOT / directory),
+            check=False,
+        ).returncode
+
+    return (label, _thunk)
+
+
 def _module_step(label: str, *cmd_args: str) -> Step:
     """Run ``python -m agentbundle <cmd_args>`` as a chain step.
 
@@ -325,6 +350,17 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "check-contract-drift",
             "tools", "repo", "check_contract_drift.py",
+        ),
+        # Directory-scoped: this suite's conftest puts the skill's scripts/ on
+        # sys.path, so it collects nothing from the repo root. It was CI-only
+        # purely because the chain had no cwd vocabulary. The crypto-gated cases
+        # self-skip via `requires_crypto`, so a machine without the [crypto]
+        # extra still passes — CI keeps its own import probe to assert the extra
+        # IS installed there, which is provisioning verification, not a gate.
+        _pytest_step_cwd(
+            "pytest credential-setup skill",
+            "packs/credential-brokers/tests/skills/credential-setup",
+            "test_setup.py", "test_credential_setup_skill.py",
         ),
     ]
     return _run_chain(steps)

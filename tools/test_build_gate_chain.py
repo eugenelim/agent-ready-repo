@@ -142,7 +142,7 @@ class BuildSelfChainTest(unittest.TestCase):
     def _run_with_fake_subprocess(self, args: argparse.Namespace) -> tuple[int, list[list[str]]]:
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check, env=None, cwd=None):
             seen.append(argv)
             return mock.Mock(returncode=0)
 
@@ -221,6 +221,9 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
     "tools/repo/check_contract_drift.py",
+    # Directory-scoped (cwd), so its targets are bare filenames rather than
+    # repo-root paths — the first step of this kind in the chain.
+    "test_setup.py",
 ]
 
 
@@ -230,7 +233,7 @@ class BuildCheckChainTest(unittest.TestCase):
     def test_full_step_sequence(self):
         order: list[str] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check, env=None, cwd=None):
             order.append("subprocess")
             return mock.Mock(returncode=0)
 
@@ -246,7 +249,7 @@ class BuildCheckChainTest(unittest.TestCase):
         """The first step must invoke agentbundle catalogue build."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check, env=None, cwd=None):
             seen.append(list(argv))
             return mock.Mock(returncode=0)
 
@@ -266,7 +269,7 @@ class BuildCheckChainTest(unittest.TestCase):
         """pre-pr-catalogue must call tools/catalogue/pre_pr_catalogue.py."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check, env=None, cwd=None):
             seen.append(list(argv))
             return mock.Mock(returncode=0)
 
@@ -281,38 +284,77 @@ class BuildCheckChainTest(unittest.TestCase):
         self.assertIn("tools/catalogue/pre_pr_catalogue.py", script_path)
 
     def test_script_steps_are_windows_clean(self):
-        """Every spawned argv is a shell-free Python script or pytest call."""
-        seen: list[list[str]] = []
+        """Every spawned argv is shell-free.
 
-        def fake_run(argv, check, env=None):
-            seen.append(list(argv))
+        The claim this test carries is *Windows-cleanliness*, and the argv
+        LENGTH was only ever a proxy for it — a cheap stand-in for "nothing
+        clever is going on". The proxy became the constraint: a suite that has
+        to run from its own directory could not be expressed at all, so those
+        gates stayed CI-only (see `_pytest_step_cwd`). Directory-scoping is
+        Windows-clean — `subprocess`'s `cwd=` needs no shell and no `cd &&` —
+        so the assertion now says what it means: no shell, no `.sh`, no
+        POSIX-only quoting, and an argv that is a plain list of tokens.
+        """
+        seen: list[tuple[list[str], object]] = []
+
+        def fake_run(argv, check, env=None, cwd=None):
+            seen.append((list(argv), cwd))
             return mock.Mock(returncode=0)
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
-        pytest_paths = {
-            "packs/core/tests/skills/work-loop/test_lint_spec_status.py",
-            "packs/core/tests/skills/receive-brief/test_lint_brief_coverage.py",
-            "packs/core/tests/skills/work-loop/test_lint_traceability.py",
-        }
-        for argv in seen[1:]:  # skip first (module step has extra args)
+        for argv, cwd in seen[1:]:  # skip first (module step has extra args)
             self.assertEqual(argv[0], sys.executable)
-            path = Path(argv[3] if argv[1:3] == ["-m", "pytest"] else argv[1]).as_posix()
-            if path in pytest_paths:
-                self.assertEqual(argv[1:3], ["-m", "pytest"])
+            if argv[1:3] == ["-m", "pytest"]:
                 self.assertEqual(argv[-1], "-q")
+                self.assertGreater(len(argv), 3, "a pytest step needs a target")
             else:
+                # A plain script step: interpreter + one script path.
                 self.assertEqual(len(argv), 2)
             for token in argv:
                 self.assertNotIn(token, ("bash", "sh", "-c"))
                 self.assertFalse(token.endswith(".sh"))
+                # No shell metacharacters anywhere — the real Windows hazard,
+                # and what the length check was standing in for.
+                for meta in ("&&", "||", "|", ";", ">", "<", "$("):
+                    self.assertNotIn(meta, token, f"shell metacharacter in {token!r}")
+            if cwd is not None:
+                # A cwd is a real path under the repo, not a shell expression.
+                self.assertTrue(Path(cwd).is_absolute(), cwd)
+
+    def test_a_cwd_scoped_step_is_expressible(self):
+        """The vocabulary gap this replaced: no way to say "run from here".
+
+        Without it, a suite whose conftest puts the skill's scripts/ on
+        sys.path could only run in CI via `working-directory:`, so a local
+        `make build-check` silently skipped that gate entirely.
+        """
+        seen: list[tuple[list[str], object]] = []
+
+        def fake_run(argv, check, env=None, cwd=None):
+            seen.append((list(argv), cwd))
+            return mock.Mock(returncode=0)
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
+
+        scoped = [(argv, cwd) for argv, cwd in seen if cwd is not None]
+        self.assertTrue(scoped, "no cwd-scoped step ran")
+        argv, cwd = scoped[0]
+        self.assertTrue(
+            str(cwd).endswith("packs/credential-brokers/tests/skills/credential-setup"),
+            cwd,
+        )
+        self.assertEqual(argv[1:3], ["-m", "pytest"])
+        # Targets are bare filenames, resolved by the cwd — not repo-root paths.
+        self.assertIn("test_setup.py", argv)
 
     def test_spawned_script_paths_in_order(self):
         """The spawned script paths match the expected gate order."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check, env=None, cwd=None):
             seen.append(list(argv))
             return mock.Mock(returncode=0)
 
