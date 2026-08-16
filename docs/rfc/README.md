@@ -88,6 +88,7 @@
 | [0085](0085-catalogue-source-identity.md) | Catalogue source identity | Accepted | 2026-08-11 | 2026-08-11 |
 | [0086](0086-corporate-network-trust.md) | Corporate-network trust for catalogue fetches | Accepted | 2026-08-13 | 2026-08-14 |
 | [0087](0087-okf-knowledge-projection.md) | OKF knowledge projection | Accepted | 2026-08-15 | 2026-08-15 |
+| [0088](0088-web-pilot-foundation.md) | Web-pilot foundation — opt-in authenticated-browser runtime, immutable website adapters, per-consumer grants, and six pre-acceptance validation spikes | Experimental | 2026-08-14 | |
 
 ## Adding a new RFC
 
