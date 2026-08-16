@@ -1123,15 +1123,6 @@ open = [
   # Unblocks when: a concrete path to npm global-install integrity verification is found.
   {slug = "pack-evals-npm-lockfile-integrity", source = "spec/secret-scanner-for-api-key-workflows AC Assumption 5"},
 
-  # Security. All .github/workflows/*.yml use @vN tag pinning (e.g. actions/checkout@v4).
-  # Tag pinning is a TOFU posture — a re-tagged release is not detected.
-  # SHA pinning (actions/checkout@<sha>) is immune to tag mutation attacks.
-  # zizmor's unpinned-uses audit (HIGH) is suppressed for existing workflows via
-  # .github/zizmor.yml; SHA pinning retires that suppression.
-  # Fix: pin each action to a commit SHA in each .github/workflows/*.yml;
-  #   update zizmor.yml to remove per-file ignore once all actions are SHA-pinned.
-  # Unblocks when: someone takes a SHA-pin sweep PR for all existing workflows.
-  {slug = "github-actions-sha-pin", source = "spec/secret-scanner-for-api-key-workflows zizmor.yml Concern"},
 
   # spec/shared-prefix-aware-multi-adapter-install follow-on (reviewer Concern).
   # install routes state RMW through statelock.persist_state_locked (concurrency AC).
@@ -1166,21 +1157,6 @@ open = [
   # Unblocks when: a governance RFC or install-marker schema extension closes the gap.
   {slug = "skill-governance-inventory-gap"},
 
-  # Security (AST07). NARROWED 2026-08-15 after confirming the CI state the entry
-  # asked about. The headline concern is closed for shipped code: both
-  # packages/agentbundle and packages/credbroker declare `dependencies = []`
-  # (verified via tomllib on each pyproject.toml), so neither ships a third-party
-  # runtime dependency, and Makefile:241 already audits credbroker's [crypto] extra
-  # (cryptography, argon2-cffi) explicitly through pip-audit.
-  # ONE RESIDUAL, which is why this entry narrows rather than closes: agentbundle's
-  # [lint] extra is `pyyaml>=6.0` — genuinely third-party, and it reaches no
-  # pip-audit invocation. tools/requirements-sast.txt is audited; this extra is not.
-  # Fix: add the [lint] extra to the Makefile sast target's explicit audit, mirroring
-  #   the credbroker [crypto] line directly above it (printf | pip-audit -r /dev/stdin).
-  # Note there is no dependabot.yml in the repo at all, so pip-audit is the only SCA
-  # lens; that is a separate question from this one-line gap.
-  # Unblocks when: picked up — no dependency.
-  {slug = "ast07-sca-scanner-agentbundle"},
 
   # ── Medium effort, internal ──────────────────────────────────────────────────
   # (no external environment; needs a focused session or an RFC decision)

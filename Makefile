@@ -244,10 +244,14 @@ sast:
 		--ignore-vuln CVE-2026-52869 \
 		--ignore-vuln CVE-2026-59950 \
 		--ignore-vuln PYSEC-2026-2132
-	# Both shipped packages declare dependencies=[]; credbroker's optional
-	# [crypto] extra is the only third-party code either can pull, so audit it
-	# explicitly. Mirror packages/credbroker/pyproject.toml [crypto].
-	@printf 'cryptography>=42\nargon2-cffi>=23\n' | pip-audit -r /dev/stdin
+	# Both shipped packages declare dependencies=[]; their optional extras are
+	# the only third-party code either can pull, so audit those explicitly.
+	# Mirror packages/credbroker/pyproject.toml [crypto] and
+	# packages/agentbundle/pyproject.toml [lint]. The [lint] extra was missed
+	# until an audit of the AST07 backlog entry went looking: the entry asked
+	# whether SCA was wired for agentbundle, the runtime answer was "there is
+	# nothing to scan", and the extra was the one thing that was not nothing.
+	@printf 'cryptography>=42\nargon2-cffi>=23\npyyaml>=6.0\n' | pip-audit -r /dev/stdin
 	# npm SCA leg (ADR-0083). pip-audit above covers every Python dependency and
 	# no JavaScript; the repo's two npm projects ship their lockfiles into built
 	# output. Same "prove it before trusting it" order as the pip-audit leg: the
