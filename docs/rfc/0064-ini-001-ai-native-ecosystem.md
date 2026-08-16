@@ -623,9 +623,10 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 
 **Unknowable:** Exact adoption journey for enterprise teams with Jira Align mandates. The integration surface is org-specific (custom workflow state names, program increment cadences); a generic portable sync is impossible — this will always require harness-layer configuration. The M5 `jira-align-brief-intake` AC is intentionally scoped to 1-way intake (Jira Align Feature → brief) with configuration-guided field mapping; it does not claim generic portability.
 
-## Amendments
+## Errata
 
-<!-- Draft-RFC additions and corrections to this RFC's own decisions. Becomes `## Errata` on acceptance per RFC-0055. -->
+<!-- Accepted-RFC corrections. The frozen body above remains historical; the
+     current-state table below is authoritative where they differ. -->
 
 ### Current state
 
@@ -638,6 +639,8 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
 | 5 | 2026-07-30 | M2 sub-RFC gate formally waived | RFC-0064 required pe-pack-strategic-shaping sub-RFC before any M2 implementation. Sub-RFC was never opened; all M2 skill boundaries were pre-resolved in Known Unknowns (2026-07-18). All M2 specs shipped without requiring revision. Gate waived retroactively; resolved boundaries stand as specified. |
 | 6 | 2026-07-30 | `capture-work` name + RFC-0068 as M5 sub-RFC | `capture-work` is the canonical shipped name for the skill authorised as `queue-add` in the M3 AC (Amendment #3 authorised the rename; implementing spec: `docs/specs/capture-work/`). RFC-0068 · linear-pack (Accepted 2026-07-21) is the operative M5 linear sub-RFC; all references to "RFC-00XX · linear-pack" resolve to RFC-0068. |
 | 7 | 2026-07-30 | Initiative numbering conflict | `workspace.toml` reuses INI-003, INI-005, INI-006, INI-007 for internal repo initiatives (Digital Experience Doctrine; AgentBundle Portable Catalogue Tooling; Catalogue CI Contract; Catalogue Contracts/Composition/Semantics/Discovery). These are a separate namespace from the ecosystem overview's INI-003 (Coding CLI Adapter Pack) through INI-006 (Control Plane), which remain unstarted and are not tracked in `workspace.toml`. |
+| 8 | 2026-08-15 | Standalone Project artifact retired | RFC-0083 and ADR-0077/0078 supersede Amendment #3's Project container and the P5 Project-index design. Work enters through `work-intake`, materializes as canonical intent/brief/spec/defect artifacts, and is indexed in `workspace.toml`. Remove `docs/product/projects/` and `[product].projects`; recut P5 as a read-only Astro work index over the existing workspace-status contract. Tracker labels, desk-research projects, and codebase project indexes remain unrelated vocabulary. |
+| 9 | 2026-08-16 | P5 adoption closeout | Records the live-demo guide, static Astro work index, and enterprise rollout playbook as shipped. Work creation and routing remain owned by `work-intake`; `/work/` is read-only, and the two final slices retain independent canonical workspace records with no dependency between them. |
 
 ### History / audit trail
 
@@ -861,3 +864,16 @@ This RFC authorises the roadmap and vocabulary. M1 is fully specified by this RF
   namespace; the ecosystem framework's INI-003 through INI-006 are unstarted and not
   tracked in `workspace.toml`. No change to the ecosystem overview's numbering; this
   errata records the collision for future RFC authors. eugenelim.
+
+- **2026-08-15 — Standalone Project artifact retired.** RFC-0083 and its accepted
+  ADR-0077/0078 decisions establish one intake and artifact-routing model: work is
+  classified by `work-intake`, materialized as a canonical intent, brief, spec, or
+  defect, and indexed by `workspace.toml`; the index is not a second requirements
+  store. That model supersedes Amendment #3's per-repo Project container and the P5
+  Project-index proposal. The unused `docs/product/projects/` template and the
+  undocumented `[product].projects` layout key are removed with no data migration
+  because no real Project records or runtime consumers exist. P5 instead proposes
+  `docs/specs/m6-astro-work-index/`: a static, read-only PM view that consumes the
+  production workspace-status result and adds no creation workflow, lifecycle, or
+  routing logic. Uses of “project” as an external tracker label, a desk-research
+  lifecycle, or RFC-0079's per-codebase index are unaffected. Approved: eugenelim.

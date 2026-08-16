@@ -36,7 +36,7 @@ file as stale and ask before relying on it.
 
 ## Next
 
-**M2 · Strategic Shaping.** Five new PE pack skills grounding the six-step sequence (Outcome → Problem → Diverge → Validate → Bet → Spec) at initiative altitude. `frame-situation` (bottom-up signal → typed finding → six-step route; embeds Wardley capability maturity for situational awareness). `identify-opportunities` (step-2 opportunity assessment; embeds JTBD framing — functional / emotional / social jobs). `diverge-solutions` (step-3 option generation; must resolve overlap with existing `explore-options` skill). `place-bet` (step-5 human commitment gate; betting table surface). `map-capabilities` (product vision → all capability areas in one structured pass). Initiative brief artifact + Lean Canvas template as altitude-0/1 framing. Three-altitude model grounded: Company (years; PRFAQ, OKR) → Initiative (quarters; vision, capability map, initiative brief) → Project (weeks; brief, spec, plan). [RFC-00XX · pe-pack-strategic-shaping, opens when M1 ships]
+**M2 · Strategic Shaping.** Five new PE pack skills grounding the six-step sequence (Outcome → Problem → Diverge → Validate → Bet → Spec) at initiative altitude. `frame-situation` (bottom-up signal → typed finding → six-step route; embeds Wardley capability maturity for situational awareness). `identify-opportunities` (step-2 opportunity assessment; embeds JTBD framing — functional / emotional / social jobs). `diverge-solutions` (step-3 option generation; must resolve overlap with existing `explore-options` skill). `place-bet` (step-5 human commitment gate; betting table surface). `map-capabilities` (product vision → all capability areas in one structured pass). Initiative brief artifact + Lean Canvas template as altitude-0/1 framing. Delivery proceeds from a feature intent directly to one shippable spec, or through a brief when several specs or repositories need a shared envelope. [RFC-00XX · pe-pack-strategic-shaping, opens when M1 ships]
 
 **M3 · Findings & RFC Management.** `rfc-status` skill in governance-extras. `research-project-start` `.context/` bug fix. Findings register seeds (`rfc-candidates.md`, `roadmap-intents.md`). Pack renames: `research` → `desk-research` (canonical consulting/design-UX term); `experience` → `experience-design` (canonical agency term; used by frog, Fjord, AKQA). [No sub-RFC needed — direct implementation]
 
@@ -46,7 +46,7 @@ file as stale and ask before relying on it.
 
 **M5 · Tracker Integration.** `github-brief-intake`, `linear` pack + `linear-brief-intake`, `jira-align-brief-intake`. [RFC-00XX · linear-pack]
 
-**M6 · Documentation Wave.** Full documentation channel sweep for workspace.toml and PE pack. Diátaxis guides (tutorials, how-tos, reference, explanation). Astro site project index view. [No sub-RFC needed]
+**M6 · Documentation Wave.** Full documentation channel sweep for workspace.toml and PE pack. Diátaxis guides (tutorials, how-tos, reference, explanation). Astro site work index over the canonical workspace-status read model. [No sub-RFC needed]
 
 ## Shaping queue — research threads
 

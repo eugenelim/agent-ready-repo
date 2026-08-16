@@ -1,0 +1,526 @@
+---
+import type { WorkIndexCount, WorkIndexProjection } from '../../lib/work-index';
+
+interface Props {
+  data: WorkIndexProjection;
+}
+
+const { data } = Astro.props;
+const countLabels: readonly [WorkIndexCount, string][] = [
+  ['active', 'Active work'],
+  ['ready', 'Ready work'],
+  ['attention', 'Needs attention'],
+  ['briefs', 'Ready briefs'],
+  ['shaping', 'Shaping'],
+  ['backlog', 'Backlog'],
+];
+const deliveryEmpty = data.counts.active + data.counts.ready + data.counts.attention === 0;
+const visibleInitiatives = data.initiatives.filter(initiative =>
+  initiative.active.length + initiative.ready.length + initiative.attention.length > 0
+);
+const bucketDefinitions = [
+  { key: 'active', label: 'Active work' },
+  { key: 'ready', label: 'Ready work' },
+  { key: 'attention', label: 'Needs attention' },
+] as const;
+const fileLabel = (path: string) => {
+  const filename = path.split('/').at(-1) ?? path;
+  return filename.endsWith('.md') ? filename.slice(0, -3) : filename;
+};
+const backlogLabel = (item: WorkIndexProjection['backlog'][number]) =>
+  item.summary ?? item.slug ?? item.path ?? item.label ?? 'Backlog item';
+---
+
+<div class="work-index">
+  <header class="work-hero">
+    <div class="work-hero__inner">
+      <p class="eyebrow">Static repository snapshot</p>
+      <h1>Work index</h1>
+      <p class="work-hero__lead">
+        Canonical delivery state from <code>workspace-status</code>, grouped for the next
+        planning conversation. This page is built from the repository; it is not a live
+        control plane.
+      </p>
+    </div>
+  </header>
+
+  <section class="summary" aria-labelledby="summary-heading">
+    <div class="section-inner">
+      <h2 id="summary-heading" class="visually-hidden">Workspace summary</h2>
+      <dl class="counts">
+        {countLabels.map(([key, label]) => (
+          <div class={`count count--${key}`}>
+            <dt>{label}</dt>
+            <dd>{data.counts[key]}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  </section>
+
+  <section class="delivery" aria-labelledby="delivery-heading">
+    <div class="section-inner section-inner--narrow">
+      <div class="section-heading">
+        <p class="eyebrow eyebrow--light">Delivery</p>
+        <h2 id="delivery-heading">Current executable work</h2>
+        <p>Active work leads, followed by ready work and items that need attention.</p>
+      </div>
+
+      {deliveryEmpty ? (
+        <div class="empty-state">
+          <h3>No active, ready, or attention-needed work</h3>
+          <p>
+            Use <code>work-intake</code> to create or route work. Use
+            <code>workspace-status</code> for the operational view and canonical next steps.
+          </p>
+        </div>
+      ) : (
+        <div class="initiatives">
+          {visibleInitiatives.map(initiative => (
+            <article class="initiative" aria-labelledby={`initiative-${initiative.slug}`}>
+              <header class="initiative__header">
+                <div>
+                  <p class="initiative__id">{initiative.slug}</p>
+                  <h3 id={`initiative-${initiative.slug}`}>{initiative.name}</h3>
+                </div>
+                <p class="initiative__milestone">{initiative.milestone}</p>
+              </header>
+
+              <div class="work-buckets">
+                {bucketDefinitions.map(({ key, label }) => {
+                  const items = initiative[key];
+                  return (
+                    <section class={`bucket bucket--${key}`} aria-label={label}>
+                      <h4>{label} <span>{items.length}</span></h4>
+                      {items.length > 0 ? (
+                        <ol>
+                          {items.map(item => (
+                            <li>
+                              <div class="item-heading">
+                                <span class={`status status--${key}`}>
+                                  {label.replace(' work', '')}
+                                </span>
+                                <strong>{item.summary}</strong>
+                              </div>
+                              {key === 'attention' && item.findings.length > 0 && (
+                                <ul class="findings">
+                                  {item.findings.map(finding => (
+                                    <li>
+                                      <span class="finding-code">{finding.code}</span>
+                                      <span>{finding.nextAction}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              )}
+                              <code>{item.path}</code>
+                            </li>
+                          ))}
+                        </ol>
+                      ) : <p class="bucket-empty">None</p>}
+                    </section>
+                  );
+                })}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
+  </section>
+
+  <section class="context" aria-labelledby="context-heading">
+    <div class="section-inner section-inner--narrow">
+      <div class="section-heading">
+        <p class="eyebrow eyebrow--light">Upstream context</p>
+        <h2 id="context-heading">Not executable work</h2>
+        <p>Briefs, shaping, and repository backlog stay separate from delivery state.</p>
+      </div>
+
+      <div class="context-groups">
+        <details open={data.briefs.length > 0}>
+          <summary>Ready briefs <span>{data.counts.briefs}</span></summary>
+          {data.briefs.length > 0 ? (
+            <ul>
+              {data.briefs.map(brief => (
+                <li><strong>{fileLabel(brief.path)}</strong><code>{brief.path}</code></li>
+              ))}
+            </ul>
+          ) : <p class="context-empty">No ready briefs.</p>}
+        </details>
+
+        <details open={data.shaping.length > 0 && data.shaping.length < 8}>
+          <summary>Shaping <span>{data.counts.shaping}</span></summary>
+          {data.shaping.length > 0 ? (
+            <ul>
+              {data.shaping.map(item => (
+                <li>
+                  <strong>{item.slug}</strong>
+                  <span class="context-meta">{item.status ?? 'context'} · {item.type} · {item.initiative}</span>
+                </li>
+              ))}
+            </ul>
+          ) : <p class="context-empty">No shaping or signal context.</p>}
+        </details>
+
+        <details>
+          <summary>Backlog <span>{data.counts.backlog}</span></summary>
+          {data.backlog.length > 0 ? (
+            <ul>
+              {data.backlog.map(item => (
+                <li>
+                  <strong>{backlogLabel(item)}</strong>
+                  {item.path && <code>{item.path}</code>}
+                </li>
+              ))}
+            </ul>
+          ) : <p class="context-empty">No open repository backlog.</p>}
+        </details>
+      </div>
+    </div>
+  </section>
+</div>
+
+<style>
+  .work-index {
+    background: var(--ds-surface);
+  }
+
+  .section-inner,
+  .work-hero__inner {
+    width: min(100%, var(--ds-content-max));
+    margin: 0 auto;
+    padding-inline: var(--ds-content-pad-x);
+  }
+
+  .section-inner--narrow {
+    max-width: 1040px;
+  }
+
+  .work-hero {
+    padding-block: clamp(4.5rem, 9vw, 7rem);
+    color: var(--ds-hero-fg);
+    background: var(--ds-hero-bg);
+    border-bottom: 1px solid var(--ds-hero-border);
+  }
+
+  .work-hero h1 {
+    max-width: 12ch;
+    color: var(--ds-hero-fg);
+  }
+
+  .eyebrow,
+  .initiative__id {
+    margin-bottom: var(--ds-space-3);
+    color: var(--ds-accent);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-bold);
+    letter-spacing: var(--ds-track-label);
+    text-transform: uppercase;
+  }
+
+  .eyebrow--light,
+  .initiative__id {
+    color: var(--ds-accent-deep);
+  }
+
+  .work-hero__lead {
+    max-width: 66ch;
+    margin-top: var(--ds-space-5);
+    color: var(--ds-hero-fg-2);
+    font-size: var(--ds-type-body-lg);
+  }
+
+  .work-hero code {
+    color: var(--ds-hero-fg);
+  }
+
+  .summary {
+    border-bottom: 1px solid var(--ds-border);
+  }
+
+  .counts {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .count {
+    display: flex;
+    min-width: 0;
+    flex-direction: column-reverse;
+    gap: var(--ds-space-1);
+    padding: var(--ds-space-5) var(--ds-space-4);
+    border-left: 1px solid var(--ds-border);
+  }
+
+  .count:last-child {
+    border-right: 1px solid var(--ds-border);
+  }
+
+  .count dt {
+    color: var(--ds-on-surface-muted);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    letter-spacing: var(--ds-track-label);
+    text-transform: uppercase;
+  }
+
+  .count dd {
+    color: var(--ds-on-surface);
+    font-size: var(--ds-type-h2);
+    font-weight: var(--ds-weight-heavy);
+    line-height: 1;
+  }
+
+  .count--attention dd {
+    color: var(--ds-state-warn-fg);
+  }
+
+  .delivery,
+  .context {
+    padding-block: var(--ds-section-pad-y);
+  }
+
+  .context {
+    background: var(--ds-surface-alt);
+    border-top: 1px solid var(--ds-border);
+  }
+
+  .section-heading {
+    max-width: 68ch;
+    margin-bottom: var(--ds-space-7);
+  }
+
+  .section-heading > p:last-child {
+    margin-top: var(--ds-space-3);
+    color: var(--ds-on-surface-muted);
+  }
+
+  .empty-state {
+    padding: var(--ds-space-7);
+    background: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-lg);
+  }
+
+  .empty-state p {
+    max-width: 65ch;
+    margin-top: var(--ds-space-3);
+  }
+
+  .initiatives {
+    display: grid;
+    gap: var(--ds-space-7);
+  }
+
+  .initiative {
+    min-width: 0;
+    border-top: 3px solid var(--ds-on-surface);
+  }
+
+  .initiative__header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: var(--ds-space-5);
+    padding-block: var(--ds-space-5);
+  }
+
+  .initiative__id {
+    margin-bottom: var(--ds-space-1);
+  }
+
+  .initiative__milestone {
+    max-width: 32ch;
+    color: var(--ds-on-surface-muted);
+    font-size: var(--ds-type-sm);
+    text-align: right;
+  }
+
+  .work-buckets {
+    display: grid;
+    gap: var(--ds-space-4);
+  }
+
+  .context-groups {
+    display: grid;
+    gap: var(--ds-space-3);
+  }
+
+  details {
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+  }
+
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    padding: var(--ds-space-3) var(--ds-space-4);
+    color: var(--ds-on-surface);
+    font-weight: var(--ds-weight-semibold);
+    cursor: pointer;
+  }
+
+  summary span {
+    font-family: var(--ds-font-mono);
+  }
+
+  details ul,
+  .context-empty {
+    border-top: 1px solid var(--ds-border);
+  }
+
+  details li {
+    display: grid;
+    gap: var(--ds-space-1);
+    min-width: 0;
+    padding: var(--ds-space-3) var(--ds-space-4);
+    overflow-wrap: anywhere;
+  }
+
+  details li + li {
+    border-top: 1px solid var(--ds-border-subtle);
+  }
+
+  details code,
+  .context-meta {
+    color: var(--ds-on-surface-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .context-empty {
+    padding: var(--ds-space-4);
+    color: var(--ds-on-surface-muted);
+  }
+
+  @media (max-width: 760px) {
+    .counts {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .count:nth-child(odd) {
+      border-left: 1px solid var(--ds-border);
+    }
+
+    .initiative__header {
+      flex-direction: column;
+    }
+
+    .initiative__milestone {
+      text-align: left;
+    }
+
+    .empty-state {
+      padding: var(--ds-space-5);
+    }
+  }
+
+  .bucket {
+    min-width: 0;
+    background: var(--ds-surface-alt);
+    border: 1px solid var(--ds-border);
+    border-radius: var(--ds-radius-md);
+  }
+
+  .bucket--attention {
+    border-color: var(--ds-state-warn-border);
+  }
+
+  .bucket h4 {
+    display: flex;
+    justify-content: space-between;
+    padding: var(--ds-space-3) var(--ds-space-4);
+    font-size: var(--ds-type-body);
+    border-bottom: 1px solid var(--ds-border);
+  }
+
+  .bucket h4 span {
+    font-family: var(--ds-font-mono);
+  }
+
+  .bucket > ol > li {
+    display: grid;
+    gap: var(--ds-space-3);
+    min-width: 0;
+    padding: var(--ds-space-4);
+  }
+
+  .bucket > ol > li + li {
+    border-top: 1px solid var(--ds-border);
+  }
+
+  .item-heading {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ds-space-3);
+    min-width: 0;
+  }
+
+  .item-heading strong {
+    overflow-wrap: anywhere;
+  }
+
+  .status,
+  .finding-code {
+    flex: 0 0 auto;
+    padding: 2px var(--ds-space-2);
+    font-family: var(--ds-font-mono);
+    font-size: var(--ds-type-xs);
+    font-weight: var(--ds-weight-semibold);
+    border: 1px solid var(--ds-state-neutral-border);
+    border-radius: var(--ds-radius-pill);
+  }
+
+  .status--active {
+    color: var(--ds-state-info-fg);
+    background: var(--ds-state-info-bg);
+    border-color: var(--ds-state-info-border);
+  }
+
+  .status--ready {
+    color: var(--ds-state-success-fg);
+    background: var(--ds-state-success-bg);
+    border-color: var(--ds-state-success-border);
+  }
+
+  .status--attention,
+  .finding-code {
+    color: var(--ds-state-warn-fg);
+    background: var(--ds-state-warn-bg);
+    border-color: var(--ds-state-warn-border);
+  }
+
+  .findings {
+    display: grid;
+    gap: var(--ds-space-2);
+  }
+
+  .findings li {
+    display: flex;
+    align-items: baseline;
+    gap: var(--ds-space-3);
+    overflow-wrap: anywhere;
+  }
+
+  .bucket code {
+    color: var(--ds-on-surface-muted);
+    overflow-wrap: anywhere;
+  }
+
+  .bucket-empty {
+    padding: var(--ds-space-4);
+    color: var(--ds-on-surface-muted);
+  }
+
+  @media (max-width: 600px) {
+    .item-heading,
+    .findings li {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: var(--ds-space-2);
+    }
+  }
+</style>

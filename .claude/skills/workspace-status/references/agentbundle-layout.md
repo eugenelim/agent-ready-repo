@@ -8,22 +8,18 @@ never-overwrite**). On the rare append of a *missing* section, the installer
 re-emits the file and does **not** preserve freeform comments or off-schema keys;
 an existing section is left byte-identical (the re-emit runs only when your
 section is absent). This page documents the `[product]` section that
-product-facing skills read to locate the `projects/` and `shaping/` directories.
+product-facing skills read to locate the `shaping/` directory.
 
 ## The `[product]` table
 
-Two configurable keys; `briefs` is intentionally absent (pinned):
+One configurable key; `briefs` is intentionally absent (pinned):
 
 ```toml
 [product]
-projects = "docs/product/projects"   # one file per project; seeded from _template.md
 shaping  = "docs/product/shaping"    # vision docs, opportunity assessments, capability maps
 # briefs path is pinned at docs/product/briefs/ — not configurable here
 ```
 
-- **`projects`** is the base directory for project-index files (one `.md` per
-  time-bounded project). Skills that read or write project entries resolve paths
-  as `<projects>/<slug>.md`.
 - **`shaping`** is the base directory for upstream shaping artifacts: product
   vision docs, opportunity assessments, capability maps, initiative briefs. Produced
   by the PE six-step shaping sequence and the product-strategy pack.
@@ -49,9 +45,8 @@ the user file still applies.
 ## Default and posture
 
 When no `[product]` section resolves, skills fall back to the conventional
-defaults: `docs/product/projects` for `projects` and `docs/product/shaping`
-for `shaping`. These match the structure seeded by the core pack and documented
-in `docs/CONVENTIONS.md §5b`.
+default `docs/product/shaping` for `shaping`. This matches the structure
+documented in `docs/CONVENTIONS.md §5b`.
 
 `core` ships **no `[pack.layout.user]` default** for this section — product
 output is per-repo and there is no sensible cross-repo absolute path. For a
@@ -61,6 +56,5 @@ file by hand:
 ```toml
 # ~/.agentbundle/agentbundle-layout.toml
 [product]
-# projects = "/abs/path/to/projects"   # uncomment + set an absolute path
 # shaping  = "/abs/path/to/shaping"    # uncomment + set an absolute path
 ```

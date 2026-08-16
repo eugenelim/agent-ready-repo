@@ -504,10 +504,6 @@ right now?"
   *Document hierarchy*.
 - `personas.md` (optional) — who we're building for. Add only if it's
   actively used to make decisions; speculative personas rot.
-- `projects/` (optional) — project index. One file per project (per-repo
-  time-bounded outcome), seeded from `projects/_template.md`; tracks a
-  project's outcome, appetite, milestone map, and brief table. Add when a
-  project grows beyond what a roadmap entry can hold.
 - `shaping/` (optional) — upstream shaping artifacts: product vision docs,
   opportunity assessments, capability maps, and initiative briefs. Produced by
   the PE six-step shaping sequence and the product-strategy pack. Committed

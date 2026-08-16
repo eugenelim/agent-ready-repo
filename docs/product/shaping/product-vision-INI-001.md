@@ -39,7 +39,7 @@ An open, harness-agnostic product OS platform. A multi-pack catalogue that any t
 
 **The work queue.** `workspace.toml` — the coordination layer. A committed file on an initiative umbrella branch that declares what is being shaped, what is ready to build, what specs are executing, and what has shipped. Not execution state (that lives in the platform); declared intent that any agent can read to orient itself at session start.
 
-**The vocabulary.** A common language that maps to every team's existing tools. Brief ≈ Linear Issue ≈ Jira Story ≈ GitHub Issue. Project ≈ Linear Project ≈ Jira Epic. Milestone ≈ Linear Milestone ≈ GitHub Milestone. Initiative ≈ Linear Initiative ≈ Jira Initiative. Spec ≈ Sub-issue ≈ Sub-task. Teams do not abandon their trackers; the platform connects to them.
+**The vocabulary.** A common language that maps to every team's existing tools without adopting tracker containers as local ontology. A tracker Initiative, Project, Epic, Milestone, Story, or Issue is a classification hint: outcome content becomes an intent, a coherent multi-spec envelope becomes a brief, and one shippable contract becomes a spec. Teams do not abandon their trackers; the platform connects them to canonical repository artifacts.
 
 ## The adopter
 
@@ -47,7 +47,7 @@ Any engineering team that wants to run more agents than it has engineers. INI-00
 
 ## Why now
 
-Models capable of sustained multi-step engineering work became widely available in 2024–2025 — the bottleneck shifted from model capability to coordination infrastructure. Every team has the ingredients; almost no team has the infrastructure to combine them. The three-loop OS pattern is proven. The `workspace.toml` coordination layer is the last missing primitive at the project level. The strategy and planning layer is the next wave.
+Models capable of sustained multi-step engineering work became widely available in 2024–2025 — the bottleneck shifted from model capability to coordination infrastructure. Every team has the ingredients; almost no team has the infrastructure to combine them. The three-loop OS pattern is proven. The `workspace.toml` coordination layer is the last missing primitive at repository level. The strategy and planning layer is the next wave.
 
 ## What this is not
 

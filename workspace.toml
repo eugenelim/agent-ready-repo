@@ -121,6 +121,9 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  # P5 · Adopt — independent slices constrained by adopter-persona evidence.
+  {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
+  {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
   {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
@@ -222,10 +225,6 @@ queue   = [
   # and a separately governed multi-project bank. Reassess whether this remains one closeout
   # spec after Slice 4; it must not implement those conditional follow-ons itself.
   {path = "docs/specs/project-knowledge-adoption-closeout/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Evaluate and close out the portable project knowledge lifecycle", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md"}]},
-
-  # P5 · Adopt — gated on adopter-persona research (evidence base)
-  {path = "spec/m6-astro-project-index",         needs = "research:adopter-persona"},  # Astro site: PM-facing project index from docs/product/projects/
-  {path = "spec/m6-enterprise-rollout-playbook", needs = "research:adopter-persona"},  # champion→CTO→platform→engineers; staged rollout + retro template
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

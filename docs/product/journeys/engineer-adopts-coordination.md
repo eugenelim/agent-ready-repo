@@ -84,7 +84,7 @@ sequenceDiagram
 |-----|---------|
 | **Actions** | Discovers the platform. Installs agentbundle. Reads AGENTS.md. Runs `workspace-status` — orients from `workspace.toml` and surfaces the next item without reading any other file. |
 | **Emotions** | Curious then oriented (neutral → positive). First action is clear. |
-| **Remaining pains** | "I don't understand the vocabulary — Brief vs Spec vs Project." The vocabulary page (M6) is not yet available; the glossary in `docs/CONVENTIONS.md` is the current reference. |
+| **Remaining pains** | "I don't understand the vocabulary — Intent vs Brief vs Spec." The vocabulary page (M6) is not yet available; the glossary in `docs/CONVENTIONS.md` is the current reference. |
 
 ---
 
