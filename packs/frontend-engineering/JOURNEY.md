@@ -158,7 +158,7 @@ Common requests:
 ### 5. Produce the evidence manifest
 
 - **You provide:** screenshots, field data, analytics-event proof, or known-exception decisions that are not available from local gates.
-- **Agent does:** assembles the evidence manifest with routes, viewports, browsers, states, screenshots, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items.
+- **Agent does:** assembles the evidence manifest with routes, viewports, browsers, states, screenshots, a11y result, perf result, console/network result, analytics events, known exceptions, and unverified items. For a production surface it also records security/privacy review status and reliability/recovery status — the state of those reviews and who they were routed to, not a verdict of its own.
 - **You do:** inspect the unverified items and known exceptions instead of treating them as noise.
 - **You decide:** accept the known exceptions, require fixes, or defer the surface.
 - **Output:** a completion-ready evidence manifest for create, retrofit, or verify mode.
