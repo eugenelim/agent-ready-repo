@@ -1,13 +1,45 @@
 # Bandit configuration — the repo's Python SAST gate (ADR-0017).
 #
-# Invoked by `make sast` as:
-#   bandit -r tools packs packages -c bandit.yaml \
-#          --severity-level medium --confidence-level medium
+# Invoked by `make sast` as `python3 tools/run-bandit-gate.py $(SAST_DIRS)`.
+# The Makefile's SAST_DIRS is the one canonical statement of the scanned roots;
+# run-bandit-gate.py holds the floor flags and shells out to:
+#   bandit -r <SAST_DIRS> -c bandit.yaml \
+#          --severity-level medium --confidence-level medium -q
 #
 # The medium+ severity / medium+ confidence floor is set on the CLI (above),
 # not here: it filters out the large low-severity tail (subprocess imports,
 # partial-path process starts) that is noise for an attack-surface gate while
 # keeping the findings an org-grade scan would block on.
+#
+# Bandit's STDERR fails the gate (ADR-0084). Under -q it carries only
+# diagnostics about the scan's own integrity — a suppression bandit could not
+# parse, a suppression that matched no finding, a file it could not read — and
+# none of those move bandit's exit code, so the wrapper moves it for them. If
+# a scan is red with no findings printed, read stderr: something about a
+# `# nosec` below is wrong, not something about the code.
+#
+# Inline suppression form — `# nosec <ID>  # <reason>`, reason after a SECOND
+# `#`. Bandit's parser reads the test-id list up to the next `#`
+# (`NOSEC_COMMENT` in bandit/core/manager.py), so a reason written after a dash
+# or em dash is tokenised and each word looked up as a test name. That is
+# usually just noise ("Test in comment: shell is not a test name or id"), but a
+# reason word colliding with a real test *name* would silently widen the
+# suppression past the ID you wrote. The second `#` terminates the list, so the
+# reason is never parsed. (ADR-0017 § suppression policy predates this and
+# still shows the em-dash form; the ADR is frozen, this file is the live rule.)
+#
+# The ID is MANDATORY, and this is why the form above matters more than tidy
+# output. A `# nosec` whose id list resolves to NO id — a bare `# nosec`, an
+# ID-less `# nosec  # reason`, or a prose sentence in which no word happens to
+# name a test — is treated as a blanket suppression and skips *every* test on
+# that statement. Under the two-`#` form it does so silently. Fail-open either
+# way: always write the ID, and never open a comment with `nosec` unless you
+# mean it as a directive.
+#
+# Suppressions also apply to the whole *statement's* linerange, not just the
+# commented line, so a nosec on a multi-value statement warns "nosec
+# encountered, but no failed test" for every sibling value the rule skips.
+# Bind the offending value to its own name and put the nosec on that statement.
 
 skips:
   # B101 assert_used — test suites (pytest and the standalone tools/test-*.py

@@ -40,7 +40,11 @@ def test_valid_declaration_returns_cleaned_endpoints_and_residency():
 @pytest.mark.parametrize("bad", ["", " ", "*", ".", "0.0.0.0", "::"])  # nosec B104
 def test_rejects_wildcard_and_catchall_endpoints(bad):
     decl = {"endpoint-allowlist": [bad], "residency-region": "eu"}
-    with pytest.raises(tier3.DeclarationError):
+    # `match=` pins the *literal-set* branch specifically. Without it the two
+    # unspecified addresses ("0.0.0.0", "::") also fall through to the
+    # IP-classification branch below, so dropping them from _REJECT_LITERALS
+    # left this test green — the assertion could not see the set it names.
+    with pytest.raises(tier3.DeclarationError, match="wildcard"):
         tier3.validate_declaration(decl)
 
 

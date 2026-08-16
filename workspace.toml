@@ -1653,6 +1653,39 @@ open = [
   # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
+  # Bandit's `# nosec` form is documented in bandit.yaml's header comment but
+  # enforced nowhere, and ADR-0017:107 -- frozen, so it cannot be amended --
+  # still teaches the superseded `# nosec <ID> - <reason>` form. Two failure
+  # modes a lint would catch: (a) a prose reason after the ID is tokenised and
+  # each word looked up as a Bandit test NAME, so a word colliding with a real
+  # test name silently widens the suppression; (b) a `# nosec` with no
+  # resolvable ID (bare, or an ID-less `# nosec  # reason`) suppresses EVERY
+  # test on the statement and, in the two-`#` form, prints no warning at all.
+  # Both fail open. A grep-shaped tools/ check wired into build-check would
+  # close them; deliberately not bundled into the bandit-nosec-comment-hygiene
+  # PR, which was comment-format-only and added no gate.
+  {slug = "bandit-nosec-form-lint", summary = "Add a tools/ check enforcing the `# nosec <ID>  # <reason>` form -- ID mandatory, reason only after a second `#` -- and wire it into make build-check", source = "spec/bandit-nosec-comment-hygiene"},
+
+  # tools/capture-publish-control-evidence.py:_validate_repo accepts
+  # `[A-Za-z0-9._-]+/[A-Za-z0-9._-]+`, which matches `../..`; urllib sends the
+  # selector unnormalised, so `--repo ../../app` reaches a different
+  # api.github.com endpoint than the caller named. No privilege gain (the
+  # operator already holds the App private key) and the JWT still cannot leave
+  # api.github.com -- the scheme and host are fixed literals and _NoRedirect
+  # refuses redirects outright -- so this is hygiene, not a live hole. Fix is a
+  # dot-segment reject in _validate_repo plus a case in its test.
+  # PRE-EXISTING on origin/main as of 1f6b2d2f, not caused by any branch:
+  # tools/test_catalogue_navigation.py::test_markdown_entry_points_keep_canonical_outcome_labels
+  # fails because guides/README.md no longer carries the "Build and review
+  # software" outcome label that docs-site navigation still declares. The test
+  # asserts every canonical outcome title appears verbatim in each markdown
+  # entry point, so the two drifted apart when one side was reworded. `make ci`
+  # is red on main until this is reconciled -- decide which side is canonical
+  # (the navigation source or the README wording) and align the other.
+  {slug = "pre-existing-guides-readme-outcome-label-drift", summary = "Reconcile guides/README.md with the docs-site navigation's canonical outcome labels so test_markdown_entry_points_keep_canonical_outcome_labels passes", source = "pre-flight/2026-08-16"},
+
+  {slug = "capture-evidence-repo-dot-segments", summary = "Reject `.` and `..` path segments in capture-publish-control-evidence.py's _validate_repo so a --repo value cannot redirect the App-authenticated read to another endpoint", source = "spec/bandit-nosec-comment-hygiene"},
+
   # test-loop-cohort.sh is 493 lines / 51 cases of bash and uses ~20 bash-isms
   # ([[, local, $(), declare). AGENTS.md's "New tool scripts: Python, not bash"
   # rule grandfathers existing .sh, but this one is a portability dead end: a

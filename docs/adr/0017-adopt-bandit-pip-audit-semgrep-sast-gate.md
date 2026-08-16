@@ -1,6 +1,6 @@
 # ADR-0017: Adopt Bandit + pip-audit + Semgrep as the repo's SAST/SCA gate
 
-- **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
+- **Status:** Accepted — **partially amended:** the `# nosec <ID> — <reason>` **spelling** in the suppression-policy sub-decision is **superseded by [ADR-0084](0084-nosec-reason-delimiter-and-stderr-as-a-gate.md)** (the reason moves behind a second `#`, because Bandit parses the text after `# nosec` as a list of test ids, 2026-08-16); every other decision in this ADR — the three-way real-fix-first ladder itself, the tool choices, the severity floor — stands. <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
 - **Date:** 2026-06-12
 - **Deciders:** eugenelim
 - **Supersedes:** none

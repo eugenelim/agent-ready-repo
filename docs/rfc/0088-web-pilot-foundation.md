@@ -23,6 +23,8 @@
   - [`Synthetic fixture source archive`](0088-notes/spikes/experimental-fixture-source-archive.md)
   - [`2026-08-16 Experimental rerun`](0088-notes/spikes/2026-08-16-experimental-rerun.md)
   - [`Experimental rerun evidence archive`](0088-notes/spikes/experimental-rerun-evidence-archive.md)
+  - [`2026-08-16 Experimental round 3`](0088-notes/spikes/2026-08-16-experimental-round3.md)
+  - [`Round-3 Experimental evidence archive`](0088-notes/spikes/round3-evidence-archive.md)
 
 `web-pilot` is the proposed name of an opt-in AgentBundle pack that would own
 a local authenticated-browser runtime. A **provider pack** is a normal
@@ -901,24 +903,63 @@ No follow-on artifact is created while this RFC is Draft or Experimental.
 
 This section is the authoritative current contract where it differs from the
 2026-08-15 body or ledger. The historical ledger remains as the audit trail for
-the first run.
+the first run, and the round-2 verdicts it superseded are preserved in the
+[2026-08-16 rerun note](0088-notes/spikes/2026-08-16-experimental-rerun.md).
 
 **Safety-critical D2 supersession:** do not execute the historical decision
 table's execute-all instruction. The adopted two-stage rule in
 [S4 gate decision](#s4-gate-decision) is authoritative.
 
+Current verdicts reflect the third Experimental run
+([round-3 note](0088-notes/spikes/2026-08-16-experimental-round3.md)).
+
 | Spike | Current verdict | Decision effect | Remaining exit gate |
 | --- | --- | --- | --- |
-| [S1](0088-notes/spikes/2026-08-16-experimental-rerun.md#s1--persistent-bind-lifecycle) | **Partial** | Launch, bind, CLI attachment, same-live-context handoff, reconnect, crash relaunch, and clean reuse are demonstrated twice on bundled Chromium and system Chrome on macOS arm64 | Real attachment lifetime expiry; seeded stale-versus-ambiguous lock decisions; recognized typed refusal assertions |
-| [S2](0088-notes/spikes/2026-08-16-experimental-rerun.md#s2--artifact-host-and-dependency-gate) | **Partial** | A lockfile scanner and High/Critical threshold are feasible; native host-owned Playwright objects reach an adapter | Compose native Playwright with a separately sanitized child host and parent-owned release validation; finish database, waiver, inventory, browser-binary, and error-classification policy |
-| [S3](0088-notes/spikes/2026-08-16-experimental-rerun.md#s3--safety-rail-limits) | **Partial** | Direct browser/network channels and several mitigations are now measured; D13's trusted-code claim is strengthened | Prove or disable unresolved site-controlled egress, including connected-address/DNS enforcement, WebRTC, WebTransport, and Service-Worker-handled page requests; complete redirect and WebSocket cases |
-| [S4](0088-notes/spikes/2026-08-16-experimental-rerun.md#s4--substitution-candidates) | **Partial under amended D2** | The approver adopted the two-stage inspection-then-execution gate; existing evidence identifies one authority-widening candidate and two inspection-only exclusions | Re-disposition every exact candidate against the amended gate with an unavoidable surface and falsifiable revisit trigger; run the common corpus only for candidates that clear inspection, always under a sanitized environment |
-| [S5](0088-notes/spikes/2026-08-16-experimental-rerun.md#s5--cross-pack-vertical) | **Partial** | Exact-grant construction and same-live-session reuse are demonstrated | Exercise host-owned candidate display/discard and resolve/test connection-wide residue trust versus stronger isolation |
+| [S1](0088-notes/spikes/2026-08-16-experimental-round3.md#s1--persistent-bind-lifecycle) | **Pass on the named gates** | Real lifetime-based attachment expiry, forced detach at expiry, seeded dead-owner recovery, seeded live and ambiguous ownership refusal, and signature-matched typed refusals are demonstrated across 12 asserted rows, twice on bundled Chromium 151.0.7922.34 and system Chrome 151.0.7922.138, both measured rather than assumed. Broker responsiveness held at 37 ms worst-case scheduling lag against a 750 ms bound | The bind endpoint is a bearer credential — a never-authorised second local client attached inside an open window — so correction 8 withdraws D7's single-use claim. The approver must still accept or defer the initial OS/browser support matrix |
+| [S2](0088-notes/spikes/2026-08-16-experimental-round3.md#s2--artifact-host-and-dependency-gate) | **Pass on the named gates** | A genuinely separate child host receives native host-owned `Page`/`BrowserContext`, cannot read a parent-only sentinel, and is denied child processes, out-of-allowlist filesystem access, native addons, worker threads **and a direct read of the live browser profile**. Valid and invalid outputs return to parent-owned closed-schema validation, redaction-free two-phase finalization and release; malformed, extra-field, credential-shaped and oversized payloads all fail before release. The D17 blocking policy is met on 16 of 18 checks | Correction 7 withdraws this section's own "network restrictions" clause as unachievable. Two declared residuals: no vendor signature manifest ships with the browser payload, and the download host is verified only at the installer's own resolution, not at connection level |
+| [S3](0088-notes/spikes/2026-08-16-experimental-round3.md#s3--safety-rail-limits) | **Partial** | Connected-address enforcement and DNS-rebinding prevention are proved at a broker-owned egress proxy with a valid unpinned control. Bounded redirect chains with per-hop revalidation, request-client origin policy, Service-Worker-handled page requests, real-download confinement including a symlink-through target, and WSS interception with canonical `ws`→`http` / `wss`→`https` mapping all pass | WebRTC and WebTransport egress are not prevented by any control tested. Method policy is unenforceable at the connection point. Linux proxy behaviour is untested. Every proxy-based verdict was measured under a deliberately inverted loopback-only destination rule and is not yet evidence for the production rule |
+| [S4](0088-notes/spikes/2026-08-16-experimental-round3.md#s4--substitution-check-under-amended-d2) | **Partial** | Every exact candidate has a reviewed disposition resting on measured facts rather than a keyword screen. Two candidates fail the blocking dependency scan outright. The one candidate that cleared it executed under an explicit environment allowlist verified via a stand-in child, replacing the round-2 tainted row, and was excluded on measured grounds. Playwright is retained provisionally; D2 is not reopened | The gate text below admits to execution only candidates that "clear inspection" and holds S4 open until those pass the common corpus. Stage one's keyword screen is now shown non-discriminating — the retained substrate trips five of the same categories — and the common S1/S3 lifecycle and crash-recovery corpus was not run. The approver must amend the gate text or commission the corpus |
+| [S5](0088-notes/spikes/2026-08-16-experimental-round3.md#s5--cross-pack-vertical) | **Pass** | Host-owned candidate presentation, explicit confirmation and rejection, and immediate discard of clear identity evidence, asserted against six sinks that were actually written and two read back from disk. Validation exposes exactly `{page, context, signal, job, connection}`, and every single-field grant mismatch refuses ahead of a real browser launcher that the positive case proves reachable. Cross-consumer residue is partitioned across the eight classes verified as actually planted, of which 3 survive | None for this gate. The disposition is that per-consumer isolation is **not** viable within one `BrowserContext`, which confirms rather than removes connection-wide native-adapter trust |
 | [S6](0088-notes/spikes/s6-browser-session-taxonomy.md) | **Pass, unchanged** | Opaque `browser-session` taxonomy remains feasible | Convention amendment still waits for acceptance |
 
-S1 through S5 remain open. No initial support matrix is accepted, D17 has a
-viable scanner but not a complete accepted policy, and no implementation or
-follow-on artifact is authorized.
+S3 and S4 remain open. S1, S2 and S5 have closed their named gates and carry the
+residual items named above. No initial support matrix is accepted yet, and no
+implementation or follow-on artifact is authorized.
+
+**Remaining pre-acceptance blockers** — the union of the per-spike residuals
+above, with no separate class of "residual" that escapes the list:
+
+1. WebRTC egress is not prevented by any control tested (S3).
+2. WebTransport egress is not prevented and no flag tested removed it (S3).
+3. Method policy is unenforceable at the connection point for the context
+   request client (S3).
+4. Every proxy-based prevention was measured under an inverted loopback-only
+   destination rule, not the production rule (S3).
+5. The S4 gate text needs an approver decision: amend the precondition to the
+   one actually used, or commission the common corpus (S4).
+6. An accepted OS/browser support matrix. Evidence supports macOS 26.5.2 arm64
+   with both channels; **any platform admitted beyond that is untested and
+   becomes a blocker on admission**, which today means Linux and Windows.
+7. No vendor signature manifest ships with the browser payload, and download-host
+   verification is at the installer's resolution rather than connection level
+   (S2).
+8. The bind endpoint is a bearer credential with no per-attachment
+   authorization hook (S1, correction 8).
+9. Three of eight cross-consumer residue classes survive best-effort teardown —
+   a foreign init script, origin-scoped storage, and a committed artifact — and
+   five named removal APIs do not exist (S5, correction 3). Disclosed and
+   accepted rather than remediable within one `BrowserContext`; acceptance
+   requires the approval surface to state that every consumer sharing a
+   connection inherits this residue.
+10. Raw egress from the capable adapter host cannot be prevented by the Node
+    Permission Model, because the single coarse `net` permission also gates the
+    Playwright transport (S2, correction 7). Acceptance requires either a named
+    OS-level boundary for the adapter host or an explicit accepted-risk
+    decision; no compensating control is demonstrated.
+
+Corrections 7 and 8 **withdraw** RFC clauses that this evidence showed to be
+wrong as written. Correction 10 **relocates** an enforcement point without
+withdrawing a clause.
 
 ### Security and runtime corrections in force
 
@@ -930,7 +971,12 @@ follow-on artifact is authorized.
    cannot support a sanitized-environment claim because it shares `process.env`,
    filesystem/process modules, and host mutation authority. S2 must compose
    this child boundary with the real host-owned native Playwright connection;
-   isolated unit demonstrations do not satisfy the gate.
+   isolated unit demonstrations do not satisfy the gate. **Satisfied in
+   round 3**, with the network clause corrected by item 7 below and the
+   spawn/flush construction requirements in the *Carry into the future
+   implementation spec* paragraph. Parent-owned **redaction** is not part of
+   what round 3 exercised; only schema validation, two-phase finalization and
+   release were.
 2. **Dashboard and repair attachment is credential-equivalent.** Attachment
    authorization covers both establishment and the resulting session. The
    attached session has an idle timeout and forced detach on identity change,
@@ -939,6 +985,8 @@ follow-on artifact is authorized.
    to the confined diagnostics store behind an opaque handle. The broker event
    loop must remain responsive while handoff is possible, and attachment
    failure is detected by a bounded timeout rather than child exit status.
+   Lifetime expiry and forced detach are proved in round 3; the single-use
+   claim is corrected by item 8 below.
 3. **Native-adapter trust is connection-wide unless stronger isolation is
    proven.** Exact grants isolate invocation and result release; they do not
    erase routes, init scripts, patched globals, listeners, sockets, or other
@@ -947,13 +995,35 @@ follow-on artifact is authorized.
    consumer sharing a connection inherits residue risk from every admitted
    native adapter digest that executes there. Fresh pages and best-effort
    cleanup are safety rails, not isolation from trusted native code.
+   **Confirmed by measurement in round 3, with the gap narrower than round 2
+   recorded.** Of the eight residue classes verified as actually planted, three
+   survive a best-effort teardown: an init script registered by another holder,
+   origin-scoped storage, and an artifact already committed to the shared job
+   root. Four are cleared by teardown — a context route, a context listener, an
+   extra page, and a held request-client reference. One more, a patched page
+   global, is not cross-page by construction and is not evidence that teardown
+   cleared anything. An earlier draft of this correction claimed no API revokes
+   a held request client; that was wrong. `ctx.request.dispose()` exists and
+   works, but it disposes the *shared* context client, so a broker using it must
+   re-establish the next consumer's client rather than treat it as targeted
+   revocation. `addInitScript` returns a `Disposable` only to its registrant,
+   and `removeInitScript`, `removeAllInitScripts`, `clearInitScripts`,
+   `initScripts` and `revokeRequest` are all `undefined`. Per-consumer isolation
+   is still not viable within one `BrowserContext`.
 4. **Third-party candidate execution is itself an admission event.** Every
    candidate command runs from an exact inspected artifact only after its
    dependencies are scanned, with an explicit environment allowlist and a
    fresh synthetic profile. The 2026-08-16 S4 run inherited credential-class
    session state; no credential value was promoted, but that run does not
    satisfy sanitized execution and the affected external session state requires
-   operator rotation/review.
+   operator rotation/review. **Closed in round 3:** the operator rotated the
+   three exposed session tokens and confirmed the SSH agent held no identities
+   before the run, and round-3 candidate execution passed an explicitly
+   constructed environment containing only `HOME`, `PATH` and `TMPDIR`. The
+   broader account-level exposure from that unmonitored round-2 run — it
+   executed at the operator's uid with the real `HOME` and no egress
+   monitoring — is **accepted by the approver, not excluded**; "no evidence of
+   misuse" is absence of evidence.
 5. **Supply-chain coverage includes more than the npm lock.** The acceptance
    policy blocks on High/Critical findings, fails closed on scanner/database
    failure, disables silent ignore files, asserts database freshness and source
@@ -965,7 +1035,59 @@ follow-on artifact is authorized.
 6. **Output schemas are closed.** Every object level rejects additional
    properties. Parent-owned validation rejects malformed and extra
    credential-shaped fields before any result, artifact handle, diagnostic
-   handle, or checkpoint can be released.
+   handle, or checkpoint can be released. Proved in round 3; the
+   credential-shaped field is rejected by schema closure, not by a denylist of
+   credential names.
+7. **The adapter host cannot be denied raw network access.** Node 26.4.0 has a
+   single coarse `net` permission that covers Unix-domain sockets as well as
+   TCP, so denying raw egress also denies the Playwright transport the adapter
+   requires. The two cannot hold together, and `--allow-net` is additionally
+   flagged experimental in that build. Correction 1's "network restrictions"
+   wording is therefore withdrawn: raw-egress containment for a capable adapter
+   host requires an OS-level boundary, which the Node Permission Model does not
+   supply and which must never be described as a malicious-code sandbox. An
+   environment allowlist is also not an exhaustive description of the child
+   environment — macOS injects `__CF_USER_TEXT_ENCODING` regardless — so the
+   policy asserts the absence of named sensitive keys, not an exact environment
+   size.
+8. **An attachment credential cannot be made single-use with the current API.**
+   Within an open bind window, any local process holding the endpoint path
+   attaches; Playwright exposes no server-side per-attachment authorization
+   hook. A broker can bound the window's lifetime and force detach at expiry —
+   both proved — but not the number of attachments. D7's "single-use for
+   attachment establishment" is withdrawn as an achievable v1 guarantee and
+   restated as a bounded-window guarantee. Endpoint confinement additionally
+   rests on the `0700` per-user temporary root, not on the socket's own mode,
+   which is `0755`.
+9. **The child read allowlist must exclude the browser profile.** An
+   allowlist that encloses the profile root lets an admitted adapter read
+   cookies and storage straight off disk, defeating the opaque-credential
+   boundary without touching any rail. Round 3 proves the denial only once the
+   profile root and the whole temporary root are outside the grant.
+10. **The connection point is a broker-owned proxy, not the route API.**
+    Connected-address policy and DNS pinning are enforceable only where the
+    resolution and the socket are owned together: the proxy resolves the name
+    and connects to the resolved address literal, leaving no gap between check
+    and connection. Its reach is bounded and the bound is exact — inside a
+    CONNECT tunnel only `host:port` is visible, and Playwright routes the
+    context-associated request client through an HTTP proxy with CONNECT even
+    for a cleartext `http` origin, so method and path policy for that client is
+    a host-wrapper rail an admitted native adapter can bypass. Supply-chain
+    policy additionally pins `PLAYWRIGHT_DOWNLOAD_HOST`,
+    `PLAYWRIGHT_CDN_MIRROR` and `PLAYWRIGHT_DOWNLOAD_CONNECTION`, because
+    naming approved hosts does not prevent redirection. Download-host
+    verification is at the installer's own resolution, not at connection level.
+
+**Carry into the future implementation spec (non-binding, not contract).**
+Round 3 surfaced three construction requirements that belong in a plan rather
+than in this corrections list: spawn the adapter host asynchronously, because a
+synchronous spawn stops the bound endpoint being serviced and the child's
+attachment times out; flush stdout before exiting the one-shot protocol,
+because `process.exit()` discards a pending write and a large payload then
+reads as malformed rather than oversized; and emit a permission allowlist as
+repeated flags, because a comma-joined `--allow-fs-read` value is
+order-sensitive in Node 26.4.0 and silently drops later entries, while a bare
+directory path grants only that entry rather than its subtree.
 
 ### Network corrections in force
 
@@ -989,8 +1111,10 @@ them.
   [`browserContext.routeWebSocket()`](https://playwright.dev/docs/api/class-browsercontext)
   before any page exists and compares a canonical transport tuple that maps
   `ws` to `http` and `wss` to `https`; cleartext and secure transports do not
-  become interchangeable merely because host and port match. WSS, redirects,
-  connected-address checks, and proxy interaction remain open.
+  become interchangeable merely because host and port match. *(Superseded by
+  the round-3 dispositions below: WSS interception, the canonical mapping,
+  bounded redirect chains, and connected-address checks are now proved.
+  Proxy interaction on Linux remains untested.)*
 - The host-provided request wrapper is the sanctioned convenience path for
   trusted adapters and enforces origin, method, redirect, deadline, and size
   policy before using the context-associated client. It is a rail, not a
@@ -1004,6 +1128,28 @@ them.
 - Page-route precedence, route removal, raw Node egress, and direct use of the
   raw request client remain evidence that capable admitted adapters are trusted
   code. No JavaScript-level rail is described as a sandbox.
+
+Round-3 dispositions for the channels this section left open. **Every
+proxy-based "Prevented" verdict below was measured under a deliberately
+inverted, loopback-only destination rule** — the corpus allows loopback and
+refuses everything else, where production does the reverse. They are evidence
+that the control point works and that policy is enforceable there; they are not
+yet evidence for the production destination-class policy.
+
+| Channel | Disposition | Where the control sits |
+| --- | --- | --- |
+| Connected-address validation | **Prevented** | Broker-owned proxy resolves the name and connects to the resolved address literal; an unpinned control run reaches the other address, so the pinned result is not vacuous |
+| DNS rebinding | **Prevented** | Same; resolve-once-and-pin, re-verified at connect |
+| Allowed redirect chains, per-hop revalidation, hop bounds | **Prevented** | Host handler with `maxRedirects: 0`; a 3-hop allowed chain completes, a 4-hop chain is refused on the bound, an off-origin hop is refused before egress |
+| WSS, with canonical `ws`→`http` and `wss`→`https` mapping | **Prevented** | `browserContext.routeWebSocket()` installed before any page exists; the secure transport is intercepted and a cleartext and secure tuple on one host:port never compare equal |
+| Page requests handled by Service Workers | **Prevented for relayed egress** | Measured **without the proxy**, because service workers require a secure context and loopback bypasses the proxy. A worker-synthesised reply is invisible to context routing and the origin server received nothing; worker-relayed egress is routable and was aborted. The synthesised-reply conclusion rests on one origin receive log, with no packet-level observer |
+| `APIRequestContext` methods | **Origin prevented; method unobservable** | The proxy refuses an undeclared origin, but the client tunnels cleartext `http` through CONNECT, so all six methods reached a declared destination while the proxy saw only `CONNECT` |
+| Page-route precedence and route removal | **Not prevented in-browser; prevented at the proxy** | Confirms the trusted-code claim; the destination still received zero |
+| Raw Node egress | **Unobservable** | Invisible to every browser rail. Denial is possible only in a child that does not need the Playwright transport, which the adapter host does |
+| Download confinement through real browser download APIs | **Prevented** | Host-generated paths under a canonicalized job root; every adapter-supplied path refused, zero escape files |
+| WebRTC | **Not prevented — acceptance blocker** | No flag name identified here stopped it: default flags, `--force-webrtc-ip-handling-policy=disable_non_proxied_udp` with and without a proxy, and `--disable-features=WebRTC,RTCPeerConnection` each emitted a STUN binding request to an independent UDP probe. Chromium silently ignores unknown feature names and the run did not read back the accepted command line, so a disabled variant behaving like its control is also what an ignored flag looks like. S4 measured a different launcher raising `SecurityError: RTCPeerConnection blocked while domain filtering is active`, a named mechanism showing the channel is controllable |
+| WebTransport | **Not prevented, not disabled — acceptance blocker** | The constructor survived `--disable-features=WebTransport,WebTransportH3` and UDP egress was observed in both variants. The same flag-recognition caveat applies |
+| Linux proxy behavior | **Not tested** | No Linux host was available. If Linux enters the claimed support matrix this becomes an acceptance blocker |
 
 ### S4 gate decision
 
@@ -1038,6 +1184,53 @@ gate and every candidate that clears inspection has passed the common corpus.
 The earlier candidate execution that inherited session state cannot satisfy a
 sanitized-execution requirement.
 
+**Round-3 outcome: Playwright is retained; the gate itself needs an approver
+decision.** All four exact artifacts were integrity-verified, installed with
+`--ignore-scripts` into isolated trees, and scanned under the blocking policy.
+`openchrome-mcp` 1.12.9 and `opendevbrowser` 0.0.40 fail that scan outright, so
+the amended rule's execution precondition is unmet for both; each also carries a
+structural disqualifier — a fixed unauthenticated debugging port and a required
+native addon in the first, a second `playwright-core` copy at 1.62.1 in the
+resolved lock of the second. `agent-browser` 0.34.0 cleared the scan and was
+therefore executed, under an explicit environment allowlist whose construction was verified
+via a `/usr/bin/env` stand-in observing exactly `HOME`, `PATH` and `TMPDIR`, with fresh generated
+synthetic profiles. It supplies native `Page`/`BrowserContext` over an
+unauthenticated loopback CDP endpoint carrying no per-connection token, retains a
+cookie-read surface that returns a non-empty payload to its caller, and — run
+with containment and an explicit profile together — **refuses with exit 1**:
+*"--allowed-domains is not supported with --profile because Chrome may restore
+existing pages before network containment is installed."* It cannot provide
+containment and the per-connection profile D4 requires at the same time. It
+widens effective authority and is excluded on measured grounds.
+
+S4 nevertheless remains **Partial**, for a reason the round-3 evidence itself
+surfaced. Clause 3 above admits to execution only candidates that "clear
+inspection", and the exit sentence holds S4 open until every such candidate has
+passed the common S1/S3 corpus. Neither condition is operable as written.
+Stage one's keyword screen was shown **non-discriminating**: scanning every tree
+on equal footing, the retained Playwright substrate trips five of the same
+surface categories, while `agent-browser` trips none in code because its logic
+lives in a Mach-O binary that was not statically inspected. The precondition
+actually used was clearance of the blocking dependency scan. And the common
+lifecycle, handoff, crash-recovery corpus was not run — only the native-ABI,
+containment, endpoint-character, credential-surface and sanitized-execution
+subsets were.
+
+**Approver decision required.** Either amend clause 3 and the exit sentence to
+name the precondition actually used and state that an execution-backed
+*exclusion* discharges the corpus requirement, or commission the full common
+corpus for `agent-browser`. Until one of those happens S4 cannot close, and no
+candidate exclusion or execution row has been converted to a pass.
+
+One round-3 result cuts the other way and is recorded as a lead, not a
+reversal: under `--allowed-domains`, `agent-browser` raises `SecurityError:
+RTCPeerConnection blocked while domain filtering is active` — a named mechanism
+disabling the WebRTC API that no Playwright control tested could match, verified
+against an independent UDP probe with a valid control arm and a page that
+reports its own outcome. The result is n=1 and unreplicated. WebRTC containment
+is achievable at the browser-launch layer, and the foundation should investigate
+that mechanism rather than record the channel as inherently uncontrollable.
+
 ### Amendment history / audit trail
 
 - **2026-08-16 — second Experimental run.** Promoted the manifested rerun
@@ -1052,3 +1245,63 @@ sanitized-execution requirement.
   falsifiable disposition for every candidate. Reclassified S4 from Blocked
   against the undecided D2 rule to Partial under the amended rule; no candidate
   exclusion or execution row was silently converted to a pass.
+- **2026-08-16 — third Experimental run.** Promoted the
+  [round-3 note](0088-notes/spikes/2026-08-16-experimental-round3.md) and its
+  [manifested archive](0088-notes/spikes/round3-evidence-archive.md) (40 files, archive SHA-256 `d13ed745…e689`), reconstructed and verified independently.
+  Moved S1, S2 and S5 from Partial to Pass on their named gates and left S3 and
+  S4 Partial. The current-state table and the corrections in force were updated
+  in place, as the two-layer convention intends; the round-2 verdicts they
+  replace remain in the round-2 note, and no historical evidence row was
+  rewritten.
+
+  What the run changed beyond the verdicts. Three RFC claims were falsified by
+  measurement: the adapter host cannot be denied raw network access while
+  keeping the Playwright transport (correction 7, a withdrawal), an attachment
+  credential cannot be single-use with the current API (correction 8, a
+  withdrawal), and connected-address policy belongs at a broker-owned proxy
+  rather than the route API (correction 10, a relocation). Two channels —
+  WebRTC and WebTransport — were shown unprevented by every control tested and
+  are named acceptance blockers, with the caveat that Chromium silently ignores
+  unknown feature flags and the run did not read back the accepted command line.
+  Cross-consumer residue was measured rather than assumed, confirming
+  connection-wide native-adapter trust. The round-2 test-conduct incident is
+  closed for agent forwarding and the three named tokens after operator
+  rotation; the broader account-level exposure from that unmonitored run at the
+  operator's uid is recorded as accepted, not excluded.
+
+  **A destination review round rejected the first draft of this evidence.**
+  Adversarial, security-design and quality/testability review found a privacy
+  defect in the promoted archive — four scanner command strings carried the
+  operator's account name and uid — together with tautological predicates and
+  hard-coded literals standing in for measurements across S1, S2, S3, S4 and S5.
+  Thirty defects are recorded row-by-row in the note's *Fixture defects
+  corrected during this run* table. Several changed conclusions rather than merely tightening a test:
+  the S4 containment-versus-profile refusal that carries the D2 and D4
+  dispositions had never been executed; the S4 WebRTC result was a false
+  positive whose corrected form identifies a named mechanism; the S2 child
+  allowlist enclosed the live browser profile, so the restriction row could not
+  have detected an adapter reading cookies off disk; and the S4 keyword screen
+  was shown non-discriminating, which is why S4 is Partial rather than Pass.
+  The archive builder now carries a hard privacy gate, negative-tested by
+  injecting a home-directory path and confirming the build fails closed.
+
+  Completed targeted adversarial architecture, security-design,
+  quality/testability and cold-reader review. No implementation or follow-on
+  artifact is authorized, and the RFC remains Experimental.
+
+  **Review loop did not converge.** Three rounds of adversarial,
+  security-design and quality/testability review ran against this evidence.
+  Round 3 still returned blockers — narrower than earlier rounds, and mostly of
+  the form "this predicate does not assert what the prose claims" rather than a
+  wrong conclusion, but real. Thirty defects were fixed and recorded; a fourth
+  round should be expected to find more. The verdicts above are stated against
+  the corrected evidence, not against a clean review.
+
+- **2026-08-16 — approver disposition after round 3.** The approver directed a
+  further Experimental round rather than acceptance or rejection. RFC-0088
+  therefore stays `Experimental`. The ten pre-acceptance blockers listed under
+  *Current Experimental state* are the agenda for round 4, and the two genuine
+  unknowns among them — unprevented WebRTC and WebTransport egress — are the
+  reason acceptance was not taken now: accepting would commit to those channels
+  blind. No implementation or follow-on artifact is authorized by this
+  disposition.
