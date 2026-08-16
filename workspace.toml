@@ -74,59 +74,59 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
-  {path = "spec/claude-plugin-hook-parity", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
-  "spec/engine-export-boundary",
+  {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
+  {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   "spec/docs-site-design-refresh",
-  "spec/work-loop-step0-observability",
-  "spec/product-documentation-pack",
-  "spec/agentbundle-first-value-handoff",
-  "spec/catalogue-curation",
-  "spec/m2-frame-situation",
+  {path = "docs/specs/work-loop-step0-observability/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "work-loop-step0-observability", needs = []},
+  {path = "docs/specs/product-documentation-pack/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "product-documentation pack (Phase 1)", needs = []},
+  {path = "docs/specs/agentbundle-first-value-handoff/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "agentbundle-first-value-handoff", needs = []},
+  {path = "docs/specs/catalogue-curation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-curation pack", needs = []},
+  {path = "docs/specs/m2-frame-situation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-frame-situation", needs = []},
   "spec/m1-workspace-core",
-  "spec/m1-work-queue",
-  "spec/m1-brief-queue",
-  "spec/m1-governance-integration",
-  "spec/spec-A-workspace-status-rename",
-  "spec/new-rfc-followon-queue-write",
-  "spec/queue-add",
-  "spec/work-loop-queue-shipped-fix",
-  "spec/spec-D-pack-workflow-guide",
-  "spec/spec-B-pack-status-skills",
-  "spec/rfc-0064-errata-workspace-integrity",
-  "spec/workspace-status-next-actions",
-  "spec/workspace-status-queue-reconciliation",
-  "spec/m3-backlog-absorption",
-  "spec/capture-work",
-  "spec/spec-C-workloop-argless-resume",
-  "spec/workspace-journey-guides-and-planning-doctrine",
-  "spec/author-brief-docs",
-  "spec/m2-diverge-solutions",
-  "spec/m2-lean-canvas-and-initiative-brief",
-  "spec/m2-place-bet",
-  "spec/m2-identify-opportunities",
-  "spec/m2-map-capabilities",
-  "spec/m2-frame-intent-jtbd",
-  "spec/m5-jira-align-brief-intake",
-  "spec/m5-github-brief-intake",
-  "spec/portfolio-pack-first-value-contract",
-  "spec/m6-role-journey-guides",
-  "spec/portfolio-first-run-pilot-governance-extras",
-  "spec/m5-linear-brief-intake-and-sync",
-  "spec/portfolio-first-run-pilot-architect",
-  "spec/portfolio-first-run-pilot-figma",
-  "spec/m5-tracker-guides",
-  "spec/new-guide-conversation-first",
-  "spec/site-ui-primitives",
-  "spec/atlassian-sso-cookie-selector-integration-test",
-  "spec/credbroker-security-hardening",
-  "spec/flaky-sso-store-concurrency-on-windows",
-  "spec/site-design-system-spec",
-  "spec/jira-check-sso-auto-login",
-  "spec/confluence-crawler-check-auto-login",
-  "spec/catalogue-curation-qa-coverage",
-  "spec/catalogue-test-carve-out",
-  "spec/workspace-status-simplification-order-2b",
-  "spec/workspace-mcp",
+  {path = "docs/specs/m1-work-queue/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-work-queue", needs = []},
+  {path = "docs/specs/m1-brief-queue/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-brief-queue", needs = []},
+  {path = "docs/specs/m1-governance-integration/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-governance-integration", needs = []},
+  {path = "docs/specs/spec-A-workspace-status-rename/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-A-workspace-status-rename", needs = []},
+  {path = "docs/specs/new-rfc-followon-queue-write/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "new-rfc follow-on queue-write guard", needs = []},
+  {path = "docs/specs/queue-add/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "queue-add — bridge session-surfaced items into the work queue", needs = []},
+  {path = "docs/specs/work-loop-queue-shipped-fix/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "work-loop queue-to-shipped fix", needs = []},
+  {path = "docs/specs/spec-D-pack-workflow-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-D-pack-workflow-guide", needs = []},
+  {path = "docs/specs/spec-B-pack-status-skills/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-B-pack-status-skills", needs = []},
+  {path = "docs/specs/rfc-0064-errata-workspace-integrity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "rfc-0064-errata-workspace-integrity", needs = []},
+  {path = "docs/specs/workspace-status-next-actions/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status-next-actions", needs = []},
+  {path = "docs/specs/workspace-status-queue-reconciliation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status queue reconciliation", needs = []},
+  {path = "docs/specs/m3-backlog-absorption/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m3-backlog-absorption", needs = []},
+  {path = "docs/specs/capture-work/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "capture-work — universal capture-then-triage front-door", needs = []},
+  {path = "docs/specs/spec-C-workloop-argless-resume/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-C-workloop-argless-resume", needs = []},
+  {path = "docs/specs/workspace-journey-guides-and-planning-doctrine/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-journey-guides-and-planning-doctrine", needs = []},
+  {path = "docs/specs/author-brief-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "author-brief-docs", needs = []},
+  {path = "docs/specs/m2-diverge-solutions/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-diverge-solutions", needs = []},
+  {path = "docs/specs/m2-lean-canvas-and-initiative-brief/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-lean-canvas-and-initiative-brief", needs = []},
+  {path = "docs/specs/m2-place-bet/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-place-bet", needs = []},
+  {path = "docs/specs/m2-identify-opportunities/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-identify-opportunities", needs = []},
+  {path = "docs/specs/m2-map-capabilities/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-map-capabilities", needs = []},
+  {path = "docs/specs/m2-frame-intent-jtbd/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-frame-intent-jtbd", needs = []},
+  {path = "docs/specs/m5-jira-align-brief-intake/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-jira-align-brief-intake", needs = []},
+  {path = "docs/specs/m5-github-brief-intake/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-github-brief-intake", needs = []},
+  {path = "docs/specs/portfolio-pack-first-value-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "portfolio-pack-first-value-contract", needs = []},
+  {path = "docs/specs/m6-role-journey-guides/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m6-role-journey-guides", needs = []},
+  {path = "docs/specs/portfolio-first-run-pilot-governance-extras/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "portfolio-first-run-pilot-governance-extras", needs = []},
+  {path = "docs/specs/m5-linear-brief-intake-and-sync/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-linear-brief-intake-and-sync", needs = []},
+  {path = "docs/specs/portfolio-first-run-pilot-architect/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "portfolio-first-run-pilot-architect", needs = []},
+  {path = "docs/specs/portfolio-first-run-pilot-figma/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "portfolio-first-run-pilot-figma", needs = []},
+  {path = "docs/specs/m5-tracker-guides/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-tracker-guides", needs = []},
+  {path = "docs/specs/new-guide-conversation-first/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "new-guide conversation-first", needs = []},
+  {path = "docs/specs/site-ui-primitives/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "site-ui-primitives", needs = []},
+  {path = "docs/specs/atlassian-sso-cookie-selector-integration-test/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "atlassian-sso-cookie-selector-integration-test", needs = []},
+  {path = "docs/specs/credbroker-security-hardening/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "credbroker-security-hardening", needs = []},
+  {path = "docs/specs/flaky-sso-store-concurrency-on-windows/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Flaky SSO store concurrency on Windows", needs = []},
+  {path = "docs/specs/site-design-system-spec/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "site-design-system-spec", needs = []},
+  {path = "docs/specs/jira-check-sso-auto-login/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "jira-check-sso-auto-login", needs = []},
+  {path = "docs/specs/confluence-crawler-check-auto-login/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Confluence crawler check auto-login", needs = []},
+  {path = "docs/specs/catalogue-curation-qa-coverage/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-curation-qa-coverage", needs = []},
+  {path = "docs/specs/catalogue-test-carve-out/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue test carve-out", needs = []},
+  {path = "docs/specs/workspace-status-simplification-order-2b/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status simplification — Order 2B", needs = []},
+  {path = "docs/specs/workspace-mcp/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-mcp — Stage 1 implementation", needs = []},
   {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
 ]
 queue   = [
@@ -325,11 +325,11 @@ queue   = [
   {path = "spec/digital-product-guides-update", needs = "work:spec/cross-pack-experience-eval"},
 ]
 shipped = [
-  "spec/rfc-digital-product-experience-doctrine",
-  "spec/digital-experience-contract",
-  "spec/xd-copy-direction",
-  "spec/frontend-engineering-doctrine-update",
-  "spec/xd-skill-boundaries",
+  {path = "docs/specs/rfc-digital-product-experience-doctrine/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "rfc-digital-product-experience-doctrine", needs = []},
+  {path = "docs/specs/digital-experience-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "digital-experience-contract", needs = []},
+  {path = "docs/specs/xd-copy-direction/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "xd-copy-direction", needs = []},
+  {path = "docs/specs/frontend-engineering-doctrine-update/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "frontend-engineering-doctrine-update", needs = []},
+  {path = "docs/specs/xd-skill-boundaries/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "xd-skill-boundaries", needs = []},
 ]
 
 ["ini-003".shaping_queue]
@@ -2002,9 +2002,9 @@ backlog = []
 ["ini-006".work]
 active  = []
 shipped = [
-  "spec/catalogue-ci-contract-guide",
-  "spec/catalogue-ci-export-boundary",
-  "spec/catalogue-ci-documentation",
+  {path = "docs/specs/catalogue-ci-contract-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-ci-contract-guide", needs = []},
+  {path = "docs/specs/catalogue-ci-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-ci-export-boundary", needs = []},
+  {path = "docs/specs/catalogue-ci-documentation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue CI — Documentation Integration", needs = []},
 ]
 queue   = []
 
@@ -2036,23 +2036,7 @@ active = []
 backlog = []
 
 ["ini-007".work]
-active  = []
-shipped = [
-  "spec/governance-guides-cleanup",
-  "spec/catalogue-verify-classification",
-  "spec/pack-test-boundary-remaining-packs",
-  "spec/catalogue-wave1-contract-convergence",
-  "spec/catalogue-wave2-pack-integrations",
-  "spec/documentation-entry-navigation",
-  {path = "docs/specs/catalogue-source-identity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Define adapter-neutral local catalogue source identity", needs = []},
-
-  # Wave 3 — Enterprise authoring discovery. 0.34.0 — bundled-contract inspection CLI
-  # (agentbundle catalogue contracts list/show/export), init next-step hints, and
-  # authoring-hub section 12 for offline readers.
-  {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}]},
-  {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
-]
-queue   = [
+active  = [
 
   # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
   # Wave 2 (already shipped). Serialized AFTER Wave 3 to avoid concurrent agentbundle
@@ -2076,7 +2060,24 @@ queue   = [
   # Source spec: docs/specs/catalogue-verifier-correctness/spec.md
   # Wave 3's need uses its canonical path: `work:` needs match shipped entry paths by
   # exact string, and Wave 3 is registered (and will ship) under the canonical form.
-  {path = "spec/catalogue-verifier-correctness", needs = ["work:spec/catalogue-wave2-pack-integrations", "work:docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"]},
+  {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"}]},
+]
+shipped = [
+  {path = "docs/specs/governance-guides-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Governance guide reference cleanup", needs = []},
+  {path = "docs/specs/catalogue-verify-classification/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue verify classification", needs = []},
+  {path = "docs/specs/pack-test-boundary-remaining-packs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "pack-test-boundary-remaining-packs", needs = []},
+  {path = "docs/specs/catalogue-wave1-contract-convergence/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-wave1-contract-convergence", needs = []},
+  {path = "docs/specs/catalogue-wave2-pack-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-wave2-pack-integrations", needs = []},
+  {path = "docs/specs/documentation-entry-navigation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "documentation-entry-navigation", needs = []},
+  {path = "docs/specs/catalogue-source-identity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Define adapter-neutral local catalogue source identity", needs = []},
+
+  # Wave 3 — Enterprise authoring discovery. 0.34.0 — bundled-contract inspection CLI
+  # (agentbundle catalogue contracts list/show/export), init next-step hints, and
+  # authoring-hub section 12 for offline readers.
+  {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}]},
+  {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
+]
+queue   = [
 
   # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
   # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump
@@ -2088,7 +2089,7 @@ queue   = [
   # views from pack.toml [[pack.integrations]] (Wave 2 data); representative
   # first-party JOURNEY.md fixtures to prove the contract. First-party all-pack
   # migration is Wave 9 scope — not included here.
-  {path = "spec/catalogue-wave4-semantic-contracts-index", needs = ["work:spec/catalogue-wave1-contract-convergence", "work:spec/catalogue-verifier-correctness"]},
+  {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave1-contract-convergence/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-verifier-correctness/spec.md"}]},
 
   # Local catalogue search verb (`agentbundle search`). Gated on Wave 4 — hard.
   # Substrate: Wave 4 delivers contracts/catalogue-index.schema.json and
