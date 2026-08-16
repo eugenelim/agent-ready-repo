@@ -139,11 +139,16 @@ def _collect_tree(root: Path) -> dict[str, bytes]:
     under a path that passes every relpath check, because the relpath is
     innocent — only the link is not.
 
-    Two layers meet here and had opposite postures. The build's `.apm` and
-    `seeds` copytrees pass `symlinks=True` deliberately, so a link is preserved
-    as a link instead of being dereferenced into `dist/` — safe at that layer,
-    precisely because it does not read the target. This walk then read it. The
-    composition, not either layer, was the hole.
+    Projection deliberately preserves links, and must keep doing so:
+    `docs/specs/codex-native-skills/spec.md` states that "the symlink
+    pass-through is the path-traversal-safety invariant; never resolve a symlink
+    to its target at projection time", and `build/main.py`'s `.apm` and `seeds`
+    copytrees pass `symlinks=True` for that reason. Preserving a link is safe
+    *because* nothing reads the target at that layer.
+
+    This walk then read it. Two layers, each correct alone; the composition was
+    the hole — so it is closed here, at the read, and not by making projection
+    resolve or drop links.
     """
     out: dict[str, bytes] = {}
     for path in sorted(root.rglob("*")):

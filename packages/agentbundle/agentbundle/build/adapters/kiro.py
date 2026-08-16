@@ -39,10 +39,7 @@ from typing import Any, Iterator
 # uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projection_io import copy_projected_file, ensure_directory_no_follow
-from agentbundle.build.projections.direct_directory import (
-    ignore_symlinks,
-    sweep_orphans,
-)
+from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.kiro_ide_hook import (
     project as kiro_ide_hook_project,
 )
@@ -461,6 +458,19 @@ def _project_hook_wiring_to_agent_json(
 # ---------------------------------------------------------------------------
 
 
+def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: skip every symlink member and
+    Python bytecode cache directories.
+
+    Drops nested symlinks so they are never reproduced in the output
+    tree. The top-level `is_symlink()` skip in `_project_direct_directory`
+    covers the skill root; this covers the subtree. __pycache__ is excluded
+    because .pyc files embed absolute source paths and would cause drift.
+    """
+    base = Path(directory)
+    return {name for name in names if name == "__pycache__" or (base / name).is_symlink()}
+
+
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
     for entry in sorted(source_dir.iterdir()):
         # Defense-in-depth — `lint-packs` rejects packs that ship
@@ -478,9 +488,9 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
                 destination.unlink()
             elif destination.exists():
                 shutil.rmtree(destination)
-            # `ignore=ignore_symlinks` drops nested symlinks so they are
+            # `ignore=_ignore_symlinks` drops nested symlinks so they are
             # never reproduced in the output tree.
-            shutil.copytree(entry, destination, ignore=ignore_symlinks)
+            shutil.copytree(entry, destination, ignore=_ignore_symlinks)
 
 
 def _project_direct_file(

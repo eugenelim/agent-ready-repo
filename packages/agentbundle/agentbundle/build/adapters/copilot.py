@@ -31,10 +31,20 @@ from agentbundle.build.projections.copilot_agent_md import (
 from agentbundle.build.projections.copilot_hooks_json import (
     project_copilot_hooks_json,
 )
-from agentbundle.build.projections.direct_directory import (
-    ignore_symlinks,
-    sweep_orphans,
-)
+from agentbundle.build.projections.direct_directory import sweep_orphans
+
+
+def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: skip every symlink member and
+    Python bytecode cache directories.
+
+    Drops nested symlinks so they are never reproduced in the output
+    tree. The top-level `is_symlink()` skip in `_project_direct_directory`
+    covers the skill root; this covers the subtree. __pycache__ is excluded
+    because .pyc files embed absolute source paths and would cause drift.
+    """
+    base = Path(directory)
+    return {name for name in names if name == "__pycache__" or (base / name).is_symlink()}
 
 
 def _iter_primitives(contract: dict) -> Iterator[str]:
@@ -155,7 +165,7 @@ def _project_direct_directory(
 
     A symlink at the entry root is skipped (defense-in-depth — `lint-packs`
     already refuses symlinked packs, but a direct `project()` caller bypasses
-    that gate). `ignore=ignore_symlinks` drops nested symlinks so they are
+    that gate). `ignore=_ignore_symlinks` drops nested symlinks so they are
     never reproduced in the output tree. A destination symlink is `unlink`ed
     (never `rmtree`d) before the copy. ``primitive_name`` retains the helper's
     established call contract; the pack-union orphan sweep now runs once after
@@ -173,7 +183,7 @@ def _project_direct_directory(
                 destination.unlink()
             elif destination.exists():
                 shutil.rmtree(destination)
-            shutil.copytree(entry, destination, ignore=ignore_symlinks)
+            shutil.copytree(entry, destination, ignore=_ignore_symlinks)
 
 
 def _sweep_skill_orphans(

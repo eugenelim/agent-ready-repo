@@ -24,10 +24,7 @@ from typing import Iterator
 # keeps the phases predictable, which the spec calls for.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projection_io import copy_projected_file, ensure_directory_no_follow
-from agentbundle.build.projections.direct_directory import (
-    ignore_symlinks,
-    sweep_orphans,
-)
+from agentbundle.build.projections.direct_directory import sweep_orphans
 from agentbundle.build.projections.merge_json import project_merge_json
 
 
@@ -200,6 +197,23 @@ def _project_single(
             raise ValueError(f"claude-code: unhandled mode {mode!r} for {primitive_name}")
 
 
+def _ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: drop symlinks with absolute targets
+    and Python bytecode cache directories.
+
+    Relative symlinks (intra-skill cross-references) are preserved as
+    symlinks. Absolute symlinks always escape the tree and are a path-escape
+    vector. __pycache__ directories are excluded because .pyc files embed
+    absolute source paths and can never be byte-identical across machines.
+    """
+    base = Path(directory)
+    return {
+        name for name in names
+        if name == "__pycache__"
+        or ((base / name).is_symlink() and (base / name).readlink().is_absolute())
+    }
+
+
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
     for entry in sorted(source_dir.iterdir()):
         # Defense-in-depth — `lint-packs` rejects packs that ship
@@ -218,9 +232,13 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
                 destination.unlink()
             elif destination.exists():
                 shutil.rmtree(destination)
-            # `ignore_symlinks` drops every nested symlink, so none survives
-            # to be dereferenced by the install walker's read_bytes().
-            shutil.copytree(entry, destination, ignore=ignore_symlinks)
+            # symlinks=True preserves relative nested symlinks; absolute
+            # targets are filtered out by _ignore_absolute_symlinks.
+            shutil.copytree(
+                entry, destination,
+                symlinks=True,
+                ignore=_ignore_absolute_symlinks,
+            )
 
 
 def _project_direct_file(
