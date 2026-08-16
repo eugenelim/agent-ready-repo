@@ -334,6 +334,16 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-claude-plugin-publish-control",
             "tools", "lint-claude-plugin-publish-control.py",
         ),
+        # The capture script that produces the evidence the linter above checks
+        # is operator-run, so nothing else exercises its `--repo` guard. That
+        # guard is the only constraint on a value interpolated into the API
+        # paths, and urllib does not normalise the selector it is handed — so
+        # it is worth a gate even though the script itself never runs in CI.
+        # Placed after the self-test/linter pair above, not between them.
+        _script_step(
+            "test-capture-publish-control-evidence",
+            "tools", "test-capture-publish-control-evidence.py",
+        ),
         # Per-site `(path, pattern, expected)` — the sites do not share a
         # pattern, so one repo-wide grep would pass green on most of them.
         _script_step(

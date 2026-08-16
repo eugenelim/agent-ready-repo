@@ -720,7 +720,6 @@ open = [
   # Unblocks when: picked up — needs a decision on amending a Shipped spec.
   {slug = "phase4b-docsurl-instruction-stale", source = "spec/marketing-docs-link-repair (out of scope)"},
 
-
   # Three XD-chain structural invariants lost their only implementation. The
   # deterministic checker `tools/check-xd-chain.py` and its `xd-chain-gate.yml`
   # workflow are absent from main (readable only from the unreachable commit
@@ -772,7 +771,6 @@ open = [
   #   are the bulk of the work), so this is not a one-line change.
   # Unblocks when: picked up — no dependency.
   {slug = "ci-parity-docs-yml-out-of-scope", source = "spec/local-gate-ci-parity (scope)"},
-
 
   # `tools/lint-catalogue-curation-guard.py`'s path-gate layer exits 0 with only a
   # stderr note when git or the `--base` ref is unavailable. It is now wired into
@@ -845,7 +843,6 @@ open = [
   # wants its own PR. Unblocks when: picked up.
   {slug = "adr-errata-convention", source = "spec/pack-test-boundary-remaining-packs review"},
 
-
   # The repo has no CI for JavaScript that lives in a pack. `web/` and
   # `docs-site/` are covered — pages.yml and pack-evals.yml run npm, and both
   # ship committed lockfiles — but `packs/converters/.apm/skills/render-proof/`
@@ -873,7 +870,6 @@ open = [
   #   the copytree to prune too.
   {slug = "pack-js-ci-workflow", source = "spec/pack-test-boundary-remaining-packs disposition"},
 
-
   # Phase-1 residue from the packages/ marker sweep: the marker sites that are
   # asserted on verbatim. The set itself is enumerated once, in
   # docs/specs/packages-governance-marker-sweep/spec.md AC5 — do not restate it
@@ -898,7 +894,6 @@ open = [
   {slug = "spec-missing-ac-section-policy", source = "spec/spec-ac-gate-and-fixture-domains"},
 
 {slug = "packages-marker-sweep-pinned-strings", source = "spec/packages-governance-marker-sweep AC5"},
-
 
   # workspace-mcp Stage 1 deferred AC. agentbundle Claude adapter additive-merge
   # `permissions.allow` projection for the 6 workspace-mcp MCP tool ids. If the
@@ -927,8 +922,6 @@ open = [
 
   # ── local-scope-install deferred ACs ────────────────────────────────────────
 
-
-
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 
@@ -946,7 +939,6 @@ open = [
   #   150-line subdirectory AGENTS.md cap.
   # Unblocks when: picked up — no dependency.
   {slug = "packs-agents-normative-pointer", source = "spec/contracts-readme-governance-sweep AC6"},
-
 
   # docs-site-design-refresh deferral (spec Assumptions). The SCA half
   # (docs-site-npm-sca-gap) was discharged by spec/npm-sca-gate + ADR-0083 —
@@ -1075,7 +1067,6 @@ open = [
   # ── High severity ────────────────────────────────────────────────────────────
   # (security findings or concretely broken behavior with a known internal fix path)
 
-
   # Security (HIGH). NARROWED 2026-08-16 by spec/install-symlink-hardening. The
   # exfiltration primitive itself is closed:
   #   1. `_collect_tree` no longer reads through a symlink. `Path.is_file()`
@@ -1096,7 +1087,6 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "untrusted-catalogue-symlink-exfiltration"},
 
-
   # CI security. spec/pack-activation-evals introduces the repo's first long-lived
   # API-key workflow secret (ANTHROPIC_API_KEY for pack-evals.yml). No secret scanner
   # is wired today (only CodeQL + Bandit/Semgrep). Adjacent gaps: actionlint + zizmor
@@ -1109,7 +1099,6 @@ open = [
   # File: .github/workflows/pack-evals.yml
   # Unblocks when: a concrete path to npm global-install integrity verification is found.
   {slug = "pack-evals-npm-lockfile-integrity", source = "spec/secret-scanner-for-api-key-workflows AC Assumption 5"},
-
 
   # spec/shared-prefix-aware-multi-adapter-install follow-on (reviewer Concern).
   # install routes state RMW through statelock.persist_state_locked (concurrency AC).
@@ -1143,7 +1132,6 @@ open = [
   #   and flag the missing hash field as the AST09 closure condition in agentic-skills.md.
   # Unblocks when: a governance RFC or install-marker schema extension closes the gap.
   {slug = "skill-governance-inventory-gap"},
-
 
   # ── Medium effort, internal ──────────────────────────────────────────────────
   # (no external environment; needs a focused session or an RFC decision)
@@ -1234,7 +1222,6 @@ open = [
   #   generated: true and must not be edited directly).
   # Unblocks when: spec/product-engineering-shaping-doctrine is Shipped.
   {slug = "digital-experience-contract-pe-journey-xref", source = "spec/digital-experience-contract AC15", needs = "ini-003:work:spec/product-engineering-shaping-doctrine"},
-
 
   # ini-003 follow-on. After the Digital Experience Doctrine initiative ships, the four
   # packs (product-strategy, product-engineering, experience-design, core) form a coherent
@@ -1628,6 +1615,20 @@ open = [
   # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
+  # The publication-control evidence artifact records NO repository field:
+  # build_evidence emits version, branch, app, environment, identities_agree,
+  # canary, observed_at, observation_source -- and the committed
+  # docs/specs/claude-plugin-hook-parity/publish-control-evidence.json has no
+  # repo. So nothing binds the evidence to a subject, and running the capture
+  # against a different, well-configured repo yields a byte-indistinguishable
+  # artifact. capture-evidence-repo-dot-segments closed ONE route to a
+  # wrong-subject capture (dot-segment traversal); this is the wider gap it
+  # deliberately did not close, surfaced in that spec's Honest scope section.
+  # Fix: record the observed repo in the evidence document and have
+  # lint-claude-plugin-publish-control.py compare it against the repository the
+  # artifact is committed in. That is a schema change, hence its own PR.
+  {slug = "publish-control-evidence-not-repo-bound", summary = "Record the observed repository in the publish-control evidence artifact and have the linter check it matches the committing repo", source = "spec/capture-evidence-repo-dot-segments"},
+
   # build-check.yml installs tools/requirements-sast.txt only when
   # skip_sast != 'true', so on a SKIP_SAST PR bandit is absent and
   # lint-nosec-form's unknown-id check (a well-formed but nonexistent ID like a
@@ -1689,16 +1690,6 @@ open = [
   # this spec is then its first caller.
   {slug = "bandit-hygiene-known-skip-dangling-pointer", summary = "Annotate bandit-nosec-comment-hygiene's § Known skip to record that its register entry was closed, using the frozen-doc mechanism from frozen-spec-supersession-convention", source = "spec/guides-readme-outcome-label-drift"},
 
-  # tools/capture-publish-control-evidence.py:_validate_repo accepts
-  # `[A-Za-z0-9._-]+/[A-Za-z0-9._-]+`, which matches `../..`; urllib sends the
-  # selector unnormalised, so `--repo ../../app` reaches a different
-  # api.github.com endpoint than the caller named. No privilege gain (the
-  # operator already holds the App private key) and the JWT still cannot leave
-  # api.github.com -- the scheme and host are fixed literals and _NoRedirect
-  # refuses redirects outright -- so this is hygiene, not a live hole. Fix is a
-  # dot-segment reject in _validate_repo plus a case in its test.
-  {slug = "capture-evidence-repo-dot-segments", summary = "Reject `.` and `..` path segments in capture-publish-control-evidence.py's _validate_repo so a --repo value cannot redirect the App-authenticated read to another endpoint", source = "spec/bandit-nosec-comment-hygiene"},
-
   # test-loop-cohort.sh is 493 lines / 51 cases of bash and uses ~20 bash-isms
   # ([[, local, $(), declare). AGENTS.md's "New tool scripts: Python, not bash"
   # rule grandfathers existing .sh, but this one is a portability dead end: a
@@ -1718,8 +1709,6 @@ open = [
   # the port -- it spawns a Python subprocess per case and invokes the
   # large test_loop_cohort.py suite as one of them.
   {slug = "loop-cohort-shell-suite-to-python", summary = "Port test-loop-cohort.sh (493 lines, 51 sequential cases) to pure-stdlib Python so it runs on Windows, decoupling the shared-counter fixtures and profiling its >10min runtime", source = "spec/pack-script-root-boundary-validation"},
-
-
 
   # Deliberately NOT backlogged: extending SAST_DIRS to web/ (62 JS/TS/Astro
   # files). Decided 2026-08-07 — web/ is the platform site, built and deployed
@@ -1815,7 +1804,6 @@ open = [
   # documentation-entry-navigation work: changing the allowlist is an engine
   # and release-boundary decision. Unblocks: now; no tracked prerequisite.
   {slug = "catalogue-package-guides", source = "spec/documentation-entry-navigation"},
-
 
   # A full generated-HTML crawl performed after the documentation-entry
   # navigation build found 67 older unresolved internal targets across 53,871
