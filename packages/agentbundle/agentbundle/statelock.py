@@ -20,7 +20,10 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
+import stat
 import time
+import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Iterator
 
@@ -30,6 +33,86 @@ if TYPE_CHECKING:
 
 class StateLockTimeout(OSError):
     """Raised when the lock cannot be acquired within the timeout."""
+
+
+class StateLockUnusable(OSError):
+    """Raised when the lock path can never become acquirable.
+
+    Distinct from :class:`StateLockTimeout` because waiting cannot help: a
+    non-regular file at the lock path (a symlink, a directory, a FIFO) will
+    still be there at the deadline. Both subclass ``OSError``, which every
+    caller of this module already handles.
+    """
+
+
+# Ownership record: a tag, a per-hold uuid4 token, and the holder's pid.
+# The token is what makes ownership checkable — inode identity alone is not
+# enough, because ext4 and tmpfs reuse inode numbers aggressively, so a
+# successor's lockfile can land on the freed inode of the one being checked.
+_RECORD_TAG = b"agentbundle-statelock"
+_RECORD_RE = re.compile(r"^agentbundle-statelock ([0-9a-f]{32}) (\d+)$")
+
+
+def _read_record(lock: Path) -> bytes | None:
+    """First line of *lock*, or ``None`` if unreadable."""
+    try:
+        with open(lock, "rb") as handle:  # noqa: PTH123 — need the raw fd path
+            return handle.readline()
+    except OSError:
+        return None
+
+
+def _same_file(st: os.stat_result, ident: tuple[int, int]) -> bool:
+    """Inode identity. Necessary but not sufficient — see :func:`_is_ours`."""
+    return (st.st_dev, st.st_ino) == ident
+
+
+def _is_ours(lock: Path, ident: tuple[int, int], record: bytes) -> bool:
+    """True iff *lock* is still the exact file this hold created."""
+    try:
+        st = os.lstat(lock)
+    except OSError:
+        return False
+    return _same_file(st, ident) and _read_record(lock) == record
+
+
+def _reclaim(lock: Path, observed: os.stat_result, record: bytes | None) -> None:
+    """Best-effort removal of the stale lockfile *observed*.
+
+    Rename to a name unique per *attempt* (not per pid — two threads of one
+    process would otherwise collide), then confirm the file that moved is the
+    one judged stale before unlinking it.
+
+    On a mismatch we moved a *live* holder's lock, so it goes back by
+    ``os.link``, not ``rename``: ``rename`` silently replaces its destination,
+    so if a third process took the momentarily-free path in the meantime,
+    restoring by rename would delete that process's lockfile and admit two
+    holders. ``link`` fails with ``FileExistsError`` instead, and the displaced
+    holder discovers the loss at release rather than a bystander losing a write.
+    """
+    claimed = lock.with_name(f"{lock.name}.reclaim.{uuid.uuid4().hex}")
+    try:
+        lock.rename(claimed)
+    except OSError:
+        return  # another contender reclaimed, or the holder released first
+    try:
+        moved = os.lstat(claimed)
+    except OSError:
+        return
+    if not _same_file(moved, (observed.st_dev, observed.st_ino)) or (
+        _read_record(claimed) != record
+    ):
+        try:
+            os.link(claimed, lock)
+        except OSError:
+            # The path is occupied again, or the link failed; leaving `claimed`
+            # in place fails closed rather than clobbering a live holder.
+            return
+        with contextlib.suppress(OSError):
+            claimed.unlink()
+        return
+    with contextlib.suppress(OSError):
+        claimed.unlink()
 
 
 @contextlib.contextmanager
@@ -44,11 +127,23 @@ def state_lock(
 
     The lock is a sibling file ``<state_path>.lock`` created with
     ``O_CREAT | O_EXCL`` — the create succeeds for exactly one holder. Other
-    contenders spin-retry every *poll* seconds up to *timeout*. A lockfile
-    whose mtime is older than *stale_after* is reclaimed (a previous holder
-    crashed); this prevents a permanent deadlock without a daemon.
+    contenders retry every *poll* seconds up to *timeout*. A lockfile whose
+    mtime is older than *stale_after* is reclaimed (a previous holder crashed);
+    this prevents a permanent deadlock without a daemon.
 
-    Raises ``StateLockTimeout`` if the lock cannot be acquired in time.
+    **Every** retry path checks the deadline and sleeps. An earlier version did
+    not: a *dangling symlink* at the lock path made ``O_CREAT | O_EXCL`` fail
+    with ``FileExistsError`` while ``Path.stat()`` followed the link and raised
+    ``FileNotFoundError``, whose handler looped with neither check nor sleep.
+    One planted file wedged every state-mutating verb at 100% CPU, and the
+    timeout never fired.
+
+    The examine step therefore uses ``os.lstat`` (which does not follow) and
+    refuses any lock path that is not a regular file — waiting cannot make a
+    symlink acquirable.
+
+    Raises :class:`StateLockUnusable` at once if the lock path is not a regular
+    file, and :class:`StateLockTimeout` if contention outlasts *timeout*.
     """
     # ``state_path`` is trusted, CLI-resolved input (the repo root or
     # ``~/.agentbundle/``), never pack-sourced — so the sibling lock path
@@ -57,37 +152,52 @@ def state_lock(
     lock_path = state_path.with_name(state_path.name + ".lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     deadline = time.monotonic() + timeout
+    record = b"%s %s %d\n" % (
+        _RECORD_TAG,
+        uuid.uuid4().hex.encode("ascii"),
+        os.getpid(),
+    )
     fd: int | None = None
     while True:
         try:
             fd = os.open(lock_path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
             break
         except FileExistsError:
-            # Reclaim a stale lock (a holder crashed) — but do it RACE-SAFELY.
-            # A naive `unlink(); continue` lets two contenders both unlink and
-            # a third's fresh lock get deleted, admitting two holders. Instead
-            # rename the stale lockfile to a per-pid temp: `os.rename` is
-            # atomic, so exactly one contender wins (the lockfile moves once);
-            # losers see FileNotFoundError and re-loop. Staleness is judged on
-            # `st_mtime` — necessarily wall-clock, unlike the monotonic
-            # timeout; the 60s default absorbs normal NTP skew.
             try:
-                age = time.time() - lock_path.stat().st_mtime
+                observed = os.lstat(lock_path)
             except FileNotFoundError:
-                # Holder released between our open and stat — retry promptly.
+                # Released between our open and our lstat. Retry — BOUNDED,
+                # which is exactly what the superseded loop missed.
+                if time.monotonic() >= deadline:
+                    raise StateLockTimeout(
+                        f"could not acquire state lock {lock_path} within {timeout}s"
+                    ) from None
+                time.sleep(poll)
                 continue
+
+            if not stat.S_ISREG(observed.st_mode):
+                raise StateLockUnusable(
+                    f"refusing state lock {lock_path}: a lock path must be a "
+                    f"regular file (found mode {stat.filemode(observed.st_mode)}). "
+                    "Waiting cannot make this acquirable — remove it."
+                ) from None
+
+            observed_record = _read_record(lock_path)
+            # Staleness is wall-clock (st_mtime), unlike the monotonic timeout,
+            # so it is exposed to NTP skew; the stale_after margin absorbs it.
+            age = time.time() - observed.st_mtime
             if age > stale_after:
-                claimed = lock_path.with_name(
-                    lock_path.name + f".reclaim.{os.getpid()}"
-                )
-                try:
-                    lock_path.rename(claimed)
-                except (FileNotFoundError, OSError):
-                    # Another contender reclaimed or the holder released first.
-                    continue
-                # We won the reclaim: drop the stale lock and retry the create.
-                Path(claimed).unlink(missing_ok=True)
+                _reclaim(lock_path, observed, observed_record)
+                if time.monotonic() >= deadline:
+                    raise StateLockTimeout(
+                        f"could not acquire state lock {lock_path} within {timeout}s"
+                    ) from None
+                # Sleep here too: a reclaim that keeps losing its rename would
+                # otherwise spin hot until the deadline — bounded, but still the
+                # CPU burn this hardening exists to remove.
+                time.sleep(poll)
                 continue
+
             if time.monotonic() >= deadline:
                 raise StateLockTimeout(
                     f"could not acquire state lock {lock_path} within {timeout}s"
@@ -95,15 +205,23 @@ def state_lock(
             time.sleep(poll)
     try:
         with contextlib.suppress(OSError):
-            os.write(fd, str(os.getpid()).encode("ascii"))
+            os.write(fd, record)
         os.close(fd)
         fd = None
+        held = os.lstat(lock_path)
+        ident = (held.st_dev, held.st_ino)
         yield lock_path
     finally:
         if fd is not None:
             with contextlib.suppress(OSError):
                 os.close(fd)
-        lock_path.unlink(missing_ok=True)
+        # Unlink only if this is still the file we created. The old code
+        # unlinked unconditionally, so a hold whose lock had been reclaimed
+        # would delete its *successor's* live lockfile on the way out — two
+        # holders inside the section, from a release rather than an acquire.
+        if _is_ours(lock_path, ident, record):
+            with contextlib.suppress(OSError):
+                lock_path.unlink()
 
 
 def persist_state_locked(

@@ -6,6 +6,37 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.36.2] — 2026-08-16
+
+### Fixed
+
+- **Security: one planted file could wedge every state-mutating command at
+  100% CPU.** A *dangling symlink* at `<state>.lock` made
+  `os.open(O_CREAT|O_EXCL)` fail with `FileExistsError` while `Path.stat()`
+  followed the link and raised `FileNotFoundError` — and that handler looped
+  with neither a deadline check nor a sleep. The timeout therefore never fired:
+  confirmed against the shipped package at 98% CPU, still spinning well past a
+  2-second budget. Any writable directory holding a state file was enough.
+
+  Four hardening items, ported from the work-loop skill's sibling lock (kept a
+  separate module deliberately — the two guard different files for different
+  consumers):
+
+  - **Every** retry path now checks the deadline and sleeps.
+  - The examine step uses `os.lstat`, which does not follow links, and refuses
+    any lock path that is not a regular file. New `StateLockUnusable` (an
+    `OSError`, like `StateLockTimeout`) says so immediately rather than waiting
+    out a timeout that cannot succeed — waiting cannot make a symlink acquirable,
+    and telling an operator to retry would be advice that never works.
+  - Release keys on inode identity **and** a per-hold uuid4 token, so a hold
+    whose lock was reclaimed mid-body no longer unlinks its *successor's* live
+    lockfile on the way out. Inode identity alone is not enough: ext4 and tmpfs
+    reuse inode numbers aggressively.
+  - A mismatched reclaim restores the displaced file with `os.link` rather than
+    `rename`. `rename` silently replaces its destination, so a third process
+    that took the momentarily-free path would have its lockfile deleted and two
+    holders admitted; `link` fails closed instead.
+
 ## [0.36.1] — 2026-08-16
 
 ### Fixed
