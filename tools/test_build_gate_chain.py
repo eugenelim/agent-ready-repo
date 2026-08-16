@@ -220,6 +220,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-build-check-windows-workflow.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
+    "tools/repo/check_contract_drift.py",
 ]
 
 

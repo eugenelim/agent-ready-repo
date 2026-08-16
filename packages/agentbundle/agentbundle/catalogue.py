@@ -379,6 +379,23 @@ def _fetch_and_extract(url: str, dest: Path) -> None:
                     "/Library/Keychains/System.keychain is read, because it is "
                     "the one store that requires administrator rights to write."
                 )
+            elif system_trust.running_under_wsl():
+                # True on WSL but not on Windows, and the distinction is the
+                # whole point: Windows needs no fallback (Python reads the CA
+                # and ROOT stores and honours per-certificate trust settings),
+                # while a WSL distribution reports linux and inherits none of
+                # it. The generic linux message is accurate and useless here —
+                # it does not name the cause the adopter can act on.
+                note = (
+                    "No operating-system trust anchors were consulted: this is a "
+                    "WSL distribution, which keeps its own trust store separate "
+                    "from Windows'. A certificate authority pushed to Windows by "
+                    "Group Policy or Intune is not visible here until it is "
+                    "installed into the distribution as well — export the "
+                    "authority to a .crt, place it in "
+                    "/usr/local/share/ca-certificates/, and run "
+                    "`sudo update-ca-certificates`."
+                )
             else:
                 note = (
                     f"No operating-system trust anchors were consulted on "

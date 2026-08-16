@@ -50,7 +50,7 @@ The contract template is additive — it ships alongside existing skills without
 - Adding, removing, or renaming any field in the contract template (each change is a schema change; the drift check enforces schema-version parity)
 - Changing the anchor skill path for any pack (the anchor paths are defined in ACs and the drift check hardcodes them)
 - Adding the contract to SKILL.md files — that is the job of downstream doctrine specs; do not pre-empt them here
-- Promoting the drift check to a build-check gate — it runs on demand; promotion to gate requires calibration evidence (deferred: contract-drift-check-gate-promotion)
+- Promoting the drift check to a build-check gate — it ran on demand; promotion to gate required calibration evidence. **Delivered 2026-08-16** by `spec/tooling-gate-hygiene`: three clean passes on `origin/main` were recorded (2026-08-01, 2026-08-15, 2026-08-16) against a two-pass bar, and the check is now a `build_gate_chain.py` step, so it runs in both `make build-check` and CI. The compat shim path this bullet names (`tools/check-contract-drift.py`) was relocated to `tools/repo/check_contract_drift.py`; the gate wires the real path.
 
 ### Never do
 
@@ -196,7 +196,7 @@ The table below defines every field, its owning discipline, and its minimum tier
 - [x] No SKILL.md, pack.toml, or eval file is modified.
 - [x] `workspace.toml` passes `python3 -c "import tomllib; tomllib.load(open('workspace.toml','rb'))"` after any workspace.toml edit.
 - [ ] (deferred: digital-experience-contract-pe-journey-xref) PE journey page cross-reference — deferred to `spec/product-engineering-shaping-doctrine` where the PE journey page will be authored.
-- [ ] (deferred: contract-drift-check-gate-promotion) Promotion of drift check to a build-check gate — deferred pending calibration evidence from at least two passes on the live repo.
+- [x] Promotion of drift check to a build-check gate — was deferred pending calibration evidence from at least two passes on the live repo. **Delivered 2026-08-16** by `spec/tooling-gate-hygiene`: three clean passes recorded (2026-08-01, 2026-08-15, 2026-08-16), and the check is now a `build_gate_chain.py` step, so it runs in `make build-check` and in CI.
 
 ## Assumptions
 
