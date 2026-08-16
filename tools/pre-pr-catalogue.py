@@ -2,8 +2,8 @@
 """Shim — forwards to tools/catalogue/pre_pr_catalogue.py.
 
 The real implementation lives at tools/catalogue/pre_pr_catalogue.py. This shim
-keeps the Makefile / test-pre-pr.sh call-site (`python tools/pre-pr-catalogue.py`)
-stable while the logic lives in the subdirectory layout introduced in v0.13.0.
+keeps legacy direct invocations (`python tools/pre-pr-catalogue.py`) stable while
+current repository orchestration calls the real implementation.
 """
 import subprocess
 import sys

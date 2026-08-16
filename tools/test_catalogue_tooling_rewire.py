@@ -59,10 +59,13 @@ class MakefileRewireTest(unittest.TestCase):
         self.assertIn("agentbundle catalogue self-host", body)
         self.assertIn("--check", body)
 
-    def test_build_check_calls_catalogue_verify(self):
+    def test_build_check_delegates_portable_verify_to_gate_chain(self):
         body = self._target_body("build-check")
-        self.assertIn("agentbundle catalogue verify", body,
-                      "build-check must call agentbundle catalogue verify")
+        self.assertNotIn("agentbundle catalogue verify", body,
+                         "build-check must not verify before the gate chain")
+        chain = (REPO_ROOT / "tools/repo/build_gate_chain.py").read_text(encoding="utf-8")
+        self.assertIn('"catalogue", "verify"', chain,
+                      "the gate chain must own portable catalogue verification")
 
     def test_build_check_calls_repo_build_gate_chain(self):
         body = self._target_body("build-check")
