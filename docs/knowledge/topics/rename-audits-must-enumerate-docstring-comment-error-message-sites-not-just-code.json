@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "review_required"
+  },
+  "lifecycle": "needs_review",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-25fd7481100d9a3fa30fb86d6c1e8c85e332bfbc83a719d524cda288781cbb7f",
+      "legacy_identity": "K-0004",
+      "legacy_source": "PR#22 / commit f791743",
+      "mutation_id": "d8e6f6289fec476c78d9d5329cf4053905a02e0c0bc052b3486e6024bf6da0d6",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "needs_review_import",
+      "scope": "*",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "*"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "When a rename touches a name-that-is-an-identifier (filename, directory, package), the per-task line-level audit in the plan must list every string-literal occurrence — including module docstrings, header comments, assertion messages, help strings, and CLI-arg examples — not just code constants. The brief's `grep` Done-when test surfaces every site; the plan's per-task list is what executes against it. If the plan enumerates only constants, docstrings drift past EXECUTE and the post-EXECUTE adversarial-reviewer raises them as Blockers. Caught on PR#22 (relocate adapter contract to docs/contracts/): the round-1 plan listed only `CONTRACT_PATH` / `SCHEMA_PATH` constants in T3/T4; round-2 post-EXECUTE review found 14 docstring + assertion-message hits the audit had missed. Fix: when the reference taxonomy says 'Class X always rewrites', the per-task audit's grep must cover docstrings, comments, and message strings in the same sweep.",
+    "kind": "gotcha"
+  },
+  "title": "Rename audits must enumerate docstring + comment + error-message sites, not just code constants",
+  "topic_key": "rename-audits-must-enumerate-docstring-comment-error-message-sites-not-just-code"
+}

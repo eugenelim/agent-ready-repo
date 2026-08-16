@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-a0a766c26ece0a2afc5e7d9b08ea46ffc8a02692b56ad6a95d12016f2c7861bd",
+      "legacy_identity": "K-0032",
+      "legacy_source": "spec/jira-check-sso-auto-login",
+      "mutation_id": "66cb87fad14e296fe47d9fd5e78bf0d120768df789bf0fad04f78849bb6b3b79",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "**/requirements.txt, Makefile",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**/requirements.txt, Makefile"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "`pip-audit -r <requirements.txt>` (and npm/cargo equivalents) resolves every pin against the public registry, not the workspace. In a monorepo that both publishes a package and pins it from a consumer, raising the consumer's floor to the version this PR bumps to makes the SCA leg fail with 'Could not find a version that satisfies the requirement' until that version is actually published. It is a merge-ordering constraint, not a code defect, and it cannot be closed from inside the PR. Decide it up front: publish first, or land the pin in a follow-up and let the runtime feature-detect carry the floor. Do NOT carve the file out of the scanner — that removes coverage from exactly the dependency you just changed. Surfaced when credbroker 0.5.0's floor landed in the same PR as the bump.",
+    "kind": "gotcha"
+  },
+  "title": "An SCA gate resolves requirement pins against the public index, so a pin cannot lead its release",
+  "topic_key": "an-sca-gate-resolves-requirement-pins-against-the-public-index-so-a-pin-cannot-l"
+}

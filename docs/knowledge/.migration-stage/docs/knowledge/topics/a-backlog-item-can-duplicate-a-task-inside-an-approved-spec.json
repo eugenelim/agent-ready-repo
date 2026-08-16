@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-ccc5be57544774cfcaed4f9608fc5ee732353c1c0cb3dcb6b4d5ec956d735210",
+      "legacy_identity": "K-0063",
+      "legacy_source": "PR#947",
+      "mutation_id": "afa07940fa7b5ec740211881ade7cbab0d124643f4fd1d59e472570e697e6a6e",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "workspace.toml,docs/specs/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "workspace.toml,docs/specs/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "workspace.toml [backlog].open and docs/specs/ are separate registers with no cross-check, so the same defect can sit in both — once as a one-line backlog slug and once as an AC inside an Approved, queued spec that also owns twelve other things. Picking the backlog item and writing a fresh spec for it silently pre-empts the larger spec's task and leaves it half-done with no record. Before starting any [backlog].open item, grep docs/specs/ for the symbol or file it names; if a spec already owns it, tick that spec's ACs and annotate its plan task instead of authoring a competing spec.",
+    "kind": "gotcha"
+  },
+  "title": "A backlog item can duplicate a task inside an Approved spec",
+  "topic_key": "a-backlog-item-can-duplicate-a-task-inside-an-approved-spec"
+}

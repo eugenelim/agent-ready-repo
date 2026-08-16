@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-fa5736a6adcbba0b2f706b2a7c2caecc065926921946021ed75e36f4b7cf39f2",
+      "legacy_identity": "K-0061",
+      "legacy_source": "spec/tech-site-polish-batch",
+      "mutation_id": "6931e56e3d7c1e08b2f6be3025aaef8c7aa3718f20b486a3babc8959caa18ff7",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "web/**,docs-site/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "web/**,docs-site/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A rule written in a parent .astro file is scoped to that file: Astro appends the parent's data-astro-cid-* attribute to the selector, and a child component's root element carries the CHILD's cid, not the parent's. So `.child-class { color: X }` written in the parent silently matches nothing — the block compiles, ships, and does nothing. Passing a class through as a prop does not change this. It fails silently, so it can sit in the tree for months (one such block left a copy button wearing the light-zone palette on a dark surface at 3.43:1, under the contrast floor). Fix: have the child expose themable CSS custom properties with fallbacks (`color: var(--x-fg, <default>)`) and set them on an ancestor in the parent — custom properties inherit across the component boundary. `:global()` also works but ties the parent to the child's internal class names and needs a specificity bump to beat the child's own scoped rule.",
+    "kind": "gotcha"
+  },
+  "title": "Astro scoped styles cannot restyle a child component from its parent",
+  "topic_key": "astro-scoped-styles-cannot-restyle-a-child-component-from-its-parent"
+}

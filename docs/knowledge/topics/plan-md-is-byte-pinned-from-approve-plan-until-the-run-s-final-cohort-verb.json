@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-564b9c9359340cadd3317923607de4b576aaba7bf3c494ade82eb499bb8db5f0",
+      "legacy_identity": "K-0014",
+      "legacy_source": "spec/docs-site-design-refresh / PR #870",
+      "mutation_id": "55e79899c5c6fbaae854cb28007c9fc35bb392474f2d228ef0d455e16b6376ab",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "docs/specs/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "loop-cohort's canonical plan hash normalizes whitespace only, so ANY plan.md content edit after `approve-plan`/`schedule` — including flipping the Status line to Executing — breaks the wave-guard hash and stops `wave-complete`. Sequence discipline: (1) `schedule` requires tasks as `### T<n>` headings, so convert the task list BEFORE the approval pair; (2) do not touch plan.md between approve-plan and the final `review record`; (3) flip plan Status to Done only at finish, after the last cohort verb. Recovery from a broken baseline: cohort-only reset + re-init with the same run-id (engine history survives).",
+    "kind": "gotcha"
+  },
+  "title": "plan.md is byte-pinned from approve-plan until the run's final cohort verb",
+  "topic_key": "plan-md-is-byte-pinned-from-approve-plan-until-the-run-s-final-cohort-verb"
+}

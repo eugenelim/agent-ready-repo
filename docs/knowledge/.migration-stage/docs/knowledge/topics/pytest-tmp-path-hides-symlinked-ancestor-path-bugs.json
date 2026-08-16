@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-6c5a0df94d1cfb4a402e9cbc21b5cd2cf0e37d69dba27e8526a15f3a0ce0797d",
+      "legacy_identity": "K-0052",
+      "legacy_source": "PR#933",
+      "mutation_id": "eec4952543a8235a006f774bc40ca9e3a91b603549b2a169bfba8534ba14eb52",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/agentbundle/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/agentbundle/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "pytest's tmp_path resolves through /private/var on macOS, so no test ever crosses a symlinked ancestor. Code that refuses symlinked path *components* passes the whole suite while failing for real users the moment they pass /tmp/... (/tmp is a symlink to private/tmp on macOS; a symlinked $HOME or checkout does the same on Linux). When a path guard refuses links, scope it to the leaf and its destinations, and add an explicit test that a symlinked ancestor is accepted.",
+    "kind": "gotcha"
+  },
+  "title": "pytest tmp_path hides symlinked-ancestor path bugs",
+  "topic_key": "pytest-tmp-path-hides-symlinked-ancestor-path-bugs"
+}

@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-fbcdcdbc6f17cf5c589ebf8b01554ebe3d58fcc8cbbc3b312235ea952a3aa55e",
+      "legacy_identity": "K-0009",
+      "legacy_source": "PR for docs/specs/doc-drift-prevention (RFC-0016)",
+      "mutation_id": "2661401983d1aa2736c403b70520ba40e6d2e1135ab675b9c7e9b53f5eacbcbe",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "tools/hooks/**, packs/core/.apm/skills/**/scripts/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools/hooks/**, packs/core/.apm/skills/**/scripts/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Never wire a lint into tools/hooks/pre-pr.py: it's PROJECTED to adopters (sourced from packs/core/.apm/hooks/pre-pr.py), so it would call a script absent from their tree. That principle stands. But the corollary 'linters don't project, so they must be catalogue-only in tools/' is FALSE (RFC-0016 originally claimed it; corrected in RFC-0016 § Errata + ADR-0007). A skill's scripts/ folder DOES project to every adapter and already ships governance Python (work-loop/scripts/loop-cohort.py, new-adr/new-rfc scripts/next-ordinal.py). The doc-drift spec-metadata lint now lives at packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py — agent-invoked at the work-loop finish-time checklist (available, not fail-closed), AND run by the catalogue as a fail-closed CI gate via `make build-check` against the PROJECTED .claude/ copy (mirrors how pre-pr.py invokes projected loop-cohort.py). Also: adding a file under packs/core/seeds/ changes the `core` install snapshot — regenerate with UPDATE_GOLDEN=1 pytest tests/integration/test_install_snapshot.py.",
+    "kind": "pattern"
+  },
+  "title": "Don't wire any lint into the projected pre-pr.py; a lint CAN ship to adopters as a skill script",
+  "topic_key": "don-t-wire-any-lint-into-the-projected-pre-pr-py-a-lint-can-ship-to-adopters-as-"
+}

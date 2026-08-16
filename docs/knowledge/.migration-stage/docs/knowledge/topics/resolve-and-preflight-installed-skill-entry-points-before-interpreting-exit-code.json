@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-1182b5b3abbb6c68507b0d42e74b0bfdb28ce12e689212df802fbc0a0f28f441",
+      "legacy_identity": "K-0039",
+      "legacy_source": "spec/skill-script-exit-2-collision",
+      "mutation_id": "6d1025c22e344fb24ab73fe2e7908234195610d6c97a441d7ff69768ccce85b8",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packs/**/skills/**,.claude/skills/**,.agents/skills/**,.codex/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/**/skills/**,.claude/skills/**,.agents/skills/**,.codex/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Agents run commands from the session's project root, not the installed skill directory. A skill must obtain the installer-supplied directory containing its active SKILL.md, canonicalize the skill-owned scripts directory and expected entry point, require a resolved regular file confined beneath that directory, and only then launch it as one argv element while retaining the project root for content paths. Missing, non-file, resolution-error, or escaping targets stop before runtime launch with a bounded installation or invocation diagnostic. This ordering matters because CPython exits 2 when it cannot open a script, colliding with the user-action band used by credentialed clients and Mermaid Renderer; Node exits 1 with MODULE_NOT_FOUND. No in-process guard can disambiguate an interpreter that never started the script. Shell-string-only adapters must use a platform-safe literal form or refuse the path. Apply the same renderer to every command the skill teaches or emits, including dependency setup and eval expectations, and test the production command builder's exact argv rather than quote counts or an isolated helper.",
+    "kind": "pattern"
+  },
+  "title": "Resolve and preflight installed skill entry points before interpreting exit codes",
+  "topic_key": "resolve-and-preflight-installed-skill-entry-points-before-interpreting-exit-code"
+}

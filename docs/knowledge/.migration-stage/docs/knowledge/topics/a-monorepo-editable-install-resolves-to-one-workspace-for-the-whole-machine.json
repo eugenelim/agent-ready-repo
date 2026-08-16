@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-71727a53d3bbf274b1e5e5377f1b11dcde918541f17ac889d542592a7b85e510",
+      "legacy_identity": "K-0046",
+      "legacy_source": "spec/sso-store-transition-serialization",
+      "mutation_id": "9194fe64808dfb66cad0a891cf3d31bf16a78c77ee791090973e120a1ed8c4d5",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/**,tools/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/**,tools/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "pip install -e packages/<pkg> records one absolute path, so with several Conductor workspaces on the same repo the global interpreter resolves that package from whichever workspace installed it last. Local gates then exercise a different checkout and pass or fail for reasons unrelated to your diff; when that workspace is deleted the import fails outright mid-session. Re-running the editable install just re-points the trap. Install into the workspace's own gitignored .venv instead and drive every local gate through .venv/bin/python, leaving the global interpreter on PyPI builds. Detect editables via pip list (shows a path) or dist-info/direct_url.json carrying dir_info.editable true.",
+    "kind": "gotcha"
+  },
+  "title": "A monorepo editable install resolves to one workspace for the whole machine",
+  "topic_key": "a-monorepo-editable-install-resolves-to-one-workspace-for-the-whole-machine"
+}

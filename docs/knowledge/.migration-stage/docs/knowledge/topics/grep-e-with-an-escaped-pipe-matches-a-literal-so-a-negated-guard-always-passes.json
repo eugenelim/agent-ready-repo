@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-87361f46a363ee58eca4c82e057fa38d9b53b49dcc55459d6950ae7c2670c517",
+      "legacy_identity": "K-0041",
+      "legacy_source": "PR#guides-sidebar-generation",
+      "mutation_id": "e85ad780caf7d37a5fba20c291385400e3a100e8522b281a3681e43acc653dcd",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "**/*.sh,**/Makefile,**/*.md",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**/*.sh,**/Makefile,**/*.md"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Under `grep -E`, `\\|` is a literal pipe character, not alternation. A check written `! grep -qE \"x('\\|/)\" file` matches nothing, so the negation succeeds unconditionally and the guard can never fail. Always pre-verify an absence check against the pre-change file: it must exit non-zero *before* the change, or it is proving nothing.",
+    "kind": "gotcha"
+  },
+  "title": "grep -E with an escaped pipe matches a literal, so a negated guard always passes",
+  "topic_key": "grep-e-with-an-escaped-pipe-matches-a-literal-so-a-negated-guard-always-passes"
+}

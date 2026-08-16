@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-34c19963c3871309dc351ed7174295126bfc9153316b3f47494602fc1fd2934a",
+      "legacy_identity": "K-0029",
+      "legacy_source": "spec/pack-test-boundary-remaining-packs",
+      "mutation_id": "8a6fa5d526e0214e0a6a48c006290fb1212a40fc83d2c79332f4d6a59be982a3",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packs/**,tools/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/**,tools/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "When two skill test dirs are collected by one pytest process, duplicate *test* basenames make pytest error out loudly — easy to diagnose, not worth a lint. The failure worth guarding is the duplicate *subject* module: a sys.path sibling import binds one skill's render.py for both suites and everything passes green. Check both, and say which was found. Exclude conftest.py from the test-basename comparison — one per directory is pytest's design, so counting it reports every multi-directory invocation as a collision for a reason that is false.",
+    "kind": "antipattern"
+  },
+  "title": "Guarding the collision that announces itself instead of the one that is silent",
+  "topic_key": "guarding-the-collision-that-announces-itself-instead-of-the-one-that-is-silent"
+}

@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-a4d2d62b1320c95aa9a78b9e6ed5dbd4f4c5d898312511ff3ebdc8efe9e4caf5",
+      "legacy_identity": "K-0050",
+      "legacy_source": "PR#898",
+      "mutation_id": "f8a7907efea065b9a025c1845a2a4feccc369a48189ea55395bfc35fd0cfb55f",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "**/tests/**,**/test_*.py",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**/tests/**,**/test_*.py"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "When a call site passes a config argument, a test that calls the same function and supplies that argument itself proves only that the function honours it — it survives the call site being deleted. Prove the difference by mutation: remove the wiring and confirm the test reddens. Caught three times in one change, each time one call site further out, and each time the test read as thorough. The general form is asserting your own intent rather than the system behaviour; drive the real entry point instead.",
+    "kind": "antipattern"
+  },
+  "title": "A test that supplies the wiring it is meant to verify",
+  "topic_key": "a-test-that-supplies-the-wiring-it-is-meant-to-verify"
+}

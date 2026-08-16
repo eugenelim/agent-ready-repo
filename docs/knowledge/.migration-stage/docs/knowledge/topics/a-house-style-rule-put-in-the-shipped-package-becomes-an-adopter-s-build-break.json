@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-a8441383e4367f3d781be7bd72a14850ee12fea6e3d1cd0c81269880f65445d6",
+      "legacy_identity": "K-0043",
+      "legacy_source": "spec/pack-description-quality",
+      "mutation_id": "a2aa13f0993db96286b00f7843c2334d980e2d36500d8c5cba8bcbbf7619ad6e",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/agentbundle/**,tools/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/agentbundle/**,tools/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "`pack.schema.json` and `agentbundle.build.lint_packs` both ship inside the published package and run against third-party catalogues via `agentbundle validate` and `agentbundle catalogue lint`. Adding an editorial rule (a prose-length cap, a wording convention) to either one silently exports this repository's taste as a hard failure in someone else's build. Repo-only policy lints belong in `tools/` as a `lint-x.py` + `test-lint-x.py` pair, wired into BOTH `tools/repo/build_gate_chain.py` and `.github/workflows/build-check.yml` — `lint-ci-parity` fails if the two disagree, and it also needs a `STEP_DISPOSITION` entry naming the local target. The catalogue-curation guard (RFC-0059 D6) is what catches the mistake, but only after the fact: it refuses any changeset touching `packages/agentbundle/**` or `packs/credential-brokers/**` without an `Engine-Change-RFC:` trailer. Treat that refusal as a design signal, not an obstacle to route around with the trailer.",
+    "kind": "gotcha"
+  },
+  "title": "A house-style rule put in the shipped package becomes an adopter's build break",
+  "topic_key": "a-house-style-rule-put-in-the-shipped-package-becomes-an-adopter-s-build-break"
+}

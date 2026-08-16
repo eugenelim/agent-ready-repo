@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-e1c646abf8172fd3ba7ddc7d91feeac2256d2827cfdcbee4ce8c02dd91e283e2",
+      "legacy_identity": "K-0016",
+      "legacy_source": "spec/test-sandbox-seed-cost",
+      "mutation_id": "adfc60da50f00ad860be53ce6fb2cc1fe0aa9d1da5044399bd1151f60f626bb0",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "tools/**, *.sh",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools/**, *.sh"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A shell loop that spawns a process per file (`for f in ...; do mkdir -p ...; cp -P ...; done`) looks cheap and is not: cost is spawns x per-spawn latency, and per-spawn latency is a property of the machine, not the repo. Measure it before optimising anything else — `time (for i in $(seq 1 1000); do /bin/echo -n; done)`. Dev machines running endpoint security have measured ~26ms per spawn here vs ~1ms on CI Linux, which is why a harness can take 30 min locally and 112s in CI. Rewriting one such loop (2 spawns x 3,100 files x 6 seedings) as a single stdlib-Python pass cut tools/test-pre-pr.sh from ~28-37 min to ~4-8 min. Two behaviours the shell gave implicitly must be re-added by hand: `cp -P` overwrites an existing destination but shutil.copy2(follow_symlinks=False) raises FileExistsError (unlink first), and a read loop handles arbitrary path bytes but bytes.decode() aborts on non-UTF-8 (use os.fsdecode). Also check whether `set -e` is actually in effect at the call site before relying on it to catch the new command's exit.",
+    "kind": "antipattern"
+  },
+  "title": "Per-file subprocess loops in test harnesses scale with spawn cost, not file size",
+  "topic_key": "per-file-subprocess-loops-in-test-harnesses-scale-with-spawn-cost-not-file-size"
+}

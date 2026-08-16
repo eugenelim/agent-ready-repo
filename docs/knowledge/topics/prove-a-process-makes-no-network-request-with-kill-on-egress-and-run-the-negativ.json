@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-d75f6c15dccccdc2c0521b62f3bd335479e5da474737ca3f1094bc497fdbdfc3",
+      "legacy_identity": "K-0038",
+      "legacy_source": "spec/binder-publishing-gate-propagation",
+      "mutation_id": "cc1e3d11e6622d30c1065f0181a82ebf81f4c11b95d7ca732cd3d071a3b2ca57",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "**/*.py,**/*.sh",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**/*.py,**/*.sh"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "To show a subprocess never reaches the network, blocking egress and checking the exit code only proves it tolerates failure. On macOS use sandbox-exec with '(deny network-outbound (with send-signal SIGKILL))' so any attempt is fatal: completion then proves no attempt from any code path, including compiled extensions a Python-level socket tracer cannot see. Validate the instrument before trusting it -- trivial process survives, IP-literal connect is killed (a DNS-only block lets hardcoded IPs through), DNS-based urlopen is killed, the same request succeeds unsandboxed. '(with report)' is rejected on a deny action and sandbox denials did not reach the unified log on Darwin 25.5, so log scraping is not a substitute. Does not port to Linux CI: use a network namespace or seccomp filter, with its own negative control.",
+    "kind": "pattern"
+  },
+  "title": "Prove a process makes no network request with kill-on-egress, and run the negative control first",
+  "topic_key": "prove-a-process-makes-no-network-request-with-kill-on-egress-and-run-the-negativ"
+}

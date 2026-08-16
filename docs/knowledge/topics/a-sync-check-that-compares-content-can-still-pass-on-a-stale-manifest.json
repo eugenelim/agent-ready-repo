@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-890d03d1cd6c60e2c1c8e145e3fa170957b49a40299f1fbdf5e23f337fee1ddd",
+      "legacy_identity": "K-0053",
+      "legacy_source": "PR#933",
+      "mutation_id": "d999bbb694a6a03d9b80b65f973bc8428907b116d53c8fd8f7a396c9707a6028",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "tools/**,packages/agentbundle/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools/**,packages/agentbundle/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "tools/catalogue/sync_authoring_scaffold.py --check compared repo-root bytes to the _data/ projection but never verified the SHA-256s it writes into manifest.json. Adopter-side catalogue init verifies those hashes and fails on a mismatch, so the gate reported ok while adopters broke. When a --write mode emits a digest file, its --check mode must recompute and compare that digest, not just the source content.",
+    "kind": "gotcha"
+  },
+  "title": "A sync --check that compares content can still pass on a stale manifest",
+  "topic_key": "a-sync-check-that-compares-content-can-still-pass-on-a-stale-manifest"
+}

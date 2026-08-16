@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-52b85d676d1764a91acc36201cfad7b97dc82157e72cf7ae87de7092cec1810c",
+      "legacy_identity": "K-0033",
+      "legacy_source": "spec/jira-check-sso-auto-login",
+      "mutation_id": "cec491d27a77c252edeedbc7553c977c2a089e21d7d9710f30a1b285a2a222e5",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "**/tests/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**/tests/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Adding a test suite to a Windows/macOS parity runner only exercises what its assertions actually run. A test guarded by `skipif(os.name != 'posix')` skips on the very runner it was added for, so the platform-specific arm stays unverified while a green run is read as verifying it — worse than no test, because it retires the 'named limitation' caveat without earning it. Write the assertion cross-platform where you can (spawn a grandchild via subprocess.Popen rather than os.fork; probe liveness via os.kill(pid, 0) on POSIX and tasklist on Windows), or state in the AC that the arm remains unverified.",
+    "kind": "antipattern"
+  },
+  "title": "A platform-skipped assertion inside a cross-platform parity suite reads as coverage and proves nothing",
+  "topic_key": "a-platform-skipped-assertion-inside-a-cross-platform-parity-suite-reads-as-cover"
+}

@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-be3939f710599e3a1c45e20020262584564d271bd1617913ab54d69dad868119",
+      "legacy_identity": "K-0047",
+      "legacy_source": "spec/loop-tooling-mandated-writes",
+      "mutation_id": "e32b2d4a612dd274f8476c273600cc543146906faa49b6900fee489674d75562",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packs/core/.apm/skills/work-loop/**, tools/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/core/.apm/skills/work-loop/**, tools/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Before pinning a file with a content hash, list every write the surrounding workflow *requires* after the pin is taken. A lifecycle field the process itself bumps (a status token, a progress checkbox, a generated timestamp) will invalidate the pin one mandated step later, and the failure looks like tampering rather than a design error. Hash a canonical form that normalizes exactly the fields the workflow writes, and nothing else. Two traps when implementing it: substitute the token by a span-bounded splice, not str.replace, because the token usually recurs in a trailing vocabulary comment on the same line; and check whether any test already encodes the broken behaviour as intended, because those tests go green-to-red and read as regressions.",
+    "kind": "antipattern"
+  },
+  "title": "Hashing an artifact your own workflow mandates editing breaks by construction",
+  "topic_key": "hashing-an-artifact-your-own-workflow-mandates-editing-breaks-by-construction"
+}

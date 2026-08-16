@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-3117fa537cb41973044ec33f1c0bf542002c70376c2b53d128cf8b25cdc1a8eb",
+      "legacy_identity": "K-0049",
+      "legacy_source": "PR#898",
+      "mutation_id": "d4d2890271286fb86c2a3ac1f0dfac3a86b62e4de8906b5fce8f1dfed21c0708",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/**,tools/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/**,tools/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Both pytest default norecursedirs and typical ruff excludes carry the bare name \"build\". A suite at tests/build/ is skipped on recursion — `pytest tests/` reports green having collected none of it — and naming the directory as an explicit argument does not rescue it; only naming individual files does. It also never gets linted. Measured on one move: 587 tests and 73 lint violations silently absent. Name it something else (tests/build_pipeline/). The same bare name in a ruff exclude also hides a package genuinely named build/ from every repo-root run.",
+    "kind": "gotcha"
+  },
+  "title": "A test directory named `build` is invisible to pytest and ruff",
+  "topic_key": "a-test-directory-named-build-is-invisible-to-pytest-and-ruff"
+}

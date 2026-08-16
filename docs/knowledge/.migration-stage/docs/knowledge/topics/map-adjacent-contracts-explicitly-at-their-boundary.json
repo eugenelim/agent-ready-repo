@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-9a6a384f8cba3dceb4f2d1e3802d283ce33520eac50bffe48f8604986ce8ad4f",
+      "legacy_identity": "K-0065",
+      "legacy_source": "spec/work-intake-surface",
+      "mutation_id": "12dff0d9a5fc7e639007855d49a717e5b1c89c95157db861f49e2cdf04bcad11",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packs/core/.apm/skills/work-intake/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/core/.apm/skills/work-intake/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "When a validated transient contract and its durable target use different names for the same concept, use a typed mapper and round-trip its output through the target parser. Never copy the transient object wholesale. Cold-adopter QA caught normalized source.locator leaking into a workspace entry whose accepted field is source.ref; unit tests for each schema in isolation had both passed.",
+    "kind": "pattern"
+  },
+  "title": "Map adjacent contracts explicitly at their boundary",
+  "topic_key": "map-adjacent-contracts-explicitly-at-their-boundary"
+}

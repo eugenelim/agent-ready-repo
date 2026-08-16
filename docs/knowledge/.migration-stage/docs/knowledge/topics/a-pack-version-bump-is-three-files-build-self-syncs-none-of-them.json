@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-99fadb47b00646e233ab019c9cea2f59324c107a49e8b32d1c0909ad0426a87b",
+      "legacy_identity": "K-0020",
+      "legacy_source": "spec/check-base-freshness-guidance-fixes",
+      "mutation_id": "24b6450696d1813087ac509cd56a9dd17578b50cfb08ced1d9dae1b515df82c1",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packs/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "'FORCE=1 make build-self' projects pack CONTENT into .claude/ and .agents/, but it does not propagate a pack's version. Bumping packs/<pack>/pack.toml alone leaves packs/<pack>/.claude-plugin/plugin.json and the root .claude-plugin/marketplace.json stale. Since agentbundle 0.35.3 the catalogue verifier's CAT-V-005 catches the pack.toml/plugin.json half of that ('make build-check' now fails); marketplace.json staleness is still ungated, and only the agentbundle pytest suite catches it. Bump all three by hand in the same commit.",
+    "kind": "gotcha"
+  },
+  "title": "A pack version bump is three files; build-self syncs none of them",
+  "topic_key": "a-pack-version-bump-is-three-files-build-self-syncs-none-of-them"
+}

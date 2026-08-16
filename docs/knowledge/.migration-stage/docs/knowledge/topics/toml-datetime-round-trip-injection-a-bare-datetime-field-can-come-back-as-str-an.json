@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "review_required"
+  },
+  "lifecycle": "needs_review",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-a63f812e4a409d7fe4d40d6ab0b2066719820a68db20f621577acc21fecb4cf2",
+      "legacy_identity": "K-0005",
+      "legacy_source": "PR#toml-injection-hardening",
+      "mutation_id": "f0778cdead28514415c234f153da6794cba84bb87b30f958804dd3622832733d",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "needs_review_import",
+      "scope": "**/*.py",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**/*.py"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "When a TOML emitter writes `installed-at = 2026-01-01T00:00:00Z` (bare offset-datetime literal), `tomllib.loads` parses that as a Python `datetime`. If a *different* writer (adversarial, hand-edited, third-party) writes `installed-at = \"2026-01-01T00:00:00Z\\nphantom = \\\"injected\\\"\"` (TOML basic-string position instead of bare datetime), `tomllib` parses the same key as a Python `str` containing a real newline and quote bytes. Bare re-emission `f\"installed-at = {entry['installed-at']}\"` then lands phantom TOML structure on the next round-trip — even though the first-write side is clean. The fix has two layers: (1) filter prior entries at read time, requiring `isinstance(value, datetime)` for any field that's spec'd as a bare datetime; drop or warn on mismatch. (2) Store new entries as `datetime` (not a strftime'd string) so the emit loop has one uniform type and always applies the canonical strftime itself. Bit us during round-3 adversarial review of the TOML-injection hardening PR; the pack-metadata side was already closed but the marker round-trip path was a separate vector. Generalises to any TOML field where the schema says 'bare type X' but the loader will accept 'basic-string containing arbitrary bytes' at the same key.",
+    "kind": "gotcha"
+  },
+  "title": "TOML datetime round-trip injection: a bare-datetime field can come back as `str` and carry phantom payload on re-emit",
+  "topic_key": "toml-datetime-round-trip-injection-a-bare-datetime-field-can-come-back-as-str-an"
+}

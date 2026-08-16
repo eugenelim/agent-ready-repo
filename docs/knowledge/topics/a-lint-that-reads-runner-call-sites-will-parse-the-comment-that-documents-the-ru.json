@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-4e57c99701cb127607cf8e5d62c48bbd7ca4024d791777dbb764e3fc1b50564b",
+      "legacy_identity": "K-0025",
+      "legacy_source": "spec/pack-test-boundary-remaining-packs",
+      "mutation_id": "1c858263d1395571573007b4de762b6fd6639e2c00ab14207151927d4adc5e88",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packs/**,tools/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packs/**,tools/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Prose explaining a constraint naturally quotes the exact command it forbids — a Makefile comment saying \"do NOT collapse these into `pytest packs/*/tests/`\" contains that invocation. A line-based parser over Makefiles, workflows and Python sees it as a real call site, so the explanation of the rule violates the rule. Skip lines whose stripped form starts with the file's comment marker before matching. Every one of 92 failures on the first corrected run of tools/lint-pack-test-boundary.py was a comment.",
+    "kind": "gotcha"
+  },
+  "title": "A lint that reads runner call sites will parse the comment that documents the rule",
+  "topic_key": "a-lint-that-reads-runner-call-sites-will-parse-the-comment-that-documents-the-ru"
+}

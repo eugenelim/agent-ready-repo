@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-187a4dadc013a78ad3e9d8fc64c1ce85ee957b452a62dceb5924014d0186b28a",
+      "legacy_identity": "K-0044",
+      "legacy_source": "PR#888",
+      "mutation_id": "61ef1c61f08145babed3240cbc7c7d8c645a1f4de31fbb418bac74fa12c0d340",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "tools/repo/**,.github/workflows/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools/repo/**,.github/workflows/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "`tools/test_build_gate_chain.py` pins the exact `build-check` step sequence in `EXPECTED_SCRIPT_STEPS`. Adding a step to `tools/repo/build_gate_chain.py` makes `make build-check` run it and pass, while Gate F (`pytest tools/test_build_gate_chain.py`) fails — the local gate exercises the chain, the CI gate asserts its shape. A green `make build-check` says nothing about that list. Adding a gate step means editing three places: the chain, `EXPECTED_SCRIPT_STEPS`, and `build-check.yml` plus its `STEP_DISPOSITION` entry in `tools/lint-ci-parity.py`.",
+    "kind": "gotcha"
+  },
+  "title": "make build-check runs the gate chain; it cannot detect a step missing from the chain's own pinned list",
+  "topic_key": "make-build-check-runs-the-gate-chain-it-cannot-detect-a-step-missing-from-the-ch"
+}
