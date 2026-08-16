@@ -1029,29 +1029,53 @@ open = [
   # ── High severity ────────────────────────────────────────────────────────────
   # (security findings or concretely broken behavior with a known internal fix path)
 
-  # Security (HIGH). agentbundle install calls render_pack(pack_dir) with no
-  # lint_pack gate. _collect_tree does path.read_bytes(), dereferencing inside-tree
-  # symlinks. A malicious pack shipping .apm/skills/x/leak -> /etc/passwd writes the
-  # target's bytes to the adopter's disk (path jail passes on the relpath). Affects
-  # all four direct-directory adapters: claude-code, kiro, codex, copilot.
-  # cursor.py was hardened (ignore=_ignore_symlinks) but the other four use
-  # copytree(symlinks=True); on Python 3.11/3.12 a dirlink -> /etc recurses.
-  # Fix: gate install-path render_pack with lint_pack (flags inside-tree symlinks
-  #   at build/lint_packs.py), OR make _collect_tree skip symlinked entries via
-  #   os.walk(followlinks=False) across all four adapters.
-  # File: packages/agentbundle/agentbundle/render.py + install.py + adapter files.
-  # Unblocks when: someone takes a spec scoping the cross-adapter hardening.
+  # NARROWED and RE-SCOPED 2026-08-16 by spec/install-symlink-hardening, which
+  # attempted this and reverted the attempt. Recording why, because the entry as
+  # written points at a fix the repo's own spec forbids.
+  # The entry proposed lifting cursor's symlink-skipping helper into
+  # direct_directory.py and adopting it in the other adapters. Two findings:
+  #   1. STALE TARGET LIST. copilot, gemini and kiro already drop every symlink.
+  #      Only claude_code and codex differ, and they use a DIFFERENT rule: drop
+  #      absolute-target symlinks, preserve relative ones.
+  #   2. THAT DIFFERENCE IS SPECIFIED, NOT DRIFT.
+  #      docs/specs/codex-native-skills/spec.md:92 requires
+  #      `copytree(..., symlinks=True)` for every direct-directory projection and
+  #      states "the symlink-pass-through IS the path-traversal-safety invariant;
+  #      never resolve a symlink to its target at projection time".
+  #      tests/build_pipeline/test_adapter_codex.py::test_symlink_pass_through
+  #      pins it. Adopting the strict helper everywhere fails that test and
+  #      violates the stated invariant.
+  # So the four strict adapters are the ones diverging from the spec, not the two
+  # permissive ones — the inverse of the entry's premise. Nothing is unsafe today:
+  # the exfiltration this guarded against is closed at the read (`_collect_tree`
+  # no longer follows links), so the projection-layer difference is now a
+  # consistency question, not a vulnerability.
+  # Fix: decide ONE policy across all six adapters and make the spec and the
+  #   adapters agree — either amend the codex-native-skills invariant, or bring
+  #   the four strict adapters back to pass-through. Needs the decision first.
+  # Unblocks when: someone rules on which policy the invariant should state.
+  {slug = "adapter-symlink-policy-divergence", source = "spec/install-symlink-hardening"},
+
+  # Security (HIGH). NARROWED 2026-08-16 by spec/install-symlink-hardening. The
+  # exfiltration primitive itself is closed:
+  #   1. `_collect_tree` no longer reads through a symlink. `Path.is_file()`
+  #      follows links, so a preserved link had its TARGET's bytes read and
+  #      written to the adopter's disk under an innocent-looking relpath. That was
+  #      the exfiltration primitive itself, and it is closed at the read.
+  # The projection layer is deliberately unchanged — preserving a symlink there
+  # is the specified path-traversal-safety invariant (see
+  # adapter-symlink-policy-divergence above).
+  # REMAINING SCOPE: `agentbundle install` still calls `render_pack(pack_dir)`
+  # with no `lint_pack` gate. That is the entry's other stated option, and it is
+  # defense in depth now rather than the only barrier — but a lint gate refuses a
+  # malicious pack outright instead of silently dropping members of it, which is
+  # the better failure mode for an adopter who ought to know.
+  # Note build/main.py's `.apm` and `seeds` copytrees keep `symlinks=True`
+  # DELIBERATELY and correctly, for the same reason. Do not "fix" them.
+  # Fix: gate the install-path render_pack with lint_pack.
+  # Unblocks when: picked up — no dependency.
   {slug = "untrusted-catalogue-symlink-exfiltration"},
 
-  # Security. cursor.py's _project_direct_directory was hardened to drop nested
-  # symlinks (ignore=_ignore_symlinks), but kiro.py, codex, copilot, and claude-code
-  # still use copytree(symlinks=True). A nested symlink inside a skill dir in a
-  # malicious pack can be reproduced to an adopter's disk via those four adapters.
-  # Fix: lift cursor's symlink-skipping copy helper into
-  #   packages/agentbundle/agentbundle/projections/direct_directory.py and adopt it
-  #   in all four remaining adapters.
-  # Unblocks when: someone takes a focused cross-adapter hardening PR.
-  {slug = "nested-symlink-install-hardening"},
 
   # CI security. spec/pack-activation-evals introduces the repo's first long-lived
   # API-key workflow secret (ANTHROPIC_API_KEY for pack-evals.yml). No secret scanner
