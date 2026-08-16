@@ -525,16 +525,6 @@ open = [
   # "install the credential-brokers pack", i.e. the pre-declaration behaviour.
   {slug = "pack-dependency-scope-qualifier", source = "spec/jira-check-sso-auto-login AC33"},
   {slug = "browser-state-lifetime", source = "spec/jira-check-sso-auto-login"},
-    # docs/CONVENTIONS.md:1197 requires --insecure to emit a stderr warning; jira-align,
-    # confluence-crawler, confluence-publisher and figma are silent. Fix: add the warning in
-    # each _client/CLI. Unblocks: now.
-  {slug = "insecure-warning-sibling-clis", source = "spec/jira-check-sso-auto-login"},
-    # tools/lint-sso-config.py validates the [sso] key set but not the profile charset, so a
-    # pre-baked traversal value only fails at runtime. Fix: add the AC4 grammar as a
-    # build-time check. UNBLOCKED 2026-08-15 — AC4 (`validate_sso_profile`, canonical
-    # grammar) is checked [x] at docs/specs/jira-check-sso-auto-login/spec.md:307, so the
-    # grammar this lint must mirror now exists. Ready to pick up.
-  {slug = "lint-sso-config-profile-charset", source = "spec/jira-check-sso-auto-login"},
     # AC11 site 4/5 guards only whoami; every other read method calls resp.json(), so an SSO
     # login-page body still exits 1 there. Fix: move the guard to a shared _json helper.
     # UNBLOCKED 2026-08-15 — AC11 is satisfied in
@@ -640,11 +630,6 @@ open = [
     # destination protection. Fix: only if an adopter wants it knowing the limits.
     # Unblocks: on request.
   {slug = "sso-register-pretooluse-hook", source = "spec/jira-check-sso-auto-login"},
-  # `test_version_matches_pyproject` hardcodes "0.6.0" instead of reading
-  # pyproject.toml dynamically. A future version bump can reintroduce the same
-  # missed-copy drift that PR #ci-windows-sso-concurrency-test-fix fixed.
-  # Fix: open pyproject.toml with tomllib.load() and compare version field.
-  {slug = "credbroker-version-test-dynamic", source = "spec/ci-windows-sso-concurrency-test-fix AC3"},
 
   # No gate resolves marketing-site → docs-site links. The docsUrl repair PR
   # verified them with an ad-hoc script (resolve every internal href on the built

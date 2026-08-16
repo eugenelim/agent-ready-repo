@@ -539,6 +539,18 @@ async def main_async(args: argparse.Namespace) -> int:
         log.error("%s", exc)
         return EXIT_USER_ACTION
 
+    if args.insecure and auth_path == "sso-cookie":
+        # Inert on this path — `from_sso_cookies` builds its own SSL context and
+        # the flag is never forwarded. Say so rather than letting the operator
+        # believe verification was disabled. Not scoped to one subcommand: every
+        # subcommand on this path ignores the flag, including the `--check`
+        # early return below.
+        print(
+            "warning: --insecure is ignored on the SSO-cookie path (the session "
+            "cookie is a bearer secret; TLS verification stays on).",
+            file=sys.stderr,
+        )
+
     if auth_path == "sso-cookie" and args.check:
         broker, floor_error = _credbroker_for_sso_check()
         if floor_error is not None:
@@ -559,6 +571,13 @@ async def main_async(args: argparse.Namespace) -> int:
             flavor = "server"
             base_url = sso_config.base_url
         else:
+            if args.insecure:
+                # CONVENTIONS requires this whenever the flag actually fires.
+                print(
+                    "warning: --insecure disables TLS certificate verification "
+                    "for this invocation.",
+                    file=sys.stderr,
+                )
             creds: Credentials = load_credentials()
             client = ConfluenceClient(
                 creds,

@@ -78,6 +78,67 @@ CASES: list[tuple[str, str, int]] = [
         ),
         1,
     ),
+    # --- [sso].profile grammar --------------------------------------------
+    # `profile` composes a path under ~/.agentbundle/browser-state/<profile>,
+    # so a bad value is a confinement escape and not merely a naming nit. The
+    # engine refuses at runtime; these pin the same refusal at build time.
+    (
+        "traversal profile fails",
+        _VALID.replace('profile = "jira"', 'profile = "../../etc/passwd"'),
+        1,
+    ),
+    (
+        "absolute-path profile fails",
+        _VALID.replace('profile = "jira"', 'profile = "/etc/shadow"'),
+        1,
+    ),
+    (
+        "profile with a trailing newline fails (fullmatch, not match)",
+        _VALID.replace('profile = "jira"', 'profile = "jira\\n"'),
+        1,
+    ),
+    (
+        "leading-punctuation profile fails",
+        _VALID.replace('profile = "jira"', 'profile = "-jira"'),
+        1,
+    ),
+    (
+        # 65 chars. Carries a "." so the opaque-token detector (whose charset
+        # excludes ".") cannot be what rejects it — this case must fail on the
+        # length grammar alone, or it proves nothing about the grammar.
+        "over-length profile fails",
+        _VALID.replace('profile = "jira"', f'profile = "{"a" * 32}.{"a" * 32}"'),
+        1,
+    ),
+    (
+        "Windows reserved device name fails",
+        _VALID.replace('profile = "jira"', 'profile = "CON"'),
+        1,
+    ),
+    (
+        "Windows reserved device name with an extension fails",
+        _VALID.replace('profile = "jira"', 'profile = "con.toml"'),
+        1,
+    ),
+    (
+        "non-string profile fails",
+        _VALID.replace('profile = "jira"', "profile = 7"),
+        1,
+    ),
+    (
+        # 64 chars = 1 leading + 63, the inclusive ceiling. Also dotted, and
+        # for a second reason: a 64-char dotless alphanumeric string matches
+        # the opaque-token shape and is rejected by THAT check, so the naive
+        # boundary fixture would fail for a reason unrelated to the grammar.
+        "64-char profile passes (boundary, inclusive)",
+        _VALID.replace('profile = "jira"', f'profile = "{"a" * 31}.{"a" * 32}"'),
+        0,
+    ),
+    (
+        "dotted / hyphenated / underscored profile passes",
+        _VALID.replace('profile = "jira"', 'profile = "corp.jira_prod-eu"'),
+        0,
+    ),
 ]
 
 
@@ -146,6 +207,39 @@ def _parity_failures() -> list[str]:
     return fails
 
 
+def _profile_grammar_drift() -> list[str]:
+    """The lint restates credbroker's profile grammar; pin the copy equal.
+
+    `tools/lint-sso-config.py` is pure-stdlib and must run on a bare checkout,
+    so it cannot import `credbroker`. That leaves two definitions of a
+    security-relevant constant. This is the control: whenever credbroker IS
+    importable, the restated pattern and reserved-name set must equal the
+    engine's exactly. Skipped, not failed, when credbroker is absent — the lint
+    is still expected to work in that environment, which is the whole reason
+    the constant is restated.
+    """
+    try:
+        from credbroker import _sso as engine
+    except Exception:  # noqa: BLE001 — absent credbroker is an expected environment
+        return []
+
+    lint = _load_module(_LINT, "lint_sso_config_under_test")
+    fails: list[str] = []
+    if lint._SSO_PROFILE_PATTERN != engine._SSO_PROFILE_PATTERN:
+        fails.append(
+            "profile-grammar drift: lint pattern "
+            f"{lint._SSO_PROFILE_PATTERN!r} != engine "
+            f"{engine._SSO_PROFILE_PATTERN!r}"
+        )
+    if set(lint._RESERVED_DEVICE_NAMES) != set(engine._RESERVED_DEVICE_NAMES):
+        fails.append(
+            "reserved-device-name drift between lint and engine: "
+            f"lint-only={sorted(set(lint._RESERVED_DEVICE_NAMES) - set(engine._RESERVED_DEVICE_NAMES))} "
+            f"engine-only={sorted(set(engine._RESERVED_DEVICE_NAMES) - set(lint._RESERVED_DEVICE_NAMES))}"
+        )
+    return fails
+
+
 def main() -> int:
     failures: list[str] = []
     for label, body, expected in CASES:
@@ -154,6 +248,7 @@ def main() -> int:
             failures.append(f"{label}: expected exit {expected}, got {got}")
 
     failures.extend(_parity_failures())
+    failures.extend(_profile_grammar_drift())
 
     # The real shipped files must pass (no-arg invocation scans the repo).
     repo_scan = subprocess.run(

@@ -635,6 +635,17 @@ def main(argv: list[str] | None = None) -> int:
         level=logging.DEBUG if args.verbose else logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
+    if args.insecure:
+        # CONVENTIONS § "--insecure is opt-in only and must emit a stderr
+        # warning". Emitted here, as soon as the flag is seen, rather than at
+        # client construction: a run that fails on credential resolution first
+        # would otherwise disclose nothing. This CLI has no SSO-cookie path, so
+        # unlike jira.py there is no inert case to distinguish.
+        print(
+            "warning: --insecure disables TLS certificate verification "
+            "for this invocation.",
+            file=sys.stderr,
+        )
     # Top-level catch-all: no exception escapes as a traceback. `except
     # Exception` deliberately does NOT catch SystemExit / KeyboardInterrupt.
     try:

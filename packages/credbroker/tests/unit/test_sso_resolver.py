@@ -10,6 +10,7 @@ real subprocess can't reach deterministically.
 from __future__ import annotations
 
 import subprocess
+import tomllib
 from pathlib import Path
 
 import credbroker
@@ -134,4 +135,14 @@ def test_spawn_is_argv_composed_and_never_shelled() -> None:
 
 
 def test_version_matches_pyproject() -> None:
-    assert credbroker.__version__ == "0.6.0"
+    """Read the version from pyproject rather than pinning a literal.
+
+    The test's name promised a comparison against pyproject.toml and instead
+    asserted a hardcoded "0.6.0", so it could only catch drift if whoever bumped
+    the version remembered to update this file too — the missed-copy failure it
+    exists to prevent. It now reads the real file, so a bump in one place is
+    enough and a bump in only one place fails here.
+    """
+    pyproject = Path(__file__).resolve().parents[2] / "pyproject.toml"
+    declared = tomllib.loads(pyproject.read_text(encoding="utf-8"))["project"]["version"]
+    assert credbroker.__version__ == declared

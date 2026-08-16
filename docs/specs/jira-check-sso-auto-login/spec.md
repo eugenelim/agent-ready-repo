@@ -1318,7 +1318,10 @@ Every entry was established by reading source or executing a probe on
   *(deferred: sso-register-pretooluse-hook)*
 - The profile grammar in `tools/lint-sso-config.py`, so a pre-baked traversal
   value fails at build time as well as at runtime.
-  *(deferred: lint-sso-config-profile-charset)*
+  *(Deferred, and since **delivered** on 2026-08-16 by
+  `spec/credentialed-cli-hygiene` — the lint restates the engine's grammar, with
+  a self-test that pins the restatement equal to `credbroker._sso`'s so the two
+  copies cannot drift.)*
 - A cross-process recapture cooldown. AC17's bound is per-process and each agent
   turn is a new process, so a retry loop can spawn a **headless** recapture on
   every invocation — no browser is shown (AC14a), but each spawn still costs up to
@@ -1327,6 +1330,9 @@ Every entry was established by reading source or executing a probe on
 - Amending the lint-pinned phrase `do not run any setup helper for them`
   (`catalogue_tooling/lint.py:458`), whose literal meaning the `check` carve-out
   inverts. *(deferred: sso-cookie-lint-phrase-amendment)*
-- The `--insecure` stderr warning in the four sibling credentialed CLIs
-  (`jira-align`, `confluence-crawler`, `confluence-publisher`, `figma`).
-  *(deferred: insecure-warning-sibling-clis)*
+- The `--insecure` stderr warning in the sibling credentialed CLIs.
+  *(Deferred, and since **delivered** on 2026-08-16 by
+  `spec/credentialed-cli-hygiene`. Note this line named four siblings and only
+  two of them were silent: `confluence-publisher` already emitted the warning,
+  and `figma` has no `--insecure` flag at all. The fix landed in
+  `confluence-crawler` and `jira-align`, each with tests.)*
