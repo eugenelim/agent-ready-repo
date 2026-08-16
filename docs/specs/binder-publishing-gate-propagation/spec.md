@@ -75,7 +75,7 @@ property `README.md` asserts and the reason the tree is a tree.
 - Fix the `converters` bare-relative script-path defect that V6 surfaced. Different
   pack, different concern — it is recorded as a deferral, not bundled.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1 — Z5 is recorded as run and passed.** `verified-findings.md` carries a
   Z5 finding table in the Z1–Z4 shape and a Z5 row in the Z-gate status table

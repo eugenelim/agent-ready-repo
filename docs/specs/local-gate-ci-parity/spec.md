@@ -46,7 +46,7 @@ about two tests that ran and failed, when in fact two entries never resolved to
 a file. A runner that mis-describes what it checked is worse than one that
 doesn't run: it is trusted.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 ### Workstream A — local gate ↔ CI parity
 

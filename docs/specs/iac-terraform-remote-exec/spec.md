@@ -57,7 +57,7 @@ This spec adds `hcp-terraform` and `scalr` as first-class options for the
 - Emit `cloud {}` for OpenTofu targets (already banned, now doubly enforced)
 - Emit Sentinel (already banned)
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] `generate-iac` SKILL.md Inputs table has a `Remote execution platform` row with `none | hcp-terraform | scalr` and the OpenTofu constraint note
 - [x] `generate-iac` SKILL.md Stage 3 (PLAN) mentions loading `references/remote-exec/<platform>.md` when `platform ≠ none`

@@ -349,55 +349,55 @@ def corpus():
     items = []
 
     items.append(("plain", message_spec(
-        subject="Plain hello", sender_name="Alice", sender_email="alice@corp.com",
+        subject="Plain hello", sender_name="Alice", sender_email="alice@example.com",
         body="Just a plain body.", submit=dt,
-        recipients=[recipient("Bob", "bob@corp.com", "to")]),
-        {"subject": "Plain hello", "sender_email": "alice@corp.com",
-         "recipient_emails": {"bob@corp.com"}, "kinds": {"to"},
+        recipients=[recipient("Bob", "bob@example.com", "to")]),
+        {"subject": "Plain hello", "sender_email": "alice@example.com",
+         "recipient_emails": {"bob@example.com"}, "kinds": {"to"},
          "body_kind": "plain", "attachment_names": set(), "embedded": 0}))
 
     items.append(("html_tocc bcc", message_spec(
-        subject="HTML report", sender_name="Alice", sender_email="alice@corp.com",
+        subject="HTML report", sender_name="Alice", sender_email="alice@example.com",
         html="<h1>H</h1><p><b>Bold</b> and <a href='http://x'>link</a>.</p>",
         delivery=dt, importance=2,
-        recipients=[recipient("Bob", "bob@corp.com", "to"),
-                    recipient("Carol", "carol@corp.com", "cc"),
-                    recipient("Dan", "dan@corp.com", "bcc")]),
-        {"subject": "HTML report", "sender_email": "alice@corp.com",
-         "recipient_emails": {"bob@corp.com", "carol@corp.com", "dan@corp.com"},
+        recipients=[recipient("Bob", "bob@example.com", "to"),
+                    recipient("Carol", "carol@example.com", "cc"),
+                    recipient("Dan", "dan@example.com", "bcc")]),
+        {"subject": "HTML report", "sender_email": "alice@example.com",
+         "recipient_emails": {"bob@example.com", "carol@example.com", "dan@example.com"},
          "kinds": {"to", "cc", "bcc"}, "importance": "high",
          "body_kind": "html", "attachment_names": set(), "embedded": 0}))
 
     items.append(("attach_inline", message_spec(
-        subject="With attachments", sender_name="Alice", sender_email="alice@corp.com",
+        subject="With attachments", sender_name="Alice", sender_email="alice@example.com",
         body="See attached.", submit=dt,
-        recipients=[recipient("Bob", "bob@corp.com", "to")],
+        recipients=[recipient("Bob", "bob@example.com", "to")],
         attachments=[attachment("data.pdf", "application/pdf", b"%PDF-1.4 data"),
                      attachment("logo.png", "image/png", b"PNGDATA", content_id="cid1")]),
-        {"subject": "With attachments", "sender_email": "alice@corp.com",
-         "recipient_emails": {"bob@corp.com"}, "kinds": {"to"}, "body_kind": "plain",
+        {"subject": "With attachments", "sender_email": "alice@example.com",
+         "recipient_emails": {"bob@example.com"}, "kinds": {"to"}, "body_kind": "plain",
          "attachment_names": {"data.pdf", "logo.png"}, "embedded": 0}))
 
     items.append(("nonascii", message_spec(
-        subject="Café — déjà vu ☕", sender_name="Zoë", sender_email="zoe@corp.com",
+        subject="Café — déjà vu ☕", sender_name="Zoë", sender_email="zoe@example.com",
         body="Naïve — résumé — 日本語.", submit=dt,
-        recipients=[recipient("Bob", "bob@corp.com", "to")]),
-        {"subject": "Café — déjà vu ☕", "sender_email": "zoe@corp.com",
-         "recipient_emails": {"bob@corp.com"}, "kinds": {"to"}, "body_kind": "plain",
+        recipients=[recipient("Bob", "bob@example.com", "to")]),
+        {"subject": "Café — déjà vu ☕", "sender_email": "zoe@example.com",
+         "recipient_emails": {"bob@example.com"}, "kinds": {"to"}, "body_kind": "plain",
          "attachment_names": set(), "embedded": 0}))
 
     inner = message_spec(subject="Fwd inner", sender_name="Eve",
-                         sender_email="eve@corp.com", body="inner body")
+                         sender_email="eve@example.com", body="inner body")
     items.append(("embedded", {
         **message_spec(
-            subject="Has embedded", sender_name="Alice", sender_email="alice@corp.com",
+            subject="Has embedded", sender_name="Alice", sender_email="alice@example.com",
             body="See forwarded.", submit=dt,
-            recipients=[recipient("Bob", "bob@corp.com", "to")],
+            recipients=[recipient("Bob", "bob@example.com", "to")],
             attachments=[attachment("fwd.msg", "application/vnd.ms-outlook", b"",
                                     method=5)]),
         "embedded": {0: inner}},
-        {"subject": "Has embedded", "sender_email": "alice@corp.com",
-         "recipient_emails": {"bob@corp.com"}, "kinds": {"to"}, "body_kind": "plain",
+        {"subject": "Has embedded", "sender_email": "alice@example.com",
+         "recipient_emails": {"bob@example.com"}, "kinds": {"to"}, "body_kind": "plain",
          "attachment_names": {"fwd.msg"}, "embedded": 1}))
 
     return items
@@ -409,7 +409,7 @@ if __name__ == "__main__":  # smoke check
     import olefile
 
     p = write_msg(str(Path(tempfile.mkdtemp()) / "fx.msg"), message_spec(
-        subject="Hi", sender_name="A", sender_email="a@x.com", body="hello",
-        recipients=[recipient("B", "b@x.com", "to")],
+        subject="Hi", sender_name="A", sender_email="a@example.net", body="hello",
+        recipients=[recipient("B", "b@example.net", "to")],
         attachments=[attachment("r.pdf", "application/pdf", b"%PDF")]))
     print("isOle:", olefile.isOleFile(p))

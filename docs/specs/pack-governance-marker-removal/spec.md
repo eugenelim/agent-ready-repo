@@ -34,7 +34,7 @@ pack-allowed-adapters. Declared order is load-bearing` becomes `# Declared order
 load-bearing`. Where the citation carried the sentence, the sentence is rewritten to
 state the rule directly — `the AC8 cost cap` → `the cost cap`.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] AC1 — `grep -rnE '\b(RFC|ADR)-0[0-9]{3}\b' packs/ --exclude='AGENTS*.md'` returns only the retained illustrative set (AC5).
 - [x] AC2 — No citation of one of *our* spec ACs remains under `packs/`, **including `.apm/**/scripts/**` docstrings and comments** (147 sites across 31 files, concentrated in `converters`). Generic AC labels inside synthesized spec fixtures (`- [ ] AC1` written by a test) are placeholders, not citations, and are retained.

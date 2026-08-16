@@ -51,8 +51,8 @@ def _frontmatter(text: str) -> dict:
 
 def test_msg_frontmatter_carries_unified_contract(tmp_path):
     p = fx.write_msg(str(tmp_path / "m.msg"), fx.message_spec(
-        subject="S", sender_name="A", sender_email="a@x.com", body="hi",
-        recipients=[fx.recipient("B", "b@x.com", "to")]))
+        subject="S", sender_name="A", sender_email="a@example.net", body="hi",
+        recipients=[fx.recipient("B", "b@example.net", "to")]))
     text = convert.assemble(mapi.read_msg(p), "msg", "m.msg")
     fm = _frontmatter(text)
     for key in ("contract-version", "tier", "source-file", "content-type",
@@ -66,8 +66,8 @@ def test_msg_frontmatter_carries_unified_contract(tmp_path):
 
 def test_msg_e2e_documented_invocation(tmp_path):
     p = fx.write_msg(str(tmp_path / "report.msg"), fx.message_spec(
-        subject="Q3", sender_name="A", sender_email="a@x.com", body="body text",
-        recipients=[fx.recipient("B", "b@x.com", "to")]))
+        subject="Q3", sender_name="A", sender_email="a@example.net", body="body text",
+        recipients=[fx.recipient("B", "b@example.net", "to")]))
     r = subprocess.run([sys.executable, str(HERE / "convert.py"), str(p)],
                        capture_output=True, text=True)
     assert r.returncode == 0, r.stderr
@@ -83,14 +83,14 @@ def test_msg_e2e_documented_invocation(tmp_path):
 
 def test_sender_and_recipients_by_type(tmp_path):
     p = fx.write_msg(str(tmp_path / "m.msg"), fx.message_spec(
-        subject="S", sender_name="Alice", sender_email="alice@x.com", body="b",
-        recipients=[fx.recipient("Bob", "bob@x.com", "to"),
-                    fx.recipient("Carol", "carol@x.com", "cc"),
-                    fx.recipient("Dan", "dan@x.com", "bcc")]))
+        subject="S", sender_name="Alice", sender_email="alice@example.net", body="b",
+        recipients=[fx.recipient("Bob", "bob@example.net", "to"),
+                    fx.recipient("Carol", "carol@example.net", "cc"),
+                    fx.recipient("Dan", "dan@example.net", "bcc")]))
     m = mapi.read_msg(p)
-    assert m.sender_name == "Alice" and m.sender_email == "alice@x.com"
+    assert m.sender_name == "Alice" and m.sender_email == "alice@example.net"
     kinds = {r.email: r.kind for r in m.recipients}
-    assert kinds == {"bob@x.com": "to", "carol@x.com": "cc", "dan@x.com": "bcc"}
+    assert kinds == {"bob@example.net": "to", "carol@example.net": "cc", "dan@example.net": "bcc"}
 
 
 def test_date_resolution_prefers_delivery_then_submit_then_creation(tmp_path):
@@ -164,13 +164,13 @@ def test_html_reducer_drops_script_and_style():
 
 def _eml_bytes(subject="Notes", extra_headers="", body="Body here.",
                ctype="text/plain"):
-    return (f"From: Alice <alice@x.com>\nTo: Bob <bob@x.com>\nCc: Carol <carol@x.com>\n"
+    return (f"From: Alice <alice@example.net>\nTo: Bob <bob@example.net>\nCc: Carol <carol@example.net>\n"
             f"Subject: {subject}\nDate: Fri, 1 Mar 2024 12:30:00 +0000\n{extra_headers}"
             f"Content-Type: {ctype}; charset=utf-8\n\n{body}\n").encode()
 
 
 def test_eml_multipart_prefers_plain(tmp_path):
-    raw = (b"From: A <a@x.com>\nTo: B <b@x.com>\nSubject: MP\n"
+    raw = (b"From: A <a@example.net>\nTo: B <b@example.net>\nSubject: MP\n"
            b'Content-Type: multipart/alternative; boundary="bnd"\n\n'
            b"--bnd\nContent-Type: text/plain\n\nplain part\n"
            b"--bnd\nContent-Type: text/html\n\n<p>html part</p>\n--bnd--\n")
@@ -181,11 +181,11 @@ def test_eml_multipart_prefers_plain(tmp_path):
 
 
 def test_eml_nested_rfc822_detected(tmp_path):
-    raw = (b"From: A <a@x.com>\nTo: B <b@x.com>\nSubject: Outer\n"
+    raw = (b"From: A <a@example.net>\nTo: B <b@example.net>\nSubject: Outer\n"
            b'Content-Type: multipart/mixed; boundary="bnd"\n\n'
            b"--bnd\nContent-Type: text/plain\n\nouter body\n"
            b"--bnd\nContent-Type: message/rfc822\n\n"
-           b"From: C <c@x.com>\nSubject: Inner\n\ninner body\n--bnd--\n")
+           b"From: C <c@example.net>\nSubject: Inner\n\ninner body\n--bnd--\n")
     p = tmp_path / "nest.eml"
     p.write_bytes(raw)
     m = convert.read_eml(p)

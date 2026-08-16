@@ -31,7 +31,7 @@ and that the RFCs remain internally consistent with each other and with the
 specs/plans already created (frame-domain, traceability-lint, release-loop). Fix
 any genuine gap in those underlying specs/plans that the review surfaces.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] **AC1** — Each of the 5 open RFCs carries a `- **Decision weight:**` line
   with a tier and a rationale comment, in the template-mandated header position.

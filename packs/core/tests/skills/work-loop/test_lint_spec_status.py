@@ -530,3 +530,66 @@ def test_multiline_comment_not_matched() -> None:
         )
         rc, _, err = run_lint(root)
         expect(rc == 0, f"live Draft should pass vocab check, got {rc}: {err}")
+
+
+# ---------------------------------------------------------------------------
+# AC-heading casing
+#
+# The heading match used to be case-sensitive, so a spec written with
+# `## Acceptance criteria` collected zero criteria and its AC-completeness
+# invariant passed VACUOUSLY — the linter reported success on a spec whose
+# criteria it never read. 18 specs were silently un-gated that way, and the
+# count only grew, because nothing tells an author which casing is wanted.
+# ---------------------------------------------------------------------------
+
+_LOWER_AC_HEADER = "## Acceptance criteria\n\n"
+
+
+def _write_spec_with_header(root: Path, name: str, status: str, acs: str, header: str) -> None:
+    p = root / "docs" / "specs" / name / "spec.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(
+        f"# Spec: {name}\n\n- **Status:** {status}\n\n{header}{acs}\n",
+        encoding="utf-8",
+    )
+
+
+@pytest.mark.parametrize(
+    "header",
+    ["## Acceptance Criteria\n\n", _LOWER_AC_HEADER, "## ACCEPTANCE CRITERIA\n\n"],
+    ids=["title-case", "sentence-case", "upper-case"],
+)
+def test_unchecked_ac_is_caught_whatever_the_heading_casing(header: str) -> None:
+    """A spec born Shipped with an unchecked AC must fail under any casing.
+
+    Invariant (ii) is diff-triggered, so this mirrors
+    `test_invariant_ii_born_shipped_fails`: a spec absent at base, born Shipped.
+
+    This is the regression that matters. With the old case-sensitive match the
+    sentence-case arm EXITED 0 — a clean bill of health for a spec shipping an
+    unmet criterion, because the linter never found the section to read.
+    """
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        _write_spec_with_header(root, "preexisting", "Draft", "- [x] AC1\n", header)
+        git_init_commit(root)
+        _write_spec_with_header(root, "newborn", "Shipped", "- [ ] AC1 open\n", header)
+        rc, out, err = run_lint(root, base_ref="HEAD")
+        assert rc == 1, f"unchecked AC under {header!r} should exit 1, got {rc}\n{out}\n{err}"
+        assert "invariant (ii)" in err, err
+
+
+@pytest.mark.parametrize(
+    "header",
+    ["## Acceptance Criteria\n\n", _LOWER_AC_HEADER],
+    ids=["title-case", "sentence-case"],
+)
+def test_fully_checked_spec_passes_under_either_casing(header: str) -> None:
+    """The tolerant match must not turn a clean spec red."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        _write_spec_with_header(root, "preexisting", "Draft", "- [x] AC1\n", header)
+        git_init_commit(root)
+        _write_spec_with_header(root, "newborn", "Shipped", "- [x] AC1 done\n", header)
+        rc, out, err = run_lint(root, base_ref="HEAD")
+        assert rc == 0, f"clean spec under {header!r} should exit 0, got {rc}\n{out}\n{err}"

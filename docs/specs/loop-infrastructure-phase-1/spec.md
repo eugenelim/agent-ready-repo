@@ -56,7 +56,7 @@ Ship Phase 1 of the loop infrastructure split: `loop-engine.py` as a pure FSM ph
 
 Any event not listed above is illegal and must cause `loop-engine transition` to exit non-zero with no `engine-state.json` mutation. Guard commands, CLI arguments, crash-window analysis, and session-resumption steps live in `plan.md`.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 - [x] `loop-engine transition` enforces legal phase ordering (normative transition matrix above) and refuses illegal events with exit non-zero.
 - [x] `loop-engine status` returns current phase, `last_event`, `run_id`, and `pending_human_wait` as JSON.

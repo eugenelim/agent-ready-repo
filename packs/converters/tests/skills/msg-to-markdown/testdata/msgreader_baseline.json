@@ -2,23 +2,23 @@
   "plain": {
     "subject": "Plain hello",
     "recipientEmails": [
-      "bob@corp.com"
+      "bob@example.com"
     ],
     "attachmentNames": []
   },
   "html_tocc_bcc": {
     "subject": "HTML report",
     "recipientEmails": [
-      "bob@corp.com",
-      "carol@corp.com",
-      "dan@corp.com"
+      "bob@example.com",
+      "carol@example.com",
+      "dan@example.com"
     ],
     "attachmentNames": []
   },
   "attach_inline": {
     "subject": "With attachments",
     "recipientEmails": [
-      "bob@corp.com"
+      "bob@example.com"
     ],
     "attachmentNames": [
       "data.pdf",
@@ -28,14 +28,14 @@
   "nonascii": {
     "subject": "Café — déjà vu ☕",
     "recipientEmails": [
-      "bob@corp.com"
+      "bob@example.com"
     ],
     "attachmentNames": []
   },
   "embedded": {
     "subject": "Has embedded",
     "recipientEmails": [
-      "bob@corp.com"
+      "bob@example.com"
     ],
     "attachmentNames": [
       "fwd.msg"

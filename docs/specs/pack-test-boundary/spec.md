@@ -36,7 +36,7 @@ the installer happens to ignore those paths. That implicit exclusion is the
 real defect — a future adapter that projects `.apm/**` wholesale would ship our
 test suite into adopter trees.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 ### Workstream A — knowledge-capture guidance
 

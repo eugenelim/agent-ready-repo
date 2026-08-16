@@ -75,7 +75,7 @@ proceeding; *Never do* is a hard rule, even under time pressure.
 - **Never create a directory in order to take a lock.** `loop-cohort.py`'s
   spec-dir resolver does not confine to the repo root.
 
-## Acceptance criteria
+## Acceptance Criteria
 
 Observable outcomes. Mechanism and technique live in the plan's `## Design (LLD)`
 and each task's `Tests:`.
