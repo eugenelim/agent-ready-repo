@@ -374,6 +374,24 @@ def build_check(args: argparse.Namespace) -> int:
             "lint-pack-descriptions",
             "tools", "lint-pack-descriptions.py",
         ),
+        # The bandit suppression-comment form (ADR-0084). bandit.yaml's header
+        # is the canonical statement of the rule and of why this runs here
+        # rather than in `make sast`; the short version is that it needs no
+        # scanner and SKIP_SAST would disable it on exactly the diffs where a
+        # stray suppression goes unscanned.
+        #
+        # The form is not spelled out in this comment on purpose: bandit
+        # tokenises this file too, so a comment quoting the literal directive IS
+        # one to its parser. Writing it out here blanket-suppressed this very
+        # line until lint-nosec-form caught it.
+        _script_step(
+            "test-lint-nosec-form",
+            "tools", "test-lint-nosec-form.py",
+        ),
+        _script_step(
+            "lint-nosec-form",
+            "tools", "lint-nosec-form.py",
+        ),
         # The standing check that the repo-lint steps above do not become stale
         # again: lint-ci-parity fails when build-check.yml gains a gate with no
         # local counterpart and no declared exemption.
