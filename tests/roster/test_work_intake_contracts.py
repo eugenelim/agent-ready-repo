@@ -20,6 +20,14 @@ CONTRACT_ROOT = ROOT / "contracts/jsonschema"
 FIXTURE_ROOT = ROOT / "packs/core/tests/pack/fixtures/work-intake-contracts"
 NORMALIZED_SCHEMA = CONTRACT_ROOT / "normalized-intake.schema.json"
 WORKSPACE_SCHEMA = CONTRACT_ROOT / "workspace-entry.schema.json"
+ADAPTER_CONTRACT = (
+    ROOT
+    / "packages"
+    / "agentbundle"
+    / "agentbundle"
+    / "_data"
+    / "adapter.toml"
+)
 WORKSPACE_CONTEXT = FIXTURE_ROOT / "workspace/context"
 WORKSPACE_FIELDS = ("path", "kind", "source", "summary", "needs")
 WORKSPACE_FIELD_SET = set(WORKSPACE_FIELDS)
@@ -214,6 +222,21 @@ def test_both_schemas_are_valid_versioned_and_backlinked() -> None:
         assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema", f"{path}: meta-schema"
         assert schema["contract_version"] == version, f"{path}: stable contract version"
         assert schema["x-spec"] == ["docs/specs/normalized-intake-workspace-contracts/"], f"{path}: x-spec"
+
+
+def test_skill_adapters_preserve_work_intake_frontmatter() -> None:
+    contract = tomllib.loads(ADAPTER_CONTRACT.read_text(encoding="utf-8"))
+    skill_modes = {
+        name: next(
+            rule["mode"]
+            for rule in adapter["projection"]
+            if rule["primitive"] == "skill"
+        )
+        for name, adapter in contract["adapter"].items()
+    }
+
+    assert len(skill_modes) >= 7
+    assert set(skill_modes.values()) == {"direct-directory"}
 
 
 @pytest.mark.parametrize(

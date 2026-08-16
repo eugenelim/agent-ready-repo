@@ -1,10 +1,17 @@
+---
+title: Your first workspace session
+summary: Complete a workspace session from orientation through durable follow-up intake.
+pack: core
+kind: tutorial
+---
+
 # Your first workspace session
 
-**What you'll build:** A complete workspace session — oriented with `workspace-status`, a spec progressed through `work-loop`, a deferred item captured mid-session with `capture-work`, and a clean queue handed off for the next session.
+**What you'll build:** A complete workspace session — oriented with `workspace-status`, a spec progressed through `work-loop`, a deferred item remembered mid-session with `work-intake`, and a clean queue handed off for the next session.
 **Prerequisites:** A repo with `workspace.toml` at the root and the `core` pack installed; see [How to start working on a project](../how-to/start-a-project.md) for the install step.
 **Time:** About 30 minutes.
 
-> At the end of this tutorial you'll have run a complete workspace session: oriented using `workspace-status`, picked a spec from the build queue, invoked `work-loop`, captured a deferred item mid-session using `capture-work`, and left the queue in a clean state for the next session.
+> At the end of this tutorial you'll have run a complete workspace session: oriented using `workspace-status`, picked a spec from the build queue, invoked `work-loop`, remembered a deferred item mid-session using `work-intake`, and left the queue in a clean state for the next session.
 
 We use one concrete workspace throughout: the **Acme Platform** repo — a backend platform with one active initiative, two specs in its build queue, and one shaping item being framed as strategy. The session goal is to orient, pick a spec, and begin building.
 
@@ -100,27 +107,31 @@ AC7 was cut from this PR — it is deferred with slug `configurable-retry-backof
 
 ## Step 5 — Capture the deferred item
 
-Invoke `capture-work` without stopping the loop:
+Invoke `work-intake` without stopping the loop:
 
 ```
-capture-work: the workspace-core spec deferred configurable retry backoff — AC7 with slug configurable-retry-backoff
+work-intake: remember the deferred configurable retry backoff item from this spec; stop without implementation
 ```
 
-The skill classifies it as a repo-level deferred item and routes it to `[backlog].open` with a source reference:
+The skill classifies it as a minimal intent and records Draft,
+non-dispatchable membership with a source reference:
 
 ```
-[build] — deferred acceptance criterion; routes to [backlog].open.
-Proposed: append to [backlog].open:
-  # spec/workspace-core AC7: retry backoff should be configurable
-  {slug = "configurable-retry-backoff", source = "spec/workspace-core AC7"}
-Confirm? (y/n)
+artifact    docs/product/intents/configurable-retry-backoff.md
+membership  draft · non-dispatchable
+processor   none
+source      spec/workspace-core AC7
 ```
 
-Confirm. The skill writes the entry with its provenance comment.
+Confirm. The skill writes the Draft intent first, then registers a schema-valid
+entry containing `path`, `kind`, `source`, `summary`, and `needs`.
 
-**You should see:** a new entry in `[backlog].open` with slug `configurable-retry-backoff`. Deferred AC items go to `[backlog].open` (not the initiative's `[work].queue`) because they carry a `source` reference back to the spec that deferred them.
+**You should see:** the new intent artifact and its non-dispatchable workspace
+entry. The artifact—not a TOML comment or chat transcript—is the requirements
+authority. Because the item is not independently shippable yet, no processor is
+dispatched.
 
-For more on how `capture-work` classifies items, see [How to capture and triage a work item](../how-to/capture-work.md).
+For more on how intake routes items, see [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md).
 
 ## Step 6 — Let `work-loop` finish
 
@@ -145,12 +156,12 @@ In this session you:
 - Oriented using `workspace-status` and read both the shape room and the build room.
 - Read a spec briefly before starting `work-loop`.
 - Ran a complete `work-loop` cycle — PLAN, EXECUTE, GATES, REVIEW, DECIDE.
-- Captured a deferred item mid-session with `capture-work`, routing it to `[backlog].open` with a `source` reference back to the spec that deferred it.
+- Remembered a deferred item mid-session with `work-intake`, producing a Draft, non-dispatchable artifact with source provenance.
 - Ended with a clean queue: one item shipped, one backlog entry added, one build-queue item unblocked.
 
 ## Next steps
 
 - To orient faster at future session starts: [How to orient at the start of a session](../how-to/orient-at-session-start.md).
 - To understand the two-room model behind the queue: [The two-room model](../explanation/two-room-model.md).
-- To capture future items mid-session: [How to capture and triage a work item](../how-to/capture-work.md).
+- To remember future items mid-session: [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md).
 - To start the next spec: run `workspace-status`, then `work-loop docs/specs/<next-slug>/`.

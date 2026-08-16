@@ -1,6 +1,13 @@
 ---
 name: new-spec
 description: Use this skill when the user wants to start a new feature with a spec, or wants to write a spec for something they're about to build. Triggers on "new spec", "write a spec for X", "let's spec this out", "start a feature for...". Spec-driven development; the spec drives implementation. Do NOT use for cross-cutting proposals (use `new-rfc`) or recording decisions (use `new-adr`).
+allowed-tools: Read Write Edit Bash WebFetch WebSearch
+metadata:
+  type: skill
+  boundaries:
+    - filesystem_write
+    - filesystem_read_untrusted
+    - network_fetch
 ---
 
 # Skill: new-spec
@@ -122,11 +129,12 @@ look like?" before any code.
      Unverified loop but they do gate `Constrained by:`.
    - Stamp the optional `Brief:` header **only** when this spec is
      derived from a product brief — i.e. you arrived here from
-     `receive-brief`, which decomposes a received brief into specs. Set
-     it to the brief's slug (`docs/product/briefs/<slug>.md`); leave it
-     blank or `none` for a spec authored directly. It records *product
-     provenance* and is distinct from `Constrained by:` (governance).
-     A spec without it stays valid — the field is additive.
+     `receive-brief`, which passes a confirmed slice into this skill. Set
+     it to the brief's repository-relative path
+     (`docs/product/briefs/<slug>.md`). Leave it blank or `none` for a
+     spec authored directly. The workspace entry for a brief-derived spec
+     carries the same parent provenance; a direct spec omits that brief
+     parent. A spec without it stays valid — the field is additive.
    - Stamp the optional `Discovery:` header **only** when this spec
      descended from an upstream discovery artifact (a decision brief /
      intent produced by an upstream discovery process — e.g. the

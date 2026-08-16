@@ -1,7 +1,7 @@
 # Plan: Work intake surface
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document may change as implementation teaches us. Substantial changes are
@@ -14,7 +14,7 @@ Land the router after the Group 2 schemas and Group 3 enforcement surface. Add `
 ## Constraints
 
 - RFC-0083 defines routing, lifecycle, authority, compatibility, and documentation behavior.
-- The two not-yet-numbered Group 1 ADRs named in the spec are approval prerequisites.
+- ADR-0077 and ADR-0078 are accepted approval prerequisites.
 - `contracts/jsonschema/normalized-intake.schema.json` and `contracts/jsonschema/workspace-entry.schema.json` are consumed Group 2 contracts, not redefined here.
 - Group 3 owns parser, reconciliation, status classification, and dispatch enforcement.
 - `.apm/` is authoritative; `.agents/`, `.codex/`, and `.claude/` projections are generated.
@@ -26,7 +26,7 @@ Land the router after the Group 2 schemas and Group 3 enforcement surface. Add `
 
 **Integration tests:**
 
-- A routing corpus covers start, remember, status, unavailable refresh, direct spec, multi-spec brief, minimal intent, defect, and ambiguity against both Group 2 schemas.
+- A normalized routing corpus covers start, remember, unavailable refresh, direct spec, multi-spec brief, minimal intent, defect, and ambiguity against both Group 2 schemas. Status has a separate read-only delegation fixture because it bypasses normalized intake.
 - A core-only fixture proves no optional shaping skill is required.
 - Alias-equivalence fixtures compare normalized requests, artifacts, and registrations.
 - Ready-with-zero-spec and missing-spec/plan fixtures prove non-dispatchability.
@@ -34,7 +34,7 @@ Land the router after the Group 2 schemas and Group 3 enforcement surface. Add `
 
 **Manual verification:**
 
-- Follow the four published adopter-intent examples from a clean core-only install.
+- Follow the four published adopter-intent examples from a clean core-only install and record observed artifact, membership, processor, mutation result, and stop point in `docs/specs/work-intake-surface/manual-qa.md`; use a fresh temporary adopter workspace for each example.
 - Inspect generated navigation and the built site for the canonical front door and compatibility-only alias.
 
 ## Design (LLD)
@@ -69,10 +69,17 @@ Traces to: AC1–AC19 · both JSON Schemas.
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the normalized-intake/workspace schemas and router module are created by upstream and current RFC-0083 work and are unavailable at PLAN. First EXECUTE materializes `test_routes_canonical_inputs`, `test_rejects_unsafe_core_parent`, and `test_declares_minimal_boundaries` as compilable failing pytest cases before production edits.
+**Stub:** `packs/core/tests/skills/work-intake/test_work_intake.py` contains compilable failing `test_routes_canonical_inputs`, `test_rejects_unsafe_core_parent`, and `test_declares_minimal_boundaries` cases against the shipped Group 2 validator before production edits.
 
 - Red fixtures cover all four adopter intents and canonical routes. Covers AC1–AC7.
 - Boundary fixtures cover ambiguity, out-of-repository layout, embedded instructions, sensitive fields, and confidentiality mismatch. Covers AC5, AC7, AC15–AC16.
+- Failure-injection fixtures cover artifact-write and registration-write
+  failures, rollback, explicit non-dispatchable reconciliation, a safe
+  repair-required terminal status when reconciliation persistence also fails,
+  path traversal and symlink escape/loop refusal before callbacks, safe dispatch
+  failure reporting, raw-exception suppression, and no processor dispatch from
+  partial state.
+  Covers AC20.
 - A core-only fixture proves no optional pack resolution. Covers AC1, AC4.
 - Boundary metadata tests require only `filesystem_write`, `filesystem_read_untrusted`, and applicable `network_fetch` actions. Covers AC19.
 
@@ -94,7 +101,7 @@ Traces to: AC1–AC19 · both JSON Schemas.
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — processor boundary helpers and imported Group 2 contract modules are created by this RFC-0083 work and are unavailable at PLAN. First EXECUTE materializes `test_ready_brief_without_specs`, `test_only_confirmed_slices_materialize`, and `test_processor_boundary_metadata` as compilable failing pytest cases before production edits.
+**Stub:** `packs/core/tests/skills/receive-brief/test_work_intake_processors.py` contains compilable failing `test_ready_brief_without_specs`, `test_only_confirmed_slices_materialize`, and `test_processor_boundary_metadata` cases against the shipped Group 2 contracts before production edits.
 
 - Draft brief returns to intake without specs. Covers AC8.
 - Ready brief with no spec-map rows creates no spec, plan, or work entry. Covers AC9.
@@ -119,7 +126,7 @@ Traces to: AC1–AC19 · both JSON Schemas.
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — Group 3 consumer modules and the revised status/work-loop integration seam are created by upstream RFC-0083 work and are unavailable at PLAN. First EXECUTE materializes `test_status_passthrough`, `test_missing_contract_fails_closed`, and `test_consumer_boundary_metadata` as compilable failing pytest cases before production edits.
+**Stub:** `packs/core/tests/skills/workspace-status/test_work_intake_passthrough.py` and `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py` contain compilable failing `test_status_passthrough`, `test_missing_contract_fails_closed`, and `test_consumer_boundary_metadata` cases against the shipped Group 3 surface before production edits.
 
 - Intake status equals direct `workspace-status` structured output. Covers AC12.
 - Missing spec/plan, Draft status, findings, and comment changes remain non-dispatchable. Covers AC11.
@@ -195,6 +202,7 @@ Traces to: AC1–AC19 · both JSON Schemas.
 
 - Validate guide metadata, index, navigation, site build, and links. Covers AC17–AC18.
 - Assert public guidance names the front door and marks the alias compatibility-only.
+- Run a static construction check over every changed shipped pack surface for internal RFC/ADR/spec/AC and repository-only governance citations.
 - Run catalogue lint/verify and self-host drift checks after version bumps.
 
 **Approach:**
@@ -226,3 +234,17 @@ Traces to: AC1–AC19 · both JSON Schemas.
 ## Changelog
 
 - 2026-08-09: Initial full-mode plan from accepted RFC-0083 and confirmed assumptions.
+- 2026-08-14: Closed pre-execution review gaps for realpath confinement, transactional registration, least-privilege declarations, materialized TDD stubs, status delegation, governance-citation checks, and manual-QA evidence.
+- 2026-08-15: Added the fail-closed repair-required outcome for nested
+  reconciliation-record failures and aligned AC20 with executable failure
+  injection.
+- 2026-08-15: Made route selection, confidentiality checks, confined target
+  resolution, hostile-input output suppression, and dispatch failures
+  executable review surfaces rather than prose-only contracts.
+- 2026-08-15: Cold-adopter QA exposed a noncanonical minimal-intent preamble and
+  an under-specified actor-plus-capability routing rule. Added parser round-trip
+  coverage and pinned the published start example to the direct-spec route.
+- 2026-08-15: Corrective cold-adopter QA exposed normalized `source.locator`
+  leaking into the workspace-entry contract and an unconditional link to
+  maintainer-only guidance. Added an explicit source mapping and fresh-install
+  relative-link coverage before closing T6.

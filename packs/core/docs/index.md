@@ -10,13 +10,13 @@ Install this first. All other packs assume it is present at repo scope.
 
 ## What it is
 
-**Skills (13):** `work-loop` (the plan-execute-gate-review loop with an iteration cap), `new-spec` (write a spec and drive implementation from it), `bug-fix` (diagnose and fix a behavioral deviation), `adapt-to-project` (post-install configuration walkthrough), `init-project` (scaffold a new repo from an idea), `receive-brief` (decompose a multi-feature product brief into specs), `author-brief` (turn unstructured input into a brief), `capture-work` (record follow-ons into workspace.toml), `workspace-status` (orient at session start), `frontend-engineering` (HTML/CSS/JS surface craft rules and gates), `contract-acquisition` (acquire a platform's real contract before building against it), `operational-safety` (blast-radius and idempotency checklists for the reviewer), `security-checklists` (OWASP-anchored depth modules for the security reviewer).
+**Skills (13):** `work-intake` (route start, remember, status, and refresh requests into canonical workspace state), `work-loop` (the plan-execute-gate-review loop with an iteration cap), `new-spec` (write a spec and drive implementation from it), `bug-fix` (diagnose and fix a behavioral deviation), `adapt-to-project` (post-install configuration walkthrough), `init-project` (scaffold a new repo from an idea), `receive-brief` (validate a brief and cut confirmed slices into specs), `author-brief` (turn a coherent multi-feature outcome into a Draft brief), `capture-work` (compatibility alias for `work-intake`), `workspace-status` (orient at session start), `contract-acquisition` (acquire a platform's real contract before building against it), `operational-safety` (blast-radius and idempotency checklists for the reviewer), `security-checklists` (OWASP-anchored depth modules for the security reviewer).
 
 **Subagents (4):** `adversarial-reviewer` (spec/plan/implementation drift finder), `quality-engineer` (testability, observability, maintainability lens), `security-reviewer` (OWASP multi-framework threat model), `implementer` (single-task executor for supervisor mode).
 
 **Hooks (3):** `pre-pr` (pre-commit gate runner), `session-start` (orient on wakeup), `work-loop-check` (iteration-cap enforcement).
 
-**Seeds:** `AGENTS.md`, `CLAUDE.md`, `CHARTER.md`, `CONVENTIONS.md`, `docs/architecture/`, `docs/knowledge/`, `docs/product/`, `docs/specs/`, `workspace.toml` — the full repo scaffold installed on first install.
+**Seeds:** `AGENTS.md`, `CLAUDE.md`, `CHARTER.md`, `CONVENTIONS.md`, `docs/architecture/`, `docs/knowledge/`, `docs/product/` (including the minimal-intent template), `docs/specs/`, `workspace.toml` — the full repo scaffold installed on first install.
 
 See the README for the complete manifest table.
 

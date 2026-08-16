@@ -18,6 +18,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.7.0] — 2026-08-16
+
+#### Added
+
+- **Core 2.7 adds one front door for starting and remembering work.** Describe
+  the request to `work-intake`; it selects an intent, brief, spec, or defect
+  route from the content, materializes the artifact, registers lifecycle state,
+  and dispatches only when both writes are durable. Status remains read-only,
+  ambiguous work remains Draft, and requirements refresh reports unavailable
+  without mutation.
+
+- **Core's public guides now explain artifact routing and lifecycle.** A new
+  task guide, reference, and explanation cover the natural-language entry
+  point, exact route table, read/write boundary, and the human decisions that
+  remain outside automatic dispatch.
+
+#### Changed
+
+- **`capture-work` is now a compatibility alias for `work-intake`.** Existing
+  requests receive a deprecation notice and produce the same target artifact
+  and workspace entry; new guidance uses `work-intake` directly. A Ready brief
+  may now contain zero specs, and `receive-brief` creates specs only for slices
+  a human confirms.
+
+#### Fixed
+
+- **Remembered work now registers valid source provenance.** Normalized source
+  locators are mapped to the workspace entry's `source.ref` field, so Draft
+  intents reconcile cleanly instead of producing `invalid_entry`.
+- **Fresh core installs no longer link to missing maintainer guidance.** The
+  composed `AGENTS.md` treats `AGENTS.local.md` as optional and contains no
+  dangling relative link when that host-only file is absent.
+
 ### Fixed
 
 - **Documentation pages no longer show two titles.** 38 of 216 published pages

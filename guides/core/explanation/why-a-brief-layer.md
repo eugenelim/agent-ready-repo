@@ -1,3 +1,10 @@
+---
+title: Why a brief layer
+summary: Why multi-feature outcomes need a durable layer above independently shippable specs.
+pack: core
+kind: explanation
+---
+
 # Why a brief layer
 
 Spec-driven delivery gives you a clean path from "we should build X" to "X is shipped": `new-spec` writes one feature's contract, `work-loop` builds it. A spec is sized to one feature, built in days or weeks. That shape is deliberate — and it has an edge.
@@ -30,7 +37,7 @@ The roadmap names themes. A brief records *one received outcome* and the specs t
 
 ## Why these design choices
 
-- **It executes — it isn't just a document.** The brief earns its place by *doing* something: `receive-brief` decomposes it into specs and hands each to `work-loop`. A brief that only described work would rot. One that spawns and tracks work stays alive.
+- **It governs delivery without being executable.** `receive-brief` can mark a sound brief Ready with no specs. Specs appear only when a human confirms a slice, and each approved spec then enters `work-loop`. The brief stays useful as outcome and coverage context without becoming a hidden batch job.
 
 - **Coverage is auto-derived, never hand-maintained.** The brief's Spec map rolls up from each spec's own `Status:` field via the `Brief:` back-links. A hand-written status drifts the moment a spec ships — so the coverage lint derives the truth and fails closed on a stale cell. "Is this brief delivered?" stays answerable for free.
 

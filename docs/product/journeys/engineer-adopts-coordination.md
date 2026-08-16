@@ -36,7 +36,7 @@ updated: 2026-07-19
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `work-loop`, `new-spec`, `receive-brief`, `workspace-status` (M1.5), `author-brief` (M1 Batch 4) |
+| core | repo | current | `work-intake`, `work-loop`, `new-spec`, `receive-brief`, `workspace-status`, `author-brief` |
 
 **One-time setup:**
 1. Install core pack at repo scope.
@@ -61,12 +61,12 @@ sequenceDiagram
     WS-->>SK: Active initiative · parallel candidates · blocked items
     SK-->>H: spec/m1-work-loop is ready · spec/m1-receive-brief blocked on brief-template
 
-    Note over H,WS: Brief intake (M1 — author-brief)
-    H->>SK: author-brief [pastes external brief text]
+    Note over H,WS: Work intake
+    H->>SK: work-intake [describes or pastes the request]
     SK-->>H: Appetite? Rabbit holes? Instrumentation?
     H->>SK: [answers DoR prompts]
     SK->>WS: [brief_queue].draft += briefs/new-brief.md
-    SK-->>H: Brief queued — run receive-brief to decompose into specs
+    SK-->>H: Draft brief registered — run receive-brief for the Ready gate
 
     Note over H,WS: Execute and ship (M1.7)
     H->>SK: work-loop · spec/m1-work-loop
@@ -107,9 +107,9 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Receives a brief externally (email, Linear Issue, verbal). Runs `author-brief` — elicits DoR fields interactively, creates brief file, writes to `[brief_queue].draft`. Runs `receive-brief` — moves brief to ready and writes specs into `[work].queue`. |
+| **Actions** | Receives source material externally. Runs `work-intake`, which normalizes the bounded facts and routes a coherent multi-feature outcome to `author-brief`. The brief is materialized and registered as Draft. `receive-brief` moves it to Ready after the human gate; specs appear only for confirmed slices. |
 | **Emotions** | Efficient (positive). External input → queued specs in one flow; no manual reformatting. |
-| **Remaining pains** | "Linear issues still need the `author-brief` step — there is no automatic intake from the tracker until M5." |
+| **Remaining pains** | Tracker items still need normalized intake; automatic tracker refresh is not available yet. |
 
 ---
 

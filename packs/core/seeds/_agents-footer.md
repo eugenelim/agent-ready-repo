@@ -1,1 +1,1 @@
-> Working on this repo specifically? See [`AGENTS.local.md`](AGENTS.local.md).
+> If this repository provides `AGENTS.local.md`, read it for repository-specific guidance.

@@ -1500,7 +1500,7 @@ _WL_FINISH_START = r'^## Finish checklist'
 _WL_FINISH_END = r'Conventional commit format'
 
 _WORK_LOOP_CONTRACT_HASH = (
-    "4c1a53ad560c2d2cf92bf1d56d8fcefd0801ad664607a0b32e0e8809bc4f569f"
+    "98952b12f942d880ba40beb8ed928d197f2e884da66542b7200f595388164d22"
 )
 _WORK_LOOP_FINISH_HASH = (
     "7a6ac4f28a6aeee56dc608867213efdc6b29646ceb35e090c60bf97a6b764baa"

@@ -1,3 +1,10 @@
+---
+title: How to generate solution options
+summary: Generate comparable options for an initiative or capability opportunity.
+pack: product-engineering
+kind: how-to
+---
+
 # How to generate solution options
 
 **Use this when:** You hold a confirmed opportunity at initiative or capability scope and need to surface ≥3 structured, comparable options before committing to a direction in `place-bet`.
@@ -101,12 +108,11 @@ After emitting the artifact, `diverge-solutions` prints a TOML snippet:
 {slug = "<slug>", type = "shape"},
 ```
 
-Add it to `[ini-NNN.shaping_queue]` in `workspace.toml`. Two ways:
-
-1. **Via `capture-work`:** run `capture-work` and follow the prompts — it writes
-   the entry for you.
-2. **Manually:** open `workspace.toml`, find the `[ini-NNN.shaping_queue]` section,
-   and add the line to the `backlog` array.
+Treat the snippet as a routing suggestion, not as the requirements record. Run
+`work-intake remember` with the selected option and its source. `work-intake`
+materializes the canonical Draft artifact first, then registers schema-valid,
+non-dispatchable workspace membership. Do not paste a comment-backed or
+slug-only entry into `workspace.toml`.
 
 **What happens next:** once the option is selected, the next step is validation
 (`de-risk-intent`, step 4). Run it on the selected option to pressure-test the

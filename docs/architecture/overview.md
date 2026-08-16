@@ -102,9 +102,9 @@ One file per non-trivial subsystem:
   topic distillation, file-based storage, explicit enquiry, and intentional
   retirement.
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md)
-  — proposed target architecture for routing work intake between intents,
-  briefs, specs, trackers, and `workspace.toml`; an input to follow-on
-  governance, not a description of current implementation.
+  — the implemented architecture for separating source intake, canonical
+  intents/briefs/specs/defects, lifecycle membership in `workspace.toml`, and
+  processor dispatch. Tracker-owned refresh remains a later integration.
 
 ## Packages
 

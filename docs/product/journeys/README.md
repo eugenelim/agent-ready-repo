@@ -27,7 +27,11 @@ flowchart LR
 
 **Build room** — where a brief becomes specs, then code. The work queue (`[work]`) holds specs; `work-loop` executes them; the engineer or agent is the actor. Headless agents (INI-003) are a scaling variant of the build room, not a separate room.
 
-**The brief queue is the handoff point.** A brief passes the DoR gate (`Status: Ready`) and enters `[brief_queue].ready`. The build room picks it up via `receive-brief`, decomposes it into specs, and those land in `[work].queue`. From there, `workspace-status` drives the session.
+**Work intake is the handoff point.** `work-intake` materializes a canonical
+artifact and registers its lifecycle state. A brief can pass the human Ready
+gate and enter `[brief_queue].ready` with zero specs; `receive-brief` invokes
+`new-spec` only after a slice is confirmed. From there, `workspace-status`
+drives the session.
 
 Journeys below are grouped by room. The three shaping journeys are distinct personas who all write to the brief queue through different paths. The four build journeys are distinct execution modes for the same work-loop pattern.
 

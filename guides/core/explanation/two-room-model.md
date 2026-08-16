@@ -1,8 +1,15 @@
+---
+title: "The two-room model: shaping vs. building"
+summary: Why shaping work and build work use distinct lifecycle rooms.
+pack: core
+kind: explanation
+---
+
 # The two-room model: shaping vs. building
 
 Most knowledge work has two distinct modes that don't mix well. In the first, you *discover* what to build — you research, frame, and structure an idea until it is sharp enough to become a spec. In the second, you *build* — you implement, verify, and ship. This repo separates those two modes into two rooms: the **shape room** and the **build room**.
 
-This page explains the distinction, what goes in each room, and how items move between them. For how to orient to both rooms at session start, see [How to orient at the start of a session](../how-to/orient-at-session-start.md). For how to route a new item to the right room, see [How to capture and triage a work item](../how-to/capture-work.md).
+This page explains the distinction, what goes in each room, and how items move between them. For how to orient to both rooms at session start, see [How to orient at the start of a session](../how-to/orient-at-session-start.md). For the current intake route, see [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md).
 
 ## The shape room
 
@@ -52,7 +59,7 @@ Separating the rooms makes the distinction explicit at capture time, before work
 
 The path is one-way:
 
-1. A new item arrives — a user surfaces it mid-session, a spec reveals a follow-on, a review finds a gap. The `capture-work` skill classifies it as `[build]` or `[shape]` and writes it to the right room.
+1. A new item arrives — a user surfaces it mid-session, a spec reveals a follow-on, or a review finds a gap. `work-intake` materializes the right canonical artifact and registers its lifecycle state. Work that is not independently shippable remains a non-dispatchable Draft.
 2. Shape items are worked until a spec can be written. The spec lands in `docs/specs/<slug>/`.
 3. The spec's path enters the build room's `queue`.
 4. `work-loop` builds the spec. On PR merge, the entry moves to `shipped`.
@@ -72,5 +79,5 @@ Read the orientation output to understand the full state of both rooms before pi
 ## See also
 
 - [How to orient at the start of a session](../how-to/orient-at-session-start.md) — read both rooms at session start
-- [How to capture and triage a work item](../how-to/capture-work.md) — route a new item to the right room
+- [Start or remember work without choosing a skill](../how-to/start-or-remember-work.md) — route a new item into durable artifact and lifecycle state
 - [workspace.toml schema reference](../reference/workspace-toml-schema.md) — authoritative field and section descriptions
