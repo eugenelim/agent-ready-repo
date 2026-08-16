@@ -44,6 +44,9 @@ sys.path.insert(0, _AGENTBUNDLE_PATH)
 Step = tuple[str, Callable[[], int]]
 
 
+_CREDBROKER_PATH = str(REPO_ROOT / "packages" / "credbroker")
+
+
 def _agentbundle_env() -> dict:
     """Env with packages/agentbundle on PYTHONPATH for subprocess agentbundle calls."""
     env = os.environ.copy()
@@ -51,6 +54,21 @@ def _agentbundle_env() -> dict:
     parts = [p for p in pp.split(os.pathsep) if p]
     if _AGENTBUNDLE_PATH not in parts:
         env["PYTHONPATH"] = os.pathsep.join([_AGENTBUNDLE_PATH] + parts)
+    return env
+
+
+def _source_packages_env() -> dict:
+    """Env with BOTH source packages on PYTHONPATH.
+
+    Both are importable from source — neither needs `pip install -e` — so a
+    directory-scoped step can run a suite that imports them without the chain
+    taking on provisioning. Appended after any caller PYTHONPATH so a real
+    installed copy still wins.
+    """
+    env = _agentbundle_env()
+    parts = [p for p in env.get("PYTHONPATH", "").split(os.pathsep) if p]
+    if _CREDBROKER_PATH not in parts:
+        env["PYTHONPATH"] = os.pathsep.join(parts + [_CREDBROKER_PATH])
     return env
 
 
@@ -107,6 +125,14 @@ def _pytest_step_cwd(label: str, cwd: str, *targets: str) -> Step:
     Windows-clean, which is the whole reason this is a step kind rather than a
     shell string: `subprocess`'s own `cwd=` moves the child, so there is no
     `cd &&`, no shell, and no POSIX-only quoting. The argv stays a plain list.
+
+    The child also gets the repo's source packages on `PYTHONPATH`. Moving the
+    cwd out of the repo root is what makes this necessary: a suite that imports
+    `credbroker` or `agentbundle` finds them by path rather than by install, so
+    the step does not require `pip install -e` provisioning that a local
+    `make build-check` has no reason to do. CI proved the need — without it the
+    credential-setup suite exits 3 at import on a runner where credbroker is not
+    installed.
     """
     directory = Path(cwd)
 
@@ -115,6 +141,7 @@ def _pytest_step_cwd(label: str, cwd: str, *targets: str) -> Step:
             [sys.executable, "-m", "pytest", *targets, "-q"],
             cwd=str(REPO_ROOT / directory),
             check=False,
+            env=_source_packages_env(),
         ).returncode
 
     return (label, _thunk)
