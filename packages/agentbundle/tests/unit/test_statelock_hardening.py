@@ -68,9 +68,8 @@ def test_a_dangling_symlink_lock_path_does_not_spin(tmp_path: Path) -> None:
     _lock_of(state).symlink_to(tmp_path / "does-not-exist")
 
     started = time.monotonic()
-    with _Alarm(10), pytest.raises(OSError):
-        with statelock.state_lock(state, timeout=2.0):
-            pass
+    with _Alarm(10), pytest.raises(OSError), statelock.state_lock(state, timeout=2.0):
+        pass
     assert time.monotonic() - started < 5.0, "took far longer than the timeout"
 
 
@@ -89,9 +88,12 @@ def test_a_symlink_lock_path_is_refused_not_waited_on(tmp_path: Path) -> None:
     _lock_of(state).symlink_to(tmp_path / "real-target")
 
     started = time.monotonic()
-    with _Alarm(10), pytest.raises(statelock.StateLockUnusable) as exc:
-        with statelock.state_lock(state, timeout=30.0):
-            pass
+    with (
+        _Alarm(10),
+        pytest.raises(statelock.StateLockUnusable) as exc,
+        statelock.state_lock(state, timeout=30.0),
+    ):
+        pass
     # Refused immediately, not after the 30s timeout.
     assert time.monotonic() - started < 2.0
     assert "regular file" in str(exc.value)
@@ -100,9 +102,12 @@ def test_a_symlink_lock_path_is_refused_not_waited_on(tmp_path: Path) -> None:
 def test_a_directory_lock_path_is_refused(tmp_path: Path) -> None:
     state = _state(tmp_path)
     _lock_of(state).mkdir()
-    with _Alarm(10), pytest.raises(statelock.StateLockUnusable):
-        with statelock.state_lock(state, timeout=30.0):
-            pass
+    with (
+        _Alarm(10),
+        pytest.raises(statelock.StateLockUnusable),
+        statelock.state_lock(state, timeout=30.0),
+    ):
+        pass
 
 
 def test_unusable_is_an_oserror(tmp_path: Path) -> None:
@@ -163,9 +168,8 @@ def test_a_stale_lock_is_still_reclaimed(tmp_path: Path) -> None:
     lock.write_text("agentbundle-statelock deadbeef 99999\n", encoding="ascii")
     os.utime(lock, (time.time() - 3600, time.time() - 3600))
 
-    with _Alarm(15):
-        with statelock.state_lock(state, timeout=5.0, stale_after=60.0):
-            pass  # acquired by reclaiming the hour-old lock
+    with _Alarm(15), statelock.state_lock(state, timeout=5.0, stale_after=60.0):
+        pass  # acquired by reclaiming the hour-old lock
 
 
 def test_a_fresh_foreign_lock_times_out(tmp_path: Path) -> None:
@@ -174,9 +178,12 @@ def test_a_fresh_foreign_lock_times_out(tmp_path: Path) -> None:
     _lock_of(state).write_text("agentbundle-statelock cafe 12345\n", encoding="ascii")
 
     started = time.monotonic()
-    with _Alarm(15), pytest.raises(statelock.StateLockTimeout):
-        with statelock.state_lock(state, timeout=0.5, stale_after=9999):
-            pass
+    with (
+        _Alarm(15),
+        pytest.raises(statelock.StateLockTimeout),
+        statelock.state_lock(state, timeout=0.5, stale_after=9999),
+    ):
+        pass
     elapsed = time.monotonic() - started
     assert elapsed >= 0.4, "must actually wait rather than refuse at once"
     assert elapsed < 5.0
