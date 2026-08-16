@@ -51,8 +51,11 @@ disk under the link's own, innocent-looking relpath.
   six adapters. It failed `test_symlink_pass_through`, which surfaced AC2's
   invariant. The entry's premise was inverted: the four adapters that drop every
   symlink are the ones diverging from the spec, not the two that preserve them.
-  Recorded as `adapter-symlink-policy-divergence`, which needs a ruling on which
-  policy the invariant should state before any code moves.
+
+  **Ruled and resolved 2026-08-16** by `spec/unify-adapter-symlink-policy`: the
+  invariant stands, and the four strict adapters moved TO pass-through, with one
+  shared definition in `direct_directory.py`. The read-side fix this spec landed
+  is what makes that safe — a preserved link cannot be read through.
 
 - [x] **AC5 — released.** 0.36.0 → 0.36.1 with an entry in both changelogs.
 

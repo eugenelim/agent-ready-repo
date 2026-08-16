@@ -295,14 +295,16 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)":
         CI_ONLY(
-            "PROVISIONING, not step vocabulary — the chain grew "
-            "`_pytest_step_cwd` and this step still cannot move. The suite "
+            "PROVISIONING, and DECIDED to stay here (2026-08-16). The suite "
             "spawns setup.py as a subprocess, and that script hard-exits 3 when "
             "credbroker is not INSTALLED; a source path on PYTHONPATH does not "
             "satisfy it (verified in CI, twice). Moving it would mean "
-            "`pip install -e ./packages/credbroker` inside build-check, which is "
-            "a decision about what that target provisions — see backlog "
-            "`gate-chain-credential-setup-provisioning`."
+            "`pip install -e ./packages/credbroker` inside `make build-check`, "
+            "which is already heavy and is otherwise install-free and offline. "
+            "The suite's subject is installed-package behaviour, so running it "
+            "against a source path would test something no adopter experiences "
+            "— CI is its honest home, not a compromise. Do not re-open this as "
+            "a step-vocabulary gap: the chain has `_pytest_step_cwd`."
         ),
     "pip install httpx for the atlassian SSO suites (RFC-0035)":
         CI_ONLY(

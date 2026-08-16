@@ -1,4 +1,4 @@
-"""Shared post-pass helper for `direct-directory` skill projections.
+"""Shared helpers for `direct-directory` skill projections.
 
 After every multi-pack `project_packs(...)` call, the orphan sweep
 removes child directories of the projected skill target whose names
@@ -13,6 +13,40 @@ from __future__ import annotations
 import shutil
 import sys
 from pathlib import Path
+
+
+def ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: drop absolute-target symlinks and
+    `__pycache__`, and PRESERVE relative ones as symlinks.
+
+    One definition for all six direct-directory adapters. They previously
+    carried six private copies that had drifted into two policies — four
+    dropping every symlink, two dropping only absolute targets — which is what
+    six copies of one rule does.
+
+    The surviving policy is pass-through, because
+    `docs/specs/codex-native-skills/spec.md` states it as the invariant:
+    "the symlink-pass-through is the path-traversal-safety invariant; never
+    resolve a symlink to its target at projection time". Resolving is what
+    materialises a target's bytes into the output; preserving the link does not,
+    and `render._collect_tree` refuses to read through a link, so a preserved
+    link cannot become a file on an adopter's disk either.
+
+    Absolute targets are still dropped: they always escape the tree and carry no
+    meaning once the tree is copied elsewhere. A relative link survives as a
+    link — including one that traverses upward, which is safe for the same
+    reason the invariant gives, and visible as a link to anything that inspects
+    the output.
+
+    `__pycache__` is excluded because `.pyc` files embed absolute source paths
+    and can never be byte-identical across machines.
+    """
+    base = Path(directory)
+    return {
+        name for name in names
+        if name == "__pycache__"
+        or ((base / name).is_symlink() and (base / name).readlink().is_absolute())
+    }
 
 
 def sweep_orphans(target_dir: Path, expected_names: set[str]) -> None:
