@@ -39,6 +39,26 @@ runtime impact.
 Note: `@axe-core/vitest` does not exist on npm (verified 2026-07-28). `axe-core`
 is used directly. Test runner entry point: `npm test` (`vitest run`).
 
+## Supply-chain posture
+
+Two controls, only one of them automated:
+
+- **Known-CVE scanning is wired** (ADR-0083, `docs/specs/npm-sca-gate/`).
+  `tools/audit-npm.py` runs `npm audit --audit-level=high` over this lockfile as
+  a leg of `make sast`, so it gates locally and in `build-check.yml`. Both npm
+  lockfiles are in the Makefile's `SAST_CONFIG`, so a lockfile-only diff still
+  triggers the gate. Fix a finding with `npm audit fix --package-lock-only`;
+  suppress one only when there is no fix, via a reasoned entry in
+  `tools/npm-audit-allowlist.toml`.
+- **Install-script vetting is by hand, and this lockfile already diverges.**
+  `package.json` `allowScripts` vets `esbuild@0.28.1` and `fsevents@2.3.3`, but
+  the lockfile also carries `playwright/node_modules/fsevents@2.3.2`, which is
+  outside those keys — hence the `npm warn allow-scripts` on install. It is
+  accepted as-is (a Playwright transitive on a devDependency path); machine
+  enforcement is deferred under `workspace.toml [backlog]` slug
+  `npm-allowscripts-enforcement`, which is also where closing this divergence
+  belongs. Check the set by eye when the lockfile moves.
+
 ## Build
 
 - `npm run build` emits into `../build/` (repo root), NOT `web/dist/`
