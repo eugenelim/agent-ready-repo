@@ -799,6 +799,11 @@ open = [
   # The local run was not merely less informative than CI — it was affirmatively
   # reassuring while being wrong, which is the whole complaint. This is a concrete
   # reproduction, not a hypothetical: raise the priority accordingly.
+  # Recurred twice more the same day (PRs #953, #957), both times on a
+  # changeset that a full local `make build-check` had just called complete.
+  # Three reproductions in one session is the argument for making the local
+  # invocation fail closed rather than warn: the failure mode is not a missed
+  # signal, it is a false green that costs a CI round trip every time.
   # Fix: scope `has_exemption` to commits reachable only from HEAD (closes (b)),
   #   and have the guard report base absence/staleness loudly — deciding whether
   #   the local invocation fails closed while CI's stays fail-open. Touches a gate
@@ -902,14 +907,6 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "packages-marker-sweep-pinned-strings", source = "spec/packages-governance-marker-sweep AC5"},
 
-  # `contracts/README.md` carries 8 governance markers. It sits outside
-  # `packages/`, so the packages sweep left it, but `contracts/` is a public
-  # repo-root directory an adopter browsing the repo reads, and its sibling
-  # `adapter.toml` / `target-vocab.toml` were swept (they are byte-identical
-  # twins of packaged files and had to move).
-  # Fix: same treatment — rewrite each sentence to state the rule, drop the ordinal.
-  # Unblocks when: picked up — no dependency.
-  {slug = "contracts-readme-governance-markers", source = "spec/packages-governance-marker-sweep (out of scope)"},
 
   # workspace-mcp Stage 1 deferred AC. agentbundle Claude adapter additive-merge
   # `permissions.allow` projection for the 6 workspace-mcp MCP tool ids. If the
@@ -961,15 +958,20 @@ open = [
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 
-  # profiles/AGENTS.md has no normative pointer to contracts/profile.schema.json.
-  # Wave 1 (catalogue-wave1-contract-convergence) added the pointer to packs/AGENTS.md
-  # and packs/README.md. This item mirrors that for profiles/.
-  # Fix: add "The machine source of truth for profile TOML format is
-  #   `contracts/profile.schema.json`." to profiles/AGENTS.md § schema map; verify
-  #   profiles/AGENTS.md remains ≤ 150 lines.
-  # File: profiles/AGENTS.md.
-  # Unblocks when: someone wants to close the profiles/ gap in a focused quick-win PR.
-  {slug = "profiles-agents-normative-pointer", source = "spec/catalogue-wave1-contract-convergence"},
+  # Surfaced 2026-08-16 while closing profiles-agents-normative-pointer. That
+  # entry said it "mirrors" a pointer wave 1 added to packs/AGENTS.md and
+  # packs/README.md. It does not: NEITHER file carries such a pointer. Verified
+  # by grep, and independently recorded at
+  # docs/product/research/catalogue-audience-discovery.md:276 — "packs/AGENTS.md
+  # does NOT say 'the machine source of truth is `contracts/pack.schema.json`'".
+  # So the pattern was established for profiles/ (spec/contracts-readme-
+  # governance-sweep, 2026-08-16) and packs/ is still the odd one out — the exact
+  # inversion of what the original entry assumed.
+  # Fix: add the same one-line pointer to contracts/pack.schema.json in
+  #   packs/AGENTS.md § schema map, and to packs/README.md; keep both under the
+  #   150-line subdirectory AGENTS.md cap.
+  # Unblocks when: picked up — no dependency.
+  {slug = "packs-agents-normative-pointer", source = "spec/contracts-readme-governance-sweep AC6"},
 
 
   # docs-site-design-refresh deferrals (spec Assumptions). SCA: no npm audit/

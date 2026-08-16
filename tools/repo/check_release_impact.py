@@ -53,6 +53,15 @@ NON_IMPACTING_PREFIXES = (
     "docs/rfc/",
 )
 
+# Documentation *about* a contract is not itself contract surface. The
+# "contracts/" prefix above is a whole-directory match, so without this a README
+# edit demanded an agentbundle release — observed on the first docs-only PR after
+# that prefix landed. What the CLI bundles byte-identically into `_data/` is the
+# contract files; no Markdown in this tree has a packaged twin.
+NON_IMPACTING_SUFFIXES_UNDER = (
+    ("contracts/", ".md"),
+)
+
 # A changed file matching one of these patterns indicates a planned release.
 RELEASE_INDICATOR_PATTERNS = (
     r"packages/agentbundle/pyproject\.toml",
@@ -76,6 +85,9 @@ def _changed_files(base: str) -> list[str]:
 def is_release_impacting(path: str) -> bool:
     for prefix in NON_IMPACTING_PREFIXES:
         if path.startswith(prefix):
+            return False
+    for prefix, suffix in NON_IMPACTING_SUFFIXES_UNDER:
+        if path.startswith(prefix) and path.endswith(suffix):
             return False
     return any(path.startswith(prefix) for prefix in RELEASE_IMPACTING_PREFIXES)
 

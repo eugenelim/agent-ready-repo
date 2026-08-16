@@ -14,6 +14,10 @@ The profile **id** is the filename stem. It must match `^[a-z0-9][a-z0-9-]*$`.
 
 ## Current schema fields
 
+The machine source of truth for profile TOML format is
+[`contracts/profile.schema.json`](../contracts/profile.schema.json). The table
+below is a reading aid; where the two disagree, the schema wins.
+
 | Field | Required | Type | Description |
 |-------|----------|------|-------------|
 | `scope` | yes | `"repo"` or `"user"` | Installation scope |
