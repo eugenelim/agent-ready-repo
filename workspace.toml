@@ -516,6 +516,22 @@ open = [
     # deliberately lacks (a fault-injection hook in a lock is its own hazard). Fix: drive it
     # from a subprocess killed between create and write, or a filesystem that returns ENOSPC
     # on write. Unblocks: now — it is a test-coverage gap, not a defect.
+  # FLAKY GATE, observed 2026-08-16 on PR #966 (a docs-and-pack change touching
+  # nothing related). test_concurrent_reclaimers_yield_one_holder failed on
+  # ubuntu py3.12 while py3.11 passed on the same commit, and it passed 3/3
+  # locally and on a plain re-run of the same job. Reported: two holders after a
+  # reclaim race, with one of them raising StateLockLost — i.e. the module's own
+  # loss detection fired, which is the designed behaviour, so the ASSERTION may
+  # be what is wrong rather than the lock.
+  # Why it matters beyond the noise: this is a concurrency gate. A test that
+  # fails ~sometimes trains everyone to re-run it, and the next real regression
+  # gets re-run too. It is also on a security-relevant control.
+  # Fix: decide whether "one holder entered and a second was told it lost" is a
+  #   pass (the lock behaved) or a fail (two ENTERs happened at all), then make
+  #   the assertion say that. If it is a genuine race, it needs its own spec.
+  # Unblocks when: picked up — no dependency.
+  {slug = "statelock-concurrent-reclaimers-test-flake", source = "pre-flight/2026-08-16"},
+
   {slug = "statelock-token-write-failure-test", source = "spec/loop-cohort-state-lock"},
     # loop-engine's _recover_pending reads the repo-global .loop-run/events.pending and then
     # calls _recover_engine_state_tmp(pending_spec_dir) for whatever spec that record names,
