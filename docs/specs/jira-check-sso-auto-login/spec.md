@@ -1302,9 +1302,15 @@ Every entry was established by reading source or executing a probe on
   umask-default mode, and `_do_register` stores `context.cookies()` unfiltered,
   so IdP cookies are retained at rest even though the consumer filters at load.
   *(deferred: sso-broker-at-rest-minimisation)*
-- The non-JSON-2xx guard on read paths other than `whoami` — every method calls
-  `resp.json()`, so the same login-page body still exits 1 elsewhere.
-  *(deferred: nonjson-2xx-guard-all-read-paths)*
+- The non-JSON-2xx guard on read paths other than `whoami` — every method called
+  `resp.json()`, so the same login-page body still exited 1 elsewhere.
+  *(Deferred, and since **delivered** on 2026-08-16 by
+  `spec/nonjson-guard-all-read-paths`, atlassian 0.8.4: the diagnosis moved into
+  one shared `_json` decoder used by all 15 jira read paths, with a source scan
+  that fails if a new read bypasses it. The same gap in `confluence-crawler` —
+  the other client with an SSO path — was closed in the same change; the token
+  path deliberately keeps the original error, since a non-JSON 2xx there is a
+  server fault rather than an expiry.)*
 - Headed-login destination poisoning remains an accepted limitation under
   RFC-0084: the supported user-scope installation cannot enforce a boundary
   against its own principal. Generic interactive capture stays operator-only;
