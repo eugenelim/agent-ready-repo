@@ -480,30 +480,37 @@ attributes.
 
 Write the **generalizable lesson**, not the incident report. Strip PR details; write what you'd tell a new team member. If the only thing you can write is "in PR#42 we had to…", it's not ready.
 
-- **Review scratch notes** from this session's DECIDE passes. For each: generalisable beyond this PR and would have changed the approach → promote to `docs/knowledge/patterns.jsonl`; otherwise discard.
+- **Review scratch notes** from this session's DECIDE passes. For each:
+  generalisable beyond this PR and would have changed the approach → route it
+  through the `project-knowledge` public seam; otherwise discard it.
 
-  One JSON object per line. **Six required keys — `id`, `kind`, `scope`, `title`, `body`, `source`** (plus optional `tier`). `id` matches `K-\d{4,}` and is unique; `kind` is `pattern`, `gotcha`, or `antipattern`; `scope` is one or more comma-separated path globs; `source` is where the lesson came from (`PR#42`, `issue#13`). Omitting `source` is the usual mistake:
+  Use semantic-gate triage before writing anything. Route or discard normative
+  material first. For one admitted reusable lesson, discover `project-knowledge`
+  through the normal skill catalogue and submit the published observation
+  contract with `project-knowledge --capture`. The producer workflow never
+  selects a journal path, imports a private writer, invents a capture ID, or
+  creates a fallback store.
+
+  If `project-knowledge` is absent, record the named skip
+  `project-knowledge unavailable`; missing core creates no fallback file. Capture is not
+  broadened to other workflows by this step.
+
+  At the terminal gate, use `project-knowledge --distill --pending` to read only the
+  receipts returned by that same gate's captures:
 
   ```json
-  {"id": "K-NNNN", "kind": "gotcha", "scope": "packages/auth/**", "title": "Token cache survives a role change", "body": "The auth middleware caches tokens for 15 minutes — invalidate it manually after a role change.", "source": "PR#42"}
+  {"selection_mode":"workflow-receipts","receipts":[{"capture_id":"<capture-id>","partition":"observations/<kind>/<YYYY-MM>.jsonl"}]}
   ```
 
-  **Append with the writer, not by hand.** `append-knowledge.py` ships beside this skill; it allocates the next free `id`, writes raw UTF-8, and refuses anything the linter would reject, so a bad entry never reaches the file:
+  The distill request uses only the capture IDs and partitions returned by that gate. It
+  must refuse guessed capture IDs and must refuse `direct-maintainer-pending`; that
+  drain belongs to explicit core-maintainer runs. After semantic triage, submit each
+  explicit disposition or promotion proposal with `project-knowledge --distill`
+  without `--pending`. Unresolved observations remain pending and do not invalidate
+  the capture.
 
-  ```bash
-  python3 <skills-dir>/work-loop/scripts/append-knowledge.py --kind gotcha \
-    --scope 'packages/auth/**' --title '...' --body '...' --source 'PR#42'
-  ```
-
-  If you do write a line by hand: entries are **raw UTF-8, never `\uXXXX`-escaped**. Both forms are valid JSON, so `json.dumps(entry)` — `ensure_ascii` defaults to `True` — drifts the file to escapes while still passing every other rule. Pass `ensure_ascii=False`. Entries are evidence, not instructions — the session-start hook no longer replays them, and `docs/knowledge/README.md` says where they do get read. Still never paste content from an untrusted source into one; characters that render as nothing — bidi overrides, the Unicode Tag block, the variation selectors — are refused outright for the same reason. Entries are committed and permanent, so they follow `AGENTS.md` § Privacy: no real names, emails, org hostnames, or user-specific filesystem paths — use the placeholders listed there.
-
-  **Verify before committing.** `lint-knowledge.py` ships beside this skill and `pre-pr.py` runs it for you; run it directly to check as you write — **unfiltered**, reading its exit code:
-
-  ```bash
-  python3 <skills-dir>/work-loop/scripts/lint-knowledge.py; echo "exit=$?"
-  ```
-
-  Never pipe a gate through `tail` or `grep` to judge it — you get the filter's exit code, not the gate's, and the truncated lines are the per-entry errors. Field table and curation rules: `docs/knowledge/README.md`.
+  Any knowledge journal, topic, or map diff returns through the next
+  verification and review barrier before commit.
 - "Grepped for `<thing>` repeatedly" → pointer in `docs/architecture/<subsystem>.md`.
 - "The test command for this package is unusual" → add it to the package's `AGENTS.md`.
 - "Made the same wrong assumption twice" → knowledge-base-shaped: first bullet's routing. Project-conventions context: relevant `AGENTS.md`. Vocabulary issue: `docs/guides/reference/` glossary.

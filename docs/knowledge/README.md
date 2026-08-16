@@ -174,7 +174,15 @@ The renderer is still reachable on request, for curation:
 python3 tools/hooks/session-start.py --show-knowledge [--scope <path-or-glob>]
 ```
 
-Harvesting these into the places that *are* authoritative — AGENTS.md, a skill,
-an ADR, architecture docs, or a lint or test — is the distill-knowledge path's
-job. The strongest knowledge is not prose a model remembers; it is behaviour the
-repository mechanically enforces.
+RFC-0077 proposes replacing this current path with one progressive
+`project-knowledge` capability: workflows would triage free-form scratch and
+use `--capture` to persist typed observations in non-queryable monthly journals;
+`--distill` would record a terminal disposition and optionally reconcile an
+observation into a canonical topic; `--enquire` would read committed topics
+only. Until that RFC and its implementing spec are approved and shipped,
+`patterns.jsonl` and the writer above remain the live contract.
+
+Routing lessons into places that *are* authoritative—`AGENTS.md`, a skill, an
+ADR, architecture docs, code, CI, or a lint or test—is part of that proposed
+distillation lifecycle. The strongest knowledge is not prose a model remembers;
+it is behavior the repository mechanically enforces.

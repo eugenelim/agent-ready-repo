@@ -55,6 +55,10 @@ The reviewers are diff-source-agnostic — the work loop points them at your own
 
 Plus a sibling skill that runs alongside the six: **`bug-fix`** ships in `core` too and runs a parallel discipline (reproduce → red test → root vs. symptom → minimum fix → regression test stays) without entering the spec / loop pipeline. It composes with `work-loop` when the fix grows past one file. See [how to fix a bug](../how-to/bug-fix.md).
 
+Another sibling handles reusable repository lessons: **`project-knowledge`** is the explicit capture, distillation, and enquiry surface. Workflows keep scratch locally until a semantic gate decides whether one lesson is worth preserving. Capture writes a strict pending observation journal event; distillation reconciles pending observations into reviewed topic proposals or bounded terminal dispositions; enquiry reads active topics from one committed Git snapshot and returns a bounded evidence envelope with a receipt.
+
+That boundary is deliberate. Scratch can disappear before capture if the workflow or worktree disappears. Journals are durable handoff records, not a query source. Retention and compaction are deferred to a future whole-partition policy, so the first slice has no per-event deletion path. Retrieved topic text is evidence only: it cannot grant permission, choose tools, approve mutations, widen scope, override runtime instructions, or write itself back as evidence.
+
 And a depth skill the loop reaches for by surface: **`frontend-engineering`** is loaded inline by `work-loop` whenever a task's primary output is HTML, CSS, or JS. It carries the design pre-flight (a named aesthetic reference, a seed token block, the six-state matrix), the codified craft rules that govern EXECUTE, and the GATES verification commands (html-validate, pa11y/axe, stylelint) — and it upgrades the design-intent pass from a recommendation to mandatory for that surface. It has no user-prompt activation surface of its own; the loop pulls it in, the way it pulls in `security-checklists` and `operational-safety` for the reviewers.
 
 ## How they tie together

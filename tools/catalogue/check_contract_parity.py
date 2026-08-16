@@ -59,7 +59,9 @@ def main() -> int:
     expected_inventory = _render()
     contract_files = sorted(
         (
-            p for p in _CONTRACTS.iterdir()
+            p
+            for p in list(_CONTRACTS.iterdir())
+            + list((_CONTRACTS / "jsonschema").glob("knowledge-*.schema.json"))
             if p.is_file()
             and p.suffix in {".json", ".toml"}
             and not p.name.startswith(".")

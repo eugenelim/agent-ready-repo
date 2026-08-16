@@ -297,6 +297,7 @@ test:
 	$(PYTHON) -m pytest packs/core/tests/pack/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
+	$(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/work-loop/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/workspace-status/ -q

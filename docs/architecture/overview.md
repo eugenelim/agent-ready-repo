@@ -97,9 +97,10 @@ One file per non-trivial subsystem:
   brokers (`creds` / `env` / `cli` / `sso-cookie`), the
   credentialed-primitive contract, and the substring trap.
 - [`knowledge-capture.md`](knowledge-capture.md) — the `core` pack's current
-  capture and read boundaries plus the layered target lifecycle: shared
-  candidates, topic distillation, file-based storage, explicit enquiry, and
-  optional cross-project promotion.
+  capture and read boundaries plus the target lifecycle: free-form scratch,
+  semantic-gate triage, typed observation journals, progressive capture,
+  topic distillation, file-based storage, explicit enquiry, and intentional
+  retirement.
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md)
   — proposed target architecture for routing work intake between intents,
   briefs, specs, trackers, and `workspace.toml`; an input to follow-on

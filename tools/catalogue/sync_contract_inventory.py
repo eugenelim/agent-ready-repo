@@ -20,13 +20,20 @@ _INVENTORY = (
 
 
 def _render() -> str:
-    names = sorted(
+    names = []
+    names.extend(
         path.name
         for path in _CONTRACTS.iterdir()
         if path.is_file()
         and path.suffix in {".json", ".toml"}
         and not path.name.startswith(".")
     )
+    names.extend(
+        path.name
+        for path in (_CONTRACTS / "jsonschema").glob("knowledge-*.schema.json")
+        if path.is_file() and not path.name.startswith(".")
+    )
+    names = sorted(names)
     return "".join(f"{name}\n" for name in names)
 
 

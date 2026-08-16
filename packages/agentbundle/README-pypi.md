@@ -14,42 +14,28 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
-## What's new in 0.35.0
+## What's new in 0.36.0
 
-**Installs now work on corporate networks that inspect TLS.** If your employer
-runs a proxy that re-signs HTTPS traffic, an install used to fail like this and
-leave you nothing to act on:
+The bundled public contract inventory now includes the strict
+`knowledge-captured-observation.schema.json` contract used by the core pack's
+project-knowledge capture handoff.
 
-```
-install: Failed to fetch catalogue archive: … —
-  [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed:
-  unable to get local issuer certificate
-```
+You can inspect the exact public contracts bundled with the installed
+AgentBundle version without network access:
 
-The certificate authority your IT team installed is in the operating system's
-trust store, and Python does not read that store on macOS. AgentBundle now
-recovers on its own:
-
-```
-agentbundle: certificate verification failed for github.com;
-  retrying with operating-system trust anchors
+```bash
+agentbundle catalogue contracts list
+agentbundle catalogue contracts show pack.schema.json
+agentbundle catalogue contracts export --output ./reference-contracts
 ```
 
-Verification stays strict throughout — the retry *adds* trust anchors and never
-removes one, and no flag or environment variable can disable verification. Only
-the administrator keychain is read; your login keychain never is, because it is
-writable without administrator rights. Set `AGENTBUNDLE_NO_SYSTEM_TRUST=1` to
-opt out and see the underlying error.
+`list` and `show` are read-only. `export` writes reference copies through a
+no-follow, preflighted batch writer; those copies do not override the contracts
+AgentBundle uses for validation.
 
-`AGENTBUNDLE_CA_BUNDLE` also works on `git+https://` sources now — previously
-only the `catalogue+https://` and `archive+https://` forms read it, so following
-the documentation did not help. `SSL_CERT_FILE`, `SSL_CERT_DIR`, and
-`REQUESTS_CA_BUNDLE` are honoured there too. See
-[Corporate networks](#corporate-networks) below.
-
-When a fetch still fails, the error names the likely cause and ordered next
-steps, and the request now carries a 30-second timeout so a proxy that accepts
-the connection and never answers fails instead of hanging.
+Successful `agentbundle catalogue init` output points to the scaffolded
+`guides/_shared/reference/catalogue-authoring-standards.md`, contract discovery,
+and catalogue verification. JSON init output remains unchanged.
 
 **Install into a repo** — so everyone who clones it gets the pack. `core` is the flagship pack, the loop itself:
 

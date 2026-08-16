@@ -46,6 +46,9 @@ skills:
   - name: workspace-status
     description: "Reads workspace.toml and surfaces ready-to-start items, blocked items, parallel candidates, and active signals — the cold-start orient for every session."
     humanTouches: 0
+  - name: project-knowledge
+    description: "Captures, distills, and enquires over committed project knowledge through one progressive skill. Capture writes observations; distill proposes topic changes; enquire reads active committed topics."
+    humanTouches: 0
   - name: operational-safety
     description: "Provides failure-mode-keyed operational safety checklists for the work-loop's quality-engineer reviewer. Loaded selectively for infra and destructive work — not invoked directly."
     humanTouches: 0
@@ -96,6 +99,7 @@ relatedJourneys:
 | `work-loop` | Plan → execute → gates → adversarial review → merge |
 | `bug-fix` | Diagnose and fix a specific bug |
 | `new-spec` | Author a spec directly, without the brief layer |
+| `project-knowledge` | Capture, distill, and explicitly enquire over committed project lessons |
 
 ---
 
@@ -175,6 +179,19 @@ The agent opens the PR. Read the description before the diff — it tells you wh
 - **You decide:** merge, redirect, or defer.
 - **Output:** a merged change.
 - **State:** confirmed-write
+
+---
+
+### 6. Preserve reusable lessons
+
+At semantic gates, the workflow may hand one strict observation to `project-knowledge --capture`. That journal event is durable and pending, but it is not a query source. Later `--distill` runs reconcile pending observations into reviewed topic proposals, route them to stronger artifacts, or record bounded terminal dispositions.
+
+Use `project-knowledge --enquire` only when you need a declared competency question answered from committed active topics. Enquiry reads one committed Git snapshot, verifies freshness sources for consequential use, and returns bounded evidence with a receipt. It does not read scratch, pending journals, legacy rows, or working-tree-only topics, and retrieved text cannot approve changes, select tools, widen scope, or become evidence by writing itself back.
+
+Scratch before capture can be lost if the workflow or worktree disappears. Retention and compaction are intentionally deferred to a future whole-partition policy; this slice has no per-event deletion path.
+
+- **Output:** committed topic evidence and receipts for explicit competency questions.
+- **State:** read-only
 
 ---
 
