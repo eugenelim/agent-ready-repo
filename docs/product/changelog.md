@@ -83,6 +83,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
 
+### [agentbundle][0.36.0] — 2026-08-16
+
+#### Fixed
+
+- **`catalogue lint` now actually checks your pack manifests** — the same defect
+  0.35.3 fixed in `catalogue verify`, in the other tool. Three checks (is the
+  manifest valid JSON, does it declare a name and version, do those match
+  `pack.toml`) looked for it at the top of each pack folder while packs keep it
+  in `.claude-plugin/`. They never found it, so they never ran.
+- **`agentbundle list-targets --help` names every editor it supports.** It listed
+  six and left out Cursor and Gemini.
+- **Upgrading:** a catalogue that linted clean on 0.35.3 may now report
+  CAT-L007, CAT-L008, or CAT-L009. Each is a real defect that was previously
+  invisible — a manifest that will not parse, one missing its name or version, or
+  a `pack.toml` and `plugin.json` that disagree. A pack with no manifest at all is
+  still fine, and every pack shipped here passes unchanged.
+
+#### Added
+
+- **`catalogue init --format json` reports what to do next.** The self-hosted
+  version of the command already returned a `next_steps` list; the plain one
+  printed the same guidance to the screen but left it out of the JSON, so a
+  script driving one command got it and a script driving the other did not.
+
+#### Changed
+
+- **Breaking, for callers of the Python API:** `render_packs_to_dir()` now
+  requires you to say which scope you are rendering. It assumed you were
+  rendering a whole catalogue, so rendering a subset printed exclusion notices
+  that only make sense for a full build. Pass `aggregate_scope="catalogue"` for
+  the previous behaviour. The command line is unaffected.
+
 ### [agentbundle][0.35.3] — 2026-08-15
 
 #### Fixed

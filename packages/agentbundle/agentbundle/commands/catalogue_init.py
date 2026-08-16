@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import dataclasses
 import json
-import shlex
 import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -91,6 +90,7 @@ def _run_plain(args: argparse.Namespace) -> int:
             "files": [dataclasses.asdict(f) for f in result.files],
             "verification": dataclasses.asdict(result.verification),
             "diagnostics": [dataclasses.asdict(d) for d in result.diagnostics],
+            "next_steps": list(result.next_steps),
         }
         print(json.dumps(doc, indent=2))
         return 0 if result.ok else 1
@@ -137,31 +137,11 @@ def _run_plain(args: argparse.Namespace) -> int:
             )
             print("", file=sys.stderr)
             print("  Next steps:", file=sys.stderr)
-            # Anchor the path to the initialized target: the guide lives at
-            # <target>/guides/..., so a bare relative path only resolves if
-            # the reader has already cd'd in.
-            standards_path = shlex.quote(
-                f"{result.target.rstrip('/')}/guides/_shared/reference/"
-                "catalogue-authoring-standards.md"
-            )
-            print(
-                f"    • See {standards_path} for authoring standards.",
-                file=sys.stderr,
-            )
-            print(
-                "    • Run 'agentbundle catalogue contracts list' to view "
-                "bundled contract schemas.",
-                file=sys.stderr,
-            )
-            # No surrounding quotes: shlex.quote already adds them when the
-            # target needs them, and nesting produces an uncopyable command.
-            verify_command = (
-                f"agentbundle catalogue verify --root {shlex.quote(result.target)}"
-            )
-            print(
-                f"    • Run {verify_command} to validate your catalogue.",
-                file=sys.stderr,
-            )
+            # Rendered from result.next_steps rather than rebuilt here: the
+            # JSON branch emits the same list, and two hand-maintained copies
+            # of the same guidance drift.
+            for step in result.next_steps:
+                print(f"    • {step}", file=sys.stderr)
     else:
         s = result.summary
         if s.conflict > 0:

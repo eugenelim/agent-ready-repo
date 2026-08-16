@@ -126,3 +126,8 @@ class InitResult(CommandResult):
     summary: InitSummary = field(
         default_factory=lambda: InitSummary(0, 0, 0, 0)
     )
+    # Post-init guidance, mirroring SelfHostedInitResult.next_steps so both init
+    # verbs expose the same shape to an automation consumer. Empty on every
+    # failure and dry-run path: there is no next step after a run that wrote
+    # nothing. The table renderer prints these rather than keeping its own copy.
+    next_steps: list[str] = field(default_factory=list)

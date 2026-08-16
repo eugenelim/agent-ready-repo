@@ -17,7 +17,10 @@ Declined:
   a bundled schema); declining — no caller exists yet; tracked as deferred in spec.
 - Tempted to add `next_steps: list[str]` to `InitResult` for JSON consistency with
   `SelfHostedInitResult`; declining — changes the stable result schema for a UX-only
-  addition; tracked as `(deferred: init-result-json-next-steps)` in spec.
+  addition; tracked in spec § Deferred. (Since reversed: the asymmetry cost more
+  than the schema change: an automation consumer got next steps from one init verb
+  and not the other. Landed in agentbundle 0.36.0 via
+  `spec/agentbundle-engine-stragglers`.)
 - Tempted to auto-discover contract names from the `contracts/` source directory at
   runtime; declining — the inspector must be air-gapped and `importlib.resources` is the
   correct source. A generated positive inventory is packaged beside the contracts and

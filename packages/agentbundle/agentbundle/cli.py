@@ -231,9 +231,16 @@ def _build_parser() -> argparse.ArgumentParser:
     # --- list-targets --- (no flags; queries the adapter registry)
     sp = subparsers.add_parser(
         "list-targets",
+        # The names below must match `agentbundle.render.list_adapters()`
+        # exactly — `test_list_targets_help_matches_registry` fails if they
+        # drift. They are NOT generated from the registry: importing
+        # `agentbundle.render` costs ~430 ms, and `_lazy()` below exists
+        # precisely so `--version` and `--help` never pay a command module's
+        # import cost. A test buys the same guarantee for free.
         help=(
             "List adapter targets the CLI supports "
-            "(claude-code, kiro-ide, kiro-cli, kiro (deprecated → kiro-ide), copilot, codex)."
+            "(claude_code, codex, copilot, cursor, gemini, "
+            "kiro (deprecated → kiro_ide), kiro_cli, kiro_ide)."
         ),
     )
     sp.set_defaults(func=_lazy("list_targets"))

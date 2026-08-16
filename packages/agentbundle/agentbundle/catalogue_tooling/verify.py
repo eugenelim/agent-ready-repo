@@ -13,6 +13,7 @@ import re
 import tempfile
 from pathlib import Path
 
+from agentbundle.catalogue_tooling.manifest import MANIFEST_NAME, plugin_json_path
 from agentbundle.catalogue_tooling.results import Diagnostic, Severity, VerifyResult
 
 _AGENTBUNDLE_VERSION: str | None = None
@@ -128,8 +129,12 @@ def _step_pack_schema(
 
 
 def _plugin_json_path(pack_dir: Path) -> Path:
-    """Manifest location for a pack — the only one the build pipeline reads."""
-    return pack_dir / ".claude-plugin" / "plugin.json"
+    """Manifest location for a pack — the only one the build pipeline reads.
+
+    Thin alias over the shared convention in `catalogue_tooling.manifest`, kept
+    so this module's many call sites read unchanged.
+    """
+    return plugin_json_path(pack_dir)
 
 
 def _step_plugin_validation(
@@ -152,7 +157,7 @@ def _step_plugin_validation(
         # The pack root is not a manifest location. A plugin.json there is
         # invisible to every consumer while looking present in the tree —
         # whether it is a misplaced manifest or a leftover stale copy.
-        if (pack_dir / "plugin.json").exists():
+        if (pack_dir / MANIFEST_NAME).exists():
             diags.append(_err(
                 "CAT-V-004",
                 "plugin.json is at the pack root; it belongs at .claude-plugin/plugin.json",
@@ -186,13 +191,13 @@ def _step_version_parity(
         if pack and pack_dir.name != pack:
             continue
         pack_toml_path = pack_dir / "pack.toml"
-        plugin_json_path = _plugin_json_path(pack_dir)
-        if not pack_toml_path.exists() or not plugin_json_path.exists():
+        manifest_path = _plugin_json_path(pack_dir)
+        if not pack_toml_path.exists() or not manifest_path.exists():
             continue
         try:
             import tomllib
             pt = tomllib.loads(pack_toml_path.read_text(encoding="utf-8"))
-            pj = json.loads(plugin_json_path.read_text(encoding="utf-8"))
+            pj = json.loads(manifest_path.read_text(encoding="utf-8"))
         except Exception:
             continue
         pt_name = (pt.get("pack") or {}).get("name")

@@ -96,8 +96,12 @@ Out of scope, and deliberately untouched:
   rather than fixed here: `list-targets`' own `--help` string still names only
   six targets (its *output* is correct), and `tools/repo/check_release_impact.py`
   still lists the pre-ADR-0055 `docs/contracts/` prefix instead of `contracts/`.
-  Both are recorded in `[backlog].open` as
-  `agentbundle-surface-doc-reconciliation-engine-stragglers`.
+  Both were recorded in `[backlog].open` as
+  `agentbundle-surface-doc-reconciliation-engine-stragglers`, and both were
+  **resolved on 2026-08-16** by `spec/agentbundle-engine-stragglers` (agentbundle
+  0.36.0): the help string now names all eight registry adapters with a drift test
+  behind it, and the release-impact prefix is `contracts/`. That backlog entry is
+  closed.
 - **Implementing `search`.** D2 queues; it does not build.
 
 ## Verification

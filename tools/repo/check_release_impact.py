@@ -27,7 +27,14 @@ RELEASE_IMPACTING_PREFIXES = (
     "packages/agentbundle/agentbundle/_data/catalogue.schema.json",
     "packages/agentbundle/agentbundle/_data/pack.schema.json",
     "packages/agentbundle/agentbundle/_data/adapter.toml",
-    "docs/contracts/",
+    # The authored contract tree. This used to read "docs/contracts/", a
+    # directory ADR-0055 deleted, so the entry gated nothing. It was not a live
+    # hole while every contract had a packaged twin — contracts/adapter.toml is
+    # byte-identical to the _data/ copy listed above (test_contract_files_
+    # byte_identical pins that), so a real change tripped the gate through the
+    # twin. It becomes a hole the moment a contracts/ file has no twin, which
+    # catalogue.schema.json and guide.schema.json already do not.
+    "contracts/",
 )
 
 # Paths that are explicitly repo governance — never release-impacting regardless

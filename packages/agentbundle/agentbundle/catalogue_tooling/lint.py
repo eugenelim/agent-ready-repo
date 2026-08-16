@@ -27,6 +27,7 @@ from agentbundle.catalogue_tooling.config import (
     load_catalogue_config,
 )
 from agentbundle.catalogue_tooling.diagnostics import DiagnosticCode
+from agentbundle.catalogue_tooling.manifest import plugin_json_path
 from agentbundle.catalogue_tooling.results import Diagnostic, LintResult, Severity
 
 # Frontmatter regex: matches the YAML front-matter block at the top of a file
@@ -1251,7 +1252,7 @@ class _PackRules:
         return []
 
     def _check_plugin_json(self) -> list[Diagnostic]:
-        plugin_path = self._dir / "plugin.json"
+        plugin_path = plugin_json_path(self._dir)
         if not plugin_path.exists():
             return []
         try:
@@ -1283,7 +1284,7 @@ class _PackRules:
         pt = self._get_pack_toml()
         if pt is None:
             return []
-        plugin_path = self._dir / "plugin.json"
+        plugin_path = plugin_json_path(self._dir)
         if not plugin_path.exists():
             return []
         try:

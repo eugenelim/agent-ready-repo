@@ -105,16 +105,25 @@ def render_packs_to_dir(
     packs_dir: Path,
     output_dir: Path,
     *,
+    aggregate_scope: str,
     contract: dict | None = None,
     recipes: Sequence[str] = DEFAULT_RECIPES,
 ) -> None:
-    """Render every pack under `packs_dir` — the full `make build` shape."""
+    """Render every pack under `packs_dir` — the full `make build` shape.
+
+    `aggregate_scope` is required and has no default, for the reason
+    `run_recipe` gives: a default lets this function inherit the wrong
+    disclosure policy silently. It used to hard-code `"catalogue"`, so an
+    adopter rendering a repo-only subset through this helper got the
+    catalogue's exclusion lines on stderr where the single-pack sibling is
+    silent. One of `"catalogue"` | `"single-pack"`; `run_recipe` validates it.
+    """
     contract_data = _resolve_contract(contract)
     packs = discover_packs(packs_dir)
     for recipe_name in recipes:
         recipe = load_recipe(recipe_name)
         run_recipe(
-            recipe, packs, output_dir, contract_data, aggregate_scope="catalogue"
+            recipe, packs, output_dir, contract_data, aggregate_scope=aggregate_scope
         )
     output_dir.mkdir(parents=True, exist_ok=True)
 

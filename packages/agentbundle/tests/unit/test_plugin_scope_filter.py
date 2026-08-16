@@ -114,8 +114,9 @@ def test_aggregate_scope_is_required_with_no_default() -> None:
     import inspect
 
     from agentbundle.build.main import _run_aggregate, _run_per_pack, run_recipe
+    from agentbundle.render import render_packs_to_dir
 
-    for fn in (run_recipe, _run_aggregate, _run_per_pack):
+    for fn in (run_recipe, _run_aggregate, _run_per_pack, render_packs_to_dir):
         param = inspect.signature(fn).parameters["aggregate_scope"]
         assert param.default is inspect.Parameter.empty, fn.__name__
         assert param.kind is inspect.Parameter.KEYWORD_ONLY, fn.__name__
