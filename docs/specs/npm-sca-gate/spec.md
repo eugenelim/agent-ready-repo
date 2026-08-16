@@ -1,6 +1,6 @@
 # Spec: npm-sca-gate
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017, ADR-0083
@@ -101,14 +101,14 @@ gate is the deliverable.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 (gate exists and is discovered, not listed).** `tools/audit-npm.py`
+- [x] **AC1 (gate exists and is discovered, not listed).** `tools/audit-npm.py`
       walks the repo for `package-lock.json` files, excluding `node_modules/`,
       and audits each at `--audit-level=moderate` with `--package-lock-only`. It
       exits 0 when every project is clean, 1 on any non-allowlisted advisory at
       or above `high`, and 2 on a tool error. The three exit codes are
       distinguishable, matching `tools/test-all.py`'s precedent that "failed"
       and "never ran" are different facts.
-- [ ] **AC1a (the gate fails closed).** Exit 0 is reachable **only** from an
+- [x] **AC1a (the gate fails closed).** Exit 0 is reachable **only** from an
       `npm audit` run that produced a parseable report with an
       `auditReportVersion`. Every other outcome — npm absent, non-zero exit with
       no parseable JSON, a payload carrying an `error` key (the shape
@@ -119,7 +119,7 @@ gate is the deliverable.
       from "no vulnerabilities", and `npm audit` uses a non-zero exit for both
       "found advisories" and "could not run", so the distinction has to be made
       from the payload rather than the exit code.
-- [ ] **AC1b (a positive control, because the payload cannot prove coverage).**
+- [x] **AC1b (a positive control, because the payload cannot prove coverage).**
       Before auditing any project lockfile, the gate audits a **canary** — a
       throwaway lockfile pinning a package version with a permanent published
       advisory (`lodash@4.17.11`, GHSA-jf85-cpcp-j695). If that audit reports no
@@ -135,19 +135,19 @@ gate is the deliverable.
       no amount of payload inspection can separate them. Only a known-positive
       can. The relevant threat is mundane rather than exotic: an internal npm
       mirror whose advisory endpoint is unimplemented or misconfigured.
-- [ ] **AC2 (chained into the existing gate, both directions).** `make sast`
+- [x] **AC2 (chained into the existing gate, both directions).** `make sast`
       runs `tools/test-audit-npm.py` then `tools/audit-npm.py`, positioned with
       the other SCA legs. Both npm lockfiles are added to the `SAST_CONFIG`
       variable, so `build-check.yml`'s SAST-relevance predicate treats a
       lockfile-only diff as SAST-relevant — without this, a PR that bumps only a
       lockfile sets `SKIP_SAST=1` and the gate never runs on the exact diff it
       exists to catch.
-- [ ] **AC3 (allowlist).** An advisory may be suppressed only by its GHSA/CVE ID
+- [x] **AC3 (allowlist).** An advisory may be suppressed only by its GHSA/CVE ID
       in a committed allowlist, and only with a `reason` and an `unblocked_when`
       string. An entry missing either field is a tool error (exit 2), not a
       silent pass. Every applied suppression is printed. The allowlist ships
       **empty** — it is the escape hatch, not a starting position.
-- [ ] **AC4 (self-test proves the gate, not just the plumbing).**
+- [x] **AC4 (self-test proves the gate, not just the plumbing).**
       `tools/test-audit-npm.py` asserts, against synthetic `npm audit` JSON
       fixtures: a clean report passes; a `high` finding fails; a `critical`
       finding fails; a `moderate` finding does not fail; an allowlisted `high`
@@ -170,7 +170,7 @@ gate is the deliverable.
       that the same silent-mirror payload *passes* `evaluate()`, which is the
       whole justification for the canary existing, written as an executable
       claim rather than a comment.
-- [ ] **AC5 (today's findings remediated).** `docs-site/package-lock.json` and
+- [x] **AC5 (today's findings remediated).** `docs-site/package-lock.json` and
       `web/package-lock.json` are updated so `npm audit --audit-level=moderate`
       reports zero vulnerabilities in each. Both `package.json` files are
       **unchanged** — the fixes are transitive. `web/`'s moderate `postcss`
@@ -185,23 +185,23 @@ gate is the deliverable.
       untouched**; an AC phrased as "within `allowScripts`" would be false on
       arrival and unverifiable. Closing that pre-existing divergence is
       `npm-allowscripts-enforcement` (deferred, see § Assumptions).
-- [ ] **AC6 (documentation drift closed).** `docs-site/AGENTS.md`'s **Known gap**
+- [x] **AC6 (documentation drift closed).** `docs-site/AGENTS.md`'s **Known gap**
       paragraph — which names `docs-site-npm-sca-gap` and states no SCA scanner
       is wired repo-wide — is replaced by a statement of what now runs.
       `web/AGENTS.md` gains the equivalent supply-chain paragraph it currently
       lacks entirely. Both files stay ≤ 150 lines (CI-enforced subdirectory cap).
-- [ ] **AC7 (the decision is recorded).** ADR-0083 records extending ADR-0017's
+- [x] **AC7 (the decision is recorded).** ADR-0083 records extending ADR-0017's
       SAST/SCA gate to the npm ecosystem: why `npm audit` over Dependabot or
       Snyk Open Source, why an allowlist wrapper over two bare Makefile lines,
       and the accepted consequences (network dependency at gate time; no
       per-advisory ignore in `npm audit` itself, hence the wrapper). ADR-0017
       gains a `Related:` pointer so a reader arriving at the Python-only gate
       finds the npm extension.
-- [ ] **AC8 (backlog reconciled).** `docs-site-npm-sca-gap` is removed from
+- [x] **AC8 (backlog reconciled).** `docs-site-npm-sca-gap` is removed from
       `workspace.toml [backlog].open`. The two deferrals this spec declines are
       recorded there with cold-start-sufficient comments:
       `npm-dependabot-wiring` and `npm-allowscripts-enforcement`.
-- [ ] **AC9 (gates green).** `make ci` passes locally, and `build-check.yml`
+- [x] **AC9 (gates green).** `make ci` passes locally, and `build-check.yml`
       passes on the PR with the SAST leg actually running (not `SKIP_SAST=1`).
 
       **Stated residual — this PR does not exercise AC2's predicate.** The diff
