@@ -1655,20 +1655,6 @@ open = [
   # the install cost on diffs that scan nothing.
   {slug = "build-check-installs-bandit-unconditionally", summary = "Install bandit on every build-check run so lint-nosec-form's unknown-ID check is not inert on SKIP_SAST PRs", source = "spec/bandit-nosec-form-lint"},
 
-  # The suppression-equivalence procedure in bandit-nosec-comment-hygiene's
-  # Testing Strategy (two clean worktrees, pinned base SHA, relative scan
-  # roots, distinct (filename,test_id,issue_text) keys -- four traps that each
-  # gave a wrong answer once) is needed every time a `# nosec` is touched, but
-  # lives as prose inside a FROZEN spec, so it cannot be corrected as the
-  # procedure improves. Judged in bandit-nosec-form-lint to earn being a tool;
-  # kept out of that PR because it is a manual before/after harness rather than
-  # a build-check gate, would roughly double the diff, and that PR changes no
-  # suppression so it would have shipped unexercised.
-  # Fix: tools/compare-bandit-suppressions.py taking base and head refs (not a
-  # hardcoded SHA), encoding all four traps, plus the resolved-id inventory
-  # half that the reported-finding diff cannot see.
-  {slug = "compare-bandit-suppressions-tool", summary = "Promote the two-worktree bandit suppression-equivalence procedure to tools/compare-bandit-suppressions.py, encoding the four traps and the resolved-id inventory", source = "spec/bandit-nosec-form-lint"},
-
   # 7 of the 13 pytest files named on Makefile:349 (`make test`) are a run step
   # in NO workflow: test_validate_guides, test_check_guide_index,
   # test_catalogue_navigation, test_documentation_entry_links,
