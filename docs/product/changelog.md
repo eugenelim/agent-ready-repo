@@ -36,6 +36,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Changed
 
+- **P5 adoption now uses work intake and canonical workspace status.** Standalone
+  Project records are retired from current doctrine and templates; initiative
+  work, briefs, shaping, and backlog remain the source model surfaced by
+  `workspace-status`. A static, read-only `/work/` index now presents those
+  classifications, and an enterprise rollout playbook guides pilot, wave, and
+  organization-wide adoption without adding another creation workflow.
+
 - **`capture-work` is now a compatibility alias for `work-intake`.** Existing
   requests receive a deprecation notice and produce the same target artifact
   and workspace entry; new guidance uses `work-intake` directly. A Ready brief

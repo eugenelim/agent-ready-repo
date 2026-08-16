@@ -42,6 +42,7 @@ How-tos drift when the product changes underneath them. Make doc updates part of
 - [`install-user-scope-pack-into-codex.md`](install-user-scope-pack-into-codex.md) — user-scope pack install on the Codex adapter.
 - [`install-user-scope-pack-into-kiro.md`](install-user-scope-pack-into-kiro.md) — user-scope pack install on the Kiro adapter.
 - [`preview-install-or-upgrade.md`](preview-install-or-upgrade.md) — dry-run an install or upgrade before committing.
+- [`roll-out-agent-ready-repo-across-an-enterprise.md`](roll-out-agent-ready-repo-across-an-enterprise.md) — lead a bounded pilot through a measured team wave and into an organization-wide operating model.
 - [`run-a-full-inception.md`](run-a-full-inception.md) — run the inception sequence on a new repo.
 - [`upgrade-packs.md`](upgrade-packs.md) — upgrade one or all installed packs to the latest version.
 - [`choose-a-tracker-integration.md`](choose-a-tracker-integration.md) — pick the right brief-intake skill for your tracker (GitHub, Linear, Jira, Jira Align, or none).

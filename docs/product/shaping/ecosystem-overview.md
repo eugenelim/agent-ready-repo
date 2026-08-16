@@ -32,9 +32,9 @@ The foundation the others build on. An open, harness-agnostic catalogue of skill
 
 **Harness-agnostic design:** the skill surface runs unchanged across Claude Code (local), Devin (VM-snapshot), Copilot Agent (cloud-session), and Kiro today — each harness reads the same `.md` skill files; MCP-capable harnesses consume them as registered tools. INI-003 and INI-004 wire this more deeply; INI-002 already works with manual session pickup.
 
-**Governance machinery:** ADRs (immutable architectural decisions), RFCs (reviewed decisions with full lifecycle), specs (technical decomposition with traceability lint). The traceability lint enforces that every spec links to a brief and every brief links to an intent — structural orphans are caught at CI.
+**Governance machinery:** ADRs (immutable architectural decisions), RFCs (reviewed decisions with full lifecycle), specs (technical decomposition with traceability lint). Direct, independently shippable specs may omit `Brief:`; a brief is the coordination envelope only when work spans multiple specs or repositories, and then its children preserve that link. Structural orphans are caught at CI without forcing every change through an extra wrapper.
 
-**Delivers:** the shaping room (six-step product thinking at initiative altitude — Outcome → Problem → Diverge → Validate → Bet → Spec), the work queue (`workspace.toml` + brief queues), and the vocabulary (Project / Milestone / Brief / Spec mapped to Linear, Jira, GitHub, Azure DevOps, Asana).
+**Delivers:** the shaping room (six-step product thinking at initiative altitude — Outcome → Problem → Diverge → Validate → Bet → Spec), the work queue (`workspace.toml` + brief queues), and content-based intent / brief / spec routing across Linear, Jira, GitHub, Azure DevOps, and Asana labels.
 
 ### INI-003 · Coding CLI Adapter Pack
 
@@ -124,7 +124,10 @@ The dispatch and monitoring surface. Translates INI-005's telemetry and INI-002'
 
 **Exception routing flow:** INI-005 anomaly event → INI-006 surfaces alert to team lead with context (spec slug, what failed, how many times, budget consumed) → team lead chooses: resume as-is / redirect with new context / reassign to different agent / escalate → decision written back to `workspace.toml` as a `blocked_on` or context note → agent picks up on next session.
 
-**Web surface:** INI-002 M6 builds the Astro project index (non-engineer PM visibility). INI-006 extends this with real-time dispatch and monitoring — the Astro site is the natural UI foundation.
+**Web surface:** INI-002 M6 builds a static Astro work index from the canonical
+workspace-status read model for non-engineer PM visibility. INI-006 adds
+real-time dispatch and monitoring rather than extending a separate Project
+artifact model.
 
 Trigger: INI-005 M1 shipped — the control plane is only meaningful when the observability floor it reads from exists.
 
@@ -161,7 +164,11 @@ Each step adds one capability layer. INI-003 and INI-004 are independent of each
 
 **→ INI-005 (Infra & Observability):** INI-005 reads INI-002's declared intent (`workspace.toml`, brief status, spec outcomes) and persists it across session boundaries into telemetry. INI-002 writes the intent; INI-005 ensures it survives and is measurable.
 
-**→ INI-006 (Control Plane):** INI-006 surfaces INI-002's brief queue and workspace state as a dashboard. The project index (`docs/product/projects/`) and `workspace.toml` are the read model. INI-002 provides the data structure; INI-006 provides the human-facing UI.
+**→ INI-006 (Control Plane):** INI-006 surfaces INI-002's brief queue and
+workspace state as a dashboard. Canonical artifacts plus `workspace.toml` are
+the read model, and workspace-status supplies the deterministic status
+projection. INI-002 provides the data structure; INI-006 provides the live
+human-facing control surface.
 
 ## INI-002 independence
 

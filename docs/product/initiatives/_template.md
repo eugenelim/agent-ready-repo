@@ -45,8 +45,8 @@ covers. Each row is a capability; Status is derived from its milestone map. -->
 
 ## Milestone sequence
 
-<!-- High-level milestone ordering across repos. Milestones within a single
-repo live in `docs/product/projects/<slug>.md`. -->
+<!-- High-level milestone ordering across repos. Repo-local delivery status is
+read from the initiative's canonical artifacts and `workspace.toml` entries. -->
 
 | Milestone | Scope summary | Target quarter |
 | --- | --- | --- |

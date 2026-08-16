@@ -23,6 +23,7 @@ DOC_SOURCES = (
     "CONTRIBUTING.md",
     "guides/README.md",
     "guides/_shared/explanation/pack-catalogue.md",
+    "guides/_shared/how-to/roll-out-agent-ready-repo-across-an-enterprise.md",
     "guides/core/how-to/run-a-live-demo.md",
     "docs-site/src/content/docs/index.mdx",
     "docs-site/src/content/docs/getting-started/index.mdx",
@@ -145,7 +146,14 @@ def _docs_routes() -> set[str]:
 
 
 def _web_routes() -> set[str]:
-    routes = {SITE_BASE, f"{SITE_BASE}/", f"{SITE_BASE}/catalogue", f"{SITE_BASE}/catalogue/"}
+    routes = {
+        SITE_BASE,
+        f"{SITE_BASE}/",
+        f"{SITE_BASE}/catalogue",
+        f"{SITE_BASE}/catalogue/",
+        f"{SITE_BASE}/work",
+        f"{SITE_BASE}/work/",
+    }
     for source in (REPO_ROOT / "packs").glob("*/pack.toml"):
         slug = source.parent.name
         if not slug.startswith("_"):

@@ -461,4 +461,4 @@ Emit the following choices in order. Omit any whose source is empty; renumber se
 
 ## See also
 
-- `references/agentbundle-layout.md` — the `[product]` table: configurable `projects/` and `shaping/` paths used by product-facing skills
+- `references/agentbundle-layout.md` — the `[product]` table: configurable `shaping/` path used by product-facing skills

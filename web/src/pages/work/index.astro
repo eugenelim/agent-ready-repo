@@ -1,0 +1,14 @@
+---
+import SiteLayout from '../../components/layout/SiteLayout.astro';
+import WorkIndex from '../../components/work/WorkIndex.astro';
+import { loadWorkIndex } from '../../lib/work-index';
+
+const data = loadWorkIndex();
+---
+
+<SiteLayout
+  title="Work index — agent-ready-repo"
+  description="A static, read-only view of canonical workspace delivery state and upstream context."
+>
+  <WorkIndex data={data} />
+</SiteLayout>
