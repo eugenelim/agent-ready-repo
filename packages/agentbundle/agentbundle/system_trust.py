@@ -120,6 +120,35 @@ def _default_runner(argv: list[str]) -> str:
 _RUNNER = _default_runner
 
 
+def running_under_wsl(env: dict | None = None) -> bool:
+    """True when this interpreter is inside a WSL distribution.
+
+    Windows itself needs no trust fallback — Python's ``load_default_certs``
+    reads the Windows CA and ROOT stores and honours per-certificate trust
+    settings. A WSL distribution reports ``sys.platform == "linux"`` and does
+    **not** inherit that store, so an authority pushed to Windows by Group
+    Policy or Intune is invisible inside WSL until it is installed into the
+    distribution itself. Callers use this to name that cause instead of
+    reporting the generic "no anchors on linux".
+
+    Two signals, because either can be absent: ``WSL_DISTRO_NAME`` is set by
+    recent WSL2 but not by every launcher or service context, and
+    ``/proc/version`` carries "microsoft" on both WSL1 and WSL2.
+
+    Detection only. Nothing here reaches across the boundary to read the
+    Windows store — doing so would auto-trust material from outside the
+    distribution's own trust domain.
+    """
+    source = os.environ if env is None else env
+    if source.get("WSL_DISTRO_NAME") or source.get("WSL_INTEROP"):
+        return True
+    try:
+        version = Path("/proc/version").read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return False
+    return "microsoft" in version.lower()
+
+
 def system_trust_disabled(env: dict | None = None) -> bool:
     """True when the adopter has opted out of the system-trust fallback."""
     source = os.environ if env is None else env

@@ -186,7 +186,7 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
       named as its own cause, and repaired by additionally reading Apple's root
       program; the failure text omits the proxy framing in that case.
 - [ ] Administrator "Never Trust" settings honoured (deferred: catalogue-trust-store-trust-settings)
-- [ ] WSL adopters get guidance naming the Windows/distribution trust-store split (deferred: catalogue-trust-store-wsl-diagnosis)
+- [ ] WSL adopters get guidance naming the Windows/distribution trust-store split (Deferred, and since **delivered** on 2026-08-16 by `spec/tooling-gate-hygiene`: `system_trust.running_under_wsl` detects the distribution and the failure message names the two-trust-store split plus the `update-ca-certificates` remedy. Detection only — a test pins that it reaches no Windows interop.)
 
 ## Assumptions
 

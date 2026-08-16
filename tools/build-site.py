@@ -1144,7 +1144,13 @@ def main() -> None:
     packs = discover_packs(REPO_ROOT, site_toml)
 
     print("build-site: copying pack READMEs …")
-    packs_out.mkdir(parents=True, exist_ok=True)
+    # Guarded: every other write in this script honours --dry-run, and this one
+    # did not, so `--dry-run` created generated directories on its way to
+    # reporting that it would create them. That makes the flag useless as a
+    # read-only check — it fails outright against a non-writable tree, and
+    # against a writable one it leaves directories behind.
+    if not args.dry_run:
+        packs_out.mkdir(parents=True, exist_ok=True)
     for p in packs:
         src = packs_dir / p["slug"] / "README.md"
         dst = packs_out / f"{p['slug']}.md"

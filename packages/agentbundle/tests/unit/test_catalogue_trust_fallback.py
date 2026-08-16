@@ -156,6 +156,7 @@ def test_no_retry_when_no_system_anchors_are_available(
 
     assert len(stub.calls) == 1, "must not re-dial with an identical context"
     assert "macOS-only" in str(exc.value)
+    assert "WSL" not in str(exc.value), "plain linux must not get the WSL diagnosis"
     assert "retrying with" not in capsys.readouterr().err
 
 
@@ -478,3 +479,97 @@ def test_certificate_hint_carries_a_real_version_or_is_omitted(monkeypatch, tmp_
         raising=False,
     )
     assert catalogue._install_certificates_hint() is None
+
+
+# ---------------------------------------------------------------------------
+# WSL diagnosis
+#
+# A WSL distribution reports sys.platform == "linux" and does not inherit the
+# Windows trust store, so an authority pushed by Group Policy or Intune is
+# invisible until it is installed into the distribution too. The generic linux
+# message is true and unhelpful: it does not name the cause the adopter can act
+# on. Windows itself needs no fallback at all.
+# ---------------------------------------------------------------------------
+
+
+def test_wsl_is_detected_from_the_env_marker() -> None:
+    assert system_trust.running_under_wsl({"WSL_DISTRO_NAME": "Ubuntu"}) is True
+    assert system_trust.running_under_wsl({"WSL_INTEROP": "/run/WSL/8_interop"}) is True
+
+
+def test_plain_linux_env_is_not_wsl(monkeypatch, tmp_path) -> None:
+    """No env marker and no 'microsoft' in /proc/version → not WSL.
+
+    /proc/version is redirected at the module's Path so the assertion holds on a
+    developer machine that has no /proc at all (macOS) as well as on real Linux.
+    """
+    fake = tmp_path / "version"
+    fake.write_text("Linux version 6.8.0-generic (gcc 13)\n", encoding="utf-8")
+    monkeypatch.setattr(
+        system_trust, "Path", lambda *_a, **_k: fake  # noqa: ARG005
+    )
+    assert system_trust.running_under_wsl({}) is False
+
+
+def test_wsl_is_detected_from_proc_version(monkeypatch, tmp_path) -> None:
+    fake = tmp_path / "version"
+    fake.write_text(
+        "Linux version 5.15.167.4-microsoft-standard-WSL2 (gcc 11)\n", encoding="utf-8"
+    )
+    monkeypatch.setattr(
+        system_trust, "Path", lambda *_a, **_k: fake  # noqa: ARG005
+    )
+    assert system_trust.running_under_wsl({}) is True
+
+
+def test_missing_proc_version_is_not_wsl(monkeypatch, tmp_path) -> None:
+    """An unreadable /proc/version must answer False, not raise."""
+    missing = tmp_path / "nope" / "version"
+    monkeypatch.setattr(
+        system_trust, "Path", lambda *_a, **_k: missing  # noqa: ARG005
+    )
+    assert system_trust.running_under_wsl({}) is False
+
+
+def test_wsl_detection_reads_no_windows_store() -> None:
+    """Scope rail: detection only, never interop into the Windows trust domain.
+
+    Reading the Windows store from inside WSL would auto-trust material from
+    outside the distribution's own trust domain, which the entry that asked for
+    this diagnosis ruled out explicitly.
+    """
+    import inspect
+
+    src = inspect.getsource(system_trust.running_under_wsl)
+    for banned in ("/mnt/c", "certutil", "powershell.exe", "cmd.exe", "wslpath"):
+        assert banned not in src, banned
+
+
+def test_wsl_gets_the_two_trust_store_diagnosis_not_the_generic_linux_one(
+    monkeypatch, tmp_path, capsys, no_env
+):
+    """On WSL, name the cause the adopter can act on.
+
+    sys.platform is "linux" here, so without the diagnosis the adopter is told
+    the fallback is macOS-only — true, and useless. What they need to know is
+    that WSL keeps its own trust store, so an authority pushed to Windows by
+    Group Policy or Intune is invisible until installed into the distribution.
+    """
+    monkeypatch.setattr(sys, "platform", "linux")
+    monkeypatch.setattr(system_trust, "running_under_wsl", lambda *a, **k: True)
+    stub = _Stub([_verify_error()])
+    monkeypatch.setattr(urllib.request, "urlopen", stub)
+    monkeypatch.setattr(system_trust, "system_anchor_pem", lambda **k: None)
+
+    with pytest.raises(CatalogueError) as exc:
+        catalogue._fetch_and_extract(URL, tmp_path)
+
+    message = str(exc.value)
+    assert "WSL distribution" in message
+    assert "update-ca-certificates" in message, "the message must carry the remedy"
+    assert "macOS-only" not in message, (
+        "the generic platform message must not also fire — it sends the adopter "
+        "after the wrong cause"
+    )
+    assert len(stub.calls) == 1, "must not re-dial with an identical context"
+    assert "retrying with" not in capsys.readouterr().err

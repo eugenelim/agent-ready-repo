@@ -1224,19 +1224,6 @@ open = [
   # Unblocks when: spec/product-engineering-shaping-doctrine is Shipped.
   {slug = "digital-experience-contract-pe-journey-xref", source = "spec/digital-experience-contract AC15", needs = "ini-003:work:spec/product-engineering-shaping-doctrine"},
 
-  # spec/digital-experience-contract deferred AC. The drift check ships as an on-demand
-  # tool at tools/repo/check_contract_drift.py (relocated by ini-005 Wave 5 reorganisation;
-  # compat shim kept at tools/check-contract-drift.py until next minor; stale path
-  # reference in this entry corrected during Phase 0 reconciliation 2026-08-01). Promoting
-  # to a build-check gate requires calibration evidence: at least two drift-check passes on
-  # the live repo with no false positives, confirming exit-0 stability on clean copies.
-  # Clean-run log: 1 pass recorded 2026-08-01 on origin/main HEAD (exit 0, no output).
-  #   2nd pass recorded 2026-08-15 (`python3 tools/repo/check_contract_drift.py`,
-  #   exit 0, no output). The two-clean-pass calibration bar is now MET.
-  # Fix: wire the check into build-check.yml and remove the deferred marker from
-  #   spec/digital-experience-contract AC16.
-  # UNBLOCKED — the gate this entry waited on has passed; ready to pick up.
-  {slug = "contract-drift-check-gate-promotion", source = "spec/digital-experience-contract AC16"},
 
   # ini-003 follow-on. After the Digital Experience Doctrine initiative ships, the four
   # packs (product-strategy, product-engineering, experience-design, core) form a coherent
@@ -1778,13 +1765,6 @@ open = [
   # and release-boundary decision. Unblocks: now; no tracked prerequisite.
   {slug = "catalogue-package-guides", source = "spec/documentation-entry-navigation"},
 
-  # `python3 tools/build-site.py --dry-run` currently calls mkdir for generated
-  # docs directories before honoring dry-run, so read-only verification fails
-  # even though no generated content should be written. Fix: make dry-run
-  # side-effect-free from process start, add a construction test using a
-  # non-writable output tree, and document it as the supported source-only site
-  # routing check. Unblocks: now; no tracked prerequisite.
-  {slug = "build-site-dry-run-write-free", source = "spec/documentation-entry-navigation AC15"},
 
   # A full generated-HTML crawl performed after the documentation-entry
   # navigation build found 67 older unresolved internal targets across 53,871
@@ -1809,20 +1789,6 @@ open = [
   # the trust-settings domain (`security dump-trust-settings -d`) and filtering
   # the dump against it.
   { slug = "catalogue-trust-store-trust-settings", source = "spec/catalogue-corporate-trust-store — Never Trust criterion" },
-  # WSL-aware diagnosis for the catalogue trust fallback. Windows itself needs no
-  # fallback — Python's `load_default_certs` loads the Windows CA and ROOT stores
-  # and honours per-certificate trust settings — but a WSL distribution reports
-  # `sys.platform == "linux"` and does NOT inherit that store, so a corporate
-  # authority pushed to Windows by Group Policy or Intune is invisible inside WSL
-  # until installed into the distribution. Today such an adopter gets the generic
-  # "no operating-system trust anchors were available on this platform (linux)"
-  # message, which is true but does not name the actionable cause. The work:
-  # detect WSL (`WSL_DISTRO_NAME`, or "microsoft" in /proc/version) and emit
-  # guidance naming the two-trust-store split plus the update-ca-certificates
-  # remedy. Documentation-and-message scope only — do not reach across the
-  # boundary to read the Windows store via interop; that would auto-trust
-  # material from outside the distribution's own trust domain.
-  { slug = "catalogue-trust-store-wsl-diagnosis", source = "spec/catalogue-corporate-trust-store — WSL guidance criterion" },
   # ---------------------------------------------------------------------------
   # Tech-site design review 2026-08-14 — deferred findings + implementation
   # surfacings.

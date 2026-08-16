@@ -317,6 +317,15 @@ def build_check(args: argparse.Namespace) -> int:
             "test-test-all",
             "tools", "test-test-all.py",
         ),
+        # Promoted from an on-demand tool to a gate. It was held back pending
+        # calibration evidence — two clean passes on origin/main with no false
+        # positive, to confirm exit-0 stability before a red build could be
+        # blamed on the check itself. Recorded: 2026-08-01, 2026-08-15,
+        # 2026-08-16 (three, one more than the bar asked for).
+        _script_step(
+            "check-contract-drift",
+            "tools", "repo", "check_contract_drift.py",
+        ),
     ]
     return _run_chain(steps)
 
