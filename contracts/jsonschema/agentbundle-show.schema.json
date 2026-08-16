@@ -1,0 +1,270 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/agentbundle-show.schema.json",
+  "title": "AgentBundle show JSON response",
+  "description": "Complete successful JSON response for agentbundle show, including experimental OKF discovery metadata.",
+  "type": "object",
+  "contract_version": "agentbundle-show.v1",
+  "x-spec": ["docs/specs/okf-catalogue-discovery/"],
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "version",
+    "description",
+    "skills",
+    "agents",
+    "integrations",
+    "source",
+    "pack_metadata",
+    "skill_metadata",
+    "knowledge"
+  ],
+  "properties": {
+    "name": {
+      "$ref": "#/$defs/nonEmptyString"
+    },
+    "version": {
+      "$ref": "#/$defs/nullableString"
+    },
+    "description": {
+      "$ref": "#/$defs/nullableString"
+    },
+    "skills": {
+      "$ref": "#/$defs/nameArray"
+    },
+    "agents": {
+      "$ref": "#/$defs/nameArray"
+    },
+    "integrations": {
+      "type": "array",
+      "maxItems": 128,
+      "items": {
+        "$ref": "#/$defs/integration"
+      }
+    },
+    "source": {
+      "enum": ["catalogue", "installed-state"]
+    },
+    "pack_metadata": {
+      "oneOf": [
+        {"$ref": "#/$defs/packMetadata"},
+        {"type": "null"}
+      ]
+    },
+    "skill_metadata": {
+      "oneOf": [
+        {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {"$ref": "#/$defs/skillMetadata"}
+        },
+        {"type": "null"}
+      ]
+    },
+    "knowledge": {
+      "oneOf": [
+        {
+          "type": "array",
+          "maxItems": 128,
+          "items": {"$ref": "#/$defs/knowledgeMetadata"}
+        },
+        {"type": "null"}
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"source": {"const": "catalogue"}},
+        "required": ["source"]
+      },
+      "then": {
+        "properties": {
+          "pack_metadata": {"$ref": "#/$defs/packMetadata"},
+          "skill_metadata": {
+            "type": "array",
+            "maxItems": 4096,
+            "items": {"$ref": "#/$defs/skillMetadata"}
+          },
+          "knowledge": {
+            "type": "array",
+            "maxItems": 128,
+            "items": {"$ref": "#/$defs/knowledgeMetadata"}
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "version": {"type": "null"},
+          "description": {"type": "null"},
+          "integrations": {"maxItems": 0},
+          "pack_metadata": {"type": "null"},
+          "skill_metadata": {"type": "null"},
+          "knowledge": {"type": "null"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024
+    },
+    "nullableString": {
+      "type": ["string", "null"],
+      "maxLength": 1024
+    },
+    "nameArray": {
+      "type": "array",
+      "maxItems": 4096,
+      "uniqueItems": true,
+      "items": {
+        "$ref": "#/$defs/nonEmptyString"
+      }
+    },
+    "stringArray": {
+      "type": "array",
+      "maxItems": 256,
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "maxLength": 1024
+      }
+    },
+    "legacyStringArray": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "maxLength": 1024
+      }
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "normalizedRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*[\\u0000-\\u001F\\u007F<>:\"|?*\\\\])(?!.*//)(?!\\.\\.?$)(?!\\.\\.?/)(?!.*\\/\\.\\.?(?:\\/|$))(?!.*[. ](?:\\/|$))(?!(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))(?!.*\\/(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$)).+$"
+    },
+    "integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "pack",
+        "kind",
+        "role",
+        "consumers",
+        "providers",
+        "when",
+        "purpose",
+        "fallback",
+        "version"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonEmptyString"},
+        "pack": {"$ref": "#/$defs/nonEmptyString"},
+        "kind": {"enum": ["input", "augment", "review", "handoff"]},
+        "role": {"$ref": "#/$defs/nonEmptyString"},
+        "consumers": {"$ref": "#/$defs/legacyStringArray"},
+        "providers": {"$ref": "#/$defs/legacyStringArray"},
+        "when": {"$ref": "#/$defs/nonEmptyString"},
+        "purpose": {"$ref": "#/$defs/nonEmptyString"},
+        "fallback": {"$ref": "#/$defs/nonEmptyString"},
+        "version": {"$ref": "#/$defs/nullableString"}
+      }
+    },
+    "packMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["categories", "keywords", "license"],
+      "properties": {
+        "categories": {"$ref": "#/$defs/stringArray"},
+        "keywords": {"$ref": "#/$defs/stringArray"},
+        "license": {"$ref": "#/$defs/nullableString"}
+      }
+    },
+    "skillMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "description",
+        "license",
+        "compatibility",
+        "generated_from",
+        "profile",
+        "digest",
+        "boundaries"
+      ],
+      "properties": {
+        "name": {"$ref": "#/$defs/nonEmptyString"},
+        "description": {"$ref": "#/$defs/nonEmptyString"},
+        "license": {"$ref": "#/$defs/nullableString"},
+        "compatibility": {"$ref": "#/$defs/nullableString"},
+        "generated_from": {
+          "oneOf": [
+            {"$ref": "#/$defs/normalizedRelativePath"},
+            {"type": "null"}
+          ]
+        },
+        "profile": {
+          "type": ["string", "null"]
+        },
+        "digest": {
+          "oneOf": [
+            {"$ref": "#/$defs/sha256"},
+            {"type": "null"}
+          ]
+        },
+        "boundaries": {"$ref": "#/$defs/stringArray"}
+      },
+      "oneOf": [
+        {
+          "properties": {
+            "generated_from": {"type": "null"},
+            "profile": {"type": "null"},
+            "digest": {"type": "null"}
+          }
+        },
+        {
+          "properties": {
+            "generated_from": {"$ref": "#/$defs/normalizedRelativePath"},
+            "profile": {"const": "agentbundle-okf/v1"},
+            "digest": {"$ref": "#/$defs/sha256"}
+          }
+        }
+      ]
+    },
+    "knowledgeMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "format",
+        "okf_version",
+        "router_skill",
+        "content_license",
+        "concept_count",
+        "digest"
+      ],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonEmptyString"},
+        "format": {"const": "okf"},
+        "okf_version": {"const": "0.2"},
+        "router_skill": {"$ref": "#/$defs/nonEmptyString"},
+        "content_license": {"$ref": "#/$defs/nonEmptyString"},
+        "concept_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2000
+        },
+        "digest": {"$ref": "#/$defs/sha256"}
+      }
+    }
+  }
+}
