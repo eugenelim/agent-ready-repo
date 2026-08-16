@@ -23,11 +23,16 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { JSDOM } from 'jsdom';
+import { catalogueOutcomes } from '../lib/catalogue-navigation';
 
 const REPO_ROOT = join(__dirname, '../../..');
 const BUILD_ROOT = join(REPO_ROOT, 'build');
 const DOCS_ROOT = join(BUILD_ROOT, 'docs');
 const GUIDES_SRC = join(REPO_ROOT, 'guides');
+const SIDEBAR_CONFIG = join(REPO_ROOT, 'docs-site/src/sidebar-config.json');
+const DOCS_BASE_PATH = '/agent-ready-repo/docs/';
+const DOCS_HOME = join(DOCS_ROOT, 'index.html');
+const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
 
 function walk(dir: string, match: (name: string) => boolean, out: string[] = []): string[] {
   if (!existsSync(dir)) return out;
@@ -74,6 +79,28 @@ function mainFragment(path: string): DocumentFragment {
   const end = html.lastIndexOf('</main>');
   const inner = start !== -1 && end !== -1 ? html.slice(start, end + 7) : html;
   return JSDOM.fragment(inner);
+}
+
+function builtDocsPage(href: string): string | undefined {
+  const pathname = new URL(href, 'https://example.test').pathname;
+  if (!pathname.startsWith(DOCS_BASE_PATH)) return undefined;
+  const slug = decodeURIComponent(pathname.slice(DOCS_BASE_PATH.length)).replace(/\/$/, '');
+  return join(DOCS_ROOT, slug, 'index.html');
+}
+
+interface SidebarConfigEntry {
+  label: string;
+  slug?: string;
+  items?: SidebarConfigEntry[];
+}
+
+function sidebarConfigLeaves(entries: SidebarConfigEntry[]): { label: string; href: string }[] {
+  return entries.flatMap((entry) => {
+    if (entry.slug) {
+      return [{ label: entry.label, href: `${DOCS_BASE_PATH}${entry.slug}/` }];
+    }
+    return sidebarConfigLeaves(entry.items ?? []);
+  });
 }
 
 /**
@@ -151,6 +178,119 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     }
     expect(offenders, `unwrapped tables: ${offenders.join(', ')}`).toEqual([]);
   }, SCAN_TIMEOUT_MS);
+
+  it('wayfinding AC2–AC3: the landing has one flagship lead, six supporting outcomes, and one primary action', () => {
+    const d = doc(DOCS_HOME);
+    const leadCards = d.querySelectorAll('.docs-hub__lead .sl-link-card');
+    const supportingCards = d.querySelectorAll('.docs-hub__supporting .sl-link-card');
+    expect(leadCards).toHaveLength(1);
+    expect(supportingCards).toHaveLength(6);
+
+    const cards = [...leadCards, ...supportingCards];
+    const expectedTitles = new Set(catalogueOutcomes.map((outcome) => outcome.title));
+    const actualTitles = new Set(
+      cards.map((card) => card.querySelector('.title')?.textContent?.trim() ?? '')
+    );
+    expect(actualTitles).toEqual(expectedTitles);
+
+    const flagship = catalogueOutcomes.find((outcome) => outcome.flagship);
+    expect(leadCards[0]?.querySelector('.title')?.textContent?.trim()).toBe(flagship?.title);
+    for (const card of cards) {
+      expect(card.querySelector('.description')?.textContent?.trim()).toBeTruthy();
+      const href = card.querySelector('a')?.getAttribute('href');
+      expect(href).toBeTruthy();
+      expect(existsSync(builtDocsPage(href!)!)).toBe(true);
+    }
+
+    expect(d.querySelectorAll('.hero a.primary')).toHaveLength(1);
+    expect(d.querySelectorAll('.hero a.minimal')).toHaveLength(1);
+  });
+
+  it('wayfinding AC4: guide pagination follows the complete generated sidebar order', () => {
+    const sidebar = doc(NESTED_GUIDE);
+    const orderedLinks = [...sidebar.querySelectorAll<HTMLAnchorElement>('nav.sidebar a[href]')].map(
+      (link) => ({ href: link.getAttribute('href')!, label: link.textContent?.trim() ?? '' })
+    );
+    const guideLinks = orderedLinks.filter(({ href }) => {
+      const page = builtDocsPage(href);
+      return href.startsWith(`${DOCS_BASE_PATH}guides/`) && page && existsSync(page);
+    });
+    expect(guideLinks.length).toBeGreaterThan(0);
+
+    const failures: string[] = [];
+    for (const { href } of guideLinks) {
+      const page = builtDocsPage(href)!;
+      const index = orderedLinks.findIndex((link) => link.href === href);
+      const frag = mainFragment(page);
+      const prev = frag.querySelector('a[rel="prev"]')?.getAttribute('href');
+      const next = frag.querySelector('a[rel="next"]')?.getAttribute('href');
+      const expectedPrev = orderedLinks[index - 1]?.href;
+      const expectedNext = orderedLinks[index + 1]?.href;
+      if (prev !== expectedPrev || next !== expectedNext || (!prev && !next)) {
+        failures.push(
+          `${href}: prev=${prev} (expected ${expectedPrev}), next=${next} (expected ${expectedNext})`
+        );
+      }
+    }
+    expect(failures, `pagination drift:\n${failures.join('\n')}`).toEqual([]);
+  }, SCAN_TIMEOUT_MS);
+
+  it('wayfinding AC5: the guide sidebar preserves generated leaves and current ancestry', () => {
+    const d = doc(NESTED_GUIDE);
+    const expected = sidebarConfigLeaves(
+      JSON.parse(readFileSync(SIDEBAR_CONFIG, 'utf8')) as SidebarConfigEntry[]
+    );
+    const expectedHrefs = new Set(expected.map(({ href }) => href));
+    const actual = [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar a[href]')]
+      .map((link) => ({ href: link.getAttribute('href')!, label: link.textContent?.trim() ?? '' }))
+      .filter(({ href }) => expectedHrefs.has(href));
+    expect(actual).toEqual(expected);
+
+    const current = d.querySelector<HTMLAnchorElement>('nav.sidebar a[aria-current="page"]');
+    expect(current?.getAttribute('href')).toBe(
+      `${DOCS_BASE_PATH}guides/core/how-to/start-a-project/`
+    );
+    let ancestor = current?.parentElement?.closest('details') ?? null;
+    while (ancestor) {
+      expect(ancestor.hasAttribute('open')).toBe(true);
+      ancestor = ancestor.parentElement?.closest('details') ?? null;
+    }
+  });
+
+  it('wayfinding AC6: every titled non-home page has one breadcrumb and home has none', () => {
+    const failures: string[] = [];
+    for (const page of docsPages) {
+      const frag = mainFragment(page);
+      const breadcrumbCount = frag.querySelectorAll('nav[aria-label="Breadcrumb"]').length;
+      if (page === DOCS_HOME) {
+        if (breadcrumbCount !== 0) failures.push('index.html: unexpected breadcrumb');
+      } else if (frag.querySelector('h1#_top') && breadcrumbCount !== 1) {
+        failures.push(`${relative(DOCS_ROOT, page)}: ${breadcrumbCount} breadcrumbs`);
+      }
+    }
+    expect(failures, `breadcrumb coverage drift:\n${failures.join('\n')}`).toEqual([]);
+  }, SCAN_TIMEOUT_MS);
+
+  it('wayfinding AC7: a nested guide exposes linked ancestry and one current item', () => {
+    const d = doc(NESTED_GUIDE);
+    const breadcrumb = d.querySelector('nav[aria-label="Breadcrumb"]')!;
+    const items = [...breadcrumb.querySelectorAll('li')];
+    expect(items.slice(0, 4).map((item) => item.textContent?.trim())).toEqual([
+      'Docs',
+      'Guides',
+      'The Build Loop (core)',
+      'How-to',
+    ]);
+    expect(items.slice(0, 3).map((item) => item.querySelector('a')?.getAttribute('href'))).toEqual([
+      `${DOCS_BASE_PATH}`,
+      `${DOCS_BASE_PATH}guides/`,
+      `${DOCS_BASE_PATH}guides/core/`,
+    ]);
+    const current = breadcrumb.querySelector('[aria-current="page"]');
+    expect(current?.textContent?.trim()).toBe(d.querySelector('h1#_top')?.textContent?.trim());
+    expect(current?.closest('a')).toBeNull();
+    expect(d.querySelector('.sl-banner')).toBeNull();
+  });
 
   // Pinned to one many-table page. skipIf, not an early return: a return
   // reports a green pass for a test that asserted nothing — the shape this

@@ -109,11 +109,18 @@ check locally: run the build sequence above and inspect `build/docs/`.
 - Starlight is pinned; its internal class names (`.site-title`,
   `.sidebar-content`, `.sl-markdown-content`, …) are a styling contract —
   re-verify against `node_modules/@astrojs/starlight` after any upgrade.
-  Two touchpoints depend on Starlight internals beyond class names and need
+  Four touchpoints depend on Starlight internals beyond class names and need
   the same re-verification: the `PageTitle` override in
   `src/components/PageTitle.astro` reads `Astro.locals.starlightRoute.entry.data`
   and must keep `id="_top"` on the `<h1>` (Starlight's `PAGE_TITLE_ID`, which
-  its skip link and on-this-page overview both target); and the
+  its skip link and on-this-page overview both target); the `Footer` override in
+  `src/components/Footer.astro` reads
+  `Astro.locals.starlightRoute.pagination` because Starlight does not pass
+  pagination through component props; the `Breadcrumbs` child in
+  `src/components/Breadcrumbs.astro` reads the normalized route-data sidebar
+  union (`group.label`, `group.entries`, `link.href`, `link.isCurrent`),
+  `entry.data.title`, and `siteTitleHref` to derive and label the current trail
+  inside the supported `PageTitle` override; and the
   `rehypeScrollableTables` plugin (`src/plugins/rehype-scrollable-tables.ts`,
   wired in `astro.config.ts`) wraps markdown tables in a focusable scroll
   region, and the paired rule in our `src/styles/starlight.css` overrides

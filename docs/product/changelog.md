@@ -38,6 +38,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Documentation now keeps readers oriented from entry to exit.** The docs
+  home leads with one clear starting point and described outcome cards; guide
+  pages restore previous/next navigation from the published sidebar order; and
+  page titles now carry a semantic breadcrumb trail instead of a detached link
+  away from the docs.
 - **A live-demo guide now maps three roles through one coherent problem space.**
   Peer champions can run a 30-minute repository demonstration using Core's
   direct technical path, Core's structured enterprise handoff, or user-scoped

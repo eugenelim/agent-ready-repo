@@ -1,0 +1,78 @@
+---
+import type { StarlightRouteData } from '@astrojs/starlight/route-data';
+
+type SidebarEntry = StarlightRouteData['sidebar'][number];
+type SidebarGroup = Extract<SidebarEntry, { type: 'group' }>;
+type TrailItem = { label: string; href?: string };
+
+const { sidebar, entry, siteTitleHref } = Astro.locals.starlightRoute;
+const currentTitle = entry.data.title;
+
+const normalizePath = (href: string) => {
+  const pathname = new URL(href, Astro.url).pathname;
+  return pathname.endsWith('/') ? pathname : `${pathname}/`;
+};
+
+const currentPath = normalizePath(Astro.url.pathname);
+const docsRootPath = normalizePath(siteTitleHref);
+
+function overviewHref(group: SidebarGroup): string | undefined {
+  return group.entries.find((candidate) => {
+    if (candidate.type !== 'link') return false;
+    const candidatePath = normalizePath(candidate.href);
+    return candidatePath !== currentPath && currentPath.startsWith(candidatePath);
+  })?.href;
+}
+
+function findCurrentTrail(
+  entries: SidebarEntry[],
+  ancestors: TrailItem[] = []
+): TrailItem[] | undefined {
+  for (const candidate of entries) {
+    if (candidate.type === 'link') {
+      if (!candidate.isCurrent) continue;
+      const withoutDuplicateGroup =
+        ancestors.at(-1)?.href === undefined &&
+        ancestors.at(-1)?.label.toLocaleLowerCase() === currentTitle.toLocaleLowerCase()
+          ? ancestors.slice(0, -1)
+          : ancestors;
+      return [...withoutDuplicateGroup, { label: currentTitle }];
+    }
+
+    const nested = findCurrentTrail(candidate.entries, [
+      ...ancestors,
+      { label: candidate.label, href: overviewHref(candidate) },
+    ]);
+    if (nested) return nested;
+  }
+}
+
+const trail =
+  currentPath === docsRootPath
+    ? []
+    : [
+        { label: 'Docs', href: siteTitleHref },
+        ...(findCurrentTrail(sidebar) ?? [{ label: currentTitle }]),
+      ];
+---
+
+{
+  trail.length > 0 && (
+    <nav class="breadcrumbs" aria-label="Breadcrumb">
+      <ol>
+        {trail.map((item, index) => {
+          const isCurrent = index === trail.length - 1;
+          return (
+            <li>
+              {item.href && !isCurrent ? (
+                <a href={item.href}>{item.label}</a>
+              ) : (
+                <span aria-current={isCurrent ? 'page' : undefined}>{item.label}</span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  )
+}

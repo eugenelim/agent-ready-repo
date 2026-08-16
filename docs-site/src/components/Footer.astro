@@ -1,9 +1,10 @@
 ---
 // Starlight Footer override — matches site/overrides/partials/footer.html
-// Renders the prev/next navigation (via Starlight's default) plus the brand footer.
-import type { Props } from '@astrojs/starlight/props';
+// Renders the route's prev/next navigation plus the brand footer.
+// Footer overrides receive page props only; pagination lives on the typed route
+// data, matching Starlight's own Footer → Pagination integration.
 
-const { entry, pagination } = Astro.props;
+const { pagination } = Astro.locals.starlightRoute;
 ---
 
 {

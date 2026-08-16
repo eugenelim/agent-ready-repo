@@ -1804,63 +1804,10 @@ open = [
   # subset shipped as spec/tech-site-polish-batch; these are the rest, plus
   # three items that only surfaced while implementing it.
   #
-  # Items 1-6 are the deferred review findings; 7-8 surfaced during
-  # implementation; 9-10 need design work before they are specs.
-  # Only one hard dependency: docs-sidebar-guide-tree needs
-  # docs-landing-orientation-hub. Everything else is parallel-safe.
+  # The completed wayfinding cluster has left this open queue. The remaining
+  # entries are deferred review findings, implementation surfacings, and design
+  # work that must be shaped before specification.
   # ---------------------------------------------------------------------------
-
-  # The docs landing page is built like a marketing page, not an orientation
-  # hub: at 1440x900 it shows a three-line ~90px serif headline, a four-line
-  # tagline, and two stacked pill CTAs (both filled, both primary blue, no
-  # hierarchy) and nothing else above the fold — first CTA top edge at y=621,
-  # right half of the viewport empty. The documentation genre rubric wants three
-  # things above the fold: one "start here" promise, one entry point per content
-  # type named by what the reader accomplishes, and prominent search. Search is
-  # already there (Pagefind) and is better than the reference's — it has none.
-  # The other two are missing. The reference fits its title, deck, four section
-  # headings and eleven description-bearing cards in the same pixels at a ~32px
-  # title. Fix: demote the hero to title + one-line deck, lead with a grouped
-  # card grid (one card per pack/section carrying the one-line description that
-  # spec/tech-site-polish-batch already plumbed through as `description`), and
-  # make the second CTA a text link. Files: docs-site/src/content/docs/index.mdx,
-  # docs-site/src/styles/starlight.css. Decision already taken: display-scale
-  # type stays on the marketing surface only.
-  # Unblocks when: ready now.
-  { slug = "docs-landing-orientation-hub" },
-
-  # The docs sidebar goes two levels deep (group -> pack) but guide pages live
-  # four levels deep (guides/<pack>/<quadrant>/<page>) and appear nowhere in it
-  # — no item is highlighted and the tree never expands to the current page, so
-  # on a 217-page site the reader has no sense of position or of what is nearby.
-  # Knock-on that makes this more than cosmetic: Starlight derives its prev/next
-  # pager from sidebar order, so there is NO pagination on any guide page today
-  # — the page ends at its last section and drops straight into the footer. The
-  # reference site, at 26 pages, still ships a two-card pager. Fix: put guide
-  # pages into the sidebar tree under their pack and quadrant with current-page
-  # state and ancestor expansion; pagination returns for free. Files:
-  # tools/build-site.py (generate_sidebar_config), docs-site/astro.config.ts,
-  # site.toml [guide_groups]. Watch: ~220 sidebar entries will need a default
-  # collapse state, and guides/_shared (39 pages) plus guides/_reference need a
-  # placement decision.
-  # Unblocks when: docs-landing-orientation-hub lands (the hub decides the
-  # section taxonomy the sidebar mirrors).
-  { slug = "docs-sidebar-guide-tree", needs = ["backlog:docs-landing-orientation-hub"] },
-
-  # Docs pages have no breadcrumb — just a small detached "← Platform" back-link
-  # floating above the title, which tells the reader how to leave rather than
-  # where they are. URL depth is docs/guides/<pack>/<quadrant>/<page> across ~220
-  # pages; the reference ships a real trail (Docs / Automation / Playbooks, middle
-  # segment clickable) for a flat 26-page site. Starlight has no built-in
-  # breadcrumb, so this needs a component override rendering into the content
-  # column rather than above it. Files: new docs-site/src/components/ override
-  # registered in astro.config.ts `components`, docs-site/src/styles/starlight.css.
-  # Note: docs-site/AGENTS.md records that Starlight internals are a pinned
-  # styling contract — add any new override to that list (the PageTitle override
-  # and rehypeScrollableTables plugin from spec/tech-site-polish-batch are
-  # already recorded there).
-  # Unblocks when: ready now.
-  { slug = "docs-breadcrumb-trail" },
 
   # Typed callouts are effectively unused: 3 of 188 guides use Starlight `:::`
   # asides while 74 use plain `>` blockquotes — and those blockquotes are
