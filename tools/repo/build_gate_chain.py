@@ -113,7 +113,7 @@ def _pytest_step(label: str, *path_parts: str) -> Step:
     return (label, _thunk)
 
 
-def _pytest_step_cwd(label: str, cwd: str, *targets: str) -> Step:
+def _pytest_step_cwd(label: str, cwd: str, *targets: str, floor: int | None = None) -> Step:
     """Wrap a pytest run that must execute FROM a directory.
 
     Some suites are directory-scoped by construction: their `conftest.py` puts
@@ -136,12 +136,34 @@ def _pytest_step_cwd(label: str, cwd: str, *targets: str) -> Step:
     """
     directory = Path(cwd)
 
-    def _thunk(directory=directory, targets=targets) -> int:
+    def _thunk(directory=directory, targets=targets, floor=floor) -> int:
+        workdir = str(REPO_ROOT / directory)
+        env = _source_packages_env()
+        if floor is not None:
+            # A directory-scoped run with no filenames exits 0 when it collects
+            # NOTHING, so a suite that fails to land — renamed, moved, broken
+            # import — reduces the count and the gate still passes. Assert a
+            # floor first. CI does this with a shell subshell and `grep -c`;
+            # here it is a count in Python, so the step stays Windows-clean.
+            probe = subprocess.run(
+                [sys.executable, "-m", "pytest", *targets,
+                 "-q", "-p", "no:cacheprovider", "--collect-only"],
+                cwd=workdir, check=False, env=env,
+                capture_output=True, text=True,
+            )
+            collected = sum(1 for line in probe.stdout.splitlines() if "::" in line)
+            if collected < floor:
+                print(
+                    f"build chain: {directory} collected {collected} test(s), "
+                    f"expected at least {floor} — did a suite fail to land?",
+                    file=sys.stderr,
+                )
+                return 1
         return subprocess.run(
-            [sys.executable, "-m", "pytest", *targets, "-q"],
-            cwd=str(REPO_ROOT / directory),
+            [sys.executable, "-m", "pytest", *targets, "-q", "-p", "no:cacheprovider"],
+            cwd=workdir,
             check=False,
-            env=_source_packages_env(),
+            env=env,
         ).returncode
 
     return (label, _thunk)
@@ -378,16 +400,21 @@ def build_check(args: argparse.Namespace) -> int:
             "check-contract-drift",
             "tools", "repo", "check_contract_drift.py",
         ),
-        # Directory-scoped: this suite's conftest puts the skill's scripts/ on
-        # sys.path, so it collects nothing from the repo root. It was CI-only
-        # purely because the chain had no cwd vocabulary. The crypto-gated cases
-        # self-skip via `requires_crypto`, so a machine without the [crypto]
-        # extra still passes — CI keeps its own import probe to assert the extra
-        # IS installed there, which is provisioning verification, not a gate.
+        # Directory-scoped: each suite's conftest puts its skill's scripts/ on
+        # sys.path, so both collect nothing from the repo root. Pure stdlib —
+        # no install, no network — so they belong in the local chain.
+        # The floors are not decoration: these invocations name a directory
+        # rather than files, so a suite that fails to land would silently
+        # reduce the count and still exit 0.
         _pytest_step_cwd(
-            "pytest credential-setup skill",
-            "packs/credential-brokers/tests/skills/credential-setup",
-            "test_setup.py", "test_credential_setup_skill.py",
+            "pytest catalogue-curation assimilate-primitive",
+            "packs/catalogue-curation/tests/skills/assimilate-primitive",
+            floor=30,
+        ),
+        _pytest_step_cwd(
+            "pytest catalogue-curation assimilate-repo",
+            "packs/catalogue-curation/tests/skills/assimilate-repo",
+            floor=7,
         ),
     ]
     return _run_chain(steps)

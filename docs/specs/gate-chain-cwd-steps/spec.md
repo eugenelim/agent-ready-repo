@@ -25,9 +25,18 @@ gate chain, so it ran only in CI. `make build-check` silently skipped it.
   shell, and no POSIX-only quoting — the argv stays a plain list and the step
   stays Windows-clean.
 
-- [x] **AC2 — the credential-setup gate is now locally covered.** It moves from
+- [x] **AC2 — the catalogue-curation gates are now locally covered.** Both
+  `assimilate-primitive` (30 tests) and `assimilate-repo` (7) move from
   `CI_ONLY` to `LOCAL("build-check")`; `lint-ci-parity` reports 31 locally
   covered where it reported 30.
+
+  These are the step kind's callers, and picking them was a correction. The
+  entry named the credential-setup suite, and I wired that first — CI rejected
+  it twice. Its blocker was never the step vocabulary: it spawns `setup.py` as a
+  subprocess, and that script hard-exits 3 unless credbroker is **installed**; a
+  source path on `PYTHONPATH` does not satisfy it. Recorded as
+  `gate-chain-credential-setup-provisioning`, since it is a question about what
+  `make build-check` provisions.
 
 - [x] **AC3 — the parity linter can see a cwd-scoped target.** Its reachability
   scan matches literal repo-root paths, and this step's targets are bare
@@ -48,18 +57,29 @@ gate chain, so it ran only in CI. `make build-check` silently skipped it.
   suite collects nothing ("no tests ran"); from its directory, 16 pass. That
   difference is the entire reason the vocabulary was needed.
 
-- [x] **AC7 — the remaining exemption's reason is corrected, not inherited.**
-  The catalogue-curation step stays CI-only, but *not* for the reason recorded:
-  its shell body counts collected tests and asserts a floor, because its
-  invocations are directory-scoped with no filenames, so a suite that fails to
-  land would reduce the count and still exit 0. Porting it means reimplementing
-  that floor in Python. Recorded as `gate-chain-curation-count-floor`.
+- [x] **AC7 — the step kind carries a collected-count floor.** A
+  directory-scoped run with no filenames exits 0 when it collects **nothing**, so
+  a suite that fails to land — renamed, moved, broken import — would reduce the
+  count and the gate would still pass. CI asserts a floor with a shell subshell
+  and `grep -c`; the step kind does it as a count in Python, so it stays
+  Windows-clean. Verified both ways: floor 7 on a 7-test suite passes; floor 999
+  fails with a message naming the directory and both counts.
 
-- [x] **AC8 — CI's import probe stays in CI.** The CI step also asserts
-  `credbroker`, `cryptography` and `argon2` import — provisioning verification
-  for that runner. The local step deliberately omits it: the suite self-skips its
-  crypto-gated cases via `requires_crypto`, so a contributor without the extra
-  gets a passing build-check rather than a failure about an optional dependency.
+- [x] **AC8 — the step supplies the repo's source packages on `PYTHONPATH`.**
+  Moving the cwd out of the repo root is what makes this necessary: a suite that
+  imports `agentbundle` finds it by path rather than by install, so the chain
+  takes on no provisioning. Appended after any caller `PYTHONPATH`, so a real
+  installed copy still wins.
+
+- [x] **AC9 — a linter bug found on the way is fixed, with regression cases.**
+  Declaring the catalogue-curation step `LOCAL` surfaced a phantom prefix:
+  `lint-ci-parity`'s `cd` resolver guards `dest.startswith("$")`, but that step's
+  helper writes `cd "$dir"` — the quoted token starts with `"`, so the guard
+  missed it and composed the target `"$dir"/`. That is the exact hazard the
+  resolver's own docstring warns about, reached by the form a careful shell
+  author is most likely to write. Three cases added (double-quoted variable,
+  single-quoted variable, and a quoted *literal* which must still resolve);
+  mutation-verified — reverting the fix fails 5 of 102 cases.
 
 ## Boundaries
 

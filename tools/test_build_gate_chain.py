@@ -142,9 +142,11 @@ class BuildSelfChainTest(unittest.TestCase):
     def _run_with_fake_subprocess(self, args: argparse.Namespace) -> tuple[int, list[list[str]]]:
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None, cwd=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append(argv)
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             rc = gc.build_self(args)
@@ -221,9 +223,6 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
     "tools/repo/check_contract_drift.py",
-    # Directory-scoped (cwd), so its targets are bare filenames rather than
-    # repo-root paths — the first step of this kind in the chain.
-    "test_setup.py",
 ]
 
 
@@ -233,25 +232,34 @@ class BuildCheckChainTest(unittest.TestCase):
     def test_full_step_sequence(self):
         order: list[str] = []
 
-        def fake_run(argv, check, env=None, cwd=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             order.append("subprocess")
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # 1 module step (catalogue build) + the script steps.
-        self.assertEqual(len(order), 1 + len(EXPECTED_SCRIPT_STEPS))
+        # 1 module step (catalogue build) + the script steps + the two
+        # directory-scoped steps, each of which spawns twice: a `--collect-only`
+        # floor probe and then the run itself.
+        _CWD_STEPS = 2
+        self.assertEqual(
+            len(order), 1 + len(EXPECTED_SCRIPT_STEPS) + _CWD_STEPS * 2
+        )
 
     def test_first_step_is_catalogue_build(self):
         """The first step must invoke agentbundle catalogue build."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None, cwd=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append(list(argv))
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
@@ -269,9 +277,11 @@ class BuildCheckChainTest(unittest.TestCase):
         """pre-pr-catalogue must call tools/catalogue/pre_pr_catalogue.py."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None, cwd=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append(list(argv))
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
@@ -297,9 +307,11 @@ class BuildCheckChainTest(unittest.TestCase):
         """
         seen: list[tuple[list[str], object]] = []
 
-        def fake_run(argv, check, env=None, cwd=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append((list(argv), cwd))
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
@@ -307,7 +319,9 @@ class BuildCheckChainTest(unittest.TestCase):
         for argv, cwd in seen[1:]:  # skip first (module step has extra args)
             self.assertEqual(argv[0], sys.executable)
             if argv[1:3] == ["-m", "pytest"]:
-                self.assertEqual(argv[-1], "-q")
+                # `-q` is present but not necessarily last: a floor probe
+                # appends `--collect-only` after it.
+                self.assertIn("-q", argv)
                 self.assertGreater(len(argv), 3, "a pytest step needs a target")
             else:
                 # A plain script step: interpreter + one script path.
@@ -332,39 +346,48 @@ class BuildCheckChainTest(unittest.TestCase):
         """
         seen: list[tuple[list[str], object]] = []
 
-        def fake_run(argv, check, env=None, cwd=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append((list(argv), cwd))
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
         scoped = [(argv, cwd) for argv, cwd in seen if cwd is not None]
         self.assertTrue(scoped, "no cwd-scoped step ran")
-        argv, cwd = scoped[0]
+        dirs = {str(cwd) for _argv, cwd in scoped}
         self.assertTrue(
-            str(cwd).endswith("packs/credential-brokers/tests/skills/credential-setup"),
-            cwd,
+            any(d.endswith("assimilate-primitive") for d in dirs), sorted(dirs)
         )
-        self.assertEqual(argv[1:3], ["-m", "pytest"])
-        # Targets are bare filenames, resolved by the cwd — not repo-root paths.
-        self.assertIn("test_setup.py", argv)
+        self.assertTrue(any(d.endswith("assimilate-repo") for d in dirs), sorted(dirs))
+        for argv, _cwd in scoped:
+            self.assertEqual(argv[1:3], ["-m", "pytest"])
+            # No file targets: the directory IS the target, which is exactly why
+            # these steps need a collected-count floor.
+            self.assertNotIn("--collect-only", argv[:3])
 
     def test_spawned_script_paths_in_order(self):
         """The spawned script paths match the expected gate order."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None, cwd=None):
-            seen.append(list(argv))
-            return mock.Mock(returncode=0)
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
+            seen.append((list(argv), cwd))
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
         # seen[0] = module step (catalogue build); seen[1:] = script steps.
+        # Directory-scoped steps are excluded: they name no repo-root path (the
+        # cwd is the target), so they belong to the cwd test, not this one.
         spawned = [
             Path(argv[3] if argv[1:3] == ["-m", "pytest"] else argv[1]).as_posix()
-            for argv in seen[1:]
+            for argv, cwd in seen[1:]
+            if cwd is None
         ]
         self.assertEqual(spawned, EXPECTED_SCRIPT_STEPS)
 

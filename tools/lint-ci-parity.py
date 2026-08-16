@@ -294,7 +294,16 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest credbroker (RFC-0023 Phase 1)":
         LOCAL("test"),
     "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)":
-        LOCAL("build-check"),
+        CI_ONLY(
+            "PROVISIONING, not step vocabulary — the chain grew "
+            "`_pytest_step_cwd` and this step still cannot move. The suite "
+            "spawns setup.py as a subprocess, and that script hard-exits 3 when "
+            "credbroker is not INSTALLED; a source path on PYTHONPATH does not "
+            "satisfy it (verified in CI, twice). Moving it would mean "
+            "`pip install -e ./packages/credbroker` inside build-check, which is "
+            "a decision about what that target provisions — see backlog "
+            "`gate-chain-credential-setup-provisioning`."
+        ),
     "pip install httpx for the atlassian SSO suites (RFC-0035)":
         CI_ONLY(
             "Provisioning."
@@ -382,16 +391,7 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "catalogue-curation guard lint + self-test (RFC-0059 D6)":
         LOCAL("build-check"),
     "catalogue-curation skill-script tests (RFC-0059 security ACs)":
-        CI_ONLY(
-            "NOT the cwd vocabulary any more — the chain grew `_pytest_step_cwd` "
-            "and the credential-setup step moved local. What keeps this one in "
-            "CI is its own shell body: it counts collected tests per suite and "
-            "asserts a floor, because the invocations are directory-scoped with "
-            "no filenames, so a suite that fails to land would reduce the count "
-            "and still exit 0. Porting it means reimplementing that floor in "
-            "Python, not adding a step kind — see backlog "
-            "`gate-chain-curation-count-floor`."
-        ),
+        LOCAL("build-check"),
     "experience framework-agnosticism lint + self-test (design-craft-pack AC8)":
         LOCAL("build-check"),
     "pack description drift backstop + self-test":
@@ -483,7 +483,14 @@ def _cd_target(segment: str, subshell: bool) -> str | None:
     if not match:
         return None
     dest = match.group(1).replace("\\", "/").removeprefix("./")
-    if dest.startswith(("-", "~", "/", "$")) or ".." in dest.split("/"):
+    # Strip surrounding quotes BEFORE the guard. `cd "$dir"` is the same
+    # unresolvable case as `cd $dir`, but the quoted token starts with `"`, so
+    # the guard missed it and composed the phantom prefix `"$dir"/` — the very
+    # failure mode this function's docstring warns about, reached by the form
+    # a careful shell author is most likely to write.
+    if len(dest) >= 2 and dest[0] == dest[-1] and dest[0] in "\"'":
+        dest = dest[1:-1]
+    if dest.startswith(("-", "~", "/", "$")) or ".." in dest.split("/") or not dest:
         return ""  # unresolvable — clear, never compose
     return dest
 

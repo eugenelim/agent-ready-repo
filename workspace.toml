@@ -757,20 +757,21 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "ci-parity-docs-yml-out-of-scope", source = "spec/local-gate-ci-parity (scope)"},
 
-  # Split out of gate-chain-step-vocabulary 2026-08-16 when the cwd half
-  # shipped (spec/gate-chain-cwd-steps). The chain now has `_pytest_step_cwd`,
-  # and the credential-setup gate moved from CI-only to locally covered.
-  # The catalogue-curation skill-script step did NOT move, and the reason has
-  # changed: it is no longer a missing step kind. That CI step carries its own
-  # shell body which counts collected tests per suite and asserts a FLOOR,
-  # because its invocations are directory-scoped with no filenames — so a suite
-  # that fails to land reduces the count and the step still exits 0. Porting it
-  # means reimplementing that floor in Python, not adding a step kind.
-  # Fix: give the chain a step kind that asserts a minimum collected count
-  #   (parse `pytest -q` output, or use `--collect-only -q` and count), then
-  #   move the exemption.
-  # Unblocks when: picked up — no dependency.
-  {slug = "gate-chain-curation-count-floor", source = "spec/gate-chain-cwd-steps"},
+  # Split out of gate-chain-step-vocabulary 2026-08-16 (spec/gate-chain-cwd-steps).
+  # The chain gained `_pytest_step_cwd` with a collected-count floor, and the
+  # catalogue-curation suites moved from CI-only to locally covered. The
+  # credential-setup step did NOT move, and its blocker was never the step
+  # vocabulary — that was the entry's premise and it was wrong.
+  # It spawns setup.py as a SUBPROCESS, and that script hard-exits 3 unless
+  # credbroker is INSTALLED. A source path on PYTHONPATH does not satisfy it —
+  # verified twice in CI, once at collection and once at the spawn.
+  # Fix: decide whether `make build-check` should run
+  #   `pip install -e ./packages/credbroker`. That is a question about what that
+  #   target provisions, not about the chain: build-check is otherwise
+  #   install-free and offline, and adding a pip install changes its character.
+  #   The alternative is leaving this gate CI-only on purpose and saying so.
+  # Unblocks when: someone rules on build-check's provisioning posture.
+  {slug = "gate-chain-credential-setup-provisioning", source = "spec/gate-chain-cwd-steps"},
 
   # `tools/lint-catalogue-curation-guard.py`'s path-gate layer exits 0 with only a
   # stderr note when git or the `--base` ref is unavailable. It is now wired into

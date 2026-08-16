@@ -401,6 +401,23 @@ def main() -> int:
     _check("cd-persists-across-lines",
            M.extract_step_targets("cd packs/x/scripts\npython -m pytest test_a.py"),
            ["packs/x/scripts/test_a.py"])
+    # A QUOTED shell variable in `cd` is as unresolvable as a bare one. The
+    # guard tested `startswith("$")`, so `cd "$dir"` slipped past it and composed
+    # the phantom prefix `"$dir"/` — the exact hazard the resolver exists to
+    # prevent, reached by the form a careful shell author is most likely to
+    # write (quoting to survive spaces). Found in the wild on the
+    # catalogue-curation step's `run_with_floor` helper.
+    _check("cd-quoted-variable-does-not-compose",
+           M.extract_step_targets('cd "$dir"\npython -m pytest test_a.py'),
+           ["test_a.py"])
+    _check("cd-single-quoted-variable-does-not-compose",
+           M.extract_step_targets("cd '$dir'\npython -m pytest test_a.py"),
+           ["test_a.py"])
+    # A quoted LITERAL still resolves — quoting is not itself disqualifying.
+    _check("cd-quoted-literal-still-composes",
+           M.extract_step_targets('cd "packs/x/scripts"\npython -m pytest test_a.py'),
+           ["packs/x/scripts/test_a.py"])
+
     # Job-level `defaults.run.working-directory` is the fallback when a step omits it.
     _check("job-defaults-working-directory",
            M.extract_ci_targets({"jobs": {"b": {
