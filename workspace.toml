@@ -774,21 +774,6 @@ open = [
   # Unblocks when: picked up — no dependency.
   {slug = "ci-parity-docs-yml-out-of-scope", source = "spec/local-gate-ci-parity (scope)"},
 
-  # Split out of gate-chain-step-vocabulary 2026-08-16 (spec/gate-chain-cwd-steps).
-  # The chain gained `_pytest_step_cwd` with a collected-count floor, and the
-  # catalogue-curation suites moved from CI-only to locally covered. The
-  # credential-setup step did NOT move, and its blocker was never the step
-  # vocabulary — that was the entry's premise and it was wrong.
-  # It spawns setup.py as a SUBPROCESS, and that script hard-exits 3 unless
-  # credbroker is INSTALLED. A source path on PYTHONPATH does not satisfy it —
-  # verified twice in CI, once at collection and once at the spawn.
-  # Fix: decide whether `make build-check` should run
-  #   `pip install -e ./packages/credbroker`. That is a question about what that
-  #   target provisions, not about the chain: build-check is otherwise
-  #   install-free and offline, and adding a pip install changes its character.
-  #   The alternative is leaving this gate CI-only on purpose and saying so.
-  # Unblocks when: someone rules on build-check's provisioning posture.
-  {slug = "gate-chain-credential-setup-provisioning", source = "spec/gate-chain-cwd-steps"},
 
   # `tools/lint-catalogue-curation-guard.py`'s path-gate layer exits 0 with only a
   # stderr note when git or the `--base` ref is unavailable. It is now wired into
@@ -1091,32 +1076,6 @@ open = [
   # ── High severity ────────────────────────────────────────────────────────────
   # (security findings or concretely broken behavior with a known internal fix path)
 
-  # NARROWED and RE-SCOPED 2026-08-16 by spec/install-symlink-hardening, which
-  # attempted this and reverted the attempt. Recording why, because the entry as
-  # written points at a fix the repo's own spec forbids.
-  # The entry proposed lifting cursor's symlink-skipping helper into
-  # direct_directory.py and adopting it in the other adapters. Two findings:
-  #   1. STALE TARGET LIST. copilot, gemini and kiro already drop every symlink.
-  #      Only claude_code and codex differ, and they use a DIFFERENT rule: drop
-  #      absolute-target symlinks, preserve relative ones.
-  #   2. THAT DIFFERENCE IS SPECIFIED, NOT DRIFT.
-  #      docs/specs/codex-native-skills/spec.md:92 requires
-  #      `copytree(..., symlinks=True)` for every direct-directory projection and
-  #      states "the symlink-pass-through IS the path-traversal-safety invariant;
-  #      never resolve a symlink to its target at projection time".
-  #      tests/build_pipeline/test_adapter_codex.py::test_symlink_pass_through
-  #      pins it. Adopting the strict helper everywhere fails that test and
-  #      violates the stated invariant.
-  # So the four strict adapters are the ones diverging from the spec, not the two
-  # permissive ones — the inverse of the entry's premise. Nothing is unsafe today:
-  # the exfiltration this guarded against is closed at the read (`_collect_tree`
-  # no longer follows links), so the projection-layer difference is now a
-  # consistency question, not a vulnerability.
-  # Fix: decide ONE policy across all six adapters and make the spec and the
-  #   adapters agree — either amend the codex-native-skills invariant, or bring
-  #   the four strict adapters back to pass-through. Needs the decision first.
-  # Unblocks when: someone rules on which policy the invariant should state.
-  {slug = "adapter-symlink-policy-divergence", source = "spec/install-symlink-hardening"},
 
   # Security (HIGH). NARROWED 2026-08-16 by spec/install-symlink-hardening. The
   # exfiltration primitive itself is closed:
