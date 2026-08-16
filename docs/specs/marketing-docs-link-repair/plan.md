@@ -37,6 +37,8 @@
 - **Fixing the 8 dead placeholder hrefs on `primitives-fixture.astro`** — declined;
   pre-existing, on a `noindex` orphan dev fixture, outside this change's concern.
   Registered as `web-primitives-fixture-dead-placeholders` in `[backlog].open`.
+  (Since resolved: the placeholders are gone and the entry was removed as done on
+  2026-08-15 — see this spec's erratum at `spec.md` § disclosed exclusion.)
 - **Normalising the neighbouring `packUrl` / `journeyUrl` frontmatter while in the same
   files** — declined; those resolve correctly today, so they fail the bundled-fixes
   "same concern" gate.

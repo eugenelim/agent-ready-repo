@@ -92,6 +92,15 @@ route set and the built file tree are the oracles.
    silently skipped them. **Disclosed exclusion:** `build/primitives-fixture/` is
    excluded (8 pre-existing placeholder hrefs on a `noindex` dev fixture, listed in
    `[backlog].open` as `web-primitives-fixture-dead-placeholders`).
+
+   > **Erratum (2026-08-15, spec/workspace-backlog-reconciliation AC1c):** the
+   > disclosed exclusion above is **obsolete — do not implement it.** The eight
+   > placeholder hrefs are gone; `web/src/pages/primitives-fixture.astro` now
+   > carries exactly two, both live. A future link gate needs **no**
+   > `primitives-fixture` carve-out, and adding one would re-disclose an exclusion
+   > that no longer has a subject. The root-relative-prefix trap in the sentence
+   > before it still stands. The backlog entry named here was removed as done in
+   > the same change.
 3. **Projection fixed-point.** Re-run `tools/build-site.py` and assert
    `git status --porcelain web/src/content packs` reports nothing beyond the commit's
    own changes. **This check is structurally blind to

@@ -539,11 +539,15 @@ open = [
   {slug = "insecure-warning-sibling-clis", source = "spec/jira-check-sso-auto-login"},
     # tools/lint-sso-config.py validates the [sso] key set but not the profile charset, so a
     # pre-baked traversal value only fails at runtime. Fix: add the AC4 grammar as a
-    # build-time check. Unblocks: after AC4 lands.
+    # build-time check. UNBLOCKED 2026-08-15 — AC4 (`validate_sso_profile`, canonical
+    # grammar) is checked [x] at docs/specs/jira-check-sso-auto-login/spec.md:307, so the
+    # grammar this lint must mirror now exists. Ready to pick up.
   {slug = "lint-sso-config-profile-charset", source = "spec/jira-check-sso-auto-login"},
     # AC11 site 4/5 guards only whoami; every other read method calls resp.json(), so an SSO
     # login-page body still exits 1 there. Fix: move the guard to a shared _json helper.
-    # Unblocks: after AC11.
+    # UNBLOCKED 2026-08-15 — AC11 is satisfied in
+    # docs/specs/jira-check-sso-auto-login/spec.md, so the guard this entry generalises
+    # now exists at its first site. Ready to pick up.
   {slug = "nonjson-2xx-guard-all-read-paths", source = "spec/jira-check-sso-auto-login"},
     # RFC-0074's catalogue pack-defaults cascade is Shipped but has no consumer, and its
     # baked layer sits inside the agentbundle package, unreachable from stdlib-only skill
@@ -654,11 +658,14 @@ open = [
   # verified them with an ad-hoc script (resolve every internal href on the built
   # marketing pages against build/), but did not commit it — so nothing prevents a
   # fourth regression. The same fix has now landed and reverted twice (#852 → #854).
-  # Two traps the committed version must carry, both hit while writing the ad-hoc one:
+  # One trap the committed version must carry, hit while writing the ad-hoc one:
   #   1. Do NOT treat a root-relative link lacking the /agent-ready-repo base prefix
   #      as off-site — the first draft silently skipped 8 such links.
-  #   2. build/primitives-fixture/ must be excluded explicitly and visibly, not by
-  #      accident (see web-primitives-fixture-dead-placeholders below).
+  # A second trap (exclude build/primitives-fixture/ explicitly) was recorded here
+  # and is now OBSOLETE: the fixture's 8 dead placeholder hrefs are gone, so it
+  # needs no carve-out. Verified 2026-08-15 —
+  # `grep -oE 'href=(\{[^}]*\}|"[^"]*")' web/src/pages/primitives-fixture.astro`
+  # returns exactly two, both live. Do not reintroduce a fixture exclusion.
   # Fix: land it as a pure-stdlib tools/*.py per AGENTS.md, wired into the pages
   #   workflow after both builds — it needs the built tree, so it cannot run in
   #   build-check.
@@ -677,17 +684,6 @@ open = [
   #   (b) amending AC7 in place. (a) preserves history and is the likelier call.
   # Unblocks when: picked up — needs a decision on amending a Shipped spec.
   {slug = "phase4b-docsurl-instruction-stale", source = "spec/marketing-docs-link-repair (out of scope)"},
-
-  # web/src/pages/primitives-fixture.astro carries 8 dead placeholder hrefs
-  # (/guides/github-auth, /review, /issues, /run, /confirm, /cancel, /get-started,
-  # /example). Pre-existing, and harmless today: the page is noindex,nofollow, absent
-  # from the sitemap, and unlinked from any real page. They matter only because they
-  # force any future link-checker to carry an exclusion, and an undisclosed exclusion
-  # is how a "0 dead links" claim becomes false.
-  # Fix: point the placeholders at real routes or at "#", so the link gate needs no
-  #   fixture carve-out at all.
-  # Unblocks when: picked up — pairs naturally with web-docs-link-check-gate.
-  {slug = "web-primitives-fixture-dead-placeholders", source = "spec/marketing-docs-link-repair (out of scope)"},
 
   # Two ADR-0055 / v0.13 stragglers found while reconciling docs/architecture/
   # against the real agentbundle surface. Both are engine-or-tooling edits, so
@@ -874,12 +870,16 @@ open = [
   #   the copytree to prune too.
   {slug = "pack-js-ci-workflow", source = "spec/pack-test-boundary-remaining-packs disposition"},
 
-  # lint-spec-status.py matches `^##\s+Acceptance Criteria\b` case-sensitively, so
-  # eight specs whose heading reads `## Acceptance criteria` collect zero criteria
-  # and their AC-completeness invariant (ii) has always passed vacuously — the
-  # pack-test-boundary predecessor among them. Three more specs carry no
-  # Acceptance-Criteria heading at all, which the casing fix would not close:
-  # eleven ungated in total. Fix: decide whether the matcher should be
+  # lint-spec-status.py matches `^##\s+Acceptance Criteria\b` case-sensitively
+  # (scripts/lint-spec-status.py:283), so specs whose heading reads
+  # `## Acceptance criteria` collect zero criteria and their AC-completeness
+  # invariant (ii) has always passed vacuously — the pack-test-boundary predecessor
+  # among them. COUNT CORRECTED 2026-08-15: the entry said eight; it is now 17, out
+  # of 299 specs using the canonical casing
+  # (`grep -rl "^## Acceptance criteria" docs/specs/*/spec.md | wc -l`). The gap has
+  # more than doubled since the entry was written, and grows silently — every new
+  # spec that guesses the casing joins it. Three more specs carry no
+  # Acceptance-Criteria heading at all, which the casing fix would not close. Fix: decide whether the matcher should be
   # case-insensitive and whether a spec with no criteria section should fail
   # loudly, then correct the headings. Unblocks when: picked up.
   {slug = "spec-ac-heading-casing-silent-gate", source = "spec/pack-test-boundary-remaining-packs review"},
@@ -1021,13 +1021,17 @@ open = [
   # Unblocks when: screened on actual mobile viewport + physical device.
   {slug = "site-mobile-responsiveness"},
 
-  # guides/desk-research/tutorials/desk-research-first-session.md line 15 says
-  # `agentbundle install research --scope user` but the pack id is `desk-research`
-  # (renamed in M3). Stale id fails silently for new adopters.
-  # Fix: use the canonical `agentbundle install desk-research --scope user` install
-  #   path; extend the owning docs/parity lint with a retired-id negative fixture.
-  # File: guides/desk-research/tutorials/desk-research-first-session.md:15.
-  # Done: active content uses `desk-research`; the stale id fails the owning check.
+  # NARROWED 2026-08-15. The content half is DONE: `grep -rn "install research"
+  # guides/` returns zero hits, so no adopter-facing guide carries the retired id.
+  # (The remaining repo-wide hits are all in docs/specs/research-pack/, which is
+  # frozen spec history correctly recording the id in force when it was written —
+  # do not "fix" those.)
+  # REMAINING SCOPE, and the only reason this entry is still open: no lint carries a
+  # retired-id negative fixture, so nothing stops `install research` being
+  # reintroduced into guides/ tomorrow. The original entry bundled the content fix
+  # and the guard; only the guard is left.
+  # Fix: extend the owning docs/parity lint with a negative fixture asserting the
+  #   retired `research` pack id does not appear in guides/.
   # Do not expand this item into a tutorial redesign.
   {slug = "desk-research-install-name-drift"},
 
@@ -1114,14 +1118,20 @@ open = [
   # Unblocks when: a governance RFC or install-marker schema extension closes the gap.
   {slug = "skill-governance-inventory-gap"},
 
-  # Security (AST07). The agentic-skills module's AST07 check (version drift)
-  # delegates to a wired SCA scanner. Whether pip-audit or Dependabot is wired in CI
-  # for packages/agentbundle's dependency set was not confirmed during the
-  # owasp-ast10-module security audit.
-  # Fix: confirm pip-audit (or Dependabot) is wired in CI for packages/agentbundle;
-  #   wire it if not.
-  # File: .github/workflows/ (CI config for packages/agentbundle).
-  # Unblocks when: CI config confirms a wired SCA scanner for packages/agentbundle.
+  # Security (AST07). NARROWED 2026-08-15 after confirming the CI state the entry
+  # asked about. The headline concern is closed for shipped code: both
+  # packages/agentbundle and packages/credbroker declare `dependencies = []`
+  # (verified via tomllib on each pyproject.toml), so neither ships a third-party
+  # runtime dependency, and Makefile:241 already audits credbroker's [crypto] extra
+  # (cryptography, argon2-cffi) explicitly through pip-audit.
+  # ONE RESIDUAL, which is why this entry narrows rather than closes: agentbundle's
+  # [lint] extra is `pyyaml>=6.0` — genuinely third-party, and it reaches no
+  # pip-audit invocation. tools/requirements-sast.txt is audited; this extra is not.
+  # Fix: add the [lint] extra to the Makefile sast target's explicit audit, mirroring
+  #   the credbroker [crypto] line directly above it (printf | pip-audit -r /dev/stdin).
+  # Note there is no dependabot.yml in the repo at all, so pip-audit is the only SCA
+  # lens; that is a separate question from this one-line gap.
+  # Unblocks when: picked up — no dependency.
   {slug = "ast07-sca-scanner-agentbundle"},
 
   # ── Medium effort, internal ──────────────────────────────────────────────────
@@ -1221,9 +1231,11 @@ open = [
   # to a build-check gate requires calibration evidence: at least two drift-check passes on
   # the live repo with no false positives, confirming exit-0 stability on clean copies.
   # Clean-run log: 1 pass recorded 2026-08-01 on origin/main HEAD (exit 0, no output).
-  # Fix: after one more clean pass on origin/main, wire the check into build-check.yml
-  #   and remove the deferred marker from spec/digital-experience-contract AC16.
-  # Unblocks when: two clean drift-check passes are recorded (manual or CI).
+  #   2nd pass recorded 2026-08-15 (`python3 tools/repo/check_contract_drift.py`,
+  #   exit 0, no output). The two-clean-pass calibration bar is now MET.
+  # Fix: wire the check into build-check.yml and remove the deferred marker from
+  #   spec/digital-experience-contract AC16.
+  # UNBLOCKED — the gate this entry waited on has passed; ready to pick up.
   {slug = "contract-drift-check-gate-promotion", source = "spec/digital-experience-contract AC16"},
 
   # ini-003 follow-on. After the Digital Experience Doctrine initiative ships, the four
@@ -1718,11 +1730,41 @@ open = [
   # Modelled on architectural fitness functions (ThoughtWorks' "dependency drift
   # fitness function") — a continuously-run check, not a review ritual, because the
   # documented failure mode of decision records is neglect rather than bad edits.
-  # Typed `spec` (not `design`): a bare typed shaping object here is a legacy
-  # shape that yields `legacy_entry`, and this item will produce a spec anyway.
+  # Typed `spec` (not `design`), because this item will produce a spec anyway.
+  # CORRECTION 2026-08-15: the comment here used to claim `type = "spec"` yields
+  # `legacy_entry`. It does not. `_SHAPING_TYPES`
+  # (.claude/skills/workspace-status/scripts/workspace_status_engine.py:3229) is
+  # exactly {shape, research, strategy, signal, design}; `spec` is not a member, so
+  # `_accepted_legacy_entry`'s backlog.open branch refuses and these five entries —
+  # like the other 136 build items — classify as `unsupported_legacy`. The intended
+  # effect (non-dispatchable) does hold, just by a different route than claimed.
+  # Whether to retype them is tracked as reanchor-entry-typing-decision below.
   # Needs a design pass first: `needs` carries no timestamp, so the comparison
   # has to come from git history or a new recorded field.
   {slug = "ini-008-anchor-staleness-check", type = "spec", source = "rfc/0083 Errata 2026-08-13", summary = "Detect queued specs whose shipped dependencies moved after the spec was last revised"},
+
+  # Surfaced 2026-08-15 while auditing every [backlog].open entry against the
+  # engine's own classifier. The five reanchor entries above carry `type = "spec"`,
+  # which is not in `_SHAPING_TYPES`, so they classify `unsupported_legacy` — the
+  # same code as an untyped build entry. The `type` key is therefore doing nothing
+  # the engine reads; it is documentation for humans only.
+  # Three options, and picking one is a routing decision, not a cleanup:
+  #   (a) keep `type = "spec"` — honest as human documentation, permanently
+  #       unsupported_legacy, and the key stays inert.
+  #   (b) drop the key — they become ordinary build entries, classify identically,
+  #       and the file stops implying a vocabulary the engine does not have.
+  #   (c) add `spec` to `_SHAPING_TYPES` — an ENGINE change. It would move these
+  #       into the shape room and put them in front of check_shaping_guard, which
+  #       is the opposite of what the reanchor comment wants.
+  # Note the wider constraint this sits inside: a build-room backlog item has NO
+  # supported legacy form at all — `_accepted_legacy_entry`'s backlog.open branch
+  # requires a `_SHAPING_TYPES` member, and the only other supported shape is a
+  # canonical target entry needing a real artifact `path` that a backlog idea does
+  # not have. So 136 of these entries cannot be migrated out of unsupported_legacy
+  # without either an engine change or fabricated paths. Do not fabricate paths.
+  # Fix: decide between (a), (b), and (c); if (c), it needs its own RFC.
+  # Unblocks when: picked up — no dependency.
+  {slug = "reanchor-entry-typing-decision", source = "spec/workspace-backlog-reconciliation AC7"},
 
   # The canonical adopter-facing `guides/` tree is mirrored into the public
   # technical docs, but `agentbundle catalogue package --flavor source` includes
