@@ -1,85 +1,48 @@
-# How to capture and triage a work item
+---
+title: Migrate capture-work requests to work-intake
+summary: Use the compatibility alias safely while moving saved prompts and guidance to Core's intake front door.
+pack: core
+kind: how-to
+---
 
-**Use this when:** You surface a new item mid-session — a deferred spec AC, an out-of-scope bug, a review follow-on, or an unformed idea — and need to route it to the right room in `workspace.toml`.
-**Prerequisites:** The `core` pack installed in the target repo and a `workspace.toml` at the repo root.
-**Result:** The item classified as `[build]` or `[shape]` and written to `workspace.toml`, with the matching shaping skill offered immediately if the item is shape-typed.
+# Migrate capture-work requests to work-intake
 
-Mid-session, you notice something that should be tracked: a follow-on from a spec, a bug, an idea, or an item a spec marked as deferred. This guide walks through using `capture-work` to classify the item and write it to the right room in `workspace.toml`.
+`capture-work` remains available for compatibility, but it no longer owns
+classification or storage. Replace it with the equivalent `work-intake`
+request in prompts, guides, and automations.
 
-For *why* items route to either the shape room or the build room, see [The two-room model](../explanation/two-room-model.md). For the `workspace.toml` sections that `capture-work` writes to, see [workspace.toml schema reference](../reference/workspace-toml-schema.md).
-
-## When to use this guide
-
-Use `capture-work` any time you surface a new item during a session:
-
-- A spec's `(deferred: <slug>)` marker identifies something cut from the current PR.
-- You notice a bug or gap that is out of scope for the current spec.
-- A review finding surfaces a follow-on that should not block the current PR.
-- You have an idea worth tracking but not yet ready to build.
-
-`capture-work` handles classification — you describe the item in plain language and the skill routes it.
-
-## Step 1 — Invoke `capture-work`
-
-At any point during a session:
-
-```
-capture-work
+```text
+Remember that export retries need idempotent replay. Do not start implementation.
 ```
 
-The skill prompts you to describe the item. You can also describe it inline:
+The agent records a Draft artifact and non-dispatchable workspace entry, then
+stops. This is the same result whether the request reached `work-intake`
+directly or through the alias.
 
+## Replace an existing request
+
+Change a prompt such as:
+
+```text
+capture-work: export retries need idempotent replay
 ```
-capture-work: the retry logic should handle transient network failures
+
+to:
+
+```text
+work-intake: remember that export retries need idempotent replay; stop without implementation
 ```
 
-## Step 2 — Describe the item in plain language
+The alias emits a deprecation notice, normalizes the request, and forwards it.
+It does not write a legacy queue entry, run a separate `[build]` versus
+`[shape]` classifier, or retain independent semantics.
 
-State what the item is and why it matters. Do not pre-classify it — the skill does the routing. Examples:
+## Verify the result
 
-- "The payment-retry spec deferred idempotent replay. It should be a follow-on spec."
-- "The API timeout is hardcoded; it should be configurable."
-- "We need to track competitor pricing weekly — it is context for the roadmap."
+Run `workspace-status`. The new artifact should appear in the lifecycle state
+chosen by `work-intake`; remembered work remains Draft and non-dispatchable.
+The artifact must exist before its schema-valid workspace entry is registered.
 
-The skill uses your description to classify the item as `[build]` (ready to implement) or `[shape]` (needs research, framing, or strategy first), and picks a subtype if it is a shape item.
-
-## Step 3 — Review the proposed routing
-
-The skill surfaces its classification:
-
-- **`[build]`** — the item is shaped enough to go directly to the build room as a spec path in `["ini-NNN".work].queue`.
-- **`[shape] (subtype)`** — the item needs shaping first; it goes to the shape room. Subtypes and their skills:
-  - `shape` → `frame-intent`
-  - `research` → `desk-research-project-start`
-  - `strategy` → `frame-situation`
-  - `signal` → stays in `[shaping_queue].active` as ongoing monitoring context (no skill action)
-  - `design` → `experience-status`
-
-The skill shows you the proposed routing and the target list before writing anything.
-
-## Step 4 — Confirm or redirect
-
-Read the proposed routing. If the classification matches what you intended, confirm.
-
-If the item is misclassified — for example, routed to the shape room when it is clearly a build item — tell the skill how to reclassify before it writes.
-
-## Step 5 — Verify the entry in `workspace.toml`
-
-After confirmation, the skill writes the entry to `workspace.toml`. Verify:
-
-- For a **build item** scoped to the active initiative: the path appears in `["ini-NNN".work].queue`.
-- For a **deferred acceptance criterion** (a `(deferred: <slug>)` marker from a spec): the entry appears in `[backlog].open` with `source = "spec/<name> ACn"` — even when an initiative is active. Deferred items carry provenance back to the spec that cut them.
-- For a **repo-level build item** not scaled to an initiative (too small or too cross-cutting to own a spec in `[work].queue`): the entry appears in `[backlog].open` without a `source`.
-- For a **shape item**: the entry appears in `["ini-NNN".shaping_queue].backlog` (or `[backlog].open` with a `type` field). Exception: `signal`-subtype items land in `.active`, not `.backlog` — they are persistent monitoring context, not a queue entry waiting to be worked.
-
-The entry is written with a `# comment` above it describing the item for future sessions.
-
-## Step 6 — Handle the shaping hand-off (shape items only)
-
-After writing a shape item, the skill checks whether the matching shaping skill is installed and offers to start shaping immediately. If you want to continue current work and shape later, decline — the entry is in `workspace.toml` and will surface in the next `workspace-status` run.
-
-## Related
-
-- [The two-room model](../explanation/two-room-model.md) — why items route to two different rooms
-- [How to orient at the start of a session](orient-at-session-start.md) — where all captured items appear after a session
-- [workspace.toml schema reference](../reference/workspace-toml-schema.md) — the sections `capture-work` writes to
+See [Start or remember work without choosing a skill](start-or-remember-work.md)
+for the main workflow and [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
+for exact routes and boundaries.

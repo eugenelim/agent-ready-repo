@@ -1,18 +1,24 @@
 ---
 name: receive-brief
-description: Use this skill when the user receives an externally-authored, multi-feature product brief -- a PRD, a solution handoff, a requirements packet -- and needs to turn it into shippable specs. Triggers on "receive a brief", "decompose this PRD", "we got a product brief", "break this handoff into specs". Elicits the load-bearing fields without mandating a schema, decomposes by shippability, and executes each slice through new-spec then work-loop. Do NOT use to author a single feature from scratch (use new-spec) or to record a decision (use new-adr).
+description: Use this skill when the user has an existing externally-authored, multi-feature product brief -- a PRD, a solution handoff, a requirements packet -- and needs to mark it Ready or turn confirmed slices into shippable specs. Triggers on "receive a brief", "decompose this PRD", "we got a product brief", "break this handoff into specs". Elicits the load-bearing fields without mandating a schema, passes a Ready gate even with zero specs, and invokes new-spec only for confirmed slices. Do NOT use to author a single feature from scratch (use new-spec) or to record a decision (use new-adr).
+allowed-tools: Read Write Edit
+metadata:
+  type: skill
+  boundaries:
+    - filesystem_write
+    - filesystem_read_untrusted
 ---
 
 # Skill: receive-brief
 
-Receive a product brief — a PRD, a solution handoff, a packet of work product
-handed from someone else — and route it into delivery. A brief spans several
-features and carries the *what/why*; a spec is one feature and carries the
-*how*. `new-spec` authors one feature; this skill is the inbox a level above
-it: **elicit** what the brief is missing, **decompose** it into
-independently-shippable slices, and **execute** each slice through the normal
-`new-spec` → `work-loop` pipeline. The brief becomes a live tracker whose
-coverage rolls up from the specs it spawned.
+Receive an existing product brief — a PRD, a solution handoff, a packet of work
+product handed from someone else — and route it into delivery when the user is
+ready. A brief spans several features and carries the *what/why*; a spec is one
+feature and carries the *how*. `new-spec` authors one feature; this skill is
+the inbox a level above it: **elicit** what the brief is missing, **mark it
+Ready** when the human gate passes, and **scaffold** only each confirmed slice.
+The brief becomes a live tracker whose coverage rolls up from the specs it
+spawned.
 
 ## Output rendering
 
@@ -92,9 +98,11 @@ the shippability test, **not** a component or layer split: "auth service" and
 
 **Surface the proposed cut and wait for confirmation before scaffolding any
 spec.** Present the slices, what each delivers, and (Shape B) which stories
-each carries. The decomposition is judgment; the human signs off on it.
+each carries. The decomposition is judgment; the human signs off on it. A
+Ready brief can stop here with zero specs; do not create placeholder specs,
+plans, or workspace entries just to satisfy a map.
 
-### 3. Execute — scaffold, back-link, hand off
+### 3. Execute — scaffold confirmed slices, back-link, hand off
 
 For each confirmed slice, in dependency order:
 
@@ -110,22 +118,26 @@ For each confirmed slice, in dependency order:
 3. **Add a row to the brief's Spec map** for the new slice (the Status column
    is auto-derived — leave it to the lint; do not hand-write it).
 4. **Hand off to `work-loop`** to build the slice. The brief is thus
-   *executable*: brief → (spec, plan) × N → work-loop.
+   deliverable through confirmed specs; the brief itself is not executable.
 
 You don't have to scaffold every slice at once — a brief can grow its Spec map
 over time as slices are picked up. A spec may even predate its brief; the
-`Brief:` back-link is what ties them together, not directory nesting.
+`Brief:` back-link is what ties derived specs to the brief, not directory
+nesting. Unconfirmed slices remain deferred scope in the brief.
 
 ### 4. Write back — set Ready and update workspace
 
-After decomposition is confirmed with the user, run this step before closing
-the session.
+Run this step when the human Ready gate passes, even when there are zero specs.
+Do not require a confirmed slice cut before marking a complete brief Ready.
 
 **DoR gate check** — before stamping `Ready`, verify the brief carries:
 - **Outcome** (present and non-empty)
-- **Appetite** (present and non-empty)
-- **≥1 Rabbit hole** entry
-- **Spec map skeleton** (at least one row, even a placeholder)
+- **In-scope and out-of-scope boundaries** (both explicit)
+- **Constraints or appetite** (present and non-empty)
+- **Named assumptions or risks** (at least one)
+- **Durable source provenance** (and reviewed source revision for
+  tracker-origin work)
+- **Spec map section** (placeholder rows are not required)
 
 If any gate field is absent, surface the gap and ask the user to fill it.
 Do **not** stamp `Status: Ready` on a brief that does not pass this gate.
@@ -135,27 +147,25 @@ Do **not** stamp `Status: Ready` on a brief that does not pass this gate.
 1. **Set `Status: Ready`** in the brief file's header block (edit the line
    `- **Status:** Draft` → `- **Status:** Ready` in
    `docs/product/briefs/<slug>.md`; add the line if absent with value `Ready`).
-   Stage the file.
 
-2. **Move the brief path in `workspace.toml`** (in the working directory) from
+2. **Move the complete structured brief entry in `workspace.toml`** from
    `["<slug>".brief_queue].draft` to `["<slug>".brief_queue].ready` using a
    **comment-preserving edit** — targeted text replacement or `tomlkit`; never
    a full `tomllib` + `tomli_w` round-trip that strips comments. Search all
-   active initiative sections for the path; move it in the one that contains
-   it. Cases:
-   - Path in `draft` only → move to `ready`.
-   - Path in both `draft` and `ready` → remove from `draft`, leave the single
+   active initiative sections for the entry path; move the unchanged object in
+   the one that contains it. Cases:
+   - Entry in `draft` only → move to `ready`.
+   - Entry in both `draft` and `ready` → remove from `draft`, leave the single
      `ready` entry (deduplicate; log the inconsistency).
-   - Path in `ready` only → no-op; log "already ready, no TOML change."
-   - Path not in any `draft` list → set `Status: Ready` in the brief file
-     only; log that the path was not found in any `draft` list.
-   Stage the file.
+   - Entry in `ready` only → no-op; log "already ready, no TOML change."
+   - Entry not in any `draft` list → rollback the brief status change when
+     safe; otherwise record an explicit non-dispatchable reconciliation
+     finding. Do not create specs or dispatch another processor.
 
-**Degrade gracefully** when `workspace.toml` is absent, unparseable, or
-parseable but has no `brief_queue` sub-table for an active initiative: skip
-the TOML edit; complete only the `Status: Ready` write in the brief file;
-emit a named diagnostic —
-`"workspace.toml not available — Status: Ready set in brief file only; add the path to [\"<initiative-slug>\".brief_queue].ready manually."`
+When `workspace.toml` is absent, unparseable, or has no matching structured
+Draft entry, fail closed. Roll back `Status: Ready` when safe; otherwise leave
+an explicit non-dispatchable reconciliation finding and emit:
+`"workspace registration unavailable — Ready transition was not completed and no processor was dispatched."`
 
 > **Entry point note:** `author-brief` is the upstream entry point for
 > unstructured external input (an email, a prose description, a Linear Issue).
@@ -184,14 +194,10 @@ and a story-list brief (Shape B), each with a populated Spec map.
 
 ## DoR gate
 
-A brief is **eligible for `Ready`** when it carries all four:
-- **Outcome** — non-empty outcome statement.
-- **Appetite** — a time/effort constraint.
-- **≥1 Rabbit hole** — at least one named design trap or uncertainty.
-- **Spec map skeleton** — at least one placeholder row.
-
-Meeting the gate does **not** automatically set `Status: Ready` — only the
-step-4 write-back does, and only after decomposition is confirmed.
+The canonical Ready-gate fields are defined once in step 4. Meeting them does
+**not** automatically set `Status: Ready` — only that step's human-confirmed
+write-back does. A Ready brief may have zero specs and remain non-executable
+until the user confirms a slice for `new-spec`.
 
 ## Anti-patterns to refuse
 

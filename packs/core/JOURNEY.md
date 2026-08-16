@@ -13,8 +13,11 @@ contract:
   yourDecisions:
     - "Approve the plan"
     - "Merge the PR"
-whatChanges: "After installing core, every coding task in your repo runs through work-loop: plan → execute → verify → adversarial review. Lint, typecheck, and tests are mechanical gates the loop runs before you see the diff. The adversarial reviewer reads the diff cold — no context from the build session. The loop cannot self-certify: it always surfaces to you for plan approval and PR merge. For HTML/CSS/JS work, install the frontend-engineering pack to unlock craft rules, WCAG 2.2 AA guidance, and the evidence manifest."
+whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → adversarial review. The loop cannot self-certify: it surfaces to you for plan approval and merge."
 skills:
+  - name: work-intake
+    description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
+    humanTouches: 0
   - name: work-loop
     description: "The build loop. Plans, executes, verifies, and reviews — mechanical gates and human checkpoints the agent cannot bypass."
     humanTouches: 2
@@ -37,11 +40,11 @@ skills:
     description: "Adapts the agent-ready-repo conventions to an existing project's idioms and structure — the on-ramp for brownfield repos."
     humanTouches: 1
   - name: author-brief
-    description: "Converts unstructured external input (email threads, prose, Linear issues) into a DoR-compliant product brief and queues it in workspace.toml."
+    description: "Materializes a coherent multi-feature outcome as a Draft brief and registers non-dispatchable workspace membership."
     humanTouches: 1
   - name: capture-work
-    description: "Captures follow-ons, deferred scope, and audit items surfaced in a session into workspace.toml so later sessions can pick them up cold."
-    humanTouches: 1
+    description: "Compatibility alias that forwards equivalent requests to work-intake; new guidance uses work-intake directly."
+    humanTouches: 0
   - name: workspace-status
     description: "Reads workspace.toml and surfaces ready-to-start items, blocked items, parallel candidates, and active signals — the cold-start orient for every session."
     humanTouches: 0
@@ -93,8 +96,8 @@ relatedJourneys:
 
 | Say this | What happens |
 |----------|-------------|
+| `work-intake` | Route a start, remember, status, or refresh request into durable state |
 | `workspace-status` | Orient — what's ready, blocked, and done |
-| `author-brief` | Turn any idea, email, or issue into a queued brief |
 | `work-loop` | Plan → execute → gates → adversarial review → merge |
 | `bug-fix` | Diagnose and fix a specific bug |
 | `new-spec` | Author a spec directly, without the brief layer |
@@ -117,13 +120,17 @@ Type `workspace-status` to see what's ready to start, what's blocked, and what s
 
 ---
 
-### 2. Author a brief
+### 2. Route the work
 
-Type `author-brief` and paste any unstructured input — an idea, email thread, or issue. The agent extracts the outcome, appetite, and key constraints, then queues the brief in `workspace.toml`.
+Describe the work to `work-intake`. The agent selects one artifact route from
+the content, writes the artifact, then registers its lifecycle state. A
+multi-feature outcome becomes a Draft brief; one independently shippable change
+continues to `new-spec`; an opportunity can remain a non-dispatchable intent.
 
 ```text
-  brief   docs/product/briefs/data-export.md
-  queued  sprint-8/data-export → ready
+  artifact    docs/product/briefs/data-export.md
+  membership  draft · non-dispatchable
+  processor   author-brief
 ```
 
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
@@ -131,12 +138,15 @@ Type `author-brief` and paste any unstructured input — an idea, email thread, 
 
 ---
 
-### 3. Agree the plan
+### 3. Make one slice ready
 
-Type `work-loop docs/product/briefs/data-export.md`. The agent checks risk triggers, writes the spec and plan, surfaces assumptions, and stops for your sign-off before a line of code is written.
+Run `receive-brief docs/product/briefs/data-export.md`. After the brief passes
+its Ready gate, choose one independently shippable slice. `new-spec` writes its
+Approved spec and sibling plan; the brief itself never enters `work-loop`.
 
 ```text
-mode: full — new dependency trigger
+brief: Ready
+slice: streaming-csv-export
   spec  docs/specs/data-export/spec.md
   plan  docs/specs/data-export/plan.md
 
@@ -146,18 +156,18 @@ mode: full — new dependency trigger
 
   Assumption: streaming CSV is acceptable; XLSX is deferred.
 
-Approve? ›
+approved: spec and plan
 ```
 
-- **You decide:** approve spec and plan — 5–10 minutes, the cheapest gate.
-- **Output:** `docs/specs/data-export/spec.md` + `plan.md` — your checkpoint before any code is written.
-- **State:** draft
+- **You decide:** approve the brief, slice, spec, and plan before implementation.
+- **Output:** `docs/specs/data-export/spec.md` + `plan.md` — the executable contract and plan.
+- **State:** confirmed-write
 
 ---
 
 ### 4. Execute
 
-Type `work-loop execute spec/data-export`. The agent implements, runs lint / typecheck / tests after each logical change, and hands the diff to `adversarial-reviewer` in a fresh session.
+Type `work-loop docs/specs/data-export/spec.md`. The agent implements, runs lint / typecheck / tests after each logical change, and hands the diff to `adversarial-reviewer` in a fresh session.
 
 ```text
   ● Lint          ok

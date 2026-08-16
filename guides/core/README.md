@@ -1,6 +1,6 @@
 # `core` — guides
 
-`core` is the flagship pack: the loop your agent can't cut corners in. Plan and surface assumptions, hard gates between "done" and done, adversarial review in a fresh session, and capture what was learned. The skills (`work-loop`, `new-spec`, `bug-fix`, `adapt-to-project`), the four reviewer/executor subagents, and the `pre-pr` + `session-start` hooks all compose into one loop.
+`core` is the flagship pack: one front door for durable work intake, then a loop your agent can't cut corners in. Describe the work in ordinary language; `work-intake` routes it to the right artifact and lifecycle state. Approved specs continue through hard gates and cold review.
 
 New here? [Why loop engineering](explanation/core-pack.md#why-loop-engineering) is the *why* — the leverage has moved off the prompt and onto the loop. [The `core` pack as a system](explanation/core-pack.md) is the full map. Then build something with [plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md).
 
@@ -15,6 +15,7 @@ Learning-oriented, start-to-finish.
 Task-oriented recipes for a problem you already have.
 
 - [Plan and execute non-trivial work](how-to/plan-and-execute-non-trivial-work.md) — the loop itself, applied to a feature or change.
+- [Start or remember work without choosing a skill](how-to/start-or-remember-work.md) — route an ordinary request into the right artifact and workspace state.
 - [Fix a bug](how-to/bug-fix.md) — the diagnose-then-fix path, with a regression test as the receipt.
 - [Adapt a freshly-installed pack to your project](how-to/adapt-to-project.md) — tailor the defaults to your repo after install.
 - [Review a branch or PR you didn't write](how-to/review-someone-elses-pr.md) — point the reviewers at anyone's diff.
@@ -29,6 +30,7 @@ Information-oriented, dry and complete.
 
 - [Spec `Shape:` and the plan's `## Design (LLD)`](reference/spec-shape-and-lld.md) — the fields, what they mean, and how the stack is derived.
 - [Product brief fields](reference/product-brief-fields.md) — the brief field list and the linkage it stamps on derived specs.
+- [Work-intake routing and lifecycle](reference/work-intake-routing-and-lifecycle.md) — exact routes, states, processors, and mutation boundaries.
 
 ## Explanation
 
@@ -40,6 +42,7 @@ Understanding-oriented — the *why* behind the design.
 - [About the walking skeleton](explanation/walking-skeleton-vs-throwaway.md) — the thinnest end-to-end slice, and when to throw code away instead.
 - [About foundation vs. map](explanation/foundation-vs-map.md) — the two things you record at inception and why they're different.
 - [Why a brief layer](explanation/why-a-brief-layer.md) — why a brief sits above the spec when work spans many features.
+- [Why work begins with an artifact](explanation/why-work-begins-with-an-artifact.md) — how source, durable meaning, lifecycle, and execution remain separate.
 - [Role journeys](explanation/role-journeys.md) — how PMs, engineers, and agents use the system at their operating altitude.
 
 ---

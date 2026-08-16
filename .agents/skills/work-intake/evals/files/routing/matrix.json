@@ -1,0 +1,170 @@
+{
+  "contract_version": "work-intake-routing-evals.v1",
+  "cases": [
+    {
+      "id": "start-minimal-intent",
+      "fixture": "evals/files/routing/start-minimal-intent.json",
+      "artifact": "docs/product/intents/workspace-routing.md",
+      "artifact_kind": "intent",
+      "lifecycle_membership": "shaping_queue.backlog",
+      "processor": "none",
+      "authority_mode": "repo-origin",
+      "mutation": "materialize-and-register",
+      "signals": {
+        "action": "start",
+        "artifact": "docs/product/intents/workspace-routing.md",
+        "artifact_kind": "intent",
+        "authority_mode": "repo-origin"
+      }
+    },
+    {
+      "id": "remember-draft",
+      "fixture": "normalized-intake/valid/remember-repo-origin-prompt-like-data.json",
+      "artifact": "docs/product/intents/deferred-work.md",
+      "artifact_kind": "intent",
+      "lifecycle_membership": "backlog.open",
+      "processor": "none",
+      "authority_mode": "repo-origin",
+      "mutation": "materialize-draft-and-register-non-dispatchable",
+      "signals": {
+        "action": "remember",
+        "artifact": "docs/product/intents/deferred-work.md",
+        "artifact_kind": "intent",
+        "authority_mode": "repo-origin"
+      }
+    },
+    {
+      "id": "status-passthrough",
+      "fixture": "workspace/context/lifecycle.toml",
+      "artifact": "workspace.toml",
+      "artifact_kind": "workspace-status",
+      "lifecycle_membership": "passthrough",
+      "processor": "workspace-status",
+      "authority_mode": "read-only",
+      "mutation": "none",
+      "signals": {
+        "action": "status",
+        "artifact": "workspace.toml",
+        "artifact_kind": "workspace-status",
+        "authority_mode": "read-only"
+      }
+    },
+    {
+      "id": "refresh-unavailable",
+      "fixture": "normalized-intake/valid/refresh-repo-origin.json",
+      "artifact": "docs/specs/example/spec.md",
+      "artifact_kind": "spec",
+      "lifecycle_membership": "resolved-existing",
+      "processor": "new-spec",
+      "authority_mode": "repo-origin",
+      "mutation": "none",
+      "signals": {
+        "action": "refresh",
+        "artifact": "docs/specs/example/spec.md",
+        "artifact_kind": "spec",
+        "authority_mode": "repo-origin"
+      }
+    },
+    {
+      "id": "direct-spec",
+      "fixture": "workspace/target/valid/spec-with-cross-repo-need.json",
+      "artifact": "docs/specs/self-service-reset/spec.md",
+      "artifact_kind": "spec",
+      "lifecycle_membership": "work.queue",
+      "processor": "new-spec",
+      "authority_mode": "tracker-origin",
+      "mutation": "materialize-and-register",
+      "signals": {
+        "action": "start",
+        "artifact": "docs/specs/self-service-reset/spec.md",
+        "artifact_kind": "spec",
+        "authority_mode": "tracker-origin"
+      }
+    },
+    {
+      "id": "multi-spec-brief",
+      "fixture": "workspace/target/valid/brief-tracker-origin-coordination.json",
+      "artifact": "docs/product/briefs/account-recovery.md",
+      "artifact_kind": "brief",
+      "lifecycle_membership": "brief_queue.draft",
+      "processor": "author-brief",
+      "authority_mode": "tracker-origin",
+      "mutation": "materialize-and-register",
+      "signals": {
+        "action": "start",
+        "artifact": "docs/product/briefs/account-recovery.md",
+        "artifact_kind": "brief",
+        "authority_mode": "tracker-origin"
+      }
+    },
+    {
+      "id": "defect",
+      "fixture": "workspace/target/valid/defect-repo-origin.json",
+      "artifact": "docs/product/defects/login-timeout.md",
+      "artifact_kind": "defect",
+      "lifecycle_membership": "backlog.open",
+      "processor": "bug-fix",
+      "authority_mode": "repo-origin",
+      "mutation": "materialize-and-register",
+      "signals": {
+        "action": "start",
+        "artifact": "docs/product/defects/login-timeout.md",
+        "artifact_kind": "defect",
+        "authority_mode": "repo-origin"
+      }
+    },
+    {
+      "id": "ambiguity",
+      "fixture": "normalized-intake/valid/start-repo-origin.json",
+      "artifact": "docs/product/intents/work-intake.md",
+      "artifact_kind": "intent",
+      "lifecycle_membership": "draft-with-gaps",
+      "processor": "none",
+      "authority_mode": "repo-origin",
+      "mutation": "ask-or-draft-only",
+      "signals": {
+        "action": "start",
+        "artifact": "docs/product/intents/work-intake.md",
+        "artifact_kind": "intent",
+        "authority_mode": "repo-origin",
+        "named_gaps": true
+      }
+    },
+    {
+      "id": "alias-equivalence",
+      "fixture": "normalized-intake/valid/remember-repo-origin-prompt-like-data.json",
+      "artifact": "docs/product/intents/deferred-work.md",
+      "artifact_kind": "intent",
+      "lifecycle_membership": "backlog.open",
+      "processor": "none",
+      "authority_mode": "repo-origin",
+      "mutation": "same-as-work-intake-remember",
+      "alias": "capture-work",
+      "same_as": "remember-draft",
+      "signals": {
+        "action": "remember",
+        "artifact": "docs/product/intents/deferred-work.md",
+        "artifact_kind": "intent",
+        "authority_mode": "repo-origin",
+        "alias": "capture-work"
+      }
+    },
+    {
+      "id": "ready-brief-zero-specs",
+      "fixture": "workspace/context/lifecycle.toml",
+      "artifact": "docs/product/briefs/ready-without-specs.md",
+      "artifact_kind": "brief",
+      "lifecycle_membership": "brief_queue.ready",
+      "processor": "receive-brief",
+      "authority_mode": "repo-origin",
+      "mutation": "none",
+      "signals": {
+        "action": "start",
+        "artifact": "docs/product/briefs/ready-without-specs.md",
+        "artifact_kind": "brief",
+        "authority_mode": "repo-origin",
+        "ready_brief": true
+      }
+    }
+  ]
+}

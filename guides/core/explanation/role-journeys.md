@@ -1,3 +1,10 @@
+---
+title: Role journeys
+summary: How product, engineering, and agent roles navigate workspace coordination.
+pack: core
+kind: explanation
+---
+
 # Role journeys
 
 How the three primary personas — PM (and strategist), engineer, and AI agent — navigate the workspace coordination system at their operating altitude.
@@ -24,7 +31,7 @@ A product engineer (PE) works in the shaping room, moving a signal through the s
 
 The reason the chain of committed artifacts matters: when an engineer or agent picks up the spec six weeks later, they can trace the bet back to the original signal without asking anyone. The shaping chain is the provenance of the brief.
 
-Before a signal enters this sequence, it is triaged. The [capture work](../how-to/capture-work.md) how-to covers how a surfaced item is classified (build vs. shaping, mode) and routed into the shaping queue — the entry point that precedes `frame-situation`.
+Before a signal enters this sequence, it is made durable. The [work intake](../how-to/start-or-remember-work.md) how-to covers how a surfaced item becomes a canonical artifact and lifecycle entry. A non-dispatchable intent can then be shaped through the appropriate installed workflow.
 
 ### Tracker intake
 

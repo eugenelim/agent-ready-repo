@@ -2116,7 +2116,7 @@ queue   = [
 ["ini-008"]
 name      = "Work Intake and Artifact Routing"
 status    = "active"
-milestone = "Wave 3 · Intake surface"
+milestone = "Wave 4 · Tracker adapters"
 
 ["ini-008".work]
 # Entries are canonical target records (RFC-0083 delivery groups). Each carries its
@@ -2132,13 +2132,11 @@ shipped = [
   # Group 3 — parsing, reconciliation, status and dispatch enforce the target
   # rules: a missing spec or plan fails closed; comments cannot change routing.
   {path = "docs/specs/workspace-routing-invariants/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make lifecycle, reconciliation, and dispatch routing deterministic", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}]},
+  # Group 4 — standalone work-intake front door and compatibility alias.
+  {path = "docs/specs/work-intake-surface/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}]},
 ]
 active = []
 queue = [
-  # Group 4 — standalone `work-intake`; corrects author-brief, receive-brief,
-  # new-spec, work-loop, workspace-status; `capture-work` becomes the alias.
-  # Exit: start/remember/status work with no optional shaping pack.
-  {path = "docs/specs/work-intake-surface/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Provide one core entry point for work intake and routing", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/workspace-routing-invariants/spec.md"}]},
   # Group 5 — Jira, Jira Align, Linear and GitHub adapters converge on the shared
   # contract. Acquisition and normalization stay adapter-specific.
   {path = "docs/specs/tracker-intake-adapters/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Normalize tracker work through shared intake contracts", needs = [{type = "local", kind = "spec", path = "docs/specs/normalized-intake-workspace-contracts/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/work-intake-surface/spec.md"}]},

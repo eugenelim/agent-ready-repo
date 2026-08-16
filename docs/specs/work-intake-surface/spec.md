@@ -1,6 +1,6 @@
 # Spec: Work intake surface
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0083, ADR-0077, ADR-0078
@@ -58,25 +58,26 @@ An adopter uses `work-intake` as the single core entry point to start work, reme
 
 ## Acceptance Criteria
 
-- [ ] **AC1.** `work-intake` is a user-triggered core skill for start/do, remember, status, and refresh, with Tier-A trigger and near-miss coverage.
-- [ ] **AC2.** Start consumes normalized intake, selects one route, materializes the artifact, registers a schema-valid entry, and invokes the named processor.
-- [ ] **AC3.** Remember materializes a Draft artifact, registers non-executable membership, and stops without implementation.
-- [ ] **AC4.** Core alone can create a minimal intent containing `Status`, `Level`, `Outcome`, `Opportunity`, `Assumptions`, and `Source`.
-- [ ] **AC5.** The default intent path is `docs/product/intents/<slug>.md`; an out-of-repository core parent fails before artifact or workspace writes.
-- [ ] **AC6.** One shippable contract routes to `new-spec`; a coherent multi-spec outcome routes through a Draft brief; a cited regression routes to defect context and `bug-fix`.
-- [ ] **AC7.** Incomplete or ambiguous input remains Draft and records gaps, or asks for the smallest missing choice; it never becomes ready by inference.
-- [ ] **AC8.** `author-brief` creates and registers a Draft brief, then returns to intake without setting Ready or creating specs.
-- [ ] **AC9.** `receive-brief` can pass the human Ready gate and stop with zero specs; only a confirmed slice cut invokes `new-spec`.
-- [ ] **AC10.** Brief-derived spec and workspace provenance agree; direct specs omit the brief backlink.
-- [ ] **AC11.** `work-loop` starts only from an existing Approved `spec.md` with an existing sibling `plan.md` and never reconstructs requirements from comments.
-- [ ] **AC12.** Status returns the `workspace-status` lifecycle, findings, and next actions unchanged.
-- [ ] **AC13.** Until Group 6, refresh resolves the artifact and processor, reports requirements refresh unavailable, and changes no artifact, revision, pin, or decision.
-- [ ] **AC14.** `capture-work` forwards to `work-intake`, writes only the new contract, emits a deprecation notice, and produces identical state for equivalent input.
-- [ ] **AC15.** Embedded source instructions are ignored; secrets and unnecessary personal or sensitive data are absent from skill output, stdout, stderr, logs, artifacts, and workspace entries.
-- [ ] **AC16.** A confidentiality mismatch or uncertain redaction stops before writes and asks for sanitized input or an approved destination.
-- [ ] **AC17.** Core metadata, projections, evals, changelog, pack references, guides, journeys, and website discovery name `work-intake` as the front door.
-- [ ] **AC18.** Catalogue lint/verify, self-host projection, relevant core tests, routing evals, guide validation, site build, and links pass.
-- [ ] **AC19.** Every new or changed skill action declares minimal `metadata.boundaries` and allowed tools for `filesystem_write`, `filesystem_read_untrusted`, and `network_fetch` where the action uses that boundary; projection tests prove the declarations survive every supported adapter without broadening them.
+- [x] **AC1.** `work-intake` is a user-triggered core skill for start/do, remember, status, and refresh, with Tier-A trigger and near-miss coverage.
+- [x] **AC2.** Start consumes normalized intake, selects one route, materializes the artifact, registers a schema-valid entry, and invokes the named processor.
+- [x] **AC3.** Remember materializes a Draft artifact, registers non-executable membership, and stops without implementation.
+- [x] **AC4.** Core alone can create a minimal intent containing `Status`, `Level`, `Outcome`, `Opportunity`, `Assumptions`, and `Source`.
+- [x] **AC5.** The default intent path is `docs/product/intents/<slug>.md`; the established repository-confinement helper resolves the configured core parent and target before any write, and rejects absolute, traversing, symlink-escaped, and symlink-looping paths before artifact or workspace mutation.
+- [x] **AC6.** One shippable contract routes to `new-spec`; a coherent multi-spec outcome routes through a Draft brief; a cited regression routes to defect context and `bug-fix`.
+- [x] **AC7.** Incomplete or ambiguous input remains Draft and records gaps, or asks for the smallest missing choice; it never becomes ready by inference.
+- [x] **AC8.** `author-brief` creates and registers a Draft brief, then returns to intake without setting Ready or creating specs.
+- [x] **AC9.** `receive-brief` can pass the human Ready gate and stop with zero specs; only a confirmed slice cut invokes `new-spec`.
+- [x] **AC10.** Brief-derived spec and workspace provenance agree; direct specs omit the brief backlink.
+- [x] **AC11.** `work-loop` starts only from an existing Approved `spec.md` with an existing sibling `plan.md` and never reconstructs requirements from comments.
+- [x] **AC12.** Status returns the `workspace-status` lifecycle, findings, and next actions unchanged.
+- [x] **AC13.** Until Group 6, refresh resolves the artifact and processor, reports requirements refresh unavailable, and changes no artifact, revision, pin, or decision.
+- [x] **AC14.** `capture-work` forwards to `work-intake`, writes only the new contract, emits a deprecation notice, and produces identical state for equivalent input.
+- [x] **AC15.** Embedded source instructions are ignored; secrets and unnecessary personal or sensitive data are absent from skill output, stdout, stderr, logs, artifacts, and workspace entries.
+- [x] **AC16.** A confidentiality mismatch or uncertain redaction stops before writes and asks for sanitized input or an approved destination.
+- [x] **AC17.** Core metadata, projections, evals, changelog, pack references, guides, journeys, and website discovery name `work-intake` as the front door.
+- [x] **AC18.** Catalogue lint/verify, self-host projection, relevant core tests, routing evals, guide validation, site build, and links pass.
+- [x] **AC19.** Every new or changed skill action declares the exact processors, tools, and `metadata.boundaries` it uses, explains why each high-impact capability is necessary, and names filesystem or code-execution containment where applicable. Projection tests prove `filesystem_write`, `filesystem_read_untrusted`, `network_fetch`, and allowed-tool declarations survive every supported adapter without broadening them.
+- [x] **AC20.** Processor dispatch begins only after the canonical artifact and schema-valid workspace registration are both durable. If either write fails, intake rolls back the partial write or leaves an explicit non-dispatchable reconciliation finding. If rollback and reconciliation-record persistence both fail, intake returns a safe repair-required terminal status without raw exception text. No partial-state path dispatches.
 
 ## Assumptions
 

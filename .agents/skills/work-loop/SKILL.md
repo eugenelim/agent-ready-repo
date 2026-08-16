@@ -1,6 +1,12 @@
 ---
 name: work-loop
 description: "Use when implementing or resuming a non-trivial repository change: a feature, behavior-changing fix, refactor, migration, framework or dependency upgrade, schema or API change, performance work, infrastructure or build-system change, reversion, or an existing build spec under `docs/specs/`. Also use for bare continuation commands ('resume', 'continue', 'keep going', 'pick up where I left off', 'let's get going') when conversation or workspace context identifies active build work. Do not use for shaping, research, strategy, product planning, design exploration, monitoring or status-only work, review-only, explanation-only, specification-authoring-only, spike-only or throwaway exploration, or trivial edits that are cosmetic, tightly local, behavior-preserving, and have obvious verification."
+allowed-tools: Read Write Edit Bash Agent
+metadata:
+  type: skill
+  boundaries:
+    - filesystem_write
+    - filesystem_read_untrusted
 ---
 
 # Skill: work-loop
@@ -77,8 +83,12 @@ Skip entirely if `workspace.toml` is absent. If present:
    - **Milestone:** `milestone` from `["ini-NNN"]`.
    - **Canonical preflight:** use `workspace-status` canonical reconciliation output for
      dispatch decisions and active-resume selection. `canonical.ready` is the only
-     queue-ready set; any matching `canonical.blocked` or `canonical.findings` entry
-     blocks autonomous start with its stable `code`, `path`, and `next_action`.
+     queue-ready set; it already means an existing Approved `spec.md` has an
+     existing sibling `plan.md`, valid provenance, satisfied hard dependencies,
+     and no fail-closed finding. `canonical.active` is the only resumable set.
+     Any matching `canonical.blocked` or `canonical.findings` entry blocks
+     autonomous start with its stable `code`, `path`, and `next_action`;
+     `missing_plan`, `unapproved_spec`, and comment-only changes are refusals.
      Retained `legacy_memberships` are visible context only and never dispatch.
      - Supplied spec path: continue only when the path has a matching
        `canonical.ready` evaluation for a new start or matching `canonical.active`
@@ -98,7 +108,8 @@ Skip entirely if `workspace.toml` is absent. If present:
    - **Stale-queue check.** Use the `workspace-status` reconciliation/canonical
      findings for drift warnings. Do not re-read raw `[work].queue` or
      `[work].active` membership to authorize start or resume; raw membership is
-     advisory only after canonical preflight has accepted the item.
+     advisory only after canonical preflight has accepted the item. Never reconstruct
+     requirements from comments, summaries, list order, or surrounding prose.
 
 2. **Shaping-item guard.** Derive slug (strip `docs/specs/` prefix + trailing `/`). Check all active initiatives' `[shaping_queue].active`, `.backlog`, and `[backlog].open` typed entries for a slug match. On match, stop: "This is a `[shape]` item (`type = <subtype>`); use `<skill>` — `work-loop` is for build items only." (shape→`frame-intent`; research→`desk-research-project-start`; strategy→`frame-situation`/`frame-intent`; design→`experience-status`.) Signal type → "Monitoring signal — `work-loop` is for build items only."
 

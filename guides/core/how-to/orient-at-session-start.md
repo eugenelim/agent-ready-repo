@@ -1,3 +1,10 @@
+---
+title: How to orient at the start of a session
+summary: Read workspace lifecycle state and choose the next ready action.
+pack: core
+kind: how-to
+---
+
 # How to orient at the start of a session
 
 **Use this when:** You are starting an agent session on a repo that uses `workspace.toml` and need to read queue state before picking work.
@@ -66,13 +73,13 @@ You now have enough context to start. The common cases:
 |-------------|------------|
 | A build item is ready | `work-loop docs/specs/<slug>/` |
 | A shaping item is active | Run the suggested shaping skill |
-| You've noticed something new mid-session | `capture-work` — see [How to capture and triage a work item](capture-work.md) |
+| You've noticed something new mid-session | `work-intake` — see [Start or remember work without choosing a skill](start-or-remember-work.md) |
 | Nothing is ready; everything is blocked | Surface the blocking dependency — resolve it or capture a follow-on |
 
 ## Related
 
 - [The two-room model](../explanation/two-room-model.md) — why the queue has two rooms
-- [How to capture and triage a work item](capture-work.md) — when you notice something new during the session
+- [Start or remember work without choosing a skill](start-or-remember-work.md) — when you notice something new during the session
 - [How to start working on a project](start-a-project.md) — if this is your first session on the repo
 - [workspace.toml schema reference](../reference/workspace-toml-schema.md) — every field explained
 - [Your first workspace session](../tutorials/your-first-workspace.md) — an end-to-end walkthrough

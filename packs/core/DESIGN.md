@@ -18,6 +18,25 @@ Things a reasonable reader might expect this pack to solve. It doesn't, by desig
 - **Judgment calls about feature design** — the loop verifies implementation against the spec, not the spec against user need. That's the brief layer's job (§11).
 - **Parallel write coordination as a default** — DAG-independent tasks can make incompatible implicit decisions that survive textual merge. Parallel writes are gated; the default is sequential topological order (§12).
 
+## Work intake boundary
+
+`work-intake` is the public front door before the build loop. It separates a
+source request from the canonical artifact that carries product meaning, the
+`workspace.toml` entry that carries lifecycle, and the processor that owns the
+next workflow step.
+
+Routing is deterministic from content and altitude. A minimal opportunity
+becomes an intent, one independently shippable contract becomes a spec, a
+coherent multi-spec outcome becomes a brief, and cited regression evidence
+becomes defect context. Ambiguous work remains Draft or produces one bounded
+question; it never becomes ready by inference.
+
+The write order is an invariant: materialize the confined artifact, register a
+schema-valid workspace entry, then dispatch. A failure before durable
+registration leaves no executable state. `workspace-status` remains the
+read-side authority, and `capture-work` is only a compatibility alias for the
+intake surface.
+
 ---
 
 ## 1. The problem
@@ -284,7 +303,10 @@ Items flow left to right: from backlog → shaping → work → done. `workspace
 
 **Every session starts with `workspace-status`.** It replaces reading multiple product docs by hand — you get a ready/blocked/done summary in one shot.
 
-**Every session ends with `capture-work`.** Follow-ons, deferred scope, and discovered issues get queued in `workspace.toml` so they survive the session. Without capture-work, follow-ons live in the chat log and are effectively lost.
+**Every session ends with `work-intake remember`.** Follow-ons, deferred scope,
+and discovered issues become canonical Draft artifacts plus schema-valid,
+non-dispatchable `workspace.toml` entries, so they survive the session without
+making comments or chat history the requirements store.
 
 This orient/close discipline is the habit that makes workspace.toml accurate over time. A workspace.toml that is only written once and never updated is stale within a week.
 
@@ -371,7 +393,10 @@ These constraints must never be violated by any skill in the core pack or any sk
 
 5. **The loop cannot modify its own termination criteria.** The done-checklist is fixed by the skill, not by the loop's runtime judgments about what "done" should mean for this particular task.
 
-6. **`capture-work` runs at session end.** Follow-ons discovered during the loop are queued in workspace.toml, not discarded. Silently dropping scope creep findings is not a valid optimization.
+6. **`work-intake remember` runs at session end.** Follow-ons discovered during
+   the loop become canonical Draft artifacts and structured workspace entries,
+   not comments or chat-only reminders. Silently dropping scope creep findings
+   is not a valid optimization.
 
 ---
 

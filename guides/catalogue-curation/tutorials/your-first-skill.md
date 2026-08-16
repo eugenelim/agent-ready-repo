@@ -1,3 +1,10 @@
+---
+title: Your first skill
+summary: Build and verify a standard-compliant catalogue skill from scratch.
+pack: catalogue-curation
+kind: tutorial
+---
+
 # Your first skill
 
 **What you'll build:** A standard-compliant skill with valid frontmatter, shaped body, activation evals, output-quality evals, and all four lint gates passing — ready for PR review.
@@ -65,7 +72,7 @@ packs/<pack>/
 
 | Verb | What it does |
 |---|---|
-| `capture-work` | Captures a new work item into the queue |
+| `work-intake` | Materializes a canonical work artifact, then registers lifecycle state |
 | `workspace-status` | Surfaces the current queue state without modifying it |
 | `receive-brief` | Pulls a shaped brief from `[brief_queue]` into `[work].queue` |
 
@@ -158,7 +165,8 @@ detect what's missing, name it explicitly, and stop with a clear message.
   If absent: stop and tell the user. Do not attempt to install it.
 - If a `workspace.toml` exists in the working directory, read the current queue item.
   If no `workspace.toml` is found: note that workspace tracking is inactive and continue
-  without updating the queue. Tell the user they can run `capture-work` to set it up.
+  without updating the queue. Tell the user they can run `work-intake` to create
+  the canonical artifact and register lifecycle state.
 ```
 
 The workspace-absent case shows the pattern: detect, name, proceed-with-note or stop — never silently ignore.
