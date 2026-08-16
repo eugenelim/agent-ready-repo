@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-8f89c9b65af564cf65fb1f6475452b547641f35a9b1fe15d91d53ad0ae4c13ac",
+      "legacy_identity": "K-0023",
+      "legacy_source": "spec/local-gate-ci-parity",
+      "mutation_id": "3d62a4d59f39dc1dcc8a161a73612a72d05607413a28f6d81edbe1a86e130673",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "`refs/stash` lives in the common git dir, so every linked worktree (git worktree, Conductor workspace, any parallel-agent setup on one clone) pushes to and pops from the same stack. A concurrent rebase elsewhere will pop your stash into its tree, and your pop will land its untracked files in yours — which then fail your repo's own linters for reasons that look unrelated. Park work with a local commit (`git commit`, later `git reset --soft HEAD~1`) instead; commits are per-worktree. Recovery: `git log --all --format='%H %s' | grep <marker>` (not `git fsck --unreachable`, too slow on a large repo); a stash commit has three parents, and the untracked files are in the third.",
+    "kind": "gotcha"
+  },
+  "title": "git stash is shared across worktrees — never park work with it when agents run in parallel",
+  "topic_key": "git-stash-is-shared-across-worktrees-never-park-work-with-it-when-agents-run-in-"
+}

@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-ed713178648a3c841d0ea2bbe661cfd34782f3e4f97504dc716c19f6e9e80def",
+      "legacy_identity": "K-0060",
+      "legacy_source": "PR#941",
+      "mutation_id": "c497424bfae296d76c28ffc14da897d74cb80bd3f32e705a113e8d8c95c2cdec",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/**,tools/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/**,tools/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT) sets no minimum protocol version, so obsolete TLS is offered; CodeQL flags it as py/insecure-protocol at high severity. ssl.create_default_context() does set TLSv1_2 as the floor, which is why the distinction only shows up on hand-built contexts — including a diagnostic probe that deliberately skips verification. Set ctx.minimum_version = ssl.TLSVersion.TLSv1_2 explicitly whenever constructing a context directly.",
+    "kind": "gotcha"
+  },
+  "title": "A bare ssl.SSLContext still permits TLS 1.0 and 1.1",
+  "topic_key": "a-bare-ssl-sslcontext-still-permits-tls-1-0-and-1-1"
+}

@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-af48406ef8cc4093f1219f4bd06c9a088a36eb91e40a07070ef27afb095a92df",
+      "legacy_identity": "K-0035",
+      "legacy_source": "spec/binder-publishing-gate-propagation",
+      "mutation_id": "595ae84f81becb32d19d3415d46879399d72268a621028a5a8d2e268918ebe4d",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "docs/**,packs/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/**,packs/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Before specifying a verification check, ask which states make it pass. Two instances found in one session: a static assertion that every <pre class=\"mermaid\"> carries an aria-label passed only because the client-side bundle replaces that <pre> when it succeeds, so the attribute survives exactly when rendering fails; and a goal-based `grep -n '^| D46' decisions.md` passed while a blank line above the row had silently terminated the markdown table, so the row rendered as literal pipe text. Both tested an artifact one step upstream of the thing that matters. Confirm the check goes red in the failure it exists to catch, not just green when things are fine; where the property only exists at runtime, the check has to run there.",
+    "kind": "gotcha"
+  },
+  "title": "A check whose green state coincides with the feature being broken",
+  "topic_key": "a-check-whose-green-state-coincides-with-the-feature-being-broken"
+}

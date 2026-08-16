@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "review_required"
+  },
+  "lifecycle": "needs_review",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-011ff3f0b7a7319bd01b3570f82cb14fb72a531d8a902fc447100d5747735651",
+      "legacy_identity": "K-0034",
+      "legacy_source": "spec/jira-check-sso-auto-login",
+      "mutation_id": "7025abd3103bbf1f3a9f72b6221ae30cf8a8e8ecfa1cb9e7fdd4e84087daf29a",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "needs_review_import",
+      "scope": "**/*.py",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**/*.py"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "A socket timeout applies per `recv`, not per `read()`. So `fp.read(cap + 1)` against a server that sends one byte at a time resets the clock on every byte, and the read is bounded only by cap x timeout — 64 KiB at 5 s is hours. Any deadline you enforce *before* the request does not constrain the body read at all. Read in chunks and re-check the deadline between them. Matters most on a credential or auth path, where the fetch target can be attacker-influenced (e.g. a URL taken from a WWW-Authenticate header) and the caller is a synchronous operator command that simply hangs.",
+    "kind": "gotcha"
+  },
+  "title": "One large socket read is unbounded in wall-clock even with a socket timeout",
+  "topic_key": "one-large-socket-read-is-unbounded-in-wall-clock-even-with-a-socket-timeout"
+}

@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-16393b9e2ec1c41b59197cc182c651c7d29b0fba0e5190c26ef2b101f515435d",
+      "legacy_identity": "K-0018",
+      "legacy_source": "spec/check-base-freshness-guidance-fixes",
+      "mutation_id": "3885bf522646acdd4515d42188640b7277f8e5c0be4f08407eade1e41eb4ee86",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "**/*.py,**/*.md",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "**/*.py,**/*.md"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "On an unmerged (UU) path the three obvious escapes behave differently: 'git stash' fails with '<file>: needs merge', plain 'git commit' refuses with 'Committing is not possible because you have unmerged files', but 'git commit -a' SUCCEEDS — its implicit 'git add -u' marks the conflict resolved and commits the file with '<<<<<<<' intact. Any tooling or guidance that offers commit as the safe alternative to stash must special-case the unmerged branch, or it hands the agent a one-step path to committing conflict markers. Verified on git 2.50.1.",
+    "kind": "gotcha"
+  },
+  "title": "'git commit -a' commits conflict markers; 'git stash' and plain 'git commit' refuse",
+  "topic_key": "git-commit-a-commits-conflict-markers-git-stash-and-plain-git-commit-refuse"
+}

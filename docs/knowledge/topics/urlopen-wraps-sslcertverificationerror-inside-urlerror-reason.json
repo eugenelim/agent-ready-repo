@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-45bf3310ddbeeedae7dee524ebe1362047a8dcb821d52a81b0849e38293c022f",
+      "legacy_identity": "K-0056",
+      "legacy_source": "PR agentbundle-corporate-trust",
+      "mutation_id": "cc6c214d756cd4cff5a10a26884894d374f3f047df8417e79b13c8a27244bfcd",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "urlopen never lets ssl.SSLCertVerificationError escape directly for a connect-phase failure; it arrives as URLError with the SSL error in .reason. Code matching on the bare exception type silently never fires. Check both shapes. Separately, urlopen only wraps failures raised during connect: a stall or TLS error while a response body is still streaming escapes unwrapped, so a handler that catches only URLError leaks a bare TimeoutError or ssl.SSLError to the caller.",
+    "kind": "gotcha"
+  },
+  "title": "urlopen wraps SSLCertVerificationError inside URLError.reason",
+  "topic_key": "urlopen-wraps-sslcertverificationerror-inside-urlerror-reason"
+}

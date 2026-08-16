@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-988a5c4276443a95efa0b344daba89378dc41ebad8a1f933f0a9d6ef2fafab60",
+      "legacy_identity": "K-0048",
+      "legacy_source": "PR eugenelim/ci-windows-sso-concurrency-test-fix",
+      "mutation_id": "dbdefce74f5edada8e5bc4b08d9ecaaf9a94a4fbccdfb1df69a7d01259091918",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/*/tests/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/*/tests/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Bare attribute accesses like [errno.EOPNOTSUPP, errno.ENOSYS] inside a @pytest.mark.parametrize list are evaluated when pytest collects the module, not when the test runs. An AttributeError silently fails the *entire module*'s collection. Mirror any production-code getattr guard (e.g. _LOCK_UNSUPPORTED_ERRNOS) with an equivalent list comprehension at the module level instead.",
+    "kind": "gotcha"
+  },
+  "title": "pytest.mark.parametrize list items evaluated at collection time",
+  "topic_key": "pytest-mark-parametrize-list-items-evaluated-at-collection-time"
+}

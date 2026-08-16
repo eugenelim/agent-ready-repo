@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-bd3b3c53e72dd160f8aab046da1f2112d773319ced4372d7e90bc8dfd0de60c3",
+      "legacy_identity": "K-0054",
+      "legacy_source": "PR agentbundle-corporate-trust",
+      "mutation_id": "53e8e26dabe4810f1589f780a9cf7db0c91d992a70e1fac8c7265ab3ce68bec4",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Given a PEM containing one good certificate and one unparseable block, cafile= raises and loads ZERO anchors, while cadata= raises having already loaded what parsed. cadata= is also order-dependent: good-then-garbage keeps 1, garbage-then-good keeps 0, because OpenSSL stops at the first block it cannot parse. When loading trust material from an untidy source such as an OS keychain dump, split on the END CERTIFICATE marker and load one block at a time inside a suppress, or a single stray block silently yields an empty trust store while the code reports it added anchors.",
+    "kind": "gotcha"
+  },
+  "title": "load_verify_locations(cafile=) drops every anchor on one bad PEM block",
+  "topic_key": "load-verify-locations-cafile-drops-every-anchor-on-one-bad-pem-block"
+}

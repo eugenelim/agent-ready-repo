@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-676899894a8645b3b0a8c09cb4be1d1e4f875378960116900c9e227dc4678799",
+      "legacy_identity": "K-0001",
+      "legacy_source": "PR#distribution-adapters / commit bab5a9d",
+      "mutation_id": "9c03e3462afe59513c2865044d605057d271787fbf26ae1346ecab3bb29254b1",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "packages/agentbundle/agentbundle/build/**",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "packages/agentbundle/agentbundle/build/**"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "If a projection renders into a fresh temp dir and the rendered output is then copied into the working tree, any merge-with-existing semantics in the projecting code (merge-managed-key-only for JSON, preserve-outside-block for managed-block-inline) sees only the empty temp dir — the merge target is always blank — so the working tree's unrelated keys / outside-block content gets clobbered on the copy step. For real-write modes, project DIRECTLY into the working tree so the merge/splice code sees the existing state. For dry-run, clone the relevant subset of the working tree into a shadow temp dir first, project into the clone, then diff clone vs working tree. Bit us in the post-EXECUTE review of RFC-0001's distribution-adapters spec; the unit tests passed because they re-ran into the same output dir (which carried the prior render), but the integrated --self path broke silently.",
+    "kind": "gotcha"
+  },
+  "title": "Render-to-temp + copy breaks merge/splice on-conflict against the working tree",
+  "topic_key": "render-to-temp-copy-breaks-merge-splice-on-conflict-against-the-working-tree"
+}

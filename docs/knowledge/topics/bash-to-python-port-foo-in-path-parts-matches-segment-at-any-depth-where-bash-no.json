@@ -1,0 +1,39 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-ORIENT"
+  ],
+  "freshness": {
+    "checked_at": "1970-01-01T00:00:00Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-197001-77b2871277a3aa6372c1184f740f1d02370af057e1b67b197d098019db2d1351",
+      "legacy_identity": "K-0007",
+      "legacy_source": "PR#windows-hooks-phase3",
+      "mutation_id": "1b752c9a43331561703aff0c97a701769844368eca5c584d224115c259dc7992",
+      "observed_at": "1970-01-01T00:00:00Z",
+      "producer": "legacy-import",
+      "reviewed_disposition": "active_import",
+      "scope": "tools/lint-*.py",
+      "semantic_gate": "legacy-import",
+      "source": {
+        "path": "docs/knowledge/patterns.jsonl"
+      }
+    }
+  ],
+  "owning_source": null,
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "tools/lint-*.py"
+  ],
+  "supporting_sources": [],
+  "synthesis": {
+    "body": "Bash `find . -not -path './node_modules/*' -not -path './.git/*'` is anchored at the leading `./` — only TOP-level `node_modules` or `.git` are excluded. The Python equivalent `if \"node_modules\" in path.parts` excludes a `node_modules` segment at ANY depth, so a nested `packages/x/node_modules/y/AGENTS.md` is silently skipped where bash would still apply the per-package lint. The divergence is invisible until someone adds a nested vendor dir, at which point lint coverage shrinks without warning. The fix: `if path.parts[:1] in ((\"node_modules\",), (\".git\",))` — anchor to position 0. Surfaced in the post-EXECUTE adversarial review of windows-hooks-phase3's lint-agents-md.py port. The general rule for path-glob transliteration: read the bash glob as anchored (`./X/*` = top-level) or unanchored (`*/X/*` = any depth) and pick the Python predicate that matches the anchor, not the substring.",
+    "kind": "antipattern"
+  },
+  "title": "Bash-to-Python port: `\"foo\" in path.parts` matches segment at *any* depth where bash `-not -path './foo/*'` was top-level-anchored",
+  "topic_key": "bash-to-python-port-foo-in-path-parts-matches-segment-at-any-depth-where-bash-no"
+}
