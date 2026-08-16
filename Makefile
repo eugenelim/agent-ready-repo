@@ -389,6 +389,3 @@ site-link-check: site-build  ## Build both sites, then audit emitted internal li
 
 site-serve: site-sync  ## Start Starlight dev server at http://localhost:4321
 	npm run dev --prefix docs-site
-
-lint-selftest-scratch:
-	pytest packs/core/tests/skills/adapt-to-project packs/atlassian/tests/skills/flow-metrics

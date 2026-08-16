@@ -45,13 +45,21 @@ Two facts make this live rather than theoretical:
    | `web/` | `postcss` | 8.5.19 | moderate | attacker-controlled `sourceMappingURL` reads arbitrary `.map` files when `from` is unset |
 
    All three are **transitive**; all three have fixes available as patch bumps
-   that leave both `package.json` files untouched. None is exploitable in this
-   repo's usage (build-time-only dependencies of two static sites, with no
-   attacker-controlled YAML input, no `nanoid` custom generator, and no
-   PostCSS invocation on untrusted CSS) — this is lockfile hygiene, not an
-   incident. It is nonetheless exactly the class of finding the org's Snyk Open
-   Source scan reports, which ADR-0017 § Context names as the reason the gate
-   exists at all.
+   that leave both `package.json` files untouched.
+
+   None is exploitable in this repo's usage, and that is checked rather than
+   assumed: reading each lockfile's dependency edges, `js-yaml` is reached only
+   through `astro` / `@astrojs/starlight` / `@astrojs/internal-helpers`,
+   `nanoid` only through `postcss`, and `postcss` only through `vite` and
+   `@expressive-code/core`. Every one of them is **build-time toolchain, not a
+   shipped page bundle** — notably *not* pulled in by the bundled `mermaid`.
+   Combined with the absence of attacker-controlled YAML input, any `nanoid`
+   custom generator, or PostCSS invocation on untrusted CSS, this is lockfile
+   hygiene rather than an incident, and needs no changelog `Security` entry.
+
+   It is nonetheless exactly the class of finding the org's Snyk Open Source
+   scan reports, which ADR-0017 § Context names as the reason the gate exists at
+   all.
 
 The deeper defect is (1), not (2). Bumping three transitive pins fixes today's
 findings and nothing else; the next advisory lands with the same silence. The
@@ -130,12 +138,16 @@ gate is the deliverable.
       passes and is reported; an allowlist entry missing `reason` or
       `unblocked_when` is a tool error; **a payload carrying an `error` key is a
       tool error, not a pass**; **a payload with no `auditReportVersion` is a
-      tool error, not a pass**; and a lockfile under `node_modules/` is not
-      discovered. The two emphasised cases are AC1a's fail-closed paths — a live
-      run against a healthy registry never reaches them, so a fixture is the only
-      thing that can prove them. It is registered in `tools/test-all.py`'s
-      `TESTS`, so it runs in the umbrella suite rather than only when someone
-      remembers.
+      tool error, not a pass**; **a package at blocking severity carrying no
+      `via` advisories is a tool error, not a pass** (while the same shape at a
+      non-blocking severity still passes, so the guard does not over-fire); a
+      lockfile under `node_modules/` is not discovered; and a symlinked
+      *directory* is pruned for loop safety while a symlinked *lockfile* is
+      still discovered. The emphasised cases are AC1a's fail-closed paths — a
+      live run against a healthy registry never reaches them, so a fixture is
+      the only thing that can prove them. It is registered in
+      `tools/test-all.py`'s `TESTS`, so it runs in the umbrella suite rather
+      than only when someone remembers.
 - [ ] **AC5 (today's findings remediated).** `docs-site/package-lock.json` and
       `web/package-lock.json` are updated so `npm audit --audit-level=high`
       reports zero vulnerabilities in each. Both `package.json` files are

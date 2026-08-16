@@ -106,17 +106,24 @@ def discover_lockfiles(root: Path) -> list[Path]:
         current = stack.pop()
         try:
             entries = list(current.iterdir())
-        except OSError:
-            # An unreadable directory is not a silent skip at the top level, but
-            # deep in a tree it is almost always a permissions artifact. The
-            # no-lockfile-found guard in main() catches the case where this
-            # swallowed everything.
+        except OSError as exc:
+            # Not silent: an unreadable directory is almost always a permissions
+            # artifact, but a walk that quietly skipped the one directory holding
+            # a lockfile would under-cover and still print green. The
+            # no-lockfile-found guard in main() only catches total failure, so
+            # partial failure has to announce itself.
+            print(f"audit-npm: warning: cannot read {current}: {exc}", file=sys.stderr)
             continue
         for entry in entries:
-            if entry.is_symlink():
-                continue
             if entry.is_dir():
-                if entry.name in _PRUNED_DIR_NAMES or entry.name.startswith("."):
+                # Symlinked directories are skipped for loop safety; symlinked
+                # *files* are not, so a lockfile linked into place is still
+                # audited rather than silently dropped.
+                if (
+                    entry.is_symlink()
+                    or entry.name in _PRUNED_DIR_NAMES
+                    or entry.name.startswith(".")
+                ):
                     continue
                 stack.append(entry)
             elif entry.name == LOCKFILE_NAME:
@@ -217,7 +224,16 @@ def evaluate(report: object, allowlist: dict[str, dict[str, str]]) -> Verdict:
     for package, detail in vulnerabilities.items():
         if not isinstance(detail, dict):
             raise AuditError(f"audit entry for {package!r} is not an object")
-        for via in detail.get("via", []):
+        via_entries = detail.get("via", [])
+        if detail.get("severity") in BLOCKING_SEVERITIES and not via_entries:
+            # A blocking package with no `via` at all is a shape npm does not
+            # emit. Reading it as "nothing to report" would drop a real finding,
+            # so it joins the AC1a fail-closed set rather than passing quietly.
+            raise AuditError(
+                f"audit entry for {package!r} is {detail.get('severity')} but "
+                f"carries no `via` advisories — unrecognised report shape"
+            )
+        for via in via_entries:
             if not isinstance(via, dict):
                 continue  # chain link; its root advisory is judged on its own entry
             severity = via.get("severity")
@@ -313,13 +329,10 @@ def _report(project: Path, verdict: Verdict, root: Path) -> None:
 def main(argv: list[str]) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=str(_REPO_ROOT))
-    parser.add_argument("--allowlist", default=None)
     args = parser.parse_args(argv)
 
     root = Path(args.root).resolve()
-    allowlist_path = (
-        Path(args.allowlist).resolve() if args.allowlist else root / DEFAULT_ALLOWLIST
-    )
+    allowlist_path = root / DEFAULT_ALLOWLIST
 
     try:
         allowlist = load_allowlist(allowlist_path)

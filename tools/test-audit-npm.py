@@ -103,6 +103,10 @@ ERROR_PAYLOAD = {"error": {"code": "ENETUNREACH", "summary": "request to registr
 
 NO_VERSION = {"vulnerabilities": {}, "metadata": {}}
 
+# A shape npm does not emit: blocking severity with no advisories to explain it.
+# Reading it as "nothing to report" would drop a real finding.
+BLOCKING_WITHOUT_VIA = _report(("mystery", "high", []))
+
 
 # ── Harness ─────────────────────────────────────────────────────────────────
 
@@ -165,6 +169,12 @@ def main() -> int:
     expect_error("error_payload_is_tool_error", lambda: m.evaluate(ERROR_PAYLOAD, {}))
     expect_error("missing_report_version_is_tool_error", lambda: m.evaluate(NO_VERSION, {}))
     expect_error("non_dict_payload_is_tool_error", lambda: m.evaluate([], {}))
+    expect_error("blocking_severity_without_via_is_tool_error",
+                 lambda: m.evaluate(BLOCKING_WITHOUT_VIA, {}))
+    # The same shape at a non-blocking severity is ordinary and must still pass —
+    # the guard above must not turn every via-less entry into a hard error.
+    check("nonblocking_without_via_passes",
+          m.evaluate(_report(("quiet", "low", [])), {}).blocking == [])
 
     print("load_allowlist() — incomplete entries are a tool error, not a pass")
     with tempfile.TemporaryDirectory() as tmp:
@@ -224,6 +234,18 @@ def main() -> int:
               f"found={found}")
         check("skips_node_modules", not any("node_modules" in f for f in found))
         check("skips_dot_directories", not any(f.startswith(".") for f in found))
+
+        # A symlinked *directory* is a loop risk and is pruned; a symlinked
+        # *lockfile* is a real project's lockfile and must still be found.
+        (root / "loop").symlink_to(root, target_is_directory=True)
+        linked = root / "third"
+        linked.mkdir()
+        (linked / "package-lock.json").symlink_to(root / "docs-site" / "package-lock.json")
+        found = [p.relative_to(root).as_posix() for p in m.discover_lockfiles(root)]
+        check("prunes_symlinked_directories", not any(f.startswith("loop/") for f in found),
+              f"found={found}")
+        check("still_finds_symlinked_lockfile", "third/package-lock.json" in found,
+              f"found={found}")
 
     print("advisory_id() — GHSA/CVE from url, else npm source id")
     check("id_from_ghsa_url",
