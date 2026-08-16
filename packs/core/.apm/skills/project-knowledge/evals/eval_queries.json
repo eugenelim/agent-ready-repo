@@ -1,0 +1,23 @@
+[
+  {"query": "capture this project knowledge observation", "should_trigger": true},
+  {"query": "project-knowledge --capture", "should_trigger": true},
+  {"query": "distill pending project knowledge", "should_trigger": true},
+  {"query": "project-knowledge --enquire CQ-VERIFY", "should_trigger": true},
+  {"query": "ask project knowledge what applies here", "should_trigger": true},
+  {"query": "record this gotcha in project knowledge", "should_trigger": true},
+  {"query": "promote this observation into project knowledge", "should_trigger": true},
+  {"query": "query committed project knowledge topics", "should_trigger": true},
+  {"query": "run project-knowledge distill for these capture receipts", "should_trigger": true},
+  {"query": "enquire over active committed topics for CQ-DIAGNOSE", "should_trigger": true},
+
+  {"query": "capture these backlog items", "should_trigger": false},
+  {"query": "add this to workspace.toml", "should_trigger": false},
+  {"query": "write an ADR for this decision", "should_trigger": false},
+  {"query": "open a new RFC", "should_trigger": false},
+  {"query": "run workspace status", "should_trigger": false},
+  {"query": "summarize the current code", "should_trigger": false},
+  {"query": "remember this in chat", "should_trigger": false},
+  {"query": "search the web for this error", "should_trigger": false},
+  {"query": "load all old notes into this session", "should_trigger": false},
+  {"query": "delete this one stale memory event", "should_trigger": false}
+]

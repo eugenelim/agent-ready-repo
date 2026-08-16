@@ -1,0 +1,287 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.example/contracts/jsonschema/knowledge-captured-observation.schema.json",
+  "title": "Knowledge captured observation",
+  "description": "Strict producer request admitted by project-knowledge capture before core derives storage identity.",
+  "x-spec": ["docs/specs/project-knowledge-foundation/"],
+  "type": "object",
+  "contract_version": "knowledge-captured-observation.v1",
+  "additionalProperties": false,
+  "required": [
+    "contract_version",
+    "lesson",
+    "kind",
+    "project_scope",
+    "competency_facets",
+    "destination_hint",
+    "producer",
+    "semantic_gate",
+    "provenance",
+    "freshness_anchor",
+    "observed_at",
+    "privacy_attestation"
+  ],
+  "properties": {
+    "contract_version": {
+      "const": "knowledge-captured-observation.v1"
+    },
+    "lesson": {
+      "$ref": "#/$defs/safeText2000"
+    },
+    "kind": {
+      "enum": ["pattern", "gotcha", "antipattern"]
+    },
+    "project_scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths", "audience"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "$ref": "#/$defs/repositoryPath"
+          }
+        },
+        "audience": {
+          "const": "project"
+        }
+      }
+    },
+    "competency_facets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 9,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "CQ-ORIENT",
+          "CQ-DESIGN",
+          "CQ-CHANGE",
+          "CQ-DIAGNOSE",
+          "CQ-REVIEW",
+          "CQ-VERIFY",
+          "CQ-OPERATE",
+          "CQ-ROUTE",
+          "CQ-RETIRE"
+        ]
+      }
+    },
+    "destination_hint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "path"],
+      "properties": {
+        "type": {
+          "enum": ["topic", "canonical-artifact", "route-suggestion"]
+        },
+        "path": {
+          "$ref": "#/$defs/repositoryPath"
+        }
+      }
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["workflow", "workflow_version"],
+      "properties": {
+        "workflow": {
+          "$ref": "#/$defs/slug"
+        },
+        "workflow_version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[A-Za-z0-9._+-]+$"
+        }
+      }
+    },
+    "semantic_gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "artifact"],
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/slug"
+        },
+        "artifact": {
+          "$ref": "#/$defs/repositoryPath"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sources"],
+      "properties": {
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 12,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path"],
+            "properties": {
+              "path": {
+                "$ref": "#/$defs/repositoryPath"
+              },
+              "line_start": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              },
+              "line_end": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1000000
+              }
+            }
+          }
+        }
+      }
+    },
+    "freshness_anchor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "digest"],
+      "properties": {
+        "path": {
+          "$ref": "#/$defs/repositoryPath"
+        },
+        "digest": {
+          "$ref": "#/$defs/digest"
+        }
+      }
+    },
+    "observed_at": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
+    },
+    "privacy_attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "reviewed",
+        "contains_private_data",
+        "contains_secrets",
+        "contains_instructions"
+      ],
+      "properties": {
+        "reviewed": {
+          "const": true
+        },
+        "contains_private_data": {
+          "const": false
+        },
+        "contains_secrets": {
+          "const": false
+        },
+        "contains_instructions": {
+          "const": false
+        }
+      }
+    },
+    "friction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["failed_attempts", "summary"],
+      "properties": {
+        "failed_attempts": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20
+        },
+        "summary": {
+          "$ref": "#/$defs/safeText500"
+        }
+      }
+    },
+    "verification_route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command", "path"],
+      "properties": {
+        "command": {
+          "$ref": "#/$defs/safeText500"
+        },
+        "path": {
+          "$ref": "#/$defs/repositoryPath"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "safeText2000": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "safeText500": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 500
+    },
+    "slug": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 80,
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "repositoryPath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000,
+      "pattern": "^(?:\\.|(?!/)(?![A-Za-z]:)(?!.*:)(?!.*\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*(?:^|/)(?:[Cc][Oo][Nn]|[Pp][Rr][Nn]|[Aa][Uu][Xx]|[Nn][Uu][Ll]|[Cc][Oo][Mm][1-9]|[Ll][Pp][Tt][1-9])(?:\\.|/|$))(?!.*[. ](?:/|$)).+)$"
+    },
+    "digest": {
+      "oneOf": [
+        {"$ref": "#/$defs/sha256BytesDigest"},
+        {"$ref": "#/$defs/gitBlobDigest"}
+      ]
+    },
+    "sha256BytesDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "sha256", "byte_length"],
+      "properties": {
+        "kind": {
+          "const": "sha256-bytes-v1"
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        },
+        "byte_length": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "gitBlobDigest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "algorithm", "object_id"],
+      "properties": {
+        "kind": {"const": "git-blob-v1"},
+        "algorithm": {"enum": ["sha1", "sha256"]},
+        "object_id": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"algorithm": {"const": "sha1"}}},
+          "then": {"properties": {"object_id": {"pattern": "^[0-9a-f]{40}$"}}}
+        },
+        {
+          "if": {"properties": {"algorithm": {"const": "sha256"}}},
+          "then": {"properties": {"object_id": {"pattern": "^[0-9a-f]{64}$"}}}
+        }
+      ]
+    }
+  }
+}

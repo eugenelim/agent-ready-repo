@@ -1,9 +1,9 @@
 # Plan: Project knowledge foundation
 
-- **Spec:** [`spec.md`](spec.md) (Approved)
+- **Spec:** [`spec.md`](spec.md) (Shipped)
 - **RFC:** [`RFC-0077`](../../rfc/0077-distill-knowledge.md) (Accepted)
 - **ADRs:** [`ADR-0081`](../../adr/0081-canonical-project-knowledge-uses-per-topic-json.md) and [`ADR-0082`](../../adr/0082-project-knowledge-modes-separate-authority.md) (Accepted)
-- **Status:** Approved
+- **Status:** Done
 - **Mode:** full
 
 ## Approach

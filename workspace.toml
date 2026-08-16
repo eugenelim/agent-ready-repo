@@ -104,6 +104,7 @@ draft     = []
 ["ini-002".work]
 active  = []
 shipped = [
+  {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   "spec/docs-site-design-refresh",
@@ -166,16 +167,9 @@ queue   = [
   # retire later entries through normal review when their assumed shape has changed;
   # queue comments are a roadmap, while each approved spec is the implementation truth.
 
-  # Slice 1 — approved foundation spec and plan. Replace the flat hot JSONL corpus with
-  # strict shared capture contracts, one confined cross-platform writer, classification/
-  # month observation journals, terminal dispositions, stable per-topic JSON, a
-  # deterministic committed topic map, source-relative freshness, intentional retirement,
-  # and explicit committed-only enquiry as bounded untrusted evidence. It also migrates
-  # patterns.jsonl and cuts work-loop over without changing its closeout question. This
-  # consolidates the former knowledge replay-size, replay/trust-separation, and unlocked
-  # append-writer backlog findings. Affected surface: core project-knowledge and work-loop
-  # skills, knowledge contracts/scripts/tests, docs/knowledge/, projections, and release.
-  {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
+  # Slice 1 is shipped in the work list above. Its measured behavior is the adaptive
+  # starting point for every remaining slice; do not preserve an assumed integration
+  # shape when foundation evidence supports splitting, combining, reordering, or retiring it.
 
   # Slice 2 — authoring semantic-gate integrations. Add explicit scratch triage and shared
   # project-knowledge handoffs to brief, RFC, ADR, spec, and plan authoring workflows.

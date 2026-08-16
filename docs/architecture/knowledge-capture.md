@@ -1,9 +1,7 @@
 # Knowledge capture architecture
 
 > How `core` turns repository experience into durable, reviewable project
-> knowledge without treating remembered prose as instructions. Sections marked
-> **Current** describe shipped behavior. Sections marked **Target** require
-> approval of RFC-0077 and an implementing spec.
+> knowledge without treating remembered prose as instructions.
 
 ## Purpose
 
@@ -20,30 +18,29 @@ reviewable, and retrieves it only for a declared task question.
 
 ## Current behavior
 
-The shipped path belongs to `work-loop`:
+The shipped first slice belongs to `work-loop` and `project-knowledge`:
 
-1. Review findings may produce one-line notes in the agent's native scratch.
-2. At closeout, the agent asks what would have made the work materially better.
-3. It keeps only generalizable patterns, gotchas, and antipatterns.
-4. `append-knowledge.py` appends one validated record to
-   `docs/knowledge/patterns.jsonl`.
-5. `lint-knowledge.py` validates the corpus. Normal session start does not load
-   it; explicit `--show-knowledge` rendering exists for curation.
+1. Workflow scratch stays local and free-form until a semantic gate.
+2. `work-loop` routes, discards, or shapes one strict captured observation.
+3. `project-knowledge --capture` appends a pending observation journal event.
+4. `project-knowledge --distill` records terminal dispositions and may propose
+   one reviewed topic/map mutation.
+5. `project-knowledge --enquire` reads only active topics in the committed map
+   and returns bounded evidence with a receipt.
+
+Normal session start does not load project knowledge. Legacy
+`docs/knowledge/patterns.jsonl` is read-only after a coherent v1 topic map is
+activated. Observation journals are durable handoff records and are never
+ordinary enquiry input.
 
 The writer resolves a Git repository root with Git relocation variables
-removed, confines the target relative to the resolved `docs/knowledge`
-directory, validates fields, takes an exclusive lock, lints the existing
-corpus, allocates an identifier, writes a temporary file beside the target,
-lints the postimage, preserves the target mode, and atomically replaces the
-file. The current helper does not separately prove that a redirected
-`docs/knowledge` root remains beneath the worktree; the target runtime closes
-that gap.
+removed, proves the knowledge root stays beneath the worktree, validates
+fields, takes an exclusive lock, derives identities from canonical request or
+mutation bytes, writes temporary postimages beside their targets, and
+atomically replaces declared files. Publication is still a normal Git commit:
+working-tree topics and maps are proposals until committed.
 
-That behavior is deliberately curated rather than transcript-based. Its limits
-are structural: one JSONL file holds independent observations, lacks stable
-topic identity and freshness, and has no task-scoped consumer.
-
-## Target in one view
+## Lifecycle in one view
 
 ```mermaid
 flowchart LR
@@ -210,6 +207,18 @@ Writer wall-clock time never changes the partition. Producer workflow is provena
 not file ownership. The capture writer derives the path, verifies that any existing
 event body still hashes to its `capture_id`, and returns the existing receipt for an
 exact replay.
+
+Legacy `docs/knowledge/patterns.jsonl` cutover is staged before activation.
+The migration command strictly decodes every JSONL row as UTF-8 and accounts
+for every input row as active import, review-required import, or refused before
+writing any staged topic. Staged topics and the body-free map live outside the
+canonical topic tree until a coherent current-tree snapshot is activated.
+While that staged map exists, both the legacy append path and the v1 writers
+refuse so there is no dual-writer window. After activation, legacy JSONL is
+read-only; reverting before the first v1 capture can restore the legacy path,
+but once a v1 observation exists, recovery is a reviewed forward change that
+keeps v1 journals and topics intact.
+
 Journals make normal Git handoff possible without assuming a writable user
 directory, memory API, or service. They cannot preserve scratch lost before a
 semantic gate or an uncommitted capture discarded with its worktree.
@@ -232,8 +241,12 @@ A capture is explicitly pending until it has at most one terminal disposition.
 Terminal workflows attempt distillation for their receipts; unresolved semantic
 judgment remains enumerable to core maintainers through bounded cursor-paged
 `--distill --pending` runs. Its versioned opaque cursor binds the scope/filter,
-ordered partition names and content digests, and last composite capture key;
-partition drift returns `cursor_stale` and restarts safely. Direct maintainer
+ordered retained-partition names, the exact content digests of the immediately
+preceding complete partition window, and the next partition offset. A page
+emits no capture from a partition until it has read and reconciled that whole
+partition, so cursors advance only between partitions. A single partition over
+the page event or byte cap refuses without partial output. Bound-partition drift
+returns `cursor_stale` and restarts safely. Direct maintainer
 drains declare scope and cursor; workflow handoffs can select only their own
 receipt IDs. The receipt makes the selection mode and counts visible. V1 caps
 one partition at 32 MiB/50,000 events,
@@ -384,7 +397,7 @@ probe, or diagnostic tool is effective and used by the loop.
 
 ## Canonical storage
 
-### Current
+### Legacy
 
 ```text
 docs/knowledge/
@@ -397,7 +410,7 @@ line by line. It is less suitable for reconciled topics because updating
 current synthesis, freshness, or lifecycle either rewrites an arbitrary line
 or appends a new revision that every reader must replay.
 
-### Target
+### V1 storage
 
 ```text
 docs/knowledge/

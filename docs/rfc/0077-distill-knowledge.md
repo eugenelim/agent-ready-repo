@@ -352,11 +352,15 @@ partitions and 512 MiB across journals, and six explicitly selected partitions,
 10,000 events, or 16 MiB per pending-selection page, whichever is reached
 first. Exceeding a write ceiling refuses capture as `journal_capacity`.
 `--distill --pending` pages deterministically with a versioned opaque cursor.
-The cursor binds the scope/filter digest, ordered partition names and content
-digests at page creation, and the last composite `(partition, capture_id)` key.
-Any append, disposition, or journal reconciliation that
-changes a bound partition returns `cursor_stale`; the maintainer restarts from
-the first page. No offset cursor silently skips a pre-existing pending event.
+The cursor advances only between complete partition windows. It binds the
+scope/filter, ordered retained-partition names, exact content digests of the
+immediately preceding inspected partitions, and next partition offset. The
+selector reads and reconciles a whole partition before emitting any of its
+pending captures. A single partition over the page event or byte ceiling
+refuses without partial output. Any append, disposition, or journal
+reconciliation that changes a bound partition returns `cursor_stale`; the
+maintainer restarts from the first page. No cursor silently skips a pre-existing
+pending event.
 
 Branch reconciliation is deterministic. A private merge helper consumes the
 three Git stage blobs for one conflicted confined partition, parses each with

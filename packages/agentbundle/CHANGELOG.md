@@ -48,6 +48,10 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   next steps from one verb and not the other. Both now carry it, and the
   terminal output is rendered from the same list rather than a second copy.
 
+- The bundled public contract inventory now includes
+  `knowledge-captured-observation.schema.json`, the strict producer handoff
+  contract used by the core pack's project-knowledge capture flow.
+
 ### Changed
 
 - **BREAKING — `render_packs_to_dir()` now requires an `aggregate_scope`

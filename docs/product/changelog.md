@@ -107,6 +107,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   printed the same guidance to the screen but left it out of the JSON, so a
   script driving one command got it and a script driving the other did not.
 
+- **The project-knowledge capture contract ships with AgentBundle.**
+  `agentbundle catalogue contracts list` now includes the strict
+  `knowledge-captured-observation.schema.json` contract for offline reference.
+
 #### Changed
 
 - **Breaking, for callers of the Python API:** `render_packs_to_dir()` now
@@ -114,6 +118,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rendering a whole catalogue, so rendering a subset printed exclusion notices
   that only make sense for a full build. Pass `aggregate_scope="catalogue"` for
   the previous behaviour. The command line is unaffected.
+
+### [core][2.6.0] — 2026-08-15
+
+#### Added
+
+- **Project knowledge now has an explicit lifecycle.** The new
+  `project-knowledge` skill captures strict observations, distills them into
+  reviewed topics, and answers explicit enquiries from committed active topics
+  only. Observation journals are durable handoff records, not an automatic
+  memory source; retrieved topic text is bounded evidence and never grants
+  authority.
 
 ### [agentbundle][0.35.3] — 2026-08-15
 

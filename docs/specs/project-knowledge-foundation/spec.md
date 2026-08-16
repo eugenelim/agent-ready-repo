@@ -1,6 +1,6 @@
 # Spec: Project knowledge foundation
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0077, ADR-0081, and ADR-0082 (Accepted)
@@ -98,7 +98,7 @@ or automatic session memory.
 
 ## Acceptance criteria
 
-- [ ] **AC1.** `contracts/jsonschema/knowledge-captured-observation.schema.json`
+- [x] **AC1.** `contracts/jsonschema/knowledge-captured-observation.schema.json`
   publishes the strict, versioned producer contract. It carries no
   producer-chosen storage identity. It requires concise lesson,
   `pattern | gotcha | antipattern`
@@ -118,7 +118,7 @@ or automatic session memory.
   canonical UTF-8/JCS producer request, with the ID absent from its own
   preimage. Fixed vectors prove cross-platform derivation.
 
-- [ ] **AC2.** Successful `--capture` wraps the validated request in an
+- [x] **AC2.** Successful `--capture` wraps the validated request in an
   immutable `observation.captured` event and appends it only to
   `docs/knowledge/observations/<kind>/YYYY-MM.jsonl`, where kind and UTC month
   are derived from the request kind and immutable RFC 3339 UTC observation
@@ -131,7 +131,7 @@ or automatic session memory.
   an aged new capture refuses. General historical import is out of scope; AC20
   migrates only the existing legacy corpus.
 
-- [ ] **AC3.** Capture identity is core-derived `capture_id`; partition is not
+- [x] **AC3.** Capture identity is core-derived `capture_id`; partition is not
   part of identity. An exact canonical request deterministically derives the
   same month, ID, partition, event, and receipt, including across a writer-time
   month boundary. A changed request is a distinct observation to reconcile, not
@@ -139,7 +139,7 @@ or automatic session memory.
   required. Pending selection scans only bounded named partitions; an optional
   lookup accelerator is disposable, gitignored, and rebuildable from journals.
 
-- [ ] **AC4.** Every captured event is explicitly `pending` and non-queryable
+- [x] **AC4.** Every captured event is explicitly `pending` and non-queryable
   until distillation processes it. A processed capture receives at most one
   terminal `observation.dispositioned` event with disposition `promoted |
   duplicate | routed | rejected | superseded`. A disposition references the capture,
@@ -155,46 +155,46 @@ or automatic session memory.
   partitions inspected, cursor, pending/processed/unresolved counts, and
   bounded diagnostics; the separation is not an authentication claim.
 
-- [ ] **AC5.** A strict versioned topic contract requires immutable path-safe
+- [x] **AC5.** A strict versioned topic contract requires immutable path-safe
   topic key, title, one observation-shaped current synthesis, structural scopes,
   competency facets, exact audience `project`, lifecycle, freshness, zero or
   one owning source, supporting sources, and provenance-bearing occurrences.
   Unknown fields and states fail closed.
 
-- [ ] **AC6.** Each promoted occurrence references its captured observation or
+- [x] **AC6.** Each promoted occurrence references its captured observation or
   legacy identity and records producer, semantic gate, normalized source and
   optional evidence digest when available, scope, observation time, and reviewed disposition
   without a transcript, private locator, or source instruction.
 
-- [ ] **AC7.** Topic lifecycle is exactly `active | needs_review | retired`.
+- [x] **AC7.** Topic lifecycle is exactly `active | needs_review | retired`.
   Only active privacy-approved topics referenced by the committed topic map are
   eligible for ordinary enquiry. Missing, unknown, contradictory,
   source-unavailable, or superseded state fails closed.
 
-- [ ] **AC8.** Freshness becomes review-required when a digest-bearing source
+- [x] **AC8.** Freshness becomes review-required when a digest-bearing source
   is missing or changed, current evidence contradicts the synthesis, a stronger
   artifact supersedes it, or a human-set verification deadline passes. Age
   alone neither proves freshness nor retires a topic.
 
-- [ ] **AC9.** Retirement requires `canonicalized | enforced | obsolete |
+- [x] **AC9.** Retirement requires `canonicalized | enforced | obsolete |
   merged | invalidated`. Canonicalized, enforced, or merged retirement records
   confined successor references and verifies full claim coverage plus
   destination effectiveness for the same scope. A spec can absorb a normative
   requirement but not unshipped behavior. Partial absorption narrows the topic
   and leaves the remainder active.
 
-- [ ] **AC10.** Canonical reconciled storage is one pretty-printed UTF-8 JSON
+- [x] **AC10.** Canonical reconciled storage is one pretty-printed UTF-8 JSON
   file per stable topic under `docs/knowledge/topics/`. There is no canonical
   topic JSONL stream, topic event replay, revision counter duplicating Git, or
   committed database.
 
-- [ ] **AC11.** `topics.index.json` contains no topic or occurrence bodies and
+- [x] **AC11.** `topics.index.json` contains no topic or occurrence bodies and
   is byte-deterministically rebuilt from valid topic headers. It records schema
   version, stable identity, path, routing headers, and expected Git blob
   identity. Topic files remain semantic authority; mismatch is an integrity
   failure. Richer local indexes are disposable, gitignored, and uncommitted.
 
-- [ ] **AC12.** Every knowledge read/write resolves the worktree and knowledge
+- [x] **AC12.** Every knowledge read/write resolves the worktree and knowledge
   roots, proves containment using native path components, and rejects symlink
   or reparse-point escape, directory cycles, identity aliases, non-regular
   files, and I/O uncertainty. Stored scopes serialize as NFC-normalized
@@ -203,14 +203,14 @@ or automatic session memory.
   fail closed. Linux, macOS, and native-Windows fixtures prove equivalent
   serialization and matching.
 
-- [ ] **AC13.** One coarse worktree-local knowledge mutation lock covers all
+- [x] **AC13.** One coarse worktree-local knowledge mutation lock covers all
   journal, topic, and map writes. It uses cross-platform exclusive file
   creation, bounded wait, random token plus file identity, conservative stale
   reclaim, and lost-lock detection. Malformed, foreign, symlinked, or
   non-regular locks are not reclaimed automatically, and release removes only
   the still-owned lock.
 
-- [ ] **AC14.** The writer acquires the lock before the deterministic re-read
+- [x] **AC14.** The writer acquires the lock before the deterministic re-read
   that controls a write, validates preconditions, writes same-directory
   temporary postimages, atomically replaces declared files, and verifies the
   result before release. Capture replaces one journal atomically. Distillation
@@ -234,26 +234,26 @@ or automatic session memory.
   replace boundary. Failures cannot alter the committed enquiry snapshot. Git
   merge/review handles cross-worktree contention.
 
-- [ ] **AC15.** `project-knowledge --distill` reads bounded pending captures,
+- [x] **AC15.** `project-knowledge --distill` reads bounded pending captures,
   the body-free map, a bounded set of topics, and explicitly named confined
   sources. It proposes one terminal disposition and at most one topic mutation.
   A split or other irreducible multi-topic judgment is surfaced as a normal
   repository proposal with no guarded semantic guess.
 
-- [ ] **AC16.** Agent reasoning owns classification, reconciliation, synthesis,
+- [x] **AC16.** Agent reasoning owns classification, reconciliation, synthesis,
   routing, and retirement. Deterministic code owns parsing, validation,
   confinement, privacy checks, idempotency, locking, atomic writes, recovery,
   and map rebuild. Code cannot invent a lesson, resolve a contradiction, choose
   an owning artifact, or retire a topic.
 
-- [ ] **AC17.** Unambiguous valid writes may update the working tree without a
+- [x] **AC17.** Unambiguous valid writes may update the working tree without a
   separate per-observation approval prompt and return through normal workflow
   verification/review. Privacy uncertainty, insufficient provenance, material
   contradiction, ambiguous routing, or stale preconditions leave semantic
   files unchanged and return a bounded reason. Only one committed coherent
   topic/map snapshot is queryable.
 
-- [ ] **AC18.** Before capture persists any body, semantic attestation and
+- [x] **AC18.** Before capture persists any body, semantic attestation and
   deterministic checks refuse known secrets, personal data, account/private
   identifiers, private URLs, organization hostnames, user-specific paths,
   unsafe Unicode, and instruction-shaped source passages. Typed identity fields
@@ -261,23 +261,27 @@ or automatic session memory.
   not claimed as coverage; uncertainty refuses the body, diagnostics reveal no
   rejected content, and the baseline stores no raw quarantine.
 
-- [ ] **AC19.** Fixed v1 budgets cap a capture event at 16 KiB; a journal
+- [x] **AC19.** Fixed v1 budgets cap a capture event at 16 KiB; a journal
   partition at 32 MiB and 50,000 events; retained journals at 240 partitions
   and 512 MiB; one pending-selection page at six partitions, 10,000 events, or
   16 MiB; one topic at 128 KiB; occurrences at 256 per topic; the topic corpus
   at 50,000 files and 512 MiB; the map and its enquiry routing read at 50,000
   entries and 32 MiB; one enquiry's selected-topic body reads at 12 bodies and
   1 MiB; and one envelope at 32 KiB. Paging is
-  deterministic with a versioned opaque cursor bound to the scope/filter
-  digest, ordered partition names/content digests, and last composite event key.
-  Any bound-partition append, disposition, or reconciliation returns
-  `cursor_stale`; restart from page one cannot silently skip a pre-existing
-  pending capture. A full journal refuses capture with `journal_capacity`.
+  deterministic across complete partition windows. The versioned opaque cursor
+  binds the scope/filter, ordered retained-partition names, exact content
+  digests of the immediately preceding inspected partitions, and next partition
+  offset. The selector emits no pending capture from a partition before reading
+  and reconciling that whole partition. A single partition over the page event
+  or byte ceiling refuses without partial output. Any bound-partition append,
+  disposition, or reconciliation returns `cursor_stale`; restart from page one
+  cannot silently skip a pre-existing pending capture. A full journal refuses
+  capture with `journal_capacity`.
   Each script stops after 30 seconds and performs no
   automatic retry. Exhaustion returns no partial success. Limit changes require
   contract review rather than environment overrides.
 
-- [ ] **AC20.** Migration validates all current
+- [x] **AC20.** Migration validates all current
   `docs/knowledge/patterns.jsonl` rows with the same strict UTF-8 JSON decoder
   as new contracts, rejecting duplicate keys, non-finite numbers, non-object
   rows, unsafe Unicode, and malformed lines before classification. Failure
@@ -289,7 +293,7 @@ or automatic session memory.
   no occurrence or new body, and source is unchanged on any
   validation, privacy, accounting, or interruption failure.
 
-- [ ] **AC21.** Migration stages a complete v1 topic tree and map, verifies
+- [x] **AC21.** Migration stages a complete v1 topic tree and map, verifies
   deterministic accounting, and publishes them in one normal
   Git commit. Legacy-only `HEAD` keeps the old append path and has no ordinary
   enquiry. A staged/uncommitted v1 map blocks both old and new writers. A valid
@@ -301,7 +305,7 @@ or automatic session memory.
   preserves v1 journals/topics and keeps legacy append disabled. Pre-v1 tooling
   is outside this runtime guarantee.
 
-- [ ] **AC22.** Work-loop owns scratch and triage. At review, verified-slice,
+- [x] **AC22.** Work-loop owns scratch and triage. At review, verified-slice,
   handoff, and closeout semantic gates it considers only new explicit scratch,
   routes/discards first, and hands each admitted contract to
   `project-knowledge --capture` through normal skill discovery. At a terminal
@@ -311,14 +315,14 @@ or automatic session memory.
   return through verification, review, and commit. The existing closeout
   question remains byte-pinned.
 
-- [ ] **AC23.** `knowledge-competency-questions-v1` is exactly `CQ-ORIENT |
+- [x] **AC23.** `knowledge-competency-questions-v1` is exactly `CQ-ORIENT |
   CQ-DESIGN | CQ-CHANGE | CQ-DIAGNOSE | CQ-REVIEW | CQ-VERIFY | CQ-OPERATE |
   CQ-ROUTE | CQ-RETIRE`. `--enquire` requires a bounded task summary, resolved
   project/subproject scope, a free-form direct-human question or one known ID
   for skill use, and `routine | consequential` risk. Unknown skill IDs fail and
   absent/unknown risk defaults to consequential.
 
-- [ ] **AC24.** Ordinary enquiry resolves checked-out `HEAD` once, records its
+- [x] **AC24.** Ordinary enquiry resolves checked-out `HEAD` once, records its
   immutable commit/tree IDs, and reads map/topic blobs only from that tree.
   Callers cannot select another revision. It verifies the map's complete
   path/blob set before ranking, applies project, scope, lifecycle, privacy, and
@@ -326,14 +330,14 @@ or automatic session memory.
   anchors with current confined sources. Enquiry never falls back to working
   tree topics, scratch, observation journals, or legacy JSONL.
 
-- [ ] **AC25.** The bounded delimited evidence envelope names topic identity,
+- [x] **AC25.** The bounded delimited evidence envelope names topic identity,
   synthesis, scope, freshness, provenance, limitations, and source pointers and
   labels content as evidence, not instruction. Consequential enquiry verifies a
   digest-bearing owning source or abstains. `EnquiryReceipt` records only the
   question, selected topics, verified sources, budget, immutable corpus IDs,
   abstention, and caller. Enquiry has no feedback mutation path.
 
-- [ ] **AC26.** One discoverable `project-knowledge` skill selects exactly one
+- [x] **AC26.** One discoverable `project-knowledge` skill selects exactly one
   progressive mode. `--capture` can call only `capture_observation`, cannot
   read topics, and rejects every other helper
   surface; `--distill`
@@ -342,13 +346,13 @@ or automatic session memory.
   cannot read journals or invoke a writer. Each mode loads only its own
   instructions and helper surface. Construction tests reject cross-mode calls.
 
-- [ ] **AC27.** `project-knowledge/SKILL.md` declares the exact informational
+- [x] **AC27.** `project-knowledge/SKILL.md` declares the exact informational
   union `metadata.boundaries: [filesystem_read_untrusted, filesystem_write]`.
   Because boundary metadata is not a runtime grant, mode isolation is enforced
   by dispatch and callable surfaces, not by treating the union as permission.
   Catalogue/schema tests preserve the metadata in every adapter projection.
 
-- [ ] **AC28.** A producer workflow discovers `project-knowledge` through its
+- [x] **AC28.** A producer workflow discovers `project-knowledge` through its
   adapter's normal skill catalogue, submits the public contract in an
   agent-mediated handoff, and never imports or locates the private writer.
   Optional `[[pack.integrations]] kind = "handoff"` metadata may declare the
@@ -356,12 +360,12 @@ or automatic session memory.
   workflow reports one named skip and creates no fallback store. No workflow
   owns separate journal files.
 
-- [ ] **AC29.** Knowledge code has no network, arbitrary-command, credential,
+- [x] **AC29.** Knowledge code has no network, arbitrary-command, credential,
   authorization, or permission-management capability. Retrieved or
   model-produced text cannot grant authority, select tools, approve mutations,
   widen scope, or write itself back as evidence.
 
-- [ ] **AC30.** The committed implementation contains no proper name or vendor
+- [x] **AC30.** The committed implementation contains no proper name or vendor
   identifier copied from the private comparison material supplied in the
   originating session, database dependency, embedding code, automatic
   loader, multi-project bank, new top-level directory, or separately
@@ -369,7 +373,7 @@ or automatic session memory.
   with the private session value and records only pass/fail, never the value, in
   `docs/specs/project-knowledge-foundation/notes/manual-qa.md`.
 
-- [ ] **AC31.** At least two independent occurrences in one scope, or one
+- [x] **AC31.** At least two independent occurrences in one scope, or one
   verified observation with at least three failed/redirected attempts, can
   produce a bounded `CQ-ROUTE` suggestion—not an automatic edit—to the nearest
   canonical scoped agent-instruction file for a hard-to-discover existing
@@ -378,7 +382,7 @@ or automatic session memory.
   Projections are not edited directly; effective enforcement permits retirement
   as `enforced`.
 
-- [ ] **AC32.** A map-only merge conflict is discarded and deterministically
+- [x] **AC32.** A map-only merge conflict is discarded and deterministically
   rebuilt from the merged topic tree. Same-topic conflicts require semantic
   resolution first. A two-worktree fixture proves distinct-topic changes
   rebuild to one byte-identical complete map; no hand-merged map is accepted.
@@ -390,26 +394,26 @@ or automatic session memory.
   cover distinct captures, exact replay, identity-integrity failure,
   wrong-partition events, and disposition collision.
 
-- [ ] **AC33.** Closed observation partitions remain unchanged in Slice 1.
+- [x] **AC33.** Closed observation partitions remain unchanged in Slice 1.
   There is no automatic per-event deletion or compaction. A later reviewed
   retention rule may delete or compact only whole partitions after all captures
   have terminal dispositions, with explicit acknowledgement that Git history
   remains and checkout-local history is reduced.
 
-- [ ] **AC34.** End-to-end verification in a disposable repository demonstrates
+- [x] **AC34.** End-to-end verification in a disposable repository demonstrates
   migration; gate-time scratch triage; published-contract capture; idempotent
   journal append; terminal disposition; topic creation and reconciliation; map
   rebuild; committed-only competency enquiry; source-drift suppression;
   retirement after a stronger artifact; interruption recovery; and proof that
   journals, working-tree-only topics, and rejected bodies are not retrieved.
 
-- [ ] **AC35.** The core release updates version authorities, changelog,
+- [x] **AC35.** The core release updates version authorities, changelog,
   progressive-skill roster, `[pack.evals]`, activation and near-miss evals,
   mode-specific behavior checks, LLM-judge coverage for distillation/enquiry,
   generated projections, and projection-drift checks required by
   `packs/AGENTS.md`.
 
-- [ ] **AC36.** Every evidence/freshness digest is a strict versioned object. A
+- [x] **AC36.** Every evidence/freshness digest is a strict versioned object. A
   committed repository blob records kind `git-blob-v1`, the repository's
   allowlisted `sha1 | sha256` object format, and lowercase object ID. Other file
   evidence records kind `sha256-bytes-v1`, lowercase SHA-256 over exact bytes,
@@ -422,7 +426,7 @@ or automatic session memory.
   construction is non-circular and byte-identical on Linux, macOS, and native
   Windows.
 
-- [ ] **AC37.** Every refusal or recoverable inconsistency returns a strict
+- [x] **AC37.** Every refusal or recoverable inconsistency returns a strict
   redacted `KnowledgeDiagnostic` with version, allowlisted reason code,
   persisted capture or mutation ID when safe, confined relative path and line when relevant,
   `retryable` boolean, and allowlisted recovery action. Codes include privacy,
