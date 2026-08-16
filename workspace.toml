@@ -573,12 +573,6 @@ open = [
   # "install the credential-brokers pack", i.e. the pre-declaration behaviour.
   {slug = "pack-dependency-scope-qualifier", source = "spec/jira-check-sso-auto-login AC33"},
   {slug = "browser-state-lifetime", source = "spec/jira-check-sso-auto-login"},
-    # AC11 site 4/5 guards only whoami; every other read method calls resp.json(), so an SSO
-    # login-page body still exits 1 there. Fix: move the guard to a shared _json helper.
-    # UNBLOCKED 2026-08-15 — AC11 is satisfied in
-    # docs/specs/jira-check-sso-auto-login/spec.md, so the guard this entry generalises
-    # now exists at its first site. Ready to pick up.
-  {slug = "nonjson-2xx-guard-all-read-paths", source = "spec/jira-check-sso-auto-login"},
     # RFC-0074's catalogue pack-defaults cascade is Shipped but has no consumer, and its
     # baked layer sits inside the agentbundle package, unreachable from stdlib-only skill
     # scripts. Fix: installer projects [pack-defaults.<pack>] to
