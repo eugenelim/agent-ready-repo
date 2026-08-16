@@ -25,7 +25,10 @@ from agentbundle.build.projection_io import copy_projected_file, ensure_director
 from agentbundle.build.projections.codex_agent_toml import (
     project_codex_agent_toml,
 )
-from agentbundle.build.projections.direct_directory import sweep_orphans
+from agentbundle.build.projections.direct_directory import (
+    ignore_symlinks,
+    sweep_orphans,
+)
 from agentbundle.build.projections.merge_json import project_merge_json
 
 
@@ -180,13 +183,9 @@ def project_packs(
                             destination.unlink()
                         elif destination.exists():
                             shutil.rmtree(destination)
-                        # symlinks=True preserves relative nested symlinks;
-                        # absolute targets are filtered by _ignore_absolute_symlinks.
-                        shutil.copytree(
-                            entry, destination,
-                            symlinks=True,
-                            ignore=_ignore_absolute_symlinks,
-                        )
+                        # `ignore_symlinks` drops every nested symlink, so none survives
+                        # to be dereferenced by the install walker's read_bytes().
+                        shutil.copytree(entry, destination, ignore=ignore_symlinks)
             # Bound to `skill` only per spec § Never do. Other
             # direct-directory primitives opt in explicitly.
             if primitive_name == "skill":
@@ -210,23 +209,6 @@ def project_packs(
                 project_codex_agent_toml(source_dir, output_root, rule, mapping)
         else:
             raise ValueError(f"codex: unhandled mode {mode!r} for {primitive_name}")
-
-
-def _ignore_absolute_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: drop symlinks with absolute targets
-    and Python bytecode cache directories.
-
-    Relative symlinks (intra-skill cross-references) are preserved.
-    Absolute symlinks always escape the tree and are a path-escape vector.
-    __pycache__ directories are excluded because .pyc files embed absolute
-    source paths and can never be byte-identical across machines.
-    """
-    base = Path(directory)
-    return {
-        name for name in names
-        if name == "__pycache__"
-        or ((base / name).is_symlink() and (base / name).readlink().is_absolute())
-    }
 
 
 def _project_direct_file(

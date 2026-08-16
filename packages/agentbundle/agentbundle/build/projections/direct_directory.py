@@ -1,11 +1,30 @@
-"""Shared post-pass helper for `direct-directory` skill projections.
+"""Shared helpers for `direct-directory` skill projections.
 
-After every multi-pack `project_packs(...)` call, the orphan sweep
-removes child directories of the projected skill target whose names
-are not in the union of source skill names across the call's pack list.
+Two things live here, both shared by every direct-directory adapter:
 
-Bound to the `skill` primitive only — other `direct-directory`
-projections opt in explicitly via their adapter's `project_packs`.
+**The orphan sweep.** After every multi-pack `project_packs(...)` call it
+removes child directories of the projected skill target whose names are not in
+the union of source skill names across the call's pack list. Bound to the
+`skill` primitive only — other `direct-directory` projections opt in explicitly
+via their adapter's `project_packs`.
+
+**The copytree symlink policy.** Six adapters project a skill directory with
+`shutil.copytree`, and each carried its own ignore callback. They had drifted
+into two policies: four dropped every symlink, two dropped only symlinks with
+*absolute* targets and preserved relative ones as "intra-skill
+cross-references".
+
+The permissive policy had a hole. Its docstring said "absolute symlinks always
+escape the tree" — true, and incomplete: a relative symlink escapes just as
+well, and `../../../../etc/passwd` needs no leading slash. Preserved into the
+projection, it is then dereferenced by the install walker's `read_bytes()`,
+embedding out-of-tree content in an adopter's tree.
+
+The capability it protected turned out to be unusable: no symlink exists
+anywhere under `packs/` (measured: zero), and `lint_packs.py` rejects any pack
+that ships one — so a first-party pack cannot introduce one, leaving the
+untrusted-catalogue install path as the only way a symlink arrives, which is
+exactly where preserving it is the hazard. One strict policy, stated once.
 """
 
 from __future__ import annotations
@@ -13,6 +32,27 @@ from __future__ import annotations
 import shutil
 import sys
 from pathlib import Path
+
+
+def ignore_symlinks(directory: str, names: list[str]) -> set[str]:
+    """`shutil.copytree` ignore callback: skip every symlink and `__pycache__`.
+
+    Drops **nested** symlinks during the copy so none is reproduced in the
+    output tree. A caller's top-level `is_symlink()` check covers only the
+    skill root; this covers the subtree. Build runs against trusted `packs/`;
+    this is the install-from-untrusted-catalogue defense.
+
+    `__pycache__` is excluded because `.pyc` files embed absolute source paths
+    and can never be byte-identical across machines.
+
+    With this in place `copytree`'s `symlinks=` argument is moot — no symlink
+    survives the filter either way.
+    """
+    base = Path(directory)
+    return {
+        name for name in names
+        if name == "__pycache__" or (base / name).is_symlink()
+    }
 
 
 def sweep_orphans(target_dir: Path, expected_names: set[str]) -> None:

@@ -42,7 +42,10 @@ from typing import Any, Iterator
 # Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projection_io import copy_projected_file, ensure_directory_no_follow
-from agentbundle.build.projections.direct_directory import sweep_orphans
+from agentbundle.build.projections.direct_directory import (
+    ignore_symlinks,
+    sweep_orphans,
+)
 
 _ADAPTER = "cursor"
 
@@ -167,25 +170,6 @@ def _project_single(
 # ---------------------------------------------------------------------------
 
 
-def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: skip every symlink member and
-    Python bytecode cache directories.
-
-    Drops **nested** symlinks during the copy so they are never reproduced in
-    the output tree. Without this, a symlink inside a skill subdir would be
-    copied as a symlink (`symlinks=True`) and later dereferenced by the
-    install walker's `read_bytes()`, embedding out-of-tree content (e.g. a
-    secret the symlink points at) into the projection. The top-level
-    `is_symlink()` skip in `_project_direct_directory` only covers the skill
-    root; this covers the subtree. (Build runs on trusted `packs/`; this is
-    the install-from-untrusted-catalogue defense — mirrored in all five
-    direct-directory adapters.) __pycache__ is excluded because .pyc files
-    embed absolute source paths and would cause drift on any other machine.
-    """
-    base = Path(directory)
-    return {name for name in names if name == "__pycache__" or (base / name).is_symlink()}
-
-
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
     for entry in sorted(source_dir.iterdir()):
         # Defense-in-depth: `lint-packs` rejects symlink-bearing packs, but a
@@ -198,9 +182,9 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
                 destination.unlink()
             elif destination.exists():
                 shutil.rmtree(destination)
-            # `ignore=_ignore_symlinks` drops nested symlinks (see above);
+            # `ignore=ignore_symlinks` drops nested symlinks (see above);
             # `symlinks` is then moot since none survive the filter.
-            shutil.copytree(entry, destination, ignore=_ignore_symlinks)
+            shutil.copytree(entry, destination, ignore=ignore_symlinks)
 
 
 def _project_direct_file(

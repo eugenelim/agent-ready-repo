@@ -83,6 +83,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
 
+### [agentbundle][0.36.1] — 2026-08-16
+
+#### Fixed
+
+- **Security: installing a pack can no longer copy a file from outside that pack
+  onto your machine.** A pack could include a shortcut pointing anywhere on the
+  build host — `/etc/passwd`, a key file — and the installer followed it and
+  wrote the contents into your project under an innocuous-looking filename. It
+  now refuses to follow such shortcuts at every point they could be created or
+  read. Packs in this catalogue contain none, so nothing you install changes.
+
 ### [agentbundle][0.36.0] — 2026-08-16
 
 #### Fixed

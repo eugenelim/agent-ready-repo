@@ -6,6 +6,32 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.36.1] — 2026-08-16
+
+### Fixed
+
+- **Security: a pack can no longer smuggle a file from outside itself onto an
+  adopter's disk.** Two independently-safe layers composed into a hole. The six
+  direct-directory adapters carried six copies of a symlink policy that had
+  drifted into two rules — four dropped every symlink, two dropped only symlinks
+  with *absolute* targets and kept relative ones. "Absolute symlinks always
+  escape the tree" is true and incomplete: `../../../../etc/passwd` escapes just
+  as well and needs no leading slash. A preserved link was then read *through*
+  by the install walker, which materialised the target's bytes under a relpath
+  that looked entirely innocent.
+
+  Both halves are closed. One policy now lives in
+  `build/projections/direct_directory.py` and every adapter uses it, and
+  `_collect_tree` skips symlinked entries rather than reading through them.
+
+  **No behaviour change for real packs:** no pack in the catalogue ships a
+  symlink, and `lint_packs` rejects any that tries, so the only source of one is
+  an untrusted catalogue — which is the case this protects against.
+
+  The build's `.apm` and `seeds` copytrees still pass `symlinks=True`, and that
+  stays: preserving a link there is *safe* precisely because nothing reads the
+  target at that layer. The defect was the composition, not either layer.
+
 ## [0.36.0] — 2026-08-16
 
 ### Fixed

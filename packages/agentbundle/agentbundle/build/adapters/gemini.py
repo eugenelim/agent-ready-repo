@@ -45,7 +45,10 @@ from typing import Any, Iterator
 # Build-pipeline ordering invariant — uniform across adapters.
 from agentbundle.build.phase_order import PHASE_ORDER as _PHASE_ORDER
 from agentbundle.build.projection_io import copy_projected_file, ensure_directory_no_follow
-from agentbundle.build.projections.direct_directory import sweep_orphans
+from agentbundle.build.projections.direct_directory import (
+    ignore_symlinks,
+    sweep_orphans,
+)
 from agentbundle.build.projections.gemini_command_toml import (
     project_gemini_command_toml,
 )
@@ -166,16 +169,6 @@ def _project_single(
 # ---------------------------------------------------------------------------
 
 
-def _ignore_symlinks(directory: str, names: list[str]) -> set[str]:
-    """`shutil.copytree` ignore callback: skip every symlink member and
-    Python bytecode cache directories (drops nested symlinks so the install
-    walker can't read through them to embed out-of-tree content; drops
-    __pycache__ because .pyc files embed absolute source paths and drift).
-    The cursor.py precedent."""
-    base = Path(directory)
-    return {name for name in names if name == "__pycache__" or (base / name).is_symlink()}
-
-
 def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
     for entry in sorted(source_dir.iterdir()):
         if entry.is_symlink():
@@ -186,7 +179,7 @@ def _project_direct_directory(source_dir: Path, target_dir: Path) -> None:
                 destination.unlink()
             elif destination.exists():
                 shutil.rmtree(destination)
-            shutil.copytree(entry, destination, ignore=_ignore_symlinks)
+            shutil.copytree(entry, destination, ignore=ignore_symlinks)
 
 
 def _project_direct_file(

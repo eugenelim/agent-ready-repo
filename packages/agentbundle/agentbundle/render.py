@@ -129,9 +129,26 @@ def render_packs_to_dir(
 
 
 def _collect_tree(root: Path) -> dict[str, bytes]:
-    """Walk `root` and return every file's bytes keyed by relpath (POSIX-style)."""
+    """Walk `root` and return every file's bytes keyed by relpath (POSIX-style).
+
+    Symlinks are skipped, and that is a security control rather than tidiness.
+    `Path.is_file()` follows links, so a symlink reaching this walk would have
+    its **target's** bytes read and handed to the caller, which writes them to
+    an adopter's disk. That is the whole exfiltration primitive: a pack shipping
+    `.apm/skills/x/leak -> /etc/passwd` gets the target's contents materialised
+    under a path that passes every relpath check, because the relpath is
+    innocent — only the link is not.
+
+    Two layers meet here and had opposite postures. The build's `.apm` and
+    `seeds` copytrees pass `symlinks=True` deliberately, so a link is preserved
+    as a link instead of being dereferenced into `dist/` — safe at that layer,
+    precisely because it does not read the target. This walk then read it. The
+    composition, not either layer, was the hole.
+    """
     out: dict[str, bytes] = {}
     for path in sorted(root.rglob("*")):
+        if path.is_symlink():
+            continue
         if path.is_file():
             relpath = path.relative_to(root).as_posix()
             out[relpath] = path.read_bytes()
