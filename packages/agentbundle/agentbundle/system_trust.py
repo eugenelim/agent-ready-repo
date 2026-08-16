@@ -52,7 +52,7 @@ from __future__ import annotations
 import contextlib
 import os
 import ssl
-import subprocess  # nosec B404 - fixed argv to /usr/bin/security, no shell
+import subprocess  # nosec B404  # fixed argv to /usr/bin/security, no shell
 import sys
 from pathlib import Path
 
@@ -107,7 +107,7 @@ def _default_runner(argv: list[str]) -> str:
     Seam: tests replace ``_RUNNER`` so no assertion depends on the developer's
     own keychain contents.
     """
-    proc = subprocess.run(  # nosec B603 - fixed binary, no shell, argv is constant
+    proc = subprocess.run(  # nosec B603  # fixed binary, no shell, argv is constant
         argv,
         capture_output=True,
         text=True,

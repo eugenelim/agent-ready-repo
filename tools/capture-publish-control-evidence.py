@@ -260,11 +260,14 @@ def _app_api(path: str, jwt: str) -> object:
         },
     )
     try:
-        # nosec B310 — the scheme is a fixed literal above, every interpolated
-        # path segment is a constant or a `--repo` value already constrained by
-        # _validate_repo, and redirects are refused outright. That last point
-        # matters: the default opener copies request headers across a redirect,
-        # which would forward this JWT to another host.
+        # Why B310 is suppressed on the `open` call below: the scheme is a
+        # fixed literal above, every interpolated path segment is a constant or
+        # a `--repo` value already constrained by _validate_repo, and redirects
+        # are refused outright. That last point matters: the default opener
+        # copies request headers across a redirect, which would forward this
+        # JWT to another host. (Prose only — the directive is on the `open`
+        # call below; see `bandit.yaml` for why a reason never precedes the
+        # second `#`.)
         opener = urllib.request.build_opener(_NoRedirect)
         with opener.open(request, timeout=30) as response:  # nosec B310
             return json.loads(response.read())
