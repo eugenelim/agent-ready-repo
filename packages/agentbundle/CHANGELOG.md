@@ -6,6 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.37.0] — 2026-08-16
+
+### Changed
+
+- **`install --scope local` now refuses three cases it used to accept.** Local
+  scope promises to leave no trace: files are git-invisible via an exclude
+  block, and uninstall restores the tree exactly. Each case below is one where
+  that promise cannot be kept, so the install stops **before writing anything**.
+  All three are `--force`-immune — `--force` cannot make a deletion reversible.
+
+  - **A target already tracked by git.** Writing over it makes the file dirty
+    while the exclude block claims it is invisible, and uninstall would delete a
+    file the repository owns.
+  - **A target that exists, untracked, owned by no agentbundle install.**
+    Identical content does not grant ownership: uninstall would delete a file
+    this tool never created.
+  - **A projected path already owned by a repo-scope pack**, including a
+    *different* pack. The existing mutual exclusion only caught the same pack at
+    both scopes; two different packs colliding on one path slipped through, and
+    the second install silently took ownership of the first's file.
+
+  Reinstalling over files this tool owns is unaffected — the guard keys on
+  ownership, not on the file merely existing.
+
 ## [0.36.2] — 2026-08-16
 
 ### Fixed

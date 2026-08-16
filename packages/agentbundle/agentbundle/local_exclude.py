@@ -91,6 +91,36 @@ def is_git_repo(repo_root: Path) -> bool:
     return result.returncode == 0 and result.stdout.strip() == "true"
 
 
+def tracked_paths(repo_root: Path, relpaths: list[str]) -> list[str]:
+    """Return the subset of *relpaths* that git already tracks.
+
+    ``--error-unmatch`` makes git exit non-zero on the first untracked path, so
+    it cannot report the whole set in one call. Paths are therefore checked in
+    one batch WITHOUT that flag: ``ls-files`` lists exactly the tracked ones,
+    and the answer is the intersection.
+
+    ``--literal-pathspecs`` is not optional. Without it a projected path
+    containing a glob metacharacter (``*``, ``?``, ``[``) would be interpreted
+    as a pathspec pattern, so `a[0].md` could match nothing while a real file of
+    that name is tracked — a false negative on a guard whose entire job is to
+    refuse.
+
+    Returns an empty list if git is unavailable; the caller has already
+    established this is a work tree.
+    """
+    if not relpaths:
+        return []
+    result = subprocess.run(
+        ["git", "-C", str(repo_root), "--literal-pathspecs", "ls-files", "-z", "--", *relpaths],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        return []
+    listed = {entry for entry in result.stdout.split("\0") if entry}
+    return sorted(set(relpaths) & listed)
+
+
 def derive_worktree_id(repo_root: Path) -> str:
     """Derive a stable worktree identifier for this clone.
 
