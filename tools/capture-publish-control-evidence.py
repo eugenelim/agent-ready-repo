@@ -60,15 +60,43 @@ class CaptureError(RuntimeError):
     """A live observation could not be made or did not match the contract."""
 
 
+# Two segments of the GitHub-legal character set. Note this admits a leading
+# dot: `owner/.github` is a real repository and must keep working, so the
+# charset is NOT narrowed to "must start alphanumeric" the way
+# lint-spec-status.py's contract-path token is.
+_REPO_RE = re.compile(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+")
+
+# ...which is why the dot-segments are rejected by name instead. These are the
+# RFC 3986 relative segments; every other dotted name (`.github`, `a.b`, `..x`)
+# is a legitimate repository.
+_DOT_SEGMENTS = frozenset({".", ".."})
+
+
 def _validate_repo(repo: str) -> str:
     """Return `repo` if it is a bare `owner/name`, else raise.
 
     Keeps a stray path segment out of the API URLs assembled below, so the
     fixed-scheme guarantee those calls rely on is actually true.
+
+    The charset alone does not do that. `.` and `..` are built from legal
+    characters, so `../..`, `owner/..`, and `./name` all satisfy the two-segment
+    pattern — and `urllib` sends the selector it is given without normalising
+    it, so `f"repos/{repo}/installation"` is sent verbatim — the request is
+    then not for the endpoint the operator named. (Whether GitHub resolves the
+    dot-segments or 404s on them is unverified and does not matter: either way
+    it is not the named read.) No privilege is gained — whoever passes `--repo`
+    already holds the App private key — and the JWT cannot leave
+    `api.github.com`, because the scheme and host are fixed literals and
+    `_NoRedirect` refuses redirects outright. This is hygiene: the evidence
+    artifact should describe the repository it claims to describe.
     """
-    if not re.fullmatch(r"[A-Za-z0-9._-]+/[A-Za-z0-9._-]+", repo):
+    if not _REPO_RE.fullmatch(repo):
         raise CaptureError(
             f"--repo must be a bare owner/name, got {repo!r}"
+        )
+    if any(segment in _DOT_SEGMENTS for segment in repo.split("/")):
+        raise CaptureError(
+            f"--repo must not contain a `.` or `..` path segment, got {repo!r}"
         )
     return repo
 
@@ -77,7 +105,12 @@ def _gh_api(path: str) -> object:
     """Return parsed JSON from `gh api <path>`, or raise CaptureError."""
     try:
         completed = subprocess.run(
-            ["gh", "api", path],
+            # `--` terminates flag parsing. Today every caller prefixes the
+            # literal `repos/`, so `path` never starts with `-` and this is
+            # belt-and-braces — but `_validate_repo` does admit a leading-dash
+            # owner (`-h/name` is legal under the charset), so a future caller
+            # passing a bare repo would hand `gh` something it reads as a flag.
+            ["gh", "api", "--", path],
             check=False,
             capture_output=True,
             text=True,
