@@ -36,6 +36,23 @@
 # way: always write the ID, and never open a comment with `nosec` unless you
 # mean it as a directive.
 #
+# `tools/lint-nosec-form.py` enforces the ID-mandatory and second-`#` rules
+# above — not the linerange guidance below, and not the severity floor. It runs
+# in `make build-check`, deliberately NOT in `make sast`: it needs no scanner,
+# and SKIP_SAST turns `sast` off for exactly the diffs where a stray
+# suppression would otherwise go unscanned. This paragraph is the canonical
+# statement of that placement; the script and the chain step point here.
+#
+# It reproduces bandit's own tokenize + NOSEC_COMMENT detection rather than
+# grepping, so it sees what bandit sees: a directive inside a string literal is
+# not one, and `# noseclike` IS one. It also rejects two shapes that look fine
+# — `Bnnn,Bnnn` with no space (bandit keeps only the last id) and an ID that
+# does not exist, e.g. a typo'd `B999` (resolves to nothing, so it blankets).
+#
+# The string-literal point applies to prose as well: a comment *quoting* the
+# directive form is a directive. Describe the form, or point at this file; do
+# not spell it out in a Python comment.
+#
 # Suppressions also apply to the whole *statement's* linerange, not just the
 # commented line, so a nosec on a multi-value statement warns "nosec
 # encountered, but no failed test" for every sibling value the rule skips.
