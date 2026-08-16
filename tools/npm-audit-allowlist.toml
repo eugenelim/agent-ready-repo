@@ -1,0 +1,39 @@
+# Advisory allowlist for the npm SCA leg of `make sast` (ADR-0083).
+#
+# Read by `tools/audit-npm.py`. An advisory listed here is reported on every run
+# but does not block the gate.
+#
+# THIS FILE SHOULD NORMALLY BE EMPTY. It exists because `npm audit` has no
+# per-advisory ignore: without it, the only way past one unfixable transitive
+# advisory is downgrading `--audit-level`, which stops gating an entire severity
+# band for the whole repo (the gate blocks at `moderate` and above). The sibling `pip-audit` leg in `make sast` carries
+# four such suppressions today, each with a written diagnosis and an unblock
+# condition — this is the npm equivalent of those `--ignore-vuln` flags.
+#
+# Add an entry ONLY when there is no available fix. If `npm audit fix
+# --package-lock-only` resolves it, take the fix instead — a real remediation
+# also satisfies the org's Snyk Open Source scan, which no entry here can reach.
+#
+# Every entry needs all three fields. A missing or blank `reason` /
+# `unblocked_when` is a tool error (exit 2), not a silent pass: an allowlist
+# that decays into an undocumented mute list is worse than no allowlist.
+#
+#   id             — the GHSA-… or CVE-… identifier as it appears in the
+#                    advisory URL, or `npm:<source>` for an advisory with no
+#                    GitHub URL. Exactly as `audit-npm.py` prints it.
+#   reason         — why this is accepted: the reachability argument, in a
+#                    sentence a reviewer can check.
+#   unblocked_when — the concrete condition that retires this entry. "When
+#                    upstream ships X" — not "when convenient".
+#
+# Example (do not uncomment; kept as the shape, not as an active suppression):
+#
+#   [[allow]]
+#   id = "GHSA-0000-1111-2222"
+#   reason = """
+#   Build-time-only dependency of docs-site; the vulnerable code path parses
+#   attacker-supplied YAML, and this repo only parses its own committed files.
+#   """
+#   unblocked_when = "example-pkg ships >=2.4.1, which repins the vulnerable transitive dep"
+
+allow = []

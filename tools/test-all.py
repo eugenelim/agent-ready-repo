@@ -107,6 +107,7 @@ TESTS: list[tuple[str, list[str]]] = [
                           "packs/core/tests/skills/work-loop/test_append_knowledge.py"]),
     ("lint-knowledge", [sys.executable, "-m", "pytest", "-q",
                         "tests/roster/test_work_loop_lint_knowledge.py"]),
+    ("audit-npm", [sys.executable, "tools/test-audit-npm.py"]),
     ("lint-sso-config", [sys.executable, "tools/test-lint-sso-config.py"]),
     ("lint-skill-spec", [sys.executable, "-m", "pytest",
                               "packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py",
