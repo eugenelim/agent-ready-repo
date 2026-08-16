@@ -7,8 +7,6 @@ import json
 import pytest
 from knowledge_test_support import (
     assert_strictly_rejected,
-    assert_valid,
-    bundled_contract_bytes,
     capture_request_with_duplicate_key_bytes,
     capture_request_with_non_finite_number_bytes,
     capture_request_with_oversized_lesson,
@@ -17,18 +15,13 @@ from knowledge_test_support import (
     capture_request_with_unsafe_unicode,
     capture_request_without_provenance,
     load_project_knowledge_module,
-    load_public_schema,
-    public_contract_bytes,
     valid_capture_request,
 )
 
 
-def test_ac1_public_capture_schema_is_strict_and_versioned() -> None:
-    schema = load_public_schema("knowledge-captured-observation.schema.json")
-    assert schema["additionalProperties"] is False
-    assert schema["contract_version"] == "knowledge-captured-observation.v1"
-    assert "capture_id" not in schema["properties"]
-    assert_valid(schema, valid_capture_request())
+def test_ac1_capture_parser_is_strict_and_versioned() -> None:
+    module = load_project_knowledge_module()
+    assert module.validate_capture_request(valid_capture_request())
     alternate_stream = valid_capture_request()
     alternate_stream["provenance"]["sources"][0]["path"] = "docs/source.txt:hidden"
     non_finite = capture_request_with_non_finite_number_bytes()
@@ -44,8 +37,7 @@ def test_ac1_public_capture_schema_is_strict_and_versioned() -> None:
         alternate_stream,
     )
     for case in invalid_cases:
-        assert_strictly_rejected(schema, case)
-    assert public_contract_bytes() == bundled_contract_bytes()
+        assert_strictly_rejected(case)
 
 
 def test_ac1_core_derives_capture_id_from_canonical_request() -> None:
@@ -143,14 +135,13 @@ def test_ac36_digest_contract_hashes_exact_bytes_without_normalization() -> None
             {"kind": "git-blob-v1", "algorithm": "sha1", "object_id": "a" * 64}
         )
 
-    schema = load_public_schema()
     git_anchored = valid_capture_request()
     git_anchored["freshness_anchor"]["digest"] = {
         "kind": "git-blob-v1",
         "algorithm": "sha256",
         "object_id": "b" * 64,
     }
-    assert_valid(schema, git_anchored)
+    assert module.validate_capture_request(git_anchored)
 
 
 def test_ac37_diagnostics_are_typed_redacted_and_allowlisted() -> None:

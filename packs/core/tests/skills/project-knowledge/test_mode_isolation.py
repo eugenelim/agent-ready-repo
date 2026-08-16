@@ -3,9 +3,9 @@ from __future__ import annotations
 import re
 
 import pytest
-from knowledge_test_support import ROOT, load_project_knowledge_module
+from knowledge_test_support import PACK_ROOT, load_project_knowledge_module
 
-SKILL_ROOT = ROOT / "packs" / "core" / ".apm" / "skills" / "project-knowledge"
+SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "project-knowledge"
 SKILL = SKILL_ROOT / "SKILL.md"
 
 

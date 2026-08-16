@@ -84,6 +84,7 @@ jobs:
           python -m pytest packs/core/tests/pack/ -q
           python -m pytest packs/core/tests/skills/adapt-to-project/ -q
           python -m pytest packs/core/tests/skills/bug-fix/ -q
+          python -m pytest packs/core/tests/skills/project-knowledge/ -q
           python -m pytest packs/core/tests/skills/receive-brief/ -q
           python -m pytest packs/core/tests/skills/work-loop/ -q
           python -m pytest packs/core/tests/skills/workspace-status/ -q

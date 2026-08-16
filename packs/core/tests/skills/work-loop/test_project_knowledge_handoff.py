@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[5]
-WORK_LOOP_SKILL = ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "SKILL.md"
+PACK_ROOT = Path(__file__).resolve().parents[3]
+WORK_LOOP_SKILL = PACK_ROOT / ".apm" / "skills" / "work-loop" / "SKILL.md"
 PROJECT_KNOWLEDGE_SKILL = (
-    ROOT / "packs" / "core" / ".apm" / "skills" / "project-knowledge" / "SKILL.md"
+    PACK_ROOT / ".apm" / "skills" / "project-knowledge" / "SKILL.md"
 )
 
 CORE_2_5_9_QUESTION_BYTES = (

@@ -7,8 +7,8 @@ import sys
 from pathlib import Path
 
 SCRIPT = (
-    Path(__file__).resolve().parents[5]
-    / "packs/core/.apm/skills/work-loop/scripts/append-knowledge.py"
+    Path(__file__).resolve().parents[3]
+    / ".apm/skills/work-loop/scripts/append-knowledge.py"
 )
 
 

@@ -43,7 +43,6 @@ SCRIPT_DIR = _SKILL_DIR / "scripts"
 if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
     raise SystemExit(f"subject dir not found at {SCRIPT_DIR} — check the parents[] depth")
 LINTER = SCRIPT_DIR / "lint-knowledge.py"
-SKILL = _SKILL_DIR / "SKILL.md"
 
 
 def _lint(path: Path) -> subprocess.CompletedProcess[str]:
@@ -512,14 +511,12 @@ def test_schema_drift() -> None:
 
 # --- Layer 3: guidance drift ------------------------------------------------
 
-# Discovered, not enumerated: the guidance is repeated across the pack source,
-# every per-adapter projection, and both knowledge READMEs, and that set grows
-# whenever an adapter is added. A hardcoded list would silently stop covering
-# the new copy; walking the tree cannot.
-# (containing directory, filename) pairs — every surface that tells a writer
-# how to author an entry.
+# Discovered, not enumerated: legacy flat-JSONL authoring guidance remains in
+# the repository and seed knowledge READMEs. Work-loop now hands typed capture
+# requests to project-knowledge, whose contract tests own that separate format.
+# (containing directory, filename) pairs — every remaining surface that tells a
+# writer how to author a legacy entry.
 _SURFACES = frozenset({
-    ("work-loop", "SKILL.md"),
     ("knowledge", "README.md"),
 })
 # `fixtures` / `tests` are excluded because a skill body under a test tree is
@@ -532,10 +529,9 @@ _SKIP_DIRS = frozenset({
 
 
 def _guidance_surfaces() -> list[tuple[str, Path]]:
-    """The skill this script ships inside is the floor; everything else is
-    whatever the tree actually holds."""
-    seen = {SKILL.resolve()}
-    surfaces: list[tuple[str, Path]] = [(_rel(SKILL), SKILL)]
+    """Discover every remaining legacy flat-JSONL authoring surface."""
+    seen: set[Path] = set()
+    surfaces: list[tuple[str, Path]] = []
     # os.walk(followlinks=False), not Path.glob("**/...") — `**` does not follow
     # symlinks before 3.13 but does from 3.13 on, so glob would silently change
     # behaviour across interpreters and could walk out of the tree.
@@ -634,10 +630,10 @@ def _check_examples(name: str, text: str, tmp: Path,
     return problems
 
 
-# The pack source, both projections, and both knowledge READMEs. A discovery
-# bug that silently found fewer would let real drift through while reporting
-# success, so the floor is asserted rather than assumed.
-_MIN_SURFACES = 5
+# The repository README and its adopter seed. A discovery bug that silently
+# found fewer would let real drift through while reporting success, so the
+# floor is asserted rather than assumed.
+_MIN_SURFACES = 2
 
 
 def test_guidance_drift(tmp_path: Path) -> None:

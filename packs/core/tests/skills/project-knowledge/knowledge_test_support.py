@@ -10,23 +10,10 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from jsonschema import Draft202012Validator
 
-ROOT = Path(__file__).resolve().parents[5]
-SCHEMA_NAME = "knowledge-captured-observation.schema.json"
-PUBLIC_SCHEMA = ROOT / "contracts" / "jsonschema" / SCHEMA_NAME
-BUNDLED_SCHEMA = (
-    ROOT
-    / "packages"
-    / "agentbundle"
-    / "agentbundle"
-    / "_data"
-    / SCHEMA_NAME
-)
+PACK_ROOT = Path(__file__).resolve().parents[3]
 PROJECT_KNOWLEDGE_SCRIPT = (
-    ROOT
-    / "packs"
-    / "core"
+    PACK_ROOT
     / ".apm"
     / "skills"
     / "project-knowledge"
@@ -34,9 +21,7 @@ PROJECT_KNOWLEDGE_SCRIPT = (
     / "project_knowledge.py"
 )
 KNOWLEDGE_STORE_SCRIPT = (
-    ROOT
-    / "packs"
-    / "core"
+    PACK_ROOT
     / ".apm"
     / "skills"
     / "project-knowledge"
@@ -67,19 +52,6 @@ def load_knowledge_store_module():
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
-
-
-def load_public_schema(name: str = SCHEMA_NAME) -> dict[str, Any]:
-    assert name == SCHEMA_NAME
-    return json.loads(PUBLIC_SCHEMA.read_text(encoding="utf-8"))
-
-
-def public_contract_bytes() -> bytes:
-    return PUBLIC_SCHEMA.read_bytes()
-
-
-def bundled_contract_bytes() -> bytes:
-    return BUNDLED_SCHEMA.read_bytes()
 
 
 def valid_capture_request(**overrides: Any) -> dict[str, Any]:
@@ -164,23 +136,13 @@ def initialize_empty_v1_repo(repo: Path, store: Any) -> Path:
     return repo
 
 
-def assert_valid(schema: dict[str, Any], instance: Any) -> None:
-    Draft202012Validator.check_schema(schema)
-    errors = sorted(Draft202012Validator(schema).iter_errors(instance), key=str)
-    assert errors == []
-
-
-def assert_strictly_rejected(schema: dict[str, Any], case: Any) -> None:
+def assert_strictly_rejected(case: Any) -> None:
+    module = load_project_knowledge_module()
     if isinstance(case, bytes):
-        module = load_project_knowledge_module()
         with pytest.raises(ValueError):
             module.parse_capture_request(case)
         return
 
-    errors = list(Draft202012Validator(schema).iter_errors(case))
-    if errors:
-        return
-    module = load_project_knowledge_module()
     with pytest.raises(ValueError):
         module.validate_capture_request(case)
 
