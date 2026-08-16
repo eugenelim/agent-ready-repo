@@ -172,7 +172,15 @@ SAST_DIRS := tools packs packages tests
 # validated by the gate it changes — build-check.yml's detection treats these
 # as SAST-relevant. (tools/requirements-sast.txt and tools/semgrep/ are already
 # covered by SAST_DIRS, so they need not be repeated here.)
-SAST_CONFIG := bandit.yaml .snyk Makefile tools/audit-requirements.py .github/workflows/build-check.yml .github/workflows/codeql.yml
+#
+# The two npm lockfiles are here for a different reason than the rest of this
+# list: they are the SCA gate's *input*, not its config, and neither `docs-site/`
+# nor `web/` is under SAST_DIRS. Without them a dependency-bump PR — a diff whose
+# only changed file is a lockfile — would set SKIP_SAST=1 and skip the one gate
+# written to check it. `tools/npm-audit-allowlist.toml` is genuine config: an
+# added suppression must be validated by the gate it loosens, exactly like a
+# widened bandit.yaml exclusion.
+SAST_CONFIG := bandit.yaml .snyk Makefile tools/audit-requirements.py tools/npm-audit-allowlist.toml docs-site/package-lock.json web/package-lock.json .github/workflows/build-check.yml .github/workflows/codeql.yml
 
 # Single source of truth for the SAST scan scope + config surface.
 # build-check.yml's SAST-relevance detection reads these (`make -s
@@ -207,6 +215,7 @@ sast:
 	@command -v bandit   >/dev/null 2>&1 || { echo "make sast: bandit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v pip-audit >/dev/null 2>&1 || { echo "make sast: pip-audit not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
 	@command -v semgrep   >/dev/null 2>&1 || { echo "make sast: semgrep not found — run: pip install -r tools/requirements-sast.txt" >&2; exit 1; }
+	@command -v npm       >/dev/null 2>&1 || { echo "make sast: npm not found — install Node.js (>=24, per docs-site/package.json engines) for the npm SCA leg" >&2; exit 1; }
 	bandit -r $(SAST_DIRS) -c bandit.yaml --severity-level medium --confidence-level medium -q
 	# The filter below stands in front of pip-audit, so a bug that drops a
 	# *third-party* pin would take this gate green over an unaudited dependency.
@@ -239,6 +248,13 @@ sast:
 	# [crypto] extra is the only third-party code either can pull, so audit it
 	# explicitly. Mirror packages/credbroker/pyproject.toml [crypto].
 	@printf 'cryptography>=42\nargon2-cffi>=23\n' | pip-audit -r /dev/stdin
+	# npm SCA leg (ADR-0083). pip-audit above covers every Python dependency and
+	# no JavaScript; the repo's two npm projects ship their lockfiles into built
+	# output. Same "prove it before trusting it" order as the pip-audit leg: the
+	# self-test runs first, because a live audit against a healthy registry is
+	# silent both when the gate works and when it has been broken into a no-op.
+	python3 tools/test-audit-npm.py
+	python3 tools/audit-npm.py --root .
 	semgrep --config p/python --config p/security-audit --config tools/semgrep/ --error --quiet --metrics off $(SEMGREP_EXCLUDE) $(SAST_DIRS)
 	# Prove the custom rules still fire. The scan above is silent both when the
 	# rules work and when they have been broken into no-ops, so it cannot tell

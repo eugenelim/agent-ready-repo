@@ -21,13 +21,26 @@ mermaid is bundled (no runtime script CDN calls).
 | [`mermaid`](https://mermaid.js.org) | `11.16.1` | Diagram rendering — bundled + lazy-imported in `src/components/Footer.astro` with `securityLevel: 'strict'`; replaced the former jsdelivr runtime script |
 | [`unist-util-visit`](https://github.com/syntax-tree/unist-util-visit) | `5.1.0` | AST walker for the two markdown-pipeline plugins in `astro.config.ts` (mermaid fences, `src/plugins/rehype-scrollable-tables.ts`). Previously resolved only through transitive hoisting; declared explicitly so an `npm install` dedupe cannot redden the docs build |
 
-Supply-chain posture: the lockfile's only `"hasInstallScript": true`
-entries must stay within the versioned `allowScripts` keys in
-`package.json` (`esbuild@0.28.1`, `fsevents@2.3.3`). **Known gap
-(deferred, `workspace.toml [backlog]` slug `docs-site-npm-sca-gap`):** no
-SCA scanner (npm audit/Dependabot) is wired repo-wide; bundling mermaid
-vendors its transitive tree into shipped output, so that unscanned surface
-is net-new until a scanner lands.
+Supply-chain posture, two controls:
+
+- **Known-CVE scanning is wired** (ADR-0083, `docs/specs/npm-sca-gate/`).
+  `tools/audit-npm.py` runs `npm audit --audit-level=moderate` over this
+  lockfile as a leg of `make sast`, so it gates locally and in
+  `build-check.yml`. Both lockfiles are in the Makefile's `SAST_CONFIG`,
+  so a lockfile-only diff still triggers the gate. Fix a finding with
+  `npm audit fix --package-lock-only`; suppress one only when there is no
+  fix, via a reasoned entry in `tools/npm-audit-allowlist.toml`.
+  The gate audits a known-vulnerable **canary** pin first — a mirror whose
+  advisory endpoint returns 200-with-nothing produces a report identical to
+  a clean one, so a green run is only trustworthy if the canary reported.
+  Exit 2 (tool error) is distinct from exit 1 (findings); never read it as
+  a pass.
+- **Install-script vetting is still by hand.** The lockfile's only
+  `"hasInstallScript": true` entries must stay within the versioned
+  `allowScripts` keys in `package.json` (`esbuild@0.28.1`,
+  `fsevents@2.3.3`). Nothing enforces that yet — machine enforcement is
+  deferred under `workspace.toml [backlog]` slug
+  `npm-allowscripts-enforcement`. Check it by eye when the lockfile moves.
 
 ## Styling: the docs palette deliberately diverges from `web/`
 

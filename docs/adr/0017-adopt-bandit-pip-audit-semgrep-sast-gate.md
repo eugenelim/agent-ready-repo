@@ -4,7 +4,7 @@
 - **Date:** 2026-06-12
 - **Deciders:** eugenelim
 - **Supersedes:** none
-- **Related:** the implementing spec `docs/specs/sast-sca-tooling/`; ADR-0003 (credential-broker contract — `sso-broker.py` is one of the scanned scripts)
+- **Related:** the implementing spec `docs/specs/sast-sca-tooling/`; ADR-0003 (credential-broker contract — `sso-broker.py` is one of the scanned scripts); **ADR-0083** (extends this gate's SCA half to the npm ecosystem — the three tools below cover Python only)
 
 ## Context
 
