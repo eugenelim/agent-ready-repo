@@ -1649,16 +1649,6 @@ open = [
   # api.github.com -- the scheme and host are fixed literals and _NoRedirect
   # refuses redirects outright -- so this is hygiene, not a live hole. Fix is a
   # dot-segment reject in _validate_repo plus a case in its test.
-  # PRE-EXISTING on origin/main as of 1f6b2d2f, not caused by any branch:
-  # tools/test_catalogue_navigation.py::test_markdown_entry_points_keep_canonical_outcome_labels
-  # fails because guides/README.md no longer carries the "Build and review
-  # software" outcome label that docs-site navigation still declares. The test
-  # asserts every canonical outcome title appears verbatim in each markdown
-  # entry point, so the two drifted apart when one side was reworded. `make ci`
-  # is red on main until this is reconciled -- decide which side is canonical
-  # (the navigation source or the README wording) and align the other.
-  {slug = "pre-existing-guides-readme-outcome-label-drift", summary = "Reconcile guides/README.md with the docs-site navigation's canonical outcome labels so test_markdown_entry_points_keep_canonical_outcome_labels passes", source = "pre-flight/2026-08-16"},
-
   {slug = "capture-evidence-repo-dot-segments", summary = "Reject `.` and `..` path segments in capture-publish-control-evidence.py's _validate_repo so a --repo value cannot redirect the App-authenticated read to another endpoint", source = "spec/bandit-nosec-comment-hygiene"},
 
   # test-loop-cohort.sh is 493 lines / 51 cases of bash and uses ~20 bash-isms
