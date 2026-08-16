@@ -44,6 +44,9 @@ sys.path.insert(0, _AGENTBUNDLE_PATH)
 Step = tuple[str, Callable[[], int]]
 
 
+_CREDBROKER_PATH = str(REPO_ROOT / "packages" / "credbroker")
+
+
 def _agentbundle_env() -> dict:
     """Env with packages/agentbundle on PYTHONPATH for subprocess agentbundle calls."""
     env = os.environ.copy()
@@ -51,6 +54,21 @@ def _agentbundle_env() -> dict:
     parts = [p for p in pp.split(os.pathsep) if p]
     if _AGENTBUNDLE_PATH not in parts:
         env["PYTHONPATH"] = os.pathsep.join([_AGENTBUNDLE_PATH] + parts)
+    return env
+
+
+def _source_packages_env() -> dict:
+    """Env with BOTH source packages on PYTHONPATH.
+
+    Both are importable from source — neither needs `pip install -e` — so a
+    directory-scoped step can run a suite that imports them without the chain
+    taking on provisioning. Appended after any caller PYTHONPATH so a real
+    installed copy still wins.
+    """
+    env = _agentbundle_env()
+    parts = [p for p in env.get("PYTHONPATH", "").split(os.pathsep) if p]
+    if _CREDBROKER_PATH not in parts:
+        env["PYTHONPATH"] = os.pathsep.join(parts + [_CREDBROKER_PATH])
     return env
 
 
@@ -90,6 +108,62 @@ def _pytest_step(label: str, *path_parts: str) -> Step:
         return subprocess.run(
             [sys.executable, "-m", "pytest", str(test_path), "-q"],
             check=False,
+        ).returncode
+
+    return (label, _thunk)
+
+
+def _pytest_step_cwd(label: str, cwd: str, *targets: str, floor: int | None = None) -> Step:
+    """Wrap a pytest run that must execute FROM a directory.
+
+    Some suites are directory-scoped by construction: their `conftest.py` puts
+    the skill's `scripts/` on `sys.path`, so running them from the repo root
+    collects nothing useful. CI expresses that with `working-directory:`; the
+    chain had no vocabulary for it, so those gates were CI-only and a local
+    `make build-check` could not run them at all.
+
+    Windows-clean, which is the whole reason this is a step kind rather than a
+    shell string: `subprocess`'s own `cwd=` moves the child, so there is no
+    `cd &&`, no shell, and no POSIX-only quoting. The argv stays a plain list.
+
+    The child also gets the repo's source packages on `PYTHONPATH`. Moving the
+    cwd out of the repo root is what makes this necessary: a suite that imports
+    `credbroker` or `agentbundle` finds them by path rather than by install, so
+    the step does not require `pip install -e` provisioning that a local
+    `make build-check` has no reason to do. CI proved the need — without it the
+    credential-setup suite exits 3 at import on a runner where credbroker is not
+    installed.
+    """
+    directory = Path(cwd)
+
+    def _thunk(directory=directory, targets=targets, floor=floor) -> int:
+        workdir = str(REPO_ROOT / directory)
+        env = _source_packages_env()
+        if floor is not None:
+            # A directory-scoped run with no filenames exits 0 when it collects
+            # NOTHING, so a suite that fails to land — renamed, moved, broken
+            # import — reduces the count and the gate still passes. Assert a
+            # floor first. CI does this with a shell subshell and `grep -c`;
+            # here it is a count in Python, so the step stays Windows-clean.
+            probe = subprocess.run(
+                [sys.executable, "-m", "pytest", *targets,
+                 "-q", "-p", "no:cacheprovider", "--collect-only"],
+                cwd=workdir, check=False, env=env,
+                capture_output=True, text=True,
+            )
+            collected = sum(1 for line in probe.stdout.splitlines() if "::" in line)
+            if collected < floor:
+                print(
+                    f"build chain: {directory} collected {collected} test(s), "
+                    f"expected at least {floor} — did a suite fail to land?",
+                    file=sys.stderr,
+                )
+                return 1
+        return subprocess.run(
+            [sys.executable, "-m", "pytest", *targets, "-q", "-p", "no:cacheprovider"],
+            cwd=workdir,
+            check=False,
+            env=env,
         ).returncode
 
     return (label, _thunk)
@@ -325,6 +399,22 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "check-contract-drift",
             "tools", "repo", "check_contract_drift.py",
+        ),
+        # Directory-scoped: each suite's conftest puts its skill's scripts/ on
+        # sys.path, so both collect nothing from the repo root. Pure stdlib —
+        # no install, no network — so they belong in the local chain.
+        # The floors are not decoration: these invocations name a directory
+        # rather than files, so a suite that fails to land would silently
+        # reduce the count and still exit 0.
+        _pytest_step_cwd(
+            "pytest catalogue-curation assimilate-primitive",
+            "packs/catalogue-curation/tests/skills/assimilate-primitive",
+            floor=30,
+        ),
+        _pytest_step_cwd(
+            "pytest catalogue-curation assimilate-repo",
+            "packs/catalogue-curation/tests/skills/assimilate-repo",
+            floor=7,
         ),
     ]
     return _run_chain(steps)

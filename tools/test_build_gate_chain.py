@@ -142,9 +142,11 @@ class BuildSelfChainTest(unittest.TestCase):
     def _run_with_fake_subprocess(self, args: argparse.Namespace) -> tuple[int, list[list[str]]]:
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append(argv)
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             rc = gc.build_self(args)
@@ -230,25 +232,34 @@ class BuildCheckChainTest(unittest.TestCase):
     def test_full_step_sequence(self):
         order: list[str] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             order.append("subprocess")
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
             rc = gc.build_check(args)
 
         self.assertEqual(rc, 0)
-        # 1 module step (catalogue build) + the script steps.
-        self.assertEqual(len(order), 1 + len(EXPECTED_SCRIPT_STEPS))
+        # 1 module step (catalogue build) + the script steps + the two
+        # directory-scoped steps, each of which spawns twice: a `--collect-only`
+        # floor probe and then the run itself.
+        _CWD_STEPS = 2
+        self.assertEqual(
+            len(order), 1 + len(EXPECTED_SCRIPT_STEPS) + _CWD_STEPS * 2
+        )
 
     def test_first_step_is_catalogue_build(self):
         """The first step must invoke agentbundle catalogue build."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append(list(argv))
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
@@ -266,9 +277,11 @@ class BuildCheckChainTest(unittest.TestCase):
         """pre-pr-catalogue must call tools/catalogue/pre_pr_catalogue.py."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None):
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
             seen.append(list(argv))
-            return mock.Mock(returncode=0)
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             args = argparse.Namespace(packs_dir="packs", output_dir="dist")
@@ -281,48 +294,100 @@ class BuildCheckChainTest(unittest.TestCase):
         self.assertIn("tools/catalogue/pre_pr_catalogue.py", script_path)
 
     def test_script_steps_are_windows_clean(self):
-        """Every spawned argv is a shell-free Python script or pytest call."""
-        seen: list[list[str]] = []
+        """Every spawned argv is shell-free.
 
-        def fake_run(argv, check, env=None):
-            seen.append(list(argv))
-            return mock.Mock(returncode=0)
+        The claim this test carries is *Windows-cleanliness*, and the argv
+        LENGTH was only ever a proxy for it — a cheap stand-in for "nothing
+        clever is going on". The proxy became the constraint: a suite that has
+        to run from its own directory could not be expressed at all, so those
+        gates stayed CI-only (see `_pytest_step_cwd`). Directory-scoping is
+        Windows-clean — `subprocess`'s `cwd=` needs no shell and no `cd &&` —
+        so the assertion now says what it means: no shell, no `.sh`, no
+        POSIX-only quoting, and an argv that is a plain list of tokens.
+        """
+        seen: list[tuple[list[str], object]] = []
+
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
+            seen.append((list(argv), cwd))
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
-        pytest_paths = {
-            "packs/core/tests/skills/work-loop/test_lint_spec_status.py",
-            "packs/core/tests/skills/receive-brief/test_lint_brief_coverage.py",
-            "packs/core/tests/skills/work-loop/test_lint_traceability.py",
-        }
-        for argv in seen[1:]:  # skip first (module step has extra args)
+        for argv, cwd in seen[1:]:  # skip first (module step has extra args)
             self.assertEqual(argv[0], sys.executable)
-            path = Path(argv[3] if argv[1:3] == ["-m", "pytest"] else argv[1]).as_posix()
-            if path in pytest_paths:
-                self.assertEqual(argv[1:3], ["-m", "pytest"])
-                self.assertEqual(argv[-1], "-q")
+            if argv[1:3] == ["-m", "pytest"]:
+                # `-q` is present but not necessarily last: a floor probe
+                # appends `--collect-only` after it.
+                self.assertIn("-q", argv)
+                self.assertGreater(len(argv), 3, "a pytest step needs a target")
             else:
+                # A plain script step: interpreter + one script path.
                 self.assertEqual(len(argv), 2)
             for token in argv:
                 self.assertNotIn(token, ("bash", "sh", "-c"))
                 self.assertFalse(token.endswith(".sh"))
+                # No shell metacharacters anywhere — the real Windows hazard,
+                # and what the length check was standing in for.
+                for meta in ("&&", "||", "|", ";", ">", "<", "$("):
+                    self.assertNotIn(meta, token, f"shell metacharacter in {token!r}")
+            if cwd is not None:
+                # A cwd is a real path under the repo, not a shell expression.
+                self.assertTrue(Path(cwd).is_absolute(), cwd)
+
+    def test_a_cwd_scoped_step_is_expressible(self):
+        """The vocabulary gap this replaced: no way to say "run from here".
+
+        Without it, a suite whose conftest puts the skill's scripts/ on
+        sys.path could only run in CI via `working-directory:`, so a local
+        `make build-check` silently skipped that gate entirely.
+        """
+        seen: list[tuple[list[str], object]] = []
+
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
+            seen.append((list(argv), cwd))
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
+
+        with mock.patch.object(gc.subprocess, "run", fake_run):
+            gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
+
+        scoped = [(argv, cwd) for argv, cwd in seen if cwd is not None]
+        self.assertTrue(scoped, "no cwd-scoped step ran")
+        dirs = {str(cwd) for _argv, cwd in scoped}
+        self.assertTrue(
+            any(d.endswith("assimilate-primitive") for d in dirs), sorted(dirs)
+        )
+        self.assertTrue(any(d.endswith("assimilate-repo") for d in dirs), sorted(dirs))
+        for argv, _cwd in scoped:
+            self.assertEqual(argv[1:3], ["-m", "pytest"])
+            # No file targets: the directory IS the target, which is exactly why
+            # these steps need a collected-count floor.
+            self.assertNotIn("--collect-only", argv[:3])
 
     def test_spawned_script_paths_in_order(self):
         """The spawned script paths match the expected gate order."""
         seen: list[list[str]] = []
 
-        def fake_run(argv, check, env=None):
-            seen.append(list(argv))
-            return mock.Mock(returncode=0)
+        def fake_run(argv, check=False, env=None, cwd=None, **kwargs):
+            seen.append((list(argv), cwd))
+            # `--collect-only` output for the floor probe: enough `::`
+            # lines that any wired floor is satisfied under mocking.
+            return mock.Mock(returncode=0, stdout="t::a\n" * 200, stderr="")
 
         with mock.patch.object(gc.subprocess, "run", fake_run):
             gc.build_check(argparse.Namespace(packs_dir="packs", output_dir="dist"))
 
         # seen[0] = module step (catalogue build); seen[1:] = script steps.
+        # Directory-scoped steps are excluded: they name no repo-root path (the
+        # cwd is the target), so they belong to the cwd test, not this one.
         spawned = [
             Path(argv[3] if argv[1:3] == ["-m", "pytest"] else argv[1]).as_posix()
-            for argv in seen[1:]
+            for argv, cwd in seen[1:]
+            if cwd is None
         ]
         self.assertEqual(spawned, EXPECTED_SCRIPT_STEPS)
 

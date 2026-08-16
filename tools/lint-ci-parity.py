@@ -176,6 +176,11 @@ _PYTEST_VALUE_FLAGS = frozenset({
 # ~3s at 24 arguments, i.e. a mid-edit syntax error hung `make build-check` with
 # no diagnostic. Call arguments contain no `)`, so this is both linear and exact.
 _SCRIPT_STEP = re.compile(r"_script_step\(([^)]*)\)", re.S)
+# `_pytest_step_cwd("label", "<dir>", "<target>", ...)` — the directory-scoped
+# step kind. Its targets are bare filenames resolved against the cwd, so a
+# literal scan for repo-root paths would miss them entirely and report the
+# gate as CI-only when it is wired locally.
+_PYTEST_STEP_CWD = re.compile(r"_pytest_step_cwd\(([^)]*)\)", re.S)
 _RUN_CALL = re.compile(r"_run\(\s*(.*?)\)", re.S)
 _QUOTED = re.compile(r"\"([^\"]*)\"")
 
@@ -290,9 +295,14 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)":
         CI_ONLY(
-            "the local chain's step contract is [sys.executable, <script>] with "
-            "no cwd (test_script_steps_are_windows_clean); this step needs "
-            "working-directory — see backlog `gate-chain-step-vocabulary`."
+            "PROVISIONING, not step vocabulary — the chain grew "
+            "`_pytest_step_cwd` and this step still cannot move. The suite "
+            "spawns setup.py as a subprocess, and that script hard-exits 3 when "
+            "credbroker is not INSTALLED; a source path on PYTHONPATH does not "
+            "satisfy it (verified in CI, twice). Moving it would mean "
+            "`pip install -e ./packages/credbroker` inside build-check, which is "
+            "a decision about what that target provisions — see backlog "
+            "`gate-chain-credential-setup-provisioning`."
         ),
     "pip install httpx for the atlassian SSO suites (RFC-0035)":
         CI_ONLY(
@@ -381,11 +391,7 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "catalogue-curation guard lint + self-test (RFC-0059 D6)":
         LOCAL("build-check"),
     "catalogue-curation skill-script tests (RFC-0059 security ACs)":
-        CI_ONLY(
-            "the local chain's step contract is [sys.executable, <script>] with "
-            "no cwd (test_script_steps_are_windows_clean); this step needs "
-            "working-directory — see backlog `gate-chain-step-vocabulary`."
-        ),
+        LOCAL("build-check"),
     "experience framework-agnosticism lint + self-test (design-craft-pack AC8)":
         LOCAL("build-check"),
     "pack description drift backstop + self-test":
@@ -477,7 +483,14 @@ def _cd_target(segment: str, subshell: bool) -> str | None:
     if not match:
         return None
     dest = match.group(1).replace("\\", "/").removeprefix("./")
-    if dest.startswith(("-", "~", "/", "$")) or ".." in dest.split("/"):
+    # Strip surrounding quotes BEFORE the guard. `cd "$dir"` is the same
+    # unresolvable case as `cd $dir`, but the quoted token starts with `"`, so
+    # the guard missed it and composed the phantom prefix `"$dir"/` — the very
+    # failure mode this function's docstring warns about, reached by the form
+    # a careful shell author is most likely to write.
+    if len(dest) >= 2 and dest[0] == dest[-1] and dest[0] in "\"'":
+        dest = dest[1:-1]
+    if dest.startswith(("-", "~", "/", "$")) or ".." in dest.split("/") or not dest:
         return ""  # unresolvable — clear, never compose
     return dest
 
@@ -776,12 +789,26 @@ def makefile_recipe_targets(text: str, reachable: set[str]) -> set[str]:
 
 
 def script_step_targets(text: str) -> set[str]:
-    """Paths named by `_script_step("label", *parts)` calls in the gate chain."""
+    """Paths named by gate-chain step calls.
+
+    Covers both `_script_step("label", *parts)`, whose parts join into a
+    repo-relative path, and `_pytest_step_cwd("label", "<dir>", *targets)`,
+    whose targets are bare filenames resolved against the directory — those are
+    joined here so the reachability scan sees the same repo-relative path the CI
+    step names.
+    """
+    stripped = _strip_comment_lines(text)
     found = set()
-    for call in _SCRIPT_STEP.finditer(_strip_comment_lines(text)):
+    for call in _SCRIPT_STEP.finditer(stripped):
         parts = _QUOTED.findall(call.group(1))
         if len(parts) > 1:  # parts[0] is the human label
             found.add("/".join(parts[1:]))
+    for call in _PYTEST_STEP_CWD.finditer(stripped):
+        parts = _QUOTED.findall(call.group(1))
+        if len(parts) > 2:  # label, cwd, then one or more targets
+            cwd = parts[1].rstrip("/")
+            for target in parts[2:]:
+                found.add(f"{cwd}/{target}")
     return found
 
 
