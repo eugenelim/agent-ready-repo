@@ -91,7 +91,7 @@ suite.
   **pass**. Only the result is recorded.
 - Core version authorities: **pass**, aligned at `2.6.0` for the new primitive.
 - AgentBundle public-contract version authorities: **pass**, aligned at
-  `0.34.1` with matching package changelog and package README.
+  `0.35.4` with matching package changelog and package README.
 - Public source/bundled schema parity: **pass**, 13 contracts byte-identical.
 - Progressive skill roster, activation/near-miss evals, and semantic-judge
   distillation/enquiry evals: **pass**.
