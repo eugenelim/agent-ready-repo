@@ -85,6 +85,15 @@ than an unsupported adopter-facing claim.
   skill or reviewer body changes; the only authorized `.apm` change is
   `packs/frontend-engineering/.apm/skills/frontend-engineering/evals/eval_queries.json`.
 
+  **Both behaviour gaps this AC recorded are now closed** (2026-08-16,
+  `spec/frontend-manifest-production-fields`, pack 0.2.0). The narrowing was the
+  right call at the time — claiming coverage FE did not have would have been
+  worse — but it left the Digital Experience Contract asking at production tier
+  for evidence nothing collected. The evidence manifest now carries
+  `security/privacy review status` and `reliability/recovery status`, recording
+  review state and handoff rather than a verdict, so FE still performs neither
+  review.
+
 - [x] AC3: `web/src/content/packs/frontend-engineering.md` presents create,
   retrofit, audit, and verify as four adopter jobs with their expected outputs;
   a five-second scan answers what the pack is, who it serves, and which job to

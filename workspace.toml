@@ -1661,38 +1661,7 @@ open = [
   # large test_loop_cohort.py suite as one of them.
   {slug = "loop-cohort-shell-suite-to-python", summary = "Port test-loop-cohort.sh (493 lines, 51 sequential cases) to pure-stdlib Python so it runs on Windows, decoupling the shared-counter fixtures and profiling its >10min runtime", source = "spec/pack-script-root-boundary-validation"},
 
-  # Frontend-engineering doctrine benchmark follow-ons — 2026-08-08.
-  # The shipped Digital Experience Contract includes a production Frontend
-  # Engineering Security and Privacy field for data handled, privacy controls,
-  # and security review status, but the frontend-engineering evidence manifest
-  # does not require that evidence. The frontend-reviewer correctly routes
-  # security findings to security-reviewer, so adopter-facing publication prose
-  # was narrowed instead of claiming coverage. Fix: update the main skill's
-  # evidence-manifest requirements and create/retrofit/verify guidance to record
-  # security/privacy review status for production surfaces without making the FE
-  # skill perform security review. Affected file:
-  # packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md.
-  # Decision: security-reviewer remains responsible for auth, secrets, and user-
-  # input boundaries; FE records status and handoff evidence. Unblocks: now; no
-  # tracked prerequisite. Completion includes projected/eval/docs synchronization.
-  # Cold-start: add security/privacy review-status fields and handoff evidence to the main FE manifest without moving security review into the frontend reviewer.
-  {slug = "frontend-engineering-security-privacy-manifest-field", source = "spec/frontend-engineering-doctrine-update AC2"},
 
-  # The shipped Digital Experience Contract includes a production Frontend
-  # Engineering Reliability field for error rates, SLOs, monitoring/alerting,
-  # and recovery path, but the frontend-engineering evidence manifest records
-  # only console/network result, known exceptions, and unverified items.
-  # Adopter-facing prose was narrowed so FE does not claim full reliability
-  # coverage. Fix: update the main skill's create/retrofit/verify evidence-
-  # manifest guidance to require reliability/recovery status for production
-  # surfaces, with explicit quality-engineer or platform-owner handoff where
-  # needed. Affected file:
-  # packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md.
-  # Decision: reliability is not a frontend-reviewer lens today; FE records
-  # status and recovery evidence rather than claiming broader review. Unblocks:
-  # now; no tracked prerequisite. Completion includes projected/eval/docs sync.
-  # Cold-start: add reliability/recovery status and owner handoff evidence to the main FE manifest without claiming broader reliability review.
-  {slug = "frontend-engineering-reliability-manifest-field", source = "spec/frontend-engineering-doctrine-update AC2"},
 
   # Deliberately NOT backlogged: extending SAST_DIRS to web/ (62 JS/TS/Astro
   # files). Decided 2026-08-07 — web/ is the platform site, built and deployed
