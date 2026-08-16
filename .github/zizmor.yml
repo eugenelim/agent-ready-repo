@@ -1,29 +1,18 @@
 # zizmor configuration — suppress audits that represent accepted repo posture.
 #
-# unpinned-uses (HIGH in zizmor 1.27.0): the repo uses @vN tag pinning for
-# GitHub-owned actions (checkout, setup-python, upload-artifact, codeql,
-# pages/configure-pages/deploy-pages). SHA pinning is the correct long-term
-# posture and is tracked in backlog item `github-actions-sha-pin`;
-# suppressing here avoids gate noise while that work is planned.
+# The `unpinned-uses` ignore list is GONE, and deliberately so. Every `uses:`
+# in every workflow is now pinned to a 40-character commit SHA with the
+# human-readable tag in a trailing comment, so the audit has nothing left to
+# suppress. Tag pinning is trust-on-first-use: a re-tagged release silently
+# changes what runs, and `@release/v1` — which one publish job used — is a
+# mutable *branch*, which is worse again.
 #
-# To suppress for a newly-added workflow: add its basename to the ignore list.
-# CONSTRAINT: only list workflows whose every `uses:` is a GitHub-owned action at @vN
-# (e.g. actions/checkout@v4, github/codeql-action@v3). Third-party or mutable-ref
-# actions (org/action@main, org/action@sha) must NOT be suppressed here — those are
-# exactly the cases unpinned-uses exists to catch.
-rules:
-  unpinned-uses:
-    ignore:
-      - build-check-windows.yml
-      - build-check.yml
-      - catalogue-tooling-ci-gates.yml
-      - ci-security.yml
-      - codeql.yml
-      - docs.yml
-      - iac-release-loop-canary.yml
-      - iac-staleness.yml
-      - pack-evals.yml
-      - pages.yml
-      - publish-catalogue.yml
-      - release-agentbundle.yml
-      - release-credbroker.yml
+# If you add a workflow and zizmor reports `unpinned-uses`, pin the action
+# rather than re-adding a suppression here:
+#
+#   sha=$(gh api repos/<owner>/<action>/commits/<tag> --jq .sha)
+#   uses: <owner>/<action>@$sha  # <tag>
+#
+# Keeping the tag in a comment is what makes the pin maintainable — Dependabot
+# and a human reader both need to know which version the SHA is.
+rules: {}
