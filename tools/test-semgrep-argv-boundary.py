@@ -6,7 +6,7 @@ SEMGREP_EXCLUDE in the Makefile), so without this file the fixtures would be
 dead weight and the rule would be unproven. This is the gate that keeps them
 honest.
 
-Asserts three things:
+Asserts five things:
   1. The rule FIRES on the pre-fix shape (positive fixture) — a rule that
      never fires is indistinguishable from no rule at all.
   2. The rule is SILENT on both post-fix shapes (negative fixture): the
@@ -14,6 +14,22 @@ Asserts three things:
      resolve()-then-is_relative_to() exemplar from check-spec-status.py.
   3. The rule is SILENT on the three production scripts it is scoped to,
      i.e. the fix actually satisfies it.
+  4. Both fixtures are present, so a renamed one is diagnosed rather than
+     dropped from the scan.
+  5. No fixture file sits in the fixtures directory unscanned — the rule's
+     `paths.include` covers that directory by glob, but semgrep only scans the
+     files it is named.
+
+All five run in ONE semgrep process; see `scan_all` for why that is safe.
+
+**What a green result here does and does not mean.** It means the rule's
+`paths.include` matched each target and the rule's verdict on it was as
+expected. It does NOT mean the target parsed: a whole-file parse failure is
+reported as scanned-with-no-findings and no error, so a ratcheted script that
+stops parsing reads as clean (see `scan_all`, and the
+`sast-semgrep-unparseable-target-reads-clean` backlog entry). Nor does it prove
+the boundary is validated — see the rule's own header, which is emphatic that it
+is a tripwire for the obvious regression, not a proof of correctness.
 
 Run: python3 tools/test-semgrep-argv-boundary.py
 Exit 0 = all pass; exit non-zero = at least one failure. Skips (exit 0) when
@@ -89,13 +105,16 @@ def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
     findings is ambiguous on its own, meaning both "the rule applied and the
     file is clean" and "the rule's paths.include excluded the file entirely".
 
-    What `paths.scanned` membership does NOT prove is that the file parsed.
-    Measured on semgrep 1.166.0: an unparseable target is still listed as
-    scanned, with exit 0, empty stderr, and empty `errors` and `skipped` arrays
-    — there is no signal to gate on. So a ratcheted script that stops parsing
-    reads as clean here. That hole predates batching and is unchanged by it;
-    tracked as `sast-semgrep-unparseable-target-reads-clean` in
-    `workspace.toml [backlog].open`.
+    What `paths.scanned` membership does NOT prove is that the file parsed, and
+    the signal available depends on how it failed. Measured on semgrep 1.166.0:
+    a *partial* parse failure (an unbalanced bracket, a nonsense token) does
+    surface as a path-attributed `PartialParsing` entry in `errors`, which
+    `--strict` escalates to exit 3 — gateable. But a whole-file or whole-construct
+    failure (`def broken(:`, `3 = x`) yields empty `errors`, empty `skipped`,
+    empty stderr and exit 0 even under `--strict` — nothing to gate on. So a
+    ratcheted script can still stop parsing and read as clean here. The residue
+    predates batching and is unchanged by it; tracked as
+    `sast-semgrep-unparseable-target-reads-clean` in `workspace.toml`.
 
     One process, not one per target, because semgrep's startup dominates its work
     on inputs this small — five invocations over five small files spent several
@@ -117,6 +136,9 @@ def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
         [
             "semgrep", "--config", str(RULE),
             "--json", "--quiet", "--metrics", "off",
+            # `--` so a future fixture or ratcheted script whose name begins with
+            # `-` is scanned rather than silently consumed as a flag.
+            "--",
             *(str(t) for t in targets),
         ],
         capture_output=True,
@@ -125,6 +147,10 @@ def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
         errors="replace",
         check=False,
         cwd=str(REPO_ROOT),
+        # A wedged semgrep must fail the gate, not hang it. Batching concentrates
+        # all five targets behind this one process, so there is no partial result
+        # to fall back on. Generous relative to the ~10s this normally takes.
+        timeout=300,
     )
     if not proc.stdout.strip():
         listed = ", ".join(_key(t) for t in targets)
@@ -144,23 +170,24 @@ def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
     return findings
 
 
-def unrequested(targets: list[Path], findings: dict[str, list[dict]]) -> list[str]:
-    """Scanned paths nobody asked for — i.e. semgrep widened the argv.
+def unwired_fixtures(targets: list[Path]) -> list[str]:
+    """Fixture files this run would not scan.
 
-    The complement (a requested target that was *not* scanned) is left to
-    `hits_for`, which can name the failing case; this half has no test name to
-    attach to, so it is reported once from `main`.
+    The rule's `paths.include` covers the whole fixtures directory by glob, but
+    semgrep only ever scans the files it is *named* — an explicit file argv is
+    never widened to siblings (measured on 1.166.0). So a fixture added to that
+    directory and not added to the target list below is silently unexercised: the
+    glob suggests it is covered, and nothing scans it.
 
-    Deliberately NOT a proof that the target argv is load-bearing, and measured
-    not to be: strip the target arguments and semgrep walks the working
-    directory instead, where this rule's `paths.include` rediscovers exactly the
-    same five files — same verdict, nothing extra, so this check cannot fire.
-    The rule's `paths.include` is the authoritative scope; the target list is
-    redundant with it by construction. This stays as defence in depth for the
-    case where the two diverge — a new file dropped into the fixtures directory,
-    which the glob would match and nobody requested.
+    This replaced an earlier `unrequested()` check that compared the scanned set
+    against the requested set. That check could not fire in any configuration —
+    semgrep neither widens an explicit file argv (so nothing extra ever appears)
+    nor, when the argv is stripped entirely, returns anything but the same five
+    files this rule's `paths.include` selects. Enumerating the directory is the
+    form that actually guards the risk the old docstring claimed to.
     """
-    return sorted(set(findings) - {_key(t) for t in targets})
+    named = {t.resolve() for t in targets}
+    return sorted(p.name for p in FIXTURES.glob("*.py") if p.resolve() not in named)
 
 
 def hits_for(name: str, target: Path, findings: dict[str, list[dict]]) -> list[dict] | None:
@@ -244,11 +271,13 @@ def main() -> int:
         return 1
 
     targets = [FIXTURES / "positive.py", FIXTURES / "negative.py", *FIXED_SCRIPTS]
-    findings = scan_all([t for t in targets if t.is_file()])
+    present = [t for t in targets if t.is_file()]
 
-    extra = unrequested([t for t in targets if t.is_file()], findings)
-    if extra:
-        fail("semgrep scanned only the requested targets", f"also scanned {extra}")
+    unwired = unwired_fixtures(present)
+    if unwired:
+        fail("every fixture is wired into the scan", f"never scanned: {unwired}")
+
+    findings = scan_all(present)
 
     test_positive_fixture_fires(findings)
     test_negative_fixture_silent(findings)

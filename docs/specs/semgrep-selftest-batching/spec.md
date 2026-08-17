@@ -4,7 +4,10 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017 (custom Semgrep `mode: taint` rules live in
-  `tools/semgrep/` and run in `make sast`; this file is what proves the rule fires)
+  `tools/semgrep/` and run in `make sast`; this file is what proves the rule fires).
+  Note the `argv-path-boundary` rule is deliberately **not** a taint rule — its own
+  header records that the taint shape was built, measured at 0 findings on the real
+  target, and rejected in favour of guarding the conversion site.
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none — internal gate self-test. Invocation
@@ -27,16 +30,21 @@ argv-path-boundary rule, so weakening it would be a security-relevant
 regression even though the gate's scope is untouched. Light mode was retained
 rather than escalating to full, on the basis that the substance full mode would
 add here is adversarial depth on exactly one question — can this control still
-fail? — and that question is answered by a six-mutation battery (recorded in
-plan.md § Verification) plus a `security-reviewer` pass on the diff, both of
-which ran. What full mode would add beyond that is the two human approval gates
-and the loop-cohort state machine, neither of which bears on the question. The
-sibling `docs/specs/pip-audit-batching/` reached ADR level for a different
-reason — it changed what was audited; this does not. -->
+fail?
+
+That reasoning did not survive contact. The mutation battery and a
+`security-reviewer` pass both ran (recorded in plan.md § Verification), and the
+second round of each found new Blockers — including a fail-open the batching did
+not introduce but does sit on top of (`FIXED_SCRIPTS = []` exits 0), and a
+factual error in this spec's own account of semgrep's parse-error signalling.
+Two review rounds each finding the documentation claiming more than the evidence
+supports is precisely the escalation signal light mode's rules describe. The
+disposition was surfaced to the maintainer rather than decided here; see
+plan.md § Open, and deliberately not silent. -->
 
 ## Objective
 
-`tools/test-semgrep-argv-boundary.py` proves the `argv-path-boundary` taint rule fires
+`tools/test-semgrep-argv-boundary.py` proves the `argv-path-boundary` boundary rule fires
 on its positive fixture and stays silent on its negative fixture and on the three
 production scripts it ratchets — using **one** `semgrep` process instead of five. Almost
 all of a per-target invocation's cost is semgrep's process startup rather than scanning,
@@ -51,9 +59,10 @@ and it names the file in every finding, so per-target attribution survives nativ
 Every assertion confirms the rule's scope actually **covered** its target before
 trusting the target's silence — and that confirmation now covers the two fixtures too,
 which the per-invocation version did not check. It is a `paths.include` guarantee and
-nothing more: `paths.scanned` membership does **not** prove the file parsed, because
-semgrep reports an unparseable target as scanned with no error signal of any kind.
-That hole predates this change and is unaltered by it; it is recorded as
+nothing more: `paths.scanned` membership does **not** prove the file parsed. A partial
+parse failure is signalled (`PartialParsing` in `errors`, escalated to exit 3 by
+`--strict`); a whole-file one is not signalled at all. Neither is gated here today.
+The residue predates this change and is unaltered by it; it is recorded as
 `sast-semgrep-unparseable-target-reads-clean`.
 
 ## Acceptance Criteria
@@ -117,11 +126,15 @@ That hole predates this change and is unaltered by it; it is recorded as
   absent from it (source: probe — passing `tools/lint-ruff.py` alongside `positive.py`
   yielded only `positive.py` in `paths.scanned`, 2026-08-17). This is what makes the
   ratchet assertion survive batching.
-- Technical: `paths.scanned` membership does **not** prove the file parsed. An
-  unparseable target is listed as scanned, contributes zero findings, and produces
-  exit 0 with empty stderr and empty `errors` and `skipped` arrays — no signal exists
-  to gate on (source: probe against a deliberately-unparseable file inside the rule's
-  `paths.include`, 2026-08-17). Pre-existing and unchanged by this work; tracked as
+- Technical: `paths.scanned` membership does **not** prove the file parsed, and the
+  available signal depends on the failure shape. A *partial* parse failure (unbalanced
+  bracket, nonsense token) surfaces as a path-attributed `PartialParsing` entry in
+  `errors` and `--strict` escalates it to exit 3 — gateable. A whole-file or
+  whole-construct failure (`def broken(:`, `3 = x`) yields empty `errors`, empty
+  `skipped`, empty stderr and exit 0 even under `--strict` — not gateable (source:
+  four probe shapes, 2026-08-17). An earlier revision of this spec claimed no signal
+  existed at all, generalising from the whole-file shape; security review caught it.
+  Pre-existing and unchanged by this work; tracked as
   `sast-semgrep-unparseable-target-reads-clean`.
 - Technical: semgrep has a ~7.4s process-startup floor independent of the registry — a
   local-rule-only scan of one trivial file still costs it (source: probe, 2026-08-17).
@@ -141,12 +154,19 @@ That hole predates this change and is unaltered by it; it is recorded as
   one shared environment — see `docs/specs/pip-audit-batching/spec.md`)
 - Technical: the target argv is **redundant** with the rule's `paths.include` — strip
   the target arguments and semgrep walks the working directory, where the rule
-  rediscovers the same five files and returns the same verdict (source: probe,
-  2026-08-17). So no assertion here can prove the argv is load-bearing, and the
-  `unrequested` check is defence in depth for a future divergence (a new file in the
-  fixtures directory, which the glob would match) rather than a guarantee.
-- Technical: semgrep reports paths relative to its working directory, which this script
-  already pins to `REPO_ROOT` via `cwd=` (source: `tools/test-semgrep-argv-boundary.py:81`)
-- Process: light mode is correct here because no risk trigger fires; the SAST gate's
-  scan scope, suppressions, and blocking behaviour are untouched (source:
+  rediscovers the same five files and returns the same verdict; and conversely semgrep
+  never *widens* an explicit file argv, so a sibling fixture matching the glob is not
+  scanned (source: two probes, 2026-08-17). No assertion here can therefore prove the
+  argv is load-bearing. A first attempt shipped an `unrequested()` check claiming to;
+  it was unfireable in both directions and is replaced by `unwired_fixtures()`, which
+  enumerates the fixtures directory and *can* fire — verified by adding a file.
+- Technical: semgrep echoes target paths back in whichever form it was handed — an
+  absolute argument yields absolute `paths.scanned` entries, a relative one yields
+  relative — so `cwd=REPO_ROOT` is *not* what aligns the keys; `_key()` normalising both
+  sides is. Passing absolute targets against repo-relative keys was the bug that bit
+  during implementation (source: probe, 2026-08-17; see
+  `tools/test-semgrep-argv-boundary.py` `_key`)
+- Process: the security-boundary trigger **does** fire — this file is the SAST gate's
+  only proof-of-life for the custom rule — and light mode was retained rather than
+  absent; see the Mode comment above for the reasoning and its limits (source:
   `AGENTS.md` § *How we work* risk-trigger list)

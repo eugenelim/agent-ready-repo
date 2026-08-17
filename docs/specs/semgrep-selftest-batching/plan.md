@@ -61,6 +61,16 @@ construction check is the mutation pass below.
 - Add one helper that resolves a target to its findings and fails the named case if the
   target is absent from the scanned set; route all three test functions through it.
 - Call `scan_all` once in `main()` and pass the mapping to the three test functions.
+- Guard both fixtures with an explicit presence check and a "path drifted?" message, so
+  a renamed fixture is diagnosed rather than dropped from the argv (AC5).
+- Refuse an empty target list in `scan_all`, because semgrep with no targets walks the
+  working directory and this rule's `paths.include` rediscovers the same files (AC6).
+- Enumerate the fixtures directory and fail on any fixture not in the target list: the
+  rule's `paths.include` covers that directory by glob, but semgrep scans only the files
+  it is named, so an added fixture would otherwise sit unexercised.
+- Pass `--` before the targets and an explicit `subprocess` `timeout=`, so a name
+  beginning with `-` is scanned rather than parsed as a flag, and a wedged semgrep fails
+  the gate instead of hanging it.
 - Leave the skip-when-absent branch, the missing-rule branch, the `ok`/`fail` helpers,
   the counters, and the summary block exactly as they are.
 
@@ -71,7 +81,8 @@ are green.
 ## Verification
 
 Mutations are run by patching the loaded module in a harness rather than editing files,
-so no mutation can be left behind in the worktree. Each must produce a non-zero exit.
+so no mutation can be left behind in the worktree. Rows M1–M5 and M7 must each produce a
+non-zero exit; C1 and M6 have their own expectations, stated inline.
 
 | # | Mutation | Expected | Result |
 |---|---|---|---|
@@ -80,8 +91,9 @@ so no mutation can be left behind in the worktree. Each must produce a non-zero 
 | M3 | `_key` corrupted to a constant | must not pass vacuously | detected, exit 1 |
 | M4 | One entry dropped from the rule's `paths.include` | **named** failure, not a traceback | detected, exit 1, named |
 | M5 | Every target missing | refuses; semgrep must not walk the repo | detected, exit 1, named |
-| M6 | Target argv silently stripped | — | **not detected; see below** |
-| C1 | `semgrep` absent from `PATH` | skip message, exit 0 | as specified |
+| M6 | Target argv silently stripped | **no detection expected** — see below | not detected, by design |
+| M7 | An unwired fixture added to the fixtures directory | named failure | detected, exit 1, named |
+| C1 | `semgrep` absent from `PATH` | **skip message, exit 0** | as specified |
 | C2 | Rule file missing | exit 1 | as specified |
 
 Also verified: exactly **one** semgrep invocation over five targets, counted by
@@ -89,20 +101,49 @@ patching `subprocess.run`; and the asymmetric-key bug (normalising targets but n
 reported paths) was hit for real during implementation and failed loudly rather than
 passing.
 
-**M6 is a known non-detection, not a defect to fix.** Stripping the target arguments
-makes semgrep walk the working directory, where the rule's `paths.include` rediscovers
-exactly the same five files and returns an identical verdict — so the argv is redundant
-with the rule's scope and no assertion can prove otherwise. The first attempt at this
-review finding added an `unrequested()` check claiming to make the argv load-bearing;
-M6 disproved that claim, and the check was kept as defence in depth (a new file in the
-fixtures directory would match the glob and be caught) with its docstring corrected.
-Recording it here because a check that cannot fail, presented as a guarantee, is worse
-than no check.
+**M6 is a known non-detection, not a defect.** Stripping the target arguments makes
+semgrep walk the working directory, where the rule's `paths.include` rediscovers exactly
+the same five files and returns an identical verdict — so the argv is redundant with the
+rule's scope and no assertion can prove otherwise. Two attempts to close it failed: an
+exact set-equality check (`unrequested()`) could not fire in either direction, because
+semgrep neither widens an explicit file argv nor, with the argv stripped, returns
+anything but the rule's own five files. It was replaced by `unwired_fixtures()` (M7),
+which guards the risk the old docstring merely claimed to. Recorded because a check that
+cannot fail, presented as a guarantee, is worse than no check — and this one shipped
+briefly.
 
 **M1 is a proxy for the AC's wording.** The acceptance criterion asks for "a ratcheted
 target that gains a finding"; rather than edit a projected pack script — which would
 risk `make build-self` drift — the known-vulnerable fixture was added to the ratchet
 list, exercising the same assertion path a real regression would hit.
+
+## Open, and deliberately not silent
+
+Round-2 `security-reviewer` findings that are **not** addressed by this change, surfaced
+to the maintainer rather than decided here. None is a regression it introduced; each is a
+property of the control it was batching.
+
+1. **The ratchet's scope is duplicated, and shrinking it exits 0.** `FIXED_SCRIPTS` in
+   this script re-declares the production-script half of `paths.include` in
+   `tools/semgrep/argv-path-boundary.yml`, and nothing reconciles the two. Verified by
+   mutation: `FIXED_SCRIPTS = []` prints `2/2 passed` and exits **0** — the ratchet's
+   entire production half proves nothing and the gate is green. Pre-existing; the
+   per-target version had the same structure. The fix is to derive the target list from
+   the rule's `paths.include` (`pyyaml` is already a `tools/` dependency) so the rule
+   file is the single scope definition.
+2. **`--strict` plus an `errors` check would close the partial-parse hole.** Verified
+   free to adopt: the real five-target invocation exits 0 with empty `errors` under
+   `--strict` today. ADR-0084 is the repo's precedent for promoting a scanner diagnostic
+   that does not move its own exit code into a gate signal, and it names this file as a
+   model — so this is an ADR-shaped decision, not a detail.
+3. **A single `# nosemgrep` silently neuters the ratchet** on any of the five targets,
+   with no repo-wide form-lint equivalent to ADR-0084's `tools/lint-nosec-form.py` for
+   bandit's pragma.
+4. **Findings are keyed by path, not by `check_id`**, so if the rule file ever grows a
+   second rule, a finding from any rule in it satisfies the positive-fixture proof.
+
+Items 1, 3 and 4 are control-integrity gaps a scanner cannot see; item 2 is a decision.
+All four are larger than the batching change and belong to a scoped follow-up.
 
 ## Risks
 
