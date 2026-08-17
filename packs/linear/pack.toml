@@ -1,7 +1,7 @@
 [pack]
 name = "linear"
-version = "0.2.2"
-description = "Pull a Linear issue into a product brief, and push the status back when it moves."
+version = "0.2.3"
+description = "Read Linear work into the shared content-based repository intake route, with a separate approved delta sync for existing briefs."
 readme = "README.md"
 display_name = "Linear"
 license = "Apache-2.0 OR MIT"
@@ -49,10 +49,10 @@ prerequisites    = ["Linear Personal API Key — configure via the credential-br
 verification     = "Run `linear check` to confirm your credentials are working and your workspace is accessible."
 recovery         = "If authentication fails, reconfigure your Linear API key via the credential-brokers pack; verify the key has read access to the correct Linear workspace."
 level-b          = true
-starter-task     = "Verify your Linear credentials"
-starter-prompt   = "Run linear check to confirm my credentials."
-expected-result  = "Confirmation that your Linear credentials are valid — workspace name and your identity shown."
-next-action      = "Ask the agent to run linear-brief-intake on a Linear Issue ID (e.g. LIN-123) to convert it into a product brief."
+starter-task     = "Start repository work from a Linear issue"
+starter-prompt   = "Intake Linear issue LIN-123 as repository work. Start read-only."
+expected-result  = "A bounded normalized record routed by content to the appropriate repository artifact and processor."
+next-action      = "Review the selected route and answer any ambiguity or confidentiality question before repository materialization."
 
 [pack.evals]
 skills = ["linear", "linear-brief-intake", "linear-brief-sync"]

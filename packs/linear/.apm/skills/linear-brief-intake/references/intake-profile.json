@@ -1,0 +1,25 @@
+{
+  "id": "linear-default",
+  "version": "1.0",
+  "destination": {
+    "allowed_schemes": [
+      "https"
+    ],
+    "allowed_hosts": [
+      "api.linear.app"
+    ],
+    "redirect_policy": "disabled",
+    "dns_policy": "connect-time-recheck"
+  },
+  "budget": {
+    "max_pages": 5,
+    "max_items": 250,
+    "max_bytes": 2097152,
+    "timeout_seconds": 30,
+    "max_retries": 1,
+    "backoff_seconds": [
+      1
+    ],
+    "exhaustion": "marked-incomplete"
+  }
+}

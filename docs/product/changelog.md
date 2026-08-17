@@ -135,6 +135,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
 
+### [atlassian][0.8.4], [linear][0.2.3], [github][0.1.4] — 2026-08-16
+
+#### Changed
+
+- **Tracker intake now uses one content-based repository route.** Jira, Jira
+  Align, Linear, and GitHub emit the same bounded normalized contract and hand
+  it to `work-intake`. Equivalent content selects the same intent, brief, spec,
+  defect, processor, lifecycle membership, and authority regardless of tracker
+  object names.
+- **Tracker intake is read-only and explicitly bounded.** Versioned profiles
+  declare destination policy, pagination, item and byte caps, timeouts, retries,
+  and backoff. Unsafe destinations, malformed input, missing provenance,
+  unknown profiles, embedded instructions, and confidentiality mismatches stop
+  before repository writes.
+- **GitHub Milestones are no longer assumed to be briefs.** GitHub uses trusted
+  fixed-host, shell-free `gh` reads and delegates classification to
+  `work-intake`; the intake path no longer comments, labels, closes, or edits
+  Issues.
+
+#### Added
+
+- **Shared tracker guidance now explains the common route and vocabulary.**
+  Updated Jira, Linear, GitHub, selection, reference, and journey pages show the
+  tracker read boundary, the repository write boundary, and the human decisions
+  that remain before materialization.
+
 ### [agentbundle][0.37.1] — 2026-08-16
 
 #### Changed

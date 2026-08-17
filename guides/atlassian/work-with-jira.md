@@ -15,6 +15,7 @@ Ask in your own words. The agent selects the right workflow, starts read-only, a
 
 Jump to what you need:
 
+- [Start repository work from Jira or Jira Align](#start-repository-work-from-jira-or-jira-align)
 - [Review the whole team backlog](#review-the-whole-team-backlog)
 - [Find ready work](#find-ready-work)
 - [Find blockers and stale work](#find-blockers-and-stale-work)
@@ -22,6 +23,43 @@ Jump to what you need:
 - [Improve stories that are not actionable](#improve-stories-that-are-not-actionable)
 - [Update approved Jira issues](#update-approved-jira-issues)
 - [Prepare a team or sprint summary](#prepare-a-team-or-sprint-summary)
+
+---
+
+## Start repository work from Jira or Jira Align
+
+Use intake when tracked content should become canonical repository work:
+
+:::tip[YOU SAY]
+Intake Jira issue PROJ-123 as repository work. Start read-only.
+:::
+
+For Jira Align, name the Feature or selection instead. The adapter reads through
+the sibling Jira or Jira Align acquisition skill, minimizes the result into
+`normalized-intake.v1`, and delegates to `work-intake`.
+
+**Read/write status:** tracker intake is read-only. It does not create, edit,
+transition, comment on, or otherwise write tracker work. It also does not create
+a repository artifact directly; `work-intake` owns that step after validation.
+
+Jira types, hierarchy, boards, sprints, Program Increments, and query results are
+profile hints. Content decides the route:
+
+- one independently shippable behavior can become a spec;
+- one coherent multi-spec outcome can become a Draft brief;
+- unrelated collections become separate units, a view-only result, or one
+  clarifying question;
+- a regression reaches `bug-fix` only with durable expected-behavior evidence.
+
+The default profiles bound pages, items, bytes, timeouts, retries, and backoff.
+Configured destinations must be profile-allowed HTTPS hosts and pass address
+validation before credentials are resolved. Partial results are explicit.
+
+**Likely follow-up:** review the proposed route and answer any ambiguity or
+confidentiality question, then continue with the named processor.
+
+→ [Choose a tracker integration](/agent-ready-repo/docs/guides/_shared/how-to/choose-a-tracker-integration/)\
+→ [Tracker vocabulary](/agent-ready-repo/docs/guides/_shared/reference/tracker-vocabulary/)
 
 ---
 

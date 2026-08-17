@@ -2,7 +2,9 @@
 
 **Run Jira and Confluence from a conversation**
 
-See what the team can work on, improve weak stories, apply only approved Jira changes, and prepare team updates — without starting from JQL or internal skill names.
+See what the team can work on, start repository work from Jira or Jira Align,
+improve weak stories, apply only approved Jira changes, and prepare team updates
+without starting from JQL or internal skill names.
 
 **Starts read-only.** Jira data does not change until you confirm the exact fields.
 
@@ -21,6 +23,17 @@ You get: 184 issues inspected · 17 ready to pull · 26 need story work · 8 blo
 ---
 
 ## What you can do
+
+### Start repository work from tracked content
+
+```text
+Intake Jira issue PROJ-123 as repository work. Start read-only.
+```
+
+Get: a bounded normalized record routed by content to an intent, brief, spec,
+defect, separate units, or view-only result. Jira object types and hierarchy are
+profile hints, not artifact identities. Intake never writes to Jira or Jira
+Align; `work-intake` owns any later repository materialization.
 
 ### 1. See what the team can work on
 
@@ -112,8 +125,8 @@ You do not need to select these manually. They are named here for reference.
 | `confluence-crawler` | Mirror a Confluence space to Markdown |
 | `flow-metrics` | DORA / Flow Framework metrics from Jira changelogs — read-only |
 | `ai-adoption-report` | Compare flow-metrics outputs; produce an adoption report |
-| `jira-brief-intake` | Turn a Jira epic into a product brief |
-| `jira-align-brief-intake` | Turn a Jira Align Feature into a product brief |
+| `jira-brief-intake` | Read Jira work into shared content-based repository intake |
+| `jira-align-brief-intake` | Read Jira Align work into shared content-based repository intake |
 | `jira-defect-flow` | Fix a Jira defect end-to-end — pull, fix, PR, transition |
 | `jira-align` | Read and write Jira Align portfolio data |
 

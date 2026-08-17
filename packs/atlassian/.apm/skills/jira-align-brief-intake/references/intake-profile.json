@@ -1,0 +1,26 @@
+{
+  "id": "jira-align-default",
+  "version": "1.0",
+  "destination": {
+    "allowed_schemes": [
+      "https"
+    ],
+    "allowed_hosts": [
+      "portfolio-tracker.example.test"
+    ],
+    "redirect_policy": "disabled",
+    "dns_policy": "connect-time-recheck"
+  },
+  "budget": {
+    "max_pages": 5,
+    "max_items": 500,
+    "max_bytes": 2097152,
+    "timeout_seconds": 30,
+    "max_retries": 2,
+    "backoff_seconds": [
+      1,
+      2
+    ],
+    "exhaustion": "marked-incomplete"
+  }
+}

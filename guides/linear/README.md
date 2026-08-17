@@ -1,8 +1,8 @@
 # `linear` — guides
 
-Linear integration for this catalogue. Read Linear Issues
-and Projects, then turn them into shippable product briefs or keep existing
-briefs in sync as issues evolve.
+Linear integration for this catalogue. Read Linear work into the shared
+content-based repository route, or keep an existing brief's imported sections
+in sync through a separate approval-gated workflow.
 
 The API key never reaches the model. `linear` is a credentialed skill: it
 invokes a CLI that resolves your Personal API Key in-process and makes the
@@ -10,14 +10,14 @@ GraphQL call itself.
 
 New here? Generate a Personal API Key at Linear → Settings → API → Personal
 API keys, then run `credential-setup` to store it. Then read
-[When to use `linear-brief-intake` vs `linear-brief-sync`](how-to/linear-brief-intake-and-sync.md)
+[Choose Linear intake or brief sync](how-to/linear-brief-intake-and-sync.md)
 to decide where to start.
 
 ## How-to
 
 Task-oriented recipes for a problem you already have.
 
-- [When to use `linear-brief-intake` vs `linear-brief-sync`](how-to/linear-brief-intake-and-sync.md) — decide which workflow fits your situation, set up credentials, and run your first intake or sync.
+- [Choose Linear intake or brief sync](how-to/linear-brief-intake-and-sync.md) — use read-only intake for new work and approval-gated sync only for an existing brief.
 
 ---
 

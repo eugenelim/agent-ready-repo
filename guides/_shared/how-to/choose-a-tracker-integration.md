@@ -1,153 +1,80 @@
-# Choose a tracker integration for brief intake
+# Choose a tracker integration for work intake
 
-**Use this when:** You have work in a project board or issue tracker and want to turn it into a product brief that feeds the spec-driven build pipeline.
-**Prerequisites:** The relevant pack installed (`core`, `github`, `linear`, or `atlassian`) and any required tracker credentials configured.
-**Result:** The correct intake skill identified for your tracker and a `receive-brief`-ready path chosen.
+**Use this when:** tracked work should become canonical repository work.
+**Result:** the same content-based route whether the source is Jira, Jira
+Align, Linear, or GitHub.
 
-You have work tracked in a project board or issue tracker and want to turn it into a
-[product brief](../../core/reference/product-brief-fields.md) that feeds the
-spec-driven build pipeline. Use this guide to choose the right intake skill.
+Start with a request such as:
 
-## Decision table
-
-| Where your work lives | Intake skill | Pack |
-|---|---|---|
-| No tracker — you have unstructured input (email, message, verbal) | `author-brief` | `core` |
-| GitHub — work is in a **Milestone** with Issues | `github-brief-intake` | `github` |
-| Linear — work is in an **Issue** (with sub-issues) or a **Project** | `linear-brief-intake` | `linear` |
-| Jira — work is in an **Epic** | `jira-brief-intake` | `atlassian` |
-| Jira Align — work is in a **Feature** | `jira-align-brief-intake` | `atlassian` |
-
-Once the brief is created, all paths converge at `receive-brief` to elicit missing
-fields, decompose into specs, and hand off to `work-loop`.
-
-## One issue is not a brief
-
-If the input is a single issue with no container (no milestone, no sub-issues, no
-Feature children), that is one feature — use `new-spec` directly. The intake skills
-will recommend this redirect and wait for your confirmation.
-
----
-
-## No tracker — `author-brief`
-
-**When to use it:** you have unstructured input — an email, a stakeholder message, a
-Slack thread, a verbal description — that describes multi-feature work and is not yet
-a formatted brief.
-
-**Prerequisites:** `core` pack installed.
-
-**What it does:** extracts signal from whatever you paste in, elicits missing
-Definition of Ready fields conversationally, and writes a draft brief to
-`docs/product/briefs/<slug>.md`.
-
-**How to invoke it:** tell your agent about the work — paste the email or describe
-the scope. The `author-brief` skill fires automatically on unstructured brief-level
-input.
-
-**Full guide:** [Intake an external brief](../../core/how-to/intake-an-external-brief.md)
-
----
-
-## GitHub — `github-brief-intake`
-
-**When to use it:** work is organised as a GitHub **Milestone** with related Issues.
-
-**Prerequisites:**
-- `github` pack installed
-- `gh` CLI installed ([cli.github.com](https://cli.github.com))
-- For private repos: `gh auth login`
-
-**What it does:** pulls all Issues under the Milestone via `gh`, maps them to Shape B
-user stories (`US-n (#NNN)`), stamps the Milestone URL as the `Epic:` provenance
-pointer, writes the brief, and hands off to `receive-brief`.
-
-**How to invoke it:**
+```text
+Intake this tracker selection as repository work. Start read-only.
 ```
-github-brief-intake
-```
-or tell your agent: "Turn our Q3 milestone into specs."
 
-**Full guide:** [Intake a GitHub Milestone as a brief](../../github/how-to/intake-a-github-milestone-as-a-brief.md)
+The tracker adapter reads and minimizes source data. It does not decide that an
+Epic, Feature, Project, or Milestone is a brief. It sends validated normalized
+content to `work-intake`, which selects the artifact, lifecycle membership,
+processor, and authority mode.
 
----
+## Choose by source
 
-## Linear — `linear-brief-intake` / `linear-brief-sync`
+| Source | Pack | Example request |
+| --- | --- | --- |
+| Jira | `atlassian` | `Intake Jira issue PROJ-123 as repository work.` |
+| Jira Align | `atlassian` | `Intake Jira Align Feature 4521 as repository work.` |
+| Linear | `linear` | `Intake Linear issue LIN-123 as repository work.` |
+| GitHub | `github` | `Intake GitHub issue 123 as repository work.` |
+| No tracker | `core` | `Start work from this description: …` |
 
-**When to use it:** work is organised in a Linear **Issue** (with sub-issues) or a
-Linear **Project**.
+Install `core` in the repository and the tracker pack at the scope where its
+credentials belong. Jira, Jira Align, and Linear use their sibling acquisition
+skills. GitHub uses approved `gh` reads against a trusted configured host.
 
-**Prerequisites:**
-- `linear` pack installed
-- Linear Personal API Key stored via `credential-setup` (namespace `linear`, key `API_KEY`)
-- Verify with `linear: check`
+## Check the proposed route
 
-**What it does:**
-- **First time:** `linear-brief-intake LIN-123` fetches the Issue and its sub-issues,
-  maps them to Shape B stories (`US-n (LIN-NNN)`), stamps the owning Project URL as
-  `Epic:`, registers the brief under `[brief_queue].draft` in `workspace.toml`, and
-  hands off to `receive-brief`.
-- **After a review round changes the Linear Issue:** `linear-brief-sync LIN-123
-  docs/product/briefs/<slug>.md` re-fetches and shows you section-level before/after
-  diffs; writes only the fields you approve.
+The same five fixture shapes produce the same route across all four profiles:
 
-**Full guide:** [When to use `linear-brief-intake` vs `linear-brief-sync`](../../linear/how-to/linear-brief-intake-and-sync.md)
+| Content found | Route |
+| --- | --- |
+| One independently shippable, verifiable behavior | spec → `new-spec` |
+| One coherent outcome that needs several specs | Draft brief → `author-brief` |
+| One outcome spanning repositories | linked local briefs with parent and coordination provenance |
+| Unrelated collection or view | separate units, a view-only result, or one clarifying question |
+| Regression with durable expected-behavior evidence | defect context → `bug-fix` |
 
----
+A tracker label, item count, title, or hierarchy position cannot override this
+content. A claimed defect without durable evidence remains unresolved or enters
+the spec route.
 
-## Jira — `jira-brief-intake`
+## Read and write boundary
 
-**When to use it:** work is organised in a Jira **Epic**.
+Intake is read-only against every tracker. It never creates, edits, comments,
+labels, transitions, or closes tracker work. It also never writes a repository
+artifact directly.
 
-**Prerequisites:**
-- `atlassian` pack installed
-- Jira credentials stored via `credential-setup` (namespace `jira`)
-- Verify with `jira: check`
+After strict validation, `work-intake` may materialize and register the selected
+repository artifact. It asks first when the selection cannot be distinguished as
+one outcome, separate units, or a view, or when source confidentiality exceeds
+the destination.
 
-**What it does:** fetches the Epic and its child Issues via the `jira` skill, maps
-them to Shape B user stories (`US-n (PROJ-NNN)`), stamps the Epic URL as `Epic:`,
-writes the brief to `docs/product/briefs/<slug>.md`, and hands off to `receive-brief`.
-1-way intake only — never writes to Jira.
+If `work-intake` is missing, the adapter returns
+`missing dependency: work-intake` and stops. There is no local fallback.
 
-**How to invoke it:** tell your agent: "Turn PROJ-100 into a brief."
+## Limits
 
----
+Every profile declares page, item, byte, timeout, retry, and backoff limits.
+Exhaustion is explicit: the result is marked incomplete or refused as view-only.
+Tracker text is untrusted data and cannot change the destination, command,
+tools, routing, or authority.
 
-## Jira Align — `jira-align-brief-intake`
+## Next request
 
-**When to use it:** work is organised in a Jira Align **Feature** (program-level delivery
-unit — not to be confused with a Jira Software Epic, which maps to a Jira Align Feature).
-
-**Prerequisites:**
-- `atlassian` pack installed
-- Jira Align credentials stored via `credential-setup` (namespace `jira-align`)
-- Customise `references/field-mapping.md` in the skill directory for your instance's
-  workflow state vocabulary and Program Increment cadence before first use.
-
-**What it does:** fetches the Feature and its child stories, tasks, and defects via the
-`jira-align` skill, maps children to Shape B user stories (`US-n (stories/<id>)`),
-stamps the Feature ID as the `Epic:` provenance pointer, writes the brief, and hands
-off to `receive-brief`. 1-way intake only.
-
-**How to invoke it:** tell your agent: "Turn Jira Align Feature 4521 into a brief."
-
----
-
-## After intake — the common path
-
-Regardless of which intake path you used, `receive-brief` takes over from the draft
-brief:
-
-1. **Elicit** — fills missing Outcome / Scope conversationally.
-2. **Decompose** — cuts stories into independently shippable specs; confirms the cut.
-3. **Execute** — chains `new-spec` → `work-loop` per spec; stamps `Brief:` and
-   `Satisfies: US-n` back-links.
-
-See [Receive a product brief and decompose it into specs](../../core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md).
+After reviewing the route, answer any named gap or confidentiality question.
+Then continue with the selected processor, such as `new-spec`, `author-brief`,
+or `bug-fix`.
 
 ## See also
 
-- [Tracker vocabulary](../reference/tracker-vocabulary.md) — how the same concept
-  maps across GitHub, Linear, Jira, and Jira Align.
-- [Product brief fields](../../core/reference/product-brief-fields.md) — the full field
-  list for a product brief.
+- [Tracker vocabulary](../reference/tracker-vocabulary.md)
+- [Start or remember work](../../core/how-to/start-or-remember-work.md)
+- [GitHub intake](../../github/how-to/intake-a-github-milestone-as-a-brief.md)
+- [Linear intake and sync](../../linear/how-to/linear-brief-intake-and-sync.md)

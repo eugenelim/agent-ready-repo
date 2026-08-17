@@ -1,0 +1,18 @@
+[
+  {"query": "Intake GitHub issue 123 as repository work", "should_trigger": true},
+  {"query": "Route this GitHub Milestone through work intake", "should_trigger": true},
+  {"query": "Normalize this GitHub project selection", "should_trigger": true},
+  {"query": "Start work from this single GitHub issue", "should_trigger": true},
+  {"query": "Intake this cross-repository GitHub outcome", "should_trigger": true},
+  {"query": "Route this GitHub regression with contract evidence", "should_trigger": true},
+  {"query": "Split this incoherent GitHub Milestone", "should_trigger": true},
+  {"query": "Remember this GitHub selection", "should_trigger": true},
+  {"query": "Create a GitHub issue", "should_trigger": false},
+  {"query": "Comment on this GitHub issue", "should_trigger": false},
+  {"query": "Close these GitHub issues", "should_trigger": false},
+  {"query": "Fetch GitHub issue details only", "should_trigger": false},
+  {"query": "Intake a Jira epic", "should_trigger": false},
+  {"query": "Review an existing product brief", "should_trigger": false},
+  {"query": "Write a standalone spec from prose", "should_trigger": false},
+  {"query": "Publish a status report", "should_trigger": false}
+]
