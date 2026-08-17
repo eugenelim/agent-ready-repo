@@ -8,7 +8,7 @@
 > heading is a prompt, not an error. Keep only the sections that earn their
 > place.
 
-- **Slug:** `<slug>` <!-- kebab-case; matches the filename and the `Brief:` back-link on derived specs -->
+- **Slug:** `<slug>` <!-- kebab-case; this brief's identity. Derived specs back-link the brief's repository-relative path, not this slug -->
 - **Received:** YYYY-MM-DD
 - **Owner:** <who owns delivering this repo's slice>
 - **Status:** Draft <!-- Draft | Ready | Executing | Shipped — set by hand at DoR gate and at ship; distinct from the auto-derived Spec map Status column -->
@@ -86,7 +86,8 @@ Outcome + Scope and coverage is spec-granular. -->
 <!-- Coverage table. The Status column is AUTO-DERIVED from each spec's own
 `Status:` field by the coverage lint — do not hand-edit it. Add one row per
 derived spec as `receive-brief` scaffolds it; each derived spec carries a
-`Brief: <slug>` back-link. A brief is *delivered* only when every mapped spec
+`Brief: docs/product/briefs/<file>.md` back-link naming this brief file. A
+brief is *delivered* only when every mapped spec
 is Shipped; an empty map is never delivered. (Shape B adds a `Story` column
 linking each row to the `US-n` it satisfies.) -->
 

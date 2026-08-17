@@ -539,6 +539,47 @@ def test_up_field_fallthrough_reference() -> None:
                f"spec parented via Brief is not an orphan: {out}")
 
 
+def test_path_form_brief_backlink_resolves_local() -> None:
+    """A `Brief:` naming the brief's repository-relative path — the canonical
+    form the spec template and workspace-status provenance require — must
+    resolve to the local brief node. Its `<dir>/<file>.md` shape also matches
+    the cross-repo pattern, so without the path alias it is misreported as an
+    unresolvable cross-repo reference and the brief↔spec edge is silently lost."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief(root, "b")
+        write_spec(root, "alpha", brief="docs/product/briefs/b.md")
+        rc, out, err = run(root)
+        combined = out + err
+        expect(rc == 0, f"path-form Brief → exit 0, got {rc}: {err}")
+        expect("ORPHAN spec:alpha" not in out,
+               f"spec parented via a path-form Brief is not an orphan: {out}")
+        expect("cross-repo" not in combined,
+               f"a local brief path must not be classified cross-repo: {combined}")
+        expect("docs/product/briefs/b.md" not in combined,
+               f"the path must resolve to the brief node, not remain a raw "
+               f"external id: {combined}")
+
+
+def test_path_form_brief_backlink_resolves_when_slug_differs_from_stem() -> None:
+    """The brief node id comes from the brief's `Slug:` field, which need not
+    equal its filename stem. The path alias must therefore key off the real
+    file path rather than assuming stem == slug."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # Brief node is `brief:real-slug`, but the file is `shape-a.md`.
+        write(root / "docs" / "product" / "briefs" / "shape-a.md",
+              "# Brief: shape-a\n\n- **Slug:** `real-slug`\n")
+        write_spec(root, "alpha", brief="docs/product/briefs/shape-a.md")
+        rc, out, err = run(root)
+        combined = out + err
+        expect(rc == 0, f"path-form Brief → exit 0, got {rc}: {err}")
+        expect("ORPHAN spec:alpha" not in out,
+               f"spec must attach to brief:real-slug via its file path: {out}")
+        expect("cross-repo" not in combined,
+               f"a local brief path must not be classified cross-repo: {combined}")
+
+
 def test_dangling_up_field_still_fires() -> None:
     """A *dangling* (missing-local-shaped) up-field is a hard violation in
     every mode, fired even when a sibling up-field resolves — but the spec is NOT

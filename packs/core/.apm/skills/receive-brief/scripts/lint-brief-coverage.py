@@ -17,8 +17,10 @@ new state.
 Rollup rules:
   - A brief is *delivered* only when its Spec map is non-empty AND every mapped
     spec is `Shipped`. An empty map is never vacuously delivered.
-  - A spec that back-links a brief (`Brief: <slug>`) but is absent from that
-    brief's Spec map is reported **untracked** — informational, never an error.
+  - A spec that back-links a brief — by the brief's `Slug:` identity or by its
+    repository-relative path (`Brief: docs/product/briefs/<file>.md`, the
+    canonical form) — but is absent from that brief's Spec map is reported
+    **untracked** — informational, never an error.
   - A `docs/product/briefs/_template.md` (or any `_`-prefixed file) is the
     shipped template, not a brief; it is skipped.
 
@@ -105,10 +107,12 @@ def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
 def parse_brief_slug(brief_text: str, fallback: str) -> str:
     """Return the brief's canonical slug from its `- **Slug:**` field.
 
-    A derived spec's `Brief:` back-link names this slug, which need not equal
-    the brief's filename stem — so the slug, not the stem, is the join key for
-    coverage and untracked detection. Falls back to `fallback` (the filename
-    stem) only when no usable `Slug:` field is present.
+    A derived spec's `Brief:` back-link may name this slug, which need not equal
+    the brief's filename stem — so the stem alone is not a sufficient join key
+    for coverage and untracked detection. The back-link may equally name the
+    brief's repository-relative path (the canonical form); `check` accepts
+    either spelling. Falls back to `fallback` (the filename stem) only when no
+    usable `Slug:` field is present.
     """
     for line in brief_text.splitlines():
         m = _SLUG_RE.search(line)
