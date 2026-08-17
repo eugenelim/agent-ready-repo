@@ -664,7 +664,7 @@ def _decode(record: dict, key: str) -> str:
 
 
 def _raw(record: dict, key: str) -> bytes:
-    """The captured stream as stored, undecoded.
+    r"""The captured stream as stored, undecoded.
 
     The privacy scan must use this, not `_decode`. `_decode` replaces every invalid
     byte with `U+FFFD`, so a needle whose bytes are not valid UTF-8 is broken apart
