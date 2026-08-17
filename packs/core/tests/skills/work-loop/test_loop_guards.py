@@ -1109,6 +1109,193 @@ def test_an_artifact_integrity_change_matches_its_golden(key: str, tmp_path: Pat
     )
 
 
+# ── the engine's own containment paths ─────────────────────────────────────
+
+def _engine_sandbox(tmp_path: Path, *, guard_body: str | None) -> tuple[Path, Path]:
+    """A sandbox with the engine, inside a git repo, with a spec dir ready to transition.
+
+    `guard_body` replaces `_loop_guards.py`: `None` omits it entirely.
+    """
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    for name in ("loop-engine.py", "loop-cohort.py", "_statelock.py",
+                 "lint-spec-status.py"):
+        (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "state.json").write_bytes(
+        (SCRIPTS.parent / "assets" / "state.json").read_bytes()
+    )
+    if guard_body is not None:
+        (scripts / "_loop_guards.py").write_text(guard_body, encoding="utf-8")
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
+    spec_dir = repo / "docs" / "specs" / "eng"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text("# S\n\n- **Status:** Implementing\n",
+                                      encoding="utf-8")
+    (spec_dir / "plan.md").write_text(
+        "# P\n\n- **Status:** Executing\n\n## T1 a\n\n**Depends on:** none\n",
+        encoding="utf-8")
+    (spec_dir / "engine-state.json").write_text(json.dumps({
+        "schema_version": 1, "run_id": RUN_ID, "feature": "eng", "mode": "code",
+        "state": "CODE-IMPLEMENTATION", "transition_sequence": 3,
+    }), encoding="utf-8")
+    return scripts, spec_dir
+
+
+@pytest.mark.parametrize("breakage", ["absent", "truncated", "syntax-error"])
+def test_the_engine_refuses_a_guard_load_failure_without_a_traceback(
+    breakage: str, tmp_path: Path,
+) -> None:
+    """AC13 for the ENGINE loader, which had no artifact at all.
+
+    `GuardsUnavailable` appeared in exactly one pack test and that test drove
+    `loop-cohort.py`; every load-failure and sentinel case did the same. So deleting
+    `main()`'s `except GuardsUnavailable` left the whole suite green while restoring the
+    traceback-out-of-a-lock-holder this was the fix for — the engine's FIRST guard call
+    happens inside `sl.exclusive()`, via `_read_engine_state`.
+
+    `engine-state.json` is compared byte-for-byte because the refusal happens while the
+    lock is held, and a lock holder that dies mid-section must not have written.
+    """
+    original = GUARDS.read_text(encoding="utf-8")
+    body = {
+        "absent": None,
+        "truncated": original[: original.index("def read_state(")],
+        "syntax-error": "def broken(:\n",
+    }[breakage]
+    scripts, spec_dir = _engine_sandbox(tmp_path, guard_body=body)
+
+    before = (spec_dir / "engine-state.json").read_bytes()
+    proc = subprocess.run(
+        [sys.executable, str(scripts / "loop-engine.py"), "transition",
+         str(spec_dir), "wave-complete"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        check=False, cwd=str(spec_dir.parents[2]), timeout=60,
+    )
+
+    assert proc.returncode != 0, f"{breakage}: the engine reported success"
+    assert "Traceback" not in proc.stderr, (
+        f"{breakage}: the engine tracebacked out of the lock holder:\n{proc.stderr}"
+    )
+    assert len(proc.stderr.strip().splitlines()) == 1, (
+        f"{breakage}: expected one stderr line, got:\n{proc.stderr}"
+    )
+    assert "_loop_guards.py" in proc.stderr, (
+        f"{breakage}: the refusal does not name the module: {proc.stderr!r}"
+    )
+    assert (spec_dir / "engine-state.json").read_bytes() == before, (
+        f"{breakage}: the engine wrote engine-state.json while refusing"
+    )
+
+
+def test_a_crashing_guard_is_contained_at_the_engine_boundary(tmp_path: Path) -> None:
+    """AC10's engine half: "a non-zero exit from the engine AND from the CLI".
+
+    The CLI half is covered against `check-spec-status.py`; this is the engine, whose
+    guard dispatch is indirect (`_GUARDS.get(...)` then `guard_fn(...)`) so a crash
+    inside a guard has a different escape route than a load failure.
+    """
+    guard_src = GUARDS.read_text(encoding="utf-8")
+    anchor = "def _state_or_reason("
+    assert anchor in guard_src, "injection anchor moved — update this test"
+    head, _, tail = guard_src.partition(anchor)
+    body_start = tail.index("\n", tail.index('"""', tail.index('"""') + 3)) + 1
+    injected = (head + anchor + tail[:body_start]
+                + '    raise RuntimeError("injected guard crash")\n'
+                + tail[body_start:])
+    scripts, spec_dir = _engine_sandbox(tmp_path, guard_body=injected)
+
+    before = (spec_dir / "engine-state.json").read_bytes()
+    proc = subprocess.run(
+        [sys.executable, str(scripts / "loop-engine.py"), "transition",
+         str(spec_dir), "wave-complete"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        check=False, cwd=str(spec_dir.parents[2]), timeout=60,
+    )
+
+    assert proc.returncode != 0, "a crashing guard reported success from the engine"
+    assert "Traceback" not in proc.stderr, (
+        f"the crash escaped the engine as a traceback:\n{proc.stderr}"
+    )
+    assert (spec_dir / "engine-state.json").read_bytes() == before, (
+        "the engine wrote state after a guard crashed"
+    )
+
+
+def test_a_newly_bounded_read_refuses_and_says_why(tmp_path: Path) -> None:
+    """The two reads this change newly bounded inside lock-holding cohort verbs.
+
+    `cmd_init`'s template read and `_classify_report`'s reviewer-report read were
+    plain `read_text()` at the merge base. Both are now bounded, which changes their
+    accepted-input surface, so both need an artifact.
+
+    The report case is the subtle one: it returns `invalid` at **exit 0**, so without
+    the diagnostic an unreadable report is indistinguishable from one containing no
+    findings — and that classification feeds the review retry accounting. A SYMLINKED
+    report must still be accepted, because it is a user-supplied `--report` path that
+    worked before and carries no confinement claim.
+    """
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    for name in ("loop-cohort.py", "_loop_guards.py", "_statelock.py",
+                 "lint-spec-status.py"):
+        (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+    (tmp_path / "assets").mkdir()
+    template = tmp_path / "assets" / "state.json"
+    template.write_bytes((SCRIPTS.parent / "assets" / "state.json").read_bytes())
+
+    # ── init, with an oversized template ───────────────────────────────────
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
+    spec_dir = repo / "docs" / "specs" / "init"
+    spec_dir.mkdir(parents=True)
+    with template.open("r+b") as fh:
+        os.truncate(fh.fileno(), 9 * 1024 * 1024)
+
+    proc = subprocess.run(
+        [sys.executable, str(scripts / "loop-cohort.py"), "init", str(spec_dir),
+         "--run-id", RUN_ID],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        check=False, cwd=str(repo), timeout=60,
+    )
+    assert proc.returncode != 0, "init accepted an oversized template"
+    assert "Traceback" not in proc.stderr
+    assert not (spec_dir / "state.json").exists(), (
+        "init created state.json from a template it could not read"
+    )
+
+    # ── the report reader, in-process ──────────────────────────────────────
+    cohort = load_guards(path=scripts / "loop-cohort.py", name="_cohort_report_probe")
+    reports = tmp_path / "reports"
+    reports.mkdir()
+
+    plain = reports / "plain.md"
+    plain.write_text("Clean — ready to commit.\n", encoding="utf-8")
+    assert cohort._classify_report(plain, {})["classification"] == "clean"
+
+    # A symlinked report is an authoring convenience and must keep working.
+    linked = reports / "linked.md"
+    linked.symlink_to(plain)
+    assert cohort._classify_report(linked, {})["classification"] == "clean", (
+        "a symlinked report was refused — that narrows a shipped CLI's inputs"
+    )
+
+    # A FIFO would block the lock holder forever; it must refuse, and say so.
+    fifo = reports / "fifo.md"
+    os.mkfifo(fifo)
+    err = io.StringIO()
+    with contextlib.redirect_stderr(err):
+        verdict = cohort._classify_report(fifo, {})
+    assert verdict["classification"] == "invalid"
+    assert "could not be read" in err.getvalue(), (
+        f"an unreadable report was downgraded silently: {err.getvalue()!r}"
+    )
+
+
 # ── fail-closed status parsing ─────────────────────────────────────────────
 
 def test_unloadable_parser_refuses_instead_of_skipping(tmp_path: Path) -> None:
@@ -1785,12 +1972,12 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
         # result type + containment
         "GuardResult", "contained", "contained_reason",
         # bounded, symlink-safe readers
-        "read_managed_json", "read_managed_text", "read_state", "state_path_for",
+        "ManagedContentError", "read_managed_json", "read_managed_text", "read_state", "state_path_for",
         # canonical contract hashing
         "canonical_contract", "sha256_canonical_contract",
         # status parsing, legality, validation
         "UnreadableArtifact", "read_md_status", "assert_status_legal",
-        "validate_run_id", "non_negative_int",
+        "validate_run_id",
         # retry caps
         "DEFAULTS",
         # the six read-only guards

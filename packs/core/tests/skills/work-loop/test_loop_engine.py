@@ -620,6 +620,100 @@ def _pending_fixture(tmp: Path, name: str, sentinel: str) -> tuple[Path, Path, d
 
 
 # STUB: AC3 — pending-event recovery must not follow an outside symlink.
+# (label, bytes for events.pending, must the audit record survive?)
+#
+# The discard decision is what commit b8c7d361's `_is_content_invalid` replaced: it
+# used to substring-match `str(exc)` against a hand-listed set of message fragments,
+# duplicated at two call sites, and the list had fallen behind the reader — the
+# non-finite-number message was absent, so `NaN` and `1e400` were never recognised as
+# invalid content and the file was retained forever, re-warning on every transition.
+# Both directions matter: discarding too eagerly destroys a durable audit record, and
+# retaining invalid content wedges every subsequent transition behind a warning.
+_PENDING_RECOVERY_CASES = [
+    # content-invalid: the bytes are unusable, so discarding is correct
+    ("malformed-json", b'{ not json', False),
+    ("nan-literal", b'{"seq": NaN, "to": "X"}', False),
+    ("overflow-float", b'{"seq": 1e400, "to": "X"}', False),
+    ("root-not-object", b'[1, 2]', False),
+    ("invalid-utf8", b'{"a": "\xff\xfe"}', False),
+    # structural: the read failed and says NOTHING about the content, so the audit
+    # record must survive. A FIFO is the shape that used to hang the reader.
+    ("fifo", None, True),
+]
+
+
+@pytest.mark.parametrize(
+    "label,payload,must_survive",
+    _PENDING_RECOVERY_CASES, ids=[c[0] for c in _PENDING_RECOVERY_CASES],
+)
+def test_recover_pending_discards_only_invalid_content(
+    label: str, payload: bytes | None, must_survive: bool, tmp: Path,
+) -> None:
+    """`events.pending` is deleted for invalid CONTENT and kept for a failed READ."""
+    name = f"recover-pending-content-vs-structural-{label}"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(parents=True, exist_ok=True)
+    pending_path = loop_dir / "events.pending"
+    if payload is None:
+        os.mkfifo(pending_path)
+    else:
+        pending_path.write_bytes(payload)
+
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO()):
+        _engine._recover_pending(tmp)
+    diagnostic = stderr.getvalue()
+
+    survived = pending_path.exists() or pending_path.is_fifo()
+    if survived != must_survive:
+        fail(name,
+             f"{label}: events.pending "
+             f"{'survived' if survived else 'was discarded'}, expected the opposite. "
+             f"diagnostic={diagnostic.strip()[:160]!r}")
+        return
+    # A silent decision is as bad as a wrong one — an operator has to be told which
+    # happened, because the retained case needs manual cleanup.
+    expected_phrase = "left in place" if must_survive else "discarded"
+    if expected_phrase not in diagnostic:
+        fail(name, f"{label}: diagnostic does not say {expected_phrase!r}: "
+                   f"{diagnostic.strip()[:160]!r}")
+        return
+    ok(name)
+
+
+def test_a_guard_module_load_failure_never_discards_the_audit_record(tmp: Path) -> None:
+    """The data-loss case, stated as its own test.
+
+    `_read_managed_json` delegates to the shared guard module, so it can now fail for
+    a reason that says nothing about `events.pending` — most importantly a
+    `GuardsUnavailable` when `_loop_guards.py` is missing or corrupt. Treating that as
+    invalid content destroyed a byte-perfect audit record, which is what was observed
+    before the fix. `_is_content_invalid` must answer False for it.
+    """
+    name = "load-failure-never-discards"
+    loop_dir = tmp / ".loop-run"
+    loop_dir.mkdir(parents=True, exist_ok=True)
+    pending_path = loop_dir / "events.pending"
+    payload = json.dumps({"seq": 1, "to": "CODE-VERIFICATION", "run_id": "r"})
+    pending_path.write_text(payload, encoding="utf-8")
+
+    exc = _engine.GuardsUnavailable("cannot load _loop_guards.py: truncated")
+    if _engine._is_content_invalid(exc):
+        fail(name, "a guard-module load failure was classified as invalid content, "
+                   "which authorises deleting the audit record")
+        return
+
+    # And the same for an ordinary structural reader failure.
+    if _engine._is_content_invalid(ValueError("events.pending must be a regular file")):
+        fail(name, "a structural read failure was classified as invalid content")
+        return
+
+    if pending_path.read_text(encoding="utf-8") != payload:
+        fail(name, "the audit record was modified")
+        return
+    ok(name)
+
+
 def test_recover_pending_rejects_symlink(tmp: Path) -> None:
     name = "recover-pending-rejects-symlink"
     sentinel = "outside-pending-sentinel"

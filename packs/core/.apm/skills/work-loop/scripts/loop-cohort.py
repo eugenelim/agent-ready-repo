@@ -343,14 +343,10 @@ except GuardsUnavailable as exc:
     read_state = state_path_for = _guards_unavailable
     canonical_contract = sha256_canonical_contract = _guards_unavailable
     read_md_status = assert_status_legal = validate_run_id = _guards_unavailable
-    non_negative_int = _guards_unavailable
     _template_max_implementation_retries = _template_max_review_retries = _guards_unavailable
-    _sha256_bytes = _lint_spec_status = _guards_unavailable
+    _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
-    _MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
-    _STATUS_PLACEHOLDER = "<loop-cohort:status>"
     _BOTH_CAUSES = ""
-    _LEGAL_AFTER_APPROVAL = {}
 else:
     # Re-bound at module level so no call site in this file changes, and so the
     # existing tests that reach for these attributes keep working.
@@ -365,16 +361,11 @@ else:
     read_md_status = _read_md_status = _g.read_md_status
     assert_status_legal = _g.assert_status_legal
     validate_run_id = _g.validate_run_id
-    non_negative_int = _g.non_negative_int
     UnreadableArtifact = _g.UnreadableArtifact
-    _sha256_bytes = _g._sha256_bytes
     _lint_spec_status = _g._lint_spec_status
     _template_max_implementation_retries = _g._template_max_implementation_retries
     _template_max_review_retries = _g._template_max_review_retries
-    _MAX_MANAGED_JSON_BYTES = _g._MAX_MANAGED_JSON_BYTES
-    _STATUS_PLACEHOLDER = _g._STATUS_PLACEHOLDER
     _BOTH_CAUSES = _g._BOTH_CAUSES
-    _LEGAL_AFTER_APPROVAL = _g._LEGAL_AFTER_APPROVAL
 
 
 def _validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> int | None:
@@ -1168,14 +1159,28 @@ def _classify_report(report_path: Path, state: dict) -> dict:
 
     Returns a dict with keys: classification, fingerprints, matches_previous_round.
     """
-    # Bounded, symlink-safe read. Reached from `cmd_review_record`, which holds the
-    # state lock, so a reviewer report that is a FIFO or an arbitrarily large file
-    # would otherwise block or read without limit inside the critical section. The
-    # `invalid` classification below already models an unusable report, so widening
-    # the caught set to the reader's `ValueError` vocabulary needs no new branch.
+    # Bounded read, reached from `cmd_review_record`, which holds the state lock — so a
+    # reviewer report that is a FIFO or an arbitrarily large file would otherwise block
+    # or read without limit inside the critical section.
+    #
+    # The path is RESOLVED first, deliberately. Unlike `spec.md` / `plan.md` this is a
+    # user-supplied `--report` argument, not managed state: it carries no confinement
+    # claim, and a symlinked report worked before this change. Reading the unresolved
+    # path would make `O_NOFOLLOW` refuse it, narrowing a shipped CLI's accepted inputs
+    # for no security benefit — the author chose the path. Resolving keeps the size and
+    # FIFO bounds, which are the parts that matter under the lock.
     try:
-        report_text = read_managed_text(report_path, report_path.name)
-    except (OSError, UnicodeDecodeError, ValueError):
+        report_text = read_managed_text(report_path.resolve(), report_path.name)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        # The reason is REPORTED, not discarded. This returns `invalid` at exit 0, so
+        # without a diagnostic an unreadable report is indistinguishable from one that
+        # genuinely contains no findings — and that classification feeds the review
+        # retry accounting.
+        print(
+            f"loop-cohort: warning — {report_path.name} could not be read "
+            f"({exc}); classified invalid",
+            file=sys.stderr,
+        )
         return {
             "classification": "invalid",
             "fingerprints": [],

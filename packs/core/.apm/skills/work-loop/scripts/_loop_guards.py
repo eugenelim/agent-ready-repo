@@ -68,6 +68,7 @@ __all__ = [
     # result type
     "GuardResult",
     # bounded, symlink-safe readers
+    "ManagedContentError",
     "read_managed_json",
     "read_managed_text",
     "read_state",
@@ -80,7 +81,6 @@ __all__ = [
     "read_md_status",
     "assert_status_legal",
     "validate_run_id",
-    "non_negative_int",
     "contained",
     "contained_reason",
     # retry caps
@@ -120,6 +120,25 @@ _MAX_SCALAR_CHARS = 120
 # truncate legitimate text \u2014 `test_the_longest_authored_reason_survives_intact`
 # pins that separation.
 _MAX_REASON_CHARS = 4000
+
+
+class ManagedContentError(ValueError):
+    """The file was read safely, but its BYTES are unusable.
+
+    Distinct from the structural failures sharing the same `ValueError` vocabulary
+    (unopenable, non-regular, replaced mid-read), and the distinction is load-bearing
+    rather than cosmetic: `loop-engine._recover_pending` DELETES `events.pending` — a
+    durable audit record — only when its content is invalid, and must keep it when the
+    read merely failed. That decision was previously made by substring-matching
+    `str(exc)` against a hand-listed set of message fragments, duplicated at two call
+    sites: the source-substring gate antipattern this repo records, applied to the
+    audit trail. The list had already fallen behind — it omitted the
+    non-finite-number message, so a `NaN` in `events.pending` was retained forever and
+    re-warned on every transition.
+
+    Subclasses `ValueError` so every existing `except (OSError, UnicodeDecodeError,
+    ValueError, ImportError)` clause keeps catching it unchanged.
+    """
 
 
 def _scalar(value: object) -> str:
@@ -172,10 +191,17 @@ def contained_reason(fn):
             result = fn(*args, **kwargs)
         except Exception as exc:  # noqa: BLE001 — the containment boundary itself
             return _one_line(f"{INTERNAL_ERROR}: {type(exc).__name__}: {exc}")
-        if result is not None and not str(result).strip():
+        if result is None:
+            return None
+        if not str(result).strip():
             # A blank reason would read as a refusal with no cause. Never emit one.
             return f"{INTERNAL_ERROR}: {fn.__name__} produced an empty reason"
-        return result
+        # The NORMAL return needs the same hygiene as the except arm above. It used to
+        # be returned raw, so the module's "every reason is whitespace-collapsed and
+        # length-capped" claim held only by the accident that every current
+        # interpolation site calls `_scalar`. A newline in interpolated data forges a
+        # second stderr line, which is a one-line CLI contract violation.
+        return _one_line(result)
 
     return wrapper
 
@@ -215,6 +241,17 @@ class GuardResult:
         # context flood and a carrier into the supervising agent's window.
         if self.reason is not None:
             cleaned = _one_line(self.reason)
+            if not cleaned:
+                # A blank-but-not-None reason is a FAIL-OPEN, not a cosmetic defect.
+                # The invariant above only compares `reason is None`, so
+                # `GuardResult(ok=False, reason="")` constructs happily — and any
+                # adapter written as `if result.reason:` then reads a refusal as
+                # success. `contained_reason` already refuses to produce one on the
+                # mutation path; this closes the same hole on the result type.
+                raise ValueError(
+                    "GuardResult invariant violated: reason is blank, which reads as "
+                    f"success to any truthiness check (reason={self.reason!r})"
+                )
             if cleaned != self.reason:
                 object.__setattr__(self, "reason", cleaned)  # frozen dataclass
         if self.message is not None:
@@ -374,7 +411,7 @@ def _read_managed_bytes(path: Path, label: str) -> bytes:
     if not stat.S_ISREG(before.st_mode):
         raise ValueError(f"{label} must be a regular file")
     if before.st_size > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
+        raise ManagedContentError(
             f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
         )
     # O_NONBLOCK is load-bearing, not defensive. The S_ISREG check above is
@@ -433,7 +470,7 @@ def _read_managed_bytes(path: Path, label: str) -> bytes:
     ):
         raise ValueError(f"{label} changed while being read")
     if len(raw) > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
+        raise ManagedContentError(
             f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
         )
     return raw
@@ -445,7 +482,7 @@ def read_managed_json(path: Path, label: str) -> dict:
 
     def _reject_non_finite(token: str):
         # The three non-standard LITERALS json accepts: NaN, Infinity, -Infinity.
-        raise ValueError(f"{label} contains the non-finite number {token}")
+        raise ManagedContentError(f"{label} contains the non-finite number {token}")
 
     def _reject_float(token: str):
         # And the OVERFLOW route, which `parse_constant` does NOT cover: `1e400`
@@ -462,7 +499,7 @@ def read_managed_json(path: Path, label: str) -> dict:
         # merely stole that refusal and changed its wording.
         value = float(token)
         if value in (float("inf"), float("-inf")) or value != value:
-            raise ValueError(
+            raise ManagedContentError(
                 f"{label} contains the non-finite number {_scalar(token)}"
             )
         return value
@@ -474,11 +511,13 @@ def read_managed_json(path: Path, label: str) -> dict:
             parse_float=_reject_float,
         )
     except UnicodeDecodeError as exc:
-        raise ValueError(f"{label} is not valid UTF-8") from exc
+        raise ManagedContentError(f"{label} is not valid UTF-8") from exc
     except json.JSONDecodeError as exc:
-        raise ValueError(f"{label} malformed: {exc.msg} at line {exc.lineno}") from exc
+        raise ManagedContentError(
+            f"{label} malformed: {exc.msg} at line {exc.lineno}"
+        ) from exc
     if not isinstance(data, dict):
-        raise ValueError(f"{label} root must be an object")
+        raise ManagedContentError(f"{label} root must be an object")
     return data
 
 
@@ -501,7 +540,7 @@ def read_managed_text(path: Path, label: str) -> str:
     try:
         return raw.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise ValueError(f"{label} is not valid UTF-8") from exc
+        raise ManagedContentError(f"{label} is not valid UTF-8") from exc
 
 
 def read_state(spec_dir: Path) -> dict:

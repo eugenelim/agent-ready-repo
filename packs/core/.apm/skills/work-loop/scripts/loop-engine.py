@@ -284,6 +284,28 @@ def _append_events_jsonl(repo_root: Path, event_data: dict) -> None:
             raise OSError(f"event log changed while being written ({path})")
 
 
+def _is_content_invalid(exc: BaseException) -> bool:
+    """Is this failure "the bytes are unusable" rather than "the read failed"?
+
+    Gates the DELETION of `events.pending`, a durable audit record, so getting it
+    wrong in the permissive direction destroys evidence. Asks the reader's own
+    exception hierarchy — `ManagedContentError` — rather than substring-matching
+    `str(exc)` against a hand-listed set of message fragments, which is what this did
+    at both call sites. That list had already fallen behind the reader: it omitted the
+    non-finite-number message, so a `NaN` in `events.pending` was never recognised as
+    invalid content and the file was retained forever, re-warning on every transition.
+
+    Resolved through the loaded guard module, not imported, because the engine loads
+    that module by path. A load failure is deliberately NOT content-invalid: it says
+    nothing about this file, and discarding a valid audit record over a build problem
+    is the data loss this function exists to prevent.
+    """
+    try:
+        return isinstance(exc, _guards().ManagedContentError)
+    except GuardsUnavailable:
+        return False
+
+
 def _recover_engine_state_tmp(spec_dir: Path) -> None:
     """Complete any crash-left atomic engine-state rename; validate JSON before promoting."""
     for tmp_path in spec_dir.glob(".engine-state-*.json.tmp"):
@@ -350,11 +372,7 @@ def _recover_pending(repo_root: Path) -> None:
     try:
         pending = _read_managed_json(pending_path, "events.pending")
     except Exception as exc:
-        detail = str(exc)
-        content_invalid = isinstance(exc, ValueError) and any(
-            marker in detail
-            for marker in (" exceeds ", "not valid UTF-8", " malformed:", " root must be")
-        )
+        content_invalid = _is_content_invalid(exc)
         action = (
             "discarded"
             if content_invalid and _discard_regular_file(pending_path)
@@ -406,11 +424,7 @@ def _recover_pending(repo_root: Path) -> None:
         # reasons unrelated to this file (a `GuardsUnavailable` when `_loop_guards.py`
         # cannot be loaded), and discarding `events.pending` over a build problem
         # would destroy a durable audit record.
-        detail = str(exc)
-        content_invalid = isinstance(exc, ValueError) and any(
-            marker in detail
-            for marker in (" exceeds ", "not valid UTF-8", " malformed:", " root must be")
-        )
+        content_invalid = _is_content_invalid(exc)
         action = (
             "discarded"
             if content_invalid and _discard_regular_file(pending_path)
