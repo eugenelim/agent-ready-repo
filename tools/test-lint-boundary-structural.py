@@ -48,7 +48,7 @@ _spec.loader.exec_module(M)
 
 #: A single ~400-line main() aborts every later block on one exception, so the
 #: reported count silently drops. Falling below this is a failure in itself.
-_CASE_FLOOR = 103
+_CASE_FLOOR = 108
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -822,12 +822,27 @@ def main() -> int:  # noqa: C901 — independent structural assertions
     # would break a path containing one into two lines and then reorder or drop the
     # pieces — directly contradicting the resolver criterion that newlines and
     # Unicode in paths round-trip correctly.
-    for label, ch in (("U+2028", "\u2028"), ("U+2029", "\u2029"),
-                      ("form feed", "\x0c"), ("NEL", "\x85"),
-                      ("vertical tab", "\x0b")):
+    # Driven from `SPLITLINES_EXTRA`, not a hand-copied subset: an earlier revision
+    # asserted five of the eight and the spec named the same five, so three
+    # separators were unasserted in both places at once.
+    for ch in G.SPLITLINES_EXTRA:
         surface = G._canonical(f"FAIL: p/a{ch}b.py is bad\n")
-        check(f"{label} in a path does not split the line",
+        check(f"U+{ord(ch):04X} in a path does not split the line",
               "\n" not in surface.rstrip("\n"), repr(surface))
+    check("the separator enumeration matches what splitlines actually does",
+          all(len(f"a{c}b".splitlines()) > 1 for c in G.SPLITLINES_EXTRA)
+          and {c for c in map(chr, [*range(0x20), 0x85, 0x2028, 0x2029])
+               if c not in "\r\n" and len(f"a{c}b".splitlines()) > 1}
+          == set(G.SPLITLINES_EXTRA),
+          repr(sorted(hex(ord(c)) for c in G.SPLITLINES_EXTRA)))
+    # Classes 1 and 2 must not depend on a terminator already being `\n`.
+    ambient = ("FAIL: _NO_RUNNER names packs/x/tests/skills/y, which holds no "
+               "suite\nFAIL: kept\n\u2716 lint-pack-test-boundary: 2 failure(s)\n")
+    for label, term in (("LF", "\n"), ("CRLF", "\r\n"), ("bare CR", "\r")):
+        surface = G._canonical(ambient.replace("\n", term))
+        check(f"ambient redaction works with {label} terminators",
+              "_NO_RUNNER" not in surface and "FAIL: kept" in surface
+              and "1 failure(s)" in surface, f"{label}: {surface!r}")
 
     check("every FAIL block precedes every non-FAIL block, whatever the emitted "
           "order",

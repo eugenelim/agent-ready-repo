@@ -182,11 +182,14 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   8. **Line terminators** — `\r\n` and a bare `\r` are normalised to `\n`. This is
      what lets one POSIX-captured baseline compare on a Windows host, where
      `print()` emits `\r\n`, and it went unrecorded for six review rounds. Only
-     those three: `str.splitlines()` would additionally split on `\x0b`, `\x0c`,
-     `\x85`, `\u2028` and `\u2029`, which would break a path containing one into
-     two lines and then reorder the pieces — contradicting the resolver criterion
-     that newlines and Unicode in paths round-trip correctly. The splitter is
-     therefore an explicit three-terminator pattern, not `splitlines()`.
+     those three: `str.splitlines()` splits on eight further characters —
+     enumerated once, as `SPLITLINES_EXTRA` beside the pattern that replaces it,
+     and asserted from that same tuple rather than from a copy. Splitting on any of
+     them would break a path containing one into two lines and then reorder the
+     pieces, contradicting the resolver criterion that newlines and Unicode in
+     paths round-trip correctly. This class also runs **first**, before the ambient
+     redaction: those regexes are `re.MULTILINE`, and against a bare-`\r` stream
+     `.*` swallowed the entire surface.
   9. **Lossy UTF-8 decode** — the surface is built from
      `.decode("utf-8", "replace")`, so an invalid byte becomes `U+FFFD` and two
      distinct byte sequences can share one surface. The raw bytes remain in the

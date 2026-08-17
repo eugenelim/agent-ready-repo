@@ -44,6 +44,11 @@ LINTER = REPO_ROOT / "tools" / "lint-agents-md.py"
 #: without punishing a symlink-less host.
 _FOREIGN_ITERATION_CASES = 7
 
+#: Cases credited to a skipped iteration rather than executed. Reported, so a
+#: reader copying this suite's count as gate evidence is not told 31 ran when
+#: 24 did.
+_CREDITED = 0
+
 _CASE_FLOOR = 28
 
 _FAILURES: list[str] = []
@@ -301,8 +306,9 @@ def main() -> int:
             # skip exists to spare, which would turn a traceback into a different
             # red build for the same contributor rather than fixing anything.
             # Verified by forcing the OSError: 24 cases against a floor of 28.
-            global _CASES
+            global _CASES, _CREDITED
             _CASES += _FOREIGN_ITERATION_CASES
+            _CREDITED = _FOREIGN_ITERATION_CASES
         else:
             launch_dirs.append(foreign)
 
@@ -333,7 +339,13 @@ def main() -> int:
             f"failed\n"
         )
         return 1
-    sys.stderr.write(f"ok — {_CASES} cases passed\n")
+    if _CREDITED:
+        sys.stderr.write(
+            f"ok — {_CASES} cases passed ({_CREDITED} credited to a skipped "
+            f"iteration; {_CASES - _CREDITED} executed)\n"
+        )
+    else:
+        sys.stderr.write(f"ok — {_CASES} cases passed\n")
     return 0
 
 
@@ -342,34 +354,33 @@ def _run_launch_iterations(module, real_resolver, launch_dirs,
     """Drive the refusal cases once per launch directory."""
     for launch_dir in launch_dirs:
         os.chdir(launch_dir)
-        if True:
-            if launch_dir == REPO_ROOT:
+        if launch_dir == REPO_ROOT:
+            _refusal_branch_cases(module, real_resolver)
+        else:
+            # Name the property, so a failure reads as what actually broke
+            # rather than as a bare FileNotFoundError from inside the linter.
+            try:
                 _refusal_branch_cases(module, real_resolver)
-            else:
-                # Name the property, so a failure reads as what actually broke
-                # rather than as a bare FileNotFoundError from inside the linter.
-                try:
-                    _refusal_branch_cases(module, real_resolver)
-                except FileNotFoundError as exc:
-                    # Narrow deliberately. A bare `except OSError` would report an
-                    # unrelated failure — an unreadable file in the real repo, a
-                    # transient git error — as a launch-directory defect. The
-                    # filename is included so a misattribution is visible rather
-                    # than hidden behind confident wording.
-                    _FAILURES.append(
-                        f"the in-process block is not launch-directory "
-                        f"independent: called from a foreign Git repository it "
-                        f"walked that tree instead of this one — could not read "
-                        f"{exc.filename!r} ({exc})"
-                    )
-            # Vacuous on the repo-root iteration — the helper enters the repo root
-            # anyway, so an unrestored cwd still equals `launch_dir` there. It is
-            # load-bearing on the foreign iteration, which is why that iteration
-            # exists.
-            check(f"the in-process block restores the cwd it was called in "
-                  f"({'repo root' if launch_dir == REPO_ROOT else 'foreign repo'})",
-                  Path.cwd() == launch_dir, f"{Path.cwd()} != {launch_dir}")
-            os.chdir(original_cwd)
+            except FileNotFoundError as exc:
+                # Narrow deliberately. A bare `except OSError` would report an
+                # unrelated failure — an unreadable file in the real repo, a
+                # transient git error — as a launch-directory defect. The
+                # filename is included so a misattribution is visible rather
+                # than hidden behind confident wording.
+                _FAILURES.append(
+                    f"the in-process block is not launch-directory "
+                    f"independent: called from a foreign Git repository it "
+                    f"walked that tree instead of this one — could not read "
+                    f"{exc.filename!r} ({exc})"
+                )
+        # Vacuous on the repo-root iteration — the helper enters the repo root
+        # anyway, so an unrestored cwd still equals `launch_dir` there. It is
+        # load-bearing on the foreign iteration, which is why that iteration
+        # exists.
+        check(f"the in-process block restores the cwd it was called in "
+              f"({'repo root' if launch_dir == REPO_ROOT else 'foreign repo'})",
+              Path.cwd() == launch_dir, f"{Path.cwd()} != {launch_dir}")
+        os.chdir(original_cwd)
 
 
 def _refusal_branch_cases(module, real_resolver) -> None:

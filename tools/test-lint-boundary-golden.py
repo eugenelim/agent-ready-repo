@@ -485,7 +485,7 @@ def _drop_unpinned_runner_misses(stream: str) -> tuple[str, int]:
 #: `tools/test-lint-boundary-structural.py`, which drives the callable API and
 #: can supply its own map.
 #: Only the three real line terminators. `str.splitlines()` would also split on
-#: `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\x85`, `\u2028` and `\u2029` — verified: a path
+#: every character in `SPLITLINES_EXTRA` below — verified: a path
 #: containing U+2028 or a form feed was silently broken into two lines and then
 #: reordered by the tail rules, which contradicts the resolver's own criterion that
 #: newlines and Unicode in paths round-trip correctly. Normalising `\r\n` and `\r`
@@ -493,6 +493,14 @@ def _drop_unpinned_runner_misses(stream: str) -> tuple[str, int]:
 #: baseline compare on a Windows host, where `print()` emits `\r\n`); splitting on
 #: anything else is not.
 _LINE_TERMINATOR = re.compile(r"\r\n|\r|\n")
+
+#: Every character `str.splitlines()` treats as a line boundary beyond CR and LF.
+#: Enumerated once, here, and consumed by the structural suite's assertion loop —
+#: an earlier revision listed a five-character subset in the spec, another subset
+#: in the assertion, and the full set only in a comment, which is the same
+#: three-copies-two-stale shape this spec's review kept finding elsewhere.
+SPLITLINES_EXTRA = ("\x0b", "\x0c", "\x1c", "\x1d", "\x1e", "\x85",
+                    "\u2028", "\u2029")
 
 
 _AMBIENT_NO_RUNNER = re.compile(
@@ -507,12 +515,19 @@ def _canonical(stream: str) -> str:  # noqa: C901 — a flat normalisation pipel
     paths in filesystem order, and one message embeds `str(SyntaxError)`. Both
     are legitimate variation that must not read as a regression.
     """
+    # FIRST, before anything else touches the stream. The two ambient-redaction
+    # regexes below are `re.MULTILINE`, so their `^` anchors only after a `\n`. Run
+    # against a bare-`\r` stream they see one logical line and `.*` — which matches
+    # `\r` — swallows the whole surface: verified, a three-finding stream collapsed
+    # to a single newline. Normalising terminators up front removes the precondition
+    # instead of documenting it.
+    stream = "\n".join(_LINE_TERMINATOR.split(stream))
     stream, ambient_no_runner = _AMBIENT_NO_RUNNER.subn("", stream)
     stream, ambient_runner_miss = _drop_unpinned_runner_misses(stream)
     redacted = ambient_no_runner + ambient_runner_miss
     blocks: list[str] = []
     current: list[str] = []
-    for line in _LINE_TERMINATOR.split(stream):
+    for line in stream.split("\n"):   # terminators already folded above
         if line.startswith(("FAIL: ", "ok   [", "✓ ", "✖ ")) and current:
             blocks.append("\n".join(current))
             current = [line]
@@ -648,6 +663,19 @@ def _decode(record: dict, key: str) -> str:
     return lint_git_ignore.decode_stream(record[key]).decode("utf-8", "replace")
 
 
+def _raw(record: dict, key: str) -> bytes:
+    """The captured stream as stored, undecoded.
+
+    The privacy scan must use this, not `_decode`. `_decode` replaces every
+    invalid byte with `U+FFFD`, so a needle containing non-ASCII — `Path.home()`
+    on a host whose username is not ASCII, which `AGENTS.md § Privacy` names as
+    forbidden content — can be broken apart by a substitution and slip past the
+    refusal that guards the committed baseline. A backstop that a lossy decode can
+    defeat is not a backstop.
+    """
+    return lint_git_ignore.decode_stream(record[key])
+
+
 def _make_fixture(tmp: Path, name: str) -> Path:
     root = tmp / name
     root.mkdir(parents=True)
@@ -710,8 +738,9 @@ def _regenerate() -> int:
     ]
     leaks: list[str] = []
     for name, record in payload["cases"].items():
-        both = _decode(record, "stdout_b64") + _decode(record, "stderr_b64")
-        leaks += [f"{name}: {n}" for n in needles if n and n in both]
+        raw = _raw(record, "stdout_b64") + _raw(record, "stderr_b64")
+        leaks += [f"{name}: {n}" for n in needles
+                  if n and os.fsencode(n) in raw]
     if leaks:
         raise SystemExit(
             "refusing to write the baseline — captured streams contain absolute "
@@ -836,9 +865,9 @@ def _self_check() -> int:
         # privacy leak and a host-dependent byte.
         root = _make_fixture(tmp, "clean")
         rec = _run_staged(root, blob)
-        both = _decode(rec, "stdout_b64") + _decode(rec, "stderr_b64")
+        raw = _raw(rec, "stdout_b64") + _raw(rec, "stderr_b64")
         for needle in (str(tmp), str(Path.home()), str(ROOT)):
-            if needle and needle in both:
+            if needle and os.fsencode(needle) in raw:
                 failures.append(f"captured stream leaks an absolute path: {needle}")
 
     for f in failures:
