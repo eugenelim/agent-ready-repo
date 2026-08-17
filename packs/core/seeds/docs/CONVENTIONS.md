@@ -183,8 +183,16 @@ unchanged** — the pointer is one-way and no body line moves. **Rules 1 and 2 d
 not apply**: nothing was superseded, so there is no part to scope and no ADR to
 point at; name the spec that closed the anchor, which is the only record there
 is. Say plainly that it is not a supersession, so a later reader does not
-discount a document that is entirely still correct.
+discount a document that is entirely still correct. Form:
 
+```
+- **Status:** Shipped (§ <section>'s register anchor `<slug>` was closed by
+  <spec>; not a supersession — every decision here stands)
+```
+
+Link the closing spec, the way the supersession form links its ADR; the
+placeholder above is unlinked only so the repo's own link check does not chase
+it.
 
 **Not `Constrained by:`.** It is the better semantic fit — it is the field that
 cites governing decisions — but it is a record of what governed the spec *at
@@ -399,9 +407,11 @@ mechanical rule.
   There is **no `Superseded` token**, and `Archived` is not a substitute — a
   superseded spec usually shipped and is still live. A supersession is recorded
   as a parenthetical *annotation* on the existing token
-  (`Shipped (superseded in part by ADR-NNNN — …)`), which is the only edit a
-  frozen spec accepts. Form and rules:
-  [§ Superseding a frozen document](#superseding-a-frozen-document).
+  (`Shipped (superseded in part by ADR-NNNN — …)`). A parenthetical on that
+  token is the **only edit a frozen spec accepts**, and it carries exactly two
+  licensed shapes: that supersession pointer, and a pointer recording that a
+  `[backlog].open` anchor the body names has been closed. Form and rules for
+  both: [§ Superseding a frozen document](#superseding-a-frozen-document).
   The linter reads only the leading token — it truncates at the first ` (`,
   ` →`, or `<!--` — so annotated statuses satisfy the vocabulary rule.
 - **Acceptance Criteria notation.** Each criterion is a GitHub task-list item:

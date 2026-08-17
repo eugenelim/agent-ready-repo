@@ -1647,6 +1647,28 @@ open = [
   # whose status and treatment disagree is a rule nobody can apply.
   {slug = "distribution-adapters-lifecycle-class", summary = "Decide whether docs/specs/distribution-adapters/spec.md is Living or Frozen -- its Status says Shipped but every adapter PR amends its Changelog and projection table", source = "spec/frozen-doc-supersession-annotations review"},
 
+  # ADR-0050 (Astro marketing site) is Superseded by ADR-0055 (Starlight
+  # replaces MkDocs), with no "in part" -- so the whole record is history.
+  # spec/frozen-doc-supersession-annotations disposed of that chain on the
+  # `Constrained by:` header scan alone (one citing spec,
+  # marketing-docs-link-repair, which names ADR-0055 on the next line and so
+  # forwards its own reader). That spec's own Decision 1 says a header scan is
+  # the STARTING set, not the population -- and adversarial review found the
+  # counterexample: docs/specs/platform-site/spec.md:58's route table still
+  # reads `| /docs/ | MkDocs reference (existing) | 0 | site/docs/ -- unchanged |`
+  # for a build that no longer exists (site/ and mkdocs.yml are both gone), in a
+  # Shipped spec that cites no ADR at all.
+  # Not done there because there is no literal string to grep the way the skill
+  # homes were: a body survey means reading the MkDocs -> Starlight migration
+  # across ten-plus documents (starlight-migration, platform-site,
+  # guides-sidebar-generation, m3-experience-design-rename and their plans),
+  # which is a different subject from that spec's.
+  # Fix: run the body survey for the ADR-0050 -> ADR-0055 chain and annotate the
+  # documents that state a route the build no longer takes. Same per-document
+  # judgment; a "superseded in part" on a spec that merely mentions MkDocs in
+  # passing is the false positive that spec exists to avoid.
+  {slug = "adr-0050-supersession-body-survey", summary = "Body-survey the ADR-0050 -> ADR-0055 chain; platform-site/spec.md still documents a MkDocs route for a build that no longer exists and cites no ADR, so no header scan reaches it", source = "spec/frozen-doc-supersession-annotations review"},
+
   # build-check.yml installs tools/requirements-sast.txt only when
   # skip_sast != 'true', so on a SKIP_SAST PR bandit is absent and
   # lint-nosec-form's unknown-id check (a well-formed but nonexistent ID like a

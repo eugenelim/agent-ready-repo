@@ -19,7 +19,7 @@ slug: frozen-doc-supersession-annotations
   (the supersession being recorded);
   [ADR-0042](../../adr/0042-agent-additions-keyed-to-loop-and-work-type.md),
   [ADR-0084](../../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md),
-  [ADR-0020](../../adr/0020-agent-context-file-is-agents-md.md) and
+  [ADR-0020](../../adr/0020-per-pack-diataxis-hierarchy-for-guides.md) and
   [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md)
   (the four supersessions found **not** to warrant a spec-end annotation)
 - **Contract:** none
@@ -147,8 +147,11 @@ type*, which is not what any of them relied on.
 `Superseded in part` note — but **inside an HTML comment**, and about an
 unrelated matter (ADR-0057 deleting a file). It is not the `CONVENTIONS.md` form
 and a reader of the rendered document sees a bare `Shipped`; do not count it as
-convention-compliant coverage. No annotation is added here because the ADR-0023
-verdict above applies to it too.
+convention-compliant coverage. No annotation is added, for two independent
+reasons: the ADR-0023 verdict above applies to it, **and** its `Constrained by:`
+names ADR-0042 on the line after ADR-0023, so the reader is forwarded inside the
+field they are already reading — the same property that clears
+`marketing-docs-link-repair` in § Decision 6.
 
 ## Decision 4 — ADR-0013 / 0015 / 0016 → ADR-0040: annotate five specs, eight lines
 
@@ -184,7 +187,7 @@ Concern 7 below, so this is not a body-grep find:
 | `copilot-skills-and-web` | `spec.md` + `plan.md` | **Annotate.** Pins `.github/skills/` repo + `.copilot/skills/` user. |
 | `copilot-full-parity` | `spec.md` only (its `plan.md` states no skill home) | **Annotate — reversing an earlier exclusion.** Its § banner already marks the skill decision reversed, but names `.github/skills/<name>/SKILL.md` and `~/.copilot/skills/<name>/SKILL.md` as the *replacement*, and ADR-0040 superseded both. Pointing a reader at two further stale paths is worse than not pointing. The Status line names both and says to read the banner through it. |
 
-### The body grep adds one annotation, and seven declines
+### The body grep adds one annotation, and six declines
 
 Applying Decision 1's second pass — `grep -rln` for `.cursor/skills/`,
 `.gemini/skills/`, `.github/skills/`, `.copilot/skills/` over **all** of
@@ -225,8 +228,11 @@ part of applying it:
   reversed; a backlog entry was worked. The pointer therefore names the spec
   that closed it, which is the only record there is.
 
-Rules 3 and 4 hold unchanged: the pointer is one-way (spec → the closing spec,
-which does not point back), and no body line moves.
+Rules 3 and 4 hold unchanged: the *annotation* is one-way — the closing spec
+adds no pointer back — and no body line moves. (`frozen-doc-supersession-annotations`
+does cite `frozen-spec-supersession` in its own `Constrained by:`, but that is a
+pre-existing upward citation under § *Cite upward*, not the other end of this
+pointer.)
 
 **And the rule is written down, not just used.** Using the licensed carrier for
 an unlicensed purpose would leave the next author with a precedent and no rule —
@@ -256,9 +262,20 @@ survey never scanned, disposed of here rather than left unexamined:
 - **ADR-0050 → ADR-0055.** One spec cites it: `marketing-docs-link-repair`,
   whose `Constrained by:` names **ADR-0055 on the very next line**, with the
   clause that makes the new target correct. The reader is forwarded inside the
-  field they are already reading. **No annotation** — and note the reason is
-  different from every other decline above, which is why it is stated rather
-  than folded in.
+  field they are already reading, so no annotation. (`frontend-engineering-skill`
+  has the same property for ADR-0023 → ADR-0042 — see § Decision 3.)
+
+**Both of these are disposed of on the header scan alone, and that is a stated
+limit, not an oversight.** § Decision 1's second pass greps for the four
+superseded *skill homes*, because those are literal strings; there is no
+equivalent grep here without surveying the whole MkDocs → Starlight migration,
+which touches ten-plus documents and is a different subject from this spec's.
+Adversarial review found one live counterexample already —
+`platform-site/spec.md`'s route table still reads
+`| /docs/ | MkDocs reference (existing) | 0 | site/docs/ — unchanged |` for a
+build that no longer exists, in a spec that cites no ADR and so is structurally
+invisible to the header scan. Registered as `adr-0050-supersession-body-survey`
+rather than half-done here.
 
 ## Acceptance Criteria
 
@@ -340,7 +357,8 @@ different ADRs). Three corrections, none of which changes a verdict:
 
 **1. The header scan finds nineteen, not twelve.** Re-running it today over
 every superseded ADR gives **nineteen** specs citing one, **fourteen** without a
-pointer. Six the survey does not list:
+pointer. The survey's table holds eleven distinct specs; these eight are the
+remainder, and 11 + 8 = 19 closes:
 
 | Spec | Cites | First commit | Why the survey missed it |
 | --- | --- | --- | --- |
@@ -350,6 +368,8 @@ pointer. Six the survey does not list:
 | `core-path-confinement` | ADR-0017 | 2026-08-11 | Predates the survey — missed |
 | `pack-script-root-boundary-validation` | ADR-0017 | 2026-08-07 | Predates the survey — missed |
 | `marketing-docs-link-repair` | ADR-0050 | — | A chain the survey never scanned (§ Decision 6) |
+| `frontend-engineering-skill` | ADR-0023 | — | Missed. It carries a `Superseded in part` note, but inside an HTML comment and about ADR-0057 — not coverage of this chain (§ Decision 3) |
+| `sast-sca-tooling` | ADR-0017 | — | Not missed: already annotated by `frozen-spec-supersession` itself, so its § Survey listed the fix, not the gap |
 
 **2. The survey scanned three chains; there are five.** ADR-0001 → ADR-0020 and
 ADR-0050 → ADR-0055 were never named. § Decision 6 disposes of both.
@@ -396,13 +416,35 @@ Goal-based; every verdict is measured.
 | AC1, AC6 | Read the ten edited Status lines. |
 | AC2 | `git diff --unified=0 main...HEAD -- <the ten files>`; assert every changed line begins `- **Status:**`, and that there are ten of each sign. |
 | AC3 | Present in this document. |
-| AC4 | `grep -rnE 'nosec +(<ID>\|B[0-9]+)([, ]+B[0-9]+)* *[-–—] ' docs/ packs/ guides/ tools/ .github/`; compare the hit set with § Decision 2's table. A `B[0-9]+`-only pattern silently misses both ADRs, which write the placeholder — that near-miss is why the pattern is pinned here. |
+| AC4 | The command in § *Pinned verification commands* below; compare the hit set with § Decision 2's table. |
 | AC5 | `tomllib.load('contracts/adapter.toml')`; assert the `skill` projection target **and** `scope.allowed-prefixes` for `cursor`, `gemini`, `copilot`. |
-| AC5a | (i) Parse every `docs/adr/*.md` `Status` for `supersed… by ADR-NNNN`, then scan each `docs/specs/*/spec.md` `Constrained by:` field for those ADRs. (ii) `grep -rn` the four superseded skill homes across `docs/specs/**`. Compare both hit sets with § Decision 4 and § Survey correction. |
+| AC5a | Both commands in § *Pinned verification commands* below. Compare with § Decision 4 and § Survey correction. |
 | AC6a | `diff -q packs/core/seeds/docs/CONVENTIONS.md docs/CONVENTIONS.md`. |
 | AC7 | Import `lint-spec-status.py` by path; call `parse_status` on each edited `spec.md`; assert `== "Shipped"`. Then the linter, exit 0. |
 | AC8 | The four gate commands. |
 | AC9 | `tomllib.load('workspace.toml')`; assert neither slug is present. |
+
+### Pinned verification commands
+
+Fenced, not tabled: a markdown table cell forces `\|` on the alternation, and
+`grep -E` reads that as a *literal* pipe — the command then matches nothing and
+says so silently, which is the same false-negative this section warns about.
+Copy these verbatim.
+
+```sh
+# AC4 — the reversed suppression form. Matches the `<ID>` placeholder as well as
+# a literal Bnnn; a Bnnn-only pattern silently misses both ADRs.
+grep -rlnE 'nosec +(<ID>|B[0-9]+)([, ]+B[0-9]+)* *[-–—] ' docs/ packs/ guides/ tools/ .github/
+
+# AC5a, second pass — the superseded skill homes, over ALL of docs/specs/
+# including README.md.
+grep -rln -e '\.cursor/skills/' -e '\.gemini/skills/' \
+          -e '\.github/skills/' -e '\.copilot/skills/' docs/specs/
+```
+
+For AC5a's first pass, parse every `docs/adr/*.md` `Status` for
+`supersed… by ADR-NNNN`, then scan each `docs/specs/*/spec.md`
+`- **Constrained by:**` field for those ADRs.
 
 No new test file. These are one-off document edits against a
 convention-enforced rule; a test asserting that a particular spec carries a
@@ -412,17 +454,23 @@ already covers the thing a machine can check — that the token still parses.
 
 ## Honest scope
 
-- **Fourteen documents were examined and declined.** That is the deliverable,
-  not an omission — but it rests on judgment a reviewer should re-derive rather
-  than accept. § Decisions 2, 3, 4 and 6 are written to be re-attacked, and each
-  names its evidence.
+- **Twenty documents were examined and declined**, and the tally is meant to
+  reconcile: **fourteen** from the header scan (ten ADR-0017 citers in
+  § Decision 2, three further ADR-0023 citers plus `frontend-engineering-skill`
+  in § Decision 3, `marketing-docs-link-repair` in § Decision 6) plus **six**
+  from the body grep in § Decision 4. That is the deliverable, not an omission —
+  but it rests on judgment a reviewer should re-derive rather than accept. Each
+  section names its evidence.
 - **The body grep covered one kind of superseded content, not all of them.**
-  Decision 1's second pass greps for the four superseded *skill homes*, because
-  those are literal strings. The ADR-0017 pass greps for the suppression form,
-  likewise. There is no equivalent grep for ADR-0023's superseded *framing* — a
-  reviewer-ceiling argument has no fixed spelling — so that chain rests on
-  reading the three citing specs, and only those three. A spec arguing the
-  ceiling without citing ADR-0023 would not be found.
+  Decision 1's second pass greps for the four superseded *skill homes*, and the
+  ADR-0017 pass for the suppression form, because both are literal strings.
+  **Two chains have no such string and rest on the header scan alone:**
+  ADR-0023's superseded *framing* (a reviewer-ceiling argument has no fixed
+  spelling), and ADR-0050 → ADR-0055 (a body survey there means reading the
+  whole MkDocs → Starlight migration — registered as
+  `adr-0050-supersession-body-survey`, with a live counterexample already found
+  in `platform-site/spec.md`). A document stating either superseded decision
+  without citing its ADR would not be found by anything in this change.
 - **The residual the convention already accepts still stands.** Someone who
   greps mid-file in an annotated spec lands on the stale AC with no pointer in
   view. `CONVENTIONS.md` rule 4 states this and accepts it; the mitigation is
