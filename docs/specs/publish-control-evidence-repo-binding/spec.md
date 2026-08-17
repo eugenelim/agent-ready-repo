@@ -104,11 +104,56 @@ for three reasons:
    answered to the runtime environment while its four siblings answered to
    review would be harder to reason about, not safer.
 
-**The residual, stated plainly:** defeating this requires editing
-`.github/claude-plugin-publish-control.json` in the same commit as the forged
-evidence. That is a reviewable change to the repo-authored contract, which is
-the same anchor the decommission escape hatch already rests on — and it is
-strictly more than the change costs today, which is nothing.
+**But the reasons are about the linter, and there is one place they do not
+reach.** Security review made the point: `.github/workflows/publish-claude-plugins.yml`
+**only ever runs in Actions**, so reason 1 does not apply to it, reason 2 has no
+`origin` fallback to be noisy, and reason 3 is untouched because the linter's
+trust model does not change. So the runtime binding goes there — see
+§ Decision 5 — and the linter keeps the file-to-file comparison.
+
+**The residual on the linter half, stated plainly:** defeating the file-to-file
+comparison requires editing `.github/claude-plugin-publish-control.json` in the
+same commit as the forged evidence. That is a reviewable change to the
+repo-authored contract, the same anchor the decommission escape hatch rests on.
+Note what that anchor is worth here: ADR-0079's 2026-08-12 erratum set
+`prevent_self_review: false` *because* one person merges, so the reviewer and
+the author can be the same actor. That is why § Decision 5 exists — the
+publish-time check does not rest on review at all.
+
+## Decision 5 — the runtime binding goes in the publish workflow, not the linter
+
+Two committed files travelling together certify nothing in a **copy**. Fork this
+repository, or clone-and-push it elsewhere, and both halves come along: they
+still compare equal, `make build-check` is green, and `validate_sequencing`
+concludes the publisher App is provisioned — for a repository whose dist-branch
+ruleset, App installation scope and protected environment were never observed at
+all. That is the wrong-subject failure this spec exists to close, in the one
+case the file-to-file design structurally cannot see.
+
+The linter gains an **optional `--subject`** argument, and
+`publish-claude-plugins.yml` passes `"$GITHUB_REPOSITORY"` to it. When given, it
+must equal the desired file's `repo`.
+
+An earlier draft put the comparison in a shell step of its own. Review was right
+that that was worse: it would have duplicated `DESIRED_PATH` and the JSON parse,
+and — the load-bearing objection — the only unforgeable half of the binding
+would have lived in a YAML string that no test could delete-and-verify. As an
+argument it lands in the linter's existing mutation suite instead.
+
+It costs none of § Decision 3's three reasons:
+
+- the flag is **optional**, so `make build-check` passes none and behaves
+  identically locally and in CI — no divergence;
+- `github.repository` is set by the runner and no committed file can forge it;
+- the desired/evidence comparison is untouched, so the file's trust model is
+  unchanged.
+
+It also refuses a fork attempting to publish, which is correct on its own terms.
+
+Three deletions verified: removing the `--subject` comparison reddens the lint
+suite; removing `--subject` from the workflow invocation reddens
+`test-publish-claude-plugins.py`; removing the schema-version comparison reddens
+the lint suite. Neither the flag nor its use can be dropped silently.
 
 ## Decision 4 — the version goes to 2, and the committed artifact is hand-edited
 
@@ -175,6 +220,24 @@ hand**. This is worth naming rather than glossing:
       `SKIP_SAST=1 make build-check`, `make sast`, and
       `lint-spec-status.py --root . --base-ref origin/main` all exit 0.
 
+- [x] **AC9a — the publish workflow refuses a repository the control was not
+      authored for.** The linter takes an optional `--subject`;
+      `publish-claude-plugins.yml` passes `"$GITHUB_REPOSITORY"`. Pinned in two
+      places, because either alone is defeatable:
+      `tools/test-lint-claude-plugin-publish-control.py` drives `main()` with no
+      subject (accepted), the declared one (accepted), a fork's (refused) and an
+      empty one (refused); `tools/test-publish-claude-plugins.py` asserts the
+      workflow passes the flag **and** that the linter enforces it. Each
+      verified by deleting the control.
+
+- [x] **AC9b — the comparisons stand on their own.** `compare_evidence`'s repo
+      check does not rely on `validate_desired` running first: with `repo`
+      absent from **both** documents, `.get(...) != .get(...)` compares equal,
+      so the check reads the desired value's type explicitly. A mutation case
+      pins it. The schema-version comparison — the only thing that rejects a
+      stale v1 artifact against the v2 desired file, i.e. this change's own
+      migration — gains the negative control it was missing.
+
 - [x] **AC10 — the register entry is closed.**
       `publish-control-evidence-not-repo-bound` is removed from
       `workspace.toml [backlog].open`, verified with `tomllib`.
@@ -202,6 +265,9 @@ hand**. This is worth naming rather than glossing:
 - Never re-capture the artifact as a way of "fixing" a mismatch. A mismatch
   means the evidence describes the wrong repository; the fix is to find out
   which.
+- Never hand-author a field the capture tool writes, except as § Decision 4
+  records for the one-off schema migration. The artifact's whole value is that
+  a machine observed it; a hand-written field is a claim, not evidence.
 
 ## Testing Strategy
 
@@ -219,6 +285,8 @@ already chained into `make build-check` via `tools/repo/build_gate_chain.py`.
 | AC6 | Run `lint-claude-plugin-publish-control.py --require-live-evidence`; assert exit 0. |
 | AC7 | Delete the comparison; re-run the suite; assert it reports failures. Restore; assert green. |
 | AC8 | `_identifier_leaks` on the committed artifact. |
+| AC9a | `lint.main()` under four `--subject` values; plus `test-publish-claude-plugins.py`'s two assertions. Then delete each control and re-run. |
+| AC9b | `compare_evidence` with `repo` absent from both documents, and with `version: 1` evidence against the v2 desired file. |
 | AC9, AC10 | The gate commands; `tomllib` on `workspace.toml`. |
 
 ## What the mutation pass caught
@@ -238,15 +306,30 @@ that can raise; deleting it turns the case red.
 docstring on the stub helper, so the next person to touch it knows why the
 stubs wrap the negative case and not just the positive one.
 
+## Deferred
+
+| Slug | Why not here |
+| --- | --- |
+| `publish-control-evidence-max-age` | `observed_at` is checked for being a non-empty string and nothing else, so the artifact never goes stale. Real, and made more visible by this change — but expiry blocks every merge until an operator with the App private key re-captures, so the operational answer (how long, who is paged, what the escape hatch is) has to be decided first. |
+
 ## Honest scope
 
-- **This binds the artifact to a declared subject, not to an unforgeable one.**
-  § Decision 3 says what was declined and why; § Decision 2 says exactly what
-  `repo` is and is not. Read both before concluding the artifact is now
-  tamper-evident — it is subject-*stating*, which is a smaller and more useful
-  claim.
-- **One field of the committed artifact was written by hand.** § Decision 4.
-  Every later capture writes it.
+- **Two bindings of different strength, and it matters which is where.** The
+  linter's is between two committed files, so it binds the artifact to a
+  *declared* subject — defeating it costs one more reviewable edit. The publish
+  workflow's is against `$GITHUB_REPOSITORY`, which no committed file can forge,
+  but it runs only at publication. So `make build-check` on a copy of this
+  repository is still green while attesting to nothing; what that copy cannot do
+  is publish. § Decisions 2, 3 and 5. Read them before concluding the artifact
+  is tamper-evident — the linter half is subject-*stating*, which is a smaller
+  and more useful claim.
+- **One field of the committed artifact was written by hand**, while the file
+  asserts `observation_source: github-api-sanitized` and nothing in the file
+  itself records the exception — § Decision 4 is the only place a reader learns
+  it. A one-shot `--migrate-subject <owner/name>` mode on the capture tool would
+  have kept the value tool-written and the provenance claim literally true;
+  declined as a mode added to an operator tool for a single migration, but it is
+  the better answer if this recurs.
 - **The canary outcomes remain operator-asserted.** Unchanged by this spec, and
   deliberately so — `capture-publish-control-evidence.py`'s docstring explains
   why inferring them would make the evidence self-confirming.

@@ -183,7 +183,19 @@ def _load_capture_module():
     if spec is None or spec.loader is None:
         raise ValueError("cannot load the capture tool's repository-name rule")
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    try:
+        spec.loader.exec_module(module)
+    except (OSError, SyntaxError, ImportError) as exc:
+        # spec_from_file_location returns a populated spec for a path that does
+        # not exist, so the guard above never fires for the failure it looks
+        # like it covers. A missing, unreadable, or corrupt capture tool reaches
+        # here; without this it leaves validate_desired as a traceback of
+        # absolute paths rather than through main()'s error handler. Fails
+        # closed either way -- this makes it legible, including inside the
+        # publish job.
+        raise ValueError(
+            f"cannot load the capture tool's repository-name rule: {exc}"
+        ) from None
     return module
 
 
@@ -341,11 +353,15 @@ def validate_desired(desired: dict) -> list[str]:
             "owner/name `repo`"
         )
     else:
-        capture = _load_capture_module()
         try:
-            capture._validate_repo(repo)
-        except capture.CaptureError as exc:
-            errors.append(f"desired control repo is not a bare owner/name: {exc}")
+            capture = _load_capture_module()
+        except ValueError as exc:
+            errors.append(str(exc))
+        else:
+            try:
+                capture._validate_repo(repo)
+            except capture.CaptureError as exc:
+                errors.append(f"desired control repo is not a bare owner/name: {exc}")
     if desired.get("version") != 2:
         errors.append("desired control version must be 2")
     return errors
@@ -386,11 +402,15 @@ def compare_evidence(desired: dict, evidence: dict) -> list[str]:
     # controls are authored for, the capture records the subject its API reads
     # were made against. A mismatch means the artifact describes some other
     # repository's controls — the one thing a settings read cannot tell you.
-    if evidence.get("repo") != desired.get("repo"):
+    # Self-standing: `evidence.get(...) != desired.get(...)` compares EQUAL when
+    # both are absent, so a desired file with no repo would make this pass and
+    # the binding would rest on validate_desired happening to run first.
+    desired_repo = desired.get("repo")
+    if not isinstance(desired_repo, str) or evidence.get("repo") != desired_repo:
         errors.append(
             "evidence repo "
             f"{evidence.get('repo')!r} differs from the repository the desired "
-            f"control governs ({desired.get('repo')!r}); this evidence does not "
+            f"control governs ({desired_repo!r}); this evidence does not "
             "describe this repository"
         )
     if evidence.get("canary") != desired.get("canary"):
@@ -411,6 +431,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", type=Path, default=REPO_ROOT)
     parser.add_argument("--workflow", type=Path, default=WORKFLOW_PATH)
     parser.add_argument("--require-live-evidence", action="store_true")
+    parser.add_argument(
+        "--subject",
+        help="the repository this run is executing in, as a bare owner/name. "
+        "The publish workflow passes ${{ github.repository }}, which no "
+        "committed file can forge -- the desired/evidence pair travels with a "
+        "fork or a clone and still compares equal, so this is the only half of "
+        "the binding a copy cannot satisfy. Optional so `make build-check` "
+        "keeps one behaviour locally and in CI.",
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -419,6 +448,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"lint-claude-plugin-publish-control: {exc}", file=sys.stderr)
         return 1
     errors = validate_desired(desired)
+    if args.subject is not None and args.subject != desired.get("repo"):
+        errors.append(
+            f"this run is in {args.subject!r} but the publication control is "
+            f"authored for {desired.get('repo')!r}; its evidence describes "
+            "another repository's controls and must not gate publication here"
+        )
     try:
         workflow = args.workflow.read_text(encoding="utf-8")
     except OSError as exc:

@@ -365,11 +365,27 @@ def main() -> int:
     # Match the executed step, not a prose mention: the header comment names
     # this script too, and a `find` on the bare path would score the comment.
     control_gate = publisher.find(
-        "run: python3 tools/lint-claude-plugin-publish-control.py"
+        "python3 tools/lint-claude-plugin-publish-control.py"
     )
     _check("the publication-control gate is an executed step",
            control_gate >= 0,
            "control state is never verified during publication")
+    # --subject is the only half of the repo binding a fork or clone cannot
+    # satisfy: the desired/evidence pair travels with a copy and still compares
+    # equal, so without this the publisher would certify another repository's
+    # controls as its own. Two assertions, because the first alone would pass
+    # against a linter that ignores the flag.
+    _check("the control gate is handed the runner's own repository",
+           '--subject "$GITHUB_REPOSITORY"' in publisher,
+           "the publication-control gate does not bind to the running repo")
+    _check("and the linter refuses a subject that is not the declared one",
+           control.main([
+               "--desired", str(repo_root / ".github/claude-plugin-publish-control.json"),
+               "--evidence", str(evidence_path),
+               "--workflow", str(publisher_path),
+               "--subject", "someone-else/agent-ready-repo",
+           ]) != 0,
+           "--subject is accepted but not enforced")
     if provisioned:
         token_mint = publisher.find(
             "name: Mint repository-scoped publisher token"

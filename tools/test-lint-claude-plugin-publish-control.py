@@ -62,11 +62,26 @@ def main() -> int:
         "desired repo dot segment": (("repo",), "owner/.."),
         "desired schema version": (("version",), 1),
     }
-    check(
-        "the linter reuses the capture tool's owner/name rule rather than a copy",
-        lint._load_capture_module()._validate_repo.__module__
-        == "capture_publish_control_evidence",
-    )
+    # Behaviour, not identity: __module__ is assigned by the loader from the
+    # name _load_capture_module passes, so ANY file at that path satisfies a
+    # name comparison -- including a two-line stub whose _validate_repo returns
+    # its argument unchanged. Exercise the rule's two halves instead.
+    _shared_rule = lint._load_capture_module()._validate_repo
+    for label, value, accepted in (
+        ("a dot segment", "owner/..", False),
+        ("a leading-dot repository name", "owner/.github", True),
+        ("a bare name with no owner", "agent-ready-repo", False),
+    ):
+        try:
+            _shared_rule(value)
+        except Exception:  # noqa: BLE001 - CaptureError, whatever the module names it
+            got = False
+        else:
+            got = True
+        check(
+            f"the shared owner/name rule {'accepts' if accepted else 'rejects'} {label}",
+            got is accepted,
+        )
     check(
         "a desired file with no repo at all fails",
         bool(lint.validate_desired({k: v for k, v in desired.items() if k != "repo"})),
@@ -116,6 +131,43 @@ def main() -> int:
         "evidence with no repo at all fails",
         bool(lint.compare_evidence(desired, changed)),
     )
+    # Both keys absent compare EQUAL, so without a self-standing check the
+    # binding would rest on validate_desired happening to run first.
+    stripped_desired = {k: v for k, v in desired.items() if k != "repo"}
+    check(
+        "evidence and desired BOTH missing repo still fails",
+        bool(lint.compare_evidence(stripped_desired, changed)),
+    )
+    # The schema-version comparison is the only thing that rejects a stale v1
+    # artifact against the v2 desired file -- the migration this change makes.
+    changed = copy.deepcopy(evidence)
+    changed["version"] = 1
+    check(
+        "stale v1 evidence against a v2 desired control fails",
+        bool(lint.compare_evidence(desired, changed)),
+    )
+
+    # --subject: the one half of the binding a fork or clone cannot satisfy,
+    # because github.repository is set by the runner, not by a committed file.
+    with tempfile.TemporaryDirectory() as raw:
+        root = Path(raw)
+        desired_path = root / "desired.json"
+        desired_path.write_text(json.dumps(desired), encoding="utf-8")
+        evidence_path = root / "evidence.json"
+        evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+        base = [
+            "--desired", str(desired_path),
+            "--evidence", str(evidence_path),
+            "--workflow", str(lint.WORKFLOW_PATH),
+        ]
+        for label, subject, expected in (
+            ("no --subject is accepted (make build-check passes none)", None, 0),
+            ("the declared subject is accepted", desired["repo"], 0),
+            ("a fork's subject is refused", "someone-else/agent-ready-repo", 1),
+            ("an empty subject is refused", "", 1),
+        ):
+            argv = list(base) if subject is None else [*base, "--subject", subject]
+            check(f"--subject: {label}", lint.main(argv) == expected)
     for name, (group, key, nested, value) in mutations.items():
         changed = copy.deepcopy(evidence)
         if nested is None:

@@ -51,6 +51,21 @@ in the same commit.
 - The repository's `owner/name` — used as `--repo` below.
 - Roughly 30 minutes. Step 1 is browser-only; the rest is scriptable.
 
+**Standing this up in a different repository? Do this first, before Step 1.**
+A copied or forked tree inherits *both* halves of the publication control — the
+desired-state contract and the previous repository's evidence — and they still
+compare equal, so `make build-check` is green while attesting to controls that
+were never observed here. The publish job refuses on its first run to `main`
+(`--subject "$GITHUB_REPOSITORY"`), which is several steps before you reach the
+capture in Step 4. So, in one commit, up front:
+
+1. Set `repo` in `.github/claude-plugin-publish-control.json` to **this**
+   repository's `owner/name`.
+2. Delete the inherited
+   `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json` and set
+   `control_status: decommissioned` in the same file, until Step 4's capture
+   replaces it. That pair is the sanctioned way to run with no evidence.
+
 ---
 
 ## Step 1 — Create and install the App *(browser only)*
@@ -278,10 +293,9 @@ It does record one thing that is not a structural boolean: `repo`, the
 `owner/name` you passed above. That is the **subject** of every observation in
 the file rather than an observation itself, and the lint refuses an artifact
 whose `repo` differs from the `repo` in `.github/claude-plugin-publish-control.json`.
-So when standing this control up in **another** repository, edit that
-desired-state file's `repo` in the same commit as the new evidence — otherwise
-the gate reports that the evidence does not describe this repository, which is
-exactly what it is for. A repository name is a public path, not one of the
+If you are standing this control up in another repository you will already have
+set that field — see § *Before you start*; this capture is what replaces the
+placeholder evidence you decommissioned there. A repository name is a public path, not one of the
 internal identifiers the paragraph above keeps out.
 
 The key is needed because the installation read is App-authenticated. There is no
