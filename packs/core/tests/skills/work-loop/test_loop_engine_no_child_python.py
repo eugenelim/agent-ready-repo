@@ -42,6 +42,9 @@ SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" 
 ENGINE = SCRIPTS / "loop-engine.py"
 GUARDS = SCRIPTS / "_loop_guards.py"
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import spawn_support as ss  # noqa: E402 — sibling support module, path set above
+
 if not ENGINE.is_file():  # wrong parents[] depth after a move
     raise SystemExit(f"subject not found at {ENGINE} — check the parents[] depth")
 
@@ -52,11 +55,14 @@ if not ENGINE.is_file():  # wrong parents[] depth after a move
 # it rather than on an engine-local alias — otherwise a spawn originating inside
 # `_loop_guards.py` would be invisible, which is exactly the module whose purity
 # this test is asserting.
-_SUBPROCESS_ATTRS = ("run", "Popen", "check_output", "check_call")
-_OS_ATTRS = (
-    "system", "popen", "posix_spawn", "posix_spawnp",
-    "execv", "execve", "execvp", "execvpe", "spawnv", "spawnve", "fork",
-)
+#
+# Both sets come from `spawn_support`, shared with `test_loop_concurrency.py`'s
+# static scan. They were previously two independent literals in the two files, under
+# a comment in the other file asserting they were shared "so the two cannot drift" —
+# and they had: this tuple was the broader of the two, and the static scan covered
+# only `subprocess`. One definition now genuinely feeds both.
+_SUBPROCESS_ATTRS = tuple(sorted(ss.SUBPROCESS_ATTRS))
+_OS_ATTRS = tuple(sorted(ss.OS_SPAWN_ATTRS))
 
 # Windows ships `py.exe` / `pyw.exe` as launchers, so a basename check that only
 # looked for `python*` would miss them.
@@ -106,7 +112,7 @@ class SpawnRecorder:
                 self.violations.append(f"a .py script appears in argv: {parts}")
                 break
 
-        if base in ("git", "git"):
+        if base == "git":
             # git is permitted, but must stay bounded — the lock-hold budget's
             # arithmetic depends on it.
             self.git_calls.append({"argv": parts, "timeout": kwargs.get("timeout")})
@@ -299,6 +305,56 @@ def test_no_child_python_on_each_path_shape(
     assert state["state"] == expected_to, (
         f"{label}: engine state is {state['state']!r}, expected {expected_to!r} — the "
         "transition did not actually evaluate"
+    )
+
+
+def test_the_guard_module_is_loaded_once_per_transition(
+    engine, guards, monkeypatch, tmp_path,
+) -> None:
+    """AC20: the engine loads `_loop_guards.py` once, not once per guard.
+
+    The whole point of the change is that a transition costs one interpreter. If the
+    loader re-executed the module per guard call, the process count would be 1 but
+    the *parse* count would scale with the number of guards — the same cost moved
+    rather than removed, and invisible to a spawn recorder.
+
+    Driven over `plan-locked`, which is the composed multi-guard path: the engine's
+    identity pre-check, the schedule pre-check, and the `plan-locked` event guard
+    (itself two checks) all run in one transition. The assertion is that memoisation
+    holds ACROSS those, so it needs a path with more than one guard to be meaningful
+    — hence the `> 1` guard-call floor below.
+    """
+    spec_dir, _ = make_fixture(guards, tmp_path, "nc-load-once",
+                               mode="code", state="SPEC-PLAN-APPROVED")
+
+    loads, guard_calls = [], []
+    real_loader = engine._guards
+
+    def counting_loader():
+        module = real_loader()
+        # `_guards()` is called per guard; a LOAD is a fresh module object.
+        if not any(m is module for m in loads):
+            loads.append(module)
+        guard_calls.append(1)
+        return module
+
+    monkeypatch.setattr(engine, "_guards", counting_loader)
+
+    rc = drive(engine, ["transition", spec_dir, "plan-locked"])
+
+    assert rc == 0, f"transition failed (rc={rc}) — nothing was measured"
+    state = json.loads((spec_dir / "engine-state.json").read_text(encoding="utf-8"))
+    assert state["state"] == "CODE-IMPLEMENTATION", "the transition did not evaluate"
+
+    # Non-vacuity: this must be a genuinely multi-guard path, or "loaded once" is
+    # trivially true and the test proves nothing.
+    assert len(guard_calls) > 1, (
+        f"only {len(guard_calls)} guard-module lookup(s) on plan-locked — this is no "
+        "longer a multi-guard path, so the memoisation claim is untested here"
+    )
+    assert len(loads) == 1, (
+        f"the guard module was loaded {len(loads)} times across one transition; "
+        "memoisation is broken, so each guard re-parses the module"
     )
 
 
