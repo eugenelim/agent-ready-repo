@@ -48,11 +48,11 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-# ── the lock-hold budget (ADR-0074 / spec AC10) ────────────────────────────
+# ── the lock-hold budget (ADR-0074 / spec/work-loop-in-process-guards AC22) ─
 #
-# `cmd_transition` holds the state lock across git-shelling guards. Three
-# numbers are ONE budget, and breaking the ordering silently reinstates the
-# lost update this lock exists to prevent:
+# `cmd_transition` holds the state lock across a read-decide-write section. Three
+# numbers are ONE budget, and breaking the ordering silently reinstates the lost
+# update this lock exists to prevent:
 #
 #     statelock timeout (10s)  <  max hold  <  statelock stale_after (300s)
 #
@@ -60,15 +60,45 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # live holder. `stale_after` must exceed one, or a merely-slow holder is judged
 # dead, its lock is reclaimed, and a second writer is admitted.
 #
-# max hold = SUBPROCESS_TIMEOUT_S x MAX_SUBPROCESS_CALLS_UNDER_LOCK
-#          = 20 x 6 = 120s, comfortably inside 300s.
+# THE BUDGET IS IN TWO HALVES, and saying so is the point — the previous version of
+# this comment implied one number bounded everything, which stopped being true the
+# moment the guards moved in-process.
 #
-# Bounding every call is what makes the hold provable rather than hoped-for.
-# test-loop-concurrency.py's budget case walks this module's locked call graph
-# and fails if a subprocess call appears without a `timeout=`, so adding a guard
-# cannot quietly break the arithmetic.
+# 1. The SUBPROCESS half is time-bounded:
+#
+#        max hold = SUBPROCESS_TIMEOUT_S x MAX_SUBPROCESS_CALLS_UNDER_LOCK
+#                 = 20 x 2 = 40s, comfortably inside 300s.
+#
+#    The constant counts INVOCATION EDGES on the reachable call graph, not call
+#    sites. There is exactly ONE `subprocess.run` site under the lock — inside
+#    `_get_repo_root` — reached along two edges from `cmd_transition`: once via its
+#    own `_resolve_spec_dir`, once directly. The `_locked` decorator's
+#    `_resolve_spec_dir` runs BEFORE `sl.exclusive()` and is deliberately not
+#    counted. It was 6 before the guards moved in-process, which was a conservative
+#    bound over a measured maximum of five.
+#
+# 2. The IN-PROCESS half is byte-bounded, NOT time-bounded. Every file the guard
+#    layer reads goes through `read_managed_json` / `read_managed_text`, capped at
+#    8 MiB, and `canonical_contract` costs roughly 0.14 s/MiB — so about 1.0 s at
+#    the cap. Guard calls are function calls and are deliberately NOT counted as
+#    subprocesses; counting them would make the arithmetic describe something it
+#    does not measure.
+#
+#    A byte cap bounds bytes, not seconds. `O_NONBLOCK` closes the reachable local
+#    case — a FIFO or device swapped in after the type pre-check, which would
+#    otherwise block `os.open` forever — but a stalled network mount can still block
+#    `os.read`, and `_recover_pending` reads repo-global state under this same lock.
+#    That residual is ACCEPTED and named rather than papered over: its only recovery
+#    is the stale-lock reclaim, which is itself the hazard this budget exists to
+#    prevent. There is no stdlib way to bound a blocking read without threads or
+#    signals, and adding either under the lock would be a worse trade.
+#
+# `test_loop_concurrency.py`'s budget case derives all of this from source: it walks
+# the locked call graph, fails if a subprocess call appears without a `timeout=`,
+# fails if this constant disagrees with the edge count, and fails if the inequality
+# breaks. Adding a guard cannot quietly break the arithmetic.
 SUBPROCESS_TIMEOUT_S = 20.0
-MAX_SUBPROCESS_CALLS_UNDER_LOCK = 6
+MAX_SUBPROCESS_CALLS_UNDER_LOCK = 2
 SCHEMA_VERSION = 1
 _LOOP_RUN_DIR_NAME = ".loop-run"
 _MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024

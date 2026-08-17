@@ -134,3 +134,31 @@ re-pinning the baseline is expected rather than an interruption.
 - **AC17's ordering assertion is mutation-verified.** Swapping the run-ID preflight
   with the transition-table check turns it red; so does removing a single anchor,
   which is the vacuity mode `e6d4c14a` warns about.
+
+## W6 · T4 + T5
+
+- **The budget test caught a flaw in my own edge counter, on its first run.** It
+  computed 3 edges against a constant of 2, because `ast.walk` on a `FunctionDef`
+  includes the **decorator expression** — so the walk descended into
+  `@_locked("transition")`, found its `_resolve_spec_dir`, and counted the one edge
+  that runs BEFORE `sl.exclusive()` and must be excluded. Scoped to `fn.body`.
+- **The budget comment now states both halves.** The old one implied a single number
+  bounded everything, which stopped being true the moment the guards moved
+  in-process: the subprocess half is time-bounded at `TIMEOUT_S × edges`, the
+  in-process half is byte-bounded at 8 MiB (~1.0 s for `canonical_contract`) and NOT
+  time-bounded. The hung-mount residual is named and accepted, because there is no
+  stdlib way to bound a blocking read without threads or signals and adding either
+  under the lock is a worse trade.
+- **Mutation-verified five ways.** Raising the constant to 6, lowering it to 1,
+  dropping a `timeout=`, and swapping git for another program all turn the budget
+  test red. The fifth — a bare `import subprocess` in the guard layer — is caught by
+  T1a's import allowlist instead, and an actual *use* is caught by the budget test.
+  The two cover each other exactly; neither alone is sufficient.
+- **The no-child-Python recorder double-counted until fixed.** `subprocess.run` is
+  implemented on top of `Popen`, so patching both made one logical spawn arrive
+  twice — and the inner `Popen` legitimately carries no `timeout=`, because `run`
+  consumes it for `communicate()`. Every bounded `git rev-parse` was therefore
+  flagged as unbounded. A re-entrancy depth guard makes one logical spawn one record.
+- **The recorder proves it detects.** Two self-checks: spawn a real child Python and
+  assert it is flagged; spawn bounded git and assert it is not. Without those, a
+  recorder that silently failed to patch would keep the whole file green forever.
