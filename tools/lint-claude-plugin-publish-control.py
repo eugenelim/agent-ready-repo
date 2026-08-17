@@ -58,6 +58,7 @@ CHECKOUT_STEP = re.compile(r"uses:\s*actions/checkout@")
 ALLOWED_EVIDENCE_KEYS = frozenset(
     {
         "version",
+        "repo",
         "branch",
         "app",
         "environment",
@@ -159,6 +160,28 @@ def _load_pack_scope_module():
     )
     if spec is None or spec.loader is None:
         raise ValueError("cannot load the canonical pack-scope mirror")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _load_capture_module():
+    """Return the capture tool's module, for its `owner/name` rule.
+
+    Loaded by path — the filename is hyphenated, so it is not importable — the
+    same way `_load_pack_scope_module` loads `tools/pack_scope.py`. Sharing the
+    function rather than restating the regex is deliberate: the rule has two
+    parts (a charset that must admit `owner/.github`, and a dot-segment refusal
+    that the charset alone cannot express), and a second copy is a second thing
+    to get wrong. `capture-evidence-repo-dot-segments` exists because the first
+    copy was already wrong once.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "capture_publish_control_evidence",
+        REPO_ROOT / "tools" / "capture-publish-control-evidence.py",
+    )
+    if spec is None or spec.loader is None:
+        raise ValueError("cannot load the capture tool's repository-name rule")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -307,8 +330,24 @@ def validate_desired(desired: dict) -> list[str]:
     }
     if canary != expected_canary:
         errors.append("canary contract must prove ordinary denial and app acceptance")
-    if desired.get("version") != 1:
-        errors.append("desired control version must be 1")
+    # The subject. Without it the evidence binds to nothing: a capture against
+    # any other well-configured repository is byte-indistinguishable, and
+    # `validate_sequencing` would then conclude THIS repository's publisher App
+    # is provisioned on the strength of someone else's controls.
+    repo = desired.get("repo")
+    if not isinstance(repo, str) or not repo:
+        errors.append(
+            "desired control must name the repository it governs as a bare "
+            "owner/name `repo`"
+        )
+    else:
+        capture = _load_capture_module()
+        try:
+            capture._validate_repo(repo)
+        except capture.CaptureError as exc:
+            errors.append(f"desired control repo is not a bare owner/name: {exc}")
+    if desired.get("version") != 2:
+        errors.append("desired control version must be 2")
     return errors
 
 
@@ -343,6 +382,17 @@ def compare_evidence(desired: dict, evidence: dict) -> list[str]:
                 "ID variable all naming the same App"
             )
         errors.extend(_identifier_leaks(evidence))
+    # Compared like every other block: the desired file declares the subject the
+    # controls are authored for, the capture records the subject its API reads
+    # were made against. A mismatch means the artifact describes some other
+    # repository's controls — the one thing a settings read cannot tell you.
+    if evidence.get("repo") != desired.get("repo"):
+        errors.append(
+            "evidence repo "
+            f"{evidence.get('repo')!r} differs from the repository the desired "
+            f"control governs ({desired.get('repo')!r}); this evidence does not "
+            "describe this repository"
+        )
     if evidence.get("canary") != desired.get("canary"):
         errors.append("evidence canary differs from desired control")
     observed_at = evidence.get("observed_at")

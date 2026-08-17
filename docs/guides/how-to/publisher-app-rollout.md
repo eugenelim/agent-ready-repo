@@ -274,6 +274,16 @@ the asserted `identities_agree` verdict (AC36 clause 6). The two canary outcomes
 are passed explicitly rather than inferred, so the evidence cannot confirm
 itself from a settings read.
 
+It does record one thing that is not a structural boolean: `repo`, the
+`owner/name` you passed above. That is the **subject** of every observation in
+the file rather than an observation itself, and the lint refuses an artifact
+whose `repo` differs from the `repo` in `.github/claude-plugin-publish-control.json`.
+So when standing this control up in **another** repository, edit that
+desired-state file's `repo` in the same commit as the new evidence — otherwise
+the gate reports that the evidence does not describe this repository, which is
+exactly what it is for. A repository name is a public path, not one of the
+internal identifiers the paragraph above keeps out.
+
 The key is needed because the installation read is App-authenticated. There is no
 user-token route to it: `gh`'s OAuth token is refused by `/user/installations`
 (403), and `/repos/{repo}/installation` is App-only (404). The tool signs a

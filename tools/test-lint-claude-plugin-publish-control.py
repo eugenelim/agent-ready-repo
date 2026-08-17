@@ -54,7 +54,23 @@ def main() -> int:
             ("canary", "ordinary_update"),
             "accepted",
         ),
+        # The subject the controls are authored for. An unset, empty, or
+        # traversal-shaped value would let the evidence comparison below bind to
+        # nothing while still comparing equal.
+        "desired repo emptied": (("repo",), ""),
+        "desired repo not owner/name": (("repo",), "agent-ready-repo"),
+        "desired repo dot segment": (("repo",), "owner/.."),
+        "desired schema version": (("version",), 1),
     }
+    check(
+        "the linter reuses the capture tool's owner/name rule rather than a copy",
+        lint._load_capture_module()._validate_repo.__module__
+        == "capture_publish_control_evidence",
+    )
+    check(
+        "a desired file with no repo at all fails",
+        bool(lint.validate_desired({k: v for k, v in desired.items() if k != "repo"})),
+    )
     for name, (path, value) in desired_mutations.items():
         changed = copy.deepcopy(desired)
         cursor = changed
@@ -81,6 +97,25 @@ def main() -> int:
         "ordinary canary": ("canary", "ordinary_update", None, "accepted"),
         "app canary": ("canary", "publisher_app_update", None, "rejected"),
     }
+    # Evidence captured against a DIFFERENT, well-configured repository is
+    # byte-indistinguishable from a real capture in every other field — this
+    # comparison is the only thing that separates them.
+    for label, value in (
+        ("another repository", "someone-else/agent-ready-repo"),
+        ("None", None),
+    ):
+        changed = copy.deepcopy(evidence)
+        changed["repo"] = value
+        check(
+            f"evidence naming {label} fails",
+            bool(lint.compare_evidence(desired, changed)),
+        )
+    changed = copy.deepcopy(evidence)
+    changed.pop("repo")
+    check(
+        "evidence with no repo at all fails",
+        bool(lint.compare_evidence(desired, changed)),
+    )
     for name, (group, key, nested, value) in mutations.items():
         changed = copy.deepcopy(evidence)
         if nested is None:

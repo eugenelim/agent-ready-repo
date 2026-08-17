@@ -1617,20 +1617,6 @@ open = [
   # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
-  # The publication-control evidence artifact records NO repository field:
-  # build_evidence emits version, branch, app, environment, identities_agree,
-  # canary, observed_at, observation_source -- and the committed
-  # docs/specs/claude-plugin-hook-parity/publish-control-evidence.json has no
-  # repo. So nothing binds the evidence to a subject, and running the capture
-  # against a different, well-configured repo yields a byte-indistinguishable
-  # artifact. capture-evidence-repo-dot-segments closed ONE route to a
-  # wrong-subject capture (dot-segment traversal); this is the wider gap it
-  # deliberately did not close, surfaced in that spec's Honest scope section.
-  # Fix: record the observed repo in the evidence document and have
-  # lint-claude-plugin-publish-control.py compare it against the repository the
-  # artifact is committed in. That is a schema change, hence its own PR.
-  {slug = "publish-control-evidence-not-repo-bound", summary = "Record the observed repository in the publish-control evidence artifact and have the linter check it matches the committing repo", source = "spec/capture-evidence-repo-dot-segments"},
-
   # build-check.yml declares no top-level `permissions:` block, so every step --
   # including three pip installs and an editable install that executes setup.py
   # -- runs under the repository's DEFAULT GITHUB_TOKEN. The job also runs on
