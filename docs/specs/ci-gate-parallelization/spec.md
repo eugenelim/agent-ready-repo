@@ -219,7 +219,7 @@ day). It is the floor that keeps rising.
   | --- | --- | --- | --- | --- |
   | `gate-main` | gate-main | everything except the two extractions | today's set **plus an unconditional bandit install** (AC14) | ~180s |
   | `gate-sast` | gate-sast | the detect step + `make sast`, **always runs** (AC4) | `tools/requirements-sast.txt`, **unconditionally** (AC4) | ~175s |
-  | `gate-export-boundary` | gate-export-boundary | the export-boundary suite | `tools/requirements.txt`, `pytest`, `'packages/credbroker[crypto]'` (AC14) | ~150s |
+  | `gate-export-boundary` | gate-export-boundary | the export-boundary suite | `tools/requirements.txt`, **bare** `pytest`, `'packages/credbroker[crypto]'` (AC14) — an editable `agentbundle` install was tried and proved surplus: the suite builds the package via subprocess, which needs the source tree, not an install | ~150s |
   | `build-check` | **`make build-check`** | aggregator (AC3) + the AC13 posture test | shallow checkout (AC12 exempts it from `fetch-depth: 0`), `python-version` per AC12 | ~15s |
 
   The provisioning column is **known-required, not exhaustive** — AC15 owns
@@ -794,6 +794,44 @@ install each cost seconds, paid deliberately to remove fail-open classes.
 - **Pre-existing, recorded not fixed:** the relevance predicate evaluates
   `SAST_CONFIG` from the head commit, so a PR narrowing it self-certifies as
   non-scannable.
+
+## Learnings
+
+The work-loop's Capture learnings gate could not complete: `project-knowledge
+--capture` times out on this repo (recorded as
+`project-knowledge-capture-times-out`). **Named skip taken, not a silent one** — and
+per that skill's producer contract this workflow does not select a journal path or
+create a fallback store, so the lesson is recorded here instead of being lost.
+
+**Fix the predicate, not the assertion that was demonstrated.** When review
+demonstrates a bypass of a verifier, hardening the one assertion in front of you
+leaves every sibling open, and the next round finds one you did not touch. That
+happened **six times** in this single change:
+
+| # | Instance fixed | Sibling left open |
+| --- | --- | --- |
+| 1 | whole-line comment stripping | trailing `#` comments |
+| 2 | substring → command-word for some controls | the rest, incl. the comparisons |
+| 3 | a discarded-exit check inside `_invocation` | the comparison loop, which bypassed it |
+| 4 | `MAKEFLAGS` scrub in the chain assertion | the identical hazard in the verdict harness |
+| 5 | banning `continue-on-error` | its exact twin, a falsy step-level `if:` |
+| 6 | load-bearing-exit on the export step | the aggregator's guard body |
+
+The diagnostic is textual: **if a fix reads "add check X to assertion Y", it is an
+instance fix.** Push it into the shared helper so every call site inherits it, then
+replay the demonstrated bypass against *every* assertion of that shape.
+
+**Corollary, and the one that cost most:** a mutation must fail for the *right
+reason*. One mutation here produced a make **parse error** rather than the condition
+under test, so a check's headline claim was half-proven while its suite reported
+green. Before trusting that a mutated artifact's missing marker means what you think,
+assert the artifact still parses and executes.
+
+**Second-order:** verify with a pattern that *can* fail. Twice this change a check
+returned a null result that read like success — a `grep` whose pattern could not match
+the text it was searching for, and three probes run through a `timeout` binary that
+did not exist on the box. A verification that cannot produce a negative is not a
+verification.
 
 ## Deferred
 

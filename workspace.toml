@@ -466,13 +466,13 @@ open = [
   # report it, don't gate on it.
   # PR-RUN MEASUREMENT (PR #990, commit after the MAKEFLAGS harness fix), against
   # AC11's ceilings — both MET:
-  #   merge-blocking (build-check):        430-450s -> 178s   MET vs AC11
-  #   jobs this change touches:            450s     -> 178s   MET vs AC11
-  #   Gate A (catalogue-tooling):          253-264s -> 128s
-  #   repo-wide all-green:                 450s     -> 202s, bounded by docs.yml
+  #   merge-blocking (build-check):        430-450s -> 185s   MET vs AC11
+  #   jobs this change touches:            450s     -> 185s   MET vs AC11
+  #   Gate A (catalogue-tooling):          253-264s -> 134s
+  #   repo-wide all-green:                 450s     -> ~202s, bounded by docs.yml
   #     (out of scope, reported not gated — the spec predicted exactly this bound)
-  # Per-job: gate-main 178s, gate-sast 166s, gate-export-boundary 101s,
-  # aggregator 9s. gate-main and gate-sast within measurement noise of each other,
+  # Per-job: gate-main 185s, gate-sast 147s, gate-export-boundary 136s,
+  # aggregator 8s. gate-main and gate-sast within ~40s of each other across runs,
   # confirming the "do not split further" decision.
   #
   # STILL OPEN, which is why this entry stays open: (1) the POST-MERGE push-to-main
@@ -539,6 +539,23 @@ open = [
   # strict=false since the queue supersedes it, and set the queue's status-check
   # timeout well above the slowest required check.
   {slug = "merge-queue-rejected-tooling-integration", source = "spec/ci-gate-parallelization Objective"},
+  # project-knowledge --capture TIMES OUT on this repo, and reports the timeout as a
+  # capacity/request problem. Reproduced: a well-formed 2.5KB observation (well under
+  # the 16KB capture_event_bytes budget) takes 33.4s against script_seconds=30 and
+  # returns {"reason_code":"journal_capacity","recovery_action":"fix_request",
+  # "retryable":false}. Both fields are wrong and actively misleading: nothing about
+  # the request needs fixing, it is not a capacity breach, and a deadline breach IS
+  # retryable. The refusal comes from _remaining_timeout() in knowledge_store.py,
+  # which reuses the journal_capacity code for an elapsed deadline. Git is not the
+  # cause — `git ls-files` and `git status` are ~0.2-0.4s here, and the process burns
+  # only ~2.4s of system time across 33s wall, so it is waiting on something.
+  # Consequence: the work-loop's Capture learnings gate cannot complete on this repo,
+  # so lessons are silently not captured by anyone who does not read the exit code.
+  # To close: (1) give a deadline breach its own reason_code with retryable=true and a
+  # recovery_action that is not fix_request; (2) find what consumes the 30s (suspect a
+  # lock acquire or a filesystem walk, not git) and either speed it up or raise
+  # script_seconds for capture.
+  {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings"},
   # The publish job's environment gate asks a human to release executable plugin
   # code adopters install, but GitHub's approval UI shows only the environment
   # name and a comment box — nothing about what is being published. A summary
