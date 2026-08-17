@@ -21,10 +21,23 @@ comparable.
 
 ## Headline result
 
-Audited: **38** production lint entry points, **7** pack/skill-owned lint
-scripts, and **67** lint self-tests under `tools/` — 35 hyphen-named
-(`test-*.py`) plus 32 underscore-named (`test_*.py`). Exactly **three files**
-exhibit a P0 pattern:
+Audited, all counts measured:
+
+| Universe | Count |
+| --- | --- |
+| production lint / policy-gate entry points (§ 1 + § 2 rows) | **41** |
+| pack/skill-owned lint scripts (§ 3) | **7** |
+| `tools/test-*.py` self-tests | **33** |
+| `tools/test_*.py` self-tests | **32** |
+| non-Python self-tests (`tools/test-lint-build.sh`, `tools/test-pre-pr.sh`) | **2** |
+| **total self-tests** | **67** |
+
+An earlier draft said "38 production lints" and broke the self-test total down as
+"35 hyphen-named + 32 underscore-named". Both were wrong: the row count is 41,
+and the hyphen-named `.py` count is 33 — the earlier 35 conflated the two `.sh`
+files into the `.py` glob. Corrected here.
+
+Exactly **three files** exhibit a P0 pattern:
 
 | File | P0 patterns present |
 | --- | --- |
@@ -35,8 +48,9 @@ exhibit a P0 pattern:
 Everything else is measured clean and carries a justified **no P0 change**
 disposition. The single dominant cost is `lint-pack-test-boundary`: **337
 `git check-ignore` subprocesses and 32.4 s per invocation**, launched **12
-times** by its own falsification suite — a ~6.5-minute floor that alone
-explains the 71%-then-stall.
+times** by its own falsification suite. Measured end to end: the suite **passes
+in 306.4 s**, six seconds past the 300 s inner-loop budget — which is why it
+presented as "71% then stall" rather than as a failure.
 
 **No second Git-ignore helper is required.** Portable `agentbundle`
 catalogue lint/verify and every shipped pack lint were measured at **zero**
@@ -182,7 +196,7 @@ real checkout.
 
 | Self-test | Subject | Full-lint CLI launches | Real-tree mutation | P0 disposition |
 | --- | --- | --- | --- | --- |
-| `tools/test-lint-pack-test-boundary.py` | `lint-pack-test-boundary.py` | **12** (lines 421, 436, 450, 459, 478, 498, 519, 551, 573, 613, 634, 661) | **yes** — plants into `packs/figma/.apm/**`, `packs/figma/tests/**`, `packs/contracts/tests`, and **rewrites the real root `Makefile` twice** (lines 568, 606) | **CHANGE** — 12 × 32.4 s ≈ 6.5 min floor. Reduce to fixture-based plants + a minimal real-tree e2e layer |
+| `tools/test-lint-pack-test-boundary.py` | `lint-pack-test-boundary.py` | **12** (lines 421, 436, 450, 459, 478, 498, 519, 551, 573, 613, 634, 661) | **yes** — plants into `packs/figma/.apm/**`, `packs/figma/tests/**`, `packs/contracts/tests`, and **rewrites the real root `Makefile` twice** (lines 568, 606) | **CHANGE** — measured 306.4 s for the whole suite, exit 0, 82 cases. Reduce to fixture-based plants + a minimal real-tree e2e layer |
 | `tools/test-lint-ci-parity.py` | `lint-ci-parity.py` | 3 (1 real-root, 2 fixture-root via `--root`) | no — fake roots in temp dirs | **no change** — already the target architecture. Note it anchors aggregator extraction: line 292 asserts `run_call_targets(AGGREGATOR) == {"tools/lint-agents-md.py"}`, so the agents-md `_run` line in `pre_pr_catalogue.py` must stay byte-stable |
 | `tools/test_lint_agents_md_legacy_block.py` | `lint-agents-md.py` check 10d | 1 | no — temp fixture (heavy `tmp_path` use) | **no change** — fixture-based already; asserts a warning shape unrelated to the probe loop |
 | `tools/test_lint_agents_md_diataxis_block.py` | `lint-agents-md.py` check 8 | 1 | no — temp fixture | **no change** — fixture-based already |
@@ -239,8 +253,16 @@ Correction to § 1–3: production rows previously recording self-test model
 `lint-catalogue-curation-guard` are wrong — each has a self-test in the table
 above. Their P0 dispositions are unchanged.
 
-Also present: `tools/test-lint-build.sh` (the one non-Python lint self-test).
-Scanned: no `check-ignore`, no real-tree mutation. **No change.**
+### The two non-Python self-tests
+
+| Self-test | Subject | Wiring | Fixture | P0 disposition |
+| --- | --- | --- | --- | --- |
+| `tools/test-lint-build.sh` | `lint-build.py` | `tools/test-all.py` | temp sandbox | **no change** — no `check-ignore`, no real-tree mutation |
+| `tools/test-pre-pr.sh` | the pre-PR hook chain | `tools/test-all.py:123`; **`docs.yml:195` (a real gate step)** | temp sandbox that is a **real Git repo** | **no change to the file**, but it is a **dependent gate**: its header records that the sandbox is `git init`-ed *specifically so the drift-watch can call `git check-ignore` against the same `.gitignore`*, and it asserts `pre-pr: ✖ agents-md hygiene failed`. It therefore exercises the exact probe path the `lint-agents-md` migration rewrites, and must be run as part of that task's verification |
+
+An earlier draft called `test-lint-build.sh` "the one non-Python lint self-test"
+and omitted `tools/test-pre-pr.sh` entirely. That omission mattered: the missing
+file is a wired CI gate over the code being changed.
 
 ---
 
@@ -279,6 +301,65 @@ first of its kind under `tools/` and would collide with the spec's own *never ad
 a new module boundary* rail. A flat module needs no new boundary and is matched
 by the `tools/lint_*.py` glob, so the source-enforcement gate scans the very file
 it whitelists rather than exempting something it never looked at.
+
+## Golden-capture technique, and the one behaviour it cannot preserve
+
+Verified working. The lint derives its root from its own `__file__`, so copying
+it into `<fixture>/tools/` makes `<fixture>` its root. Probed against a
+synthetic catalogue: the unmodified lint ran, five checks passed, all emitted
+paths were **root-relative with no absolute path in either stream**, and three
+consecutive runs produced **byte-identical stdout and byte-identical stderr**.
+That is what makes byte-for-byte comparison across roots viable, and it is why
+the preserved-behaviour contract is a captured baseline rather than a prose
+enumeration.
+
+Two constraints the probe surfaced:
+
+1. **Fixture roots must be `git init`-ed.** In a directory that is not a Git
+   worktree, `git check-ignore` exits 128; under a fail-open policy that becomes
+   an empty ignored set, silently no-opping the layer the fixture is meant to
+   exercise.
+2. **`_NO_RUNNER` cannot be captured — it must become injectable.** The
+   unmodified lint staged into a fixture root emitted one stale-exemption finding
+   for **every** real `_NO_RUNNER` entry (8 findings, the only failing check).
+   The captured baseline therefore binds the refactored lint when given the
+   *real* map; the injected-map behaviour is new specified behaviour tested on
+   its own. This is the single intentional divergence between captured and
+   required output.
+
+## A 22nd fail-closed emission, outside the `FAILURES` list
+
+`tools/lint-pack-test-boundary.py:59-60` raises `SystemExit` at **import time**
+when `packs/` is absent, with a load-bearing message. It is not a
+`FAILURES.append` site — an AST sweep finds exactly 20 of those — but it is a
+fail-closed refusal, and it is the emission most disturbed by the refactor:
+`PACKS` becomes context-derived, and an import-time guard against the real root
+would fire when the suite loads the module for a fixture run. The refactor moves
+it into `--root` canonicalisation.
+
+Related precision: two diagnostics are **not** independent findings.
+`test is not below packs/<pack>/` (`:726`) and `unparseable Python:` (`:720`) are
+returned by `_pack_test_escapes` as `(lineno, message)` tuples and surface inside
+the `pack test reaches above …` message's `{expression}` slot at `:791`. A test
+asserting them as standalone findings would be written wrong.
+
+## Enforcement-gate scan-set floor
+
+Measured for the T3 gate's recorded floor, under an exclusion rule of
+"basename starts `test-`/`test_`, or the path contains a `tests/` segment",
+over `tools/`, `packs/`, `packages/`, ignoring `__pycache__`:
+
+| Quantity | Count |
+| --- | --- |
+| total `*.py` | **765** |
+| excluded by the rule | **473** |
+| **scanned** | **292** |
+
+Note the gate as specified enumerates **tracked** files via `git ls-files`
+rather than walking the filesystem, because `pip install -e packages/…` can
+leave build or vendored content under `packages/` that would inflate and
+destabilise this floor. The figures above are the filesystem walk and are the
+upper bound; the tracked-file count is recorded when T3 lands.
 
 ## Two behavioural details the refactor must not flatten
 
@@ -398,7 +479,7 @@ refactor closes this item; it moves to `[backlog].closed` at finish time rather
 than being deferred again.
 
 Its trailing note — *"Same pattern is worth auditing across `tools/test-*`"* —
-is discharged by § 4 of this inventory: all 26 other lint self-tests were
+is discharged by § 4 of this inventory: all 66 other lint self-tests were
 audited and none mutates a tracked file.
 
 ## Recorded P1 residuals

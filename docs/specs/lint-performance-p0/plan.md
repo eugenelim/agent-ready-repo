@@ -2,128 +2,130 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Audit:** [`notes/lint-inventory.md`](notes/lint-inventory.md) — the scope contract and the single canonical home for before/after figures. This plan does not restate them.
+- **Audit:** [`notes/lint-inventory.md`](notes/lint-inventory.md) — scope contract and single canonical home for all figures and counts. Not restated here.
 
 ## Approach
 
-Four waves, ordered so each one's evidence gates the next. Wave 1 lands the one
-new primitive (a batched Git-ignore resolver) plus the source-level rule that
-keeps it the only home for `check-ignore`, wired into standing CI. Wave 2
-restructures the single dominant offender — `tools/lint-pack-test-boundary.py` —
-around an explicit context, one per-invocation inventory and structured findings,
-then converts its falsification suite from twelve real-worktree lint launches to
-fixture plants plus a four-launch real-tree layer. Wave 3 migrates the one
-remaining confirmed offender (`tools/lint-agents-md.py`). Wave 4 runs the terminal
-gates, records after-evidence, and closes the governance debt.
+Seven tasks in four waves. The ordering constraint that shapes everything: **the
+golden baseline must be captured from the unmodified lint before the refactor
+touches it.** That is T2, and T4 cannot start until it lands.
 
-The refactor follows an existing repository precedent rather than inventing a
-pattern: `tools/lint-ci-parity.py` already pairs a `--root` option with
-fixture-root self-tests plus one real-root end-to-end launch
-(`tools/test-lint-ci-parity.py:482,505,517`).
+- **Wave 1** — the resolver (T1) and the captured baseline (T2). Independent of
+  each other; both prerequisites for everything after.
+- **Wave 2** — the enforcement gate (T3), then the boundary-lint refactor (T4)
+  proven against T2's baseline.
+- **Wave 3** — the falsification suite (T5) and `lint-agents-md` (T6).
+- **Wave 4** — the ADR, supersession, terminal gates and evidence (T7).
 
-Three deliberate non-extractions. There is **no** universal linter framework and
-**no** `CatalogueInventory` holding every repository file: the inventory is local
-to the boundary lint, carries only what its own six checks consume, and is never
-persisted. There is **one** resolver, not three — measurement found zero
-portable-`agentbundle` or shipped-pack callers. And it is a **flat module**, not a
-package: `tools/catalogue/` and `tools/repo/` carry no `__init__.py`, so an
-importable `tools/lintlib/` would be the first package under `tools/` and would
-collide with the spec's own *never add a new module boundary* rail.
+The refactor follows existing repository precedent: `tools/lint-ci-parity.py`
+already pairs a `--root` option with fixture-root self-tests plus one real-root
+end-to-end launch.
+
+Four deliberate non-extractions. No universal linter framework. No
+`CatalogueInventory` spanning the repository — the inventory is local to this
+lint, carries only what its own checks consume, and is never persisted. One
+resolver, not three — measurement found no portable or shipped-pack caller. And
+it is a **flat module**, not a package: `tools/catalogue/` and `tools/repo/`
+carry no `__init__.py`, so an importable `tools/lintlib/` would be the first
+package under `tools/` and would collide with the spec's own rail.
 
 ## Constraints
 
-- Repo-only helpers live under `tools/` as flat modules; portable `agentbundle`
-  code must not import them, and shipped pack/skill content must not depend on
-  them.
-- Python standard library only. No third-party pathspec or Git library.
+- Repo-only helpers are flat modules under `tools/`; portable `agentbundle` must
+  not import them, and shipped pack/skill content must not depend on them.
+- Python standard library only.
 - New `tools/` scripts are pure-stdlib Python `.py` (AGENTS.md § *New tool
-  scripts*).
-- `.github/workflows/docs.yml` path triggers must keep matching
-  `python3 <script>` invocation form.
-- Every changed Python file must pass `make lint-ruff`. **`make lint-mypy` does
-  not apply** — `tools/lint-mypy.py:19-22` targets only
-  `packages/agentbundle/agentbundle` and `packages/credbroker/credbroker`, and
-  this diff is entirely under `tools/`. Widening it is an `Ask first` item, not
-  taken here.
-- Root `AGENTS.md` ≤ 250 lines, subdirectory `AGENTS.md` ≤ 150 lines.
+  scripts*), and their `docs.yml` path triggers must match `python3 <script>`.
+- `make lint-ruff` applies to every changed file. **`make lint-mypy` does not** —
+  it targets only two `packages/` trees. Widening it is `Ask first`, not taken.
+- Root `AGENTS.md` ≤ 250 lines; subdirectory `AGENTS.md` ≤ 150.
 
 ## Construction tests
 
-Per-task `Tests:` blocks are authoritative. The preserved-behaviour enumeration
-is **not** restated here — `spec.md § Preserved failure contract` (F1–F21) and
-`spec.md § Preserved falsification controls` (C1, C2) are canonical, and T3/T4
-reference them by identifier.
+Behaviour preservation is **not** enumerated here. `spec.md § Golden baseline` is
+the contract, and T2 materialises it. Tasks reference the baseline, never a
+hand-written expectation.
 
-Cross-cutting anchors that must stay green and may not be edited to accommodate
-the diff:
+Anchors that must stay green and may not be edited to accommodate the diff,
+cited by name rather than line so T3's insertions cannot stale them:
 
-- `tools/test-lint-ci-parity.py:292` — asserts
-  `run_call_targets(AGGREGATOR) == {"tools/lint-agents-md.py"}`. The
-  `_run("agents-md hygiene", …)` line in `tools/catalogue/pre_pr_catalogue.py`
+- `tools/test-lint-ci-parity.py` — its `run-call-extraction` check asserts the
+  aggregator's extracted target set is exactly `{"tools/lint-agents-md.py"}`, so
+  the `agents-md hygiene` `_run` line in `tools/catalogue/pre_pr_catalogue.py`
   must stay byte-stable.
-- `tools/test_build_gate_chain.py:235` and `tests/roster/test_core_pre_pr_hook.py:50`
-  pin `tools/lint-agents-md.py` into the gate chain and the pre-PR hook.
+- `tools/test_build_gate_chain.py` and `tests/roster/test_core_pre_pr_hook.py` —
+  both pin `tools/lint-agents-md.py` into the gate chain and the pre-PR hook.
 - `tools/test_lint_agents_md_{legacy,diataxis,risk}_block.py` — three
   fixture-based self-tests of unrelated checks in the same file.
-- `.github/workflows/docs.yml:161,166` and `tools/test-all.py:120,122` — existing
-  production gate wiring, and the precedent T2 follows for the two new gates.
+- `tools/test-pre-pr.sh` — its sandbox is a real Git repository *specifically* so
+  the drift-watch probe path can call `check-ignore`, and it asserts on the
+  agents-md gate failing. T6 changes exactly that path.
+- The existing `docs.yml` boundary-lint steps and `tools/test-all.py` entries —
+  the precedent T3 follows.
 
 ## Design (LLD)
 
-Shape is `service`; `ui` and `data` sub-sections are pruned as not applicable.
+Shape is `service`; `ui` and `data` sub-sections pruned.
 
 ### Design decisions
 
 1. **One resolver, repo-only, flat.** `tools/lint_git_ignore.py` exports
-   `git_ignored_paths(...)`, `IgnoreResolution` and `MissingGitPolicy`. The
-   `tools/lint_*.py` name means the source-enforcement gate's own glob scans the
-   file it whitelists, rather than exempting something it never looked at.
-2. **`missing_git_policy` and `timeout` are both required keyword arguments.**
-   Both call sites pass `FAIL_OPEN`. The parameters are required so each call site
-   states its ignore-failure posture and its process bound in source rather than
-   inheriting a silent default. `RAISE` remains a member for the one recorded
-   trigger below.
-3. **`RAISE`'s recorded trigger.** No production caller uses it today. It is the
-   option a future lint takes when a missing ignore verdict would make its result
-   *unsound* rather than merely noisier — e.g. a lint that reports only ignored
-   files, where an empty set would be a false clean. Recorded so the member is a
-   documented option rather than an untested branch; its own unit test exercises
-   the propagating path.
-4. **Degradation is representable.** The resolver returns
+   `git_ignored_paths(...)`, `IgnoreResolution`, `MissingGitPolicy`. The
+   `lint_*` name means T3's own `tools/` enumeration scans the file it exempts.
+2. **`missing_git_policy` and `timeout` are both required keyword arguments,** so
+   each call site states its ignore-failure posture and process bound in source.
+3. **`RAISE`'s recorded trigger.** No production caller today. It is for a future
+   lint where a missing ignore verdict makes the result *unsound* rather than
+   noisier — e.g. one reporting only ignored files, where an empty set is a false
+   clean. Its own unit test exercises the propagating path.
+4. **Degradation is representable.**
    `IgnoreResolution(ignored: tuple[Path, ...], degraded: bool, detail: str | None)`
-   — a deterministically **sorted tuple**, not a `frozenset`, because a frozenset
-   has no order and the spec requires ordering stable across processes. `degraded`
-   lets `lint-agents-md` say "git unavailable" instead of falsely reporting
-   `.gitignore` drift.
-5. **Candidate domain is closed.** Candidates may be absolute-under-root or
-   root-relative; anything resolving outside `repo_root` raises `ValueError` at the
-   boundary. Git exits 128 with a *partial* result for an out-of-repo path, so
-   forwarding one would silently under-report the entire batch.
-6. **Context + findings, not globals.** `BoundaryContext` and `Finding` are frozen
-   dataclasses; `inspect_boundary(context, checks=None) -> tuple[Finding, ...]` is
-   the callable surface; the CLI is a thin format-and-exit shell.
-7. **Confinement memo keyed by the unresolved normalised path.**
-   `Path(os.path.normpath(str(base)))` — **not** `base.resolve()`. A resolved key
-   collapses a symlink and its target into one entry, which loses the symlink
-   refusal when the target is scanned first and falsely refuses the real tree when
-   the link is scanned first: wrong in both directions and dependent on filesystem
-   iteration order. Fail-closed outcomes are cached as refusals.
-8. **The ignored-set is scoped to `_walk`.** `case_pack_tests_stay_in_pack` walks
-   with a raw `os.walk` and deliberately inspects gitignored `.py` files; applying
-   the batched set universally would newly exempt them from source confinement.
+   — a sorted tuple, because a frozenset has no order and the spec requires
+   ordering stable across processes. Both call sites must act on `degraded`; see
+   decision 9.
+5. **Containment is lexical, not resolved.** A candidate is in-root by lexical
+   comparison against the canonical root. Using `resolve()` would make a
+   symlinked candidate raise instead of producing the symlink finding the lint
+   owes.
+6. **Pathspec guard.** A candidate whose root-relative form begins with `:` is
+   rejected at the boundary — `check-ignore --stdin` parses pathspec magic and
+   fatals 128 with a partial echo, so one such candidate would zero the batch.
+7. **Non-0/1 exits are hard errors, not policy.** Including the nested-Git-root
+   fatal. Only Git absence, execution error and timeout route through
+   `MissingGitPolicy`.
+8. **Context + findings, not globals.** `BoundaryContext` and `Finding` are
+   frozen dataclasses; `inspect_boundary(context, checks=None)` is the callable
+   surface; the CLI is a thin format-and-exit shell.
+9. **Degradation is fatal at both call sites.** Not cosmetic: `_walk` *subtracts*
+   the ignored set, and existing findings fire on the *emptiness* of what
+   remains, so an empty ignored set converts failures into passes. Git absence
+   already behaves this way, but the new bounded timeout is a new silent route,
+   so both sites diagnose and exit non-zero rather than reporting an
+   ignore-derived verdict from an unresolved layer.
+10. **Confinement memo keyed by the unresolved normalised path** —
+    `Path(os.path.normpath(str(base)))`, **not** `base.resolve()`. A resolved key
+    collapses a symlink and its target into one entry, losing the refusal in one
+    scan order and falsely refusing in the other. **This divergence from decision
+    5's sibling concern is intentional:** the memo key must stay lexical *and*
+    unresolved; applying `resolve()` here reopens a confirmed Blocker.
+11. **The `_NO_RUNNER` map and packs root move into the context.** Proven
+    necessary: the unmodified lint staged into a fixture root emits one
+    stale-exemption finding per real entry. The import-time `packs/` guard moves
+    into `--root` canonicalisation so a fixture load does not trip it against the
+    real root.
 
 ### Interfaces & contracts
 
 ```python
 class MissingGitPolicy(enum.Enum):
-    FAIL_OPEN = "fail-open"   # Git absent/unusable -> nothing ignored, degraded=True
-    RAISE = "raise"           # Git absent/unusable -> propagate
+    FAIL_OPEN = "fail-open"   # git absent/unusable -> empty ignored, degraded=True
+    RAISE = "raise"           # git absent/unusable -> propagate
 
 @dataclass(frozen=True)
 class IgnoreResolution:
     ignored: tuple[Path, ...]      # sorted; keyed to the caller's own objects
-    degraded: bool                 # True iff git was absent/errored/timed out
-    detail: str | None             # git stderr or the failure reason; never printed here
+    degraded: bool
+    detail: str | None             # git stderr / failure reason; never printed here
 
 def git_ignored_paths(
     repo_root: Path,
@@ -132,18 +134,7 @@ def git_ignored_paths(
     missing_git_policy: MissingGitPolicy,
     timeout: float,
 ) -> IgnoreResolution: ...
-```
 
-Properties: dedupe before invoking Git; deterministic sorted output; **zero**
-subprocesses for an empty candidate set; exactly one otherwise; candidates over
-stdin as `os.fsencode`d bytes, NUL-delimited, in a single `subprocess.run(...,
-input=...)` call (which routes through `communicate()` and therefore cannot
-deadlock on a payload larger than the pipe buffer); `--no-index` deliberately
-absent; exit 0 and 1 normal; any other exit surfaced via `degraded`/`detail`;
-`ValueError` for an out-of-root candidate or candidates spanning two Git roots;
-no shell; prints nothing.
-
-```python
 @dataclass(frozen=True)
 class BoundaryContext:
     root: Path                            # canonicalised once
@@ -151,31 +142,32 @@ class BoundaryContext:
     recipe_path: Path
     projected_roots: tuple[Path, ...]
     runner_files: tuple[Path, ...]
-    no_runner: Mapping[str, str]          # injectable; the 8 real entries by default
+    no_runner: Mapping[str, str]
 
 @dataclass(frozen=True)
-class Finding:
+class CheckResult:
     check: str
-    message: str
-    paths: tuple[Path, ...] = ()
+    findings: tuple[Finding, ...]
+    summary: str                          # the `ok   [check] (…)` payload
 
+def build_inventory(context: BoundaryContext) -> BoundaryInventory: ...   # instrumentation seam
+def parse_runners(context: BoundaryContext) -> RunnerIndex: ...           # instrumentation seam
 def inspect_boundary(
     context: BoundaryContext,
     checks: Collection[str] | None = None,
-) -> tuple[Finding, ...]: ...
+) -> tuple[CheckResult, ...]: ...
 ```
 
-`no_runner` is in the context because `_NO_RUNNER`
-(`tools/lint-pack-test-boundary.py:827`) is a module constant of eight real repo
-paths; against a fixture root it would emit eight stale-exemption findings.
-`_pack_test_escapes` takes the packs root as an argument rather than reading the
-`PACKS` global, which otherwise makes every fixture pack test fail with
-`test is not below packs/<pack>/`.
+`CheckResult.summary` exists because the CLI's six `ok` lines embed per-check
+counters computed inside the checks; a bare `tuple[Finding, ...]` cannot carry
+them and the golden comparison would fail on stdout. `build_inventory` and
+`parse_runners` are named so the structural once-per-invocation counts have real
+seams to instrument.
 
-CLI: unchanged no-argument behaviour; adds repeatable `--check <name>` and
-`--root <path>`. Either flag prints a partial-run header naming the checks that
-ran and suppresses the `✓ … (6 cases).` line. An unrecognised name, or a
-selection resolving to zero checks, exits non-zero naming the accepted set.
+CLI: no-argument behaviour reproduces the real-tree golden baseline. Adds
+repeatable `--check <name>` and `--root <path>`; either prints a partial-run
+header and suppresses the six-check pass line. An unrecognised name or a
+zero-resolving selection exits non-zero naming the accepted set.
 
 ### Component / module decomposition
 
@@ -183,56 +175,55 @@ selection resolving to zero checks, exits non-zero naming the accepted set.
 | --- | --- |
 | `tools/lint_git_ignore.py` | batched resolver, `IgnoreResolution`, `MissingGitPolicy` |
 | `tools/lint-pack-test-boundary.py` | context, inventory, six checks, callable API, CLI |
-| `tools/lint-agents-md.py` | migrated probe batch (3 → 1) + degradation diagnostic |
+| `tools/lint-agents-md.py` | probe batch (3 → 1) + degradation diagnostic |
 | `tools/test-lint-git-ignore.py` | resolver unit tests |
 | `tools/test-lint-no-direct-check-ignore.py` | AST source-enforcement gate |
+| `tools/test-lint-boundary-golden.py` | golden capture/compare harness + fixture builders |
+| `tools/lint-boundary-golden.json` | captured baselines (committed data) |
 | `tools/test-lint-pack-test-boundary.py` | 3-layer falsification suite |
 
 ### State & control flow
 
-One invocation: canonicalise root → build context → build inventory (one pack
-enumeration, one projection enumeration, one runner read+parse, one destination
-build, one batched ignore resolution over the union of `_walk` candidates) → run
-selected checks against that inventory, accumulating findings → CLI formats and
-exits. The single batched ignore call happens during inventory construction, so
-no check can reintroduce a per-path probe.
+One invocation: canonicalise root → build context → `build_inventory` (one pack
+enumeration, one projection enumeration, one `parse_runners`, one destination
+build, one batched ignore resolution over the union of walk candidates) → run
+selected checks against that inventory → CLI formats and exits. The single
+batched ignore call happens during inventory construction, so no check can
+reintroduce a per-path probe.
 
 ### Behavior & rules
 
-All six check semantics are preserved verbatim, including every F1–F21 string,
-their attribution, and the two-findings-for-one-missing-runner count. The
-`evals/` skip and `_TRANSIENT` prune stay in the walk. Symlink and junction
-handling is unchanged and still evaluated before any resolution. The batched
-ignored-set applies **only** where `_walk` applies it today.
+Check semantics are preserved by construction and verified by byte-identical
+golden comparison. The batched ignored-set applies only where the current lint
+applies it — at least one check walks with a raw `os.walk` and deliberately
+inspects gitignored files.
 
 ### Failure, edge cases & resilience
 
-- Git absent, erroring, or timing out → `FAIL_OPEN` at both call sites returns
-  `degraded=True` with an empty ignored set. The boundary lint reproduces today's
-  "judge every file on disk"; `lint-agents-md` emits a git-unavailability
-  diagnostic and exits 1, rather than three notes falsely blaming `.gitignore`.
-- Non-0/1 Git exit → `degraded=True` with git's stderr in `detail`; never
-  collapsed silently.
-- Out-of-root candidate, or candidates spanning two Git roots → `ValueError`.
-- Non-UTF-8 filename → handled by the bytes payload; cannot raise
-  `UnicodeEncodeError`.
-- Confinement resolution or key-computation error → cached refusal.
-- `--root` missing, not a directory, a symlink/junction, unresolvable, or lacking
-  `packs/` + the recipe → non-zero exit naming the path, before any traversal.
+- Git absent / erroring / timing out → `degraded=True`; both call sites diagnose
+  and exit non-zero (decision 9).
+- Non-0/1 exit, including nested-Git-root fatal → hard resolver error naming the
+  path from stderr.
+- Out-of-root or `:`-prefixed candidate → `ValueError`; each call site converts
+  it to a named finding or diagnosed exit, never a traceback.
+- Non-UTF-8 filename → handled by the bytes payload.
+- Confinement resolution error → cached refusal; key-computation error → refusal
+  without caching.
+- `--root` missing, not a directory, symlinked, junctioned, unresolvable, or
+  missing `packs/` **or** the recipe → CLI exits non-zero naming the path. The
+  callable API accepts such a context so non-vacuity refusals stay testable.
 
 ### Quality attributes (NFRs)
 
-Bars are the spec's Acceptance Criteria: exactly one `check-ignore` process per
-invocation (zero for an empty set), exactly one inventory construction, runner
-files parsed once, ≥82 suite cases, four production-CLI launches, and the suite
-completing inside the five-minute budget against the measured 306.4 s baseline.
-Structural counts are asserted; wall clock is recorded as evidence only.
+Bars are the spec's ACs: exactly one `check-ignore` process per invocation (zero
+for an empty set), one inventory construction, runners parsed once, byte-identical
+golden reproduction, no case-count regression, and the suite inside the
+five-minute budget. Structural counts asserted; wall clock recorded as evidence.
 
 ### Dependencies & integration
 
-No new dependencies. Existing integration points unchanged
-(`docs.yml:161,166`, `test-all.py:120,122`, `pre_pr_catalogue.py:113`); T2 adds
-two new entries alongside them.
+No new dependencies. Existing integration points unchanged; T3 adds entries
+alongside them and into the unfiltered required gate chain.
 
 ## Tasks
 
@@ -243,346 +234,340 @@ two new entries alongside them.
 **Touches:** tools/lint_git_ignore.py, tools/test-lint-git-ignore.py
 
 **Tests:** (TDD — red first)
-- empty candidates → empty `ignored`, `degraded=False`, and **zero** subprocesses
-  (patched runner counts invocations).
-- one ignored candidate; one non-ignored candidate.
+- empty candidates → empty `ignored`, `degraded=False`, **zero** subprocesses.
+- one ignored / one non-ignored candidate; mixed batch partitions correctly.
 - 500 candidates → exactly **one** subprocess.
 - duplicates collapse before invocation (payload asserted duplicate-free).
-- mixed ignored/non-ignored batch partitions correctly.
-- **candidate domain:** absolute-under-root, root-relative, and non-existent
-  candidates all resolve, and membership is testable with the **caller's own
-  objects** (this is what `lint-agents-md`'s three relative, non-existent probes
-  require).
-- an out-of-root candidate raises `ValueError` naming the path; candidates
-  spanning two Git roots raise `ValueError`.
-- special filenames — space, tab, newline, Unicode, leading dash, **leading `:`,
-  leading `!`** — round-trip correctly; the argv is asserted to contain **no**
-  `:(literal)` prefix (this subcommand rejects it) and no `--no-index`.
-- ordering: the returned tuple is sorted and identical across two separate
-  **processes** (subprocess-launched, so hash randomisation is live).
-- payload built via `os.fsencode`, parsed via `os.fsdecode`; a surrogate-escaped
-  name does not raise `UnicodeEncodeError`. On-disk creation is skipped where the
-  filesystem rejects the name (macOS APFS: `Errno 92`); the encode/decode path is
-  asserted directly.
-- delivery is a single `subprocess.run(..., input=...)`; asserted with a payload
-  larger than the pipe buffer (≥1 MiB) so a `Popen`+`write`+`wait` shape that
-  could deadlock cannot pass.
-- Git exit 0 and exit 1 → `degraded=False`. Exit 128 → `degraded=True` with
-  stderr in `detail`.
-- `FileNotFoundError` and `TimeoutExpired` → `FAIL_OPEN` gives
-  `degraded=True`, empty ignored; `RAISE` propagates.
-- argv is a list; `shell=True` never appears; `timeout` is passed.
-- the helper writes nothing to stdout or stderr.
+- candidate domain: absolute-under-root, root-relative, and non-existent
+  candidates all resolve, membership testable with the **caller's own objects**.
+- containment is lexical: a candidate reachable through a symlink does **not**
+  raise; a lexically out-of-root candidate raises `ValueError` naming the path.
+- a candidate whose root-relative form begins with `:` raises `ValueError`;
+  `:!x` and `:(glob)x` are covered explicitly.
+- special filenames — space, tab, newline, Unicode, leading dash, leading `!` —
+  round-trip; argv asserted to contain no `:(literal)` and no `--no-index`.
+- ordering: returned tuple sorted and identical across two separate
+  **processes** (hash randomisation live).
+- payload via `os.fsencode`, parsed via `os.fsdecode`; a surrogate-escaped name
+  does not raise `UnicodeEncodeError`. On-disk creation skipped where the
+  filesystem rejects it; the encode/decode path asserted directly.
+- delivery is a single `subprocess.run(..., input=...)`, asserted with a ≥1 MiB
+  payload so a `Popen`+`write`+`wait` shape cannot pass.
+- exit 0 and 1 → `degraded=False`. Exit 128 → hard error carrying stderr, **not**
+  policy-routed; a nested-Git-root fatal is covered.
+- `FileNotFoundError` and `TimeoutExpired` → `FAIL_OPEN` gives `degraded=True`
+  with empty `ignored`; `RAISE` propagates.
+- argv is a list; `shell=True` never appears; `timeout` passed; nothing printed.
+
+**Approach:** normalise each candidate to a root-relative POSIX path retaining a
+map back to the caller's object; dedupe order-preservingly; return early on
+empty; one `subprocess.run(["git","check-ignore","--stdin","-z"], input=…,
+cwd=repo_root, capture_output=True, timeout=…)`; split stdout on `\0`; map back;
+return sorted.
+
+**Done when:** `python3 tools/test-lint-git-ignore.py` exits 0.
+
+### T2: The current lint's behaviour is captured as a byte-exact baseline
+
+**Depends on:** none — and it **must** land before T4 touches the lint.
+
+**Touches:** tools/test-lint-boundary-golden.py, tools/lint-boundary-golden.json
+
+**Tests:** (goal-based check — the harness is the artifact; these are its own invariants)
+- the harness reads its capture subject from a **pinned Git revision**, not the
+  working tree, so it stays regenerable after T4 lands.
+- capture is byte-exact on stdout and stderr **separately**, plus exit code.
+- three consecutive captures of the same root are identical (determinism gate).
+- no captured stream contains an absolute path.
+- every fixture root is `git init`-ed, and a fixture-local `.gitignore` entry is
+  asserted to come back ignored — proving the ignore layer resolved rather than
+  no-opped.
+- regeneration is a separate explicit action (`--regenerate`) that the ordinary
+  test path cannot trigger.
+- the real-tree baseline is captured and stored.
 
 **Approach:**
-- Add `tools/lint_git_ignore.py`. Normalise each candidate to a root-relative
-  POSIX path, retaining a map back to the caller's original object; dedupe
-  order-preservingly; return early on empty.
-- One `subprocess.run(["git","check-ignore","--stdin","-z"], input=payload,
-  cwd=repo_root, capture_output=True, timeout=timeout)`; split stdout on `\0`;
-  map back through the retained map; return a sorted tuple.
-- Treat 0/1 as success; everything else and `OSError` through the policy.
+- Fixture builders synthesise minimal catalogues, one shape per behaviour: a
+  clean pack; a test file under `.apm/`; a singular `test/` dir; allowed
+  `evals/`; a transient `__pycache__`; test content in a projected skill; a pack
+  in the include list with no projected skill; an empty `tests/` tree; a pack
+  test climbing above its pack; a gitignored pack test climbing above; an
+  unparseable pack test; a symlinked test source; a linked test dir; a linked
+  test root; a runner spanning two suites; a suite named by no runner; a stale
+  exemption; a missing runner file; a malformed **`.py`** runner file (the parse
+  failure only arises in the Python runner path, not the workflow path); a root
+  with no `packs/`; a root with no recipe; an empty include list; an include
+  list with no projected root.
+- Each non-vacuity refusal gets its **own** fixture shape, because several are
+  mutually exclusive within one invocation — their checks return early.
+- Stage `git show <base>:tools/lint-pack-test-boundary.py` into
+  `<fixture>/tools/`, run it, record the triple into
+  `tools/lint-boundary-golden.json`.
 
-**Done when:** `python3 tools/test-lint-git-ignore.py` exits 0 with every case
-green.
+**Done when:** `python3 tools/test-lint-boundary-golden.py` exits 0 against the
+unmodified lint, and the committed JSON holds a baseline for the real tree and
+every fixture shape.
 
-### T2: A standing gate keeps `check-ignore` inside the approved helper
+### T3: A standing gate keeps `check-ignore` inside the approved helper
 
 **Depends on:** T1
 
-**Touches:** tools/test-lint-no-direct-check-ignore.py, .github/workflows/docs.yml, tools/test-all.py
+**Touches:** tools/test-lint-no-direct-check-ignore.py, tools/repo/build_gate_chain.py, .github/workflows/docs.yml, tools/test-all.py
 
 **Tests:** (TDD)
-- the gate fails on synthetic sources for **each** bypass shape:
-  `["git","check-ignore",…]`; `["git","-C",root,"check-ignore",…]` (not at
-  position 1); a list built through a variable/alias;
-  `subprocess.run("git check-ignore …", shell=True)`; `os.system(...)`;
-  `os.popen(...)`.
-- the approved helper is exempt **and** is asserted present in the scanned
-  inventory — so "exempt" cannot mean "never looked at".
-- fixture strings used to test detection are not flagged.
-- the scanned file count is asserted against a recorded floor, not merely
-  non-empty.
-- the gate passes on the tree once T3 and T5 land.
+- fails on synthetic sources for each bypass shape: `["git","check-ignore",…]`;
+  `["git","-C",root,"check-ignore",…]` (not at position 1); a list built through
+  a variable or alias; `shell=True` string; `os.system`; `os.popen`.
+- a file it cannot read, decode or parse **fails** the gate naming the path —
+  never skipped. A synthetic unparseable file covers it.
+- exemptions are an explicit file allowlist, each entry carrying a reason; a
+  filename *pattern* is asserted **not** to be used, because `tools/test-*.py`
+  files are CI gates in this repository.
+- the approved helper is asserted present in the scanned inventory and exempted
+  there.
+- the scanned set comes from `git ls-files` (tracked files only), asserted
+  against the floor recorded in the audit note.
+- the gate passes on the tree once T4 and T6 land.
+- CI reachability: a change touching only a `tools/` or `packages/` Python file
+  reaches both new gates.
 
 **Approach:**
-- Scan every `*.py` under `tools/`, `packs/`, `packages/`, excluding test files by
-  one explicit documented rule (basename matches `test-*`/`test_*`, or the path
-  contains a `tests/` segment) and recording the exclusion count. Rationale for
-  excluding tests: `tools/test-run-pack-evals.py:686` legitimately asserts a real
-  `.gitignore` fact on a single path.
-- Parse with `ast`; flag `check-ignore` anywhere in a resolved argv sequence, and
-  any shell-string / `os.system` / `os.popen` construction containing it.
-- Wire a `docs.yml` step and a `tools/test-all.py` entry next to the existing
-  boundary-lint pair. `docs.yml` is outside `lint-ci-parity`'s scope
-  (`tools/lint-ci-parity.py:92-95`), so no `STEP_DISPOSITION` entry is needed; a
-  `build-check.yml` step would need one and is therefore not used.
+- Enumerate tracked `*.py` under `tools/`, `packs/`, `packages/` via
+  `git ls-files`; parse with `ast`; flag `check-ignore` anywhere in a resolved
+  argv sequence, or in a shell-string / `os.system` / `os.popen` construction.
+- Wire both gates into the **unfiltered** required chain via
+  `tools/repo/build_gate_chain.py`, accepting the `STEP_DISPOSITION` entry that
+  implies, because `docs.yml` is `paths`-filtered and would not fire for most
+  changes these gates guard. Also add the new scripts to `docs.yml`'s `paths:`
+  and a `tools/test-all.py` entry, per AGENTS.md § *New tool scripts*.
+- Record the non-Python surface (`.sh`, `Makefile`, workflow `run:`) as either
+  textually covered or a knowingly accepted gap in the audit note.
 
-**Done when:** `python3 tools/test-lint-no-direct-check-ignore.py` exits 0, exits
-1 for each synthetic bypass, and both new wiring entries are present.
+**Done when:** the gate exits 0 on the migrated tree, 1 for every synthetic
+bypass and for an unparseable file, and appears in the required chain.
 
-### T3: `lint-pack-test-boundary` runs six checks off one inventory with one batched ignore call
+### T4: The refactored lint reproduces the golden baseline byte-for-byte
 
-**Depends on:** T1
+**Depends on:** T1, T2
 
-**Touches:** tools/lint-pack-test-boundary.py
+**Touches:** tools/lint-pack-test-boundary.py, tools/test-lint-boundary-golden.py
 
 **Tests:** (TDD)
-- structural: one complete six-check invocation → exactly **one** inventory
-  construction, exactly **one** `check-ignore` subprocess, each runner file parsed
-  **once**, destination inventory built **once** — instrumented at the real
-  boundaries, not source-matched.
-- **failure count and attribution:** a fixture with one missing and one malformed
-  runner file yields the same finding count, the same suppressed `ok` lines, and
-  the same `✖ … N failure(s)` line as pre-change (F20, F21 attributed to **both**
-  consuming checks).
-- **every** F1–F21 string in `spec.md § Preserved failure contract` has a case.
-- confinement memo: a fixture where one glob base is reached from several call
-  sites scans it once; **and** a linked base plus its direct target each get their
-  own verdict in **both** scan orders (link-first and target-first); a
-  resolution/key error yields and caches a refusal.
-- the ignored-set is not applied to `pack-tests-stay-in-pack`: a gitignored
-  `packs/<p>/tests/test_x.py` that climbs above its pack still fails.
-- `inspect_boundary` parses no arguments, calls no `sys.exit`, prints nothing
-  (captured streams empty), mutates nothing (fixture tree hashed before/after).
-- findings order deterministic across two processes.
-- no-argument CLI emits all six `ok   [<check>]` lines in `main()`'s existing
-  order plus `✓ lint-pack-test-boundary: passed (6 cases).`, exit 0 on the clean
-  tree.
-- `--check` accepts each of the six names, runs only that check, names which ran,
-  and omits the six-check terminal line.
-- an unrecognised `--check`, and a selection resolving to zero checks, exit
-  non-zero naming the accepted set — from the CLI and as `ValueError` from the
-  API. Never a zero-finding exit 0.
-- `--root`: canonicalised once; a symlinked/junctioned root refused; an
-  unresolvable root refused with `(OSError, RuntimeError)` handling; a root
-  lacking `packs/` + recipe refused **before** traversal.
-- under `--root`, the resolver's repo root is the fixture root, the fixture lives
-  outside the real worktree, and a fixture-local `.gitignore` entry is asserted to
-  come back ignored — proving the ignore layer resolved rather than degraded to a
-  no-op.
-- all non-vacuity refusals (F1, F3, F4, F5, F16) still fire against a
-  deliberately empty fixture root.
-- API/CLI parity: same fixture → same pass/fail decision.
+- **the golden comparison is the behavioural contract:** every baseline in
+  `tools/lint-boundary-golden.json` is reproduced byte-for-byte on both streams
+  with the same exit code, given the real `_NO_RUNNER` map. The `_NO_RUNNER`
+  injection divergence documented in `spec.md § Golden baseline` is the only
+  permitted difference.
+- structural: one complete invocation → exactly one `build_inventory` call,
+  exactly one `parse_runners` call, exactly one `check-ignore` subprocess, one
+  destination build — instrumented at the named seams.
+- confinement memo: one glob base reached from several call sites is scanned
+  once; a linked base and its direct target each get their own verdict in
+  **both** scan orders; a resolution error caches a refusal; a key-computation
+  error yields a refusal without caching.
+- degraded resolution (git absent, and separately a timeout) → the lint
+  diagnoses git unavailability and exits non-zero; it does **not** emit an
+  ignore-derived verdict from an unresolved layer.
+- the ignored-set is not applied to the check that walks with raw `os.walk`: a
+  gitignored pack test climbing above its pack still fails.
+- `inspect_boundary` parses no arguments, calls no `sys.exit`, prints nothing,
+  mutates nothing; findings deterministic across two processes.
+- `--check` accepts each of the six names; an unrecognised name and a
+  zero-resolving selection exit non-zero naming the accepted set, from CLI and
+  API.
+- `--root`: canonicalised once; symlinked/junctioned root refused; unresolvable
+  root refused with `(OSError, RuntimeError)`; missing `packs/` **or** recipe
+  refused by the CLI; the canonical form is what the resolver receives.
+- the callable API accepts a context missing `packs/` or the recipe, so the
+  non-vacuity refusals remain reachable.
+- fixture-root CLI launches are counted and bounded; the bound is recorded.
 
-**Approach:**
-- Introduce `BoundaryContext` (incl. `no_runner`), `Finding`,
-  `BoundaryInventory`; delete `FAILURES`; convert each `case_*` to a function
-  taking the inventory and returning findings, preserving each `return`-after-hit
-  and accumulate-then-guard shape.
-- Build the inventory once: pack list, include list, pack skill dirs, projected
-  skill dirs, `_walk` candidates, the **single** batched ignored set, pack test
-  roots and Python test files, runner contents, parsed runner invocations, suite
-  destinations, and the confinement memo. **No test basenames** — no check
-  consumes them; `_test_basenames` stays a lazily-called helper for the suite.
-- Pass the packs root into `_pack_test_escapes`; thread the memo through
-  `_glob_tree_is_confined`.
-- Keep `main()` as the formatter/exit shell.
+**Approach:** introduce `BoundaryContext` (incl. `no_runner`), `Finding`,
+`CheckResult`, `BoundaryInventory`; delete `FAILURES`; convert each `case_*` to
+a function taking the inventory and returning a `CheckResult`, preserving each
+early-return and accumulate-then-guard shape. Build the inventory once, carrying
+only what checks consume. Move the import-time `packs/` guard into `--root`
+canonicalisation. Pass the packs root into the source-confinement analysis.
+Thread the memo through the confinement scan. Keep `main()` as the
+formatter/exit shell.
 
-**Done when:** `python3 tools/lint-pack-test-boundary.py` passes on the clean tree
-with stdout byte-identical to the pre-change run, and the structural test asserts
-one `check-ignore` process and one inventory build.
+**Done when:** the golden harness reports every baseline reproduced, and the
+structural test asserts one inventory build, one runner parse and one
+`check-ignore` process.
 
-### T4: The falsification suite proves every plant from a fixture, with a four-launch real-tree layer
+### T5: The falsification suite proves each plant from a fixture
 
-**Depends on:** T3
+**Depends on:** T4
 
 **Touches:** tools/test-lint-pack-test-boundary.py
 
-**Tests:** (the suite *is* the test; these are its own invariants)
-- **Layer 1, in-process, no CLI:** every matcher shape (`_MATCH`, `_NO_MATCH`,
-  `_MATCH_DIR`, `_NO_MATCH_DIR`) and every path-provenance case currently
-  asserted (parents index, negative index, dynamic index, parents alias, parents
-  iteration, function-local alias, constructor alias, module-qualified alias,
-  `abspath`, `cwd`/`getcwd`, lexical `..`, `joinpath`, multi-argument `Path`,
-  dynamic segments, glob/rglob traversal, Windows segments, Windows glob, linked
-  glob base, resolve error, `rev-parse --show-toplevel` direct and helper-shaped),
-  plus workflow `working-directory` parsing with and without pytest. None removed.
-- **Layer 2, fixture plants** — each builds a temporary catalogue of tens of files
-  (including `.claude/skills` / `.agents/skills` projected roots and a
-  fixture-local `.gitignore`), invokes **only** its target check, and asserts all
-  four falsification properties:
+**Tests:**
+- **Layer 1, in-process, no CLI:** every matcher shape and every
+  path-provenance case currently asserted, none removed — including the
+  off-tree source-confinement case, which no fixture plant can reach because the
+  walk only visits paths under a pack's test tree.
+- **Layer 2, fixture plants:** each reuses T2's fixture builders, invoking only
+  the check(s) it targets, asserting all four falsification properties. The
+  missing- and malformed-runner cases deliberately select **both** consuming
+  checks, because the two-findings-from-one-cause behaviour is only observable
+  when both run.
+- **Real-tree controls:** C1 and C2's precondition stay real-tree per
+  `spec.md § Real-tree controls`; only C2's runner plant moves to a fixture.
+- **Layer 3, real tree:** the four wiring outcomes, launch count recorded and
+  bounded, each plant refusing to run if its target exists and cleaning up in
+  `finally`.
+- no write to the real `Makefile`, workflows, recipes or projected trees —
+  asserted by hashing those paths before and after.
+- reported case count no lower than the measured pre-change count in the audit
+  note.
+- `_walk` and `_test_basenames` remain callable without an inventory, since a
+  real-tree control calls the latter directly.
 
-  | Plant | Target check | F |
-  | --- | --- | --- |
-  | test file under `.apm/` | `apm-carries-no-tests` | F6 |
-  | singular `test/` directory | `apm-carries-no-tests` | F6 |
-  | allowed `evals/` content | `apm-carries-no-tests` (negative) | — |
-  | transient dir (`__pycache__`) | `apm-carries-no-tests` (negative) | — |
-  | test content in projection | `projection-carries-no-tests` | F7 |
-  | pack in include list, no projected skill | `projection-carries-no-tests` | F5 |
-  | empty `tests/` tree | `tests-live-in-the-pack-tree` | F8 |
-  | pack test climbing above its pack | `pack-tests-stay-in-pack` | F12 |
-  | gitignored pack test climbing above | `pack-tests-stay-in-pack` | F12 |
-  | test not below `packs/<pack>/` | `pack-tests-stay-in-pack` | F13 |
-  | unparseable pack test | `pack-tests-stay-in-pack` | F14 |
-  | symlinked test source | `pack-tests-stay-in-pack` | F11 |
-  | linked test dir / linked test root | `pack-tests-stay-in-pack` | F10, F9 |
-  | one pytest command spanning two suites | `runners-keep-suites-isolated` | F15 |
-  | suite dir named by no runner | `every-suite-dir-has-a-runner` | F18 |
-  | stale `_NO_RUNNER` entry (injected map) | `every-suite-dir-has-a-runner` | F19 |
-  | `_NO_RUNNER` entry a runner also names | `every-suite-dir-has-a-runner` | F17 |
-  | missing runner file | both consuming checks | F20 |
-  | malformed runner file | both consuming checks | F21 |
-  | empty fixture root | non-vacuity | F1, F3, F4, F16 |
+**Approach:** reuse T2's fixture builders rather than duplicating them. Route
+Layer-2 plants through `inspect_boundary` against a fixture root; keep Layer 3
+on the real CLI. Delete both real-`Makefile` rewrites; those cases move to
+fixture runner files.
 
-- **Preserved controls:** C1 (docx/pptx basename overlap still exists — a
-  real-tree assertion) and C2 (a broad runner spanning `adapt-to-project` +
-  `flow-metrics` fails and names **both** suites) are retained as named cases, per
-  `spec.md § Preserved falsification controls`.
-- **Layer 3, real tree, exactly 4 CLI launches:** clean tree passes the complete
-  lint; one runtime-boundary plant detected and named; one runner-or-linked-tree
-  plant detected and named; cleanup restores a passing tree. Each plant refuses to
-  run if its target exists and cleans up in `finally`.
-- the suite performs **no** write to the real `Makefile`, workflows, recipes or
-  projected trees — asserted by hashing those paths before and after.
-- reported case count ≥ **82**.
+**Done when:** the suite exits 0, reports no fewer cases than baseline, its
+real-tree launch count matches the recorded bound, and the real `Makefile` hash
+is unchanged.
 
-**Approach:**
-- Add a fixture builder synthesising a minimal catalogue: `pack.toml`,
-  `.apm/skills/<skill>/`, `tests/skills/<skill>/`, projected skill roots, a
-  self-host recipe, a runner file, an injected `no_runner` map, and a
-  fixture-local `.gitignore`. Fixture roots are created outside the real worktree.
-- Route Layer-2 plants through `inspect_boundary` with an explicit check selection
-  against the fixture root; keep Layer 3 on the real CLI.
-- Delete both real-`Makefile` rewrites (lines 568, 606); the collision and
-  undeclared-suite cases move to fixture runner files. C2 moves with them; C1
-  stays a real-tree assertion.
-
-**Done when:** `python3 tools/test-lint-pack-test-boundary.py` exits 0, reports
-≥82 cases, launches the production CLI exactly 4 times, and the before/after
-hashes of the real `Makefile` match.
-
-### T5: `lint-agents-md` resolves its three probes in one batched call
+### T6: `lint-agents-md` resolves its three probes in one batched call
 
 **Depends on:** T1
 
 **Touches:** tools/lint-agents-md.py
 
 **Tests:** (TDD)
-- the three session-scratch probes resolve in **exactly one** `check-ignore`
-  process (patched-seam counter), down from three.
+- the three probes resolve in **exactly one** `check-ignore` process.
 - a gitignored probe produces no note; a non-ignored probe produces the existing
-  `drift-watch:` note naming it, with existing wording and fatal semantics.
-- with Git absent / erroring / timing out (`degraded=True`), the lint exits 1 and
-  emits a diagnostic naming **git unavailability**, and does **not** emit three
-  `drift-watch:` notes claiming `.gitignore` drifted, and does not raise a
-  traceback. This is the diff's one deliberate behaviour change and is asserted
-  explicitly.
-- checks 8, 10d, 10g still behave as their three existing self-tests assert.
-- `tools/test-lint-ci-parity.py` still passes (aggregator anchor).
+  note naming it, with existing wording and fatal semantics.
+- degraded (git absent, and separately a timeout) → exits 1 and names **git
+  unavailability**; does not emit three notes claiming `.gitignore` drifted; no
+  traceback. This is the diff's one deliberate behaviour change.
+- the three existing block self-tests pass.
+- `tools/test-lint-ci-parity.py` passes (aggregator anchor).
+- `bash tools/test-pre-pr.sh` passes — its sandbox exists precisely so this
+  probe path can run against a real `.gitignore`.
 
-**Approach:**
-- Replace the `for probe in (...)` subprocess loop
-  (`tools/lint-agents-md.py:307-322`) with one `git_ignored_paths(...,
-  missing_git_policy=FAIL_OPEN, timeout=…)` call over the three probes; branch on
-  `degraded` first, then note each probe absent from `ignored`.
-- Keep note wording and `note()`'s fatal semantics untouched.
+**Approach:** replace the per-probe subprocess loop with one
+`git_ignored_paths(..., missing_git_policy=FAIL_OPEN, timeout=…)`; branch on
+`degraded` first, then note each probe absent from `ignored`. Keep note wording
+and fatal semantics untouched.
 
-**Done when:** `python3 tools/lint-agents-md.py` passes, its three self-tests
-pass, and the process-count test asserts exactly one `check-ignore`.
+**Done when:** the lint passes, all four dependent suites pass, and the
+process-count test asserts exactly one `check-ignore`.
 
-### T6: Terminal gates pass, evidence and governance debt are recorded
+### T7: Governance debt is closed and terminal gates pass
 
-**Depends on:** T2, T4, T5
+**Depends on:** T3, T5, T6
 
-**Touches:** docs/specs/lint-performance-p0/notes/lint-inventory.md, docs/specs/pack-test-boundary-remaining-packs/spec.md, workspace.toml
+**Touches:** docs/adr/, docs/specs/pack-test-boundary-remaining-packs/{spec,plan}.md, docs/specs/lint-performance-p0/notes/lint-inventory.md, workspace.toml
 
-**Tests:** (goal-based check — each command run, actual exit code recorded)
-- `tools/lint-pack-test-boundary.py`; `tools/test-lint-pack-test-boundary.py`
+**Tests:** (goal-based check — each run, actual exit code recorded)
+- `tools/lint-pack-test-boundary.py`; `tools/test-lint-pack-test-boundary.py`;
+  `tools/test-lint-boundary-golden.py`
 - `tools/test-lint-git-ignore.py`; `tools/test-lint-no-direct-check-ignore.py`
-- `tools/lint-agents-md.py` + its three `test_lint_agents_md_*_block.py` suites
+- `tools/lint-agents-md.py` + its three block self-tests
 - `tools/test-lint-ci-parity.py`; `tools/test_build_gate_chain.py`;
-  `tests/roster/test_core_pre_pr_hook.py`
+  `tests/roster/test_core_pre_pr_hook.py`; `bash tools/test-pre-pr.sh`
 - `agentbundle catalogue lint --deep`; `agentbundle catalogue verify`
 - `python3 tools/catalogue/pre_pr_catalogue.py`
 - `make lint-ruff` (mypy explicitly not claimed — see § Constraints)
 
 **Approach:**
-- Re-run the Wave-0 probes; write the after-column into
-  `notes/lint-inventory.md § Baseline evidence` (the canonical home). Relativize
-  every recorded path to the repository root — no absolute home-directory paths.
-- Annotate `AC10a` in `docs/specs/pack-test-boundary-remaining-packs/spec.md` with
-  the supersession note (stdin delivery replaces the `--` terminator; the
-  argv-injection protection is strengthened, not lost), per
-  `docs/CONVENTIONS.md § Superseding a frozen document`.
-- Move `selftest-mutates-tracked-makefile` from `workspace.toml [backlog].open` to
+- Author an ADR recording the argv-terminator → stdin-batching reversal: the
+  `--` terminator's protection is *strengthened*, not lost, because candidates
+  leave argv entirely for NUL-framed stdin, which no option parser reads.
+- Annotate `docs/specs/pack-test-boundary-remaining-packs/spec.md` and its
+  `plan.md` **only** in their `Status` fields, pointing at that ADR, per
+  `docs/CONVENTIONS.md § Superseding a frozen document`. No body edit — an
+  append is a body edit, and the AC text stays untouched.
+- Re-run the Wave-0 probes; write the after-column into the audit note's
+  canonical baseline section, relativized.
+- Move `selftest-mutates-tracked-makefile` from `[backlog].open` to
   `[backlog].closed`.
 - Run `make build-self` if any `packs/` file changed (expected: none).
 
-**Done when:** every command above has run with its exit code recorded, the
-after-evidence table is committed, `AC10a` carries its annotation, and the backlog
-item is closed.
+**Done when:** every command has run with its exit code recorded, the ADR
+exists, both `Status` fields carry the pointer with no body edit, the
+after-evidence is committed, and the backlog item is closed.
 
 ## Rollout
 
 - **Delivery:** big bang, fully reversible — repo tooling only, no runtime
   artifact, no migration, no published interface. Rollback is `git revert`.
 - **Infrastructure:** none.
-- **External-system integration:** none. No new dependency; `git` is already
-  required by every gate.
-- **Deployment sequencing:** T1 before T3 and T5 (both consume the resolver); T3
-  before T4 (the suite targets the new callable API); T2's tree assertion only
-  passes once T3 and T5 have migrated, so it lands red and turns green within the
-  wave.
+- **External-system integration:** none; `git` is already required by every gate.
+- **Deployment sequencing:** T2 strictly before T4 — the baseline must come from
+  the unmodified lint. T1 before T4 and T6. T4 before T5. T3's tree assertion
+  turns green only once T4 and T6 land, so it lands red within its wave.
 
 ## Risks
 
-- **Behavioural drift hidden by a passing suite.** The six checks share subtle
-  ordering, short-circuit and count behaviour — notably F20/F21's
-  two-findings-from-one-cause. Mitigation: F1–F21 are enumerated canonically in
-  the spec, each has a case, and the failure count and `ok`-line suppression are
-  pinned.
-- **Fixture catalogues that don't reproduce the real shape.** A plant proven only
-  against a synthetic tree can pass while the real projection differs. Mitigation:
-  Layer 3 keeps four real-tree launches; C1 stays a real-tree assertion; the
-  non-vacuity refusals are asserted against an empty fixture.
-- **`--root` turning a real gate vacuous.** The tempting fix for
-  "no projected skills tree found" under a fixture is to relax the refusal.
-  Mitigation: the fixture builder creates projected roots, and F1/F3/F4/F5/F16 are
-  asserted to still fire.
-- **The memo caching a stale or aliased refusal.** Mitigation: unresolved
-  normalised key, order-independence asserted in both scan orders, per-invocation
-  lifetime, no persistence.
-- **`lint-agents-md` behaviour change.** Fail-open converts a Git-absent crash
-  into exit 1 plus a git-unavailability diagnostic. Authorised and specced;
-  asserted explicitly rather than left implicit.
-- **Case-count regression.** Mitigation: ≥82 reported cases is a done-condition;
-  the pre-change figures (82 runtime, 47 static sites) are recorded in the audit
-  note before the diff lands.
+- **Capturing a baseline that encodes a latent bug as required behaviour.** A
+  golden test preserves whatever the lint does today, including anything wrong.
+  Mitigation: the audit note records the two behaviours deliberately *not*
+  preserved (the `_NO_RUNNER` injection, and degradation now being fatal), and
+  any further difference is an `Ask first` spec amendment rather than a
+  rebaseline.
+- **Regenerating the golden file to make a failure pass.** The failure mode that
+  turns a golden test into theatre. Mitigation: a `Never do` rail; regeneration
+  is a separate explicit action; the subject is a pinned Git revision, so
+  regeneration cannot silently pick up the refactored lint.
+- **Fixtures that do not reproduce the real shape.** Mitigation: Layer 3 keeps
+  real-tree launches, and C1 plus C2's precondition stay real-tree assertions
+  precisely because their job is to detect real-tree drift.
+- **The memo caching an aliased refusal.** Mitigation: unresolved lexical key,
+  order-independence asserted in both scan orders, per-invocation lifetime.
+- **`lint-agents-md` behaviour change.** Fail-open plus a fatal `note()` would
+  misdiagnose git absence as `.gitignore` drift; the diff instead diagnoses
+  unavailability. Authorised, specced, asserted explicitly.
+- **T3's gate is only a drift guard.** An AST allowlist cannot close obfuscated
+  argv construction (`"check-" "ignore"`, `shlex.split`, starred args).
+  Mitigation: documented as such; the runtime process-count assertion carries the
+  strong property.
 
 ## Changelog
 
-- 2026-08-17 — Initial plan. Scope narrowed to the three files the task-zero audit
-  measured as carrying a P0 pattern; the portable-`agentbundle` resolver dropped as
-  caller-less; Git-missing policy unified to fail-open — all three on explicit
-  human confirmation, recorded in `spec.md § Assumptions`.
-- 2026-08-17 — Revised after pre-EXECUTE adversarial + security review (2 security
-  Blockers, 11 adversarial Blockers, 21 Concerns/Nits; substantially all upheld).
-  Material changes: `tools/lintlib/` package replaced by a flat
-  `tools/lint_git_ignore.py` (the package contradicted the spec's own *no new
-  module boundary* rail and would have been exempted-but-unscanned by the
-  enforcement gate); confinement memo re-keyed from `base.resolve()` to the
-  unresolved normalised path after a fixture probe proved the resolved key loses
-  the symlink refusal in one scan order and falsely refuses the real tree in the
-  other; return type changed from `frozenset` to a sorted tuple carrying an
-  explicit `degraded` flag, so a Git-absent run cannot report `.gitignore` drift
-  as the cause; candidate domain closed with `ValueError` for out-of-root paths
-  after probing showed an out-of-repo candidate makes Git exit 128 with a
-  *partial* result; payload moved to `os.fsencode` bytes; F1–F21 and C1/C2 made
-  canonical in the spec to stop three drifting copies; `_NO_RUNNER` and the packs
-  root moved into the context so fixture runs are possible at all; the two new
-  gates wired into `docs.yml` + `test-all.py` rather than run once by hand.
-  **Rejected one reviewer fix:** a `:(literal)` prefix to escape pathspec magic —
-  probing showed `check-ignore --stdin` applies no pathspec magic (leading `:`/`!`
-  round-trip verbatim) and rejects `:(literal)` outright, so the proposed fix
-  would have broken every candidate.
-- 2026-08-17 — Audit corrections folded in: the self-test census missed the 32
-  underscore-named `tools/test_*.py` files (67 total, not 27); all were
-  subsequently audited (0 `check-ignore`, 0 real-tree mutation) so the `CHANGE`
-  scope is unchanged. The "≈6.5 min suite floor" estimate was withdrawn in favour
-  of the measured 306.4 s. Recorded that
-  `docs/specs/pack-test-boundary-remaining-packs/plan.md:636` already specified
-  stdin batching and only its `--` terminator clause shipped; this spec completes
-  it and supersedes that spec's `AC10a` wording. `make lint-mypy` dropped as a
-  claimed gate — it type-checks nothing under `tools/`.
+- 2026-08-17 — Initial plan. Scope narrowed to the lints the task-zero audit
+  measured as carrying a P0 pattern; the portable `agentbundle` resolver dropped
+  as caller-less; Git-missing policy unified to fail-open — all on explicit human
+  confirmation.
+- 2026-08-17 — Revised after pre-EXECUTE review round 1 (13 Blockers). Package
+  replaced by a flat module; memo re-keyed to the unresolved path after a fixture
+  probe proved the resolved key loses the symlink refusal; return type changed to
+  a sorted tuple carrying `degraded`; candidate domain closed. Rejected one
+  reviewer fix — a `:(literal)` prefix — because probing showed this subcommand
+  rejects it outright.
+- 2026-08-17 — **Restructured after review round 2 (16 further Blockers).**
+  Round 2 showed the failure mode was structural: the spec was encoding
+  executable precision in prose — 22 failure strings with sites, exact failure
+  counts, six mutually-exclusive non-vacuity shapes, a 20-row plant-to-check
+  table — and each round's fixes introduced new contradictions (an
+  `--root` precheck that made two refusals unreachable; a four-launch cap that
+  conflicted with three other ACs; a `Never do` rail that forbade legitimate
+  zero-finding fixture passes). On human direction the preserved-behaviour
+  contract became **executable**: T2 now captures the unmodified lint's exact
+  stdout/stderr/exit code against the real tree and staged fixtures, and T4 must
+  reproduce it byte-for-byte. The prose enumeration is deleted. De-risked first:
+  staging the lint into a synthetic root works, its output is root-relative with
+  no absolute paths, and three consecutive runs are byte-identical on both
+  streams. That probe also confirmed the `_NO_RUNNER` map must become injectable
+  — the staged unmodified lint emits one stale-exemption finding per real entry.
+  Round 2 also corrected: degradation is now **fatal** at both call sites,
+  because `_walk` subtracts the ignored set and existing findings fire on the
+  emptiness of what remains, so fail-open converts failures into passes; the
+  pathspec assumption was wrong (`:!x`, `:(glob)x` and friends fatal 128 with a
+  partial echo, so a `:`-prefixed candidate is now rejected at the boundary); the
+  enforcement gate moves to the unfiltered required chain because `docs.yml` is
+  `paths`-filtered and would not have fired; its exclusion rule becomes an
+  explicit allowlist because a `test-*` pattern would exempt this repo's actual
+  CI gates; it enumerates tracked files rather than the filesystem; and
+  `tools/test-pre-pr.sh` was added to the census and to T6/T7 after review found
+  it exercises the exact probe path T6 rewrites.
+- 2026-08-17 — Governance route corrected: `CONVENTIONS.md § Superseding a frozen
+  document` requires the pointer in the `Status` field **only**, citing an ADR
+  rather than a spec, and forbids body edits including appends. Annotating the
+  shipped spec's `AC10a` was therefore prohibited. T7 now authors an ADR and
+  annotates only the two `Status` fields, on human direction.
