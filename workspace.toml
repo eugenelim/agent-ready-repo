@@ -2061,6 +2061,16 @@ active  = [
   {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"}]},
 ]
 shipped = [
+  # Lint execution performance — P0. Shipped 2026-08-17 (ADR-0085).
+  # The boundary lint went from a check-ignore subprocess per candidate path to
+  # one batched call, and from six checks each rebuilding overlapping state to
+  # one per-invocation inventory. Its falsification suite moved off the real
+  # worktree onto fixture catalogues, which closed the
+  # `selftest-mutates-tracked-makefile` backlog item (PR #961's failure mode).
+  # Behaviour preservation is proven by a captured golden baseline rather than a
+  # prose enumeration. Measured before/after:
+  #   docs/specs/lint-performance-p0/notes/lint-inventory.md § After evidence
+  {path = "docs/specs/lint-performance-p0/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Batch git-ignore, reuse one lint inventory, and make lint falsification fixture-based", needs = []},
   {path = "docs/specs/governance-guides-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Governance guide reference cleanup", needs = []},
   {path = "docs/specs/catalogue-verify-classification/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue verify classification", needs = []},
   {path = "docs/specs/pack-test-boundary-remaining-packs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "pack-test-boundary-remaining-packs", needs = []},
@@ -2077,46 +2087,6 @@ shipped = [
 ]
 queue   = [
 
-  # Lint execution performance — P0. Independent (no predecessor): it touches
-  # repository lint tooling only, and no queued catalogue wave reads it.
-  # Problem: tools/lint-pack-test-boundary.py launches one `git check-ignore`
-  # subprocess per candidate path, walks overlapping trees repeatedly, rescans
-  # the same glob bases, and parses its six runner files twice. Its
-  # falsification suite reruns that complete worktree lint 12 times and
-  # rewrites the real root Makefile twice, putting the suite over the work-loop
-  # five-minute inner-loop budget. A local falsification run reached 71% with
-  # no observed failures and never completed. All measured before/after figures
-  # live in ONE canonical home — see the scope contract below; they are
-  # deliberately not duplicated here, so this comment cannot drift from them.
-  # Deliver: one repo-only batched git-ignore resolver as a flat tools/ module
-  # (no new importable package); an AST source gate, wired into standing CI,
-  # keeping it the only home for check-ignore; the boundary lint rebuilt on an
-  # explicit context + one per-invocation inventory + structured findings with
-  # a side-effect-free callable API and --check/--root selectors; its
-  # falsification suite converted to fixture plants plus a minimal real-tree
-  # end-to-end layer with a recorded launch bound; lint-agents-md.py's per-probe
-  # check-ignore calls batched into one.
-  # Behaviour preservation is proven by a CAPTURED baseline: the unmodified
-  # lint's exact stdout/stderr/exit code is recorded against the real tree and
-  # staged fixtures, and the refactor must reproduce it byte-for-byte.
-  # Done when: boundary lint launches exactly one check-ignore process and
-  # builds one inventory; every captured baseline reproduces byte-for-byte; the
-  # complete falsification suite exits 0 inside five minutes reporting no fewer
-  # cases than before; catalogue lint --deep, catalogue verify and
-  # pre_pr_catalogue.py all still pass with unchanged terminal wording.
-  # Non-goals: lint daemon; persistent or SQLite scan cache; diff-only terminal
-  # gates; pytest-xdist; in-process pre-PR aggregator; moving repo lints into
-  # agentbundle; weakening any falsification case; raising the time budget.
-  # Scope contract + canonical evidence:
-  #   docs/specs/lint-performance-p0/notes/lint-inventory.md
-  #   All production lints, pack-owned lints and self-tests are classified
-  #   there; only the rows marked CHANGE may be modified.
-  # Also completes the unimplemented stdin-batching half of
-  #   docs/specs/pack-test-boundary-remaining-packs/plan.md:636 (Shipped) and
-  #   supersedes the literal wording of that spec's AC10a.
-  # Closes the [backlog].open item `selftest-mutates-tracked-makefile`.
-  # Source spec: docs/specs/lint-performance-p0/spec.md
-  {path = "docs/specs/lint-performance-p0/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Batch git-ignore, reuse one lint inventory, and make lint falsification fixture-based", needs = []},
 
   # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
   # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump
