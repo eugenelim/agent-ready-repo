@@ -67,9 +67,12 @@ Reproducible; all numbers below come from these three probes.
    argv to `$GITSHIM_LOG` and `exec`s the real `git`. Counts every Git
    subprocess a lint launches, by subcommand.
 2. **Traversal / parse counts** — the lint module loaded via
-   `importlib.util`, its internal helpers (`_walk`, `_is_ignored`, `_packs`,
-   `_destinations`, `_runner_lines`, `_glob_tree_is_confined`,
-   `_projected_packs`) wrapped with counters, then `main()` invoked in-process.
+   `importlib.util`, its internal helpers wrapped with counters, then `main()`
+   invoked in-process. The helpers named here and in the before-table are the
+   **pre-change** symbols of `main`'s traversal path (`_walk`, `_is_ignored`,
+   `_packs`, `_destinations`, `_runner_lines`, `_glob_tree_is_confined`,
+   `_projected_packs`); several no longer exist after the refactor folded them
+   into `BoundaryInventory`, so do not expect to grep them in the current lint.
    Distinct-vs-total base paths recorded to separate real work from repeated
    work.
 3. **Wall clock** — `/usr/bin/time -p` on the bare CLI with no shim, warm
@@ -345,10 +348,13 @@ asserting them as standalone findings would be written wrong.
 
 ## Enforcement-gate scan set and allowlist
 
-The gate enumerates **tracked** files via `git ls-files` over `tools/`,
-`packs/`, `packages/`, and exempts an explicit **allowlist of individual files**
-— filename *patterns* are forbidden, because `tools/test-*.py` files are CI gates
-in this repository.
+The gate enumerates tracked **and** untracked-not-ignored files via
+`git ls-files --cached --others --exclude-standard` over `SCAN_ROOTS` — `tools/`,
+`packs/`, `packages/`, `.github/` and the root `Makefile` — and exempts an
+explicit **allowlist of individual files**; filename *patterns* are forbidden,
+because `tools/test-*.py` files are CI gates in this repository. A tracked-only
+enumeration would have let a brand-new file carrying the banned call pass its own
+introducing PR.
 
 Superseded by the measured after-figures in
 [§ Enforcement-gate scan set](#enforcement-gate-scan-set), which is where the
@@ -387,7 +393,9 @@ low. Retained here only so the correction is legible.
    tests from source confinement — a contract weakening disguised as
    deduplication.
 2. **`_test_basenames` has no production caller.** It is called only from the
-   self-test's non-colliding-runner cases; no `case_*` uses it. Adding
+   self-test's two real-tree runner controls — C1, which asserts the collision
+   fixtures still collide, and C2's precondition, which asserts the non-colliding
+   pair still does not; no `case_*` uses it. Adding
    test basenames to the per-invocation inventory would add a `_walk` over every
    destination that no check consumes — more traversal, not less. It stays a
    lazily-called helper.
@@ -407,7 +415,7 @@ low. Retained here only so the correction is legible.
 | `_runner_lines()` invocations (re-reads + re-parses 6 runner files) | **2** |
 | `_destinations()` invocations (re-walks 32 skill dirs) | **2** |
 | `_packs()` invocations | **5** |
-| `_projected_packs()` invocations | 1 |
+| `_projected_packs()` invocations (pre-change symbol; now inside the inventory) | 1 |
 | inventory constructions | **none — no inventory exists** |
 | wall clock, one invocation | **32.35 s** |
 
@@ -596,17 +604,24 @@ ignored by an explicit path rule — both conditions at once.
 For a goal-based task the record *is* the artifact, so each command is listed
 with the exit code it actually returned. Terminal wording unchanged throughout.
 
+Case-count rows cite each suite's `_CASE_FLOOR` rather than the count from one
+run, and that is a correction, not a shorthand. A hand-copied count drifted three
+times in this spec's own review rounds — every time a round added cases, the row
+recording them went stale inside the same commit that had just fixed it. The floor
+is a constant the suite enforces on itself and CI re-checks every run, so citing
+it cannot silently rot; the live count is always ≥ it by construction.
+
 | Command | Exit | Note |
 | --- | --- | --- |
 | `python3 tools/lint-pack-test-boundary.py` | 0 | six `ok` lines + `✓ … passed (6 cases).` |
-| `python3 tools/test-lint-pack-test-boundary.py` | 0 | 128 cases; 4 real-tree CLI launches |
+| `python3 tools/test-lint-pack-test-boundary.py` | 0 | ≥ `_CASE_FLOOR` = 124 cases; 4 real-tree CLI launches |
 | `python3 tools/test-lint-boundary-golden.py` | 0 | 22 captured baselines reproduced |
-| `python3 tools/test-lint-boundary-structural.py` | 0 | 87 cases |
-| `python3 tools/test-lint-git-ignore.py` | 0 | 100 cases |
+| `python3 tools/test-lint-boundary-structural.py` | 0 | ≥ `_CASE_FLOOR` = 90 cases |
+| `python3 tools/test-lint-git-ignore.py` | 0 | ≥ `_CASE_FLOOR` = 95 cases |
 | `python3 tools/lint-no-direct-check-ignore.py` | 0 | 817 files scanned, 4 allowlisted |
-| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | 50 cases |
+| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | ≥ `_CASE_FLOOR` = 45 cases |
 | `python3 tools/lint-agents-md.py` | 0 | unchanged terminal wording |
-| `python3 tools/test-lint-agents-md-gitignore-probes.py` | 0 | 17 cases |
+| `python3 tools/test-lint-agents-md-gitignore-probes.py` | 0 | ≥ `_CASE_FLOOR` = 21 cases |
 | `python3 tools/test_lint_agents_md_{legacy,diataxis,risk}_block.py` | 0 | 3 suites, unchanged |
 | `python3 tools/test-lint-ci-parity.py` | 0 | 102 cases; aggregator-extraction anchor holds |
 | `python3 tools/test_build_gate_chain.py` | 0 | 19 tests; ordered chain list updated |

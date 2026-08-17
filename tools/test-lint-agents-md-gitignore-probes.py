@@ -231,6 +231,18 @@ def main() -> int:
         sys.path.remove(str(REPO_ROOT / "tools"))
 
     real_resolver = module.lint_git_ignore.git_ignored_paths
+    # `main()` opens with `os.chdir(_repo_root())`, and `_repo_root()` runs
+    # `git rev-parse --show-toplevel` from the CURRENT directory. Launched from
+    # outside the repo that resolves to the wrong root and the lint then walks a
+    # foreign tree — verified: from `/tmp` it reaches a stale pytest fixture and
+    # dies on a dangling `AGENTS.md`. That is pre-existing linter behaviour (it is
+    # invoked from a pre-PR hook, always inside the repo) and is not this spec's to
+    # change; but the subprocess cases pin `cwd=REPO_ROOT`, so an in-process call
+    # must do the same or this suite becomes the one thing in the tree that fails
+    # by launch directory. Enter the repo root first, and restore afterwards
+    # because `main()` never does.
+    original_cwd = Path.cwd()
+    os.chdir(REPO_ROOT)
     for label, exc, want, must_not in (
         ("git refused the batch",
          module.lint_git_ignore.GitIgnoreError("exit 128: outside repository"),
@@ -252,6 +264,7 @@ def main() -> int:
             pass
         finally:
             module.lint_git_ignore.git_ignored_paths = real_resolver
+        os.chdir(REPO_ROOT)   # main() may have left us elsewhere
         emitted = buffer.getvalue()
         check(f"{label}: names its own cause",
               want in emitted, emitted[-700:])
@@ -259,6 +272,7 @@ def main() -> int:
               must_not not in emitted, emitted[-700:])
         check(f"{label}: does NOT claim .gitignore drifted",
               "should be gitignored" not in emitted, emitted[-700:])
+    os.chdir(original_cwd)
 
     if _CASES < _CASE_FLOOR:
         _FAILURES.append(

@@ -22,7 +22,8 @@ count is restated in this document.
 The repository's lint system runs fast enough to sit inside the work-loop's
 five-minute inner loop, and no lint contract is weaker for it. The user is an
 agent or engineer running the lint gates repeatedly while iterating: they get
-byte-for-byte the same verdicts, diagnostics and exit codes as before, but the
+the same verdicts, diagnostics and exit codes as before — identical bytes for any
+given repository state — but the
 catalogue's runtime-boundary lint completes in seconds instead of tens of
 seconds, and its falsification suite completes comfortably inside the budget
 instead of sitting on the cutoff.
@@ -41,7 +42,9 @@ retained to prove the production CLI is wired to the real catalogue.
 refactor, the current lint's exact stdout, stderr and exit code are captured
 against the real tree and against a set of staged fixture catalogues. Those
 captured baselines *are* the preserved-behaviour contract, and the refactored
-lint must reproduce them byte-for-byte. This spec therefore does not enumerate
+lint must reproduce their canonical surface — raw streams stored, four named
+normalisation classes applied to both sides before comparison
+([§ Golden baseline](#golden-baseline) enumerates them). This spec therefore does not enumerate
 failure strings, failure counts, or check attributions in prose — an enumeration
 maintained by hand is a second implementation of the lint, and it drifts.
 
@@ -132,17 +135,35 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   arguments**. `--root` is deliberately **not** the comparison path: a
   fixture-scoped run prints a partial-run header by design, so it could never
   match a staged baseline.
-- **Comparison:** stdout and stderr are compared **separately** and
-  byte-for-byte as **bytes**, together with the exit code. Both streams are
-  stored base64-encoded — a str-decoded baseline cannot round-trip a
-  surrogate-escaped path in Git's stderr, and the comparison would then pass on
-  two streams that differ.
+- **Comparison:** stdout and stderr are stored **raw**, base64-encoded, and
+  compared **separately** — never merged — together with the exit code. Raw
+  storage is what keeps the baseline honest: a str-decoded baseline cannot
+  round-trip a surrogate-escaped path in Git's stderr, and the comparison would
+  then pass on two streams that differ.
+  What is compared is not the raw bytes but a **canonical surface** derived from
+  them, normalising exactly four classes. Nothing else is normalised, and each
+  class is bounded by an assertion that a mutation can redden:
+  1. **Finding order** — findings are sorted, because the walk returns filesystem
+     order and two checks can both contribute.
+  2. **Interpreter-dependent tails** — any message embedding a CPython-version
+     string is excluded.
+  3. **Ambient repository state** — findings a fixture cannot cause: those derived
+     from the real `_NO_RUNNER` map, and runner-inventory misses naming files no
+     fixture creates. The acceptance criterion below states the mechanism and its
+     one recorded limit.
+  4. **The failure tally**, adjusted **down by exactly the number of lines
+     redacted** — not erased, so a double-appended finding stays visible.
+  Blank lines carry no diagnostic content and are dropped, which is what stops a
+  redaction from surfacing as a whitespace-only difference.
 - **Hermeticity:** every staged-lint subprocess and every resolver subprocess
   runs under a scrubbed Git environment — `GIT_CONFIG_NOSYSTEM=1`,
   `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` pointed at an empty file,
-  `GIT_DIR` / `GIT_WORK_TREE` / `GIT_INDEX_FILE` / `GIT_COMMON_DIR` /
-  `GIT_CEILING_DIRECTORIES` unset, and fixture repositories initialised with an
-  empty `core.excludesFile`. Without this a maintainer's global ignore file
+  `GIT_DIR` / `GIT_WORK_TREE` / `GIT_INDEX_FILE` / `GIT_COMMON_DIR` unset, and
+  fixture repositories initialised with an empty `core.excludesFile`.
+  `GIT_CEILING_DIRECTORIES` is **set** to the repository root, not unset, and
+  `GIT_DISCOVERY_ACROSS_FILESYSTEM=0` with it — an earlier draft unset the ceiling
+  along with the rest, which *widened* discovery rather than fencing it. Scrubbing
+  is not the goal; bounding what Git may find is. Without this a maintainer's global ignore file
   silently rewrites the contract: with `core.excludesFile` matching `tests/`, a
   fixture's pack test comes back *ignored*, and because the ignored set is
   subtracted and two findings fire on the emptiness of what remains, those
@@ -150,12 +171,10 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   capture — Git sets `GIT_DIR` and `GIT_INDEX_FILE` for hook processes, and these
   lints run from a pre-PR hook. Capture additionally asserts identical bytes
   under a deliberately hostile global ignore file.
-- **Determinism:** findings are sorted before the compared surface is formed,
-  because the walk returns filesystem order. Any message embedding an
-  interpreter-version-dependent string is excluded from the compared surface.
-  Determinism is verified on the capture host *and* on the CI platform before
-  the baseline is adopted — three same-host runs prove neither filesystem order
-  nor CPython-minor stability.
+- **Determinism:** the four normalisation classes above are what make the surface
+  reproducible; this bullet does not restate them. Determinism is verified on the
+  capture host *and* on the CI platform before the baseline is adopted — three
+  same-host runs prove neither filesystem order nor CPython-minor stability.
 
 ### What capture cannot observe
 
@@ -300,8 +319,9 @@ type-checks nothing in this diff and is not claimed as a gate for it.
 
 - [x] A golden harness captures `(stdout, stderr, exit_code)` for the lint read
       from a pinned Git revision against each staged fixture root, comparing the
-      two streams separately, byte-for-byte, as bytes, with both stored
-      base64-encoded.
+      two streams separately — never merged — as bytes, with both stored raw and
+      base64-encoded, and comparing the canonical surface derived from them rather
+      than the raw bytes.
       **Amended during implementation, with the reason:** the real tree is
       deliberately *not* a captured case, because every line it prints except the
       terminal verdict is ambient — live catalogue counters (`(21 packs)`,
@@ -340,9 +360,11 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       inherits one finding per real map entry; those are redacted, along with the
       failure tally that counts them and any blank line a redaction leaves behind.
       The redaction is bounded by assertion, not by inspection: a finding naming a
-      runner file the fixture *does* create stays compared, the trusted path set
-      must equal the subject's runner inventory, and each property is proven by a
-      mutation that reddens the suite.
+      runner file the fixture *does* create stays compared; every trusted path is
+      one a real `_base_fixture` build actually writes; the trusted set equals the
+      working-tree lint's runner inventory; and the tally reads exactly
+      `original − redacted`. Each property is proven by a mutation that reddens the
+      suite.
       **Recorded limit:** adding a `_RUNNER_FILES` entry is a known re-pin
       trigger. Its added `FAIL: runner file … does not exist` lines *are*
       redacted; what cannot be is the consequence — the missing file makes
@@ -351,7 +373,11 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       restore. Regeneration cannot clear it either, because regeneration re-runs
       the pinned subject, whose older inventory still passes. Repointing the pin
       is accepted for that case: the repo gains a CI runner rarely, and never
-      without review, whereas suites are ungated routinely — and it was only the
+      without review, whereas suites are ungated routinely. A new runner path must
+      also be added to `_FIXTURE_RUNNER_FILES` *and* written by `_base_fixture`,
+      and if it is an underscore-named `tools/*.py` it additionally needs the
+      staged-fixture stray-file guard's carve-out extended — that guard refuses any
+      importable module in a staged `tools/` — and it was only the
       routine edit that made the gate something to route around.
 - [x] Every staged-lint and resolver subprocess runs under a scrubbed hermetic
       Git environment, and capture asserts identical bytes under a deliberately
@@ -364,11 +390,17 @@ type-checks nothing in this diff and is not claimed as a gate for it.
 - [x] The refactored lint is compared by co-staging it **and** the resolver
       module into each fixture root and invoking it with no arguments; `--root`
       is not the comparison path.
-- [x] The refactored lint reproduces every captured baseline byte-for-byte when
-      given the real `_NO_RUNNER` map.
-- [x] The three divergences and the two uncaptured roots documented in
-      [§ Golden baseline](#golden-baseline) are the only permitted differences;
-      any other difference fails the comparison. The two uncaptured refusals are
+- [x] The refactored lint reproduces every captured baseline's canonical surface,
+      on both streams and with the same exit code. Raw bytes are what is stored;
+      the four normalisation classes in [§ Golden baseline](#golden-baseline) are
+      what is compared, and each is bounded by a mutation-proven assertion.
+- [x] The three divergences, the four normalisation classes, and the two
+      uncaptured roots documented in [§ Golden baseline](#golden-baseline) are the
+      only permitted differences; any other difference fails the comparison.
+      Naming the normalisation classes here is not bookkeeping — an earlier draft
+      of this criterion said "the only permitted difference" while the comparison
+      already normalised four things, so the criterion asserted something the
+      artifact contradicted. The two uncaptured refusals are
       proven instead by direct assertion on the CLI's exit code and relativized
       message.
 - [x] The injected-`_NO_RUNNER` semantics are specified and tested on their own:

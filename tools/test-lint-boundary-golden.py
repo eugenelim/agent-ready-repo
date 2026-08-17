@@ -542,6 +542,10 @@ def _canonical(stream: str) -> str:  # noqa: C901 — a flat normalisation pipel
     # the regression this surface has to be able to see.
 
     def _adjust(match: re.Match) -> str:
+        # Deliberately unclamped. A negative would mean the lint printed fewer
+        # `FAIL:` lines than its own tally counted — a real defect in the lint, and
+        # one worth reading as `-1 failure(s)` in a diff rather than hidden behind a
+        # `max(0, …)` that would make the surface agree with a broken subject.
         return f"{match.group(1)}{int(match.group(2)) - redacted}{match.group(3)}"
 
     rest = [

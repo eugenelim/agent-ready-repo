@@ -798,7 +798,10 @@ def main() -> int:  # noqa: C901 — independent structural assertions
                         if not (probe / r).exists())
         check("every trusted runner path is one the base fixture really writes",
               absent == [], repr(absent))
-    check("the trusted set is exactly the subject's runner inventory",
+    # "working-tree lint", not "the subject": in this harness the subject is the
+    # PINNED blob. They are identical today, so this is a label defect rather than a
+    # behaviour one — but the label is what a future reader trusts when they diverge.
+    check("the trusted set is exactly the working-tree lint's runner inventory",
           set(M._RUNNER_FILES) == G._FIXTURE_RUNNER_FILES,
           repr(sorted(set(M._RUNNER_FILES) ^ G._FIXTURE_RUNNER_FILES)))
 

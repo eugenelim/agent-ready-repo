@@ -22,7 +22,8 @@ already pairs a `--root` option with fixture-root self-tests plus one real-root
 end-to-end launch.
 
 Four deliberate non-extractions. No universal linter framework. No
-`CatalogueInventory` spanning the repository — the inventory is local to this
+repository-wide catalogue inventory (there is deliberately no such type to
+grep) — the inventory is local to this
 lint, carries only what its own checks consume, and is never persisted. One
 resolver, not three — measurement found no portable or shipped-pack caller. And
 it is a **flat module**, not a package: `tools/catalogue/` and `tools/repo/`
@@ -110,10 +111,12 @@ Shape is `service`; `ui` and `data` sub-sections pruned.
     unresolved; applying `resolve()` here reopens a confirmed Blocker.
 11. **The runner parse is memoised, its findings are not.** The runner reader
     appends its own findings and is reached by two checks, so one missing or
-    malformed runner file yields **two** findings today. `_parse_runner_files` therefore
-    returns `(lines, parse_findings)` and each consuming check re-appends
-    `parse_findings`. One parse, two emissions — otherwise "parsed once" and
-    "reproduce the baseline byte-for-byte" are mutually unsatisfiable.
+    malformed runner file yields **two** findings today. The memoised accessor
+    `BoundaryInventory.runner_lines()` therefore returns a `(lines, findings)`
+    pair — parsed once by `_parse_runner_files`, with the findings handed back so
+    each consuming check re-emits them at its own position. One parse, two
+    emissions — otherwise "parsed once" and "reproduce the captured surface" are
+    mutually unsatisfiable.
 12. **Every Git subprocess runs under a scrubbed environment.** Resolver calls
     and staged-lint calls alike. A `git init`-ed fixture still honours
     `core.excludesFile` and ambient `GIT_DIR`/`GIT_INDEX_FILE`, and this repo runs
@@ -610,7 +613,7 @@ committed, and the backlog item is closed.
 
 - [`notes/lint-inventory.md`](notes/lint-inventory.md) — the task-zero audit, and
   the single canonical home for every measured figure and count.
-- [`notes/disposition-record.md`](notes/disposition-record.md) — the
+- [`disposition-record.md`](disposition-record.md) — the
   resolve-vs-surface record the `work-loop` self-coverage gate requires: what was
   escalated to the human and why, and what was settled by measurement instead.
 
@@ -636,7 +639,9 @@ committed, and the backlog item is closed.
   zero-finding fixture passes). On human direction the preserved-behaviour
   contract became **executable**: T2 now captures the unmodified lint's exact
   stdout/stderr/exit code against the real tree and staged fixtures, and T4 must
-  reproduce it byte-for-byte. The prose enumeration is deleted. De-risked first:
+  reproduce it byte-for-byte. (Round 3 narrowed this: the streams are stored raw
+  and compared as a canonical surface with four normalisation classes — see the
+  round-3 entry below.) The prose enumeration is deleted. De-risked first:
   staging the lint into a synthetic root works, its output is root-relative with
   no absolute paths, and three consecutive runs are byte-identical on both
   streams. That probe also confirmed the `_NO_RUNNER` map must become injectable
