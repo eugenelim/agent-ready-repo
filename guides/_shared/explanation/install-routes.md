@@ -16,24 +16,30 @@ Four ways to install a pack from this catalogue:
 | **Reference CLI** | `agentbundle install --pack <name> git+https://github.com/<owner>/<catalogue>` | You want a pinned, scriptable install with state tracking from day one. |
 | **Local clone** | `git clone … && python -m pip install -e packages/agentbundle/ && agentbundle install --pack <name> . --output <target>` | Network-constrained environment, or you want both the catalogue and the runtime library editable. |
 
-> **The plugin route is user-scope only.** A Claude plugin's code lives in your
-> global cache and `claude plugin install` defaults to `--scope user`, so the
-> marketplace carries only packs that permit a user-scope install. A pack
-> declaring `allowed-scopes = ["repo"]` — `core`, `governance-extras`,
-> `iac-terraform`, `monorepo-extras`, `release-engineering`,
-> `user-guide-diataxis` — installs with `agentbundle install` instead. That is
-> the route they are scoped for, not a gap.
+:::note
+**The plugin route is user-scope only.** A Claude plugin's code lives in your
+global cache and `claude plugin install` defaults to `--scope user`, so the
+marketplace carries only packs that permit a user-scope install. A pack
+declaring `allowed-scopes = ["repo"]` — `core`, `governance-extras`,
+`iac-terraform`, `monorepo-extras`, `release-engineering`,
+`user-guide-diataxis` — installs with `agentbundle install` instead. That is
+the route they are scoped for, not a gap.
+:::
 
-> **Already added the marketplace before 2026-08?** Run
-> `/plugin marketplace update <catalogue>` and reinstall your packs. Entries
-> published before then used a plugin source Claude Code could not resolve to a
-> subdirectory, so installs succeeded but delivered nothing — check with
-> `/plugin details <pack>@<catalogue>`; a healthy pack reports a non-zero skill
-> count. A cached catalogue keeps serving the old entries until you update it.
+:::caution
+**Already added the marketplace before 2026-08?** Run
+`/plugin marketplace update <catalogue>` and reinstall your packs. Entries
+published before then used a plugin source Claude Code could not resolve to a
+subdirectory, so installs succeeded but delivered nothing — check with
+`/plugin details <pack>@<catalogue>`; a healthy pack reports a non-zero skill
+count. A cached catalogue keeps serving the old entries until you update it.
+:::
 
 The same pack content lands every way; the differences are in mechanics (state tracking, where the marker drops, how upgrades work). This page explains *why* there are four and how to pick.
 
-> **Caveat — route 3 still requires route 4's pip install today.** The release artifact (zipapp / wheel / Homebrew) hasn't shipped yet, so until it does, getting `agentbundle` onto `$PATH` means running route 4's `python -m pip install -e packages/agentbundle/` step against a local clone. Route 3's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
+:::caution
+**Caveat — route 3 still requires route 4's pip install today.** The release artifact (zipapp / wheel / Homebrew) hasn't shipped yet, so until it does, getting `agentbundle` onto `$PATH` means running route 4's `python -m pip install -e packages/agentbundle/` step against a local clone. Route 3's distinction from route 4 — fetching the catalogue from a remote `git+https://` URL instead of a local clone — still applies once `agentbundle` is importable.
+:::
 
 ## The install→adapt chain
 

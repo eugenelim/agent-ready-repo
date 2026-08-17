@@ -63,9 +63,13 @@ The class-2 walk is a no-op if no companions are on disk; the other three classe
 
 ## Pitfalls
 
-> **Skipped markers don't disappear.** The skill records skips against `.adapt-discovery.toml` so re-invocations don't pester you about the same one, but they're not declined — re-invoke explicitly with the skip cleared to revisit.
+:::caution
+**Skipped markers don't disappear.** The skill records skips against `.adapt-discovery.toml` so re-invocations don't pester you about the same one, but they're not declined — re-invoke explicitly with the skip cleared to revisit.
+:::
 
-> **The skill does not write outside the install scope.** Repo-scope invocations confine writes to the repo root; user-scope invocations confine to the scope's user root. A misconfigured marker pointing outside scope is rejected, not silently followed.
+:::caution
+**The skill does not write outside the install scope.** Repo-scope invocations confine writes to the repo root; user-scope invocations confine to the scope's user root. A misconfigured marker pointing outside scope is rejected, not silently followed.
+:::
 
 ## Related
 

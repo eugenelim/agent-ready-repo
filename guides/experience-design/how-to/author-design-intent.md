@@ -4,10 +4,12 @@
 **Prerequisites:** `experience-design` pack installed.
 **Result:** durable design-intent artifacts committed to your repo — a journey map, screen flow with per-screen briefs, service blueprint, grounded aesthetic direction, and a critique — each framework-agnostic and steerable to any build stack.
 
-> **How-to** — task-oriented. Run the `experience-design` thread end to end, from a
-> customer journey to a reviewed set of per-screen briefs. Assumes the pack is
-> installed (see [`../_shared/`](../../_shared/)). For *why* the thread is shaped
-> this way, read [The experience thread](../explanation/the-experience-thread.md).
+:::note
+**How-to** — task-oriented. Run the `experience-design` thread end to end, from a
+customer journey to a reviewed set of per-screen briefs. Assumes the pack is
+installed (see [`../_shared/`](../../_shared/)). For *why* the thread is shaped
+this way, read [The experience thread](../explanation/the-experience-thread.md).
+:::
 
 You drive each skill by asking your agent in natural language; the skill's
 trigger phrases route the request. You don't need to name the skill — but you
@@ -108,6 +110,8 @@ critique — each framework-agnostic, each steering the build, none of them a
 values cheat-sheet tied to one stack, and the whole thread proved walkable by the
 steel thread.
 
-> Mapping an **internal** process instead of a customer-facing one? Use
-> `process-mapping` — the inside-out sibling (APQC L3→L4, as-is/to-be,
-> SIPOC, swimlane, pain/waste). It carries no surface axis.
+:::tip
+Mapping an **internal** process instead of a customer-facing one? Use
+`process-mapping` — the inside-out sibling (APQC L3→L4, as-is/to-be,
+SIPOC, swimlane, pain/waste). It carries no surface axis.
+:::

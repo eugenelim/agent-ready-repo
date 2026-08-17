@@ -1,6 +1,8 @@
 # About the walking skeleton
 
-> Why the greenfield front door builds a kept, minimal, end-to-end **walking skeleton** instead of a throwaway prototype — and why that one choice changes how a new project ages. This page is for readers who want to understand the reasoning, not to run the flow. To run it, follow [From idea to a walking skeleton](../tutorials/start-a-new-project.md).
+:::note
+Why the greenfield front door builds a kept, minimal, end-to-end **walking skeleton** instead of a throwaway prototype — and why that one choice changes how a new project ages. This page is for readers who want to understand the reasoning, not to run the flow. To run it, follow [From idea to a walking skeleton](../tutorials/start-a-new-project.md).
+:::
 
 ## The question this page answers
 

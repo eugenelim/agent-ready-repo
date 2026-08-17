@@ -128,6 +128,16 @@ shipped = [
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   "spec/docs-site-design-refresh",
+  # Tech-site design review 2026-08-14 follow-up. Typed callouts were effectively
+  # unused: 3 of 188 guides used Starlight `:::` asides while 74 used plain `>`
+  # blockquotes, including load-bearing recovery notes and pitfalls. They rendered
+  # as an undifferentiated thin grey rule with no icon, tint, or label. Fix:
+  # classify every load-bearing blockquote as note, tip, caution, or danger and
+  # convert it, while leaving genuine quotations as blockquotes; document typed
+  # asides as the default for non-quotation callouts in the catalogue authoring
+  # standards. Decision: use Starlight's fixed vocabulary and do not wait on
+  # site-design-principles.
+  {path = "docs/specs/guide-typed-asides-conversion/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Convert load-bearing guide blockquotes to typed Starlight asides while preserving genuine quotations", needs = []},
   {path = "docs/specs/work-loop-step0-observability/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "work-loop-step0-observability", needs = []},
   {path = "docs/specs/product-documentation-pack/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "product-documentation pack (Phase 1)", needs = []},
   {path = "docs/specs/agentbundle-first-value-handoff/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "agentbundle-first-value-handoff", needs = []},
@@ -1843,23 +1853,6 @@ open = [
   # entries are deferred review findings, implementation surfacings, and design
   # work that must be shaped before specification.
   # ---------------------------------------------------------------------------
-
-  # Typed callouts are effectively unused: 3 of 188 guides use Starlight `:::`
-  # asides while 74 use plain `>` blockquotes — and those blockquotes are
-  # carrying real callout load (the recurring "If you don't see this: ..."
-  # recovery notes in tutorials, the "Skipped markers don't disappear" pitfalls
-  # in how-tos). They render as an undifferentiated thin grey rule with no icon,
-  # no tint and no label, at the same visual weight as body text. The reference
-  # uses tinted, icon-led Note/Tip/Warning boxes on 24 of its 26 pages; this is
-  # the single largest scannability gap between the two documentation surfaces.
-  # Fix: classify each load-bearing blockquote (note / tip / caution) and
-  # convert, then document the typed aside as the default for any non-quotation
-  # aside in the catalogue authoring standards. Decision already taken:
-  # Starlight's aside vocabulary (note/tip/caution/danger) is fixed by the
-  # framework, so this does NOT wait on site-design-principles. Scope: leave
-  # genuine quotations as blockquotes.
-  # Unblocks when: ready now.
-  { slug = "guide-typed-asides-conversion" },
 
   # 142 of 189 guides carry no frontmatter at all, so they have no `summary:`
   # and therefore no page-specific meta description — Starlight falls back to

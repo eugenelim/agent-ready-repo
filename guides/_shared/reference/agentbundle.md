@@ -1,6 +1,8 @@
 # `agentbundle` — reference
 
-> The three operations a fresh PyPI user actually performs, plus the built-in help surface. For the full subcommand catalogue, run `agentbundle --help`.
+:::note
+The three operations a fresh PyPI user actually performs, plus the built-in help surface. For the full subcommand catalogue, run `agentbundle --help`.
+:::
 
 ## Install `agentbundle`
 

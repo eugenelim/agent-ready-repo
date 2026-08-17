@@ -18,9 +18,11 @@ can authenticate by a captured web session (a cookie jar) instead of a token. Th
 is the `auth: sso-cookie` path; both skills keep a `creds` (token)
 fallback, so nothing changes for token users.
 
-> **Scope.** Data Center only, **reads only** (JQL search, get issue/project/user;
-> Confluence space crawl). Writes over the cookie path are refused pending XSRF
-> design. Cloud is out of scope — use a token there.
+:::note
+**Scope.** Data Center only, **reads only** (JQL search, get issue/project/user;
+Confluence space crawl). Writes over the cookie path are refused pending XSRF
+design. Cloud is out of scope — use a token there.
+:::
 
 ## 1. Pre-bake the instance config (once, per org)
 

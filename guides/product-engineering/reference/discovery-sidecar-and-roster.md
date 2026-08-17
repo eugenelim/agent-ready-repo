@@ -1,6 +1,8 @@
 # Reference — the discovery sidecar, plan-tree, and roster
 
-> **Diátaxis: reference.** The slots, the plan-tree template, and the skill/agent roster of the discovery loop, for look-up. For the *why*, see the explanation [*The discovery loop*](../explanation/the-discovery-loop.md); to run it, the how-to [*Run a discovery*](../how-to/run-a-discovery.md). The authoritative, versioned definition is carried in the `discovery-loop` skill's `references/sidecar-schema.md`; this page summarizes it for adopters.
+:::note
+**Diátaxis: reference.** The slots, the plan-tree template, and the skill/agent roster of the discovery loop, for look-up. For the *why*, see the explanation [*The discovery loop*](../explanation/the-discovery-loop.md); to run it, the how-to [*Run a discovery*](../how-to/run-a-discovery.md). The authoritative, versioned definition is carried in the `discovery-loop` skill's `references/sidecar-schema.md`; this page summarizes it for adopters.
+:::
 
 ## The sidecar — two tiers, one forest
 

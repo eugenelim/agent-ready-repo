@@ -30,7 +30,9 @@ If the call is already made (or you're recording one made in a meeting yesterday
 
 ## Prerequisites
 
-> **Pack:** `governance-extras`. `new-adr` does not ship in `core`. Verify with `ls .claude/skills/new-adr/` (or the equivalent skill registry in your IDE — Claude Code's `/agents`, Cursor's Composer, etc.). If the directory is missing, install or enable `governance-extras` first.
+:::note
+**Pack:** `governance-extras`. `new-adr` does not ship in `core`. Verify with `ls .claude/skills/new-adr/` (or the equivalent skill registry in your IDE — Claude Code's `/agents`, Cursor's Composer, etc.). If the directory is missing, install or enable `governance-extras` first.
+:::
 
 - A `docs/adr/` directory at the repo root. The skill creates it on first use if absent; the repo's seed `docs/adr/README.md` is fine to leave in place.
 - A decision that genuinely warrants an ADR — the entry-point prose below covers the test.
@@ -45,7 +47,9 @@ Three conditions, all must hold:
 
 If any of these fails, push back rather than writing an ADR that future readers will discount. The skill checks them at invocation time.
 
-> **Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's ADR this" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Use `use the new-adr skill to …` whenever you want the discipline, including on edges where description matching wouldn't pick it up.
+:::tip
+**Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's ADR this" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Use `use the new-adr skill to …` whenever you want the discipline, including on edges where description matching wouldn't pick it up.
+:::
 
 ## Step 1 — Invoke the skill
 
@@ -144,17 +148,29 @@ The RFC carried the debate; its accepted outcome lists "one or more ADRs to reco
 
 ## Pitfalls
 
-> **Treating an ADR as the place to debate.** ADRs are not the venue for open discussion — that's an RFC. If you find yourself writing "we should probably …" or "options to consider …", you wanted an RFC. Stop, open one, let it carry the debate.
+:::caution
+**Treating an ADR as the place to debate.** ADRs are not the venue for open discussion — that's an RFC. If you find yourself writing "we should probably …" or "options to consider …", you wanted an RFC. Stop, open one, let it carry the debate.
+:::
 
-> **Editing an accepted ADR's body.** The body is frozen at acceptance. Status-only changes (`Accepted` → `Deprecated` | `Superseded by ADR-NNNN`) are the only edits permitted. Anything else is a *new* ADR that supersedes.
+:::caution
+**Editing an accepted ADR's body.** The body is frozen at acceptance. Status-only changes (`Accepted` → `Deprecated` | `Superseded by ADR-NNNN`) are the only edits permitted. Anything else is a *new* ADR that supersedes.
+:::
 
-> **Hand-wavy Alternatives.** "We considered other options but chose this" tells future readers nothing. One sentence per alternative with the actual rejection reason — that's the section that prevents the same option being re-proposed in six months.
+:::caution
+**Hand-wavy Alternatives.** "We considered other options but chose this" tells future readers nothing. One sentence per alternative with the actual rejection reason — that's the section that prevents the same option being re-proposed in six months.
+:::
 
-> **Consequences with only positives.** Every decision has tradeoffs; an ADR that lists only upside isn't honest, and the next person will discount it. Push for at least one real negative or "to revisit" item.
+:::caution
+**Consequences with only positives.** Every decision has tradeoffs; an ADR that lists only upside isn't honest, and the next person will discount it. Push for at least one real negative or "to revisit" item.
+:::
 
-> **An ADR for a single feature's internals.** That's a spec (`docs/specs/<feature>/`), not an ADR. ADRs are for cross-cutting architectural and infrastructural calls.
+:::caution
+**An ADR for a single feature's internals.** That's a spec (`docs/specs/<feature>/`), not an ADR. ADRs are for cross-cutting architectural and infrastructural calls.
+:::
 
-> **Packing several decisions into one ADR.** If a record carries three or more load-bearing sub-decisions, it's an umbrella — the skill pushes back and asks whether it should be an RFC that spawns several smaller ADRs. One ADR, one durable decision; *complete* is not *exhaustive*.
+:::caution
+**Packing several decisions into one ADR.** If a record carries three or more load-bearing sub-decisions, it's an umbrella — the skill pushes back and asks whether it should be an RFC that spawns several smaller ADRs. One ADR, one durable decision; *complete* is not *exhaustive*.
+:::
 
 ## When not to use this workflow
 

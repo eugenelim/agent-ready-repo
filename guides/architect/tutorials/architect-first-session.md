@@ -4,7 +4,9 @@
 **Prerequisites:** The `architect` pack installed in your repo.
 **Time:** 15–20 minutes.
 
-> At the end of this tutorial you'll have asked the agent to describe your codebase's architecture and seen it produce a plain-language snapshot you can use to guide design decisions.
+:::note
+At the end of this tutorial you'll have asked the agent to describe your codebase's architecture and seen it produce a plain-language snapshot you can use to guide design decisions.
+:::
 
 This is a learning walkthrough for a fresh start. It covers one complete first session: checking the pack is working, running your first architecture prompt, understanding what you'll see, and knowing what to do if something goes wrong.
 

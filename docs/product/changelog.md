@@ -78,6 +78,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Guide callouts now say what kind of attention they need.** Supporting
+  context, optional techniques, pitfalls, and severe hazards render as typed
+  notes, tips, cautions, and dangers with visible labels and icons. Prompts,
+  transcripts, sample output, and other exact quoted wording remain
+  blockquotes.
 - **Documentation now keeps readers oriented from entry to exit.** The docs
   home leads with one clear starting point and described outcome cards; guide
   pages restore previous/next navigation from the published sidebar order; and
@@ -122,6 +127,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hand-written navigation label, the sidebar now shows the page's own title
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
+
+### [agentbundle][0.37.1] — 2026-08-16
+
+#### Changed
+
+- **New catalogue scaffolds explain when guide content is a quotation and when
+  it needs a labelled callout.** Exact quoted wording stays a blockquote;
+  supporting context, optional techniques, pitfalls, and severe hazards use
+  `note`, `tip`, `caution`, or `danger`. Existing catalogues keep their current
+  authoring reference until they refresh the scaffold.
 
 ### [agentbundle][0.37.0] — 2026-08-16
 

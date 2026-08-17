@@ -35,7 +35,9 @@ Add the six `workspace-mcp` tool strings to `permissions.allow` in `.claude/sett
 }
 ```
 
-> Automated permission projection is an open item — hand-edit `.claude/settings.json` or include the block in your repo's seed files until it ships.
+:::caution
+Automated permission projection is an open item — hand-edit `.claude/settings.json` or include the block in your repo's seed files until it ships.
+:::
 
 ## Step 2 — Discover the work queue
 
@@ -130,10 +132,12 @@ Then send the first message to start the agent (the session is idle until a prom
 
 ### Non-FSM items (`type: "research"` | `"design"` | `"shape"` | `"strategy"`)
 
-> **Stage 3 (planned).** The workspace-mcp git tools for non-FSM item types are
-> wired in the server, but the agent-side skill flows that drive research, design,
-> shape, and strategy items headlessly are not yet shipped. This section documents
-> the MCP wire format for when those skills land.
+:::note
+**Stage 3 (planned).** The workspace-mcp git tools for non-FSM item types are
+wired in the server, but the agent-side skill flows that drive research, design,
+shape, and strategy items headlessly are not yet shipped. This section documents
+the MCP wire format for when those skills land.
+:::
 
 Set `WORKSPACE_MCP_DISPATCHED_ITEM` as `{ini_slug}/{type}:{slug}`. This unlocks `git_branch`, `git_commit`, and `git_push` scoped to the item's configured output paths.
 
@@ -162,7 +166,9 @@ Retrieve the session instruction at runtime:
 from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 ```
 
-> **Trusted checkouts only:** The spawn args above use the projected adapter path (`.claude/skills/…`). This requires `agentbundle install --pack core` to have run in the checkout. Untrusted-repo / isolated-mode support (`python -I`) is deferred to Stage 2.
+:::caution
+**Trusted checkouts only:** The spawn args above use the projected adapter path (`.claude/skills/…`). This requires `agentbundle install --pack core` to have run in the checkout. Untrusted-repo / isolated-mode support (`python -I`) is deferred to Stage 2.
+:::
 
 ## Step 4 — Monitor progress
 
@@ -185,7 +191,9 @@ Key fields in the `workspace_status()` response:
 | *(per item)* `available` | bool \| absent | `false` when the item's `dispatch_skill` is not installed; absent when available |
 | *(per item)* `required_pack` | string \| null | Pack to install when `available: false`; e.g. `"desk-research"` (use `agentbundle install --pack <value>`) |
 
-> **Stage 1 note:** The `claude-agent-acp` bridge does not relay MCP push notifications to the harness in this release. Gate detection does not require polling — gates arrive as `elicitation/create` requests (Step 5). For independent FSM state reconciliation (e.g., after a session restart), open a separate session with `WORKSPACE_MCP_SPEC_PATH` set and call `workspace_status()` from there.
+:::caution
+**Stage 1 note:** The `claude-agent-acp` bridge does not relay MCP push notifications to the harness in this release. Gate detection does not require polling — gates arrive as `elicitation/create` requests (Step 5). For independent FSM state reconciliation (e.g., after a session restart), open a separate session with `WORKSPACE_MCP_SPEC_PATH` set and call `workspace_status()` from there.
+:::
 
 ## Step 5 — Respond to gates
 
@@ -213,17 +221,23 @@ The agent then sends `elicitation/create` and blocks until the harness resolves 
 3. Your harness returns the human's answer as the JSON-RPC response to the `elicitation/create` request
 4. The `elicit()` call unblocks and the work-loop continues
 
-> **`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the gate question is "Are these changes correct and ready to merge?" — it does not include the PR URL. **Stage 1 PR URL limitation:** no workspace-mcp tool exposes the branch name or PR URL at this gate: the elicitation message is fixed text with no URL, `workspace_status()` does not expose `pr_url` or branch name, `git_status()` returns `git status --short` (file statuses only, no branch), `git_branch` is blocked in FSM mode, and the `gate-pr-ready` notification is not yet implemented. Retrieve the PR URL entirely out-of-band — for example, by listening for VCS push/PR-open webhooks, or by polling your VCS API using the spec path or author as a search key. Poll until the PR is merged, then respond to the elicitation. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
+:::caution
+**`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the gate question is "Are these changes correct and ready to merge?" — it does not include the PR URL. **Stage 1 PR URL limitation:** no workspace-mcp tool exposes the branch name or PR URL at this gate: the elicitation message is fixed text with no URL, `workspace_status()` does not expose `pr_url` or branch name, `git_status()` returns `git status --short` (file statuses only, no branch), `git_branch` is blocked in FSM mode, and the `gate-pr-ready` notification is not yet implemented. Retrieve the PR URL entirely out-of-band — for example, by listening for VCS push/PR-open webhooks, or by polling your VCS API using the spec path or author as a search key. Poll until the PR is merged, then respond to the elicitation. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
+:::
 
-> **Stage 1 limitation — response-file fallback unsupported.** When `clientCapabilities.elicitation`
-> is absent, `elicit()` falls back to a temp response file. The file path is carried only in the
-> `_agentbundle.core/elicitation-pending` MCP push notification, which the Stage 1 bridge drops
-> (see Stage 1 note above). The harness cannot discover the file path, so the fallback always
-> times out after 300 seconds. Declare `clientCapabilities.elicitation` or the gate will hang.
+:::caution
+**Stage 1 limitation — response-file fallback unsupported.** When `clientCapabilities.elicitation`
+is absent, `elicit()` falls back to a temp response file. The file path is carried only in the
+`_agentbundle.core/elicitation-pending` MCP push notification, which the Stage 1 bridge drops
+(see Stage 1 note above). The harness cannot discover the file path, so the fallback always
+times out after 300 seconds. Declare `clientCapabilities.elicitation` or the gate will hang.
+:::
 
-> **`session/prompt` is not a gate-response mechanism.** Sending `session/prompt` while `elicit()`
-> is pending sends a new message to the model without resolving the blocking tool call. The
-> `elicit()` call remains blocked and the session does not make progress.
+:::caution
+**`session/prompt` is not a gate-response mechanism.** Sending `session/prompt` while `elicit()`
+is pending sends a new message to the model without resolving the blocking tool call. The
+`elicit()` call remains blocked and the session does not make progress.
+:::
 
 ## When it doesn't work
 

@@ -4,11 +4,15 @@
 **Prerequisites:** `product-engineering` pack installed; an app-scale repo with app code; a feature idea, request, or brownfield context to shape.
 **Result:** A de-risked feature intent decomposed into a `core` brief at `docs/product/briefs/<slug>.md`, ready for `receive-brief`, `new-spec`, and `work-loop`.
 
-> **Diátaxis: how-to.** A goal-oriented walk through the `product-engineering` loop at **app scale** (one repo, one feature). For the why, see the explanation *The intent tree*; for fields, the reference *Intent fields and modes*. For business-unit / cross-component shaping (a capability across many component repos), see the how-to [*Run a capability across a value stream*](run-a-capability-across-a-value-stream.md).
+:::note
+**Diátaxis: how-to.** A goal-oriented walk through the `product-engineering` loop at **app scale** (one repo, one feature). For the why, see the explanation *The intent tree*; for fields, the reference *Intent fields and modes*. For business-unit / cross-component shaping (a capability across many component repos), see the how-to [*Run a capability across a value stream*](run-a-capability-across-a-value-stream.md).
+:::
 
 You have an idea or a request and you want to turn it into a spec your delivery loop can build, without skipping the thinking. Install the `product-engineering` pack, then:
 
-> **Starting higher than a feature.** This walkthrough shapes a *feature* intent, but `Level` is an open set (`product-vision › product-strategy › capability › feature`) and is **no longer stamped from `Scale`**. An app-scale **greenfield product concept** — where the real question is "should this product exist at all" — can start at a **product altitude** (`product-vision`), not only at `feature`; for that route see [*Frame a product vision*](frame-a-product-vision.md) and [*Shape a product strategy*](shape-a-product-strategy.md). `frame-intent` asks the altitude for concept-shaped input; Scale only *suggests* a starting point you override in a word. The rest of the loop (de-risk, decompose) is the same shape at any level.
+:::note
+**Starting higher than a feature.** This walkthrough shapes a *feature* intent, but `Level` is an open set (`product-vision › product-strategy › capability › feature`) and is **no longer stamped from `Scale`**. An app-scale **greenfield product concept** — where the real question is "should this product exist at all" — can start at a **product altitude** (`product-vision`), not only at `feature`; for that route see [*Frame a product vision*](frame-a-product-vision.md) and [*Shape a product strategy*](shape-a-product-strategy.md). `frame-intent` asks the altitude for concept-shaped input; Scale only *suggests* a starting point you override in a word. The rest of the loop (de-risk, decompose) is the same shape at any level.
+:::
 
 ## 1. Frame the intent
 

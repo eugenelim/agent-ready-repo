@@ -1,6 +1,8 @@
 # Explanation
 
-> *Understanding-oriented.* Discussions that illuminate. Why we made a design choice, how a system fits together, what a concept means in this product. Theoretical, contextual, opinionated. Read by people who want to understand more deeply.
+:::note
+*Understanding-oriented.* Discussions that illuminate. Why we made a design choice, how a system fits together, what a concept means in this product. Theoretical, contextual, opinionated. Read by people who want to understand more deeply.
+:::
 
 ## Writing explanation
 

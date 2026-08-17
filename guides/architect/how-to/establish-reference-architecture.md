@@ -4,7 +4,9 @@
 **Prerequisites:** A working codebase with real architecture decisions (harvesting route); or `adapt-to-project` for harvest, a stack pack for pre-bake, or `init-project` for greenfield.
 **Result:** A committed `docs/architecture/reference.md` that reflects decisions your team has actually made, with no invented constraints.
 
-> Get a `docs/architecture/reference.md` — your repo's normative golden path — into a repo that doesn't have one yet. Assumes you know what `reference.md` is for; if not, read [Foundation vs. map](../../core/explanation/foundation-vs-map.md) first.
+:::note
+Get a `docs/architecture/reference.md` — your repo's normative golden path — into a repo that doesn't have one yet. Assumes you know what `reference.md` is for; if not, read [Foundation vs. map](../../core/explanation/foundation-vs-map.md) first.
+:::
 
 You have a working codebase with real architecture decisions, and you want them written down as a foundation that new work conforms to. There are three routes in, depending on where your repo is.
 

@@ -1,6 +1,8 @@
 # About the plan owning the low-level design
 
-> Why the **low-level design** lives in `plan.md` rather than `spec.md`, and why the design's **stack is derived** instead of baked into the template. For the field-by-field description, see [Spec `Shape:` and the plan's `## Design (LLD)`](../reference/spec-shape-and-lld.md).
+:::note
+Why the **low-level design** lives in `plan.md` rather than `spec.md`, and why the design's **stack is derived** instead of baked into the template. For the field-by-field description, see [Spec `Shape:` and the plan's `## Design (LLD)`](../reference/spec-shape-and-lld.md).
+:::
 
 ## The question this page answers
 

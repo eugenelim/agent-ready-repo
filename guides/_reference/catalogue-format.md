@@ -1,6 +1,8 @@
 # Catalogue format
 
-> Version: 1 (the `schema = 1` field in `catalogue.toml`).
+:::note
+Version: 1 (the `schema = 1` field in `catalogue.toml`).
+:::
 
 ## Required markers
 

@@ -1,8 +1,10 @@
 # The experience thread
 
-> **Explanation** — understanding-oriented. Why this pack is shaped the way it
-> is. For the steps, see the [how-to](../how-to/author-design-intent.md); for
-> the per-skill contract, see the [reference](../reference/experience-design.md).
+:::note
+**Explanation** — understanding-oriented. Why this pack is shaped the way it
+is. For the steps, see the [how-to](../how-to/author-design-intent.md); for
+the per-skill contract, see the [reference](../reference/experience-design.md).
+:::
 
 ## Design as upstream intent
 

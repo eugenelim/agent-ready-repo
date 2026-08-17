@@ -4,7 +4,9 @@
 **Prerequisites:** `experience-design` pack and `product-engineering` pack installed.
 **Result:** one clear skill invocation for your copy task, with no wasted round-trips.
 
-> **How-to** — task-oriented. Picks the right copy skill for your situation.
+:::note
+**How-to** — task-oriented. Picks the right copy skill for your situation.
+:::
 
 ## Decision table
 

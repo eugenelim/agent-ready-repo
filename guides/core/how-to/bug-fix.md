@@ -25,7 +25,9 @@ For the *why* behind the loop discipline the skill runs under the hood, read [th
 
 The line that matters: `bug-fix` is for **deviations from intended behavior in code that already exists.** If the conversation turns into "actually this should work differently," the skill stops and tells you to switch to `new-spec` — that boundary is in the skill description, not a mid-flow auto-routing.
 
-> **Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "fix this bug" usually fire the skill, but not always. **Naming the skill in your request guarantees it fires.** Use the name-the-skill form below whenever you want the discipline, including on edge cases where description matching wouldn't pick it up.
+:::tip
+**Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "fix this bug" usually fire the skill, but not always. **Naming the skill in your request guarantees it fires.** Use the name-the-skill form below whenever you want the discipline, including on edge cases where description matching wouldn't pick it up.
+:::
 
 ## Step 1 — Reproduce the bug
 
@@ -115,15 +117,25 @@ If the bug is intermittent or production-only, the skill refuses to draft a fix 
 
 ## Pitfalls
 
-> **Fixing forward without a reproduction.** The obvious fix is wrong about a third of the time, and the only way to tell is the failing test. Don't skip step 1.
+:::caution
+**Fixing forward without a reproduction.** The obvious fix is wrong about a third of the time, and the only way to tell is the failing test. Don't skip step 1.
+:::
 
-> **Fixing the bug plus adjacent cleanup in one PR.** Each cleanup is its own PR with its own justification. The same-area mechanical ride-along carve-out is narrow — a typo, not a refactor.
+:::caution
+**Fixing the bug plus adjacent cleanup in one PR.** Each cleanup is its own PR with its own justification. The same-area mechanical ride-along carve-out is narrow — a typo, not a refactor.
+:::
 
-> **Adjusting the spec or the test to match the buggy behavior.** If the spec and the fix disagree, one of them is wrong. Surface that explicitly; don't paper over it.
+:::caution
+**Adjusting the spec or the test to match the buggy behavior.** If the spec and the fix disagree, one of them is wrong. Surface that explicitly; don't paper over it.
+:::
 
-> **Closing as "not reproducible" without trying hard enough.** Document what was tried, on what version, with what data, before giving up. The cost of an extra hour of investigation is small compared to a bug that resurfaces in three months.
+:::caution
+**Closing as "not reproducible" without trying hard enough.** Document what was tried, on what version, with what data, before giving up. The cost of an extra hour of investigation is small compared to a bug that resurfaces in three months.
+:::
 
-> **Deleting the failing test after the fix turns it green.** The test is the regression test. It lives in the suite forever; that's the point.
+:::caution
+**Deleting the failing test after the fix turns it green.** The test is the regression test. It lives in the suite forever; that's the point.
+:::
 
 ## When not to use this workflow
 

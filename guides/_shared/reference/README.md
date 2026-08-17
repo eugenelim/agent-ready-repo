@@ -1,6 +1,8 @@
 # Reference
 
-> *Information-oriented.* The authoritative description of interfaces, commands, configuration, and data shapes. Dry, complete, accurate. Read by people who already know what they're looking for.
+:::note
+*Information-oriented.* The authoritative description of interfaces, commands, configuration, and data shapes. Dry, complete, accurate. Read by people who already know what they're looking for.
+:::
 
 ## Pages
 

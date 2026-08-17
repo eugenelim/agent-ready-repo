@@ -11,7 +11,9 @@ kind: tutorial
 **Prerequisites:** A repo with `workspace.toml` at the root and the `core` pack installed; see [How to start working on a project](../how-to/start-a-project.md) for the install step.
 **Time:** About 30 minutes.
 
-> At the end of this tutorial you'll have run a complete workspace session: oriented using `workspace-status`, picked a spec from the build queue, invoked `work-loop`, remembered a deferred item mid-session using `work-intake`, and left the queue in a clean state for the next session.
+:::note
+At the end of this tutorial you'll have run a complete workspace session: oriented using `workspace-status`, picked a spec from the build queue, invoked `work-loop`, remembered a deferred item mid-session using `work-intake`, and left the queue in a clean state for the next session.
+:::
 
 We use one concrete workspace throughout: the **Acme Platform** repo — a backend platform with one active initiative, two specs in its build queue, and one shaping item being framed as strategy. The session goal is to orient, pick a spec, and begin building.
 
@@ -58,7 +60,9 @@ Read each section before doing anything:
 - **Ready to start** — two specs are unblocked and ready. Each shows the command to start it.
 - **Blocked** — `workspace-status-phase2` is waiting for `workspace-core` to ship first.
 
-> If your output uses different slugs, that is expected — the section structure is what matters.
+:::note
+If your output uses different slugs, that is expected — the section structure is what matters.
+:::
 
 ## Step 2 — Pick a spec and read it briefly
 

@@ -1,6 +1,8 @@
 # The discovery loop — from a raw idea to a build-ready brief
 
-> **Diátaxis: explanation.** Why the discovery loop is shaped the way it is. For the step-by-step, see the how-to [*Run a discovery*](../how-to/run-a-discovery.md) and the tutorial [*Walk a discovery end-to-end*](../tutorials/walk-a-discovery-end-to-end.md); for the slots and roster, the reference [*The discovery sidecar and roster*](../reference/discovery-sidecar-and-roster.md). For the upstream shaping model it builds on, see [*The intent tree*](the-intent-tree.md).
+:::note
+**Diátaxis: explanation.** Why the discovery loop is shaped the way it is. For the step-by-step, see the how-to [*Run a discovery*](../how-to/run-a-discovery.md) and the tutorial [*Walk a discovery end-to-end*](../tutorials/walk-a-discovery-end-to-end.md); for the slots and roster, the reference [*The discovery sidecar and roster*](../reference/discovery-sidecar-and-roster.md). For the upstream shaping model it builds on, see [*The intent tree*](the-intent-tree.md).
+:::
 
 ## The problem it solves
 
