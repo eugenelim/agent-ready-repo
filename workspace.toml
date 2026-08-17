@@ -206,6 +206,16 @@ shipped = [
   {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
 ]
 queue   = [
+  # Work-loop runtime: one transition, one Python process. `loop-engine.py
+  # transition` shelled out to `loop-cohort.py` and `check-spec-status.py` for
+  # its read-only guards, so a single transition started up to three extra
+  # interpreters (measured 2026-08-17 over nine representative paths). The guard
+  # decisions move to a shared, callable, silent, non-mutating sibling module
+  # that the engine and the existing CLIs both call, so the two surfaces cannot
+  # drift. Read-only guard surface only: no FSM, state-schema, or mutation-verb
+  # change, and no MCP, daemon, or new dependency.
+  {path = "docs/specs/work-loop-in-process-guards/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run every work-loop transition guard in the engine's own process", needs = []},
+
   # Project knowledge lifecycle roadmap — RFC-0077 / ADR-0081 / ADR-0082.
   # This sequence is adaptive: at each completed slice, compare measured behavior and
   # repository evidence with the remaining entries. Update, split, combine, reorder, or
