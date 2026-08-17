@@ -808,11 +808,23 @@ def main() -> int:  # noqa: C901 — independent structural assertions
           G._canonical("FAIL: b\nFAIL: a\n") == G._canonical("FAIL: a\nFAIL: b\n")
           == "FAIL: a\nFAIL: b\n",
           repr(G._canonical("FAIL: b\nFAIL: a\n")))
+    check("every FAIL block precedes every non-FAIL block, whatever the emitted "
+          "order",
+          G._canonical("ok   [x] (1)\nFAIL: z\n")
+          == G._canonical("FAIL: z\nok   [x] (1)\n")
+          == "FAIL: z\nok   [x] (1)\n",
+          repr(G._canonical("ok   [x] (1)\nFAIL: z\n")))
     check("non-FAIL blocks keep their emitted order",
           G._canonical("ok   [b] (0)\nok   [a] (0)\n")
           == "ok   [b] (0)\nok   [a] (0)\n",
           repr(G._canonical("ok   [b] (0)\nok   [a] (0)\n")))
-    check("the surface is stripped and ends in exactly one newline",
+    # Deliberately named for the joint property, not for `strip()`. Removing the
+    # final `strip()` alone leaves this green, and so does removing the
+    # blank-only-block drop alone; only removing BOTH reddens it. The spec
+    # classifies each as individually redundant, so a name pinning either one
+    # specifically would be a claim this assertion cannot support.
+    check("blank padding at either end never reaches the surface (holds jointly "
+          "over the blank-block drop and the final strip)",
           G._canonical("\n\nFAIL: h\n\n\n") == "FAIL: h\n",
           repr(G._canonical("\n\nFAIL: h\n\n\n")))
     check("_canonical is idempotent",

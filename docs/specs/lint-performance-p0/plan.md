@@ -640,7 +640,8 @@ committed, and the backlog item is closed.
   contract became **executable**: T2 now captures the unmodified lint's exact
   stdout/stderr/exit code against the real tree and staged fixtures, and T4 must
   reproduce it byte-for-byte. (Round 3 narrowed this: the streams are stored raw
-  and compared as a canonical surface with four normalisation classes — see the
+  and compared as a canonical surface with the normalisation classes enumerated in
+  `spec.md § Golden baseline` — see the
   round-3 entry below.) The prose enumeration is deleted. De-risked first:
   staging the lint into a synthetic root works, its output is root-relative with
   no absolute paths, and three consecutive runs are byte-identical on both

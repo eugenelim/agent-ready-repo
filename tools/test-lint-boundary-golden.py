@@ -25,28 +25,34 @@ green. Afterwards, it is the contract.
 What is compared
 ----------------
 A **canonical surface** derived from the captured streams, not the raw bytes.
-Two sources of legitimate non-determinism make raw bytes the wrong unit:
 
-* the lint's walk returns filesystem order, so a finding that names several paths
-  can order them differently on another filesystem;
-* one message embeds ``str(SyntaxError)``, whose wording changes between CPython
-  minor versions.
+``docs/specs/lint-performance-p0/spec.md`` § *Golden baseline* is the normative
+enumeration of every class that surface normalises and of how each one is
+supported. It is deliberately not restated here. An earlier version of this
+docstring described three of the eleven operations and closed on "compared byte
+for byte" — the exact phrasing the spec spent two review rounds removing — which
+is how a second description at the point of use becomes the drift vector for the
+first. Read the spec; `_canonical` below is its implementation.
 
-So findings are sorted, the path list inside a finding is sorted, and the
-interpreter-dependent tail is redacted — then the result is compared byte for
-byte. The raw streams are stored too, base64-encoded, so a failure can be
-diagnosed and so a privacy audit can read exactly what was captured. Base64
-rather than JSON strings because a captured stream may contain bytes that are not
-valid UTF-8, and a str round trip would silently replace them.
+The raw streams are stored as well, base64-encoded, so a failure can be diagnosed
+and a privacy audit can read exactly what was captured. Base64 rather than JSON
+strings because a captured stream may contain bytes that are not valid UTF-8, and
+a str round trip would silently replace them. (That rationale is implementation
+detail this harness owns, which is why it stays here.)
 
 Hermeticity
 -----------
-Every subprocess runs with a scrubbed Git environment, and every fixture repo is
-initialised with an empty ``core.excludesFile``. This is not hygiene theatre: a
-host ``core.excludesFile`` matching, say, ``tests/`` makes a fixture's pack test
-come back *ignored*, and because the lint **subtracts** the ignored set while two
-of its findings fire on the emptiness of what remains, those failures would be
-captured as required **passes** — and would then reproduce green forever.
+Every Git subprocess goes through ``lint_git_ignore.hermetic_git_env``; the spec's
+*Hermeticity* bullet enumerates what it removes and what it sets, and is likewise
+not duplicated here. Fixture repositories are *additionally* initialised with an
+empty ``core.excludesFile`` via ``git config`` — a second mechanism, belt to the
+env pin's braces.
+
+Why any of it matters: a host ``core.excludesFile`` matching, say, ``tests/``
+makes a fixture's pack test come back *ignored*, and because the lint
+**subtracts** the ignored set while two of its findings fire on the emptiness of
+what remains, those failures would be captured as required **passes** — and would
+then reproduce green forever.
 """
 
 from __future__ import annotations

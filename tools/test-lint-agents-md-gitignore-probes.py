@@ -243,46 +243,78 @@ def main() -> int:
     # because `main()` never does.
     original_cwd = Path.cwd()
     # Launch-directory independence is asserted, not merely arranged. Deleting the
-    # `os.chdir(REPO_ROOT)` inside the loop leaves this suite green from the repo
+    # `os.chdir(REPO_ROOT)` inside the helper leaves this suite green from the repo
     # root — the only way CI and `test-all.py` invoke it — while failing anywhere
     # else, so without a case pinning it the defect returns invisibly.
     #
-    # The foreign launch directory must itself be a Git repository. `_repo_root()`
-    # shells out to `git rev-parse --show-toplevel`; from a plain temp directory
-    # that fails and the fallback returns a safe root, so a bare `mkdtemp` does not
-    # reproduce the defect — verified, the mutation stayed green against one. A
-    # `git init`-ed directory makes `rev-parse` succeed and hand back the WRONG
-    # root, which is the real failure mode.
-    # `.resolve()`: on macOS `mkdtemp` hands back `/var/folders/…` while
-    # `Path.cwd()` reports the real `/private/var/folders/…`, so the restore
-    # assertion would compare two spellings of the same directory and fail.
-    foreign = Path(tempfile.mkdtemp(prefix="probe-foreign-repo-")).resolve()
-    subprocess.run(["git", "init", "-q", "."], cwd=str(foreign),
-                   capture_output=True, check=True,
-                   env=module.lint_git_ignore.hermetic_git_env(
-                       os.environ, repo_root=foreign))
-    (foreign / "AGENTS.md").write_text("# decoy\n", encoding="utf-8")
-    # The decoy alone is not enough either: `main()` re-chdirs to whatever
-    # `_repo_root()` returns, still reaches check 10e, and emits the same refusal
-    # wording — verified, the mutation stayed green against it. What actually broke
-    # the suite from `/tmp` was `Path().rglob("AGENTS.md")` reaching a **dangling**
-    # `AGENTS.md` left by an unrelated pytest run and dying in `read_text`. So plant
-    # exactly that. With the fix the foreign tree is never walked; without it, this
-    # raises `FileNotFoundError` and the suite cannot report green.
-    (foreign / "sub").mkdir()
-    (foreign / "sub" / "AGENTS.md").symlink_to(foreign / "gone-missing.md")
-    for launch_dir in (REPO_ROOT, foreign):
-        os.chdir(launch_dir)
-        _refusal_branch_cases(module, real_resolver)
-        # Asserted per launch directory, and that is the point: comparing against
-        # the SUITE's own cwd would be vacuous, because CI launches from the repo
-        # root and the helper enters the repo root anyway — the check would pass
-        # whether or not it restored anything. Comparing against the directory the
-        # helper was *called in* has teeth in both iterations.
-        check(f"the in-process block restores the cwd it was called in "
-              f"({'repo root' if launch_dir == REPO_ROOT else 'foreign repo'})",
-              Path.cwd() == launch_dir, f"{Path.cwd()} != {launch_dir}")
-    os.chdir(original_cwd)
+    # Reproducing it needs three things, and the first two attempts are recorded
+    # because they LOOK sufficient and are not:
+    #   1. a plain `mkdtemp` — no. `_repo_root()` shells out to
+    #      `git rev-parse --show-toplevel`; outside a repo that fails and the
+    #      fallback returns a safe root, so the mutation stays green.
+    #   2. a `git init`-ed decoy — still no. `main()` re-chdirs to whatever
+    #      `_repo_root()` returns, reaches check 10e anyway, and emits the same
+    #      refusal wording.
+    #   3. a `git init`-ed directory holding a **dangling** `AGENTS.md` symlink —
+    #      yes. `Path().rglob("AGENTS.md")` finds it and `read_text` raises, which
+    #      is exactly how a stale pytest tree under `/tmp` broke this suite.
+    #
+    # That third artifact is a landmine for anything else that walks the temp tree,
+    # so it lives inside a `TemporaryDirectory` and is gone before this returns. An
+    # earlier revision used a bare `mkdtemp` and leaked one Git repo carrying a
+    # dangling symlink per run — a required gate manufacturing, unboundedly, the
+    # very hazard this case exists to pin.
+    with tempfile.TemporaryDirectory(prefix="probe-foreign-repo-") as td:
+        # `.resolve()`: on macOS `mkdtemp` hands back `/var/folders/…` while
+        # `Path.cwd()` reports the real `/private/var/folders/…`, so the restore
+        # assertion would otherwise compare two spellings of one directory.
+        foreign = Path(td).resolve()
+        subprocess.run(["git", "init", "-q", "."], cwd=str(foreign),
+                       capture_output=True, check=True,
+                       env=module.lint_git_ignore.hermetic_git_env(
+                           os.environ, repo_root=foreign))
+        (foreign / "AGENTS.md").write_text("# decoy\n", encoding="utf-8")
+        (foreign / "sub").mkdir()
+        launch_dirs = [REPO_ROOT]
+        try:
+            (foreign / "sub" / "AGENTS.md").symlink_to(
+                foreign / "gone-missing.md")
+        except OSError as exc:
+            # Windows without Developer Mode. A materialised file cannot stand in:
+            # the whole point is a link whose target is absent, so substituting one
+            # would make the pin vacuous. Skip the iteration and say so — this
+            # suite sits in the unfiltered required chain, and an uncaught OSError
+            # here would traceback the gate.
+            sys.stderr.write(
+                f"SKIP foreign-launch-directory case — this host cannot create "
+                f"symlinks ({exc}); the launch-directory pin is not exercised\n"
+            )
+        else:
+            launch_dirs.append(foreign)
+
+        for launch_dir in launch_dirs:
+            os.chdir(launch_dir)
+            if launch_dir == REPO_ROOT:
+                _refusal_branch_cases(module, real_resolver)
+            else:
+                # Name the property, so a failure reads as what actually broke
+                # rather than as a bare FileNotFoundError from inside the linter.
+                try:
+                    _refusal_branch_cases(module, real_resolver)
+                except OSError as exc:
+                    _FAILURES.append(
+                        f"the in-process block is not launch-directory "
+                        f"independent: called from a foreign Git repository it "
+                        f"walked that tree instead of this one ({exc})"
+                    )
+            # Vacuous on the repo-root iteration — the helper enters the repo root
+            # anyway, so an unrestored cwd still equals `launch_dir` there. It is
+            # load-bearing on the foreign iteration, which is why that iteration
+            # exists.
+            check(f"the in-process block restores the cwd it was called in "
+                  f"({'repo root' if launch_dir == REPO_ROOT else 'foreign repo'})",
+                  Path.cwd() == launch_dir, f"{Path.cwd()} != {launch_dir}")
+            os.chdir(original_cwd)
 
     if _CASES < _CASE_FLOOR:
         _FAILURES.append(

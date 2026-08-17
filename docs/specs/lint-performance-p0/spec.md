@@ -152,10 +152,18 @@ records the resulting `(stdout, stderr, exit_code)` triple.
      mechanism and its one recorded limit.
   2. **The failure tally is adjusted down by exactly the number of lines
      redacted** — not erased, so a double-appended finding stays visible.
-  3. **Interpreter-dependent tails are elided** — any message embedding a
-     CPython-version string.
-  4. **Order between findings** — `FAIL:` blocks are sorted, because two checks can
-     both contribute and accumulation order must not matter.
+  3. **Interpreter-dependent tails are elided on a block's head line** — any
+     message embedding a CPython-version string. Head only, which is where both
+     such messages appear today; a future multi-line variant would reintroduce
+     CPython churn into the surface and would need this widened.
+  4. **Order between findings** — `FAIL:` blocks are sorted among themselves,
+     because two checks can both contribute and accumulation order must not matter.
+  4b. **Order between finding and non-finding blocks** — every `FAIL:` block is
+     emitted before every non-`FAIL:` block, whatever order they were printed in.
+     A no-op today, because stdout carries the `ok`/`✓` lines and stderr the
+     `FAIL`/`✖` ones and the two streams are compared separately; recorded because
+     the surface performs it regardless, which is the same standard class 6 is held
+     to.
   5. **Order within a finding** — a finding's indented path list is sorted,
      separately from (4), because the walk returns filesystem order. These are two
      distinct normalisations with two distinct reasons; merging them is how the
@@ -172,7 +180,7 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   disproved it are the reason the list below distinguishes three kinds of support
   rather than two:
   - **Mutation-proven** (removing the behaviour reddens a suite): classes 1, 2, 4,
-    5, 6, and the blank-*tail* drop in 7.
+    4b, 5, 6, and the blank-*tail* drop in 7.
   - **Corpus-present but not same-host provable**: class 3. Two baselines
     (`malformed-runner-file`, `pack-test-unparseable`) do carry an
     interpreter-dependent message, but removing the elision leaves *both* sides of
@@ -195,9 +203,11 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   `GIT_CONFIG_KEY_n` / `GIT_CONFIG_VALUE_n` pairs), `GIT_CONFIG_PARAMETERS`, and
   the four pathspec vars `GIT_GLOB_PATHSPECS` / `GIT_ICASE_PATHSPECS` /
   `GIT_LITERAL_PATHSPECS` / `GIT_NOGLOB_PATHSPECS`.
-  It **sets** `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL` and
-  `GIT_CONFIG_SYSTEM` to `/dev/null`, and — load-bearing, and absent from the
-  earlier draft — `GIT_CONFIG_COUNT=1` with
+  It **sets** eight variables (six when handed `repo_root=None`, the
+  root-discovery branch, which sets no ceiling of its own):
+  `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` to
+  `/dev/null`, and — load-bearing, and absent from the earlier draft —
+  `GIT_CONFIG_COUNT=1` with
   `GIT_CONFIG_KEY_0=core.excludesFile` and `GIT_CONFIG_VALUE_0=/dev/null`.
   Pinning `core.excludesFile` is not belt-and-braces: leaving it *unset* is
   exactly what opens Git's `$XDG_CONFIG_HOME/git/ignore` → `~/.config/git/ignore`
@@ -445,11 +455,15 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       is not the comparison path.
 - [x] The refactored lint reproduces every captured baseline's canonical surface,
       on both streams and with the same exit code. Raw bytes are what is stored;
-      the four normalisation classes in [§ Golden baseline](#golden-baseline) are
-      what is compared, and each is bounded by a mutation-proven assertion.
-- [x] The three divergences, the four normalisation classes, and the two
-      uncaptured roots documented in [§ Golden baseline](#golden-baseline) are the
-      only permitted differences; any other difference fails the comparison.
+      the normalisation classes enumerated in
+      [§ Golden baseline](#golden-baseline) are what is compared. That section is
+      the single statement of both the list and how each class is supported —
+      neither its cardinality nor its coverage level is restated here, because
+      restating them is how this criterion twice ended up asserting a count and a
+      blanket mutation guarantee that the artifact contradicted.
+- [x] The three divergences, the normalisation classes, and the two uncaptured
+      roots documented in [§ Golden baseline](#golden-baseline) are the only
+      permitted differences; any other difference fails the comparison.
       Naming the normalisation classes here is not bookkeeping — an earlier draft
       of this criterion said "the only permitted difference" while the comparison
       already normalised four things, so the criterion asserted something the
