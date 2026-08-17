@@ -335,10 +335,16 @@ test:
 	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
 	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
-	$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
-	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
 	$(PYTHON) -c "import httpx"
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
+	$(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
+	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
 	$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
+	$(PYTHON) -m pytest packs/linear/tests/skills/linear-brief-intake/ -q
 	$(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q
 	$(PYTHON) -m pytest packs/converters/tests/skills/mermaid-renderer/ -q
 	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q --collect-only | grep -c '::' || true); \

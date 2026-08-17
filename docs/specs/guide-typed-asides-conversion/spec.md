@@ -94,7 +94,7 @@ queued work.
 ## Acceptance Criteria
 
 - [x] **AC1 — Exhaustive classification.** A tracked ledger contains exactly
-  one row for each of the 166 parser-visible contiguous blockquote blocks
+  one row for each of the 165 parser-visible contiguous blockquote blocks
   present at the approved baseline. Fenced-code lines beginning with `>` are
   excluded because Markdown renders them as code, not quotations. Every row
   records source path, original line, stable

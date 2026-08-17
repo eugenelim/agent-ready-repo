@@ -104,7 +104,11 @@ One file per non-trivial subsystem:
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md)
   — the implemented architecture for separating source intake, canonical
   intents/briefs/specs/defects, lifecycle membership in `workspace.toml`, and
-  processor dispatch. Tracker-owned refresh remains a later integration.
+  processor dispatch. Jira, Jira Align, Linear, and GitHub adapters now converge
+  on its `normalized-intake.v1` boundary: acquisition and versioned profile
+  hints stay tracker-specific, while content classification and every repository
+  write stay in `work-intake`. Tracker intake is read-only; refresh conflicts,
+  execution locks, and tracker write-back remain later integrations.
 
 ## Packages
 

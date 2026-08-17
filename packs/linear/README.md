@@ -1,28 +1,39 @@
-# linear pack
+# Linear
 
-Linear integration for the agent-ready-repo catalogue. Turns a Linear Issue
-or Project into a shippable product brief and keeps it in sync as the Issue
-evolves.
+Start repository work from a Linear Issue, Project, Cycle, or explicit
+selection without making a tracker change.
 
-## Skills
+Try:
 
-| Skill | What it does |
-| --- | --- |
-| `linear` | Credentialed GraphQL primitive — all Linear API reads live here. Exposes `check`, `get-issue`, and `get-project` subcommands. The agent never sees the API key. |
-| `linear-brief-intake` | First-time intake: pulls an Issue or Project via `linear`, maps it onto a product brief, writes to `docs/product/briefs/<slug>.md`, and hands off to `receive-brief`. |
-| `linear-brief-sync` | Delta catch-up: re-fetches the Issue, diffs Linear-sourced fields against the current brief, presents section-level before/after for PE approval, and writes only what PE approves. Refuses when brief `Status: Executing`. |
+```text
+Intake Linear issue LIN-123 as repository work. Start read-only.
+```
+
+The pack reads a bounded set of Linear fields, preserves stable provenance,
+and hands a validated `normalized-intake.v1` record to `work-intake`. Content
+decides whether the result is an intent, brief, spec, defect, separate units,
+or a view-only refusal. Linear object types, labels, and item counts are hints.
+
+Tracker intake never writes to Linear. Repository materialization belongs to
+`work-intake` and happens only after validation and any required human choice.
+The separate `linear-brief-sync` workflow can update an existing brief after
+showing a section-level diff and receiving approval.
 
 ## Install
 
 ```bash
-# <catalogue> is your catalogue URI: a local clone path or a git+https://… URL.
 agentbundle install --pack linear --scope user <catalogue>
 ```
 
-Requires the `credential-brokers` pack for API key resolution. After install,
-run `credential-setup` to store your Linear Personal API Key under namespace
-`linear`.
+Install the `credential-brokers` pack, then use `credential-setup` to store a
+Linear Personal API Key. The key never belongs in a request or repository file.
 
-## Guides
+## What you get
 
-→ [When to use linear-brief-intake vs linear-brief-sync](../../guides/linear/how-to/linear-brief-intake-and-sync.md)
+| Workflow | Result |
+| --- | --- |
+| Start from Linear work | Read-only acquisition, strict normalization, then content-based `work-intake` routing |
+| Inspect Linear directly | Credentialed `check`, `get-issue`, and `get-project` reads |
+| Catch up an existing brief | An approval-gated delta from `linear-brief-sync`; unavailable while the brief is executing |
+
+→ [Choose intake or sync](../../guides/linear/how-to/linear-brief-intake-and-sync.md)

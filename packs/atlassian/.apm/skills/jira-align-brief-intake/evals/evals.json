@@ -1,0 +1,17 @@
+{
+  "skill_name": "jira-align-brief-intake",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Intake Jira Align Feature 1234.",
+      "expected_output": "Uses jira-align reads, applies a versioned profile, emits normalized-intake.v1, and invokes work-intake without writing a brief directly.",
+      "assertions": ["Tracker acquisition is read-only", "Routing is delegated to work-intake"]
+    },
+    {
+      "id": 2,
+      "prompt": "Make this unrelated Jira Align collection one brief.",
+      "expected_output": "Treats hierarchy as a hint and asks whether the content is one outcome, separate units, or view-only.",
+      "assertions": ["Hierarchy does not determine the artifact", "No Jira Align write is proposed"]
+    }
+  ]
+}

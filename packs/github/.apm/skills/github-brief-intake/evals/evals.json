@@ -1,0 +1,17 @@
+{
+  "skill_name": "github-brief-intake",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Intake GitHub issue 123.",
+      "expected_output": "Uses read-only gh argv from trusted configuration, preserves updatedAt provenance, emits normalized-intake.v1, and invokes work-intake without writing a brief directly.",
+      "assertions": ["gh argv uses the trusted configured host", "No GitHub write verb is used"]
+    },
+    {
+      "id": 2,
+      "prompt": "Make this unrelated GitHub Milestone one brief.",
+      "expected_output": "Treats the Milestone as a hint and asks whether the content is one outcome, separate units, or view-only.",
+      "assertions": ["The Milestone type does not determine the artifact", "Routing is delegated to work-intake"]
+    }
+  ]
+}

@@ -2,8 +2,8 @@
 
 GitHub integration for this catalogue. The pack ships one skill:
 
-- **`github-brief-intake`** — pull a GitHub Milestone and its issues via the
-  `gh` CLI, map them to a Shape B product brief, and hand off to `receive-brief`.
+- **`github-brief-intake`** — read a GitHub Issue, Milestone, or selection via
+  trusted fixed-host `gh` commands, normalize it, and hand it to `work-intake`.
 
 New here? Start with the how-to guide below.
 
@@ -11,7 +11,7 @@ New here? Start with the how-to guide below.
 
 Task-oriented recipes for a problem you already have.
 
-- [Intake a GitHub Milestone as a product brief](how-to/intake-a-github-milestone-as-a-brief.md) — pull a milestone, map its issues to user stories, write a brief, and hand off to `receive-brief`.
+- [Intake GitHub work into the repository](how-to/intake-a-github-milestone-as-a-brief.md) — acquire read-only, review the content-based route, and continue with the selected processor.
 
 ---
 

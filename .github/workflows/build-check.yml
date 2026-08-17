@@ -298,10 +298,16 @@ jobs:
           python -m pytest packs/core/tests/skills/new-spec/ -q
           python -m pytest packs/core/tests/skills/workspace-status/ -q
           python -m pytest packs/credential-brokers/tests/pack/ -q
-          python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
-          python -m pytest packs/product-engineering/tests/pack/ -q
           python -c "import httpx"
+          python -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
+          python -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
+          python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+          python -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
+          python -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
+          python -m pytest packs/github/tests/skills/github-brief-intake/ -q
+          python -m pytest packs/product-engineering/tests/pack/ -q
           python -m pytest packs/linear/tests/skills/linear/ -q
+          python -m pytest packs/linear/tests/skills/linear-brief-intake/ -q
           python -m pytest tools/test_lint_agents_md_diataxis_block.py \
             tools/test_lint_agents_md_legacy_block.py \
             tools/test_lint_agents_md_risk_block.py \

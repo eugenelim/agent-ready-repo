@@ -1,0 +1,19 @@
+{
+  "id": "github-default",
+  "version": "1.0",
+  "destination": {
+    "boundary": "approved-gh-fixed-host",
+    "allowed_hosts": ["github.com"],
+    "host_source": "trusted-configuration-only",
+    "payload_host_allowed": false
+  },
+  "budget": {
+    "max_pages": 5,
+    "max_items": 100,
+    "max_bytes": 2097152,
+    "timeout_seconds": 30,
+    "max_retries": 1,
+    "backoff_seconds": [1],
+    "exhaustion": "marked-incomplete"
+  }
+}

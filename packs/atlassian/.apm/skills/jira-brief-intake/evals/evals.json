@@ -1,0 +1,17 @@
+{
+  "skill_name": "jira-brief-intake",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Intake Jira issue EX-101 as repository work.",
+      "expected_output": "Uses jira reads, preserves trusted revision provenance, emits normalized-intake.v1, and invokes work-intake without writing a brief directly.",
+      "assertions": ["Tracker acquisition is read-only", "Routing is delegated to work-intake"]
+    },
+    {
+      "id": 2,
+      "prompt": "Make this unrelated Jira board one brief.",
+      "expected_output": "Treats the board as a hint and asks whether the content is one outcome, separate units, or view-only.",
+      "assertions": ["The board type does not determine the artifact", "No Jira write is proposed"]
+    }
+  ]
+}

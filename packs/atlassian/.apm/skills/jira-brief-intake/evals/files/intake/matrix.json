@@ -1,0 +1,58 @@
+{
+  "contract_version": "tracker-intake-matrix.v1",
+  "profile": {"id": "jira-default", "version": "1.0"},
+  "security": {
+    "boundary": "adapter-controlled-http",
+    "allowed_schemes": ["https"],
+    "allowed_hosts": ["tracker.example.test"],
+    "blocked_addresses": ["127.0.0.1", "10.0.0.1", "169.254.169.254", "::1"],
+    "redirect_policy": "disabled",
+    "dns_policy": "connect-time-recheck",
+    "ordering": ["validate_destination", "load_credentials", "request"]
+  },
+  "budget": {"max_pages": 5, "max_items": 250, "max_bytes": 2097152, "timeout_seconds": 30, "max_retries": 2, "backoff_seconds": [1, 2], "exhaustion": "marked-incomplete"},
+  "cases": [
+    {
+      "id": "direct-spec",
+      "raw": {"key": "EX-101", "issueType": "Story", "updated": "2026-08-01T00:00:00Z", "summary": "Add bounded export controls", "description": "Workspace owners can configure bounded export retention. One independently shippable behavior. Configure export retention.", "confidentiality": "internal"},
+      "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Workspace owners can configure bounded export retention."], "constraints": ["One independently shippable behavior."], "evidence": [], "behaviors": ["Configure export retention."], "assumptions": [], "named_gaps": []}, "source": {"mode": "tracker-origin", "locator": "jira://EX-101", "revision": "2026-08-01T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Story"}, "constraints": {"confidentiality": "internal"}, "proposed_authority": "tracker-origin"},
+      "routing_signals": {"action": "start", "artifact": "docs/specs/export-retention/spec.md", "artifact_kind": "spec", "authority_mode": "tracker-origin"},
+      "expected_route": {"artifact": "docs/specs/export-retention/spec.md", "artifact_kind": "spec", "lifecycle_membership": "work.queue", "processor": "new-spec", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
+    },
+    {
+      "id": "multi-spec-brief",
+      "raw": {"key": "EX-200", "issueType": "Epic", "updated": "2026-08-02T00:00:00Z", "summary": "Account recovery outcome", "description": "Customers recover accounts through several independently shippable capabilities. Verify identity. Restore access.", "confidentiality": "internal"},
+      "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Customers recover accounts through several independently shippable capabilities."], "constraints": [], "evidence": [], "behaviors": ["Verify identity.", "Restore access."], "assumptions": [], "named_gaps": []}, "source": {"mode": "tracker-origin", "locator": "jira://EX-200", "revision": "2026-08-02T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Epic"}, "constraints": {"confidentiality": "internal"}, "proposed_authority": "tracker-origin"},
+      "routing_signals": {"action": "start", "artifact": "docs/product/briefs/account-recovery.md", "artifact_kind": "brief", "authority_mode": "tracker-origin"},
+      "expected_route": {"artifact": "docs/product/briefs/account-recovery.md", "artifact_kind": "brief", "lifecycle_membership": "brief_queue.draft", "processor": "author-brief", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
+    },
+    {
+      "id": "cross-repo-brief",
+      "raw": {"key": "EX-300", "issueType": "Epic", "updated": "2026-08-03T00:00:00Z", "repositories": ["service-a", "service-b"], "description": "Two repositories coordinate one customer outcome. Each repository requires a linked local brief. Record parent and coordination provenance.", "cross_repo": true},
+      "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Two repositories coordinate one customer outcome."], "constraints": ["Each repository requires a linked local brief."], "evidence": [], "behaviors": ["Record parent and coordination provenance."], "assumptions": [], "named_gaps": []}, "source": {"mode": "tracker-origin", "locator": "jira://EX-300", "revision": "2026-08-03T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Epic"}, "constraints": {"cross_repo": true}, "proposed_authority": "tracker-origin"},
+      "routing_signals": {"action": "start", "artifact": "docs/product/briefs/coordinated-outcome.md", "artifact_kind": "brief", "authority_mode": "tracker-origin"},
+      "expected_route": {"artifact": "docs/product/briefs/coordinated-outcome.md", "artifact_kind": "brief", "lifecycle_membership": "brief_queue.draft", "processor": "author-brief", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
+    },
+    {
+      "id": "incoherent-collection",
+      "raw": {"selection": "board-7", "updated": "2026-08-04T00:00:00Z", "issues": ["EX-1", "EX-2"], "description": "Unrelated maintenance. Unrelated reporting. Choose separate units or view-only output."},
+      "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": [], "constraints": [], "evidence": [], "behaviors": ["Unrelated maintenance.", "Unrelated reporting."], "assumptions": [], "named_gaps": ["Choose separate units or view-only output."]}, "source": {"mode": "tracker-origin", "locator": "jira://boards/7", "revision": "2026-08-04T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Board"}, "constraints": {}, "proposed_authority": "tracker-origin"},
+      "routing_signals": {"action": "start", "artifact": "docs/product/intents/board-selection.md", "artifact_kind": "intent", "authority_mode": "tracker-origin", "named_gaps": true},
+      "expected_route": {"artifact": "docs/product/intents/board-selection.md", "artifact_kind": "intent", "lifecycle_membership": "draft-with-gaps", "processor": "none", "authority_mode": "tracker-origin", "mutation": "ask-or-draft-only"}
+    },
+    {
+      "id": "defect",
+      "raw": {"key": "EX-404", "issueType": "Bug", "updated": "2026-08-05T00:00:00Z", "expectedBehaviorRef": "docs/specs/login/spec.md", "description": "Restore the documented login behavior. docs/specs/login/spec.md defines the expected behavior. Login no longer times out."},
+      "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Restore the documented login behavior."], "constraints": [], "evidence": ["docs/specs/login/spec.md defines the expected behavior."], "behaviors": ["Login no longer times out."], "assumptions": [], "named_gaps": []}, "source": {"mode": "tracker-origin", "locator": "jira://EX-404", "revision": "2026-08-05T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Bug"}, "constraints": {}, "proposed_authority": "tracker-origin"},
+      "routing_signals": {"action": "start", "artifact": "docs/product/defects/login-timeout.md", "artifact_kind": "defect", "authority_mode": "tracker-origin"},
+      "expected_route": {"artifact": "docs/product/defects/login-timeout.md", "artifact_kind": "defect", "lifecycle_membership": "backlog.open", "processor": "bug-fix", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
+    },
+    {
+      "id": "claimed-defect-without-evidence",
+      "raw": {"key": "EX-405", "issueType": "Bug", "updated": "2026-08-06T00:00:00Z", "summary": "Investigate intermittent login failure", "description": "Investigate intermittent login failure. Login sometimes fails. No durable expected-behavior evidence is cited."},
+      "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Investigate intermittent login failure."], "constraints": [], "evidence": [], "behaviors": ["Login sometimes fails."], "assumptions": [], "named_gaps": ["No durable expected-behavior evidence is cited."]}, "source": {"mode": "tracker-origin", "locator": "jira://EX-405", "revision": "2026-08-06T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Bug"}, "constraints": {}, "proposed_authority": "tracker-origin"},
+      "routing_signals": {"action": "start", "artifact": "docs/specs/login-investigation/spec.md", "artifact_kind": "spec", "authority_mode": "tracker-origin", "named_gaps": true},
+      "expected_route": {"artifact": "docs/specs/login-investigation/spec.md", "artifact_kind": "spec", "lifecycle_membership": "draft-with-gaps", "processor": "none", "authority_mode": "tracker-origin", "mutation": "ask-or-draft-only"}
+    }
+  ]
+}
