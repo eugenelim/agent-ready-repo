@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "x-spec": "docs/specs/guide-metadata-completion/",
   "title": "Guide frontmatter",
   "description": "YAML frontmatter schema for catalogue-facing guide files under guides/.",
   "type": "object",

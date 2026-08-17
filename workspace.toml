@@ -115,7 +115,9 @@ backlog = [
 
 ["ini-002".brief_queue]
 executing = ""
-ready     = []
+ready     = [
+  {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
+]
 draft     = []
 
 ["ini-002".work]
@@ -227,6 +229,18 @@ queue   = [
   # and a separately governed multi-project bank. Reassess whether this remains one closeout
   # spec after Slice 4; it must not implement those conditional follow-ons itself.
   {path = "docs/specs/project-knowledge-adoption-closeout/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Evaluate and close out the portable project knowledge lifecycle", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md"}]},
+
+  # Tech-site completion programme — approved 2026-08-17 from the canonical brief.
+  # These entries are independently shippable. `needs` records only hard delivery
+  # ordering; the brief retains the broader wave and evidence sequence.
+  {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
+  {path = "docs/specs/site-ci-contract-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Require the existing site construction tests and docs contrast checker in CI", needs = []},
+  {path = "docs/specs/docs-site-build-contract-hardening/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Harden docs rendering with site-local cleanup and built-in plugin tests", needs = [{type = "local", kind = "spec", path = "docs/specs/site-ci-contract-closure/spec.md"}]},
+  {path = "docs/specs/guide-title-clarity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Apply the four approved guide-title wording changes", needs = []},
+  {path = "docs/specs/guide-metadata-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete reviewed metadata for every rendered public guide", needs = [{type = "local", kind = "spec", path = "docs/specs/guide-title-clarity/spec.md"}]},
+  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
+  {path = "docs/specs/site-browser-quality-gate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Gate emitted-site responsiveness, accessibility, and navigation behavior", needs = []},
+  {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = [{type = "local", kind = "spec", path = "docs/specs/site-browser-quality-gate/spec.md"}]},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -723,7 +737,9 @@ open = [
   #   workflow after both builds — it needs the built tree, so it cannot run in
   #   build-check.
   # Unblocks when: picked up — no dependency.
-  {slug = "web-docs-link-check-gate", source = "spec/marketing-docs-link-repair (out of scope)"},
+  # Closed 2026-08-17 as already shipped by spec/rendered-site-link-debt;
+  # canonical closure verification remains in site-contract-provenance-cleanup.
+  # Original source: spec/marketing-docs-link-repair (out of scope).
 
   # docs/specs/phase4b-product-docs-completion/spec.md is Shipped and still instructs
   # the superseded docsUrl form in three places: the in-scope bullet (line 24), the
@@ -736,7 +752,8 @@ open = [
   #   that the docsUrl direction was superseded on 2026-08-06 and by which spec, or
   #   (b) amending AC7 in place. (a) preserves history and is the likelier call.
   # Unblocks when: picked up — needs a decision on amending a Shipped spec.
-  {slug = "phase4b-docsurl-instruction-stale", source = "spec/marketing-docs-link-repair (out of scope)"},
+  # Merged 2026-08-17 into spec/site-contract-provenance-cleanup.
+  # Original source: spec/marketing-docs-link-repair (out of scope).
 
   # Three XD-chain structural invariants lost their only implementation. The
   # deterministic checker `tools/check-xd-chain.py` and its `xd-chain-gate.yml`
@@ -1066,7 +1083,7 @@ open = [
   # (375/390/430px) and a physical device. Dev server: make site-serve.
   # Fix: run the mobile audit; open a mobile-CSS PR.
   # Unblocks when: screened on actual mobile viewport + physical device.
-  {slug = "site-mobile-responsiveness"},
+  # Merged 2026-08-17 into spec/site-browser-quality-gate.
 
   # NARROWED 2026-08-15. The content half is DONE: `grep -rn "install research"
   # guides/` returns zero hits, so no adopter-facing guide carries the retired id.
@@ -1553,14 +1570,22 @@ open = [
   {slug = "push-acs-to-linear", needs = "work:spec/m5-linear-brief-intake-and-sync"},
 
   # ── journey-template-revamp experience polish ─────────────────────────────────
-  {slug = "journey-good-output-transcripts", summary = "Author goodOutputDescription transcripts for the P1 journeys", source = "spec/journey-template-revamp experience-review Minor-3"},
-  {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
-  {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
+  # Merged 2026-08-17 into spec/journey-page-completion. Original sources:
+  # spec/journey-template-revamp experience-review Minor-3,
+  # spec/journey-template-revamp experience-review Minor-4, and
+  # spec/journey-template-revamp experience-review Nit-5.
+  # journey-good-output-transcripts (Minor-3), journey-hero-descriptive-eyebrow
+  # (Minor-4), and journey-decision-chip-gate-anchors (Nit-5).
 
   # ── Starlight migration follow-ons ─────────────────────────────────────────
   # RFC required before a new top-level directory is permanent (AGENTS.md §"Check before acting").
   # Mirrors RFC-0061 (web/) precedent.
-  {slug = "starlight-migration-rfc", summary = "Open RFC for the docs-site/ top-level directory (mirrors RFC-0061 precedent)", source = "spec/starlight-migration"},
+  # Satisfied 2026-08-17 by accepted RFC-0089. Membership remains temporarily
+  # because the frozen shipped spec's `(deferred: starlight-migration-rfc)`
+  # pointer is a hard lint contract; spec/site-contract-provenance-cleanup owns
+  # the safe closure without rewriting the frozen body.
+  # Original source: spec/starlight-migration.
+  {slug = "starlight-migration-rfc", summary = "Satisfied by RFC-0089; retained until frozen deferred-reference closure is lint-safe", source = "spec/starlight-migration"},
 
   # ── Adopter-SAST follow-ons (spec/pack-script-root-boundary-validation) ────
   # An adopter's org Snyk Code scan reports CWE-23 path-traversal against the
@@ -1927,7 +1952,7 @@ open = [
   # unreviewed strings into meta tags and social previews. Each needs a human
   # one-liner. Consider batching by pack. Files: guides/**/*.md frontmatter.
   # Unblocks when: ready now.
-  { slug = "guide-summary-backfill" },
+  # Merged 2026-08-17 into spec/guide-metadata-completion.
 
   # The marketing site and the docs site are two visually disconnected products.
   # At /docs/ the Starlight chrome replaces everything: the header loses the
@@ -1943,7 +1968,7 @@ open = [
   # must either stay palette-neutral or amend that rule through an RFC — do not
   # quietly work around it.
   # Unblocks when: ready now, but confirm the palette question first.
-  { slug = "site-shared-chrome-band" },
+  # Merged 2026-08-17 into spec/site-shared-chrome after RFC-0089 and ADR-0085.
 
   # tools/lint-guide-titles.py (added by spec/tech-site-polish-batch) found 9
   # guides whose frontmatter title and body H1 disagreed. The H1s were
@@ -1963,7 +1988,7 @@ open = [
   # sidebar labels from a frozen baseline before falling back to the page title,
   # so a title change may not move the sidebar label — check both.
   # Unblocks when: ready now.
-  { slug = "guide-title-wording-review" },
+  # Merged 2026-08-17 into spec/guide-title-clarity.
 
   # Test coverage landed for tools/lint-guide-titles.py and build-site.py's
   # leading_h1 / _strip_leading_h1 / _strip_guide_metadata transforms
@@ -1977,7 +2002,7 @@ open = [
   # docs-site/, which is a new dependency and therefore an AGENTS.md
   # dependency-table entry — hence deferred rather than bundled.
   # Unblocks when: ready now; decide whether docs-site earns a test runner.
-  { slug = "rehype-plugin-unit-tests" },
+  # Merged 2026-08-17 into spec/docs-site-build-contract-hardening.
 
   # Docs pages carry a large number of interactive elements under the WCAG 2.2
   # 24x24 target-size minimum — 40-47 on the docs landing, 12-26 on content
@@ -1989,7 +2014,8 @@ open = [
   # already fixed in spec/tech-site-polish-batch (drawer links went from 17px to
   # 44px full-width rows).
   # Unblocks when: ready now.
-  { slug = "docs-tap-target-audit", type = "design" },
+  # Merged 2026-08-17 into spec/site-browser-quality-gate; the canonical audit
+  # scaffold is that spec's notes/docs-tap-target-audit.md.
 
   # There is no docs/design/principles/ artefact for either site surface, so the
   # in-session design review could trace none of its findings to a project
@@ -2003,7 +2029,7 @@ open = [
   # docs surface should use display serif at H1/H2 scale at all; and whether the
   # product wants an illustrative register (it currently has none).
   # Unblocks when: ready now.
-  { slug = "site-design-principles", type = "design" },
+  # Closed 2026-08-17 to docs/design/principles/tech-site.md.
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
