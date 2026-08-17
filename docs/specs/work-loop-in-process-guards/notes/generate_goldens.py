@@ -45,6 +45,13 @@ def _load(path: Path, name: str):
 # ── digests ────────────────────────────────────────────────────────────────
 
 def capture_digests() -> dict:
+    """One digest per corpus artifact, from the pre-change implementation.
+
+    No line-ending variants: `Path.read_text()` folds CR and CRLF to LF before
+    `canonical_contract` runs, so a CRLF-on-disk artifact hashes identically to its
+    LF twin regardless of the fold — a digest-level assertion about it can never
+    fail. The fold is covered directly, on strings, in the test module.
+    """
     cohort = _load(COHORT, "_cohort_pre_change")
     out = {}
     for path in gs.corpus_entries():
@@ -53,8 +60,9 @@ def capture_digests() -> dict:
         "_note": (
             "sha256_canonical_contract over fixtures/corpus/, captured from "
             "loop-cohort.py BEFORE the guard extraction. The moved implementation "
-            "must reproduce these exactly; perturbing one line of the relocated "
-            "canonical_contract must break this."
+            "must reproduce these exactly; perturbing the line-rstrip or the status "
+            "splice in the relocated canonical_contract must break this "
+            "(mutation-verified)."
         ),
         "digests": out,
     }

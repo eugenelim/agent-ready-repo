@@ -668,6 +668,22 @@ a criterion, the criterion references this section rather than restating it.
   future-annotations is not linter-enforced here, and PEP 604 unions evaluate
   natively from 3.10 — above the 3.11 floor (source: probe over all combinations
   plus `pyproject.toml` ruff `select`, 2026-08-17).
+- Technical: `Path.read_text()` decodes with **universal newlines**, so CR and CRLF
+  are folded to LF before `canonical_contract` ever runs. Its own CRLF/CR fold is
+  therefore currently *redundant* for file input — probe-verified, and confirmed by
+  mutation: removing the fold changes no file-derived digest. This matters for T1a:
+  `read_managed_text` reads bytes via `os.read` and decodes them itself, so the fold
+  stops being redundant and becomes the control that keeps digests stable for a
+  CR-bearing artifact. `read_managed_text` must therefore either decode with
+  universal-newline semantics or rely on the fold explicitly — and `parse_status` on
+  raw-CR text is a separate path, since `_STATUS_RE` is unanchored and a bare-CR
+  document is a single line to `str.split("\n")` (source: probes, 2026-08-17).
+- Technical: a committed CRLF fixture is impossible in this repository —
+  `.gitattributes` pins `* text=auto eol=lf` for Windows-clean downstream forks, and
+  a CRLF corpus file's committed blob was observed holding zero CR bytes against
+  eleven in the working copy. So the line-ending path is covered by calling
+  `canonical_contract` on CR-bearing strings, not by a corpus artifact (source:
+  `git show` byte comparison, 2026-08-17).
 - Technical: `exec_module` does **not** remove a `sys.modules` entry when the
   module body raises — probe-confirmed a truncated module survives with early
   names bound and later ones absent, whereas a real `import` cleans up

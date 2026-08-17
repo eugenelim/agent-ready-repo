@@ -77,17 +77,17 @@ Pin the lowercase-heading normalization path.
 """
 
 SYNTH_CRLF = (
-    "# Spec: synthetic CRLF line endings\r\n"
-    "\r\n"
-    "- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped -->\r\n"
-    "\r\n"
-    "Hand-authored. `canonical_contract` normalizes CRLF and CR to LF as its first\r\n"
-    "step; no file in the live tree uses CRLF, so this path is otherwise untested.\r\n"
-    "\r\n"
-    "## Acceptance Criteria\r\n"
-    "\r\n"
-    "- [x] CRLF is folded before hashing.\r\n"
-    "- [ ] Trailing whitespace is stripped per line.   \r\n"
+    "# Spec: synthetic line-ending source\n"
+    "\n"
+    "- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped -->\n"
+    "\n"
+    "Hand-authored. `canonical_contract` normalizes CRLF and CR to LF as its first\n"
+    "step; no file in the live tree uses CRLF, so this path is otherwise untested.\n"
+    "\n"
+    "## Acceptance Criteria\n"
+    "\n"
+    "- [x] CRLF is folded before hashing.\n"
+    "- [ ] Trailing whitespace is stripped per line.   \n"
 )
 
 SYNTH_NO_STATUS = """# Plan: synthetic plan with no Status line

@@ -10,8 +10,11 @@ Four properties, each guarding a specific way this apparatus could rot:
 1. **The corpus still covers the shapes it was chosen for.** `canonical_contract`'s
    own comments name the cases that historically broke it, and three are
    near-unique in the repository (one odd-fence file, two bold-lead-in specs,
-   four checkbox plans) while two more do not occur at all and are hand-authored.
-   A corpus that quietly loses one of those stops exercising the normalization.
+   four checkbox plans) and one — a lowercase-`c` heading — does not occur at all
+   and is hand-authored. A corpus that quietly loses one stops exercising the
+   normalization. Line endings are NOT a corpus shape: see
+   `test_canonical_contract_folds_line_endings` for why a committed CRLF fixture
+   is both impossible here and unable to fail.
 
 2. **The normalizer is idempotent.** A non-idempotent normalizer would mask a real
    difference on the second pass.
@@ -87,7 +90,7 @@ def test_corpus_covers_every_shape_canonical_contract_calls_out() -> None:
     found: dict[str, list[str]] = {k: [] for k in (
         "odd-fence", "ac-bold-lead", "lowercase-ac-heading", "plan-checkbox",
         "multiline-html-comment", "no-status-line", "status-with-free-text",
-        "crlf-endings", "checkbox-outside-ac-section",
+        "checkbox-outside-ac-section",
     )}
     for path in gs.corpus_entries():
         key = gs.corpus_key(path)
@@ -107,8 +110,17 @@ def test_corpus_covers_every_shape_canonical_contract_calls_out() -> None:
             found["no-status-line"].append(key)
         if re.search(r"\*\*Status:\*\*\s*\w+\s+—", text):
             found["status-with-free-text"].append(key)
-        if b"\r\n" in raw:
-            found["crlf-endings"].append(key)
+        # No `crlf-endings` probe on committed bytes: `.gitattributes` pins
+        # `* text=auto eol=lf`, so committed CR bytes do not survive the blob.
+        # The line-ending path is covered by the synthesized @crlf/@cr digests
+        # in test_line_ending_variants_fold_to_the_same_digest below.
+        assert b"\r" not in raw, (
+            f"{key}: committed CR bytes. `.gitattributes` normalizes them away in "
+            "the blob, so a fixture that relies on them would hash differently in a "
+            "fresh clone than in this working copy — which is exactly the divergence "
+            "this assertion exists to prevent. Synthesize line-ending variants "
+            "instead (golden_support.crlf_bytes)."
+        )
         if re.search(r"^### Never do\s*\n\s*\n\s*- \[", text, re.M):
             found["checkbox-outside-ac-section"].append(key)
 
@@ -129,6 +141,34 @@ def test_every_corpus_artifact_has_a_recorded_digest(digests: dict) -> None:
     )
     for key, value in digests.items():
         assert re.fullmatch(r"[0-9a-f]{64}", value), f"{key}: not a sha256"
+
+
+def test_canonical_contract_folds_line_endings() -> None:
+    """The CRLF/CR fold, tested where it is actually reachable: on strings.
+
+    A digest-level version of this assertion CANNOT FAIL, and that was found by
+    mutation rather than by reading. Two independent reasons:
+
+      * `Path.read_text()` decodes with universal newlines, so a CRLF-on-disk
+        artifact is already LF by the time `canonical_contract` sees it.
+      * `.gitattributes` pins `eol=lf`, so a CRLF fixture cannot even be committed.
+
+    Calling `canonical_contract` directly with CR-bearing text is the only route
+    that exercises the fold — and it matters after this change, because
+    `read_managed_text` will decode bytes itself rather than going through
+    `read_text`, making the fold load-bearing where it is currently redundant.
+
+    Mutation-verified: removing the fold turns this red.
+    """
+    hasher, canonical = _current_canonical_helpers()
+    lf = (
+        "# Spec: fold\n\n- **Status:** Shipped\n\n"
+        "## Acceptance Criteria\n\n- [x] one\n- [ ] two\n"
+    )
+    assert canonical(gs.crlf_text(lf)) == canonical(lf), "CRLF is not folded to LF"
+    assert canonical(gs.cr_text(lf)) == canonical(lf), "bare CR is not folded to LF"
+    # And the fold is not vacuous on the input: the variants really do differ.
+    assert gs.crlf_text(lf) != lf and gs.cr_text(lf) != lf
 
 
 # ── 2. normalizer ──────────────────────────────────────────────────────────
@@ -263,3 +303,53 @@ def test_the_unprefixed_refusal_is_recorded(rows: list[dict]) -> None:
     assert row is not None
     assert row["before"]["returncode"] != 0
     assert row["before"]["stderr"] == "loop-cohort: stop — plan_review_status: pending"
+
+
+# ── 5. the live-code guard ─────────────────────────────────────────────────
+
+def _current_canonical_helpers():
+    """`sha256_canonical_contract` as the tree currently implements it.
+
+    Deliberately loaded from `loop-cohort.py` rather than from `_loop_guards.py`:
+    that name stays a valid `loop-cohort` module attribute across the extraction
+    (T1a re-binds every relocated name), so this test keeps pointing at whatever
+    module actually owns the algorithm and needs no edit when it moves. Pointing it
+    at the new module instead would make it silently stop covering the old path
+    during the transition.
+    """
+    scripts = (
+        Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
+    )
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "_cohort_for_digest_check", str(scripts / "loop-cohort.py")
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.sha256_canonical_contract, mod.canonical_contract
+
+
+def test_recomputed_digests_match_golden(digests: dict) -> None:
+    """Re-derive every digest from the CURRENT code and compare to the golden.
+
+    The assertion the extraction has to survive, and the only digest assertion here
+    that can fail when the implementation changes. Mutation-verified: perturbing the
+    line-rstrip or the status splice in `canonical_contract` turns this red.
+
+    Loaded from `loop-cohort.py` rather than `_loop_guards.py` on purpose — that name
+    stays a valid `loop-cohort` module attribute across the extraction, so this test
+    keeps pointing at whatever module owns the algorithm and needs no edit when it
+    moves.
+    """
+    hasher, _ = _current_canonical_helpers()
+    mismatches = [
+        gs.corpus_key(p) for p in gs.corpus_entries()
+        if hasher(p) != digests[gs.corpus_key(p)]
+    ]
+    assert not mismatches, (
+        f"{len(mismatches)} digest(s) no longer match the pre-change golden: "
+        f"{mismatches[:8]}. The canonical contract pins every approved baseline, so "
+        "a digest change silently invalidates in-flight runs — including this spec's "
+        "own state.json. Do NOT regenerate the fixture to make this pass."
+    )

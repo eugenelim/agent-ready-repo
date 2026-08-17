@@ -109,6 +109,36 @@ def normalize(text: str, *, spec_dir: Path | None = None) -> str:
     return text.strip()
 
 
+# Line endings, and why there are no @crlf / @cr digest keys.
+#
+# Two facts, both probe-verified, that together make a file-level CRLF digest
+# fixture impossible AND pointless:
+#
+#   1. `.gitattributes` pins `* text=auto eol=lf` repo-wide — deliberate, for
+#      Windows-clean downstream forks — so committed CR bytes do not survive into
+#      the blob. Observed: a CRLF fixture's committed blob held zero CR bytes while
+#      the working copy held eleven, so its digest would differ between a working
+#      copy and a fresh clone.
+#   2. `Path.read_text()` decodes with UNIVERSAL NEWLINES, so CR and CRLF are
+#      already folded to LF before `canonical_contract` ever sees the text. A
+#      CRLF-on-disk artifact therefore hashes identically to its LF twin no matter
+#      what `canonical_contract` does — the digest cannot distinguish them, so a
+#      digest-level assertion about the fold can never fail.
+#
+# So the fold is exercised where it is actually reachable: by calling
+# `canonical_contract` on CR-bearing *strings*, in
+# `test_canonical_contract_folds_line_endings`. That version goes red when the fold
+# is removed; a digest-level one does not (verified by mutation).
+def crlf_text(text: str) -> str:
+    """LF text rewritten with CRLF endings, as a string (not bytes)."""
+    return text.replace("\r\n", "\n").replace("\r", "\n").replace("\n", "\r\n")
+
+
+def cr_text(text: str) -> str:
+    """LF text rewritten with bare-CR endings — the other form the fold handles."""
+    return text.replace("\r\n", "\n").replace("\n", "\r")
+
+
 def corpus_entries() -> list[Path]:
     """Every corpus artifact, sorted, with `spec.md`/`plan.md` names preserved."""
     if not CORPUS.is_dir():

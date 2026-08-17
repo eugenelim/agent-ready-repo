@@ -1,5 +1,5 @@
 {
-  "_note": "sha256_canonical_contract over fixtures/corpus/, captured from loop-cohort.py BEFORE the guard extraction. The moved implementation must reproduce these exactly; perturbing one line of the relocated canonical_contract must break this.",
+  "_note": "sha256_canonical_contract over fixtures/corpus/, captured from loop-cohort.py BEFORE the guard extraction. The moved implementation must reproduce these exactly; perturbing the line-rstrip or the status splice in the relocated canonical_contract must break this (mutation-verified).",
   "digests": {
     "001-m2-frame-situation/plan.md": "75dbdad66ce4ca8018100d247145251007c0d2addb37df04399e67a044125efc",
     "001-m2-frame-situation/spec.md": "59ebfc7c6131a480d7774751315dcaf7ac03f7789abba9f80f36a67fad86f812",
@@ -46,7 +46,7 @@
     "024-agentbundle-engine-stragglers/plan.md": "47d7650a7ed8113c50292fecf9d524fd2b2881e04ea3a8e6295c141890210f9f",
     "024-agentbundle-engine-stragglers/spec.md": "a2f74c74aa05377f0afbe6dffb86087b4cc534b674ef697edf252592bae1da4c",
     "025-synthetic-lowercase-ac-heading/spec.md": "91c9a52f9f8aa8686bf180358f000c8677b917d520ad0e4047e24a344e9ba58b",
-    "026-synthetic-crlf-endings/spec.md": "e72d884bde1357da8c71db2afbe9bf5a9c36a365096cbad649e1ceb02fe4de15",
+    "026-synthetic-crlf-endings/spec.md": "2491fe721334c67592cd7b36cf448ceefc13cf6920cc655e53e1e7008167748a",
     "027-synthetic-status-freetext/spec.md": "3b95c5c077636e56edff59d78d1e3e2db292d6308cc1150b6dfd86c24eead13f",
     "028-synthetic-plan-no-status/plan.md": "7996f698e25071a74a54fe27fe2c1e534c5140a0b6189bed781f111025380090"
   }

@@ -440,6 +440,14 @@ byte-for-byte.
 - Add `O_NONBLOCK` to `_read_managed_json`'s open flags and add `read_managed_text`
   with the same shape; point `sha256_canonical_contract` and `_read_md_status` at
   it. Route `TEMPLATE_PATH` through it.
+- **`read_managed_text` must not lose universal-newline decoding.** `read_text()`
+  folds CR and CRLF to LF before `canonical_contract` runs, which makes
+  `canonical_contract`'s own fold redundant today — T0 proved this by mutation: the
+  fold can be deleted without moving a single file-derived digest. Reading bytes
+  through `os.read` removes that free normalization, so either decode with
+  `io.TextIOWrapper(..., newline=None)` semantics or lean on the fold deliberately.
+  Either way `parse_status` needs a look: `_STATUS_RE` is unanchored and a bare-CR
+  document is one line to `split("\n")`.
 - **`_lint_spec_status()` is a changed-on-move helper, not an unchanged one.** It is
   the second loader — lazy, memoised, executed inside a guard call — and it gets the
   same four controls as `load_guards()`: `lstat` + `S_ISREG` on
