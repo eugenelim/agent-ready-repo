@@ -83,19 +83,19 @@ sys.path.insert(0, str(ROOT / "tools"))
 import lint_git_ignore  # noqa: E402 — needs the path insert above
 
 
-def _hermetic_env() -> dict[str, str]:
+def _hermetic_env(repo_root: Path | str | None = None) -> dict[str, str]:
     """The shared scrub, not a private copy.
 
     A second implementation is how a fix lands in one place and not the other —
     and this is the path that WRITES the committed baseline, so a gap here is a
     poisoned baseline that reproduces green forever.
     """
-    return lint_git_ignore.hermetic_git_env(os.environ)
+    return lint_git_ignore.hermetic_git_env(os.environ, repo_root=repo_root)
 
 
 def _git(args: list[str], cwd: Path) -> None:
     subprocess.run(["git", *args], cwd=str(cwd), capture_output=True,
-                   check=True, env=_hermetic_env())
+                   check=True, env=_hermetic_env(cwd))
 
 
 # ---------------------------------------------------------------------------
@@ -162,11 +162,11 @@ def _fx_empty_packs_root(root: Path) -> None:
 def _fx_recipe_missing(root: Path) -> None:
     """The self-host recipe is absent.
 
-    Reachable two ways, and the distinction matters: the **no-argument** CLI
-    (which is how this fixture is captured, with the subject staged into the
-    fixture root) reports it as a finding, while a `--root` run refuses before
-    traversing. That is why the callable API accepts a context the `--root` path
-    rejects.
+    Reachable two ways, and the distinction matters: the **no-argument** CLI —
+    which is how this fixture is captured, with the subject staged into the
+    fixture root — reports it as an ordinary finding, while a `--root` run refuses
+    before traversing. That is why the callable API accepts a context the
+    `--root` path rejects.
     """
     _base_fixture(root)
     (root / "packages/agentbundle/agentbundle/build/recipes/self-host.toml").unlink()
@@ -382,13 +382,17 @@ FIXTURES: dict[str, Callable[[Path], None]] = {
     "empty-include-list": _fx_empty_include_list,
     "no-projected-roots": _fx_no_projected_roots,
     "empty-packs-root": _fx_empty_packs_root,
-    "recipe-missing-api-only": _fx_recipe_missing,
+    "recipe-missing": _fx_recipe_missing,
 }
 
-# Deliberately NOT fixtures. A root without `packs/` or without the recipe trips
-# an import-time refusal whose message embeds an ABSOLUTE path, so its bytes are
-# host-dependent and cannot be committed or reproduced. T4 proves those two
-# refusals by direct assertion on the CLI's exit code and relativized message.
+# Deliberately NOT a fixture: a root with no `packs/` directory at all trips an
+# import-time refusal whose message embeds an ABSOLUTE path, so its bytes are
+# host-dependent and cannot be committed. It is proven instead by direct
+# assertion on the CLI's exit code and relativized message.
+#
+# A root missing only the RECIPE *is* capturable and is a fixture below — the
+# no-argument CLI reports it as an ordinary finding; only a `--root` run refuses
+# before walking.
 # A root with no `packs/` at all trips an import-time refusal whose message
 # embeds an ABSOLUTE path, so its bytes are host-dependent and cannot be
 # committed. T4 proves it by direct assertion on exit code and message instead.
@@ -447,7 +451,8 @@ def _pinned_subject() -> bytes:
         raise SystemExit(f"PINNED_COMMIT is not a full 40-hex SHA: {PINNED_COMMIT}")
     proc = subprocess.run(
         ["git", "show", f"{PINNED_COMMIT}:{SUBJECT_REL}"],
-        cwd=str(ROOT), capture_output=True, check=False, env=_hermetic_env(),
+        cwd=str(ROOT), capture_output=True, check=False,
+        env=_hermetic_env(ROOT),
     )
     if proc.returncode != 0 or not proc.stdout:
         raise SystemExit(
@@ -503,7 +508,7 @@ def _run_staged(root: Path, subject: bytes | None) -> dict:
 
     proc = subprocess.run(
         [sys.executable, str(target)], cwd=str(root), capture_output=True,
-        check=False, env=_hermetic_env(),
+        check=False, env=_hermetic_env(root),
     )
     return {
         "exit_code": proc.returncode,
@@ -685,10 +690,13 @@ def _self_check() -> int:
             seen = set()
             for _ in range(3):
                 root = _make_fixture(tmp, name)
-                seen.add(_canonical(
-                    lint_git_ignore.decode_stream(
-                        _run_staged(root, blob)["stderr_b64"]
-                    ).decode("utf-8", "replace")
+                record = _run_staged(root, blob)
+                seen.add((
+                    record["exit_code"],
+                    _canonical(lint_git_ignore.decode_stream(
+                        record["stdout_b64"]).decode("utf-8", "replace")),
+                    _canonical(lint_git_ignore.decode_stream(
+                        record["stderr_b64"]).decode("utf-8", "replace")),
                 ))
                 shutil.rmtree(root)
             if len(seen) != 1:

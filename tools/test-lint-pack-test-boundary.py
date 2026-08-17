@@ -52,11 +52,22 @@ def _load():
 #: tree. Fixtures cover the individual plants; these launches exist only to
 #: prove the CLI is wired to the real catalogue. The number is asserted, so
 #: adding one is a decision rather than an accident.
-_REAL_LAUNCH_BUDGET = 4
+#:
+#: Derived, not hard-coded: where symlinks are unavailable the linked-source
+#: plant is skipped, which drops the count by one. A literal 4 would then red on
+#: exactly the host class the skip was added to protect.
 
-#: Measured pre-change case count (docs/specs/lint-performance-p0/notes/
-#: lint-inventory.md). The suite must never report fewer.
-_CASE_FLOOR = 82
+
+def _real_launch_budget() -> int:
+    return 4 if _SYMLINKS else 3
+
+
+#: Set near the CURRENT count, not the pre-change one. At 82 against an actual
+#: 128 an entire block could vanish and still report green — the silent-drop
+#: scenario the floor exists to catch. The pre-change count (82) remains the
+#: separate no-regression bar recorded in the audit note.
+_CASE_FLOOR = 124
+
 _REAL_LAUNCHES = {"count": 0}
 
 
@@ -567,8 +578,12 @@ steps:
     # burned PR #961: a concurrent `git add -A` committed the injected violation,
     # and because the file was restored the local re-run passed — so it failed
     # only in CI, against a tree the developer could not reproduce.
+    # Checks that both consume the runner inventory, so both report its failures.
+    _RUNNER_CONSUMERS = frozenset(
+        {"runners-keep-suites-isolated", "every-suite-dir-has-a-runner"}
+    )
     plants = (
-        # (fixture, check, substring the finding must contain)
+        # (fixture, check, needle[, expected bearer set — defaults to {check}])
         ("apm-test-file", "apm-carries-no-tests", "test_planted.py"),
         ("apm-singular-test-dir", "apm-carries-no-tests", "/test"),
         ("projection-test-content", "projection-carries-no-tests",
@@ -589,10 +604,13 @@ steps:
          "multiple skill suites"),
         ("suite-without-runner", "every-suite-dir-has-a-runner",
          "no runner names"),
+        # These two are reported by BOTH consuming checks — one cause, two
+        # findings — which is preserved behaviour, so the expected bearer set is
+        # explicit rather than assumed to be a single check.
         ("missing-runner-file", "runners-keep-suites-isolated",
-         "does not exist"),
+         "does not exist", _RUNNER_CONSUMERS),
         ("malformed-runner-file", "runners-keep-suites-isolated",
-         "is not parseable"),
+         "is not parseable", _RUNNER_CONSUMERS),
         ("empty-include-list", "projection-carries-no-tests",
          "lists no packs to project"),
         ("no-projected-roots", "projection-carries-no-tests",
@@ -613,7 +631,17 @@ steps:
         # the case count without adding coverage.
         baseline_checks: set[str] = set()
 
-        for fixture, check_name, needle in plants:
+        skipped_links = 0
+        for plant in plants:
+            fixture, check_name, needle = plant[:3]
+            if not _SYMLINKS and fixture in _GOLDEN.SYMLINK_FIXTURES:
+                # The builder itself calls symlink_to, so this must be filtered
+                # BEFORE construction — an OSError here would abort the whole
+                # suite hundreds of lines before the SKIP notice.
+                skipped_links += 1
+                cases += 1
+                continue
+            expected_bearers = plant[3] if len(plant) > 3 else {check_name}
             cases += 1
             root = _fixture(tmp, fixture)
             found = _findings(mod, root, check_name)
@@ -629,11 +657,26 @@ steps:
                     f"{needle!r} — it failed for another reason: "
                     f"{[f.message[:90] for f in found]}"
                 )
+
+            # Property 3 — attribution — asserted on an UNSELECTED run.
+            # Two earlier attempts asserted it on a selected run, where it cannot
+            # fail: `inspect_boundary` stamps each finding with the check that
+            # produced it, so narrowing the selection narrows the labels too. Only
+            # a full run can show a plant being caught by a check other than the
+            # intended one.
             cases += 1
-            if any(f.check != check_name for f in found):
+            every = _findings(mod, root, None)
+            bearers = {f.check for f in every if needle in f.message}
+            if not bearers:
                 failures.append(
-                    f"{fixture}: findings attributed to an unintended check: "
-                    f"{sorted({f.check for f in found})}"
+                    f"{fixture}: a full run does not reproduce the finding that "
+                    f"names {needle!r}"
+                )
+            elif bearers != set(expected_bearers):
+                failures.append(
+                    f"{fixture}: {needle!r} is reported by {sorted(bearers)}, "
+                    f"expected {sorted(expected_bearers)} — the plant is caught "
+                    f"by an unintended check"
                 )
             baseline_checks.add(check_name)
 
@@ -664,6 +707,12 @@ steps:
                     f"{fixture}: expected both consuming checks to report the "
                     f"runner-inventory failure, got {sorted(reporters)}"
                 )
+
+        if skipped_links:
+            sys.stderr.write(
+                f"SKIP {skipped_links} symlink fixture plant(s) — this host "
+                f"cannot create symlinks\n"
+            )
 
         # Property 4, once per check that any plant targeted.
         for check_name in sorted(baseline_checks):
@@ -790,11 +839,12 @@ steps:
         )
 
     cases += 1
-    if _REAL_LAUNCHES["count"] != _REAL_LAUNCH_BUDGET:
+    budget = _real_launch_budget()
+    if _REAL_LAUNCHES["count"] != budget:
         failures.append(
             f"real-tree production-CLI launches: {_REAL_LAUNCHES['count']} != "
-            f"recorded budget {_REAL_LAUNCH_BUDGET}. Adding one is a decision, "
-            f"not an accident — update the budget deliberately."
+            f"budget {budget}. Adding one is a decision, not an accident — "
+            f"update _real_launch_budget deliberately."
         )
 
     # ---- real-tree controls ----------------------------------------------

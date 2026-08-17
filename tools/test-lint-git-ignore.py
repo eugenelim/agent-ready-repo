@@ -49,6 +49,10 @@ def _load():
 
 M = _load()
 
+#: A single ~400-line main() aborts every later block on one exception, so the
+#: reported count silently drops. Falling below this is a failure in itself.
+_CASE_FLOOR = 95
+
 _FAILURES: list[str] = []
 _CASES = 0
 
@@ -64,7 +68,7 @@ def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess:
     """Run git in the scrubbed environment the resolver itself must use."""
     return subprocess.run(
         ["git", *args], cwd=str(cwd), capture_output=True, text=True,
-        check=False, env=M.hermetic_git_env(os.environ),
+        check=False, env=M.hermetic_git_env(os.environ, repo_root=cwd),
     )
 
 
@@ -336,27 +340,40 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
         real_big = [root / f"{'q' * 200}{i}.ignored" for i in range(6000)]
         import signal
 
-        def _timeout(_sig, _frm):
-            raise TimeoutError("git_ignored_paths blocked on a large payload")
+        # SIGALRM does not exist on Windows, and this suite is a required
+        # gate-chain step — so the watchdog leg is skipped with a counted case
+        # rather than raising AttributeError there. The alarm is set strictly
+        # ABOVE the resolver's own timeout, or a slow runner produces a coin flip
+        # between "watchdog tripped" and "resolver degraded" — both red, for
+        # different reasons.
+        if not hasattr(signal, "SIGALRM"):
+            check("large-payload watchdog skipped (no SIGALRM on this host)",
+                  True)
+            sys.stderr.write("SKIP unmocked large-payload watchdog — this host "
+                             "has no SIGALRM\n")
+        else:
+            def _timeout(_sig, _frm):
+                raise TimeoutError("git_ignored_paths blocked on a large payload")
 
-        previous = signal.signal(signal.SIGALRM, _timeout)
-        signal.alarm(60)
-        blocked = None
-        try:
-            big_res = M.git_ignored_paths(
-                root, real_big,
-                missing_git_policy=M.MissingGitPolicy.FAIL_OPEN, timeout=60.0,
-            )
-        except TimeoutError as exc:
-            blocked, big_res = exc, None
-        finally:
-            signal.alarm(0)
-            signal.signal(signal.SIGALRM, previous)
-        check("a >1 MiB payload completes against real git (no deadlock)",
-              blocked is None, repr(blocked))
-        check("the large real batch resolved every candidate",
-              big_res is not None and len(big_res.ignored) == 6000,
-              f"{None if big_res is None else len(big_res.ignored)}")
+            previous = signal.signal(signal.SIGALRM, _timeout)
+            signal.alarm(90)                      # > the 60s resolver timeout
+            blocked = None
+            try:
+                big_res = M.git_ignored_paths(
+                    root, real_big,
+                    missing_git_policy=M.MissingGitPolicy.FAIL_OPEN,
+                    timeout=60.0,
+                )
+            except TimeoutError as exc:
+                blocked, big_res = exc, None
+            finally:
+                signal.alarm(0)
+                signal.signal(signal.SIGALRM, previous)
+            check("a >1 MiB payload completes against real git (no deadlock)",
+                  blocked is None, repr(blocked))
+            check("the large real batch resolved every candidate",
+                  big_res is not None and len(big_res.ignored) == 6000,
+                  f"{None if big_res is None else len(big_res.ignored)}")
 
         # ---- bytes payload, not str ------------------------------------
         check("payload is bytes",
@@ -577,7 +594,7 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
             "GIT_CONFIG_VALUE_0": str(hostile_excludes),
             "GIT_GLOB_PATHSPECS": "1",
         })
-        scrubbed_env = M.hermetic_git_env(injected)
+        scrubbed_env = M.hermetic_git_env(injected, repo_root=root)
         # The caller's one-off config is dropped; the scrub then sets its OWN
         # single entry to pin core.excludesFile. So the test is not "absent" but
         # "replaced by ours" — asserting absence would now forbid the fix.
@@ -640,19 +657,32 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
             check(f"{label} cannot influence the ignore answer",
                   leaked.ignored == (), f"leaked: {leaked.ignored!r}")
         check("the scrub pins core.excludesFile rather than leaving it unset",
-              M.hermetic_git_env(os.environ).get("GIT_CONFIG_VALUE_0")
-              == os.devnull,
-              repr(M.hermetic_git_env(os.environ).get("GIT_CONFIG_VALUE_0")))
+              M.hermetic_git_env(os.environ, repo_root=root)
+              .get("GIT_CONFIG_VALUE_0") == os.devnull,
+              repr(M.hermetic_git_env(os.environ, repo_root=root)
+                   .get("GIT_CONFIG_VALUE_0")))
 
         # Discovery is FENCED, not widened. Dropping GIT_CEILING_DIRECTORIES
         # would let a non-worktree root resolve upward and answer from an
         # ancestor repository's .gitignore.
-        fenced = M.hermetic_git_env(os.environ, root)
+        fenced = M.hermetic_git_env(os.environ, repo_root=root)
         check("a repo_root fences discovery via GIT_CEILING_DIRECTORIES",
               fenced.get("GIT_CEILING_DIRECTORIES") == str(root),
               repr(fenced.get("GIT_CEILING_DIRECTORIES")))
         check("discovery does not cross filesystems",
               fenced.get("GIT_DISCOVERY_ACROSS_FILESYSTEM") == "0")
+        # repo_root is keyword-REQUIRED: an optional parameter meant four of five
+        # call sites silently kept the unfenced behaviour.
+        raised = None
+        try:
+            M.hermetic_git_env(os.environ)
+        except TypeError as exc:
+            raised = exc
+        check("repo_root is a required keyword argument", raised is not None,
+              "an omitted repo_root must not silently mean 'do not fence'")
+        check("an explicit None means do-not-fence",
+              "GIT_CEILING_DIRECTORIES"
+              not in M.hermetic_git_env(os.environ, repo_root=None))
         not_a_repo = tmp / "notarepo"
         not_a_repo.mkdir(exist_ok=True)
         (not_a_repo / "x.kept").write_text("x", encoding="utf-8")
@@ -695,6 +725,12 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
               degraded.detail is not None
               and str(Path.home()) not in degraded.detail,
               repr(degraded.detail))
+
+    if _CASES < _CASE_FLOOR:
+        _FAILURES.append(
+            f"only {_CASES} cases ran, below the floor of {_CASE_FLOOR}; a run "
+            f"that stops early must not report green"
+        )
 
     for f in _FAILURES:
         sys.stderr.write(f"FAIL {f}\n")

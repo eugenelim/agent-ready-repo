@@ -46,6 +46,10 @@ M = importlib.util.module_from_spec(_spec)
 sys.modules["lint_pack_test_boundary"] = M
 _spec.loader.exec_module(M)
 
+#: A single ~400-line main() aborts every later block on one exception, so the
+#: reported count silently drops. Falling below this is a failure in itself.
+_CASE_FLOOR = 68
+
 _FAILURES: list[str] = []
 _CASES = 0
 
@@ -80,6 +84,21 @@ def _silent(fn, *args, **kwargs):
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         result = fn(*args, **kwargs)
     return result, out.getvalue(), err.getvalue()
+
+
+def _symlinks_ok() -> bool:
+    """Whether this host can create a symlink (Windows without Developer Mode)."""
+    with tempfile.TemporaryDirectory() as td:
+        target = Path(td) / "t"
+        target.write_text("x", encoding="utf-8")
+        try:
+            (Path(td) / "l").symlink_to(target)
+        except OSError:
+            return False
+        return True
+
+
+_SYMLINKS_OK = _symlinks_ok()
 
 
 def _load_golden():
@@ -144,14 +163,34 @@ def main() -> int:  # noqa: C901 — independent structural assertions
           inv.destination_builds == 1, str(inv.destination_builds))
     check("every walk base was pre-batched (no lazy misses)",
           inv.walk_misses == 0, f"{inv.walk_misses} lazy walks")
-    # Not `len(dict) == len(set(dict))` — dict keys are unique by construction,
-    # so that form can never fail. Assert against the distinct bases actually
-    # visited, and that the memo is not empty (a memo that never populated would
-    # otherwise look tidy).
-    _visited = {Path(os.path.normpath(str(b))) for b in inv._confinement}
-    check("confinement memo is keyed by distinct normalised bases",
-          set(inv._confinement) == _visited and len(inv._confinement) > 0,
-          f"{len(inv._confinement)} entries")
+    # Two earlier attempts at this were tautological: `len(dict) ==
+    # len(set(dict))` (dict keys are unique by construction), then
+    # `set(memo) == {normpath(k) for k in memo}` (normpath is idempotent on
+    # already-normalised keys, so it compared the memo to itself). The only
+    # honest form observes what the scanner was actually *called* with.
+    _scan_args: list[Path] = []
+    _real_scan = M._glob_tree_is_confined
+
+    def _recording_scan(base, _real=_real_scan):
+        _scan_args.append(base)
+        return _real(base)
+
+    M._glob_tree_is_confined = _recording_scan
+    try:
+        inv_memo = M.build_inventory(context)
+        _silent(M.case_pack_tests_stay_in_pack, inv_memo, [])
+    finally:
+        M._glob_tree_is_confined = _real_scan
+
+    _distinct = {Path(os.path.normpath(str(b))) for b in _scan_args}
+    check("the confinement scanner is called once per distinct base",
+          len(_scan_args) == len(_distinct),
+          f"{len(_scan_args)} calls for {len(_distinct)} distinct bases")
+    check("the memo holds exactly the distinct bases scanned",
+          set(inv_memo._confinement) == _distinct,
+          f"memo={len(inv_memo._confinement)} scanned_distinct={len(_distinct)}")
+    check("the confinement scan is not vacuous", len(_scan_args) > 0,
+          "no glob base was ever scanned — the memo proves nothing")
 
     # ---- the callable API is side-effect-free ---------------------------
     check("inspect_boundary prints nothing to stdout", out == "", out[:300])
@@ -443,6 +482,8 @@ def main() -> int:  # noqa: C901 — independent structural assertions
     with tempfile.TemporaryDirectory(prefix="boundary-coverage-") as td:
         tmp = Path(td)
         for name in _golden.FIXTURES:
+            if not _SYMLINKS_OK and name in _golden.SYMLINK_FIXTURES:
+                continue          # the builder calls symlink_to
             root = _golden._make_fixture(tmp, name)
             base = M.default_context(root)
             variants = (
@@ -510,12 +551,163 @@ def main() -> int:  # noqa: C901 — independent structural assertions
               refused is not None and refused.refused and refused.degraded,
               repr(refused))
 
+    # ---- the CLI selector contract, on stdout not just rc ---------------
+    # Nothing asserted the partial-run output before: a scoped run could have
+    # printed the six-check pass line and every rc-only assertion would still
+    # have been green.
+    with tempfile.TemporaryDirectory(prefix="boundary-cli-") as td:
+        fixture = Path(td) / "fx"
+        _build_min_fixture(fixture)
+
+        def cli(*args):
+            return subprocess.run(
+                [sys.executable, str(LINT), *args],
+                capture_output=True, text=True, check=False,
+            )
+
+        one = cli("--check", "apm-carries-no-tests")
+        check("a --check run exits 0 on a clean tree", one.returncode == 0,
+              f"rc={one.returncode}\n{one.stderr[-400:]}")
+        check("a --check run announces itself as partial",
+              "partial run — checks: apm-carries-no-tests" in one.stdout,
+              one.stdout[-400:])
+        check("a --check run does NOT print the six-check pass line",
+              "passed (6 cases)." not in one.stdout, one.stdout[-400:])
+        check("a --check run reports how many of six ran",
+              "passed (1 of 6 checks — partial run)." in one.stdout,
+              one.stdout[-400:])
+        check("a --check run prints only the selected check's ok line",
+              one.stdout.count("ok   [") == 1, one.stdout[-400:])
+
+        two = cli("--check", "apm-carries-no-tests",
+                  "--check", "tests-live-in-the-pack-tree")
+        check("--check is repeatable", two.returncode == 0
+              and "passed (2 of 6 checks — partial run)." in two.stdout,
+              two.stdout[-400:])
+
+        unknown = cli("--check", "no-such-check")
+        check("an unknown --check exits non-zero", unknown.returncode != 0,
+              f"rc={unknown.returncode}")
+        check("an unknown --check names the accepted set",
+              "apm-carries-no-tests" in unknown.stdout + unknown.stderr,
+              (unknown.stdout + unknown.stderr)[-500:])
+
+        scoped = cli("--root", str(fixture))
+        check("a --root run announces itself as partial",
+              "partial run" in scoped.stdout, scoped.stdout[-400:])
+        check("a --root run does NOT print the six-check pass line",
+              "passed (6 cases)." not in scoped.stdout, scoped.stdout[-400:])
+
+        # --root refusals that had no case: unresolvable, and a linked root.
+        missing = cli("--root", str(Path(td) / "does-not-exist"))
+        check("an unresolvable --root exits 2", missing.returncode == 2,
+              f"rc={missing.returncode}")
+        check("the unresolvable --root refusal names the path",
+              "does-not-exist" in missing.stderr, missing.stderr[-300:])
+        if _SYMLINKS_OK:
+            linked = Path(td) / "linked-root"
+            linked.symlink_to(fixture, target_is_directory=True)
+            refused = cli("--root", str(linked))
+            check("a symlinked --root is refused", refused.returncode == 2,
+                  f"rc={refused.returncode}\n{refused.stderr[-300:]}")
+            check("the symlinked-root refusal says why",
+                  "symlink" in refused.stderr or "junction" in refused.stderr,
+                  refused.stderr[-300:])
+        else:
+            check("symlinked --root case skipped (host cannot symlink)", True)
+            sys.stderr.write("SKIP symlinked --root — host cannot create "
+                             "symlinks\n")
+
+    # ---- the three round-2 correctness fixes, each asserted --------------
+    with tempfile.TemporaryDirectory(prefix="boundary-r2-") as td:
+        fixture = Path(td) / "fx"
+        _build_min_fixture(fixture)
+
+        # (a) the standalone _walk fails closed rather than returning unfiltered
+        broken = Path(td) / "brokengit"
+        broken.mkdir()
+        (broken / "git").write_text("#!/bin/sh\nexit 127\n", encoding="utf-8")
+        (broken / "git").chmod(0o755)
+        raised = None
+        original_path = os.environ.get("PATH", "")
+        os.environ["PATH"] = f"{broken}{os.pathsep}{original_path}"
+        try:
+            M._walk(fixture / "packs" / "demo" / "tests", root=fixture)
+        except M.GitIgnoreUnresolved as exc:
+            raised = exc
+        finally:
+            os.environ["PATH"] = original_path
+        check("a standalone _walk raises rather than returning unfiltered content",
+              raised is not None, repr(raised))
+
+        # (b) a walk-miss resolves its own base instead of using a stale set
+        inv_miss = M.build_inventory(M.default_context(fixture))
+        before_misses = inv_miss.walk_misses
+        unenumerated = fixture / "packs" / "demo" / ".apm" / "skills"
+        inv_miss.walk(unenumerated)
+        check("a base absent from the enumeration is counted as a miss",
+              inv_miss.walk_misses == before_misses + 1,
+              f"{before_misses} -> {inv_miss.walk_misses}")
+        check("a miss does not mark the inventory degraded when git works",
+              not inv_miss.ignore_degraded, repr(inv_miss.ignore_detail))
+
+        # (c) a refused batch is reported as refused, not as unavailable
+        real_resolve = M._resolve_ignored
+
+        def refusing(root, candidates):
+            return M.IgnoreOutcome(frozenset(), degraded=True,
+                                   detail="planted refusal", refused=True)
+
+        M._resolve_ignored = refusing
+        try:
+            refused_findings, _, _ = _silent(
+                M.inspect_boundary, M.default_context(fixture)
+            )
+        finally:
+            M._resolve_ignored = real_resolve
+        messages = " ".join(f.message for f in refused_findings)
+        check("a refused batch says git REJECTED the batch",
+              "rejected the candidate batch" in messages, messages[-400:])
+        check("a refused batch does not say git is unavailable",
+              "git is unavailable" not in messages, messages[-400:])
+
+    # ---- CheckResult.summary is pinned, including the one no baseline sees --
+    with tempfile.TemporaryDirectory(prefix="boundary-summary-") as td:
+        fixture = Path(td) / "fx"
+        _build_min_fixture(fixture)
+        base = M.default_context(fixture)
+        empty_map = M.BoundaryContext(
+            root=base.root, packs_root=base.packs_root,
+            recipe_path=base.recipe_path, projected_roots=base.projected_roots,
+            runner_files=base.runner_files, no_runner={})
+        results, _, _ = _silent(M.inspect_boundary_results, empty_map)
+        by_name = {r.check: r for r in results}
+        check("every check returns a summary when it finds nothing",
+              all(r.summary is not None for r in results if not r.findings),
+              repr([(r.check, r.summary) for r in results]))
+        check("a check with findings returns no summary",
+              all(r.summary is None for r in results if r.findings),
+              repr([(r.check, r.summary) for r in results if r.findings]))
+        # This one appears in NO captured baseline: the real _NO_RUNNER map makes
+        # it fail in all 22 fixtures, so its counters are pinned only here.
+        runner_summary = by_name["every-suite-dir-has-a-runner"].summary
+        check("the every-suite-dir-has-a-runner summary is byte-exact",
+              runner_summary == "ok   [every-suite-dir-has-a-runner] "
+                                "(1 destinations, 0 declared unrun)",
+              repr(runner_summary))
+
     # ---- no persistence between invocations ----------------------------
     inv_a = M.build_inventory(context)
     inv_b = M.build_inventory(context)
     check("each invocation gets its own inventory", inv_a is not inv_b)
     check("no confinement state leaks between inventories",
           inv_b._confinement == {}, repr(inv_b._confinement))
+
+    if _CASES < _CASE_FLOOR:
+        _FAILURES.append(
+            f"only {_CASES} cases ran, below the floor of {_CASE_FLOOR}; a run "
+            f"that stops early must not report green"
+        )
 
     for f in _FAILURES:
         sys.stderr.write(f"FAIL {f}\n")
@@ -541,7 +733,7 @@ def _build_min_fixture(root: Path) -> None:
         path.write_text(text, encoding="utf-8")
 
     root.mkdir(parents=True, exist_ok=True)
-    env = M.lint_git_ignore.hermetic_git_env(os.environ)
+    env = M.lint_git_ignore.hermetic_git_env(os.environ, repo_root=root)
     subprocess.run(["git", "init", "-q", "."], cwd=str(root),
                    capture_output=True, check=True, env=env)
     write(".gitignore", "__pycache__/\n")

@@ -43,6 +43,10 @@ M = importlib.util.module_from_spec(_spec)
 sys.modules["lint_no_direct_check_ignore"] = M
 _spec.loader.exec_module(M)
 
+#: A single ~400-line main() aborts every later block on one exception, so the
+#: reported count silently drops. Falling below this is a failure in itself.
+_CASE_FLOOR = 38
+
 _FAILURES: list[str] = []
 _CASES = 0
 
@@ -161,8 +165,6 @@ def main() -> int:
     check("the scanned set meets the recorded floor",
           len(result.scanned) >= M.SCANNED_FLOOR,
           f"{len(result.scanned)} < floor {M.SCANNED_FLOOR}")
-    check("the scan is not vacuous", len(result.scanned) > 100,
-          str(len(result.scanned)))
 
     # ---- non-Python surface is genuinely scanned ------------------------
     # Not `... or M.NON_PYTHON_DISPOSITION` — that constant is a non-empty
@@ -190,31 +192,87 @@ def main() -> int:
           not M.scan_text("fake.sh", 'git ls-files -z'))
 
     # ---- end to end: a planted offender fails the CLI -------------------
+    # The plant stays UNTRACKED on purpose. An earlier version ran `git add -A`
+    # first, so the offender was reached through `--cached` and reverting the
+    # enumeration to tracked-only would have left this suite green — which is
+    # exactly the hole the `--others --exclude-standard` amendment closed.
     with tempfile.TemporaryDirectory(prefix="check-ignore-gate-") as td:
         fake = Path(td) / "repo"
         (fake / "tools").mkdir(parents=True)
         subprocess.run(["git", "init", "-q", "."], cwd=str(fake),
                        capture_output=True, check=True)
-        (fake / "tools" / "lint-planted.py").write_text(
+        # A benign clean file, so removing the plant leaves a NON-EMPTY scan
+        # set. Without it the gate correctly refuses ("must not pass vacuously")
+        # and the restore-to-green assertion would be testing the wrong thing.
+        (fake / "tools" / "lint-clean.py").write_text(_CLEAN, encoding="utf-8")
+        planted = fake / "tools" / "lint-planted.py"
+        planted.write_text(
             _OFFENDING["argv behind -C (not at position 1)"], encoding="utf-8"
         )
-        subprocess.run(["git", "add", "-A"], cwd=str(fake),
-                       capture_output=True, check=True)
+        untracked = subprocess.run(
+            ["git", "status", "--porcelain", "--", "tools/lint-planted.py"],
+            cwd=str(fake), capture_output=True, text=True, check=False,
+        ).stdout
+        check("the plant really is untracked", untracked.startswith("??"),
+              repr(untracked))
         proc = subprocess.run(
             [sys.executable, str(GATE), "--root", str(fake)],
             capture_output=True, text=True, check=False,
         )
-        check("CLI exits non-zero on a planted offender", proc.returncode != 0,
-              f"rc={proc.returncode}\n{proc.stdout}\n{proc.stderr}")
+        check("CLI exits non-zero on an UNTRACKED planted offender",
+              proc.returncode != 0,
+              f"rc={proc.returncode} — tracked-only enumeration would miss this\n"
+              f"{proc.stdout}\n{proc.stderr}")
         check("CLI names the planted file",
               "lint-planted.py" in proc.stdout + proc.stderr,
               proc.stdout + proc.stderr)
+
+        # The amendment's second half: removing it restores exit 0.
+        planted.unlink()
+        cleared = subprocess.run(
+            [sys.executable, str(GATE), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        check("removing the offender restores exit 0", cleared.returncode == 0,
+              f"rc={cleared.returncode}\n{cleared.stdout}\n{cleared.stderr}")
+
+        # A gitignored offender must NOT be scanned — that is what
+        # --exclude-standard buys, and it keeps build residue out.
+        (fake / ".gitignore").write_text("ignored-tools/\n", encoding="utf-8")
+        (fake / "ignored-tools").mkdir()
+        (fake / "ignored-tools" / "lint-residue.py").write_text(
+            _OFFENDING["argv at position 1"], encoding="utf-8"
+        )
+        residue = subprocess.run(
+            [sys.executable, str(GATE), "--root", str(fake)],
+            capture_output=True, text=True, check=False,
+        )
+        check("a gitignored offender is excluded from the scan",
+              residue.returncode == 0,
+              f"rc={residue.returncode} — build residue must not be scanned\n"
+              f"{residue.stdout}\n{residue.stderr}")
+
+    # ---- backslash continuations and Makefile labels ---------------------
+    # `_join_continuations` is new production matcher logic; these are its cases.
+    check("a backslash-continued invocation is flagged",
+          bool(M.scan_text("Makefile", "\tgit \\\n\t  check-ignore --stdin -z")))
+    check("a Makefile inline `name:` recipe is still scanned",
+          bool(M.scan_text("Makefile", "name: ; git check-ignore x")))
+    check("a YAML step label is not scanned",
+          not M.scan_text("fake.yml",
+                          "- name: No direct git check-ignore outside the helper"))
 
     # ---- CLI on the real tree ------------------------------------------
     proc = subprocess.run([sys.executable, str(GATE)], cwd=str(ROOT),
                           capture_output=True, text=True, check=False)
     check("CLI exits 0 on the repository", proc.returncode == 0,
           f"rc={proc.returncode}\n{proc.stdout[-800:]}\n{proc.stderr[-800:]}")
+
+    if _CASES < _CASE_FLOOR:
+        _FAILURES.append(
+            f"only {_CASES} cases ran, below the floor of {_CASE_FLOOR}; a run "
+            f"that stops early must not report green"
+        )
 
     for f in _FAILURES:
         sys.stderr.write(f"FAIL {f}\n")

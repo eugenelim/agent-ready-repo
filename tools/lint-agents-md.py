@@ -40,7 +40,9 @@ def _repo_root() -> Path:
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True, text=True, check=False,
-            env=lint_git_ignore.hermetic_git_env(os.environ),
+            # repo_root=None: this call is *discovering* the root, so there is
+            # nothing to fence to yet.
+            env=lint_git_ignore.hermetic_git_env(os.environ, repo_root=None),
         )
         if result.returncode == 0 and result.stdout.strip():
             return Path(result.stdout.strip())

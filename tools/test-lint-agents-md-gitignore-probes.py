@@ -34,6 +34,10 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 REPO_ROOT = Path(__file__).resolve().parents[1]
 LINTER = REPO_ROOT / "tools" / "lint-agents-md.py"
 
+#: A single ~400-line main() aborts every later block on one exception, so the
+#: reported count silently drops. Falling below this is a failure in itself.
+_CASE_FLOOR = 15
+
 _FAILURES: list[str] = []
 _CASES = 0
 
@@ -125,7 +129,13 @@ def main() -> int:
             "{}", encoding="utf-8"
         )
         (sandbox / "AGENTS.md").write_text("# AGENTS\n", encoding="utf-8")
-        (sandbox / "CLAUDE.md").symlink_to("AGENTS.md")
+        try:
+            (sandbox / "CLAUDE.md").symlink_to("AGENTS.md")
+        except OSError:
+            # Windows without Developer Mode: the lint accepts a materialised
+            # symlink (a regular file whose content is the link target), which is
+            # exactly the shape check #2 documents.
+            (sandbox / "CLAUDE.md").write_text("AGENTS.md", encoding="utf-8")
         (sandbox / "docs").mkdir(exist_ok=True)
         (sandbox / "docs" / "CHARTER.md").write_text("# charter\n", encoding="utf-8")
         for quadrant in ("tutorials", "how-to", "reference", "explanation"):
@@ -201,6 +211,12 @@ def main() -> int:
               "should be gitignored" not in combined,
               "emitted the drift note while git was unusable: "
               + combined[-800:])
+
+    if _CASES < _CASE_FLOOR:
+        _FAILURES.append(
+            f"only {_CASES} cases ran, below the floor of {_CASE_FLOOR}; a run "
+            f"that stops early must not report green"
+        )
 
     for f in _FAILURES:
         sys.stderr.write(f"FAIL {f}\n")

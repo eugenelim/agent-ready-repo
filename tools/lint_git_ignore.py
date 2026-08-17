@@ -156,7 +156,7 @@ _DETAIL_LIMIT = 2000
 
 
 def hermetic_git_env(
-    base: Mapping[str, str], repo_root: Path | str | None = None
+    base: Mapping[str, str], *, repo_root: Path | str | None
 ) -> dict[str, str]:
     """A Git environment that cannot inherit host ignore configuration.
 
@@ -174,9 +174,13 @@ def hermetic_git_env(
 
     Args:
         base: the environment to derive from.
-        repo_root: when given, discovery is fenced to this directory instead of
-            being allowed to walk upward. Dropping ``GIT_CEILING_DIRECTORIES``
-            would *widen* discovery, which is the opposite of the intent.
+        repo_root: the directory discovery is fenced to. **Required**, with no
+            default: an optional parameter meant four of five call sites silently
+            kept the unfenced behaviour, which is the same "a fix lands in one
+            place and not the other" hazard that deleting the harness's private
+            copy of this function was meant to end. Pass ``None`` explicitly at
+            the one site that must not fence — root *discovery* itself, which has
+            no root to fence to yet.
     """
     env = dict(base)
     for name in _LEAKING_GIT_VARS:
@@ -334,7 +338,7 @@ def git_ignored_paths(
             capture_output=True,
             check=False,
             timeout=timeout,
-            env=hermetic_git_env(os.environ, repo_root),
+            env=hermetic_git_env(os.environ, repo_root=repo_root),
         )
     except FileNotFoundError as exc:
         return _degrade(missing_git_policy, DegradationReason.GIT_ABSENT,

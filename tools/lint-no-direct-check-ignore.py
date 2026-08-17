@@ -269,7 +269,7 @@ def _tracked_files(root: Path) -> list[Path]:
         # The shared scrub: without it a host `core.excludesFile` filters the
         # `--others` half, so an author whose global ignore matches a newly
         # added file watches this gate skip it and pass.
-        env=lint_git_ignore.hermetic_git_env(os.environ),
+        env=lint_git_ignore.hermetic_git_env(os.environ, repo_root=root),
     )
     if proc.returncode != 0:
         raise GitListingError(

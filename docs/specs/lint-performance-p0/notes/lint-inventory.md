@@ -515,14 +515,14 @@ on a warm cache. All paths relativized.
 | tree-confinement scans | 45 over 16 distinct bases | **16** (one per distinct base) |
 | lazy walk misses (bases not pre-batched) | n/a | **0** |
 | wall clock | 32.35 s | **1.43 s** (≈23× faster) |
-| stdout / stderr | — | **byte-identical** across all 20 captured baselines |
+| stdout / stderr | — | **byte-identical** across all 22 captured baselines |
 
 ### `tools/test-lint-pack-test-boundary.py`, complete suite
 
 | Metric | Before | After |
 | --- | --- | --- |
 | wall clock | **306.4 s** (6 s over the 300 s budget) | **16.7 s** |
-| cases reported | 82 | **134** |
+| cases reported | 82 | **128** |
 | exit code | 0 | 0 |
 | production-CLI launches against the real tree | 12 | **4** (budget asserted by the suite) |
 | real `Makefile` rewrites | 2 | **0** |
@@ -577,10 +577,10 @@ with the exit code it actually returned. Terminal wording unchanged throughout.
 | `python3 tools/lint-pack-test-boundary.py` | 0 | six `ok` lines + `✓ … passed (6 cases).` |
 | `python3 tools/test-lint-pack-test-boundary.py` | 0 | 128 cases; 4 real-tree CLI launches |
 | `python3 tools/test-lint-boundary-golden.py` | 0 | 22 captured baselines reproduced |
-| `python3 tools/test-lint-boundary-structural.py` | 0 | 48 cases |
-| `python3 tools/test-lint-git-ignore.py` | 0 | 88 cases |
+| `python3 tools/test-lint-boundary-structural.py` | 0 | 72 cases |
+| `python3 tools/test-lint-git-ignore.py` | 0 | 100 cases |
 | `python3 tools/lint-no-direct-check-ignore.py` | 0 | 817 files scanned, 4 allowlisted |
-| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | 37 cases |
+| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | 42 cases |
 | `python3 tools/lint-agents-md.py` | 0 | unchanged terminal wording |
 | `python3 tools/test-lint-agents-md-gitignore-probes.py` | 0 | 17 cases |
 | `python3 tools/test_lint_agents_md_{legacy,diataxis,risk}_block.py` | 0 | 3 suites, unchanged |
