@@ -309,3 +309,26 @@ declares the import allowlist "canonically in `plan.md`'s T1b", but
 copies cannot be joined and the prose cannot be enforced. This is the drift that
 already fired once this round. The fix is to name the TEST as the canonical location
 and have `plan.md` reference it, so there is one statement of the fact instead of two.
+
+## W9 · AC20's projected-copy load route, recorded
+
+The third of AC20's three load routes (direct file-path invocation, the tests'
+importlib harness, and the projected copies) had no recorded probe. Run against both
+projections after `make build-self`:
+
+    $ python3 -c "importlib load .claude/skills/work-loop/scripts/_loop_guards.py"
+      loaded: __all__=21 names, _MODULE_COMPLETE=True
+    $ python3 -c "importlib load .agents/skills/work-loop/scripts/_loop_guards.py"
+      loaded: __all__=21 names, _MODULE_COMPLETE=True
+    $ python3 .claude/skills/work-loop/scripts/check-spec-status.py \
+          docs/specs/work-loop-in-process-guards --expect Implementing
+      check-spec-status: OK — Status: Implementing at …/spec.md          exit=0
+
+The last line is the load-bearing one: a projected CLI resolves its sibling guard
+module by `Path(__file__).resolve().parent`, so it exercises the projected copy rather
+than the pack source. All three routes work, and the projections are byte-identical to
+`packs/core/` (AC26).
+
+AC19's read-count assertion was also mutation-checked while confirming it: caching a
+state snapshot across guards drops the count from 3 to 0 and turns it red, so the
+"no shared snapshot" claim has a real artifact rather than a mock-shape one.
