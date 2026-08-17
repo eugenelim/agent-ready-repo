@@ -154,7 +154,22 @@ def _run_verdict_make(makefile: str, cli_vars: dict[str, str],
             + "verdict:\n\t$(call gate_verdict,make ci)\n",
             encoding="utf-8",
         )
-        env = {k: v for k, v in os.environ.items() if k not in _VERDICT_ENV_KEYS}
+        # MAKEFLAGS / MAKEOVERRIDES / MFLAGS must be scrubbed, not just the plain
+        # variables. GNU make exports COMMAND-LINE overrides to every child make
+        # through them, so when this test runs inside CI's
+        # `make build-check … SAST_DELEGATED=1` the child inherits that assignment
+        # with `command line` origin — and the `environment`-origin case silently
+        # exercises the command-line branch instead. This passed locally (run
+        # outside any make invocation) and failed in CI, which is what caught it.
+        #
+        # To reproduce the CI condition locally — do this before trusting a change
+        # to the origin-gated cases, because running this file directly cannot
+        # exercise the propagation path at all:
+        #   printf 'c:\\n\\t@python3 tools/test-lint-ci-parity.py\\n' > /tmp/r.mk
+        #   make -f /tmp/r.mk c SAST_DELEGATED=1
+        _MAKE_PROPAGATION = ("MAKEFLAGS", "MAKEOVERRIDES", "MFLAGS", "MAKELEVEL")
+        env = {k: v for k, v in os.environ.items()
+               if k not in _VERDICT_ENV_KEYS and k not in _MAKE_PROPAGATION}
         env.update(env_extra)
         argv = ["make", "-f", str(mk), "verdict"]
         argv += [f"{k}={v}" for k, v in cli_vars.items()]
