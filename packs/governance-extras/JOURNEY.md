@@ -15,13 +15,13 @@ contract:
     - "Review the RFC draft before circulation"
     - "Accept, reject, or defer the RFC"
     - "Merge the ADR"
-whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. CONVENTIONS.md evolves through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
+whatChanges: "After installing governance-extras, cross-cutting changes go through a structured RFC before anyone builds anything. Architectural decisions are recorded in ADRs with honest critique tracks. When core project knowledge is present, reusable supporting practice can be captured only at the written-and-clean RFC handoff or the decision-maker's ADR acceptance; normative content stays in its owning artifact. CONVENTIONS.md evolves through tracked updates, not drift. Every significant 'why did we choose this?' has an answer that survives personnel changes."
 skills:
   - name: new-rfc
-    description: "Proposes a cross-cutting change through an RFC with structured proposer and objector perspectives — the front door for changes that affect more than one person or system."
+    description: "Proposes a cross-cutting change through an RFC with structured proposer and objector perspectives, with optional supporting-practice capture only after the written draft passes every mandatory check."
     humanTouches: 3
   - name: new-adr
-    description: "Records an architectural decision with two critique tracks — context, decision, alternatives considered, and consequences — so the next person doesn't re-litigate it."
+    description: "Records an architectural decision with two critique tracks and optional supporting-practice capture only when the decision-maker accepts it."
     humanTouches: 2
   - name: update-conventions
     description: "Evolves CONVENTIONS.md with tracked changes — the living record of how this project's team works."
@@ -107,7 +107,7 @@ Approve? ›
 ```
 
 - **You decide:** review the RFC draft at G-draft before circulating — the most common error is naming the solution in the problem statement; redirect to reframe around the underlying need.
-- **Output:** `docs/rfc/0043-trunk-based-development.md` — a circulated RFC draft with a clear problem statement and genuine adversarial perspectives.
+- **Output:** `docs/rfc/0043-trunk-based-development.md` — a circulated RFC draft with a clear problem statement and genuine adversarial perspectives. After every mandatory check is clean and the RFC and index entry are written, `rfc-handoff-ready` may capture reusable supporting practice through core's public seam; incomplete or abandoned work produces no capture.
 - **State:** proposed-write
 
 ---
@@ -159,5 +159,5 @@ Approve? ›
 ```
 
 - **You decide:** accept, reject, or defer the RFC at G-accept; then merge the ADR at G-merge.
-- **Output:** a decided RFC and, if accepted, a merged ADR with honest rationale — linked from the RFC that produced it.
+- **Output:** a decided RFC and, if accepted, a merged ADR with honest rationale — linked from the RFC that produced it. Only the decision-maker's Proposed-to-Accepted transition reaches `adr-accepted`; previewed, rejected, or abandoned ADRs never capture, and normative decisions remain solely in the ADR.
 - **State:** confirmed-write

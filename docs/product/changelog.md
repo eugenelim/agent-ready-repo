@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### [core][2.7.0] — 2026-08-16
+### [core][2.7.1] — 2026-08-17
 
 #### Added
 
@@ -83,6 +83,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   notes, tips, cautions, and dangers with visible labels and icons. Prompts,
   transcripts, sample output, and other exact quoted wording remain
   blockquotes.
+- **Briefs, RFCs, ADRs, specs, and plans can hand reusable supporting lessons
+  to project knowledge at exact stable gates.** Draft, incomplete, rejected,
+  or abandoned authoring work does not capture. Normative content remains in
+  its owning artifact; missing project knowledge creates no fallback file;
+  terminal distillation is limited to receipts returned by the same gate; and
+  optional enquiry requires a declared competency question and remains bounded
+  untrusted evidence. Core is now 2.7.1 and governance-extras is now 0.9.7.
 - **Documentation now keeps readers oriented from entry to exit.** The docs
   home leads with one clear starting point and described outcome cards; guide
   pages restore previous/next navigation from the published sidebar order; and
@@ -575,6 +582,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a repository policy lint, not a packaged one: `pack.schema.json` and the
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
+
+## [governance-extras][0.9.7] — 2026-08-16
+
+### Changed
+
+- **RFC and ADR authoring now hand reusable supporting lessons to project
+  knowledge only at clean handoff and accepted-decision gates.** Missing
+  project knowledge leaves no fallback file, and enquiry remains an explicit,
+  bounded, untrusted-evidence step.
 
 ## [core][2.5.5] — 2026-08-10
 

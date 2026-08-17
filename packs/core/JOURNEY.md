@@ -13,16 +13,16 @@ contract:
   yourDecisions:
     - "Approve the plan"
     - "Merge the PR"
-whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → adversarial review. The loop cannot self-certify: it surfaces to you for plan approval and merge."
+whatChanges: "After installing core, work-intake becomes the front door for starting, remembering, inspecting, or refreshing work. It writes a canonical artifact and lifecycle entry before any processor runs. Approved specs then move through work-loop: plan → execute → verify → adversarial review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge, while Draft work and normative artifact content remain untouched. The loop cannot self-certify: it surfaces to you for plan approval and merge."
 skills:
   - name: work-intake
     description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
     humanTouches: 0
   - name: work-loop
-    description: "The build loop. Plans, executes, verifies, and reviews — mechanical gates and human checkpoints the agent cannot bypass."
+    description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice without changing artifact authority."
     humanTouches: 2
   - name: new-spec
-    description: "Authors a spec document before the build loop starts. Captures the trio (problem, user, success criteria) and acceptance criteria."
+    description: "Authors a Draft spec and Drafting plan before the build loop starts. These are explicit project-knowledge non-gates."
     humanTouches: 1
   - name: bug-fix
     description: "Diagnoses and fixes a bug with a targeted root-cause analysis before writing a line of code."
@@ -31,7 +31,7 @@ skills:
     description: "Grounds agent code against an unfamiliar API or library contract before implementation — prevents guessed signatures."
     humanTouches: 0
   - name: receive-brief
-    description: "Receives a structured brief from an external source and grounds it against the project scope and conventions before implementation begins."
+    description: "Receives and decomposes a structured brief; after the brief-ready gate it may capture reusable supporting practice through the public project-knowledge seam."
     humanTouches: 1
   - name: init-project
     description: "Initializes a new project with the full agent-ready-repo structure, conventions, and AGENTS.md."
@@ -40,7 +40,7 @@ skills:
     description: "Adapts the agent-ready-repo conventions to an existing project's idioms and structure — the on-ramp for brownfield repos."
     humanTouches: 1
   - name: author-brief
-    description: "Materializes a coherent multi-feature outcome as a Draft brief and registers non-dispatchable workspace membership."
+    description: "Materializes a coherent multi-feature outcome as a registered Draft brief. Draft completion is an explicit project-knowledge non-gate."
     humanTouches: 1
   - name: capture-work
     description: "Compatibility alias that forwards equivalent requests to work-intake; new guidance uses work-intake directly."
