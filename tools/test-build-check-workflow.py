@@ -83,6 +83,56 @@ _BLOCK_WORDS = frozenset({
 _REDIRECT_FLAGS = frozenset({"-C", "--directory", "-f", "--file"})
 
 
+def _key_re(key: str, indent: str = r"\s*") -> re.Pattern[str]:
+    """A YAML key matcher that survives quoting and spacing.
+
+    `'env':`, `"env":` and `env :` are the SAME key to YAML, to Actions, and to
+    actionlint. Four separate regexes in this file matched only the bare spelling, so
+    one quoted key defeated all of them — after the identical hole had already been
+    found and fixed in `_has_if`, whose comment says "one edit would otherwise disable
+    every if-check in this file". The fix stopped at that function. Every key
+    assertion now shares this matcher so the CLASS is closed, not a spelling.
+    """
+    return re.compile(rf"^{indent}['\"]?{re.escape(key)}['\"]?\s*:", re.M)
+
+
+# Step-level `env:` stays legal — the detect step and the guard need it — but its KEYS
+# are pinned. `MAKEFLAGS: '-n'` on the anchor turns the whole chain into a recipe
+# printer; `PYTHON: 'true'` wins over the Makefile's `PYTHON ?=` and substitutes the
+# interpreter; `PYTHONOPTIMIZE: '1'` compiles out the inline asserts a step exists to
+# guarantee. Allowlisted, so a new key fails closed.
+_ALLOWED_STEP_ENV = frozenset({
+    "PYTHONDONTWRITEBYTECODE", "PYTHONUTF8", "PYTHONIOENCODING",
+    "BASE_SHA", "HEAD_SHA",
+    "GATE_MAIN_RESULT", "GATE_SAST_RESULT", "GATE_EXPORT_BOUNDARY_RESULT",
+})
+
+
+def _step_env_keys(step: str) -> list[str]:
+    """Keys nested under a step's `env:`, and nothing else.
+
+    Scoped by indent: a flat 8-space scan also caught the step's SIBLING keys
+    (`id`, `run`, `env` itself), which made the allowlist check fail on a clean
+    baseline for the wrong reason.
+    """
+    out: list[str] = []
+    lines = step.splitlines()
+    for index, line in enumerate(lines):
+        if not _key_re("env").match(line):
+            continue
+        base = len(line) - len(line.lstrip())
+        for follow in lines[index + 1:]:
+            if not follow.strip():
+                continue
+            indent = len(follow) - len(follow.lstrip())
+            if indent <= base:
+                break
+            match = re.match(r"\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?\s*:", follow)
+            if match:
+                out.append(match.group(1))
+    return out
+
+
 def _strip_inline_comment(line: str) -> str:
     """Truncate at the first `#` that is outside single or double quotes."""
     out, quote = [], None
@@ -195,7 +245,24 @@ def _all_run_bodies(text: str) -> str:
 
 
 def _run_lines(step: str) -> list[str]:
-    return [ln for ln in (raw.strip() for raw in _all_run_bodies(step).splitlines()) if ln]
+    """Run-body lines with backslash continuations JOINED first.
+
+    bash joins a continued `make ...` line with the next into one statement; an earlier version of this
+    function did not, so a flag on the continued line was invisible to argv checks
+    while bash saw it. The old note claiming that divergence was "fail-closed" was
+    true only of the guard body's comparisons, not of the anchor — where it was a
+    green bypass.
+    """
+    joined: list[str] = []
+    for raw in _all_run_bodies(step).splitlines():
+        text = raw.strip()
+        if not text:
+            continue
+        if joined and joined[-1].endswith("\\"):
+            joined[-1] = joined[-1][:-1].rstrip() + " " + text
+        else:
+            joined.append(text)
+    return [ln for ln in joined if ln]
 
 
 UNPARSEABLE = "\x00unparseable"
@@ -301,6 +368,8 @@ def _invocation(step_or_block: str, command: str, *required_args: str,
             continue
         if _DRY_RUN_FLAGS & set(args) or _REDIRECT_FLAGS & set(args):
             continue
+        if "$(" in stmt or "`" in stmt:
+            continue  # substitution can reintroduce a flag no token equals
         if all(any(a == tok or a in tok for tok in args) for a in required_args):
             return stmt
     return ""
@@ -320,7 +389,7 @@ def _has_if(step: str) -> bool:
     """
     # `'if': ${{ false }}` is valid YAML with identical semantics and defeats a bare
     # `^\s*if:` — one edit would otherwise disable every if-check in this file.
-    return re.search(r"^\s*['\"]?if['\"]?\s*:", step, re.M) is not None
+    return _key_re("if").search(step) is not None
 
 
 def _body_is_straight_line(step: str) -> bool:
@@ -422,6 +491,9 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # leaves every comparison intact and never evaluates one. Same shape as
     # export-boundary-strict-shell / -no-set-relax, applied here because this body
     # decides the required check.
+    check("no-env-file-writes-in-aggregator", not any(
+        "GITHUB_ENV" in ln or "GITHUB_OUTPUT" in ln
+        for _n, st in _steps(agg) for ln in _run_lines(st)))
     guard_step = _step_named(agg, "Require every gate")
     guard_lines = _run_lines(guard_step)
     check("guard-strict-shell", bool(guard_lines) and guard_lines[0] == _STRICT_SHELL)
@@ -439,25 +511,40 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         var = _result_var(job_id)
         check(f"needs[{job_id}]",
               re.search(rf"^\s*- {re.escape(job_id)}\s*$", agg_flat, re.M) is not None)
+        # On the GUARD step, not merely somewhere in the job: moving the bindings to
+        # an earlier step lets that step's body write GATE_*_RESULT=success into
+        # $GITHUB_ENV, and the guard then reads forged values while every assertion
+        # about its body still holds.
         check(f"env-binding[{job_id}]",
               re.search(rf"{var}:\s*\$\{{\{{\s*needs\.{re.escape(job_id)}\.result\s*\}}\}}",
-                        agg_flat) is not None)
+                        _step_named(agg, "Require every gate")) is not None)
         # Command-word model, not a block regex: an earlier draft's whole-block
         # search was satisfied by `echo '[ "$X" != "success" ] && exit 1'`, which
         # greens the required check with every gate failed. The consequent must sit
         # on the same source line as the test.
+        # EQUALITY against the pinned form, and the rest of the line may only be
+        # `&& echo …` segments terminating in `&& exit 1`. Existence was not enough:
+        # `[ "$X" != "success" -a -f /nonexistent ]` satisfies "contains the var and
+        # !=" while never being true, and a trailing `&& exit 1` elsewhere on the line
+        # satisfied a line-wide search without being that test's consequent.
+        pinned = f'[ "${var}" != "success" ]'
         found = ""
         for stmt, line in _statements(agg):
             if stmt == UNPARSEABLE or not _load_bearing(line):
                 continue
-            cmd, args = _command(stmt)
-            if cmd not in ("[", "test"):
+            if " ".join(stmt.split()) != pinned:
                 continue
-            if f'"${var}"' not in " ".join(args) or "!=" not in args:
+            segments = [seg.strip() for seg in re.split(r"&&", line) if seg.strip()]
+            if segments[-1].split()[:2] != ["exit", "1"]:
                 continue
-            if re.search(r"&&\s*exit\s+1", line):
-                found = stmt
-                break
+            if " ".join(segments[0].split()) != pinned:
+                continue
+            # Between the test and `exit 1`, only diagnostics. A second `[` here is
+            # how an always-false test chains in and the exit becomes unreachable.
+            if any(_command(seg)[0] != "echo" for seg in segments[1:-1]):
+                continue
+            found = stmt
+            break
         check(f"comparison[{job_id}]", bool(found))
 
     # A one-line total bypass: greens a job with its chain failed, or greens the
@@ -468,11 +555,11 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # the interpreter for the whole chain, because the Makefile uses `PYTHON ?=`.
     # `env: PYTHONOPTIMIZE: '1'` compiles out inline asserts. All three are one line,
     # invisible to argv-level checks, and report success.
-    check("no-workflow-env", re.search(r"^env:", text, re.M) is None)
+    check("no-workflow-env", _key_re("env", "").search(text) is None)
     # `shell: 'true {0}'` on a step — or `defaults: run: shell:` at workflow level —
     # runs `true <script>` and leaves the body untouched. actionlint accepts any
     # value containing `{0}`; zizmor has no rule for it.
-    check("no-defaults-block", re.search(r"^defaults:", text, re.M) is None)
+    check("no-defaults-block", _key_re("defaults", "").search(text) is None)
     # Never do: no ${{ }} interpolation in a run: body this change writes or moves.
     check("no-interpolation-in-run", not any(
         "${{" in ln for jid in job_ids for _, st in _steps(_job_block(text, jid))
@@ -514,15 +601,19 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
               f"python-version: {EXPECTED_PYTHON}" in blk)
         check(f"no-job-permissions[{job_id}]", "permissions:" not in blk)
         # Job-level env: only (4 spaces). Step-level env: at 8 is legitimate and used.
-        check(f"no-job-env[{job_id}]", re.search(r"^    env:", blk, re.M) is None)
-        check(f"no-step-shell[{job_id}]", re.search(r"^\s+shell:", blk, re.M) is None)
+        check(f"no-job-env[{job_id}]", _key_re("env", "    ").search(blk) is None)
+        check(f"no-step-shell[{job_id}]", _key_re("shell").search(blk) is None)
+        # Step-level env: is legal, its KEYS are not free-form (see _ALLOWED_STEP_ENV).
+        _env_keys = [k for _n, st in _steps(blk) for k in _step_env_keys(st)]
+        check(f"step-env-keys-allowlisted[{job_id}]",
+              all(k in _ALLOWED_STEP_ENV for k in _env_keys))
         checkouts = _checkout_steps(blk)
         check(f"checkout-present[{job_id}]", bool(checkouts))
         # Per CHECKOUT, not per job: a second unhardened checkout otherwise passes.
         check(f"persist-credentials[{job_id}]",
               bool(checkouts) and all("persist-credentials: false" in c for c in checkouts))
         if job_id != AGGREGATOR_JOB_ID:
-            check(f"no-job-if[{job_id}]", not re.search(r"^    if:", blk, re.M))
+            check(f"no-job-if[{job_id}]", _key_re("if", "    ").search(blk) is None)
             check(f"no-needs[{job_id}]", not re.search(r"^\s+needs:", blk, re.M))
             check(f"fetch-depth[{job_id}]",
                   bool(checkouts) and all("fetch-depth: 0" in c for c in checkouts))
@@ -567,7 +658,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
           _sast_ifs == [PINNED_SAST_IF.split("if: ", 1)[1]])
     install = _step_named(sast_blk, "SAST/SCA tools")
     check("sast-install-present", bool(_invocation(install, "pip", "requirements-sast.txt")))
-    check("sast-install-unconditional", bool(install) and not re.search(r"^\s*if:", install, re.M))
+    check("sast-install-unconditional", bool(install) and not _has_if(install))
 
     # AC14(2): the export-boundary suite's silent tree-shape skip.
     exp_blk = _job_block(text, "gate-export-boundary")
@@ -597,9 +688,21 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # export-boundary-strict-shell and its mutation passed only for that co-fired
     # reason — it inflated the matrix without adding a proof. Pipeline safety is now
     # covered by requiring `set -euo pipefail` as the FIRST statement.)
+    # The grep must read the file `tee` wrote. Untied, pointing it at a path nothing
+    # creates passes: grep exits 2 on a missing file and `!` inverts that to 0, so
+    # every skip becomes invisible.
+    _tee_target = ""
+    for _st, _ in _statements(exp_step):
+        _toks = _st.split()
+        if "tee" in _toks:
+            _idx = _toks.index("tee")
+            if _idx + 1 < len(_toks):
+                _tee_target = _toks[_idx + 1]
+            break
     grep_stmt = next((st for st, ln in _statements(exp_step)
                       if st != UNPARSEABLE and _command(st)[0] == "grep"
-                      and SKIP_ASSERT_PATTERN in st and _load_bearing(ln)), "")
+                      and SKIP_ASSERT_PATTERN in st and _load_bearing(ln)
+                      and _tee_target and _tee_target in st), "")
     check("export-boundary-skip-check", bool(grep_stmt))
     # The grep must be negated: `grep -q` exits 0 when it FINDS a skip, so a bare
     # `grep … && exit 1` as the last line is red on healthy runs and green on skips.
@@ -677,7 +780,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("or-true-tree-probe", "export-boundary-tree-probe",
      lambda t: t.replace("test -d packages/agentbundle", "test -d packages/agentbundle || true")),
     ("or-true-grep", "export-boundary-skip-check",
-     lambda t: t.replace('"^SKIPPED" out.txt', '"^SKIPPED" out.txt || true')),
+     lambda t: t.replace('! grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"',
+                         'grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt" || true')),
     # -- quoted-separator smuggling (round-8 blocker 2) --------------------------
     ("quoted-and-anchor", "anchor-step",
      lambda t: t.replace("run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
@@ -756,6 +860,44 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("rename-aggregator-id", "aggregator-present",
      lambda t: t.replace("  build-check:\n", "  aggregate:\n", 1)),
     # The whole-workflow no-ops (post-implementation re-review blockers 2 and 3).
+    # The quoted-key class (final review blocker 1): every variant of every banned key.
+    ("quoted-workflow-env", "no-workflow-env",
+     lambda t: t.replace("\npermissions:\n", "\n'env':\n  MAKEFLAGS: '-n'\npermissions:\n", 1)),
+    ("spaced-workflow-env", "no-workflow-env",
+     lambda t: t.replace("\npermissions:\n", "\nenv :\n  MAKEFLAGS: '-n'\npermissions:\n", 1)),
+    ("quoted-job-env", "no-job-env[gate-main]",
+     lambda t: t.replace("  gate-main:\n", "  gate-main:\n    'env':\n      PYTHON: 'true'\n", 1)),
+    ("quoted-defaults", "no-defaults-block",
+     lambda t: t.replace("\npermissions:\n", "\n'defaults':\n  run:\n    shell: 'true {0}'\npermissions:\n", 1)),
+    ("quoted-step-shell", "no-step-shell[gate-main]",
+     lambda t: t.replace("      - name: Run make build-check\n",
+                         "      - name: Run make build-check\n        'shell': 'true {0}'\n", 1)),
+    # Blocker 2: step-level env: keys are allowlisted.
+    ("step-env-makeflags", "step-env-keys-allowlisted[gate-main]",
+     lambda t: t.replace("      - name: Run make build-check\n",
+                         "      - name: Run make build-check\n        env:\n          MAKEFLAGS: '-n'\n", 1)),
+    # Blocker 4: forge the results from an earlier step via $GITHUB_ENV.
+    ("forge-results-via-github-env", "no-env-file-writes-in-aggregator",
+     lambda t: t.replace("          python3 tools/test-build-check-workflow.py\n",
+                         '          echo "GATE_MAIN_RESULT=success" >> "$GITHUB_ENV"\n'
+                         "          python3 tools/test-build-check-workflow.py\n", 1)),
+    # Blocker 3: a comparison that exists but can never be true.
+    ("chained-false-test", "comparison[gate-main]",
+     lambda t: t.replace('[ "$GATE_MAIN_RESULT" != "success" ] &&',
+                         '[ "$GATE_MAIN_RESULT" != "success" ] && [ -f /nonexistent ] &&', 1)),
+    ("grep-untied-from-tee", "export-boundary-skip-check",
+     lambda t: t.replace('grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"',
+                         'grep -Eq "^SKIPPED" "$RUNNER_TEMP/other.txt"', 1)),
+    ("vacuous-comparison", "comparison[gate-main]",
+     lambda t: t.replace('[ "$GATE_MAIN_RESULT" != "success" ]',
+                         '[ "$GATE_MAIN_RESULT" != "success" -a -f /nonexistent ]', 1)),
+    # Blocker 5: a flag hidden behind a continuation, and behind substitution.
+    ("continuation-hides-dry-run", "delegation-is-argument",
+     lambda t: t.replace("        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
+                         "        run: |\n          make build-check PACKS_DIR=packs SAST_DELEGATED=1 \\\n          -n")),
+    ("substitution-hides-dry-run", "delegation-is-argument",
+     lambda t: t.replace("run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
+                         "run: make build-check PACKS_DIR=packs SAST_DELEGATED=1 $(printf -- -n)")),
     ("container-override", "no-container[gate-main]",
      lambda t: t.replace("  gate-main:\n", "  gate-main:\n    container: alpine\n", 1)),
     ("job-concurrency-serialises", "no-job-concurrency[gate-sast]",

@@ -93,8 +93,8 @@ jobs:
         run: |
           set -euo pipefail
           test -d packages/agentbundle
-          python -m pytest tools/test_check_artifact_contents.py -q -rs > out.txt
-          ! grep -Eq "^SKIPPED" out.txt
+          python -m pytest tools/test_check_artifact_contents.py -q -rs 2>&1 | tee "$RUNNER_TEMP/out.txt"
+          ! grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"
   build-check:
     name: make build-check
     needs:
