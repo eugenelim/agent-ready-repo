@@ -97,6 +97,9 @@ jobs:
         if: steps.changes.outputs.skip_sast != 'true'
         run: pip install -r tools/requirements-sast.txt
 
+      - name: Install agentbundle (editable) + pytest
+        run: python -m pip install -e packages/agentbundle/ pytest
+
       - name: Install bandit unconditionally (lint-nosec-form's ID registry)
         # Deliberately NOT behind the skip_sast condition above, and deliberately
         # not the whole of requirements-sast.txt.
@@ -115,10 +118,29 @@ jobs:
         # The pin is READ, not restated — a second copy of the version range can
         # drift from the canonical one in requirements-sast.txt; deriving it
         # cannot.
-        run: pip install "$(grep -E '^bandit' tools/requirements-sast.txt)"
-
-      - name: Install agentbundle (editable) + pytest
-        run: python -m pip install -e packages/agentbundle/ pytest
+        #
+        # LAST step before `make build-check`, and it asserts its own success.
+        # Both matter, because a provisioning step that quietly does nothing
+        # would leave the required check green with the gate it enables inert —
+        # the exact shape this whole step exists to remove. Three routes, all
+        # measured rather than assumed:
+        #   (a) a grep that matches nothing yields `pip install ""`, which exits
+        #       0 with no output; `set -e` on the assignment is what stops it.
+        #   (b) a bandit whose registry import raises — an API move inside the
+        #       >=1.9,<2 range, a broken plugin entry point — leaves
+        #       id_checker() returning None, and lint-nosec-form then degrades
+        #       to a caveat and exit 0. The python assertion below reaches for
+        #       the same API and both directions of its answer.
+        #   (c) a later pip resolution replacing a shared transitive dep of
+        #       bandit; running last leaves nothing between here and the gate.
+        run: |
+          set -euo pipefail
+          pin="$(grep -E '^bandit([^A-Za-z0-9._-]|$)' tools/requirements-sast.txt)"
+          echo "installing pinned: $pin"
+          pip install "$pin"
+          python -c "from bandit.core import extension_loader as e; \
+            assert e.MANAGER.check_id('B307'), 'bandit registry did not resolve a real test id'; \
+            assert not e.MANAGER.check_id('B999'), 'bandit registry resolved a nonexistent test id'"
 
       - name: Run make build-check
         # Pass SKIP_SAST=1 only when the diff touches no SAST-relevant file; the

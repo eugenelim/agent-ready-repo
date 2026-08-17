@@ -68,14 +68,30 @@ step, or add an unconditional bandit-only install. The second wins on cost.
 the expensive half of that install and neither is needed by any gate that runs
 under `SKIP_SAST`. Bandit alone is what `lint-nosec-form` needs.
 
-**The pin is read, not restated.** The new step installs
-`$(grep -E '^bandit' tools/requirements-sast.txt)` rather than naming a version.
-A second copy of `bandit>=1.9,<2` is a thing that can drift from the canonical
-one; deriving it cannot. Same principle `lint-ci-parity.py` applies to its own
+**The pin is read, not restated.** The new step greps the `bandit` line out of
+`tools/requirements-sast.txt` rather than naming a version. A second copy of
+`bandit>=1.9,<2` is a thing that can drift from the canonical one; deriving it
+cannot. The pattern is anchored `^bandit([^A-Za-z0-9._-]|$)` so a future
+`bandit-extras` line cannot be picked up instead. Same principle `lint-ci-parity.py` applies to its own
 reachable-target set ("*derived* from the Makefile, never declared").
 
 The conditional full-SAST install stays exactly as it is. When it runs, pip
 finds bandit already satisfied and moves on.
+
+**The step asserts its own success, and runs last.** A provisioning step that
+quietly does nothing would leave the required check green with the gate it
+enables inert — the exact shape this change exists to remove, reintroduced one
+level up. Security review found three routes to that, all since measured:
+
+| Route | Measured | Closed by |
+| --- | --- | --- |
+| The grep matches nothing → `pip install ""` exits **0 with no output**, and a failing command substitution inside a `run:` block does not fail the step on its own | Confirmed against pip and `bash -e` | `set -euo pipefail` with the substitution in an *assignment*, whose status `set -e` does honour |
+| bandit installs but its registry import raises — an API move inside `>=1.9,<2`, a broken plugin entry point — so `id_checker()` returns `None` and `lint-nosec-form` degrades to a caveat and exit 0 | Confirmed by reading `id_checker`'s `except Exception: return None` | A `python -c` assertion reaching for the same API, checking **both** directions: a real id resolves, a nonexistent one does not |
+| A later `pip install` replaces a shared transitive dep of bandit, exiting 0 while breaking it | Standard pip resolver behaviour | Moving the step to **last before `Run make build-check`**, so nothing runs in between |
+
+Each is mutation-tested: with no bandit line in the requirements file, with the
+registry import broken, and with a `check_id` that resolves everything, the step
+body exits non-zero. An unmutated assertion is an unverified one.
 
 ## Decision 2 — two grouped steps, not seven, and not one
 
@@ -128,10 +144,17 @@ not something to paper over by adding a second runner in `build-check.yml`.
       After it, zero. `test_check_rendered_site_links.py`'s `pages.yml`
       appearance is classified non-`run:` by that scan, not by reading the YAML.
 
-- [x] **AC3 — bandit is present on every build-check run.** A new,
-      unconditional install step precedes `Run make build-check` and installs
-      the `bandit` line read out of `tools/requirements-sast.txt`. The existing
-      conditional `Install SAST/SCA tools` step is unchanged.
+- [x] **AC3 — bandit is present on every build-check run, and the step fails
+      when it is not.** A new, unconditional install step is the **last** step
+      before `Run make build-check`; it installs the `bandit` line read out of
+      `tools/requirements-sast.txt`, and asserts the registry resolved by
+      calling the same API `id_checker()` reaches for, in both directions. The
+      existing conditional `Install SAST/SCA tools` step is unchanged.
+
+- [x] **AC3a — the fail-closed path is mutation-tested, not asserted.** With
+      (i) no `bandit` line in the requirements file, (ii) the registry import
+      broken, and (iii) a `check_id` that resolves every id, the step body exits
+      non-zero. Run, not reasoned about.
 
 - [x] **AC4 — the unknown-ID check is demonstrably live, and demonstrably was
       not.** `lint-nosec-form.scan_source` is run against a well-formed but
@@ -192,7 +215,7 @@ Goal-based, plus one measured before/after.
 | What | How |
 | --- | --- |
 | AC1, AC2 | The workflow scan described in AC2, run on the base and on the change. |
-| AC3 | Read the edited workflow; assert the new step has no `if:` and precedes `Run make build-check`. |
+| AC3, AC3a | Read the edited workflow; assert the new step has no `if:` and is the last step before `Run make build-check`. Then run the step body verbatim against three mutated inputs and assert each exits non-zero. |
 | AC4 | `scan_source(src, path, id_checker())` vs `scan_source(src, path, None)` on a `B`-shaped nonexistent ID. |
 | AC5, AC6 | `python3 tools/lint-ci-parity.py`; exit code and summary line. |
 | AC7 | The four gate commands. |
@@ -203,10 +226,22 @@ invariants in both directions — a step without a disposition and a disposition
 without a step both fail — so the roster edit is covered by an existing gate
 rather than a new one.
 
+## Deferred
+
+Four findings from `security-reviewer`, each recorded in `workspace.toml
+[backlog].open` with a cold-start-sufficient comment:
+
+| Slug | Why not here |
+| --- | --- |
+| `lint-nosec-form-require-id-registry` | The tool degrades to an exit-0 caveat when the registry is unreachable. **Every route to that is closed in CI by this change**; what remains is a local `SKIP_SAST=1 make build-check` without bandit. Fixing it in the linter makes bandit a hard prerequisite for every contributor — a real cost, and its own decision. |
+| `build-check-yml-no-permissions-block` | Adding `permissions: contents: read` changes the job's token scope. That is a behaviour change, which the bundled-fixes carve-out fails closed on, and it applies to three other workflows too. |
+| `sast-requirements-hash-locked` | Needs a generated locked file and a refresh procedure. |
+| `sast-requirements-not-audited` | `pip-audit` covers `tools/requirements.txt` and the pack files, not the CI-tooling ones. Confirmed by reading the `Makefile` invocations. A different file set and a different decision (audit vs. Dependabot). |
+
 ## Honest scope
 
-The seven tests now gate `main`, and bandit's registry is now present on every
-run. Two things this does **not** do:
+The seven tests now gate `main`, and bandit's registry is now present — and
+proven present — on every run. Two things this does **not** do:
 
 1. **Gate F's `paths-ignore` still excludes doc surfaces.** A PR touching only
    `docs/**` does not run `test_catalogue_tooling_rewire` or
