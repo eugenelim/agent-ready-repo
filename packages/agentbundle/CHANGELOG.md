@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.37.1] — 2026-08-16
+
+### Changed
+
+- **New catalogue scaffolds now document the guide callout contract.** The
+  bundled authoring standards distinguish exact quoted wording from typed
+  Starlight asides and define when to use `note`, `tip`, `caution`, or `danger`.
+  Existing catalogues are unchanged until they refresh their scaffolded
+  authoring reference.
+
 ## [0.37.0] — 2026-08-16
 
 ### Changed
@@ -143,7 +153,6 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   wrong disclosure policy without noticing. Pass `"catalogue"` to keep the old
   behaviour, or `"single-pack"` when rendering a subset. The function had no
   callers in this repository.
-
 ## [0.35.3] — 2026-08-15
 
 ### Fixed

@@ -13,7 +13,9 @@ kind: how-to
 
 You're here because the `agentbundle` CLI drives pack install, validation, adapt, and build. All four [installation routes](/agent-ready-repo/docs/getting-started/install/) ship pack content — skills, agents, hooks — but not the CLI, so every route converges here for the pip install.
 
-> **Credentialed skills don't resolve credentials through the `agentbundle` wheel.** The `auth: creds` resolver is the standalone, pip-installable [`credbroker`](../../../packages/credbroker) library, imported in-process (`from credbroker import …`). From a clone, install it alongside the CLI: `python -m pip install -e ./packages/credbroker`. (The no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of the [credentialed-skill how-to](../../credential-brokers/how-to/add-a-credentialed-skill.md).) The CLI itself remains pip-installed from this clone; the *Python skill bodies* resolve credentials through `credbroker`, not the agentbundle wheel.
+:::note
+**Credentialed skills don't resolve credentials through the `agentbundle` wheel.** The `auth: creds` resolver is the standalone, pip-installable [`credbroker`](../../../packages/credbroker) library, imported in-process (`from credbroker import …`). From a clone, install it alongside the CLI: `python -m pip install -e ./packages/credbroker`. (The no-PyPI corporate and zero-pip user-scope-floor paths are in Step 9 of the [credentialed-skill how-to](../../credential-brokers/how-to/add-a-credentialed-skill.md).) The CLI itself remains pip-installed from this clone; the *Python skill bodies* resolve credentials through `credbroker`, not the agentbundle wheel.
+:::
 
 Smoke test for the install:
 
@@ -40,7 +42,9 @@ This writes a finder hook into your active interpreter's `site-packages` pointin
 
 **Editable is the right default** for both contributors and adopters working from a clone — the clone is already on disk, the finder-hook shape costs nothing, and source updates land transparently. The [`how to add a credentialed skill`](../../credential-brokers/how-to/add-a-credentialed-skill.md) walkthrough uses the same idiom.
 
-> **Snapshot install — narrow exception.** `python -m pip install ./packages/agentbundle` (no `-e`) copies the package as it exists at install time. Edits or `git pull`s to the clone are *not* seen by importers until you re-run `python -m pip install`. Use this only if you cloned to a pinned tag, never intend to update or edit, and want install isolation from the clone directory.
+:::caution
+**Snapshot install — narrow exception.** `python -m pip install ./packages/agentbundle` (no `-e`) copies the package as it exists at install time. Edits or `git pull`s to the clone are *not* seen by importers until you re-run `python -m pip install`. Use this only if you cloned to a pinned tag, never intend to update or edit, and want install isolation from the clone directory.
+:::
 
 ## Step 2 — Smoke-check the install
 

@@ -1,6 +1,8 @@
 # `reference.md` sections and the stack-pack contract
 
-> Authoritative description of the `docs/architecture/reference.md` document: its four arc42 sections and the contract governing how an opt-in stack pack delivers a filled one. For *why* this is separate from `overview.md`, see [Foundation vs. map](../../core/explanation/foundation-vs-map.md). For the task of creating one, see [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md).
+:::note
+Authoritative description of the `docs/architecture/reference.md` document: its four arc42 sections and the contract governing how an opt-in stack pack delivers a filled one. For *why* this is separate from `overview.md`, see [Foundation vs. map](../../core/explanation/foundation-vs-map.md). For the task of creating one, see [Establish your repo's reference architecture](../how-to/establish-reference-architecture.md).
+:::
 
 `reference.md` is the normative golden path a feature's low-level design conforms to. It is filled only when a repo has real architecture decisions to record; a thin repo has none and leaves the template un-instantiated.
 

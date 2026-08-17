@@ -1,6 +1,8 @@
 # Spec `Shape:` and the plan's `## Design (LLD)`
 
-> Authoritative description of the **`Shape:`** spec field, the plan's **`## Design (LLD)`** section, and the **stack-derivation** step that fills it. For why the design lives in the plan rather than the spec, see [Why the plan owns the low-level design](../explanation/why-the-plan-owns-the-lld.md). These are produced by the `new-spec` skill (and inherited by `receive-brief` when it scaffolds a spec).
+:::note
+Authoritative description of the **`Shape:`** spec field, the plan's **`## Design (LLD)`** section, and the **stack-derivation** step that fills it. For why the design lives in the plan rather than the spec, see [Why the plan owns the low-level design](../explanation/why-the-plan-owns-the-lld.md). These are produced by the `new-spec` skill (and inherited by `receive-brief` when it scaffolds a spec).
+:::
 
 A spec stays the **contract** — objective, boundaries, testing strategy, acceptance criteria. The **low-level design** (the *how*: data model, component decomposition, screen states, resilience, deployment sequencing) lives in the **plan**. Two additive pieces connect them: the spec's `Shape:` selector and the plan's `## Design (LLD)` section.
 

@@ -6,7 +6,9 @@ kind: explanation
 status: stable
 ---
 
-> This page is for readers who want the model, not a procedure. To write a page, see [How to write a guide](../how-to/write-a-guide.md).
+:::note
+This page is for readers who want the model, not a procedure. To write a page, see [How to write a guide](../how-to/write-a-guide.md).
+:::
 
 ## The question this page answers
 

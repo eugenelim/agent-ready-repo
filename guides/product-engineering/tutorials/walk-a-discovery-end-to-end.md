@@ -4,7 +4,9 @@
 **Prerequisites:** `product-engineering` pack installed; a harness that supports human-in-the-loop gate pauses with an append-only decision log that the agent cannot edit.
 **Time:** 60 minutes (nine guided steps covering G0 through G3, with three gate decisions and one rejection-recovery scenario).
 
-> **Diátaxis: tutorial.** A single guided path you can follow start to finish. By the end you'll have run one full discovery — from a raw idea to a ratified decision brief handed to `work-loop` — and seen each gate, a divergence, a rejection/recovery, and the validation hooks. For the *why*, read the explanation [*The discovery loop*](../explanation/the-discovery-loop.md) afterward; for the slot shapes, the reference [*The discovery sidecar and roster*](../reference/discovery-sidecar-and-roster.md). This walk uses a household-assistant example throughout; substitute your own idea and the steps are identical.
+:::note
+**Diátaxis: tutorial.** A single guided path you can follow start to finish. By the end you'll have run one full discovery — from a raw idea to a ratified decision brief handed to `work-loop` — and seen each gate, a divergence, a rejection/recovery, and the validation hooks. For the *why*, read the explanation [*The discovery loop*](../explanation/the-discovery-loop.md) afterward; for the slot shapes, the reference [*The discovery sidecar and roster*](../reference/discovery-sidecar-and-roster.md). This walk uses a household-assistant example throughout; substitute your own idea and the steps are identical.
+:::
 
 **Before you start:** install the `product-engineering` pack, and run in a harness that can pause for human input and write your verdict into a store the agent cannot edit (the discovery loop relies on that channel — see the explanation).
 

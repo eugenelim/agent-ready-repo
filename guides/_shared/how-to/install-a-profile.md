@@ -57,13 +57,21 @@ A profile is a one-time convenience for *installing* a set — it is not recorde
 
 ## Pitfalls
 
-> **`--profile` and `--pack` are mutually exclusive.** Pick one. To install a single pack, use `--pack`; to install a set, use `--profile`.
+:::caution
+**`--profile` and `--pack` are mutually exclusive.** Pick one. To install a single pack, use `--pack`; to install a set, use `--profile`.
+:::
 
-> **`--scope` is rejected with `--profile`.** A profile declares its own scope in its manifest — `solution-architect` is user-scope, `full-ceremony` is repo-scope. You don't (and can't) choose the scope at install time.
+:::caution
+**`--scope` is rejected with `--profile`.** A profile declares its own scope in its manifest — `solution-architect` is user-scope, `full-ceremony` is repo-scope. You don't (and can't) choose the scope at install time.
+:::
 
-> **A pack already installed at the *other* scope blocks the profile.** Profiles are single-scope and won't install the same pack across scopes. If a pack in the profile is already installed at the opposite scope, the command refuses and names it — uninstall it from that scope first, or install the remaining packs individually.
+:::caution
+**A pack already installed at the *other* scope blocks the profile.** Profiles are single-scope and won't install the same pack across scopes. If a pack in the profile is already installed at the opposite scope, the command refuses and names it — uninstall it from that scope first, or install the remaining packs individually.
+:::
 
-> **A partial install is not rolled back.** On a genuine I/O failure mid-batch (a full disk, say), packs already written stay; the dependency-first order guarantees the installed prefix is still consistent, and the per-pack summary tells you exactly where it stopped. Re-running the command resumes — already-installed packs are skipped.
+:::caution
+**A partial install is not rolled back.** On a genuine I/O failure mid-batch (a full disk, say), packs already written stay; the dependency-first order guarantees the installed prefix is still consistent, and the per-pack summary tells you exactly where it stopped. Re-running the command resumes — already-installed packs are skipped.
+:::
 
 ## Related
 

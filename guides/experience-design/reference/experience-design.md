@@ -1,9 +1,11 @@
 # `experience-design` — skill and reviewer reference
 
-> **Reference** — information-oriented. This page mirrors the shipped skill and
-> agent contracts: what each one accepts, returns, reads or writes, and routes
-> away. When frontmatter changes, update this page in the same change. For a
-> task-oriented walkthrough, see [Thread a feature from journey to screens](../how-to/author-design-intent.md).
+:::note
+**Reference** — information-oriented. This page mirrors the shipped skill and
+agent contracts: what each one accepts, returns, reads or writes, and routes
+away. When frontmatter changes, update this page in the same change. For a
+task-oriented walkthrough, see [Thread a feature from journey to screens](../how-to/author-design-intent.md).
+:::
 
 The pack contains 20 pure-Markdown skills and one independent reviewer agent.
 It installs at user scope across every adapter declared by the pack manifest.

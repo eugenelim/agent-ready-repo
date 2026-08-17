@@ -49,11 +49,13 @@ Open `overview.md`. Its frontmatter records your `question`, a
 `working_hypothesis` (empty for now — that's fine, you'll form it as you go), a
 `shape`, and `phase: capture`. The project starts in the **capture** phase.
 
-> Where did the folder land? By default, in scratch / out-of-repo space (a
-> gitignored `.context/desk-research/` or a user-level path) — a code repo commits
-> the *decision*, never the whole corpus. You can point it elsewhere with the
-> `[research]` table of an `agentbundle-layout.toml`; the
-> [reference](../reference/desk-research-pack.md) has the keys.
+:::note
+Where did the folder land? By default, in scratch / out-of-repo space (a
+gitignored `.context/desk-research/` or a user-level path) — a code repo commits
+the *decision*, never the whole corpus. You can point it elsewhere with the
+`[research]` table of an `agentbundle-layout.toml`; the
+[reference](../reference/desk-research-pack.md) has the keys.
+:::
 
 ## Step 2 — capture a few sources
 

@@ -1,6 +1,8 @@
 # About foundation vs. map
 
-> Why your repo keeps **two** architecture documents — `reference.md` (the foundation) and `overview.md` (the map) — and why they must not collapse into one. For the section-by-section description of `reference.md`, see [`reference.md` sections and the stack-pack contract](../../architect/reference/reference-architecture.md). To create one, follow [Create and use your `reference.md`](../../architect/tutorials/create-your-reference-architecture.md).
+:::note
+Why your repo keeps **two** architecture documents — `reference.md` (the foundation) and `overview.md` (the map) — and why they must not collapse into one. For the section-by-section description of `reference.md`, see [`reference.md` sections and the stack-pack contract](../../architect/reference/reference-architecture.md). To create one, follow [Create and use your `reference.md`](../../architect/tutorials/create-your-reference-architecture.md).
+:::
 
 ## The question this page answers
 

@@ -14,7 +14,15 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
-## What's new in 0.36.0
+## What's new in 0.37.1
+
+**New catalogue scaffolds now document the guide callout contract.** The
+bundled authoring reference distinguishes exact quoted wording, which stays a
+blockquote, from guidance that should render as a Starlight `note`, `tip`,
+`caution`, or `danger` aside. Existing catalogues remain unchanged until their
+scaffolded authoring reference is refreshed.
+
+## Contract discovery
 
 The bundled public contract inventory now includes the strict
 `knowledge-captured-observation.schema.json` contract used by the core pack's

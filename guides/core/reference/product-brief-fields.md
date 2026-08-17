@@ -9,7 +9,9 @@ kind: reference
 
 Authoritative field list for a **product brief** and the linkage fields it stamps on derived specs. A brief lives at `docs/product/briefs/<slug>.md`. Use `author-brief` to draft a brief from unstructured external input (email, stakeholder message, Linear issue); use `receive-brief` to receive a formed brief and decompose it into specs. For how to use either skill, see [Intake an external brief into a product brief](../how-to/intake-an-external-brief.md) or [Receive a product brief and decompose it into specs](../how-to/receive-a-product-brief-and-decompose-it-into-specs.md); for why the layer exists, see [Why a brief layer](../explanation/why-a-brief-layer.md).
 
-> The brief template is a **guide, not a schema**. Every field below except Outcome and Scope is optional. `author-brief` elicits missing DoR fields when authoring from unstructured input; `receive-brief` elicits what's missing when receiving a formed brief. Neither rejects a brief for not matching this list.
+:::note
+The brief template is a **guide, not a schema**. Every field below except Outcome and Scope is optional. `author-brief` elicits missing DoR fields when authoring from unstructured input; `receive-brief` elicits what's missing when receiving a formed brief. Neither rejects a brief for not matching this list.
+:::
 
 ## Brief header fields
 

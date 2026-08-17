@@ -13,6 +13,33 @@ Machine contracts in `contracts/` are normative. These guides explain how to use
 Each section below names the authoritative contract and points to the guide that
 explains it. When a guide and its contract disagree, the contract is right.
 
+## Guide asides and quotations
+
+Use a Starlight aside when a passage does work beyond the surrounding narrative.
+Choose the type by what the reader needs to do with it:
+
+| Type | Use it for |
+| --- | --- |
+| `note` | Scope, orientation, or background the reader must notice |
+| `tip` | An optional technique that improves the result or route |
+| `caution` | A pitfall, limitation, or recovery step with reversible consequences |
+| `danger` | A risk of severe or irreversible harm |
+
+Use only those four types. Keep the default visible title unless a specific title
+helps the reader act. Put the complete guidance inside the directive:
+
+```md
+:::caution
+Confirm the generated paths before replacing an existing projection.
+:::
+```
+
+A blockquote has a different job: it preserves someone else's words or exact text
+the reader must recognize, such as a prompt, transcript, sample response, or rubric
+wording. Leave those passages as `>` blockquotes. Do not turn prose into a quotation
+just to make it visually prominent, and do not turn genuine quoted wording into an
+aside.
+
 ---
 
 ## 1. Catalogue manifest
@@ -426,5 +453,7 @@ contracts used for validation by this agentbundle version.
 
 ## Journey format
 
-> **Not yet available.** Wave 4 of the catalogue-contracts initiative will define the
-> journey format and its contract. This section will be filled in when that wave ships.
+:::caution
+**Not yet available.** Wave 4 of the catalogue-contracts initiative will define the
+journey format and its contract. This section will be filled in when that wave ships.
+:::

@@ -15,7 +15,9 @@ This is a one-page walk-through for authoring a credentialed primitive — a ski
 
 For a runnable, shipped reference, read a real consumer — [`packs/atlassian/.apm/skills/jira/`](../../../packs/atlassian/.apm/skills/jira) is a live `auth: creds` credentialed-CLI whose `scripts/_client.py` resolves a PAT via the `credbroker` library; this guide is the procedure that gets you to your own.
 
-> **When to use this** — your skill calls an external service that takes API tokens, Bearer auth, or session cookies via corporate SSO. If your skill only shells out to a binary the user has already authenticated on PATH (`gh`, `git`, `kubectl`) and the vendor binary owns the credential end-to-end, the `auth: cli` broker fits; everything else picks a different broker below.
+:::note
+**When to use this** — your skill calls an external service that takes API tokens, Bearer auth, or session cookies via corporate SSO. If your skill only shells out to a binary the user has already authenticated on PATH (`gh`, `git`, `kubectl`) and the vendor binary owns the credential end-to-end, the `auth: cli` broker fits; everything else picks a different broker below.
+:::
 
 ## Before you start
 
@@ -305,7 +307,9 @@ between skills. Act on the cause:
 - `cli` → run the vendor's auth flow (`gh auth login`, `aws configure`, …).
 - `sso-cookie` → the next `get-cookies` opens a browser; let the user complete it.
 
-> The agent installs deps unattended (no secret) but never types the token. This is the credentialed-skill form of "self-bootstrapping": the non-secret setup is automatic; the secret stays a user gesture.
+:::note
+The agent installs deps unattended (no secret) but never types the token. This is the credentialed-skill form of "self-bootstrapping": the non-secret setup is automatic; the secret stays a user gesture.
+:::
 
 ## Step 9 — Declare the `credbroker` dependency (`auth: creds` only)
 

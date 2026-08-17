@@ -26,7 +26,9 @@ If you're recording a decision that's already settled, see [how to record a deci
 
 ## Prerequisites
 
-> **Pack:** `governance-extras`. `new-rfc` does not ship in `core`. Verify with `ls .claude/skills/new-rfc/` (or the equivalent skill registry in your IDE — Claude Code's `/agents`, Cursor's Composer, etc.). If the directory is missing, install or enable `governance-extras` first.
+:::note
+**Pack:** `governance-extras`. `new-rfc` does not ship in `core`. Verify with `ls .claude/skills/new-rfc/` (or the equivalent skill registry in your IDE — Claude Code's `/agents`, Cursor's Composer, etc.). If the directory is missing, install or enable `governance-extras` first.
+:::
 
 - A working `docs/rfc/` directory. The skill creates one if it's missing, but the home for the file matters — the lifecycle rules in `docs/CONVENTIONS.md` only apply to RFCs at this path.
 - Web search available in your agent harness (Claude Code's `WebSearch`, or the equivalent elsewhere). The external prior-art sweep degrades gracefully without it — the skill says so explicitly rather than fabricating citations — but you lose half the research phase's value.
@@ -42,7 +44,9 @@ Before invoking, check that the change clears at least one of these bars, lifted
 
 If none of these fire — the change fits in one package and preserves public interfaces — push back on yourself. A normal PR is enough. [`AGENTS.md`](../../../AGENTS.md) carries the same rule for *substantive* CHARTER edits: those go through RFC, but trivial ones (typos, broken links) ship as PRs.
 
-> **Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's get input on X" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Lead with `use the new-rfc skill to …` whenever you want the discipline to trigger reliably.
+:::tip
+**Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's get input on X" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Lead with `use the new-rfc skill to …` whenever you want the discipline to trigger reliably.
+:::
 
 ## Step 1 — Invoke `new-rfc`
 
@@ -88,7 +92,9 @@ Read the recommendations carefully. For each:
 - **Reject without an alternative** — the question stays in the body's `Open questions` section, with a recommended default + owner + decide-by.
 - **Revise** — give the skill the alternative; it will re-thread that one finding into the body.
 
-> **Do not approve the block in bulk.** A vague "looks good" doesn't count as sign-off on the highest-stakes recommendation. Name the recommendation you're accepting, especially when the skill flagged one as load-bearing.
+:::caution
+**Do not approve the block in bulk.** A vague "looks good" doesn't count as sign-off on the highest-stakes recommendation. Name the recommendation you're accepting, especially when the skill flagged one as load-bearing.
+:::
 
 ## Step 4 — Drafting resumes, answer-first
 
@@ -146,19 +152,33 @@ A published RFC can still need a correction later — a spec finds a gap, a late
 
 ## Pitfalls
 
-> **Writing body content before the research phase clears.** The skill refuses to do this; if you find yourself filling sections by hand to "save time", you've skipped the part of the workflow that makes the RFC worth reading. Let the research phase emit, sign off, *then* let the body fill.
+:::caution
+**Writing body content before the research phase clears.** The skill refuses to do this; if you find yourself filling sections by hand to "save time", you've skipped the part of the workflow that makes the RFC worth reading. Let the research phase emit, sign off, *then* let the body fill.
+:::
 
-> **Empty `Evidence & prior art` when web search was available.** "We didn't look" isn't an answer — the external sweep is exactly what distinguishes an RFC from a wishlist. If the sweep genuinely returned nothing, say so explicitly under the heading and link the queries you ran.
+:::caution
+**Empty `Evidence & prior art` when web search was available.** "We didn't look" isn't an answer — the external sweep is exactly what distinguishes an RFC from a wishlist. If the sweep genuinely returned nothing, say so explicitly under the heading and link the queries you ran.
+:::
 
-> **An invented, round-number option list.** "Three categories" with no stated axis and no sources means the space wasn't modelled — exactly the failure the per-subpoint research phase exists to prevent. Push the skill to make each `Options considered` enumeration MECE along a stated axis and grounded in prior art.
+:::caution
+**An invented, round-number option list.** "Three categories" with no stated axis and no sources means the space wasn't modelled — exactly the failure the per-subpoint research phase exists to prevent. Push the skill to make each `Options considered` enumeration MECE along a stated axis and grounded in prior art.
+:::
 
-> **An unverified citation.** A link that loads is not proof — the claim has to actually be in the source. The skill's gate fetches and confirms every reference (and challenges a doubtful one by fetching, not by judging whether the identifier "looks real"); don't wave a citation through on plausibility.
+:::caution
+**An unverified citation.** A link that loads is not proof — the claim has to actually be in the source. The skill's gate fetches and confirms every reference (and challenges a doubtful one by fetching, not by judging whether the identifier "looks real"); don't wave a citation through on plausibility.
+:::
 
-> **Bare open questions with no recommended default.** Every entry in `Open questions` should carry a recommended default + owner + decide-by, even if the default is "punt to reviewers." Reviewers reading bare questions waste a round asking for context the author already had.
+:::caution
+**Bare open questions with no recommended default.** Every entry in `Open questions` should carry a recommended default + owner + decide-by, even if the default is "punt to reviewers." Reviewers reading bare questions waste a round asking for context the author already had.
+:::
 
-> **Treating an RFC as a venue to relitigate an accepted ADR without naming it.** If you're proposing a reversal, cite the ADR in `Related:` and address its reasoning directly in `Problem & goals`. The skill's repo-sweep will surface the ADR anyway; engaging with it up-front saves a review round.
+:::caution
+**Treating an RFC as a venue to relitigate an accepted ADR without naming it.** If you're proposing a reversal, cite the ADR in `Related:` and address its reasoning directly in `Problem & goals`. The skill's repo-sweep will surface the ADR anyway; engaging with it up-front saves a review round.
+:::
 
-> **Drifting a `Draft` RFC indefinitely.** A `Draft` that never moves to `Open` is functionally a private note. If you're not ready to circulate, ask whether the proposal is actually ready to exist as an RFC, or whether a spike or investigation note belongs first.
+:::caution
+**Drifting a `Draft` RFC indefinitely.** A `Draft` that never moves to `Open` is functionally a private note. If you're not ready to circulate, ask whether the proposal is actually ready to exist as an RFC, or whether a spike or investigation note belongs first.
+:::
 
 ## When not to use this workflow
 

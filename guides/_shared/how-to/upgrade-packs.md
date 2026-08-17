@@ -41,11 +41,17 @@ The first two use the host tool's native verbs and follow that tool's conflict-r
 
 `<catalogue>` is the same URI you installed from, e.g. `git+https://github.com/<owner>/<catalogue>` or a local checkout path.
 
-> **Check first.** `agentbundle list-installed` shows every installed pack with its version and whether an upgrade is available — run it before upgrading to see what's outstanding (see the [CLI reference](../reference/agentbundle.md#see-whats-installed)).
+:::tip
+**Check first.** `agentbundle list-installed` shows every installed pack with its version and whether an upgrade is available — run it before upgrading to see what's outstanding (see the [CLI reference](../reference/agentbundle.md#see-whats-installed)).
+:::
 
-> **Multiple adapters.** If a pack is installed for more than one adapter at the scope, `upgrade` upgrades one adapter per run and asks you to `--adapter` which; the message lists each adapter with its version. Re-running against the version you already have is reported as `re-applied … (already current)`, not a version change.
+:::note
+**Multiple adapters.** If a pack is installed for more than one adapter at the scope, `upgrade` upgrades one adapter per run and asks you to `--adapter` which; the message lists each adapter with its version. Re-running against the version you already have is reported as `re-applied … (already current)`, not a version change.
+:::
 
-> **Pitfall — `install --pack` is not the upgrade verb.** `agentbundle install --pack` refuses an in-place re-install. Use `upgrade --pack` to change an installed pack's version.
+:::caution
+**Pitfall — `install --pack` is not the upgrade verb.** `agentbundle install --pack` refuses an in-place re-install. Use `upgrade --pack` to change an installed pack's version.
+:::
 
 ### One primitive at a time
 

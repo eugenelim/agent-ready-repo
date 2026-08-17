@@ -1,6 +1,8 @@
 # Tutorials
 
-> *Learning-oriented.* Lessons that take a beginner from nothing to a small, complete success. The reader is on rails — you have a destination and you're walking them to it.
+:::note
+*Learning-oriented.* Lessons that take a beginner from nothing to a small, complete success. The reader is on rails — you have a destination and you're walking them to it.
+:::
 
 ## Writing a tutorial
 

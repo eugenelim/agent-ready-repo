@@ -4,11 +4,13 @@
 **Prerequisites:** `product-engineering` pack installed; a shaped feature with a spec; a voice chart (created once on first use of the skill and reused across all subsequent features).
 **Result:** UI-state copy — errors, empty states, CTAs, and labels — that passes the content checklist and is consistent with the product's documented voice chart.
 
-> **Diátaxis: how-to.** A goal-oriented walk through the `ux-writing`
-> skill — characterizing a product's voice, then writing the recurring UI-state
-> copy. For shaping the *intent* behind a feature, see the how-to
-> [*Shape a feature intent*](shape-a-feature-intent.md); for the field tables, the
-> reference [*Intent fields and modes*](../reference/intent-fields-and-modes.md).
+:::note
+**Diátaxis: how-to.** A goal-oriented walk through the `ux-writing`
+skill — characterizing a product's voice, then writing the recurring UI-state
+copy. For shaping the *intent* behind a feature, see the how-to
+[*Shape a feature intent*](shape-a-feature-intent.md); for the field tables, the
+reference [*Intent fields and modes*](../reference/intent-fields-and-modes.md).
+:::
 
 You've shaped a feature down to a spec, and now it needs the actual words a user
 reads — the error when something fails, the empty state before there's data, the

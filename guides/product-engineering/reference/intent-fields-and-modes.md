@@ -1,6 +1,8 @@
 # Reference — intent fields, modes, and projection profiles
 
-> **Diátaxis: reference.** The fields, modes, and mappings of the `product-engineering` pack, for look-up. For the why, see the explanation *The intent tree*; for the walk-through, the how-to *Shape a feature intent*.
+:::note
+**Diátaxis: reference.** The fields, modes, and mappings of the `product-engineering` pack, for look-up. For the why, see the explanation *The intent tree*; for the walk-through, the how-to *Shape a feature intent*.
+:::
 
 ## Intent fields
 
@@ -86,7 +88,9 @@ The detailed wire contract is pinned at the **spec** stage, not at intent.
 
 ## Tracker projection profiles (one-way)
 
-> The canonical profile table lives in the pack at `decompose-intent/references/tracker-projection.md` (with the tier annotations); this is a summary — when they disagree, the skill reference wins.
+:::note
+The canonical profile table lives in the pack at `decompose-intent/references/tracker-projection.md` (with the tier annotations); this is a summary — when they disagree, the skill reference wins.
+:::
 
 The intent tree is deeper than any tracker; trackers are one-way renders of it.
 

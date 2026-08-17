@@ -27,7 +27,9 @@ Two skills, one workflow:
 
 If you're unsure whether the change is trivial, default to the loop. The cost of running it on a small task is one extra minute; the cost of vibe-coding a non-trivial task is a re-do.
 
-> **Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's spec this out" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Use the name-the-skill form below whenever you want the discipline, including on edge cases where description matching wouldn't pick it up.
+:::tip
+**Invoke skills by name.** Claude Code's description-based auto-discovery is best-effort — natural phrasings like "let's spec this out" usually fire the right skill, but not always. **Naming the skill in your request guarantees it fires.** Use the name-the-skill form below whenever you want the discipline, including on edge cases where description matching wouldn't pick it up.
+:::
 
 ## Step 1 — Run `new-spec` (when no spec exists)
 
@@ -127,17 +129,29 @@ Parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled 
 
 ## Pitfalls
 
-> **Skipping `new-spec` for "small" multi-file work.** If the change touches more than one file, the spec is cheap insurance. A three-paragraph spec is fine — the discipline is the point, not the document length.
+:::caution
+**Skipping `new-spec` for "small" multi-file work.** If the change touches more than one file, the spec is cheap insurance. A three-paragraph spec is fine — the discipline is the point, not the document length.
+:::
 
-> **Editing `state.json` by hand.** The file is owned by the `loop-cohort` tool. Hand edits desync the loop's view of plan approval and fingerprint state. Run the tool's verbs; don't reach in.
+:::caution
+**Editing `state.json` by hand.** The file is owned by the `loop-cohort` tool. Hand edits desync the loop's view of plan approval and fingerprint state. Run the tool's verbs; don't reach in.
+:::
 
-> **Treating gates as sufficient.** Gates are necessary. Review catches what gates can't — missing edge cases, scope creep, spec drift. Don't skip the reviewer pass because "it'll be fine".
+:::caution
+**Treating gates as sufficient.** Gates are necessary. Review catches what gates can't — missing edge cases, scope creep, spec drift. Don't skip the reviewer pass because "it'll be fine".
+:::
 
-> **Skipping pre-EXECUTE review on a structural change.** The four triggers (new module boundary, new dependency, new abstraction layer, new top-level directory) are exactly the cases where over-engineering is most expensive to undo. The cost of catching it at PLAN is a sentence; at REVIEW it's a re-do.
+:::caution
+**Skipping pre-EXECUTE review on a structural change.** The four triggers (new module boundary, new dependency, new abstraction layer, new top-level directory) are exactly the cases where over-engineering is most expensive to undo. The cost of catching it at PLAN is a sentence; at REVIEW it's a re-do.
+:::
 
-> **Letting the spec drift from the implementation.** When implementation diverges from the spec, the spec is wrong. Update the spec in the same PR — drift is a bug, not paperwork debt.
+:::caution
+**Letting the spec drift from the implementation.** When implementation diverges from the spec, the spec is wrong. Update the spec in the same PR — drift is a bug, not paperwork debt.
+:::
 
-> **In Kiro, pick Vibe — not spec mode.** Kiro nudges hard toward its own spec-driven session (a generated `requirements.md` / `design.md` / `tasks.md`). For work the loop should own, choose **Vibe** at the session picker so `work-loop` drives; Kiro's spec mode is one-shot per task and doesn't iterate against a cold reviewer the way the loop does. There's no global off-switch — it's a per-session choice each time you start work. [Why the loop beats one-shot spec modes](../explanation/core-pack.md#how-it-differs-from-spec-kit-and-kiro-ide).
+:::caution
+**In Kiro, pick Vibe — not spec mode.** Kiro nudges hard toward its own spec-driven session (a generated `requirements.md` / `design.md` / `tasks.md`). For work the loop should own, choose **Vibe** at the session picker so `work-loop` drives; Kiro's spec mode is one-shot per task and doesn't iterate against a cold reviewer the way the loop does. There's no global off-switch — it's a per-session choice each time you start work. [Why the loop beats one-shot spec modes](../explanation/core-pack.md#how-it-differs-from-spec-kit-and-kiro-ide).
+:::
 
 ## When not to use this workflow
 

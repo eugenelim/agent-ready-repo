@@ -7,10 +7,12 @@ kind: reference
 
 # Pack Config and Operation Log API
 
-> **Audience:** pack authors writing Python or shell scripts that need to resolve
-> a user-scope directory, read configuration, or record operations.
->
-> **Added in:** agentbundle 0.21.0.
+:::note
+**Audience:** pack authors writing Python or shell scripts that need to resolve
+a user-scope directory, read configuration, or record operations.
+
+**Added in:** agentbundle 0.21.0.
+:::
 
 ---
 

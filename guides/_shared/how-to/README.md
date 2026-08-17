@@ -1,6 +1,8 @@
 # How-to guides
 
-> *Task-oriented.* Recipes for solving specific problems the reader brought with them. Assumes baseline competence; doesn't teach.
+:::note
+*Task-oriented.* Recipes for solving specific problems the reader brought with them. Assumes baseline competence; doesn't teach.
+:::
 
 ## Writing a how-to
 

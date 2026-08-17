@@ -4,7 +4,9 @@
 **Prerequisites:** An empty (or nearly empty) repo you can commit to, the `core` pack installed, and a one-paragraph idea or PRD to start from.
 **Time:** About 20 minutes.
 
-> At the end of this tutorial you'll have a brand-new repo with a recorded foundation — an ADR and a `docs/architecture/reference.md` — and a walking-skeleton spec authored and ready to build. You'll learn the rhythm of the greenfield front door by walking it once.
+:::note
+At the end of this tutorial you'll have a brand-new repo with a recorded foundation — an ADR and a `docs/architecture/reference.md` — and a walking-skeleton spec authored and ready to build. You'll learn the rhythm of the greenfield front door by walking it once.
+:::
 
 This is a learning walkthrough, not a reference. It uses the `core` pack alone. For the fuller inception — where the `research`, `product-engineering`, and `architect` packs fit around this core spine — see [Run a full inception for a new project](../../_shared/how-to/run-a-full-inception.md). For *why* the skeleton is built this way, read [Why a walking skeleton beats a throwaway prototype](../explanation/walking-skeleton-vs-throwaway.md) afterward; for the foundation step on its own, see [Decide and record your foundation during inception](../how-to/record-your-foundation-during-inception.md).
 
@@ -33,7 +35,9 @@ The skill runs its **trigger gate** first. Because a shortener has real decision
 
 You should see the skill confirm there are real structural decisions and move on to ask for your discovery input — not drop you straight into writing code.
 
-> If you don't see this: if the skill decides to just scaffold and stop, it judged your idea a throwaway. For anything with a datastore and an API, say so explicitly — "this is a maintained service, not a script" — and it will continue.
+:::caution
+If you don't see this: if the skill decides to just scaffold and stop, it judged your idea a throwaway. For anything with a datastore and an API, say so explicitly — "this is a maintained service, not a script" — and it will continue.
+:::
 
 ## Step 2 — Feed in discovery and pass the value gate
 
@@ -43,7 +47,9 @@ From the PRD it derives the **business value** ("sharable short links that resol
 
 You should see a new file at `docs/product/briefs/url-shortener.md` capturing the outcome and scope. Open it and confirm the value is stated plainly.
 
-> If you don't see this: if the skill pauses and asks you to sharpen the idea, the value gate caught a gap — the PRD was too thin to state the value. Add the missing piece (who it's for, what outcome it serves) and continue. That pause is the gate working, not an error.
+:::caution
+If you don't see this: if the skill pauses and asks you to sharpen the idea, the value gate caught a gap — the PRD was too thin to state the value. Add the missing piece (who it's for, what outcome it serves) and continue. That pause is the gate working, not an error.
+:::
 
 ## Step 3 — Record the foundation
 

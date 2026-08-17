@@ -30,6 +30,10 @@ const BUILD_ROOT = join(REPO_ROOT, 'build');
 const DOCS_ROOT = join(BUILD_ROOT, 'docs');
 const GUIDES_SRC = join(REPO_ROOT, 'guides');
 const SIDEBAR_CONFIG = join(REPO_ROOT, 'docs-site/src/sidebar-config.json');
+const ASIDE_LEDGER = join(
+  REPO_ROOT,
+  'docs/specs/guide-typed-asides-conversion/notes/blockquote-classification.jsonl'
+);
 const DOCS_BASE_PATH = '/agent-ready-repo/docs/';
 const DOCS_HOME = join(DOCS_ROOT, 'index.html');
 const NESTED_GUIDE = join(DOCS_ROOT, 'guides/core/how-to/start-a-project/index.html');
@@ -127,11 +131,71 @@ function declaredSummaries(): Map<string, { summary: string; page: string }> {
     const srcRel = relative(GUIDES_SRC, file);
     const slug = slugOverride
       ? unquote(slugOverride) // already starts with 'guides/'
-      : join('guides', srcRel.replace(/\.md$/, '').replace(/\/README$/, ''));
+      : join('guides', srcRel.replace(/\.md$/, '').replace(/(^|\/)README$/, ''));
     const value = unquote(summary);
     if (value) out.set(srcRel, { summary: value, page: join(DOCS_ROOT, slug, 'index.html') });
   }
   return out;
+}
+
+interface AsideLedgerRow {
+  item: number;
+  path: string;
+  line: number;
+  content_sha256: string;
+  anchor: string;
+  classification: 'quotation' | 'note' | 'tip' | 'caution' | 'danger';
+  status: 'done';
+  reason: string;
+}
+
+function asideLedger(): AsideLedgerRow[] {
+  return readFileSync(ASIDE_LEDGER, 'utf8')
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as AsideLedgerRow);
+}
+
+function builtGuidePage(sourcePath: string): string {
+  const source = join(REPO_ROOT, sourcePath);
+  const text = readFileSync(source, 'utf8');
+  const frontmatterEnd = text.startsWith('---') ? text.indexOf('\n---', 3) : -1;
+  const frontmatter = frontmatterEnd === -1 ? '' : text.slice(3, frontmatterEnd);
+  const slugOverride = frontmatter.match(/^slug:[ \t]*(.+?)[ \t]*$/m)?.[1];
+  const unquote = (value: string) => value.replace(/^["']|["']$/g, '').trim();
+  const sourceRelative = relative(GUIDES_SRC, source);
+  const slug = slugOverride
+    ? unquote(slugOverride)
+    : join('guides', sourceRelative.replace(/\.md$/, '').replace(/(^|\/)README$/, ''));
+  return join(DOCS_ROOT, slug, 'index.html');
+}
+
+function normalizedText(value: string | null | undefined): string {
+  return (value ?? '')
+    .replace(/[“”]/g, '"')
+    .replace(/[‘’]/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function sourceAsideCount(sourcePath: string): number {
+  const lines = readFileSync(join(REPO_ROOT, sourcePath), 'utf8').split('\n');
+  let fence: { marker: string; length: number } | undefined;
+  let count = 0;
+  for (const line of lines) {
+    const opening = line.match(/^ {0,3}(`{3,}|~{3,})/);
+    if (!fence && opening) {
+      fence = { marker: opening[1][0], length: opening[1].length };
+      continue;
+    }
+    if (fence) {
+      const closing = new RegExp(`^ {0,3}${fence.marker}{${fence.length},}\\s*$`);
+      if (closing.test(line)) fence = undefined;
+      continue;
+    }
+    if (/^:::(note|tip|caution|danger)(?:\[[^\]]+\])?\s*$/.test(line)) count += 1;
+  }
+  return count;
 }
 
 describe.skipIf(!docsBuilt)('built docs output', () => {
@@ -325,4 +389,94 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
       expect(col.querySelectorAll('a').length).toBeGreaterThan(0);
     }
   });
+});
+
+describe.skipIf(!docsBuilt)('typed guide asides in built output', () => {
+  it('resolves every classified block to its emitted semantic container', () => {
+    const failures: string[] = [];
+    for (const row of asideLedger()) {
+      const page = builtGuidePage(row.path);
+      if (!existsSync(page)) {
+        failures.push(`${row.item}: missing ${relative(DOCS_ROOT, page)}`);
+        continue;
+      }
+      const main = mainFragment(page);
+      if (row.classification === 'quotation') {
+        const matches = [...main.querySelectorAll('blockquote')].filter(
+          (element) =>
+            !element.closest('aside.starlight-aside') &&
+            normalizedText(element.textContent).includes(normalizedText(row.anchor))
+        );
+        if (matches.length !== 1) {
+          failures.push(`${row.item}: quotation matched ${matches.length} blockquotes`);
+        }
+        continue;
+      }
+
+      const matches = [...main.querySelectorAll(`aside.starlight-aside--${row.classification}`)]
+        .filter((element) =>
+          normalizedText(element.textContent).includes(normalizedText(row.anchor))
+        );
+      if (matches.length !== 1) {
+        failures.push(
+          `${row.item}: ${row.classification} matched ${matches.length} typed asides`
+        );
+      }
+    }
+    expect(failures, `classification/rendering drift:\n${failures.join('\n')}`).toEqual([]);
+  }, SCAN_TIMEOUT_MS);
+
+  it('keeps guide blockquotes tracked and every source aside structurally complete', () => {
+    const failures: string[] = [];
+    const ledger = asideLedger();
+    const allowedTypes = new Set(['note', 'tip', 'caution', 'danger']);
+    for (const source of walk(GUIDES_SRC, (name) => name.endsWith('.md'))) {
+      const sourcePath = relative(REPO_ROOT, source);
+      const page = builtGuidePage(sourcePath);
+      if (!existsSync(page)) {
+        failures.push(`${sourcePath}: missing built page`);
+        continue;
+      }
+      const main = mainFragment(page);
+      const sourceRows = ledger.filter((row) => row.path === sourcePath);
+      const quotationRows = sourceRows.filter((row) => row.classification === 'quotation');
+      const blockquotes = [...main.querySelectorAll('blockquote')].filter(
+        (element) => !element.closest('aside.starlight-aside')
+      );
+      for (const blockquote of blockquotes) {
+        const text = normalizedText(blockquote.textContent);
+        const matches = quotationRows.filter((row) => text.includes(normalizedText(row.anchor)));
+        if (matches.length !== 1) {
+          failures.push(`${sourcePath}: untracked or duplicate blockquote match`);
+        }
+      }
+      if (blockquotes.length !== quotationRows.length) {
+        failures.push(
+          `${sourcePath}: ${blockquotes.length} built blockquotes for ${quotationRows.length} quotation rows`
+        );
+      }
+
+      const asides = [...main.querySelectorAll('aside.starlight-aside')];
+      if (asides.length !== sourceAsideCount(sourcePath)) {
+        failures.push(
+          `${sourcePath}: ${asides.length} built asides for ${sourceAsideCount(sourcePath)} source asides`
+        );
+      }
+      for (const aside of asides) {
+        const types = [...aside.classList]
+          .filter((name) => name.startsWith('starlight-aside--'))
+          .map((name) => name.replace('starlight-aside--', ''));
+        if (types.length !== 1 || !allowedTypes.has(types[0])) {
+          failures.push(`${sourcePath}: aside has invalid type classes ${types.join(',')}`);
+        }
+        if (!normalizedText(aside.querySelector('.starlight-aside__title')?.textContent)) {
+          failures.push(`${sourcePath}: aside is missing a visible title`);
+        }
+        if (aside.querySelectorAll('.starlight-aside__icon').length !== 1) {
+          failures.push(`${sourcePath}: aside does not have exactly one icon`);
+        }
+      }
+    }
+    expect(failures, `whole-guide aside drift:\n${failures.join('\n')}`).toEqual([]);
+  }, SCAN_TIMEOUT_MS);
 });
