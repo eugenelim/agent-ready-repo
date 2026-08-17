@@ -2009,24 +2009,70 @@ open = [
   # Fix: repoint the comment at workspace.toml, and widen the slug above to name
   # the evals file.
   {slug = "sast-semgrep-cve-allowlist-pointer-stale", summary = "Makefile:259 points the four --ignore-vuln suppressions at docs/backlog.md, which is a tombstone -- their only recorded expiry is dangling", source = "spec/pip-audit-batching security review"},
-  # Semgrep 1.166.0 gives NO signal for a target it could not parse: the file is
-  # listed in paths.scanned, contributes zero findings, and exit is 0 with empty
-  # stderr and empty `errors` / `skipped` arrays. Verified directly against a
-  # deliberately-unparseable file placed inside the rule's paths.include.
-  # Consequence: any semgrep rule scoped as a ratchet reads a script that stopped
-  # parsing as clean. tools/test-semgrep-argv-boundary.py is the case that
-  # matters, because it is the SAST gate's only proof-of-life for the custom
-  # argv-path-boundary rule -- a green ratchet there is what licenses trusting
-  # the main scan's silence.
-  # PRE-EXISTING: the per-target version of that self-test had the identical hole
-  # (it also read only paths.scanned and results). spec/semgrep-selftest-batching
-  # found it while batching and narrowed its own claims to match, rather than
-  # asserting a guarantee the data does not support.
-  # Fix: no JSON or exit-code signal exists to gate on, so the check has to be
-  # independent -- compile each ratcheted target with ast.parse (or py_compile)
-  # in the self-test before trusting its silence. Cheap and offline. Re-probe on
-  # a semgrep major bump (pinned semgrep>=1.166,<2) in case a signal is added.
-  {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "Semgrep lists an unparseable file as scanned with zero findings and no error signal, so a ratcheted script that stops parsing reads as clean", source = "spec/semgrep-selftest-batching adversarial review"},
+  # The four entries below all came out of spec/semgrep-selftest-batching, which
+  # DID ship (batching the self-test's five semgrep spawns into one). None is
+  # caused by that change -- each is a pre-existing property of the control it
+  # sped up, found by reviewing it. Read them together: they are four ways the
+  # SAST gate's only proof-of-life for the custom argv-path-boundary rule can
+  # report green while proving less than it appears to. A green ratchet there is
+  # what licenses trusting the main scan's silence (Makefile:282-292).
+  # URGENT first.
+  #
+  # URGENT. tools/test-semgrep-argv-boundary.py re-declares the ratchet's
+  # production-script scope as its FIXED_SCRIPTS constant, duplicating the
+  # authoritative paths.include in tools/semgrep/argv-path-boundary.yml, with
+  # nothing reconciling the two. Verified by mutation: setting FIXED_SCRIPTS = []
+  # prints "2/2 passed" and exits 0 -- the entire production half of the ratchet
+  # proves nothing and make sast is green. The direction that can drift silently
+  # (the list shrinking below the rule's scope) is exactly the unchecked one.
+  # Fix: derive the target list from the rule -- parse paths.include with
+  # yaml.safe_load (pyyaml is already in tools/requirements.txt) and assert every
+  # non-glob entry appears in both the requested targets and paths.scanned, so
+  # the rule file is the single scope definition and a shrunken list is a named
+  # failure.
+  {slug = "sast-ratchet-scope-duplicated-fails-open", summary = "URGENT -- the semgrep ratchet self-test duplicates the rule's paths.include as a constant; emptying it exits 0 with the production half of the ratchet proving nothing", source = "spec/semgrep-selftest-batching security review"},
+  # Semgrep's signal for a target it could not parse depends on HOW it failed.
+  # A PARTIAL failure (unbalanced bracket, stray token) does surface as a
+  # path-attributed PartialParsing entry in `errors`, and --strict escalates it
+  # to exit 3 -- gateable today. A whole-file or whole-construct failure
+  # (`def broken(:`, `3 = x`) yields empty `errors`, empty `skipped`, empty
+  # stderr and exit 0 even under --strict -- not gateable. Both were probed
+  # directly; an earlier revision of this entry claimed no signal existed at all,
+  # generalising from the whole-file shape, and security review corrected it.
+  # PRE-EXISTING: the per-target version of the self-test read only paths.scanned
+  # and results, so it had the identical hole.
+  # ADR-0084 is the precedent -- it promoted a scanner diagnostic that does not
+  # move its own exit code into a gate signal, for bandit, and names this very
+  # self-test as one of the two it modelled itself on. So adopting --strict here
+  # is an ADR-shaped decision, not a detail.
+  # Fix: add --strict to the invocation and fail any target appearing in
+  # payload["errors"] as a named FAIL (measured free -- the real five-target run
+  # exits 0 with empty errors under --strict today). Then close the whole-file
+  # residue independently: compile each ratcheted target with ast.parse before
+  # trusting its silence. Cheap and offline. Re-probe on a semgrep major bump
+  # (pinned semgrep>=1.166,<2).
+  {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "A whole-file parse failure is reported as scanned with zero findings and no signal even under --strict, so a ratcheted script that stops parsing reads as clean; partial failures ARE gateable via --strict and are not yet gated", source = "spec/semgrep-selftest-batching security review"},
+  # A single `# nosemgrep` comment on the offending line leaves the file in
+  # paths.scanned with zero findings, zero errors and exit 0 -- indistinguishable
+  # from clean, so both the ratchet self-test and make sast's main scan go green.
+  # ADR-0084 built tools/lint-nosec-form.py plus a stderr gate for bandit's
+  # equivalent pragma; there is no nosemgrep counterpart anywhere in the repo, so
+  # the ratchet's five files can be suppressed by one uncommented, unreasoned,
+  # ungated line.
+  # Fix: assert in tools/test-semgrep-argv-boundary.py that none of its targets
+  # contains a nosemgrep/nosem comment, and/or extend the ADR-0084 form-lint to
+  # nosemgrep with a mandatory rule id and reason.
+  {slug = "sast-nosemgrep-has-no-form-lint", summary = "A bare # nosemgrep silently neuters the semgrep ratchet with no signal, and unlike bandit's # nosec it has no form-lint requiring a rule id and reason", source = "spec/semgrep-selftest-batching security review"},
+  # tools/test-semgrep-argv-boundary.py groups findings by path and discards
+  # hit["check_id"], while --config names a FILE. So if argv-path-boundary.yml
+  # ever grows a second rule, or its rule is replaced, a single finding on
+  # positive.py from any rule in that file satisfies the proof-of-life while
+  # argv-path-without-boundary-validator itself is neutered.
+  # Fix: filter payload["results"] on
+  # hit["check_id"].endswith("argv-path-without-boundary-validator") before
+  # grouping, so the assertion names the rule it claims to prove. Cheap now that
+  # findings are already grouped.
+  {slug = "sast-selftest-findings-not-keyed-by-check-id", summary = "The semgrep ratchet self-test keys findings by path only, so a second rule in the same file would satisfy the positive-fixture proof while the rule under test is neutered", source = "spec/semgrep-selftest-batching security review"},
   # lint-nosec-form.py's unknown-id check degrades silently when bandit's
   # registry is unreachable: id_checker() catches Exception and returns None,
   # and main() then appends " (bandit absent: IDs not resolved)" to an EXIT-0

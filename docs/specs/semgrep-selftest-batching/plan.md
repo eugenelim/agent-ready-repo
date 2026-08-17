@@ -119,11 +119,14 @@ list, exercising the same assertion path a real regression would hit.
 
 ## Open, and deliberately not silent
 
-Round-2 `security-reviewer` findings that are **not** addressed by this change, surfaced
-to the maintainer rather than decided here. None is a regression it introduced; each is a
-property of the control it was batching.
+Round-2 `security-reviewer` findings that are **not** addressed by this change. Surfaced
+to the maintainer, who chose to ship the batching and track these separately
+(2026-08-17). None is a regression this change introduced; each is a pre-existing
+property of the control it sped up. All four are recorded in
+`workspace.toml [backlog].open` with the slugs below.
 
-1. **The ratchet's scope is duplicated, and shrinking it exits 0.** `FIXED_SCRIPTS` in
+1. `sast-ratchet-scope-duplicated-fails-open` — **the ratchet's scope is duplicated,
+   and shrinking it exits 0.** `FIXED_SCRIPTS` in
    this script re-declares the production-script half of `paths.include` in
    `tools/semgrep/argv-path-boundary.yml`, and nothing reconciles the two. Verified by
    mutation: `FIXED_SCRIPTS = []` prints `2/2 passed` and exits **0** — the ratchet's
@@ -131,15 +134,18 @@ property of the control it was batching.
    per-target version had the same structure. The fix is to derive the target list from
    the rule's `paths.include` (`pyyaml` is already a `tools/` dependency) so the rule
    file is the single scope definition.
-2. **`--strict` plus an `errors` check would close the partial-parse hole.** Verified
+2. `sast-semgrep-unparseable-target-reads-clean` — **`--strict` plus an `errors` check
+   would close the partial-parse hole.** Verified
    free to adopt: the real five-target invocation exits 0 with empty `errors` under
    `--strict` today. ADR-0084 is the repo's precedent for promoting a scanner diagnostic
    that does not move its own exit code into a gate signal, and it names this file as a
    model — so this is an ADR-shaped decision, not a detail.
-3. **A single `# nosemgrep` silently neuters the ratchet** on any of the five targets,
+3. `sast-nosemgrep-has-no-form-lint` — **a single `# nosemgrep` silently neuters the
+   ratchet** on any of the five targets,
    with no repo-wide form-lint equivalent to ADR-0084's `tools/lint-nosec-form.py` for
    bandit's pragma.
-4. **Findings are keyed by path, not by `check_id`**, so if the rule file ever grows a
+4. `sast-selftest-findings-not-keyed-by-check-id` — **findings are keyed by path, not
+   by `check_id`**, so if the rule file ever grows a
    second rule, a finding from any rule in it satisfies the positive-fixture proof.
 
 Items 1, 3 and 4 are control-integrity gaps a scanner cannot see; item 2 is a decision.
