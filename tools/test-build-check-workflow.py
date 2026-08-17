@@ -319,8 +319,12 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # env: and a comparison so every derived check still passes — makes the sole
     # required check a job whose only step is `echo ok`.
     check("required-name-is-aggregator", re.search(_name_re, agg, re.M) is not None)
-    check("aggregator-always",
-          re.search(r"^    if: \$\{\{ always\(\) \}\}\s*$", agg, re.M) is not None)
+    _agg_job_ifs = re.findall(r"^    if:\s*(.+?)\s*$", agg, re.M)
+    check("aggregator-always", _agg_job_ifs == ["${{ always() }}"])
+    # A job-level `if:` skips the whole job. On a work job that surfaces as
+    # `skipped`, which the aggregator's != "success" catches — but a second `if:` on
+    # the aggregator itself is a duplicate YAML key whose winner is parser-dependent,
+    # so require exactly one and require it to be always().
 
     # AC13: the guard must RUN here, as a python invocation — not appear as a
     # filename in an echo, a needs: entry or a with: value. Two distinct
@@ -355,7 +359,8 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     guard_lines = _run_lines(guard_step)
     check("guard-strict-shell", bool(guard_lines) and guard_lines[0] == _STRICT_SHELL)
     check("guard-no-early-exit", not any(
-        st.split()[:2] == ["exit", "0"] or st.startswith(("set +", "if ", "return"))
+        st.split()[:2] == ["exit", "0"]
+        or st.startswith(("set +", "if ", "return", "exec", "trap ", "trap\t"))
         for st, _ in _statements(guard_step)))
     _agg_audit, _ = _guard_invocations()
     # One invocation is enough: this file runs its mutation matrix on EVERY
@@ -430,6 +435,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         check(f"persist-credentials[{job_id}]",
               bool(checkouts) and all("persist-credentials: false" in c for c in checkouts))
         if job_id != AGGREGATOR_JOB_ID:
+            check(f"no-job-if[{job_id}]", not re.search(r"^    if:", blk, re.M))
             check(f"no-needs[{job_id}]", not re.search(r"^\s+needs:", blk, re.M))
             check(f"fetch-depth[{job_id}]",
                   bool(checkouts) and all("fetch-depth: 0" in c for c in checkouts))
@@ -698,6 +704,17 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("sast-if-and-false", "sast-step-condition",
      lambda t: t.replace("if: steps.changes.outputs.skip_sast != 'true'",
                          "if: steps.changes.outputs.skip_sast != 'true' && false")),
+    ("exec-in-guard", "guard-no-early-exit",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
+                         '          exec true\n          [ "$GATE_MAIN_RESULT"')),
+    ("trap-in-guard", "guard-no-early-exit",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
+                         '          trap "exit 0" ERR\n          [ "$GATE_MAIN_RESULT"')),
+    ("job-if-on-work-job", "no-job-if[gate-sast]",
+     lambda t: t.replace("  gate-sast:\n", "  gate-sast:\n    if: ${{ false }}\n", 1)),
+    ("second-if-on-aggregator", "aggregator-always",
+     lambda t: t.replace("    if: ${{ always() }}\n",
+                         "    if: ${{ always() }}\n    if: ${{ false }}\n", 1)),
     ("early-exit-in-guard", "guard-no-early-exit",
      lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
                          '          exit 0\n          [ "$GATE_MAIN_RESULT"')),
