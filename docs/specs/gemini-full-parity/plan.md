@@ -1,7 +1,7 @@
 # Plan: gemini-full-parity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Executing | Done -->
+- **Status:** Done (superseded in part by [ADR-0040](../../adr/0040-route-cohort-skills-to-shared-agents-skills-home.md) — the `.gemini/skills/` skill home this plan projects now routes to the shared `.agents/skills/`; every other projection decision stands) <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially

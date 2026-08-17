@@ -1,6 +1,6 @@
 # Spec: distribution-adapters
 
-- **Status:** Shipped
+- **Status:** Shipped (superseded in part by [ADR-0040](../../adr/0040-route-cohort-skills-to-shared-agents-skills-home.md) — **every skill-home path in this document** now routes to the shared `.agents/skills/`: the Copilot cell of § Primitive types' projection table, the cursor `.cursor/skills/<name>/` route in the v0.11 Changelog entry, and the `.github/skills/<name>/` + `~/.copilot/skills/<name>/` pair in the v0.12 entry. Every other row, Changelog entry and decision stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md), [RFC-0002](../../rfc/0002-self-hosting.md), [RFC-0004](../../rfc/0004-install-scope-per-pack.md) (contract-v0.2 amendment — install-scope dimension)

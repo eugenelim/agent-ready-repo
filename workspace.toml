@@ -1617,19 +1617,6 @@ open = [
   # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
-  # 12 shipped specs cite an ADR that a later ADR superseded, with no forward
-  # pointer on their Status line. Surveyed in docs/specs/frozen-spec-supersession
-  # (see its Survey table) and deliberately NOT fixed there, because the fix is
-  # not mechanical: citing ADR-0017 does not mean a spec taught the reversed
-  # nosec spelling -- most cite it for the gate itself, which stands. Each needs
-  # a judgment about whether the superseded SUB-decision is one that spec relied
-  # on, and ADR-0040/0042 supersede different sub-decisions than ADR-0084 does.
-  # Stamping "superseded in part" onto specs that are wholly unaffected is worse
-  # than no annotation.
-  # The mechanism to apply is now written down: CONVENTIONS.md
-  # "Superseding a frozen document". Work is the judgment, not the edit.
-  {slug = "frozen-spec-supersession-survey", summary = "Decide, per spec, whether each of the 12 shipped specs citing a superseded ADR relied on the superseded sub-decision, and annotate only those", source = "spec/frozen-spec-supersession"},
-
   # The publication-control evidence artifact records NO repository field:
   # build_evidence emits version, branch, app, environment, identities_agree,
   # canary, observed_at, observation_source -- and the committed
@@ -1643,6 +1630,44 @@ open = [
   # lint-claude-plugin-publish-control.py compare it against the repository the
   # artifact is committed in. That is a schema change, hence its own PR.
   {slug = "publish-control-evidence-not-repo-bound", summary = "Record the observed repository in the publish-control evidence artifact and have the linter check it matches the committing repo", source = "spec/capture-evidence-repo-dot-segments"},
+
+  # docs/specs/distribution-adapters/spec.md carries `- **Status:** Shipped`,
+  # which CONVENTIONS.md's lifecycle table puts in the Frozen class ("bodies
+  # cannot change") -- yet every adapter PR amends it: each one's Constrained-by
+  # says "Amends docs/specs/distribution-adapters/spec.md (v0.N -> v0.N+1
+  # Changelog entry)", and its per-adapter projection table has demonstrably been
+  # edited since it shipped (its Copilot skill cell moved from
+  # .github/instructions/ to .github/skills/ long after ship). So the repo treats
+  # it as Living while its Status says Frozen.
+  # spec/frozen-doc-supersession-annotations annotated it under the frozen rule
+  # rather than reopening this, and said so in its Honest scope.
+  # This is the same shape as frozen-spec-supersession Decision 2, which resolved
+  # the identical ambiguity for plan.md by scoping the licence to a phase. Decide
+  # which class this document is in and make CONVENTIONS.md say so; a document
+  # whose status and treatment disagree is a rule nobody can apply.
+  {slug = "distribution-adapters-lifecycle-class", summary = "Decide whether docs/specs/distribution-adapters/spec.md is Living or Frozen -- its Status says Shipped but every adapter PR amends its Changelog and projection table", source = "spec/frozen-doc-supersession-annotations review"},
+
+  # ADR-0050 (Astro marketing site) is Superseded by ADR-0055 (Starlight
+  # replaces MkDocs), with no "in part" -- so the whole record is history.
+  # spec/frozen-doc-supersession-annotations disposed of that chain on the
+  # `Constrained by:` header scan alone (one citing spec,
+  # marketing-docs-link-repair, which names ADR-0055 on the next line and so
+  # forwards its own reader). That spec's own Decision 1 says a header scan is
+  # the STARTING set, not the population -- and adversarial review found the
+  # counterexample: docs/specs/platform-site/spec.md:58's route table still
+  # reads `| /docs/ | MkDocs reference (existing) | 0 | site/docs/ -- unchanged |`
+  # for a build that no longer exists (site/ and mkdocs.yml are both gone), in a
+  # Shipped spec that cites no ADR at all.
+  # Not done there because there is no literal string to grep the way the skill
+  # homes were: a body survey means reading the MkDocs -> Starlight migration
+  # across ten-plus documents (starlight-migration, platform-site,
+  # guides-sidebar-generation, m3-experience-design-rename and their plans),
+  # which is a different subject from that spec's.
+  # Fix: run the body survey for the ADR-0050 -> ADR-0055 chain and annotate the
+  # documents that state a route the build no longer takes. Same per-document
+  # judgment; a "superseded in part" on a spec that merely mentions MkDocs in
+  # passing is the false positive that spec exists to avoid.
+  {slug = "adr-0050-supersession-body-survey", summary = "Body-survey the ADR-0050 -> ADR-0055 chain; platform-site/spec.md still documents a MkDocs route for a build that no longer exists and cites no ADR, so no header scan reaches it", source = "spec/frozen-doc-supersession-annotations review"},
 
   # build-check.yml installs tools/requirements-sast.txt only when
   # skip_sast != 'true', so on a SKIP_SAST PR bandit is absent and
@@ -1679,17 +1704,6 @@ open = [
   # and give each its lint-ci-parity disposition. Wiring one alone was declined
   # in guides-readme-outcome-label-drift -- partial coverage reads as coverage.
   {slug = "catalogue-site-tests-absent-from-ci", summary = "Wire the 7 catalogue/site pytest files from Makefile:349 that are a run step in no GitHub workflow into build-check.yml, with lint-ci-parity dispositions", source = "spec/guides-readme-outcome-label-drift"},
-
-  # docs/specs/bandit-nosec-comment-hygiene/spec.md § Known skip points at the
-  # register entry `pre-existing-guides-readme-outcome-label-drift`, which
-  # guides-readme-outcome-label-drift closed -- so that prose pointer now
-  # dangles. lint-spec-status.py invariant (iv) only checks `(deferred: <slug>)`
-  # markers, so nothing catches it. The spec is Frozen (CONVENTIONS § Document
-  # lifecycle: bodies cannot change), so the annotation has to use whatever
-  # mechanism frozen-spec-supersession-convention settles -- almost certainly a
-  # status-line annotation rather than a body append. Unblocks when that lands;
-  # this spec is then its first caller.
-  {slug = "bandit-hygiene-known-skip-dangling-pointer", summary = "Annotate bandit-nosec-comment-hygiene's § Known skip to record that its register entry was closed, using the frozen-doc mechanism from frozen-spec-supersession-convention", source = "spec/guides-readme-outcome-label-drift"},
 
   # test-loop-cohort.sh is 493 lines / 51 cases of bash and uses ~20 bash-isms
   # ([[, local, $(), declare). AGENTS.md's "New tool scripts: Python, not bash"
