@@ -111,8 +111,8 @@ individually annotated in
 | Entrypoint/check | Owner | Scope class | Gate wiring | Traversal roots | Ignore semantics | Git process shape | Repeated work | Self-test model | P0 disposition |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `tools/lint-pack-test-boundary.py` (6 checks) | repo tooling | catalogue-wide (hybrid per check) | `docs.yml` step *Pack runtime boundary*; `test-all.py` case `pack-test-boundary`. Not in `pre_pr_catalogue.py`, not a direct Make target | `packs/*/.apm`, `packs/*/tests`, `packs/*/tests/skills/*`, `.claude/skills/*`, `.agents/skills/*`, 6 runner files | **skips** gitignored paths — build residue (`__pycache__` etc.) is not authored content, so not a boundary violation | **337 `check-ignore`, one per candidate path**, launched from inside `_walk()` | `_walk` 141 calls / 109 distinct bases; `_glob_tree_is_confined` 45 / 16 distinct; `_runner_lines` ×2; `_destinations` ×2; `_packs` ×5 | real-worktree mutation | **CHANGE** — every P0 pattern |
-| `agentbundle catalogue lint` / `--deep` | portable agentbundle | catalogue-wide | `build-check` chain; `pre_pr_catalogue.py` step 2 (as its `skill-spec lint` step) | per-pack `glob`/`rglob` under `packs/*`, `profiles/*.toml`, seeds via `os.walk(followlinks=False)` | does not consult Git ignore | **0 Git subprocesses** | none observed; bounded per-pack globs | pytest, fixture catalogues | **no change** — 5.89 s, zero Git calls; bounded per-pack globs only. Churning it is explicitly out of scope |
-| `agentbundle catalogue verify` | portable agentbundle | catalogue-wide | `build-check` chain; `pre_pr_catalogue.py` step 1 | `dist/`, `packs/*/.apm/skills/*`, `agents/`, `commands/` | uses `git ls-files` for tracked-file set | **1 `ls-files`, already batched** for the whole tree | none observed | pytest, fixture catalogues | **no change** — 13.47 s, one batched Git call. Already the target shape |
+| `agentbundle catalogue lint` / `--deep` | portable agentbundle | catalogue-wide | `build-check` chain; `pre_pr_catalogue.py` step 2 (as its `skill-spec lint` step) | per-pack `glob`/`rglob` under `packs/*`, `profiles/*.toml`, seeds via `os.walk(followlinks=False)` | does not consult Git ignore | **0 Git subprocesses** | none observed; bounded per-pack globs | pytest, fixture catalogues | **no change** — 6.03 s, zero Git calls; bounded per-pack globs only. Churning it is explicitly out of scope |
+| `agentbundle catalogue verify` | portable agentbundle | catalogue-wide | `build-check` chain; `pre_pr_catalogue.py` step 1 | `dist/`, `packs/*/.apm/skills/*`, `agents/`, `commands/` | uses `git ls-files` for tracked-file set | **1 `ls-files`, already batched** for the whole tree | none observed | pytest, fixture catalogues | **no change** — 13.82 s, one batched Git call. Already the target shape |
 | `agentbundle` skill-spec lint (`skill_spec_lint.py`) | portable agentbundle | catalogue-wide | invoked by catalogue lint; `pre_pr_catalogue.py:114` | `packs/*/.apm/skills`, `packs/*/pack.toml` | no Git ignore use | 0 | bounded `glob("*/…")` per root | pytest unit | **no change** — bounded globs, no Git |
 | `agentbundle` `build/lint_packs.py` | portable agentbundle | catalogue-wide | build pipeline | per-subtree `rglob("*")` | no Git ignore use | 0 | per-subtree walk, single pass | pytest unit | **no change** — one bounded pass per subtree |
 | `tools/lint-pack-descriptions.py` | repo tooling | catalogue-wide | `pre_pr_catalogue.py` | `packs/*/pack.toml` | no Git ignore use | 0 | none | `tools/test-lint-pack-descriptions.py`, temp fixture | **no change** — 0.22 s, no Git |
@@ -583,6 +583,33 @@ adding `.github` + `Makefile` to the scan roots and dropping the
 the textual matcher already skips, so an allowlist entry would have hidden a
 future real invocation there).
 
+### Re-measured after `origin/main` replaced the subject code
+
+Three rows in § 1 characterise portable `agentbundle` programs by the two
+properties this spec is about — Git process shape and traversal roots — and give
+each a `no change` disposition. While this branch was in review, #994 (*complete
+portable catalogue verification*) rewrote `catalogue_tooling/verify.py`
+(1326+/143-), `skill_spec_lint.py` (427+/188-) and `lint.py` (293+/88-), and added
+`os.walk(followlinks=False)` traversals to `file_safety.py`. Those rows therefore
+described code that no longer existed, and **no gate would have caught it**: the
+gates run the lints, they do not check that a table describing the lints is still
+true.
+
+Re-measured on the merged tree under the same counting-Git shim as the originals,
+not by reading the source — static `subprocess` mentions are not runtime calls, and
+`lint.py` carries 18 of the former while issuing 0 of the latter:
+
+| Program | Recorded before | Re-measured after #994 | Disposition |
+| --- | --- | --- | --- |
+| `agentbundle catalogue verify` | 1 `ls-files`, batched; 13.47 s | **1 `ls-files`; 13.82 s** | `no change` still correct |
+| `agentbundle catalogue lint --deep` | 0 Git subprocesses; 5.89 s | **0 Git subprocesses; 6.03 s** | `no change` still correct |
+| `skill_spec_lint.py` | no Git ignore use; 0 | **0 Git subprocesses** | `no change` still correct |
+
+The timing deltas are run-to-run noise on the same host, not a regression, and both
+figures above are the post-merge measurements. The dispositions survive: none of
+the three acquired a per-path Git call or an unbounded traversal, so none becomes a
+P0 subject.
+
 ### Discriminating power, verified by mutation
 
 The captured baseline is only worth what it detects, so it was tested against
@@ -675,7 +702,7 @@ Out of scope here; captured so they are not silently lost.
 2. **`lint-nosec-form.py` at 5.33 s** is the slowest non-P0 lint. One bounded
    pass over three source roots, no ignore queries; a P0 change is not
    warranted.
-3. **`agentbundle catalogue verify` at 13.47 s** is the slowest single gate.
+3. **`agentbundle catalogue verify` at 13.82 s** is the slowest single gate.
    Its one Git call is already batched; cost is filesystem traversal of
    `dist/`.
 4. **The layer-3 untracked-plant window.** Two untracked plants exist in the real
