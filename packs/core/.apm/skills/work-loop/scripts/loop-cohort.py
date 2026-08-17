@@ -215,16 +215,6 @@ class GuardsUnavailable(RuntimeError):
 _guards_module: object | None = None
 _guards_error: str | None = None
 
-# The symbols a load must provide. Checked against the loaded module rather than
-# trusted, because a file truncated at a clean statement boundary loads WITHOUT
-# raising and would otherwise hand back a half-configured guard.
-_GUARDS_REQUIRED = (
-    "GuardResult", "read_managed_json", "read_managed_text", "read_state",
-    "state_path_for", "canonical_contract", "sha256_canonical_contract",
-    "UnreadableArtifact", "read_md_status", "assert_status_legal",
-    "validate_run_id", "non_negative_int", "DEFAULTS",
-)
-
 
 def load_guards():
     """Load the sibling `_loop_guards.py` by path, once per process.
@@ -286,10 +276,27 @@ def load_guards():
             f"cannot load {path}: module is truncated (no completeness marker). "
             "Restore the file or re-run `make build-self`."
         )
-    missing = [n for n in _GUARDS_REQUIRED if not hasattr(module, n)]
-    if missing:
+    # AC13's completeness check: the module's OWN `__all__` is the contract, so it
+    # is never restated here. Three hand-enumerated copies drifted immediately —
+    # `check-spec-status.py`'s omitted `check_artifact_status`, the only function it
+    # calls — which is why an enumeration is explicitly rejected. A file truncated
+    # at a clean statement boundary loads WITHOUT raising, so `__all__` is present
+    # while the names it promises are not; that is the gap this closes.
+    exported = getattr(module, "__all__", None)
+    if not exported:
         raise GuardsUnavailable(
-            f"cannot load {path}: incomplete module, missing {missing}. Restore the "
+            f"cannot load {path}: module declares no __all__. Restore the file or "
+            "re-run `make build-self`."
+        )
+    missing = sorted(set(exported) - set(dir(module)))
+    if missing:
+        # Naming a few is diagnostic; naming all 21 makes a 450-char "one-line"
+        # refusal. The count carries the rest.
+        shown = ", ".join(missing[:5])
+        if len(missing) > 5:
+            shown += f" (+{len(missing) - 5} more)"
+        raise GuardsUnavailable(
+            f"cannot load {path}: incomplete module, missing {shown}. Restore the "
             "file or re-run `make build-self`."
         )
     _guards_module = module
@@ -700,7 +707,7 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         try:
             spec_hash = sha256_canonical_contract(spec_path)
             plan_hash = sha256_canonical_contract(plan_path)
-        except (OSError, UnicodeDecodeError, ValueError) as exc:
+        except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
             # ValueError is the bounded reader's failure vocabulary (oversized,
             # non-regular, symlinked, replaced mid-read). This verb holds the cohort
             # state lock and `with_state_lock` catches only StateLockError, while
@@ -753,7 +760,7 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     try:
         state["approved_spec_hash"] = sha256_canonical_contract(spec_path)
         state["approved_plan_hash"] = sha256_canonical_contract(plan_path)
-    except (OSError, UnicodeDecodeError, ValueError) as exc:
+    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
         # Previously unguarded, and it WRITES what it computes — so an unsafe
         # artifact would either traceback out of the lock or, with a returning
         # fallback stub, store a non-digest as the approved baseline.
@@ -815,7 +822,7 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
         return stop(f"plan not found at {plan_path}")
     try:
         plan_text = read_managed_text(plan_path, "plan.md")
-    except (OSError, UnicodeDecodeError, ValueError) as exc:
+    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
         # Was a raw `read_text()` under `@_locked("schedule")`: unbounded, symlink-
         # following, and a FIFO here blocked the cohort lock until it went stale.
         return stop(f"schedule: cannot read {plan_path.name}: {exc}")
@@ -855,7 +862,7 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
 
     try:
         plan_hash = sha256_canonical_contract(plan_path)
-    except (OSError, UnicodeDecodeError, ValueError) as exc:
+    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
         return stop(f"schedule: cannot hash {plan_path.name}: {exc}")
     state["plan_hash"] = plan_hash
     state["schedule_waves"] = waves

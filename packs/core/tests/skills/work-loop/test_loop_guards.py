@@ -96,15 +96,48 @@ def test_import_performs_no_file_io() -> None:
     used to be a module-level dict computed from two uncapped
     `TEMPLATE_PATH.read_text()` calls, so importing the module there would have
     performed an unbounded read while holding the lock.
+
+    `io.open` is the load-bearing patch point, and patching `os.open` alone made this
+    test unable to fail. Probe-verified, on this interpreter, in both directions:
+
+        Path.read_text() observed by   os.open -> False   io.open -> True
+                                  builtins.open -> False  io.open_code -> False
+        exec_module's own source read trips io.open -> False
+
+    So `os.open` — the regression's actual shape is a `read_text()` — was invisible,
+    while `io.open` sees it and does *not* false-positive on the loader reading the
+    module's own source. `os.open` is kept because the guard readers use it directly,
+    so a module-level `read_managed_*` call is caught by that half.
     """
     opened: list = []
-    real_open = os.open
-    os.open = lambda *a, **k: (opened.append(a[0]), real_open(*a, **k))[1]
+
+    def _record(mod, attr):
+        real = getattr(mod, attr)
+
+        def spy(*a, **k):
+            opened.append(f"{attr}:{a[0] if a else '?'}")
+            return real(*a, **k)
+
+        setattr(mod, attr, spy)
+        return real
+
+    real_os_open = _record(os, "open")
+    real_io_open = _record(io, "open")
     try:
-        load_guards(name="_guards_io_probe")
+        mod = load_guards(name="_guards_io_probe")
     finally:
-        os.open = real_open
+        os.open = real_os_open
+        io.open = real_io_open
+
     assert not opened, f"import opened {len(opened)} file(s): {opened[:3]}"
+
+    # The observable, independent of which primitive a future edit reaches for:
+    # `DEFAULTS` is bound but unpopulated until first subscript.
+    assert mod.DEFAULTS._values is None, (
+        "DEFAULTS was populated during import — it must stay lazy"
+    )
+    assert mod.DEFAULTS["max_review_retries"] is not None
+    assert mod.DEFAULTS._values is not None, "first subscript did not populate DEFAULTS"
 
 
 def test_defaults_is_bound_eagerly_and_populated_lazily(g) -> None:
@@ -1146,22 +1179,62 @@ def test_all_is_pinned_to_the_declared_surface(g) -> None:
             "check_phase", "check_wave", "check_artifact_status"} <= actual
 
 
-def test_the_loaders_required_symbols_are_a_subset_of_all(g) -> None:
-    """The three loader copies check a required-symbol set; it must not exceed `__all__`.
+def test_every_loader_derives_completeness_from_all_not_an_enumeration() -> None:
+    """AC13's completeness check reads the module's own `__all__`; no loader restates it.
 
-    A loader requiring a name that `__all__` does not export would fail on a perfectly
-    good module — the false-refusal direction, which is the half that does not show up
-    in normal use.
+    An enumerated required-symbol list has to be repeated in all three loader copies,
+    and it drifted on day one: the cohort copy listed `non_negative_int` and the other
+    two did not, while `check-spec-status.py` omitted `check_artifact_status` — the
+    only function it calls. Deriving from `__all__` makes the module the single
+    source, so this asserts both halves: the derivation is present, and the form that
+    drifts is absent.
+
+    Structural, not substring-on-source: the assertion walks each loader's AST for the
+    `__all__` read, so a comment mentioning `__all__` cannot satisfy it.
     """
-    import re as _re
+    import ast as _ast
 
-    for filename in ("loop-cohort.py", "loop-engine.py", "check-spec-status.py"):
+    # Declared, not discovered. The engine's copy is `_guards`; the other two are
+    # `load_guards`. Searching for one name would silently drop a copy and pass —
+    # so the mapping is data, and an unresolvable entry fails rather than skips.
+    loaders = {
+        "loop-cohort.py": "load_guards",
+        "loop-engine.py": "_guards",
+        "check-spec-status.py": "load_guards",
+    }
+
+    for filename, funcname in loaders.items():
         src = (SCRIPTS / filename).read_text(encoding="utf-8")
-        match = _re.search(r"_GUARDS_REQUIRED = \(([^)]*)\)", src, _re.S)
-        if match is None:
-            continue
-        required = set(_re.findall(r'"([A-Za-z_][A-Za-z0-9_]*)"', match.group(1)))
-        missing = sorted(required - set(g.__all__))
-        assert not missing, (
-            f"{filename} requires symbols the guard module does not export: {missing}"
+        tree = _ast.parse(src)
+
+        assert "_GUARDS_REQUIRED" not in {
+            node.id for node in _ast.walk(tree) if isinstance(node, _ast.Name)
+        }, f"{filename} reintroduced the enumerated required-symbol list"
+
+        loader = next(
+            (n for n in _ast.walk(tree)
+             if isinstance(n, _ast.FunctionDef) and n.name == funcname),
+            None,
+        )
+        assert loader is not None, (
+            f"{filename} has no {funcname}() — if the loader was renamed, update the "
+            "`loaders` map above so this check keeps covering all three copies"
+        )
+
+        reads_all = any(
+            isinstance(n, _ast.Constant) and n.value == "__all__"
+            for n in _ast.walk(loader)
+        )
+        assert reads_all, (
+            f"{filename}'s load_guards does not derive completeness from __all__"
+        )
+
+        calls_dir = any(
+            isinstance(n, _ast.Call) and isinstance(n.func, _ast.Name)
+            and n.func.id == "dir"
+            for n in _ast.walk(loader)
+        )
+        assert calls_dir, (
+            f"{filename}'s load_guards reads __all__ but never compares it against "
+            "dir(module) — a truncated module declares __all__ without defining it"
         )

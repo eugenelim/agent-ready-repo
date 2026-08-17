@@ -292,7 +292,18 @@ def _recover_engine_state_tmp(spec_dir: Path) -> None:
             data = _read_managed_json(tmp_path, "engine-state tmp")
             if not isinstance(data, dict) or not data.get("state") or not data.get("run_id"):
                 raise ValueError("engine-state tmp is missing required fields")
-        except Exception as exc:
+        except (FileNotFoundError, ValueError) as exc:
+            # DELIBERATELY NARROW, and this is load-bearing. `_read_managed_json`
+            # delegates to the shared reader now, so it can raise for reasons that
+            # have nothing to do with this file's content — `GuardsUnavailable` when
+            # `_loop_guards.py` cannot be loaded, for instance. A bare
+            # `except Exception` treated that as "content invalid" and unlinked a
+            # byte-perfect crash-recovery artifact: observed destroying a valid
+            # `.engine-state-*.json.tmp` on a tree with a missing guard module. The
+            # two conditions co-occur naturally — an interrupted `make build-self`
+            # and a crash-left rename — and the loss is irreversible. Only the
+            # reader's real content vocabulary may authorise a delete; anything else
+            # propagates and becomes a refusal.
             print(
                 f"loop-engine: warning — engine-state tmp invalid ({exc});"
                 f" discarding {tmp_path.name}",
@@ -390,9 +401,20 @@ def _recover_pending(repo_root: Path) -> None:
         _discard_regular_file(pending_path)
         return
     except Exception as exc:
+        # Only a genuine CONTENT problem may authorise discarding the audit record —
+        # the same discrimination the events.pending read above already makes.
+        # `_read_managed_json` delegates to the shared reader now, so it can raise for
+        # reasons unrelated to this file (a `GuardsUnavailable` when `_loop_guards.py`
+        # cannot be loaded), and discarding `events.pending` over a build problem
+        # would destroy a durable audit record.
+        detail = str(exc)
+        content_invalid = isinstance(exc, ValueError) and any(
+            marker in detail
+            for marker in (" exceeds ", "not valid UTF-8", " malformed:", " root must be")
+        )
         action = (
             "discarded"
-            if _discard_regular_file(pending_path)
+            if content_invalid and _discard_regular_file(pending_path)
             else "left in place; remove manually"
         )
         print(
@@ -490,16 +512,6 @@ class GuardsUnavailable(RuntimeError):
 _guards_module: object | None = None
 _guards_error: str | None = None
 
-# The symbols a load must provide. Checked against the loaded module rather than
-# trusted, because a file truncated at a clean statement boundary loads WITHOUT
-# raising and would otherwise hand back a half-configured guard.
-_GUARDS_REQUIRED = (
-    "GuardResult", "read_managed_json", "read_managed_text", "read_state",
-    "state_path_for", "canonical_contract", "sha256_canonical_contract",
-    "UnreadableArtifact", "read_md_status", "assert_status_legal",
-    "validate_run_id", "DEFAULTS",
-)
-
 
 def _guards():
     """Load the sibling `_loop_guards.py` by path, once per process.
@@ -561,10 +573,27 @@ def _guards():
             f"cannot load {path}: module is truncated (no completeness marker). "
             "Restore the file or re-run `make build-self`."
         )
-    missing = [n for n in _GUARDS_REQUIRED if not hasattr(module, n)]
-    if missing:
+    # AC13's completeness check: the module's OWN `__all__` is the contract, so it
+    # is never restated here. Three hand-enumerated copies drifted immediately —
+    # `check-spec-status.py`'s omitted `check_artifact_status`, the only function it
+    # calls — which is why an enumeration is explicitly rejected. A file truncated
+    # at a clean statement boundary loads WITHOUT raising, so `__all__` is present
+    # while the names it promises are not; that is the gap this closes.
+    exported = getattr(module, "__all__", None)
+    if not exported:
         raise GuardsUnavailable(
-            f"cannot load {path}: incomplete module, missing {missing}. Restore the "
+            f"cannot load {path}: module declares no __all__. Restore the file or "
+            "re-run `make build-self`."
+        )
+    missing = sorted(set(exported) - set(dir(module)))
+    if missing:
+        # Naming a few is diagnostic; naming all 21 makes a 450-char "one-line"
+        # refusal. The count carries the rest.
+        shown = ", ".join(missing[:5])
+        if len(missing) > 5:
+            shown += f" (+{len(missing) - 5} more)"
+        raise GuardsUnavailable(
+            f"cannot load {path}: incomplete module, missing {shown}. Restore the "
             "file or re-run `make build-self`."
         )
     _guards_module = module
@@ -1190,6 +1219,13 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         return args.func(args)
+    except GuardsUnavailable as exc:
+        # The engine's chokepoint, matching loop-cohort's. Without this every
+        # `_loop_guards.py` load failure printed a traceback out of `cmd_transition`
+        # while `sl.exclusive(...)` was held — the one outcome the whole change
+        # exists to prevent. `_guards()` is called lazily from inside the locked
+        # section, so the raise cannot be caught any earlier than here.
+        return stop(str(exc))
     except KeyboardInterrupt:
         return stop("interrupted")
 

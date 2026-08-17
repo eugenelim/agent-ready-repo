@@ -811,7 +811,13 @@ def read_md_status(path: Path) -> str | None:
         # (oversized, non-regular, symlinked, replaced mid-read, bad UTF-8). Without
         # it here, an unsafe artifact would raise past `assert_status_legal`'s
         # handler and out of a lock-holding mutation verb as a traceback.
-        raise UnreadableArtifact(f"{path.name}: {exc}") from exc
+        # No `{path.name}: ` prefix here, deliberately — and note the asymmetry with
+        # the parser branch below. `read_managed_text` is called with `path.name` as
+        # its label, so every message in its failure vocabulary already opens with the
+        # filename; prefixing again produced `spec.md: spec.md cannot be opened
+        # safely: …`. The parser branch DOES prefix, because an `ImportError` carries
+        # no filename of its own and no caller supplies one.
+        raise UnreadableArtifact(str(exc)) from exc
     try:
         return _lint_spec_status().parse_status(text)
     except ImportError as exc:
