@@ -829,12 +829,20 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         surface = G._canonical(f"FAIL: p/a{ch}b.py is bad\n")
         check(f"U+{ord(ch):04X} in a path does not split the line",
               "\n" not in surface.rstrip("\n"), repr(surface))
+    # Over ALL of Unicode, not a hand-picked candidate range. A curated domain would
+    # be a third copy of the very fact `SPLITLINES_EXTRA` exists to hold once, and
+    # the claim "a future Python adding a separator reddens" would hold only if the
+    # new character happened to fall inside it. Measured at 0.17 s, which is free
+    # here.
+    actual = {c for c in map(chr, range(0x110000))
+              if c not in "\r\n" and len(f"a{c}b".splitlines()) > 1}
     check("the separator enumeration matches what splitlines actually does",
-          all(len(f"a{c}b".splitlines()) > 1 for c in G.SPLITLINES_EXTRA)
-          and {c for c in map(chr, [*range(0x20), 0x85, 0x2028, 0x2029])
-               if c not in "\r\n" and len(f"a{c}b".splitlines()) > 1}
-          == set(G.SPLITLINES_EXTRA),
-          repr(sorted(hex(ord(c)) for c in G.SPLITLINES_EXTRA)))
+          actual == set(G.SPLITLINES_EXTRA),
+          f"only in splitlines: {sorted(hex(ord(c)) for c in actual - set(G.SPLITLINES_EXTRA))}; "
+          f"only in the tuple: {sorted(hex(ord(c)) for c in set(G.SPLITLINES_EXTRA) - actual)}. "
+          f"This assertion is designed to redden on a CPython upgrade for reasons "
+          f"unrelated to this repo: add the character to SPLITLINES_EXTRA after "
+          f"confirming _LINE_TERMINATOR still excludes it.")
     # Classes 1 and 2 must not depend on a terminator already being `\n`.
     ambient = ("FAIL: _NO_RUNNER names packs/x/tests/skills/y, which holds no "
                "suite\nFAIL: kept\n\u2716 lint-pack-test-boundary: 2 failure(s)\n")

@@ -140,13 +140,13 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   storage preserves the captured record for diagnosis and for a privacy audit:
   base64 rather than a JSON string because a stream may hold bytes that are not
   valid UTF-8, which a `str` round trip would silently replace.
-  It does **not** make the comparison byte-exact, and an earlier draft of this
-  bullet claimed it did — that "the comparison would otherwise pass on two streams
-  that differ". It does: the compared surface is built from
-  `.decode("utf-8", "replace")`, so two genuinely different byte sequences collapse
-  onto one surface. Verified: `p/\xff.py` and `p/\xfe.py` both become
-  `p/\ufffd.py`. That lossy decode is a normalisation like any other and is listed
-  as class 8 below.
+  It does **not** make the comparison byte-exact. An earlier draft of this bullet
+  claimed it did — that without raw storage "the comparison would otherwise pass on
+  two streams that differ". **Two streams that differ do pass:** the compared
+  surface is built from `.decode("utf-8", "replace")`, so genuinely different byte
+  sequences collapse onto one surface. Verified: `p/\xff.py` and `p/\xfe.py` both
+  become `p/\ufffd.py`. That lossy decode is a normalisation like any other and is
+  listed below as its own class.
   What is compared is not the raw bytes but a **canonical surface** derived from
   them. This list is the complete inventory of what `_canonical` normalises, and it
   is normative: a change to that function that is not reflected here is a spec

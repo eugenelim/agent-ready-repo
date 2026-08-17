@@ -666,12 +666,18 @@ def _decode(record: dict, key: str) -> str:
 def _raw(record: dict, key: str) -> bytes:
     """The captured stream as stored, undecoded.
 
-    The privacy scan must use this, not `_decode`. `_decode` replaces every
-    invalid byte with `U+FFFD`, so a needle containing non-ASCII — `Path.home()`
-    on a host whose username is not ASCII, which `AGENTS.md § Privacy` names as
-    forbidden content — can be broken apart by a substitution and slip past the
-    refusal that guards the committed baseline. A backstop that a lossy decode can
-    defeat is not a backstop.
+    The privacy scan must use this, not `_decode`. `_decode` replaces every invalid
+    byte with `U+FFFD`, so a needle whose bytes are not valid UTF-8 is broken apart
+    by the substitution and slips past the refusal guarding the committed baseline.
+    `AGENTS.md § Privacy` names user-specific filesystem paths as forbidden content,
+    and on a host whose paths are not valid UTF-8 `os.fsdecode` surrogate-escapes
+    them — so `Path.home()` can be exactly such a needle.
+
+    Note the condition precisely: merely *non-ASCII* is not enough. Measured, a
+    valid-UTF-8 needle (`/Users/josé/repo`) matches under both the raw and the
+    lossy scan and demonstrates nothing; `os.fsdecode(b"/Users/us\xffer/repo")`
+    matches raw and **not** lossy. A backstop a lossy decode can defeat is not a
+    backstop.
     """
     return lint_git_ignore.decode_stream(record[key])
 
