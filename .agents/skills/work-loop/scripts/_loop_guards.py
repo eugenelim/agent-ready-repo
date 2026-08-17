@@ -68,6 +68,7 @@ __all__ = [
     # result type
     "GuardResult",
     # bounded, symlink-safe readers
+    "ManagedContentError",
     "read_managed_json",
     "read_managed_text",
     "read_state",
@@ -80,7 +81,6 @@ __all__ = [
     "read_md_status",
     "assert_status_legal",
     "validate_run_id",
-    "non_negative_int",
     "contained",
     "contained_reason",
     # retry caps
@@ -113,13 +113,33 @@ INTERNAL_ERROR = "internal-error"
 # enters: `_scalar()`, at each interpolation of state-file or argv data.
 _MAX_SCALAR_CHARS = 120
 
-# Backstop only. Every known external interpolation goes through `_scalar`, so a
-# reason should never approach this; it exists so that a site added later without
-# `_scalar` is still bounded rather than unbounded. Set well above the longest
+# Backstop, and load-bearing rather than theoretical: the audit that introduced
+# `_scalar` MISSED `check_identity`'s success message, where a 100 KB `run_id`
+# reached stdout at exactly this cap. Treat it as what holds when a site is
+# missed, not as evidence that none is. Set well above the longest
 # authored reason (`_BOTH_CAUSES` plus two digests, ~1050 chars) so it cannot
 # truncate legitimate text \u2014 `test_the_longest_authored_reason_survives_intact`
 # pins that separation.
 _MAX_REASON_CHARS = 4000
+
+
+class ManagedContentError(ValueError):
+    """The file was read safely, but its BYTES are unusable.
+
+    Distinct from the structural failures sharing the same `ValueError` vocabulary
+    (unopenable, non-regular, replaced mid-read), and the distinction is load-bearing
+    rather than cosmetic: `loop-engine._recover_pending` DELETES `events.pending` — a
+    durable audit record — only when its content is invalid, and must keep it when the
+    read merely failed. That decision was previously made by substring-matching
+    `str(exc)` against a hand-listed set of message fragments, duplicated at two call
+    sites: the source-substring gate antipattern this repo records, applied to the
+    audit trail. The list had already fallen behind — it omitted the
+    non-finite-number message, so a `NaN` in `events.pending` was retained forever and
+    re-warned on every transition.
+
+    Subclasses `ValueError` so every existing `except (OSError, UnicodeDecodeError,
+    ValueError, ImportError)` clause keeps catching it unchanged.
+    """
 
 
 def _scalar(value: object) -> str:
@@ -136,14 +156,42 @@ def _scalar(value: object) -> str:
     return text
 
 
-def _one_line(text: str) -> str:
-    """Collapse whitespace. Reasons are a one-line CLI contract.
+# Every remaining C0 control character plus DEL, escaped rather than passed through.
+# `str.split()` already consumes the whitespace ones; what survives is the dangerous
+# half, most importantly ESC. Reasons and messages are printed to a stream a
+# supervising agent captures and logs, so a `run_id` of "aaa\x1b[2J\x1b[31mFAKE-OK"
+# in state.json otherwise emits a real screen-clear and colour change into that
+# transcript. Collapsing whitespace alone does not stop it.
+_CONTROL_ESCAPES = str.maketrans({c: f"\\x{c:02x}" for c in [*range(32), 127]})
 
-    Whitespace collapse is the part that matters for the contract: it is what
-    stops a newline in interpolated data from forging a second stderr line. The
-    length backstop is secondary \u2014 see `_MAX_REASON_CHARS`.
+
+def _bounded(value: object) -> str:
+    """`str(value)` bounded, WITHOUT `repr`'s quoting.
+
+    For the one place the output format is pinned by a golden capture:
+    `check_identity`'s success message prints `run_id=<value>` unquoted, and
+    substituting `_scalar` there changed a shipped CLI's stdout to `run_id='<value>'`
+    — caught by the parity table, which is what it is for.
+
+    Control characters are not this function's job: `_one_line` escapes them at the
+    `GuardResult` chokepoint, so every reason and message is covered whether or not
+    its site remembered a helper. What is left here is the length bound.
     """
-    collapsed = " ".join(str(text).split())
+    text = str(value)
+    if len(text) > _MAX_SCALAR_CHARS:
+        text = text[: _MAX_SCALAR_CHARS - 1] + "…"
+    return text
+
+
+def _one_line(text: str) -> str:
+    """Collapse whitespace, neutralise control characters, and cap length.
+
+    All three parts are the same one-line CLI contract from different angles:
+    collapsing whitespace stops a newline in interpolated data from forging a second
+    stderr line, escaping the remaining control characters stops it forging terminal
+    output, and the cap is the length backstop (see `_MAX_REASON_CHARS`).
+    """
+    collapsed = " ".join(str(text).split()).translate(_CONTROL_ESCAPES)
     if len(collapsed) > _MAX_REASON_CHARS:
         collapsed = collapsed[: _MAX_REASON_CHARS - 1] + "\u2026"
     return collapsed
@@ -172,10 +220,17 @@ def contained_reason(fn):
             result = fn(*args, **kwargs)
         except Exception as exc:  # noqa: BLE001 — the containment boundary itself
             return _one_line(f"{INTERNAL_ERROR}: {type(exc).__name__}: {exc}")
-        if result is not None and not str(result).strip():
+        if result is None:
+            return None
+        if not str(result).strip():
             # A blank reason would read as a refusal with no cause. Never emit one.
             return f"{INTERNAL_ERROR}: {fn.__name__} produced an empty reason"
-        return result
+        # The NORMAL return needs the same hygiene as the except arm above. It used to
+        # be returned raw, so the module's "every reason is whitespace-collapsed and
+        # length-capped" claim held only by the accident that every current
+        # interpolation site calls `_scalar`. A newline in interpolated data forges a
+        # second stderr line, which is a one-line CLI contract violation.
+        return _one_line(result)
 
     return wrapper
 
@@ -215,6 +270,17 @@ class GuardResult:
         # context flood and a carrier into the supervising agent's window.
         if self.reason is not None:
             cleaned = _one_line(self.reason)
+            if not cleaned:
+                # A blank-but-not-None reason is a FAIL-OPEN, not a cosmetic defect.
+                # The invariant above only compares `reason is None`, so
+                # `GuardResult(ok=False, reason="")` constructs happily — and any
+                # adapter written as `if result.reason:` then reads a refusal as
+                # success. `contained_reason` already refuses to produce one on the
+                # mutation path; this closes the same hole on the result type.
+                raise ValueError(
+                    "GuardResult invariant violated: reason is blank, which reads as "
+                    f"success to any truthiness check (reason={self.reason!r})"
+                )
             if cleaned != self.reason:
                 object.__setattr__(self, "reason", cleaned)  # frozen dataclass
         if self.message is not None:
@@ -374,7 +440,7 @@ def _read_managed_bytes(path: Path, label: str) -> bytes:
     if not stat.S_ISREG(before.st_mode):
         raise ValueError(f"{label} must be a regular file")
     if before.st_size > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
+        raise ManagedContentError(
             f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
         )
     # O_NONBLOCK is load-bearing, not defensive. The S_ISREG check above is
@@ -433,7 +499,7 @@ def _read_managed_bytes(path: Path, label: str) -> bytes:
     ):
         raise ValueError(f"{label} changed while being read")
     if len(raw) > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
+        raise ManagedContentError(
             f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
         )
     return raw
@@ -445,7 +511,7 @@ def read_managed_json(path: Path, label: str) -> dict:
 
     def _reject_non_finite(token: str):
         # The three non-standard LITERALS json accepts: NaN, Infinity, -Infinity.
-        raise ValueError(f"{label} contains the non-finite number {token}")
+        raise ManagedContentError(f"{label} contains the non-finite number {token}")
 
     def _reject_float(token: str):
         # And the OVERFLOW route, which `parse_constant` does NOT cover: `1e400`
@@ -462,7 +528,7 @@ def read_managed_json(path: Path, label: str) -> dict:
         # merely stole that refusal and changed its wording.
         value = float(token)
         if value in (float("inf"), float("-inf")) or value != value:
-            raise ValueError(
+            raise ManagedContentError(
                 f"{label} contains the non-finite number {_scalar(token)}"
             )
         return value
@@ -474,11 +540,21 @@ def read_managed_json(path: Path, label: str) -> dict:
             parse_float=_reject_float,
         )
     except UnicodeDecodeError as exc:
-        raise ValueError(f"{label} is not valid UTF-8") from exc
+        raise ManagedContentError(f"{label} is not valid UTF-8") from exc
     except json.JSONDecodeError as exc:
-        raise ValueError(f"{label} malformed: {exc.msg} at line {exc.lineno}") from exc
+        raise ManagedContentError(
+            f"{label} malformed: {exc.msg} at line {exc.lineno}"
+        ) from exc
+    except RecursionError as exc:
+        # `json.loads` raises this — NOT a `ValueError` — on a deeply nested document,
+        # so it escaped every reader-vocabulary handler and reached a lock holder as a
+        # traceback. It is unambiguously invalid content: the bytes parsed nowhere and
+        # no amount of retrying helps. Classifying it structurally instead would leave
+        # a planted `.engine-state-*.json.tmp` in place, re-warning on every
+        # transition forever.
+        raise ManagedContentError(f"{label} is nested too deeply to parse") from exc
     if not isinstance(data, dict):
-        raise ValueError(f"{label} root must be an object")
+        raise ManagedContentError(f"{label} root must be an object")
     return data
 
 
@@ -501,7 +577,7 @@ def read_managed_text(path: Path, label: str) -> str:
     try:
         return raw.decode("utf-8")
     except UnicodeDecodeError as exc:
-        raise ValueError(f"{label} is not valid UTF-8") from exc
+        raise ManagedContentError(f"{label} is not valid UTF-8") from exc
 
 
 def read_state(spec_dir: Path) -> dict:
@@ -957,7 +1033,8 @@ def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
     return GuardResult(
         ok=True,
         message=(
-            f"run_id={stored} schema_version={state.get('schema_version')}"
+            f"run_id={_bounded(stored)} "
+            f"schema_version={_bounded(state.get('schema_version'))}"
         ),
         data={"run_id": stored, "schema_version": state.get("schema_version")},
     )
@@ -1092,7 +1169,7 @@ def non_negative_int(state: dict, field: str, default):
     if isinstance(raw, bool) or not isinstance(raw, int):
         return f"{field} must be a non-negative integer, got {type(raw).__name__}"
     if raw < 0:
-        return f"{field} must be a non-negative integer, got {raw}"
+        return f"{field} must be a non-negative integer, got {_scalar(raw)}"
     return raw
 
 

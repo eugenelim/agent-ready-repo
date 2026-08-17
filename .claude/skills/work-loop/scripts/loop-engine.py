@@ -179,7 +179,25 @@ def _discard_regular_file(path: Path) -> bool:
 
 
 def _ensure_gitignore_entry(gitignore_path: Path, entry: str) -> None:
-    existing = gitignore_path.read_text(encoding="utf-8") if gitignore_path.exists() else ""
+    """Append `entry` to `.gitignore` unless already present.
+
+    Reached from `cmd_init`, which is `@_locked`, so the read happens inside the
+    critical section. It used to be a plain `read_text()`: unbounded and BLOCKING, and
+    the caller's `is_symlink()` pre-check does not exclude a FIFO. With the repo-root
+    `.gitignore` as a FIFO, `init` hung indefinitely holding
+    `engine-state.json.lock` — past `stale_after`, at which point the lock is
+    reclaimed and a second writer admitted, which is exactly the lost update the lock
+    exists to prevent. `O_NONBLOCK` in the shared reader is what closes it, so this
+    goes through the reader rather than around it.
+
+    A read failure raises; the sole caller already wraps this in a warning, and
+    skipping the gitignore courtesy is the right degradation — it is a convenience,
+    not a correctness control.
+    """
+    try:
+        existing = _guards().read_managed_text(gitignore_path, ".gitignore")
+    except FileNotFoundError:
+        existing = ""
     if entry in existing.splitlines():
         return
     with gitignore_path.open("a", encoding="utf-8") as fh:
@@ -284,32 +302,84 @@ def _append_events_jsonl(repo_root: Path, event_data: dict) -> None:
             raise OSError(f"event log changed while being written ({path})")
 
 
+def _is_content_invalid(exc: BaseException) -> bool:
+    """Is this failure "the bytes are unusable" rather than "the read failed"?
+
+    Gates the DELETION of `events.pending`, a durable audit record, so getting it
+    wrong in the permissive direction destroys evidence. Asks the reader's own
+    exception hierarchy — `ManagedContentError` — rather than substring-matching
+    `str(exc)` against a hand-listed set of message fragments, which is what this did
+    at both call sites. That list had already fallen behind the reader: it omitted the
+    non-finite-number message, so a `NaN` in `events.pending` was never recognised as
+    invalid content and the file was retained forever, re-warning on every transition.
+
+    Resolved through the loaded guard module, not imported, because the engine loads
+    that module by path. A load failure is deliberately NOT content-invalid: it says
+    nothing about this file, and discarding a valid audit record over a build problem
+    is the data loss this function exists to prevent.
+    """
+    try:
+        return isinstance(exc, _guards().ManagedContentError)
+    except GuardsUnavailable:
+        return False
+
+
+class _MissingRequiredFields(ValueError):
+    """A promoted engine-state tmp parsed but lacks `state` or `run_id`.
+
+    A distinct class rather than a bare `ValueError`, so the delete decision can be
+    `isinstance`-based end to end: this IS invalid content (the tool wrote it and it
+    is unusable), while the reader's structural `ValueError`s are not.
+    """
+
+
 def _recover_engine_state_tmp(spec_dir: Path) -> None:
     """Complete any crash-left atomic engine-state rename; validate JSON before promoting."""
     for tmp_path in spec_dir.glob(".engine-state-*.json.tmp"):
         try:
             data = _read_managed_json(tmp_path, "engine-state tmp")
             if not isinstance(data, dict) or not data.get("state") or not data.get("run_id"):
-                raise ValueError("engine-state tmp is missing required fields")
-        except (FileNotFoundError, ValueError) as exc:
-            # DELIBERATELY NARROW, and this is load-bearing. `_read_managed_json`
-            # delegates to the shared reader now, so it can raise for reasons that
-            # have nothing to do with this file's content — `GuardsUnavailable` when
-            # `_loop_guards.py` cannot be loaded, for instance. A bare
-            # `except Exception` treated that as "content invalid" and unlinked a
-            # byte-perfect crash-recovery artifact: observed destroying a valid
-            # `.engine-state-*.json.tmp` on a tree with a missing guard module. The
-            # two conditions co-occur naturally — an interrupted `make build-self`
-            # and a crash-left rename — and the loss is irreversible. Only the
-            # reader's real content vocabulary may authorise a delete; anything else
-            # propagates and becomes a refusal.
+                raise _MissingRequiredFields(
+                    "engine-state tmp is missing required fields"
+                )
+        except FileNotFoundError:
+            continue
+        except BaseException as exc:  # noqa: BLE001 — see below; nothing may escape
+            # TWO separate decisions here, and conflating them caused a bug in each
+            # direction on this line already.
+            #
+            # 1. WHAT IS CAUGHT: everything. An earlier revision narrowed this to
+            #    `(FileNotFoundError, ValueError)`, which missed `RecursionError` —
+            #    `json.loads` raises it on a deeply nested document, it is not a
+            #    `ValueError`, and `main()` catches only `GuardsUnavailable` and
+            #    `KeyboardInterrupt`. So a planted `.engine-state-*.json.tmp` holding
+            #    20k nested arrays produced a traceback from inside
+            #    `sl.exclusive(...)`, and because the dotfile was never removed, EVERY
+            #    later transition on that spec failed identically. Reproduced.
+            #
+            # 2. WHAT AUTHORISES THE DELETE: only invalid content. `_read_managed_json`
+            #    goes through the shared reader, so it can fail for reasons that say
+            #    nothing about this file — `GuardsUnavailable` from a missing guard
+            #    module, a permission error, a benign concurrent-writer race. Treating
+            #    those as "content invalid" unlinked a byte-perfect crash-recovery
+            #    artifact; observed. The two conditions co-occur naturally (an
+            #    interrupted `make build-self` plus a crash-left rename) and the loss
+            #    is irreversible.
+            #
+            # Catching broadly while deleting narrowly is what satisfies both.
+            if isinstance(exc, KeyboardInterrupt):
+                raise
+            invalid = isinstance(exc, _MissingRequiredFields) or _is_content_invalid(exc)
+            if invalid:
+                with contextlib.suppress(OSError):
+                    tmp_path.unlink(missing_ok=True)
             print(
-                f"loop-engine: warning — engine-state tmp invalid ({exc});"
-                f" discarding {tmp_path.name}",
+                f"loop-engine: warning — engine-state tmp unusable "
+                f"({type(exc).__name__}: {exc}); "
+                + (f"discarding {tmp_path.name}" if invalid
+                   else f"{tmp_path.name} left in place; remove manually"),
                 file=sys.stderr,
             )
-            with contextlib.suppress(OSError):
-                tmp_path.unlink(missing_ok=True)
             continue
         try:
             tmp_path.replace(spec_dir / "engine-state.json")
@@ -350,11 +420,7 @@ def _recover_pending(repo_root: Path) -> None:
     try:
         pending = _read_managed_json(pending_path, "events.pending")
     except Exception as exc:
-        detail = str(exc)
-        content_invalid = isinstance(exc, ValueError) and any(
-            marker in detail
-            for marker in (" exceeds ", "not valid UTF-8", " malformed:", " root must be")
-        )
+        content_invalid = _is_content_invalid(exc)
         action = (
             "discarded"
             if content_invalid and _discard_regular_file(pending_path)
@@ -406,11 +472,7 @@ def _recover_pending(repo_root: Path) -> None:
         # reasons unrelated to this file (a `GuardsUnavailable` when `_loop_guards.py`
         # cannot be loaded), and discarding `events.pending` over a build problem
         # would destroy a durable audit record.
-        detail = str(exc)
-        content_invalid = isinstance(exc, ValueError) and any(
-            marker in detail
-            for marker in (" exceeds ", "not valid UTF-8", " malformed:", " root must be")
-        )
+        content_invalid = _is_content_invalid(exc)
         action = (
             "discarded"
             if content_invalid and _discard_regular_file(pending_path)
