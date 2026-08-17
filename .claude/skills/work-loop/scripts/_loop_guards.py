@@ -1115,7 +1115,7 @@ def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> Gua
             return GuardResult(
                 ok=False,
                 reason=(
-                    f"plan check-current: current_wave_index={idx} out of range "
+                    f"plan check-current: current_wave_index={_scalar(idx)} out of range "
                     f"[0, {len(waves)})"
                 ),
             )
@@ -1254,7 +1254,7 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
         return GuardResult(
             ok=False,
             reason=(
-                f"wave check: current_wave_index={idx} does not match "
+                f"wave check: current_wave_index={_scalar(idx)} does not match "
                 f"--wave-index {wave_index}"
             ),
         )
@@ -1264,13 +1264,16 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
             return GuardResult(
                 ok=True,
                 message=(
-                    f"wave check more — wave_index={idx} has more waves "
-                    f"(total={total})"
+                    f"wave check more — wave_index={_scalar(idx)} has more waves "
+                    f"(total={_scalar(total)})"
                 ),
             )
         return GuardResult(
             ok=False,
-            reason=f"wave check more: no more waves (current={idx}, total={total})",
+            reason=(
+                f"wave check more: no more waves "
+                f"(current={_scalar(idx)}, total={_scalar(total)})"
+            ),
         )
 
     if expect == "last":
@@ -1278,13 +1281,16 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
             return GuardResult(
                 ok=True,
                 message=(
-                    f"wave check last — wave_index={idx} is the last wave "
-                    f"(total={total})"
+                    f"wave check last — wave_index={_scalar(idx)} is the last wave "
+                    f"(total={_scalar(total)})"
                 ),
             )
         return GuardResult(
             ok=False,
-            reason=f"wave check last: not the last wave (current={idx}, total={total})",
+            reason=(
+                f"wave check last: not the last wave "
+                f"(current={_scalar(idx)}, total={_scalar(total)})"
+            ),
         )
 
     return GuardResult(ok=False, reason=f"wave check: unknown --expect value {_scalar(expect)}")
