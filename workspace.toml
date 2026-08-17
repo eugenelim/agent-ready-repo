@@ -1631,6 +1631,95 @@ open = [
   # artifact is committed in. That is a schema change, hence its own PR.
   {slug = "publish-control-evidence-not-repo-bound", summary = "Record the observed repository in the publish-control evidence artifact and have the linter check it matches the committing repo", source = "spec/capture-evidence-repo-dot-segments"},
 
+  # build-check.yml declares no top-level `permissions:` block, so every step --
+  # including three pip installs and an editable install that executes setup.py
+  # -- runs under the repository's DEFAULT GITHUB_TOKEN. The job also runs on
+  # `push: branches: [main]`, where that default may be write-scoped. 10 of the
+  # 14 workflows here already declare one; ci-security.yml:27 documents
+  # `contents: read` as the intended posture, so this is the repo's own pattern
+  # being missed rather than an unconsidered gap. Surfaced by security review on
+  # spec/build-check-coverage-gaps and deliberately NOT bundled there: adding the
+  # block changes the job's token scope, which is a behaviour change and outside
+  # that spec's bundled-fixes carve-out.
+  # Fix: add `permissions: contents: read` at the top of build-check.yml (and
+  # sweep the other three undeclared workflows). zizmor's `excessive-permissions`
+  # audit would own this class going forward, but ci-security.yml:120 filters it
+  # out with --min-severity high -- lower the threshold or add a rule-specific
+  # run in the same change, or the next one lands the same way.
+  {slug = "build-check-yml-no-permissions-block", summary = "Declare `permissions: contents: read` on build-check.yml (and the three other undeclared workflows), and stop zizmor's --min-severity high from filtering out excessive-permissions", source = "spec/build-check-coverage-gaps security review"},
+  # tools/requirements-sast.txt is installed by range (`bandit>=1.9,<2` etc.)
+  # with no hashes, and after spec/build-check-coverage-gaps its bandit line is
+  # fetched on 100% of build-check runs rather than a subset. The repo already
+  # demonstrates the stronger shape one workflow over: ci-security.yml:107 runs
+  # `pip install --require-hashes -r tools/requirements-ci-security-locked.txt`.
+  # Fix: generate a hash-locked tools/requirements-sast-locked.txt from the range
+  # file and install from it with --require-hashes in both the conditional and
+  # the unconditional step, keeping requirements-sast.txt as the canonical input
+  # so nothing restates a pin. Needs a refresh procedure, hence its own PR.
+  {slug = "sast-requirements-hash-locked", summary = "Generate and install a hash-locked tools/requirements-sast-locked.txt with --require-hashes, mirroring the ci-security locked file", source = "spec/build-check-coverage-gaps security review"},
+  # pip-audit covers tools/requirements.txt and every packs/*/requirements.txt
+  # (Makefile:235) and the PEP 517 build-system requirements (Makefile:238). It
+  # does NOT cover tools/requirements-sast.txt or
+  # tools/requirements-ci-security-locked.txt -- the CI tooling itself has no SCA.
+  # Confirmed by reading the audit invocations, not inferred. Adjacent to
+  # npm-dependabot-wiring but a different ecosystem and a different file set.
+  # Fix: add the two CI-tooling requirements files to the audit-requirements.py
+  # invocation, or wire Dependabot for pip so the bumps arrive as PRs. Decide
+  # which, then do one -- doing both duplicates the noise.
+  {slug = "sast-requirements-not-audited", summary = "Give tools/requirements-sast.txt and requirements-ci-security-locked.txt SCA coverage -- pip-audit skips both today", source = "spec/build-check-coverage-gaps security review"},
+  # lint-nosec-form.py's unknown-id check degrades silently when bandit's
+  # registry is unreachable: id_checker() catches Exception and returns None,
+  # and main() then appends " (bandit absent: IDs not resolved)" to an EXIT-0
+  # line. That contradicts the tool's own stated rule two guards above it -- an
+  # empty scan exits 2 precisely because "a silent no-op is not a pass".
+  # spec/build-check-coverage-gaps closed every route to this IN CI (the install
+  # step now asserts the registry resolves, in both directions, and runs last),
+  # but a local `SKIP_SAST=1 make build-check` on a machine without bandit still
+  # reports OK on a degraded scan.
+  # Fix: give the script a --require-id-registry flag that turns
+  # `known_ids is None` into exit 2, and pass it from tools/repo/build_gate_chain.py
+  # so local and CI behave identically. Deferred because it makes bandit a hard
+  # prerequisite of `make build-check` for every contributor -- that is a real
+  # cost and deserves its own decision, not a ride-along.
+  {slug = "lint-nosec-form-require-id-registry", summary = "Add --require-id-registry to lint-nosec-form.py so an unreachable bandit registry exits 2 instead of degrading to an exit-0 caveat, and decide whether bandit becomes a hard build-check prerequisite", source = "spec/build-check-coverage-gaps security review"},
+
+  # Nothing stops the NEXT tools/ test from landing gated by nothing.
+  # lint-ci-parity enforces workflow-step -> local-make-target and never the
+  # reverse; lint-pack-test-boundary.py enforces the reverse direction only for
+  # packs/**/tests (its _RUNNER_FILES / _NO_RUNNER tables), not for tools/.
+  # That asymmetry is the defect that produced #958, and spec/
+  # build-check-coverage-gaps fixed the instance without closing the class.
+  # Measured 2026-08-17 by scanning Makefile + .github/workflows/ + every
+  # non-test tools/**/*.py and packages/agentbundle/**/*.py for each of the 65
+  # tools/test*.py filenames: EIGHT are invoked by nothing at all --
+  # test-check-atlassian-phase3-readiness, test-check-contract-drift,
+  # test-compare-bandit-suppressions, test_build_site_dry_run,
+  # test_enterprise_rollout_playbook, test_export_work_index,
+  # test_guide_typed_asides, test_live_demo_guide. Two of those arrived in the
+  # last two merges (#980, #982), so this is an active leak, not a backlog.
+  # Note the scan must include tools/catalogue/ and tools/hooks/ as invocation
+  # sources: an earlier pass over Makefile + workflows alone reported 14 and was
+  # wrong, because pre_pr_catalogue.py invokes several directly.
+  # Fix: extend the _RUNNER_FILES/_NO_RUNNER discipline to tools/test*.py -- a
+  # test file must name a runner or carry an explicit no-runner disposition.
+  {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; eight are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
+  # Wiring the seven guides/site suites into build-check.yml (spec/
+  # build-check-coverage-gaps) couples EVERY PR to the formatting of files those
+  # tests substring-assert against. test_check_rendered_site_links.py's
+  # test_pages_gate_runs_after_both_builds_before_upload_and_has_path_filters
+  # asserts on raw text of pages.yml including exact single-quoted `paths:`
+  # entries and their occurrence COUNTS; test_catalogue_navigation.py does the
+  # same against web/src/lib/catalogue-navigation.ts and two .astro files.
+  # build-check.yml has no `paths:` filter, so a cosmetic requote in pages.yml
+  # now reddens the required check for an unrelated PR. Worse, per the
+  # antipattern recorded in docs/knowledge/observations/antipattern/2026-08.jsonl
+  # those assertions do not detect REMOVAL of what they claim to pin -- they are
+  # the source-substring shape that register entry exists to name.
+  # Fix: re-express both against parsed YAML / a parsed module graph, then
+  # confirm each goes red when the pinned control is deleted. Do not simply
+  # loosen them; the ordering they assert is real.
+  {slug = "site-test-source-substring-assertions", summary = "Re-express test_check_rendered_site_links' pages.yml ordering assertion and test_catalogue_navigation's web/src assertions against parsed structure, and verify each by deletion", source = "spec/build-check-coverage-gaps review"},
+
   # docs/specs/distribution-adapters/spec.md carries `- **Status:** Shipped`,
   # which CONVENTIONS.md's lifecycle table puts in the Frozen class ("bodies
   # cannot change") -- yet every adapter PR amends it: each one's Constrained-by
@@ -1668,42 +1757,6 @@ open = [
   # judgment; a "superseded in part" on a spec that merely mentions MkDocs in
   # passing is the false positive that spec exists to avoid.
   {slug = "adr-0050-supersession-body-survey", summary = "Body-survey the ADR-0050 -> ADR-0055 chain; platform-site/spec.md still documents a MkDocs route for a build that no longer exists and cites no ADR, so no header scan reaches it", source = "spec/frozen-doc-supersession-annotations review"},
-
-  # build-check.yml installs tools/requirements-sast.txt only when
-  # skip_sast != 'true', so on a SKIP_SAST PR bandit is absent and
-  # lint-nosec-form's unknown-id check (a well-formed but nonexistent ID like a
-  # typo'd B999, which bandit resolves to nothing and so treats as a blanket
-  # suppression) silently no-ops. Where bandit IS installed, make sast runs too
-  # and run-bandit-gate.py already fails on bandit's own stderr for that case --
-  # so the check currently adds zero CI coverage, only local and defence-in-depth
-  # value. Surfaced in spec/bandit-nosec-form-lint AC4b rather than hidden.
-  # Fix: drop the `if:` on that install step, or add an unconditional bandit-only
-  # install, so the registry is present on every build-check run. Weigh against
-  # the install cost on diffs that scan nothing.
-  {slug = "build-check-installs-bandit-unconditionally", summary = "Install bandit on every build-check run so lint-nosec-form's unknown-ID check is not inert on SKIP_SAST PRs", source = "spec/bandit-nosec-form-lint"},
-
-  # 7 of the 13 pytest files named on Makefile:349 (`make test`) are a run step
-  # in NO workflow: test_validate_guides, test_check_guide_index,
-  # test_catalogue_navigation, test_documentation_entry_links,
-  # test_build_site_link_rewrites, test_check_rendered_site_links,
-  # test_build_site_routing. So they gate `make ci` locally and nothing
-  # remotely. Counted per-file across all of .github/workflows/, not just
-  # build-check.yml -- an earlier draft of this entry said 9 because it grepped
-  # build-check.yml alone and missed Gate F.
-  #   - test_check_rendered_site_links appears in pages.yml:23,45 but only as a
-  #     `paths:` trigger, never as a run step. Easy to miscount as covered.
-  #   - test_catalogue_tooling_rewire and _docs ARE run, by Gate F of
-  #     catalogue-tooling-ci-gates.yml:513,515 -- so they are NOT in this list.
-  #     Note though that workflow's paths-ignore covers docs/**, guides/**,
-  #     docs-site/** and web/**, so it does not gate doc-surface PRs either.
-  #     Do not "fix" those two here; that would duplicate Gate F.
-  # This is not theoretical: it is exactly how #958 merged green while leaving
-  # main red on test_catalogue_navigation, the failure PR #967 recorded as a
-  # known skip and this entry's sibling spec then fixed.
-  # Fix: add the seven as explicit build-check.yml steps (or one grouped step)
-  # and give each its lint-ci-parity disposition. Wiring one alone was declined
-  # in guides-readme-outcome-label-drift -- partial coverage reads as coverage.
-  {slug = "catalogue-site-tests-absent-from-ci", summary = "Wire the 7 catalogue/site pytest files from Makefile:349 that are a run step in no GitHub workflow into build-check.yml, with lint-ci-parity dispositions", source = "spec/guides-readme-outcome-label-drift"},
 
   # test-loop-cohort.sh is 493 lines / 51 cases of bash and uses ~20 bash-isms
   # ([[, local, $(), declare). AGENTS.md's "New tool scripts: Python, not bash"
