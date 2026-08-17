@@ -82,7 +82,6 @@ _LEAKING_GIT_VARS = (
     "GIT_WORK_TREE",
     "GIT_INDEX_FILE",
     "GIT_COMMON_DIR",
-    "GIT_CEILING_DIRECTORIES",
     "GIT_OBJECT_DIRECTORY",
     "GIT_ALTERNATE_OBJECT_DIRECTORIES",
     "GIT_CONFIG",
@@ -93,6 +92,10 @@ _LEAKING_GIT_VARS = (
     # pathspec variables below fail closed instead (exit 128 -> GitIgnoreError),
     # which is why they are far less dangerous — but they are dropped too.
     "GIT_CONFIG_COUNT",
+    # Same silent exit-0 channel, and HIGHER precedence than GIT_CONFIG_COUNT.
+    # This is how `git -c k=v <cmd>` propagates into subprocesses and hooks, so it
+    # is the likeliest of the family to be set for real.
+    "GIT_CONFIG_PARAMETERS",
     "GIT_GLOB_PATHSPECS",
     "GIT_ICASE_PATHSPECS",
     "GIT_LITERAL_PATHSPECS",
@@ -152,14 +155,28 @@ class IgnoreResolution:
 _DETAIL_LIMIT = 2000
 
 
-def hermetic_git_env(base: Mapping[str, str]) -> dict[str, str]:
+def hermetic_git_env(
+    base: Mapping[str, str], repo_root: Path | str | None = None
+) -> dict[str, str]:
     """A Git environment that cannot inherit host ignore configuration.
 
-    A `git init`-ed directory still honours ``core.excludesFile`` from the user
-    and system config, and still respects an ambient ``GIT_DIR``. Both would
-    silently change which paths come back ignored — and because the boundary
-    lint subtracts that set, a host ignore rule matching a fixture path can turn
-    a genuine failure into a pass.
+    A `git init`-ed directory still honours ``core.excludesFile`` from user and
+    system config, still respects an ambient ``GIT_DIR``, and — this is the part
+    that is easy to miss — still falls back to ``$XDG_CONFIG_HOME/git/ignore`` or
+    ``~/.config/git/ignore`` whenever ``core.excludesFile`` is *unset*. Pointing
+    ``GIT_CONFIG_GLOBAL`` at an empty file guarantees it is unset, which opens
+    that fallback rather than closing it. So the default is **pinned**, not just
+    left empty.
+
+    Because the boundary lint subtracts the ignored set, a stray host pattern
+    turns a genuine failure into a pass — and in ``lint-agents-md`` the assertion
+    is inverted, so it *suppresses* a real drift finding at exit 0.
+
+    Args:
+        base: the environment to derive from.
+        repo_root: when given, discovery is fenced to this directory instead of
+            being allowed to walk upward. Dropping ``GIT_CEILING_DIRECTORIES``
+            would *widen* discovery, which is the opposite of the intent.
     """
     env = dict(base)
     for name in _LEAKING_GIT_VARS:
@@ -174,6 +191,20 @@ def hermetic_git_env(base: Mapping[str, str]) -> dict[str, str]:
     # os.devnull is an empty, always-readable config on every supported host.
     env["GIT_CONFIG_GLOBAL"] = os.devnull
     env["GIT_CONFIG_SYSTEM"] = os.devnull
+    # Pin `core.excludesFile` rather than leaving it unset. Unset is exactly the
+    # condition under which Git consults $XDG_CONFIG_HOME/git/ignore, then
+    # ~/.config/git/ignore — so an empty global config opens that fallback. This
+    # uses the same one-off-config channel the scrub above removes from the
+    # caller, which is the only way to state "no excludes file" positively.
+    env["GIT_CONFIG_COUNT"] = "1"
+    env["GIT_CONFIG_KEY_0"] = "core.excludesFile"
+    env["GIT_CONFIG_VALUE_0"] = os.devnull
+    if repo_root is not None:
+        # Fence discovery instead of widening it: without a ceiling, a root that
+        # is not itself a worktree resolves upward and answers from an ancestor
+        # repository's .gitignore.
+        env["GIT_CEILING_DIRECTORIES"] = str(repo_root)
+        env["GIT_DISCOVERY_ACROSS_FILESYSTEM"] = "0"
     return env
 
 
@@ -205,9 +236,10 @@ def _relative_posix(repo_root: Path, candidate: Path) -> str:
     except ValueError:
         raise ValueError(
             f"candidate {candidate.name!r} lies outside the repository root "
-            f"({candidate} is not under {repo_root}); a candidate outside the "
-            f"root makes git exit 128 with a partial result, so it is refused "
-            f"here rather than silently degrading the whole batch"
+            f"({_bound_detail(repo_root, str(candidate))} is not under "
+            f"{_bound_detail(repo_root, str(repo_root))}); a candidate outside "
+            f"the root makes git exit 128 with a partial result, so it is "
+            f"refused here rather than silently degrading the whole batch"
         ) from None
     text = PurePosixPath(*relative.parts).as_posix() if relative.parts else "."
     if text.startswith(":"):
@@ -302,7 +334,7 @@ def git_ignored_paths(
             capture_output=True,
             check=False,
             timeout=timeout,
-            env=hermetic_git_env(os.environ),
+            env=hermetic_git_env(os.environ, repo_root),
         )
     except FileNotFoundError as exc:
         return _degrade(missing_git_policy, DegradationReason.GIT_ABSENT,

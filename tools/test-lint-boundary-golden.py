@@ -52,7 +52,6 @@ captured as required **passes** — and would then reproduce green forever.
 from __future__ import annotations
 
 import argparse
-import base64
 import hashlib
 import json
 import os
@@ -529,7 +528,14 @@ def _make_fixture(tmp: Path, name: str) -> Path:
     return root
 
 
-def _capture_all(subject: bytes | None) -> dict:
+def _capture_all(subject: bytes | None) -> tuple[dict, str]:
+    """Capture every fixture, returning the records and the temp root used.
+
+    The temp root is returned so the caller's leak scan can look for the actual
+    path rather than a hard-coded platform shape — the fixture root is
+    `/var/folders/...` on macOS but `/tmp/...` on Linux CI, and a needle list
+    written on one platform silently scans for nothing on the other.
+    """
     cases: dict[str, dict] = {}
     # Fixture roots live outside the repository worktree: a surviving root inside
     # it would become a nested repo the real catalogue lints then walk.
@@ -540,11 +546,13 @@ def _capture_all(subject: bytes | None) -> dict:
             if skip_links and name in SYMLINK_FIXTURES:
                 continue          # reported by the caller, not silently dropped
             cases[name] = _run_staged(_make_fixture(tmp, name), subject)
-    return cases
+        used_root = td
+    return cases, used_root
 
 
 def _regenerate() -> int:
     subject = _pinned_subject()
+    captured, temp_root = _capture_all(subject)
     payload = {
         "schema": 1,
         "comment": (
@@ -558,12 +566,16 @@ def _regenerate() -> int:
             "commit": PINNED_COMMIT,
             "blob_sha256": PINNED_BLOB_SHA256,
         },
-        "cases": _capture_all(subject),
+        "cases": captured,
     }
     # The one code path that WRITES the committed file must run the leak scan
     # over every case, not just the one `_self_check` samples. An absolute path
     # here is both a privacy leak and a host-dependent byte.
-    needles = [str(ROOT), str(Path.home()), "/private/var", "/var/folders"]
+    needles = [
+        str(ROOT), str(Path.home()), temp_root,
+        str(Path(temp_root).resolve()), tempfile.gettempdir(),
+        str(Path(tempfile.gettempdir()).resolve()),
+    ]
     leaks: list[str] = []
     for name, record in payload["cases"].items():
         both = _decode(record, "stdout_b64") + _decode(record, "stderr_b64")
@@ -603,7 +615,7 @@ def _compare() -> int:
     # Proves the pin still resolves and still hashes as recorded.
     _pinned_subject()
 
-    produced = _capture_all(None)
+    produced, _ = _capture_all(None)
     missing = sorted(set(stored["cases"]) - set(produced))
     extra = sorted(set(produced) - set(stored["cases"]))
     if missing and not symlinks_available():
@@ -674,7 +686,7 @@ def _self_check() -> int:
             for _ in range(3):
                 root = _make_fixture(tmp, name)
                 seen.add(_canonical(
-                    base64.b64decode(
+                    lint_git_ignore.decode_stream(
                         _run_staged(root, blob)["stderr_b64"]
                     ).decode("utf-8", "replace")
                 ))

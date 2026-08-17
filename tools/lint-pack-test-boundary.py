@@ -342,6 +342,9 @@ class BoundaryInventory:
                 # path sees it, rather than silently returning unfiltered content.
                 self.ignore_degraded = True
                 self.ignore_detail = outcome.detail
+                # Carried too, or a batch git *refused* here would be reported as
+                # "git is unavailable" — the conflation `refused` exists to stop.
+                self.ignore_refused = self.ignore_refused or outcome.refused
             cached = tuple(p for p in found if p not in outcome.ignored)
             self._walks[key] = cached
         return list(cached)

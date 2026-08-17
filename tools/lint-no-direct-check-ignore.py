@@ -82,8 +82,12 @@ SCANNED_FLOOR = 700
 #: Non-Python gate surfaces are covered by a textual search rather than an AST
 #: walk. Recorded here so the coverage boundary is explicit rather than implied.
 NON_PYTHON_DISPOSITION = (
-    "shell, Makefile and workflow surfaces are searched textually; they carry "
-    "no argv structure for an AST walk to inspect"
+    "shell, Makefile and workflow surfaces are searched textually — they carry "
+    "no argv structure for an AST walk to inspect. Backslash continuations are "
+    "joined first. Known residual: the match is per logical line and bounded to "
+    "120 characters between `git` and `check-ignore`, so a heredoc or a very "
+    "wide invocation can evade it; the runtime process-count assertion in "
+    "tools/test-lint-boundary-structural.py is the control that does not"
 )
 
 _TEXT_SUFFIXES = (".sh", ".yml", ".yaml", ".mk")
@@ -199,6 +203,28 @@ _TEXT_INVOCATION = re.compile(r"\bgit\b[^\n]{0,120}?\bcheck-ignore\b")
 _YAML_LABEL = re.compile(r"^-?\s*name:\s")
 
 
+def _join_continuations(source: str) -> list[tuple[int, str]]:
+    r"""(lineno, logical line) with backslash continuations joined.
+
+    A Makefile recipe that wraps ``git \`` / ``check-ignore …`` across two
+    physical lines is one invocation, and a per-physical-line scan misses it.
+    """
+    out: list[tuple[int, str]] = []
+    buffer, start = "", None
+    for lineno, line in enumerate(source.splitlines(), 1):
+        stripped = line.rstrip()
+        if start is None:
+            start = lineno
+        if stripped.endswith("\\"):
+            buffer += stripped[:-1] + " "
+            continue
+        out.append((start, buffer + stripped))
+        buffer, start = "", None
+    if buffer:
+        out.append((start or 1, buffer))
+    return out
+
+
 def scan_text(rel: str, source: str) -> list[str]:
     """Findings for a non-Python gate surface, by textual search.
 
@@ -208,11 +234,14 @@ def scan_text(rel: str, source: str) -> list[str]:
     `run:` line naming this gate's own script is a reference, not a use.
     """
     findings: list[str] = []
-    for lineno, line in enumerate(source.splitlines(), 1):
-        stripped = line.strip()
+    is_yaml = rel.endswith((".yml", ".yaml"))
+    for lineno, logical in _join_continuations(source):
+        stripped = logical.strip()
         if stripped.startswith("#"):
             continue                      # a comment about the rule is not a use
-        if _YAML_LABEL.match(stripped):
+        if is_yaml and _YAML_LABEL.match(stripped):
+            # YAML only: a Makefile recipe `name: ; git check-ignore x` strips to
+            # something this pattern matches, and skipping it would be a hole.
             continue                      # a step label names the rule, not a use
         if _TEXT_INVOCATION.search(stripped):
             findings.append(

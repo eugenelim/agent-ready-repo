@@ -32,10 +32,15 @@ STALE_DAYS = 180  # warn-only threshold
 
 
 def _repo_root() -> Path:
+    # Scrubbed env here too: `rev-parse --show-toplevel` honours an ambient
+    # GIT_WORK_TREE/GIT_DIR, which Git sets for hook processes — and this lint
+    # runs from the pre-PR hook, then chdir()s to whatever this returns. An
+    # unscrubbed call could redirect the entire lint to another tree.
     try:
         result = subprocess.run(
             ["git", "rev-parse", "--show-toplevel"],
             capture_output=True, text=True, check=False,
+            env=lint_git_ignore.hermetic_git_env(os.environ),
         )
         if result.returncode == 0 and result.stdout.strip():
             return Path(result.stdout.strip())

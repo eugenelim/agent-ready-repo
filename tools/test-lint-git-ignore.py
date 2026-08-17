@@ -306,9 +306,15 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
         check("hermetic env passed", "env" in kwargs and
               kwargs["env"].get("GIT_CONFIG_NOSYSTEM") == "1", repr(kwargs.get("env")))
         for leaked in ("GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE",
-                       "GIT_COMMON_DIR", "GIT_CEILING_DIRECTORIES"):
+                       "GIT_COMMON_DIR"):
             check(f"hermetic env drops {leaked}",
                   leaked not in kwargs["env"], repr(kwargs["env"].get(leaked)))
+        # GIT_CEILING_DIRECTORIES is deliberately SET, not dropped: it is the one
+        # variable in this family whose removal *widens* discovery, letting a
+        # non-worktree root answer from an ancestor repository.
+        check("GIT_CEILING_DIRECTORIES fences discovery at the repo root",
+              kwargs["env"].get("GIT_CEILING_DIRECTORIES") == str(root),
+              repr(kwargs["env"].get("GIT_CEILING_DIRECTORIES")))
 
         # ---- one communicate()-backed call, large payload ---------------
         big = [root / f"{'p' * 200}{i}.ignored" for i in range(6000)]
@@ -572,10 +578,24 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
             "GIT_GLOB_PATHSPECS": "1",
         })
         scrubbed_env = M.hermetic_git_env(injected)
-        for leaked in ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0",
-                       "GIT_CONFIG_VALUE_0", "GIT_GLOB_PATHSPECS"):
-            check(f"hermetic env drops {leaked}", leaked not in scrubbed_env,
-                  repr(scrubbed_env.get(leaked)))
+        # The caller's one-off config is dropped; the scrub then sets its OWN
+        # single entry to pin core.excludesFile. So the test is not "absent" but
+        # "replaced by ours" — asserting absence would now forbid the fix.
+        for dropped in ("GIT_GLOB_PATHSPECS", "GIT_CONFIG_PARAMETERS"):
+            check(f"hermetic env drops {dropped}", dropped not in scrubbed_env,
+                  repr(scrubbed_env.get(dropped)))
+        check("the caller's injected excludesFile value is replaced",
+              scrubbed_env.get("GIT_CONFIG_VALUE_0") == os.devnull,
+              repr(scrubbed_env.get("GIT_CONFIG_VALUE_0")))
+        check("the scrub owns exactly one config entry",
+              scrubbed_env.get("GIT_CONFIG_COUNT") == "1"
+              and scrubbed_env.get("GIT_CONFIG_KEY_0") == "core.excludesFile",
+              repr({k: scrubbed_env.get(k) for k in
+                    ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0")}))
+        check("no caller GIT_CONFIG_KEY_n beyond the scrub's own survives",
+              not [k for k in scrubbed_env
+                   if k.startswith("GIT_CONFIG_KEY_") and k != "GIT_CONFIG_KEY_0"],
+              repr([k for k in scrubbed_env if k.startswith("GIT_CONFIG_KEY_")]))
         with mock.patch.dict(os.environ, injected, clear=False):
             res = M.git_ignored_paths(
                 root, [root / "b.kept"],
@@ -583,6 +603,85 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
             )
         check("an injected core.excludesFile cannot leak in", res.ignored == (),
               f"leaked: {res.ignored!r}")
+
+        # Every channel that can change the answer, each verified to leak before
+        # it was closed. GIT_CONFIG_PARAMETERS is how `git -c k=v` propagates
+        # into subprocesses and hooks, and outranks GIT_CONFIG_COUNT.
+        fake_home = tmp / "fakehome"
+        (fake_home / "git").mkdir(parents=True, exist_ok=True)
+        (fake_home / "git" / "ignore").write_text("*.kept\n", encoding="utf-8")
+        home_dir = tmp / "homedir"
+        (home_dir / ".config" / "git").mkdir(parents=True, exist_ok=True)
+        (home_dir / ".config" / "git" / "ignore").write_text(
+            "*.kept\n", encoding="utf-8"
+        )
+        channels = {
+            "GIT_CONFIG_PARAMETERS":
+                {"GIT_CONFIG_PARAMETERS":
+                 f"'core.excludesFile={hostile_excludes}'"},
+            "GIT_CONFIG_COUNT":
+                {"GIT_CONFIG_COUNT": "1",
+                 "GIT_CONFIG_KEY_0": "core.excludesFile",
+                 "GIT_CONFIG_VALUE_0": str(hostile_excludes)},
+            # `GIT_CONFIG_GLOBAL=os.devnull` leaves core.excludesFile UNSET, and
+            # unset is exactly when git consults these two. Emptying the global
+            # config opens the fallback; the default has to be pinned.
+            "XDG_CONFIG_HOME fallback": {"XDG_CONFIG_HOME": str(fake_home)},
+            "HOME fallback": {"HOME": str(home_dir), "XDG_CONFIG_HOME": ""},
+        }
+        for label, overrides in channels.items():
+            with mock.patch.dict(os.environ, {**os.environ, **overrides},
+                                 clear=True):
+                leaked = M.git_ignored_paths(
+                    root, [root / "b.kept"],
+                    missing_git_policy=M.MissingGitPolicy.FAIL_OPEN,
+                    timeout=30.0,
+                )
+            check(f"{label} cannot influence the ignore answer",
+                  leaked.ignored == (), f"leaked: {leaked.ignored!r}")
+        check("the scrub pins core.excludesFile rather than leaving it unset",
+              M.hermetic_git_env(os.environ).get("GIT_CONFIG_VALUE_0")
+              == os.devnull,
+              repr(M.hermetic_git_env(os.environ).get("GIT_CONFIG_VALUE_0")))
+
+        # Discovery is FENCED, not widened. Dropping GIT_CEILING_DIRECTORIES
+        # would let a non-worktree root resolve upward and answer from an
+        # ancestor repository's .gitignore.
+        fenced = M.hermetic_git_env(os.environ, root)
+        check("a repo_root fences discovery via GIT_CEILING_DIRECTORIES",
+              fenced.get("GIT_CEILING_DIRECTORIES") == str(root),
+              repr(fenced.get("GIT_CEILING_DIRECTORIES")))
+        check("discovery does not cross filesystems",
+              fenced.get("GIT_DISCOVERY_ACROSS_FILESYSTEM") == "0")
+        not_a_repo = tmp / "notarepo"
+        not_a_repo.mkdir(exist_ok=True)
+        (not_a_repo / "x.kept").write_text("x", encoding="utf-8")
+        # Fenced discovery makes this fail closed — git cannot find a repository
+        # at all, so it raises rather than quietly answering from the ancestor
+        # worktree this directory happens to sit inside. Either outcome is
+        # acceptable; silently answering is not.
+        outside_ignored = None
+        try:
+            outside_ignored = M.git_ignored_paths(
+                not_a_repo, [not_a_repo / "x.kept"],
+                missing_git_policy=M.MissingGitPolicy.FAIL_OPEN, timeout=30.0,
+            ).ignored
+        except M.GitIgnoreError:
+            outside_ignored = ()          # refused outright: the stronger outcome
+        check("a non-worktree root never answers from an ancestor repo",
+              outside_ignored == (), f"leaked: {outside_ignored!r}")
+
+        # A ValueError detail is redacted like every other diagnostic.
+        raised = None
+        try:
+            M.git_ignored_paths(
+                root, [Path("/etc/hosts")],
+                missing_git_policy=M.MissingGitPolicy.FAIL_OPEN, timeout=30.0,
+            )
+        except ValueError as exc:
+            raised = exc
+        check("an out-of-root ValueError redacts the root",
+              raised is not None and str(root) not in str(raised), str(raised))
 
         # ---- degradation details are redacted ----------------------------
         rec = _Recorder(raises=OSError(
