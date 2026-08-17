@@ -1,6 +1,6 @@
 [pack]
 name = "figma"
-version = "0.3.1"
+version = "0.3.2"
 description = "Paste a Figma share URL and the agent can read the file. It pulls nodes, variables, and version history, renders frames as images, leaves comments, and turns a FigJam connector graph into Mermaid."
 readme = "README.md"
 display_name = "Figma"
@@ -19,7 +19,7 @@ version = "0.8"
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "credential-brokers"
-version = "^0.2"
+version = "^0.3"
 
 [pack.install]
 default-scope = "user"

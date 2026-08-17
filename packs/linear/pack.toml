@@ -1,6 +1,6 @@
 [pack]
 name = "linear"
-version = "0.2.3"
+version = "0.2.4"
 description = "Read Linear work into the shared content-based repository intake route, with a separate approved delta sync for existing briefs."
 readme = "README.md"
 display_name = "Linear"
@@ -19,7 +19,7 @@ version = "0.8"
 [[pack.dependencies.required]]
 catalogue = "agent-ready-repo"
 pack = "credential-brokers"
-version = "^0.2"
+version = "^0.3"
 
 [pack.install]
 default-scope = "user"

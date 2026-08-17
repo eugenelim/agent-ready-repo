@@ -38,7 +38,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   rendered pointer field is authoritative, and `none` values with explanatory
   annotations or ordinary punctuation no longer become dangling pointers when
   a repository adds its first discovery anchor.
+### [agentbundle][0.37.2] — 2026-08-17
 
+#### Added
+
+- **`catalogue verify` now performs all 19 advertised checks.** Profiles are
+  schema-validated and confined to local pack roots; dependencies are checked
+  for structure, supported ranges, required-pack compatibility, and cycles;
+  adapter declarations are checked against the shipped contract; configured
+  output is compared with a fresh confined build; pack manifests receive a
+  narrow preflight; and skill evaluation manifests are validated without
+  parsing opaque payload files.
+- **External catalogue portability has an end-to-end regression fixture.** A
+  synthetic two-pack catalogue verifies successfully through the real CLI,
+  including a portable seed that discusses this repository by name.
+
+#### Changed
+
+- **Dependency range semantics now agree across verify, lint, and install.**
+  Caret, tilde, comparator, compound, and prerelease forms use one
+  dependency-free npm-compatible parser. Below `1.0.0`, caret ranges keep their
+  normal semver meaning, so `^0.2` no longer accepts `0.3.x`.
+- **Host-only catalogue policy moved out of the distributable verifier.** Seed
+  and APM leak checks specific to this repository now run from the local build
+  gate, so external catalogues are not rejected for host vocabulary.
+- **Verifier help and adopter documentation now consistently describe a
+  19-step pipeline.**
+
+#### Fixed
+
+- **Malformed catalogue configuration now returns a bounded, redacted
+  diagnostic instead of leaking exception text.** The existing optional-PyYAML
+  guard remains a structured warning and now has explicit regression coverage.
+
+### [figma][0.3.2] — 2026-08-17
+
+#### Fixed
+
+- **Figma now declares the credential-brokers minor it actually supports.**
+  Dependency validation no longer relies on treating `^0.2` as compatible with
+  `0.3.x`.
+
+### [linear][0.2.4] — 2026-08-17
+
+#### Fixed
+
+- **Linear now declares the credential-brokers minor it actually supports.**
+  Dependency validation no longer relies on treating `^0.2` as compatible with
+  `0.3.x`.
+
+### [iac-terraform][0.1.7] — 2026-08-17
+
+#### Fixed
+
+- **IaC Terraform now declares the governance-extras minor it actually supports.**
+  Dependency validation no longer relies on treating `^0.6` as compatible with
+  `0.9.x`.
 ### [core][2.7.1] — 2026-08-17
 
 #### Added

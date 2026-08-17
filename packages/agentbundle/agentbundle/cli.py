@@ -787,7 +787,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _ver_p = cat_subs.add_parser(
         "verify",
         help=(
-            "Verify catalogue against contracts (18-step pipeline, including "
+            "Verify catalogue against contracts (19-step pipeline, including "
             "agent-artifact lint and plugin manifest validation)."
         ),
     )

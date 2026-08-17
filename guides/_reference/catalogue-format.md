@@ -44,7 +44,7 @@ The contracts above define what `schema = 1` means.
 ```bash
 agentbundle catalogue verify --root .
 ```
-Runs the full 18-step pipeline including schema validation, pack lint,
+Runs the full 19-step pipeline including schema validation, pack lint,
 post-build artifact checks, and self-host drift detection.
 
 For CI pipeline patterns using `verify`, `lint`, and `package` — including

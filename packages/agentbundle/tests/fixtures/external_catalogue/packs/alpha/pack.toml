@@ -1,0 +1,13 @@
+[pack]
+name = "alpha"
+version = "1.0.0"
+description = "First fixture pack"
+lint-seeds = true
+
+[pack.adapter-contract]
+version = "0.8"
+
+[pack.install]
+default-scope = "repo"
+allowed-scopes = ["repo"]
+allowed-adapters = ["claude-code", "codex"]

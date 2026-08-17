@@ -478,6 +478,8 @@ EXPECTED_SCRIPT_STEPS = [
     ".claude/skills/work-loop/scripts/lint-traceability.py",
     "tools/test_workspace_status.py",
     "tools/test_workspace_status_cli.py",
+    "tools/catalogue/tests/test_verify_host_checks.py",
+    "tools/catalogue/verify_host_checks.py",
     "tools/test-lint-catalogue-curation-guard.py",
     "tools/lint-catalogue-curation-guard.py",
     "tools/test-lint-experience-agnostic.py",

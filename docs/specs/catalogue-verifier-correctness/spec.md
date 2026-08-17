@@ -1,6 +1,6 @@
 # Spec: catalogue-verifier-correctness
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0076](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) (portable verifier is D1/D2 infrastructure); [catalogue-wave2-pack-integrations](../catalogue-wave2-pack-integrations/spec.md) (step 19 defines integration-verification scope)
@@ -15,9 +15,10 @@
 ## Objective
 
 `packages/agentbundle/agentbundle/catalogue_tooling/verify.py` advertises a 19-step
-portable catalogue verification pipeline but has 13 confirmed defects: a no-op step 1
-(`_step_config_validation`) that lets malformed `catalogue.toml` escape as an unhandled
-exception instead of a structured diagnostic, wrong plugin path in steps 4 and 5, wrong
+portable catalogue verification pipeline but has 13 confirmed defects: step 1 originally
+let malformed `catalogue.toml` escape as an unhandled exception instead of a structured
+diagnostic (a partial guard now exists but lacks contract coverage and safe diagnostic
+redaction), wrong plugin path in steps 4 and 5, wrong
 marketplace source path in step 12 (`_step_marketplace` reads `dist/marketplace.json`
 which never exists — source is `config.paths.marketplace`; the step silently returns `[]`
 for every catalogue), five unimplemented steps (7, 8, 14, 17, 18) that return `[]`
@@ -64,6 +65,8 @@ this spec at implementation time.
 - Implement neutral index generation (Wave 4 scope).
 - Implement JOURNEY.md semantic indexing (Wave 4 scope).
 - Implement release integrity or mutation-refusal logic (Wave 5 scope).
+- Extend step 11 with new agentic-skill boundary-metadata validation or projection rules;
+  that is a separate public contract, not a correction to this step's advertised behavior.
 - Add third-party dependencies not already in `agentbundle` or its optional extras.
 - Silently swallow exceptions in corrected steps — correct steps fail openly with a
   structured diagnostic.
@@ -72,25 +75,31 @@ this spec at implementation time.
 
 ## Testing Strategy
 
+- **Config validation (AC0):** TDD — malformed configuration returns a step-1
+  diagnostic without raising; its message is bounded and redacted. Missing
+  `catalogue.toml` reaches the remaining pipeline and produces no step-1 diagnostic.
 - **Plugin path correction (AC1–AC2):** TDD — write fixtures with `pack_dir/.claude-plugin/plugin.json`
   and `pack_dir/plugin.json`; assert correct path is found and wrong path produces a
   finding; assert step 5 version-parity uses the same corrected path.
-- **Profile validation (AC3):** TDD — write profile fixture with known schema violation;
-  assert step 6 emits a finding (not passes silently).
+- **Profile validation (AC3):** TDD — write profile fixtures with a known schema violation,
+  a missing pack, an invalid pack slug, and a symlink/junction escape; assert step 6 emits
+  structured findings and never resolves a reference outside the configured packs root.
 - **Dependency validation (AC4):** TDD — write fixture with missing and present dependency;
   assert step 7 returns findings for missing, empty for present; no `return []`; test
   `--pack` scoped mode confirms unrelated-pack defects produce no finding.
 - **Marketplace source path (AC3a):** TDD — write fixture with malformed source `marketplace.json`
   at `config.paths.marketplace`; assert step 12 emits a finding (not silently passes).
-- **Installer grammar alignment (AC4a):** TDD — update `test_install_dependencies_gate.py:300`
+- **Installer/linter grammar alignment (AC4a):** TDD — update `test_install_dependencies_gate.py:300`
   to split the `~0.1`-rejected assertion into `test_install_valid_tilde_range_passes`
   (positive) and `test_install_malformed_range_rejected` (negative, genuinely invalid
-  string). Run `test_install_dependencies_gate.py` as part of T3 Done-when.
+  string); exercise the same grammar through `catalogue lint`, including cross-catalogue
+  profile closure. Run both suites as part of T3 Done-when.
 - **Adapter compatibility (AC5):** TDD — write fixture with pack declaring an unsupported
   adapter in the `allowed-adapters` list key under `[pack.install]`; assert step 8 emits
   a finding; no `return []`.
-- **Output drift (AC6):** TDD — write fixture with stale generated output; assert step 14
-  emits a finding; no `return []`.
+- **Output drift (AC6):** TDD — write fixtures with stale output plus symlink/junction and
+  loop escapes; assert step 14 emits root-relative findings without reading outside the
+  configured output root or hanging; no `return []`.
 - **Package preflight (AC7):** TDD — write fixture triggering package preflight failure;
   assert step 17 emits a finding; no `return []`.
 - **Fixture checks (AC8):** TDD — write fixture with malformed deterministic fixture;
@@ -111,19 +120,20 @@ this spec at implementation time.
 
 ### Phase AA — Config validation (step 1)
 
-- [ ] AC0: When `catalogue.toml` is **present but contains malformed TOML**, `verify_catalogue()`
+- [x] AC0: When `catalogue.toml` is **present but contains malformed TOML**, `verify_catalogue()`
   returns a result containing at least one structured `Diagnostic` attributed to step 1,
   rather than letting the TOML parse exception escape. Implementation note: the pre-loop
   `load_catalogue_config(root)` call is wrapped in a try/except; on failure the function
   returns early with a step-1 diagnostic (without entering `_VERIFY_STEPS`) — `_step_config_validation`
   itself is therefore not reached in this path. AC0 requires that the caller receives a
-  step-1 diagnostic, not that `_step_config_validation` generates it. `load_catalogue_config()`
-  returns `None` for a missing `catalogue.toml` (backward-compatible: verification proceeds
-  without config), so an absent `catalogue.toml` must NOT produce a diagnostic —
-  `test_verify_empty_dir_passes` must continue to assert `ok=True`. A unit test confirms:
-  calling `verify_catalogue()` against a catalogue with a present malformed `catalogue.toml`
-  returns a result with at least one step-1 diagnostic rather than raising. Calling it
-  against an empty directory still returns `ok=True`.
+  step-1 diagnostic, not that `_step_config_validation` generates it. The diagnostic uses
+  a bounded reason category and the repository-relative path `catalogue.toml`; it never
+  includes a stack trace, an absolute checkout path, URL userinfo/query text, secret-like
+  configuration values, or the raw exception string. `load_catalogue_config()` returns
+  `None` for a missing `catalogue.toml`, so absence must not produce CAT-V-001 and
+  verification continues through the remaining steps. An empty directory may still fail
+  later source-identity lint with CAT-V-002; this criterion does not override that shipped
+  behavior. Unit tests cover malformed, redacted, and missing-config cases.
 
 ### Phase A — Plugin path correction
 
@@ -153,7 +163,7 @@ this spec at implementation time.
 
 ### Phase B — Profile validation
 
-- [ ] AC3: `_step_profiles` (step 6) validates each profile file in two passes:
+- [x] AC3: `_step_profiles` (step 6) validates each profile file in two passes:
   (a) **Schema validation** — validates against `profile.schema.json` using
   `agentbundle.build.validate.validate`. A profile with a deliberate schema violation
   (e.g., missing required `scope` field — `profile.schema.json` requires `scope`,
@@ -163,11 +173,15 @@ this spec at implementation time.
   check that `<packs_dir>/<slug>/` exists, where `packs_dir = root / config.paths.packs if
   config is not None else root / "packs"` (matching `lint.py:1801`). A schema-valid profile
   that references a pack not present in the configured packs directory produces a finding.
-  A unit test covers each pass independently (schema failure, pack-ref missing).
+  Before joining a pack reference to `packs_dir`, validate it against the canonical pack-name
+  grammar and resolve the candidate under `packs_dir.resolve()`. Invalid names, absolute or
+  traversing names, and candidates that escape through a symlink or Windows junction produce
+  a structured finding without reading outside the configured root. A unit test covers each
+  pass independently (schema failure, pack-ref missing, invalid slug, resolved escape).
 
 ### Phase B.5 — Marketplace source path
 
-- [ ] AC3a: `_step_marketplace` (step 12) is corrected to read the marketplace file from
+- [x] AC3a: `_step_marketplace` (step 12) is corrected to read the marketplace file from
   `config.paths.marketplace` (the source path — `config.paths.marketplace` defaults to
   `.claude-plugin/marketplace.json` in the catalogue root; use `root / config.paths.marketplace`
   when config is present, or `root / ".claude-plugin" / "marketplace.json"` when absent).
@@ -180,7 +194,7 @@ this spec at implementation time.
 
 ### Phase C — Dependency validation
 
-- [ ] AC4: `_step_dependencies` (step 7) is implemented. It validates dependency
+- [x] AC4: `_step_dependencies` (step 7) is implemented. It validates dependency
   references as declared in `pack.schema.json`: dependencies are objects with required
   `catalogue`, `pack`, and `version` fields, listed under `[pack.dependencies.required]`,
   `[pack.dependencies.recommended]`, and `[pack.dependencies.conflicts]`. For each
@@ -212,11 +226,15 @@ this spec at implementation time.
   dependencies (including its cycle graph); do not scan unrelated packs — an unrelated
   invalid pack must not produce a finding in `--pack A` mode. A unit test confirms this:
   a catalogue with two packs where pack B has an invalid `required` reference; running
-  with `--pack A` produces no finding.
+  with `--pack A` produces no finding. Before any local dependency lookup, validate the
+  referenced pack against the canonical pack-name grammar and confine the resolved candidate
+  beneath `packs_dir.resolve()`; invalid, traversing, or symlink/junction-escaping references
+  produce a finding without reading the escaped path.
 
 ### Phase C.5 — Installer grammar alignment
 
-- [ ] AC4a: `commands/install.py::validate_dependencies_required` is updated to accept the
+- [x] AC4a: `commands/install.py::validate_dependencies_required` and catalogue profile lint
+  are updated to accept the
   same full RFC-0001 range grammar as the expanded verifier step 7 — `^X.Y`, `~X.Y`,
   `>=X.Y`, compound (`>=A <B`), and prerelease forms. This is required for verify/install
   consistency: if the verifier accepts a range that the installer rejects, a pack passes
@@ -226,11 +244,15 @@ this spec at implementation time.
   this test must be updated: split into `test_install_valid_tilde_range_passes` (positive,
   `~0.1` succeeds) and `test_install_malformed_range_rejected` (negative, a genuinely
   invalid string such as `"not-a-version"` fails). The version grammar is a public contract
-  invariant; `catalogue verify` and `catalogue install` must agree on what is valid.
+  invariant; `catalogue verify`, `catalogue lint`, and `catalogue install` must agree on what
+  is valid. Profile lint carries the dependency's catalogue identity through closure checks
+  and skips external-catalogue dependencies rather than reporting them as missing locally.
+  CLI-level tests cover every accepted grammar form, malformed syntax, boundary-negative
+  versions, and cross-catalogue profile closure.
 
 ### Phase D — Adapter compatibility
 
-- [ ] AC5: `_step_adapter_compat` (step 8) is implemented. For each pack in the catalogue:
+- [x] AC5: `_step_adapter_compat` (step 8) is implemented. For each pack in the catalogue:
   gate the check through the same contract-version-aware logic as
   `_profile_pack_allowed_adapters` — if the pack's `[pack.adapter-contract].version` is
   absent or `"0.1"` (legacy pack), skip the `allowed-adapters` check entirely (the
@@ -248,7 +270,7 @@ this spec at implementation time.
 
 ### Phase E — Output drift
 
-- [ ] AC6: `_step_output_drift` (step 14) is implemented. It compares the configured
+- [x] AC6: `_step_output_drift` (step 14) is implemented. It compares the configured
   build-output directory (`dist/` by default, or the path from `config.paths.build_output`
   in `catalogue.toml`'s `[catalogue.paths]` table) against a deterministic re-derivation
   from current pack source. If no build-output directory exists, the step returns an empty
@@ -257,20 +279,28 @@ this spec at implementation time.
   `dist/apm/`) is stale relative to the freshly generated equivalent, a finding is
   emitted for each differing path. The step no longer returns `[]`. Note: per-pack
   adapter directories are not per-pack subdirectories in this catalogue layout;
-  catalogue-level self-host projection drift is covered by step 15.
+  catalogue-level self-host projection drift is covered by step 15. The comparison walks
+  only regular files confined beneath the canonical configured-output and fresh-output
+  roots. It records each resolved directory before processing children, refuses symlink and
+  Windows-junction/reparse escapes, catches both `OSError` and `RuntimeError` from resolution,
+  terminates on loops, and reports only repository-relative paths. Tests cover each escape
+  and loop behavior without reading an out-of-root sentinel.
 
 ### Phase F — Package preflight
 
-- [ ] AC7: `_step_package_preflight` (step 17) is implemented. At minimum: confirms
+- [x] AC7: `_step_package_preflight` (step 17) is implemented. It confirms
   `pack.toml` is present and parses; confirms `pack.toml` validates against
   `pack.schema.json`. Missing or malformed `pack.toml` produces a finding. `README.md`
   absence does NOT produce a finding — `README.md` is not a required file per the pack
   contract (the builder treats its absence as a no-op; rejecting it here would introduce
-  a new contract rule under a correctness-only spec). The step no longer returns `[]`.
+  a new contract rule under a correctness-only spec). Step 17 does not add catalogue-root
+  required-path checks, license/marketplace checks, packaging traversal, or new custom-path
+  refusal behavior; those are packaging-contract changes outside this correctness fix. The
+  step no longer returns `[]`.
 
 ### Phase G — Fixture checks
 
-- [ ] AC8: `_step_fixture_checks` (step 18) is implemented. It validates the two named eval
+- [x] AC8: `_step_fixture_checks` (step 18) is implemented. It validates the two named eval
   manifest files present under each skill's `.apm/skills/<skill>/evals/` directory:
   `evals.json` and `eval_queries.json`. Only these two files are parsed — `.jsonl` files
   and files under `evals/files/` are not scanned (those are opaque payload inputs that may
@@ -287,7 +317,7 @@ this spec at implementation time.
 
 ### Phase H — Host-only leak
 
-- [ ] AC9: `_APM_SKILL_BLOCKLIST` in `verify.py` and all four host-specific patterns in
+- [x] AC9: `_APM_SKILL_BLOCKLIST` in `verify.py` and all four host-specific patterns in
   `_SEEDS_BLOCKLIST_PATTERNS` in `lint.py` are removed from their respective portable
   modules. The four patterns to remove from `lint.py` are:
   `(r"agent-ready-repo", ...)`, `(r"RFC-00\d\d", ...)`, `(r"K-00\d\d", ...)`, and
@@ -300,13 +330,13 @@ this spec at implementation time.
 
 ### Phase I — Step count and help accuracy
 
-- [ ] AC10: The module-level docstring of `verify.py` is updated to accurately reflect
+- [x] AC10: The module-level docstring of `verify.py` is updated to accurately reflect
   the pipeline: "19-step" (not "18-step"). `len(_VERIFY_STEPS)` equals 19 (confirmed
   by a unit assertion or a `grep`-based goal-based check).
 
 ### Phase J — PyYAML guard regression coverage
 
-- [ ] AC11: Step 11's PyYAML guard returns a structured `Diagnostic` warning via
+- [x] AC11: Step 11's PyYAML guard returns a structured `Diagnostic` warning via
   `_warn()` when `import yaml` fails. This behavior is already correct at HEAD and is
   NOT a defect fix — AC11 exists to establish regression coverage. A unit test confirms:
   with PyYAML absent (monkeypatched `ImportError`), step 11 returns a non-empty
@@ -315,8 +345,10 @@ this spec at implementation time.
 
 ### Phase K — External-catalogue portability
 
-- [ ] AC12: An integration test runs `agentbundle catalogue verify` against a minimal
-  external-catalogue fixture (no agent-ready-repo content, no host-specific skills).
+- [x] AC12: An integration test runs `agentbundle catalogue verify` against a minimal
+  external-catalogue fixture. Its portable seed intentionally mentions
+  `agent-ready-repo` to prove host vocabulary is allowed in ordinary external content;
+  the fixture contains no host-specific skills or repository policy configuration.
   The test asserts: exit code is 0 (no blocker findings); no finding's `message` field
   references `agent-ready-repo` or any host-specific identifier. The step count is
   verified separately by a unit assertion: `len(_VERIFY_STEPS) == 19` (programmatic —
@@ -325,9 +357,12 @@ this spec at implementation time.
 
 ### Regression
 
-- [ ] AC13: `SKIP_SAST=1 make build-check` exits 0.
-- [ ] AC14: `python3 -m pytest packages/agentbundle/tests/ -q` exits 0.
-- [ ] AC15: `wc -l AGENTS.md` ≤ 250; `wc -l packs/AGENTS.md` ≤ 150.
+- [x] AC13: `SKIP_SAST=1 make build-check` exits 0.
+- [ ] AC14 (deferred: pre-existing-enterprise-agentbundle-full-suite):
+  `python3 -m pytest packages/agentbundle/tests/ -q` exits 0. The managed session blocks
+  pip/venv trust-store fixture setup and protected key-material filename globs before the
+  affected tests reach product behavior; the remaining suite passed.
+- [x] AC15: `wc -l AGENTS.md` ≤ 250; `wc -l packs/AGENTS.md` ≤ 150.
 
 ## Assumptions
 
