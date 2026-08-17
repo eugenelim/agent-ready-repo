@@ -226,3 +226,86 @@ exactly the mid-execution amendment the contract invites, and the only sanctione
 escape is a destructive reset that clears the retry counters. A correction found
 during review — a wrong count, a stale citation — is the ordinary case, not an
 exceptional one.
+
+## W9 · manual-QA results (spec.md's Visual/manual QA row, plan.md T-manual 1–3)
+
+Recorded because a docstring claiming a perturbation goes red is not a record of a
+run. Item 2 was already recorded in W5; items 1 and 3 are below.
+
+### Item 1 — the documented walk, end to end
+
+`spec-ready → reviewers-clean → spec-approved → plan-approved → plan-locked →
+wave-complete`, plus the two cohort mutations, against a throwaway git repo. Every
+observed line, in order, with its exit code:
+
+    loop-engine init … --mode code --json
+      {"run_id": "beb565ab-…", "feature": "walk", "mode": "code"}                  exit=0
+    loop-cohort init … --run-id beb565ab-…
+      loop-cohort: initialised …/state.json (feature=walk run_id=beb565ab-…)       exit=0
+    loop-engine transition … spec-ready
+      transition 'SPEC-PLAN-DRAFTING' → 'spec-ready' → 'SPEC-PLAN-REVIEW' (seq=1)  exit=0
+    loop-cohort plan check-current …
+      loop-cohort: stop — plan_review_status: pending                              exit=1
+    loop-engine transition … reviewers-clean
+      transition 'SPEC-PLAN-REVIEW' → … → 'SPEC-HUMAN-GATE' (seq=2)                exit=0
+    loop-engine transition … spec-approved
+      transition 'SPEC-HUMAN-GATE' → … → 'PLAN-HUMAN-GATE' (seq=3)                 exit=0
+    loop-engine transition … plan-approved
+      transition 'PLAN-HUMAN-GATE' → … → 'SPEC-PLAN-APPROVED' (seq=4)              exit=0
+    loop-cohort approve-plan … --expect-run-id beb565ab-…
+      approve-plan for walk (approved_spec_hash=ceb42c3412ec… plan=494916697601…)  exit=0
+    loop-cohort schedule … --expect-run-id beb565ab-…
+      topological order: wave 1: T1 / wave 2: T2; schedule persisted (2 wave(s))   exit=0
+    loop-engine transition … plan-locked
+      transition 'SPEC-PLAN-APPROVED' → … → 'CODE-IMPLEMENTATION' (seq=5)          exit=0
+    loop-engine transition … wave-complete
+      transition 'CODE-IMPLEMENTATION' → … → 'CODE-VERIFICATION' (seq=6)           exit=0
+    loop-engine status … --json
+      state=CODE-VERIFICATION last_event=wave-complete transition_sequence=6       exit=0
+
+The `exit=1` on `plan check-current` is the expected pre-approval signal the skill
+documents, not a failure. Six transitions, no traceback anywhere, and the final state
+matches the transition table.
+
+### Item 3 — the `canonical_contract` perturbations go red
+
+Two independent perturbations, each reverted after measuring:
+
+    removed the CRLF/CR fold  → test_canonical_contract_folds_line_endings FAILED
+    changed _STATUS_PLACEHOLDER → test_recomputed_digests_match_golden      FAILED
+
+Baseline for both: `test_recomputed_digests_match_golden` passes over all 48 pinned
+digests. The second is the more valuable of the pair — the placeholder is the literal
+`spec.md` forbids renaming, because a rename silently re-pins every baseline, and this
+shows the golden ledger catches exactly that.
+
+## W9 · four more contract statements to amend at the human gate
+
+Adding to the W8 list. All four are statements the code no longer supports, so one
+gate pass should re-pin a correct contract rather than a partly-corrected one.
+
+4. **`spec.md` AC13's `__all__` description.** It says a pinning test asserts `__all__`
+   equals "the relocation list plus those four plus the six guards". The module exports
+   21 names; the relocation list in `plan.md` T1a has 22 mostly-private names, ten of
+   which are deliberately NOT exported, and `__all__` adds `contained` /
+   `contained_reason`. The test pins the real surface; the prose describes a different
+   set. (`non_negative_int` was also dropped from `__all__` in this round — it had no
+   caller outside the module.)
+5. **`spec.md` and `plan.md` still cite `_evaluate`** (four places), which this change
+   deleted for having no caller. The W3 log note "‑ `_evaluate` kept, narrowed" is
+   likewise superseded and is retired by this entry.
+6. **AC15's "four cohort verbs"** is now six: `init` and `review record` also had reads
+   newly routed through the bounded reader. `init`'s template is a repo-shipped file, so
+   no user-facing input surface changed; `review record`'s report is user-supplied, and
+   its symlink case was deliberately preserved by resolving the path first, so only
+   genuinely unbounded shapes (FIFO, over-cap) are refused — with the reason now printed
+   rather than discarded.
+7. **`plan.md` T1a names `_read_managed_json` / `_read_md_status`** as relocated
+   symbols; the shipped names have no leading underscore.
+
+**Also for the gate, and a genuine single-source problem rather than a typo:** AC6
+declares the import allowlist "canonically in `plan.md`'s T1b", but
+`tools/lint-pack-test-boundary.py` forbids the test from reading `plan.md`, so the two
+copies cannot be joined and the prose cannot be enforced. This is the drift that
+already fired once this round. The fix is to name the TEST as the canonical location
+and have `plan.md` reference it, so there is one statement of the fact instead of two.
