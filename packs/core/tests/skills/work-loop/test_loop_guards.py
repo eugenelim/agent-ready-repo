@@ -169,15 +169,63 @@ def test_module_is_not_registered_in_sys_modules() -> None:
     assert "_loop_guards" not in sys.modules
 
 
-def test_load_writes_no_bytecode_and_restores_the_flag() -> None:
-    previous = sys.dont_write_bytecode
+def test_load_writes_no_bytecode() -> None:
+    """No `.pyc` for the guard module, measured across a real CLI invocation."""
     cache = SCRIPTS / "__pycache__"
     before = {p.name for p in cache.glob("_loop_guards*.pyc")} if cache.is_dir() else set()
     run = run_cohort("--help")
     assert run.returncode == 0
     after = {p.name for p in cache.glob("_loop_guards*.pyc")} if cache.is_dir() else set()
     assert after == before, f"a load wrote bytecode: {sorted(after - before)}"
-    assert sys.dont_write_bytecode is previous
+
+
+@pytest.mark.parametrize("preset", [True, False])
+@pytest.mark.parametrize("outcome", ["success", "failure"])
+def test_load_restores_dont_write_bytecode_to_its_prior_value(
+    preset: bool, outcome: str, tmp_path: Path,
+) -> None:
+    """AC13: restored to its PRIOR value, after both a successful and a failed load.
+
+    The previous form asserted `sys.dont_write_bytecode is previous` where `previous`
+    was read in this process and the load happened in a subprocess — comparing the
+    test process's untouched flag to itself, which cannot fail in either direction.
+    Both directions matter: restoring to a hardcoded `False` would silently defeat a
+    host interpreter started with `-B`.
+
+    Run in-process, with the flag pre-set both ways, and over a load that raises as
+    well as one that succeeds — the restore is in a `finally`, and only the failing
+    case proves it.
+    """
+    sandbox = tmp_path / "scripts"
+    sandbox.mkdir()
+    (sandbox / "loop-cohort.py").write_bytes((SCRIPTS / "loop-cohort.py").read_bytes())
+    if outcome == "success":
+        (sandbox / "_loop_guards.py").write_bytes(GUARDS.read_bytes())
+        (sandbox.parent / "assets").mkdir()
+        (sandbox.parent / "assets" / "state.json").write_bytes(
+            (SCRIPTS.parent / "assets" / "state.json").read_bytes()
+        )
+    else:
+        (sandbox / "_loop_guards.py").write_text("def broken(  # truncated\n",
+                                                 encoding="utf-8")
+
+    cohort = load_guards(path=sandbox / "loop-cohort.py",
+                         name=f"_cohort_flag_{preset}_{outcome}")
+
+    original = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = preset
+        if outcome == "success":
+            cohort.load_guards()
+        else:
+            with pytest.raises(cohort.GuardsUnavailable):
+                cohort.load_guards()
+        assert sys.dont_write_bytecode is preset, (
+            f"after a {outcome} load with the flag pre-set to {preset}, it is "
+            f"{sys.dont_write_bytecode} — the prior value was not restored"
+        )
+    finally:
+        sys.dont_write_bytecode = original
 
 
 def test_frozen_dataclass_works_in_an_unregistered_module(g) -> None:
@@ -290,36 +338,94 @@ def test_no_second_status_regex_in_the_guard_layer() -> None:
     `canonical_contract` legitimately compiles heading and bold-lead patterns; what
     must not exist is a second `**Status:**` matcher competing with
     `lint-spec-status.py`'s.
+
+    AC4 specifies an AST assertion, and the line-based form it replaces could not
+    hold: `re.compile(` with its pattern on the following line evaded it entirely,
+    which is the ordinary way a long pattern gets formatted. The walk inspects the
+    pattern argument's constant value instead of the source line.
     """
-    src = GUARDS.read_text(encoding="utf-8")
-    offenders = [
-        line.strip() for line in src.split("\n")
-        if "re.compile" in line and "Status" in line
-    ]
+    import ast as _ast
+
+    tree = _ast.parse(GUARDS.read_text(encoding="utf-8"))
+    offenders = []
+    for node in _ast.walk(tree):
+        if not (isinstance(node, _ast.Call) and isinstance(node.func, _ast.Attribute)
+                and node.func.attr == "compile"
+                and isinstance(node.func.value, _ast.Name)
+                and node.func.value.id == "re"):
+            continue
+        if not node.args:
+            continue
+        pattern = node.args[0]
+        # Joined string parts are inspected too — an f-string or implicit
+        # concatenation is the other way a pattern hides from a source scan.
+        parts = (
+            [v.value for v in pattern.values if isinstance(v, _ast.Constant)]
+            if isinstance(pattern, _ast.JoinedStr)
+            else [pattern.value] if isinstance(pattern, _ast.Constant) else []
+        )
+        for part in parts:
+            if isinstance(part, str) and "Status" in part:
+                offenders.append(f"line {node.lineno}: re.compile({part!r})")
+
     assert not offenders, f"a second status regex: {offenders}"
 
 
-def test_guards_print_nothing(g, tmp_path: Path) -> None:
+def test_guards_print_nothing(g, spec, tmp_path: Path) -> None:
     """Zero bytes on both streams, and the verdict is asserted too.
 
     An empty-stream assertion alone passes on a guard that refused for an unrelated
     reason — including the specific case where capturing through an `io.StringIO`
     makes the lazily-loaded parser's module-scope `reconfigure` raise. So each call
     asserts its real result.
+
+    Two corrections against AC6's wording. It says "calling any guard produces zero
+    bytes", and the helpers alone are not the six `GuardResult` guards — so all six
+    are now driven inside the captured block, each with its verdict asserted. And the
+    capture is a `TextIOWrapper` over a `BytesIO` rather than a `StringIO`, as AC6
+    specifies: a `StringIO` has no `buffer`, so a stream-mutating callee behaves
+    differently under it than under a real redirected stdout, and the whole point is
+    to measure bytes on something stream-shaped.
     """
     art = tmp_path / "spec.md"
     art.write_text("# S\n\n- **Status:** Shipped\n\n## Acceptance Criteria\n\n- [x] a\n",
                    encoding="utf-8")
-    out, err = io.StringIO(), io.StringIO()
+    d = spec(approved=True)
+
+    out_raw, err_raw = io.BytesIO(), io.BytesIO()
+    out = io.TextIOWrapper(out_raw, encoding="utf-8", write_through=True)
+    err = io.TextIOWrapper(err_raw, encoding="utf-8", write_through=True)
     with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
         digest = g.sha256_canonical_contract(art)
         token = g.read_md_status(art)
         legal = g.assert_status_legal("probe", art)
         run_id = g.validate_run_id({"schema_version": 1, "run_id": "a"}, "a", verb="probe")
+        verdicts = {
+            "check_identity": g.check_identity(d, expect_run_id="run-1"),
+            "check_plan_current": g.check_plan_current(d, require_schedule=True),
+            "check_schedule_current": g.check_schedule_current(d),
+            "check_phase": g.check_phase(d, phase="review"),
+            "check_wave": g.check_wave(d, expect="more"),
+            "check_artifact_status": g.check_artifact_status(
+                d, filename="spec.md", expect="Approved"),
+        }
+        out.flush()
+        err.flush()
+
     assert len(digest) == 64
     assert token == "Shipped"
     assert legal is None and run_id is None
-    assert out.getvalue() == "" and err.getvalue() == ""
+    # Each guard's real result, so an empty stream cannot be the side effect of a
+    # guard that refused early for an unrelated reason.
+    assert set(verdicts) == set(SIX_GUARDS), "not every guard ran inside the capture"
+    for name, verdict in verdicts.items():
+        assert isinstance(verdict, g.GuardResult), f"{name} returned no GuardResult"
+        assert verdict.ok, f"{name} refused inside the capture: {verdict.reason}"
+
+    assert out_raw.getvalue() == b"" and err_raw.getvalue() == b"", (
+        f"a guard wrote to a stream: stdout={out_raw.getvalue()!r} "
+        f"stderr={err_raw.getvalue()!r}"
+    )
 
 
 def test_guards_work_under_a_stringio_stdout(g, tmp_path: Path) -> None:
@@ -955,28 +1061,53 @@ def test_regressed_status_is_refused(g, tmp_path: Path) -> None:
 
 # ── the loader's failure modes ─────────────────────────────────────────────
 
+# AC13: "Every case runs against BOTH loaders, since both now carry the four
+# controls." The second loader is `_lint_spec_status()`, inside `_loop_guards.py`,
+# which loads `lint-spec-status.py`. It previously had exactly one case — a syntax
+# error — so the non-regular, symlinked, permission-denied and clean-truncation
+# controls were unverified on it.
+#
+# loader -> (target filename, argv that reaches it, clean-truncation cut anchor)
+_LOADERS = {
+    # `identity` needs no parser, so it isolates the guard-module loader.
+    "guards": ("_loop_guards.py", ["identity"], "def read_state("),
+    # `plan check-current` reads a status token, which is the only route to the
+    # parser loader. Truncating before `parse_status` leaves `__all__`-equivalent
+    # symbols missing, which is what `_PARSER_SYMBOLS` exists to catch.
+    "parser": ("lint-spec-status.py", ["plan", "check-current"], "def parse_status("),
+}
+
+
 @pytest.mark.parametrize(
     "mode",
     ["missing", "unreadable", "non-regular", "symlinked", "syntax-error",
      "truncated-mid-statement", "truncated-clean", "no-completeness-marker"],
 )
-def test_load_failure_is_a_one_line_refusal(mode: str, tmp_path: Path) -> None:
-    """Every way the module can fail to load produces a refusal, never a traceback.
+@pytest.mark.parametrize("loader", sorted(_LOADERS))
+def test_load_failure_is_a_one_line_refusal(
+    loader: str, mode: str, tmp_path: Path,
+) -> None:
+    """Every way either module can fail to load produces a refusal, never a traceback.
 
     `truncated-clean` is the one that motivated the completeness marker: a file cut at
     a statement boundary loads *without raising* and returns a handle missing
     everything below the cut, so exception handling alone cannot see it.
     """
+    target_name, verb, cut_anchor = _LOADERS[loader]
+
     sandbox = tmp_path / "scripts"
     sandbox.mkdir()
     (sandbox.parent / "assets").mkdir()
     (sandbox.parent / "assets" / "state.json").write_bytes(
         (SCRIPTS.parent / "assets" / "state.json").read_bytes()
     )
-    for name in ("loop-cohort.py", "lint-spec-status.py", "_statelock.py"):
-        (sandbox / name).write_bytes((SCRIPTS / name).read_bytes())
-    target = sandbox / "_loop_guards.py"
-    original = GUARDS.read_text(encoding="utf-8")
+    # Everything except the file under test, which each branch below writes.
+    for name in ("loop-cohort.py", "lint-spec-status.py", "_statelock.py",
+                 "_loop_guards.py"):
+        if name != target_name:
+            (sandbox / name).write_bytes((SCRIPTS / name).read_bytes())
+    target = sandbox / target_name
+    original = (SCRIPTS / target_name).read_text(encoding="utf-8")
 
     if mode == "missing":
         pass
@@ -988,7 +1119,7 @@ def test_load_failure_is_a_one_line_refusal(mode: str, tmp_path: Path) -> None:
     elif mode == "non-regular":
         os.mkfifo(target)
     elif mode == "symlinked":
-        real = sandbox / "real_guards.py"
+        real = sandbox / f"real_{target_name}"
         real.write_text(original, encoding="utf-8")
         try:
             target.symlink_to(real)
@@ -999,17 +1130,38 @@ def test_load_failure_is_a_one_line_refusal(mode: str, tmp_path: Path) -> None:
     elif mode == "truncated-mid-statement":
         target.write_text(original[: len(original) // 2], encoding="utf-8")
     elif mode == "truncated-clean":
-        cut = original.index("def read_state(")
+        cut = original.index(cut_anchor)
         target.write_text(original[:cut], encoding="utf-8")
     elif mode == "no-completeness-marker":
-        target.write_text(original.replace("_MODULE_COMPLETE = True", ""), encoding="utf-8")
+        if loader == "parser":
+            # `lint-spec-status.py` carries no `_MODULE_COMPLETE`; its completeness
+            # gate is the `_PARSER_SYMBOLS` check. Remove a required symbol instead —
+            # the same class of failure (module loads, contract unmet).
+            marker = "def extract_status_token("
+            assert marker in original, "parser symbol anchor moved — update this test"
+            target.write_text(original.replace(marker, "def _renamed_away("),
+                              encoding="utf-8")
+        else:
+            target.write_text(original.replace("_MODULE_COMPLETE = True", ""),
+                              encoding="utf-8")
 
     spec_dir = tmp_path / "spec"
     spec_dir.mkdir()
+    if loader == "parser":
+        # The parser is only reached once there is a status to read, so the fixture
+        # has to be complete enough to get past the state and artifact checks.
+        (spec_dir / "spec.md").write_text("# S\n\n- **Status:** Approved\n",
+                                          encoding="utf-8")
+        (spec_dir / "plan.md").write_text(
+            "# P\n\n- **Status:** Approved\n\n## T1 a\n\n**Depends on:** none\n",
+            encoding="utf-8")
+        (spec_dir / "state.json").write_text(
+            json.dumps(cohort_state(plan_review_status="approved")), encoding="utf-8")
+
     # The SANDBOX copy — pointing at the real script would load the real, intact
     # module and report a missing state.json instead of the load failure under test.
     run = subprocess.run(
-        [sys.executable, str(sandbox / "loop-cohort.py"), "identity", str(spec_dir)],
+        [sys.executable, str(sandbox / "loop-cohort.py"), *verb, str(spec_dir)],
         capture_output=True, text=True, check=False, cwd=str(tmp_path),
     )
     combined = run.stdout + run.stderr
@@ -1018,7 +1170,9 @@ def test_load_failure_is_a_one_line_refusal(mode: str, tmp_path: Path) -> None:
         assert "Traceback" not in combined, f"{mode}: traceback instead of a refusal:\n{combined}"
         assert len(run.stderr.strip().split("\n")) == 1, \
             f"{mode}: stderr is not one line:\n{run.stderr}"
-        assert "_loop_guards.py" in combined, f"{mode}: refusal does not name the path"
+        assert target_name in combined, (
+            f"{loader}/{mode}: refusal does not name {target_name}: {combined!r}"
+        )
         assert "build-self" in combined or "Restore" in combined, \
             f"{mode}: refusal does not name a remedy: {run.stderr!r}"
     finally:
