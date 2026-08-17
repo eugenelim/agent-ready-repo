@@ -4,7 +4,7 @@ title: Migrate docs site from MkDocs Material to Starlight
 status: Shipped
 ---
 
-- **Status:** Shipped (superseded in part by [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md) — the assertions that the docs palette derives from `web/src/styles/tokens.css` (AC5, and the token-import description at lines 63-66); the docs palette is now self-contained and site-local. Separately, the governance note's register anchor `starlight-migration-rfc` was satisfied by [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), which ratifies the `docs-site/` top-level directory; that is not a supersession. Everything else in this spec stands.) <!-- [x] set Shipped when all ACs pass — lint-spec-status invariant (a) -->
+- **Status:** Shipped (superseded in part by [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md) — the assertions that the docs palette derives from `web/src/styles/tokens.css`: AC5, the token-import description at lines 63-66, and the § Boundaries Never-do entry at line 116; the docs palette is now self-contained and site-local, so nothing forks that file. Everything else in this spec stands.) (§ Intent's register anchor `starlight-migration-rfc` was satisfied by [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), which ratifies the `docs-site/` top-level directory; not a supersession — every decision here stands.) <!-- [x] set Shipped when all ACs pass — lint-spec-status invariant (a) -->
 - **Owner:** eugenelim
 - **Plan:** [plan.md](plan.md)
 

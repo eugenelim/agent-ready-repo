@@ -51,11 +51,18 @@ edit to `workspace.toml` in the form the register already uses for closed items
 vintage). The Manual QA diff in T3 is the named mitigation for the
 detach-provenance risk. Traces to: AC4-AC7.
 
-AC9's route/navigation clause is verified by scope: the diff touches no file
-under `web/`, `docs-site/src/`, or `tools/build-site.py`, so no emitted route or
-navigation contract can change. AC10 is a reviewer/manual check recorded as
-performed-and-clean; the forbidden term is never quoted in a tracked file,
-commit, or PR body. Traces to: AC9-AC10.
+AC9's route/navigation clause is NOT verified by "the diff touches no generation
+input" — it does touch one. The generation inputs are `web/`, `docs-site/src/`,
+`tools/build-site.py`, **and** `guides/**` plus `packs/*/JOURNEY.md`, which
+`build-site.py` mirrors into `docs-site/src/content/docs/`. This change edits
+`guides/AGENTS.md`, so it does change an emitted page
+(`build/docs/guides/agents/index.html`). The actual argument is narrower: only a
+nav-ineligible mirrored page's *body* changed — `AGENTS.md` is in
+`build-site.py`'s nav-ineligible set — and no emitted path was added, removed, or
+renamed. Evidence is the emitted set itself: 269 routes captured and the combined
+`check-rendered-site-links.py` run clean, not an inference from the file list.
+AC10 is a reviewer/manual check recorded as performed-and-clean; the forbidden
+term is never quoted in a tracked file, commit, or PR body. Traces to: AC9-AC10.
 
 ## Tasks
 
@@ -157,13 +164,15 @@ retain provenance.
 
 **Depends on:** T3
 
-**Touches:** docs/specs/site-contract-provenance-cleanup/spec.md, docs/specs/site-contract-provenance-cleanup/plan.md, workspace.toml
+**Touches:** docs/specs/site-contract-provenance-cleanup/spec.md, docs/specs/site-contract-provenance-cleanup/plan.md, workspace.toml, docs/product/briefs/tech-site-completion.md
 
 **Tests:**
 - Goal-based: focused rendered-link tests pass (AC9).
-- Goal-based: `git diff --name-only` touches no file under `web/`,
-  `docs-site/src/`, or `tools/build-site.py`, so no emitted route or navigation
-  contract can change (AC9).
+- Goal-based: the emitted route set is unchanged in membership. `guides/**` is a
+  generation input (mirrored into `docs-site/src/content/docs/`), so this diff
+  does alter an emitted page; what it must not do is add, remove, or rename a
+  route. Verified against the emitted tree — 269 routes, and the combined
+  `check-rendered-site-links.py` run clean — not inferred from the file list (AC9).
 - Goal-based: a Type 1/2/3 reconciliation captured before the transaction and
   again after shows no NEW inconsistency — the AC8 wording. An absolute "clean"
   is neither achievable nor in scope: this tree already carries one pre-existing
@@ -184,6 +193,10 @@ retain provenance.
   `["ini-002".work].shipped` — without that move a `Shipped` status emits a fresh Type 2
   finding against the check above.
 - Let `lint-brief-coverage.py` derive the brief's Spec map cell; never hand-write it.
+- Moving the queue entry falsifies the brief's Spec map preamble, which says all
+  eight slices are registered in the work queue. Living-doc sync is same-PR
+  obligatory, so correct that sentence here — required drift repair, not a
+  ride-along.
 
 **Done when:** all spec acceptance criteria have recorded evidence.
 
