@@ -187,14 +187,23 @@ references that place rather than repeating the value.
 - [ ] AC6 — Every public function in `_loop_guards.py` takes explicit typed
       arguments (`Path`, expected run ID, phase, wave expectation, wave index,
       filename, expected status) and returns a structured result whose `ok` and
-      `reason` fields cannot disagree — a construction-time check enforces
-      `ok == (reason is None)`, and every adapter branches on `ok`, never on
-      `reason`. Calling any guard produces zero bytes on stdout and zero on
-      stderr. An AST scan enforces an **import allowlist**, stated canonically in
-      `plan.md`'s T1b, and confirms the module contains no `argparse`, no
-      `sys.exit`, no `sys.argv`, no stdout/stderr reconfiguration, no top-level
-      file write or command execution, and no reference to any spawning or
-      network capability named in the `Never do` rail. The purity rows are not
+      `reason` fields cannot disagree — `GuardResult.__post_init__` **raises
+      `ValueError`** (not `assert`, which `-O` / `PYTHONOPTIMIZE` strips, and this
+      is the control that stops an adapter written `if result.reason:` reading a
+      containment bug as success) unless `ok == (reason is None)`. Every adapter
+      branches on `ok`, never on `reason`; that source assertion is scoped to the
+      six `GuardResult`-returning guards. **Two named public functions are carved
+      out** of the structured-result rule: `validate_run_id` and
+      `assert_status_legal` return `str | None` by design (AC11), because their
+      six mutation-verb callers consume a reason directly and rewriting those call
+      sites is out of scope.
+      Calling any guard produces zero bytes on stdout and zero on stderr. An AST
+      scan enforces an **import allowlist**, stated canonically in `plan.md`'s T1b,
+      and confirms the module contains no `argparse`, no `sys.exit`, no `sys.argv`,
+      no `.reconfigure(` call, no *unrestored* stream mutation (the one sanctioned
+      exception is `_lint_spec_status()`'s swap-and-restore under AC13), no
+      top-level file write or command execution, and no reference to any spawning
+      or network capability named in the `Never do` rail. The purity rows are not
       vacuous: each asserts the guard's expected `ok`/`reason` verdict **alongside**
       the empty-stream assertion, and captures through a `TextIOWrapper` rather
       than an `io.StringIO` — a `StringIO` has no `reconfigure`, so capturing
@@ -244,14 +253,16 @@ references that place rather than repeating the value.
       rejection is defence in depth, not the only guard. The descriptor re-check
       proves type and inode identity, **not** confinement, and this criterion
       claims only that.
-      **Compensating-control note:** `check-spec-status.py:72-80`'s
-      resolve-then-`is_relative_to`-in-one-function is cited by
-      `tools/semgrep/argv-path-boundary.yml` as the in-repo reference pattern, and
-      moving it behind a typed-`Path` helper puts it where that rule structurally
-      cannot fire — the limitation the rule file names itself. T1b's confinement
-      cases are the named replacement for that lost scanner coverage, and the
-      CodeQL `py/path-injection` before/after comparison is an acceptance artifact,
-      not plan prose. *(T1b, T2)*
+      **Scanner-coverage note.** No semgrep coverage is lost: the rule's
+      `paths.include` lists `lint-traceability.py`, `lint-spec-status.py`,
+      `loop-cohort.py`, and its fixtures — **not** `check-spec-status.py`, which
+      appears only in a comment explaining why the rule's `pattern-not-inside`
+      clause exists. The real consequence runs the other way: after the move
+      `check-spec-status.py` retains a bare `Path(args.spec_dir).resolve()` with no
+      in-function containment, which makes it permanently ineligible for the rule's
+      own expansion ratchet. T1b's confinement cases are the compensating control
+      for the pattern's new home, and the CodeQL `py/path-injection` before/after
+      comparison is an acceptance artifact, not plan prose. *(T1b, T2)*
 - [ ] AC10 — The guard-call boundary contains every unexpected `Exception` and
       turns it into a refusal: for each guard, an injected arbitrary exception
       produces a one-line refusal and a non-zero exit from the engine and from
@@ -278,20 +289,45 @@ references that place rather than repeating the value.
       mutation verb proceeds past a check that did not complete. *(T1a)*
 - [ ] AC12 — Routing `spec.md` / `plan.md` reads through the bounded reader
       introduces a `ValueError` class the mutation path did not previously handle.
-      **Four** sites convert it, not three: `_read_md_status` widens its
-      `except (OSError, UnicodeDecodeError)` to include `ValueError` and raises
-      `UnreadableArtifact`, which `_assert_status_legal`'s existing handler already
-      catches — that is what protects the six mutation verbs that call it — and
-      `cmd_plan_check_current`, `_schedule_check_current_impl`, and
-      `_schedule_run_impl` each convert it directly, the last of which runs under
-      the cohort state lock. A test per site, and `_schedule_run_impl`'s asserts no
-      state is written while the lock is held. No traceback escapes a lock-holding
-      process. *(T1a)*
-- [ ] AC13 — `_loop_guards.py` and `lint-spec-status.py` load through
-      `importlib`'s `exec_module`, following `_statelock.py`'s precedent exactly:
-      the module path is `lstat`-verified as a regular non-symlinked file first,
-      the module is **not** registered in `sys.modules`, and the handle is memoised
-      in a module global. `_loop_guards.py` therefore **omits
+      **Three sites are tested; two more keep the handler as
+      unreachable-by-construction defence in depth.** Tested:
+      **(i)** `_read_md_status` widens its `except (OSError, UnicodeDecodeError)` to
+      include `ValueError` and raises `UnreadableArtifact`, which
+      `_assert_status_legal`'s existing handler already catches — the path that
+      protects the six mutation verbs calling it.
+      **(ii)** `_schedule_run_impl`, under the **cohort state lock**, with two
+      exposures: its raw `plan_path.read_text()` and its
+      `sha256_canonical_contract` call.
+      **(iii)** `cmd_approve_plan`, also `@_locked`, whose already-approved branch
+      hashes inside an `except (OSError, UnicodeDecodeError)` that a `ValueError`
+      escapes, and whose later `state["approved_spec_hash"] =
+      sha256_canonical_contract(...)` is **entirely unguarded and writes the
+      result**. `with_state_lock` catches only `StateLockError` and `main()` only
+      `KeyboardInterrupt`, so unhandled this is a traceback out of a lock holder.
+      Each tested site asserts a one-line refusal, and the two lock holders assert
+      no state was written while the lock was held.
+      Defence in depth, no test claim: `cmd_plan_check_current` and
+      `_schedule_check_current_impl` become thin adapters whose only remaining calls
+      are `_resolve_spec_dir` and a `@_contained` guard, so no `ValueError` can reach
+      them; the handler is retained against future re-expansion but is labelled
+      unreachable rather than asserted.
+      No traceback escapes a lock-holding process. *(T1a)*
+- [ ] AC13 — Two modules load by path, through **two** loaders: `_loop_guards.py`
+      via `load_guards()` (three copies — the cohort CLI, the engine, and
+      `check-spec-status.py`), and `lint-spec-status.py` via `_lint_spec_status()`
+      **inside `_loop_guards.py`**, lazily and memoised, first executed during a
+      guard call. Both loaders carry the same four controls, and the stream swap
+      belongs to the **second** one, because that is the exec that triggers a
+      module-scope `reconfigure`. (An earlier revision claimed the loaders nest;
+      they do not — the parser load happens inside a guard call, well after
+      `load_guards()` has returned.)
+      Both follow `_statelock.py`'s precedent for *registration and memoisation* —
+      unregistered, cached in a module global — **plus four controls that precedent
+      lacks**: the module path is `lstat`-verified as a regular non-symlinked file
+      before load; `sys.dont_write_bytecode` is saved, set, and restored to its
+      **prior value** in a `finally`; streams are swapped as described below; and
+      completeness is verified as described below. `_loop_guards.py` therefore
+      **omits
       `from __future__ import annotations`** — a deliberate, documented departure
       from the sibling scripts' style, because a frozen dataclass under
       future-annotations fails at class creation when its module is absent from
@@ -300,33 +336,49 @@ references that place rather than repeating the value.
       `exec_module` from leaving a half-executed module behind: `exec_module` does
       not remove a registered entry when the body raises, so registration would
       require hand-rolled cleanup that the standard `import` machinery does for
-      free. Because a module truncated at a clean statement boundary can load
-      *without* raising, the loader additionally verifies a required-symbol set on
-      the returned handle — every relocated name plus the six guards — and treats a
-      missing symbol as a load failure rather than a live handle.
-      `sys.dont_write_bytecode` is saved, set, and restored to its **prior value**
-      in a `finally` (the loaders nest: `_loop_guards.py`'s own parser load runs
-      inside the outer load), so no new `__pycache__` entry is written and a host
+      free. `sys.dont_write_bytecode` is saved, set, and restored to its **prior
+      value** in a `finally`, so no new `__pycache__` entry is written and a host
       interpreter's `-B` setting is never silently cleared.
-      Loading `lint-spec-status.py` runs `sys.stdout.reconfigure(...)` at module
-      scope. That mutates the stream **in place** and never rebinds
-      `sys.stdout`/`sys.stderr`, so snapshotting the *references* would restore
-      nothing; the real hazard is the reverse — a caller whose `sys.stdout` has no
-      `reconfigure` (an `io.StringIO`, the established in-suite capture pattern)
-      makes that line raise. The loader therefore **swaps** `sys.stdout` /
-      `sys.stderr` to `sys.__stdout__` / `sys.__stderr__` for the duration of the
-      exec and restores them in a `finally`, and the verification is (a) the
-      caller's stream's `encoding` and `errors` unchanged across a load and (b) a
-      case whose `sys.stdout` is an `io.StringIO` asserting the guard returns its
-      real verdict rather than an `internal-error:` refusal. An object-identity
-      assertion is explicitly **not** the check — it passes whether or not the
-      loader does anything.
+      **Completeness by sentinel, not by enumeration.** A module truncated at a
+      clean statement boundary loads *without* raising, so each loaded module
+      declares `__all__` near the top — where a truncation cannot remove it — and
+      `_MODULE_COMPLETE = True` as its **last** statement. The loader requires both:
+      `_MODULE_COMPLETE` truthy, and `set(mod.__all__) <= set(dir(mod))`. An
+      enumerated required-symbol list is explicitly rejected: it is order-blind, it
+      would be restated in each of the three loader copies, and the obvious spelling
+      of it ("every relocated name plus the six guards") silently omits
+      `GuardResult`, `read_managed_text`, `validate_run_id`, and
+      `assert_status_legal`, which are converted or new rather than relocated. A
+      pinning test asserts `__all__` equals the relocation list plus those four plus
+      the six guards. This detects accidental truncation only, **not** tampering;
+      tampering is the accepted write-access residual below.
+      **Stream handling, on the loader that needs it.** `lint-spec-status.py` calls
+      `sys.stdout.reconfigure(...)` at module scope. That mutates the stream **in
+      place** and never rebinds `sys.stdout`/`sys.stderr`, so snapshotting the
+      *references* would restore nothing and an identity assertion cannot fail; the
+      real hazard is the reverse — a caller whose `sys.stdout` has no `reconfigure`
+      (an `io.StringIO`, the established in-suite capture pattern) makes that line
+      raise. `_lint_spec_status()` — not `load_guards()` — therefore **swaps**
+      `sys.stdout` / `sys.stderr` to a throwaway `io.TextIOWrapper(io.BytesIO())`
+      for the duration of the exec and restores them in a `finally`. Not
+      `sys.__stdout__`/`sys.__stderr__`: those are `None` under pythonw, embedded,
+      and detached-stdio contexts, so swapping to them would convert an environment
+      where the caller's own valid stream worked into a total-refusal one.
+      Verification is (a) the caller's stream's `encoding` and `errors` unchanged
+      across a load, and (b) a case whose `sys.stdout` is an `io.StringIO`,
+      asserting the guard returns its real verdict rather than an `internal-error:`
+      refusal. An object-identity assertion is explicitly **not** the check. This
+      swap is the one sanctioned exception to AC6's no-stream-mutation rule, which
+      is scoped accordingly.
       All six load-failure modes — missing, permission-denied, non-regular,
       symlinked, syntactically invalid, partially written — produce a one-line
       refusal with a non-zero exit and no traceback, and the refusal names the
       module path, the failure mode, and the remedy. A seventh case asserts the
-      loaded parser did not execute its `__main__` block, and an eighth asserts a
-      module truncated mid-body leaves nothing reusable behind.
+      loaded parser did not execute its `__main__` block; an eighth asserts a module
+      truncated mid-body leaves nothing reusable behind; and a ninth truncates at a
+      clean statement boundary — loading without raising — and asserts the
+      completeness sentinel turns it into a load failure. Every case runs against
+      **both** loaders, since both now carry the four controls.
       **Residual, accepted:** a `.pyc` that already exists in the gitignored
       `__pycache__` can still be read. The **set of actors** who can plant one is
       unchanged — write access to the scripts directory already implies arbitrary
@@ -343,7 +395,16 @@ references that place rather than repeating the value.
       return None` no longer lets `_assert_status_legal` treat a broken parser as
       "no status line", so the post-approval status-regression guard cannot
       silently pass. Only an absent status *token* is still skipped; a missing,
-      non-regular, symlinked, or unreadable artifact is a refusal. *(T1a)*
+      non-regular, symlinked, or unreadable artifact is a refusal.
+      **The same fail-open shape must not be reintroduced on the bundled template.**
+      `_template_max_implementation_retries` and `_template_max_review_retries`
+      currently catch `(FileNotFoundError, OSError, KeyError, TypeError,
+      ValueError)` and return a hard-coded fallback — so once `TEMPLATE_PATH` reads
+      through the bounded reader, an oversized, non-regular, or symlinked
+      `assets/state.json` would silently yield the default 5/5 retry caps instead of
+      refusing. An integrity-class reader failure on the template is therefore a
+      **refusal**, carrying the integrity marker; the fallback is retained only for a
+      genuine `FileNotFoundError` (an adopter tree with no bundled template). *(T1a)*
 
 ### CLI compatibility
 
@@ -353,15 +414,27 @@ references that place rather than repeating the value.
       non-zero behavior, their one-line stderr failure form, their success stdout
       messages, and their no-traceback failure behavior. Proven against golden
       stdout and stderr literals captured from the **pre-change** CLIs for every
-      failure branch of all six verbs — including `plan_review_status: pending`,
-      which uniquely carries no verb prefix. Because those messages embed
+      failure branch of all six verbs — including `plan_review_status: pending`
+      and `_evaluate`'s three refusals, none of which carry a verb prefix. Because those messages embed
       absolute paths and live 64-hex digests, capture and comparison both run
       through one normalization function defined canonically in `plan.md`'s T0.
-      **Two named exceptions, both signed off, both asserted against an explicit
-      `after` value rather than the recorded `before`:** the AC16 coercion rows,
-      and `check-spec-status.py`'s `--file`, which AC9 narrows from any
-      `is_relative_to`-passing value to a single dot-free path component. Every
-      other row is asserted against `before`. *(T0, T2, T6)*
+      **Three named exception classes, each asserted against an explicit `after`
+      value rather than the recorded `before`:** **(1)** the AC16 numeric-coercion
+      rows; **(2)** `check-spec-status.py`'s `--file`, which AC9 narrows from any
+      `is_relative_to`-passing value to a single dot-free path component;
+      **(3)** the **artifact-integrity class** — routing `spec.md` / `plan.md`
+      through the bounded reader adds `O_NOFOLLOW`, `O_NONBLOCK`, `S_ISREG`, and an
+      8 MiB cap to reads that are plain `path.read_text()` today, so a symlinked,
+      non-regular, or over-cap artifact newly refuses. That class reaches
+      `cmd_approve_plan` and `_schedule_run_impl` as well as the read-only verbs, so
+      it changes the accepted-input surface of four cohort verbs, not just the six
+      read-only ones — enumerated and ratified rather than left to be discovered.
+      Every other row is asserted against `before`. Each row carries a closed
+      `change_reason` enum (`numeric-coercion` | `file-narrowing` |
+      `artifact-integrity`); the self-check asserts `after` is present **iff**
+      `change_reason` is set, and that the observed enum set equals the declared
+      one — so the exception list is machine-readable rather than restated a third
+      time. *(T0, T2, T6)*
 - [ ] AC16 — Where AC8's numeric validation changes a verdict that today's
       coercion accepts — a string-typed or float-typed counter that `int()`
       currently absorbs — the affected inputs are enumerated and recorded so the
@@ -386,7 +459,18 @@ references that place rather than repeating the value.
       A double-violation case proves the earlier step's refusal wins: a
       `wave-passed` event with **both** a missing `--wave-index` and an unreadable
       `engine-state.json` refuses on the wave-index (step 2), not on the read
-      (step 4). *(T3)*
+      (step 4); a second pair covers steps 8 vs 9.
+      The source-order assertion backing the other nine boundaries carries a
+      **vacuity guard and a mutation check**, because four of the eleven steps have
+      no callee to anchor on (`--wave-index` validation, the `schema_version` check,
+      transition-table validation, and the state decision) and must key on literals
+      — an anchor that silently stops matching would drop out of a sorted list that
+      then always passes. The assertion fails unless **all eleven** anchors resolve,
+      and `Done when:` requires that swapping any adjacent pair of the eleven makes
+      it red. This is the antipattern `e6d4c14a` records: *"a gate whose scanned file
+      set can collapse to zero while still exiting 0 is silent when it works and
+      silent when it is broken… an unmutated assertion is an unverified one."*
+      *(T3)*
 - [ ] AC18 — No `_loop_guards.py` function acquires the cohort mutation lock, and
       the **recursive listing** of the spec directory and of the repo-root
       `.loop-run/` directory — names and bytes — is identical before and after any
@@ -410,13 +494,18 @@ references that place rather than repeating the value.
 
 - [ ] AC21 — Every `subprocess` call reachable from a guard while
       `cmd_transition` holds the lock passes an explicit `timeout=`, and the only
-      such calls are `git`. The AST scan enforcing this covers `loop-engine.py`,
-      `_loop_guards.py`, and `lint-spec-status.py`, and its matched call set is
-      the same one AC22's recorder uses. The claim is scoped to the **guard call
-      path**, not to transitive capability: `lint-spec-status.py` imports
-      `subprocess` and has unbounded `git` calls in functions the guard path does
-      not invoke, and an AST assertion proves the guard path does not reach them.
-      *(T4)*
+      such calls are `git`. The claim is scoped to the **guard call path**, not to
+      transitive capability. `loop-engine.py` and `_loop_guards.py` are scanned
+      file-wide (the latter must contain no spawn reference at all).
+      `lint-spec-status.py` is **not** scanned file-wide: it imports `subprocess`
+      and has four unbounded `git` calls in functions the guard path never invokes,
+      and the artifact is an AST **reachability** assertion proving the guard path
+      does not reach them — not a file-scoped timeout scan. Adding `timeout=` to
+      those four calls was considered and **dropped**: they are unreachable from the
+      lock, so it is not a mechanical ride-along but an unspecced change to a shipped
+      CLI's failure mode on a slow repository, which would need its own criterion.
+      It is recorded in `Deferred` instead. The matched call set is the canonical
+      spawn set AC23 names. *(T4)*
 - [ ] AC22 — The lock-hold budget is stated honestly rather than overclaimed.
       `MAX_SUBPROCESS_CALLS_UNDER_LOCK` equals the number of external subprocess
       **invocation edges** on the reachable call graph — distinct from call sites,
@@ -458,11 +547,19 @@ references that place rather than repeating the value.
       `test_loop_engine.py`, `test_loop_cohort.py`,
       `test_loop_cohort_schedule.py`, `test_loop_cohort_max_iter_single_source.py`,
       `test_loop_engine_events_jsonl.py`, and `test_loop_concurrency.py`;
+      `bash packs/core/tests/skills/work-loop/test-loop-cohort.sh` passes — gated by
+      `tools/test-all.py` and driving **exactly** the six verbs this change converts
+      to adapters (`identity`, `plan check-current`, `schedule check-current`,
+      `check --phase {implement,review,gates-failed,stub}`, `wave check`), so it is
+      the closest pre-existing contract test for them and must pass unmodified;
       `pytest tests/roster/test_work_loop_root_validation.py` passes, whose
       `test_report_sites_route_through_resolver` counts source occurrences in
       `loop-cohort.py` and must not be disturbed; and
       `python3 tools/lint-pack-test-boundary.py` passes, which forbids a pack test
-      from reading above its own pack. *(T0, T7)*
+      from reading above its own pack **and** fails any pack test whose single
+      `List`/`Tuple`/`Call` node contains both `"rev-parse"` and
+      `"--show-toplevel"` — so AC23's `git`-argv assertion must key on `argv[0]`
+      plus the `timeout` kwarg without co-locating those two literals. *(T0, T5, T7)*
 - [ ] AC26 — `make build-check` and `make lint-ruff` pass, and the Core pack
       source and its `.claude/` and `.agents/` projections are byte-identical.
       *(T7)*

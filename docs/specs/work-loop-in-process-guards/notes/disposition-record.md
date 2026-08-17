@@ -57,6 +57,8 @@ behavior) underpins this change, so there is nothing to ground outside the repo.
 | S10 | After three review rounds (12 → 14 → 4 blockers), continue to a fourth round, proceed to the approval gates, split the spec, or stop? | The `new-spec` convergence rule says a spec not clean by three passes may have a structural problem and should be surfaced rather than ground on. Whether the trend (round 3's blockers were all my own authoring errors, and one simplification retired several) counts as convergence or as a warning is a judgment about how much review is enough — not something the agent should decide about its own work. | Fix the four, then proceed to the gates without a round 4. Recorded as a deviation from full mode's iterate-to-`Clean` rule in the final report. |
 | S11 | `check-spec-status.py --file` narrows from any `is_relative_to`-passing value to a single dot-free component, and a symlinked `spec.md` that `read_text()` follows today becomes a refusal. | The `Ask first` rail covered *widening* a CLI's accepted arguments, not narrowing — a gap the reviewer found. Narrowing a shipped CLI's inputs is a compatibility decision. | Accepted as named exceptions inside AC15, with `after` goldens so the change is asserted rather than discovered. |
 
+| S12 | Round 4 found that the bounded reader changes the accepted-input surface of **four** cohort verbs, not the three S9 covered — `cmd_approve_plan` is a fifth `ValueError` site, holds the cohort lock, and has one hash call inside an `except` a `ValueError` escapes plus another that is unguarded *and writes its result*. | S9's sign-off was scoped to three named verbs. A fourth mutation verb's failure behavior, and a narrowing of its accepted artifacts, is squarely on the `Ask first` rail — and the agent should not extend its own sign-off. | Applied as AC12(iii), **pending ratification at the spec-approval gate**, where it is called out explicitly. The alternative — exempting `approve-plan`'s two call sites from the bounded reader — was rejected because it leaves an unbounded read under the cohort lock, the exact hazard the change exists to close. |
+
 ## Pre-EXECUTE review outcome
 
 Three rounds of `adversarial-reviewer` + `security-reviewer`, run in parallel each
@@ -67,14 +69,25 @@ round against the persisted artifacts.
 | 1 | 12 | Real gaps in the change — the child process was silently bounding reads and containing exceptions |
 | 2 | 14 | Mostly defects in round 1's *mitigations* — the hand-rolled loader alone produced four |
 | 3 | 4 | All four were errors in this spec's own text; one simplification retired several |
+| 4 | 8 | Six of eight were defects in round 3's edits. One reviewer **falsified a change the other had prompted** — the semgrep "lost coverage" claim — and one real source defect neither had reached before: `cmd_approve_plan` as a fifth `ValueError` site under the cohort lock |
 
 Every load-bearing claim was verified against source or by a read-only probe
-before being acted on. Two reviewer claims were **incorrect** and were corrected
-rather than absorbed: `SyntaxError`'s parentage (stated as a `ValueError` subclass;
-its MRO is `(SyntaxError, Exception, BaseException, object)` — the conclusion held),
-and `Path.resolve()` raising `RuntimeError` on a symlink loop (did not reproduce on
-3.13.13; retained as cheap defence, recorded as unconfirmed). One
-reviewer-recommended design — a hand-rolled cache-free module loader — was
+before being acted on. **Three reviewer claims were incorrect** and were corrected
+rather than absorbed:
+
+1. `SyntaxError`'s parentage — stated as a `ValueError` subclass; its MRO is
+   `(SyntaxError, Exception, BaseException, object)`. The conclusion (it escapes
+   `except (ImportError, OSError)`) held.
+2. `Path.resolve()` raising `RuntimeError` on a symlink loop — did not reproduce on
+   3.13.13. Retained as cheap defence, recorded as unconfirmed rather than as a
+   reproduced defect.
+3. "Moving the confinement pattern loses semgrep coverage" (round-3 security C6) —
+   **falsified in round 4** by the other reviewer: the rule's `paths.include` never
+   listed `check-spec-status.py`. This one is the clearest argument for verifying
+   rather than absorbing: acting on it uncritically wrote a false claim into AC9,
+   and only a second independent lens caught it.
+
+One reviewer-recommended design — a hand-rolled cache-free module loader — was
 **withdrawn** after it generated more risk than it closed.
 
 **Named deviation:** neither reviewer returned `Clean — ready to commit.` Full mode
