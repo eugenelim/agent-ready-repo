@@ -52,15 +52,22 @@ vintage). The Manual QA diff in T3 is the named mitigation for the
 detach-provenance risk. Traces to: AC4-AC7.
 
 AC9's route/navigation clause is NOT verified by "the diff touches no generation
-input" — it does touch one. The generation inputs are `web/`, `docs-site/src/`,
-`tools/build-site.py`, **and** `guides/**` plus `packs/*/JOURNEY.md`, which
-`build-site.py` mirrors into `docs-site/src/content/docs/`. This change edits
-`guides/AGENTS.md`, so it does change an emitted page
-(`build/docs/guides/agents/index.html`). The actual argument is narrower: only a
-nav-ineligible mirrored page's *body* changed — `AGENTS.md` is in
-`build-site.py`'s nav-ineligible set — and no emitted path was added, removed, or
-renamed. Evidence is the emitted set itself: 269 routes captured and the combined
-`check-rendered-site-links.py` run clean, not an inference from the file list.
+input" — it does touch one. Among the generation inputs `build-site.py` mirrors
+into `docs-site/src/content/docs/` are `guides/**` and `packs/*/JOURNEY.md`
+(alongside `packs/*/README.md`, `docs/product/changelog.md`, and `CONTRIBUTING.md`;
+this list is the set this diff could plausibly touch, not a complete inventory —
+`tools/build-site.py` is the authority). This change edits `guides/AGENTS.md`, so
+it does change an emitted page (`build/docs/guides/agents/index.html`).
+
+The sound argument is path-level, not cardinality-level: every generation-input
+entry in `git diff --name-status` is an `M`, with no `A`, `D`, or `R`, so no
+mirrored source path was added, removed, or renamed and no emitted route can move.
+A route count alone would not establish this — a rename preserves the count, and a
+renamed page nothing links to would still pass the link checker. The 269-route
+capture and the clean combined `check-rendered-site-links.py` run are corroborating
+evidence, not the argument. `guides/AGENTS.md` is additionally in `build-site.py`'s
+nav-ineligible set, so no navigation entry changes either.
+
 AC10 is a reviewer/manual check recorded as performed-and-clean; the forbidden
 term is never quoted in a tracked file, commit, or PR body. Traces to: AC9-AC10.
 
@@ -168,16 +175,21 @@ retain provenance.
 
 **Tests:**
 - Goal-based: focused rendered-link tests pass (AC9).
-- Goal-based: the emitted route set is unchanged in membership. `guides/**` is a
-  generation input (mirrored into `docs-site/src/content/docs/`), so this diff
-  does alter an emitted page; what it must not do is add, remove, or rename a
-  route. Verified against the emitted tree — 269 routes, and the combined
-  `check-rendered-site-links.py` run clean — not inferred from the file list (AC9).
+- Goal-based: no emitted route is added, removed, or renamed. `guides/**` is a
+  generation input, so this diff does alter an emitted page; the check is that
+  every generation-input entry in `git diff --name-status` is an `M` — no `A`,
+  `D`, or `R`. The 269-route capture and the clean combined
+  `check-rendered-site-links.py` run corroborate it; a count alone would be
+  rename-blind (AC9).
 - Goal-based: a Type 1/2/3 reconciliation captured before the transaction and
   again after shows no NEW inconsistency — the AC8 wording. An absolute "clean"
-  is neither achievable nor in scope: this tree already carries one pre-existing
-  Type 2 finding (`tracker-intake-adapters`, `ini-008`) plus standing canonical
-  findings and retained legacy memberships this spec must not touch (AC8).
+  is neither achievable nor in scope. Two pre-existing Type 2 findings stand, and
+  neither is this spec's: `tracker-intake-adapters` (`ini-008`), present at the
+  baseline capture, and `ci-gate-parallelization` (`ini-002`), which arrived with
+  main `823cd174` after that capture and sits Shipped in the same
+  `["ini-002".work].queue` this PR edits — so a reader diffing reconciliations
+  must not attribute it here. Standing canonical findings and retained legacy
+  memberships are likewise out of scope (AC8).
 - Manual QA: AC10 recorded as performed-and-clean without quoting the term —
   commit messages and PR bodies are permanent record under AGENTS.md § Privacy,
   so the search pattern itself is never written down (AC10).
@@ -224,3 +236,10 @@ remain preserved.
   lifecycle moves. AC3's surface list grows from two files to four (`Makefile` and
   `docs-site/AGENTS.md` § Build also claim the local order matches the workflow).
   Scope is unchanged; no acceptance criterion was added, removed, or weakened.
+- 2026-08-17: corrected again during implementation review. AC9's verification
+  argument was reversed — it had claimed the diff touches no generation input,
+  which is false for `guides/**` — and restated at path level. T4's Touches grew
+  to include the brief, whose Spec map preamble the queue move falsified. The
+  frozen Starlight scope gained the § Boundaries Never-do entry, and a second
+  unlicensed parenthetical added there was withdrawn. Still no acceptance
+  criterion added, removed, or weakened.
