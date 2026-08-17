@@ -162,3 +162,32 @@ re-pinning the baseline is expected rather than an interruption.
 - **The recorder proves it detects.** Two self-checks: spawn a real child Python and
   assert it is flagged; spawn bounded git and assert it is not. Without those, a
   recorder that silently failed to patch would keep the whole file green forever.
+
+## W7 · T2 (metadata) — a core version bump is THREE files, and the third is not marketplace.json
+
+Round-4 review established that `pack.toml` and `.claude-plugin/plugin.json` must
+agree (CAT-V-005), and that `core` is absent from `.claude-plugin/marketplace.json`
+— so the repo-wide "three files" knowledge topic looked like it reduced to two here.
+It does not. `make ci` found the third:
+
+    tests/roster/test_workspace_status_projection.py
+      asserts _product_release_heading_version(changelog, "core") == pack_version
+
+`docs/product/changelog.md` must carry a `### [core][<version>]` heading at the
+bumped version. Neither `make build-check` nor the pack suite covers this — only the
+repo-wide roster suite under `make ci` does, which is a good argument for running the
+real gate rather than the fast subset.
+
+Worth folding back into the knowledge topic: for a pack absent from
+marketplace.json, the three files are pack.toml, the pack's plugin.json, and the
+product changelog.
+
+## Environment, not the change
+
+`make ci` first reported 12 failed / 27 errors. Every one was
+`OSError: No space left on device` from a volume at 100% (3 GiB free of 460 GiB) —
+including three in the roster source-anchor test that passes standalone. After
+reclaiming space the same suite ran 303 passed / 1 failed, and that one failure was
+the real changelog gap above. Reporting the first number as a regression would have
+been wrong; reporting it as "just the disk" without re-running would have been
+wrong too.
