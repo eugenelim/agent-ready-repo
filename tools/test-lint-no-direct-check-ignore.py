@@ -28,7 +28,7 @@ import importlib.util
 import subprocess
 import sys
 import tempfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
@@ -45,7 +45,7 @@ _spec.loader.exec_module(M)
 
 #: A single ~400-line main() aborts every later block on one exception, so the
 #: reported count silently drops. Falling below this is a failure in itself.
-_CASE_FLOOR = 38
+_CASE_FLOOR = 45
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -256,6 +256,35 @@ def main() -> int:
     # `_join_continuations` is new production matcher logic; these are its cases.
     check("a backslash-continued invocation is flagged",
           bool(M.scan_text("Makefile", "\tgit \\\n\t  check-ignore --stdin -z")))
+
+    # A comment ending in `\` must not hide the line beneath it. Before the fix
+    # the joined logical line began with `#`, so `scan_text` skipped both.
+    check("a backslash-continued comment does not swallow the next invocation",
+          bool(M.scan_text(
+              "fake.sh",
+              "# about git check-ignore \\\ngit check-ignore --stdin -z")))
+    check("the comment itself is still not counted as a use",
+          not M.scan_text("fake.sh", "# about git check-ignore \\\necho hi"))
+    check("a plain comment is still skipped",
+          not M.scan_text("fake.sh", "# git check-ignore is banned here"))
+    # The allowlist is keyed on POSIX paths; the scanner compares with `as_posix`,
+    # so a Windows-shaped key would match nothing it ever produces.
+    check("every allowlist key is POSIX-shaped",
+          all("\\" not in k for k in M.ALLOWLIST), repr(list(M.ALLOWLIST)))
+    # Proven with PureWindowsPath, because on POSIX `str` and `as_posix` agree and
+    # an end-to-end run cannot tell the fix from the bug.
+    win = M._rel_key(PureWindowsPath(r"C:\repo\tools\lint_git_ignore.py"),
+                     PureWindowsPath(r"C:\repo"))
+    check("a Windows path becomes a POSIX allowlist key",
+          win == "tools/lint_git_ignore.py", repr(win))
+    check("that key is one the allowlist actually holds",
+          win in M.ALLOWLIST, repr(win))
+    posix = M._rel_key(PurePosixPath("/repo/tools/lint_git_ignore.py"),
+                       PurePosixPath("/repo"))
+    check("a POSIX path is unchanged by the same conversion",
+          posix == "tools/lint_git_ignore.py", repr(posix))
+    check("the resolver is allowlisted under its POSIX path",
+          "tools/lint_git_ignore.py" in M.ALLOWLIST)
     check("a Makefile inline `name:` recipe is still scanned",
           bool(M.scan_text("Makefile", "name: ; git check-ignore x")))
     check("a YAML step label is not scanned",

@@ -297,16 +297,18 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       two streams separately, byte-for-byte, as bytes, with both stored
       base64-encoded.
       **Amended during implementation, with the reason:** the real tree is
-      deliberately *not* a captured case. Its success lines embed live catalogue
-      counters (`(21 packs)`, `(32 destinations, 8 declared unrun)`), so any
-      unrelated PR that adds a pack or an exemption invalidates the snapshot and
-      the correct fix is regeneration — which trains exactly the reflex the
-      `Never do` rail forbids. The real tree is pinned instead by direct
-      assertions in the falsification suite's real-tree layer: exit 0, the
-      six-check pass line byte-exact, the absence of a partial-run header, and
-      the presence **and order** of all six success lines. That is a stronger
-      guarantee about the success path than a churning byte snapshot, and no
-      captured fixture reaches it because every fixture exits 1.
+      deliberately *not* a captured case, because *every* line it prints is
+      ambient — live catalogue counters (`(21 packs)`,
+      `(32 destinations, 8 declared unrun)`) that any unrelated PR moves. A
+      fixture's output is ambient only where it reads repository-level constants,
+      and that much is separable: `_canonical` drops the findings derived from the
+      real `_NO_RUNNER` map, so adding an exemption — the routine edit — no longer
+      touches any baseline. A real-tree snapshot has no such separable part, so
+      the only maintenance move left for it would be regeneration, which trains
+      exactly the reflex the `Never do` rail forbids. It is pinned instead by
+      direct assertion in the falsification suite's real-tree layer (next
+      criterion but three), and no captured fixture reaches that path because
+      every fixture exits 1.
 - [x] The committed baseline records the pinned full 40-hex SHA **and** the
       SHA-256 of the extracted subject blob; the harness verifies both, and the
       `git show` exit code, before writing the staged file, aborting and naming
@@ -317,9 +319,30 @@ type-checks nothing in this diff and is not claimed as a gate for it.
 - [x] The success path is pinned by direct assertion rather than by a snapshot
       that churns: the clean real tree exits 0, prints the six-check pass line
       byte-exact, prints no partial-run header, and prints all six success lines
-      in their documented order. (Supersedes the counters-only-diff criterion,
-      which existed only to manage a real-tree snapshot this spec no longer
-      captures.)
+      in their documented order. This is **narrower** than a byte snapshot, not
+      stronger — it deliberately does not pin the counters inside those lines,
+      which is the whole reason it survives an unrelated pack being added. What it
+      buys is that the assertion states its subject, so a maintainer reading a
+      failure learns which property broke. (Supersedes the counters-only-diff
+      criterion, which existed only to manage a real-tree snapshot this spec no
+      longer captures.)
+- [x] Findings a fixture cannot cause are excluded from the compared surface, so
+      an ambient repository edit cannot redden the gate. The pinned subject reads
+      `_NO_RUNNER` and `_RUNNER_FILES` from its own frozen text, so a fixture
+      inherits one finding per real map entry; those are redacted, along with the
+      failure tally that counts them and any blank line a redaction leaves behind.
+      The redaction is bounded by assertion, not by inspection: a finding naming a
+      runner file the fixture *does* create stays compared, the trusted path set
+      must equal the subject's runner inventory, and each property is proven by a
+      mutation that reddens the suite.
+      **Recorded limit:** adding a `_RUNNER_FILES` entry is a known re-pin
+      trigger. It does not add a redactable line — the missing file fails
+      `runners-keep-suites-isolated`, so that check's `ok` line leaves all 22
+      baselines — and regeneration cannot clear it, because regeneration re-runs
+      the pinned subject, whose older inventory still passes. Repointing the pin
+      is accepted for that case: the repo gains a CI runner rarely, and never
+      without review, whereas suites are ungated routinely — and it was only the
+      routine edit that made the gate something to route around.
 - [x] Every staged-lint and resolver subprocess runs under a scrubbed hermetic
       Git environment, and capture asserts identical bytes under a deliberately
       hostile global ignore file. Without this a maintainer's `core.excludesFile`

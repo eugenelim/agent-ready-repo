@@ -160,15 +160,26 @@ class BoundaryContext:
 class CheckResult:
     check: str
     findings: tuple[Finding, ...]
-    summary: str                          # the `ok   [check] (…)` payload
+    summary: str | None                   # the `ok   [check] (…)` payload;
+                                          # None when the check has findings
 
 def build_inventory(context: BoundaryContext) -> BoundaryInventory: ...   # instrumentation seam
-def parse_runners(context: BoundaryContext) -> RunnerIndex: ...           # instrumentation seam
+def _parse_runner_files(context, ...) -> ...: ...                        # instrumentation seam
 def inspect_boundary(
+    context: BoundaryContext,
+    checks: Collection[str] | None = None,
+) -> tuple[Finding, ...]: ...
+def inspect_boundary_results(
     context: BoundaryContext,
     checks: Collection[str] | None = None,
 ) -> tuple[CheckResult, ...]: ...
 ```
+
+Two entry points, not one. `inspect_boundary` is the contract this spec's
+acceptance criterion names, and it returns findings only, because that is all a
+caller asking "is the boundary clean?" needs. `inspect_boundary_results` is the
+wider return the CLI needs to print its six `ok` lines, and it is what the
+structural suite drives. `inspect_boundary` is a thin wrapper over it.
 
 `CheckResult.summary` exists because the CLI's six `ok` lines embed per-check
 counters computed inside the checks; a bare `tuple[Finding, ...]` cannot carry
@@ -665,4 +676,28 @@ committed, and the backlog item is closed.
   the allowlist, not 292); the allowlist now names `tools/test-run-pack-evals.py`
   and `tools/test-pre-pr.sh`; and the audit note's `lint-agents-md` row still
   described the drift-note behaviour the spec now forbids.
-
+- 2026-08-17 — Revised after implementation review round 2. The golden gate no
+  longer deadlocks on a routine edit: findings a fixture cannot cause (those
+  derived from the real `_NO_RUNNER` map, and runner-inventory misses for files no
+  fixture creates) are dropped from the compared surface, together with the tally
+  that counts them and any blank a redaction leaves behind. Blank-only blocks and
+  blank tail lines are discarded, so a dropped line cannot register as a
+  whitespace diff. Six mutations pin the result — two prove the deadlock is gone,
+  four prove the redaction did not broaden into swallowing real regressions. The
+  one case it does *not* cover, adding a `_RUNNER_FILES` entry, is recorded as a
+  re-pin trigger rather than described as fixed. Two assertions that could not
+  fail were replaced: the summary-with-findings check was vacuous against a clean
+  fixture (`all()` over an empty sequence) and now plants a violation and asserts
+  non-emptiness first; the Windows allowlist-key check could not distinguish
+  `str` from `as_posix` on POSIX, so the conversion moved into `_rel_key` and is
+  proven with `PureWindowsPath`. Two production defects found by that review are
+  fixed: a resolver-side refusal was reported as "git rejected the candidate
+  batch" although no subprocess ran, and a comment ending in a backslash swallowed
+  the line beneath it, hiding a real invocation from the drift gate. Evidence
+  corrected: the SAST row now records exit 0 (the earlier 2 was a full disk, and
+  both runs are kept so the failure is not read as real), the
+  `lint-spec-status.py` path was wrong, every stale line reference into files this
+  PR rewrites became a symbol or CI-step name, and the
+  `selftest-mutates-tracked-makefile` closure now states that the tracked-file
+  mutation is gone while the untracked-plant window remains — recorded as P1
+  residual 4 rather than counted as closed.

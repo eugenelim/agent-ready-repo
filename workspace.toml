@@ -24,6 +24,14 @@
 # Note: the top-level [backlog] section (repo-durable — open work not scoped to
 # an active initiative) is distinct from a shaping_queue's `backlog` array (its
 # non-active tier).
+#
+# [backlog] holds two arrays. `open` is live work; `closed` is work whose
+# disposition is settled, kept rather than deleted so a reader arriving from a
+# stale reference finds the reason instead of a silent gap. Neither is
+# dispatchable — `workspace-status` surfaces backlog items as context only, and a
+# "backlog:<slug>" dependency is satisfied by the item appearing in `closed`.
+# Moving an item between them is a deliberate edit that records what closed it and
+# names any residual the closure does not cover.
 
 ["ini-002"]
 name      = "Platform Core"
@@ -1950,7 +1958,11 @@ closed = [
   # no longer touches any tracked file: individual plants moved to temporary
   # fixture catalogues driven through the lint's callable API, and the suite now
   # asserts that the difference it makes to `git status --porcelain` is empty.
-  # The two real-Makefile rewrites behind the PR #961 failure are gone. The
+  # The two real-Makefile rewrites behind the PR #961 failure are gone. Reduced,
+  # not eliminated: layer 3 still plants two UNTRACKED files in the real worktree
+  # for one lint launch each, so a concurrent `git add -A` can still stage an
+  # injected violation. Recorded as P1 residual 4 in the audit note; bounded by
+  # refuse-before-plant and a planting-branch-scoped finally. The
   # trailing "worth auditing across tools/test-*" note is discharged as well —
   # all 66 other lint self-tests were audited and none mutates a tracked file
   # (docs/specs/lint-performance-p0/notes/lint-inventory.md § 4).
@@ -2086,8 +2098,6 @@ shipped = [
   {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
 ]
 queue   = [
-
-
   # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
   # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump
   # the next AgentBundle minor; concurrent merges would claim the same release number.

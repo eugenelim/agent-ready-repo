@@ -48,7 +48,7 @@ _spec.loader.exec_module(M)
 
 #: A single ~400-line main() aborts every later block on one exception, so the
 #: reported count silently drops. Falling below this is a failure in itself.
-_CASE_FLOOR = 68
+_CASE_FLOOR = 84
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -654,22 +654,47 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         # (c) a refused batch is reported as refused, not as unavailable
         real_resolve = M._resolve_ignored
 
-        def refusing(root, candidates):
-            return M.IgnoreOutcome(frozenset(), degraded=True,
-                                   detail="planted refusal", refused=True)
+        def _refusal_messages(**outcome_kwargs):
+            def refusing(root, candidates):
+                return M.IgnoreOutcome(frozenset(), degraded=True,
+                                       detail="planted refusal",
+                                       **outcome_kwargs)
 
-        M._resolve_ignored = refusing
-        try:
-            refused_findings, _, _ = _silent(
-                M.inspect_boundary, M.default_context(fixture)
-            )
-        finally:
-            M._resolve_ignored = real_resolve
-        messages = " ".join(f.message for f in refused_findings)
-        check("a refused batch says git REJECTED the batch",
+            M._resolve_ignored = refusing
+            try:
+                found, _, _ = _silent(
+                    M.inspect_boundary, M.default_context(fixture)
+                )
+            finally:
+                M._resolve_ignored = real_resolve
+            return " ".join(f.message for f in found)
+
+        messages = _refusal_messages(refused=True, refused_by="git")
+        check("a git-refused batch says git REJECTED the batch",
               "rejected the candidate batch" in messages, messages[-400:])
-        check("a refused batch does not say git is unavailable",
+        check("a git-refused batch does not say git is unavailable",
               "git is unavailable" not in messages, messages[-400:])
+
+        # The resolver can refuse a candidate before any subprocess starts — an
+        # out-of-root path, or one carrying a leading `:`. Reporting that as
+        # "git rejected the batch" points at a process that never ran.
+        messages = _refusal_messages(refused=True, refused_by="resolver")
+        check("a resolver refusal says the refusal happened before git ran",
+              "refused before git was called" in messages, messages[-400:])
+        check("a resolver refusal does not blame git for rejecting a batch",
+              "rejected the candidate batch" not in messages, messages[-400:])
+        check("a resolver refusal names both causes it could be",
+              "outside the repository root" in messages
+              and "pathspec magic" in messages, messages[-400:])
+        check("a resolver refusal still does not say git is unavailable",
+              "git is unavailable" not in messages, messages[-400:])
+
+        # Absent git is the third, distinct state, and the only one whose remedy
+        # is to change where you run.
+        messages = _refusal_messages(refused=False)
+        check("an unavailable git says so, and names no refusal",
+              "git is unavailable" in messages
+              and "refused" not in messages, messages[-400:])
 
     # ---- CheckResult.summary is pinned, including the one no baseline sees --
     with tempfile.TemporaryDirectory(prefix="boundary-summary-") as td:
@@ -685,9 +710,23 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         check("every check returns a summary when it finds nothing",
               all(r.summary is not None for r in results if not r.findings),
               repr([(r.check, r.summary) for r in results]))
+        # Vacuous against a clean fixture — nothing has findings, so `all()` over
+        # an empty sequence passes whatever the code does. Plant a violation and
+        # assert non-emptiness first.
+        (empty_map.packs_root / "demo/.apm/skills/demo/test_planted.py").write_text(
+            "def test_x():\n    pass\n", encoding="utf-8"
+        )
+        dirty, _, _ = _silent(M.inspect_boundary_results, empty_map)
+        with_findings = [r for r in dirty if r.findings]
+        check("the planted violation actually produces findings",
+              len(with_findings) > 0,
+              repr([(r.check, len(r.findings)) for r in dirty]))
         check("a check with findings returns no summary",
-              all(r.summary is None for r in results if r.findings),
-              repr([(r.check, r.summary) for r in results if r.findings]))
+              all(r.summary is None for r in with_findings),
+              repr([(r.check, r.summary) for r in with_findings]))
+        check("checks that still pass alongside it keep their summaries",
+              all(r.summary is not None for r in dirty if not r.findings),
+              repr([(r.check, r.summary) for r in dirty if not r.findings]))
         # This one appears in NO captured baseline: the real _NO_RUNNER map makes
         # it fail in all 22 fixtures, so its counters are pinned only here.
         runner_summary = by_name["every-suite-dir-has-a-runner"].summary
@@ -695,6 +734,55 @@ def main() -> int:  # noqa: C901 — independent structural assertions
               runner_summary == "ok   [every-suite-dir-has-a-runner] "
                                 "(1 destinations, 0 declared unrun)",
               repr(runner_summary))
+
+    # ---- the golden harness's ambient-state redaction ------------------
+    # `_canonical` drops findings derived from the real repository's
+    # `_NO_RUNNER` map and from `_RUNNER_FILES` entries no fixture creates.
+    # Without a pin here the redaction could broaden until it swallowed real
+    # regressions, and the golden gate would go quiet instead of red.
+    G = _load_golden()
+    ambient = (
+        "FAIL: _NO_RUNNER names packs/x/tests/skills/y, which holds no suite\n"
+        "FAIL: runner file tools/test-all.py does not exist — the collision\n"
+        "FAIL: runner file tools/added-later.py does not exist — the collision\n"
+        "FAIL: real regression sentinel\n"
+        "\u2716 lint-pack-test-boundary: 4 failure(s)\n"
+    )
+    reduced = G._canonical(ambient)
+    check("the real _NO_RUNNER map is redacted out of the compared surface",
+          "_NO_RUNNER names" not in reduced, repr(reduced))
+    check("a runner miss the fixture DOES create stays compared",
+          "tools/test-all.py does not exist" in reduced, repr(reduced))
+    check("a runner miss no fixture could cause is redacted",
+          "tools/added-later.py" not in reduced, repr(reduced))
+    # Structural, not incidental: a whitespace-only block never reaches the
+    # compared surface, so deleting a line can never register as a diff on its
+    # own. Asserted by feeding blanks directly rather than by trusting that every
+    # redaction regex remembered to eat its newline.
+    check("a whitespace-only block never reaches the compared surface",
+          G._canonical("FAIL: kept\n\n   \n\nok   [c] (0)\n")
+          == "FAIL: kept\nok   [c] (0)\n",
+          repr(G._canonical("FAIL: kept\n\n   \n\nok   [c] (0)\n")))
+    check("an unrelated finding survives redaction",
+          "real regression sentinel" in reduced, repr(reduced))
+    check("the failure tally is normalised, since it counts redacted findings",
+          "<ambient-adjusted>" in reduced and "4 failure(s)" not in reduced,
+          repr(reduced))
+    # The set the redaction trusts must match what the fixture actually writes;
+    # a typo here silently turns a compared finding into an ignored one.
+    check("every trusted runner path is one the base fixture writes",
+          {
+              "Makefile",
+              ".github/workflows/build-check.yml",
+              ".github/workflows/catalogue-tooling-ci-gates.yml",
+              ".github/workflows/docs.yml",
+              "tools/test-all.py",
+              "packages/agentbundle/agentbundle/catalogue_tooling/"
+              "self_host_windows.py",
+          } == G._FIXTURE_RUNNER_FILES, repr(sorted(G._FIXTURE_RUNNER_FILES)))
+    check("the trusted set is exactly the subject's runner inventory",
+          set(M._RUNNER_FILES) == G._FIXTURE_RUNNER_FILES,
+          repr(sorted(set(M._RUNNER_FILES) ^ G._FIXTURE_RUNNER_FILES)))
 
     # ---- no persistence between invocations ----------------------------
     inv_a = M.build_inventory(context)

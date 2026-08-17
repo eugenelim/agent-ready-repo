@@ -408,14 +408,81 @@ UNCAPTURABLE = ("packs-missing-entirely",)
 _SYNTAX_TAIL = re.compile(r"(is not parseable:).*", re.DOTALL)
 _UNPARSEABLE_TAIL = re.compile(r"(unparseable Python:)[^`\n]*")
 
+#: Findings derived from the REAL repository's `_NO_RUNNER` map rather than from
+#: anything the fixture does. Every fixture inherits one per entry, because the
+#: pinned subject reads that module constant and cannot be handed an injected map.
+#:
+#: They are dropped from the compared surface, and that is not cosmetic. Left in,
+#: adding a `_NO_RUNNER` entry — the documented, sanctioned action when a new
+#: suite is intentionally ungated — reddens 18 of 22 baselines, and
+#: `--regenerate` cannot clear it because it re-reads the *pinned* subject and so
+#: reproduces the old map. The gate would stay red until someone repointed the
+#: pin, which is an `Ask first` amendment. A gate that a legitimate edit can
+#: deadlock is a gate people learn to route around.
+#:
+#: Nothing is lost: the injected-map behaviour — including a stale entry and an
+#: entry a runner also names — is pinned directly in
+#: `tools/test-lint-boundary-structural.py`, which drives the callable API and
+#: can supply its own map.
+#: The runner files `_base_fixture` actually creates. A `runner file … does not
+#: exist` finding naming one of these is fixture behaviour — the
+#: `missing-runner-file` case deletes `tools/test-all.py` on purpose and the
+#: baseline must keep reporting it. A finding naming anything else came from a
+#: `_RUNNER_FILES` entry added after the pin, for a file no fixture ever had, and
+#: is dropped for the same reason as the `_NO_RUNNER` map below.
+#:
+#: Creating stand-ins instead is not an option: `_stage` puts the fixture's
+#: `tools/` on the staged subject's `sys.path[0]`, and the stray-file guard below
+#: refuses a fixture that writes there. That guard is fail-closed on purpose and
+#: is not worth weakening for capture convenience.
+#:
+#: KNOWN RE-PIN TRIGGER, and the one this redaction does NOT cover: adding an
+#: entry to `_RUNNER_FILES` does not merely add a line — the missing file makes
+#: `runners-keep-suites-isolated` fail, so its `ok` line disappears from all 22
+#: baselines. There is no line to redact, and `--regenerate` cannot help because
+#: it re-runs the pinned subject, whose older list still passes. Adding a runner
+#: file therefore requires repointing `PINNED_COMMIT`/`PINNED_BLOB_SHA256` at a
+#: commit containing it. That is accepted rather than fixed: `_RUNNER_FILES` grows
+#: when the repo gains a CI runner (rare, structural, already a reviewed change),
+#: whereas `_NO_RUNNER` grows whenever a suite is intentionally ungated (routine)
+#: — and it was only the routine edit that made the gate something to route
+#: around.
+_FIXTURE_RUNNER_FILES = frozenset(
+    {
+        "Makefile",
+        ".github/workflows/build-check.yml",
+        ".github/workflows/catalogue-tooling-ci-gates.yml",
+        ".github/workflows/docs.yml",
+        "tools/test-all.py",
+        "packages/agentbundle/agentbundle/catalogue_tooling/self_host_windows.py",
+    }
+)
+_RUNNER_MISSING = re.compile(
+    r"^FAIL: runner file (\S+) does not exist\b.*\n?", re.MULTILINE
+)
 
-def _canonical(stream: str) -> str:
+
+def _drop_unpinned_runner_misses(stream: str) -> str:
+    """Drop `runner file … does not exist` lines the fixture never could cause."""
+    return _RUNNER_MISSING.sub(
+        lambda m: m.group(0) if m.group(1) in _FIXTURE_RUNNER_FILES else "",
+        stream,
+    )
+
+
+_AMBIENT_NO_RUNNER = re.compile(
+    r"^FAIL: _NO_RUNNER names \S+, which holds no suite\b.*\n?", re.MULTILINE
+)
+
+
+def _canonical(stream: str) -> str:  # noqa: C901 — a flat normalisation pipeline
     """A comparable surface: order-stable and interpreter-version-stable.
 
     Findings are emitted in check order but a single finding can name several
     paths in filesystem order, and one message embeds `str(SyntaxError)`. Both
     are legitimate variation that must not read as a regression.
     """
+    stream = _drop_unpinned_runner_misses(_AMBIENT_NO_RUNNER.sub("", stream))
     blocks: list[str] = []
     current: list[str] = []
     for line in stream.splitlines():
@@ -430,7 +497,18 @@ def _canonical(stream: str) -> str:
     normalised: list[str] = []
     for block in blocks:
         lines = block.splitlines()
-        head, tail = lines[0], lines[1:]
+        # Redaction above deletes whole lines. A deleted line leaves a blank
+        # behind, and a blank does not start a new block, so it rides along as a
+        # tail line of whatever block precedes it — which is precisely how a
+        # dropped finding used to surface as a `+` blank-line diff. Blanks carry
+        # no diagnostic content here, so discarding them (and any block left
+        # holding only blanks) makes redaction whitespace-neutral by
+        # construction. The regexes' trailing `\n?` is then belt-and-braces
+        # rather than the only thing standing between a dropped line and a
+        # spurious failure.
+        if not any(line.strip() for line in lines):
+            continue
+        head, tail = lines[0], [t for t in lines[1:] if t.strip()]
         head = _SYNTAX_TAIL.sub(r"\1 <interpreter-dependent>", head)
         head = _UNPARSEABLE_TAIL.sub(r"\1 <interpreter-dependent>", head)
         # Indented continuation lines are a path list in filesystem order.
@@ -442,6 +520,15 @@ def _canonical(stream: str) -> str:
     # sorting makes the surface independent of accumulation order.
     fails = sorted(b for b in normalised if b.startswith("FAIL: "))
     rest = [b for b in normalised if not b.startswith("FAIL: ")]
+    # The `✖ … N failure(s)` tally counts the ambient findings we just dropped, so
+    # it moves with them. The fixture-derived FAIL lines above are the signal; the
+    # per-fixture count is re-asserted where it matters (the runner-inventory
+    # double-report) in the falsification suite.
+    rest = [
+        re.sub(r"(✖ lint-pack-test-boundary: )\d+( failure\(s\))",
+               r"\1<ambient-adjusted>\2", b)
+        for b in rest
+    ]
     return "\n".join([*fails, *rest]).strip() + "\n"
 
 

@@ -41,7 +41,7 @@ import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePath
 
 import lint_git_ignore  # tools/ is sys.path[0] for a script run
 
@@ -203,6 +203,22 @@ _TEXT_INVOCATION = re.compile(r"\bgit\b[^\n]{0,120}?\bcheck-ignore\b")
 _YAML_LABEL = re.compile(r"^-?\s*name:\s")
 
 
+def _rel_key(path: PurePath, root: PurePath) -> str:
+    """`path` relative to `root` as an allowlist key: always POSIX-shaped.
+
+    `as_posix`, not `str`. On Windows `str` yields `tools\\lint_git_ignore.py`,
+    which matches no key in `ALLOWLIST` — so the approved resolver would be
+    reported as a violation and this gate would fail for every Windows
+    contributor. The repo supports Windows
+    (`catalogue_tooling/self_host_windows.py`), so that is not hypothetical.
+
+    Split out purely so the conversion is testable off Windows: on POSIX `str`
+    and `as_posix` agree, so an end-to-end run cannot tell the two apart, and the
+    bug would sit here unnoticed until CI ran somewhere else.
+    """
+    return path.relative_to(root).as_posix()
+
+
 def _join_continuations(source: str) -> list[tuple[int, str]]:
     r"""(lineno, logical line) with backslash continuations joined.
 
@@ -215,6 +231,22 @@ def _join_continuations(source: str) -> list[tuple[int, str]]:
         stripped = line.rstrip()
         if start is None:
             start = lineno
+        # A comment ending in `\` must not swallow the line after it. `scan_text`
+        # skips any logical line starting with `#`, so joining would hide a real
+        # invocation on the next physical line behind the comment above it:
+        #
+        #     # about git check-ignore \
+        #     git check-ignore --stdin -z    <- silently unscanned
+        #
+        # Shell ends a comment at the newline regardless of the backslash; Make
+        # continues it. Splitting here is right for shell and fail-closed for
+        # Make: the worst case is scanning a continued comment line and reporting
+        # it, which is loud and fixable, against a missed invocation, which is
+        # not.
+        if (buffer + stripped).lstrip().startswith("#"):
+            out.append((start, buffer + stripped))
+            buffer, start = "", None
+            continue
         if stripped.endswith("\\"):
             buffer += stripped[:-1] + " "
             continue
@@ -288,7 +320,7 @@ def audit(root: Path) -> AuditResult:
     result = AuditResult()
     for path in sorted(_tracked_files(root)):
         try:
-            rel = str(path.relative_to(root))
+            rel = _rel_key(path, root)
         except ValueError:
             continue
         if rel in ALLOWLIST:

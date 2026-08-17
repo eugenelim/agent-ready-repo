@@ -167,18 +167,26 @@ class GitIgnoreUnresolved(RuntimeError):
 
 
 class IgnoreOutcome(NamedTuple):
-    """The ignored subset, plus whether Git actually answered.
+    """The ignored subset, plus why Git did not answer when it did not.
 
-    `refused` distinguishes "git could not run" from "git ran and rejected the
-    batch". The remediation differs — one says re-run where git works, the other
-    says a candidate was unusable — so folding them together sends the reader the
-    wrong way.
+    `refused` distinguishes "git could not run" from "the batch was refused". The
+    remediation differs — one says re-run where git works, the other says a
+    candidate was unusable — so folding them together sends the reader the wrong
+    way.
+
+    `refused_by` splits that second case again, because two very different things
+    reach it. `"git"` means git ran and exited non-0/1. `"resolver"` means the
+    resolver rejected a candidate *before* launching git at all — a path outside
+    the root, or one carrying pathspec magic. Reporting the second as "git
+    rejected the candidate batch" points the reader at a subprocess that was
+    never started.
     """
 
     ignored: frozenset[Path]
     degraded: bool = False
     detail: str | None = None
     refused: bool = False
+    refused_by: str | None = None
 
 
 def _resolve_ignored(root: Path, candidates: list[Path]) -> IgnoreOutcome:
@@ -201,11 +209,14 @@ def _resolve_ignored(root: Path, candidates: list[Path]) -> IgnoreOutcome:
             timeout=120.0,
         )
     except lint_git_ignore.GitIgnoreError as exc:
+        # Git ran and exited outside {0, 1}: a partial, untrustworthy answer.
         return IgnoreOutcome(frozenset(), degraded=True, detail=str(exc),
-                             refused=True)
+                             refused=True, refused_by="git")
     except ValueError as exc:
+        # The resolver refused a candidate before launching git — out-of-root, or
+        # a `:` prefix git would read as pathspec magic. No subprocess ran.
         return IgnoreOutcome(frozenset(), degraded=True, detail=str(exc),
-                             refused=True)
+                             refused=True, refused_by="resolver")
     return IgnoreOutcome(
         frozenset(resolution.ignored),
         degraded=resolution.degraded,
@@ -311,6 +322,7 @@ class BoundaryInventory:
     ignore_degraded: bool
     ignore_detail: str | None
     ignore_refused: bool = False
+    ignore_refused_by: str | None = None
     _walks: dict[Path, tuple[Path, ...]] = field(default_factory=dict)
     _confinement: dict[Path, bool] = field(default_factory=dict)
     _destinations: tuple[Path, ...] | None = None
@@ -345,6 +357,9 @@ class BoundaryInventory:
                 # Carried too, or a batch git *refused* here would be reported as
                 # "git is unavailable" — the conflation `refused` exists to stop.
                 self.ignore_refused = self.ignore_refused or outcome.refused
+                self.ignore_refused_by = (
+                    self.ignore_refused_by or outcome.refused_by
+                )
             cached = tuple(p for p in found if p not in outcome.ignored)
             self._walks[key] = cached
         return list(cached)
@@ -462,6 +477,7 @@ def build_inventory(context: BoundaryContext) -> BoundaryInventory:
         ignore_degraded=outcome.degraded,
         ignore_detail=outcome.detail,
         ignore_refused=outcome.refused,
+        ignore_refused_by=outcome.refused_by,
     )
     for key, found in prewalked.items():
         inventory._walks[key] = tuple(
@@ -1484,16 +1500,20 @@ def inspect_boundary_results(
         # Not cosmetic. `_walk` subtracts the ignored set and two findings fire
         # on the emptiness of what remains, so an unresolved ignore layer turns
         # those failures into passes. Refuse to report such a verdict.
-        cause = (
-            "git rejected the candidate batch"
-            if inventory.ignore_refused else
-            "git is unavailable"
-        )
-        remedy = (
-            "a candidate was unusable — see the detail above"
-            if inventory.ignore_refused else
-            "re-run where git works"
-        )
+        if not inventory.ignore_refused:
+            cause = "git is unavailable"
+            remedy = "re-run where git works"
+        elif inventory.ignore_refused_by == "resolver":
+            # No subprocess ran; naming git here would send the reader to the
+            # wrong place entirely.
+            cause = "a candidate was refused before git was called"
+            remedy = (
+                "the path is outside the repository root or carries a leading "
+                "`:` git would read as pathspec magic — see the detail above"
+            )
+        else:
+            cause = "git rejected the candidate batch"
+            remedy = "a candidate was unusable — see the detail above"
         degraded_findings.append(Finding(
             "ignore-layer",
             f"{cause}, so which paths are ignored could not be resolved "
