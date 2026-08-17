@@ -774,6 +774,44 @@ def test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content(
     ok(name)
 
 
+def test_a_planted_filename_cannot_inject_control_characters(tmp: Path) -> None:
+    """The engine's diagnostics are also an agent-captured stream.
+
+    `_recover_engine_state_tmp` reads its filename from a `glob()`, under the same
+    planted-file threat model it already accepts for the file's CONTENT — so a
+    `.engine-state-<ESC>[2J<ESC>[31mFAKE-OK.json.tmp` emitted a real screen-clear and
+    colour change into the transcript. The `GuardResult` chokepoint does not cover
+    this: the engine formats these warnings itself.
+
+    `_diag` is a deliberate second copy of the guard module's escape table, because
+    these lines fire on paths where that module may be unloadable — which is when a
+    diagnostic matters most.
+    """
+    name = "planted-filename-cannot-inject"
+    spec_dir = tmp / "spec-inject"
+    spec_dir.mkdir(parents=True)
+    evil = ".engine-state-\x1b[2J\x1b[31mFAKE-OK.json.tmp"
+    (spec_dir / evil).write_text("{ not json", encoding="utf-8")
+
+    stderr = io.StringIO()
+    with contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO()):
+        _engine._recover_engine_state_tmp(spec_dir)
+    out = stderr.getvalue()
+
+    if not out.strip():
+        fail(name, "no diagnostic at all — nothing was measured")
+        return
+    offenders = sorted({c for c in out.rstrip("\n") if ord(c) < 32 or ord(c) == 127})
+    if offenders:
+        fail(name, f"raw control character(s) {[hex(ord(c)) for c in offenders]} reached "
+                   f"the captured stream: {out!r}")
+        return
+    if len(out.strip().splitlines()) != 1:
+        fail(name, f"the diagnostic is not one line: {out!r}")
+        return
+    ok(name)
+
+
 def test_gitignore_courtesy_cannot_hang_the_locked_init(tmp: Path) -> None:
     """`_ensure_gitignore_entry` runs under `cmd_init`'s lock and must not block.
 

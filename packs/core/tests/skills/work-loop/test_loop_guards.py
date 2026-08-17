@@ -790,6 +790,49 @@ def g_internal_error_marker() -> str:
     return load_guards(name="_guards_marker").INTERNAL_ERROR
 
 
+@pytest.mark.parametrize("blank", ["", "   ", "\t\n"])
+def test_a_blank_reason_is_rejected_at_construction(g, blank: str) -> None:
+    """The fail-open the `ok`/`reason` invariant alone does not close.
+
+    That invariant compares `reason is None`, so `GuardResult(ok=False, reason="")`
+    constructed happily — and any adapter written `if result.reason:` reads such a
+    refusal as SUCCESS. `test_no_adapter_branches_on_reason` closes the consumer side;
+    this closes the producer side, and without it that test's docstring asserts in
+    prose something the suite checked nowhere. Whitespace-only counts as blank, because
+    `_one_line` collapses it to nothing.
+    """
+    with pytest.raises(ValueError, match="blank"):
+        g.GuardResult(ok=False, reason=blank)
+
+    # The legitimate shapes still construct.
+    assert g.GuardResult(ok=True, reason=None).ok is True
+    assert g.GuardResult(ok=False, reason="a real reason").ok is False
+
+
+def test_contained_reason_collapses_a_multiline_normal_return(g) -> None:
+    """Not just the `except` arm — the NORMAL return needs the same hygiene.
+
+    `validate_run_id` and `assert_status_legal` return their reason directly, and it
+    used to go out neither collapsed nor capped. The module claims every reason is a
+    one-line CLI contract; that held only by the accident that every current
+    interpolation site bounds its own value. A newline here forges a second stderr
+    line, which is the whole contract.
+    """
+    @g.contained_reason
+    def multiline(_):
+        return "first line\nsecond line\tand a tab"
+
+    result = multiline(1)
+    assert "\n" not in result, f"a normal return kept its newline: {result!r}"
+    assert result == "first line second line and a tab"
+
+    @g.contained_reason
+    def overlong(_):
+        return "z" * (g._MAX_REASON_CHARS + 100)
+
+    assert len(overlong(1)) == g._MAX_REASON_CHARS
+
+
 def test_contained_reason_never_returns_none_on_failure(g) -> None:
     """The mutation-path helpers, where `None` means "proceed".
 

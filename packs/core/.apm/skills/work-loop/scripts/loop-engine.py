@@ -117,6 +117,25 @@ _GIT_OVERRIDE_VARS = frozenset({
 # ── repo-root helper ───────────────────────────────────────────────────────
 
 
+# Control-character neutralisation for the engine's own diagnostics.
+#
+# A DELIBERATE second copy of `_loop_guards._CONTROL_ESCAPES`, and the duplication is
+# the point: these warnings fire on paths where the guard module may be unavailable or
+# unloadable, which is exactly when a diagnostic matters most. Reaching through
+# `_guards()` here would make the sanitiser fail in the case it exists for.
+#
+# Not cosmetic. `_recover_engine_state_tmp` interpolates a filename that comes from a
+# `glob()`, under the same planted-file threat model it already accepts for the file's
+# CONTENT — so a `.engine-state-<ESC>[2J<ESC>[31mFAKE-OK.json.tmp` emitted a real
+# screen-clear and colour change into the stream a supervising agent captures.
+_CONTROL_ESCAPES = str.maketrans({c: f"\\x{c:02x}" for c in [*range(32), 127]})
+
+
+def _diag(text: object) -> str:
+    """One-line, control-character-safe text for a warning or refusal."""
+    return " ".join(str(text).split()).translate(_CONTROL_ESCAPES)
+
+
 def _get_repo_root() -> Path:
     safe_env = {k: v for k, v in os.environ.items() if k not in _GIT_OVERRIDE_VARS}
     try:
@@ -375,9 +394,9 @@ def _recover_engine_state_tmp(spec_dir: Path) -> None:
                     tmp_path.unlink(missing_ok=True)
             print(
                 f"loop-engine: warning — engine-state tmp unusable "
-                f"({type(exc).__name__}: {exc}); "
-                + (f"discarding {tmp_path.name}" if invalid
-                   else f"{tmp_path.name} left in place; remove manually"),
+                f"({type(exc).__name__}: {_diag(exc)}); "
+                + (f"discarding {_diag(tmp_path.name)}" if invalid
+                   else f"{_diag(tmp_path.name)} left in place; remove manually"),
                 file=sys.stderr,
             )
             continue
@@ -385,7 +404,7 @@ def _recover_engine_state_tmp(spec_dir: Path) -> None:
             tmp_path.replace(spec_dir / "engine-state.json")
         except OSError as exc:
             print(
-                f"loop-engine: warning — could not promote engine-state tmp ({exc})",
+                f"loop-engine: warning — could not promote engine-state tmp ({_diag(exc)})",
                 file=sys.stderr,
             )
         break  # only one tmp at a time
@@ -427,7 +446,7 @@ def _recover_pending(repo_root: Path) -> None:
             else "left in place; remove manually"
         )
         print(
-            f"loop-engine: warning — could not parse events.pending ({exc}); {action}",
+            f"loop-engine: warning — could not parse events.pending ({_diag(exc)}); {action}",
             file=sys.stderr,
         )
         return
@@ -450,7 +469,7 @@ def _recover_pending(repo_root: Path) -> None:
             else "left in place; remove manually"
         )
         print(
-            f"loop-engine: warning — events.pending spec path invalid ({exc}); {action}",
+            f"loop-engine: warning — events.pending spec path invalid ({_diag(exc)}); {action}",
             file=sys.stderr,
         )
         return
@@ -479,7 +498,7 @@ def _recover_pending(repo_root: Path) -> None:
             else "left in place; remove manually"
         )
         print(
-            f"loop-engine: warning — could not parse owning engine-state.json ({exc});"
+            f"loop-engine: warning — could not parse owning engine-state.json ({_diag(exc)});"
             f" pending {action}",
             file=sys.stderr,
         )
@@ -866,7 +885,7 @@ def _resolve_spec_dir(raw: str) -> Path:
 
 
 def stop(reason: str, code: int = 1) -> int:
-    print(f"loop-engine: stop — {reason}", file=sys.stderr)
+    print(f"loop-engine: stop — {_diag(reason)}", file=sys.stderr)
     return code
 
 
@@ -994,7 +1013,20 @@ def cmd_init(args: argparse.Namespace) -> int:
                 os.close(event_fd)
                 gitignore = repo_root / ".gitignore"
                 if not gitignore.is_symlink():
-                    _ensure_gitignore_entry(gitignore, ".loop-run/")
+                    # Its OWN handler. Sharing the outer one reported "could not
+                    # initialise .loop-run/" for a failure in which `.loop-run/`, the
+                    # event log and the state write had all succeeded and only the
+                    # gitignore courtesy failed — sending an operator to the wrong
+                    # place. It is a convenience, so skipping it is the right
+                    # degradation, but it must say what it actually skipped.
+                    try:
+                        _ensure_gitignore_entry(gitignore, ".loop-run/")
+                    except Exception as exc:  # noqa: BLE001 — a courtesy, never fatal
+                        print(
+                            "loop-engine: warning — could not add .loop-run/ to "
+                            f".gitignore ({_diag(exc)}); add it manually",
+                            file=sys.stderr,
+                        )
         except Exception as exc:
             print(
                 f"loop-engine: warning — could not initialise .loop-run/: {exc}",
