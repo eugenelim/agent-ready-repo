@@ -167,6 +167,11 @@ Four rules, each earning its place:
    record, not a purer one. The test is whether a reader's understanding of
    what was decided changes. If it does, it is not mechanical.
 
+These four rules are **convention-enforced, not machine-enforced**: the linter
+checks the status token's vocabulary and nothing else. A reviewer is the only
+thing standing between a supersession and a one-way, unscoped, or body-editing
+annotation.
+
 **The same carrier, for a pointer that is not a supersession.** A frozen
 document sometimes names a `workspace.toml [backlog].open` anchor — "Deferred as
 `<slug>`", "recorded as `<slug>`" — and the PR that works the entry deletes the
@@ -180,10 +185,6 @@ point at; name the spec that closed the anchor, which is the only record there
 is. Say plainly that it is not a supersession, so a later reader does not
 discount a document that is entirely still correct.
 
-These four rules are **convention-enforced, not machine-enforced**: the linter
-checks the status token's vocabulary and nothing else. A reviewer is the only
-thing standing between a supersession and a one-way, unscoped, or body-editing
-annotation.
 
 **Not `Constrained by:`.** It is the better semantic fit — it is the field that
 cites governing decisions — but it is a record of what governed the spec *at

@@ -9,7 +9,7 @@ slug: frozen-doc-supersession-annotations
 - **Owner:** eugenelim
 - **Plan:** none — see § Named deviation
 - **Mode:** full (governance surface — it applies `docs/CONVENTIONS.md`
-  § *Superseding a frozen document* to eight frozen documents, and the rule it
+  § *Superseding a frozen document* to ten frozen documents, and the rule it
   applies is convention-enforced, not machine-enforced. A reviewer is the only
   thing standing between a supersession and a wrong one.)
 - **Constrained by:**
@@ -17,9 +17,11 @@ slug: frozen-doc-supersession-annotations
   (the mechanism and the survey this closes);
   [ADR-0040](../../adr/0040-route-cohort-skills-to-shared-agents-skills-home.md)
   (the supersession being recorded);
-  [ADR-0042](../../adr/0042-agent-additions-keyed-to-loop-and-work-type.md) and
-  [ADR-0084](../../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md)
-  (the two supersessions found **not** to warrant an annotation)
+  [ADR-0042](../../adr/0042-agent-additions-keyed-to-loop-and-work-type.md),
+  [ADR-0084](../../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md),
+  [ADR-0020](../../adr/0020-agent-context-file-is-agents-md.md) and
+  [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md)
+  (the four supersessions found **not** to warrant a spec-end annotation)
 - **Contract:** none
 - **Shape:** service
 
@@ -48,8 +50,11 @@ application of the same mechanism (`bandit-nosec-comment-hygiene`'s § Known
 skip, whose register pointer was closed out from under it).
 
 The deliverable is mostly a decision, and mostly a decision **not** to annotate.
-Nineteen frozen specs cite a superseded ADR and four more teach a superseded
-sub-decision without citing one; **six** get a pointer.
+Nineteen frozen specs cite a superseded ADR, and a body grep finds seven more
+documents stating a superseded skill home without citing the ADR — one of which
+teaches it as a normative rule. **Five specs get an ADR-0040 pointer, over eight
+`Status` lines**; two more specs get a closed-anchor pointer, which is a
+different thing (§ Decision 5). Ten documents edited, one line each.
 
 ## Decision 1 — the test is "does the body teach the superseded sub-decision", not "does it cite the ADR"
 
@@ -122,7 +127,9 @@ gate) and generalizes the rest."* A reader arriving from any of these specs'
 between-ADRs annotation is already done and already scoped; a spec-end pointer
 would add nothing it does not already have.
 
-All three citing specs then rely on the surviving half, and only on it:
+Four specs cite ADR-0023. Three are tabulated here; the fourth,
+`frontend-engineering-skill`, is treated below. All rely on the surviving half,
+and only on it:
 
 | Spec | What it says | Verdict |
 | --- | --- | --- |
@@ -143,7 +150,7 @@ and a reader of the rendered document sees a bare `Shipped`; do not count it as
 convention-compliant coverage. No annotation is added here because the ADR-0023
 verdict above applies to it too.
 
-## Decision 4 — ADR-0013 / 0015 / 0016 → ADR-0040: annotate six
+## Decision 4 — ADR-0013 / 0015 / 0016 → ADR-0040: annotate five specs, eight lines
 
 ADR-0040 supersedes the **skill-home sub-decision** of those three ADRs, and
 nothing else. Unlike the other two chains, the implementing specs state the
@@ -164,20 +171,39 @@ Their `plan.md` files teach the same homes and are `Done`, so both halves of
 each directory get the annotation, per `CONVENTIONS.md` § *A spec directory
 freezes as a unit*.
 
-### The body grep adds three more, and clears three
+### What the header scan reaches, and what it misses
 
-Applying Decision 1's second pass — grep `docs/specs/**` for `.cursor/skills/`,
-`.gemini/skills/`, `.github/skills/`, `.copilot/skills/` — turns up six
-documents the header scan could not see. Three are annotated, three are not, and
-the reasons differ:
+Four specs cite ADR-0013/0015/0016 in `Constrained by:`. All four are annotated,
+`copilot-full-parity` included — its earlier exclusion is reversed under
+Concern 7 below, so this is not a body-grep find:
+
+| Spec | Files | Verdict |
+| --- | --- | --- |
+| `cursor-full-parity` | `spec.md` + `plan.md` | **Annotate.** AC7 pins `.cursor/skills/<name>/`. |
+| `gemini-full-parity` | `spec.md` + `plan.md` | **Annotate.** AC2 pins `.gemini/skills/<name>/`. |
+| `copilot-skills-and-web` | `spec.md` + `plan.md` | **Annotate.** Pins `.github/skills/` repo + `.copilot/skills/` user. |
+| `copilot-full-parity` | `spec.md` only (its `plan.md` states no skill home) | **Annotate — reversing an earlier exclusion.** Its § banner already marks the skill decision reversed, but names `.github/skills/<name>/SKILL.md` and `~/.copilot/skills/<name>/SKILL.md` as the *replacement*, and ADR-0040 superseded both. Pointing a reader at two further stale paths is worse than not pointing. The Status line names both and says to read the banner through it. |
+
+### The body grep adds one annotation, and seven declines
+
+Applying Decision 1's second pass — `grep -rln` for `.cursor/skills/`,
+`.gemini/skills/`, `.github/skills/`, `.copilot/skills/` over **all** of
+`docs/specs/`, `README.md` included — returns seven documents outside that
+header set. One is annotated:
 
 | Document | Verdict |
 | --- | --- |
-| `distribution-adapters/spec.md` | **Annotate.** § *Primitive types and per-adapter projections* is the canonical projection table, and its Copilot cell still reads `direct-directory` → `.github/skills/<name>/`. A normative table stating a route the build no longer takes is the strongest case in this whole change — and the header scan missed it outright, because the spec predates ADR-0013 and cites none of the three ADRs. |
-| `copilot-full-parity/spec.md` | **Annotate** — reversing an earlier exclusion. Its § banner already marks the skill decision reversed, but names `.github/skills/<name>/SKILL.md` as the *replacement*, which is itself now superseded. Pointing a reader at a second stale path is worse than not pointing, so the Status line names ADR-0040 and says to read the banner through it. (Its `plan.md` states no skill home; grep confirms.) |
-| `catalogue-ci-export-boundary/{spec,plan}.md` | **Decline.** Its `.github/skills/` mentions are export-boundary *allow-list* statements, and `contracts/adapter.toml` still lists `.github/skills/` under copilot's `allowed-prefixes.repo`. Every statement is still true. |
-| `catalogue-init-self-hosted/plan.md` | **Decline.** Same allow-list reason. |
-| `shared-prefix-aware-multi-adapter-install/spec.md` | **Decline.** Its skill-home list sits under a `Technical:` ground-truth bullet with a dated probe (`2026-06-26`) — a record of what was observed, in the spec that *implements* ADR-0040. Annotating a document for recording the state it then changed would be backwards. |
+| `distribution-adapters/spec.md` | **Annotate.** § *Primitive types and per-adapter projections* is the canonical projection table, and its Copilot cell still reads `direct-directory` → `.github/skills/<name>/`; the v0.11 Changelog entry states cursor's `.cursor/skills/<name>/` route. A normative table stating a route the build no longer takes is the strongest case in this change — and the header scan cannot reach it, because the spec predates ADR-0013 and cites none of the three ADRs. (The file has no gemini entry at all: `grep -c '\.gemini'` returns 0. An earlier draft of this annotation claimed one.) |
+
+Six are declined, and the reasons are not the same reason:
+
+| Document | Verdict |
+| --- | --- |
+| `catalogue-ci-export-boundary/spec.md` + `plan.md` | **Decline — the closest call in the set.** Two sentences *are* stale as premises: § Always do `:45` and § Assumptions `:197` both say Copilot "projects to `.github/skills/`", and the `adapter.toml` the second cites now reads `.agents/skills/`. But the operative rule they support — *do not flag these paths* — is still correct, because copilot's `allowed-prefixes.repo` still contains `.github/skills/`. A "superseded in part" stamp would tell a reader the export-boundary decision changed. It did not; only a premise did. Recorded here rather than glossed, because an earlier draft declined this on the wrong grounds — it called both sentences allow-list statements, which they are not. |
+| `catalogue-init-self-hosted/plan.md` | **Decline.** A single line asserting the boundary check does not flag `.github/skills/` — an allow-list statement, still true. |
+| `shared-prefix-aware-multi-adapter-install/spec.md` | **Decline.** Its skill-home list sits under a `Technical:` ground-truth bullet with a dated probe (`2026-06-26`), in the spec that *implements* ADR-0040. Annotating a document for recording the state it then changed would be backwards. |
+| `shared-prefix-aware-multi-adapter-install/plan.md` | **Decline.** One risk bullet about the stale `.github/skills/` / `.copilot/skills/` tree the routing change leaves behind — a description of ADR-0040's own migration consequence. |
+| `docs/specs/README.md` | **Decline, and this one is a judgment a reviewer may want to overturn.** It is a **Living** index whose rows summarise *what each spec did*; rows `:116` and `:128` restate cursor's and copilot's skill routes as part of describing those specs, and each row links to the spec, which now carries the pointer. It is not a statement of current projection behaviour, and the supersession convention governs frozen documents. If it should instead be *corrected* as Living-doc drift, that is a different edit under a different rule. |
 
 ## Decision 5 — the Known-skip pointer uses the same carrier, but is not a supersession
 
@@ -220,9 +246,10 @@ it twice over.
 ## Decision 6 — the two chains `frozen-spec-supersession` never named
 
 Its § Survey covered three chains. Re-deriving from every ADR in `docs/adr/`
-whose `Status` names a superseding ADR gives **five** superseded records across
-**five** chains: the three surveyed, plus ADR-0001 → ADR-0020 and
-ADR-0050 → ADR-0055. Both are disposed of here rather than left unexamined:
+whose `Status` names a superseding ADR gives **seven** superseded records —
+ADR-0001, 0013, 0015, 0016, 0017, 0023, 0050 — across **five** chains; records
+exceed chains because ADR-0013/0015/0016 all forward to ADR-0040. Two chains the
+survey never scanned, disposed of here rather than left unexamined:
 
 - **ADR-0001 → ADR-0020.** No spec cites ADR-0001 in `Constrained by:`. Nothing
   to annotate.
@@ -235,14 +262,15 @@ ADR-0050 → ADR-0055. Both are disposed of here rather than left unexamined:
 
 ## Acceptance Criteria
 
-- [x] **AC1 — six documents carry an ADR-0040 pointer.** `cursor-full-parity`,
-      `gemini-full-parity` and `copilot-skills-and-web` are annotated on
-      **both** `spec.md`'s `Shipped` and `plan.md`'s `Done`;
-      `copilot-full-parity/spec.md` and `distribution-adapters/spec.md` on
-      `spec.md` only (neither `plan.md` states a skill home). Each reads
+- [x] **AC1 — five specs carry an ADR-0040 pointer, over eight `Status`
+      lines.** `cursor-full-parity`, `gemini-full-parity` and
+      `copilot-skills-and-web` are annotated on **both** `spec.md`'s `Shipped`
+      and `plan.md`'s `Done`; `copilot-full-parity` and `distribution-adapters`
+      on `spec.md` only (neither `plan.md` states a skill home). Each reads
       `(superseded in part by [ADR-0040](…) — <the skill home this document
       pins> now routes to the shared `.agents/skills/`; …stands)`, linking the
-      ADR. Eight files, eight `Status` lines.
+      ADR. **This is the canonical count**; § Objective and § Decision 4 defer
+      to it.
 
 - [x] **AC2 — no body line changes in any annotated document.** The
       `--unified=0` diff over the ten annotated files shows exactly ten removed
@@ -270,9 +298,11 @@ ADR-0050 → ADR-0055. Both are disposed of here rather than left unexamined:
 - [x] **AC5a — the population is derived twice.** The `Constrained by:` scan is
       re-run over **every** ADR whose `Status` names a superseding ADR (not the
       three `frozen-spec-supersession` surveyed), and a **body** grep for the
-      superseded skill homes is run over all of `docs/specs/**`. Both result
-      sets are tabulated; the second added `distribution-adapters` and
-      `copilot-full-parity`, which the first cannot see.
+      superseded skill homes is run over **all** of `docs/specs/`, `README.md`
+      included. Both result sets are tabulated in full — the header scan's four
+      specs, and the body grep's seven further documents. The body grep's own
+      yield is `distribution-adapters` alone; `copilot-full-parity` is in the
+      header set and is tabulated there.
 
 - [x] **AC6 — two closed register anchors are annotated.**
       `bandit-nosec-comment-hygiene/spec.md`'s Status records that
