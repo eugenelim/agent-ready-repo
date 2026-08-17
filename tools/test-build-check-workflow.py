@@ -68,6 +68,18 @@ _STRICT_SHELL = "set -euo pipefail"
 # is how three consecutive drafts each left a different one neuterable.
 _DISCARDING_TAIL = re.compile(r"\|\||;\s*(true|:)\s*$|&\s*$")
 _DRY_RUN_FLAGS = frozenset({"-n", "--dry-run", "--just-print", "--recon"})
+# A guard body is a STRAIGHT LINE of allowlisted commands. This is deliberately an
+# allowlist and not a denylist: three review rounds enumerated short-circuit forms
+# (`exit 0`, `set +e`, `if false`, `exec`, `trap`) and each round found a sibling the
+# last one missed — `exit` with no argument, `exit 00`, `while false; do`,
+# `until true; do`, `for _ in ""; do`, `case x in`, `{ … } &`, `( … ) || true`. An
+# allowlist makes the NEXT unenumerated form fail closed by default.
+_GUARD_COMMANDS = frozenset({"[", "test", "echo", "python", "python3", "grep", "pytest"})
+_BLOCK_WORDS = frozenset({
+    "if", "then", "elif", "else", "fi", "while", "until", "for", "do", "done",
+    "case", "esac", "select", "function", "{", "}", "(", ")", "exec", "trap",
+    "eval", "source", ".", "return", "continue", "break",
+})
 _REDIRECT_FLAGS = frozenset({"-C", "--directory", "-f", "--file"})
 
 
@@ -126,7 +138,17 @@ def _job_block(text: str, job_id: str) -> str:
 
 
 def _steps(block: str) -> list[tuple[str, str]]:
-    """(name, text) per step. Only list items at the `steps:` indent count."""
+    """(name, text) per step, parsed ONLY from under the `steps:` key.
+
+    `needs:` entries live at the same 6-space indent as steps, so scanning the whole
+    job block returned them as pseudo-steps — and the chunk for the final one ran on
+    to swallow `runs-on`, `timeout-minutes` and the job-level `if:`, which made an
+    if-check report against a dependency name.
+    """
+    marker = re.search(r"^    steps:\s*$", block, re.M)
+    if not marker:
+        return []
+    block = block[marker.end():]
     out = []
     for chunk in re.findall(r"(?:^|\n)      - (.*?)(?=\n      - |\Z)", block, re.S):
         nm = re.search(r"^\s*name:\s*(.+)$", chunk, re.M)
@@ -289,7 +311,42 @@ def _has_if(step: str) -> bool:
     the single step that legitimately has one is compared for EQUALITY, since
     `… != 'true' && false` passes any substring test.
     """
-    return re.search(r"^\s*if:", step, re.M) is not None
+    # `'if': ${{ false }}` is valid YAML with identical semantics and defeats a bare
+    # `^\s*if:` — one edit would otherwise disable every if-check in this file.
+    return re.search(r"^\s*['\"]?if['\"]?\s*:", step, re.M) is not None
+
+
+def _body_is_straight_line(step: str) -> bool:
+    """Is this body `set -euo pipefail` followed only by allowlisted plain commands?
+
+    Rejects: any control-flow opener, any backgrounded statement, any `set` after the
+    first line, any `exit` whose argument is not exactly `1`, and any command word
+    outside `_GUARD_COMMANDS`. A body that cannot short-circuit cannot leave its
+    comparisons unevaluated.
+    """
+    lines = _run_lines(step)
+    if not lines or lines[0] != _STRICT_SHELL:
+        return False
+    for index, (stmt, line) in enumerate(_statements(step)):
+        if stmt == UNPARSEABLE:
+            return False
+        stripped = line.rstrip()
+        if stripped.endswith("&") and not stripped.endswith("&&"):
+            return False  # backgrounded: the parent runs on regardless
+        cmd, args = _command(stmt)
+        if index == 0:
+            if stmt != _STRICT_SHELL:
+                return False
+            continue
+        if cmd == "set":
+            return False  # only the mandatory first line may touch shell options
+        if cmd == "exit":
+            if args != ["1"]:
+                return False  # `exit`, `exit 0`, `exit 00` all short-circuit green
+            continue
+        if cmd in _BLOCK_WORDS or cmd not in _GUARD_COMMANDS:
+            return False
+    return True
 
 
 def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
@@ -347,9 +404,12 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
 
     # Both aggregator steps must be unconditional: `if: ${{ false }}` on them merges
     # a PR with every gate red, since the aggregator is the required check.
-    for _nm, _st in _steps(agg):
-        if _nm:
-            check(f"aggregator-step-no-if[{_nm}]", not _has_if(_st))
+    # Indexed labels, so an UNNAMED step still gets checked — dropping a step's name
+    # previously made it invisible to this loop AND emitted no label to notice.
+    for _i, (_nm, _st) in enumerate(_steps(agg)):
+        check(f"aggregator-step-no-if[{_nm or f'#{_i}'}]", not _has_if(_st))
+    check("aggregator-steps-all-named",
+          all(nm for nm, st in _steps(agg) if "run:" in st))
     # The guard body must reach its comparisons. Present-and-load-bearing is not
     # enough: a prepended `exit 0`, a `set +e`, or wrapping them in `if false; then`
     # leaves every comparison intact and never evaluates one. Same shape as
@@ -358,10 +418,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     guard_step = _step_named(agg, "Require every gate")
     guard_lines = _run_lines(guard_step)
     check("guard-strict-shell", bool(guard_lines) and guard_lines[0] == _STRICT_SHELL)
-    check("guard-no-early-exit", not any(
-        st.split()[:2] == ["exit", "0"]
-        or st.startswith(("set +", "if ", "return", "exec", "trap ", "trap\t"))
-        for st, _ in _statements(guard_step)))
+    check("guard-straight-line", bool(guard_step) and _body_is_straight_line(guard_step))
     _agg_audit, _ = _guard_invocations()
     # One invocation is enough: this file runs its mutation matrix on EVERY
     # invocation (see main()), so a separate `--self-test` call would be redundant
@@ -399,6 +456,16 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # A one-line total bypass: greens a job with its chain failed, or greens the
     # required check regardless of every needs.*.result.
     check("no-continue-on-error", "continue-on-error" not in text)
+    # `env: MAKEFLAGS: '-n'` turns gate-main's ~40-gate chain AND gate-sast's
+    # `make sast` into recipe printers that exit 0. `env: PYTHON: 'true'` substitutes
+    # the interpreter for the whole chain, because the Makefile uses `PYTHON ?=`.
+    # `env: PYTHONOPTIMIZE: '1'` compiles out inline asserts. All three are one line,
+    # invisible to argv-level checks, and report success.
+    check("no-workflow-env", re.search(r"^env:", text, re.M) is None)
+    # `shell: 'true {0}'` on a step — or `defaults: run: shell:` at workflow level —
+    # runs `true <script>` and leaves the body untouched. actionlint accepts any
+    # value containing `{0}`; zizmor has no rule for it.
+    check("no-defaults-block", re.search(r"^defaults:", text, re.M) is None)
     # Never do: no ${{ }} interpolation in a run: body this change writes or moves.
     check("no-interpolation-in-run", not any(
         "${{" in ln for jid in job_ids for _, st in _steps(_job_block(text, jid))
@@ -429,6 +496,9 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         check(f"python-version[{job_id}]",
               f"python-version: {EXPECTED_PYTHON}" in blk)
         check(f"no-job-permissions[{job_id}]", "permissions:" not in blk)
+        # Job-level env: only (4 spaces). Step-level env: at 8 is legitimate and used.
+        check(f"no-job-env[{job_id}]", re.search(r"^    env:", blk, re.M) is None)
+        check(f"no-step-shell[{job_id}]", re.search(r"^\s+shell:", blk, re.M) is None)
         checkouts = _checkout_steps(blk)
         check(f"checkout-present[{job_id}]", bool(checkouts))
         # Per CHECKOUT, not per job: a second unhardened checkout otherwise passes.
@@ -459,9 +529,15 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # lint-nosec-form's id_checker() expects; that probe is the real guarantee and
     # is stronger than anything a text matcher can claim. What the split can break —
     # and all this needs to catch — is the step ending up in the wrong job.
-    bandit_step = next((c for n, c in _steps(main_blk) if "bandit" in n.lower()), "")
-    check("gate-main-bandit",
-          bool(bandit_step) and bool(_invocation(bandit_step, "pip", "install")))
+    # _step_named fails closed on ambiguity; the previous first-match lookup let an
+    # earlier step merely MENTIONING bandit satisfy this while the real install was
+    # deleted. Also require the pinned-version read and the registry probe, which are
+    # what make the install load-bearing rather than nominal.
+    bandit_step = _step_named(main_blk, "bandit")
+    check("gate-main-bandit", bool(bandit_step)
+          and bool(_invocation(bandit_step, "pip", "install"))
+          and "requirements-sast.txt" in bandit_step
+          and bool(_invocation(bandit_step, "python") or "extension_loader" in bandit_step))
 
     # AC4: the predicate has exactly one consumer.
     sast_blk = _job_block(text, "gate-sast")
@@ -484,8 +560,8 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     exp_lines = _run_lines(exp_step)
     check("export-boundary-strict-shell",
           bool(exp_lines) and exp_lines[0] == _STRICT_SHELL)
-    check("export-boundary-no-set-relax", not any(
-        ln.startswith(("set +", "set -o ")) for ln in exp_lines[1:]))
+    check("export-boundary-straight-line",
+          bool(exp_step) and _body_is_straight_line(exp_step))
     check("export-boundary-tree-probe",
           bool(_invocation(exp_step, "test", "-d", "packages/agentbundle")))
     check("export-boundary-probe-not-negated", not any(
@@ -606,7 +682,9 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace(f"          python3 {SELF_NAME}\n",
                          f'          echo "python3 {SELF_NAME}"\n')),
     ("echo-wrap-bandit", "gate-main-bandit",
-     lambda t: t.replace("run: pip install bandit", 'run: echo "pip install bandit"')),
+     lambda t: t.replace('          pip install "$pin"', '          echo "pip install $pin"')),
+    ("drop-bandit-pin-read", "gate-main-bandit",
+     lambda t: t.replace("tools/requirements-sast.txt", "elsewhere.txt", 1)),
     ("echo-wrap-sast-install", "sast-install-present",
      lambda t: t.replace("pip install -r tools/requirements-sast.txt",
                          'echo "pip install -r tools/requirements-sast.txt"')),
@@ -625,12 +703,29 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}",
                          "GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-main.result }}")),
     # -- shell hardening ---------------------------------------------------------
+    # The six short-circuit siblings the re-review executed. Each audits clean under a
+    # denylist and returns exit 0 in bash with GATE_MAIN_RESULT=failure.
+    ("bare-exit-in-guard", "guard-straight-line",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"', '          exit\n          [ "$GATE_MAIN_RESULT"')),
+    ("exit-double-zero-in-guard", "guard-straight-line",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"', '          exit 00\n          [ "$GATE_MAIN_RESULT"')),
+    ("while-false-in-guard", "guard-straight-line",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"', '          while false; do\n          [ "$GATE_MAIN_RESULT"')),
+    ("until-true-in-guard", "guard-straight-line",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"', '          until true; do\n          [ "$GATE_MAIN_RESULT"')),
+    ("case-in-guard", "guard-straight-line",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"', '          case x in y)\n          [ "$GATE_MAIN_RESULT"')),
+    ("background-block-in-guard", "guard-straight-line",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"', '          { true; } &\n          [ "$GATE_MAIN_RESULT"')),
+    ("while-false-in-export-body", "export-boundary-straight-line",
+     lambda t: t.replace("          test -d packages/agentbundle",
+                         "          while false; do\n          test -d packages/agentbundle")),
     ("drop-strict-shell", "export-boundary-strict-shell",
      lambda t: t.replace("          set -euo pipefail\n", "", 1)),
     ("strict-shell-late", "export-boundary-strict-shell",
      lambda t: t.replace("          set -euo pipefail\n          test -d",
                          "          test -d")),
-    ("set-relax", "export-boundary-no-set-relax",
+    ("set-relax", "export-boundary-straight-line",
      lambda t: t.replace("          test -d packages/agentbundle",
                          "          set +o pipefail\n          test -d packages/agentbundle")),
     ("collect-only", "export-boundary-not-collect-only",
@@ -643,6 +738,18 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("unwire-dependency", "needs[gate-main]", lambda t: t.replace("      - gate-main\n", "")),
     ("rename-aggregator-id", "aggregator-present",
      lambda t: t.replace("  build-check:\n", "  aggregate:\n", 1)),
+    # The whole-workflow no-ops (post-implementation re-review blockers 2 and 3).
+    ("workflow-env-makeflags", "no-workflow-env",
+     lambda t: t.replace("\npermissions:\n", "\nenv:\n  MAKEFLAGS: '-n'\npermissions:\n", 1)),
+    ("job-env-python", "no-job-env[gate-main]",
+     lambda t: t.replace("  gate-main:\n", "  gate-main:\n    env:\n      PYTHON: 'true'\n", 1)),
+    ("defaults-shell-override", "no-defaults-block",
+     lambda t: t.replace("\npermissions:\n", "\ndefaults:\n  run:\n    shell: 'true {0}'\npermissions:\n", 1)),
+    ("step-shell-override", "no-step-shell[gate-main]",
+     lambda t: t.replace("      - name: Run make build-check\n",
+                         "      - name: Run make build-check\n        shell: 'true {0}'\n", 1)),
+    ("unname-aggregator-run-step", "aggregator-steps-all-named",
+     lambda t: t.replace("      - name: Require every gate\n", "      - env:\n", 1)),
     ("no-jobs-block", "jobs-parsed", lambda t: t.replace("\njobs:\n", "\ndisabled:\n")),
     ("drop-always", "aggregator-always", lambda t: t.replace("    if: ${{ always() }}\n", "")),
     ("always-on-step", "aggregator-always",
@@ -704,10 +811,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("sast-if-and-false", "sast-step-condition",
      lambda t: t.replace("if: steps.changes.outputs.skip_sast != 'true'",
                          "if: steps.changes.outputs.skip_sast != 'true' && false")),
-    ("exec-in-guard", "guard-no-early-exit",
+    ("exec-in-guard", "guard-straight-line",
      lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
                          '          exec true\n          [ "$GATE_MAIN_RESULT"')),
-    ("trap-in-guard", "guard-no-early-exit",
+    ("trap-in-guard", "guard-straight-line",
      lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
                          '          trap "exit 0" ERR\n          [ "$GATE_MAIN_RESULT"')),
     ("job-if-on-work-job", "no-job-if[gate-sast]",
@@ -715,10 +822,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("second-if-on-aggregator", "aggregator-always",
      lambda t: t.replace("    if: ${{ always() }}\n",
                          "    if: ${{ always() }}\n    if: ${{ false }}\n", 1)),
-    ("early-exit-in-guard", "guard-no-early-exit",
+    ("early-exit-in-guard", "guard-straight-line",
      lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
                          '          exit 0\n          [ "$GATE_MAIN_RESULT"')),
-    ("set-relax-in-guard", "guard-no-early-exit",
+    ("set-relax-in-guard", "guard-straight-line",
      lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
                          '          set +e\n          [ "$GATE_MAIN_RESULT"')),
     ("drop-guard-strict-shell", "guard-strict-shell",
