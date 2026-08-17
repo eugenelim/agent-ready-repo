@@ -67,14 +67,15 @@ def _key(reported: str | Path) -> str:
     whichever form it was handed — an absolute argument yields absolute
     `paths.scanned` entries, a relative one yields relative — so normalising
     both the targets and the reported paths keeps the mapping from silently
-    depending on how the argv was built. Paths outside the repo are returned
-    as-is, which simply will not match a target and therefore fails closed.
+    depending on how the argv was built. A path outside the repo is returned
+    as its absolute form; nothing here rejects it, because the real guard is the
+    rule's repo-relative `paths.include`, which cannot match such a file.
     """
     path = Path(reported)
     if not path.is_absolute():
         path = REPO_ROOT / path
     try:
-        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+        return path.resolve().relative_to(REPO_ROOT).as_posix()
     except ValueError:
         return path.as_posix()
 
@@ -82,20 +83,36 @@ def _key(reported: str | Path) -> str:
 def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
     """Run the rule over every target in ONE semgrep process.
 
-    Findings keyed by repo-relative path, restricted to the targets semgrep
-    reports as actually scanned. A target absent from the returned mapping was
-    NOT scanned, and callers must treat that as a failure: zero findings is an
-    ambiguous result on its own, meaning both "the rule ran and the file is
-    clean" and "the rule's paths.include excluded the file entirely".
+    Findings keyed by repo-relative path, for exactly the targets semgrep
+    reports as scanned. A target absent from the returned mapping did not match
+    the rule's `paths.include`, and callers must treat that as a failure: zero
+    findings is ambiguous on its own, meaning both "the rule applied and the
+    file is clean" and "the rule's paths.include excluded the file entirely".
 
-    One process, not one per target, because semgrep has a ~7.4s startup floor
-    and these targets are five small files — five invocations spent ~29.8s to do
-    ~9s of work. Merging them is safe in a way that batching `pip-audit` was
-    not (see docs/specs/pip-audit-batching/spec.md): semgrep parses and matches
-    each file independently, so no per-file verdict can change, and it names the
-    file in every finding, so attribution survives the merge natively instead of
-    having to be reconstructed.
+    What `paths.scanned` membership does NOT prove is that the file parsed.
+    Measured on semgrep 1.166.0: an unparseable target is still listed as
+    scanned, with exit 0, empty stderr, and empty `errors` and `skipped` arrays
+    — there is no signal to gate on. So a ratcheted script that stops parsing
+    reads as clean here. That hole predates batching and is unchanged by it;
+    tracked as `sast-semgrep-unparseable-target-reads-clean` in
+    `workspace.toml [backlog].open`.
+
+    One process, not one per target, because semgrep's startup dominates its work
+    on inputs this small — five invocations over five small files spent several
+    times longer than one invocation over all of them (measured figures in
+    docs/specs/semgrep-selftest-batching/spec.md, deliberately not restated here
+    so they cannot drift). Merging them is safe in a way that batching `pip-audit` was
+    not (see docs/specs/pip-audit-batching/spec.md): `paths.include` filtering,
+    `--max-target-bytes`, `nosemgrep`, and the per-path timeout are all applied
+    per file, so no per-file verdict can change, and semgrep names the file in
+    every finding, so attribution survives the merge natively instead of having
+    to be reconstructed.
     """
+    if not targets:
+        # Semgrep with no target argument walks the working directory, and this
+        # rule's paths.include would then match the same five files anyway — so
+        # an empty argv yields a green run that proved nothing about the argv.
+        raise RuntimeError("scan_all called with no targets — refusing to let semgrep walk the repo")
     proc = subprocess.run(
         [
             "semgrep", "--config", str(RULE),
@@ -110,18 +127,40 @@ def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
         cwd=str(REPO_ROOT),
     )
     if not proc.stdout.strip():
-        raise RuntimeError(
-            f"semgrep produced no output for {len(targets)} targets — stderr: {proc.stderr}"
-        )
+        listed = ", ".join(_key(t) for t in targets)
+        raise RuntimeError(f"semgrep produced no output for [{listed}] — stderr: {proc.stderr}")
     payload = json.loads(proc.stdout)
     findings: dict[str, list[dict]] = {
         _key(path): [] for path in payload.get("paths", {}).get("scanned", [])
     }
     for hit in payload["results"]:
-        # A finding on a path semgrep did not list as scanned would mean the two
-        # halves of its own report disagree; surface that rather than swallow it.
-        findings.setdefault(_key(hit["path"]), []).append(hit)
+        key = _key(hit["path"])
+        if key not in findings:
+            # A finding on a path semgrep did not list as scanned means the two
+            # halves of its own report disagree. Raise rather than create the
+            # key, which would hand a caller findings for an unscanned file.
+            raise RuntimeError(f"semgrep reported a finding in unscanned {key}")
+        findings[key].append(hit)
     return findings
+
+
+def unrequested(targets: list[Path], findings: dict[str, list[dict]]) -> list[str]:
+    """Scanned paths nobody asked for — i.e. semgrep widened the argv.
+
+    The complement (a requested target that was *not* scanned) is left to
+    `hits_for`, which can name the failing case; this half has no test name to
+    attach to, so it is reported once from `main`.
+
+    Deliberately NOT a proof that the target argv is load-bearing, and measured
+    not to be: strip the target arguments and semgrep walks the working
+    directory instead, where this rule's `paths.include` rediscovers exactly the
+    same five files — same verdict, nothing extra, so this check cannot fire.
+    The rule's `paths.include` is the authoritative scope; the target list is
+    redundant with it by construction. This stays as defence in depth for the
+    case where the two diverge — a new file dropped into the fixtures directory,
+    which the glob would match and nobody requested.
+    """
+    return sorted(set(findings) - {_key(t) for t in targets})
 
 
 def hits_for(name: str, target: Path, findings: dict[str, list[dict]]) -> list[dict] | None:
@@ -192,8 +231,24 @@ def main() -> int:
         print(f"FAIL: rule not found at {RULE}", file=sys.stderr)
         return 1
 
+    # Guard the fixtures explicitly, the way test_fixed_scripts_silent guards its
+    # own subjects. Without this a renamed fixture is dropped from the argv and
+    # the only diagnosis is hits_for's "check paths.include in the rule", which
+    # points at the rule when the file is simply gone.
+    missing = [p for p in (FIXTURES / "positive.py", FIXTURES / "negative.py") if not p.is_file()]
+    for path in missing:
+        fail(f"{path.name} fixture is present", f"fixture not found at {path} — path drifted?")
+    if missing:
+        print(f"\n{ran - len(failures)}/{ran} passed")
+        print("Failed:", ", ".join(failures), file=sys.stderr)
+        return 1
+
     targets = [FIXTURES / "positive.py", FIXTURES / "negative.py", *FIXED_SCRIPTS]
     findings = scan_all([t for t in targets if t.is_file()])
+
+    extra = unrequested([t for t in targets if t.is_file()], findings)
+    if extra:
+        fail("semgrep scanned only the requested targets", f"also scanned {extra}")
 
     test_positive_fixture_fires(findings)
     test_negative_fixture_silent(findings)

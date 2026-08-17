@@ -1,7 +1,7 @@
 # Plan: semgrep-selftest-batching
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn — while its Status is `Drafting`
@@ -27,13 +27,16 @@ an empty finding list, and a "zero findings" assertion would pass without the ru
 having examined anything. Making absence-from-scanned a failure converts that whole
 class of bug from a silent green into a loud red.
 
-Path-key construction is the one place this can go wrong. Semgrep reports paths
-relative to its working directory, which the script already pins to `REPO_ROOT`, so the
-key is `target.relative_to(REPO_ROOT).as_posix()`. Fail-closed by construction: a
-mismatch means the target is absent from the mapping, which is a failure.
+Path-key construction is the one place this can go wrong, and it did during
+implementation: semgrep echoes paths back in whichever form it was handed, so passing
+absolute targets yielded absolute `paths.scanned` entries that matched no
+repo-relative key, and every assertion failed at once. Rather than depend on how the
+argv is built, `_key()` normalises **both** sides to a repo-relative POSIX path. A
+mismatch therefore leaves the target absent from the mapping, which `hits_for` reports
+as a named failure — so this class of bug is loud, not silent.
 
-Verification is mutation, not inspection — see the spec's Testing Strategy. A green run
-proves nothing about a test's ability to fail.
+Verification is mutation, not inspection — see § Verification below. A green run proves
+nothing about a test's ability to fail.
 
 ## Tasks
 
@@ -61,28 +64,73 @@ construction check is the mutation pass below.
 - Leave the skip-when-absent branch, the missing-rule branch, the `ok`/`fail` helpers,
   the counters, and the summary block exactly as they are.
 
-**Done when:**
-- `python3 tools/test-semgrep-argv-boundary.py` exits 0 in under 15s (baseline 29.8s).
-- Exactly one `semgrep` process is spawned, confirmed by counting invocations.
-- **Mutation 1:** reverting the fix in one ratcheted production script makes the test
-  exit 1 naming that script.
-- **Mutation 2:** neutering the rule's pattern makes the positive-fixture case exit 1.
-- **Mutation 3:** corrupting the path-key construction makes the test exit 1 rather
-  than passing vacuously.
-- `make sast`, `python3 tools/lint-ruff.py`, and
-  `python3 -m pytest tools/test_build_gate_chain.py -q` are green.
+**Done when:** every row of § Verification below is recorded, and `make sast`,
+`python3 tools/lint-ruff.py` and `python3 -m pytest tools/test_build_gate_chain.py -q`
+are green.
+
+## Verification
+
+Mutations are run by patching the loaded module in a harness rather than editing files,
+so no mutation can be left behind in the worktree. Each must produce a non-zero exit.
+
+| # | Mutation | Expected | Result |
+|---|---|---|---|
+| M1 | A ratcheted target gains a finding (the known-vulnerable `positive.py` added to `FIXED_SCRIPTS`) | zero-findings assertion fails | detected, exit 1 |
+| M2 | Rule neutered with an impossible pattern | positive-fixture assertion fails | detected, exit 1 |
+| M3 | `_key` corrupted to a constant | must not pass vacuously | detected, exit 1 |
+| M4 | One entry dropped from the rule's `paths.include` | **named** failure, not a traceback | detected, exit 1, named |
+| M5 | Every target missing | refuses; semgrep must not walk the repo | detected, exit 1, named |
+| M6 | Target argv silently stripped | — | **not detected; see below** |
+| C1 | `semgrep` absent from `PATH` | skip message, exit 0 | as specified |
+| C2 | Rule file missing | exit 1 | as specified |
+
+Also verified: exactly **one** semgrep invocation over five targets, counted by
+patching `subprocess.run`; and the asymmetric-key bug (normalising targets but not
+reported paths) was hit for real during implementation and failed loudly rather than
+passing.
+
+**M6 is a known non-detection, not a defect to fix.** Stripping the target arguments
+makes semgrep walk the working directory, where the rule's `paths.include` rediscovers
+exactly the same five files and returns an identical verdict — so the argv is redundant
+with the rule's scope and no assertion can prove otherwise. The first attempt at this
+review finding added an `unrequested()` check claiming to make the argv load-bearing;
+M6 disproved that claim, and the check was kept as defence in depth (a new file in the
+fixtures directory would match the glob and be caught) with its docstring corrected.
+Recording it here because a check that cannot fail, presented as a guarantee, is worse
+than no check.
+
+**M1 is a proxy for the AC's wording.** The acceptance criterion asks for "a ratcheted
+target that gains a finding"; rather than edit a projected pack script — which would
+risk `make build-self` drift — the known-vulnerable fixture was added to the ratchet
+list, exercising the same assertion path a real regression would hit.
 
 ## Risks
 
 - **A faster self-test that can no longer fail is worse than the slow one.** This is the
-  whole risk of the change, and the reason three mutations gate it rather than a passing
-  run. Mutation 3 targets the failure mode the refactor itself introduces.
+  whole risk of the change, and the reason the mutation battery gates it rather than a
+  passing run. M3 targets the failure mode the refactor itself introduces; M6 is the
+  reminder that a check can look like a guarantee and be incapable of firing.
 - **`tools/` is in `SAST_DIRS`**, so this diff makes the run SAST-relevant and
   `gate-sast` executes — the intended safety property, and also why CI feedback is slow.
-- Semgrep's `paths.scanned` semantics are load-bearing for the reached-the-file
-  assertion. Verified by probe for the batched shape; a semgrep major-version bump is a
-  re-probe point (`tools/requirements-sast.txt` pins `semgrep>=1.166,<2`).
+- Semgrep's `paths.scanned` semantics are load-bearing for the covered-the-file
+  assertion, and they carry a known limit: membership proves `paths.include` matched,
+  **not** that the file parsed. Verified by probe in both directions; a semgrep
+  major-version bump is a re-probe point (`tools/requirements-sast.txt` pins
+  `semgrep>=1.166,<2`).
 
 ## Changelog
 
 - 2026-08-17: initial plan.
+- 2026-08-17: revised after the adversarial pass. Four substantive changes. (1) The
+  "the rule reached the file" claim was narrowed to a `paths.include` guarantee —
+  probing showed semgrep reports an unparseable target as scanned with no signal of any
+  kind (empty `errors`, empty `skipped`, empty stderr, exit 0), so the reviewer's
+  proposed `payload["errors"]` fix is not implementable on 1.166.0; the hole is
+  pre-existing and is now tracked as `sast-semgrep-unparseable-target-reads-clean`.
+  (2) The two fixtures gained explicit presence guards, and `scan_all` now refuses an
+  empty target list rather than letting semgrep walk the repo and rediscover the same
+  files. (3) `findings.setdefault` was replaced with an explicit raise, because
+  `setdefault` created the key its own comment said it would surface. (4) The
+  wall-clock acceptance bar was dropped in favour of the invocation count after machine
+  load reached 60 on 10 cores and made absolute timings undependable; the reported
+  figure is now a load-robust interleaved A/B ratio.

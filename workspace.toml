@@ -2009,6 +2009,24 @@ open = [
   # Fix: repoint the comment at workspace.toml, and widen the slug above to name
   # the evals file.
   {slug = "sast-semgrep-cve-allowlist-pointer-stale", summary = "Makefile:259 points the four --ignore-vuln suppressions at docs/backlog.md, which is a tombstone -- their only recorded expiry is dangling", source = "spec/pip-audit-batching security review"},
+  # Semgrep 1.166.0 gives NO signal for a target it could not parse: the file is
+  # listed in paths.scanned, contributes zero findings, and exit is 0 with empty
+  # stderr and empty `errors` / `skipped` arrays. Verified directly against a
+  # deliberately-unparseable file placed inside the rule's paths.include.
+  # Consequence: any semgrep rule scoped as a ratchet reads a script that stopped
+  # parsing as clean. tools/test-semgrep-argv-boundary.py is the case that
+  # matters, because it is the SAST gate's only proof-of-life for the custom
+  # argv-path-boundary rule -- a green ratchet there is what licenses trusting
+  # the main scan's silence.
+  # PRE-EXISTING: the per-target version of that self-test had the identical hole
+  # (it also read only paths.scanned and results). spec/semgrep-selftest-batching
+  # found it while batching and narrowed its own claims to match, rather than
+  # asserting a guarantee the data does not support.
+  # Fix: no JSON or exit-code signal exists to gate on, so the check has to be
+  # independent -- compile each ratcheted target with ast.parse (or py_compile)
+  # in the self-test before trusting its silence. Cheap and offline. Re-probe on
+  # a semgrep major bump (pinned semgrep>=1.166,<2) in case a signal is added.
+  {slug = "sast-semgrep-unparseable-target-reads-clean", summary = "Semgrep lists an unparseable file as scanned with zero findings and no error signal, so a ratcheted script that stops parsing reads as clean", source = "spec/semgrep-selftest-batching adversarial review"},
   # lint-nosec-form.py's unknown-id check degrades silently when bandit's
   # registry is unreachable: id_checker() catches Exception and returns None,
   # and main() then appends " (bandit absent: IDs not resolved)" to an EXIT-0
