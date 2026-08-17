@@ -1,6 +1,6 @@
 # Spec: SAST/SCA tooling (Bandit + pip-audit + Semgrep)
 
-- **Status:** Shipped (superseded in part by [ADR-0084](../../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) — the Bandit suppression-comment form this spec teaches was reversed; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0086](../../adr/0086-split-the-sast-gate-into-its-own-ci-job.md) — this spec **teaches** that SAST is chained into `make build-check` in CI; the leg is now its own `gate-sast` job. The Makefile chain it dogfoods is deliberately intact, so its Process point holds locally; everything else stands) (superseded in part by [ADR-0084](../../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) — the Bandit suppression-comment form this spec teaches was reversed; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017

@@ -386,9 +386,13 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         # The bandit suppression-comment form (ADR-0084). bandit.yaml's header
         # is the canonical statement of the rule and of why this runs here
-        # rather than in `make sast`; the short version is that it needs no
-        # scanner and SKIP_SAST would disable it on exactly the diffs where a
-        # stray suppression goes unscanned.
+        # rather than in `make sast`. Correction (ADR-0086 / AC14): it DOES need a
+        # scanner — lint-nosec-form resolves bandit's test ids and, when bandit is
+        # absent, sets a caveat and exits 0, dropping its unknown-id check rather
+        # than failing. #986 provisions bandit unconditionally in `gate-main`, at the
+        # pinned version and with a registry-resolution probe, precisely so this leg
+        # is not inert. The older claim that it "needs no scanner" was the falsehood
+        # that fail-open depended on.
         #
         # The form is not spelled out in this comment on purpose: bandit
         # tokenises this file too, so a comment quoting the literal directive IS
@@ -412,6 +416,21 @@ def build_check(args: argparse.Namespace) -> int:
         _script_step(
             "test-build-check-windows-workflow",
             "tools", "test-build-check-windows-workflow.py",
+        ),
+        # spec/ci-gate-parallelization AC13: the posture test for build-check.yml's
+        # own job graph. Runs its mutation matrix first — an assertion whose mutation
+        # never executes is an unverified assertion, and this file is the local-parity
+        # path for the copy that runs inside the aggregator job.
+        _script_step(
+            "test-build-check-workflow",
+            "tools", "test-build-check-workflow.py",
+        ),
+        # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
+        # ADR-0086, so nothing else would notice it being deleted or made
+        # unreachable. Skips cleanly where `make` is absent.
+        _script_step(
+            "assert-sast-chain-reachable",
+            "tools", "assert-sast-chain-reachable.py",
         ),
         _script_step(
             "lint-ci-parity",

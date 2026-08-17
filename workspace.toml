@@ -241,6 +241,11 @@ queue   = [
   {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
   {path = "docs/specs/site-browser-quality-gate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Gate emitted-site responsiveness, accessibility, and navigation behavior", needs = []},
   {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = [{type = "local", kind = "spec", path = "docs/specs/site-browser-quality-gate/spec.md"}]},
+  # CI throughput. Independent of the project-knowledge chain above — it touches
+  # only .github/workflows/, the Makefile's gate_verdict banner, and docs/adr/.
+  # The critical path is set by one serial job, so the fix is job layout, not
+  # making any gate faster; the export-boundary gate's own cost is deferred.
+  {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -485,6 +490,159 @@ open = [
   # agreed to be non-fatal and that lint's output contract is versioned; no
   # tracked dependency, so no `needs` edge.
   {slug = "brief-backlink-slug-form-needs-lint-note", source = "spec-less brief-path provenance fix (review concern 5)"},
+  # AC11 of spec/ci-gate-parallelization asks for the post-split PR critical path
+  # to be MEASURED, not assumed — the split's whole justification is a wall-clock
+  # number and no gate can assert it. The measurement needs a real post-merge run
+  # of build-check.yml (three work jobs + aggregator) and
+  # catalogue-tooling-ci-gates.yml (Gate A-tests / Gate A-packs), necessarily after the
+  # spec ships; CONVENTIONS § "A spec directory freezes as a unit" then makes
+  # spec.md unwritable, so the result lands HERE rather than back in the AC.
+  # Ceilings live in AC11 — do not restate them here, they drifted once already.
+  # To close: read per-job durations from one post-merge run of each workflow,
+  # compare against AC11's ceilings and spec.md § Measured baseline, and record.
+  # A miss inside AC11's stated noise band is measurement noise (that spec's
+  # samples are single runs) — re-measure on a second run before concluding
+  # anything. A larger miss needs a diagnosis: likeliest causes are per-job
+  # provisioning above assumption A1's figure, or GitHub not
+  # scheduling the four jobs concurrently (A3). Repo-wide all-green is bounded by
+  # docs.yml and by Windows cold-runner variance, neither in that spec's scope —
+  # report it, don't gate on it.
+  # PR-RUN MEASUREMENT (PR #990, commit after the MAKEFLAGS harness fix), against
+  # AC11's ceilings — both MET:
+  #   merge-blocking (build-check):        430-450s -> 185s   MET vs AC11
+  #   jobs this change touches:            450s     -> 185s   MET vs AC11
+  #   Gate A (catalogue-tooling):          253-264s -> 134s
+  #   repo-wide all-green:                 450s     -> ~202s, bounded by docs.yml
+  #     (out of scope, reported not gated — the spec predicted exactly this bound)
+  # Per-job: gate-main 185s, gate-sast 147s, gate-export-boundary 136s,
+  # aggregator 8s. gate-main and gate-sast within ~40s of each other across runs,
+  # confirming the "do not split further" decision.
+  #
+  # STILL OPEN, which is why this entry stays open: (1) the POST-MERGE push-to-main
+  # run, which exercises a path the PR run cannot; (2) AC15's non-relevant-diff
+  # class, unreachable from that branch because SAST_CONFIG contains both Makefile
+  # and build-check.yml — needs a docs/**-only PR after merge. Do NOT narrow
+  # SAST_CONFIG to manufacture it (spec Boundaries § Never do).
+  {slug = "ci-gate-parallelization-critical-path-measurement", source = "spec/ci-gate-parallelization AC11"},
+  # packs/core/tests/skills/work-loop/test_statelock.py's
+  # `concurrent-reclaimers-one-holder` case failed once in CI on 2026-08-17
+  # ("two holders after a reclaim race"), then PASSED on a re-run of the same
+  # commit and 3/3 locally. So it is non-deterministic, not a regression from the
+  # commit it appeared on — that commit touched one unrelated file
+  # (tools/test-build-check-workflow.py).
+  #
+  # Recorded rather than dismissed, because "flaky" is a conclusion and only
+  # half of one is evidenced here. What the re-run proves is non-determinism.
+  # What it does NOT prove is that spec/ci-gate-parallelization's Gate A split
+  # left the race's PROBABILITY unchanged: those pack/hook suites used to run as
+  # a step inside `agentbundle-tests`, after ~127s of other work on a warm
+  # runner, and now run first in their own `pack-hook-tests` job. That is exactly
+  # the kind of timing change a reclaim-race test is sensitive to. A dedicated
+  # runner plausibly makes it LESS likely, not more — but nothing here measured
+  # it either way, and this is the first observed failure of that case.
+  #
+  # Next action: re-run the case under load in both job shapes before either
+  # fixing the lock or calling the test flaky. Do not quarantine it first — a
+  # quarantined concurrency test is a deleted one.
+  {slug = "statelock-reclaim-race-flake", source = "CI observation 2026-08-17, spec/ci-gate-parallelization"},
+  # AC2's apply step. The required set is ["make build-check"] with strict = true
+  # (API-verified 2026-08-17, once /protection recovered from an all-session 503). The
+  # three work jobs are added POST-MERGE, because a required check cannot precede the job
+  # that reports it — adding them first leaves every PR pending forever.
+  #
+  # Confirmed while reading it: there are NO stale "Gate A — agentbundle tests (…)"
+  # entries in the required set, so this spec's Gate A rename cannot orphan a required
+  # check. That was an open worry; it is closed.
+  {slug = "ci-gate-parallelization-branch-protection-widening", source = "spec/ci-gate-parallelization AC2"},
+  # Five of six adversarial review rounds against tools/test-build-check-workflow.py had
+  # YAML-MODELLING root causes, not security-reasoning ones: scalar folding, duplicate
+  # keys, an inferred base indent, positive-substring-over-a-block, and key spelling
+  # encodings. Each was a consequence of re-implementing a YAML parser in regex.
+  # yaml.safe_load plus a structural comparison would delete _key_re, _key_values,
+  # _sub_mapping, _step_key_values, _run_body's three-style folding, _steps, _job_ids and
+  # both *-modelled fail-closed checks, replacing them with ONE assumption (PyYAML's
+  # resolution matches the Actions parser's) that is smaller than the set it retires.
+  #
+  # NOT done in that spec, deliberately: it reverses the file's documented stdlib-only
+  # rationale and adds an import to the job wearing the sole required check. Owner chose
+  # to ship stdlib. Before doing this, deliberately check PyYAML-vs-Actions equivalence on
+  # duplicate keys, escaped keys, explicit keys and anchors — do not assume it.
+  {slug = "ci-gate-parallelization-posture-test-yaml-parser", source = "review round 5, spec/ci-gate-parallelization"},
+  # AC3 of spec/ci-gate-parallelization makes the aggregator job wear the sole
+  # required status check. `pull_request` evaluates build-check.yml AND its posture
+  # test (tools/test-build-check-workflow.py) from the PR's own ref, so a single
+  # coordinated PR that edits the workflow's needs:, the aggregator's env: block,
+  # its != "success" comparisons, and the posture test together can present a green
+  # required check with gates that did not run. Recorded as CLOSABLE, not inherent —
+  # writing "inherent" into an ADR's accepted consequences is how a fixable gap
+  # becomes permanent. Two mechanisms bound it, neither in that spec's scope
+  # (branch-protection changes are a stated non-goal there): a repository ruleset
+  # requiring workflows resolved from a PINNED ref, so a PR cannot define the check
+  # that gates it; and a CODEOWNERS entry for .github/workflows/** plus the posture
+  # test, making the bypass need a second human. This repo has no CODEOWNERS today.
+  # To close: decide between the two (or both) and apply.
+  {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3"},
+  # tools/test-ci-security-workflow.py asserts ci-security.yml's security posture
+  # (permissions, pull_request_target absence) — and is invoked by NOTHING. Found
+  # while looking for a precedent to model a new posture test on: only
+  # test-build-check-windows-workflow.py is genuinely wired (via
+  # tools/repo/build_gate_chain.py, and pinned in test_build_gate_chain.py's
+  # EXPECTED_SCRIPT_STEPS). A shipped AC in spec/secret-scanner-for-api-key-workflows
+  # claims that file gates ci-security.yml, so the claim is live and false. This is
+  # the repo's own "wire it explicitly or it never gates" failure, in a file whose
+  # whole job is to prevent it. To close: wire it into the gate chain (and update
+  # EXPECTED_SCRIPT_STEPS + its pinned count), or delete it and correct the AC.
+  # Second, smaller item, recorded so the next author does not copy the shape:
+  # ci-security.yml documents "cancel-in-progress gated to pull_request only —
+  # push-to-main scans run to completion", and codeql.yml uses unconditional
+  # cancel-in-progress on a push trigger. Both rest on a false belief — GitHub
+  # allows one running plus one PENDING run per concurrency group regardless of
+  # that flag, so a third queued run cancels the pending one. See AC12 of
+  # spec/ci-gate-parallelization for the group expression that avoids it.
+  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13"},
+  # permissions: contents: read + persist-credentials: false for
+  # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions
+  # block. Deliberately NOT bundled into spec/ci-gate-parallelization's Gate A
+  # split even though that change already has the file open: this is a seven-gate
+  # workflow whose Gates D and E upload and download an artifact, and nothing in
+  # that spec reviewed Gates B–G for token use. (The artifact actions use
+  # ACTIONS_RUNTIME_TOKEN rather than GITHUB_TOKEN, so contents: read is very
+  # likely safe — but "very likely safe" is a verification, not the mechanical
+  # ride-along the bundled-fixes carve-out admits.) To close: review all seven
+  # gates for token use, artifact movement and git writes, then apply.
+  {slug = "catalogue-tooling-workflow-hardening", source = "spec/ci-gate-parallelization AC12"},
+  # DECISION, recorded so it is not re-proposed: a GitHub merge queue was evaluated
+  # as the fix for branch protection's strict:true rebase-and-rerun thrash and was
+  # REJECTED. Two reasons, in order. (1) It does not address the complaint that
+  # motivated spec/ci-gate-parallelization — a merge queue leaves per-PR feedback
+  # latency exactly as it is; only job parallelism reduces the wait between pushing
+  # and seeing green. These are separate problems and conflating them cost a round of
+  # bad advice. (2) Requiring a queue makes GitHub's direct merge API
+  # (PUT /repos/{owner}/{repo}/pulls/{n}/merge) fail, so tool harnesses with a
+  # raise-PR / merge button break rather than degrade; integrating means moving them
+  # to the enqueuePullRequest GraphQL mutation. If that integration cost is ever paid,
+  # the setup is: add a `merge_group:` trigger to build-check.yml (without it the
+  # queue never sees a green required check and every PR is ejected on timeout), set
+  # strict=false since the queue supersedes it, and set the queue's status-check
+  # timeout well above the slowest required check.
+  {slug = "merge-queue-rejected-tooling-integration", source = "spec/ci-gate-parallelization Objective"},
+  # project-knowledge --capture TIMES OUT on this repo, and reports the timeout as a
+  # capacity/request problem. Reproduced: a well-formed 2.5KB observation (well under
+  # the 16KB capture_event_bytes budget) takes 33.4s against script_seconds=30 and
+  # returns {"reason_code":"journal_capacity","recovery_action":"fix_request",
+  # "retryable":false}. Both fields are wrong and actively misleading: nothing about
+  # the request needs fixing, it is not a capacity breach, and a deadline breach IS
+  # retryable. The refusal comes from _remaining_timeout() in knowledge_store.py,
+  # which reuses the journal_capacity code for an elapsed deadline. Git is not the
+  # cause — `git ls-files` and `git status` are ~0.2-0.4s here, and the process burns
+  # only ~2.4s of system time across 33s wall, so it is waiting on something.
+  # Consequence: the work-loop's Capture learnings gate cannot complete on this repo,
+  # so lessons are silently not captured by anyone who does not read the exit code.
+  # To close: (1) give a deadline breach its own reason_code with retryable=true and a
+  # recovery_action that is not fix_request; (2) find what consumes the 30s (suspect a
+  # lock acquire or a filesystem walk, not git) and either speed it up or raise
+  # script_seconds for capture.
+  {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings"},
   # The publish job's environment gate asks a human to release executable plugin
   # code adopters install, but GitHub's approval UI shows only the environment
   # name and a comment box — nothing about what is being published. A summary

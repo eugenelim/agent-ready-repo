@@ -354,10 +354,16 @@ class CiPytestProvisioningTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/build-check.yml").read_text(encoding="utf-8")
 
-        install = workflow.index(
+        # Scoped to the gate-main block. Both offsets used to be file-wide
+        # index() calls, and after spec/ci-gate-parallelization split this workflow
+        # the install string exists in gate-main AND gate-export-boundary — the pair
+        # compared the right occurrences only because gate-main is declared first.
+        block = workflow.split("  gate-main:\n", 1)[1].split("\n  gate-sast:\n", 1)[0]
+
+        install = block.index(
             "run: python -m pip install -e packages/agentbundle/ pytest"
         )
-        build_check = workflow.index("- name: Run make build-check")
+        build_check = block.index("- name: Run make build-check")
 
         self.assertLess(install, build_check)
 
@@ -498,6 +504,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-nosec-form.py",
     "tools/test-lint-ci-parity.py",
     "tools/test-build-check-windows-workflow.py",
+    "tools/test-build-check-workflow.py",
+    "tools/assert-sast-chain-reachable.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
     "tools/repo/check_contract_drift.py",
