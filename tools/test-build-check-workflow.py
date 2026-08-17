@@ -151,6 +151,10 @@ AGGREGATOR_RUN_STEPS = (
 REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary")
 
 EXPECTED_PYTHON = '"3.11"'
+# The runner is the outermost layer this file can reach: it decides what every
+# pinned statement executes ON. A self-hosted value hands that to whoever runs the
+# runner, so it is compared for equality and required to appear exactly once.
+EXPECTED_RUNNER = "ubuntu-latest"
 EXPECTED_CONCURRENCY_GROUP = (
     "build-check-${{ github.event_name == 'pull_request' "
     "&& github.ref || github.run_id }}"
@@ -1076,13 +1080,25 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
           re.search(r"^  pull_request:\s*$", text, re.M) is not None)
     check("trigger-push-main",
           re.search(r"^  push:\s*\n    branches: \[main\]\s*$", text, re.M) is not None)
-    check("concurrency-group", EXPECTED_CONCURRENCY_GROUP in text)
-    check("concurrency-cancel",
-          "cancel-in-progress: ${{ github.event_name == 'pull_request' }}" in text)
+    # The last instance of the ladder's shape, found by applying its own prediction rather
+    # than by waiting for a reviewer: a POSITIVE substring check over a block is satisfied
+    # by that text appearing ANYWHERE in the block — including inside a `run:` body. So
+    # `runs-on: [self-hosted, attacker]` plus `echo "runs-on: ubuntu-latest"` in a body
+    # passed, which hands the attacker the machine every pinned statement executes on —
+    # strictly worse than every bypass found before it. A duplicate key (last-wins) passed
+    # for the same reason. Both are now exactly-one key-value comparisons.
+    check("concurrency-block", _sub_mapping(text, "concurrency") == {
+        "group": EXPECTED_CONCURRENCY_GROUP,
+        "cancel-in-progress": "${{ github.event_name == 'pull_request' }}",
+    })
+    check("one-top-permissions", len(_key_values(text, "permissions", "")) == 1)
     for job_id in job_ids:
         blk = _job_block(text, job_id)
-        check(f"timeout[{job_id}]", "timeout-minutes:" in blk)
-        check(f"runs-on[{job_id}]", "runs-on: ubuntu-latest" in blk)
+        # Exactly one, at job level, equal to the expected value — see the concurrency
+        # comment above for why a substring over the block was not enough.
+        check(f"timeout[{job_id}]", len(_key_values(blk, "timeout-minutes", "    ")) == 1)
+        check(f"runs-on[{job_id}]",
+              _key_values(blk, "runs-on", "    ") == [EXPECTED_RUNNER])
         # Same class as runs-on: an environment substitution the gates then execute
         # inside. A container missing make/python fails closed, but the substitution
         # itself is unreviewed by anything else in this repo.
@@ -1480,9 +1496,9 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("      - uses: actions/checkout@"
                          "11d5960a326750d5838078e36cf38b85af677262\n        with:\n"
                          "          fetch-depth: 0\n          persist-credentials: false\n", "", 2)),
-    ("head-ref-concurrency", "concurrency-group",
+    ("head-ref-concurrency", "concurrency-block",
      lambda t: t.replace(EXPECTED_CONCURRENCY_GROUP, "build-check-${{ github.head_ref }}")),
-    ("drop-cancel-gate", "concurrency-cancel",
+    ("drop-cancel-gate", "concurrency-block",
      lambda t: t.replace("cancel-in-progress: ${{ github.event_name == 'pull_request' }}",
                          "cancel-in-progress: true")),
     ("pull-request-target", "no-pull-request-target",
@@ -1681,6 +1697,24 @@ _MUTATIONS: list[tuple[str, str, object]] = [
          t, "build-check",
          "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
          "      - uses: actions/checkout@main")),
+    # -- the runner, and other positive substring checks a run body could satisfy ---
+    ("self-hosted-runner-with-decoy-text", "runs-on[gate-main]",
+     lambda t: t.replace("  gate-main:\n    runs-on: ubuntu-latest",
+                         "  gate-main:\n    runs-on: [self-hosted, attacker]", 1)
+                .replace("        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
+                         '        run: echo "runs-on: ubuntu-latest" && '
+                         "make build-check PACKS_DIR=packs SAST_DELEGATED=1", 1)),
+    ("duplicate-runs-on-last-wins", "runs-on[gate-sast]",
+     lambda t: t.replace("  gate-sast:\n    runs-on: ubuntu-latest",
+                         "  gate-sast:\n    runs-on: ubuntu-latest\n"
+                         "    'runs-on': [self-hosted, x]", 1)),
+    ("concurrency-group-text-in-a-body", "concurrency-block",
+     lambda t: t.replace(f"  group: {EXPECTED_CONCURRENCY_GROUP}",
+                         "  group: build-check-static", 1)),
+    ("duplicate-top-permissions", "one-top-permissions",
+     lambda t: t.replace("permissions:\n  contents: read\n",
+                         "permissions:\n  contents: read\n"
+                         "permissions:\n  contents: write\n", 1)),
     # -- the action's INPUTS decide what every pinned statement runs against ------
     ("ref-substitutes-the-tree", "checkout-with[gate-main]",
      lambda t: _sub_in_job(t, "gate-main", "          fetch-depth: 0",
