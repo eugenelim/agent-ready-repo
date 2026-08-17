@@ -111,3 +111,26 @@ re-pinning the baseline is expected rather than an interruption.
   says so, and names the behavioural test that replaces the exemplar.
 - The loader-identity test is no longer skipping — two of three copies exist and
   compare equal after normalization.
+
+## W5 · T3 + T6
+
+- **The headline property, measured.** Re-ran the read-only topology probe over the
+  same nine transition paths used for the before-state: **0 child Python processes**
+  on every one, exit codes identical (0 for the eight legal transitions, 1 for the
+  failing guard). `sys.executable` in `loop-engine.py` went 16 → 0 references; the
+  only remaining mention is a comment recording what was removed. One
+  `subprocess.run` survives — `git rev-parse`, with its timeout.
+- **The engine's duplicate `_read_managed_json` is gone.** It delegates to the shared
+  reader now. Worth noting it was the copy *without* `O_NONBLOCK`, so leaving it would
+  have left the engine's own `engine-state.json` read able to block on a FIFO.
+- **Two bugs in the parity table, both mine.** The argv was inverted — `loop-cohort`
+  takes its verb first and the spec dir after, `check-spec-status` the reverse — so
+  every cohort row failed with an argparse "invalid choice" that had nothing to do
+  with parity. An explicit `SPEC` placeholder in the table replaces the guess. Then
+  three rows still failed because their SUCCESS message interpolates
+  `spec_dir.name`, which `normalize()` cannot strip (it is a basename, not a path);
+  those rows now pin the generator's directory name as table data, rather than
+  re-capturing the goldens to match — which is the thing that must never happen.
+- **AC17's ordering assertion is mutation-verified.** Swapping the run-ID preflight
+  with the transition-table check turns it red; so does removing a single anchor,
+  which is the vacuity mode `e6d4c14a` warns about.

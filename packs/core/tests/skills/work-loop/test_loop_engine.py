@@ -3227,3 +3227,147 @@ def test_check_spec_status_no_flags_defaults_shipped_spec_md(tmp: Path) -> None:
 
 
 # ── runner ────────────────────────────────────────────────────────────────
+
+
+# ══ in-process guards: transition ordering and the guard boundary (T3) ══════
+#
+# AC17 is the rail the `Never do` reordering prohibition is measured against, so it
+# needs an artifact rather than prose. Two shapes, because neither alone is enough:
+# double-violation cases prove which refusal *wins* at runtime, and a source-order
+# assertion covers the steps that have no callee to observe.
+
+# The eleven steps cmd_transition holds the lock across, in order. Each entry is
+# (label, source anchor) — a substring that must appear in cmd_transition's body.
+_TRANSITION_STEPS = [
+    ("spec-dir re-resolution", "_resolve_spec_dir(args.spec_dir)"),
+    ("--wave-index validation", "does not accept --wave-index"),
+    ("crash recovery: engine-state tmp", "_recover_engine_state_tmp(spec_dir)"),
+    ("crash recovery: pending outbox", "_recover_pending("),
+    ("engine-state read", "_read_engine_state(spec_dir)"),
+    ("schema_version check", "unsupported schema_version"),
+    ("run-ID preflight", "_run_id_preflight(spec_dir, run_id)"),
+    ("transition-table validation", "illegal transition"),
+    ("CODE schedule pre-check", "_schedule_check_current(spec_dir)"),
+    ("event-specific guard", "guard_fn(spec_dir, state, event_args)"),
+    ("state decision", "_write_engine_state_atomic(spec_dir, new_state)"),
+]
+
+
+def _cmd_transition_source() -> str:
+    import ast
+
+    tree = ast.parse(ENGINE.read_text(encoding="utf-8"))
+    fn = next(n for n in ast.walk(tree)
+              if isinstance(n, ast.FunctionDef) and n.name == "cmd_transition")
+    lines = ENGINE.read_text(encoding="utf-8").split("\n")
+    return "\n".join(lines[fn.lineno - 1:fn.end_lineno])
+
+
+def test_transition_steps_appear_in_the_documented_order() -> None:
+    """All eleven anchors resolve, and in AC17's order.
+
+    The vacuity guard is the point. Four of these steps — wave-index validation, the
+    schema check, transition-table validation, the state decision — have no callee to
+    observe at runtime, so the assertion keys on literals. An anchor that silently
+    stopped matching would drop out of a sorted list that then always passes, which is
+    the antipattern `e6d4c14a` records: "a gate whose scanned file set can collapse to
+    zero while still exiting 0 is silent when it works and silent when it is broken."
+    So a missing anchor is a failure, not a skipped comparison.
+    """
+    src = _cmd_transition_source()
+    positions = []
+    missing = []
+    for label, anchor in _TRANSITION_STEPS:
+        idx = src.find(anchor)
+        if idx < 0:
+            missing.append(f"{label} ({anchor!r})")
+        else:
+            positions.append((idx, label))
+    assert not missing, (
+        "these transition steps no longer resolve in cmd_transition, so the ordering "
+        f"assertion would silently stop covering them: {missing}"
+    )
+    assert len(positions) == len(_TRANSITION_STEPS)
+    ordered = [label for _, label in sorted(positions)]
+    expected = [label for label, _ in _TRANSITION_STEPS]
+    assert ordered == expected, (
+        "cmd_transition's critical section has been reordered.\n"
+        f"  expected: {expected}\n  found:    {ordered}"
+    )
+
+
+def test_wave_index_validation_wins_over_an_unreadable_engine_state(tmp: Path) -> None:
+    """Double violation, steps 2 vs 4: the earlier step's refusal is the one reported.
+
+    `wave-passed` without `--wave-index` AND an unreadable engine-state.json. The
+    wave-index check is step 2 and the read is step 4, so the wave-index message wins.
+    """
+    name = "double-violation-wave-index-vs-read"
+    spec_dir = make_spec_dir(tmp, name)
+    (spec_dir / "engine-state.json").write_text("{ not json", encoding="utf-8")
+    rc, _, err = run_engine("transition", str(spec_dir), "wave-passed")
+    if rc == 0:
+        fail(name, "expected a refusal")
+    elif "requires --wave-index" not in err:
+        fail(name, f"the later step's refusal won: {err.strip()[:160]!r}")
+    else:
+        ok(name)
+
+
+def test_schedule_precheck_wins_over_a_failing_event_guard(tmp: Path) -> None:
+    """Double violation, steps 9 vs 10: the CODE schedule pre-check precedes the guard.
+
+    A drifted plan hash AND a not-last wave. `gates-clean`'s own guard would refuse on
+    the wave, but the schedule pre-check runs first.
+    """
+    name = "double-violation-schedule-vs-guard"
+    run_id = str(uuid.uuid4())
+    spec_dir = make_spec_dir(tmp, name)
+    write_spec(spec_dir, status="Implementing")
+    write_plan(spec_dir)
+    write_engine_state(
+        spec_dir, minimal_engine_state(run_id, name, "code", "CODE-VERIFICATION")
+    )
+    write_cohort_state(spec_dir, minimal_cohort_state(run_id, name, extra={
+        "plan_review_status": "approved",
+        "plan_hash": "0" * 64,               # drifted -> step 9 refuses
+        "schedule_waves": [["T1"], ["T2"]],
+        "current_wave_index": 0,             # not last -> step 10 would refuse
+    }))
+    rc, _, err = run_engine("transition", str(spec_dir), "gates-clean")
+    if rc == 0:
+        fail(name, "expected a refusal")
+    elif "schedule check-current" not in err:
+        fail(name, f"the event guard won over the schedule pre-check: {err.strip()[:160]!r}")
+    else:
+        ok(name)
+
+
+def test_engine_names_no_python_script_but_its_two_siblings() -> None:
+    """Source-absence signal, independent of the runtime recorder in T5.
+
+    Two signals rather than one because they fail differently: a recorder proves no
+    spawn happened on the paths it drove, and this proves the engine cannot name a
+    Python script to spawn on any path at all.
+    """
+    import ast
+    import re as _re
+
+    src = ENGINE.read_text(encoding="utf-8")
+    tree = ast.parse(src)
+
+    executable_refs = [
+        node.lineno for node in ast.walk(tree)
+        if isinstance(node, ast.Attribute) and node.attr == "executable"
+        and isinstance(node.value, ast.Name) and node.value.id == "sys"
+    ]
+    assert not executable_refs, f"sys.executable is referenced at lines {executable_refs}"
+
+    literals = {
+        node.value for node in ast.walk(tree)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+        and _re.search(r"\.py$", node.value)
+    }
+    assert literals <= {"_statelock.py", "_loop_guards.py"}, (
+        f"the engine names other Python scripts: {sorted(literals - {'_statelock.py', '_loop_guards.py'})}"
+    )
