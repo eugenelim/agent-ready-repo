@@ -25,6 +25,10 @@
   - [`Experimental rerun evidence archive`](0088-notes/spikes/experimental-rerun-evidence-archive.md)
   - [`2026-08-16 Experimental round 3`](0088-notes/spikes/2026-08-16-experimental-round3.md)
   - [`Round-3 Experimental evidence archive`](0088-notes/spikes/round3-evidence-archive.md)
+  - [`2026-08-16 Experimental round 4`](0088-notes/spikes/2026-08-16-experimental-round4.md)
+  - [`Round-4 Experimental evidence archive`](0088-notes/spikes/round4-evidence-archive.md)
+  - [`Experimental rounds 5 and 6`](0088-notes/spikes/2026-08-16-experimental-round5.md) — **current; authoritative over every earlier round**
+  - [`Rounds 5 and 6 Experimental evidence archive`](0088-notes/spikes/round5-evidence-archive.md)
 
 `web-pilot` is the proposed name of an opt-in AgentBundle pack that would own
 a local authenticated-browser runtime. A **provider pack** is a normal
@@ -33,6 +37,31 @@ normally a bundled website adapter. A **website adapter** is the lower-level,
 immutable executable driver loaded by the runtime. These definitions are local
 to this RFC; they are not new catalogue product types.
 
+> ## Read this before the body
+>
+> **Everything between here and [`## Amendments`](#amendments) is FROZEN and
+> historical.** It records the 2026-08-15 Draft → Experimental decision and the
+> first run's ledger. It is not the current state, and several of its clauses
+> have since been withdrawn as wrong.
+>
+> - **Do not execute the D2 candidate list.** The body tells a reviewer that S4
+>   "must also execute `agent-browser`, OpenChrome, and OpenDevBrowser against
+>   the same boundary before acceptance". **Do not.** Executing two of them was
+>   itself the hazard, and it caused a real credential exposure. The amended
+>   rule in [S4 gate decision](#s4-gate-decision) is authoritative.
+> - **D1–D17 are already decided.** The *Reviewer brief* and the decisions
+>   table say "Decide by: this review" in eleven rows. That review happened on
+>   2026-08-15. What the approver is being asked now is four different
+>   questions — see
+>   [What the approver is being asked to decide now](#what-the-approver-is-being-asked-to-decide-now).
+> - **The 2026-08-15 ledger's five "Blocked" rows are not the current
+>   scorecard.** Current verdicts are six Passes carrying seven pre-acceptance
+>   blockers, in
+>   [Current Experimental state](#current-experimental-state).
+> - **Live state, in one place:** [`## Amendments`](#amendments). Where it and
+>   the body disagree, it wins. Where it and the dated audit trail below it
+>   disagree, the audit trail is the record of what was believed on a date, not
+>   what is true now.
 ## Reviewer brief
 
 - **Decision:** Whether to validate an opt-in authenticated-browser foundation and its provider-pack/website-adapter contracts.
@@ -910,56 +939,253 @@ the first run, and the round-2 verdicts it superseded are preserved in the
 table's execute-all instruction. The adopted two-stage rule in
 [S4 gate decision](#s4-gate-decision) is authoritative.
 
-Current verdicts reflect the third Experimental run
-([round-3 note](0088-notes/spikes/2026-08-16-experimental-round3.md)).
+**Body clauses this section withdraws or supersedes.** The body above is frozen,
+so it cannot carry a marker where each claim is made. A reader working top to
+bottom will meet all of these as live text; every one is superseded here:
+
+| Body claim | Where it appears | Superseded by |
+| --- | --- | --- |
+| "S4 must also execute `agent-browser`, OpenChrome, and OpenDevBrowser against the same boundary before acceptance" | D2, *The ask* | [S4 gate decision](#s4-gate-decision) — executing two of them was itself the hazard |
+| Attachment credentials are "short-lived and single-use for attachment establishment" | *Runtime delivery and browser lifecycle* | Correction 8, refined by round 4 |
+| "Live adapters reject loopback, private, link-local, multicast, and metadata destinations after DNS resolution and on every redirect/connection" | *Website-adapter artifact and runtime contract* | *Network corrections in force* — an invariant, not a capability of the route API |
+| Node permissions listed among the safety rails | *Native Playwright and trusted-code posture* | Correction 7 — one coarse `net` permission gates the transport too |
+| "S1, S2, S3, S4, and S5 remain open Experimental gates" | *Experimental run ledger — 2026-08-15* | The current-state table above; that sentence is dated commentary, not a live status |
+| The three *Open questions* | *Open questions* | Q1 is now blocker item 1; Q2 was answered by S2 (plain self-contained ESM, no bundler); Q3 remains open and is unchanged |
+
+The `Experimental run ledger — 2026-08-15` and the `Experiment / validation`
+tables are the **first** run's record. Where they and this section disagree,
+this section wins.
+
+Current verdicts reflect the fifth and sixth Experimental runs
+([rounds 5 and 6 note](0088-notes/spikes/2026-08-16-experimental-round5.md)),
+which is authoritative over the
+[round-4](0088-notes/spikes/2026-08-16-experimental-round4.md) and
+[round-3](0088-notes/spikes/2026-08-16-experimental-round3.md) notes where they
+disagree. Round 6 is the correction pass over round 5's evidence base; where the
+two disagree, round 6 wins, and each disagreement is enumerated in that note's
+*Round-6 corrections* table.
+
+**Round 6 withdrew three round-5 claims and re-derived the blocker list upward,
+from four items to seven.** The most consequential: round 5's assertion that
+Linux ran with Chromium's renderer sandbox enabled is **false** — read back from
+the browser, Playwright passes `--no-sandbox` by default, so no arm in any round
+of this evidence base has been measured with the renderer sandbox on.
 
 | Spike | Current verdict | Decision effect | Remaining exit gate |
 | --- | --- | --- | --- |
-| [S1](0088-notes/spikes/2026-08-16-experimental-round3.md#s1--persistent-bind-lifecycle) | **Pass on the named gates** | Real lifetime-based attachment expiry, forced detach at expiry, seeded dead-owner recovery, seeded live and ambiguous ownership refusal, and signature-matched typed refusals are demonstrated across 12 asserted rows, twice on bundled Chromium 151.0.7922.34 and system Chrome 151.0.7922.138, both measured rather than assumed. Broker responsiveness held at 37 ms worst-case scheduling lag against a 750 ms bound | The bind endpoint is a bearer credential — a never-authorised second local client attached inside an open window — so correction 8 withdraws D7's single-use claim. The approver must still accept or defer the initial OS/browser support matrix |
-| [S2](0088-notes/spikes/2026-08-16-experimental-round3.md#s2--artifact-host-and-dependency-gate) | **Pass on the named gates** | A genuinely separate child host receives native host-owned `Page`/`BrowserContext`, cannot read a parent-only sentinel, and is denied child processes, out-of-allowlist filesystem access, native addons, worker threads **and a direct read of the live browser profile**. Valid and invalid outputs return to parent-owned closed-schema validation, redaction-free two-phase finalization and release; malformed, extra-field, credential-shaped and oversized payloads all fail before release. The D17 blocking policy is met on 16 of 18 checks | Correction 7 withdraws this section's own "network restrictions" clause as unachievable. Two declared residuals: no vendor signature manifest ships with the browser payload, and the download host is verified only at the installer's own resolution, not at connection level |
-| [S3](0088-notes/spikes/2026-08-16-experimental-round3.md#s3--safety-rail-limits) | **Partial** | Connected-address enforcement and DNS-rebinding prevention are proved at a broker-owned egress proxy with a valid unpinned control. Bounded redirect chains with per-hop revalidation, request-client origin policy, Service-Worker-handled page requests, real-download confinement including a symlink-through target, and WSS interception with canonical `ws`→`http` / `wss`→`https` mapping all pass | WebRTC and WebTransport egress are not prevented by any control tested. Method policy is unenforceable at the connection point. Linux proxy behaviour is untested. Every proxy-based verdict was measured under a deliberately inverted loopback-only destination rule and is not yet evidence for the production rule |
-| [S4](0088-notes/spikes/2026-08-16-experimental-round3.md#s4--substitution-check-under-amended-d2) | **Partial** | Every exact candidate has a reviewed disposition resting on measured facts rather than a keyword screen. Two candidates fail the blocking dependency scan outright. The one candidate that cleared it executed under an explicit environment allowlist verified via a stand-in child, replacing the round-2 tainted row, and was excluded on measured grounds. Playwright is retained provisionally; D2 is not reopened | The gate text below admits to execution only candidates that "clear inspection" and holds S4 open until those pass the common corpus. Stage one's keyword screen is now shown non-discriminating — the retained substrate trips five of the same categories — and the common S1/S3 lifecycle and crash-recovery corpus was not run. The approver must amend the gate text or commission the corpus |
-| [S5](0088-notes/spikes/2026-08-16-experimental-round3.md#s5--cross-pack-vertical) | **Pass** | Host-owned candidate presentation, explicit confirmation and rejection, and immediate discard of clear identity evidence, asserted against six sinks that were actually written and two read back from disk. Validation exposes exactly `{page, context, signal, job, connection}`, and every single-field grant mismatch refuses ahead of a real browser launcher that the positive case proves reachable. Cross-consumer residue is partitioned across the eight classes verified as actually planted, of which 3 survive | None for this gate. The disposition is that per-consumer isolation is **not** viable within one `BrowserContext`, which confirms rather than removes connection-wide native-adapter trust |
+| [S1](0088-notes/spikes/2026-08-16-experimental-round4.md#s1--per-attachment-authorization) | **Pass on the named gates (macOS and Linux); one platform row fails on Linux** | Real lifetime-based attachment expiry, forced detach at expiry, seeded dead-owner recovery, seeded live and ambiguous ownership refusal, and signature-matched typed refusals are demonstrated across 12 asserted rows, twice on bundled Chromium 151.0.7922.34 and system Chrome 151.0.7922.138, both measured rather than assumed. Broker responsiveness held at 37 ms worst-case scheduling lag against a 750 ms bound | Round 4 supplies the per-attachment authorization hook Playwright does not expose: a broker-owned relay refuses a second attachment and the real endpoint sees exactly one upstream connection. The relay bounds attachments to a broker-owned endpoint, not to Playwright's own, which stays a bearer credential for a same-uid process — the V1 posture the RFC already states. **From round 4, strengthened in round 5:** endpoint confinement fails on Linux — the bind socket has no current-user-only ancestor there, because the macOS pass rested on a `0700` per-user temp root that Linux `/tmp` does not provide. Round 5 re-measured it as an **unprivileged user**, removing one of the two caveats that made round 4's Linux evidence conditional, and the row still fails; correction 13's remedy passes there. Round 6 corrected the measurement itself — round 5 walked only four ancestors under a harness-created `TMPDIR`, so it never reached the platform temp root it was making a claim about. Uncapped and un-overridden, the chain reaches the real `/tmp` at mode `1777`, not owned by the current user, and `/` above it, with no confining ancestor: **the finding survives correction and is now about the platform, which is what the RFC needs it to be**. The second round-4 caveat is *not* removed — see correction 15. The approver must still accept or defer the initial OS/browser support matrix |
+| [S2](0088-notes/spikes/2026-08-16-experimental-round4.md#s2--an-os-level-boundary-for-adapter-host-raw-egress) | **Pass on the named gates** | A genuinely separate child host receives native host-owned `Page`/`BrowserContext`, cannot read a parent-only sentinel, and is denied child processes, out-of-allowlist filesystem access, native addons, worker threads **and a direct read of the live browser profile**. Valid and invalid outputs return to parent-owned closed-schema validation, redaction-free two-phase finalization and release; malformed, extra-field, credential-shaped and oversized payloads all fail before release. The D17 blocking policy is met on 16 of 18 checks | Round 4 supplies what correction 7 said was missing: an OS-level boundary that keeps the Playwright transport while denying raw egress, measured with a control arm. It also verifies the download host at connection level by putting the broker proxy on the install path, which closes one of the two round-3 residuals — and that measurement immediately found an authority the installer's own `--dry-run` never names: the real chromium payload redirects from the CDN to `storage.googleapis.com`, so the round-3 approved-host set was incomplete for the payload it was about. Round 5 rebuilt the boundary in the production shape the RFC asked for — `deny default` rather than `allow default` — where both DNS paths and inbound bind are denied while the transport survives, and gave it a Linux equivalent via a network namespace. Remaining: a signed provenance attestation **is** published beside the browser payload and binds it by digest, but its DSSE signature is not verified against a trusted key here; the platform code signature the RFC relied on is present but does **not** verify on the extracted payload, for a reason round 6 captured but did not diagnose; the profile admits the whole `process*`, `mach*`, `ipc*` and `file-read*` classes so Node can execute — which means an adapter host under it can read the live browser profile off disk, the defeat correction 9 exists to prevent — and egress delegated through any admitted `mach*` or `ipc*` channel is unmeasured, with the minimum never established because no arm narrowed the profile; the Linux row ran as **root** in a `SYS_ADMIN` container, so it does not show an unprivileged adapter host confining itself. Windows has no measured equivalent of either boundary |
+| [S3](0088-notes/spikes/2026-08-16-experimental-round4.md#s3--webrtc-and-webtransport-under-a-read-back-command-line) | **Pass on the named gates** | Round 3's proxy results stand as evidence that the control point works. Round 4 closes the four open items: WebRTC egress is prevented in every window realm tested — main document, same-origin iframe, `about:blank` iframe and cross-origin iframe — and not exposed at all in a dedicated Worker, by a context init script raising a named `SecurityError`; WebTransport needs that shim **and** the broker-owned proxy, because a dedicated Worker is a realm the init script never enters and the proxy is what closes it; method policy becomes enforceable once the broker terminates the tunnel; and the production destination-class rule is measured directly rather than inherited from the inverted one. Every flag arm now reads back the accepted command line, so a negative result is no longer confusable with an unapplied flag | Round 5 measured both remaining S3 items and round 6 narrowed each. Five of the six named realms — shared worker, service worker, `srcdoc`, `blob:` and a `window.open` popup — are driven on macOS and Linux and behave exactly as correction 11 predicted. The sixth, the `data:` iframe, was **never driven**: round 5 read a `SecurityError` raised in the parent on cross-origin access to an opaque-origin frame and mistook it for the realm refusing to egress (correction 16). Method-policy trust establishment is answered on **both** of its surfaces without writing to any trust store, but the browser mechanism suppresses certificate errors rather than validating, the driver anchor is issuer-wide for the process, no arm composed trust with method enforcement, and there is no Linux arm (correction 17). Remaining: Windows is untested, realm coverage is not exhaustive, **the D7 approver disposition on method policy is unresolved (item 4)**, and every control here is a rail against site-controlled egress, not a boundary against admitted native code |
+| [S4](0088-notes/spikes/2026-08-16-experimental-round3.md#s4--substitution-check-under-amended-d2) | **Pass** | Every exact candidate has a reviewed disposition resting on measured facts rather than a keyword screen. Two candidates fail the blocking dependency scan outright. The one candidate that cleared it executed under an explicit environment allowlist verified via a stand-in child, replacing the round-2 tainted row, and was excluded on measured grounds. Playwright is retained provisionally; D2 is not reopened | None. The [S4 gate decision](#s4-gate-decision) was amended by approver disposition on 2026-08-16 to name the precondition actually used — clearance of the blocking dependency scan — and to state that an execution-backed exclusion discharges the corpus requirement. The verdict changed because the exit condition changed; no exclusion or execution row was converted to a pass. Each candidate's falsifiable revisit trigger stands, and a fired trigger requires the full common corpus for that candidate |
+| [S5](0088-notes/spikes/2026-08-16-experimental-round3.md#s5--cross-pack-vertical) | **Pass** | Host-owned candidate presentation, explicit confirmation and rejection, and immediate discard of clear identity evidence, asserted against six sinks that were actually written and two read back from disk. Validation exposes exactly `{page, context, signal, job, connection}`, and every single-field grant mismatch refuses ahead of a real browser launcher that the positive case proves reachable. Cross-consumer residue is partitioned across the eight classes verified as actually planted, of which 3 survive | None for the gate itself. **Residual carried to item 3:** three residue classes survive best-effort teardown, so acceptance requires the approval surface to disclose that every consumer sharing a connection inherits them |
 | [S6](0088-notes/spikes/s6-browser-session-taxonomy.md) | **Pass, unchanged** | Opaque `browser-session` taxonomy remains feasible | Convention amendment still waits for acceptance |
 
-S3 and S4 remain open. S1, S2 and S5 have closed their named gates and carry the
-residual items named above. No initial support matrix is accepted yet, and no
-implementation or follow-on artifact is authorized.
+S2 through S6 have closed their named gates. S1 has closed its named gates on
+both platforms and additionally fails one *platform row* on Linux — endpoint
+confinement — which is a residual carried into item 1, not an unmet named gate.
+Earlier text calling S1 "Partial on Linux" is superseded here: the verdict
+cell's "Pass on the named gates (macOS and Linux); one platform row fails on
+Linux" is the authoritative form, and "Partial" was a second vocabulary for the
+same fact. Four of the
+six carry residual items above; S4 records none, and S6's remaining item is
+post-acceptance work. No initial support matrix is accepted yet, and no implementation or
+follow-on artifact is authorized.
 
 **Remaining pre-acceptance blockers** — the union of the per-spike residuals
 above, with no separate class of "residual" that escapes the list:
 
-1. WebRTC egress is not prevented by any control tested (S3).
-2. WebTransport egress is not prevented and no flag tested removed it (S3).
-3. Method policy is unenforceable at the connection point for the context
-   request client (S3).
-4. Every proxy-based prevention was measured under an inverted loopback-only
-   destination rule, not the production rule (S3).
-5. The S4 gate text needs an approver decision: amend the precondition to the
-   one actually used, or commission the common corpus (S4).
-6. An accepted OS/browser support matrix. Evidence supports macOS 26.5.2 arm64
-   with both channels; **any platform admitted beyond that is untested and
-   becomes a blocker on admission**, which today means Linux and Windows.
-7. No vendor signature manifest ships with the browser payload, and download-host
-   verification is at the installer's resolution rather than connection level
-   (S2).
-8. The bind endpoint is a bearer credential with no per-attachment
-   authorization hook (S1, correction 8).
-9. Three of eight cross-consumer residue classes survive best-effort teardown —
+1. An accepted OS/browser support matrix. Evidence supports macOS 26.5.2 arm64
+   with both channels, and Linux Ubuntu 24.04.4 arm64 — now measured as an
+   **unprivileged user**, which is one of the two things round 4 could not
+   claim. The other is not claimed and is now known to be false everywhere:
+   **every arm in every round of this evidence base ran with Chromium's renderer
+   sandbox off**, because Playwright passes `--no-sandbox` by default
+   (correction 15). No platform has been measured in the configuration a
+   production pack would ship. **Linux may be admitted only together with a
+   broker-owned `0700` run directory for the *relay* endpoint** — and that
+   condition does not close the failing row. The row that fails is
+   `S1-ATTACHMENT-ENDPOINT-CONFINEMENT` on **Playwright's own** bind endpoint,
+   whose path Playwright chooses under `os.tmpdir()`; the remedy measured as
+   passing puts the *relay* socket in the `0700` directory and dials the
+   unconfined Playwright endpoint upstream. So the run directory adds a
+   confined front door while the back door remains under a world-traversable
+   chain, reachable by any same-uid process — and, given correction 15,
+   potentially by site-origin code. Playwright's endpoint is not relocatable
+   with the current API. The approver is accepting that residual, not its
+   removal. **Windows is untested in every respect** — no egress rail, no
+   OS-level boundary, no lifecycle row — and **becomes a blocker on admission**.
+2. **Browser-payload integrity rests on two anchors, one newly found and one
+   newly falsified.** A DSSE-signed in-toto SLSA provenance statement *is*
+   published beside the download and its subject digest matches the archive
+   bytes, which round 3 could not have found because it globbed only the
+   installed payload. But its envelope signature is **not verified against a
+   trusted key** in this evidence, and that verification needs a signer identity
+   the RFC has not established. Separately, the platform code signature this RFC
+   names as the second anchor is present but **does not verify** on the
+   extracted payload; round 3's row used `codesign -dv`, which displays signing
+   information rather than validating it. **The failure is captured but not
+   diagnosed**: Gatekeeper's message points at resources missing relative to the
+   signature, which is consistent with Playwright extracting the archive in a
+   way that does not preserve the signed bundle — that is neither evidence of a
+   tampered payload nor evidence of an intact one, and separating the two needs
+   a comparison against a vendor-extracted copy that no round has run. Nothing
+   ships inside the payload (S2, correction 5).
+3. Three of eight cross-consumer residue classes survive best-effort teardown —
    a foreign init script, origin-scoped storage, and a committed artifact — and
    five named removal APIs do not exist (S5, correction 3). Disclosed and
    accepted rather than remediable within one `BrowserContext`; acceptance
    requires the approval surface to state that every consumer sharing a
    connection inherits this residue.
-10. Raw egress from the capable adapter host cannot be prevented by the Node
-    Permission Model, because the single coarse `net` permission also gates the
-    Playwright transport (S2, correction 7). Acceptance requires either a named
-    OS-level boundary for the adapter host or an explicit accepted-risk
-    decision; no compensating control is demonstrated.
+4. **D7 needs an explicit approver disposition before method policy is
+   adopted.** A broker that terminates TLS to enforce method policy reads every
+   cookie and `Authorization` header in cleartext — it moves inside the
+   credential boundary D7's opaque-credential posture exists to keep it outside
+   of. Round 5 removes the *trust-store* half of the concern: trust is
+   establishable without writing to any store, by an SPKI pin for the browser
+   surface and a process-scoped CA for the driver surface. What remains is the
+   disposition itself, which is an approver decision, not a construction note
+   (S3, correction 12).
+5. **Method-policy trust is measured narrowly, and three of its bounds were not
+   published until round 6.** The browser mechanism
+   (`--ignore-certificate-errors-spki-list`) *suppresses certificate errors* for
+   connections presenting the pinned key rather than validating them — a
+   certificate carrying the pinned key but the wrong name is accepted, measured
+   directly — so a broker relying on it must not rely on name checking for
+   pinned connections. The pin is also **destination-unscoped**: it accepts any
+   connection presenting that key, for every origin the launch visits, with all
+   certificate error classes suppressed. "One key, one launch" bounds the key
+   and the lifetime, not the destination. The driver mechanism
+   (`NODE_EXTRA_CA_CERTS`) is **issuer-wide for the whole broker process**, not
+   scoped to the interception destination, **and is inherited by any child
+   spawned with that environment** — which matters because correction 1 requires
+   the broker to spawn an adapter host, so that host's environment allowlist
+   must exclude it explicitly or the interception CA leaks into it. **No arm in any round composed trust establishment with method
+   enforcement in one launch**: round 4 enforced methods under
+   `ignoreHTTPSErrors`, round 5 established trust without method policy, and the
+   composition is assumed. And every trust row is macOS-only (S3, correction 17).
+6. **The OS-level boundary has an unmeasured delegation path and an
+   unrepresentative Linux row.** The macOS profile is not "`deny default` plus
+   two operations": it admits the whole `process*`, `mach*`, `ipc*` and
+   `file-read*` classes so Node can execute, which means an adapter host under
+   it **can read the live browser profile off disk** — the defeat correction 9
+   exists to prevent — and no arm composes this profile with the Node
+   permission model that supplies that confinement. The two DNS paths the
+   security review named are denied and asserted, but egress delegated through
+   any admitted `mach*` or `ipc*` channel to an already-running system service
+   was not probed, and because no arm narrowed the profile, the claim that
+   these classes *must* be admitted states an unmeasured minimum.
+   The Linux network-namespace row ran as **root** in a `SYS_ADMIN` container
+   and is a single observation, so it does not show an unprivileged adapter host
+   confining itself (S2, correction 14).
+7. **Realm coverage is five realms, and is not exhaustive.** The `data:` iframe
+   named in correction 11 was never driven — round 5 read a `SecurityError`
+   raised in the *parent* on cross-origin access to an opaque-origin frame and
+   recorded the realm as "not an egress vector", which measured nothing about
+   the realm. Sandboxed iframes, nested cross-origin frames, workers created by
+   a service worker, and realms already present in a restored profile are also
+   untested. Round 5's claim of exhaustive realm coverage is withdrawn
+   (S3, correction 16).
+
+**What "Pass on the named gates" means, and why a Pass can still carry a
+blocker.** A spike's *named gates* are the pass bars written for it in
+*Experiment / validation* above — the "Pass bar / decision output" column of the
+spike table — as amended by this section where the two differ. A Pass says the
+spike answered its own load-bearing question. It does **not** say the
+architecture is ready to accept: a spike can answer its question and, in
+answering it, surface a condition acceptance still needs. Items 1, 2, 5, 6 and 7
+are exactly that. Acceptance requires the numbered list above to be empty or
+explicitly accepted, not merely six Passes.
+
+**Replication.** Round 4 disclosed that every macOS arm was a single
+observation. Round 5 removes that for macOS: each of its four macOS drivers ran
+three times and all three runs agreed, recorded in the promoted
+`replication.json`. The Linux S1 lifecycle corpus ran twice. **Every other Linux
+arm is a single observation** — the realm driver, the egress driver and the
+namespace boundary each ran once — so round 4's disclosure still stands for most
+of Linux. Rounds 3 and 4 remain unreplicated and their figures are unchanged.
+
+**Accounting, in two layers, so that nothing is dropped silently.** Round 5
+measured against the seven items this list held after round 4 and published
+four. Round 6 re-derived that count and it is **seven again**. The
+round-5 layer — 3 closed + 3 carried + 1 reshaped = 7:
+
+- **Measured closed by round 5 (3):** the untested realms; method-policy trust
+  establishment; and the OS-level boundary's profile shape and platform
+  coverage.
+- **Carried forward (3):** the OS/browser support matrix (item 1); cross-consumer
+  residue (item 3); and the D7 disposition (item 4).
+- **Reshaped rather than closed (1):** the vendor signature manifest (item 2).
+  It is no longer "no anchor exists" — one does, and binds. It is now "one
+  anchor is unverified against a trusted key, and the other does not verify at
+  all", which is a different and in one respect worse position than round 4
+  recorded.
+
+The round-6 layer — 4 published + 3 restored = 7. Round 6 found two of round 5's
+three closures rested on defects rather than on measurement, and two residuals
+present in round 5's artifacts never reached its prose:
+
+- **Restored because the closure was not real (2):** realm coverage returns as
+  item 7 — the `data:` realm was never driven, and five realms is not
+  exhaustive; and the trust closure returns as item 5, narrowed rather than
+  reversed — trust *is* establishable without a store, but the mechanism
+  suppresses errors rather than validating, the driver anchor is issuer-wide,
+  the composition with method enforcement is unmeasured, and there is no Linux
+  arm.
+- **Restored because the residual was unpublished (1):** item 6, the OS
+  boundary's delegated-egress path and its root-measured Linux row. Round 5's
+  artifacts carried both facts; its prose carried neither.
+- **Amended in place (1):** item 1 absorbs the renderer-sandbox withdrawal
+  (correction 15). This does not add an item — the platform gap already lived
+  there — but it makes item 1 strictly larger than round 5 described.
+
+The list maps onto the spikes as: S1 → item 1; S2 → items 1, 2 and 6; S3 → items
+1, 4, 5 and 7; S5 → item 3. S4 and S6 contribute none, for the reasons stated
+below. Every residual named in a spike row above appears in this list, and every
+item here traces to at least one spike row.
+
+**Two residuals are deliberately absent, and named here so their absence is a
+decision rather than an omission.** First, S3's rail-not-boundary sentence is
+D13's standing architectural position, recorded in *Native Playwright and
+trusted-code posture* and unchanged by these rounds. Second, round 3's loopback
+confound is **resolved** rather than deliberately omitted: round 5 measured the
+same arms against an off-loopback probe on Linux and the dispositions are
+unchanged, so the confound was not hiding anything.
+
+**S4 and S6 carry no entry.** S4's row records "None" as its remaining exit
+gate. S6's remaining item — the credentialed-skill convention amendment — is
+post-acceptance work by design, not a pre-acceptance blocker.
+
+### What the approver is being asked to decide now
+
+The *Reviewer brief* and the D1–D17 table at the top of this RFC address the
+**Draft → Experimental** decision, taken 2026-08-15. They are historical. This
+round asks four things, and nothing else:
+
+| # | Decision | Where the evidence is |
+| --- | --- | --- |
+| A | **Accept, reject, or commission a seventh Experimental round.** Review passes across rounds 3, 4, 5 and 6 have **not** converged; the closing note below records what each round still found. Round 6 withdrew three round-5 claims and raised the blocker count from four to seven — and round 6's own corrections were then reviewed and returned blockers as well, twice including a remedy that carried the defect it was written to catch. No round of this evidence base has yet produced a clean review pass | This section, and the round-4 and rounds-5-and-6 notes' *Review results* |
+| B | **Accept or defer the initial OS/browser support matrix**, on the terms in item 1 — macOS on both channels; Linux only with a broker-owned `0700` run directory and only as an unprivileged user; Windows untested in every respect; **and no platform measured with Chromium's renderer sandbox on** | Item 1; corrections 13 and 15 |
+| C | **Give an explicit D7 disposition on method policy** (item 4), or decline method policy. Enforcing it moves the broker inside the credential boundary, even though round 5 showed trust needs no OS trust store. Item 5 bounds how much that trust result actually delivers | Items 4 and 5; corrections 12 and 17 |
+| D | **Rule on the remaining items** — 2, 3, 6 and 7 — as accepted risks, or hold them open | Items 2, 3, 6 and 7 |
+
+Acceptance is not available while any of A–D is unanswered. Nothing in this
+round authorizes implementation, a specification, an ADR, a pack, a dependency,
+or a catalogue entry.
 
 Corrections 7 and 8 **withdraw** RFC clauses that this evidence showed to be
 wrong as written. Correction 10 **relocates** an enforcement point without
-withdrawing a clause.
+withdrawing a clause. Corrections 11, 12 and 14 **add** controls the RFC did
+not previously require — two egress controls that must be installed together, a
+terminating connection point for method policy, and a named OS-level boundary
+for adapter-host raw egress. Correction 13 **supersedes** correction 8's
+confinement sentence: endpoint confinement is platform-specific and must not be
+inherited from the platform temporary directory. No round-4 correction
+withdraws a clause.
+
+Corrections 15, 16 and 17 are round 6's, and all three **withdraw claims this
+amendment section itself made after round 5** rather than clauses of the frozen
+body. That is the point of recording them as corrections: a reader who saw the
+round-5 text must be able to find what happened to it.
 
 ### Security and runtime corrections in force
 
@@ -972,7 +1198,7 @@ withdrawing a clause.
    filesystem/process modules, and host mutation authority. S2 must compose
    this child boundary with the real host-owned native Playwright connection;
    isolated unit demonstrations do not satisfy the gate. **Satisfied in
-   round 3**, with the network clause corrected by item 7 below and the
+   round 3**, with the network clause corrected by correction 7 below and the
    spawn/flush construction requirements in the *Carry into the future
    implementation spec* paragraph. Parent-owned **redaction** is not part of
    what round 3 exercised; only schema validation, two-phase finalization and
@@ -986,7 +1212,7 @@ withdrawing a clause.
    loop must remain responsive while handoff is possible, and attachment
    failure is detected by a bounded timeout rather than child exit status.
    Lifetime expiry and forced detach are proved in round 3; the single-use
-   claim is corrected by item 8 below.
+   claim is corrected by correction 8 below.
 3. **Native-adapter trust is connection-wide unless stronger isolation is
    proven.** Exact grants isolate invocation and result release; they do not
    erase routes, init scripts, patched globals, listeners, sockets, or other
@@ -1032,6 +1258,32 @@ withdrawing a clause.
    Browser installation additionally uses an approved download host and verifies
    the exact browser-revision digest or signature; a clean Node lock does not
    cover the browser payload.
+
+   **Amended by round 5, in both directions.** The vendor *does* publish an
+   integrity anchor beside the download — a DSSE-signed in-toto SLSA provenance
+   statement whose subject digest matches the archive bytes — which rounds 3 and
+   4 recorded as absent because they globbed only the installed payload. **What
+   that is worth today is narrower than "a build should verify against it".**
+   The attestation was fetched from the same CDN path as the archive it
+   describes and its DSSE signature is unverified, so against an adversary able
+   to serve the archive it adds nothing over the digest the build already pins.
+   It becomes an independent control only once the signer identity and a trusted
+   key are established — which is item 2. But the "or signature" half of this clause can no
+   longer lean on the platform code signature: it is present on the extracted
+   payload and **does not verify** (`codesign -v` fails, and Gatekeeper rejects
+   it). Round 3's row used `codesign -dv`, which displays signing information
+   rather than validating it. Until the attestation's signer identity is
+   established, integrity rests on the digest the build pins itself.
+
+   **Round 6 bounds the code-signature failure rather than interpreting it.**
+   The verifier's own diagnostic is now captured: Gatekeeper rejects with "code
+   has no resources but signature indicates they must be present", which is
+   consistent with Playwright extracting the archive in a way that does not
+   preserve the signed bundle. That is **not** evidence of a tampered payload,
+   and it is **not** evidence of an intact one. Separating the two needs a
+   comparison against a vendor-extracted copy, which no round has run. The
+   clause above stands — integrity rests on the pinned digest — but the reason
+   the second anchor is unavailable is undiagnosed, and blocker item 2 says so.
 6. **Output schemas are closed.** Every object level rejects additional
    properties. Parent-owned validation rejects malformed and extra
    credential-shaped fields before any result, artifact handle, diagnostic
@@ -1059,6 +1311,16 @@ withdrawing a clause.
    restated as a bounded-window guarantee. Endpoint confinement additionally
    rests on the `0700` per-user temporary root, not on the socket's own mode,
    which is `0755`.
+
+   **Refined by round 4, not withdrawn.** Playwright still exposes no hook, but
+   the broker can supply one by owning the endpoint the consumer attaches to: a
+   relay in the broker's own `0700` run directory, holding a single-use grant,
+   refuses a second attachment and lets exactly one connection reach the real
+   endpoint. What stays true is the scope — the relay bounds attachments to the
+   broker-owned endpoint, and a same-uid process that knows Playwright's own
+   endpoint path bypasses it. That is the V1 same-user posture this RFC already
+   states, and round 4 neither upgrades nor weakens it. The confinement half of
+   this item is superseded by correction 13.
 9. **The child read allowlist must exclude the browser profile.** An
    allowlist that encloses the profile root lets an admitted adapter read
    cookies and storage straight off disk, defeating the opaque-credential
@@ -1077,10 +1339,317 @@ withdrawing a clause.
     `PLAYWRIGHT_CDN_MIRROR` and `PLAYWRIGHT_DOWNLOAD_CONNECTION`, because
     naming approved hosts does not prevent redirection. Download-host
     verification is at the installer's own resolution, not at connection level.
+    *(Superseded by round 4: verification is now at connection level, and it
+    showed the installer's own resolution to be an incomplete description of
+    the authorities it contacts — the chromium payload redirects to a third
+    host the dry-run does not name. An approved-host list must be derived from
+    observed connections, not from the installer's self-report.)*
+
+11. **Site-controlled WebRTC and WebTransport egress require two controls
+    together, and neither alone is sufficient.** The init script must replace
+    **every binding of each interface, identified by identity rather than by
+    name**. A first version of this evidence replaced only
+    `window.RTCPeerConnection`; `webkitRTCPeerConnection` is a second binding of
+    the identical interface, survived the shim, and emitted a real STUN packet
+    while every arm still reported "prevented". Any implementation must
+    enumerate the realm's own properties and replace each one whose value is the
+    genuine constructor, and must assert that no binding survives — a name-based
+    check cannot establish that. A context init script that
+    replaces the constructor with one raising a named `SecurityError` prevents
+    both channels in every *window* realm measured — main document, same-origin
+    iframe, `about:blank` iframe, and a cross-origin iframe whose own page
+    reported the refusal to its own origin. **Round 5 drove five of the six realms
+    this clause previously listed as untested — shared workers, service workers,
+    `srcdoc` and `blob:` frames, and `window.open` popups — on both macOS and
+    Linux, and the division above holds for all five. The sixth, the `data:`
+    frame, was never driven; see correction 16.** The init
+    script covers every *window* realm, including `srcdoc`, `blob:` and the
+    popup. Shared and service workers escape it exactly as the dedicated Worker
+    does, and the proxy closes both; a service worker outliving its page is the
+    sharpest case, and the proxy is what settles it. ~~A `data:` iframe is not a
+    vector at all — its origin is opaque and `WebTransport` refuses to construct
+    there with no controls installed.~~ **Withdrawn by correction 16:** that
+    `SecurityError` was raised in the parent on cross-origin access to an
+    opaque-origin frame; the realm never ran, and its egress capability is
+    unknown. It does not reach a dedicated
+    Worker. `RTCPeerConnection` is not exposed in a worker, so WebRTC has no
+    worker escape; `WebTransport` is, and a worker constructs it and egresses
+    exactly as it does without the shim. The broker-owned egress proxy closes
+    that escape, because Chromium declines QUIC through an HTTP proxy. The
+    runtime must therefore install **both** the init script and the proxy, and
+    must not treat either as sufficient on its own. Falsifiable revisit
+    trigger, stated broadly because the mechanism is configuration-sensitive:
+    **any configuration in which the browser treats a destination as
+    unproxied** removes the proxy's half and reopens the worker escape — a
+    browser that tunnels QUIC through a proxy, a PAC script returning `DIRECT`,
+    an enterprise proxy policy, or an explicit bypass list. That last case is
+    not hypothetical: Chromium bypasses its proxy for loopback and link-local
+    destinations by default, so the launcher **must** pass
+    `--proxy-bypass-list=<-loopback>`. Playwright passes it today, confirmed by
+    reading the accepted command line back, and an IP-literal arm confirms
+    forbidden-class literals do reach the proxy — but a broker that launches the
+    browser itself owns that switch and must set it.
+
+    **Both controls are in force only for a context the broker launched
+    itself.** `addInitScript` reaches documents created or navigated after
+    installation, and the proxy is a launch-time argument. A page already open,
+    or a service worker already registered, when the broker attaches is a realm
+    neither control ever enters — the same hazard round 3 recorded when
+    excluding `agent-browser`, whose containment mode refuses to run alongside a
+    restored profile for exactly this reason. The runtime must therefore
+    register the shim before any document exists and must not attach to a
+    browser started without both controls. The shim binds the **site**,
+    not the adapter: it is installed with a non-configurable, non-writable
+    property so page script cannot redefine it, but an admitted native adapter
+    owns the context and can open one without it. That is D13's trusted-code
+    boundary restated, not a new gap. No launch flag tested removed
+    either surface, and round 4 confirmed every tested switch and feature name
+    reached the browser by reading back the accepted command line — so this is
+    a measured negative, not an unapplied flag. Both controls are rails against
+    site-controlled egress; neither is a boundary against admitted native code,
+    and D13 stands unchanged.
+
+    **Realm coverage: see correction 16.** This correction named six realms it
+    had not reached. Five are now driven and behave as predicted; the sixth, the
+    `data:` iframe, was never driven, and the realm list itself is not
+    exhaustive.
+12. **Method policy is enforceable only at a *terminating* connection point.**
+    Inside a CONNECT tunnel the proxy sees `host:port` and nothing else, which
+    is why round 3 recorded method policy as unenforceable there. A broker that
+    terminates TLS sees the request line: all six methods became visible, the
+    allowed two were delivered, and the four mutating ones were refused with
+    the destination receiving nothing. Enforcement is proved; **trust
+    establishment is not** — the evidence accepted the interception certificate
+    rather than installing a profile-scoped CA into the browser profile, which
+    a production broker must do. An admitted native adapter still bypasses the
+    browser proxy with raw egress, so this remains a rail.
+
+    **The remedy is itself a new surface, and the RFC must carry its custody
+    requirements.** A terminating broker holds a private key that can mint a
+    certificate for any origin the authenticated profile visits, and it sees
+    every cookie and `Authorization` header in cleartext for the logged-in
+    session. That places the broker inside the credential trust boundary, which
+    D7's opaque-credential posture did not contemplate. A design that adopts
+    method policy must therefore generate the CA per profile, keep it
+    short-lived, store it `0600` inside the broker's `0700` run directory
+    (correction 13), never add it to any operating-system trust store, and state
+    plainly that terminating TLS moves the broker inside that boundary.
+
+    **Round 5 removes the trust-store problem, not the boundary problem.**
+    Trust for the interception certificate is establishable without writing to
+    any store, and the two surfaces need different anchors because they are
+    different TLS stacks: a page navigation is browser-side and takes
+    `--ignore-certificate-errors-spki-list`, which scopes to exactly one public
+    key for exactly one launch — though it **suppresses certificate errors** for
+    connections presenting that key rather than validating them, so a wrong-name
+    certificate carrying the same key is also accepted, measured in round 5, and
+    a broker must not rely on name checking for pinned connections; the context request client terminates TLS in the
+    **driver** process and takes `NODE_EXTRA_CA_CERTS` in the broker. Both were
+    measured with a control that must fail and a wrong-key arm that must also
+    fail, and the separation between them was measured directly.
+
+    **The profile-scoped-CA requirement above therefore has a replacement, and
+    the NSS caveat becomes conditional rather than moot.** A design that takes
+    the measured route — an SPKI pin for the browser surface, a process
+    environment variable for the driver surface — writes to no trust store on
+    any platform, so the shared per-user NSS database never comes into it. The
+    caveat still binds any design that instead installs a CA into an OS or NSS
+    store, which is the route this correction originally assumed; it is not
+    retired, it is scoped to a route the evidence now says need not be taken. An
+    earlier version of this correction said the caveat was "moot" and then
+    restated it two sentences later; that contradiction is withdrawn in favour
+    of this paragraph.
+
+    What is unchanged is everything after trust: the broker still reads
+    decrypted request material. That material — cookies, `Authorization`
+    headers, bodies — must never be logged, persisted, or surfaced to a
+    provider, an artifact, a diagnostic event, or a model, which is D7's
+    opaque-credential rule restated for a surface D7 did not contemplate. Any
+    key material the broker does hold must be destroyed with the profile, not
+    merely short-lived. **Name constraints are not available on the measured
+    route** — an earlier version of this correction required the CA to be
+    name-constrained to the declared origins, which contradicts the measured
+    behaviour of the pin: it suppresses name mismatches rather than enforcing
+    them. A broker on this route gets no name checking from the mechanism and
+    must apply destination policy itself. **Adopting method policy requires an
+    explicit D7 disposition from the approver, not a construction note**, and
+    correction 17 records what the trust result does and does not deliver.
+13. **Endpoint confinement is platform-specific and must not be inherited from
+    the platform temporary directory.** The round-3 pass rested on macOS giving
+    each user a `0700` temporary root. On Linux the bind socket's ancestor
+    chain runs `0755, 0755, 0755, 1777, 0755` up to `/` with no
+    current-user-only ancestor anywhere, so the same socket sits under
+    world-traversable directories; the row fails there, reproduced twice.
+    Combined with correction 8, the broker must create
+    its own `0700` run directory and place any endpoint it owns inside it. This
+    supersedes correction 8's confinement sentence.
+
+    **What was measured, and what was not.** The row fails a conservative
+    ancestor predicate — no ancestor is current-user-only. It does **not**
+    demonstrate cross-user reachability: the same artifact records
+    `socketIsWorldConnectableByMode: false`, because `connect(2)` on a Unix
+    socket requires write permission and mode `0755` denies it to other users on
+    both platforms. No row measured connectability from a second uid. The remedy
+    is required on the conservative reading; the stronger claim is not made.
+
+    **Round 5 removed the root caveat; round 6 corrected the measurement.**
+    Round 4's Linux arm ran as **root** in a container, where "no
+    current-user-only ancestor" reads differently than it would for an
+    unprivileged account. Round 5 reproduced the failure as uid 1001 — but under
+    a harness-created `TMPDIR` and with the ancestor walk capped at four levels,
+    so it measured a directory the harness had made rather than the platform
+    temporary root the correction is about. Round 6 removed both the cap and the
+    override. The chain now reaches the real `/tmp` at mode `1777`, not owned by
+    the current user, and `/` above it, with `confinedByAncestorDepth: null` and
+    `ownedByCurrentUserThroughout: false`. **The finding survives correction and
+    is stronger than round 5 recorded**: the chain is not merely unconfined, it
+    is not owned by the running user at any level above the socket's own
+    directory. Correction 13 stands as written, now on evidence that measures
+    what it claims.
+14. **An OS-level boundary for adapter-host raw egress exists, and is named.**
+    Correction 7 established that the Node Permission Model cannot separate raw
+    egress from the Playwright transport, because one coarse `net` permission
+    gates both. macOS `sandbox-exec` expresses the separation: deny
+    `network-outbound`, then re-admit exactly the bound Unix-domain socket. The
+    child kept native `Page`/`BrowserContext` over the transport while raw
+    egress was denied and the destination received nothing, against a control
+    arm where both succeeded. Four bounds travel with it. `sandbox-exec` is
+    deprecated by the vendor and is not documented as a supported security
+    boundary, so this is evidence the separation is *expressible at the OS
+    layer* rather than an endorsement of that tool. It is macOS-only; no Linux
+    or Windows equivalent is measured. And it bounds raw network egress from
+    the adapter host — it is not a malicious-code sandbox and must never be
+    described as one.
+
+    **The profile's scope is narrower than "egress denied" suggests.** It is
+    `allow default` plus a targeted `deny network-outbound` and two socket
+    literals, so everything other than outbound sockets stays permitted and
+    `network-bind` is allowed unconditionally — an inbound channel is not
+    covered by this result. Two egress paths were probed: TCP, denied with
+    `EPERM`, and DNS, probed on both of Node's paths — the direct-UDP resolver
+    and `getaddrinfo`. The socket literal interpolated into the profile must be
+    validated or escaped where a broker generates it — an unescaped path
+    containing a quote or parenthesis rewrites the policy.
+
+    **Superseded in part by round 5.** The boundary is now measured in the
+    production shape this correction asked for: `(deny default)` with only what
+    the adapter host needs re-admitted, and only the bound Unix socket re-added
+    to the network. Under that profile the transport survives while raw TCP
+    egress, **both** DNS paths and inbound `network-bind` are denied, and
+    artifact writes still work — so the `allow default` and unconditional-bind
+    bounds no longer apply. ~~Daemon-proxied egress is denied rather than merely
+    unmeasured.~~ **Withdrawn by the paragraph below:** that holds for the two
+    DNS paths and for nothing else. Round 5 also supplies the **Linux equivalent** this
+    correction said did not exist: a network namespace (`unshare -rn`) denies
+    all egress to an off-loopback destination while the Unix-domain transport
+    survives. Two bounds travel with the Linux mechanism: it denies every
+    destination rather than a class, so it complements the broker-owned proxy
+    rather than replacing it; and it needs unprivileged user namespaces, which
+    some distributions restrict. Windows has no measured equivalent.
+
+    **Two bounds round 5 measured but did not publish, recorded by round 6.**
+    First, "daemon-proxied egress is denied" is proved for the two DNS paths the
+    security review named and for nothing else. The measured profile is not
+    "`deny default` plus two operations" — it is:
+
+    ```
+    (deny default)
+    (allow process*) (allow signal) (allow sysctl*) (allow mach*) (allow ipc*)
+    (allow file-read* file-read-metadata)
+    ```
+
+    `mach*` admits every Mach operation, not `mach-lookup` alone; `process*`
+    admits `process-exec` and `process-fork`; and `file-read*` is unrestricted,
+    which means an adapter host under this profile **can read the live browser
+    profile off disk** — the exact defeat correction 9 exists to prevent — and
+    no arm composes this profile with the Node permission model that supplies
+    that confinement. Egress delegated over any of the admitted `mach*` or
+    `ipc*` channels to an already-running system service was never probed, and
+    because no arm ever narrowed the profile, the claim that these classes
+    *must* be admitted for Node to execute states a minimum that was not
+    measured. The general delegation question is open, not closed. Second, the Linux namespace row ran as **root** (uid 0, child uid 0)
+    in a container granted `SYS_ADMIN`, and is a single observation — it shows
+    the mechanism exists, not that an unprivileged adapter host can confine
+    itself with it. Both are carried as blocker item 6.
+
+15. **No evidence in this RFC was gathered with Chromium's renderer sandbox
+    enabled, on any platform.** Round 5 asserted that its Linux arm ran with the
+    sandbox on. The predicate behind that claim read an environment variable the
+    fixture had set moments earlier — it could not fail — and the claim it
+    supported is **false**, not merely unproven. Round 6 read the state back
+    from the browser instead: on Linux `chrome://sandbox` reports `Layer 1
+    Sandbox: None`, with PID namespaces, network namespaces, Seccomp-BPF and
+    Yama ptrace protection all `No`; on macOS the `chrome://version` command
+    line carries `--no-sandbox`. Playwright passes that switch by default, so
+    this applies to **every arm in rounds 3, 4, 5 and 6**, not to Linux alone.
+
+    **Why it matters beyond the row it broke.** The renderer sandbox is the one
+    process-level boundary Chromium supplies without the design asking for it,
+    and D13's rail-not-boundary posture is stated against a browser that has it.
+    An egress rail measured in an unsandboxed renderer is still a valid
+    measurement of the rail — the shim and the proxy did what they did — but no
+    result here speaks to how those controls behave in the configuration a
+    production pack would ship, and none of them inherit the sandbox's
+    containment. Round 4's Linux caveat is therefore not removed by round 5; it
+    is generalised to the whole evidence base and folded into blocker item 1. A
+    design that intends to ship with the sandbox on must re-measure, and one
+    that intends to ship with it off must say so explicitly and carry the
+    consequence.
+
+    **The consequence, stated: an untrusted site becomes a same-uid actor.**
+    With `--no-sandbox`, renderer code runs at the broker's own uid. Three
+    separate corrections bound a risk by observing that the only actor in that
+    class is a benign local process — correction 8's bind endpoint is a bearer
+    credential for any same-uid process, correction 12's SPKI pin travels on a
+    command line any same-uid process can read, and correction 9 keeps the
+    adapter host away from a browser profile that is nonetheless readable at
+    that uid. Each of those bounds was written against a browser whose renderer
+    *is* sandboxed. Sandbox-off moves a site that achieves renderer code
+    execution out of the "site-controlled egress" class D13's rails address and
+    into the same-uid class those three corrections declare unprotected.
+    Accepting a sandbox-off configuration therefore means accepting that the
+    bind endpoint, the interception pin and the authenticated profile are
+    reachable by site-origin code — which is a materially different risk from
+    the one the RFC's same-uid caveats describe. Carried in item 1.
+16. **Realm coverage is five realms, not six, and is not exhaustive.**
+    Correction 11 named six realms it had not reached. Round 5 reported all six
+    measured and recorded the `data:` iframe as "not an egress vector" on a
+    `SecurityError`. That error was raised in the **parent frame**, on
+    cross-origin access to an opaque-origin document — the realm never executed
+    a line of probe code, so the result described the parent's access, not the
+    realm's capability. The claim is withdrawn: five realms are driven, and the
+    `data:` realm is untested.
+
+    The five that are driven — shared worker, service worker, `srcdoc` iframe,
+    `blob:` iframe and a `window.open` popup — behave exactly as correction 11
+    predicted on both platforms, and that part of the round-5 result stands. But
+    "every realm a site can reach" was never established. Sandboxed iframes,
+    nested cross-origin frames, workers created by a service worker, and realms
+    already present in a restored profile are untested, and an opaque-origin
+    realm's egress capability specifically remains unknown. Carried as blocker
+    item 7.
+17. **What the trust result delivers, stated precisely.** Correction 12 records
+    that trust is establishable without a store. Three bounds on that result
+    were present in round 5's artifacts and absent from its prose, and one is a
+    property of the mechanism rather than of the fixture.
+
+    The browser mechanism **suppresses certificate errors** for connections
+    presenting the pinned key rather than validating them: a certificate
+    carrying the pinned key but the **wrong name** is accepted, measured
+    directly. The driver mechanism is **issuer-wide for the whole broker
+    process** — `NODE_EXTRA_CA_CERTS` scopes to the process, not to the
+    interception destination, so every connection that process makes will accept
+    any certificate that CA issues. **No arm in any round composed trust
+    establishment with method enforcement in a single launch**: round 4 enforced
+    methods under `ignoreHTTPSErrors`, round 5 established trust with no method
+    policy installed, and the combination is assumed rather than measured. And
+    every trust row is **macOS-only**. Carried as blocker item 5.
 
 **Carry into the future implementation spec (non-binding, not contract).**
 Round 3 surfaced three construction requirements that belong in a plan rather
-than in this corrections list: spawn the adapter host asynchronously, because a
+than in this corrections list. Round 4's own construction requirements were
+load-bearing enough to become corrections 11 to 14 instead, so this list is
+unchanged: spawn the adapter host asynchronously, because a
 synchronous spawn stops the bound endpoint being serviced and the child's
 attachment times out; flush stdout before exiting the one-shot protocol,
 because `process.exit()` discards a pending write and a large payload then
@@ -1114,7 +1683,8 @@ them.
   become interchangeable merely because host and port match. *(Superseded by
   the round-3 dispositions below: WSS interception, the canonical mapping,
   bounded redirect chains, and connected-address checks are now proved.
-  Proxy interaction on Linux remains untested.)*
+  Proxy interaction on Linux remains untested.)* *(Superseded again by round 4:
+  Linux proxy interaction is measured — see the round-4 dispositions below.)*
 - The host-provided request wrapper is the sanctioned convenience path for
   trusted adapters and enforces origin, method, redirect, deadline, and size
   policy before using the context-associated client. It is a rail, not a
@@ -1145,11 +1715,26 @@ yet evidence for the production destination-class policy.
 | Page requests handled by Service Workers | **Prevented for relayed egress** | Measured **without the proxy**, because service workers require a secure context and loopback bypasses the proxy. A worker-synthesised reply is invisible to context routing and the origin server received nothing; worker-relayed egress is routable and was aborted. The synthesised-reply conclusion rests on one origin receive log, with no packet-level observer |
 | `APIRequestContext` methods | **Origin prevented; method unobservable** | The proxy refuses an undeclared origin, but the client tunnels cleartext `http` through CONNECT, so all six methods reached a declared destination while the proxy saw only `CONNECT` |
 | Page-route precedence and route removal | **Not prevented in-browser; prevented at the proxy** | Confirms the trusted-code claim; the destination still received zero |
-| Raw Node egress | **Unobservable** | Invisible to every browser rail. Denial is possible only in a child that does not need the Playwright transport, which the adapter host does |
+| Raw Node egress | **Unobservable** | Invisible to every browser rail. Denial is possible only in a child that does not need the Playwright transport, which the adapter host does. *(Superseded by correction 14: an OS-level boundary keeps the transport while denying raw egress.)* |
 | Download confinement through real browser download APIs | **Prevented** | Host-generated paths under a canonicalized job root; every adapter-supplied path refused, zero escape files |
 | WebRTC | **Not prevented — acceptance blocker** | No flag name identified here stopped it: default flags, `--force-webrtc-ip-handling-policy=disable_non_proxied_udp` with and without a proxy, and `--disable-features=WebRTC,RTCPeerConnection` each emitted a STUN binding request to an independent UDP probe. Chromium silently ignores unknown feature names and the run did not read back the accepted command line, so a disabled variant behaving like its control is also what an ignored flag looks like. S4 measured a different launcher raising `SecurityError: RTCPeerConnection blocked while domain filtering is active`, a named mechanism showing the channel is controllable |
 | WebTransport | **Not prevented, not disabled — acceptance blocker** | The constructor survived `--disable-features=WebTransport,WebTransportH3` and UDP egress was observed in both variants. The same flag-recognition caveat applies |
 | Linux proxy behavior | **Not tested** | No Linux host was available. If Linux enters the claimed support matrix this becomes an acceptance blocker |
+
+**Round-4 dispositions.** These supersede the rows above where they disagree.
+The round-3 proxy verdicts remain valid evidence that the control point works;
+what changes is that the destination-class question is now measured under the
+**production** rule rather than the inverted loopback-only one, and the four
+channels round 3 left open have dispositions.
+
+| Channel | Round-4 disposition | Where the control sits |
+| --- | --- | --- |
+| WebRTC | **Prevented for site-controlled egress** | A context init script raising a named `SecurityError`. Covers main document, same-origin iframe, `about:blank` iframe and a cross-origin iframe; not exposed in a worker at all. Zero STUN against a control that emitted one. No launch flag removed it, and every tested switch is confirmed present in the accepted command line |
+| WebTransport | **Prevented, and only by both controls together** | The init script covers window realms; a dedicated Worker escapes it and egresses exactly as the control does; the broker-owned proxy closes the worker escape because Chromium declines QUIC through an HTTP proxy. These arms necessarily run the proxy under the **loopback-only** fixture rule, because their destinations are loopback fixtures — what they establish is that a proxy on the path stops QUIC, which is independent of which destinations the rule admits. See correction 11 for the revisit trigger |
+| Method policy for the context request client | **Enforceable at a terminating connection point** | A broker that terminates TLS sees all six methods, delivers the allowed two and refuses the rest with the destination receiving nothing. Trust establishment is untested — see correction 12 |
+| Destination-class policy | **Prevented under the production rule** | The rule is one classifier used both as a pure function over an address table and as the live proxy check, so a unit result and a live refusal cannot drift. Every forbidden class refused with its own class named; the public class allowed; the address pin shown operative between two public addresses. On macOS only the loopback and unspecified classes could carry a receive log, because the host firewall blocks inbound traffic to non-loopback listeners; the Linux arm supplies the private class with a real receive log |
+| Linux proxy behavior | **Measured** | Same proxy, same rules, same results as macOS for the egress rails. The S1 lifecycle corpus also runs there and fails one row — endpoint confinement — which is a platform finding, not a proxy one. See correction 13 |
+| Windows | **Not tested** | No Windows host was available. If Windows enters the claimed support matrix this becomes an acceptance blocker |
 
 ### S4 gate decision
 
@@ -1166,26 +1751,34 @@ supersedes D2's historical execute-all wording:
 
 1. Inspect every exact in-scope candidate for unavoidable credential,
    authority, dependency, update, and private-endpoint violations before any
-   candidate process runs.
+   candidate process runs. The static surface screen inside this stage is a
+   **triage aid, not an admission instrument**: round 3 showed it does not
+   discriminate, so it never carries gate weight on its own.
 2. A static exclusion must name the exact offending surface, show that the
    surface is unavoidable in the proposed constrained mode, and carry a
    falsifiable revisit trigger.
-3. Only candidates that clear inspection execute the common S1/S3 lifecycle,
-   handoff, native-ABI, crash-recovery, and containment corpus. Every such
-   execution uses an explicit environment allowlist, scanned dependencies, and
-   a fresh synthetic profile.
-4. Reopen the provisional Playwright choice if a candidate passes both stages
+3. Only candidates that **clear the blocking dependency scan** execute the
+   common S1/S3 lifecycle, handoff, native-ABI, crash-recovery, and
+   containment corpus. Every such execution uses an explicit environment
+   allowlist, scanned dependencies, and a fresh synthetic profile.
+4. An **execution-backed exclusion discharges the corpus requirement**. A
+   candidate excluded on measured grounds obtained under clause 3's conditions
+   does not also have to pass the lifecycle, handoff and crash-recovery
+   corpus; the corpus exists to qualify a candidate for adoption, not to
+   re-prove an exclusion already established by measurement.
+5. Reopen the provisional Playwright choice if a candidate passes both stages
    and removes material lifecycle responsibility without widening effective
-   authority.
+   authority. If a candidate's recorded revisit trigger fires, that candidate
+   must then run the full common corpus.
 
 The decision changes the evaluation rule, not the evidence verdict. S4 is
 Partial until every candidate has a reviewed disposition under the amended
-gate and every candidate that clears inspection has passed the common corpus.
-The earlier candidate execution that inherited session state cannot satisfy a
-sanitized-execution requirement.
+gate and every candidate that clears the blocking dependency scan has either
+passed the common corpus or been excluded on execution-backed measured
+grounds. The earlier candidate execution that inherited session state cannot
+satisfy a sanitized-execution requirement.
 
-**Round-3 outcome: Playwright is retained; the gate itself needs an approver
-decision.** All four exact artifacts were integrity-verified, installed with
+**Round-3 outcome: Playwright is retained.** All four exact artifacts were integrity-verified, installed with
 `--ignore-scripts` into isolated trees, and scanned under the blocking policy.
 `openchrome-mcp` 1.12.9 and `opendevbrowser` 0.0.40 fail that scan outright, so
 the amended rule's execution precondition is unmet for both; each also carries a
@@ -1203,24 +1796,36 @@ existing pages before network containment is installed."* It cannot provide
 containment and the per-connection profile D4 requires at the same time. It
 widens effective authority and is excluded on measured grounds.
 
-S4 nevertheless remains **Partial**, for a reason the round-3 evidence itself
-surfaced. Clause 3 above admits to execution only candidates that "clear
-inspection", and the exit sentence holds S4 open until every such candidate has
-passed the common S1/S3 corpus. Neither condition is operable as written.
-Stage one's keyword screen was shown **non-discriminating**: scanning every tree
-on equal footing, the retained Playwright substrate trips five of the same
-surface categories, while `agent-browser` trips none in code because its logic
-lives in a Mach-O binary that was not statically inspected. The precondition
-actually used was clearance of the blocking dependency scan. And the common
-lifecycle, handoff, crash-recovery corpus was not run — only the native-ABI,
-containment, endpoint-character, credential-surface and sanitized-execution
-subsets were.
+Round 3 left S4 **Partial** because its own gate text was not operable as then
+written. The clause admitted to execution only candidates that "clear
+inspection", and the exit sentence held S4 open until every such candidate had
+passed the common S1/S3 corpus. Stage one's keyword screen was shown
+**non-discriminating**: scanning every tree on equal footing, the retained
+Playwright substrate trips five of the same surface categories, while
+`agent-browser` trips none in code because its logic lives in a Mach-O binary
+that was not statically inspected. The precondition actually used was clearance
+of the blocking dependency scan. And the common lifecycle, handoff and
+crash-recovery corpus was not run — only the native-ABI, containment,
+endpoint-character, credential-surface and sanitized-execution subsets were.
 
-**Approver decision required.** Either amend clause 3 and the exit sentence to
-name the precondition actually used and state that an execution-backed
-*exclusion* discharges the corpus requirement, or commission the full common
-corpus for `agent-browser`. Until one of those happens S4 cannot close, and no
-candidate exclusion or execution row has been converted to a pass.
+**Approver disposition, 2026-08-16 (round 4): the gate text is amended.** The
+clauses above now name the precondition actually used and state that an
+execution-backed exclusion discharges the corpus requirement. Under the amended
+rule S4's conditions are met: all four exact in-scope candidates carry a
+reviewed disposition; the two that fail the blocking dependency scan never
+reach execution and are excluded statically with named surfaces and revisit
+triggers; and `agent-browser` 0.34.0 — the only candidate that cleared the scan
+— executed under clause 3's conditions and is excluded on three measured
+findings: a cookie-read surface returning a non-empty payload to its caller, an
+unauthenticated loopback CDP endpoint whose only unguessable material is a path
+UUID its own CLI hands out, and a hard `exit 1` refusal when containment and a
+per-connection profile are requested together.
+
+**S4 closes on this disposition.** It changes the evaluation rule, not the
+evidence: no candidate exclusion or execution row has been converted to a pass,
+Playwright remains the provisional substrate, and D2 is not reopened. Each
+candidate's falsifiable revisit trigger stands unchanged; if one fires, that
+candidate must then run the full common corpus.
 
 One round-3 result cuts the other way and is recorded as a lead, not a
 reversal: under `--allowed-domains`, `agent-browser` raises `SecurityError:
@@ -1305,3 +1910,288 @@ that mechanism rather than record the channel as inherently uncontrollable.
   reason acceptance was not taken now: accepting would commit to those channels
   blind. No implementation or follow-on artifact is authorized by this
   disposition.
+
+- **2026-08-16 — S4 gate-text approver disposition.** Amended the
+  [S4 gate decision](#s4-gate-decision) rather than commissioning the common
+  corpus for `agent-browser`. Clause 3's precondition is now clearance of the
+  blocking dependency scan — the condition round 3 actually applied — because
+  the stage-one keyword screen was shown non-discriminating and can no longer
+  carry gate weight; it is retained as a triage aid and labelled as one. A new
+  clause records that an execution-backed exclusion discharges the corpus
+  requirement, so a candidate excluded on measured grounds need not also pass
+  lifecycle, handoff and crash-recovery tests. The exit sentence follows the
+  amended precondition.
+
+  This changes the evaluation rule, not the evidence. No candidate exclusion or
+  execution row was converted to a pass, Playwright remains the provisional
+  substrate, and D2 is not reopened. Each candidate's falsifiable revisit
+  trigger stands unchanged; a fired trigger requires the full common corpus for
+  that candidate.
+
+  S4's only outstanding condition was this gate text, so S4 moves from Partial
+  to **Pass** and blocker 5 leaves the pre-acceptance list, which renumbers to
+  nine items. The union property was re-checked rather than assumed: S4's
+  remaining-exit-gate cell now reads "None", and the one S4 evidence limitation
+  that survives — `agent-browser`'s Mach-O binary was never statically
+  inspected — is not a residual, because the exclusion rests on executed
+  measurements rather than on that inspection. It remains recorded in the
+  round-3 note. RFC-0088 stays `Experimental`; this disposition authorizes no
+  implementation or follow-on artifact.
+
+- **2026-08-16 — fourth Experimental run.** Promoted the
+  [round-4 note](0088-notes/spikes/2026-08-16-experimental-round4.md) and its
+  [manifested archive](0088-notes/spikes/round4-evidence-archive.md)
+  (35 manifested files, archive SHA-256 `52051176…96ee`), reconstructed and
+  verified independently. The round-4 builder additionally pins the gzip header
+  time, so the archive digest is now reproducible across rebuilds rather than
+  changing on every build. Moved S3 from Partial to Pass on its named gates. S1 holds its named gates on macOS
+  and is Partial on Linux; S2 through S6 hold theirs. The pre-acceptance list
+  falls from nine items to five. *(This summary count is not reconcilable with
+  the list itself, which held **seven** items after this round — the figure the
+  2026-08-16 round-5 entry accounts against, item by item. The enumerated list
+  under* Current Experimental state *is authoritative over any summary count in
+  this trail, including this one. Flagged rather than silently corrected,
+  because the entry is the record of what was written on the date it was
+  written.)*
+
+  **The two channels that blocked acceptance are controllable.** WebRTC egress
+  is prevented in every window realm tested — main document, same-origin iframe, `about:blank` iframe and cross-origin iframe — and not exposed at all in a dedicated Worker by a context init script raising
+  a named `SecurityError` — the same mechanism round 3 observed on a different
+  launcher and recorded as a lead. WebTransport needs that shim *and* the
+  broker-owned proxy: a dedicated Worker is a realm the init script never
+  enters, and it egresses there exactly as the control does until the proxy is
+  the only egress path. Correction 11 records that neither control is
+  sufficient alone. Round 4 also removed round 3's flag ambiguity by reading
+  the accepted command line back from `chrome://version` on every arm, so "no
+  flag removed the surface" is now a measured negative rather than a result
+  indistinguishable from an unapplied flag.
+
+  **Three further blockers closed on measurement.** Method policy is
+  enforceable once the broker terminates the tunnel (correction 12), with trust
+  establishment carried forward as a narrower residual. The production
+  destination-class rule was measured directly instead of inheriting verdicts
+  from the deliberately inverted one. An OS-level boundary for adapter-host raw
+  egress is named and measured (correction 14), supplying what correction 7
+  said was missing. Download-host verification moved to connection level.
+
+  **One blocker was created by measurement.** The S1 endpoint-confinement row
+  fails on Linux, reproduced twice: the macOS pass rested on a `0700` per-user
+  temporary root, and Linux `/tmp` supplies no current-user-only ancestor. The
+  broker must own its `0700` run directory rather than inherit confinement
+  (correction 13). Linux therefore moves from untested to measured and is
+  explicitly **not** a clean pass. Windows remains untested in every respect.
+
+  34 fixture defects are recorded row-by-row in the note's *Fixture
+  defects corrected during this run* table, and the figure verifier counts that
+  table so the prose cannot drift from it. Six changed what a row could
+  detect or what it concluded. The realm probe used `typeof`, which returns
+  `'function'` for a shim as readily as for the genuine constructor, so it
+  could not distinguish a patched realm from a pristine one. The worker-escape
+  control never messaged its worker, so it produced no egress and the escape
+  read as absent; fixing it changed the finding from "no worker escape" to a
+  confirmed escape, which is why correction 11 requires two controls rather
+  than one. And the shim replaced a single binding name per interface while
+  every probe constructed through that same name — `webkitRTCPeerConnection`
+  survived it and emitted a real STUN packet, so the first WebRTC closure was
+  overclaimed and the shim is now identity-based with an enumeration assertion.
+  A fourth defect was found in the classifier the destination-class closure
+  rests on: it detected IPv4-mapped IPv6 from the textual prefix, so
+  `0:0:0:0:0:ffff:7f00:1` classified as `public`.
+
+  No third-party candidate artifact was executed in this round, so the
+  test-conduct incident record is unchanged: the three rotated tokens stay
+  closed, and the broader account-level exposure from the unmonitored round-2
+  run stays **accepted, not excluded**.
+
+  **The review loop did not converge, for the second round running.** Two full
+  passes of adversarial, security-design and quality/testability review ran
+  against this evidence: the first returned 58 findings across the three
+  reviewers, the second 55 against the reworked evidence. The second pass was
+  not a re-litigation of the first — roughly two thirds of its findings were
+  new, and several were defects introduced by the first pass's own fixes.
+
+  Six findings changed a conclusion rather than tightening a test, and all six
+  were the same shape: a control or a probe that could not see its own blind
+  spot.
+  - The egress shim replaced one binding name per interface while every probe
+    constructed through that same name. `webkitRTCPeerConnection` survived and
+    emitted a real STUN packet. The WebRTC closure was overclaimed until the
+    shim became identity-based.
+  - The alias enumeration then ran *after* the shim, where a replaced binding is
+    no longer recognisable as an alias — the same blind spot one layer up.
+  - The worker-escape control never messaged its worker, so it produced no
+    egress and the escape read as absent. It is real, and it is why correction
+    11 requires two controls.
+  - The destination classifier detected IPv4-mapped IPv6 from the textual
+    prefix, so `0:0:0:0:0:ffff:7f00:1` classified as `public`; and it accepted
+    non-canonical IPv4 spellings that the socket layer resolves differently, so
+    `012.0.0.1` classified as `public` while glibc reaches `10.0.0.1`.
+  - The connection-level download-host arm installed `ffmpeg`, a stand-in, and
+    reported it as the browser payload. The real chromium install redirects to
+    an authority the installer's own `--dry-run` never names.
+  - The archive builder's "measured browser version" read a key that does not
+    exist and swallowed the error, shipping "unavailable" while the note claimed
+    the version was measured.
+
+  Every one of those is now fixed and recorded row-by-row in the note's defect
+  table, which the figure verifier counts so the prose cannot drift from it. But
+  the honest reading of two non-converging rounds is that this evidence base is
+  large enough that each review pass finds a fresh tranche, and **a fifth round
+  should expect to find more**. The verdicts above are stated against corrected
+  evidence, not against a clean review.
+
+  RFC-0088 remains `Experimental`. No implementation or follow-on artifact is
+  authorized.
+
+
+- **2026-08-16 — fifth Experimental run.** *(Superseded in part by the
+  2026-08-17 entry below. This entry is preserved as the record of what was
+  concluded on the date it was written; the four claims round 6 withdrew are
+  marked inline. Its headline — "the pre-acceptance list falls from seven items
+  to four" — is the principal casualty: the list stands at seven.)* Promoted the
+  [round-5 note](0088-notes/spikes/2026-08-16-experimental-round5.md) and its
+  [manifested archive](0088-notes/spikes/round5-evidence-archive.md)
+  (36 manifested files, round-5 archive SHA-256 `598818b0…afcb` after the round-6
+  rebuild), reconstructed and
+  verified independently. The pre-acceptance list falls from seven items to
+  four, and every macOS disposition in this round is replicated three times.
+
+  **Three blockers closed on measurement.** The realms correction 11 had not
+  reached are measured on both platforms and behave exactly as it predicted:
+  the init script covers every window realm, shared and service workers escape
+  it as the dedicated Worker does, and the proxy closes them. *(Withdrawn in
+  part — five realms were driven, not six; correction 16.)* Method-policy
+  trust establishment is answered on both of its surfaces — and there turn out
+  to *be* two, because the context request client terminates TLS in the driver
+  process where no browser switch can reach it. Neither anchor writes to an
+  operating-system trust store. *("Moot" is withdrawn: the NSS caveat is scoped
+  to a route this evidence says need not be taken, not retired — correction 12.
+  Three further bounds on this result are recorded in correction 17.)* And the OS-level boundary is rebuilt in the production `deny default`
+  shape and given a Linux equivalent, closing both the profile-shape and the
+  platform-coverage halves of that item.
+
+  **One blocker changed shape rather than closing, and one round-3 pass is
+  withdrawn.** A DSSE-signed SLSA provenance statement *is* published beside the
+  browser download and its subject digest matches the archive bytes — rounds 3
+  and 4 recorded no such anchor because they globbed only the installed payload.
+  Against that, the platform code signature this RFC names as its second
+  integrity anchor is present but **does not verify** on the extracted payload;
+  round 3's row asked `codesign -dv`, which displays signing information rather
+  than validating it. Correction 5 is amended in both directions.
+
+  **The Linux platform row is no longer conditional on how it was measured.**
+  Round 4 admitted Linux only on evidence gathered as root with Chromium's
+  renderer sandbox disabled. Round 5 re-measured it as an unprivileged user.
+  *(The sandbox half is **false** and is withdrawn — no arm in any round ran
+  with the renderer sandbox on; correction 15.)* the endpoint-confinement row still fails, twice, which
+  strengthens the finding rather than weakening it, and correction 13's remedy
+  is measured to hold there. Round 3's loopback confound is also resolved — the
+  same arms measured against an off-loopback probe give the same dispositions.
+
+  Nine fixture defects were recorded row-by-row in the note's defect table at the
+  time of this entry. *(The note now covers rounds 5 and 6 and its table carries
+  17; the figure verifier counts the current table.)* Two changed a conclusion: the trust
+  fixture resolved a synthetic hostname only the browser's resolver knows, so
+  all three arms failed on DNS and the control "passed" for the wrong reason;
+  and the anchor probe treated the CDN's blanket 307 as absence, which is why
+  the published attestation went unfound until redirects were followed.
+
+  No third-party candidate artifact was executed. RFC-0088 remains
+  `Experimental`. No implementation or follow-on artifact is authorized.
+
+
+- **2026-08-17 — sixth Experimental run (correction pass).** Round 5's review
+  returned 64 findings across three reviewers. Round 6 re-measured what they
+  challenged rather than arguing with them, and the result is a **net increase**
+  in the pre-acceptance list, from four items to seven. The
+  [note](0088-notes/spikes/2026-08-16-experimental-round5.md) now covers rounds
+  5 and 6 together, with a *Round-6 corrections* table naming every withdrawal;
+  the [archive](0088-notes/spikes/round5-evidence-archive.md) is rebuilt from
+  the re-measured artifacts.
+
+  **Three round-5 conclusions are withdrawn, one of them as false.** Round 5
+  claimed its Linux arm ran with Chromium's renderer sandbox enabled, on a
+  predicate that re-read a variable the fixture had just set. Read back from the
+  browser, `chrome://sandbox` reports `Layer 1 Sandbox: None` and the macOS
+  command line carries `--no-sandbox`, which Playwright passes by default — so
+  **no arm in any round of this evidence base ran with the renderer sandbox
+  on**, and round 4's Linux caveat is generalised rather than removed
+  (correction 15). Round 5 also reported six realms measured and the `data:`
+  iframe cleared as "not an egress vector"; that `SecurityError` was raised in
+  the parent on cross-origin access and the realm never ran (correction 16).
+  And round 5's Linux realm artifact was byte-identical to its macOS twin — a
+  promoted stand-in, found independently by all three reviewers. Every results
+  file now carries a provenance block with platform, uid and a per-run nonce;
+  the runner pre-deletes container-side paths; and the archive builder refuses
+  two results files sharing one digest.
+
+  **One finding survives correction and is stronger for it.** Round 5's Linux
+  endpoint-confinement failure was measured with the ancestor walk capped at
+  four levels under a harness-created `TMPDIR`, so it described a directory the
+  harness had made. Uncapped and un-overridden, the chain reaches the platform's
+  real `/tmp` at mode `1777` and `/` above it, with no confining ancestor and
+  `ownedByCurrentUserThroughout: false`. Correction 13 stands, now on evidence
+  that measures what it claims.
+
+  **Two of round 5's closures were not real and one of its residuals went
+  unpublished** — the partition the *Accounting* block above states, which this
+  entry does not restate differently. Item 5 is a closure narrowed rather than
+  reversed: method-policy trust is macOS-only, was never composed with method
+  enforcement in one launch, and both anchors are destination-unscoped
+  (correction 17). Item 7 is a closure that was not real at all, because a realm
+  was never driven (correction 16). Item 6 is the unpublished residual: the
+  profile admits far more than two operations, delegated egress over the admitted
+  channels is unprobed, and the Linux row was measured as root (correction 14). Two documented
+  contradictions are also resolved: correction 12 declared the NSS caveat moot
+  and then restated it, and required a name-constrained CA that the measured
+  mechanism cannot provide.
+
+  20 fixture defects are now recorded in the note's table, and the figure
+  verifier — extended to check the sandbox read-back, the corrected confinement
+  chain, and the code-signature verdict against the artifacts — derives 32
+  figures with no wrong or unclaimed claim, reporting by name the two it cannot
+  re-derive from a reconstruction rather than silently checking fewer things.
+  Four macOS drivers replicate three times; most Linux arms remain single
+  observations, which the note and item 1 both state. The archive is
+  import-closed, every promoted results file carries a provenance block naming
+  the platform and uid that produced it, and all three of those build gates were
+  negative-tested — each fails when its condition is violated.
+
+  **Round 6's own corrections were reviewed, and that pass returned blockers
+  too.** The same four lenses ran against the corrected text and the corrected
+  harness — adversarial, security-design, quality/testability, and a cold reader
+  given only the RFC and the promoted notes. All four returned blockers, and
+  several findings were reached independently by two or three of them: the
+  promoted archive was not import-closed, so three manifested drivers could not
+  run from a reconstruction; "every results file now carries a provenance block"
+  was **false**, with 4 of 10 carrying one and the three container copy-back
+  artifacts — the exact path that produced the R6-3 stand-in — carrying none;
+  the promoted macOS artifacts predated the fixture fixes that were shipped
+  alongside them; the code-signature row asserted a type check the fixture
+  guarantees; the pin-scope row that justifies deleting a normative requirement
+  from correction 12 was `recorded` rather than asserted; and the archive note's
+  own published reconstruction script carried a stale digest, so the procedure a
+  reviewer would follow failed on the archive it shipped with. Every one is
+  fixed, re-measured and re-verified in the current figures.
+
+  **Two of those are recurrences, and they are the reason this entry does not
+  claim convergence.** `NO-ALIAS-SURVIVES-THE-SHIM` — a check whose entire
+  purpose is to catch a single-name shim leaking an alias — carried that very
+  defect on macOS, counted in a pass total, one round after the same defect was
+  found and fixed in the Linux driver. And the provenance remedy for R6-3 was
+  applied to four files while leaving the three artifacts produced by the
+  mechanism that caused R6-3 unstamped, including the one Decision B turns on.
+  Correcting the alias check first turned it **red** — `webkitRTCPeerConnection`
+  was genuinely unaccounted for on macOS — and green again only once properly
+  measured.
+
+  **The review loop has not converged across rounds 3, 4, 5 and 6.** That is
+  recorded as a fact about this evidence base, not as a qualified pass: each
+  round's adversarial pass has found conclusion-changing defects in the round
+  before it, and twice now those have included defects in remedies written to
+  catch that same class. Four rounds in, the corrections still need correcting.
+  Decision A asks the approver to rule on it directly, and the honest input to
+  that ruling is that a clean pass has never yet been achieved here.
+
+  No third-party candidate artifact was executed. RFC-0088 remains
+  `Experimental`. No implementation or follow-on artifact is authorized.
