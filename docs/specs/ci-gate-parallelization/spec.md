@@ -1,6 +1,6 @@
 # Spec: ci-gate-parallelization
 
-- **Status:** Implementing
+- **Status:** Shipped (2026-08-17)
 - **Owner:** eugenelim
 - **Constrained by:** ADR-0017, ADR-0083, ADR-0084, RFC-0082,
   `docs/CONVENTIONS.md` § *Superseding a frozen document*,
@@ -212,7 +212,7 @@ day). It is the floor that keeps rising.
 
 ## Acceptance Criteria
 
-- [ ] **AC1 — `build-check.yml` runs three work jobs plus an aggregator.** Job
+- [x] **AC1 — `build-check.yml` runs three work jobs plus an aggregator.** Job
   **ids** are named because `lint-ci-parity.py` keys unnamed steps by job id.
 
   | Job id | `name:` | Contents | Known-required provisioning | Est. |
@@ -233,8 +233,7 @@ day). It is the floor that keeps rising.
   AC15 proves any narrowing rather than assuming it. And `gate-main` needs bandit
   even though SAST moved: see AC14.
 
-- [ ] **AC2 — branch protection requires the three work jobs by name, and the
-  aggregator keeps its name.** Today `make build-check` is the sole required check
+- [ ] **AC2 — branch protection requires the three work jobs by name, and the aggregator keeps its name.** *(deferred: ci-gate-parallelization-branch-protection-widening)* Today `make build-check` is the sole required check
   (branch-protection API and every ruleset verified). After this change the required
   set is **`gate-main`, `gate-sast`, `gate-export-boundary`, and `make build-check`**.
 
@@ -281,7 +280,7 @@ day). It is the floor that keeps rising.
   all four job names report on this branch, which is the precondition for widening
   the required set.*
 
-- [ ] **AC3 — the aggregator fails closed, with each dependency bound three ways.**
+- [x] **AC3 — the aggregator fails closed, with each dependency bound three ways.**
   It follows the shape already running in `build-check-windows.yml`
   (`runs-on: ubuntu-latest`, short `timeout-minutes`, `if: ${{ always() }}`, one
   `env:` var per dependency, one inline `[ "$X" != "success" ]` test each, a
@@ -322,19 +321,27 @@ day). It is the floor that keeps rising.
   territory, not the aggregator's.
 
   **Correction — this sentence previously claimed the pinned-ref ruleset and
-  `CODEOWNERS` "remain registered as a further bound." Neither exists.** There is no
-  `CODEOWNERS` file anywhere in this repository (root, `.github/`, or `docs/`), and
-  `main` requires no PR review — `workspace.toml` records both facts accurately, so the
-  repo contradicted itself and this document was the wrong half. The drift matters more
-  than the wording: **every bypass found in five review rounds — 22 of them — required
-  editing `.github/workflows/build-check.yml`.** A `CODEOWNERS` entry on
-  `.github/workflows/**` removes the unilateral capability instead of enumerating its
-  expressions, needs no API endpoint, and is strictly stronger against this threat model
-  than any text matcher can be. It is a *named gap*, not a bound: tracked as
-  `ci-gate-parallelization-workflow-codeowners`, and it does not belong to this spec
-  because assigning review ownership is a human decision about people, not a CI change.
+  `CODEOWNERS` "remain registered as a further bound." Neither exists, and
+  `CODEOWNERS` is now deliberately declined rather than deferred.** The drift was real:
+  there is no `CODEOWNERS` file anywhere in this repository, so the document asserted a
+  protection the repo did not have.
 
-- [ ] **AC4 — the SAST predicate stays step-level, and has exactly one consumer.**
+  Review round 5 proposed it as the highest-leverage residual, on the grounds that all
+  22 bypasses found across five adversarial rounds required editing
+  `.github/workflows/build-check.yml`, so removing the unilateral capability beats
+  enumerating its expressions. The direction is right and the **cost was understated**:
+  a `CODEOWNERS` file only *auto-requests* reviewers. It blocks nothing unless branch
+  protection also requires PR review with "require review from code owners" — and
+  `required_pull_request_reviews` is **absent** on `main` (API-verified), with the last
+  60 commits to `main` from a single author. So the advisory form buys no enforcement,
+  and the enforcing form would stop the sole maintainer merging at all.
+
+  Declined on that basis, with the owner's approval. **AC2 is the control that actually
+  works here**: GitHub enforces a required-check set without needing a second human.
+  Recorded so the next reader does not re-propose `CODEOWNERS` as a cheap win — its
+  price is a review requirement this repository cannot currently pay.
+
+- [x] **AC4 — the SAST predicate stays step-level, and has exactly one consumer.**
   A job-level `if:` is evaluated before a runner exists and cannot execute shell,
   so it cannot read a predicate that shells out to `make -s print-sast-dirs`.
   `gate-sast` therefore **always runs** with the predicate as a step inside it. A
@@ -360,7 +367,7 @@ day). It is the floor that keeps rising.
   banner branch and print "complete for this diff … touches nothing scannable" on
   every PR.
 
-- [ ] **AC5 — no banner or echo claims more than the run performed.** **Six**
+- [x] **AC5 — no banner or echo claims more than the run performed.** **Six**
   changes, each separately authorized, each with a stable label so citations
   survive insertion.
 
@@ -415,7 +422,7 @@ day). It is the floor that keeps rising.
   harness must invoke real `make` for the AC5b/AC5c cases. Without that the branch
   is untestable and a passing test would be exercising the wrong one.
 
-- [ ] **AC6 — every disposition `lint-ci-parity.py` needs is present.**
+- [x] **AC6 — every disposition `lint-ci-parity.py` needs is present.**
   1. **Unnamed steps are keyed by job id** —
      `label = step.get("name") or f"<unnamed step in {job_id}>"`. The three work
      jobs' unnamed checkouts add **three** keys. `<unnamed step in build-check>` is
@@ -441,7 +448,7 @@ day). It is the floor that keeps rising.
   already reports cross-job duplicates and is already self-tested. No count of
   existing dispositions is asserted anywhere in this spec.
 
-- [ ] **AC7 — Gate A's two suites run as two jobs.** `Run full agentbundle test
+- [x] **AC7 — Gate A's two suites run as two jobs.** `Run full agentbundle test
   suite (Linux)` and `Run repo/pack hook suites (Linux)` become separate jobs;
   **both Windows curated steps survive**, the agentbundle one with the agentbundle
   job and the pack-hook one with the pack job. The jobs are named **`Gate A-tests`**
@@ -450,7 +457,7 @@ day). It is the floor that keeps rising.
   `A: agentbundle-tests` with letters A–I allocated, so the legend is updated with
   the rename.
 
-- [ ] **AC8 — the ubuntu pack/hook leg runs on one Python version.** Both py3.11
+- [x] **AC8 — the ubuntu pack/hook leg runs on one Python version.** Both py3.11
   and py3.12 run the whole pack/hook suite today; those suites exercise skill
   scripts, not `packages/agentbundle`, which is what the matrix exists for. The
   **ubuntu** pack leg runs py3.12 only; the Windows curated leg and the agentbundle
@@ -464,7 +471,7 @@ day). It is the floor that keeps rising.
   mirroring `_check_skip_integrity`'s pattern — plain `-q` prints no skip reasons,
   so the check must add `-rs` or it observes nothing.
 
-- [ ] **AC9 — governance records, pointing only in directions CONVENTIONS allows.**
+- [x] **AC9 — governance records, pointing only in directions CONVENTIONS allows.**
   ADRs are frozen (status mutable, bodies not), so a new ADR-0086 is written — the
   precedent ADR-0084 set against ADR-0017. The four rules of § *Superseding a frozen
   document* apply by their own numbering, rule 2 being *point at the ADR, not at the
@@ -491,7 +498,7 @@ day). It is the floor that keeps rising.
   Also record whether ADR-0017's existing non-conforming ADR-0084 Status clause is
   normalized in the same edit — permitted, Status being the one mutable field.
 
-- [ ] **AC10 — local gates unchanged, and ADR-0086's central claim enforced.**
+- [x] **AC10 — local gates unchanged, and ADR-0086's central claim enforced.**
   `make build-check`, `make ci`, `make sast` behave identically on a developer
   machine. **Makefile changes are confined to AC5a–AC5f** — which includes AC5c's
   widening of the `$(MAKE) sast` branch condition and AC5f's retirement of the
@@ -514,8 +521,7 @@ day). It is the floor that keeps rising.
   It asserts **reachability**, not text presence, and is mutation-verified with the
   parent invocation's environment present.
 
-- [ ] **AC11 — the metrics are measured** *(deferred:
-  ci-gate-parallelization-critical-path-measurement)*. Measurement needs a
+- [ ] **AC11 — the metrics are measured** *(deferred: ci-gate-parallelization-critical-path-measurement)*. Measurement needs a
   post-merge run and both documents freeze at ship, so the result is recorded in the
   backlog entry. **This AC is the only place targets appear.**
 
@@ -529,7 +535,7 @@ day). It is the floor that keeps rising.
   20s spread, and re-measured on a second run before any conclusion; a larger miss
   is diagnosed and recorded.
 
-- [ ] **AC12 — job-level settings are set deliberately, not inherited.**
+- [x] **AC12 — job-level settings are set deliberately, not inherited.**
   - **`fetch-depth: 0` on the three work jobs.** Not an enumeration exercise:
     `make build-check` runs `build_gate_chain.py`, which transitively invokes at
     least three gates that fail **open** on missing history —
@@ -568,7 +574,7 @@ day). It is the floor that keeps rising.
     unique group, so no push-to-main SAST run can be cancelled — that run is the
     belt-and-braces the head-commit self-certification residual depends on.
 
-- [ ] **AC13 — the job graph has a posture test that derives *and* floors its set,
+- [x] **AC13 — the job graph has a posture test that derives *and* floors its set,
   and runs where it is load-bearing.** `tools/test-build-check-windows-workflow.py`
   is the precedent — genuinely wired, via `build_gate_chain.py` and
   `test_build_gate_chain.py`'s `EXPECTED_SCRIPT_STEPS` — and it is **pure stdlib**.
@@ -639,7 +645,7 @@ day). It is the floor that keeps rising.
   Wiring it **requires updating `test_build_gate_chain.py`**, which compares
   `EXPECTED_SCRIPT_STEPS` by exact equality and pins the step count.
 
-- [ ] **AC14 — the two *silent* fail-open gates keep their prerequisites.** Loud
+- [x] **AC14 — the two *silent* fail-open gates keep their prerequisites.** Loud
   fail-opens are AC15's business; these two report green.
 
   1. **`lint-nosec-form`'s unknown-ID check goes inert without bandit.** It resolves
@@ -687,7 +693,7 @@ day). It is the floor that keeps rising.
   makes the vendored-floor purity deny-list assert vacuously, `httpx`,
   `jsonschema`/`pyyaml`, ripgrep, the render libraries — needs no analysis.
 
-- [ ] **AC15 — the coupling graph is completed empirically, against CI.** AC1's
+- [x] **AC15 — the coupling graph is completed empirically, against CI.** AC1's
   provisioning column is known-required, not exhaustive; completion is reached by
   iterating real CI runs until green, **not** by further derivation. The bar:
   - Every job green on a real run of the **SAST-relevant** diff class.
@@ -707,7 +713,7 @@ day). It is the floor that keeps rising.
   polarity. The live run is recorded in the AC11 backlog entry post-merge.
   Boundaries § Never do forbids narrowing `SAST_CONFIG` to manufacture the case.
 
-- [ ] **AC16 — local↔CI parity becomes one-to-many, and addressability is
+- [x] **AC16 — local↔CI parity becomes one-to-many, and addressability is
   contractual.** This is the property the split actually costs, and it is not a
   bypass — it is a change to the repo's verification model, so it is stated rather
   than discovered later.
@@ -936,12 +942,22 @@ verification.
 
 - **`ci-gate-parallelization-critical-path-measurement`** — AC11's measurement plus
   AC15's non-relevant-diff run.
-- **`ci-gate-parallelization-required-workflow-pinned-ref`** — AC3's residual;
-  closable via a pinned-ref ruleset plus `CODEOWNERS`, **neither of which exists today**.
-- **`ci-gate-parallelization-workflow-codeowners`** — add `CODEOWNERS` covering
-  `.github/workflows/**`. Highest-leverage item on this list: it makes every bypass this
-  spec's verifier chases require a second human, and it needs no GitHub API call. Left
-  out of this spec deliberately — naming reviewers is a decision about people.
+- **`ci-gate-parallelization-required-workflow-pinned-ref`** — AC3's residual; closable
+  via a repository ruleset resolving the required workflow from a pinned ref. The
+  `CODEOWNERS` half of the original plan is **declined, not deferred** — see AC2 for why
+  it buys no enforcement in this repository's configuration.
+- **`ci-gate-parallelization-branch-protection-widening`** — AC2's apply step. The
+  required set is `["make build-check"]` with `strict: true` (API-verified once the
+  endpoint recovered); the three work jobs are added post-merge, since a required check
+  cannot precede the job that reports it.
+- **`ci-gate-parallelization-posture-test-yaml-parser`** — five of six review rounds'
+  root causes were YAML-modelling defects in `tools/test-build-check-workflow.py`
+  (scalar folding, duplicate keys, inferred indents, substring-over-a-block, key
+  encodings), not security-reasoning defects. `yaml.safe_load` plus a structural
+  comparison would retire ~7 hand-rolled parsers and the bypass classes they model,
+  trading them for one inspectable assumption (PyYAML's resolution matches Actions').
+  Deliberately NOT done here: it reverses that file's documented stdlib-only rationale
+  and adds an import to the job wearing the required check. Owner chose to ship stdlib.
 - **`ci-security-posture-test-unwired`** — `tools/test-ci-security-workflow.py` is
   invoked nowhere despite a shipped AC claiming it gates `ci-security.yml`; also
   records that `ci-security.yml` and `codeql.yml` both carry the

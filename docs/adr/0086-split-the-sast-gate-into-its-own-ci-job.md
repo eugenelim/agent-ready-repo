@@ -87,9 +87,12 @@ aggregator fails closed (non-success → exit 1) — the safe direction, but sur
   protection requiring `gate-sast` directly bounds this — a PR cannot make the job
   disappear — but a job that runs and verifies nothing is a separate class, covered
   by the spec's fail-open ACs. **This is recorded as closable, not inherent:** a
-  repository ruleset resolving required workflows from a pinned ref, plus
-  `CODEOWNERS` on `.github/workflows/**`, would bound it further. Tracked as
-  `ci-gate-parallelization-required-workflow-pinned-ref`.
+  repository ruleset resolving required workflows from a pinned ref would bound it
+  further. Tracked as `ci-gate-parallelization-required-workflow-pinned-ref`.
+  A `CODEOWNERS` entry was considered for the same residual and **declined**: without
+  `required_pull_request_reviews` on `main` — absent here — it auto-requests reviewers
+  and blocks nothing, and the enforcing form would stop this repository's sole
+  maintainer from merging. See the implementing spec's AC2.
 - **Accepted, pre-existing:** the relevance predicate evaluates `SAST_CONFIG` from
   the head commit, so a PR narrowing it self-certifies as non-scannable. The
   push-to-main run is the belt-and-braces, which is why the trigger is asserted.

@@ -545,21 +545,29 @@ open = [
   # fixing the lock or calling the test flaky. Do not quarantine it first — a
   # quarantined concurrency test is a deleted one.
   {slug = "statelock-reclaim-race-flake", source = "CI observation 2026-08-17, spec/ci-gate-parallelization"},
-  # THE highest-leverage residual for spec/ci-gate-parallelization, and the reason it is
-  # recorded here rather than closed there: all 22 bypasses found across five adversarial
-  # review rounds of tools/test-build-check-workflow.py required editing
-  # .github/workflows/build-check.yml. A CODEOWNERS entry on .github/workflows/** removes
-  # that unilateral capability instead of enumerating its expressions, needs no GitHub API
-  # endpoint (unlike AC2, still 503-blocked), and is strictly stronger against this threat
-  # model than any text matcher can be.
+  # AC2's apply step. The required set is ["make build-check"] with strict = true
+  # (API-verified 2026-08-17, once /protection recovered from an all-session 503). The
+  # three work jobs are added POST-MERGE, because a required check cannot precede the job
+  # that reports it — adding them first leaves every PR pending forever.
   #
-  # NOT done as part of that spec on purpose: choosing reviewers is a decision about
-  # people, and `main` currently requires no PR review at all, so adding CODEOWNERS
-  # changes the review contract for everyone — that needs a human, not an inference.
+  # Confirmed while reading it: there are NO stale "Gate A — agentbundle tests (…)"
+  # entries in the required set, so this spec's Gate A rename cannot orphan a required
+  # check. That was an open worry; it is closed.
+  {slug = "ci-gate-parallelization-branch-protection-widening", source = "spec/ci-gate-parallelization AC2"},
+  # Five of six adversarial review rounds against tools/test-build-check-workflow.py had
+  # YAML-MODELLING root causes, not security-reasoning ones: scalar folding, duplicate
+  # keys, an inferred base indent, positive-substring-over-a-block, and key spelling
+  # encodings. Each was a consequence of re-implementing a YAML parser in regex.
+  # yaml.safe_load plus a structural comparison would delete _key_re, _key_values,
+  # _sub_mapping, _step_key_values, _run_body's three-style folding, _steps, _job_ids and
+  # both *-modelled fail-closed checks, replacing them with ONE assumption (PyYAML's
+  # resolution matches the Actions parser's) that is smaller than the set it retires.
   #
-  # Note the spec previously ASSERTED this control was "registered as a further bound".
-  # It never existed. workspace.toml recorded the truth; the spec did not. Corrected there.
-  {slug = "ci-gate-parallelization-workflow-codeowners", source = "review round 5, spec/ci-gate-parallelization"},
+  # NOT done in that spec, deliberately: it reverses the file's documented stdlib-only
+  # rationale and adds an import to the job wearing the sole required check. Owner chose
+  # to ship stdlib. Before doing this, deliberately check PyYAML-vs-Actions equivalence on
+  # duplicate keys, escaped keys, explicit keys and anchors — do not assume it.
+  {slug = "ci-gate-parallelization-posture-test-yaml-parser", source = "review round 5, spec/ci-gate-parallelization"},
   # AC3 of spec/ci-gate-parallelization makes the aggregator job wear the sole
   # required status check. `pull_request` evaluates build-check.yml AND its posture
   # test (tools/test-build-check-workflow.py) from the PR's own ref, so a single

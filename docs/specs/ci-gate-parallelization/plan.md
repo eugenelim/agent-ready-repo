@@ -1,7 +1,7 @@
 # Plan: ci-gate-parallelization
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done (2026-08-17)
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn — while its Status is `Drafting`
