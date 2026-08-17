@@ -29,6 +29,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import spawn_support as ss
 
 SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
 GUARDS = SCRIPTS / "_loop_guards.py"
@@ -215,6 +216,11 @@ def test_load_restores_dont_write_bytecode_to_its_prior_value(
     original = sys.dont_write_bytecode
     try:
         sys.dont_write_bytecode = preset
+        # `loop-cohort.py` calls `load_guards()` at MODULE scope, so the sandbox copy
+        # arrives with `_guards_module` already populated and a second call is a pure
+        # cache hit that never enters the loader body — which made the two `success`
+        # rows unable to fail. Clearing the memo is what puts them in the loader.
+        cohort._guards_module = None
         if outcome == "success":
             cohort.load_guards()
         else:
@@ -315,11 +321,12 @@ def test_module_has_no_cli_or_spawn_capability() -> None:
     # Scanned over the AST, not the source text: the docstrings deliberately discuss
     # `subprocess`, `reconfigure` and `sys.exit` to explain why none of them appear
     # in the code, and a substring scan cannot tell prose from a call.
-    banned_attrs = {
-        "system", "popen", "fork", "execv", "execve", "execvp", "execvpe",
-        "spawnv", "spawnve", "exit", "argv", "reconfigure",
-    }
-    banned_roots = {"subprocess", "multiprocessing", "socket", "urllib", "argparse"}
+    # The `os.*` half comes from `spawn_support`, which the lock-hold scan and the
+    # no-child-Python recorder also use. Restating a subset here is what let
+    # `os.posix_spawn(...)` — and every `spawnl*`/`execl*`/`forkpty` variant — pass
+    # this scan while failing the other two.
+    banned_attrs = set(ss.OS_SPAWN_ATTRS) | {"exit", "argv", "reconfigure"}
+    banned_roots = set(ss.SPAWN_MODULES) | {"urllib", "http", "argparse"}
     offenders: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Attribute) and node.attr in banned_attrs:
@@ -330,6 +337,65 @@ def test_module_has_no_cli_or_spawn_capability() -> None:
         if isinstance(node, ast.Name) and node.id in banned_roots:
             offenders.append(f"{node.id} at line {node.lineno}")
     assert not offenders, f"forbidden capability reached in code: {offenders}"
+
+
+def test_no_adapter_branches_on_reason() -> None:
+    """AC6's named source assertion, which did not exist.
+
+    `.ok` is the verdict; `.reason` is diagnostic text. An adapter written
+    `if result.reason:` reads a refusal whose reason is falsy as SUCCESS — and the
+    `GuardResult` invariant only compares `reason is None`, so a blank-but-not-None
+    reason used to construct happily. That hole is now closed in `__post_init__` too,
+    but this is the other half: the invariant stops the value existing, and this stops
+    anyone depending on its truthiness.
+
+    Structural, over the AST, in every boolean position — `if`, `while`, `and`/`or`,
+    `not`, and a ternary's test. A substring scan would flag the docstrings that
+    discuss `reason` precisely to explain this rule.
+    """
+    import ast
+
+    def boolean_tests(tree):
+        """Every expression evaluated for truthiness."""
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.If, ast.While, ast.IfExp)):
+                yield node.test
+            elif isinstance(node, ast.BoolOp):
+                yield from node.values
+            elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+                yield node.operand
+            elif isinstance(node, ast.Assert):
+                yield node.test
+
+    offenders = []
+    for filename in ("loop-cohort.py", "loop-engine.py", "check-spec-status.py"):
+        tree = ast.parse((SCRIPTS / filename).read_text(encoding="utf-8"))
+        for test in boolean_tests(tree):
+            for inner in ast.walk(test):
+                if isinstance(inner, ast.Attribute) and inner.attr == "reason":
+                    offenders.append(
+                        f"{filename}:{inner.lineno} branches on "
+                        f"{ast.unparse(inner)}"
+                    )
+
+    assert not offenders, (
+        "an adapter branches on `.reason` instead of `.ok`; a refusal with a falsy "
+        f"reason would be read as success: {sorted(set(offenders))}"
+    )
+
+    # Non-vacuity: the adapters must actually consume `GuardResult`s, or there is
+    # nothing here to get wrong and the scan proves nothing.
+    consumers = 0
+    for filename in ("loop-cohort.py", "loop-engine.py", "check-spec-status.py"):
+        tree = ast.parse((SCRIPTS / filename).read_text(encoding="utf-8"))
+        for test in boolean_tests(tree):
+            for inner in ast.walk(test):
+                if isinstance(inner, ast.Attribute) and inner.attr == "ok":
+                    consumers += 1
+    assert consumers >= 3, (
+        f"only {consumers} `.ok` branch(es) found across the three adapters — the "
+        "scan is not looking at code that consumes GuardResults"
+    )
 
 
 def test_no_second_status_regex_in_the_guard_layer() -> None:
@@ -755,7 +821,7 @@ def test_reason_never_carries_raw_artifact_content(g, tmp_path: Path) -> None:
     assert secret not in (read_it(state).reason or "")
 
 
-def test_an_external_scalar_is_bounded_in_a_reason(g) -> None:
+def test_an_external_scalar_is_bounded_in_a_reason(g, tmp_path: Path) -> None:
     """The bound sits on the interpolation, not on the assembled reason.
 
     A 100 KB `run_id` in `state.json` is attacker-influenceable length reaching a
@@ -771,6 +837,59 @@ def test_an_external_scalar_is_bounded_in_a_reason(g) -> None:
     assert huge not in reason
     # And the truncation is visible rather than silent.
     assert "…" in reason
+
+    # The OTHER guard that echoes the field. Named in this docstring but previously
+    # not driven, so replacing `_scalar(stored)` with a plain `!r` at
+    # `check_identity`'s refusal site left the suite green.
+    g_mod = load_guards(name="_guards_identity_bound")
+    d = tmp_path / "spec"
+    d.mkdir()
+    (d / "state.json").write_text(
+        json.dumps({"schema_version": 1, "run_id": huge}), encoding="utf-8")
+    verdict = g_mod.check_identity(d, expect_run_id="expected-id")
+    assert verdict.ok is False
+    assert len(verdict.reason) < 500, (
+        f"check_identity's refusal is {len(verdict.reason)} chars — the run_id is "
+        "reaching stderr unbounded"
+    )
+    assert huge not in verdict.reason
+
+    # And its SUCCESS message, which is the site the first `_scalar` audit missed.
+    (d / "state.json").write_text(
+        json.dumps({"schema_version": 1, "run_id": huge}), encoding="utf-8")
+    ok_verdict = g_mod.check_identity(d, expect_run_id=huge)
+    assert ok_verdict.ok is True
+    assert len(ok_verdict.message) < 500, (
+        f"check_identity's success message is {len(ok_verdict.message)} chars"
+    )
+
+
+def test_a_control_character_cannot_reach_a_reason_or_message(g, tmp_path: Path) -> None:
+    """ESC in state.json must not become ESC on the agent's captured stream.
+
+    Whitespace collapse does not stop it: `str.split()` consumes `\t\n\r\v\f` and
+    leaves every other C0 character intact. A `run_id` of "aaa\x1b[2J\x1b[31mFAKE-OK"
+    therefore emitted a real screen-clear and colour change into the transcript a
+    supervising agent reads — and it reached BOTH a refusal and a success message.
+    """
+    evil = "aaa\x1b[2J\x1b[31mFAKE-OK\x07\x00"
+    d = tmp_path / "spec"
+    d.mkdir()
+    (d / "state.json").write_text(
+        json.dumps({"schema_version": 1, "run_id": evil}), encoding="utf-8")
+
+    refusal = g.check_identity(d, expect_run_id="other")
+    success = g.check_identity(d, expect_run_id=evil)
+
+    for label, text in (("reason", refusal.reason), ("message", success.message)):
+        assert text, f"{label} is empty — nothing was measured"
+        offenders = sorted({c for c in text if ord(c) < 32 or ord(c) == 127})
+        assert not offenders, (
+            f"{label} carries raw control character(s) {[hex(ord(c)) for c in offenders]}: "
+            f"{text!r}"
+        )
+    # The escaped form is still legible, not merely stripped.
+    assert "x1b" in success.message
 
 
 def test_the_longest_authored_reason_survives_intact(g) -> None:
@@ -788,6 +907,13 @@ def test_the_longest_authored_reason_survives_intact(g) -> None:
     assert len(longest) > 500, "expected a long authored constant to guard"
     assert g._one_line(longest) == " ".join(longest.split()), (
         "the backstop truncated an authored constant"
+    )
+    # And the truncation branch is exercised rather than merely avoided — otherwise
+    # the two assertions here only ever prove the cap is never reached.
+    over_cap = "y" * (g._MAX_REASON_CHARS + 50)
+    capped = g._one_line(over_cap)
+    assert len(capped) == g._MAX_REASON_CHARS and capped.endswith("…"), (
+        f"the cap did not apply to a {len(over_cap)}-char string: {len(capped)} chars"
     )
     assert len(longest) + 200 < g._MAX_REASON_CHARS, (
         f"_MAX_REASON_CHARS={g._MAX_REASON_CHARS} leaves no headroom over the "
@@ -1296,6 +1422,79 @@ def test_a_newly_bounded_read_refuses_and_says_why(tmp_path: Path) -> None:
     )
 
 
+# ── AC24 — every guard refuses a missing OR malformed state.json ───────────
+#
+# The golden set covers `absent-state` for four families but not for
+# `plan-check-current`, and covers *malformed* for none. Those gaps cannot be closed
+# by adding golden rows: the capture is pre-change evidence, and re-running the
+# generator to mint new rows is exactly the tautology T0 exists to prevent. So this is
+# a live behaviour test over all six guards instead — it asserts the contract AC24
+# states rather than a byte-comparison against a capture that does not exist.
+
+_STATE_BREAKAGES = {
+    "absent": None,
+    "malformed": "{ not json",
+    "root-not-object": "[1, 2]",
+    "wrong-schema-version": '{"schema_version": 99, "run_id": "r"}',
+}
+
+
+@pytest.mark.parametrize("guard_name", sorted(SIX_GUARDS))
+@pytest.mark.parametrize("breakage", sorted(_STATE_BREAKAGES))
+def test_every_guard_refuses_unusable_state(
+    guard_name: str, breakage: str, g, spec, tmp_path: Path,
+) -> None:
+    """Each guard refuses, in one line, with no traceback and no crash marker.
+
+    Two documented carve-outs, both asserted rather than skipped, so that widening
+    either one shows up here:
+
+      * `check_artifact_status` reads no `state.json` at all — it compares an
+        artifact's status token against `--expect` — so every breakage must leave it
+        SUCCEEDING. Asserting a refusal for it would be asserting a bug.
+      * `check_phase(phase="implement")` deliberately skips schema validation, so a
+        pre-Phase-1 `state.json` does not break the hook (see the comment at the
+        check in `_loop_guards.check_phase`). It still refuses an ABSENT or MALFORMED
+        file — only the version check is waived — which is exactly the distinction
+        this table encodes.
+    """
+    payload = _STATE_BREAKAGES[breakage]
+    d = spec(no_state=True)
+    if payload is not None:
+        (d / "state.json").write_text(payload, encoding="utf-8")
+
+    result = getattr(g, guard_name)(d, **SIX_GUARDS[guard_name])
+    assert isinstance(result, g.GuardResult)
+
+    if guard_name == "check_artifact_status":
+        assert result.ok, (
+            "check_artifact_status reads no state.json, so an unusable one must not "
+            f"affect it: {result.reason}"
+        )
+        return
+
+    if guard_name == "check_phase" and breakage == "wrong-schema-version":
+        # The carve-out, pinned. If this starts refusing, the compatibility promise
+        # changed and that is a decision, not a detail.
+        assert result.ok, (
+            "check_phase(implement) is documented to skip schema validation for "
+            f"pre-Phase-1 state files, but refused: {result.reason}"
+        )
+        return
+
+    assert result.ok is False, (
+        f"{guard_name} accepted a {breakage} state.json"
+    )
+    assert result.reason, f"{guard_name} refused with no reason"
+    assert "\n" not in result.reason, "a reason is a one-line CLI contract"
+    # A policy refusal, not a crash — an `internal-error:` here would mean the guard
+    # could not decide rather than that it decided against the caller.
+    assert not result.reason.startswith(g.INTERNAL_ERROR), (
+        f"{guard_name} crashed rather than refusing on a {breakage} state.json: "
+        f"{result.reason}"
+    )
+
+
 # ── fail-closed status parsing ─────────────────────────────────────────────
 
 def test_unloadable_parser_refuses_instead_of_skipping(tmp_path: Path) -> None:
@@ -1355,20 +1554,24 @@ def test_regressed_status_is_refused(g, tmp_path: Path) -> None:
 # controls were unverified on it.
 #
 # loader -> (target filename, argv that reaches it, clean-truncation cut anchor)
+# loader -> (target filename, argv that reaches it, clean-truncation cut anchor,
+#            a declared-but-definable symbol to rename for the declared-symbol mode)
 _LOADERS = {
     # `identity` needs no parser, so it isolates the guard-module loader.
-    "guards": ("_loop_guards.py", ["identity"], "def read_state("),
+    "guards": ("_loop_guards.py", ["identity"], "def read_state(", "read_state"),
     # `plan check-current` reads a status token, which is the only route to the
     # parser loader. Truncating before `parse_status` leaves `__all__`-equivalent
     # symbols missing, which is what `_PARSER_SYMBOLS` exists to catch.
-    "parser": ("lint-spec-status.py", ["plan", "check-current"], "def parse_status("),
+    "parser": ("lint-spec-status.py", ["plan", "check-current"],
+               "def parse_status(", "extract_status_token"),
 }
 
 
 @pytest.mark.parametrize(
     "mode",
     ["missing", "unreadable", "non-regular", "symlinked", "syntax-error",
-     "truncated-mid-statement", "truncated-clean", "no-completeness-marker"],
+     "truncated-mid-statement", "truncated-clean", "no-completeness-marker",
+     "declared-symbol-missing"],
 )
 @pytest.mark.parametrize("loader", sorted(_LOADERS))
 def test_load_failure_is_a_one_line_refusal(
@@ -1380,7 +1583,7 @@ def test_load_failure_is_a_one_line_refusal(
     a statement boundary loads *without raising* and returns a handle missing
     everything below the cut, so exception handling alone cannot see it.
     """
-    target_name, verb, cut_anchor = _LOADERS[loader]
+    target_name, verb, cut_anchor, rename_symbol = _LOADERS[loader]
 
     sandbox = tmp_path / "scripts"
     sandbox.mkdir()
@@ -1419,6 +1622,20 @@ def test_load_failure_is_a_one_line_refusal(
     elif mode == "truncated-clean":
         cut = original.index(cut_anchor)
         target.write_text(original[:cut], encoding="utf-8")
+    elif mode == "declared-symbol-missing":
+        # The mode that isolates the DECLARED-SYMBOL check. Every other mode trips an
+        # earlier gate — `_MODULE_COMPLETE` for the truncations, an exception for the
+        # rest — so replacing `set(exported) - set(dir(module))` with an always-empty
+        # expression left the whole suite green. Here `__all__` and the completeness
+        # marker both survive intact and only the promised symbol is gone, so this is
+        # the only refusal path left.
+        anchor_def = f"def {rename_symbol}("
+        assert anchor_def in original, (
+            f"{loader}: rename anchor {anchor_def!r} moved — update _LOADERS"
+        )
+        target.write_text(
+            original.replace(anchor_def, f"def _renamed_away_{rename_symbol}(", 1),
+            encoding="utf-8")
     elif mode == "no-completeness-marker":
         if loader == "parser":
             # `lint-spec-status.py` carries no `_MODULE_COMPLETE`; its completeness
@@ -1908,10 +2125,17 @@ def test_guards_create_and_mutate_nothing(g, spec) -> None:
     d = spec(approved=True)
     (d / "engine-state.json").write_text('{"state": "CODE-IMPLEMENTATION"}', encoding="utf-8")
 
-    # AC18 covers the repo-root `.loop-run/` as well as the spec dir. It is a second
+    # AC18 covers the REPO-ROOT `.loop-run/` as well as the spec dir. It is a second
     # place the engine writes — `_LOOP_RUN_DIR_NAME` in `loop-engine.py` — so a guard
     # dropping a pending-event or lock file there would be invisible to a spec-dir
     # snapshot. Seeded with a file so the comparison cannot pass empty-to-empty.
+    #
+    # `git init` is not decoration: without it `d.parent` is just a temp directory, and
+    # the assertion could not fail for the reason AC18 gives. The engine resolves
+    # `.loop-run/` against `git rev-parse --show-toplevel`, so the seeded directory has
+    # to sit at a real repo root to be the directory AC18 names.
+    subprocess.run(["git", "init", "-q", str(d.parent)], check=True, capture_output=True)
+    assert (d.parent / ".git").is_dir(), "fixture is not a git repo, so d.parent is no repo root"
     loop_run = d.parent / ".loop-run"
     loop_run.mkdir()
     (loop_run / "pending.json").write_text('{"seeded": true}', encoding="utf-8")

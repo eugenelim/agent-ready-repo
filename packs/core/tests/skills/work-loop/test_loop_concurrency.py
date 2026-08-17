@@ -33,9 +33,7 @@ import time
 from pathlib import Path
 
 import pytest
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import spawn_support as ss  # noqa: E402 — sibling support module, path set above
+import spawn_support as ss
 
 # Windows cp1252 guard — reconfigure stdout/stderr to UTF-8 before any print.
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -844,9 +842,10 @@ def test_the_guard_path_cannot_reach_lint_spec_status_git_calls() -> None:
     IS the root set. Patching `reachable_from` to `return set()` left it green.
 
     So the artifact is a POSITIVE CONTROL plus the negative claim. `main()` demonstrably
-    reaches all three spawning functions through a multi-hop walk; if the walker stops
+    reaches every spawning function through a multi-hop walk; if the walker stops
     resolving edges, that assertion goes red and the negative result below stops being
-    reported as meaningful. Without it, "the guard path reaches no spawn" is
+    reported as meaningful. The count is not hardcoded — `spawning` is derived, so a
+    fourth git-calling function is covered automatically. Without it, "the guard path reaches no spawn" is
     indistinguishable from "the walker found nothing at all".
     """
     import ast as _ast

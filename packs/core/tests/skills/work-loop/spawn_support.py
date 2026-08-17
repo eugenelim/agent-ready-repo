@@ -16,8 +16,9 @@ Stdlib only, no pytest import — this is support code, collected by neither run
 
 import ast
 
-# `subprocess.<attr>` — the constructors that actually start a process. Deliberately
-# omits the pure helpers (`list2cmdline`, `getoutput` is *not* omitted below).
+# `subprocess.<attr>` — the constructors that actually start a process. Omits pure
+# helpers such as `list2cmdline`; `getoutput`/`getstatusoutput` ARE included,
+# because they do start one.
 SUBPROCESS_ATTRS = frozenset({
     "run", "Popen", "call", "check_call", "check_output", "getoutput", "getstatusoutput",
 })

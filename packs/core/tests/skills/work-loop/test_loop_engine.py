@@ -3461,7 +3461,7 @@ def _cmd_transition_source() -> str:
 
 
 def test_transition_steps_appear_in_the_documented_order() -> None:
-    """All eleven anchors resolve, and in AC17's order.
+    """All twelve anchors resolve, and in AC17's order.
 
     The vacuity guard is the point. Four of these steps — wave-index validation, the
     schema check, transition-table validation, the state decision — have no callee to

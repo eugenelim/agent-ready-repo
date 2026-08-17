@@ -529,3 +529,28 @@ def test_every_exemption_names_a_test_that_exists() -> None:
             f"{key}: exemption claims {module_name}::{test_name} covers it, but no such "
             "test exists — the row is uncovered"
         )
+
+        # Existence of the test is not coverage of THIS key. The named test is
+        # parametrised over `_ARTIFACT_INTEGRITY_ROWS`, so the key must appear there;
+        # otherwise deleting one entry silently un-covers a ratified behaviour change
+        # while every assertion above still passes.
+        table = next(
+            (n for n in ast.walk(tree)
+             if isinstance(n, ast.Assign)
+             and any(isinstance(t, ast.Name) and t.id == "_ARTIFACT_INTEGRITY_ROWS"
+                     for t in n.targets)),
+            None,
+        )
+        assert table is not None, (
+            f"{key}: {module_name} has no _ARTIFACT_INTEGRITY_ROWS table to check "
+            "the exemption against"
+        )
+        parametrised = {
+            k.value for k in table.value.keys
+            if isinstance(k, ast.Constant) and isinstance(k.value, str)
+        }
+        assert key in parametrised, (
+            f"{key}: exempted, and {module_name}::{test_name} exists, but the key is "
+            f"not in its _ARTIFACT_INTEGRITY_ROWS table {sorted(parametrised)} — so "
+            "nothing actually drives it"
+        )

@@ -37,13 +37,12 @@ import uuid
 from pathlib import Path
 
 import pytest
+import spawn_support as ss
 
 SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
 ENGINE = SCRIPTS / "loop-engine.py"
 GUARDS = SCRIPTS / "_loop_guards.py"
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import spawn_support as ss  # noqa: E402 — sibling support module, path set above
 
 if not ENGINE.is_file():  # wrong parents[] depth after a move
     raise SystemExit(f"subject not found at {ENGINE} — check the parents[] depth")

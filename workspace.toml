@@ -736,8 +736,8 @@ open = [
   {slug = "statelock-loader-bytecode-cache", source = "spec/work-loop-in-process-guards AC13"},
   # `loop-cohort.py`'s `run_git` has no `timeout=`. Not reachable while the ENGINE
   # holds its lock, so outside that budget — but it is the nearest copy-paste hazard
-  # to the guard extraction site, and the same file's other subprocess paths are now
-  # bounded.
+  # to the guard extraction site, and it is the only `subprocess.` call site in that
+  # file, so bounding it is a one-line change with no precedent to establish.
   {slug = "loop-cohort-run-git-unbounded", source = "spec/work-loop-in-process-guards AC21"},
   # `lint-spec-status.py`'s four `git` calls (:307, :316, :325, :427) have no
   # `timeout=`. Unreachable from the guard call path — proved by an AST reachability
