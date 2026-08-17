@@ -117,6 +117,27 @@ def _refuses(root: Path, published_dirs, marketplace_names) -> str | None:
     return None
 
 
+def _step_body(workflow: str, name: str) -> str:
+    """Return the `run:` body of the step called `name`, comments stripped.
+
+    Scoped to the step so an assertion cannot be satisfied by text elsewhere in
+    the file — a header comment, or a different step. Returns "" when the step
+    is absent, which is what makes deletion fail the caller's check.
+    """
+    marker = f"      - name: {name}\n"
+    start = workflow.find(marker)
+    if start < 0:
+        return ""
+    body: list[str] = []
+    for line in workflow[start + len(marker):].splitlines():
+        if line.startswith("      - ") or (line.strip() and not line.startswith("        ")):
+            break
+        if line.lstrip().startswith("#"):
+            continue
+        body.append(line)
+    return "\n".join(body)
+
+
 def main() -> int:
     print("test-publish-claude-plugins:")
 
@@ -364,11 +385,22 @@ def main() -> int:
            ), f"got {uses_refs}")
     # Match the executed step, not a prose mention: the header comment names
     # this script too, and a `find` on the bare path would score the comment.
-    control_gate = publisher.find(
+    # Match the EXECUTED step, not a prose mention. The gate's invocation moved
+    # to a `run: |` block, so the old `"run: python3 …"` anchor no longer fits —
+    # but a bare whole-file find would score the header comment, and replacing
+    # the whole step with a commented-out copy then passes. Measured: it did.
+    # So comments are stripped and the invocation must sit inside the named
+    # step's own body.
+    uncommented = "\n".join(
+        line for line in publisher.splitlines() if not line.lstrip().startswith("#")
+    )
+    control_step = _step_body(publisher, "Enforce executable-plugin publication control")
+    control_gate = uncommented.find(
         "python3 tools/lint-claude-plugin-publish-control.py"
     )
     _check("the publication-control gate is an executed step",
-           control_gate >= 0,
+           control_gate >= 0
+           and "python3 tools/lint-claude-plugin-publish-control.py" in control_step,
            "control state is never verified during publication")
     # --subject is the only half of the repo binding a fork or clone cannot
     # satisfy: the desired/evidence pair travels with a copy and still compares
@@ -376,7 +408,7 @@ def main() -> int:
     # controls as its own. Two assertions, because the first alone would pass
     # against a linter that ignores the flag.
     _check("the control gate is handed the runner's own repository",
-           '--subject "$GITHUB_REPOSITORY"' in publisher,
+           '--subject "$GITHUB_REPOSITORY"' in control_step,
            "the publication-control gate does not bind to the running repo")
     _check("and the linter refuses a subject that is not the declared one",
            control.main([

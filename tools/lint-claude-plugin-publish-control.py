@@ -185,7 +185,7 @@ def _load_capture_module():
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
-    except (OSError, SyntaxError, ImportError) as exc:
+    except BaseException as exc:  # noqa: BLE001
         # spec_from_file_location returns a populated spec for a path that does
         # not exist, so the guard above never fires for the failure it looks
         # like it covers. A missing, unreadable, or corrupt capture tool reaches
@@ -193,9 +193,21 @@ def _load_capture_module():
         # absolute paths rather than through main()'s error handler. Fails
         # closed either way -- this makes it legible, including inside the
         # publish job.
+        # BaseException, not Exception: a module-level SystemExit in a corrupt
+        # capture tool would otherwise exit this process silently with its own
+        # code, which is the quietest possible failure of a required gate.
         raise ValueError(
-            f"cannot load the capture tool's repository-name rule: {exc}"
+            f"cannot load the capture tool's repository-name rule: {exc!r}"
         ) from None
+    for attribute in ("_validate_repo", "CaptureError"):
+        if not hasattr(module, attribute):
+            # A truncated file imports cleanly and then fails at the call site,
+            # inside an `except capture.CaptureError` whose own clause cannot
+            # resolve. Refuse here instead.
+            raise ValueError(
+                "the capture tool loaded but has no "
+                f"{attribute}; its repository-name rule cannot be shared"
+            )
     return module
 
 
@@ -358,10 +370,24 @@ def validate_desired(desired: dict) -> list[str]:
         except ValueError as exc:
             errors.append(str(exc))
         else:
-            try:
-                capture._validate_repo(repo)
-            except capture.CaptureError as exc:
-                errors.append(f"desired control repo is not a bare owner/name: {exc}")
+            # Do not trust the loaded module's shape at the call site either:
+            # `except capture.CaptureError` cannot even be evaluated if the
+            # module lacks it, so a truncated capture tool would raise from
+            # inside the handler.
+            rule = getattr(capture, "_validate_repo", None)
+            failure = getattr(capture, "CaptureError", Exception)
+            if rule is None:
+                errors.append(
+                    "the capture tool exposes no _validate_repo; the "
+                    "repository-name rule cannot be shared"
+                )
+            else:
+                try:
+                    rule(repo)
+                except failure as exc:
+                    errors.append(
+                        f"desired control repo is not a bare owner/name: {exc}"
+                    )
     if desired.get("version") != 2:
         errors.append("desired control version must be 2")
     return errors
@@ -370,7 +396,11 @@ def validate_desired(desired: dict) -> list[str]:
 def compare_evidence(desired: dict, evidence: dict) -> list[str]:
     """Compare independently captured sanitized state with desired state."""
     errors: list[str] = []
-    if evidence.get("version") != desired.get("version"):
+    # Against the literal, not against each other: `.get(...) != .get(...)`
+    # compares equal when the key is absent from both, and this comparison is
+    # the only thing rejecting a stale v1 artifact against the v2 desired file.
+    # Same reasoning as the repo check below; the sibling was cut free first.
+    if evidence.get("version") != 2 or desired.get("version") != 2:
         errors.append("evidence version differs from desired control")
     observed_branch = evidence.get("branch")
     observed_app = evidence.get("app")
@@ -434,7 +464,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--subject",
         help="the repository this run is executing in, as a bare owner/name. "
-        "The publish workflow passes ${{ github.repository }}, which no "
+        "The publish workflow passes the runner's $GITHUB_REPOSITORY, which no "
         "committed file can forge -- the desired/evidence pair travels with a "
         "fork or a clone and still compares equal, so this is the only half of "
         "the binding a copy cannot satisfy. Optional so `make build-check` "

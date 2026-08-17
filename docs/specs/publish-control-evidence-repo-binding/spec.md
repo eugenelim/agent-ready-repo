@@ -120,6 +120,27 @@ Note what that anchor is worth here: ADR-0079's 2026-08-12 erratum set
 the author can be the same actor. That is why § Decision 5 exists — the
 publish-time check does not rest on review at all.
 
+## Decision 4 — the version goes to 2, and the committed artifact is hand-edited
+
+`compare_evidence` requires `evidence.version == desired.version`, so a schema
+change has a version to move. Bumping to `2` makes a stale v1 artifact fail on
+the version — a clearer message than "repo missing" — and makes the schema
+change visible in the desired-state diff.
+
+The committed evidence artifact cannot be re-captured here: doing so needs the
+publisher App's private key. So its `repo` and `version` fields are **added by
+hand**. This is worth naming rather than glossing:
+
+- The value added is true. The artifact was captured against this repository —
+  `observation_source: github-api-sanitized` and every field in it came from
+  `repos/eugenelim/agent-ready-repo/…`.
+- It is nonetheless the one field in that file not written by the capture tool.
+  Every subsequent capture writes it from `--repo`; this one instance does not.
+- The alternative — requiring `repo` and letting the committed artifact go red
+  until someone re-runs the capture — would break `make build-check` on `main`
+  for everyone until an operator with the key is available. Not acceptable for
+  a hygiene fix.
+
 ## Decision 5 — the runtime binding goes in the publish workflow, not the linter
 
 Two committed files travelling together certify nothing in a **copy**. Fork this
@@ -150,31 +171,22 @@ It costs none of § Decision 3's three reasons:
 
 It also refuses a fork attempting to publish, which is correct on its own terms.
 
-Three deletions verified: removing the `--subject` comparison reddens the lint
-suite; removing `--subject` from the workflow invocation reddens
-`test-publish-claude-plugins.py`; removing the schema-version comparison reddens
-the lint suite. Neither the flag nor its use can be dropped silently.
+**And here is what optionality costs, since the three bullets above are all
+things it doesn't cost.** A default-off flag means the binding is *absent* from
+every invocation that does not pass it — including `make build-check`'s own
+`lint-claude-plugin-publish-control` step — and an absent binding is
+indistinguishable from a satisfied one at the call site. The whole unforgeable
+half therefore hangs on one line of one workflow. What carries that is
+`tools/test-publish-claude-plugins.py`, which asserts the invocation and the
+flag **inside the named step's own `run:` body**, comments stripped.
 
-## Decision 4 — the version goes to 2, and the committed artifact is hand-edited
+That last detail is not incidental. An earlier version of this PR anchored on a
+whole-file substring, and review demonstrated the hole: replacing the entire
+step with a placeholder plus a commented-out copy of the command left all three
+suites green. Fixed, and the deleted-step case is now a measured mutation.
 
-`compare_evidence` requires `evidence.version == desired.version`, so a schema
-change has a version to move. Bumping to `2` makes a stale v1 artifact fail on
-the version — a clearer message than "repo missing" — and makes the schema
-change visible in the desired-state diff.
-
-The committed evidence artifact cannot be re-captured here: doing so needs the
-publisher App's private key. So its `repo` and `version` fields are **added by
-hand**. This is worth naming rather than glossing:
-
-- The value added is true. The artifact was captured against this repository —
-  `observation_source: github-api-sanitized` and every field in it came from
-  `repos/eugenelim/agent-ready-repo/…`.
-- It is nonetheless the one field in that file not written by the capture tool.
-  Every subsequent capture writes it from `--repo`; this one instance does not.
-- The alternative — requiring `repo` and letting the committed artifact go red
-  until someone re-runs the capture — would break `make build-check` on `main`
-  for everyone until an operator with the key is available. Not acceptable for
-  a hygiene fix.
+Four deletions verified red: the `--subject` comparison; `--subject` in the
+workflow invocation; the whole gate step; the schema-version comparison.
 
 ## Acceptance Criteria
 
@@ -230,13 +242,23 @@ hand**. This is worth naming rather than glossing:
       workflow passes the flag **and** that the linter enforces it. Each
       verified by deleting the control.
 
+- [x] **AC9c — a malformed capture tool is a lint error at both seams.**
+      `_load_capture_module` catches `BaseException` around `exec_module` (a
+      module-level `SystemExit` would otherwise end the process silently) and
+      refuses a module missing `_validate_repo` or `CaptureError`;
+      `validate_desired` additionally reads both through `getattr`, because
+      `except capture.CaptureError` cannot even be evaluated when the attribute
+      is absent. Both paths report through `main()` rather than raising.
+
 - [x] **AC9b — the comparisons stand on their own.** `compare_evidence`'s repo
       check does not rely on `validate_desired` running first: with `repo`
       absent from **both** documents, `.get(...) != .get(...)` compares equal,
-      so the check reads the desired value's type explicitly. A mutation case
-      pins it. The schema-version comparison — the only thing that rejects a
-      stale v1 artifact against the v2 desired file, i.e. this change's own
-      migration — gains the negative control it was missing.
+      so the check reads the desired value's type explicitly. The
+      schema-version comparison — the only thing that rejects a stale v1
+      artifact against the v2 desired file, i.e. this change's own migration —
+      had the same defect and the same fix: it compares both sides against the
+      literal `2`. Both verified by restoring the `.get` form and confirming a
+      both-absent pair then passes.
 
 - [x] **AC10 — the register entry is closed.**
       `publish-control-evidence-not-repo-bound` is removed from
@@ -280,7 +302,7 @@ already chained into `make build-check` via `tools/repo/build_gate_chain.py`.
 | --- | --- |
 | AC1 | Call `build_evidence` with the three network readers stubbed; assert the returned dict's `repo`. |
 | AC2, AC5 | `validate_desired` against the real desired file (clean) and against mutations dropping / emptying / malforming `repo` and moving `version` (each red). |
-| AC3 | Assert the linter's validator **is** the capture tool's function object, not a lookalike. |
+| AC3 | Two checks, because either alone leaves a hole. (i) Drive the loaded `_validate_repo` directly with `owner/..`, `owner/.github` and a bare name — a permissive lookalike at that path reddens it. (ii) Monkeypatch `_load_capture_module` to return a permissive stub and assert `validate_desired` then *accepts* a bare name — proving the loaded module, not a restated local copy, decides. Verified by replacing the delegation with a local regex: (ii) goes red, (i) does not. |
 | AC4 | `compare_evidence` mutation cases: mismatched, absent, `None`. |
 | AC6 | Run `lint-claude-plugin-publish-control.py --require-live-evidence`; assert exit 0. |
 | AC7 | Delete the comparison; re-run the suite; assert it reports failures. Restore; assert green. |

@@ -82,6 +82,49 @@ def main() -> int:
             f"the shared owner/name rule {'accepts' if accepted else 'rejects'} {label}",
             got is accepted,
         )
+    # Blocker 2: the loop above pins the CAPTURE TOOL's rule, not the linter's
+    # USE of it -- a locally restated regex in validate_desired would leave it
+    # green. Swap the loader for a permissive stub and assert validate_desired
+    # then ACCEPTS what the real rule rejects: only a linter that actually calls
+    # the loaded module can change its answer.
+    _real_loader = lint._load_capture_module
+
+    class _PermissiveCapture:
+        class CaptureError(RuntimeError):
+            pass
+
+        @staticmethod
+        def _validate_repo(repo):
+            return repo
+
+    lint._load_capture_module = lambda: _PermissiveCapture
+    try:
+        bare = copy.deepcopy(desired)
+        bare["repo"] = "agent-ready-repo"          # no owner: the real rule refuses
+        delegated = not any("owner/name" in e for e in lint.validate_desired(bare))
+    finally:
+        lint._load_capture_module = _real_loader
+    check(
+        "validate_desired delegates to the loaded rule rather than a local copy",
+        delegated,
+    )
+    # And a loader that cannot produce a usable module is a lint error, not a
+    # traceback out of validate_desired.
+    lint._load_capture_module = _real_loader
+    for label, stub in (
+        ("raises", lambda: (_ for _ in ()).throw(ValueError("boom"))),
+        ("returns a module with no _validate_repo", lambda: object()),
+    ):
+        lint._load_capture_module = stub
+        try:
+            errs = lint.validate_desired(copy.deepcopy(desired))
+            ok = bool(errs)
+        except Exception:  # noqa: BLE001
+            ok = False
+        finally:
+            lint._load_capture_module = _real_loader
+        check(f"a capture module that {label} is reported, not raised", ok)
+
     check(
         "a desired file with no repo at all fails",
         bool(lint.validate_desired({k: v for k, v in desired.items() if k != "repo"})),

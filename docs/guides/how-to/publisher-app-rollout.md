@@ -62,9 +62,18 @@ capture in Step 4. So, in one commit, up front:
 1. Set `repo` in `.github/claude-plugin-publish-control.json` to **this**
    repository's `owner/name`.
 2. Delete the inherited
-   `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json` and set
-   `control_status: decommissioned` in the same file, until Step 4's capture
-   replaces it. That pair is the sanctioned way to run with no evidence.
+   `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json`, and set
+   `control_status: decommissioned` in **`.github/claude-plugin-publish-control.json`**
+   (the desired-state file, not the evidence file you just deleted) until Step 4's
+   capture replaces it.
+3. Revert `.github/workflows/publish-claude-plugins.yml` to the **interim
+   identity** — the mirror of Step 5, which restores the App-token shape at the
+   end. Without this the lint refuses regardless: the shipped workflow mints an
+   App token, and `validate_sequencing` fails closed when it finds that shape
+   with no provisioning evidence. `control_status: decommissioned` licenses
+   running with no evidence; it does not license the App-token shape.
+
+All three in the same commit, or `make build-check` stays red until Step 5.
 
 ---
 
