@@ -111,8 +111,8 @@ individually annotated in
 | Entrypoint/check | Owner | Scope class | Gate wiring | Traversal roots | Ignore semantics | Git process shape | Repeated work | Self-test model | P0 disposition |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `tools/lint-pack-test-boundary.py` (6 checks) | repo tooling | catalogue-wide (hybrid per check) | `docs.yml` step *Pack runtime boundary*; `test-all.py` case `pack-test-boundary`. Not in `pre_pr_catalogue.py`, not a direct Make target | `packs/*/.apm`, `packs/*/tests`, `packs/*/tests/skills/*`, `.claude/skills/*`, `.agents/skills/*`, 6 runner files | **skips** gitignored paths — build residue (`__pycache__` etc.) is not authored content, so not a boundary violation | **337 `check-ignore`, one per candidate path**, launched from inside `_walk()` | `_walk` 141 calls / 109 distinct bases; `_glob_tree_is_confined` 45 / 16 distinct; `_runner_lines` ×2; `_destinations` ×2; `_packs` ×5 | real-worktree mutation | **CHANGE** — every P0 pattern |
-| `agentbundle catalogue lint` / `--deep` | portable agentbundle | catalogue-wide | `build-check` chain; `pre_pr_catalogue.py` step 2 (as its `skill-spec lint` step) | per-pack `glob`/`rglob` under `packs/*`, `profiles/*.toml`, seeds via `os.walk(followlinks=False)` | does not consult Git ignore | **0 Git subprocesses** | none observed; bounded per-pack globs | pytest, fixture catalogues | **no change** — 6.03 s, zero Git calls; bounded per-pack globs only. Churning it is explicitly out of scope |
-| `agentbundle catalogue verify` | portable agentbundle | catalogue-wide | `build-check` chain; `pre_pr_catalogue.py` step 1 | `dist/`, `packs/*/.apm/skills/*`, `agents/`, `commands/` | uses `git ls-files` for tracked-file set | **1 `ls-files`, already batched** for the whole tree | none observed | pytest, fixture catalogues | **no change** — 13.82 s, one batched Git call. Already the target shape |
+| `agentbundle catalogue lint` / `--deep` | portable agentbundle | catalogue-wide | `build-check` chain; `pre_pr_catalogue.py` step 2 (as its `skill-spec lint` step) | per-pack `glob`/`rglob` under `packs/*`, `profiles/*.toml`, seeds via `os.walk(followlinks=False)` | does not consult Git ignore | **0 Git subprocesses** | none observed; bounded per-pack globs | pytest, fixture catalogues | **no change** — 3.18 s, zero Git calls; bounded per-pack globs only. Churning it is explicitly out of scope |
+| `agentbundle catalogue verify` | portable agentbundle | catalogue-wide | `build-check` chain; `pre_pr_catalogue.py` step 1 | `dist/`, `packs/*/.apm/skills/*`, `agents/`, `commands/` | no Git use after #994 (previously `git ls-files` for the tracked-file set) | **0** — #994 removed the single batched `ls-files` | none observed | pytest, fixture catalogues | **no change** — 12.02 s, zero Git calls. Never a P0 subject, and less so now |
 | `agentbundle` skill-spec lint (`skill_spec_lint.py`) | portable agentbundle | catalogue-wide | invoked by catalogue lint; `pre_pr_catalogue.py:114` | `packs/*/.apm/skills`, `packs/*/pack.toml` | no Git ignore use | 0 | bounded `glob("*/…")` per root | pytest unit | **no change** — bounded globs, no Git |
 | `agentbundle` `build/lint_packs.py` | portable agentbundle | catalogue-wide | build pipeline | per-subtree `rglob("*")` | no Git ignore use | 0 | per-subtree walk, single pass | pytest unit | **no change** — one bounded pass per subtree |
 | `tools/lint-pack-descriptions.py` | repo tooling | catalogue-wide | `pre_pr_catalogue.py` | `packs/*/pack.toml` | no Git ignore use | 0 | none | `tools/test-lint-pack-descriptions.py`, temp fixture | **no change** — 0.22 s, no Git |
@@ -546,20 +546,29 @@ on a warm cache. All paths relativized.
 | destination-inventory builds | 2 | **1** |
 | tree-confinement scans | 45 over 16 distinct bases | **16** (one per distinct base) |
 | lazy walk misses (bases not pre-batched) | n/a | **0** |
-| wall clock | 32.35 s | **1.43 s** (≈23× faster) |
+| wall clock | 32.35 s | **2.88 s** (≈11× faster) |
 | stdout / stderr | — | **byte-identical** across all 22 captured baselines, as measured; the gate itself compares the canonical surface |
+
+> **The two columns were measured on different trees, and the difference favours
+> the *before* column.** "Before" figures come from this branch's original base;
+> "after" figures are re-measured on the tree after merging `origin/main`, which
+> carries more packs — so the after column does strictly more work for the same
+> operation. The improvement is therefore understated, not inflated. Earlier drafts
+> of this note recorded 1.43 s and 16.7 s, measured pre-merge; those are superseded
+> by the figures above rather than deleted, because a reader comparing this note to
+> an older commit message should be able to see why the numbers moved.
 
 ### `tools/test-lint-pack-test-boundary.py`, complete suite
 
 | Metric | Before | After |
 | --- | --- | --- |
-| wall clock | **306.4 s** (6 s over the 300 s budget) | **16.7 s** |
+| wall clock | **306.4 s** (6 s over the 300 s budget) | **20.1 s** — 14× headroom under the budget |
 | cases reported | 82 | **128** |
 | exit code | 0 | 0 |
 | production-CLI launches against the real tree | 12 | **4** (budget asserted by the suite) |
 | real `Makefile` rewrites | 2 | **0** |
 | real-tree plant sites | 7 | 2, both `try`/`finally`-guarded and refusing a pre-existing target |
-| `check-ignore` processes across the whole suite | ~4 044 | **45** (one per invocation) |
+| `check-ignore` processes across the whole suite | ~4 044 | **49** (one per invocation) |
 
 ### `tools/lint-agents-md.py`
 
@@ -599,16 +608,26 @@ Re-measured on the merged tree under the same counting-Git shim as the originals
 not by reading the source — static `subprocess` mentions are not runtime calls, and
 `lint.py` carries 18 of the former while issuing 0 of the latter:
 
-| Program | Recorded before | Re-measured after #994 | Disposition |
+**The first attempt at this re-measurement was invalid, and the reason is worth
+recording.** `python3 -m agentbundle` resolves to the *installed* copy in
+site-packages; the build chain prepends `packages/agentbundle` to `PYTHONPATH` and
+runs the *source* copy. The installed copy was pre-#994 — 1094 lines of `verify.py`
+against the source's 2296. So the first pass measured precisely the code #994
+replaced, which is the one thing the re-measurement existed to avoid. Figures below
+are from the source tree, with `PYTHONPATH=packages/agentbundle`, under the same
+counting-Git shim.
+
+| Program | Recorded before | Re-measured against #994's code | Disposition |
 | --- | --- | --- | --- |
-| `agentbundle catalogue verify` | 1 `ls-files`, batched; 13.47 s | **1 `ls-files`; 13.82 s** | `no change` still correct |
-| `agentbundle catalogue lint --deep` | 0 Git subprocesses; 5.89 s | **0 Git subprocesses; 6.03 s** | `no change` still correct |
+| `agentbundle catalogue verify` | 1 `ls-files`, batched; 13.47 s | **0 Git subprocesses; 12.02 s** | `no change` — and the one Git call is gone entirely |
+| `agentbundle catalogue lint --deep` | 0 Git subprocesses; 5.89 s | **0 Git subprocesses; 3.18 s** | `no change` still correct |
 | `skill_spec_lint.py` | no Git ignore use; 0 | **0 Git subprocesses** | `no change` still correct |
 
-The timing deltas are run-to-run noise on the same host, not a regression, and both
-figures above are the post-merge measurements. The dispositions survive: none of
-the three acquired a per-path Git call or an unbounded traversal, so none becomes a
-P0 subject.
+#994 **removed** `catalogue verify`'s single `git ls-files`, so the row's "1
+`ls-files`, already batched" is now wrong in the direction of overstating Git use.
+The `lint --deep` timing roughly halved, which is #994's work and not this spec's.
+All three dispositions survive: none acquired a per-path Git call or an unbounded
+traversal, so none becomes a P0 subject.
 
 ### Discriminating power, verified by mutation
 
@@ -702,7 +721,7 @@ Out of scope here; captured so they are not silently lost.
 2. **`lint-nosec-form.py` at 5.33 s** is the slowest non-P0 lint. One bounded
    pass over three source roots, no ignore queries; a P0 change is not
    warranted.
-3. **`agentbundle catalogue verify` at 13.82 s** is the slowest single gate.
+3. **`agentbundle catalogue verify` at 12.02 s** is the slowest single gate.
    Its one Git call is already batched; cost is filesystem traversal of
    `dist/`.
 4. **The layer-3 untracked-plant window.** Two untracked plants exist in the real
