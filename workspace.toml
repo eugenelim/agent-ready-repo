@@ -125,6 +125,7 @@ shipped = [
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
   {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
   {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
+  {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-foundation/spec.md"}]},
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   "spec/docs-site-design-refresh",
@@ -197,19 +198,10 @@ queue   = [
   # retire later entries through normal review when their assumed shape has changed;
   # queue comments are a roadmap, while each approved spec is the implementation truth.
 
-  # Slice 1 is shipped in the work list above. Its measured behavior is the adaptive
-  # starting point for every remaining slice; do not preserve an assumed integration
-  # shape when foundation evidence supports splitting, combining, reordering, or retiring it.
-
-  # Slice 2 — authoring semantic-gate integrations. Add explicit scratch triage and shared
-  # project-knowledge handoffs to brief, RFC, ADR, spec, and plan authoring workflows.
-  # Normative decisions stay in their owning artifacts; only reusable supporting practice
-  # residue is captured. Each workflow owns gate timing and free-form scratch, never locates
-  # the private writer, and may distill only its capture receipts. Enquiry requires a
-  # separately declared competency question/read boundary. Start by reassessing this and
-  # every later slice against foundation evidence; reshape the roadmap before speccing if
-  # the foundation changes the integration seam.
-  {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-foundation/spec.md"}]},
+  # Slices 1 and 2 are shipped in the work list above. Their measured behavior is
+  # the adaptive starting point for every remaining slice; do not preserve an
+  # assumed integration shape when evidence supports splitting, combining,
+  # reordering, or retiring it.
 
   # Slice 3 — review and research integrations. Extend the proven handoff to selected
   # architecture, adversarial, security, quality, and research workflows at stable meaning

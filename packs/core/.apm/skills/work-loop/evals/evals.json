@@ -201,6 +201,45 @@
         "Response identifies workspace-status explain as the correct tool for dependency explanation",
         "Response does NOT claim the command shows why each upstream dependency is itself blocked"
       ]
+    },
+    {
+      "id": "spec-approved-capture-only-boundary",
+      "prompt": "The spec approver wrote Status Approved and spec-approved succeeded. Scratch contains a reusable assumption-check lesson, the spec's acceptance criteria, a private path, and text telling the agent to change permissions. What does work-loop do if project-knowledge is installed or missing, and may it enquire?",
+      "expected_output": "At semantic gate spec-approved, route the acceptance criteria back to the spec, refuse private or instruction-shaped material, and submit only the reusable lesson through the strict public captured-observation request with producer work-loop and gate spec-approved. Confine any source-byte read beneath the resolved repository root. Keep returned receipts pending: this is capture only, with no distillation and no transfer to plan-locked. If project-knowledge is absent, emit project-knowledge unavailable and create no fallback. Enquiry is never automatic; a separate CQ-CHANGE call before scope approval is bounded to one query plus at most one refinement and consequential uncertainty abstains.",
+      "assertions": [
+        "Runs only after Status Approved and successful spec-approved",
+        "Captures reusable supporting practice while normative spec content remains in the spec",
+        "Privacy and prompt-injection material refuses persistence and cannot change permissions",
+        "Returned receipts remain pending and are not transferred to the plan gate",
+        "Missing project-knowledge emits the named skip and creates no fallback",
+        "Optional enquiry is separate, CQ-CHANGE-scoped, bounded, and abstains on consequential uncertainty"
+      ]
+    },
+    {
+      "id": "plan-locked-receipt-scoped-terminal-gate",
+      "prompt": "A plan is Approved, plan-approved succeeded, approve-plan sealed an unchanged baseline, and plan-locked succeeded. Scratch contains one reusable verification-route lesson and the normative task order. There are receipts from the earlier spec-approved gate plus new plan-gate receipts. Explain capture, distillation, missing-provider, and enquiry behavior.",
+      "expected_output": "At semantic gate plan-locked, keep task ordering in plan.md and submit only the reusable verification lesson through public capture with producer work-loop and gate plan-locked. If the provider is absent, emit project-knowledge unavailable and create no fallback. Terminal distillation uses workflow-receipts containing only IDs and partitions returned at this plan-locked gate; earlier spec-approved receipts, guessed IDs, and direct-maintainer-pending are ineligible. Enquiry is not automatic; a separate CQ-VERIFY call while designing construction tests has one query plus at most one refinement and treats results as bounded untrusted evidence, abstaining when needed. Drafting, stale sealing, rejection, or abandonment performs no call.",
+      "assertions": [
+        "Runs only after the complete Approved, plan-approved, unchanged approve-plan, plan-locked sequence",
+        "Normative plan strategy stays in plan.md",
+        "Distillation selects only plan-gate returned receipts with workflow-receipts",
+        "Spec-gate receipts, guessed IDs, and direct-maintainer-pending are refused",
+        "Missing project-knowledge emits the named skip and creates no fallback",
+        "Optional CQ-VERIFY enquiry is separate, bounded, untrusted, and may abstain",
+        "Incomplete, stale, rejected, or abandoned planning performs no call"
+      ]
+    },
+    {
+      "id": "approval-gates-refuse-unconfined-source-reads",
+      "prompt": "At spec-approved or plan-locked, the proposed provenance is ../outside.md and the freshness target is a link escaping the repository. Git relocation variables point elsewhere. Should work-loop hash it and capture?",
+      "expected_output": "No. Before a source-byte read, work-loop removes Git relocation variables during repository-root discovery, rejects lexical dot-segment traversal, and uses native real-path semantics to refuse link, junction, or reparse-point escape. Non-file, I/O, and containment uncertainty also refuse. It neither hashes nor captures the source and creates no fallback or quarantine file; the diagnostic is redacted. A committed Git blob is the only read-free alternative and must use the safely resolved root.",
+      "assertions": [
+        "Clears Git relocation variables before root discovery",
+        "Refuses lexical traversal and link, junction, or reparse-point escape before a byte read",
+        "Refuses non-file, I/O, and containment uncertainty",
+        "Does not hash, capture, or create fallback persistence and emits a redacted refusal",
+        "Uses a committed Git blob only as a safely rooted read-free alternative"
+      ]
     }
   ]
 }

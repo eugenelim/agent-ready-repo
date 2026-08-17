@@ -124,6 +124,15 @@ Tell the user:
 > "Brief is queued as draft at `docs/product/briefs/<slug>.md`.
 > Return to `work-intake` when you are ready to process the existing brief."
 
+## Project-knowledge non-gate
+
+`Status: Draft` completion is not a stable semantic gate. This skill does not call
+`project-knowledge --capture`, does not persist scratch, and does not
+attempt enquiry or distillation. Abandoned work is likewise a no-op.
+`receive-brief` owns the first stable gate after the DoR check, Ready
+write-back, and durable workspace transition. That gate may pass with zero
+specs and without a confirmed slice cut.
+
 ## Ready-gate ownership
 
 `author-brief` may elicit fields that help a later readiness review, but it does
