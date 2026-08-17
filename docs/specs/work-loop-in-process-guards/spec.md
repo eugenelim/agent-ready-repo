@@ -1,6 +1,6 @@
 # Spec: work-loop in-process guards
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, ADR-0074
@@ -550,7 +550,7 @@ references that place rather than repeating the value.
       `bash packs/core/tests/skills/work-loop/test-loop-cohort.sh` passes — gated by
       `tools/test-all.py` and driving **exactly** the six verbs this change converts
       to adapters (`identity`, `plan check-current`, `schedule check-current`,
-      `check --phase {implement,review,gates-failed,stub}`, `wave check`), so it is
+      `check --phase {implement,review,gates-failed}`, `wave check`), so it is
       the closest pre-existing contract test for them and must pass unmodified;
       `pytest tests/roster/test_work_loop_root_validation.py` passes, whose
       `test_report_sites_route_through_resolver` counts source occurrences in
