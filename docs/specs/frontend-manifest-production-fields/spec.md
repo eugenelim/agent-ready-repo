@@ -3,8 +3,8 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Contract:** the frontend-engineering evidence manifest gains two
-  production-tier fields. Pack minor release.
+- **Brief:** none
+- **Contract:** none
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

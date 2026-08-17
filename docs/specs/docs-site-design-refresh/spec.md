@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0061 (web/ top-level directory), platform-site spec (design-system foundations), [`creative-direction.md`](creative-direction.md)
-- **Brief:** user direction in-session (2026-08-05): adopt the navigation / font / section-layout design language of an external reference docs site (supplied in-session; deliberately not named in-tree) on our Starlight tech docs; keep Astro; pick a color theme conveying engineering capability and enterprise professionalism; split per-site agent context files.
+- **Brief:** none
 - **Contract:** none
 - **Shape:** build
 

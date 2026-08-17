@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0071](../../rfc/0071-digital-experience-doctrine.md) (Area A, D1, D6), [RFC-0062](../../rfc/0062-content-design-and-copy-direction-skills.md) (Accepted — referenced by contract; implementation in spec/xd-copy-direction)
 - **Brief:** none
-- **Contract:** Digital Experience Contract schema `schema-version: "1.0"` — this spec authors the schema. The contract is an adopter-facing markdown artifact template; the schema version is the governance handle for future breaking field changes.
+- **Contract:** none
 - **Shape:** integration — new cross-pack shared primitive (template in four packs' skill references/) + new `tools/` lint
 
 > **Spec contract:** this document defines what "done" means. The implementing

@@ -3,8 +3,8 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Contract:** `agentbundle.statelock` gains one exception type
-  (`StateLockUnusable`, an `OSError`). No existing signature changes.
+- **Brief:** none
+- **Contract:** none
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.
