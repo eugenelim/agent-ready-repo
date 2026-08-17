@@ -409,19 +409,21 @@ def _read_managed_bytes(path: Path, label: str) -> bytes:
                 chunks.append(chunk)
                 remaining -= len(chunk)
             raw = b"".join(chunks)
-            after_fd = os.fstat(fd)
         except OSError as exc:
             raise ValueError(f"{label} could not be read safely: {exc}") from exc
     finally:
         os.close(fd)
+    # Only the PATH is re-checked. An `os.fstat(fd)` here was also compared against
+    # `identity` and could not ever differ: a descriptor refers to the same inode for
+    # its whole lifetime, so re-fstat'ing it re-derives the value already checked
+    # above. Dropping it leaves the check that can actually fire — the path having
+    # been re-pointed at a different inode while the read was in progress, which is
+    # the TOCTOU the `O_NOFOLLOW` open cannot see on its own.
     try:
         after_path = os.lstat(path)
     except OSError as exc:
         raise ValueError(f"{label} changed while being read") from exc
-    if (
-        (after_fd.st_dev, after_fd.st_ino) != identity
-        or (after_path.st_dev, after_path.st_ino) != identity
-    ):
+    if (after_path.st_dev, after_path.st_ino) != identity:
         raise ValueError(f"{label} changed while being read")
     if len(raw) > _MAX_MANAGED_JSON_BYTES:
         raise ValueError(
