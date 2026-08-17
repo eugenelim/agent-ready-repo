@@ -81,6 +81,16 @@ def _silent(fn, *args, **kwargs):
     return result, out.getvalue(), err.getvalue()
 
 
+def _load_golden():
+    """The golden harness, for its fixture builders (hyphenated filename)."""
+    path = ROOT / "tools" / "test-lint-boundary-golden.py"
+    spec = importlib.util.spec_from_file_location("lint_boundary_golden", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["lint_boundary_golden"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _tree_signature(root: Path) -> set[tuple[str, int]]:
     """Cheap mutation detector: relative path plus size for every file."""
     signature = set()
@@ -350,6 +360,76 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         check("inspect_boundary mutates no file",
               _tree_signature(fixture) == before_sig,
               "tree signature changed")
+
+    # ---- every finding-emission site is exercised ----------------------
+    # A case *count* is not coverage. This derives the answer mechanically:
+    # walk the six checks for `out.append`/`out.extend` sites, then drive the
+    # whole fixture corpus with a recording list that captures the caller's line
+    # number. It found four unreached non-vacuity refusals when first written.
+    import ast as _ast
+
+    lint_src = LINT.read_text(encoding="utf-8")
+    _tree = _ast.parse(lint_src)
+    _check_fns = {f"case_{n}" for n in (
+        "apm_carries_no_tests", "projection_carries_no_tests",
+        "tests_live_in_the_pack_tree", "pack_tests_stay_in_pack",
+        "runners_keep_suites_isolated", "every_suite_dir_has_a_runner")}
+    _sites: set[int] = set()
+    for _fn in _ast.walk(_tree):
+        if isinstance(_fn, _ast.FunctionDef) and _fn.name in _check_fns:
+            for _n in _ast.walk(_fn):
+                if (isinstance(_n, _ast.Call)
+                        and isinstance(_n.func, _ast.Attribute)
+                        and _n.func.attr in {"append", "extend"}
+                        and getattr(_n.func.value, "id", "") == "out"):
+                    _sites.add(_n.lineno)
+
+    _hit: set[int] = set()
+
+    class _Recording(list):
+        def append(self, item):
+            _hit.add(sys._getframe(1).f_lineno)
+            super().append(item)
+
+        def extend(self, items):
+            _hit.add(sys._getframe(1).f_lineno)
+            super().extend(items)
+
+    _golden = _load_golden()
+    with tempfile.TemporaryDirectory(prefix="boundary-coverage-") as td:
+        tmp = Path(td)
+        for name in _golden.FIXTURES:
+            root = _golden._make_fixture(tmp, name)
+            base = M.default_context(root)
+            variants = (
+                base,
+                M.BoundaryContext(
+                    root=base.root, packs_root=base.packs_root,
+                    recipe_path=base.recipe_path,
+                    projected_roots=base.projected_roots,
+                    runner_files=base.runner_files, no_runner={}),
+                M.BoundaryContext(
+                    root=base.root, packs_root=base.packs_root,
+                    recipe_path=base.recipe_path,
+                    projected_roots=base.projected_roots,
+                    runner_files=base.runner_files,
+                    no_runner={"packs/demo/tests/skills/demo": "planted"}),
+            )
+            for ctx in variants:
+                inv = M.build_inventory(ctx)
+                for spec_check in M.CHECKS:
+                    _silent(spec_check.run, inv, _Recording())
+        inv = M.build_inventory(M.default_context())
+        for spec_check in M.CHECKS:
+            _silent(spec_check.run, inv, _Recording())
+
+    check("every finding-emission site is exercised by the fixture corpus",
+          not (_sites - _hit),
+          "unreached: " + ", ".join(
+              f":{n} {lint_src.splitlines()[n - 1].strip()[:70]}"
+              for n in sorted(_sites - _hit)))
+    check("the emission-site scan is not vacuous", len(_sites) >= 20,
+          f"found only {len(_sites)} sites")
 
     # ---- no persistence between invocations ----------------------------
     inv_a = M.build_inventory(context)

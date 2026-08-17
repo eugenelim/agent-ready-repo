@@ -453,7 +453,9 @@ def case_projection_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> 
         out.append(
             f"self-host recipe not found at {_rel(inv.context.recipe_path, root)}"
         )
-        return
+        # Deliberately no early return: the original reported BOTH the missing
+        # recipe and the resulting empty include list, so a missing recipe is two
+        # findings. The golden baseline caught the early return that lost one.
     include = list(inv.include)
     if not include:
         out.append("self-host recipe lists no packs to project")

@@ -151,6 +151,36 @@ def _base_fixture(root: Path) -> None:
     )
 
 
+def _fx_empty_packs_root(root: Path) -> None:
+    """`packs/` exists but holds no pack — the non-vacuity refusal.
+
+    Reached by two checks, and by neither of the other fixtures: every one of
+    them ships a pack. A coverage trace over the corpus is what found this gap.
+    """
+    _base_fixture(root)
+    shutil.rmtree(root / f"packs/{_PACK}")
+    _write(root / "packs/.keep", "")
+
+
+def _fx_recipe_missing(root: Path) -> None:
+    """The self-host recipe is absent.
+
+    The CLI refuses such a root before traversing, so this refusal is only
+    reachable through the callable API — which is exactly why the API accepts a
+    context the CLI would reject.
+    """
+    _base_fixture(root)
+    (root / "packages/agentbundle/agentbundle/build/recipes/self-host.toml").unlink()
+
+
+def _fx_stale_exemption_also_run(root: Path) -> None:
+    """A suite named by a runner AND declared unrun — the inverse exemption."""
+    _base_fixture(root)
+    # The base fixture's Makefile already names packs/demo/tests/skills/demo.
+    # The suite is live and a runner names it, so declaring it unrun is the error.
+    _write(root / "tools/exemption-marker", "see _NO_RUNNER injection\n")
+
+
 def _fx_clean(root: Path) -> None:
     _base_fixture(root)
 
@@ -330,13 +360,21 @@ FIXTURES: dict[str, callable] = {
     "malformed-runner-file": _fx_malformed_runner_file,
     "empty-include-list": _fx_empty_include_list,
     "no-projected-roots": _fx_no_projected_roots,
+    "empty-packs-root": _fx_empty_packs_root,
+    "recipe-missing-api-only": _fx_recipe_missing,
+    "stale-exemption-also-run": _fx_stale_exemption_also_run,
 }
 
 # Deliberately NOT fixtures. A root without `packs/` or without the recipe trips
 # an import-time refusal whose message embeds an ABSOLUTE path, so its bytes are
 # host-dependent and cannot be committed or reproduced. T4 proves those two
 # refusals by direct assertion on the CLI's exit code and relativized message.
-UNCAPTURABLE = ("packs-missing", "recipe-missing")
+# A root with no `packs/` at all trips an import-time refusal whose message
+# embeds an ABSOLUTE path, so its bytes are host-dependent and cannot be
+# committed. T4 proves it by direct assertion on exit code and message instead.
+# (A root with `packs/` present but empty, and one missing only the recipe, ARE
+# capturable — see the fixtures of those names.)
+UNCAPTURABLE = ("packs-missing-entirely",)
 
 
 # ---------------------------------------------------------------------------
