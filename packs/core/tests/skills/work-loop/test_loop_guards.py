@@ -490,6 +490,46 @@ def test_reason_never_carries_raw_artifact_content(g, tmp_path: Path) -> None:
     assert secret not in (read_it(state).reason or "")
 
 
+def test_an_external_scalar_is_bounded_in_a_reason(g) -> None:
+    """The bound sits on the interpolation, not on the assembled reason.
+
+    A 100 KB `run_id` in `state.json` is attacker-influenceable length reaching a
+    stderr line the agent captures and logs. Both guards that echo it are covered,
+    because they carry two independent message sets by design.
+    """
+    huge = "A" * 100_000
+    reason = g.validate_run_id(
+        {"schema_version": 1, "run_id": huge}, "expected-id", verb="approve-plan"
+    )
+    assert reason is not None
+    assert len(reason) < 500 and len(reason.splitlines()) == 1
+    assert huge not in reason
+    # And the truncation is visible rather than silent.
+    assert "…" in reason
+
+
+def test_the_longest_authored_reason_survives_intact(g) -> None:
+    """The backstop must never clip the tool's own text.
+
+    Capping the assembled reason at 400 chars regressed exactly this: the
+    `_BOTH_CAUSES` recovery runbook is ~900 chars of numbered steps an operator
+    follows to repair a stale baseline, and it was being cut off mid-sentence at
+    step 3. This pins the separation the `_MAX_REASON_CHARS` comment claims.
+    """
+    longest = max(
+        (v for k, v in vars(g).items() if isinstance(v, str) and k.isupper()),
+        key=len,
+    )
+    assert len(longest) > 500, "expected a long authored constant to guard"
+    assert g._one_line(longest) == " ".join(longest.split()), (
+        "the backstop truncated an authored constant"
+    )
+    assert len(longest) + 200 < g._MAX_REASON_CHARS, (
+        f"_MAX_REASON_CHARS={g._MAX_REASON_CHARS} leaves no headroom over the "
+        f"longest authored constant ({len(longest)} chars) plus its interpolations"
+    )
+
+
 # ── fail-closed status parsing ─────────────────────────────────────────────
 
 def test_unloadable_parser_refuses_instead_of_skipping(tmp_path: Path) -> None:
