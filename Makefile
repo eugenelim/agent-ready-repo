@@ -83,7 +83,7 @@ package:
 # scrolls away, and the reader who scrolls to the bottom is exactly the reader
 # about to conclude "green, ship it". $(1) is the invoked target's name.
 #
-# Three outcomes, not two. Since ADR-0085 build-check.yml no longer sets
+# Three outcomes, not two. Since ADR-0086 build-check.yml no longer sets
 # SKIP_SAST=1: the SAST/SCA leg is its own `gate-sast` job, and `gate-main`
 # invokes this target with SAST_DELEGATED=1 instead. So the third outcome is
 # "delegated" — this target did not scan, and something else did. On a laptop
@@ -131,7 +131,7 @@ build-check:
 	# Two things short-circuit this leg only (the drift + lint gates above always
 	# run): SKIP_SAST, still a laptop shortcut; and SAST_DELEGATED passed ON THE
 	# COMMAND LINE, which is how `gate-main` says "gate-sast owns the scan".
-	# ADR-0085 partially supersedes ADR-0017 here: the leg is no longer chained
+	# ADR-0086 partially supersedes ADR-0017 here: the leg is no longer chained
 	# into the required job in CI, but this Makefile chain is DELIBERATELY intact
 	# so `make build-check` on a developer machine still scans — that is what
 	# ADR-0017's dogfooding rationale actually required, and tools/assert-sast-
@@ -149,7 +149,7 @@ build-check:
 # SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
 # deps. Chained into build-check above so the repo's single native gate runs it
-# locally. NOT in build-check.yml CI any more: since ADR-0085 the leg is its own
+# locally. NOT in build-check.yml CI any more: since ADR-0086 the leg is its own
 # `gate-sast` job and `gate-main` passes SAST_DELEGATED=1, so this chain runs only
 # on a developer machine — which is exactly what ADR-0017's dogfooding rationale
 # required, and what tools/assert-sast-chain-reachable.py now pins. Not added to

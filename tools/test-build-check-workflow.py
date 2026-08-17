@@ -832,7 +832,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # independently inflates the matrix without adding a proof. The classes they named
     # are now several MUTATIONS against this one assertion, which is the right shape —
     # `SAST_DELEGATED=1 make build-check PACKS_DIR=packs` is simply not equal to the
-    # pinned text, so it fails here with the ADR-0085 reasoning above it.
+    # pinned text, so it fails here with the ADR-0086 reasoning above it.
     check("anchor-step", bool(_pinned(anchor, PINNED_ANCHOR)))
     check("anchor-no-if", bool(anchor) and not _has_if(anchor))
     # AC14(1): lint-nosec-form sets a caveat and exits 0 without bandit, so the

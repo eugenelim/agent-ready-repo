@@ -391,7 +391,7 @@ docs/specs/local-gate-ci-parity/{spec,plan}.md *(Status lines only)*
 **Verification mode:** goal-based check. **Tests:** no stub.
 
 **Approach:**
-- Write `docs/adr/0085-split-the-sast-gate-into-its-own-ci-job.md`. `Supersedes:`
+- Write `docs/adr/0086-split-the-sast-gate-into-its-own-ci-job.md`. `Supersedes:`
   names **only ADR-0017**.
 - **Carry as an explicit decision, not a consequence:** "provenance is
   `$(origin SAST_DELEGATED)`, not any environment variable." CONVENTIONS rule 2
@@ -415,7 +415,7 @@ docs/specs/local-gate-ci-parity/{spec,plan}.md *(Status lines only)*
   neither needs annotation.
 - Stamp `docs/specs/sast-sca-tooling/` only if it *teaches* the CI-chaining rule.
 
-**Done when:** ADR-0085 exists with pointers in allowed directions only and the
+**Done when:** ADR-0086 exists with pointers in allowed directions only and the
 `$(origin)` provenance decision in its decision section; ADR-0017's body is
 byte-identical apart from its Status line; both `local-gate-ci-parity` files carry
 their annotation; and every decision above is written down with reasoning.

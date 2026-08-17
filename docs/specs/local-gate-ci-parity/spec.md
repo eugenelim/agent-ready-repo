@@ -1,6 +1,6 @@
 # Spec: local-gate-ci-parity
 
-- **Status:** Shipped (superseded in part by [ADR-0085](../../adr/0085-split-the-sast-gate-into-its-own-ci-job.md) — **AC3, AC3a and AC3b's verdict case set**: the `GITHUB_WORKFLOW`-keyed CI-intentional branch is retired and provenance becomes `$(origin SAST_DELEGATED)`, so the three-distinct-lines requirement now describes a different three; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0086](../../adr/0086-split-the-sast-gate-into-its-own-ci-job.md) — **AC3, AC3a and AC3b's verdict case set**: the `GITHUB_WORKFLOW`-keyed CI-intentional branch is retired and provenance becomes `$(origin SAST_DELEGATED)`, so the three-distinct-lines requirement now describes a different three; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0017, RFC-0059, ADR-0052

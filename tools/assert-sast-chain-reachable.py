@@ -5,10 +5,10 @@
 
 ## Why this exists
 
-ADR-0085 moves the SAST/SCA leg into its own `gate-sast` CI job, and `gate-main`
+ADR-0086 moves the SAST/SCA leg into its own `gate-sast` CI job, and `gate-main`
 invokes `make build-check` with `SAST_DELEGATED=1` on the command line. After that
 change **no CI path executes the `$(MAKE) sast` branch inside `build-check`** — so
-deleting that branch would go green everywhere, and ADR-0085's central claim (the
+deleting that branch would go green everywhere, and ADR-0086's central claim (the
 Makefile chain survives, which is what ADR-0017's dogfooding rationale actually
 required) would be true only by assertion.
 
@@ -146,13 +146,13 @@ def main(argv: list[str]) -> int:
     ok, out = _reaches_sast()
     if ok:
         print("✓ make build-check still reaches the SAST/SCA leg "
-              "(ADR-0085 keeps the Makefile chain intact for local dogfooding)")
+              "(ADR-0086 keeps the Makefile chain intact for local dogfooding)")
         return 0
     print("✖ make build-check no longer reaches its `$(MAKE) sast` branch.\n"
           f"   Expected {MARKER!r} in the output of `make -n build-check`.\n"
-          "   No CI path executes that branch since ADR-0085, so this check is the\n"
+          "   No CI path executes that branch since ADR-0086, so this check is the\n"
           "   only thing standing between the local gate and a silent regression.\n"
-          "   If the branch was intentionally removed, ADR-0085's rationale no longer\n"
+          "   If the branch was intentionally removed, ADR-0086's rationale no longer\n"
           "   holds and needs revisiting — do not delete this check to go green.",
           file=sys.stderr)
     sys.stderr.write(out[-1500:] if out else "(no output)\n")

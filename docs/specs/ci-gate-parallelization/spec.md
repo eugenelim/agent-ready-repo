@@ -6,8 +6,8 @@
   `docs/CONVENTIONS.md` § *Superseding a frozen document*,
   `docs/specs/local-gate-ci-parity/`
 - **Plan:** [`plan.md`](plan.md)
-- **Contract:** no runtime contract changes. One required status check keeps its
-  name but changes from a work job to an aggregator; one ADR sub-decision is
+- **Contract:** none — no runtime contract changes. One required status check keeps
+  its name but changes from a work job to an aggregator; one ADR sub-decision is
   partially superseded and one shipped spec gains a Status annotation.
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -453,16 +453,16 @@ day). It is the floor that keeps rising.
   so the check must add `-rs` or it observes nothing.
 
 - [ ] **AC9 — governance records, pointing only in directions CONVENTIONS allows.**
-  ADRs are frozen (status mutable, bodies not), so a new ADR-0085 is written — the
+  ADRs are frozen (status mutable, bodies not), so a new ADR-0086 is written — the
   precedent ADR-0084 set against ADR-0017. The four rules of § *Superseding a frozen
   document* apply by their own numbering, rule 2 being *point at the ADR, not at the
   spec that implemented it*, with the note that the spec end is one-way.
 
   - **One ADR-level supersession:** ADR-0017's CI-chaining sub-decision. Tool
-    choices, severity floor and the real-fix-first ladder stand. ADR-0085's
+    choices, severity floor and the real-fix-first ladder stand. ADR-0086's
     `Supersedes:` names **only** ADR-0017 — an ADR cannot supersede a spec's
     acceptance criterion.
-  - **ADR-0085 must carry, as a *decision* and not merely a consequence:**
+  - **ADR-0086 must carry, as a *decision* and not merely a consequence:**
     "provenance is `$(origin SAST_DELEGATED)`, not any environment variable" — it is
     what `local-gate-ci-parity`'s annotation points at, and rule 2 requires the
     pointer to land on the ADR carrying the reasoning.
@@ -479,7 +479,7 @@ day). It is the floor that keeps rising.
   Also record whether ADR-0017's existing non-conforming ADR-0084 Status clause is
   normalized in the same edit — permitted, Status being the one mutable field.
 
-- [ ] **AC10 — local gates unchanged, and ADR-0085's central claim enforced.**
+- [ ] **AC10 — local gates unchanged, and ADR-0086's central claim enforced.**
   `make build-check`, `make ci`, `make sast` behave identically on a developer
   machine. **Makefile changes are confined to AC5a–AC5f** — which includes AC5c's
   widening of the `$(MAKE) sast` branch condition and AC5f's retirement of the

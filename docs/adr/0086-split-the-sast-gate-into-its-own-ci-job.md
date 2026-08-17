@@ -1,4 +1,4 @@
-# ADR-0085: The SAST/SCA leg becomes its own CI job, and provenance is command-line origin
+# ADR-0086: The SAST/SCA leg becomes its own CI job, and provenance is command-line origin
 
 - **Status:** Accepted
 - **Date:** 2026-08-17

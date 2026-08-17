@@ -85,7 +85,7 @@ jobs:
         # bandit's own registry and silently no-ops without it. See
         # docs/specs/bandit-nosec-form-lint/spec.md AC4b.
         #
-        # Post-split (ADR-0085) this step is MORE load-bearing, not less: `make sast`
+        # Post-split (ADR-0086) this step is MORE load-bearing, not less: `make sast`
         # never runs in this job at all — it is gate-sast's — so nothing else here
         # would provision bandit and the lint would be inert on EVERY PR. The rest
         # of requirements-sast.txt belongs to gate-sast, which installs it
@@ -137,7 +137,7 @@ jobs:
       - name: Run make build-check
         # SAST_DELEGATED is passed as a make ARGUMENT, not an env prefix:
         # $(origin SAST_DELEGATED) must be `command line` for the Makefile to
-        # treat the delegation as deliberate (ADR-0085). As a prefix the origin
+        # treat the delegation as deliberate (ADR-0086). As a prefix the origin
         # is `environment`, the recipe would run the SAST leg here as well as in
         # gate-sast, and the scan would silently run twice.
         run: make build-check PACKS_DIR=packs SAST_DELEGATED=1

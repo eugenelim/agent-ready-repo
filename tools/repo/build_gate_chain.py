@@ -386,7 +386,7 @@ def build_check(args: argparse.Namespace) -> int:
         ),
         # The bandit suppression-comment form (ADR-0084). bandit.yaml's header
         # is the canonical statement of the rule and of why this runs here
-        # rather than in `make sast`. Correction (ADR-0085 / AC14): it DOES need a
+        # rather than in `make sast`. Correction (ADR-0086 / AC14): it DOES need a
         # scanner — lint-nosec-form resolves bandit's test ids and, when bandit is
         # absent, sets a caveat and exits 0, dropping its unknown-id check rather
         # than failing. #986 provisions bandit unconditionally in `gate-main`, at the
@@ -426,7 +426,7 @@ def build_check(args: argparse.Namespace) -> int:
             "tools", "test-build-check-workflow.py",
         ),
         # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
-        # ADR-0085, so nothing else would notice it being deleted or made
+        # ADR-0086, so nothing else would notice it being deleted or made
         # unreachable. Skips cleanly where `make` is absent.
         _script_step(
             "assert-sast-chain-reachable",
