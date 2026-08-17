@@ -479,6 +479,22 @@ open = [
   # `workflow_run` + `conclusion == success` rather than a GitHub Environment
   # reviewer, which is a non-control in a single-maintainer repo.
   {slug = "plugin-publish-required-reviewer", source = "spec/claude-plugin-route-scope"},
+
+  # The publication-control evidence has no upper bound on age.
+  # compare_evidence checks observed_at is a non-empty string and nothing more,
+  # so the committed artifact (observed_at 2026-08-12) keeps the gate green
+  # forever no matter what changes in GitHub settings afterwards: the ruleset
+  # flipped to `evaluate`, a second bypass actor added, the App re-installed
+  # org-wide. Pre-existing, but spec/publish-control-evidence-repo-binding
+  # strengthened the artifact's SUBJECT claim, which makes the unbounded TIME
+  # claim the weaker half of the pair. Surfaced by security review there.
+  # Fix: a max-age check in compare_evidence, with the number declared in
+  # .github/claude-plugin-publish-control.json so it is reviewable rather than
+  # buried in the linter. The hard part is not the check: expiry blocks every
+  # merge until an operator with the App private key re-runs the capture, so
+  # decide the operational answer (how long, who is paged, what the escape
+  # hatch is) before writing it. That is why it is not a ride-along.
+  {slug = "publish-control-evidence-max-age", summary = "Bound the age of the publish-control evidence -- observed_at is checked for being a non-empty string and nothing else, so a stale artifact certifies settings that may have changed", source = "spec/publish-control-evidence-repo-binding security review"},
   # `_aggregate_marketplace` runs on an adopter's `run_self_host`, and
   # `[pack.adapter-contract]` is optional in `contracts/pack.schema.json` — so a
   # schema-valid adopter pack resolves ["repo"] and vanishes from their own
@@ -1616,20 +1632,6 @@ open = [
   # verification, CWE-312 cleartext secret storage, CWE-640 password recovery)
   # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
-
-  # The publication-control evidence artifact records NO repository field:
-  # build_evidence emits version, branch, app, environment, identities_agree,
-  # canary, observed_at, observation_source -- and the committed
-  # docs/specs/claude-plugin-hook-parity/publish-control-evidence.json has no
-  # repo. So nothing binds the evidence to a subject, and running the capture
-  # against a different, well-configured repo yields a byte-indistinguishable
-  # artifact. capture-evidence-repo-dot-segments closed ONE route to a
-  # wrong-subject capture (dot-segment traversal); this is the wider gap it
-  # deliberately did not close, surfaced in that spec's Honest scope section.
-  # Fix: record the observed repo in the evidence document and have
-  # lint-claude-plugin-publish-control.py compare it against the repository the
-  # artifact is committed in. That is a schema change, hence its own PR.
-  {slug = "publish-control-evidence-not-repo-bound", summary = "Record the observed repository in the publish-control evidence artifact and have the linter check it matches the committing repo", source = "spec/capture-evidence-repo-dot-segments"},
 
   # build-check.yml declares no top-level `permissions:` block, so every step --
   # including three pip installs and an editable install that executes setup.py

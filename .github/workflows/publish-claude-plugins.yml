@@ -74,8 +74,23 @@ jobs:
         run: |
           PYTHONPATH=packages/agentbundle python -m agentbundle catalogue verify --root .
 
+      # --subject is the only half of the repo binding a COPY cannot satisfy.
+      # The lint's other comparison is between two committed files -- the
+      # desired-state contract and the captured evidence -- so a fork or any
+      # clone-derived repository carries both halves and they still agree,
+      # certifying eugenelim/agent-ready-repo's ruleset, App installation and
+      # protected environment as its own. github.repository is set by the runner
+      # and no committed file can forge it.
+      #
+      # Passed here rather than read from the environment inside the linter, so
+      # `make build-check` keeps one behaviour locally and in CI (the divergence
+      # class tools/lint-ci-parity.py exists to catch) and so the comparison
+      # lands in the linter's own mutation suite instead of a YAML string.
+      # See docs/specs/publish-control-evidence-repo-binding/spec.md Decision 5.
       - name: Enforce executable-plugin publication control
-        run: python3 tools/lint-claude-plugin-publish-control.py
+        run: |
+          python3 tools/lint-claude-plugin-publish-control.py \
+            --subject "$GITHUB_REPOSITORY"
 
       - name: Configure git identity
         run: |

@@ -54,7 +54,81 @@ def main() -> int:
             ("canary", "ordinary_update"),
             "accepted",
         ),
+        # The subject the controls are authored for. An unset, empty, or
+        # traversal-shaped value would let the evidence comparison below bind to
+        # nothing while still comparing equal.
+        "desired repo emptied": (("repo",), ""),
+        "desired repo not owner/name": (("repo",), "agent-ready-repo"),
+        "desired repo dot segment": (("repo",), "owner/.."),
+        "desired schema version": (("version",), 1),
     }
+    # Behaviour, not identity: __module__ is assigned by the loader from the
+    # name _load_capture_module passes, so ANY file at that path satisfies a
+    # name comparison -- including a two-line stub whose _validate_repo returns
+    # its argument unchanged. Exercise the rule's two halves instead.
+    _shared_rule = lint._load_capture_module()._validate_repo
+    for label, value, accepted in (
+        ("a dot segment", "owner/..", False),
+        ("a leading-dot repository name", "owner/.github", True),
+        ("a bare name with no owner", "agent-ready-repo", False),
+    ):
+        try:
+            _shared_rule(value)
+        except Exception:  # noqa: BLE001 - CaptureError, whatever the module names it
+            got = False
+        else:
+            got = True
+        check(
+            f"the shared owner/name rule {'accepts' if accepted else 'rejects'} {label}",
+            got is accepted,
+        )
+    # Blocker 2: the loop above pins the CAPTURE TOOL's rule, not the linter's
+    # USE of it -- a locally restated regex in validate_desired would leave it
+    # green. Swap the loader for a permissive stub and assert validate_desired
+    # then ACCEPTS what the real rule rejects: only a linter that actually calls
+    # the loaded module can change its answer.
+    _real_loader = lint._load_capture_module
+
+    class _PermissiveCapture:
+        class CaptureError(RuntimeError):
+            pass
+
+        @staticmethod
+        def _validate_repo(repo):
+            return repo
+
+    lint._load_capture_module = lambda: _PermissiveCapture
+    try:
+        bare = copy.deepcopy(desired)
+        bare["repo"] = "agent-ready-repo"          # no owner: the real rule refuses
+        delegated = not any("owner/name" in e for e in lint.validate_desired(bare))
+    finally:
+        lint._load_capture_module = _real_loader
+    check(
+        "validate_desired delegates to the loaded rule rather than a local copy",
+        delegated,
+    )
+    # And a loader that cannot produce a usable module is a lint error, not a
+    # traceback out of validate_desired.
+    lint._load_capture_module = _real_loader
+    for label, stub in (
+        ("raises", lambda: (_ for _ in ()).throw(ValueError("boom"))),
+        ("returns a module with no _validate_repo", lambda: object()),
+    ):
+        lint._load_capture_module = stub
+        try:
+            errs = lint.validate_desired(copy.deepcopy(desired))
+            ok = bool(errs)
+        except Exception:  # noqa: BLE001
+            ok = False
+        finally:
+            lint._load_capture_module = _real_loader
+        check(f"a capture module that {label} is reported, not raised", ok)
+
+    check(
+        "a desired file with no repo at all fails",
+        bool(lint.validate_desired({k: v for k, v in desired.items() if k != "repo"})),
+    )
     for name, (path, value) in desired_mutations.items():
         changed = copy.deepcopy(desired)
         cursor = changed
@@ -81,6 +155,62 @@ def main() -> int:
         "ordinary canary": ("canary", "ordinary_update", None, "accepted"),
         "app canary": ("canary", "publisher_app_update", None, "rejected"),
     }
+    # Evidence captured against a DIFFERENT, well-configured repository is
+    # byte-indistinguishable from a real capture in every other field — this
+    # comparison is the only thing that separates them.
+    for label, value in (
+        ("another repository", "someone-else/agent-ready-repo"),
+        ("None", None),
+    ):
+        changed = copy.deepcopy(evidence)
+        changed["repo"] = value
+        check(
+            f"evidence naming {label} fails",
+            bool(lint.compare_evidence(desired, changed)),
+        )
+    changed = copy.deepcopy(evidence)
+    changed.pop("repo")
+    check(
+        "evidence with no repo at all fails",
+        bool(lint.compare_evidence(desired, changed)),
+    )
+    # Both keys absent compare EQUAL, so without a self-standing check the
+    # binding would rest on validate_desired happening to run first.
+    stripped_desired = {k: v for k, v in desired.items() if k != "repo"}
+    check(
+        "evidence and desired BOTH missing repo still fails",
+        bool(lint.compare_evidence(stripped_desired, changed)),
+    )
+    # The schema-version comparison is the only thing that rejects a stale v1
+    # artifact against the v2 desired file -- the migration this change makes.
+    changed = copy.deepcopy(evidence)
+    changed["version"] = 1
+    check(
+        "stale v1 evidence against a v2 desired control fails",
+        bool(lint.compare_evidence(desired, changed)),
+    )
+
+    # --subject: the one half of the binding a fork or clone cannot satisfy,
+    # because github.repository is set by the runner, not by a committed file.
+    with tempfile.TemporaryDirectory() as raw:
+        root = Path(raw)
+        desired_path = root / "desired.json"
+        desired_path.write_text(json.dumps(desired), encoding="utf-8")
+        evidence_path = root / "evidence.json"
+        evidence_path.write_text(json.dumps(evidence), encoding="utf-8")
+        base = [
+            "--desired", str(desired_path),
+            "--evidence", str(evidence_path),
+            "--workflow", str(lint.WORKFLOW_PATH),
+        ]
+        for label, subject, expected in (
+            ("no --subject is accepted (make build-check passes none)", None, 0),
+            ("the declared subject is accepted", desired["repo"], 0),
+            ("a fork's subject is refused", "someone-else/agent-ready-repo", 1),
+            ("an empty subject is refused", "", 1),
+        ):
+            argv = list(base) if subject is None else [*base, "--subject", subject]
+            check(f"--subject: {label}", lint.main(argv) == expected)
     for name, (group, key, nested, value) in mutations.items():
         changed = copy.deepcopy(evidence)
         if nested is None:
