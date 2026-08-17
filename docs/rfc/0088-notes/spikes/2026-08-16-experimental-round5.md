@@ -538,3 +538,27 @@ Experimental exit decision, authorize acceptance, or authorize implementation.
   [Round-6 corrections](#round-6-corrections-what-the-review-falsified). Round
   5's four-item blocker list is superseded by the seven-item list above. Round
   5's Linux realm artifact was a promoted macOS file and has been re-measured.
+
+- **2026-08-17, rounds 7 and 8.** Four things this note records are superseded:
+  - Its seven-item blocker list is superseded by the **six-item** list in the
+    RFC's *Current Experimental state*. Method-policy trust closed on
+    measurement; its remaining platform gap folded into the support-matrix item.
+    Item numbers in this note are round 6's throughout.
+  - **Round 6's claim that the `deny default` profile "must admit `mach-lookup`
+    and `ipc-posix-shm` for Node to execute at all" is false.** Each class was
+    denied in turn: `mach*`, `ipc*` and `signal` are **not** required, and the
+    full boundary fixture passes with all three denied while a child holding the
+    Playwright transport keeps native `Page` access. The delegated-egress concern
+    dissolves rather than being bounded. `file-read*`, `process*` and `sysctl*`
+    are required and unrestricted, and that is the residual that survives.
+  - **The Linux namespace boundary's root caveat is replaced, not removed.**
+    Round 7 established it with an unprivileged parent (uid 1001) — but only
+    inside a container holding `--cap-add=SYS_ADMIN`. Without that capability
+    `unshare -rn` is unavailable, so the boundary is not establishable by an
+    unprivileged user in an unprivileged container.
+  - **This note's renderer-sandbox statement is discharged for the S3 egress
+    rails only.** Correction 15 required a design shipping sandboxed to
+    re-measure; the realm matrix and the opaque-realm probe were re-run with
+    `chromiumSandbox: true` on both platforms with identical results. The S1
+    lifecycle corpus, S4, S5 and five other S3 rail drivers were **not** re-run
+    sandboxed, and that remains a residual.
