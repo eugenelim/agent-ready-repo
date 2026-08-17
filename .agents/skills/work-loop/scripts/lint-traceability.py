@@ -1037,24 +1037,41 @@ def build_standalone(root: Path, layout: dict, g: Graph,
     # Both sides are compared as canonical resolved paths, so a symlinked briefs
     # base still matches: the recognised file arrives already resolved (via
     # `_confined`), while the authored value is resolved through the same
-    # confinement helper. Keying off the file rather than its stem also keeps a
-    # brief whose `Slug:` differs from its filename mapped to its own node.
+    # confinement helper. The template pins slug == filename stem; keying off
+    # the file rather than the stem means a hand-edited brief that breaks that
+    # invariant still maps to its own node.
     brief_id_by_path = {
         path.resolve(): bid for bid, path in brief_paths.items()
     }
+    # The `Brief:` value's own contract is pinned to `docs/product/briefs/` by
+    # `workspace-status` reconciliation, which rejects anything else outright —
+    # so the alias resolves against the pinned location, not the configurable
+    # `[traceability].briefs` anchor. Honouring the override here would pass a
+    # value that reconciliation then refuses, with nothing linking the two.
+    pinned_briefs_dir = _confined_path(root / Path(*_BRIEFS_BASE), root)
 
     def _alias_brief_path(value: str) -> str:
-        """Map a repository-relative brief path to its brief node id.
+        """Map a `Brief:` value naming a brief file to that brief's node id.
 
-        Returns `value` unchanged when it is not a path, escapes the root, or
-        names no recognised brief — those keep their existing classification.
+        A recognised brief resolves to its node. A path under the pinned briefs
+        directory that names no recognised brief resolves to the node id it
+        would have had, so a mistyped path is reported dangling — the same hard
+        violation a mistyped bare slug has always produced. Anything else is
+        returned unchanged and keeps its existing classification.
         """
         if "/" not in value:
             return value
         candidate = _confined_path(root / value, root)
         if candidate is None:
             return value
-        return brief_id_by_path.get(candidate, value)
+        bid = brief_id_by_path.get(candidate)
+        if bid is not None:
+            return bid
+        if (pinned_briefs_dir is not None
+                and candidate.suffix == ".md"
+                and candidate.parent == pinned_briefs_dir):
+            return _slug_id("brief", candidate.stem)
+        return value
 
     # Edge: spec → component (forward `Component:` on a spec, reverse-indexed so
     # the producer is the spec and the consumer is the component) — one edge per
@@ -1068,7 +1085,8 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                 _wire(g, origin=spec_id, target=_token(m.group(1)),
                       local_ids=local_ids, rollup=rollup, origin_is_producer=True)
         _wire_up(g, consumer=spec_id,
-                 candidates=[_alias_brief_path(v) for v in _spec_up_values(text)],
+                 candidates=[_alias_brief_path(v) if label == "Brief" else v
+                             for label, v in _spec_up_values(text)],
                  local_ids=local_ids, rollup=rollup)
 
     # Edge: brief ← parent intent, and ladder rungs ← parent intent — both via
@@ -1080,15 +1098,17 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                      local_ids=local_ids, rollup=rollup)
 
 
-def _spec_up_values(spec_text: str) -> list[str]:
-    """Every present producer-pointer value, in up-field priority order
-    (adjacent `Contract:` first, then the discovery anchors). They are
-    *alternatives* — the spec asserts a producer if any one resolves."""
-    out: list[str] = []
+def _spec_up_values(spec_text: str) -> list[tuple[str, str]]:
+    """Every present producer pointer as `(field-label, value)`, in up-field
+    priority order (adjacent `Contract:` first, then the discovery anchors).
+    They are *alternatives* — the spec asserts a producer if any one resolves.
+    The label is carried so a caller can apply field-specific resolution (the
+    `Brief:` path alias) without rewriting the other pointers."""
+    out: list[tuple[str, str]] = []
     for label in _SPEC_UP_FIELDS:
         val = _first(spec_text, field_re(label))
         if val:
-            out.append(val)
+            out.append((label, val))
     return out
 
 

@@ -424,7 +424,7 @@ mechanical rule.
   and greppable. Run `workspace-status` to see all open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief by its repository-relative path
-  (`docs/product/briefs/<file>.md` — the brief file's real path, which
+  (`docs/product/briefs/<slug>.md` — the brief file's real path, which
   `workspace-status` reconciliation matches against the queue entry's
   `source.parent`; a bare slug fails that check and blocks dispatch). It
   records *product provenance* and is distinct from `Constrained by:` (which

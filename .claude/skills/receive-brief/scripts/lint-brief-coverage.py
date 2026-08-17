@@ -19,10 +19,9 @@ Rollup rules:
     spec is `Shipped`. An empty map is never vacuously delivered.
   - A spec that back-links a brief but is absent from that brief's Spec map is
     reported **untracked** — informational, never an error. The canonical
-    back-link is the brief's repository-relative path
-    (`Brief: docs/product/briefs/<slug>.md`); the bare `Slug:` spelling is
-    still matched here for backward compatibility, but `workspace-status`
-    reconciliation rejects it, so it is not an equally valid form.
+    back-link is the path form pinned by `docs/CONVENTIONS.md` § Spec metadata
+    contract; the bare `Slug:` spelling is still matched here for backward
+    compatibility only.
   - A `docs/product/briefs/_template.md` (or any `_`-prefixed file) is the
     shipped template, not a brief; it is skipped.
 
@@ -85,7 +84,9 @@ def extract_token(raw: str) -> str:
 
 
 def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
-    """Return (status-token, brief-back-link-slug) from a spec's header.
+    """Return (status-token, brief-back-link) from a spec's header.
+
+    The back-link is the canonical path form, or a legacy bare slug.
 
     A `Brief:` value that is empty, `none`, or the template HTML-comment
     placeholder counts as no back-link (None).
@@ -110,11 +111,13 @@ def parse_brief_slug(brief_text: str, fallback: str) -> str:
     """Return the brief's canonical slug from its `- **Slug:**` field.
 
     A derived spec's `Brief:` back-link canonically names the brief's
-    repository-relative path; the bare slug is matched only for backward
-    compatibility (`check` accepts either, but reconciliation rejects the slug).
-    The slug need not equal the brief's filename stem, so the stem alone is not
-    a sufficient join key. Falls back to `fallback` (the filename stem) only
-    when no usable `Slug:` field is present.
+    repository-relative path, the form pinned by `docs/CONVENTIONS.md`
+    § Spec metadata contract; the bare slug is matched only for backward
+    compatibility. The template pins slug == filename stem, but the join keys
+    off this field (and, for the path spelling, off the file itself), so a
+    hand-edited brief that breaks that invariant still maps correctly. Falls
+    back to `fallback` (the filename stem) only when no usable `Slug:` field is
+    present.
     """
     for line in brief_text.splitlines():
         m = _SLUG_RE.search(line)
