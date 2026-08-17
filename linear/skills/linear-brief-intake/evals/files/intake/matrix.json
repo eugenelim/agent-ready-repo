@@ -1,0 +1,327 @@
+{
+  "contract_version": "tracker-intake-matrix.v1",
+  "profile": {
+    "id": "linear-default",
+    "version": "1.0"
+  },
+  "security": {
+    "boundary": "adapter-controlled-http",
+    "allowed_schemes": [
+      "https"
+    ],
+    "allowed_hosts": [
+      "api.linear.app"
+    ],
+    "blocked_addresses": [
+      "127.0.0.1",
+      "10.0.0.1",
+      "169.254.169.254",
+      "::1"
+    ],
+    "redirect_policy": "disabled",
+    "dns_policy": "connect-time-recheck",
+    "ordering": [
+      "validate_destination",
+      "load_credentials",
+      "request"
+    ]
+  },
+  "budget": {
+    "max_pages": 5,
+    "max_items": 250,
+    "max_bytes": 2097152,
+    "timeout_seconds": 30,
+    "max_retries": 1,
+    "backoff_seconds": [
+      1
+    ],
+    "exhaustion": "marked-incomplete"
+  },
+  "cases": [
+    {
+      "id": "direct-spec",
+      "raw": {
+        "id": "lin-101",
+        "type": "Issue",
+        "updatedAt": "2026-08-01T00:00:00Z",
+        "title": "Workspace owners can configure bounded export retention.",
+        "description": "One independently shippable behavior. Configure export retention.",
+        "confidentiality": "internal"
+      },
+      "normalized": {
+        "contract_version": "normalized-intake.v1",
+        "action": "start",
+        "content": {
+          "outcomes": [
+            "Workspace owners can configure bounded export retention."
+          ],
+          "constraints": [
+            "One independently shippable behavior."
+          ],
+          "evidence": [],
+          "behaviors": [
+            "Configure export retention."
+          ],
+          "assumptions": [],
+          "named_gaps": []
+        },
+        "source": {
+          "mode": "tracker-origin",
+          "locator": "linear://items/101",
+          "revision": "2026-08-01T00:00:00Z",
+          "tracker_profile": {
+            "id": "linear-default",
+            "version": "1.0"
+          },
+          "object_type": "Issue"
+        },
+        "constraints": {
+          "confidentiality": "internal"
+        },
+        "proposed_authority": "tracker-origin"
+      },
+      "routing_signals": {
+        "action": "start",
+        "artifact": "docs/specs/export-retention/spec.md",
+        "artifact_kind": "spec",
+        "authority_mode": "tracker-origin"
+      },
+      "expected_route": {
+        "artifact": "docs/specs/export-retention/spec.md",
+        "artifact_kind": "spec",
+        "lifecycle_membership": "work.queue",
+        "processor": "new-spec",
+        "authority_mode": "tracker-origin",
+        "mutation": "materialize-and-register"
+      }
+    },
+    {
+      "id": "multi-spec-brief",
+      "raw": {
+        "id": "lin-200",
+        "type": "Project",
+        "updatedAt": "2026-08-02T00:00:00Z",
+        "title": "Customers recover accounts through several independently shippable capabilities.",
+        "description": "Verify identity. Restore access.",
+        "confidentiality": "internal"
+      },
+      "normalized": {
+        "contract_version": "normalized-intake.v1",
+        "action": "start",
+        "content": {
+          "outcomes": [
+            "Customers recover accounts through several independently shippable capabilities."
+          ],
+          "constraints": [],
+          "evidence": [],
+          "behaviors": [
+            "Verify identity.",
+            "Restore access."
+          ],
+          "assumptions": [],
+          "named_gaps": []
+        },
+        "source": {
+          "mode": "tracker-origin",
+          "locator": "linear://containers/200",
+          "revision": "2026-08-02T00:00:00Z",
+          "tracker_profile": {
+            "id": "linear-default",
+            "version": "1.0"
+          },
+          "object_type": "Project"
+        },
+        "constraints": {
+          "confidentiality": "internal"
+        },
+        "proposed_authority": "tracker-origin"
+      },
+      "routing_signals": {
+        "action": "start",
+        "artifact": "docs/product/briefs/account-recovery.md",
+        "artifact_kind": "brief",
+        "authority_mode": "tracker-origin"
+      },
+      "expected_route": {
+        "artifact": "docs/product/briefs/account-recovery.md",
+        "artifact_kind": "brief",
+        "lifecycle_membership": "brief_queue.draft",
+        "processor": "author-brief",
+        "authority_mode": "tracker-origin",
+        "mutation": "materialize-and-register"
+      }
+    },
+    {
+      "id": "cross-repo-brief",
+      "raw": {
+        "id": "lin-300",
+        "type": "Project",
+        "updatedAt": "2026-08-03T00:00:00Z",
+        "title": "Two repositories coordinate one customer outcome.",
+        "description": "Each repository requires a linked local brief. Record parent and coordination provenance.",
+        "cross_repo": true
+      },
+      "normalized": {
+        "contract_version": "normalized-intake.v1",
+        "action": "start",
+        "content": {
+          "outcomes": [
+            "Two repositories coordinate one customer outcome."
+          ],
+          "constraints": [
+            "Each repository requires a linked local brief."
+          ],
+          "evidence": [],
+          "behaviors": [
+            "Record parent and coordination provenance."
+          ],
+          "assumptions": [],
+          "named_gaps": []
+        },
+        "source": {
+          "mode": "tracker-origin",
+          "locator": "linear://containers/300",
+          "revision": "2026-08-03T00:00:00Z",
+          "tracker_profile": {
+            "id": "linear-default",
+            "version": "1.0"
+          },
+          "object_type": "Project"
+        },
+        "constraints": {
+          "cross_repo": true
+        },
+        "proposed_authority": "tracker-origin"
+      },
+      "routing_signals": {
+        "action": "start",
+        "artifact": "docs/product/briefs/coordinated-outcome.md",
+        "artifact_kind": "brief",
+        "authority_mode": "tracker-origin"
+      },
+      "expected_route": {
+        "artifact": "docs/product/briefs/coordinated-outcome.md",
+        "artifact_kind": "brief",
+        "lifecycle_membership": "brief_queue.draft",
+        "processor": "author-brief",
+        "authority_mode": "tracker-origin",
+        "mutation": "materialize-and-register"
+      }
+    },
+    {
+      "id": "incoherent-collection",
+      "raw": {
+        "id": "lin-7",
+        "type": "Cycle",
+        "updatedAt": "2026-08-04T00:00:00Z",
+        "title": "Unrelated maintenance.",
+        "description": "Unrelated reporting. Choose separate units or view-only output."
+      },
+      "normalized": {
+        "contract_version": "normalized-intake.v1",
+        "action": "start",
+        "content": {
+          "outcomes": [],
+          "constraints": [],
+          "evidence": [],
+          "behaviors": [
+            "Unrelated maintenance.",
+            "Unrelated reporting."
+          ],
+          "assumptions": [],
+          "named_gaps": [
+            "Choose separate units or view-only output."
+          ]
+        },
+        "source": {
+          "mode": "tracker-origin",
+          "locator": "linear://collections/7",
+          "revision": "2026-08-04T00:00:00Z",
+          "tracker_profile": {
+            "id": "linear-default",
+            "version": "1.0"
+          },
+          "object_type": "Cycle"
+        },
+        "constraints": {},
+        "proposed_authority": "tracker-origin"
+      },
+      "routing_signals": {
+        "action": "start",
+        "artifact": "docs/product/intents/board-selection.md",
+        "artifact_kind": "intent",
+        "authority_mode": "tracker-origin",
+        "named_gaps": true
+      },
+      "expected_route": {
+        "artifact": "docs/product/intents/board-selection.md",
+        "artifact_kind": "intent",
+        "lifecycle_membership": "draft-with-gaps",
+        "processor": "none",
+        "authority_mode": "tracker-origin",
+        "mutation": "ask-or-draft-only"
+      }
+    },
+    {
+      "id": "defect",
+      "raw": {
+        "id": "lin-404",
+        "type": "Issue",
+        "updatedAt": "2026-08-05T00:00:00Z",
+        "title": "Restore the documented login behavior.",
+        "description": "docs/specs/login/spec.md defines the expected behavior. Login no longer times out."
+      },
+      "normalized": {
+        "contract_version": "normalized-intake.v1",
+        "action": "start",
+        "content": {
+          "outcomes": [
+            "Restore the documented login behavior."
+          ],
+          "constraints": [],
+          "evidence": [
+            "docs/specs/login/spec.md defines the expected behavior."
+          ],
+          "behaviors": [
+            "Login no longer times out."
+          ],
+          "assumptions": [],
+          "named_gaps": []
+        },
+        "source": {
+          "mode": "tracker-origin",
+          "locator": "linear://items/404",
+          "revision": "2026-08-05T00:00:00Z",
+          "tracker_profile": {
+            "id": "linear-default",
+            "version": "1.0"
+          },
+          "object_type": "Issue"
+        },
+        "constraints": {},
+        "proposed_authority": "tracker-origin"
+      },
+      "routing_signals": {
+        "action": "start",
+        "artifact": "docs/product/defects/login-timeout.md",
+        "artifact_kind": "defect",
+        "authority_mode": "tracker-origin"
+      },
+      "expected_route": {
+        "artifact": "docs/product/defects/login-timeout.md",
+        "artifact_kind": "defect",
+        "lifecycle_membership": "backlog.open",
+        "processor": "bug-fix",
+        "authority_mode": "tracker-origin",
+        "mutation": "materialize-and-register"
+      }
+    },
+    {
+      "id": "claimed-defect-without-evidence",
+      "raw": {"id": "lin-405", "type": "Issue", "updatedAt": "2026-08-06T00:00:00Z", "title": "Investigate intermittent login failure.", "description": "Login sometimes fails. No durable expected-behavior evidence is cited."},
+      "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Investigate intermittent login failure."], "constraints": [], "evidence": [], "behaviors": ["Login sometimes fails."], "assumptions": [], "named_gaps": ["No durable expected-behavior evidence is cited."]}, "source": {"mode": "tracker-origin", "locator": "linear://items/405", "revision": "2026-08-06T00:00:00Z", "tracker_profile": {"id": "linear-default", "version": "1.0"}, "object_type": "Issue"}, "constraints": {}, "proposed_authority": "tracker-origin"},
+      "routing_signals": {"action": "start", "artifact": "docs/specs/login-investigation/spec.md", "artifact_kind": "spec", "authority_mode": "tracker-origin", "named_gaps": true},
+      "expected_route": {"artifact": "docs/specs/login-investigation/spec.md", "artifact_kind": "spec", "lifecycle_membership": "draft-with-gaps", "processor": "none", "authority_mode": "tracker-origin", "mutation": "ask-or-draft-only"}
+    }
+  ]
+}

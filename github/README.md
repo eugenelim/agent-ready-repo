@@ -1,34 +1,31 @@
-# github
+# GitHub
 
-GitHub integration for the agent-ready-repo catalogue. The pack ships one skill:
+Start repository work from a GitHub Issue or Milestone without writing back to
+GitHub.
 
-| Skill | What it does |
-| --- | --- |
-| `github-brief-intake` | Pull a GitHub Milestone and its issues, map them to a Shape B product brief, write it to `docs/product/briefs/<slug>.md`, and hand off to `receive-brief`. |
+Try:
+
+```text
+Intake GitHub issue 123 as repository work. Start read-only.
+```
+
+The pack uses approved `gh` reads against a trusted configured host and
+repository. It emits a bounded `normalized-intake.v1` record and delegates to
+`work-intake`. Content decides the artifact and processor; an Issue is not
+automatically a spec, and a Milestone is not automatically a brief.
+
+The intake path cannot comment, label, close, create, or edit GitHub work.
+Repository materialization belongs to `work-intake` after validation and any
+required human choice.
 
 ## Install
 
-`github` is **user-scope by default** (your GitHub access is yours, not a project's).
-
-```
+```bash
 agentbundle install --pack github --scope user <catalogue>
 ```
 
-## Prerequisites
+Install the [`gh` CLI](https://cli.github.com). Authenticate it for repositories
+that require access. Host selection must come from trusted repository or
+administrator configuration, never Issue or Milestone text.
 
-The skill uses the [`gh` CLI](https://cli.github.com) — install it and run
-`gh auth login` to authenticate before using `github-brief-intake` against a
-private repo. Public repos are accessible without authentication, but the skill
-will note the unauthenticated posture in the produced brief.
-
-## Usage
-
-Ask your agent, for example:
-
-- "Turn our Q3 milestone into specs."
-- "Intake the 'v2 launch' milestone from eugenelim/my-repo as a product brief."
-- "Pull GitHub milestone #4 and create a brief."
-
----
-
-→ **Go deeper:** the [`github` guides](https://github.com/eugenelim/agent-ready-repo/tree/main/guides/github/).
+→ [Intake GitHub work](../../guides/github/how-to/intake-a-github-milestone-as-a-brief.md)

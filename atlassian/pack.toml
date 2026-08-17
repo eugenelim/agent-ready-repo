@@ -1,7 +1,7 @@
 [pack]
 name = "atlassian"
 version = "0.8.4"
-description = "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, and it queries the real API and answers."
+description = "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, or intake Jira and Jira Align work through one content-based repository route."
 readme = "README.md"
 display_name = "Atlassian"
 license = "Apache-2.0 OR MIT"
