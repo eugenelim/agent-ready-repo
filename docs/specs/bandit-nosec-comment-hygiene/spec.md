@@ -5,7 +5,7 @@ slug: bandit-nosec-comment-hygiene
 
 # Spec: Bandit stops parsing suppression reasons as test ids, and its stderr becomes a gate
 
-- **Status:** Shipped
+- **Status:** Shipped (§ Known skip's register anchor `pre-existing-guides-readme-outcome-label-drift` was closed by [`guides-readme-outcome-label-drift`](../guides-readme-outcome-label-drift/spec.md), so the skip no longer stands open; not a supersession — every decision in this spec stands)
 - **Owner:** eugenelim
 - **Plan:** none — see § Named deviation
 - **Mode:** full (governance surface — this edits `bandit.yaml`, which

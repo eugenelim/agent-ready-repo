@@ -1,7 +1,7 @@
 # Plan: copilot-skills-and-web
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Executing | Done -->
+- **Status:** Done (superseded in part by [ADR-0040](../../adr/0040-route-cohort-skills-to-shared-agents-skills-home.md) — the `.github/skills/` and `.copilot/skills/` skill homes this plan retargets now route to the shared `.agents/skills/`; every other change stands) <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially
