@@ -404,7 +404,13 @@ ci: build-check pre-pr lint-ruff lint-mypy test
 # ── Site publishing ──────────────────────────────────────────────────────────
 # Requires: npm ci --prefix docs-site (one-time setup)
 # Build order is load-bearing: web/ build cleans build/; docs-site/ build
-# writes into build/docs/. This matches .github/workflows/pages.yml.
+# writes into build/docs/. These targets are the valid LOCAL full-generation
+# sequence — one build-site.py pass, then both builds. CI is not identical:
+# .github/workflows/pages.yml splits generation into two phases
+# (build-site.py --journeys-only, marketing build, full build-site.py docs
+# aggregation, docs build). Both preserve marketing-before-docs; site-link-check
+# is the one target here that runs tools/check-rendered-site-links.py after both
+# builds, as CI does.
 
 .PHONY: site-sync site-build site-link-check site-serve
 

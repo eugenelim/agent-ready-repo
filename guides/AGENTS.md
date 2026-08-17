@@ -65,8 +65,11 @@ no config to edit.
 
 ## Traps
 
-- **No link checker.** Starlight does not fail the build on broken internal
-  links. Verify targets exist before linking.
+- **Starlight itself does not fail the build on broken internal links** — but
+  the repository does check them, after both sites are built, with
+  `tools/check-rendered-site-links.py`. Run `make site-link-check` locally; CI
+  runs the same checker in `.github/workflows/pages.yml`. Verify targets exist
+  before linking rather than waiting for the gate.
 - Links out of `guides/` become GitHub blob URLs — they send the reader off the
   site. Prefer an in-tree target.
 - `AGENTS.md`, and any `README.md` more than one directory below `guides/`,

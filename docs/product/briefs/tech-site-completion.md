@@ -266,7 +266,8 @@ seeded broken case rather than assert only that a source pattern exists.
 The confirmed cut contains eight independently shippable slices. Status is
 derived from each linked spec by the `receive-brief` coverage lint. All eight
 spec and plan contracts received explicit human approval on 2026-08-17 and
-are registered in the workspace work queue.
+were registered in the workspace work queue at approval; each slice moves to the
+shipped list as it lands.
 
 | Spec | Status |
 | --- | --- |
