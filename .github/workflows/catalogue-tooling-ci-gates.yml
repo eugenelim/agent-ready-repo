@@ -92,8 +92,8 @@ jobs:
         # installed; skip deep lint tests", and pytest's own "could not import".
         run: |
           set -euo pipefail
-          python -m pytest tests/ -q -rs 2>&1 | tee pytest-out.txt
-          ! grep -Eq "SKIPPED.*(not installed|no module named|could not import)" pytest-out.txt
+          python -m pytest tests/ -q -rs 2>&1 | tee "$RUNNER_TEMP/pytest-out.txt"
+          ! grep -Eiq "SKIPPED.*(not installed|no module named|could not import)" "$RUNNER_TEMP/pytest-out.txt"
       - name: Run agentbundle test suite (Windows — curated portable subset)
         if: matrix.os == 'windows-latest'
         working-directory: packages/agentbundle
@@ -138,25 +138,41 @@ jobs:
         run: python -m pip install -e packages/agentbundle pytest
       - name: Run repo/pack hook suites (Linux)
         # Pack tests live outside the runtime payload. Keep each skill directory
-        # in its own pytest process so sibling test and subject names cannot bind.
+        # in its own pytest process so sibling test and subject names cannot bind —
+        # hence the loop rather than one invocation.
+        #
+        # AC8's skip guard belongs HERE, not only on Gate A-tests: this is the leg
+        # whose provisioning was narrowed to agentbundle+pytest. No pack suite
+        # conditionally skips on a third-party import today, so the apportionment is
+        # correct — but that is a property of today's tests, not a standing guard.
+        # The first suite to add `pytest.importorskip("yaml")` would otherwise skip
+        # silently behind a green gate. `-i` because pytest renders a
+        # ModuleNotFoundError reason as "No module named".
         if: matrix.os != 'windows-latest'
         env:
           PYTHONUTF8: "1"
           PYTHONIOENCODING: "utf-8"
         run: |
-          python -m pytest packs/core/tests/hooks/ -q
-          python -m pytest packs/core/tests/pack/ -q
-          python -m pytest packs/core/tests/skills/adapt-to-project/ -q
-          python -m pytest packs/core/tests/skills/bug-fix/ -q
-          python -m pytest packs/core/tests/skills/capture-work/ -q
-          python -m pytest packs/core/tests/skills/project-knowledge/ -q
-          python -m pytest packs/core/tests/skills/receive-brief/ -q
-          python -m pytest packs/core/tests/skills/work-intake/ -q
-          python -m pytest packs/core/tests/skills/work-loop/ -q
-          python -m pytest packs/core/tests/skills/workspace-status/ -q
-          python -m pytest packs/product-documentation/tests/ -q
-          python -m pytest packs/desk-research/tests/skills/desk-research/ -q
-          python -m pytest packs/desk-research/tests/skills/desk-research-project-start/ -q
+          set -euo pipefail
+          : > "$RUNNER_TEMP/packs-out.txt"
+          for d in \
+            packs/core/tests/hooks/ \
+            packs/core/tests/pack/ \
+            packs/core/tests/skills/adapt-to-project/ \
+            packs/core/tests/skills/bug-fix/ \
+            packs/core/tests/skills/capture-work/ \
+            packs/core/tests/skills/project-knowledge/ \
+            packs/core/tests/skills/receive-brief/ \
+            packs/core/tests/skills/work-intake/ \
+            packs/core/tests/skills/work-loop/ \
+            packs/core/tests/skills/workspace-status/ \
+            packs/product-documentation/tests/ \
+            packs/desk-research/tests/skills/desk-research/ \
+            packs/desk-research/tests/skills/desk-research-project-start/; do
+            python -m pytest "$d" -q -rs 2>&1 | tee -a "$RUNNER_TEMP/packs-out.txt"
+          done
+          ! grep -Eiq "SKIPPED.*(not installed|no module named|could not import)" "$RUNNER_TEMP/packs-out.txt"
+
       - name: Run pack hook suites (Windows — curated portable subset)
         # Parity with what this replaced: only the hook parity-net ran on
         # Windows. The wider pack tree has never been validated there.

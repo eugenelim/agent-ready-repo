@@ -5,7 +5,7 @@
 - **Decision-makers:** eugenelim
 - **Consulted:** adversarial review, security review (eight pre-EXECUTE rounds)
 - **Supersedes:** the **CI-chaining sub-decision** in [ADR-0017](0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) only — that SAST runs "chained into `make build-check` … in the existing `build-check.yml` CI on every PR". That ADR's tool choices, severity floor, three-way real-fix-first ladder, and the requirement that the scanners stay CI-only dev dependencies all stand, and the **Makefile chain is deliberately untouched**
-- **Related:** the implementing spec `docs/specs/ci-gate-parallelization/`; `tools/assert-sast-chain-reachable.py` carries the operative guarantee; [ADR-0083](0083-extend-sca-to-npm.md) extends the same gate to npm and travels with it
+- **Related:** the implementing spec `docs/specs/ci-gate-parallelization/`; `tools/assert-sast-chain-reachable.py` carries the operative guarantee; [ADR-0083](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md) extends the same gate to npm and travels with it
 
 ## Decision summary
 
@@ -67,6 +67,16 @@ and finish with a calm verdict — strictly worse than the state ADR-0017 left.
 - **Leaving `build-check.yml` alone** and taking the win from the export-boundary
   gate's own cost. Still open as a separate lever; it does not address the ~150s leg.
 
+## Open, and deliberately not silent
+
+**Partial re-run ("Re-run failed jobs") is untested.** The aggregator fires on any
+`needs.*.result` that is not `success`, and a partial re-run of one flaky job is the
+routine operator action. What the `needs` context reports for the *non*-re-run
+siblings was not exercised — this PR's runs were full runs. The implementing plan
+required an answer rather than silence, so: **untested; treat full re-run as the
+supported path.** If a partial re-run reports stale or empty results for siblings, the
+aggregator fails closed (non-success → exit 1) — the safe direction, but surprising.
+
 ## Consequences
 
 - **Accepted: the SAST leg is now the critical path.** Additions to it translate 1:1
@@ -89,6 +99,12 @@ and finish with a calm verdict — strictly worse than the state ADR-0017 left.
   the gate-that-gates-nothing shape this repo's own comments warn about. This
   reverses acceptance criteria in `docs/specs/local-gate-ci-parity/`, which is
   annotated accordingly.
+- **Accepted: a superseded PR push now shows the required check RED, not grey.** The
+  aggregator carries job-level `if: ${{ always() }}`, which runs even when the
+  workflow is cancelled, so `cancel-in-progress` produces a failed required check
+  rather than a cancelled one. Harmless under per-SHA branch protection, but it reads
+  as a broken gate, and this workflow had no `concurrency` block before. Recorded so
+  the first reader of a red superseded run does not chase a phantom.
 - **A note for the next author:** `ci-security.yml` documents "cancel-in-progress
   gated to pull_request only — push-to-main scans run to completion", and
   `codeql.yml` uses unconditional `cancel-in-progress` on a push trigger. Both rest

@@ -10,7 +10,6 @@ on:
     branches: [main]
   push:
     branches: [main]
-  merge_group:
 
 # AC12: contents: read is sufficient — all 56 steps reviewed: no token use, no
 # artifact upload/download, no PR comment, no push.
@@ -29,13 +28,33 @@ concurrency:
   group: build-check-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+# ── Local reproduction, per job (spec/ci-gate-parallelization AC16) ───────────
+# Parity with the local gate is ONE-TO-MANY after this split: `make build-check`
+# covers gate-main ∪ gate-sast, but no single local command equals any single CI
+# job. Addressability is the replacement invariant, so each job's anchor step has a
+# named local command:
+#
+#   gate-main              make build-check SAST_DELEGATED=1
+#                          ^ CI-EQUIVALENCE ONLY — *not* the pre-push command. It
+#                            skips the SAST/SCA leg by design. Its other ~50 steps
+#                            map to `make test` / `lint-ruff` / `lint-mypy` / `pre-pr`.
+#   gate-sast              make sast
+#   gate-export-boundary   make test runs the same suite — but WITHOUT the -rs skip
+#                          check or the tree probe, so a green `make test` is
+#                          compatible with a red job.
+#   aggregator             make build-check runs the posture test via
+#                          build_gate_chain.py; the needs.*.result guard has no
+#                          local counterpart in any target.
+#
+#   all four               make ci   ← the only job-level "local green implies CI
+#                                      green" claim. Use this before pushing.
 jobs:
   gate-main:
     name: gate-main
     runs-on: ubuntu-latest
-    # Bumped 15 → 25 (RFC-0082): the real sdist gate permits 120 seconds for
-    # collection plus 900 for execution, and must report its own fail-closed
-    # timeout before Actions terminates the surrounding setup/SAST job.
+    # 25 minutes: this job runs the drift/lint chain plus ~50 pytest and lint
+    # steps. The RFC-0082 sdist budget that used to justify this number travels
+    # with gate-export-boundary, which now hosts that gate.
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
@@ -58,19 +77,20 @@ jobs:
       - name: Install agentbundle (editable) + pytest
         run: python -m pip install -e packages/agentbundle/ pytest
       - name: Install bandit unconditionally (lint-nosec-form's ID registry)
-        # Deliberately NOT behind the skip_sast condition above, and deliberately
-        # not the whole of requirements-sast.txt.
+        # Unconditional, and deliberately not the whole of requirements-sast.txt.
         #
         # `make build-check` chains tools/lint-nosec-form.py on every run. One of
         # its checks — a well-formed but nonexistent test id, which bandit
         # resolves to nothing and so treats as a blanket suppression — needs
-        # bandit's own registry and silently no-ops without it. Behind the
-        # condition it was inert on exactly the PRs it exists for: a SKIP_SAST
-        # diff, where `make sast` does not run and nothing else catches the
-        # shape. See docs/specs/bandit-nosec-form-lint/spec.md AC4b.
+        # bandit's own registry and silently no-ops without it. See
+        # docs/specs/bandit-nosec-form-lint/spec.md AC4b.
         #
-        # semgrep and pip-audit stay conditional: they are the expensive half of
-        # that install and no gate running under SKIP_SAST needs them.
+        # Post-split (ADR-0085) this step is MORE load-bearing, not less: `make sast`
+        # never runs in this job at all — it is gate-sast's — so nothing else here
+        # would provision bandit and the lint would be inert on EVERY PR. The rest
+        # of requirements-sast.txt belongs to gate-sast, which installs it
+        # unconditionally. spec/ci-gate-parallelization AC14(1); the posture test
+        # asserts this step's presence in this job.
         #
         # The pin is READ, not restated — a second copy of the version range can
         # drift from the canonical one in requirements-sast.txt; deriving it
@@ -239,10 +259,6 @@ jobs:
         # the extra arrive with task T4.
         run: python -m pip install -e './packages/credbroker[crypto]'
 
-      # RFC-0082's export-boundary gate runs in release-agentbundle.yml, so
-      # nothing here would catch it regressing to always-exit-0. make
-      # build-check runs no pytest — wire its tests explicitly. This follows
-      # the credbroker install because the extracted sdist suite preflights it.
       - name: pytest credbroker (RFC-0023 Phase 1)
         working-directory: packages/credbroker
         run: python -m pytest
@@ -658,10 +674,15 @@ jobs:
         # `make build-check` chains `make sast` (ADR-0017), which needs Bandit,
         # pip-audit, and Semgrep on PATH. Install before invoking make so the
         # dogfooded SAST gate is reachable. The shipped packages stay
-        # dependency-free; these are CI-only dev tools. Skipped when the diff
-        # touches no SAST-relevant file (see the detection step above) — the
-        # SKIP_SAST flag below bypasses the scan, so the tools needn't be
-        # installed.
+        # dependency-free; these are CI-only dev tools.
+        #
+        # UNCONDITIONAL, deliberately (AC4). It used to be gated on the relevance
+        # predicate, but a cross-job `steps.*` reference evaluates EMPTY rather than
+        # erroring — so `'' != 'true'` is true and a conditional install in a job
+        # that no longer hosts the detect step would silently provision nothing.
+        # Installing always leaves the predicate exactly ONE consumer: the
+        # `Run make sast` step below. The posture test asserts this step carries no
+        # `if:`, and ~11s of install on a job that always runs is the price.
         run: pip install -r tools/requirements-sast.txt
       - name: Detect whether SAST-relevant files changed
         id: changes
@@ -733,7 +754,11 @@ jobs:
         # before invoking make so the projected-artifact lint surface is reachable in CI.
         run: pip install -r tools/requirements.txt
       - name: Install agentbundle (editable) + pytest (gate-export-boundary)
-        run: python -m pip install -e packages/agentbundle/ pytest
+        # Bare pytest, not the editable agentbundle: the suite imports no
+        # agentbundle and _DEPENDENCY_IMPORTS does not list it — it BUILDS the package
+        # via subprocess, which needs the source tree (present), not an install. If
+        # CI proves otherwise, add it back AND to AC1's manifest with that reason.
+        run: python -m pip install pytest
       - name: Install credbroker (editable, with crypto extra) (gate-export-boundary)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with
@@ -757,8 +782,8 @@ jobs:
         run: |
           set -euo pipefail
           test -d packages/agentbundle
-          python -m pytest tools/test_check_artifact_contents.py -q -rs > out.txt
-          ! grep -Eq "^SKIPPED" out.txt
+          python -m pytest tools/test_check_artifact_contents.py -q -rs 2>&1 | tee "$RUNNER_TEMP/out.txt"
+          ! grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"
 
   build-check:
     name: make build-check
@@ -806,7 +831,7 @@ jobs:
           GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
         run: |
           set -euo pipefail
-          [ "$GATE_MAIN_RESULT" != "success" ] && exit 1
-          [ "$GATE_SAST_RESULT" != "success" ] && exit 1
-          [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && exit 1
+          [ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1
+          [ "$GATE_SAST_RESULT" != "success" ] && echo "::error::gate-sast reported $GATE_SAST_RESULT" && exit 1
+          [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1
           echo "every gate passed"

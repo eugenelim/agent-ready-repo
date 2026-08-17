@@ -36,9 +36,11 @@ reasonable was **AC2**: requiring the three work jobs in branch protection
 eliminates the aggregator-wiring class that dominated rounds 6–8 by construction,
 rather than by another attempt to harden a text-matching verifier. The verifier's
 remaining scope — the *inside* of jobs — is pinned by
-`tools/test-build-check-workflow.py`, which blocks all 24 documented bypasses of its
-own three earlier drafts and carries a mutation matrix proving each assertion
-individually.
+`tools/test-build-check-workflow.py`, which blocks every documented bypass of its own
+earlier drafts — replayed against the shipped file, not asserted — and carries a
+mutation matrix whose count and coverage `--self-test` prints. That output is the only
+figure worth quoting: an earlier draft of this paragraph cited "24 bypasses", which
+nothing in the matrix labelled and no command reported.
 
 **Known-unreviewed at approval:** AC2 and AC16 were written after round 8 and have
 had no review pass. The inside-job assertions were rebuilt after round 8 and have
@@ -252,19 +254,32 @@ day). It is the floor that keeps rising.
   green to GitHub. So AC12/AC13/AC14 remain fully load-bearing for the *inside* of
   jobs; only the aggregator-wiring assertions are demoted to belt-and-braces.
 
-  **Sequencing, because a required check cannot precede the job that reports it.**
-  Adding a name to the required set before any run produces it leaves every PR
-  pending on a check that never arrives. So: the PR lands with the required set
-  unchanged (`make build-check` only, satisfied by the aggregator); **after merge**,
-  the three job names are added to the required set as an admin action, recorded in
-  the AC11 backlog entry alongside the measurement. Every open PR must rebase at that
-  point — unavoidable under `strict: true`, and cheaper once the critical path is
-  shorter.
+  **Sequencing — corrected, and the window is a strict weakening, not a neutral
+  wait.** The original rationale ("a required check cannot precede the job that
+  reports it") stopped applying the moment this branch's run reported the three
+  names, which it now does: `gate-main`, `gate-sast` and `gate-export-boundary` all
+  appear as check-runs. The real constraint is *other* open PRs, whose heads predate
+  the split and would sit pending on checks they never produce — so this is a
+  coordinated maintenance step, not a deferral.
+
+  **Be explicit about the cost of the window.** Before the split, the sole required
+  check *was* the job that ran every gate, so greening it meant disabling gates
+  inside a ~40-step chain. After the split it is a job that by design runs no gate
+  and only reads `needs.*.result` — and nothing outside `build-check.yml` audits
+  `build-check.yml`. So during the window a PR can green the sole required check with
+  an edit that touches no gate step. **The required set is therefore widened in the
+  same maintenance window as the merge**, not as an open-ended follow-up, and the PR
+  description states plainly that the PR itself merges under the weakened posture.
 
   The aggregator's `name:` stays exactly `make build-check`, and AC13 asserts
   **exactly one** job carries it, since two would leave GitHub resolving an ambiguous
   pair. The API is re-queried **pre-merge** and the result recorded in the PR
   description.
+  *Status: the query returned HTTP 503 ("No server is currently available") on
+  every attempt — a GitHub-side outage, not a skipped step. It is a merge
+  precondition and remains outstanding. What IS confirmed from the check-runs API:
+  all four job names report on this branch, which is the precondition for widening
+  the required set.*
 
 - [ ] **AC3 — the aggregator fails closed, with each dependency bound three ways.**
   It follows the shape already running in `build-check-windows.yml`

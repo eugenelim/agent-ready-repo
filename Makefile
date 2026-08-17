@@ -149,7 +149,11 @@ build-check:
 # SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
 # deps. Chained into build-check above so the repo's single native gate runs it
-# locally and in build-check.yml CI. Not added to tools/hooks/pre-pr.py or
+# locally. NOT in build-check.yml CI any more: since ADR-0085 the leg is its own
+# `gate-sast` job and `gate-main` passes SAST_DELEGATED=1, so this chain runs only
+# on a developer machine — which is exactly what ADR-0017's dogfooding rationale
+# required, and what tools/assert-sast-chain-reachable.py now pins. Not added to
+# tools/hooks/pre-pr.py or
 # tools/catalogue/pre_pr_catalogue.py (the Windows CI path runs the former;
 # Semgrep has no Windows support). Linux/macOS only (Semgrep).
 #

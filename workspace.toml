@@ -464,6 +464,22 @@ open = [
   # scheduling the four jobs concurrently (A3). Repo-wide all-green is bounded by
   # docs.yml and by Windows cold-runner variance, neither in that spec's scope —
   # report it, don't gate on it.
+  # PR-RUN MEASUREMENT (PR #990, commit after the MAKEFLAGS harness fix), against
+  # AC11's ceilings — both MET:
+  #   merge-blocking (build-check):        430-450s -> 178s   MET vs AC11
+  #   jobs this change touches:            450s     -> 178s   MET vs AC11
+  #   Gate A (catalogue-tooling):          253-264s -> 128s
+  #   repo-wide all-green:                 450s     -> 202s, bounded by docs.yml
+  #     (out of scope, reported not gated — the spec predicted exactly this bound)
+  # Per-job: gate-main 178s, gate-sast 166s, gate-export-boundary 101s,
+  # aggregator 9s. gate-main and gate-sast within measurement noise of each other,
+  # confirming the "do not split further" decision.
+  #
+  # STILL OPEN, which is why this entry stays open: (1) the POST-MERGE push-to-main
+  # run, which exercises a path the PR run cannot; (2) AC15's non-relevant-diff
+  # class, unreachable from that branch because SAST_CONFIG contains both Makefile
+  # and build-check.yml — needs a docs/**-only PR after merge. Do NOT narrow
+  # SAST_CONFIG to manufacture it (spec Boundaries § Never do).
   {slug = "ci-gate-parallelization-critical-path-measurement", source = "spec/ci-gate-parallelization AC11"},
   # AC3 of spec/ci-gate-parallelization makes the aggregator job wear the sole
   # required status check. `pull_request` evaluates build-check.yml AND its posture

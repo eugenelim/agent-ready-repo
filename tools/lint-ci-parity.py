@@ -219,8 +219,12 @@ def CI_ONLY(reason: str) -> tuple[str, str]:
 STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "<unnamed step in build-check>":
         CI_ONLY(
-            "`uses: actions/checkout@v4` — the unnamed first step. Repository "
-            "checkout, not a gate."
+            "`uses: actions/checkout` in the AGGREGATOR job (this key is job-id "
+            "scoped, and the aggregator kept the id `build-check`). Deliberately "
+            "shallow — AC12 exempts it from fetch-depth: 0 because it runs one "
+            "stdlib script over one workflow file and touches no history — and "
+            "persist-credentials: false. No local equivalent: a working tree is the "
+            "local precondition, not a gate."
         ),
     "Detect whether SAST-relevant files changed":
         CI_ONLY(

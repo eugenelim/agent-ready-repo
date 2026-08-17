@@ -90,6 +90,7 @@
 | 0082 | [Project-knowledge modes separate capture, distillation, and enquiry authority](0082-project-knowledge-modes-separate-authority.md) | Accepted |
 | 0083 | [Extend the SAST/SCA gate to npm with audit and allowlist](0083-extend-sast-sca-gate-to-npm-with-audit-and-allowlist.md) | Accepted |
 | 0084 | [Bandit suppression reasons move behind a second `#`, and its stderr becomes a gate](0084-nosec-reason-delimiter-and-stderr-as-a-gate.md) | Accepted |
+| 0085 | [The SAST/SCA leg becomes its own CI job, and provenance is command-line origin](0085-split-the-sast-gate-into-its-own-ci-job.md) | Accepted |
 
 ## Adding a new ADR
 

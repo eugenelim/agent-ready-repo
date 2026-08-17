@@ -277,6 +277,21 @@ def _invocation(step_or_block: str, command: str, *required_args: str,
     return ""
 
 
+PINNED_SAST_IF = "if: steps.changes.outputs.skip_sast != 'true'"
+
+
+def _has_if(step: str) -> bool:
+    """Does this step carry ANY step-level `if:`?
+
+    `if: ${{ false }}` disables a step as completely as `continue-on-error`, which
+    Boundaries forbids — and neither actionlint nor zizmor at --min-severity high
+    flags a falsy condition. Every load-bearing step must therefore carry none, and
+    the single step that legitimately has one is compared for EQUALITY, since
+    `… != 'true' && false` passes any substring test.
+    """
+    return re.search(r"^\s*if:", step, re.M) is not None
+
+
 def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     bad: list[str] = []
 
@@ -297,8 +312,13 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     check("aggregator-present", AGGREGATOR_JOB_ID in job_ids)
 
     agg = _job_block(text, AGGREGATOR_JOB_ID)
-    check("one-required-name", len(re.findall(
-        rf"^\s*name:\s*\"?{re.escape(AGGREGATOR_NAME)}\"?\s*$", text, re.M)) == 1)
+    _name_re = rf"^\s*name:\s*\"?{re.escape(AGGREGATOR_NAME)}\"?\s*$"
+    check("one-required-name", len(re.findall(_name_re, text, re.M)) == 1)
+    # ...and it must be THIS job's name. Otherwise renaming the aggregator and
+    # putting the required-check name on a trivial `noop` job — wired into needs:,
+    # env: and a comparison so every derived check still passes — makes the sole
+    # required check a job whose only step is `echo ok`.
+    check("required-name-is-aggregator", re.search(_name_re, agg, re.M) is not None)
     check("aggregator-always",
           re.search(r"^    if: \$\{\{ always\(\) \}\}\s*$", agg, re.M) is not None)
 
@@ -321,6 +341,22 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
                 audit_run = True
         return audit_run, self_run
 
+    # Both aggregator steps must be unconditional: `if: ${{ false }}` on them merges
+    # a PR with every gate red, since the aggregator is the required check.
+    for _nm, _st in _steps(agg):
+        if _nm:
+            check(f"aggregator-step-no-if[{_nm}]", not _has_if(_st))
+    # The guard body must reach its comparisons. Present-and-load-bearing is not
+    # enough: a prepended `exit 0`, a `set +e`, or wrapping them in `if false; then`
+    # leaves every comparison intact and never evaluates one. Same shape as
+    # export-boundary-strict-shell / -no-set-relax, applied here because this body
+    # decides the required check.
+    guard_step = _step_named(agg, "Require every gate")
+    guard_lines = _run_lines(guard_step)
+    check("guard-strict-shell", bool(guard_lines) and guard_lines[0] == _STRICT_SHELL)
+    check("guard-no-early-exit", not any(
+        st.split()[:2] == ["exit", "0"] or st.startswith(("set +", "if ", "return"))
+        for st, _ in _statements(guard_step)))
     _agg_audit, _ = _guard_invocations()
     # One invocation is enough: this file runs its mutation matrix on EVERY
     # invocation (see main()), so a separate `--self-test` call would be redundant
@@ -343,7 +379,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         # on the same source line as the test.
         found = ""
         for stmt, line in _statements(agg):
-            if stmt == UNPARSEABLE:
+            if stmt == UNPARSEABLE or not _load_bearing(line):
                 continue
             cmd, args = _command(stmt)
             if cmd not in ("[", "test"):
@@ -385,7 +421,8 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         blk = _job_block(text, job_id)
         check(f"timeout[{job_id}]", "timeout-minutes:" in blk)
         check(f"runs-on[{job_id}]", "runs-on: ubuntu-latest" in blk)
-        check(f"python-version[{job_id}]", EXPECTED_PYTHON in blk)
+        check(f"python-version[{job_id}]",
+              f"python-version: {EXPECTED_PYTHON}" in blk)
         check(f"no-job-permissions[{job_id}]", "permissions:" not in blk)
         checkouts = _checkout_steps(blk)
         check(f"checkout-present[{job_id}]", bool(checkouts))
@@ -402,6 +439,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     main_blk = _job_block(text, "gate-main")
     anchor = _step_named(main_blk, "Run make build-check")
     check("anchor-step", bool(_invocation(anchor, "make", "build-check")))
+    check("anchor-no-if", bool(anchor) and not _has_if(anchor))
     check("delegation-is-argument",
           bool(_invocation(anchor, "make", "build-check", "SAST_DELEGATED=1")))
     check("delegation-not-prefix", not any(
@@ -423,8 +461,11 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     sast_blk = _job_block(text, "gate-sast")
     sast_step = _step_named(sast_blk, "make sast")
     check("sast-step-present", bool(_invocation(sast_step, "make", "sast")))
+    # EQUALITY, not substring: `… != 'true' && false` satisfies a substring test
+    # while `make sast` never runs.
+    _sast_ifs = re.findall(r"^\s*if:\s*(.+?)\s*$", sast_step, re.M)
     check("sast-step-condition",
-          "if: steps.changes.outputs.skip_sast != 'true'" in sast_step)
+          _sast_ifs == [PINNED_SAST_IF.split("if: ", 1)[1]])
     install = _step_named(sast_blk, "SAST/SCA tools")
     check("sast-install-present", bool(_invocation(install, "pip", "requirements-sast.txt")))
     check("sast-install-unconditional", bool(install) and not re.search(r"^\s*if:", install, re.M))
@@ -433,6 +474,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     exp_blk = _job_block(text, "gate-export-boundary")
     exp_step = _step_named(exp_blk, "pytest export-boundary gate")
     check("export-boundary-full-checkout", "sparse-checkout" not in exp_blk)
+    check("export-boundary-no-if", bool(exp_step) and not _has_if(exp_step))
     exp_lines = _run_lines(exp_step)
     check("export-boundary-strict-shell",
           bool(exp_lines) and exp_lines[0] == _STRICT_SHELL)
@@ -642,6 +684,36 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("  pull_request:\n", "  pull_request_target:\n")),
     ("drop-push-trigger", "trigger-push-main",
      lambda t: re.sub(r"\n  push:\n    branches: \[main\]", "", t)),
+    # The `if:`-disables-a-step class (post-implementation security review). A falsy
+    # step-level `if:` is as total as continue-on-error and no scanner flags it.
+    ("if-false-on-anchor", "anchor-no-if",
+     lambda t: t.replace("      - name: Run make build-check\n",
+                         "      - name: Run make build-check\n        if: ${{ false }}\n")),
+    ("if-false-on-export-step", "export-boundary-no-if",
+     lambda t: t.replace("      - name: pytest export-boundary gate\n",
+                         "      - name: pytest export-boundary gate\n        if: ${{ false }}\n")),
+    ("if-false-on-aggregator-step", "aggregator-step-no-if[Require every gate]",
+     lambda t: t.replace("      - name: Require every gate\n",
+                         "      - name: Require every gate\n        if: ${{ false }}\n")),
+    ("sast-if-and-false", "sast-step-condition",
+     lambda t: t.replace("if: steps.changes.outputs.skip_sast != 'true'",
+                         "if: steps.changes.outputs.skip_sast != 'true' && false")),
+    ("early-exit-in-guard", "guard-no-early-exit",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
+                         '          exit 0\n          [ "$GATE_MAIN_RESULT"')),
+    ("set-relax-in-guard", "guard-no-early-exit",
+     lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
+                         '          set +e\n          [ "$GATE_MAIN_RESULT"')),
+    ("drop-guard-strict-shell", "guard-strict-shell",
+     lambda t: t.replace("          set -euo pipefail\n          python3", "          python3", 1)),
+    # The required-check name must be bound to the AGGREGATOR, not merely unique.
+    ("relocate-required-name", "required-name-is-aggregator",
+     lambda t: t.replace("  build-check:\n    name: make build-check\n", "  build-check:\n", 1)
+                .replace("  gate-sast:\n", "  gate-sast:\n    name: make build-check\n", 1)),
+    # The comparison loop must inherit _load_bearing like every other assertion.
+    ("background-comparison", "comparison[gate-main]",
+     lambda t: t.replace('[ "$GATE_MAIN_RESULT" != "success" ] && exit 1',
+                         '[ "$GATE_MAIN_RESULT" != "success" ] && exit 1 &')),
     ("drop-pull-request-trigger", "trigger-pull-request",
      lambda t: t.replace("  pull_request:\n    branches: [main]\n", "")),
     ("drop-delegation-flag", "delegation-is-argument",
