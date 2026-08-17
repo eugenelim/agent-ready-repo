@@ -535,9 +535,9 @@ check goes red on a perturbed `canonical_contract`, and `make lint-ruff` passes.
   `TextIOWrapper`, not an `io.StringIO`: a `StringIO` has no `reconfigure`, so
   capturing through one turns the lazy parser load into a silent
   `internal-error:` refusal that emits nothing. Verifies AC6.
-- AST: imports match **the canonical allowlist — `contextlib`, `dataclasses`,
-  `functools`, `hashlib`, `importlib.util`, `io`, `json`, `os`, `re`, `stat`,
-  `sys`, `pathlib`** (twelve names) — and the module contains no `argparse`, no
+- AST: imports match **the canonical allowlist — `collections.abc`, `contextlib`,
+  `dataclasses`, `functools`, `hashlib`, `importlib.util`, `io`, `json`, `os`,
+  `re`, `stat`, `sys`, `pathlib`** (thirteen names) — and the module contains no `argparse`, no
   `sys.exit`, no `sys.argv`, no `.reconfigure(` call, no *unrestored* stream
   mutation, no top-level write or command execution, and no reference to
   `subprocess`, `os.system`, `os.popen`, `os.exec*`, `os.spawn*`, `os.fork`,

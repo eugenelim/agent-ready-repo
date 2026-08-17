@@ -101,7 +101,6 @@ SUBPROCESS_TIMEOUT_S = 20.0
 MAX_SUBPROCESS_CALLS_UNDER_LOCK = 2
 SCHEMA_VERSION = 1
 _LOOP_RUN_DIR_NAME = ".loop-run"
-_MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
 
 # Environment variables that could redirect git to a foreign repo root.
 _GIT_OVERRIDE_VARS = frozenset({
@@ -510,7 +509,6 @@ class GuardsUnavailable(RuntimeError):
 
 
 _guards_module: object | None = None
-_guards_error: str | None = None
 
 
 def _guards():

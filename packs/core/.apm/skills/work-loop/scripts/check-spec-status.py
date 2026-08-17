@@ -45,7 +45,6 @@ class GuardsUnavailable(RuntimeError):
 
 
 _guards_module: object | None = None
-_guards_error: str | None = None
 
 
 def load_guards():

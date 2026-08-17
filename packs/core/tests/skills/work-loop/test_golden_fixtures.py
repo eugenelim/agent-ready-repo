@@ -113,14 +113,23 @@ def test_corpus_covers_every_shape_canonical_contract_calls_out() -> None:
         # No `crlf-endings` probe on committed bytes: `.gitattributes` pins
         # `* text=auto eol=lf`, so committed CR bytes do not survive the blob.
         # The line-ending path is covered by the synthesized @crlf/@cr digests
-        # in test_line_ending_variants_fold_to_the_same_digest below.
+        # in test_canonical_contract_folds_line_endings below, on strings built with
+        # golden_support.crlf_text / cr_text.
         assert b"\r" not in raw, (
             f"{key}: committed CR bytes. `.gitattributes` normalizes them away in "
             "the blob, so a fixture that relies on them would hash differently in a "
             "fresh clone than in this working copy — which is exactly the divergence "
             "this assertion exists to prevent. Synthesize line-ending variants "
-            "instead (golden_support.crlf_bytes)."
+            "instead (golden_support.crlf_text / cr_text)."
         )
+        # NOTE: `026-synthetic-crlf-endings/spec.md` names `golden_support.crlf_bytes`
+        # and `@crlf`/`@cr` digest keys in its own prose. Neither exists — the helpers
+        # are `crlf_text`/`cr_text`, and the digest keys were removed once mutation
+        # showed them tautological. The fixture is NOT corrected, deliberately: its
+        # bytes are pinned in `golden_digests.json` as a pre-change capture, so editing
+        # the prose would change the digest and the only way to make it pass again is
+        # to re-generate the golden against the current tree — the tautology T0 exists
+        # to prevent. Frozen fixture text is input data, not maintained documentation.
         if re.search(r"^### Never do\s*\n\s*\n\s*- \[", text, re.M):
             found["checkbox-outside-ac-section"].append(key)
 

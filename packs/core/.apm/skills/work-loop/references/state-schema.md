@@ -11,8 +11,7 @@ phase. Two tools own this in Phase 1:
 - **`scripts/loop-cohort.py`** — sole writer of `state.json`; owns all cohort
   counters, hashes, and scheduling state.
 
-State mutation is owned exclusively by these tools. A third module reads but never
-writes:
+A third module reads this state but never writes it:
 
 - **`scripts/_loop_guards.py`** — the shared read-only guard API. Every guard
   decision the FSM needs lives here once and is called by three surfaces:

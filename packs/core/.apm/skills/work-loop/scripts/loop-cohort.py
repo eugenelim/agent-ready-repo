@@ -594,7 +594,14 @@ def cmd_init(args: argparse.Namespace) -> int:
         )
     if not TEMPLATE_PATH.exists():
         return stop(f"template missing at {TEMPLATE_PATH}")
-    template = json.loads(TEMPLATE_PATH.read_text())
+    # Through the shared bounded reader, not a raw `read_text()`. `cmd_init` holds the
+    # state lock, so an unbounded read here has the same shape as the ones this change
+    # removed everywhere else: a replaced or oversized template would read without
+    # limit inside the critical section, and a symlinked one would be followed.
+    try:
+        template = read_managed_json(TEMPLATE_PATH, "state.json template")
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        return stop(f"init: {exc}")
     template["run_id"] = args.run_id
     template["feature"] = Path(spec_dir).resolve().name
     write_state_atomic(spec_dir, template)
@@ -923,43 +930,6 @@ def cmd_check(args: argparse.Namespace) -> int:
     return 0
 
 
-def _evaluate(state: dict, phase: str) -> int:
-    """Retained for callers that already hold a state dict.
-
-    Delegates the cap arithmetic to the shared guard's helpers so there is still one
-    implementation; it exists because the phase decision is occasionally wanted
-    without a second read.
-    """
-    if phase == "implement":
-        return 0
-    if phase == "gates-failed":
-        count = non_negative_int(state, "implementation_retry_count", 0)
-        cap = non_negative_int(
-            state, "max_implementation_retries", DEFAULTS["max_implementation_retries"]
-        )
-        if isinstance(count, str) or isinstance(cap, str):
-            return stop(f"check: {count if isinstance(count, str) else cap}")
-        if count >= cap:
-            return stop(
-                f"implementation retry cap reached ({count}/{cap}); "
-                "reset and start a new run"
-            )
-        return 0
-    if phase == "review":
-        count = non_negative_int(state, "review_retry_count", 0)
-        cap = non_negative_int(
-            state, "max_review_retries", DEFAULTS["max_review_retries"]
-        )
-        if isinstance(count, str) or isinstance(cap, str):
-            return stop(f"check: {count if isinstance(count, str) else cap}")
-        if count >= cap:
-            return stop(
-                f"review retry cap reached ({count}/{cap}); reset and start a new run"
-            )
-        return 0
-    return stop(f"unknown phase {phase!r}")
-
-
 # ── wave check / advance ──────────────────────────────────────────────────
 
 
@@ -1186,9 +1156,14 @@ def _classify_report(report_path: Path, state: dict) -> dict:
 
     Returns a dict with keys: classification, fingerprints, matches_previous_round.
     """
+    # Bounded, symlink-safe read. Reached from `cmd_review_record`, which holds the
+    # state lock, so a reviewer report that is a FIFO or an arbitrarily large file
+    # would otherwise block or read without limit inside the critical section. The
+    # `invalid` classification below already models an unusable report, so widening
+    # the caught set to the reader's `ValueError` vocabulary needs no new branch.
     try:
-        report_text = report_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+        report_text = read_managed_text(report_path, report_path.name)
+    except (OSError, UnicodeDecodeError, ValueError):
         return {
             "classification": "invalid",
             "fingerprints": [],
