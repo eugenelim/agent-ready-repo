@@ -653,6 +653,42 @@ open = [
   # lock acquire or a filesystem walk, not git) and either speed it up or raise
   # script_seconds for capture.
   {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings"},
+
+  # Pre-flight 2026-08-16: the managed enterprise runtime blocks two classes of
+  # package-suite fixture setup. First, pip/ensurepip cannot create its temporary
+  # trust-store CA file:
+  # test_credentials_wheel.py::test_agentbundle_credentials_is_removed_from_installed_wheel
+  # and test_editable_source_detection.py::test_editable_detection_against_real_install.
+  # Second, protected key-material globs (*.pem and *.key) cannot be read even under
+  # approved temporary roots. Affected files:
+  # integration/test_trust_fallback_tls.py, unit/test_system_trust.py, and
+  # unit/test_https_catalogue.py::test_build_opener_custom_ca_bundle.
+  # These failures reproduce outside this initiative's diff and occur before the
+  # behavior under test. Fix: run the full suite in CI or a managed profile that
+  # permits both isolated fixture classes; do not weaken production credential policy.
+  # Unblocks when: that supported verification environment is available.
+  {slug = "pre-existing-enterprise-agentbundle-full-suite", source = "pre-flight/2026-08-16"},
+
+  # Security review 2026-08-17: validate_dependencies_required() has always
+  # satisfied required dependencies by installed pack name + version only.
+  # PackState records a credential-free source URI, while dependency entries
+  # declare a logical catalogue name; no canonical mapping currently proves
+  # those identities match. A same-name pack from another source can therefore
+  # satisfy the gate. Fix: define and persist a canonical catalogue identity on
+  # installed rows, migrate existing state, then require identity + name + range
+  # before writes. Files: commands/install.py, config.py, state migrations/tests.
+  # Unblocks when: the provenance contract and migration ship through a new spec.
+  {slug = "pre-existing-install-dependency-source-provenance", source = "pre-flight/2026-08-17"},
+
+  # Security review 2026-08-17: catalogue verify step 3 predates the verifier
+  # correctness initiative and returns no diagnostic when its validator import
+  # or bundled pack.schema.json load fails, presenting an unperformed schema
+  # check as clean. Fix: make validator/resource unavailability a bounded
+  # CAT-V-003 error and add wheel/zipapp failure-path tests. File:
+  # packages/agentbundle/agentbundle/catalogue_tooling/verify.py::_step_pack_schema.
+  # Unblocks when: a step-3 behavior-change spec defines the public diagnostic.
+  {slug = "pre-existing-pack-schema-validator-fail-open", source = "pre-flight/2026-08-17"},
+
   # The publish job's environment gate asks a human to release executable plugin
   # code adopters install, but GitHub's approval UI shows only the environment
   # name and a comment box — nothing about what is being published. A summary
@@ -2327,7 +2363,8 @@ backlog = []
 
 ["ini-007".work]
 active  = [
-
+]
+shipped = [
   # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
   # Wave 2 (already shipped). Serialized AFTER Wave 3 to avoid concurrent agentbundle
   # version-bump conflicts (both Wave 3 and verifier-correctness bump the agentbundle
@@ -2351,8 +2388,6 @@ active  = [
   # Wave 3's need uses its canonical path: `work:` needs match shipped entry paths by
   # exact string, and Wave 3 is registered (and will ship) under the canonical form.
   {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"}]},
-]
-shipped = [
   {path = "docs/specs/governance-guides-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Governance guide reference cleanup", needs = []},
   {path = "docs/specs/catalogue-verify-classification/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue verify classification", needs = []},
   {path = "docs/specs/pack-test-boundary-remaining-packs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "pack-test-boundary-remaining-packs", needs = []},

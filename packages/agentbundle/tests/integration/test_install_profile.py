@@ -84,7 +84,7 @@ def _stage_profile(cat, name, scope, packs):
 
 def _three_pack_repo_catalogue(cat):
     """pf-core (no deps) + two addons that each require pf-core ^0.1."""
-    _stage_pack(cat, "pf-core", version="0.4.9", scope="repo")
+    _stage_pack(cat, "pf-core", version="0.1.9", scope="repo")
     _stage_pack(cat, "pf-addon-a", scope="repo", deps=[("pf-core", "^0.1")])
     _stage_pack(cat, "pf-addon-b", scope="repo", deps=[("pf-core", "^0.1")])
     _stage_profile(cat, "test-bundle", "repo", ["pf-core", "pf-addon-a", "pf-addon-b"])
@@ -173,7 +173,7 @@ def test_profile_skips_already_installed(tmp_path):
     # Pre-seed pf-core at repo scope.
     state = State()
     state.packs[("pf-core", "claude-code")] = PackState(
-        installed_version="0.4.9", scope="repo", adapter="claude-code"
+        installed_version="0.1.9", scope="repo", adapter="claude-code"
     )
     (target / ".agentbundle-state.toml").write_text(
         dump_state(state), encoding="utf-8", newline="\n"
@@ -199,7 +199,7 @@ def test_profile_refuses_when_a_pack_disallows_the_pinned_adapter(tmp_path):
     target = tmp_path / "repo"
     target.mkdir()
     # pf-core legacy (→ claude-code default); pf-addon-b only allows codex.
-    _stage_pack(cat, "pf-core", version="0.4.9", scope="repo")
+    _stage_pack(cat, "pf-core", version="0.1.9", scope="repo")
     _stage_pack(
         cat, "pf-addon-b", scope="repo", deps=[("pf-core", "^0.1")], allowed_adapters=["codex"]
     )
@@ -326,7 +326,7 @@ def test_profile_refuses_when_pack_requires_dep_not_in_batch(tmp_path):
     cat = tmp_path / "cat"
     target = tmp_path / "repo"
     target.mkdir()
-    _stage_pack(cat, "pf-core", version="0.4.9", scope="repo")
+    _stage_pack(cat, "pf-core", version="0.1.9", scope="repo")
     _stage_pack(cat, "pf-addon-a", scope="repo", deps=[("pf-core", "^0.1")])
     # Profile omits pf-core — pf-addon-a's dep is out of the batch.
     _stage_profile(cat, "incomplete", "repo", ["pf-addon-a"])
@@ -343,7 +343,7 @@ def test_profile_refuses_scope_mismatch(tmp_path):
     cat = tmp_path / "cat"
     target = tmp_path / "repo"
     target.mkdir()
-    _stage_pack(cat, "pf-core", version="0.4.9", scope="repo")  # repo-only
+    _stage_pack(cat, "pf-core", version="0.1.9", scope="repo")  # repo-only
     _stage_profile(cat, "userbad", "user", ["pf-core"])
 
     rc, out, err = _run_install(["--profile", "userbad", str(cat), "--output", str(target)])
@@ -401,7 +401,7 @@ def test_single_pack_install_still_records_cli_route(tmp_path):
     cat = tmp_path / "cat"
     target = tmp_path / "repo"
     target.mkdir()
-    _stage_pack(cat, "pf-core", version="0.4.9", scope="repo")
+    _stage_pack(cat, "pf-core", version="0.1.9", scope="repo")
 
     rc, out, err = _run_install(["--pack", "pf-core", str(cat), "--output", str(target)])
     assert rc == 0, f"single-pack install failed: {err}"

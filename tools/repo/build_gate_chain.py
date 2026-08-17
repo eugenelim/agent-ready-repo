@@ -266,6 +266,14 @@ def build_check(args: argparse.Namespace) -> int:
             "test-workspace-status-cli",
             "tools", "test_workspace_status_cli.py",
         ),
+        _pytest_step(
+            "test-verify-host-checks",
+            "tools", "catalogue", "tests", "test_verify_host_checks.py",
+        ),
+        _script_step(
+            "verify-host-checks",
+            "tools", "catalogue", "verify_host_checks.py",
+        ),
         # Repo-own lints that build-check.yml ran and no local chain did, so a
         # green `make ci` said nothing about them (spec/local-gate-ci-parity).
         # Both default to `--root .` (the guard also to `--base origin/main`),

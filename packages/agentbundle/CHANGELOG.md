@@ -6,6 +6,30 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.37.2] — 2026-08-17
+
+### Added
+
+- **`catalogue verify` now performs all 19 advertised checks.** It validates
+  profile schemas and references, dependency ranges and cycles, adapter
+  compatibility, generated-output drift, pack metadata, and skill evaluation
+  manifests. Generated-output comparison is confined to the `claude-plugins/`
+  and `apm/` projection roots, and linked inputs are refused before reading.
+
+### Changed
+
+- **Dependency ranges now use one npm-compatible grammar across verify, lint,
+  and install.** Caret, tilde, comparator, compound, and prerelease forms agree;
+  below `1.0.0`, caret ranges retain normal semver compatibility.
+- **Repository-specific leak checks moved out of the portable verifier** and
+  into the repository-local build gate.
+
+### Fixed
+
+- **Malformed catalogue configuration now returns a bounded, redacted
+  diagnostic.** Verifier help and adopter documentation also consistently
+  describe the 19-step pipeline.
+
 ## [0.37.1] — 2026-08-16
 
 ### Changed
