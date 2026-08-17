@@ -516,6 +516,21 @@ open = [
   # fixing the lock or calling the test flaky. Do not quarantine it first — a
   # quarantined concurrency test is a deleted one.
   {slug = "statelock-reclaim-race-flake", source = "CI observation 2026-08-17, spec/ci-gate-parallelization"},
+  # THE highest-leverage residual for spec/ci-gate-parallelization, and the reason it is
+  # recorded here rather than closed there: all 22 bypasses found across five adversarial
+  # review rounds of tools/test-build-check-workflow.py required editing
+  # .github/workflows/build-check.yml. A CODEOWNERS entry on .github/workflows/** removes
+  # that unilateral capability instead of enumerating its expressions, needs no GitHub API
+  # endpoint (unlike AC2, still 503-blocked), and is strictly stronger against this threat
+  # model than any text matcher can be.
+  #
+  # NOT done as part of that spec on purpose: choosing reviewers is a decision about
+  # people, and `main` currently requires no PR review at all, so adding CODEOWNERS
+  # changes the review contract for everyone — that needs a human, not an inference.
+  #
+  # Note the spec previously ASSERTED this control was "registered as a further bound".
+  # It never existed. workspace.toml recorded the truth; the spec did not. Corrected there.
+  {slug = "ci-gate-parallelization-workflow-codeowners", source = "review round 5, spec/ci-gate-parallelization"},
   # AC3 of spec/ci-gate-parallelization makes the aggregator job wear the sole
   # required status check. `pull_request` evaluates build-check.yml AND its posture
   # test (tools/test-build-check-workflow.py) from the PR's own ref, so a single

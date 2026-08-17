@@ -319,8 +319,20 @@ day). It is the floor that keeps rising.
   the PR would also have to keep three independently-required checks green, which
   means the gates have to actually run. What remains is the narrower case of a job
   that runs and reports success having verified nothing — which is AC12/AC13/AC14's
-  territory, not the aggregator's. The pinned-ref ruleset and `CODEOWNERS` remain
-  registered as a further bound.
+  territory, not the aggregator's.
+
+  **Correction — this sentence previously claimed the pinned-ref ruleset and
+  `CODEOWNERS` "remain registered as a further bound." Neither exists.** There is no
+  `CODEOWNERS` file anywhere in this repository (root, `.github/`, or `docs/`), and
+  `main` requires no PR review — `workspace.toml` records both facts accurately, so the
+  repo contradicted itself and this document was the wrong half. The drift matters more
+  than the wording: **every bypass found in five review rounds — 22 of them — required
+  editing `.github/workflows/build-check.yml`.** A `CODEOWNERS` entry on
+  `.github/workflows/**` removes the unilateral capability instead of enumerating its
+  expressions, needs no API endpoint, and is strictly stronger against this threat model
+  than any text matcher can be. It is a *named gap*, not a bound: tracked as
+  `ci-gate-parallelization-workflow-codeowners`, and it does not belong to this spec
+  because assigning review ownership is a human decision about people, not a CI change.
 
 - [ ] **AC4 — the SAST predicate stays step-level, and has exactly one consumer.**
   A job-level `if:` is evaluated before a runner exists and cannot execute shell,
@@ -925,7 +937,11 @@ verification.
 - **`ci-gate-parallelization-critical-path-measurement`** — AC11's measurement plus
   AC15's non-relevant-diff run.
 - **`ci-gate-parallelization-required-workflow-pinned-ref`** — AC3's residual;
-  closable via a pinned-ref ruleset plus `CODEOWNERS`.
+  closable via a pinned-ref ruleset plus `CODEOWNERS`, **neither of which exists today**.
+- **`ci-gate-parallelization-workflow-codeowners`** — add `CODEOWNERS` covering
+  `.github/workflows/**`. Highest-leverage item on this list: it makes every bypass this
+  spec's verifier chases require a second human, and it needs no GitHub API call. Left
+  out of this spec deliberately — naming reviewers is a decision about people.
 - **`ci-security-posture-test-unwired`** — `tools/test-ci-security-workflow.py` is
   invoked nowhere despite a shipped AC claiming it gates `ci-security.yml`; also
   records that `ci-security.yml` and `codeql.yml` both carry the

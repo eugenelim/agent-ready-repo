@@ -460,6 +460,32 @@ def _job_ids(text: str) -> list[str]:
     return ids
 
 
+def _job_ids_modelled(text: str) -> bool:
+    """Can the strict enumerator see every job the document declares?
+
+    `_job_ids` matches `^  ([A-Za-z0-9_-]+):$`, so a QUOTED id (`  "gate-extra":`) is
+    invisible and that job never enters `work_jobs` or any per-job loop. It happens to
+    fail closed today — `_job_block`'s terminator is equally strict, so the unseen job's
+    text is absorbed into the preceding job's block and trips its `runs-on` exactly-one
+    check — but it fails closed BY COINCIDENCE and reports the violation against the
+    WRONG job. That is the same misattribution `_step_named`'s ambiguity rule and
+    `steps-parsed[*]` were added to prevent. Enumerate permissively, then require the
+    strict pattern to account for every one, mirroring `step-indent-modelled`.
+    """
+    lines = text.splitlines()
+    try:
+        start = next(i for i, ln in enumerate(lines) if ln.rstrip() == "jobs:")
+    except StopIteration:
+        return False
+    permissive = 0
+    for line in lines[start + 1:]:
+        if line.strip() and not line.startswith(" "):
+            break
+        if re.match(r"^  \S.*:\s*$", line):
+            permissive += 1
+    return permissive == len(_job_ids(text))
+
+
 def _job_block(text: str, job_id: str) -> str:
     m = re.search(
         rf"^  {re.escape(job_id)}:\s*$(.*?)(?=^  [A-Za-z0-9_-]+:\s*$|\Z)",
@@ -854,6 +880,8 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     text = _strip_comments(text)
     job_ids = _job_ids(text)
     check("jobs-parsed", bool(job_ids))
+    # Before any per-job loop: a job the enumerator cannot see is a job no loop checks.
+    check("job-ids-modelled", _job_ids_modelled(text))
     work_jobs = [j for j in job_ids if j != AGGREGATOR_JOB_ID]
 
     # AC13: derived set-equality (catches a job ADDED unwired) + a literal floor
@@ -1697,6 +1725,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
          t, "build-check",
          "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
          "      - uses: actions/checkout@main")),
+    ("quoted-job-id-is-invisible", "job-ids-modelled",
+     lambda t: t.replace("  gate-sast:\n",
+                         '  "gate-extra":\n    runs-on: ubuntu-latest\n'
+                         "    steps:\n      - run: echo hi\n  gate-sast:\n", 1)),
     # -- the runner, and other positive substring checks a run body could satisfy ---
     ("self-hosted-runner-with-decoy-text", "runs-on[gate-main]",
      lambda t: t.replace("  gate-main:\n    runs-on: ubuntu-latest",
