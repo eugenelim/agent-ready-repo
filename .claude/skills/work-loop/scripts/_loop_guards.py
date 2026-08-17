@@ -409,21 +409,28 @@ def _read_managed_bytes(path: Path, label: str) -> bytes:
                 chunks.append(chunk)
                 remaining -= len(chunk)
             raw = b"".join(chunks)
+            after_fd = os.fstat(fd)
         except OSError as exc:
             raise ValueError(f"{label} could not be read safely: {exc}") from exc
     finally:
         os.close(fd)
-    # Only the PATH is re-checked. An `os.fstat(fd)` here was also compared against
-    # `identity` and could not ever differ: a descriptor refers to the same inode for
-    # its whole lifetime, so re-fstat'ing it re-derives the value already checked
-    # above. Dropping it leaves the check that can actually fire — the path having
-    # been re-pointed at a different inode while the read was in progress, which is
-    # the TOCTOU the `O_NOFOLLOW` open cannot see on its own.
+    # BOTH halves are deliberate, and the `after_fd` one was briefly deleted as
+    # "tautological" during review. It is not removable: a descriptor's dev/ino cannot
+    # change under a real kernel, so this comparison indeed cannot fire from an
+    # ordinary filesystem race — but "the reader verifies descriptor identity twice"
+    # is a pinned contract with two pre-existing tests asserting the second `fstat`
+    # happens (`test_cohort_state_reader_rejects_identity_change` and its engine twin
+    # both fail with "did not verify descriptor identity twice"). Removing it broke
+    # both. The path half below catches the case that CAN fire — the path re-pointed
+    # at a different inode mid-read, which the `O_NOFOLLOW` open cannot see alone.
     try:
         after_path = os.lstat(path)
     except OSError as exc:
         raise ValueError(f"{label} changed while being read") from exc
-    if (after_path.st_dev, after_path.st_ino) != identity:
+    if (
+        (after_fd.st_dev, after_fd.st_ino) != identity
+        or (after_path.st_dev, after_path.st_ino) != identity
+    ):
         raise ValueError(f"{label} changed while being read")
     if len(raw) > _MAX_MANAGED_JSON_BYTES:
         raise ValueError(
