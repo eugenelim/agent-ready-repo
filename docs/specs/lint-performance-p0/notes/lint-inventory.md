@@ -490,6 +490,77 @@ Its trailing note — *"Same pattern is worth auditing across `tools/test-*`"* �
 is discharged by § 4 of this inventory: all 66 other lint self-tests were
 audited and none mutates a tracked file.
 
+## After evidence (measured 2026-08-17, same host)
+
+Same probes as [§ Measurement method](#measurement-method): a counting Git shim
+on `PATH`, counter-instrumented seams, and `/usr/bin/time`-equivalent wall clock
+on a warm cache. All paths relativized.
+
+### `tools/lint-pack-test-boundary.py`, one full six-check invocation
+
+| Metric | Before | After |
+| --- | --- | --- |
+| `git check-ignore` subprocesses | 337 | **1** |
+| inventory constructions | none — no inventory existed | **1** |
+| runner-file parses | 2 | **1** |
+| destination-inventory builds | 2 | **1** |
+| tree-confinement scans | 45 over 16 distinct bases | **16** (one per distinct base) |
+| lazy walk misses (bases not pre-batched) | n/a | **0** |
+| wall clock | 32.35 s | **1.43 s** (≈23× faster) |
+| stdout / stderr | — | **byte-identical** across all 20 captured baselines |
+
+### `tools/test-lint-pack-test-boundary.py`, complete suite
+
+| Metric | Before | After |
+| --- | --- | --- |
+| wall clock | **306.4 s** (6 s over the 300 s budget) | **16.7 s** |
+| cases reported | 82 | **134** |
+| exit code | 0 | 0 |
+| production-CLI launches against the real tree | 12 | **4** (budget asserted by the suite) |
+| real `Makefile` rewrites | 2 | **0** |
+| real-tree plant sites | 7 | 2, both `try`/`finally`-guarded and refusing a pre-existing target |
+| `check-ignore` processes across the whole suite | ~4 044 | **45** (one per invocation) |
+
+### `tools/lint-agents-md.py`
+
+| Metric | Before | After |
+| --- | --- | --- |
+| `git check-ignore` subprocesses | 3 (one per probe) | **1** |
+| Git-absent behaviour | unhandled `FileNotFoundError` traceback | exit 1 naming Git unavailability |
+| Broken-Git behaviour (exit 127) | 3 notes falsely claiming `.gitignore` drifted | exit 1 naming Git unavailability |
+
+### Enforcement-gate scan set
+
+Measured under the specified allowlist rule, via
+`git ls-files --cached --others --exclude-standard`: **800 files scanned, 5
+allowlisted**, against a recorded floor of 700. The earlier figure of 292 was
+measured under the filename-pattern rule the spec forbids and is withdrawn.
+
+### Discriminating power, verified by mutation
+
+The captured baseline is only worth what it detects, so it was tested against
+deliberate weakenings of the lint rather than assumed:
+
+| Mutation | Detected? |
+| --- | --- |
+| `_walk` stops subtracting the ignored set | **yes** — exactly one fixture (`only-gitignored-tests`), 2 findings → 9 |
+| symlink/junction refusal removed | **yes** — `linked-test-dir`, `linked-test-root`, both streams |
+| `evals/` skip removed | **yes** — 2 fixtures |
+
+That run also exposed a defect in the fixture itself: the original plant was
+`test_demo.gitignored`, which `_TEST_FILE` never matches, so the fixture produced
+the right output for entirely the wrong reason. It now plants a real `.py` file
+ignored by an explicit path rule — both conditions at once.
+
+### Budget
+
+The work-loop inner-loop budget is 300 s. The complete optimised falsification
+suite finishes in **16.7 s**, and the production lint in **1.43 s**. The
+71%-then-stall behaviour is not reproducible: the suite that previously sat 6 s
+past the cutoff now completes in 5.6% of it.
+
+---
+
 ## Recorded P1 residuals
 
 Out of scope here; captured so they are not silently lost.

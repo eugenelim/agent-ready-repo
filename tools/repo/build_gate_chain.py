@@ -434,6 +434,33 @@ def build_check(args: argparse.Namespace) -> int:
             "check-contract-drift",
             "tools", "repo", "check_contract_drift.py",
         ),
+        # lint-performance-p0 (ADR-0085). These go in the UNFILTERED chain, not
+        # `docs.yml`, because that workflow is `paths`-filtered to an explicit
+        # file allowlist with no `tools/**` or `packages/**` entry — a PR adding
+        # a per-path `check-ignore` to an unlisted file would run neither gate.
+        _script_step(
+            "git-ignore resolver self-test",
+            "tools", "test-lint-git-ignore.py",
+        ),
+        _script_step(
+            "no-direct-check-ignore",
+            "tools", "lint-no-direct-check-ignore.py",
+        ),
+        _script_step(
+            "no-direct-check-ignore self-test",
+            "tools", "test-lint-no-direct-check-ignore.py",
+        ),
+        # The behaviour contract for the boundary lint. It reads its capture
+        # subject from a pinned commit, so the job running it needs full history
+        # — see the `fetch-depth: 0` note in .github/workflows/docs.yml.
+        _script_step(
+            "boundary-lint golden baseline",
+            "tools", "test-lint-boundary-golden.py",
+        ),
+        _script_step(
+            "boundary-lint structural properties",
+            "tools", "test-lint-boundary-structural.py",
+        ),
         # Directory-scoped: each suite's conftest puts its skill's scripts/ on
         # sys.path, so both collect nothing from the repo root. Pure stdlib —
         # no install, no network — so they belong in the local chain.

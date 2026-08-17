@@ -1005,7 +1005,6 @@ open = [
   #   copy, or drive the linter with a --makefile argument, so no tracked file
   #   is ever mid-mutation. Same pattern is worth auditing across tools/test-*.
   # Unblocks when: picked up — no dependency.
-  {slug = "selftest-mutates-tracked-makefile", summary = "Stop tools/test-lint-pack-test-boundary.py from mutating the real Makefile in place; a concurrent git add -A commits its injected violation and the failure surfaces only in CI", source = "spec/npm-sca-gate (unrelated find)"},
 
   # project-knowledge --capture refuses: a well-formed capture request built
   #   against the contract in packs/core/tests/skills/project-knowledge/
@@ -1943,6 +1942,20 @@ open = [
   # product wants an illustrative register (it currently has none).
   # Unblocks when: ready now.
   { slug = "site-design-principles", type = "design" },
+]
+
+# Resolved repo-durable items. Kept rather than deleted so a reader who arrives
+# from a stale reference finds the disposition instead of a silent gap.
+closed = [
+  # Resolved by spec/lint-performance-p0 (2026-08-17). The falsification suite
+  # no longer touches any tracked file: individual plants moved to temporary
+  # fixture catalogues driven through the lint's callable API, and the suite now
+  # asserts that the difference it makes to `git status --porcelain` is empty.
+  # The two real-Makefile rewrites behind the PR #961 failure are gone. The
+  # trailing "worth auditing across tools/test-*" note is discharged as well —
+  # all 66 other lint self-tests were audited and none mutates a tracked file
+  # (docs/specs/lint-performance-p0/notes/lint-inventory.md § 4).
+  {slug = "selftest-mutates-tracked-makefile", summary = "Stop tools/test-lint-pack-test-boundary.py from mutating the real Makefile in place; a concurrent git add -A commits its injected violation and the failure surfaces only in CI", source = "spec/npm-sca-gate (unrelated find)"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────

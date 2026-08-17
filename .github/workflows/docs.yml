@@ -62,6 +62,13 @@ on:
       - 'tools/test-all.py'
       - 'tools/lint-pack-test-boundary.py'
       - 'tools/test-lint-pack-test-boundary.py'
+      - 'tools/lint_git_ignore.py'
+      - 'tools/test-lint-git-ignore.py'
+      - 'tools/lint-no-direct-check-ignore.py'
+      - 'tools/test-lint-no-direct-check-ignore.py'
+      - 'tools/test-lint-boundary-golden.py'
+      - 'tools/lint-boundary-golden.json'
+      - 'tools/test-lint-boundary-structural.py'
       # The boundary lint reads these as runner call sites, so a change to
       # any of them has to re-trigger it — collapsing the Makefile's
       # pack-test lines is precisely the regression it exists to catch.
@@ -142,6 +149,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # The golden baseline reads its capture subject from a pinned
+          # commit; the default depth of 1 cannot resolve `git show <sha>:…`.
+          fetch-depth: 0
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.11"
@@ -164,6 +175,23 @@ jobs:
         # regression, so its own falsification cases need a runner of their own.
         # `tools/test-all.py` is executed by no workflow; this step is the gate.
         run: python3 tools/test-lint-pack-test-boundary.py
+      - name: Pack runtime boundary — behaviour contract (golden baseline)
+        # Reads its capture subject from a pinned commit, so this job needs full
+        # history; `actions/checkout` defaults to depth 1, where
+        # `git show <sha>:<path>` cannot resolve. The harness refuses to stage an
+        # empty subject rather than passing vacuously, so a shallow checkout
+        # fails loudly — but it should not have to.
+        run: python3 tools/test-lint-boundary-golden.py
+      - name: Pack runtime boundary — structural properties
+        # What the captured triple cannot observe: process counts, inventory
+        # build counts, and filesystem side effects.
+        run: python3 tools/test-lint-boundary-structural.py
+      - name: Batched git-ignore resolver — self-test
+        run: python3 tools/test-lint-git-ignore.py
+      - name: No direct git check-ignore outside the approved helper
+        run: python3 tools/lint-no-direct-check-ignore.py
+      - name: No direct git check-ignore — self-test
+        run: python3 tools/test-lint-no-direct-check-ignore.py
 
   # Aggregator end-to-end. Duplicates the per-layer linter jobs by design —
   # those each surface with their own check name in PR UI; this one catches
