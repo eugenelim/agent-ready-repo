@@ -63,6 +63,42 @@ The trade is deliberate: an equality pin fails when the workflow is edited, and 
 implementer must update this file in the same commit. That is the intended coupling —
 these five statements ARE the gate, and a change to one should not be silent.
 
+## The ladder: each round pinned the innermost thing and left the next layer out free
+
+Five review rounds each hardened this file correctly and each left a sibling dimension
+unconstrained, so the next round found it. Read as a list, the rounds are one mistake:
+
+| Pinned | Left free | The bypass |
+| --- | --- | --- |
+| the command word | argv tokens | `make -n build-check` |
+| argv tokens | the whole statement | `MAKEFLAGS=-n make …` |
+| the statement | the working directory | `working-directory: tools` |
+| command words in a body | what a statement reads/writes | `echo "raise SystemExit(0)" > <this file>` |
+| the action's ref | the action's inputs | `ref: main` — gates `main`, not the PR |
+
+The next layers out are the runner image (`runs-on`, pinned here by equality) and the
+Makefile targets themselves, which are beyond this file and are covered by
+`tools/repo/build_gate_chain.py` and `tools/assert-sast-chain-reachable.py`. **A reader
+adding an assertion should start by asking which layer is now outermost-unpinned**, not by
+hardening the innermost one again.
+
+The escape from the ladder is not a better denylist. It is to ask whether the thing being
+constrained is **finitely enumerable**, and if so pin the whole set: the two aggregator
+bodies, each checkout's `with:` mapping, the set of action refs. Set-equality needs no
+enumeration of the tricks it excludes. Where the set genuinely varies — the
+export-boundary body, a `pip install` whose argument is read from a requirements file —
+the allowlist stays, and that is the honest limit of the technique.
+
+## Any script claiming a payload was blocked MUST assert the payload applied
+
+`_MUTATIONS` enforces this (`transform was a no-op — proves nothing`). Ad-hoc verification
+scripts do not, and during this work two replace-strings silently failed to match the real
+workflow — comment lines sat between the keys they targeted — after which one printed
+"GREEN — regression" for a case that was in fact blocked. A transform that did not apply
+produces the same output as a control that passed. This is the `_check_skip_integrity`
+lesson in a different tool: **a verification that cannot produce a negative is not a
+verification.**
+
 ## Deliberately NOT asserted, with the reason each is safe
 
 Recorded so a later reviewer does not re-derive it, and so nobody "hardens" a
@@ -224,10 +260,36 @@ _NO_CWD_STEPS = (
 # that wears the required check is code this file cannot read, positioned before the
 # auditor. The refs are SHA-pinned, so a version bump is a deliberate edit here — the
 # same coupling the PINNED_* statements carry, for the same reason.
-PINNED_AGGREGATOR_USES = (
+PINNED_USES = (
     "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
     "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
 )
+# An action's INPUTS decide what the pinned statements run against, and were the next
+# free dimension after its ref. Each of these is one line, audits clean with every pinned
+# statement byte-identical, and none is reachable by a check on the statement:
+#   ref: main              → gate-main gates `main`, not the PR. The whole chain runs
+#                            green against a tree that does not contain the change.
+#   repository: attacker/x → the aggregator runs the ATTACKER's copy of this very file,
+#                            still as the exact `PINNED_POSTURE` statement.
+#   token: ${{ secrets.… }}→ escapes the `permissions: contents: read` bound entirely,
+#                            since that only scopes GITHUB_TOKEN.
+# Set-equality over the whole mapping closes those plus `path`, `submodules` and
+# `sparse-checkout` without naming any of them, and subsumes the old `fetch-depth`/
+# `persist-credentials`/`python-version` substring checks — which are deleted rather than
+# kept, since none can now fail independently.
+PINNED_CHECKOUT_WITH = {
+    "gate-main": {"fetch-depth": "0", "persist-credentials": "false"},
+    "gate-sast": {"fetch-depth": "0", "persist-credentials": "false"},
+    "gate-export-boundary": {"fetch-depth": "0", "persist-credentials": "false"},
+    # AC12 exempts the aggregator from fetch-depth: it touches no history.
+    AGGREGATOR_JOB_ID: {"persist-credentials": "false"},
+}
+PINNED_SETUP_PYTHON_WITH = {"python-version": EXPECTED_PYTHON}
+# Steps sit at 6 spaces, so a step's own keys sit at 8. Derived from the grammar rather
+# than inferred from the file: computing it as `min()` over the chunk's lines let a flow
+# mapping with a shallower continuation line drag the base below 8, after which every real
+# key was skipped and a duplicate `run:` went unseen.
+_STEP_KEY_INDENT = 8
 
 
 def _step_env_keys(step: str) -> list[str]:
@@ -269,18 +331,66 @@ def _step_key_values(step: str, key: str) -> list[str]:
     lines = step.splitlines()
     if not lines:
         return []
-    rest = [ln for ln in lines[1:] if ln.strip()]
-    base = min((len(ln) - len(ln.lstrip()) for ln in rest), default=0)
     out: list[str] = []
     for index, line in enumerate(lines):
         if not line.strip():
             continue
-        if index and (len(line) - len(line.lstrip())) != base:
+        indent = _STEP_KEY_INDENT if index == 0 else len(line) - len(line.lstrip())
+        if indent != _STEP_KEY_INDENT:
             continue
         match = re.match(
             rf"\s*['\"]?{re.escape(key)}['\"]?\s*:[ \t]*(.*?)\s*$", line)
         if match:
             out.append(match.group(1).strip())
+    return out
+
+
+def _step_indent_modelled(step: str) -> bool:
+    """Does every line of this step sit at or below the step-key indent?
+
+    A line SHALLOWER than `_STEP_KEY_INDENT` means an indent shape this file does not
+    model — a flow mapping continued onto a less-indented line was the live instance:
+
+        env: {
+       PYTHONUTF8: "1" }
+        run: make build-check …
+        run: make -n build-check
+
+    PyYAML parses that and resolves `run` to the second value. Fail closed on the shape
+    rather than guess at it, the way `_split_line` returns UNPARSEABLE on an unbalanced
+    quote — an unmodelled shape must not silently vacuum a check.
+    """
+    lines = step.splitlines()
+    return all(len(ln) - len(ln.lstrip()) >= _STEP_KEY_INDENT
+               for ln in lines[1:] if ln.strip())
+
+
+def _sub_mapping(step: str, key: str) -> dict[str, str]:
+    """The mapping nested directly under `key`, as {name: value}.
+
+    Indent-scoped to exactly one level below the key, so nested structures and run-body
+    text cannot contribute entries. Blank lines are skipped because `_strip_comments`
+    turns a comment inside a `with:` block into one — all four shipped checkouts have
+    such a comment, so a scan that stopped at the first blank line would read an empty
+    mapping and pass vacuously.
+    """
+    lines = step.splitlines()
+    out: dict[str, str] = {}
+    for index, line in enumerate(lines):
+        if not _key_re(key).match(line):
+            continue
+        base = len(line) - len(line.lstrip())
+        for follow in lines[index + 1:]:
+            if not follow.strip():
+                continue
+            indent = len(follow) - len(follow.lstrip())
+            if indent <= base:
+                break
+            match = re.match(
+                r"\s*['\"]?([A-Za-z_][A-Za-z0-9_-]*)['\"]?\s*:[ \t]*(.*?)\s*$", follow)
+            if match and indent == base + 2:
+                out[match.group(1)] = match.group(2).strip()
+        break
     return out
 
 
@@ -386,7 +496,15 @@ def _step_named(block: str, needle: str) -> str:
 
 
 def _checkout_steps(block: str) -> list[str]:
-    return [c for _, c in _steps(block) if "actions/checkout" in c]
+    """Steps whose `uses:` VALUE is the pinned checkout ref.
+
+    A chunk substring also matched `attacker/repo/actions/checkout@main` — and worse, a
+    step that merely mentioned the string in a `with:` value — so the hardening assertions
+    below could be satisfied by a step that is not this action at all.
+    """
+    return [c for _, c in _steps(block)
+            if any(v.startswith("actions/checkout@")
+                   for v in _step_key_values(c, "uses"))]
 
 
 def _run_body(step: str) -> str:
@@ -580,6 +698,11 @@ def _assignment_prefixed(stmt: str) -> bool:
     return seen and i < len(toks)
 
 
+def _note_miss(expected: str, got: str) -> None:
+    """Record a pin miss so the failure explains itself. Shared with `_pinned`."""
+    _pin_misses.append((expected, got))
+
+
 def _pinned(step: str, expected: str | tuple[str, ...]) -> str:
     """The load-bearing statement EQUAL to `expected` (or any of them) after whitespace
     collapse.
@@ -609,7 +732,7 @@ def _pinned(step: str, expected: str | tuple[str, ...]) -> str:
         # the author probably edited rather than at the first line of the body.
         if not nearest and flat.split()[:1] == normalised[0].split()[:1]:
             nearest = flat
-    _pin_misses.append((normalised[0], nearest or "(no statement with that command)"))
+    _note_miss(normalised[0], nearest or "(no statement with that command)")
     return ""
 
 
@@ -802,7 +925,7 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("aggregator-action-steps-known", all(
         nm in AGGREGATOR_RUN_STEPS
         # Exactly one `uses:`, equal to one allowed ref — not a substring of the chunk.
-        or _step_key_values(st, "uses") in [[u] for u in PINNED_AGGREGATOR_USES]
+        or _step_key_values(st, "uses") in [[u] for u in PINNED_USES]
         for nm, st in _steps(agg)))
     check("no-env-file-writes-in-aggregator", not any(
         "GITHUB_ENV" in ln or "GITHUB_OUTPUT" in ln
@@ -829,15 +952,28 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # Both bodies are fully enumerable, so set-equality closes the class without naming
     # a single trick. `no-env-file-writes-in-aggregator` is retained as the ad-hoc
     # instance of it, and still fails independently.
-    check("posture-body-exact",
-          _run_lines(posture_step) == [_STRICT_SHELL, PINNED_POSTURE])
+    _actual_posture = _run_lines(posture_step)
+    if _actual_posture != [_STRICT_SHELL, PINNED_POSTURE]:
+        _note_miss(f"{_STRICT_SHELL}\n              {PINNED_POSTURE}",
+                   "\n              ".join(_actual_posture) or "(empty body)")
+    check("posture-body-exact", _actual_posture == [_STRICT_SHELL, PINNED_POSTURE])
     # DERIVED, not literal: the expected guard body is built from `work_jobs`, so adding a
     # fourth work job still requires adding its comparison — the property a verbatim pin
     # would have destroyed.
-    _expected_guard = ([_STRICT_SHELL]
-                       + [_comparison_line(j) for j in work_jobs]
-                       + [GUARD_FINAL_ECHO])
-    check("guard-body-exact", _run_lines(guard_step) == _expected_guard)
+    # Positional where position matters (strict shell FIRST, the summary echo LAST) and a
+    # SET in between. Comparison order is not a security property — each line is an
+    # independent `&& exit 1` — so requiring file order would have made swapping two job
+    # definitions, a cosmetic edit, fail a security assertion with a bare label.
+    _actual_guard = _run_lines(guard_step)
+    _want_cmp = sorted(_comparison_line(j) for j in work_jobs)
+    _guard_ok = (len(_actual_guard) == len(work_jobs) + 2
+                 and _actual_guard[:1] == [_STRICT_SHELL]
+                 and _actual_guard[-1:] == [GUARD_FINAL_ECHO]
+                 and sorted(_actual_guard[1:-1]) == _want_cmp)
+    if not _guard_ok:
+        _note_miss("\n              ".join([_STRICT_SHELL] + _want_cmp + [GUARD_FINAL_ECHO]),
+                   "\n              ".join(_actual_guard) or "(empty body)")
+    check("guard-body-exact", _guard_ok)
 
     # AC3: three-way binding, and each comparison's CONSEQUENT.
     # `[ "$X" != "success" ] || echo ok` carries the comparison and gates nothing.
@@ -909,6 +1045,8 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         check(f"steps-parsed[{jid}]", bool(_steps(blk)))
         check(f"shell-parseable[{jid}]",
               not any(st == UNPARSEABLE for st, _ in _statements(blk)))
+        check(f"step-indent-modelled[{jid}]",
+              all(_step_indent_modelled(st) for _n, st in _steps(blk)))
         # Duplicate mapping keys, retired as a CLASS rather than key by key. `if` and
         # `GATE_*_RESULT` were closed by requiring exactly one value; that left the key
         # that carries the command open — a second `run:` on a step is valid YAML text,
@@ -956,8 +1094,16 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         # nothing else would notice.
         check(f"no-job-concurrency[{job_id}]",
               _key_re("concurrency", "    ").search(blk) is None)
-        check(f"python-version[{job_id}]",
-              f"python-version: {EXPECTED_PYTHON}" in blk)
+        # Every action ref, everywhere — not just in the aggregator. A lookalike like
+        # `attacker/repo/actions/checkout@main` would otherwise be treated as a checkout
+        # by `_checkout_steps` and satisfy its hardening assertions.
+        check(f"uses-pinned[{job_id}]", all(
+            _step_key_values(st, "uses") in [[u] for u in PINNED_USES]
+            for _n, st in _steps(blk) if _step_key_values(st, "uses")))
+        _setups = [st for _n, st in _steps(blk) if "setup-python" in st]
+        check(f"setup-python-with[{job_id}]",
+              bool(_setups) and all(_sub_mapping(st, "with") == PINNED_SETUP_PYTHON_WITH
+                                    for st in _setups))
         check(f"no-job-permissions[{job_id}]", _key_re("permissions").search(blk) is None)
         # Job-level env: only (4 spaces). Step-level env: at 8 is legitimate and used.
         check(f"no-job-env[{job_id}]", _key_re("env", "    ").search(blk) is None)
@@ -968,14 +1114,18 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
               all(k in _ALLOWED_STEP_ENV for k in _env_keys))
         checkouts = _checkout_steps(blk)
         check(f"checkout-present[{job_id}]", bool(checkouts))
-        # Per CHECKOUT, not per job: a second unhardened checkout otherwise passes.
-        check(f"persist-credentials[{job_id}]",
-              bool(checkouts) and all("persist-credentials: false" in c for c in checkouts))
+        # Per CHECKOUT, not per job: a second unhardened checkout otherwise passes. And by
+        # set-equality over the whole `with:` mapping, not by substring on two of its keys.
+        # `.get`, not `[]`: a renamed job is a graph change that other assertions report,
+        # and this one must fail closed rather than raise — a crash inside audit() would
+        # take down the whole posture test, turning one violation into no report at all.
+        _want_with = PINNED_CHECKOUT_WITH.get(job_id)
+        check(f"checkout-with[{job_id}]",
+              _want_with is not None and bool(checkouts)
+              and all(_sub_mapping(c, "with") == _want_with for c in checkouts))
         if job_id != AGGREGATOR_JOB_ID:
             check(f"no-job-if[{job_id}]", _key_re("if", "    ").search(blk) is None)
             check(f"no-needs[{job_id}]", _key_re("needs", r"\s+").search(blk) is None)
-            check(f"fetch-depth[{job_id}]",
-                  bool(checkouts) and all("fetch-depth: 0" in c for c in checkouts))
 
     # AC4/AC5b: delegation must be a make ARGUMENT. As an env prefix, $(origin) is
     # `environment`, so AC5c runs the SAST leg in gate-main too — silent double scan.
@@ -1314,17 +1464,17 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("permissions:\n  contents: read\n", "permissions:\n  contents: read\n  packages: write\n")),
     # Scoped to gate-main: an unqualified replace now lands in gate-sast, whose
     # step of the same name comes first in the file.
-    ("second-unhardened-checkout", "persist-credentials[gate-main]",
+    ("second-unhardened-checkout", "checkout-with[gate-main]",
      lambda t: _sub_in_job(t, "gate-main", "      - name: Run make build-check",
-                           "      - uses: actions/checkout@v4\n      - name: Run make build-check")),
-    ("drop-fetch-depth", "fetch-depth[gate-main]",
+                           "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262\n      - name: Run make build-check")),
+    ("drop-fetch-depth", "checkout-with[gate-main]",
      lambda t: t.replace("          fetch-depth: 0\n", "", 1)),
     ("drop-timeout", "timeout[gate-sast]",
      lambda t: t.replace("  gate-sast:\n    runs-on: ubuntu-latest\n    timeout-minutes: 25\n",
                          "  gate-sast:\n    runs-on: ubuntu-latest\n")),
     ("drop-runs-on", "runs-on[gate-sast]",
      lambda t: t.replace("  gate-sast:\n    runs-on: ubuntu-latest\n", "  gate-sast:\n")),
-    ("drop-python-version", "python-version[gate-sast]",
+    ("drop-python-version", "setup-python-with[gate-main]",
      lambda t: t.replace('          python-version: "3.11"\n', "", 2)),
     ("drop-checkout", "checkout-present[gate-sast]",
      lambda t: t.replace("      - uses: actions/checkout@"
@@ -1531,7 +1681,30 @@ _MUTATIONS: list[tuple[str, str, object]] = [
          t, "build-check",
          "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
          "      - uses: actions/checkout@main")),
-    ("duplicate-with-on-checkout", "no-duplicate-step-keys[gate-main]",
+    # -- the action's INPUTS decide what every pinned statement runs against ------
+    ("ref-substitutes-the-tree", "checkout-with[gate-main]",
+     lambda t: _sub_in_job(t, "gate-main", "          fetch-depth: 0",
+                           "          fetch-depth: 0\n          ref: main")),
+    ("repository-substitutes-the-auditor", "checkout-with[build-check]",
+     lambda t: _sub_in_job(t, "build-check", "          persist-credentials: false",
+                           "          persist-credentials: false\n          repository: attacker/evil")),
+    ("token-escapes-the-permissions-bound", "checkout-with[gate-sast]",
+     lambda t: _sub_in_job(t, "gate-sast", "          persist-credentials: false",
+                           "          persist-credentials: false\n          token: ${{ secrets.PAT }}")),
+    ("architecture-on-setup-python", "setup-python-with[gate-main]",
+     lambda t: t.replace('          python-version: "3.11"',
+                         '          python-version: "3.11"\n          architecture: x86', 1)),
+    ("lookalike-checkout-ref-in-work-job", "uses-pinned[gate-sast]",
+     lambda t: _sub_in_job(t, "gate-sast", f"      - uses: {PINNED_USES[0]}",
+                           "      - uses: attacker/repo/actions/checkout@main")),
+    # A flow mapping continued onto a SHALLOWER line drags an inferred base indent below
+    # the step-key level, which made every real key invisible and hid a duplicate `run:`.
+    ("flow-map-shallow-continuation", "step-indent-modelled[gate-main]",
+     lambda t: t.replace("        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
+                         '        env: {\n       PYTHONUTF8: "1" }\n'
+                         "        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1\n"
+                         "        run: make -n build-check", 1)),
+    ("duplicate-with-on-checkout", "no-duplicate-step-keys[gate-sast]",
      lambda t: t.replace("        with:\n          fetch-depth: 0\n",
                          "        with:\n          fetch-depth: 0\n"
                          "        with:\n          persist-credentials: true\n", 1)),

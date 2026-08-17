@@ -856,12 +856,27 @@ next to the code.
 one dimension with a second dimension left free.** Every round of this verifier failed
 the same way, and reading the rounds together is what makes it visible:
 
-| Round | Allowlisted | Left free | Bypass |
+| Round | Allowlisted / pinned | Left free | Bypass |
 | --- | --- | --- | --- |
 | 8 | command words | argv tokens | `make -n` |
 | c1 | argv tokens | the statement | `MAKEFLAGS=-n make …` |
 | c2 | the statement | the working directory | `working-directory: tools` |
 | c3 | command words in a body | what a statement reads/writes | `echo "raise SystemExit(0)" > <the auditor>` |
+| c4 | the action's ref | the action's **inputs** | `ref: main` — the gate runs against `main`, not the PR |
+
+Round c4 is the one worth dwelling on, because it is the furthest from where anyone was
+looking: `ref: main` on a checkout leaves every pinned statement byte-identical, passes
+every cwd and body assertion, and runs the entire chain green against a tree that does not
+contain the change. `repository: attacker/x` on the aggregator's checkout makes the
+posture test — still exactly its pinned statement, inside a set-pinned body — audit the
+attacker's copy of itself. And `token: ${{ secrets.PAT }}` escapes the
+`permissions: contents: read` bound entirely, since that only scopes `GITHUB_TOKEN`.
+
+**The generalisation, and the actionable part: each round pinned the innermost thing and
+left the next layer out free.** The ladder is word → argv → statement → what the statement
+reads → who else runs in the job → what the pinned thing runs against. A reader adding an
+assertion should ask *which layer is now outermost-unpinned*, rather than hardening the
+innermost one again.
 
 Each fix was correct and each left a sibling dimension unconstrained, so the next round
 found it. The escape is not a better allowlist — it is to ask whether the thing being

@@ -28,6 +28,8 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
+          # A comment inside `with:` — every shipped checkout has one, and
+          # _strip_comments turns it into a blank line that _sub_mapping must skip.
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
@@ -41,11 +43,14 @@ jobs:
         run: |
           pin="$(grep -E '^bandit([^A-Za-z0-9._-]|$)' tools/requirements-sast.txt)"
           pip install "$pin"
-          python -c "from bandit.core import extension_loader as loader"
+          python - <<'PROBE'
+          from bandit.core import extension_loader as loader
+          PROBE
       - name: Run make build-check
         run: make build-check PACKS_DIR=packs SAST_DELEGATED=1
       - name: ruff lint
-        run: |
+        working-directory: .
+        run: >-
           python3 tools/lint-ruff.py
       - name: pytest credbroker
         run: |
