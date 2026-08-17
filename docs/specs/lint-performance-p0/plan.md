@@ -222,7 +222,7 @@ reintroduce a per-path probe.
 
 ### Behavior & rules
 
-Check semantics are preserved by construction and verified by byte-identical
+Check semantics are preserved by construction and verified by canonical-surface
 golden comparison. The batched ignored-set applies only where the current lint
 applies it — at least one check walks with a raw `os.walk` and deliberately
 inspects gitignored files.
@@ -245,7 +245,7 @@ inspects gitignored files.
 ### Quality attributes (NFRs)
 
 Bars are the spec's ACs: exactly one `check-ignore` process per invocation (zero
-for an empty set), one inventory construction, runners parsed once, byte-identical
+for an empty set), one inventory construction, runners parsed once, canonical-surface
 golden reproduction, no case-count regression, and the suite inside the
 five-minute budget. Structural counts asserted; wall clock recorded as evidence.
 
@@ -668,7 +668,8 @@ committed, and the backlog item is closed.
   lists rather than a fourth prose round. Applied: the runner parse is memoised
   but its findings are re-emitted, because the reader is reached by two checks and
   parsing once would delete six findings from any baseline with a bad runner file
-  — "parsed once" and "byte-identical" were otherwise mutually unsatisfiable; the
+  — "parsed once" and "reproduces the captured surface" were otherwise mutually
+  unsatisfiable; the
   `packs/`-missing and recipe-missing fixture shapes are **dropped**, because the
   import-time refusal embeds an absolute path and their bytes are unreproducible
   (those refusals are now proven by direct assertion); the comparison drive is

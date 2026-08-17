@@ -141,37 +141,90 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   round-trip a surrogate-escaped path in Git's stderr, and the comparison would
   then pass on two streams that differ.
   What is compared is not the raw bytes but a **canonical surface** derived from
-  them, normalising exactly four classes. Nothing else is normalised, and each
-  class is bounded by an assertion that a mutation can redden:
-  1. **Finding order** — findings are sorted, because the walk returns filesystem
-     order and two checks can both contribute.
-  2. **Interpreter-dependent tails** — any message embedding a CPython-version
-     string is excluded.
-  3. **Ambient repository state** — findings a fixture cannot cause: those derived
-     from the real `_NO_RUNNER` map, and runner-inventory misses naming files no
-     fixture creates. The acceptance criterion below states the mechanism and its
-     one recorded limit.
-  4. **The failure tally**, adjusted **down by exactly the number of lines
+  them. This list is the complete inventory of what `_canonical` normalises, and it
+  is normative: a change to that function that is not reflected here is a spec
+  violation, not a documentation lag. An earlier draft claimed "exactly four
+  classes — nothing else is normalised" and was wrong on two counts, which is why
+  the list is now enumerated operation by operation rather than summarised.
+  1. **Ambient repository state is redacted** — findings a fixture cannot cause:
+     those derived from the real `_NO_RUNNER` map, and runner-inventory misses
+     naming files no fixture creates. The acceptance criterion below states the
+     mechanism and its one recorded limit.
+  2. **The failure tally is adjusted down by exactly the number of lines
      redacted** — not erased, so a double-appended finding stays visible.
-  Blank lines carry no diagnostic content and are dropped, which is what stops a
-  redaction from surfacing as a whitespace-only difference.
+  3. **Interpreter-dependent tails are elided** — any message embedding a
+     CPython-version string.
+  4. **Order between findings** — `FAIL:` blocks are sorted, because two checks can
+     both contribute and accumulation order must not matter.
+  5. **Order within a finding** — a finding's indented path list is sorted,
+     separately from (4), because the walk returns filesystem order. These are two
+     distinct normalisations with two distinct reasons; merging them is how the
+     earlier draft lost one.
+  6. **Position within a finding** — indented path lines are hoisted above
+     unindented hint lines. A no-op on today's baselines, where every emitted path
+     already precedes its hint, and recorded because it is a normalisation the
+     surface performs whether or not it currently changes anything.
+  7. **Whitespace** — blank tail lines are dropped, blocks holding only blanks are
+     dropped, and the surface is `strip()`ped with one trailing newline. This is
+     what stops a redaction from surfacing as a whitespace-only difference.
+  How each class is held, stated exactly — an earlier draft of this sentence
+  claimed assertion coverage for classes it did not have, and the mutations that
+  disproved it are the reason the list below distinguishes three kinds of support
+  rather than two:
+  - **Mutation-proven** (removing the behaviour reddens a suite): classes 1, 2, 4,
+    5, 6, and the blank-*tail* drop in 7.
+  - **Corpus-present but not same-host provable**: class 3. Two baselines
+    (`malformed-runner-file`, `pack-test-unparseable`) do carry an
+    interpreter-dependent message, but removing the elision leaves *both* sides of
+    the comparison equally un-elided, so it stays green on one host. Its purpose is
+    stability across CPython minors, which only a second interpreter demonstrates —
+    hence the cross-platform determinism check below rather than a mutation.
+  - **Redundant, kept defensively**: the blank-only-*block* drop and the final
+    `strip()` in class 7. Both are unreachable once blank tails are dropped, and a
+    mutation removing either stays green. They are retained because the redaction
+    that feeds them deletes whole lines, and cheap belt-and-braces at that seam is
+    worth more than the line count it costs — but they are not evidence of
+    anything and are recorded here as such.
 - **Hermeticity:** every staged-lint subprocess and every resolver subprocess
-  runs under a scrubbed Git environment — `GIT_CONFIG_NOSYSTEM=1`,
-  `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` pointed at an empty file,
-  `GIT_DIR` / `GIT_WORK_TREE` / `GIT_INDEX_FILE` / `GIT_COMMON_DIR` unset, and
-  fixture repositories initialised with an empty `core.excludesFile`.
-  `GIT_CEILING_DIRECTORIES` is **set** to the repository root, not unset, and
-  `GIT_DISCOVERY_ACROSS_FILESYSTEM=0` with it — an earlier draft unset the ceiling
+  runs through one helper, `hermetic_git_env`, which does two things — and both
+  halves matter, because an earlier draft of this bullet described only the first
+  and got one variable backwards.
+  It **removes** every name in `_LEAKING_GIT_VARS` (13 of them): `GIT_DIR`,
+  `GIT_WORK_TREE`, `GIT_INDEX_FILE`, `GIT_COMMON_DIR`, `GIT_OBJECT_DIRECTORY`,
+  `GIT_ALTERNATE_OBJECT_DIRECTORIES`, `GIT_CONFIG`, `GIT_CONFIG_COUNT` (with its
+  `GIT_CONFIG_KEY_n` / `GIT_CONFIG_VALUE_n` pairs), `GIT_CONFIG_PARAMETERS`, and
+  the four pathspec vars `GIT_GLOB_PATHSPECS` / `GIT_ICASE_PATHSPECS` /
+  `GIT_LITERAL_PATHSPECS` / `GIT_NOGLOB_PATHSPECS`.
+  It **sets** `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL` and
+  `GIT_CONFIG_SYSTEM` to `/dev/null`, and — load-bearing, and absent from the
+  earlier draft — `GIT_CONFIG_COUNT=1` with
+  `GIT_CONFIG_KEY_0=core.excludesFile` and `GIT_CONFIG_VALUE_0=/dev/null`.
+  Pinning `core.excludesFile` is not belt-and-braces: leaving it *unset* is
+  exactly what opens Git's `$XDG_CONFIG_HOME/git/ignore` → `~/.config/git/ignore`
+  fallback, so dropping the config vars without pinning the key would still read a
+  maintainer's personal ignore file.
+  `GIT_CEILING_DIRECTORIES` is **set** to the root the helper is handed — the
+  *fixture* root during capture, which is the point of fencing there — together
+  with `GIT_DISCOVERY_ACROSS_FILESYSTEM=0`. An earlier draft unset the ceiling
   along with the rest, which *widened* discovery rather than fencing it. Scrubbing
-  is not the goal; bounding what Git may find is. Without this a maintainer's global ignore file
-  silently rewrites the contract: with `core.excludesFile` matching `tests/`, a
-  fixture's pack test comes back *ignored*, and because the ignored set is
-  subtracted and two findings fire on the emptiness of what remains, those
-  failures get captured as required **passes**. The same leak is live outside
-  capture — Git sets `GIT_DIR` and `GIT_INDEX_FILE` for hook processes, and these
-  lints run from a pre-PR hook. Capture additionally asserts identical bytes
-  under a deliberately hostile global ignore file.
-- **Determinism:** the four normalisation classes above are what make the surface
+  is not the goal; bounding what Git may find is.
+  Two of the removed names are the dangerous ones. `GIT_CONFIG_COUNT` and the
+  higher-precedence `GIT_CONFIG_PARAMETERS` survive `GIT_CONFIG_NOSYSTEM` and the
+  redirected config files, and they leak **silently** — verified: with
+  `core.excludesFile` pointed at a hostile file, `check-ignore --stdin -z` reports
+  extra paths ignored and exits **0**. The pathspec vars fail closed instead
+  (exit 128 → `GitIgnoreError`), which is why they were never the risk.
+  Without all of this a maintainer's global ignore file silently rewrites the
+  contract: with `core.excludesFile` matching `tests/`, a fixture's pack test comes
+  back *ignored*, and because the ignored set is subtracted and two findings fire
+  on the emptiness of what remains, those failures get captured as required
+  **passes**. The leak is live outside capture too — Git sets `GIT_DIR` and
+  `GIT_INDEX_FILE` for hook processes, and these lints run from a pre-PR hook.
+  Capture additionally asserts identical bytes under a deliberately hostile global
+  ignore file, and fixture repositories are separately initialised with an empty
+  `core.excludesFile` via `git config` — a different mechanism from the env pin,
+  belt to its braces.
+- **Determinism:** the seven normalisation classes above are what make the surface
   reproducible; this bullet does not restate them. Determinism is verified on the
   capture host *and* on the CI platform before the baseline is adopted — three
   same-host runs prove neither filesystem order nor CPython-minor stability.
@@ -259,7 +312,7 @@ edge cases are enumerable and cheap to assert in-process, so prose is the right
 tool here and the criteria below are explicit. Tests precede implementation.
 
 **Behaviour preservation — TDD against a captured baseline.** Every existing
-success and failure path is verified by byte-identical comparison with the
+success and failure path is verified by canonical-surface comparison with the
 golden baseline rather than by a hand-written expectation. This is deliberate:
 the previous draft of this spec enumerated 22 failure strings with sites,
 counts, and check attributions, and review found that enumeration wrong in a new

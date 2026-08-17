@@ -48,7 +48,7 @@ _spec.loader.exec_module(M)
 
 #: A single ~400-line main() aborts every later block on one exception, so the
 #: reported count silently drops. Falling below this is a failure in itself.
-_CASE_FLOOR = 90
+_CASE_FLOOR = 96
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -786,6 +786,39 @@ def main() -> int:  # noqa: C901 — independent structural assertions
           "✖ lint-pack-test-boundary: 2 failure(s)" in reduced, repr(reduced))
     check("the tally is not erased",
           "<ambient-adjusted>" not in reduced, repr(reduced))
+    # ---- the ordering and whitespace classes ---------------------------
+    # `spec.md § Golden baseline` enumerates seven normalisation classes and claims
+    # each is either assertion-bounded or corpus-exercised. Three were neither:
+    # removing the intra-finding sort, the indented/unindented hoist, or the
+    # block-level sort left every suite green, so the spec asserted a property no
+    # artifact held. Pinned here.
+    check("a finding's own path list is sorted, independently of block order",
+          G._canonical("FAIL: h\n    z/b.py\n    a/a.py\n")
+          == G._canonical("FAIL: h\n    a/a.py\n    z/b.py\n"),
+          repr(G._canonical("FAIL: h\n    z/b.py\n    a/a.py\n")))
+    check("that sort actually orders, rather than only being order-insensitive",
+          G._canonical("FAIL: h\n    z/b.py\n    a/a.py\n")
+          == "FAIL: h\n    a/a.py\n    z/b.py\n",
+          repr(G._canonical("FAIL: h\n    z/b.py\n    a/a.py\n")))
+    check("indented path lines are hoisted above unindented hint lines",
+          G._canonical("FAIL: h\n  Move it.\n    p/x.py\n")
+          == "FAIL: h\n    p/x.py\n  Move it.\n",
+          repr(G._canonical("FAIL: h\n  Move it.\n    p/x.py\n")))
+    check("FAIL blocks are sorted between findings, so accumulation order is moot",
+          G._canonical("FAIL: b\nFAIL: a\n") == G._canonical("FAIL: a\nFAIL: b\n")
+          == "FAIL: a\nFAIL: b\n",
+          repr(G._canonical("FAIL: b\nFAIL: a\n")))
+    check("non-FAIL blocks keep their emitted order",
+          G._canonical("ok   [b] (0)\nok   [a] (0)\n")
+          == "ok   [b] (0)\nok   [a] (0)\n",
+          repr(G._canonical("ok   [b] (0)\nok   [a] (0)\n")))
+    check("the surface is stripped and ends in exactly one newline",
+          G._canonical("\n\nFAIL: h\n\n\n") == "FAIL: h\n",
+          repr(G._canonical("\n\nFAIL: h\n\n\n")))
+    check("_canonical is idempotent",
+          G._canonical(G._canonical("FAIL: h\n  Hint.\n    z.py\n    a.py\n"))
+          == G._canonical("FAIL: h\n  Hint.\n    z.py\n    a.py\n"))
+
     # The set the redaction trusts must match what the fixture actually writes; a
     # typo there silently turns a compared finding into an ignored one. Assert it
     # against a REAL fixture rather than against a copy of the same literal —

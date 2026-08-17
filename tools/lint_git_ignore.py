@@ -180,7 +180,11 @@ def hermetic_git_env(
             place and not the other" hazard that deleting the harness's private
             copy of this function was meant to end. Pass ``None`` explicitly at
             the one site that must not fence — root *discovery* itself, which has
-            no root to fence to yet.
+            no root to fence to yet. On that branch an inherited
+            ``GIT_CEILING_DIRECTORIES`` is deliberately left in place rather than
+            dropped: it is not in ``_LEAKING_GIT_VARS``, so a ceiling the *caller*
+            set still applies — which is what ``lint-agents-md.py`` relies on.
+            "Sets no ceiling of its own" is not "no ceiling applies".
     """
     env = dict(base)
     for name in _LEAKING_GIT_VARS:

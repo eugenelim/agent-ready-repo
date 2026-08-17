@@ -38,7 +38,7 @@ LINTER = REPO_ROOT / "tools" / "lint-agents-md.py"
 
 #: A single ~400-line main() aborts every later block on one exception, so the
 #: reported count silently drops. Falling below this is a failure in itself.
-_CASE_FLOOR = 21
+_CASE_FLOOR = 28
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -242,7 +242,76 @@ def main() -> int:
     # by launch directory. Enter the repo root first, and restore afterwards
     # because `main()` never does.
     original_cwd = Path.cwd()
-    os.chdir(REPO_ROOT)
+    # Launch-directory independence is asserted, not merely arranged. Deleting the
+    # `os.chdir(REPO_ROOT)` inside the loop leaves this suite green from the repo
+    # root — the only way CI and `test-all.py` invoke it — while failing anywhere
+    # else, so without a case pinning it the defect returns invisibly.
+    #
+    # The foreign launch directory must itself be a Git repository. `_repo_root()`
+    # shells out to `git rev-parse --show-toplevel`; from a plain temp directory
+    # that fails and the fallback returns a safe root, so a bare `mkdtemp` does not
+    # reproduce the defect — verified, the mutation stayed green against one. A
+    # `git init`-ed directory makes `rev-parse` succeed and hand back the WRONG
+    # root, which is the real failure mode.
+    # `.resolve()`: on macOS `mkdtemp` hands back `/var/folders/…` while
+    # `Path.cwd()` reports the real `/private/var/folders/…`, so the restore
+    # assertion would compare two spellings of the same directory and fail.
+    foreign = Path(tempfile.mkdtemp(prefix="probe-foreign-repo-")).resolve()
+    subprocess.run(["git", "init", "-q", "."], cwd=str(foreign),
+                   capture_output=True, check=True,
+                   env=module.lint_git_ignore.hermetic_git_env(
+                       os.environ, repo_root=foreign))
+    (foreign / "AGENTS.md").write_text("# decoy\n", encoding="utf-8")
+    # The decoy alone is not enough either: `main()` re-chdirs to whatever
+    # `_repo_root()` returns, still reaches check 10e, and emits the same refusal
+    # wording — verified, the mutation stayed green against it. What actually broke
+    # the suite from `/tmp` was `Path().rglob("AGENTS.md")` reaching a **dangling**
+    # `AGENTS.md` left by an unrelated pytest run and dying in `read_text`. So plant
+    # exactly that. With the fix the foreign tree is never walked; without it, this
+    # raises `FileNotFoundError` and the suite cannot report green.
+    (foreign / "sub").mkdir()
+    (foreign / "sub" / "AGENTS.md").symlink_to(foreign / "gone-missing.md")
+    for launch_dir in (REPO_ROOT, foreign):
+        os.chdir(launch_dir)
+        _refusal_branch_cases(module, real_resolver)
+        # Asserted per launch directory, and that is the point: comparing against
+        # the SUITE's own cwd would be vacuous, because CI launches from the repo
+        # root and the helper enters the repo root anyway — the check would pass
+        # whether or not it restored anything. Comparing against the directory the
+        # helper was *called in* has teeth in both iterations.
+        check(f"the in-process block restores the cwd it was called in "
+              f"({'repo root' if launch_dir == REPO_ROOT else 'foreign repo'})",
+              Path.cwd() == launch_dir, f"{Path.cwd()} != {launch_dir}")
+    os.chdir(original_cwd)
+
+    if _CASES < _CASE_FLOOR:
+        _FAILURES.append(
+            f"only {_CASES} cases ran, below the floor of {_CASE_FLOOR}; a run "
+            f"that stops early must not report green"
+        )
+    for f in _FAILURES:
+        sys.stderr.write(f"FAIL {f}\n")
+    if _FAILURES:
+        sys.stderr.write(
+            f"\u2716 lint-agents-md gitignore probes: {len(_FAILURES)} of {_CASES} "
+            f"failed\n"
+        )
+        return 1
+    sys.stderr.write(f"ok — {_CASES} cases passed\n")
+    return 0
+
+
+def _refusal_branch_cases(module, real_resolver) -> None:
+    """The two refusal branches, driven in-process.
+
+    `main()` opens with `os.chdir(_repo_root())`, and `_repo_root()` runs
+    `git rev-parse --show-toplevel` from the CURRENT directory — so this must enter
+    the repository itself, exactly as the subprocess cases do with `cwd=REPO_ROOT`.
+    The `finally` restores the cwd this helper was CALLED in — not the repo root —
+    even if `main()` raises something other than `SystemExit`, which would otherwise
+    strand the process wherever `main()` left it.
+    """
+    entry_cwd = Path.cwd()
     for label, exc, want, must_not in (
         ("git refused the batch",
          module.lint_git_ignore.GitIgnoreError("exit 128: outside repository"),
@@ -256,6 +325,7 @@ def main() -> int:
 
         module.lint_git_ignore.git_ignored_paths = _raising
         buffer = io.StringIO()
+        os.chdir(REPO_ROOT)
         try:
             with contextlib.redirect_stdout(buffer), \
                     contextlib.redirect_stderr(buffer):
@@ -264,7 +334,7 @@ def main() -> int:
             pass
         finally:
             module.lint_git_ignore.git_ignored_paths = real_resolver
-        os.chdir(REPO_ROOT)   # main() may have left us elsewhere
+            os.chdir(entry_cwd)   # main() chdirs and never restores
         emitted = buffer.getvalue()
         check(f"{label}: names its own cause",
               want in emitted, emitted[-700:])
@@ -272,24 +342,6 @@ def main() -> int:
               must_not not in emitted, emitted[-700:])
         check(f"{label}: does NOT claim .gitignore drifted",
               "should be gitignored" not in emitted, emitted[-700:])
-    os.chdir(original_cwd)
-
-    if _CASES < _CASE_FLOOR:
-        _FAILURES.append(
-            f"only {_CASES} cases ran, below the floor of {_CASE_FLOOR}; a run "
-            f"that stops early must not report green"
-        )
-
-    for f in _FAILURES:
-        sys.stderr.write(f"FAIL {f}\n")
-    if _FAILURES:
-        sys.stderr.write(
-            f"✖ lint-agents-md gitignore probes: {len(_FAILURES)} of {_CASES} "
-            f"failed\n"
-        )
-        return 1
-    sys.stderr.write(f"ok — {_CASES} cases passed\n")
-    return 0
 
 
 if __name__ == "__main__":

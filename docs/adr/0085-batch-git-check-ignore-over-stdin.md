@@ -125,20 +125,38 @@ capture harness — goes through one shared helper, `hermetic_git_env`. A second
 implementation is how a fix lands in one place and not the other, and one of
 those places is the path that *writes* the committed baseline.
 
-The scrub sets `GIT_CONFIG_NOSYSTEM=1`, points `GIT_CONFIG_GLOBAL` and
-`GIT_CONFIG_SYSTEM` at an empty file, and unsets `GIT_DIR`, `GIT_WORK_TREE`,
-`GIT_INDEX_FILE`, `GIT_COMMON_DIR`, `GIT_CEILING_DIRECTORIES`,
-`GIT_OBJECT_DIRECTORY`, `GIT_ALTERNATE_OBJECT_DIRECTORIES` and `GIT_CONFIG`.
+The helper does two things, and both halves are load-bearing.
 
-It must also drop **`GIT_CONFIG_COUNT` and its `GIT_CONFIG_KEY_n` /
-`GIT_CONFIG_VALUE_n` pairs**, and that one is easy to miss: it survives
-`GIT_CONFIG_NOSYSTEM` and the redirected config files, and it is the only channel
-that leaks *silently*. Verified — with `GIT_CONFIG_COUNT=1` pointing
-`core.excludesFile` at a hostile file, `check-ignore --stdin -z` reported an extra
-path as ignored and exited **0**. By contrast `GIT_GLOB_PATHSPECS`,
-`GIT_ICASE_PATHSPECS` and `GIT_LITERAL_PATHSPECS` make the subcommand exit 128,
-which the hard-error rule above already catches; they are dropped too, but they
-were never the dangerous case.
+It **removes** all thirteen names in `_LEAKING_GIT_VARS`: `GIT_DIR`,
+`GIT_WORK_TREE`, `GIT_INDEX_FILE`, `GIT_COMMON_DIR`, `GIT_OBJECT_DIRECTORY`,
+`GIT_ALTERNATE_OBJECT_DIRECTORIES`, `GIT_CONFIG`, `GIT_CONFIG_COUNT` (with its
+`GIT_CONFIG_KEY_n` / `GIT_CONFIG_VALUE_n` pairs), `GIT_CONFIG_PARAMETERS`, and the
+four pathspec variables `GIT_GLOB_PATHSPECS`, `GIT_ICASE_PATHSPECS`,
+`GIT_LITERAL_PATHSPECS` and `GIT_NOGLOB_PATHSPECS`.
+
+It **sets** `GIT_CONFIG_NOSYSTEM=1`, points `GIT_CONFIG_GLOBAL` and
+`GIT_CONFIG_SYSTEM` at `/dev/null`, and re-adds `GIT_CONFIG_COUNT=1` with
+`GIT_CONFIG_KEY_0=core.excludesFile` / `GIT_CONFIG_VALUE_0=/dev/null`. Dropping the
+config channels is not sufficient on its own: leaving `core.excludesFile` *unset*
+opens Git's `$XDG_CONFIG_HOME/git/ignore` → `~/.config/git/ignore` fallback, so the
+key has to be pinned, not merely cleared.
+
+`GIT_CEILING_DIRECTORIES` is **set** to the root the helper is handed, together
+with `GIT_DISCOVERY_ACROSS_FILESYSTEM=0`. It is deliberately *not* in the removal
+list. An earlier draft of this decision unset it along with the rest, which
+*widened* repository discovery instead of bounding it — the opposite of the
+intent. The goal is not a clean environment; it is a fenced one.
+
+Two of the removed names are the dangerous ones, and both are easy to miss:
+**`GIT_CONFIG_COUNT` and `GIT_CONFIG_PARAMETERS`**. Both survive
+`GIT_CONFIG_NOSYSTEM` and the redirected config files, and both leak *silently*.
+Verified — with `GIT_CONFIG_COUNT=1` pointing `core.excludesFile` at a hostile
+file, `check-ignore --stdin -z` reported an extra path as ignored and exited **0**.
+`GIT_CONFIG_PARAMETERS` is the higher-precedence member of that family and the
+likelier of the two to be set for real, because it is how `git -c k=v <cmd>`
+propagates into subprocesses and hooks. By contrast the four pathspec variables
+make the subcommand exit 128, which the hard-error rule above already catches;
+they are dropped too, but they were never the dangerous case.
 
 This is not hygiene for its own sake. A `git init`-ed directory still honours
 `core.excludesFile`: with a global ignore file matching `tests/`, a fixture's pack

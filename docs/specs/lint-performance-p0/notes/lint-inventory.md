@@ -312,7 +312,7 @@ it into `<fixture>/tools/` makes `<fixture>` its root. Probed against a
 synthetic catalogue: the unmodified lint ran, five checks passed, all emitted
 paths were **root-relative with no absolute path in either stream**, and three
 consecutive runs produced **byte-identical stdout and byte-identical stderr**.
-That is what makes byte-for-byte comparison across roots viable, and it is why
+That is what makes a reproducible canonical surface across roots viable, and it is why
 the preserved-behaviour contract is a captured baseline rather than a prose
 enumeration.
 
@@ -547,7 +547,7 @@ on a warm cache. All paths relativized.
 | tree-confinement scans | 45 over 16 distinct bases | **16** (one per distinct base) |
 | lazy walk misses (bases not pre-batched) | n/a | **0** |
 | wall clock | 32.35 s | **1.43 s** (≈23× faster) |
-| stdout / stderr | — | **byte-identical** across all 22 captured baselines |
+| stdout / stderr | — | **byte-identical** across all 22 captured baselines, as measured; the gate itself compares the canonical surface |
 
 ### `tools/test-lint-pack-test-boundary.py`, complete suite
 
