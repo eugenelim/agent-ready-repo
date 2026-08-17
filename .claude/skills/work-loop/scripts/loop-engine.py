@@ -576,12 +576,12 @@ _guards_module: object | None = None
 def _guards():
     """Load the sibling `_loop_guards.py` by path, once per process.
 
-    ── This function body is duplicated verbatim in `loop-engine.py` and
-    ── `check-spec-status.py`. That is a decision, not an accident: the loader cannot
-    ── live in the module it loads, and importing this 1800-line argparse CLI from
-    ── `check-spec-status.py` just to borrow it is the coupling the whole change
-    ── exists to avoid. A normalized-source-comparison test keeps the three copies
-    ── from drifting.
+    ── This function body is identical in all three of `loop-cohort.py`,
+    ── `loop-engine.py` and `check-spec-status.py`. That is a decision, not an
+    ── accident: the loader cannot live in the module it loads, and importing
+    ── `loop-cohort.py`'s 1500-line argparse CLI just to borrow it is the coupling
+    ── the whole change exists to avoid. `test_loader_copies_are_structurally_identical`
+    ── compares the three ASTs and keeps them from drifting.
     ──
     ── By path rather than `import _loop_guards`, matching `_statelock()`: a plain
     ── import resolves under file-path invocation but not under the importlib-based
