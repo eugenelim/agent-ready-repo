@@ -64,8 +64,6 @@ TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 
 PHASES = ("implement", "review", "gates-failed")
 WORKTREE_STATUSES = ("ready", "blocked", "failed")
-_MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
-
 CLEAN_SUBSTRING = "Clean — ready to commit."
 # Specialist reviewers (experience-reviewer, frontend-reviewer) emit "SHIP IT"
 # on its own line as their clean verdict instead of CLEAN_SUBSTRING.
@@ -78,36 +76,6 @@ _SHIP_IT_RE = re.compile(r"^SHIP IT\s*$", re.MULTILINE)
 # self-heals on the next. Drop the 40-hex alternative once no in-flight
 # cohort predates core 2.3.0.
 _RE_FINGERPRINT = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
-
-
-def _template_max_implementation_retries(fallback: int = 5) -> int:
-    """Read max_implementation_retries from the bundled state.json template."""
-    try:
-        return int(
-            json.loads(
-                TEMPLATE_PATH.read_text(encoding="utf-8")
-            )["max_implementation_retries"]
-        )
-    except (FileNotFoundError, OSError, KeyError, TypeError, ValueError):
-        return fallback
-
-
-def _template_max_review_retries(fallback: int = 5) -> int:
-    """Read max_review_retries from the bundled state.json template."""
-    try:
-        return int(
-            json.loads(
-                TEMPLATE_PATH.read_text(encoding="utf-8")
-            )["max_review_retries"]
-        )
-    except (FileNotFoundError, OSError, KeyError, TypeError, ValueError):
-        return fallback
-
-
-DEFAULTS: dict = {
-    "max_implementation_retries": _template_max_implementation_retries(),
-    "max_review_retries": _template_max_review_retries(),
-}
 
 
 def stop(reason: str, code: int = 1) -> int:
@@ -126,85 +94,6 @@ def _resolve_spec_dir(raw: str) -> Path:
     if ".." in parts:
         raise ValueError(f"spec-dir must not contain '..': {raw!r}")
     return p
-
-
-def state_path_for(spec_dir: Path) -> Path:
-    return spec_dir / "state.json"
-
-
-def _read_managed_json(path: Path, label: str) -> dict:
-    """Read a bounded regular JSON file without following or racing a symlink."""
-    try:
-        before = os.lstat(path)
-    except FileNotFoundError:
-        raise
-    except OSError as exc:
-        raise ValueError(f"{label} cannot be examined: {exc}") from exc
-    if not stat.S_ISREG(before.st_mode):
-        raise ValueError(f"{label} must be a regular file")
-    if before.st_size > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
-            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
-        )
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        fd = os.open(path, flags)
-    except FileNotFoundError:
-        raise
-    except OSError as exc:
-        raise ValueError(f"{label} cannot be opened safely: {exc}") from exc
-    try:
-        try:
-            opened = os.fstat(fd)
-            if not stat.S_ISREG(opened.st_mode):
-                raise ValueError(f"{label} must be a regular file")
-            identity = (before.st_dev, before.st_ino)
-            if (opened.st_dev, opened.st_ino) != identity:
-                raise ValueError(f"{label} changed while being opened")
-            chunks: list[bytes] = []
-            remaining = _MAX_MANAGED_JSON_BYTES + 1
-            while remaining:
-                chunk = os.read(fd, min(64 * 1024, remaining))
-                if not chunk:
-                    break
-                chunks.append(chunk)
-                remaining -= len(chunk)
-            raw = b"".join(chunks)
-            after_fd = os.fstat(fd)
-        except OSError as exc:
-            raise ValueError(f"{label} could not be read safely: {exc}") from exc
-    finally:
-        os.close(fd)
-    try:
-        after_path = os.lstat(path)
-    except OSError as exc:
-        raise ValueError(f"{label} changed while being read") from exc
-    if (
-        (after_fd.st_dev, after_fd.st_ino) != identity
-        or (after_path.st_dev, after_path.st_ino) != identity
-    ):
-        raise ValueError(f"{label} changed while being read")
-    if len(raw) > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
-            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
-        )
-    try:
-        data = json.loads(raw.decode("utf-8"))
-    except UnicodeDecodeError as exc:
-        raise ValueError(f"{label} is not valid UTF-8") from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"{label} malformed: {exc.msg} at line {exc.lineno}") from exc
-    if not isinstance(data, dict):
-        raise ValueError(f"{label} root must be an object")
-    return data
-
-
-def read_state(spec_dir: Path) -> dict:
-    path = state_path_for(spec_dir)
-    try:
-        return _read_managed_json(path, "state.json")
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(f"state.json missing at {path}") from exc
 
 
 def write_state_atomic(spec_dir: Path, state: dict) -> None:
@@ -311,33 +200,183 @@ def run_git(args: list[str], cwd: Path | None = None) -> subprocess.CompletedPro
     )
 
 
-# ── hashing helpers ───────────────────────────────────────────────────────
+# ── shared read-only guard API ─────────────────────────────────────────────
+#
+# The guard decisions, the bounded readers, the canonical-contract hashing and the
+# status parser loader all live in `_loop_guards.py` now, so `loop-engine.py` can
+# call them in-process instead of starting an interpreter per guard. This file keeps
+# its CLI surface and delegates the deciding.
+
+
+class GuardsUnavailable(RuntimeError):
+    """`_loop_guards.py` could not be loaded; every verb must refuse."""
+
+
+_guards_module: object | None = None
+_guards_error: str | None = None
+
+# The symbols a load must provide. Checked against the loaded module rather than
+# trusted, because a file truncated at a clean statement boundary loads WITHOUT
+# raising and would otherwise hand back a half-configured guard.
+_GUARDS_REQUIRED = (
+    "GuardResult", "read_managed_json", "read_managed_text", "read_state",
+    "state_path_for", "canonical_contract", "sha256_canonical_contract",
+    "UnreadableArtifact", "read_md_status", "assert_status_legal",
+    "validate_run_id", "DEFAULTS",
+)
+
+
+def load_guards():
+    """Load the sibling `_loop_guards.py` by path, once per process.
+
+    ── This function body is duplicated verbatim in `loop-engine.py` and
+    ── `check-spec-status.py`. That is a decision, not an accident: the loader cannot
+    ── live in the module it loads, and importing this 1800-line argparse CLI from
+    ── `check-spec-status.py` just to borrow it is the coupling the whole change
+    ── exists to avoid. A normalized-source-comparison test keeps the three copies
+    ── from drifting.
+    ──
+    ── By path rather than `import _loop_guards`, matching `_statelock()`: a plain
+    ── import resolves under file-path invocation but not under the importlib-based
+    ── test harness, which does not put this directory on `sys.path`.
+    ──
+    ── NOT registered in `sys.modules`, also matching `_statelock()`. `exec_module`
+    ── does not remove a registered entry when the module body raises, so
+    ── registering would mean hand-rolling the failed-load cleanup that `import`
+    ── does for free — and would make the module a session-global singleton whose
+    ── memoised parser leaks between test files.
+    ──
+    ── `sys.dont_write_bytecode` is saved and restored to its PRIOR value, never to
+    ── `False`, so a host interpreter started with `-B` keeps its setting.
+    """
+    global _guards_module
+    if _guards_module is not None:
+        return _guards_module
+    path = SCRIPT_DIR / "_loop_guards.py"
+    try:
+        info = os.lstat(path)
+    except OSError as exc:
+        raise GuardsUnavailable(
+            f"cannot load {path}: {exc}. Restore the file or re-run `make build-self`."
+        ) from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise GuardsUnavailable(
+            f"cannot load {path}: not a regular file (symlink or device). "
+            "Restore the file or re-run `make build-self`."
+        )
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location("_loop_guards", str(path))
+        if spec is None or spec.loader is None:
+            raise GuardsUnavailable(f"cannot load {path}: no import spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except GuardsUnavailable:
+        raise
+    except BaseException as exc:
+        raise GuardsUnavailable(
+            f"cannot load {path}: {type(exc).__name__}: {exc}. Restore the file or "
+            "re-run `make build-self`."
+        ) from exc
+    finally:
+        sys.dont_write_bytecode = previous
+    if not getattr(module, "_MODULE_COMPLETE", False):
+        raise GuardsUnavailable(
+            f"cannot load {path}: module is truncated (no completeness marker). "
+            "Restore the file or re-run `make build-self`."
+        )
+    missing = [n for n in _GUARDS_REQUIRED if not hasattr(module, n)]
+    if missing:
+        raise GuardsUnavailable(
+            f"cannot load {path}: incomplete module, missing {missing}. Restore the "
+            "file or re-run `make build-self`."
+        )
+    _guards_module = module
+    return _guards_module
+
+
+def _guards_unavailable(*_args, **_kwargs):
+    """Bound in place of every relocated callable when the load fails.
+
+    RAISES rather than returning a reason. A stub that returned one would let a verb
+    which skipped the sentinel check keep going and write that string where a digest
+    belongs — `cmd_approve_plan` would store it as `approved_spec_hash`, and a later
+    drift comparison between two stub-produced values would compare *equal* and pass
+    vacuously. Raising when called is safe; only *import* must not raise.
+    """
+    raise GuardsUnavailable(_guards_error or "_loop_guards.py is unavailable")
+
+
+try:
+    _g = load_guards()
+except GuardsUnavailable as exc:
+    # Import must not raise: `test_loop_cohort_max_iter_single_source.py` reads
+    # `mod.DEFAULTS` straight after `exec_module` with no verb invoked, so the
+    # re-binds below have to execute. `main()` checks the sentinel at its single
+    # dispatch chokepoint and refuses before any verb body runs.
+    _g = None
+    _guards_error = str(exc)
+    GuardResult = None
+    DEFAULTS = {}
+    read_managed_json = read_managed_text = _guards_unavailable
+    read_state = state_path_for = _guards_unavailable
+    canonical_contract = sha256_canonical_contract = _guards_unavailable
+    read_md_status = assert_status_legal = validate_run_id = _guards_unavailable
+    _template_max_implementation_retries = _template_max_review_retries = _guards_unavailable
+    _sha256_bytes = _lint_spec_status = _guards_unavailable
+    UnreadableArtifact = GuardsUnavailable
+    _MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
+    _STATUS_PLACEHOLDER = "<loop-cohort:status>"
+    _BOTH_CAUSES = ""
+    _LEGAL_AFTER_APPROVAL = {}
+else:
+    # Re-bound at module level so no call site in this file changes, and so the
+    # existing tests that reach for these attributes keep working.
+    GuardResult = _g.GuardResult
+    DEFAULTS = _g.DEFAULTS
+    read_managed_json = _read_managed_json = _g.read_managed_json
+    read_managed_text = _g.read_managed_text
+    read_state = _g.read_state
+    state_path_for = _g.state_path_for
+    canonical_contract = _g.canonical_contract
+    sha256_canonical_contract = _g.sha256_canonical_contract
+    read_md_status = _read_md_status = _g.read_md_status
+    assert_status_legal = _g.assert_status_legal
+    validate_run_id = _g.validate_run_id
+    UnreadableArtifact = _g.UnreadableArtifact
+    _sha256_bytes = _g._sha256_bytes
+    _lint_spec_status = _g._lint_spec_status
+    _template_max_implementation_retries = _g._template_max_implementation_retries
+    _template_max_review_retries = _g._template_max_review_retries
+    _MAX_MANAGED_JSON_BYTES = _g._MAX_MANAGED_JSON_BYTES
+    _STATUS_PLACEHOLDER = _g._STATUS_PLACEHOLDER
+    _BOTH_CAUSES = _g._BOTH_CAUSES
+    _LEGAL_AFTER_APPROVAL = _g._LEGAL_AFTER_APPROVAL
+
+
+def _validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> int | None:
+    """CLI adapter: map the shared helper's reason to this tool's `stop()` contract.
+
+    Kept at this signature deliberately. Six mutation verbs call it, and rewriting
+    those call sites is outside this change — the `Ask first` rail covers a mutation
+    verb's body and accepted arguments, and refactoring a helper they share without
+    touching any of them sits outside it.
+    """
+    reason = validate_run_id(state, expect_run_id, verb=verb)
+    return None if reason is None else stop(reason)
+
+
+def _assert_status_legal(verb: str, *paths: Path) -> int | None:
+    """CLI adapter: map the shared helper's reason to this tool's `stop()` contract."""
+    reason = assert_status_legal(verb, *paths)
+    return None if reason is None else stop(reason)
 
 # Lazy handle on the sibling lint-spec-status.py. Status and acceptance-criterion
 # recognition has exactly one implementation in this repo — a shipped spec
 # (docs/specs/loop-approved-spec-state, Constrained by ADR-0061) requires every
 # status read to go through its `parse_status`, and a second copy of the AC
 # regexes is how the two silently disagree about what an AC line is.
-_lint_module: object | None = None
-
-
-def _lint_spec_status():
-    global _lint_module
-    if _lint_module is None:
-        lint_path = Path(__file__).resolve().parent / "lint-spec-status.py"
-        spec = importlib.util.spec_from_file_location("_lint_spec_status", str(lint_path))
-        if spec is None or spec.loader is None:
-            raise ImportError(f"loop-cohort: cannot load {lint_path}")
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        _lint_module = module
-    return _lint_module
-
-
-def _sha256_bytes(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()
-
-
 # The approved baseline pins the *scope a human approved*. It deliberately does
 # not pin the two field families this skill mandates writing after approval —
 # the preamble status token (SKILL.md: `Implementing` before code, `Shipped` at
@@ -347,171 +386,7 @@ def _sha256_bytes(data: bytes) -> str:
 #
 # Everything else stays pinned, including anything else on the status line: a
 # `- **Status:** Implementing — scope now also covers X` still moves the digest.
-_STATUS_PLACEHOLDER = "<loop-cohort:status>"
-# A heading, or the bold prose lead-in two specs here use instead. Missing the
-# latter would leave those specs with no normalization at all — i.e. AC5
-# failing for them by construction, the defect this spec exists to fix.
-_AC_HEADING_RE = re.compile(
-    r"^ {0,3}(?:#{2,3}\s+|\*\*)Acceptance\s+Criteria\b", re.IGNORECASE
-)
-# A region closes on the next heading at its own depth or shallower — a sibling
-# or an ancestor — and never on a deeper one. That single rule replaces the
-# hand-cased pair it grew out of: H3 subheadings sit inside H2-opened AC
-# sections all over this repo and must not close them, while an H3-opened
-# section is closed by the next H3, which a fixed `#{1,2}` test missed entirely.
-# A bold lead-in has no depth, so it takes _BOLD_DEPTH — deeper than any
-# heading, so every heading closes it — and also closes on the next bold lead-in,
-# without which it would run to EOF and un-pin every later checkbox, including a
-# `Never do` item, which is the scope the pin exists to protect.
-_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})[ \t]")
-_BOLD_LEAD_RE = re.compile(r"^ {0,3}\*\*")
-_BOLD_DEPTH = 7
-
-# AC10: a mismatch has two possible causes and the verb cannot tell them apart,
-# so it names both rather than asserting the one that is usually wrong.
-_BOTH_CAUSES = (
-    "either the approved scope changed, or this baseline was pinned before "
-    "canonical hashing landed. For the second case, recover the cohort only: "
-    "(1) restore `Status: Approved` in BOTH spec.md and plan.md — approve-plan "
-    "refuses unless both read Approved; (2) `loop-cohort reset <spec-dir>`; "
-    "(3) `loop-cohort init <spec-dir> --run-id <run_id>`, taking run_id from "
-    "`loop-engine status <spec-dir> --json`; (4) `loop-cohort approve-plan "
-    "<spec-dir> --expect-run-id <run_id>` then `loop-cohort schedule <spec-dir> "
-    "--expect-run-id <run_id>`; "
-    "(5) restore the Status you were on. Do NOT run `loop-engine reset` — "
-    "`plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no "
-    "state-setting verb, so resetting it strands the run. Note the reset clears "
-    "the retry counters and the stasis baseline, and re-running approve-plan "
-    "re-pins whatever is on disk, so it is a re-approval in substance"
-)
-
-
-def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
-    """Canonical form of spec.md / plan.md for approval pinning.
-
-    Normalizes exactly four things: CRLF/CR → LF; per-line trailing whitespace;
-    the preamble status *token*; and the bracket contents of a checkbox.
-    """
-    text = text.replace("\r\n", "\n").replace("\r", "\n")
-    lines = text.split("\n")
-
-    lint = _lint_spec_status()
-    # Newline-preserving comment strip. `parse_status` uses a plain sub() with
-    # re.DOTALL, which collapses a multiline comment to nothing and shifts every
-    # later line index — fine when you only want the token, wrong here, where
-    # the index has to map back to the raw line being rewritten.
-    cleaned = lint._HTML_COMMENT_RE.sub(
-        lambda m: "\n" * m.group(0).count("\n"), text
-    ).split("\n")
-
-    for i, cleaned_line in enumerate(cleaned):
-        if lint._SECTION_HEADING_RE.match(cleaned_line):
-            break  # preamble ends at the first section heading
-        if cleaned_line.lstrip().startswith("#"):
-            continue
-        if not lint._STATUS_RE.search(cleaned_line):
-            continue
-        # Rewrite the *raw* line, not the comment-stripped one.
-        raw = lines[i]
-        m = lint._STATUS_RE.search(raw)
-        if m is None:
-            break
-        token = lint.extract_status_token(m.group(1))
-        if token:
-            # Span-bounded splice of the token only. A str.replace would also
-            # rewrite the token where it recurs inside the trailing vocabulary
-            # comment (`<!-- Draft | Approved | Implementing | ... -->`) that
-            # every spec and plan the template emits carries — making each
-            # status normalize differently. Splicing _STATUS_RE's whole group(1) span
-            # would swallow appended free text and defeat the pin.
-            start = m.start(1)
-            lines[i] = raw[:start] + _STATUS_PLACEHOLDER + raw[start + len(token):]
-        break
-
-    # Which checkboxes count as bookkeeping depends on the artifact, so the
-    # caller says. A spec's progress marks live in its Acceptance Criteria
-    # section; a checkbox under `## Boundaries` is a `Never do` item, which is
-    # precisely the scope the pin protects. This is a forward invariant: no
-    # spec carries such a checkbox today.
-    # A plan has no such section: every checkbox in it is task progress, and
-    # four plans here carry them, so a plan is normalized file-wide.
-    #
-    # Case-insensitive on purpose: `lint-spec-status.py` matches `Acceptance
-    # Criteria` exactly, so its own AC extraction silently returns nothing for
-    # the specs that spell it with a lowercase `c`. Inheriting that bug here
-    # would break this normalization for exactly those specs. Tracked as
-    # `spec-ac-heading-casing-silent-gate`.
-    in_ac = not ac_section_only
-    opened_depth = _BOLD_DEPTH
-    fence_char = fence_len = None
-    for i, line in enumerate(lines):
-        # CommonMark fence semantics, not a toggle. A toggle desyncs on a
-        # nested fence — a ```toml inside a ```markdown example flips the state
-        # back — and one real plan in this tree has an odd fence count, which
-        # left the tracker stuck open and disabled normalization for the rest of
-        # the file. Only a bare run of the opening character, at least as long,
-        # closes; a line carrying an info string always opens.
-        stripped = line.lstrip()
-        marker = stripped[:1]
-        if marker in ("`", "~"):
-            run = len(stripped) - len(stripped.lstrip(marker))
-            info = stripped[run:].strip()
-            if fence_char is None:
-                if run >= 3:
-                    fence_char, fence_len = marker, run
-                    continue
-            elif marker == fence_char and run >= fence_len and not info:
-                fence_char = fence_len = None
-                continue
-        if fence_char is not None:
-            continue
-        if ac_section_only and _AC_HEADING_RE.match(line):
-            in_ac = True
-            opener = _HEADING_RE.match(line)
-            opened_depth = len(opener.group(1)) if opener else _BOLD_DEPTH
-            continue
-        if ac_section_only and in_ac:
-            closer = _HEADING_RE.match(line)
-            if (closer and len(closer.group(1)) <= opened_depth) or (
-                opened_depth == _BOLD_DEPTH and _BOLD_LEAD_RE.match(line)
-            ):
-                in_ac = False
-        if in_ac and lint._AC_DONE_RE.match(line):
-            # Bracket contents only — leading whitespace and the bullet run stay
-            # byte-for-byte, so re-indenting a criterion still moves the digest.
-            j = line.index("[")
-            lines[i] = line[:j + 1] + " " + line[j + 2:]
-
-    return "\n".join(line.rstrip() for line in lines)
-
-
-def sha256_canonical_contract(path: Path) -> str:
-    """SHA-256 of canonical_contract(<spec.md | plan.md>)."""
-    return _sha256_bytes(
-        canonical_contract(
-            path.read_text(encoding="utf-8"),
-            ac_section_only=(path.name != "plan.md"),
-        ).encode("utf-8")
-    )
-
-
 # ── run_id / schema_version validation ───────────────────────────────────
-
-
-def _validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> int | None:
-    """Return None on success, or a stop() error code on schema/identity mismatch."""
-    sv = state.get("schema_version")
-    if sv != 1:
-        return stop(
-            f"{verb}: unsupported schema_version={sv!r} (expected 1); run reset pair"
-        )
-    stored = state.get("run_id")
-    if stored != expect_run_id:
-        return stop(
-            f"{verb}: --expect-run-id mismatch (stored={stored!r}, "
-            f"supplied={expect_run_id!r})"
-        )
-    return None
 
 
 # ── scheduler (wave-scheduled supervisor mode) ────────────────────────────
@@ -806,65 +681,6 @@ def cmd_reset(args: argparse.Namespace) -> int:
 
 # ── approve-plan ──────────────────────────────────────────────────────────
 
-class UnreadableArtifact(Exception):
-    """The artifact exists but could not be read as UTF-8 markdown."""
-
-
-def _read_md_status(path: Path) -> str | None:
-    """Return the canonical status token, or None when the file has none.
-
-    None means "no status line", which callers legitimately skip. A file that
-    cannot be *read* is a different thing and must not be silently skipped —
-    it raises, so the caller stops with a reason instead of proceeding on a
-    guard that quietly did nothing.
-    """
-    try:
-        text = path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as exc:
-        raise UnreadableArtifact(f"{path.name}: {exc}") from exc
-    try:
-        return _lint_spec_status().parse_status(text)
-    except ImportError:
-        return None
-
-
-# Normalizing the status token out of the hash also removed the incidental
-# detection of a *regressed* status: an approved run whose spec.md went back to
-# Draft used to trip the byte compare. Assert it directly instead, at every verb
-# that reads a pinned artifact — a compensating control that covers one of three
-# call sites is not a compensating control.
-#
-# An absent or unparseable token is skipped, not stopped: plan fixtures
-# legitimately carry no status line, and this must not become a new way for a
-# CODE-* pre-guard to go red.
-_LEGAL_AFTER_APPROVAL = {
-    "spec.md": ("Approved", "Implementing", "Shipped"),
-    "plan.md": ("Approved", "Executing", "Done"),
-}
-
-
-def _assert_status_legal(verb: str, *paths: Path) -> int | None:
-    """Return a stop() code when a pinned artifact's status has regressed."""
-    for path in paths:
-        allowed = _LEGAL_AFTER_APPROVAL.get(path.name)
-        if allowed is None or not path.exists():
-            continue
-        try:
-            token = _read_md_status(path)
-        except UnreadableArtifact as exc:
-            return stop(f"{verb}: {exc}")
-        # `extract_status_token` returns "" — not None — when the value is only
-        # an HTML comment, so `is not None` would stop on it. AC9's promise is
-        # that an absent *or unparseable* token is skipped, and that promise is
-        # the whole safety argument for wiring this into a CODE-* pre-guard.
-        if token and token not in allowed:
-            return stop(
-                f"{verb}: {path.name} Status is {token!r}; expected one of "
-                f"{list(allowed)} after approval"
-            )
-    return None
-
-
 @_locked("approve-plan")
 def cmd_approve_plan(args: argparse.Namespace) -> int:
     try:
@@ -892,7 +708,12 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         try:
             spec_hash = sha256_canonical_contract(spec_path)
             plan_hash = sha256_canonical_contract(plan_path)
-        except (OSError, UnicodeDecodeError) as exc:
+        except (OSError, UnicodeDecodeError, ValueError) as exc:
+            # ValueError is the bounded reader's failure vocabulary (oversized,
+            # non-regular, symlinked, replaced mid-read). This verb holds the cohort
+            # state lock and `with_state_lock` catches only StateLockError, while
+            # `main()` catches only KeyboardInterrupt — so without this clause an
+            # unsafe artifact is a traceback out of a lock-holding process.
             return stop(f"approve-plan: cannot read the approved artifacts: {exc}")
         stored_spec_hash = state.get("approved_spec_hash", "")
         stored_plan_hash = state.get("approved_plan_hash", "")
@@ -937,8 +758,14 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         )
 
     state["plan_review_status"] = "approved"
-    state["approved_spec_hash"] = sha256_canonical_contract(spec_path)
-    state["approved_plan_hash"] = sha256_canonical_contract(plan_path)
+    try:
+        state["approved_spec_hash"] = sha256_canonical_contract(spec_path)
+        state["approved_plan_hash"] = sha256_canonical_contract(plan_path)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        # Previously unguarded, and it WRITES what it computes — so an unsafe
+        # artifact would either traceback out of the lock or, with a returning
+        # fallback stub, store a non-digest as the approved baseline.
+        return stop(f"approve-plan: cannot pin the approved artifacts: {exc}")
     write_state_atomic(spec_dir, state)
     print(
         f"loop-cohort: approve-plan for {spec_dir.name} "
@@ -1059,7 +886,12 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
     plan_path = plan_path_canonical
     if not plan_path.exists():
         return stop(f"plan not found at {plan_path}")
-    plan_text = plan_path.read_text(encoding="utf-8")
+    try:
+        plan_text = read_managed_text(plan_path, "plan.md")
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        # Was a raw `read_text()` under `@_locked("schedule")`: unbounded, symlink-
+        # following, and a FIFO here blocked the cohort lock until it went stale.
+        return stop(f"schedule: cannot read {plan_path.name}: {exc}")
     ordered, deps = parse_plan(plan_text)
     if not ordered:
         return stop(f"no '## T<n>' or '### T<n>' tasks found in {plan_path}")
@@ -1094,7 +926,10 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
                 "(Touches: screen — serialize-only, never a greenlight)"
             )
 
-    plan_hash = sha256_canonical_contract(plan_path)
+    try:
+        plan_hash = sha256_canonical_contract(plan_path)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        return stop(f"schedule: cannot hash {plan_path.name}: {exc}")
     state["plan_hash"] = plan_hash
     state["schedule_waves"] = waves
     state["current_wave_index"] = 0
@@ -1810,6 +1645,12 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    # One chokepoint, not ~20 verb entries. Every verb reaches its body through this
+    # line, so a missed sentinel check is impossible here in a way it is not when the
+    # check is copied into each verb — and a verb that slipped through would run on
+    # stub callables that raise, which is loud but later than it needs to be.
+    if _g is None:
+        return stop(_guards_error or "_loop_guards.py is unavailable")
     try:
         return args.func(args)
     except KeyboardInterrupt:

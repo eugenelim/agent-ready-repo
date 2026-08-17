@@ -1,0 +1,792 @@
+"""_loop_guards — the work-loop's shared read-only guard API.
+
+`loop-engine.py transition` used to shell out to `loop-cohort.py` and
+`check-spec-status.py` for every read-only FSM guard, costing up to three extra
+Python interpreters per transition. The guard *decisions* live here now, so the
+engine and those CLIs call one implementation and cannot drift into disagreeing
+about whether a transition is legal.
+
+Contract — every public function in this module:
+
+  * takes explicit typed arguments and returns a `GuardResult`;
+  * prints NOTHING to stdout or stderr;
+  * parses no arguments, reads no `sys.argv`, never calls `sys.exit`;
+  * mutates no state file and creates no file anywhere;
+  * never spawns a process and never opens a socket.
+
+Two named exceptions to the first bullet, kept because their six mutation-verb
+callers consume a reason string directly and rewriting those call sites is out of
+scope: `validate_run_id` and `assert_status_legal` return `str | None`.
+
+`spec_dir` precondition: callers pass an absolute, already-resolved,
+already-confined `Path`. Confinement stays with the caller that owns it —
+`loop-engine._resolve_spec_dir` (repo-root anchored), `loop-cohort._resolve_spec_dir`
+(`..`-rejecting), and `check-spec-status.py`'s bare `resolve()`, which is the
+weakest of the three and stays that way under its frozen argument surface. What a
+callee can actually check, it does: that `spec_dir` exists and is a directory.
+Re-testing "absolute, no `..`" would be dead code, because every caller resolves
+first.
+
+NOTE ON `from __future__ import annotations` — deliberately absent, unlike every
+sibling script. `GuardResult` is a frozen dataclass, and under future-annotations
+`dataclasses` resolves the defining module via `sys.modules.get(cls.__module__)`
+with no `None` guard — so class creation raises `AttributeError` in a module loaded
+by `exec_module` without being registered in `sys.modules`. Registering instead
+would mean hand-rolling the failed-load cleanup that `import` does for free, and
+would make this module a session-global singleton whose memoised parser leaks
+across tests. PEP 604 unions evaluate natively above the 3.11 floor, so the import
+buys nothing here. Probe-verified in both directions.
+
+Every file read goes through `read_managed_json` / `read_managed_text`, which
+`lstat`, require a regular file, open `O_RDONLY | O_NOFOLLOW | O_NONBLOCK`, re-check
+type and dev/ino on the descriptor, and cap the read. `O_NONBLOCK` is load-bearing,
+not defensive: the type pre-check is path-based and racy, and `os.open` on a FIFO
+without it blocks forever — which, in-process, would block inside the engine's
+critical section until the lock went stale and a second writer was admitted.
+
+Python 3.11+ standard library only. No third-party imports, no packaging, no
+installation.
+"""
+
+import contextlib
+import functools
+import hashlib
+import importlib.util
+import io
+import json
+import os
+import re
+import stat
+import sys
+from collections.abc import Mapping
+from dataclasses import dataclass
+from pathlib import Path
+
+__all__ = [
+    # result type
+    "GuardResult",
+    # bounded, symlink-safe readers
+    "read_managed_json",
+    "read_managed_text",
+    "read_state",
+    "state_path_for",
+    # canonical contract hashing
+    "canonical_contract",
+    "sha256_canonical_contract",
+    # status parsing + legality
+    "UnreadableArtifact",
+    "read_md_status",
+    "assert_status_legal",
+    "validate_run_id",
+    "contained",
+    "contained_reason",
+    # retry caps
+    "DEFAULTS",
+]
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
+
+
+# ── result type ───────────────────────────────────────────────────────────
+
+
+@dataclass(frozen=True)
+class GuardResult:
+    """The outcome of one read-only guard.
+
+    `ok` and `reason` cannot disagree: `__post_init__` raises when they do. That
+    matters because the pre-existing convention in `loop-engine.py` was "None on
+    success, a non-empty string on failure", so an adapter written `if
+    result.reason:` would read an `ok=False, reason=None` result — the natural
+    output of a containment bug or a missed branch — as success. Adapters branch on
+    `ok`.
+
+    `ValueError`, not `assert`: `-O` / `PYTHONOPTIMIZE` strips assertions, and this
+    is the invariant the no-silent-success guarantee rests on.
+    """
+
+    ok: bool
+    reason: str | None = None
+    message: str | None = None
+    data: dict | None = None
+
+    def __post_init__(self):
+        if self.ok != (self.reason is None):
+            raise ValueError(
+                "GuardResult invariant violated: ok must be True exactly when "
+                f"reason is None (ok={self.ok!r}, reason={self.reason!r})"
+            )
+
+
+# Marker prefix distinguishing a crash-refusal from a policy refusal. An operator
+# reading `internal-error:` knows the guard could not decide, rather than that it
+# decided against them.
+INTERNAL_ERROR = "internal-error"
+
+_MAX_REASON_CHARS = 400
+
+
+def _one_line(text: str) -> str:
+    """Collapse whitespace and cap length. Reasons are a one-line CLI contract."""
+    collapsed = " ".join(str(text).split())
+    if len(collapsed) > _MAX_REASON_CHARS:
+        collapsed = collapsed[: _MAX_REASON_CHARS - 1] + "\u2026"
+    return collapsed
+
+
+def contained_reason(fn):
+    """Containment for the two `None`-means-proceed helpers on the mutation path.
+
+    `validate_run_id` and `assert_status_legal` return `str | None`, where `None`
+    means "legal, proceed". They therefore cannot use `contained`: a `GuardResult`
+    would be read as a failure by every caller, and — far worse — any containment
+    that resolved to `None` would be `approve-plan` sailing past a check that never
+    ran. That is the fail-open shape AC14 removes from the status parser, and it must
+    not be reintroduced on the write side.
+
+    So this wrapper converts an escaping `Exception` into a **non-empty reason**,
+    never `None`. Leaving them unwrapped is not equivalent: the known failure classes
+    are already handled inside, but an unexpected one would propagate as a traceback
+    out of a lock-holding mutation verb, which is precisely what the child process
+    used to prevent.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            result = fn(*args, **kwargs)
+        except Exception as exc:  # noqa: BLE001 — the containment boundary itself
+            return _one_line(f"{INTERNAL_ERROR}: {type(exc).__name__}: {exc}")
+        if result is not None and not str(result).strip():
+            # A blank reason would read as a refusal with no cause. Never emit one.
+            return f"{INTERNAL_ERROR}: {fn.__name__} produced an empty reason"
+        return result
+
+    return wrapper
+
+
+def contained(fn):
+    """Turn any escaping `Exception` into a refusal.
+
+    This restores what the child-process boundary used to provide for free: its exit
+    code converted every unexpected exception into a refusal, so nothing reached the
+    caller as a traceback. In-process there is no such boundary, and an
+    `OverflowError` from `int(float("inf"))` on a malformed retry cap would surface
+    out of a process holding the engine-state lock.
+
+    `Exception` only. `BaseException` — `KeyboardInterrupt`, `SystemExit` — passes
+    through untouched. Lock-integrity exceptions need no clause here: this module
+    never acquires a lock, so `_statelock`'s `StateLockLost` cannot originate inside
+    a contained call; `loop-cohort.with_state_lock`'s own handler remains its only
+    one. Naming the class would force this layer to import the lock module, which
+    its import allowlist forbids.
+
+    The reason never carries raw artifact content — only an exception type and a
+    message — because a refusal is printed to a stderr the agent captures.
+    """
+
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        try:
+            return fn(*args, **kwargs)
+        except Exception as exc:  # noqa: BLE001 — the containment boundary itself
+            return GuardResult(
+                ok=False,
+                reason=_one_line(f"{INTERNAL_ERROR}: {type(exc).__name__}: {exc}"),
+            )
+
+    return wrapper
+
+
+# ── managed-read cap ────────────────────────────────────────────────────
+
+_MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
+
+
+# ── template readers + DEFAULTS ─────────────────────────────────────────
+
+def _template_retry_cap(field: str, fallback: int) -> int:
+    """Read one retry cap from the bundled `assets/state.json` template.
+
+    The cap is single-sourced in the template — the adopter-visible knob — so this
+    reads it rather than hard-coding a duplicate. The `fallback` default is the one
+    sanctioned duplicate, and `test_loop_cohort_max_iter_single_source.py` polices it
+    against the template.
+
+    `FileNotFoundError` ONLY falls back. The original caught
+    `(FileNotFoundError, OSError, KeyError, TypeError, ValueError)`, and routing this
+    read through the bounded reader would have folded every integrity failure —
+    oversized, non-regular, symlinked, replaced mid-read — into that same silent
+    5/5 default. That is the identical fail-open shape as the parser's old
+    `except ImportError: return None`, so it refuses instead. A genuinely absent
+    template (an adopter tree that ships none) still falls back.
+    """
+    try:
+        raw = read_managed_json(TEMPLATE_PATH, "assets/state.json")
+    except FileNotFoundError:
+        return fallback
+    try:
+        return int(raw[field])
+    except (KeyError, TypeError, ValueError) as exc:
+        raise ValueError(
+            f"assets/state.json has no usable {field}: {exc}"
+        ) from exc
+
+
+def _template_max_implementation_retries(fallback: int = 5) -> int:
+    """Read max_implementation_retries from the bundled state.json template."""
+    return _template_retry_cap("max_implementation_retries", fallback)
+
+
+def _template_max_review_retries(fallback: int = 5) -> int:
+    """Read max_review_retries from the bundled state.json template."""
+    return _template_retry_cap("max_review_retries", fallback)
+
+
+class _LazyDefaults(Mapping):
+    """Eagerly BOUND, lazily POPULATED.
+
+    Both properties are required and they pull against each other. Eager binding:
+    `test_loop_cohort_max_iter_single_source.py` does `mod.DEFAULTS[...]` immediately
+    after `exec_module`, with no verb invoked, so a plain function or
+    `cached_property` breaks it. Lazy population: importing this module must perform
+    no file I/O, because the first guard call happens inside the engine's critical
+    section and an uncapped template read there is exactly the unbounded hold this
+    change exists to remove.
+
+    A `Mapping` rather than a dict subclass so there is no way to end up with a
+    half-populated dict that reads as complete.
+    """
+
+    _KEYS = ("max_implementation_retries", "max_review_retries")
+
+    def __init__(self):
+        self._values: dict | None = None
+
+    def _load(self) -> dict:
+        if self._values is None:
+            self._values = {
+                "max_implementation_retries": _template_max_implementation_retries(),
+                "max_review_retries": _template_max_review_retries(),
+            }
+        return self._values
+
+    def __getitem__(self, key):
+        return self._load()[key]
+
+    def __iter__(self):
+        return iter(self._KEYS)
+
+    def __len__(self):
+        return len(self._KEYS)
+
+    def __repr__(self):
+        return f"_LazyDefaults({self._values!r})" if self._values else "_LazyDefaults(unloaded)"
+
+
+DEFAULTS = _LazyDefaults()
+
+
+# ── state paths + managed JSON read ─────────────────────────────────────
+
+def state_path_for(spec_dir: Path) -> Path:
+    return spec_dir / "state.json"
+
+
+def _read_managed_bytes(path: Path, label: str) -> bytes:
+    """Read a bounded regular file's bytes without following or racing a symlink.
+
+    The shared descriptor discipline behind both public readers, so JSON state files
+    and Markdown artifacts cannot drift apart on safety. Unchanged from the original
+    apart from `O_NONBLOCK` below: lstat, require S_ISREG, open, re-check type and
+    dev/ino on the descriptor, cap the read, and re-verify identity afterwards so a
+    file replaced mid-read is refused rather than silently half-read.
+    """
+    try:
+        before = os.lstat(path)
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise ValueError(f"{label} cannot be examined: {exc}") from exc
+    if not stat.S_ISREG(before.st_mode):
+        raise ValueError(f"{label} must be a regular file")
+    if before.st_size > _MAX_MANAGED_JSON_BYTES:
+        raise ValueError(
+            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
+        )
+    # O_NONBLOCK is load-bearing, not defensive. The S_ISREG check above is
+    # path-based and therefore racy: swap the regular file for a FIFO between
+    # the lstat and this open, and `os.open` blocks forever waiting for a
+    # writer, so the post-open type re-check below never runs. In-process that
+    # block sits inside the engine's critical section until the lock is judged
+    # stale and a second writer is admitted — the lost update the lock exists
+    # to prevent. With O_NONBLOCK the open returns immediately and the fstat
+    # rejects it. Verified: no-op for regular files, immediate for a FIFO.
+    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+    try:
+        fd = os.open(path, flags)
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise ValueError(f"{label} cannot be opened safely: {exc}") from exc
+    try:
+        try:
+            opened = os.fstat(fd)
+            if not stat.S_ISREG(opened.st_mode):
+                raise ValueError(f"{label} must be a regular file")
+            identity = (before.st_dev, before.st_ino)
+            if (opened.st_dev, opened.st_ino) != identity:
+                raise ValueError(f"{label} changed while being opened")
+            chunks: list[bytes] = []
+            remaining = _MAX_MANAGED_JSON_BYTES + 1
+            while remaining:
+                chunk = os.read(fd, min(64 * 1024, remaining))
+                if not chunk:
+                    break
+                chunks.append(chunk)
+                remaining -= len(chunk)
+            raw = b"".join(chunks)
+            after_fd = os.fstat(fd)
+        except OSError as exc:
+            raise ValueError(f"{label} could not be read safely: {exc}") from exc
+    finally:
+        os.close(fd)
+    try:
+        after_path = os.lstat(path)
+    except OSError as exc:
+        raise ValueError(f"{label} changed while being read") from exc
+    if (
+        (after_fd.st_dev, after_fd.st_ino) != identity
+        or (after_path.st_dev, after_path.st_ino) != identity
+    ):
+        raise ValueError(f"{label} changed while being read")
+    if len(raw) > _MAX_MANAGED_JSON_BYTES:
+        raise ValueError(
+            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
+        )
+    return raw
+
+
+def read_managed_json(path: Path, label: str) -> dict:
+    """Read a bounded regular JSON object without following or racing a symlink."""
+    raw = _read_managed_bytes(path, label)
+
+    def _reject_non_finite(token: str):
+        # json.loads accepts the non-standard NaN / Infinity / -Infinity literals.
+        # int(float("inf")) then raises OverflowError, which is outside every
+        # exception set the guards convert — so an `Infinity` retry cap became a
+        # traceback rather than a refusal. Refuse at the parse boundary instead.
+        raise ValueError(f"{label} contains the non-finite number {token}")
+
+    try:
+        data = json.loads(raw.decode("utf-8"), parse_constant=_reject_non_finite)
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{label} is not valid UTF-8") from exc
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} malformed: {exc.msg} at line {exc.lineno}") from exc
+    if not isinstance(data, dict):
+        raise ValueError(f"{label} root must be an object")
+    return data
+
+
+def read_managed_text(path: Path, label: str) -> str:
+    """Read a bounded, regular, non-symlinked Markdown artifact as text.
+
+    Same descriptor discipline as `read_managed_json` — that is the point: `spec.md`
+    and `plan.md` were read with a plain `path.read_text()`, which follows symlinks,
+    has no size cap, and blocks forever on a FIFO. That was survivable only because
+    the read happened in a child process bounded by a subprocess timeout. In-process
+    there is no such bound, so it gets the same treatment as the state files.
+
+    Decoding note: `read_text()` folds CR and CRLF to LF via universal newlines,
+    which made `canonical_contract`'s own fold redundant. Reading bytes here removes
+    that free normalization, so the fold becomes the control that keeps a
+    CR-authored artifact hashing identically — mutation-verified in T0. Decoded
+    strictly, because a malformed artifact must refuse rather than silently differ.
+    """
+    raw = _read_managed_bytes(path, label)
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"{label} is not valid UTF-8") from exc
+
+
+def read_state(spec_dir: Path) -> dict:
+    path = state_path_for(spec_dir)
+    try:
+        return read_managed_json(path, "state.json")
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"state.json missing at {path}") from exc
+
+
+# ── parser loader + sha helper ──────────────────────────────────────────
+
+_lint_module: object | None = None
+
+
+_PARSER_SYMBOLS = (
+    "parse_status", "extract_status_token", "_STATUS_RE",
+    "_SECTION_HEADING_RE", "_HTML_COMMENT_RE", "_AC_DONE_RE",
+)
+
+
+def _lint_spec_status():
+    """Load `lint-spec-status.py` — the ONE canonical Markdown status parser.
+
+    Four controls the sibling `_statelock` loader lacks, and one reason each:
+
+    1. `lstat` + `S_ISREG` on the module path. A symlink there is followed silently
+       by `exec_module`, and this module is executed inside the lock-holding engine.
+    2. `sys.dont_write_bytecode` saved, set, and restored to its PRIOR value. Not to
+       `False`: these loaders nest under a host interpreter that may have been
+       started with `-B`, and clobbering that would be a side effect on unrelated
+       imports. Suppressing the write keeps a stale or poisoned `.pyc` from being
+       created here; a pre-existing one remains the accepted residual.
+    3. Stream swap. `lint-spec-status.py` calls `sys.stdout.reconfigure(...)` at
+       module scope. That mutates the stream in place — it does NOT rebind
+       `sys.stdout` — so snapshotting the reference would restore nothing. The real
+       hazard is the reverse: a caller whose `sys.stdout` lacks `reconfigure` (an
+       `io.StringIO`, which is how this pack's own tests capture output) makes that
+       line raise. Swapping in a throwaway `TextIOWrapper` keeps the caller's stream
+       untouched and always provides `reconfigure`. Deliberately not
+       `sys.__stdout__`: that is `None` under pythonw, embedded, and detached-stdio
+       contexts, which would turn a working environment into a refusing one.
+    4. Completeness. A module truncated at a clean statement boundary loads without
+       raising; requiring the symbols the guard path actually uses turns that into a
+       load failure instead of a parser missing `parse_status`.
+
+    Every failure is re-raised as `ImportError` so the callers' existing
+    `except (ImportError, OSError)` refusal clauses cover it — including
+    `SyntaxError`, which derives from `Exception`, not from `ValueError`, and would
+    otherwise escape as a traceback.
+    """
+    global _lint_module
+    if _lint_module is not None:
+        return _lint_module
+
+    lint_path = Path(__file__).resolve().parent / "lint-spec-status.py"
+    try:
+        info = os.lstat(lint_path)
+    except OSError as exc:
+        raise ImportError(
+            f"cannot load {lint_path}: {exc}. Restore the file or re-run "
+            "`make build-self` to regenerate the projection."
+        ) from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise ImportError(
+            f"cannot load {lint_path}: not a regular file (symlink or device). "
+            "Restore the file or re-run `make build-self`."
+        )
+
+    previous_dont_write = sys.dont_write_bytecode
+    real_stdout, real_stderr = sys.stdout, sys.stderr
+    sink_out = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+    sink_err = io.TextIOWrapper(io.BytesIO(), encoding="utf-8")
+    try:
+        sys.dont_write_bytecode = True
+        sys.stdout, sys.stderr = sink_out, sink_err
+        spec = importlib.util.spec_from_file_location("_lint_spec_status", str(lint_path))
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {lint_path}: no import spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except ImportError:
+        raise
+    except BaseException as exc:
+        # BaseException, not Exception: a mis-set `__name__` would run the module's
+        # `if __name__ == "__main__": sys.exit(main())`, and SystemExit(0) escaping
+        # from here would report success from a guard that evaluated nothing.
+        raise ImportError(
+            f"cannot load {lint_path}: {type(exc).__name__}: {exc}. Restore the "
+            "file or re-run `make build-self`."
+        ) from exc
+    finally:
+        sys.dont_write_bytecode = previous_dont_write
+        sys.stdout, sys.stderr = real_stdout, real_stderr
+        with contextlib.suppress(Exception):
+            sink_out.close()
+            sink_err.close()
+
+    missing = [name for name in _PARSER_SYMBOLS if not hasattr(module, name)]
+    if missing:
+        raise ImportError(
+            f"cannot load {lint_path}: incomplete module, missing {missing}. The "
+            "file is truncated — restore it or re-run `make build-self`."
+        )
+    _lint_module = module
+    return _lint_module
+
+
+def _sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+# ── canonical contract ──────────────────────────────────────────────────
+
+_STATUS_PLACEHOLDER = "<loop-cohort:status>"
+# A heading, or the bold prose lead-in two specs here use instead. Missing the
+# latter would leave those specs with no normalization at all — i.e. AC5
+# failing for them by construction, the defect this spec exists to fix.
+_AC_HEADING_RE = re.compile(
+    r"^ {0,3}(?:#{2,3}\s+|\*\*)Acceptance\s+Criteria\b", re.IGNORECASE
+)
+# A region closes on the next heading at its own depth or shallower — a sibling
+# or an ancestor — and never on a deeper one. That single rule replaces the
+# hand-cased pair it grew out of: H3 subheadings sit inside H2-opened AC
+# sections all over this repo and must not close them, while an H3-opened
+# section is closed by the next H3, which a fixed `#{1,2}` test missed entirely.
+# A bold lead-in has no depth, so it takes _BOLD_DEPTH — deeper than any
+# heading, so every heading closes it — and also closes on the next bold lead-in,
+# without which it would run to EOF and un-pin every later checkbox, including a
+# `Never do` item, which is the scope the pin exists to protect.
+_HEADING_RE = re.compile(r"^ {0,3}(#{1,6})[ \t]")
+_BOLD_LEAD_RE = re.compile(r"^ {0,3}\*\*")
+_BOLD_DEPTH = 7
+
+# AC10: a mismatch has two possible causes and the verb cannot tell them apart,
+# so it names both rather than asserting the one that is usually wrong.
+_BOTH_CAUSES = (
+    "either the approved scope changed, or this baseline was pinned before "
+    "canonical hashing landed. For the second case, recover the cohort only: "
+    "(1) restore `Status: Approved` in BOTH spec.md and plan.md — approve-plan "
+    "refuses unless both read Approved; (2) `loop-cohort reset <spec-dir>`; "
+    "(3) `loop-cohort init <spec-dir> --run-id <run_id>`, taking run_id from "
+    "`loop-engine status <spec-dir> --json`; (4) `loop-cohort approve-plan "
+    "<spec-dir> --expect-run-id <run_id>` then `loop-cohort schedule <spec-dir> "
+    "--expect-run-id <run_id>`; "
+    "(5) restore the Status you were on. Do NOT run `loop-engine reset` — "
+    "`plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no "
+    "state-setting verb, so resetting it strands the run. Note the reset clears "
+    "the retry counters and the stasis baseline, and re-running approve-plan "
+    "re-pins whatever is on disk, so it is a re-approval in substance"
+)
+
+
+def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
+    """Canonical form of spec.md / plan.md for approval pinning.
+
+    Normalizes exactly four things: CRLF/CR → LF; per-line trailing whitespace;
+    the preamble status *token*; and the bracket contents of a checkbox.
+    """
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    lines = text.split("\n")
+
+    lint = _lint_spec_status()
+    # Newline-preserving comment strip. `parse_status` uses a plain sub() with
+    # re.DOTALL, which collapses a multiline comment to nothing and shifts every
+    # later line index — fine when you only want the token, wrong here, where
+    # the index has to map back to the raw line being rewritten.
+    cleaned = lint._HTML_COMMENT_RE.sub(
+        lambda m: "\n" * m.group(0).count("\n"), text
+    ).split("\n")
+
+    for i, cleaned_line in enumerate(cleaned):
+        if lint._SECTION_HEADING_RE.match(cleaned_line):
+            break  # preamble ends at the first section heading
+        if cleaned_line.lstrip().startswith("#"):
+            continue
+        if not lint._STATUS_RE.search(cleaned_line):
+            continue
+        # Rewrite the *raw* line, not the comment-stripped one.
+        raw = lines[i]
+        m = lint._STATUS_RE.search(raw)
+        if m is None:
+            break
+        token = lint.extract_status_token(m.group(1))
+        if token:
+            # Span-bounded splice of the token only. A str.replace would also
+            # rewrite the token where it recurs inside the trailing vocabulary
+            # comment (`<!-- Draft | Approved | Implementing | ... -->`) that
+            # every spec and plan the template emits carries — making each
+            # status normalize differently. Splicing _STATUS_RE's whole group(1) span
+            # would swallow appended free text and defeat the pin.
+            start = m.start(1)
+            lines[i] = raw[:start] + _STATUS_PLACEHOLDER + raw[start + len(token):]
+        break
+
+    # Which checkboxes count as bookkeeping depends on the artifact, so the
+    # caller says. A spec's progress marks live in its Acceptance Criteria
+    # section; a checkbox under `## Boundaries` is a `Never do` item, which is
+    # precisely the scope the pin protects. This is a forward invariant: no
+    # spec carries such a checkbox today.
+    # A plan has no such section: every checkbox in it is task progress, and
+    # four plans here carry them, so a plan is normalized file-wide.
+    #
+    # Case-insensitive on purpose: `lint-spec-status.py` matches `Acceptance
+    # Criteria` exactly, so its own AC extraction silently returns nothing for
+    # the specs that spell it with a lowercase `c`. Inheriting that bug here
+    # would break this normalization for exactly those specs. Tracked as
+    # `spec-ac-heading-casing-silent-gate`.
+    in_ac = not ac_section_only
+    opened_depth = _BOLD_DEPTH
+    fence_char = fence_len = None
+    for i, line in enumerate(lines):
+        # CommonMark fence semantics, not a toggle. A toggle desyncs on a
+        # nested fence — a ```toml inside a ```markdown example flips the state
+        # back — and one real plan in this tree has an odd fence count, which
+        # left the tracker stuck open and disabled normalization for the rest of
+        # the file. Only a bare run of the opening character, at least as long,
+        # closes; a line carrying an info string always opens.
+        stripped = line.lstrip()
+        marker = stripped[:1]
+        if marker in ("`", "~"):
+            run = len(stripped) - len(stripped.lstrip(marker))
+            info = stripped[run:].strip()
+            if fence_char is None:
+                if run >= 3:
+                    fence_char, fence_len = marker, run
+                    continue
+            elif marker == fence_char and run >= fence_len and not info:
+                fence_char = fence_len = None
+                continue
+        if fence_char is not None:
+            continue
+        if ac_section_only and _AC_HEADING_RE.match(line):
+            in_ac = True
+            opener = _HEADING_RE.match(line)
+            opened_depth = len(opener.group(1)) if opener else _BOLD_DEPTH
+            continue
+        if ac_section_only and in_ac:
+            closer = _HEADING_RE.match(line)
+            if (closer and len(closer.group(1)) <= opened_depth) or (
+                opened_depth == _BOLD_DEPTH and _BOLD_LEAD_RE.match(line)
+            ):
+                in_ac = False
+        if in_ac and lint._AC_DONE_RE.match(line):
+            # Bracket contents only — leading whitespace and the bullet run stay
+            # byte-for-byte, so re-indenting a criterion still moves the digest.
+            j = line.index("[")
+            lines[i] = line[:j + 1] + " " + line[j + 2:]
+
+    return "\n".join(line.rstrip() for line in lines)
+
+
+def sha256_canonical_contract(path: Path) -> str:
+    """SHA-256 of canonical_contract(<spec.md | plan.md>)."""
+    return _sha256_bytes(
+        canonical_contract(
+            read_managed_text(path, path.name),
+            ac_section_only=(path.name != "plan.md"),
+        ).encode("utf-8")
+    )
+
+
+# ── run-id validation ───────────────────────────────────────────────────
+
+@contained_reason
+def validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> str | None:
+    """Return None when the run-id pairing is legal, else a one-line reason.
+
+    `None` means "proceed", so this uses `contained_reason` rather than `contained`:
+    a `GuardResult` would be read as a failure by every caller, and a containment
+    that resolved to `None` would be `approve-plan` proceeding past a check that
+    never ran. Callers convert the reason; the six mutation verbs that use this keep
+    their `stop(...)` mapping in `loop-cohort.py`.
+
+    Distinct from `check_identity`'s messages on purpose — two different decisions
+    with two different message sets, which must not be merged.
+    """
+    sv = state.get("schema_version")
+    if sv != 1:
+        return (
+            f"{verb}: unsupported schema_version={sv!r} (expected 1); run reset pair"
+        )
+    stored = state.get("run_id")
+    if stored != expect_run_id:
+        return (
+            f"{verb}: --expect-run-id mismatch (stored={stored!r}, "
+            f"supplied={expect_run_id!r})"
+        )
+    return None
+
+
+# ── status legality ─────────────────────────────────────────────────────
+
+class UnreadableArtifact(Exception):
+    """The artifact exists but could not be read as UTF-8 markdown."""
+
+
+def read_md_status(path: Path) -> str | None:
+    """Return the canonical status token, or None when the file has none.
+
+    None means "no status line", which callers legitimately skip. A file that
+    cannot be *read* is a different thing and must not be silently skipped —
+    it raises, so the caller stops with a reason instead of proceeding on a
+    guard that quietly did nothing.
+    """
+    try:
+        text = read_managed_text(path, path.name)
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        # ValueError is new, and it is the bounded reader's whole failure vocabulary
+        # (oversized, non-regular, symlinked, replaced mid-read, bad UTF-8). Without
+        # it here, an unsafe artifact would raise past `assert_status_legal`'s
+        # handler and out of a lock-holding mutation verb as a traceback.
+        raise UnreadableArtifact(f"{path.name}: {exc}") from exc
+    try:
+        return _lint_spec_status().parse_status(text)
+    except ImportError as exc:
+        # NOT `return None`. That is what None means here — "no status line" — which
+        # `assert_status_legal` legitimately SKIPS. So an unloadable canonical parser
+        # used to make the post-approval status-regression guard silently pass: a
+        # security control defaulting to allow on error. A broken parser is now
+        # indistinguishable from an unreadable artifact, which is a refusal.
+        raise UnreadableArtifact(
+            f"{path.name}: canonical status parser unavailable: {exc}"
+        ) from exc
+
+
+# Normalizing the status token out of the hash also removed the incidental
+# detection of a *regressed* status: an approved run whose spec.md went back to
+# Draft used to trip the byte compare. Assert it directly instead, at every verb
+# that reads a pinned artifact — a compensating control that covers one of three
+# call sites is not a compensating control.
+#
+# An absent or unparseable token is skipped, not stopped: plan fixtures
+# legitimately carry no status line, and this must not become a new way for a
+# CODE-* pre-guard to go red.
+_LEGAL_AFTER_APPROVAL = {
+    "spec.md": ("Approved", "Implementing", "Shipped"),
+    "plan.md": ("Approved", "Executing", "Done"),
+}
+
+
+@contained_reason
+def assert_status_legal(verb: str, *paths: Path) -> str | None:
+    """Return None when every pinned artifact's status is legal, else a reason.
+
+    Same `None`-means-proceed shape as `validate_run_id`, and wrapped with
+    `contained_reason` for the same reason.
+
+    An artifact that does not exist is skipped, as before — but note the asymmetry
+    this preserves: `Path.exists()` is False for a broken symlink, so a dangling link
+    is skipped here and caught by the reader when the artifact is actually needed.
+    """
+    for path in paths:
+        allowed = _LEGAL_AFTER_APPROVAL.get(path.name)
+        if allowed is None or not path.exists():
+            continue
+        try:
+            token = read_md_status(path)
+        except UnreadableArtifact as exc:
+            return f"{verb}: {exc}"
+        # `extract_status_token` returns "" — not None — when the value is only
+        # an HTML comment, so `is not None` would stop on it. AC9's promise is
+        # that an absent *or unparseable* token is skipped, and that promise is
+        # the whole safety argument for wiring this into a CODE-* pre-guard.
+        if token and token not in allowed:
+            return (
+                f"{verb}: {path.name} Status is {token!r}; expected one of "
+                f"{list(allowed)} after approval"
+            )
+    return None
+
+
+# Last statement in the file, on purpose. A module truncated at a clean statement
+# boundary — an interrupted `make build-self`, a half-finished checkout — loads
+# WITHOUT raising and returns a handle missing everything after the cut. The
+# loaders require this to be truthy and `set(__all__) <= set(dir(module))`, so a
+# truncation anywhere above becomes a load failure rather than a live handle
+# serving a half-configured guard. Detects accidental truncation only; tampering is
+# the accepted write-access residual documented in the spec.
+_MODULE_COMPLETE = True
