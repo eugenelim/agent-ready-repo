@@ -60,18 +60,47 @@ def fail(name: str, reason: str) -> None:
     print(f"FAIL [{name}]: {reason}", file=sys.stderr)
 
 
-def scan(target: Path) -> tuple[list[dict], list[str]]:
-    """Run the rule over `target`; return (findings, files_actually_scanned).
+def _key(reported: str | Path) -> str:
+    """Normalise a path to a repo-relative POSIX key.
 
-    `scanned` is returned alongside the findings because zero findings is an
-    ambiguous result: it means both "the rule ran and the file is clean" and
-    "the rule's paths.include excluded the file entirely". Asserting on
-    findings alone lets a paths.include regression pass as success.
+    Both sides of the lookup go through this. Semgrep echoes paths back in
+    whichever form it was handed — an absolute argument yields absolute
+    `paths.scanned` entries, a relative one yields relative — so normalising
+    both the targets and the reported paths keeps the mapping from silently
+    depending on how the argv was built. Paths outside the repo are returned
+    as-is, which simply will not match a target and therefore fails closed.
+    """
+    path = Path(reported)
+    if not path.is_absolute():
+        path = REPO_ROOT / path
+    try:
+        return path.resolve().relative_to(REPO_ROOT.resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
+def scan_all(targets: list[Path]) -> dict[str, list[dict]]:
+    """Run the rule over every target in ONE semgrep process.
+
+    Findings keyed by repo-relative path, restricted to the targets semgrep
+    reports as actually scanned. A target absent from the returned mapping was
+    NOT scanned, and callers must treat that as a failure: zero findings is an
+    ambiguous result on its own, meaning both "the rule ran and the file is
+    clean" and "the rule's paths.include excluded the file entirely".
+
+    One process, not one per target, because semgrep has a ~7.4s startup floor
+    and these targets are five small files — five invocations spent ~29.8s to do
+    ~9s of work. Merging them is safe in a way that batching `pip-audit` was
+    not (see docs/specs/pip-audit-batching/spec.md): semgrep parses and matches
+    each file independently, so no per-file verdict can change, and it names the
+    file in every finding, so attribution survives the merge natively instead of
+    having to be reconstructed.
     """
     proc = subprocess.run(
         [
             "semgrep", "--config", str(RULE),
-            "--json", "--quiet", "--metrics", "off", str(target),
+            "--json", "--quiet", "--metrics", "off",
+            *(str(t) for t in targets),
         ],
         capture_output=True,
         text=True,
@@ -81,23 +110,53 @@ def scan(target: Path) -> tuple[list[dict], list[str]]:
         cwd=str(REPO_ROOT),
     )
     if not proc.stdout.strip():
-        raise RuntimeError(f"semgrep produced no output for {target} — stderr: {proc.stderr}")
+        raise RuntimeError(
+            f"semgrep produced no output for {len(targets)} targets — stderr: {proc.stderr}"
+        )
     payload = json.loads(proc.stdout)
-    return payload["results"], list(payload.get("paths", {}).get("scanned", []))
+    findings: dict[str, list[dict]] = {
+        _key(path): [] for path in payload.get("paths", {}).get("scanned", [])
+    }
+    for hit in payload["results"]:
+        # A finding on a path semgrep did not list as scanned would mean the two
+        # halves of its own report disagree; surface that rather than swallow it.
+        findings.setdefault(_key(hit["path"]), []).append(hit)
+    return findings
 
 
-def test_positive_fixture_fires() -> None:
+def hits_for(name: str, target: Path, findings: dict[str, list[dict]]) -> list[dict] | None:
+    """Findings for `target`, or None (having failed `name`) if it wasn't scanned.
+
+    Every assertion goes through here so that "semgrep never looked at this
+    file" can never read as "this file is clean" — including for the fixtures,
+    which the per-invocation version did not check. Batching makes the check
+    necessary for them too: findings now arrive keyed by path, so a key that
+    never matches yields an empty list and would pass a zero-findings assertion
+    without the rule having examined anything.
+    """
+    key = _key(target)
+    if key not in findings:
+        fail(name, f"rule did not scan {key} — check paths.include in the rule")
+        return None
+    return findings[key]
+
+
+def test_positive_fixture_fires(findings: dict[str, list[dict]]) -> None:
     name = "positive fixture fires exactly once"
-    hits, _ = scan(FIXTURES / "positive.py")
+    hits = hits_for(name, FIXTURES / "positive.py", findings)
+    if hits is None:
+        return
     if len(hits) != 1:
         fail(name, f"expected 1 finding, got {len(hits)}: {[h['start']['line'] for h in hits]}")
     else:
         ok(name)
 
 
-def test_negative_fixture_silent() -> None:
+def test_negative_fixture_silent(findings: dict[str, list[dict]]) -> None:
     name = "negative fixture is silent (validator + is_relative_to exemplar)"
-    hits, _ = scan(FIXTURES / "negative.py")
+    hits = hits_for(name, FIXTURES / "negative.py", findings)
+    if hits is None:
+        return
     if hits:
         lines = [h["start"]["line"] for h in hits]
         fail(name, f"expected 0 findings, got {len(hits)} at lines {lines}")
@@ -105,20 +164,20 @@ def test_negative_fixture_silent() -> None:
         ok(name)
 
 
-def test_fixed_scripts_silent() -> None:
+def test_fixed_scripts_silent(findings: dict[str, list[dict]]) -> None:
     for script in FIXED_SCRIPTS:
         name = f"{script.name} is silent after the fix"
         if not script.is_file():
             fail(name, f"subject not found at {script} — path drifted?")
             continue
-        hits, scanned = scan(script)
         # Order matters: prove the rule REACHED the file before trusting its
         # silence. Dropping this path from the rule's paths.include also
         # yields zero findings, so a findings-only assertion would stay green
         # while the ratchet covered nothing.
-        if not scanned:
-            fail(name, "rule did not scan this file — check paths.include in the rule")
-        elif hits:
+        hits = hits_for(name, script, findings)
+        if hits is None:
+            continue
+        if hits:
             lines = [h["start"]["line"] for h in hits]
             fail(name, f"expected 0 findings, got {len(hits)} at lines {lines}")
         else:
@@ -133,9 +192,12 @@ def main() -> int:
         print(f"FAIL: rule not found at {RULE}", file=sys.stderr)
         return 1
 
-    test_positive_fixture_fires()
-    test_negative_fixture_silent()
-    test_fixed_scripts_silent()
+    targets = [FIXTURES / "positive.py", FIXTURES / "negative.py", *FIXED_SCRIPTS]
+    findings = scan_all([t for t in targets if t.is_file()])
+
+    test_positive_fixture_fires(findings)
+    test_negative_fixture_silent(findings)
+    test_fixed_scripts_silent(findings)
 
     total = ran
     passed = total - len(failures)
