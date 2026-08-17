@@ -87,6 +87,19 @@ def _disabled(verb: str) -> int:
     return stop(f"{verb} is disabled in Phase 1")
 
 
+def _emit(message: str | None) -> None:
+    """Print a guard's success message under THIS tool's prefix.
+
+    The prefix belongs to the adapter, not to the guard layer: the layer is shared by
+    `loop-cohort`, `loop-engine` and `check-spec-status`, so a prefix baked into a
+    `message` is wrong for two of the three callers — and when it was, the adapter's
+    own prefix doubled it (`check-spec-status: check-spec-status: ...`), which the
+    pre-change golden capture caught. Empty message means nothing to say.
+    """
+    if message:
+        print(f"loop-cohort: {message}")
+
+
 def _resolve_spec_dir(raw: str) -> Path:
     """Resolve <spec-dir> to an absolute path; reject `..` traversal."""
     p = Path(raw).resolve()
@@ -215,16 +228,6 @@ class GuardsUnavailable(RuntimeError):
 _guards_module: object | None = None
 _guards_error: str | None = None
 
-# The symbols a load must provide. Checked against the loaded module rather than
-# trusted, because a file truncated at a clean statement boundary loads WITHOUT
-# raising and would otherwise hand back a half-configured guard.
-_GUARDS_REQUIRED = (
-    "GuardResult", "read_managed_json", "read_managed_text", "read_state",
-    "state_path_for", "canonical_contract", "sha256_canonical_contract",
-    "UnreadableArtifact", "read_md_status", "assert_status_legal",
-    "validate_run_id", "non_negative_int", "DEFAULTS",
-)
-
 
 def load_guards():
     """Load the sibling `_loop_guards.py` by path, once per process.
@@ -286,10 +289,27 @@ def load_guards():
             f"cannot load {path}: module is truncated (no completeness marker). "
             "Restore the file or re-run `make build-self`."
         )
-    missing = [n for n in _GUARDS_REQUIRED if not hasattr(module, n)]
-    if missing:
+    # AC13's completeness check: the module's OWN `__all__` is the contract, so it
+    # is never restated here. Three hand-enumerated copies drifted immediately —
+    # `check-spec-status.py`'s omitted `check_artifact_status`, the only function it
+    # calls — which is why an enumeration is explicitly rejected. A file truncated
+    # at a clean statement boundary loads WITHOUT raising, so `__all__` is present
+    # while the names it promises are not; that is the gap this closes.
+    exported = getattr(module, "__all__", None)
+    if not exported:
         raise GuardsUnavailable(
-            f"cannot load {path}: incomplete module, missing {missing}. Restore the "
+            f"cannot load {path}: module declares no __all__. Restore the file or "
+            "re-run `make build-self`."
+        )
+    missing = sorted(set(exported) - set(dir(module)))
+    if missing:
+        # Naming a few is diagnostic; naming all 21 makes a 450-char "one-line"
+        # refusal. The count carries the rest.
+        shown = ", ".join(missing[:5])
+        if len(missing) > 5:
+            shown += f" (+{len(missing) - 5} more)"
+        raise GuardsUnavailable(
+            f"cannot load {path}: incomplete module, missing {shown}. Restore the "
             "file or re-run `make build-self`."
         )
     _guards_module = module
@@ -587,7 +607,14 @@ def cmd_init(args: argparse.Namespace) -> int:
         )
     if not TEMPLATE_PATH.exists():
         return stop(f"template missing at {TEMPLATE_PATH}")
-    template = json.loads(TEMPLATE_PATH.read_text())
+    # Through the shared bounded reader, not a raw `read_text()`. `cmd_init` holds the
+    # state lock, so an unbounded read here has the same shape as the ones this change
+    # removed everywhere else: a replaced or oversized template would read without
+    # limit inside the critical section, and a symlinked one would be followed.
+    try:
+        template = read_managed_json(TEMPLATE_PATH, "state.json template")
+    except (OSError, UnicodeDecodeError, ValueError) as exc:
+        return stop(f"init: {exc}")
     template["run_id"] = args.run_id
     template["feature"] = Path(spec_dir).resolve().name
     write_state_atomic(spec_dir, template)
@@ -610,7 +637,7 @@ def cmd_identity(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(result.data))
     else:
-        print(result.message)
+        _emit(result.message)
     return 0
 
 
@@ -700,7 +727,7 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
         try:
             spec_hash = sha256_canonical_contract(spec_path)
             plan_hash = sha256_canonical_contract(plan_path)
-        except (OSError, UnicodeDecodeError, ValueError) as exc:
+        except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
             # ValueError is the bounded reader's failure vocabulary (oversized,
             # non-regular, symlinked, replaced mid-read). This verb holds the cohort
             # state lock and `with_state_lock` catches only StateLockError, while
@@ -753,7 +780,7 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
     try:
         state["approved_spec_hash"] = sha256_canonical_contract(spec_path)
         state["approved_plan_hash"] = sha256_canonical_contract(plan_path)
-    except (OSError, UnicodeDecodeError, ValueError) as exc:
+    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
         # Previously unguarded, and it WRITES what it computes — so an unsafe
         # artifact would either traceback out of the lock or, with a returning
         # fallback stub, store a non-digest as the approved baseline.
@@ -779,7 +806,7 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
     result = _g.check_plan_current(spec_dir, require_schedule=args.require_schedule)
     if not result.ok:
         return stop(result.reason)
-    print(result.message)
+    _emit(result.message)
     return 0
 
 
@@ -791,7 +818,7 @@ def _schedule_check_current_impl(spec_dir: Path) -> int:
     result = _g.check_schedule_current(spec_dir)
     if not result.ok:
         return stop(result.reason)
-    print(result.message)
+    _emit(result.message)
     return 0
 
 
@@ -815,7 +842,7 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
         return stop(f"plan not found at {plan_path}")
     try:
         plan_text = read_managed_text(plan_path, "plan.md")
-    except (OSError, UnicodeDecodeError, ValueError) as exc:
+    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
         # Was a raw `read_text()` under `@_locked("schedule")`: unbounded, symlink-
         # following, and a FIFO here blocked the cohort lock until it went stale.
         return stop(f"schedule: cannot read {plan_path.name}: {exc}")
@@ -855,7 +882,7 @@ def _schedule_run_impl(spec_dir: Path, expect_run_id: str, plan_override: str | 
 
     try:
         plan_hash = sha256_canonical_contract(plan_path)
-    except (OSError, UnicodeDecodeError, ValueError) as exc:
+    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
         return stop(f"schedule: cannot hash {plan_path.name}: {exc}")
     state["plan_hash"] = plan_hash
     state["schedule_waves"] = waves
@@ -911,46 +938,8 @@ def cmd_check(args: argparse.Namespace) -> int:
     result = _g.check_phase(spec_dir, phase=args.phase)
     if not result.ok:
         return stop(result.reason)
-    if result.message:
-        print(result.message)
+    _emit(result.message)
     return 0
-
-
-def _evaluate(state: dict, phase: str) -> int:
-    """Retained for callers that already hold a state dict.
-
-    Delegates the cap arithmetic to the shared guard's helpers so there is still one
-    implementation; it exists because the phase decision is occasionally wanted
-    without a second read.
-    """
-    if phase == "implement":
-        return 0
-    if phase == "gates-failed":
-        count = non_negative_int(state, "implementation_retry_count", 0)
-        cap = non_negative_int(
-            state, "max_implementation_retries", DEFAULTS["max_implementation_retries"]
-        )
-        if isinstance(count, str) or isinstance(cap, str):
-            return stop(f"check: {count if isinstance(count, str) else cap}")
-        if count >= cap:
-            return stop(
-                f"implementation retry cap reached ({count}/{cap}); "
-                "reset and start a new run"
-            )
-        return 0
-    if phase == "review":
-        count = non_negative_int(state, "review_retry_count", 0)
-        cap = non_negative_int(
-            state, "max_review_retries", DEFAULTS["max_review_retries"]
-        )
-        if isinstance(count, str) or isinstance(cap, str):
-            return stop(f"check: {count if isinstance(count, str) else cap}")
-        if count >= cap:
-            return stop(
-                f"review retry cap reached ({count}/{cap}); reset and start a new run"
-            )
-        return 0
-    return stop(f"unknown phase {phase!r}")
 
 
 # ── wave check / advance ──────────────────────────────────────────────────
@@ -965,7 +954,7 @@ def cmd_wave_check(args: argparse.Namespace) -> int:
     result = _g.check_wave(spec_dir, expect=args.expect, wave_index=args.wave_index)
     if not result.ok:
         return stop(result.reason)
-    print(result.message)
+    _emit(result.message)
     return 0
 
 
@@ -1179,9 +1168,14 @@ def _classify_report(report_path: Path, state: dict) -> dict:
 
     Returns a dict with keys: classification, fingerprints, matches_previous_round.
     """
+    # Bounded, symlink-safe read. Reached from `cmd_review_record`, which holds the
+    # state lock, so a reviewer report that is a FIFO or an arbitrarily large file
+    # would otherwise block or read without limit inside the critical section. The
+    # `invalid` classification below already models an unusable report, so widening
+    # the caught set to the reader's `ValueError` vocabulary needs no new branch.
     try:
-        report_text = report_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
+        report_text = read_managed_text(report_path, report_path.name)
+    except (OSError, UnicodeDecodeError, ValueError):
         return {
             "classification": "invalid",
             "fingerprints": [],

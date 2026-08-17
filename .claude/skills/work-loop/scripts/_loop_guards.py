@@ -9,7 +9,9 @@ about whether a transition is legal.
 Contract — every public function in this module:
 
   * takes explicit typed arguments and returns a `GuardResult`;
-  * prints NOTHING to stdout or stderr;
+  * prints NOTHING to stdout or stderr, and carries no CLI prefix in `reason`
+    or `message` — each adapter adds its own, so the layer cannot double it
+    (which it did once, caught by the golden capture);
   * parses no arguments, reads no `sys.argv`, never calls `sys.exit`;
   * mutates no state file and creates no file anywhere;
   * never spawns a process and never opens a socket.
@@ -99,44 +101,48 @@ TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 # ── result type ───────────────────────────────────────────────────────────
 
 
-@dataclass(frozen=True)
-class GuardResult:
-    """The outcome of one read-only guard.
-
-    `ok` and `reason` cannot disagree: `__post_init__` raises when they do. That
-    matters because the pre-existing convention in `loop-engine.py` was "None on
-    success, a non-empty string on failure", so an adapter written `if
-    result.reason:` would read an `ok=False, reason=None` result — the natural
-    output of a containment bug or a missed branch — as success. Adapters branch on
-    `ok`.
-
-    `ValueError`, not `assert`: `-O` / `PYTHONOPTIMIZE` strips assertions, and this
-    is the invariant the no-silent-success guarantee rests on.
-    """
-
-    ok: bool
-    reason: str | None = None
-    message: str | None = None
-    data: dict | None = None
-
-    def __post_init__(self):
-        if self.ok != (self.reason is None):
-            raise ValueError(
-                "GuardResult invariant violated: ok must be True exactly when "
-                f"reason is None (ok={self.ok!r}, reason={self.reason!r})"
-            )
-
-
 # Marker prefix distinguishing a crash-refusal from a policy refusal. An operator
 # reading `internal-error:` knows the guard could not decide, rather than that it
 # decided against them.
 INTERNAL_ERROR = "internal-error"
 
-_MAX_REASON_CHARS = 400
+# Bound on ONE interpolated external scalar, not on the whole reason. Several
+# authored reasons are deliberately long \u2014 `_BOTH_CAUSES` is a ~900-char recovery
+# runbook \u2014 and capping the assembled string clipped it mid-sentence, losing the
+# steps an operator needs. So the bound sits where untrusted length actually
+# enters: `_scalar()`, at each interpolation of state-file or argv data.
+_MAX_SCALAR_CHARS = 120
+
+# Backstop only. Every known external interpolation goes through `_scalar`, so a
+# reason should never approach this; it exists so that a site added later without
+# `_scalar` is still bounded rather than unbounded. Set well above the longest
+# authored reason (`_BOTH_CAUSES` plus two digests, ~1050 chars) so it cannot
+# truncate legitimate text \u2014 `test_the_longest_authored_reason_survives_intact`
+# pins that separation.
+_MAX_REASON_CHARS = 4000
+
+
+def _scalar(value: object) -> str:
+    """`repr(value)` bounded to one interpolation's worth.
+
+    Use at every site that interpolates data the tool did not author \u2014 a run-id
+    from argv, a `schema_version` or status token from a state file, a `--file`
+    argument. A 100 KB `run_id` in `state.json` otherwise becomes a 100 KB
+    "one-line" stderr message.
+    """
+    text = repr(value)
+    if len(text) > _MAX_SCALAR_CHARS:
+        text = text[: _MAX_SCALAR_CHARS - 1] + "\u2026"
+    return text
 
 
 def _one_line(text: str) -> str:
-    """Collapse whitespace and cap length. Reasons are a one-line CLI contract."""
+    """Collapse whitespace. Reasons are a one-line CLI contract.
+
+    Whitespace collapse is the part that matters for the contract: it is what
+    stops a newline in interpolated data from forging a second stderr line. The
+    length backstop is secondary \u2014 see `_MAX_REASON_CHARS`.
+    """
     collapsed = " ".join(str(text).split())
     if len(collapsed) > _MAX_REASON_CHARS:
         collapsed = collapsed[: _MAX_REASON_CHARS - 1] + "\u2026"
@@ -174,6 +180,49 @@ def contained_reason(fn):
     return wrapper
 
 
+@dataclass(frozen=True)
+class GuardResult:
+    """The outcome of one read-only guard.
+
+    `ok` and `reason` cannot disagree: `__post_init__` raises when they do. That
+    matters because the pre-existing convention in `loop-engine.py` was "None on
+    success, a non-empty string on failure", so an adapter written `if
+    result.reason:` would read an `ok=False, reason=None` result — the natural
+    output of a containment bug or a missed branch — as success. Adapters branch on
+    `ok`.
+
+    `ValueError`, not `assert`: `-O` / `PYTHONOPTIMIZE` strips assertions, and this
+    is the invariant the no-silent-success guarantee rests on.
+    """
+
+    ok: bool
+    reason: str | None = None
+    message: str | None = None
+    data: dict | None = None
+
+    def __post_init__(self):
+        if self.ok != (self.reason is None):
+            raise ValueError(
+                "GuardResult invariant violated: ok must be True exactly when "
+                f"reason is None (ok={self.ok!r}, reason={self.reason!r})"
+            )
+        # Reason hygiene belongs HERE, at the one chokepoint every refusal passes
+        # through — not only in `contained`'s except arm, which is where it lived
+        # and which covers just the crash path. Policy refusals interpolate
+        # attacker-influenceable values (`stored={run_id!r}`, a status token, a
+        # filename), and a 100 KB `run_id` in state.json produced a 100,055-character
+        # reason on the agent-captured stderr. For an agentic surface that is a
+        # context flood and a carrier into the supervising agent's window.
+        if self.reason is not None:
+            cleaned = _one_line(self.reason)
+            if cleaned != self.reason:
+                object.__setattr__(self, "reason", cleaned)  # frozen dataclass
+        if self.message is not None:
+            cleaned = _one_line(self.message)
+            if cleaned != self.message:
+                object.__setattr__(self, "message", cleaned)
+
+
 def contained(fn):
     """Turn any escaping `Exception` into a refusal.
 
@@ -191,7 +240,10 @@ def contained(fn):
     its import allowlist forbids.
 
     The reason never carries raw artifact content — only an exception type and a
-    message — because a refusal is printed to a stderr the agent captures.
+    message — because a refusal is printed to a stderr the agent captures. It DOES
+    name the failing guard: six guards share this decorator and their reasons are
+    otherwise indistinguishable, so an operator reading `internal-error: RuntimeError:
+    ...` could not tell which decision failed to be made.
     """
 
     @functools.wraps(fn)
@@ -201,7 +253,9 @@ def contained(fn):
         except Exception as exc:  # noqa: BLE001 — the containment boundary itself
             return GuardResult(
                 ok=False,
-                reason=_one_line(f"{INTERNAL_ERROR}: {type(exc).__name__}: {exc}"),
+                reason=_one_line(
+                    f"{INTERNAL_ERROR}: {fn.__name__}: {type(exc).__name__}: {exc}"
+                ),
             )
 
     return wrapper
@@ -355,19 +409,21 @@ def _read_managed_bytes(path: Path, label: str) -> bytes:
                 chunks.append(chunk)
                 remaining -= len(chunk)
             raw = b"".join(chunks)
-            after_fd = os.fstat(fd)
         except OSError as exc:
             raise ValueError(f"{label} could not be read safely: {exc}") from exc
     finally:
         os.close(fd)
+    # Only the PATH is re-checked. An `os.fstat(fd)` here was also compared against
+    # `identity` and could not ever differ: a descriptor refers to the same inode for
+    # its whole lifetime, so re-fstat'ing it re-derives the value already checked
+    # above. Dropping it leaves the check that can actually fire — the path having
+    # been re-pointed at a different inode while the read was in progress, which is
+    # the TOCTOU the `O_NOFOLLOW` open cannot see on its own.
     try:
         after_path = os.lstat(path)
     except OSError as exc:
         raise ValueError(f"{label} changed while being read") from exc
-    if (
-        (after_fd.st_dev, after_fd.st_ino) != identity
-        or (after_path.st_dev, after_path.st_ino) != identity
-    ):
+    if (after_path.st_dev, after_path.st_ino) != identity:
         raise ValueError(f"{label} changed while being read")
     if len(raw) > _MAX_MANAGED_JSON_BYTES:
         raise ValueError(
@@ -381,14 +437,35 @@ def read_managed_json(path: Path, label: str) -> dict:
     raw = _read_managed_bytes(path, label)
 
     def _reject_non_finite(token: str):
-        # json.loads accepts the non-standard NaN / Infinity / -Infinity literals.
-        # int(float("inf")) then raises OverflowError, which is outside every
-        # exception set the guards convert — so an `Infinity` retry cap became a
-        # traceback rather than a refusal. Refuse at the parse boundary instead.
+        # The three non-standard LITERALS json accepts: NaN, Infinity, -Infinity.
         raise ValueError(f"{label} contains the non-finite number {token}")
 
+    def _reject_float(token: str):
+        # And the OVERFLOW route, which `parse_constant` does NOT cover: `1e400`
+        # parses as an ordinary float and json.loads returns `inf` without ever
+        # consulting parse_constant (verified). That `inf` then reached arithmetic
+        # as a traceback out of a lock-holding mutation verb, which is exactly what
+        # the literal check above was added to prevent.
+        #
+        # Scoped to the NON-FINITE result only. Rejecting every float here was
+        # over-broad and regressed a preserved verdict: `non_negative_int` already
+        # refuses any non-`int` counter by `isinstance` — including every finite
+        # float — with its own message, and never calls `int()`, so there is no
+        # overflow path for a finite value to reach. Widening this to all floats
+        # merely stole that refusal and changed its wording.
+        value = float(token)
+        if value in (float("inf"), float("-inf")) or value != value:
+            raise ValueError(
+                f"{label} contains the non-finite number {_scalar(token)}"
+            )
+        return value
+
     try:
-        data = json.loads(raw.decode("utf-8"), parse_constant=_reject_non_finite)
+        data = json.loads(
+            raw.decode("utf-8"),
+            parse_constant=_reject_non_finite,
+            parse_float=_reject_float,
+        )
     except UnicodeDecodeError as exc:
         raise ValueError(f"{label} is not valid UTF-8") from exc
     except json.JSONDecodeError as exc:
@@ -671,13 +748,26 @@ def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
 
 
 def sha256_canonical_contract(path: Path) -> str:
-    """SHA-256 of canonical_contract(<spec.md | plan.md>)."""
-    return _sha256_bytes(
-        canonical_contract(
+    """SHA-256 of canonical_contract(<spec.md | plan.md>).
+
+    `canonical_contract` loads the canonical status parser, so this can raise
+    `ImportError` for a reason that has nothing to do with `path`. The guards see it
+    through `@contained`, but the cohort's mutation verbs call this DIRECTLY and
+    their `except` tuples were widened for the reader's `ValueError` only — so an
+    unloadable parser surfaced as a traceback out of `approve-plan` and `schedule`,
+    both of which hold the cohort state lock. Converting here means every caller
+    inherits the fix rather than each having to remember it.
+    """
+    try:
+        canonical = canonical_contract(
             read_managed_text(path, path.name),
             ac_section_only=(path.name != "plan.md"),
-        ).encode("utf-8")
-    )
+        )
+    except ImportError as exc:
+        raise ValueError(
+            f"{path.name}: canonical status parser unavailable: {exc}"
+        ) from exc
+    return _sha256_bytes(canonical.encode("utf-8"))
 
 
 # ── run-id validation ───────────────────────────────────────────────────
@@ -698,13 +788,13 @@ def validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> str | None
     sv = state.get("schema_version")
     if sv != 1:
         return (
-            f"{verb}: unsupported schema_version={sv!r} (expected 1); run reset pair"
+            f"{verb}: unsupported schema_version={_scalar(sv)} (expected 1); run reset pair"
         )
     stored = state.get("run_id")
     if stored != expect_run_id:
         return (
-            f"{verb}: --expect-run-id mismatch (stored={stored!r}, "
-            f"supplied={expect_run_id!r})"
+            f"{verb}: --expect-run-id mismatch (stored={_scalar(stored)}, "
+            f"supplied={_scalar(expect_run_id)})"
         )
     return None
 
@@ -730,7 +820,13 @@ def read_md_status(path: Path) -> str | None:
         # (oversized, non-regular, symlinked, replaced mid-read, bad UTF-8). Without
         # it here, an unsafe artifact would raise past `assert_status_legal`'s
         # handler and out of a lock-holding mutation verb as a traceback.
-        raise UnreadableArtifact(f"{path.name}: {exc}") from exc
+        # No `{path.name}: ` prefix here, deliberately — and note the asymmetry with
+        # the parser branch below. `read_managed_text` is called with `path.name` as
+        # its label, so every message in its failure vocabulary already opens with the
+        # filename; prefixing again produced `spec.md: spec.md cannot be opened
+        # safely: …`. The parser branch DOES prefix, because an `ImportError` carries
+        # no filename of its own and no caller supplies one.
+        raise UnreadableArtifact(str(exc)) from exc
     try:
         return _lint_spec_status().parse_status(text)
     except ImportError as exc:
@@ -784,7 +880,7 @@ def assert_status_legal(verb: str, *paths: Path) -> str | None:
         # the whole safety argument for wiring this into a CODE-* pre-guard.
         if token and token not in allowed:
             return (
-                f"{verb}: {path.name} Status is {token!r}; expected one of "
+                f"{verb}: {path.name} Status is {_scalar(token)}; expected one of "
                 f"{list(allowed)} after approval"
             )
     return None
@@ -840,21 +936,21 @@ def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
         sv = state.get("schema_version")
         return GuardResult(
             ok=False,
-            reason=f"identity: unsupported schema_version={sv!r} (expected 1)",
+            reason=f"identity: unsupported schema_version={_scalar(sv)} (expected 1)",
         )
     stored = state.get("run_id")
     if expect_run_id is not None and stored != expect_run_id:
         return GuardResult(
             ok=False,
             reason=(
-                f"identity: run_id mismatch (stored={stored!r}, "
-                f"expected={expect_run_id!r})"
+                f"identity: run_id mismatch (stored={_scalar(stored)}, "
+                f"expected={_scalar(expect_run_id)})"
             ),
         )
     return GuardResult(
         ok=True,
         message=(
-            f"loop-cohort: run_id={stored} schema_version={state.get('schema_version')}"
+            f"run_id={stored} schema_version={state.get('schema_version')}"
         ),
         data={"run_id": stored, "schema_version": state.get("schema_version")},
     )
@@ -895,7 +991,7 @@ def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> Gua
             reason=(
                 "plan check-current: spec.md no longer matches the approved baseline — "
                 + _BOTH_CAUSES
-                + f" (approved={state.get('approved_spec_hash', 'null')!r} "
+                + f" (approved={_scalar(state.get('approved_spec_hash', 'null'))} "
                 f"current={current_spec_hash!r})"
             ),
         )
@@ -907,7 +1003,7 @@ def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> Gua
             reason=(
                 "plan check-current: plan.md no longer matches the approved baseline — "
                 + _BOTH_CAUSES
-                + f" (approved={state.get('approved_plan_hash', 'null')!r} "
+                + f" (approved={_scalar(state.get('approved_plan_hash', 'null'))} "
                 f"current={current_plan_hash!r})"
             ),
         )
@@ -941,7 +1037,7 @@ def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> Gua
             )
 
     return GuardResult(
-        ok=True, message=f"loop-cohort: plan check-current OK for {spec_dir.name}"
+        ok=True, message=f"plan check-current OK for {spec_dir.name}"
     )
 
 
@@ -968,11 +1064,11 @@ def check_schedule_current(spec_dir: Path) -> GuardResult:
             reason=(
                 "schedule check-current: plan.md no longer matches the scheduled "
                 "baseline — " + _BOTH_CAUSES
-                + f" (stored={stored!r} current={current!r})"
+                + f" (stored={_scalar(stored)} current={current!r})"
             ),
         )
     return GuardResult(
-        ok=True, message=f"loop-cohort: schedule check-current OK for {spec_dir.name}"
+        ok=True, message=f"schedule check-current OK for {spec_dir.name}"
     )
 
 
@@ -1013,7 +1109,7 @@ def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
         sv = state.get("schema_version")
         return GuardResult(
             ok=False,
-            reason=f"check: unsupported schema_version={sv!r} (expected 1); run reset pair",
+            reason=f"check: unsupported schema_version={_scalar(sv)} (expected 1); run reset pair",
         )
 
     if phase == "implement":
@@ -1054,7 +1150,7 @@ def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
             )
         return GuardResult(ok=True, message="")
 
-    return GuardResult(ok=False, reason=f"unknown phase {phase!r}")
+    return GuardResult(ok=False, reason=f"unknown phase {_scalar(phase)}")
 
 
 @contained
@@ -1084,7 +1180,7 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
             return GuardResult(
                 ok=True,
                 message=(
-                    f"loop-cohort: wave check more — wave_index={idx} has more waves "
+                    f"wave check more — wave_index={idx} has more waves "
                     f"(total={total})"
                 ),
             )
@@ -1098,7 +1194,7 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
             return GuardResult(
                 ok=True,
                 message=(
-                    f"loop-cohort: wave check last — wave_index={idx} is the last wave "
+                    f"wave check last — wave_index={idx} is the last wave "
                     f"(total={total})"
                 ),
             )
@@ -1107,7 +1203,7 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
             reason=f"wave check last: not the last wave (current={idx}, total={total})",
         )
 
-    return GuardResult(ok=False, reason=f"wave check: unknown --expect value {expect!r}")
+    return GuardResult(ok=False, reason=f"wave check: unknown --expect value {_scalar(expect)}")
 
 
 _FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
@@ -1159,7 +1255,7 @@ def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> Guar
 
     if not _FILENAME_RE.fullmatch(filename) or set(filename) == {"."}:
         return GuardResult(
-            ok=False, reason=f"--file must be a single path component: {filename!r}"
+            ok=False, reason=f"--file must be a single path component: {_scalar(filename)}"
         )
 
     if not target.exists():
@@ -1174,11 +1270,11 @@ def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> Guar
         return GuardResult(ok=False, reason=f"no **Status:** line found in {target}")
     if token != expect:
         return GuardResult(
-            ok=False, reason=f"{filename} Status is {token!r}, expected {expect!r}"
+            ok=False, reason=f"{filename} Status is {_scalar(token)}, expected {_scalar(expect)}"
         )
     return GuardResult(
         ok=True,
-        message=f"check-spec-status: OK — Status: {expect} at {target}",
+        message=f"OK — Status: {expect} at {target}",
         data={"path": str(target), "status": token},
     )
 

@@ -191,3 +191,38 @@ reclaiming space the same suite ran 303 passed / 1 failed, and that one failure 
 the real changelog gap above. Reporting the first number as a regression would have
 been wrong; reporting it as "just the disk" without re-running would have been
 wrong too.
+
+## W8 · diff-review repair — contract amendments pending the human gate
+
+Three edits belong in the pinned contract and are held here instead, because
+`plan.md` and `spec.md` are pinned by `approved_plan_hash` / `approved_spec_hash`
+and every CODE-state transition re-checks them. Applying them now makes
+`reviewers-clean` refuse; the documented recovery is a `loop-cohort reset` pair,
+which is destructive and needs human authorization. So they land at
+`CODE-HUMAN-GATE`, where amending and re-pinning is the expected move.
+
+1. **`plan.md` T1b — the canonical import allowlist says twelve names and the
+   module imports thirteen.** `collections.abc.Mapping` is the thirteenth. The
+   review found the duplicated value had already drifted: the test restated a
+   locally-widened list rather than reading the canonical one. Applied once, then
+   reverted to restore hash currency; re-apply at the gate.
+2. **`spec.md` AC17 — renumber to twelve steps.** AC17 lists eleven, but the
+   source has twelve: it folds crash recovery into one step (the code has
+   `_recover_engine_state_tmp` then `_recover_pending`) and merges the state
+   decision with the outbox/state finalization. The test's anchor list is already
+   one-for-one with the twelve, and its double-violation pairs are now cited as
+   2 vs 5 and 9 vs 10 against that numbering.
+3. **The finish checklist** — tick or defer every AC, `Status: Shipped` on the
+   spec, `Status: Done` on the plan, and re-sync the `docs/specs/README.md` row,
+   which still reads `Draft`.
+
+**Worth folding back into the work-loop itself.** This is the second time the
+same friction bit this run, and it is a design finding, not an accident: the plan
+contract says it "is allowed to change as you learn — while its Status is
+`Drafting` or `Executing`", `_LEGAL_AFTER_APPROVAL` admits plan status
+`Executing`, and yet `approved_plan_hash` pins plan *content* while
+`canonical_contract` splices out only the status *token*. So the tooling forbids
+exactly the mid-execution amendment the contract invites, and the only sanctioned
+escape is a destructive reset that clears the retry counters. A correction found
+during review — a wrong count, a stale citation — is the ordinary case, not an
+exceptional one.

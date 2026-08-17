@@ -45,17 +45,6 @@ class GuardsUnavailable(RuntimeError):
 
 
 _guards_module: object | None = None
-_guards_error: str | None = None
-
-# The symbols a load must provide. Checked against the loaded module rather than
-# trusted, because a file truncated at a clean statement boundary loads WITHOUT
-# raising and would otherwise hand back a half-configured guard.
-_GUARDS_REQUIRED = (
-    "GuardResult", "read_managed_json", "read_managed_text", "read_state",
-    "state_path_for", "canonical_contract", "sha256_canonical_contract",
-    "UnreadableArtifact", "read_md_status", "assert_status_legal",
-    "validate_run_id", "DEFAULTS",
-)
 
 
 def load_guards():
@@ -118,10 +107,27 @@ def load_guards():
             f"cannot load {path}: module is truncated (no completeness marker). "
             "Restore the file or re-run `make build-self`."
         )
-    missing = [n for n in _GUARDS_REQUIRED if not hasattr(module, n)]
-    if missing:
+    # AC13's completeness check: the module's OWN `__all__` is the contract, so it
+    # is never restated here. Three hand-enumerated copies drifted immediately —
+    # `check-spec-status.py`'s omitted `check_artifact_status`, the only function it
+    # calls — which is why an enumeration is explicitly rejected. A file truncated
+    # at a clean statement boundary loads WITHOUT raising, so `__all__` is present
+    # while the names it promises are not; that is the gap this closes.
+    exported = getattr(module, "__all__", None)
+    if not exported:
         raise GuardsUnavailable(
-            f"cannot load {path}: incomplete module, missing {missing}. Restore the "
+            f"cannot load {path}: module declares no __all__. Restore the file or "
+            "re-run `make build-self`."
+        )
+    missing = sorted(set(exported) - set(dir(module)))
+    if missing:
+        # Naming a few is diagnostic; naming all 21 makes a 450-char "one-line"
+        # refusal. The count carries the rest.
+        shown = ", ".join(missing[:5])
+        if len(missing) > 5:
+            shown += f" (+{len(missing) - 5} more)"
+        raise GuardsUnavailable(
+            f"cannot load {path}: incomplete module, missing {shown}. Restore the "
             "file or re-run `make build-self`."
         )
     _guards_module = module
@@ -157,7 +163,7 @@ def main() -> int:
     )
     if not result.ok:
         return stop(result.reason)
-    print(result.message)
+    print(f"check-spec-status: {result.message}")
     return 0
 
 
