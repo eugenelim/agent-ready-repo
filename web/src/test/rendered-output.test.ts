@@ -166,7 +166,10 @@ function builtGuidePage(sourcePath: string): string {
   const sourceRelative = relative(GUIDES_SRC, source);
   const slug = slugOverride
     ? unquote(slugOverride)
-    : join('guides', sourceRelative.replace(/\.md$/, '').replace(/(^|\/)README$/, ''));
+    : join(
+        'guides',
+        sourceRelative.replace(/\.md$/, '').replace(/(^|\/)README$/, '')
+      ).toLowerCase();
   return join(DOCS_ROOT, slug, 'index.html');
 }
 
@@ -392,6 +395,12 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
 });
 
 describe.skipIf(!docsBuilt)('typed guide asides in built output', () => {
+  it('maps uppercase source names to Astro\'s lowercase emitted route', () => {
+    expect(relative(DOCS_ROOT, builtGuidePage('guides/AGENTS.md'))).toBe(
+      join('guides', 'agents', 'index.html')
+    );
+  });
+
   it('resolves every classified block to its emitted semantic container', () => {
     const failures: string[] = [];
     for (const row of asideLedger()) {
