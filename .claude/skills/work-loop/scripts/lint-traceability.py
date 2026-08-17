@@ -1027,6 +1027,19 @@ def build_standalone(root: Path, layout: dict, g: Graph,
 
     local_ids = set(g.nodes)
 
+    # A spec's `Brief:` back-link names its brief either by the brief's `Slug:`
+    # identity or by the brief file's repository-relative path — the canonical
+    # form the spec template and workspace-status provenance require. The path
+    # form is `<dir>/<file>.md`, which `_CROSSREPO_RE` would otherwise classify
+    # as a well-formed cross-repo reference and report unresolvable, silently
+    # dropping the local brief↔spec edge. Resolve it through the recognised
+    # brief files so the alias is exact: a brief whose `Slug:` differs from its
+    # filename stem still maps to its own node.
+    brief_id_by_path = {
+        path.relative_to(root).as_posix(): bid
+        for bid, path in brief_paths.items()
+    }
+
     # Edge: spec → component (forward `Component:` on a spec, reverse-indexed so
     # the producer is the spec and the consumer is the component) — one edge per
     # `Component:` line; and spec ← producer (up) via the up-fields.
@@ -1038,7 +1051,9 @@ def build_standalone(root: Path, layout: dict, g: Graph,
             if m and not _is_placeholder(m.group(1)):
                 _wire(g, origin=spec_id, target=_token(m.group(1)),
                       local_ids=local_ids, rollup=rollup, origin_is_producer=True)
-        _wire_up(g, consumer=spec_id, candidates=_spec_up_values(text),
+        _wire_up(g, consumer=spec_id,
+                 candidates=[brief_id_by_path.get(v, v)
+                             for v in _spec_up_values(text)],
                  local_ids=local_ids, rollup=rollup)
 
     # Edge: brief ← parent intent, and ladder rungs ← parent intent — both via

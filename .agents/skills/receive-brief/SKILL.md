@@ -112,11 +112,13 @@ For each confirmed slice, in dependency order:
    runs as part of that chain — it sets each slice's `Shape:` (the brief's
    framing usually decides it) and derives the stack the plan's `## Design (LLD)`
    names; pass the brief's stack context so it conforms rather than re-elicits.
-2. **Stamp the `Brief:` back-link** on the derived spec — set it to this
-   brief's repository-relative path (`docs/product/briefs/<slug>.md`), the form
+2. **Stamp the `Brief:` back-link** on the derived spec — set it to this brief
+   file's repository-relative path (`docs/product/briefs/<file>.md`), the form
    the spec template and `docs/CONVENTIONS.md` specify and the one
    `workspace-status` reconciliation requires to match a queue entry's
    `source.parent`. A bare slug fails that provenance check and blocks dispatch.
+   Use the brief's **actual filename**, which need not equal its `Slug:` — the
+   shipped `examples/` briefs deliberately differ.
    In **Shape B**, also stamp `Satisfies: US-n` on each
    acceptance criterion that satisfies a story, so the trace is bidirectional.
 3. **Add a row to the brief's Spec map** for the new slice (the Status column

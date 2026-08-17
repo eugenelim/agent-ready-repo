@@ -423,7 +423,10 @@ mechanical rule.
   deferral recorded only in a PR comment rots; the register is version-controlled
   and greppable. Run `workspace-status` to see all open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
-  `- **Brief:**` header naming that brief (`product/briefs/<slug>.md`). It
+  `- **Brief:**` header naming that brief by its repository-relative path
+  (`docs/product/briefs/<file>.md` — the brief file's real path, which
+  `workspace-status` reconciliation matches against the queue entry's
+  `source.parent`; a bare slug fails that check and blocks dispatch). It
   records *product provenance* and is distinct from `Constrained by:` (which
   cites the ADRs/RFCs that govern the spec). The field is additive and optional
   — a spec authored directly omits it and stays valid. The brief's coverage map
