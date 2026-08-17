@@ -25,6 +25,7 @@ from __future__ import annotations
 import importlib.util
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 from unittest import mock
 
@@ -45,12 +46,107 @@ def _load():
     return mod
 
 
+#: How many times this suite may launch the production CLI against the REAL
+#: tree. Fixtures cover the individual plants; these launches exist only to
+#: prove the CLI is wired to the real catalogue. The number is asserted, so
+#: adding one is a decision rather than an accident.
+_REAL_LAUNCH_BUDGET = 4
+_REAL_LAUNCHES = {"count": 0}
+
+
 def _run() -> tuple[int, str]:
-    """(exit code, stderr). The reason matters: the lint has several failure
-    sites, so `exit != 0` alone would let a plant "pass" on an unrelated fault."""
+    """(exit code, stderr) from the production CLI against the REAL tree.
+
+    The reason matters: the lint has several failure sites, so `exit != 0` alone
+    would let a plant "pass" on an unrelated fault.
+    """
+    _REAL_LAUNCHES["count"] += 1
     r = subprocess.run([sys.executable, str(LINT)],
                        cwd=ROOT, capture_output=True, text=True)
     return r.returncode, r.stderr
+
+
+def _load_golden():
+    """The golden harness, for its fixture builders.
+
+    Imported rather than duplicated: two copies of "what a minimal catalogue
+    looks like" would drift, and the golden baseline is keyed to these exact
+    shapes. The filename is hyphenated, so it needs a loader.
+    """
+    path = ROOT / "tools" / "test-lint-boundary-golden.py"
+    spec = importlib.util.spec_from_file_location("lint_boundary_golden", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["lint_boundary_golden"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+_GOLDEN = _load_golden()
+_FIXTURE_CACHE: dict[tuple[str, str], Path] = {}
+
+
+def _fixture(tmp: Path, name: str) -> Path:
+    """Build (once per run) the named fixture catalogue under *tmp*."""
+    key = (str(tmp), name)
+    if key not in _FIXTURE_CACHE:
+        _FIXTURE_CACHE[key] = _GOLDEN._make_fixture(tmp, name)
+    return _FIXTURE_CACHE[key]
+
+
+def _fixture_context(mod, root: Path):
+    """A context for a fixture root, with an EMPTY `_NO_RUNNER` map.
+
+    The real map holds real repository paths, so against any fixture every entry
+    reports as a stale exemption — eight findings of pure noise that would drown
+    the one thing each plant is testing. Injecting an empty map is precisely why
+    the map moved into the context. The map's own behaviour is covered in
+    `tools/test-lint-boundary-structural.py`.
+    """
+    base = mod.default_context(root)
+    return mod.BoundaryContext(
+        root=base.root,
+        packs_root=base.packs_root,
+        recipe_path=base.recipe_path,
+        projected_roots=base.projected_roots,
+        runner_files=base.runner_files,
+        no_runner={},
+    )
+
+
+def _findings(mod, root: Path, check_name: str | None):
+    """Findings from one check (or all) against a fixture root.
+
+    In-process through the callable API — no CLI launch, so a plant costs
+    milliseconds rather than a full production run.
+    """
+    selection = None if check_name is None else [check_name]
+    import contextlib
+    import io
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        found = mod.inspect_boundary(_fixture_context(mod, root), selection)
+    if check_name is None:
+        return found
+    return [f for f in found if f.check == check_name]
+
+
+def _tracked_state() -> set[str]:
+    """Snapshot of modified tracked files, for a before/after comparison.
+
+    Compared rather than required-empty: the developer may legitimately have
+    uncommitted work. What must be empty is the *difference* the suite makes.
+
+    The suite used to append a deliberately-violating target to the real root
+    Makefile and restore it afterwards. A concurrent `git add -A` during that
+    window committed the injected violation, and the local re-run then passed
+    because the file was restored — so it failed only in CI, against a tree the
+    developer could not reproduce. That happened on PR #961.
+    """
+    proc = subprocess.run(
+        ["git", "status", "--porcelain", "--untracked-files=no"],
+        cwd=ROOT, capture_output=True, text=True, check=False,
+    )
+    return {line for line in proc.stdout.splitlines() if line.strip()}
 
 
 # Shapes the matcher must catch, and the ones it must deliberately not.
@@ -75,6 +171,7 @@ def main() -> int:
     mod = _load()
     failures: list[str] = []
     cases = 0
+    _tracked_before = _tracked_state()
 
     # ---- layer 2: matcher shapes ------------------------------------------
     for name in _MATCH:
@@ -416,18 +513,149 @@ steps:
     ):
         failures.append("a pytest workflow step must inherit its working-directory")
 
-    # ---- layer 1: falsification, both directions ---------------------------
+    # ---- layer 2: fixture falsification -----------------------------------
+    # Each planted violation is proven against a small temporary catalogue via
+    # the callable API. Four properties per plant, and the third is the one that
+    # matters: a plant that fails for the *wrong* reason is a guard nobody has
+    # actually checked.
+    #
+    #   1. the lint fails
+    #   2. the failure names the plant or its policy
+    #   3. the failure comes from the INTENDED check
+    #   4. the same fixture without the plant passes that check
+    #
+    # These used to be twelve launches of the whole production lint against the
+    # real worktree, two of which rewrote the real root Makefile. That is what
+    # burned PR #961: a concurrent `git add -A` committed the injected violation,
+    # and because the file was restored the local re-run passed — so it failed
+    # only in CI, against a tree the developer could not reproduce.
+    plants = (
+        # (fixture, check, substring the finding must contain)
+        ("apm-test-file", "apm-carries-no-tests", "test_planted.py"),
+        ("apm-singular-test-dir", "apm-carries-no-tests", "/test"),
+        ("projection-test-content", "projection-carries-no-tests",
+         "test_projected.py"),
+        ("pack-not-projected", "projection-carries-no-tests",
+         "none of its skills is projected"),
+        ("empty-tests-tree", "tests-live-in-the-pack-tree",
+         "holds no test content"),
+        ("only-gitignored-tests", "tests-live-in-the-pack-tree",
+         "holds no test content"),
+        ("pack-test-escapes", "pack-tests-stay-in-pack", "reaches above"),
+        ("pack-test-unparseable", "pack-tests-stay-in-pack",
+         "unparseable Python:"),
+        ("symlinked-test-source", "pack-tests-stay-in-pack", "is a symlink"),
+        ("linked-test-dir", "pack-tests-stay-in-pack", "linked directory"),
+        ("linked-test-root", "pack-tests-stay-in-pack", "root is linked"),
+        ("runner-spans-two-suites", "runners-keep-suites-isolated",
+         "multiple skill suites"),
+        ("suite-without-runner", "every-suite-dir-has-a-runner",
+         "no runner names"),
+        ("missing-runner-file", "runners-keep-suites-isolated",
+         "does not exist"),
+        ("malformed-runner-file", "runners-keep-suites-isolated",
+         "is not parseable"),
+        ("empty-include-list", "projection-carries-no-tests",
+         "lists no packs to project"),
+        ("no-projected-roots", "projection-carries-no-tests",
+         "no projected skills tree found"),
+    )
+    negatives = (
+        # A fixture that plants *allowed* content must NOT fail its check.
+        ("apm-evals-allowed", "apm-carries-no-tests"),
+        ("apm-transient-allowed", "apm-carries-no-tests"),
+    )
+
+    with tempfile.TemporaryDirectory(prefix="boundary-falsify-") as td:
+        tmp = Path(td)
+        clean_root = _fixture(tmp, "clean")
+        clean_ctx = _fixture_context(mod, clean_root)
+
+        for fixture, check_name, needle in plants:
+            cases += 1
+            root = _fixture(tmp, fixture)
+            found = _findings(mod, root, check_name)
+            if not found:
+                failures.append(
+                    f"{fixture}: planted violation did not fail "
+                    f"[{check_name}]"
+                )
+                continue
+            if not any(needle in f.message for f in found):
+                failures.append(
+                    f"{fixture}: [{check_name}] failed, but no finding names "
+                    f"{needle!r} — it failed for another reason: "
+                    f"{[f.message[:90] for f in found]}"
+                )
+            cases += 1
+            if any(f.check != check_name for f in found):
+                failures.append(
+                    f"{fixture}: findings attributed to an unintended check: "
+                    f"{sorted({f.check for f in found})}"
+                )
+            cases += 1
+            if _findings(mod, clean_root, check_name):
+                failures.append(
+                    f"{fixture}: the same check fails on the clean fixture too, "
+                    f"so this plant proves nothing"
+                )
+
+        for fixture, check_name in negatives:
+            cases += 1
+            root = _fixture(tmp, fixture)
+            found = _findings(mod, root, check_name)
+            if found:
+                failures.append(
+                    f"{fixture}: allowed content must not fail [{check_name}]: "
+                    f"{[f.message[:90] for f in found]}"
+                )
+
+        # A missing or malformed runner file is reported by BOTH consuming
+        # checks — one cause, two findings. Memoising the parse must not
+        # collapse that, and the count is the only thing that notices.
+        for fixture in ("missing-runner-file", "malformed-runner-file"):
+            cases += 1
+            root = _fixture(tmp, fixture)
+            both = _findings(mod, root, None)
+            reporters = {
+                f.check for f in both
+                if "does not exist" in f.message or "is not parseable" in f.message
+            }
+            if reporters != {"runners-keep-suites-isolated",
+                             "every-suite-dir-has-a-runner"}:
+                failures.append(
+                    f"{fixture}: expected both consuming checks to report the "
+                    f"runner-inventory failure, got {sorted(reporters)}"
+                )
+
+        # The clean fixture must pass every check, or every plant above is
+        # measured against a broken baseline.
+        cases += 1
+        clean_findings = mod.inspect_boundary(clean_ctx)
+        if clean_findings:
+            failures.append(
+                f"the clean fixture does not pass, so every plant above is "
+                f"measured against a broken baseline: "
+                f"{[f.message[:90] for f in clean_findings]}"
+            )
+
+    # ---- layer 3: minimal real-tree end-to-end ----------------------------
+    # Fixtures cannot prove the production CLI is wired to the real catalogue.
+    # Only running it against the real catalogue can — so a small number of
+    # launches stay, each with a try/finally cleanup guarantee and a refusal to
+    # run if its target already exists.
     cases += 1
     rc, err = _run()
     if rc != 0:
-        failures.append(f"clean tree: expected exit 0, got {rc}\n{err}")
+        failures.append(f"real tree, clean: expected exit 0, got {rc}\n{err}")
 
-    # Plant under a non-core pack, so the check is proven repo-wide and not just
-    # for the pack the guard used to be scoped to.
+    # One representative runtime-boundary plant.
     plant_dir = ROOT / "packs" / "figma" / ".apm" / "skills" / "figma" / "scripts"
     plant = plant_dir / "test_planted_boundary_violation.py"
     if not plant_dir.is_dir():
         failures.append(f"plant target missing: {plant_dir}")
+    elif plant.exists():
+        failures.append(f"refusing to plant over an existing file: {plant}")
     else:
         cases += 1
         plant.write_text("# planted by test-lint-pack-test-boundary.py\n",
@@ -435,237 +663,111 @@ steps:
         try:
             rc, err = _run()
             if rc == 0:
-                failures.append(
-                    "planted test under packs/figma/.apm/: expected exit 1"
-                )
+                failures.append("real tree: planted .apm/ test expected exit 1")
             elif plant.name not in err:
                 failures.append(
-                    "planted test under packs/figma/.apm/: lint failed, but its "
-                    f"message does not name the plant — it failed for another "
-                    f"reason:\n{err}"
+                    f"real tree: lint failed but did not name the plant:\n{err}"
                 )
         finally:
             plant.unlink(missing_ok=True)
-        cases += 1
-        rc, err = _run()
-        if rc != 0:
-            failures.append(f"after removing the plant: expected exit 0\n{err}")
 
-    # A `test/` directory (singular) is the shape the previous matcher missed.
-    plant2 = plant_dir / "test"
-    cases += 1
-    plant2.mkdir(exist_ok=True)
-    try:
-        rc, err = _run()
-        if rc == 0:
-            failures.append(
-                "planted `test/` dir under packs/figma/.apm/: expected exit 1"
-            )
-        elif "/test" not in err:
-            failures.append(f"planted `test/` dir: failed for another reason\n{err}")
-    finally:
-        plant2.rmdir()
-
-    # `evals/` untouchability is load-bearing (AC5) and is enforced by _SKIP_DIR,
-    # not by _TEST_DIR — so asserting `"evals" not in _TEST_DIR` proves nothing.
-    # Plant a test file inside a real evals/ tree and require it to be ignored.
-    evals = ROOT / "packs" / "figma" / ".apm" / "skills" / "figma" / "evals"
-    cases += 1
-    if evals.is_dir():
-        ep = evals / "test_planted_in_evals.py"
-        ep.write_text("# planted\n", encoding="utf-8")
-        try:
-            rc, err = _run()
-            if rc != 0:
-                failures.append(
-                    "a test file inside evals/ must be ignored — evals are "
-                    f"skill-local runtime content (ADR-0071):\n{err}"
-                )
-        finally:
-            ep.unlink(missing_ok=True)
-    else:
-        failures.append(f"evals plant target missing: {evals}")
-
-    # A linked test source must fail without the lint reading its target.
+    # One representative linked-tree plant.
     linked_test = ROOT / "packs" / "figma" / "tests" / "test_planted_link.py"
-    cases += 1
-    try:
-        linked_test.symlink_to(LINT)
-    except OSError as exc:
-        failures.append(f"could not plant symlinked pack test: {exc}")
+    if linked_test.exists() or linked_test.is_symlink():
+        failures.append(f"refusing to plant over an existing path: {linked_test}")
     else:
+        cases += 1
         try:
-            rc, err = _run()
-            if rc == 0:
-                failures.append("a symlinked pack test source must fail")
-            elif linked_test.name not in err or "symlink" not in err:
-                failures.append(
-                    "symlinked pack test failed without naming the linked source:\n"
-                    f"{err}"
-                )
-        finally:
-            linked_test.unlink(missing_ok=True)
-
-    linked_dir = ROOT / "packs" / "figma" / "tests" / "test_planted_link_dir"
-    cases += 1
-    try:
-        linked_dir.symlink_to(ROOT / "tools", target_is_directory=True)
-    except OSError as exc:
-        failures.append(f"could not plant linked pack test directory: {exc}")
-    else:
-        try:
-            if not mod._is_linked_dir(linked_dir):
-                failures.append("linked-directory predicate missed a symlink")
-            rc, err = _run()
-            if rc == 0:
-                failures.append("a linked pack test directory must fail")
-            elif linked_dir.name not in err or "linked" not in err:
-                failures.append(
-                    "linked pack test directory failed without naming the link:\n"
-                    f"{err}"
-                )
-        finally:
-            linked_dir.unlink(missing_ok=True)
-
-    cases += 1
-    with (
-        mock.patch.object(mod.Path, "is_symlink", return_value=False),
-        mock.patch.object(
-            mod.Path, "is_junction", return_value=True, create=True
-        ),
-    ):
-        if not mod._is_linked_dir(Path("planted-junction")):
-            failures.append("linked-directory predicate missed a junction")
-
-    linked_root = ROOT / "packs" / "contracts" / "tests"
-    cases += 1
-    if linked_root.exists() or linked_root.is_symlink():
-        failures.append(f"linked-root plant target unexpectedly exists: {linked_root}")
-    else:
-        try:
-            linked_root.symlink_to(ROOT / "tools", target_is_directory=True)
+            linked_test.symlink_to(LINT)
         except OSError as exc:
-            failures.append(f"could not plant linked pack test root: {exc}")
+            failures.append(f"could not plant symlinked pack test: {exc}")
         else:
             try:
                 rc, err = _run()
                 if rc == 0:
-                    failures.append("a linked pack tests root must fail")
-                elif "packs/contracts/tests" not in err or "linked" not in err:
+                    failures.append("real tree: symlinked pack test must fail")
+                elif linked_test.name not in err or "symlink" not in err:
                     failures.append(
-                        "linked pack tests root failed without naming the link:\n"
-                        f"{err}"
+                        f"real tree: symlink plant failed without naming the "
+                        f"linked source:\n{err}"
                     )
             finally:
-                linked_root.unlink(missing_ok=True)
+                linked_test.unlink(missing_ok=True)
 
-    # Case 4 and case 5 had never been seen to fail. Plant a runner line that
-    # collects two colliding destinations, and an undeclared destination.
-    mk = ROOT / "Makefile"
-    original = mk.read_text(encoding="utf-8")
+    # Cleanup restored the tree.
     cases += 1
-    try:
-        mk.write_text(
-            original + "\nlint-selftest-scratch:\n"
-            "\tpytest packs/converters/tests/skills/markdown-to-docx "
-            "packs/converters/tests/skills/markdown-to-pptx\n",
-            encoding="utf-8")
-        rc, err = _run()
-        if rc == 0:
-            failures.append(
-                "a runner covering markdown-to-docx + markdown-to-pptx must fail "
-                "— they share test_render.py and render.py"
-            )
-        elif "multiple skill suites" not in err:
-            failures.append(
-                f"collision plant failed, but not for broad runner isolation:\n{err}"
-            )
-    finally:
-        mk.write_text(original, encoding="utf-8")
-
-    cases += 1
-    adapt = ROOT / "packs/core/tests/skills/adapt-to-project"
-    flow = ROOT / "packs/atlassian/tests/skills/flow-metrics"
-    adapt_subjects = {
-        path.name
-        for path in (
-            ROOT / "packs/core/.apm/skills/adapt-to-project/scripts"
-        ).glob("*.py")
-    }
-    flow_subjects = {
-        path.name
-        for path in (
-            ROOT / "packs/atlassian/.apm/skills/flow-metrics/scripts"
-        ).glob("*.py")
-    }
-    if mod._test_basenames(adapt) & mod._test_basenames(flow):
-        failures.append("non-colliding runner fixtures now share a test basename")
-    if adapt_subjects & flow_subjects:
-        failures.append("non-colliding runner fixtures now share a subject basename")
-    try:
-        mk.write_text(
-            original + "\nlint-selftest-scratch:\n"
-            "\tpytest packs/core/tests/skills/adapt-to-project "
-            "packs/atlassian/tests/skills/flow-metrics\n",
-            encoding="utf-8",
+    rc, err = _run()
+    if rc != 0:
+        failures.append(
+            f"real tree after cleanup: expected exit 0, got {rc}\n{err}"
         )
-        rc, err = _run()
-        if rc == 0:
-            failures.append(
-                "a broad runner must fail even before its skill suites acquire "
-                "colliding module names"
-            )
-        elif not all(
-            name in err for name in ("adapt-to-project", "flow-metrics")
-        ):
-            failures.append(
-                f"non-colliding broad-runner plant failed without naming both "
-                f"suites:\n{err}"
-            )
-    finally:
-        mk.write_text(original, encoding="utf-8")
 
     cases += 1
-    undeclared = ROOT / "packs" / "figma" / "tests" / "skills" / "planted-skill"
-    undeclared.mkdir(parents=True, exist_ok=True)
-    (undeclared / "test_planted.py").write_text("def test_x():\n    pass\n",
-                                                encoding="utf-8")
-    try:
-        rc, err = _run()
-        if rc == 0:
-            failures.append(
-                "a destination directory named by no runner and absent from "
-                "_NO_RUNNER must fail"
-            )
-        elif "planted-skill" not in err:
-            failures.append(f"undeclared-destination plant failed elsewhere\n{err}")
-    finally:
-        (undeclared / "test_planted.py").unlink(missing_ok=True)
-        undeclared.rmdir()
+    if _REAL_LAUNCHES["count"] != _REAL_LAUNCH_BUDGET:
+        failures.append(
+            f"real-tree production-CLI launches: {_REAL_LAUNCHES['count']} != "
+            f"recorded budget {_REAL_LAUNCH_BUDGET}. Adding one is a decision, "
+            f"not an accident — update the budget deliberately."
+        )
 
-    # ---- layer 4: runner isolation ----------------------------------------
-    # Overlapping basenames across destinations are expected; the lint must key
-    # on what one invocation covers. Assert both halves against the real tree.
+    # ---- real-tree controls ----------------------------------------------
+    # These two must stay on the real tree: their whole job is to notice that
+    # the real tree has drifted. Against a fixture they are trivially true and
+    # stop proving anything.
+    #
+    # C1 — the collision fixture still collides.
     cases += 1
     docx = ROOT / "packs/converters/tests/skills/markdown-to-docx"
     pptx = ROOT / "packs/converters/tests/skills/markdown-to-pptx"
     if docx.is_dir() and pptx.is_dir():
-        overlap = mod._test_basenames(docx) & mod._test_basenames(pptx)
-        if not overlap:
+        if not (mod._test_basenames(docx) & mod._test_basenames(pptx)):
             failures.append(
                 "expected markdown-to-docx and markdown-to-pptx to share a test "
                 "basename — the collision case this lint guards has vanished, so "
                 "the guard is no longer proving anything"
             )
-        else:
-            rc, err = _run()
-            if rc != 0:
-                failures.append(
-                    "the tree has overlapping basenames across destinations and "
-                    f"the lint failed — it must key on invocations:\n{err}"
-                )
     else:
         failures.append("collision fixtures not found in the tree")
+
+    # C2's precondition — the non-colliding pair is still non-colliding, so the
+    # "a broad runner fails even without a collision" proof still means what it
+    # says. The runner plant itself moved to a fixture.
+    cases += 1
+    adapt = ROOT / "packs/core/tests/skills/adapt-to-project"
+    flow = ROOT / "packs/atlassian/tests/skills/flow-metrics"
+    if adapt.is_dir() and flow.is_dir():
+        if mod._test_basenames(adapt) & mod._test_basenames(flow):
+            failures.append(
+                "non-colliding runner fixtures now share a test basename — the "
+                "'fails even without a collision' proof no longer holds"
+            )
+        adapt_subjects = {
+            path.name for path in
+            (ROOT / "packs/core/.apm/skills/adapt-to-project/scripts").glob("*.py")
+        }
+        flow_subjects = {
+            path.name for path in
+            (ROOT / "packs/atlassian/.apm/skills/flow-metrics/scripts").glob("*.py")
+        }
+        cases += 1
+        if adapt_subjects & flow_subjects:
+            failures.append(
+                "non-colliding runner fixtures now share a subject basename"
+            )
+    else:
+        failures.append("non-colliding runner fixtures not found in the tree")
+
+    # No case may leave a tracked file changed. Compared against the snapshot
+    # taken before any plant ran, so the developer's own uncommitted work does
+    # not read as a violation.
+    cases += 1
+    changed = _tracked_state() - _tracked_before
+    if changed:
+        failures.append(
+            f"the suite left tracked files modified: {sorted(changed)}. No case "
+            f"may mutate a tracked file — see the "
+            f"selftest-mutates-tracked-makefile history."
+        )
 
     for f in failures:
         sys.stderr.write(f"FAIL {f}\n")
