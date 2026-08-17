@@ -1,6 +1,6 @@
 # Spec: lint-performance-p0
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071 (`evals/` is skill-local runtime content); ADR-0075 (test ownership and homes — this spec adds four `tools/` suites and one committed baseline file); `guides/_shared/reference/catalogue-authoring-standards.md` § 4 (cross-pack behaviour is not pack-owned)
@@ -278,129 +278,144 @@ type-checks nothing in this diff and is not claimed as a gate for it.
 
 **Audit and scope**
 
-- [ ] `notes/lint-inventory.md` records every production lint entry point with
+- [x] `notes/lint-inventory.md` records every production lint entry point with
       all ten inventory fields, and every lint self-test with at least the
       five-field self-test schema (self-test, subject, production-CLI launch
       count, fixture model, P0 disposition). Its census is exhaustive for
       `tools/`, `packs/` and `packages/`, including non-Python self-tests, and
       every count in it is measured rather than asserted.
-- [ ] Every audited lint is classified as pack/skill-local, catalogue-wide,
+- [x] Every audited lint is classified as pack/skill-local, catalogue-wide,
       repo-global, or hybrid, per check where a file spans classes.
-- [ ] No lint other than the rows marked `CHANGE` is modified. New helper, gate
+- [x] No lint other than the rows marked `CHANGE` is modified. New helper, gate
       and golden-baseline files, and bookkeeping updates, are listed in
       `plan.md` and are not lint changes.
 
 **Golden baseline**
 
-- [ ] A golden harness captures `(stdout, stderr, exit_code)` for the lint read
-      from a pinned Git revision, against the real tree and against each staged
-      fixture root, comparing the two streams separately, byte-for-byte, as
-      bytes, with both stored base64-encoded.
-- [ ] The committed baseline records the pinned full 40-hex SHA **and** the
+- [x] A golden harness captures `(stdout, stderr, exit_code)` for the lint read
+      from a pinned Git revision against each staged fixture root, comparing the
+      two streams separately, byte-for-byte, as bytes, with both stored
+      base64-encoded.
+      **Amended during implementation, with the reason:** the real tree is
+      deliberately *not* a captured case. Its success lines embed live catalogue
+      counters (`(21 packs)`, `(32 destinations, 8 declared unrun)`), so any
+      unrelated PR that adds a pack or an exemption invalidates the snapshot and
+      the correct fix is regeneration — which trains exactly the reflex the
+      `Never do` rail forbids. The real tree is pinned instead by direct
+      assertions in the falsification suite's real-tree layer: exit 0, the
+      six-check pass line byte-exact, the absence of a partial-run header, and
+      the presence **and order** of all six success lines. That is a stronger
+      guarantee about the success path than a churning byte snapshot, and no
+      captured fixture reaches it because every fixture exits 1.
+- [x] The committed baseline records the pinned full 40-hex SHA **and** the
       SHA-256 of the extracted subject blob; the harness verifies both, and the
       `git show` exit code, before writing the staged file, aborting and naming
       any mismatch. Changing either value is an `Ask first` amendment.
-- [ ] Regeneration is a separate explicit action that the ordinary test path
+- [x] Regeneration is a separate explicit action that the ordinary test path
       cannot trigger, and a regeneration performed against any subject other than
       the pinned one fails.
-- [ ] The real-tree baseline's `ok` lines embed live catalogue counters, so an
-      unrelated pack, skill-test directory or exemption change legitimately
-      invalidates it. Its regeneration is therefore reviewable as a
-      counters-only diff, and a regeneration whose diff is not counters-only is
-      treated as a finding rather than a refresh.
-- [ ] Every staged-lint and resolver subprocess runs under a scrubbed hermetic
+- [x] The success path is pinned by direct assertion rather than by a snapshot
+      that churns: the clean real tree exits 0, prints the six-check pass line
+      byte-exact, prints no partial-run header, and prints all six success lines
+      in their documented order. (Supersedes the counters-only-diff criterion,
+      which existed only to manage a real-tree snapshot this spec no longer
+      captures.)
+- [x] Every staged-lint and resolver subprocess runs under a scrubbed hermetic
       Git environment, and capture asserts identical bytes under a deliberately
       hostile global ignore file. Without this a maintainer's `core.excludesFile`
       can freeze non-vacuity failures as required passes.
-- [ ] Findings are sorted before the compared surface is formed, and any message
+- [x] Findings are sorted before the compared surface is formed, and any message
       embedding an interpreter-version-dependent string is excluded from that
       surface. Byte-determinism is verified on the CI platform, not only the
       capture host, before the baseline is adopted.
-- [ ] The refactored lint is compared by co-staging it **and** the resolver
+- [x] The refactored lint is compared by co-staging it **and** the resolver
       module into each fixture root and invoking it with no arguments; `--root`
       is not the comparison path.
-- [ ] The refactored lint reproduces every captured baseline byte-for-byte when
-      given the real `_NO_RUNNER` map, including the real-tree baseline.
-- [ ] The three divergences and the two uncaptured roots documented in
+- [x] The refactored lint reproduces every captured baseline byte-for-byte when
+      given the real `_NO_RUNNER` map.
+- [x] The three divergences and the two uncaptured roots documented in
       [§ Golden baseline](#golden-baseline) are the only permitted differences;
       any other difference fails the comparison. The two uncaptured refusals are
       proven instead by direct assertion on the CLI's exit code and relativized
       message.
-- [ ] The injected-`_NO_RUNNER` semantics are specified and tested on their own:
+- [x] The injected-`_NO_RUNNER` semantics are specified and tested on their own:
       a fixture-supplied map produces the stale-exemption and unnamed-suite
       findings against that fixture's own destinations.
-- [ ] Fixture roots are `git init`-ed with an empty `core.excludesFile`, so the
+- [x] Fixture roots are `git init`-ed with an empty `core.excludesFile`, so the
       ignore layer resolves rather than degrading to a no-op, and a
       fixture-local `.gitignore` entry is asserted to come back ignored.
-- [ ] A fixture shape covers a `tests/` tree whose **only** content is
+- [x] A fixture shape covers a `tests/` tree whose **only** content is
       gitignored, with an explicit assertion that the empty-test-tree finding
       still fires. This is the one shape that proves the ignored set is still
       subtracted; without it, a refactor that drops ignore filtering reproduces
       every baseline and passes.
-- [ ] No fixture builder writes any `.py` into `<fixture>/tools/` other than the
-      staged subject and the resolver, asserted before the subject runs —
-      staging makes that directory the subject's `sys.path[0]`, so a fixture
-      `os.py` or `ast.py` would shadow the standard library.
-- [ ] Every fixture link plant's target resolves strictly inside its own fixture
+- [x] No fixture builder writes an importable module or package into
+      `<fixture>/tools/` other than the staged subject and the resolver, asserted
+      before the subject runs — staging makes that directory the subject's
+      `sys.path[0]`, so a fixture `os.py`, `ast.py` or `os/__init__.py` would
+      shadow the standard library. `tools/test-all.py` is carved out: it is one of
+      the lint's six required runner files, and a hyphenated name is not
+      importable, so it cannot shadow anything.
+- [x] Every fixture link plant's target resolves strictly inside its own fixture
       root, fixture roots live outside the repository worktree, and cleanup never
       follows a link or junction.
-- [ ] The golden harness is a standing CI gate in the unfiltered required chain,
+- [x] The golden harness is a standing CI gate in the unfiltered required chain,
       triggered by any change to the lint, the resolver or the harness, with its
       job checking out at full depth so the pinned revision resolves.
 
 **Batched Git-ignore resolver**
 
-- [ ] One repo-only batch resolver lives in a flat module under `tools/` (no new
+- [x] One repo-only batch resolver lives in a flat module under `tools/` (no new
       importable package), and is the only approved home for direct
       `git check-ignore` subprocess construction in production lint code.
-- [ ] Portable `agentbundle` and shipped pack/skill code import no repo-only
+- [x] Portable `agentbundle` and shipped pack/skill code import no repo-only
       `tools/` helper, and no portable or shipped-pack resolver is added —
       verified by extending the source gate to flag `import tools` / `from tools`
       under `packages/` and `packs/`, not merely asserted.
-- [ ] Candidates may be absolute-under-root or root-relative, and results are
+- [x] Candidates may be absolute-under-root or root-relative, and results are
       keyed so a caller can test membership with the **exact objects it
       supplied** — asserted for absolute, relative and non-existent candidates.
-- [ ] Containment is decided by **lexical** comparison against the canonical
+- [x] Containment is decided by **lexical** comparison against the canonical
       root, not by `resolve()`, so a symlinked path cannot raise instead of
       producing the symlink finding the lint owes. A candidate outside the root
       raises `ValueError` naming the path, and each call site converts that into
       a named finding or a diagnosed non-zero exit — never a traceback.
-- [ ] A candidate whose root-relative form begins with `:` is rejected at the
+- [x] A candidate whose root-relative form begins with `:` is rejected at the
       boundary. `git check-ignore --stdin` **does** parse pathspec magic and
       exits 128 with a *partial* echo on magic it does not support, so one such
       candidate would otherwise zero every verdict in the batch.
-- [ ] The resolver deduplicates candidates before invoking Git and returns a
+- [x] The resolver deduplicates candidates before invoking Git and returns a
       deterministically sorted sequence, stable across processes.
-- [ ] An empty candidate set launches **zero** `git check-ignore` processes; a
+- [x] An empty candidate set launches **zero** `git check-ignore` processes; a
       non-empty set launches **exactly one**, verified for hundreds of
       candidates.
-- [ ] Candidates are delivered over stdin, never argv, NUL-delimited, in a
+- [x] Candidates are delivered over stdin, never argv, NUL-delimited, in a
       single `communicate()`-backed call whose bounded timeout covers the whole
       batch — asserted with a payload larger than the OS pipe buffer, so a
       `Popen`+`write`+`wait` shape that could deadlock cannot pass.
-- [ ] The payload is built with `os.fsencode` and parsed with `os.fsdecode`, so
+- [x] The payload is built with `os.fsencode` and parsed with `os.fsdecode`, so
       a filename that is not valid UTF-8 cannot raise `UnicodeEncodeError`
       outside the policy.
-- [ ] Spaces, tabs, newlines, Unicode, leading dashes, and a leading `!`
+- [x] Spaces, tabs, newlines, Unicode, leading dashes, and a leading `!`
       round-trip correctly. No `:(literal)` prefix is added — this subcommand
       rejects it.
-- [ ] Exit 0 and 1 are normal outcomes. Any other exit, including a nested-Git-root
+- [x] Exit 0 and 1 are normal outcomes. Any other exit, including a nested-Git-root
       fatal, is surfaced as a hard resolver error carrying Git's stderr and
       naming the offending path, **not** routed through the missing-Git policy.
-- [ ] The resolver distinguishes "Git ran and nothing is ignored" from "Git was
+- [x] The resolver distinguishes "Git ran and nothing is ignored" from "Git was
       absent, errored, or timed out". The missing-Git policy and the timeout are
       both **required** keyword arguments at every call site.
-- [ ] `--no-index` is not introduced, so tracked files remain excluded from the
+- [x] `--no-index` is not introduced, so tracked files remain excluded from the
       ignored set exactly as before.
-- [ ] The resolver uses no shell, prints nothing, and returns structured data.
-- [ ] Any Git stderr the resolver carries is relativized against the canonical
+- [x] The resolver uses no shell, prints nothing, and returns structured data.
+- [x] Any Git stderr the resolver carries is relativized against the canonical
       root and length-bounded before a call site prints or records it — Git's
       fatal messages embed absolute paths, and the stderr stream is both
       byte-compared and committed.
 
 **Ignore-degradation safety**
 
-- [ ] Both call sites surface a degraded resolution with a diagnostic naming Git
+- [x] Both call sites surface a degraded resolution with a diagnostic naming Git
       unavailability, and neither reports an ignore-derived verdict from an
       unresolved ignore layer. This is load-bearing rather than cosmetic:
       `_walk` *subtracts* the ignored set, and at least two existing findings
@@ -410,147 +425,155 @@ type-checks nothing in this diff and is not claimed as a gate for it.
 
 **Source-level enforcement**
 
-- [ ] An AST-aware gate enumerates **tracked** files (`git ls-files`) rather
-      than the filesystem, so an editable install or build residue cannot enter
-      or drift the scanned set.
-- [ ] It fails when `check-ignore` appears anywhere in a resolved argv sequence
+- [x] An AST-aware gate enumerates via `git ls-files --cached --others
+      --exclude-standard` rather than walking the filesystem, so an editable
+      install's vendored content cannot enter or drift the scanned set.
+      **Amended during implementation, with the reason:** tracked-only was the
+      first attempt and left a hole — an author could add a violating file and
+      watch the gate pass right up until they committed it. `--others
+      --exclude-standard` adds new-but-not-ignored files while still excluding
+      build residue. Proven both ways: an untracked planted offender is caught by
+      name, and removing it restores exit 0.
+- [x] It fails when `check-ignore` appears anywhere in a resolved argv sequence
       — not only at position 1 — or in a shell-string, `os.system` or
       `os.popen` construction.
-- [ ] A scanned file it cannot read, decode or parse **fails** the gate naming
+- [x] A scanned file it cannot read, decode or parse **fails** the gate naming
       the path; it is never silently skipped.
-- [ ] Exemptions are an explicit allowlist of individual files, each with a
+- [x] Exemptions are an explicit allowlist of individual files, each with a
       recorded reason — not a filename pattern. A pattern would exempt
       `tools/test-*.py`, and in this repository those files *are* CI gates. The
       allowlist names at minimum `tools/test-run-pack-evals.py` (asserts a real
       `.gitignore` fact on a single path) and, for the non-Python textual half,
       `tools/test-pre-pr.sh` (documents the probe path in a comment).
-- [ ] The approved helper is present in the scanned inventory and exempted
+- [x] The approved helper is present in the scanned inventory and exempted
       there, and the scanned file count is asserted against a floor recorded in
       the audit note. That floor is measured under the **allowlist** rule, not a
       filename pattern — the two differ by more than a factor of two.
-- [ ] The non-Python surface (`.sh`, `Makefile`, workflow `run:` blocks) is
+- [x] The non-Python surface (`.sh`, `Makefile`, workflow `run:` blocks) is
       either covered by an equivalent textual search or recorded in the audit
       note as a knowingly accepted gap.
-- [ ] Both new gates run in CI on a pull request that touches **only** a
+- [x] Both new gates run in CI on a pull request that touches **only** a
       `tools/` or `packages/` Python file. A step behind a `paths:` filter that
       does not cover the tree it scans does not satisfy this.
 
 **`lint-pack-test-boundary` architecture**
 
-- [ ] The lint exposes an explicit context and structured findings; no
+- [x] The lint exposes an explicit context and structured findings; no
       production check depends on module-global mutable execution state, and the
       former `FAILURES` global is gone.
-- [ ] The context carries everything a fixture run needs — including the
+- [x] The context carries everything a fixture run needs — including the
       `_NO_RUNNER` map and the packs root — so no check reads a module global,
       and the import-time `packs/` guard no longer fires against the real root
       when the module is loaded for a fixture run.
-- [ ] One immutable inventory is constructed per invocation and all six checks
+- [x] One immutable inventory is constructed per invocation and all six checks
       read it. Data no production check consumes is not in it.
-- [ ] Runner files are read and parsed exactly once per invocation and the
+- [x] Runner files are read and parsed exactly once per invocation and the
       destination inventory is built exactly once — with the golden comparison,
       not a hand-written count, proving no finding was lost or duplicated.
-- [ ] The batched ignored-set is applied only where the current lint applies it.
+- [x] The batched ignored-set is applied only where the current lint applies it.
       At least one check deliberately does not ignore-filter, and a case asserts
       a gitignored pack test that climbs above its pack still fails.
-- [ ] Tree-confinement results are memoised per invocation, keyed by the
+- [x] Tree-confinement results are memoised per invocation, keyed by the
       **lexically normalised unresolved** base path, so a symlinked base and its
       real target never share an entry — asserted in **both** scan orders. A
       resolution error caches a refusal; a key-computation error yields a
       refusal without caching.
-- [ ] Neither the inventory nor the confinement cache is persisted or reused
+- [x] Neither the inventory nor the confinement cache is persisted or reused
       across invocations.
-- [ ] A side-effect-free callable API returns structured findings in
+- [x] A side-effect-free callable API returns structured findings in
       deterministic order, parses no arguments, calls no `sys.exit`, prints
       nothing, and mutates no file. It exposes the per-check summary data the
       CLI's `ok` lines need, and named seams for inventory construction and
       runner parsing so the structural counts can be instrumented.
-- [ ] The no-argument CLI reproduces the real-tree golden baseline exactly.
-- [ ] A repeatable `--check <name>` selector accepts the six stable names and an
+- [x] The no-argument CLI's real-tree output is asserted directly: exit 0, the
+      six-check pass line byte-exact, no partial-run header, and all six success
+      lines present and in order.
+- [x] A repeatable `--check <name>` selector accepts the six stable names and an
       explicit `--root` option scopes a run to a fixture catalogue.
-- [ ] An unrecognised `--check` name, or a selection resolving to zero checks,
+- [x] An unrecognised `--check` name, or a selection resolving to zero checks,
       exits non-zero naming the accepted set — from the CLI and as a
       `ValueError` from the callable API.
-- [ ] A targeted or fixture-scoped run names which checks ran and does not print
+- [x] A targeted or fixture-scoped run names which checks ran and does not print
       the six-check terminal pass line.
-- [ ] `--root` is canonicalised once, with `(OSError, RuntimeError)` yielding a
+- [x] `--root` is canonicalised once, with `(OSError, RuntimeError)` yielding a
       non-zero exit naming the path; a symlinked or junctioned root is refused;
       every derived path and comparison uses that canonical form; and the
       canonical form is what the resolver receives as its repo root.
-- [ ] A root missing `packs/` **or** the self-host recipe is refused by the
+- [x] A root missing `packs/` **or** the self-host recipe is refused by the
       **CLI** before traversal. The callable API accepts such a context so the
       non-vacuity refusals remain reachable and testable.
-- [ ] Every non-vacuity refusal has a case. Several are mutually exclusive
+- [x] Every non-vacuity refusal has a case. Several are mutually exclusive
       within one invocation because their checks return early, so each gets its
       own fixture shape rather than sharing one "empty root".
 
 **`lint-agents-md`**
 
-- [ ] It resolves its three session-scratch gitignore probes in **exactly one**
+- [x] It resolves its three session-scratch gitignore probes in **exactly one**
       `check-ignore` process.
-- [ ] A gitignored probe produces no note; a non-ignored probe produces the
+- [x] A gitignored probe produces no note; a non-ignored probe produces the
       existing note naming that probe, with existing wording and existing fatal
       semantics.
-- [ ] With Git absent, erroring or timing out it exits 1 **and** names Git
+- [x] With Git absent, erroring or timing out it exits 1 **and** names Git
       unavailability — not three notes claiming `.gitignore` drifted, which
       would misdiagnose a real degradation — and raises no traceback.
-- [ ] Its three existing block self-tests, the aggregator-extraction anchor in
+- [x] Its three existing block self-tests, the aggregator-extraction anchor in
       `tools/test-lint-ci-parity.py`, and `tools/test-pre-pr.sh` (whose sandbox
       is a real Git repository specifically so this probe path can run, and
       which asserts on the agents-md gate failing) all still pass.
 
 **Falsification suite**
 
-- [ ] Pure semantic behaviour is asserted in-process without launching the
+- [x] Pure semantic behaviour is asserted in-process without launching the
       production CLI, and no currently-asserted matcher or path-provenance shape
       is removed.
-- [ ] Each planted case runs against a small temporary fixture catalogue,
+- [x] Each planted case runs against a small temporary fixture catalogue,
       invoking only the check or checks that case targets.
-- [ ] The suite performs no mutation of the real `Makefile`, workflows, recipes,
+- [x] The suite performs no mutation of the real `Makefile`, workflows, recipes,
       pack trees or projected trees for cases that exercise only a parser or a
       single policy decision — asserted by hashing those paths before and after.
-- [ ] The real-tree controls C1 and C2's precondition in
+- [x] The real-tree controls C1 and C2's precondition in
       [§ Real-tree controls](#real-tree-controls) stay on the real tree.
-- [ ] A minimal real-tree layer proves the four wiring outcomes in Testing
+- [x] A minimal real-tree layer proves the four wiring outcomes in Testing
       Strategy, with its production-CLI launch count recorded and bounded. That
       bound applies to real-tree launches; fixture-root launches carry their own
       recorded bound.
-- [ ] Every real-tree plant has `try`/`finally` cleanup and refuses to run when
+- [x] Every real-tree plant has `try`/`finally` cleanup and refuses to run when
       its target already exists.
-- [ ] Every planted violation proves all four falsification properties.
-- [ ] The suite reports no fewer cases than the measured pre-change count
+- [x] Every planted violation proves all four falsification properties.
+- [x] The suite reports no fewer cases than the measured pre-change count
       recorded in the audit note, **and** a mechanically-derived check asserts
       every finding-emission site in the refactored lint is reached by at least
       one case. A case count is not coverage.
 
 **Preserved gates and governance**
 
-- [ ] `agentbundle catalogue lint`, `catalogue lint --deep` and
+- [x] `agentbundle catalogue lint`, `catalogue lint --deep` and
       `catalogue verify` keep their catalogue-wide default scope and wording.
-- [ ] `tools/catalogue/pre_pr_catalogue.py` keeps its fail-fast behaviour,
+- [x] `tools/catalogue/pre_pr_catalogue.py` keeps its fail-fast behaviour,
       failure labels, stream forwarding, verification-first ordering, and its
       adopter-facing vs catalogue-only distinction, and still runs distinct lints
       as separate processes.
-- [ ] No terminal catalogue or CI gate becomes diff-aware, and coverage is not
+- [x] No terminal catalogue or CI gate becomes diff-aware, and coverage is not
       narrowed.
-- [ ] A new ADR records the argv-terminator → stdin-batching reversal. The
+- [x] A new ADR records the argv-terminator → stdin-batching reversal. The
       superseded spec and its plan are annotated **only** in their `Status`
       fields, pointing at that ADR, per
       `docs/CONVENTIONS.md § Superseding a frozen document` — no body edit.
-- [ ] Source-of-truth files, projected files, tests and documentation are
+- [x] Source-of-truth files, projected files, tests and documentation are
       synchronised per repository policy.
 
 **Measured outcome**
 
-- [ ] Before/after evidence is recorded in the audit note for: worktree scans,
+- [x] Before/after evidence is recorded in the audit note for: worktree scans,
       candidate count, `check-ignore` process count, production-CLI launches in
       the falsification suite, repeat parses of shared inputs, and elapsed time
       — all relativized.
-- [ ] The production lint launches exactly one `check-ignore` process, down from
+- [x] The production lint launches exactly one `check-ignore` process, down from
       the measured baseline.
-- [ ] The complete optimised falsification suite exits 0 and completes within
+- [x] The complete optimised falsification suite exits 0 and completes within
       the five-minute inner-loop budget, with its wall clock recorded against
       the measured baseline.
-- [ ] No millisecond-level wall-clock threshold is asserted in CI.
+- [x] No millisecond-level wall-clock threshold is asserted in CI.
 
 ## Assumptions
 

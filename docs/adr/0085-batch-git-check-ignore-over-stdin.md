@@ -20,9 +20,10 @@
   NUL-delimited on **stdin** as bytes. No production lint launches one process
   per path, and the `--` argv terminator becomes moot because no path reaches
   argv at all.
-- **Because:** the per-path form cost 337 subprocesses and 32 seconds on every
-  run of one lint, which pushed its falsification suite six seconds past the
-  work-loop's five-minute inner-loop budget.
+- **Because:** the per-path form cost hundreds of subprocesses and tens of
+  seconds on every run of one lint, which pushed its falsification suite past the
+  work-loop's five-minute inner-loop budget. Measured figures: the implementing
+  spec's audit note.
 - **Applies to:** every production lint under `tools/`, `packs/` and
   `packages/`. Portable `agentbundle` code and shipped pack content are
   unaffected — measurement found neither queries Git ignore at all.
@@ -46,11 +47,12 @@ terminator; the batching was never implemented, and the per-path loop survived
 inside the tree walk, invisible in review because each call is individually
 unremarkable.
 
-The cost was not: 337 `check-ignore` processes and 32.35 s for one lint
-invocation, and that lint's own falsification suite launched it twelve times, for
-a measured 306.4 s against a 300 s budget. A local run reached 71% and never
-completed — read at the time as a stall, but in fact a correct suite sitting six
-seconds the wrong side of a cutoff.
+The cost was not. One lint invocation launched a `check-ignore` process per
+candidate path and took tens of seconds; that lint's own falsification suite
+launched it twelve times, landing just past the 300 s budget. A local run reached
+71% and never completed — read at the time as a stall, but in fact a correct suite
+sitting a few seconds the wrong side of a cutoff. Exact counts and timings are in
+the implementing spec's audit note.
 
 ## Decision
 
@@ -118,17 +120,33 @@ the same state.
 
 ### Every Git subprocess is hermetic
 
-Resolver calls run with `GIT_CONFIG_NOSYSTEM=1`, `GIT_CONFIG_GLOBAL` and
-`GIT_CONFIG_SYSTEM` pointed at an empty file, and `GIT_DIR`, `GIT_WORK_TREE`,
-`GIT_INDEX_FILE`, `GIT_COMMON_DIR` and `GIT_CEILING_DIRECTORIES` unset.
+Every Git subprocess — the resolver's, and every staged-subject run in the
+capture harness — goes through one shared helper, `hermetic_git_env`. A second
+implementation is how a fix lands in one place and not the other, and one of
+those places is the path that *writes* the committed baseline.
+
+The scrub sets `GIT_CONFIG_NOSYSTEM=1`, points `GIT_CONFIG_GLOBAL` and
+`GIT_CONFIG_SYSTEM` at an empty file, and unsets `GIT_DIR`, `GIT_WORK_TREE`,
+`GIT_INDEX_FILE`, `GIT_COMMON_DIR`, `GIT_CEILING_DIRECTORIES`,
+`GIT_OBJECT_DIRECTORY`, `GIT_ALTERNATE_OBJECT_DIRECTORIES` and `GIT_CONFIG`.
+
+It must also drop **`GIT_CONFIG_COUNT` and its `GIT_CONFIG_KEY_n` /
+`GIT_CONFIG_VALUE_n` pairs**, and that one is easy to miss: it survives
+`GIT_CONFIG_NOSYSTEM` and the redirected config files, and it is the only channel
+that leaks *silently*. Verified — with `GIT_CONFIG_COUNT=1` pointing
+`core.excludesFile` at a hostile file, `check-ignore --stdin -z` reported an extra
+path as ignored and exited **0**. By contrast `GIT_GLOB_PATHSPECS`,
+`GIT_ICASE_PATHSPECS` and `GIT_LITERAL_PATHSPECS` make the subcommand exit 128,
+which the hard-error rule above already catches; they are dropped too, but they
+were never the dangerous case.
 
 This is not hygiene for its own sake. A `git init`-ed directory still honours
-`core.excludesFile` from user and system config: with a global ignore file
-matching `tests/`, a fixture's pack test comes back *ignored*, and given the
-subtraction above those failures would be captured as required **passes** and
-reproduce green indefinitely. The same leak is live outside test fixtures — Git
-sets `GIT_DIR` and `GIT_INDEX_FILE` for hook processes, and these lints run from
-a pre-PR hook.
+`core.excludesFile`: with a global ignore file matching `tests/`, a fixture's pack
+test comes back *ignored*, and given the subtraction above those failures would be
+captured as required **passes** and reproduce green indefinitely — the exact
+outcome the capture harness exists to prevent. The same leak is live outside test
+fixtures: Git sets `GIT_DIR` and `GIT_INDEX_FILE` for hook processes, and these
+lints run from a pre-PR hook.
 
 ## Alternatives considered
 
@@ -156,9 +174,11 @@ a pre-PR hook.
 ## Consequences
 
 - One `check-ignore` process per lint invocation, and none for an empty candidate
-  set. The boundary lint went from 337 processes and 32.35 s to one process and
-  2.85 s; its falsification suite from 306.4 s to 12.0 s while *increasing* its
-  case count.
+  set. The measured before/after figures live in
+  [`docs/specs/lint-performance-p0/notes/lint-inventory.md`](../specs/lint-performance-p0/notes/lint-inventory.md)
+  § *After evidence*, which the implementing spec designates as their single
+  canonical home. They are deliberately not repeated here: this record is frozen
+  on acceptance, so a figure that drifts would need a second ADR to correct.
 - `tools/lint-no-direct-check-ignore.py` refuses a direct `check-ignore`
   subprocess outside `tools/lint_git_ignore.py`, matching the pattern anywhere in
   an argv sequence and in shell-string form. It is a drift guard, not a proof —
@@ -170,8 +190,8 @@ a pre-PR hook.
   current callers already prune while collecting; detecting the condition inside
   the resolver would mean an `lstat` walk per candidate, reintroducing the
   per-path filesystem work the decision removes.
-- `AC10a` of the superseding spec is now wrong in a frozen document. A reader who
-  starts there needs the `Status`-field pointer to find the live rule — the same
+- `AC10a` of the **superseded** spec is now wrong in a frozen document. A reader
+  who starts there needs the `Status`-field pointer to find the live rule — the same
   residue [ADR-0084](0084-nosec-reason-delimiter-and-stderr-as-a-gate.md)
   accepted, and for the same reason: the operative rule lives in a Living file at
   the point of use, not in a patched record.

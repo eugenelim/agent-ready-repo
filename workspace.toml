@@ -993,18 +993,11 @@ open = [
   # Unblocks when: the allowlist gains its first entry.
   {slug = "npm-allowlist-expiry-enforcement", summary = "Give npm-audit-allowlist.toml a machine-checked expiry like .snyk's, so a suppression cannot outlive its justification", source = "spec/npm-sca-gate (ADR-0083 revisit)"},
 
-  # Unrelated finds from spec/npm-sca-gate — both cost that loop real time.
-  #
-  # Self-test mutates a tracked file: tools/test-lint-pack-test-boundary.py
-  #   appends a deliberately-violating `lint-selftest-scratch` target to the
-  #   REAL Makefile to prove the boundary linter fires, then restores it
-  #   (~lines 560-610). Any `git add -A` during that window commits the
-  #   injected violation, and the local re-run then passes because the file was
-  #   restored — so it only fails in CI, against a tree the developer cannot
-  #   reproduce. That happened on PR #961. Fix: build the fixture in a tmpdir
-  #   copy, or drive the linter with a --makefile argument, so no tracked file
-  #   is ever mid-mutation. Same pattern is worth auditing across tools/test-*.
-  # Unblocks when: picked up — no dependency.
+  # The second unrelated find from spec/npm-sca-gate — the self-test that
+  # mutated the real Makefile — is RESOLVED by spec/lint-performance-p0
+  # (2026-08-17). Its full description moved with the entry to
+  # [backlog].closed rather than being left orphaned here, where a reader of
+  # `open` would see a described item that tomllib says is not present.
 
   # project-knowledge --capture refuses: a well-formed capture request built
   #   against the contract in packs/core/tests/skills/project-knowledge/
@@ -1947,6 +1940,12 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  # Original report (spec/npm-sca-gate): the suite appended a
+  #   deliberately-violating `lint-selftest-scratch` target to the REAL Makefile
+  #   to prove the boundary linter fires, then restored it. Any `git add -A`
+  #   during that window committed the injected violation, and the local re-run
+  #   then passed because the file was restored — so it failed only in CI,
+  #   against a tree the developer could not reproduce. That happened on PR #961.
   # Resolved by spec/lint-performance-p0 (2026-08-17). The falsification suite
   # no longer touches any tracked file: individual plants moved to temporary
   # fixture catalogues driven through the lint's callable API, and the suite now

@@ -253,14 +253,13 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         fixture = Path(td) / "fx"
         _build_min_fixture(fixture)
         base = M.default_context(fixture)
-        real_map_ctx = base
         empty_map_ctx = M.BoundaryContext(
             root=base.root, packs_root=base.packs_root,
             recipe_path=base.recipe_path,
             projected_roots=base.projected_roots,
             runner_files=base.runner_files, no_runner={},
         )
-        with_real, _, _ = _silent(M.inspect_boundary, real_map_ctx,
+        with_real, _, _ = _silent(M.inspect_boundary, base,
                                   ["every-suite-dir-has-a-runner"])
         with_empty, _, _ = _silent(M.inspect_boundary, empty_map_ctx,
                                    ["every-suite-dir-has-a-runner"])

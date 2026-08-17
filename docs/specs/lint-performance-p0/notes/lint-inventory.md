@@ -350,11 +350,19 @@ The gate enumerates **tracked** files via `git ls-files` over `tools/`,
 — filename *patterns* are forbidden, because `tools/test-*.py` files are CI gates
 in this repository.
 
-| Quantity | Count |
+Superseded by the measured after-figures in
+[§ After evidence](#after-evidence-measured-2026-08-17-same-host): the scanned set
+is **817 files with 4 allowlist entries**, against a recorded floor of **700**.
+The mid-work estimate below (765 tracked `.py`, 2 allowlist entries, ≈763 floor)
+predates two corrections — the enumeration adding new-but-not-ignored files, and
+`SCAN_ROOTS` gaining `.github` and `Makefile` — and is retained only so the
+correction is legible.
+
+| Quantity (superseded estimate) | Count |
 | --- | --- |
-| tracked `*.py` under `tools/`, `packs/`, `packages/` | **765** |
-| explicit allowlist entries | 2 (see below) |
-| **floor for the scanned set** | **≈763** |
+| tracked `*.py` under `tools/`, `packs/`, `packages/` | 765 |
+| explicit allowlist entries | 2 |
+| floor for the scanned set | ≈763 |
 
 Allowlist, each with its reason:
 
@@ -532,9 +540,16 @@ on a warm cache. All paths relativized.
 ### Enforcement-gate scan set
 
 Measured under the specified allowlist rule, via
-`git ls-files --cached --others --exclude-standard`: **800 files scanned, 5
-allowlisted**, against a recorded floor of 700. The earlier figure of 292 was
-measured under the filename-pattern rule the spec forbids and is withdrawn.
+`git ls-files --cached --others --exclude-standard` over `tools/`, `packs/`,
+`packages/`, `.github/` and the root `Makefile`: **817 files scanned, 4
+allowlisted**, against a recorded floor of **700**.
+
+Two earlier figures are withdrawn: **292** was measured under the
+filename-pattern exclusion the spec forbids, and **800 / 5 allowlisted** predates
+adding `.github` + `Makefile` to the scan roots and dropping the
+`tools/test-pre-pr.sh` entry (its only mention of the probe is a comment, which
+the textual matcher already skips, so an allowlist entry would have hidden a
+future real invocation there).
 
 ### Discriminating power, verified by mutation
 
@@ -551,6 +566,39 @@ That run also exposed a defect in the fixture itself: the original plant was
 `test_demo.gitignored`, which `_TEST_FILE` never matches, so the fixture produced
 the right output for entirely the wrong reason. It now plants a real `.py` file
 ignored by an explicit path rule — both conditions at once.
+
+### Gate-run evidence
+
+For a goal-based task the record *is* the artifact, so each command is listed
+with the exit code it actually returned. Terminal wording unchanged throughout.
+
+| Command | Exit | Note |
+| --- | --- | --- |
+| `python3 tools/lint-pack-test-boundary.py` | 0 | six `ok` lines + `✓ … passed (6 cases).` |
+| `python3 tools/test-lint-pack-test-boundary.py` | 0 | 128 cases; 4 real-tree CLI launches |
+| `python3 tools/test-lint-boundary-golden.py` | 0 | 22 captured baselines reproduced |
+| `python3 tools/test-lint-boundary-structural.py` | 0 | 48 cases |
+| `python3 tools/test-lint-git-ignore.py` | 0 | 88 cases |
+| `python3 tools/lint-no-direct-check-ignore.py` | 0 | 817 files scanned, 4 allowlisted |
+| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | 37 cases |
+| `python3 tools/lint-agents-md.py` | 0 | unchanged terminal wording |
+| `python3 tools/test-lint-agents-md-gitignore-probes.py` | 0 | 17 cases |
+| `python3 tools/test_lint_agents_md_{legacy,diataxis,risk}_block.py` | 0 | 3 suites, unchanged |
+| `python3 tools/test-lint-ci-parity.py` | 0 | 102 cases; aggregator-extraction anchor holds |
+| `python3 tools/test_build_gate_chain.py` | 0 | 19 tests; ordered chain list updated |
+| `python3 tools/test-test-all.py` | 0 | 16 cases |
+| `python3 -m pytest tests/roster/test_core_pre_pr_hook.py` | 0 | 11 tests |
+| `bash tools/test-pre-pr.sh` | 0 | 4 sandbox cases, incl. `agents-md-fail` |
+| `agentbundle catalogue lint --deep` | 0 | `ok: 58 finding(s)` (warnings only) |
+| `agentbundle catalogue verify` | 0 | `catalogue verify: ok` |
+| `python3 tools/catalogue/pre_pr_catalogue.py` | 0 | 19/19 steps `✓`, fail-fast order intact |
+| `SKIP_SAST=1 make build-check` | 0 | full required chain incl. the 5 new steps |
+| `python3 tools/lint-ruff.py` | 0 | `All checks passed!` |
+| `scripts/lint-spec-status.py --root .` | 0 | `spec metadata clean` |
+
+`make lint-mypy` is deliberately **absent**: `tools/lint-mypy.py` targets only
+`packages/agentbundle/agentbundle` and `packages/credbroker/credbroker`, so it
+type-checks nothing in this diff. Claiming it would be a vacuous pass.
 
 ### Budget
 

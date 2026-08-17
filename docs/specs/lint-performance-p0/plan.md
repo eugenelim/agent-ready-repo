@@ -1,7 +1,7 @@
 # Plan: lint-performance-p0
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Audit:** [`notes/lint-inventory.md`](notes/lint-inventory.md) — scope contract and single canonical home for all figures and counts. Not restated here.
 
 ## Approach
@@ -185,7 +185,8 @@ zero-resolving selection exits non-zero naming the accepted set.
 
 | Module | Role |
 | --- | --- |
-| `tools/lint_git_ignore.py` | batched resolver, `IgnoreResolution`, `MissingGitPolicy` |
+| `tools/lint_git_ignore.py` | batched resolver, `IgnoreResolution`, `MissingGitPolicy`, `hermetic_git_env` |
+| `tools/lint-no-direct-check-ignore.py` | the production source gate itself |
 | `tools/lint-pack-test-boundary.py` | context, inventory, six checks, callable API, CLI |
 | `tools/lint-agents-md.py` | probe batch (3 → 1) + degradation diagnostic |
 | `tools/test-lint-git-ignore.py` | resolver unit tests |
@@ -193,6 +194,8 @@ zero-resolving selection exits non-zero naming the accepted set.
 | `tools/test-lint-boundary-golden.py` | golden capture/compare harness + fixture builders |
 | `tools/lint-boundary-golden.json` | captured baselines (committed data) |
 | `tools/test-lint-pack-test-boundary.py` | 3-layer falsification suite |
+| `tools/test-lint-boundary-structural.py` | process/inventory counts and what capture cannot observe |
+| `tools/test-lint-agents-md-gitignore-probes.py` | the migrated probe call site |
 
 ### State & control flow
 
@@ -350,7 +353,7 @@ every fixture shape.
 
 **Depends on:** T1
 
-**Touches:** tools/test-lint-no-direct-check-ignore.py
+**Touches:** tools/lint-no-direct-check-ignore.py, tools/test-lint-no-direct-check-ignore.py
 
 **Tests:** (TDD)
 - fails on synthetic sources for each bypass shape: `["git","check-ignore",…]`;
@@ -510,7 +513,7 @@ process-count test asserts exactly one `check-ignore`.
 
 **Depends on:** T3, T5, T6
 
-**Touches:** docs/adr/, docs/specs/pack-test-boundary-remaining-packs/{spec,plan}.md, docs/specs/lint-performance-p0/notes/lint-inventory.md, workspace.toml, tools/repo/build_gate_chain.py, tools/test_build_gate_chain.py, .github/workflows/docs.yml, tools/test-all.py
+**Touches:** docs/adr/, docs/specs/pack-test-boundary-remaining-packs/{spec,plan}.md, docs/specs/lint-performance-p0/{spec,plan}.md, docs/specs/lint-performance-p0/notes/lint-inventory.md, docs/specs/README.md, workspace.toml, tools/repo/build_gate_chain.py, tools/test_build_gate_chain.py, .github/workflows/docs.yml, tools/test-all.py
 
 **Anchor carve-out:** `tools/test_build_gate_chain.py` is listed in
 § Construction tests as an anchor. Appending the new gate steps requires updating

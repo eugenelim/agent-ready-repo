@@ -166,8 +166,12 @@ def main() -> int:
         ):
             probe_dir = tmp / label.split()[0]
             prep(probe_dir)
-            env = {"PATH": str(probe_dir)} if "absent" in label else None
-            run = (_run(extra_env=env) if env
+            # An empty PATH dir means git is ABSENT (FileNotFoundError); a dir
+            # holding a failing `git` means git is BROKEN (non-zero exit). The
+            # two took different code paths before this change, so they are
+            # driven differently on purpose.
+            absent_shape = prep is not _absent_git_shim
+            run = (_run(extra_env={"PATH": str(probe_dir)}) if absent_shape
                    else _run(path_prefix=probe_dir))
             merged = run.stdout + run.stderr
             check(f"{label}: exits non-zero", run.returncode != 0,
