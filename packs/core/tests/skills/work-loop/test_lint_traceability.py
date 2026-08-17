@@ -564,6 +564,39 @@ def test_path_form_brief_backlink_resolves_local() -> None:
                f"external id: {combined}")
 
 
+def test_mistyped_brief_path_is_dangling_not_informational() -> None:
+    """A mistyped bare slug has always been a hard violation. Making the path
+    the canonical spelling must not downgrade the same typo to an informational
+    cross-repo reference, or the dominant error mode for this field stops
+    failing the lint."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief(root, "b")
+        write_spec(root, "alpha", brief="docs/product/briefs/typo.md")
+        rc, out, err = run(root)
+        combined = out + err
+        expect(rc == 1, f"a mistyped brief path must fail the lint, got {rc}: {combined}")
+        expect("DANGLING" in combined,
+               f"a mistyped brief path is a dangling pointer: {combined}")
+        expect("cross-repo" not in combined,
+               f"a path under the local briefs dir is not a cross-repo ref: {combined}")
+
+
+def test_brief_path_alias_does_not_rewrite_other_up_fields() -> None:
+    """The alias is `Brief:`-scoped. A `Contract:` value that happens to name a
+    brief file must keep its own classification rather than being turned into
+    the spec's brief producer edge."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief(root, "b")
+        # Contract names the brief file; Brief itself is absent.
+        write_spec(root, "alpha", contract="docs/product/briefs/b.md")
+        rc, out, err = run(root)
+        combined = out + err
+        expect("brief:b" not in combined,
+               f"a Contract: value must not become the brief edge: {combined}")
+
+
 def test_path_form_brief_backlink_resolves_through_symlinked_base() -> None:
     """The recognised brief file arrives symlink-resolved, but the authored
     `Brief:` value is the canonical unresolved path. Comparing raw relative
@@ -575,11 +608,10 @@ def test_path_form_brief_backlink_resolves_through_symlinked_base() -> None:
         real.mkdir(parents=True)
         write(real / "b.md", "# Brief: b\n\n- **Slug:** `b`\n")
         (root / "docs" / "product").mkdir(parents=True, exist_ok=True)
-        try:
-            (root / "docs" / "product" / "briefs").symlink_to(
-                real, target_is_directory=True)
-        except (OSError, NotImplementedError):
-            return  # platform without usable symlinks — nothing to assert
+        if not symlink_or_skip("path-form Brief via symlinked briefs base",
+                               root / "docs" / "product" / "briefs", real,
+                               target_is_directory=True):
+            return
         write_spec(root, "alpha", brief="docs/product/briefs/b.md")
         rc, out, err = run(root)
         combined = out + err

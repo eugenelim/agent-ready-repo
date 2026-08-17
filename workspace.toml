@@ -456,26 +456,16 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # A spec `Brief:` naming a brief path that does not exist (a typo such as
-  # docs/product/briefs/typoo.md) is classified by lint-traceability.py as a
-  # well-formed cross-repository reference — "unresolvable, informational",
-  # exit 0 — and the spec is still credited with a producer edge. Now that the
-  # path, not the slug, is the canonical back-link form, a mistyped path is the
-  # dominant error mode for this field and it lands in the one classification
-  # that is neither a violation nor visibly local. Fix: when a candidate is not
-  # a recognised brief but resolves under the briefs base, classify it dangling
-  # instead of falling through to the cross-repo pattern. Deferred from the
-  # brief-path provenance fix because turning a currently-informational state
-  # into a hard violation is a behaviour change for every consuming repository,
-  # not a mechanical ride-along — it needs its own spec and a migration note.
-  {slug = "traceability-missing-brief-path-is-informational", source = "spec-less brief-path provenance fix (review concern 3)"},
   # lint-brief-coverage.py and lint-traceability.py both still match a bare-slug
   # `Brief:` back-link, so a slug-form spec passes every early gate and only
   # fails later at workspace-status reconciliation, where it blocks dispatch.
   # The docstrings now say the slug is backward-compatible only, but nothing
   # tells an author at lint time. Fix: have the coverage lint emit a non-fatal
-  # note naming any spec whose back-link matched by slug rather than by path.
-  # Deferred because it adds output to a lint many repositories run in CI.
+  # note naming any spec whose back-link matched by slug rather than by path
+  # (lint-brief-coverage.py, receive-brief skill). Deferred because it adds
+  # output to a lint many repositories run in CI. Unblocked once the note is
+  # agreed to be non-fatal and that lint's output contract is versioned; no
+  # tracked dependency, so no `needs` edge.
   {slug = "brief-backlink-slug-form-needs-lint-note", source = "spec-less brief-path provenance fix (review concern 5)"},
   # The publish job's environment gate asks a human to release executable plugin
   # code adopters install, but GitHub's approval UI shows only the environment

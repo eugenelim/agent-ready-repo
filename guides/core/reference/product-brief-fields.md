@@ -81,7 +81,7 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 | Field / marker | Where | Meaning |
 | --- | --- | --- |
-| `Brief: docs/product/briefs/<slug>.md` | spec header (sibling to `Constrained by:` / `Contract:`) | Product provenance — the brief this spec was derived from, named by its repository-relative path. `workspace-status` reconciliation matches this value against the queue entry's `source.parent`; a bare slug fails that check and blocks dispatch. Distinct from `Constrained by:`, which cites the ADRs/RFCs that *govern* the spec. The coverage map rolls up from these back-links. |
+| `Brief: docs/product/briefs/<slug>.md` | spec header (sibling to `Constrained by:` / `Contract:`) | Product provenance — the brief this spec was derived from, named by its repository-relative path (a bare slug fails reconciliation and blocks dispatch). Distinct from `Constrained by:`, which cites the ADRs/RFCs that *govern* the spec. The coverage map rolls up from these back-links. |
 | `Satisfies: US-n` | appended to an acceptance criterion | Story trace (Shape B only). Marks the AC that satisfies story `US-n`, giving story-granular coverage. Omitted in Shape A. |
 
 ## The coverage lint

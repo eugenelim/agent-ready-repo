@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   guidance, the brief template, and the adopter field reference now agree on
   it, and traceability no longer misreports a local brief path as an
   unresolvable cross-repository reference.
+- **A mistyped `Brief:` path fails the traceability lint.** A back-link naming
+  a brief file that does not exist is reported as a dangling pointer, the same
+  hard violation a mistyped bare slug already produced, instead of passing as
+  an informational cross-repository reference.
 
 ### [core][2.7.2] — 2026-08-17
 

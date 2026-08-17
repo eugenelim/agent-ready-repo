@@ -86,7 +86,7 @@ Outcome + Scope and coverage is spec-granular. -->
 <!-- Coverage table. The Status column is AUTO-DERIVED from each spec's own
 `Status:` field by the coverage lint — do not hand-edit it. Add one row per
 derived spec as `receive-brief` scaffolds it; each derived spec carries a
-`Brief: docs/product/briefs/<file>.md` back-link naming this brief file. A
+`Brief: docs/product/briefs/<slug>.md` back-link naming this brief file. A
 brief is *delivered* only when every mapped spec
 is Shipped; an empty map is never delivered. (Shape B adds a `Story` column
 linking each row to the `US-n` it satisfies.) -->
