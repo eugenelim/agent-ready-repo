@@ -92,17 +92,20 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
     `STEP_DISPOSITION` row passes the parity gate in both directions.
 
     The step body is **executed**, not pattern-matched: `pip` is stubbed so the
-    run is offline, and the two mutations below are the negative controls. An
-    assertion never seen to fail is an unverified one, and this file's older
-    `workflow.index(...)` cases are exactly the source-substring shape
+    run is offline, and the cases below are its negative controls. The full
+    mutation set — body-level and workflow-level — is enumerated once, in
+    `docs/specs/build-check-coverage-gaps/spec.md` AC4b; it is not restated
+    here, so the number cannot drift between the two. An assertion never seen to
+    fail is an unverified one, and this file's older `workflow.index(...)` cases
+    are exactly the source-substring shape
     `docs/knowledge/observations/antipattern/2026-08.jsonl` warns about.
     """
 
     STEP = "Install bandit unconditionally (lint-nosec-form's ID registry)"
     GATE = "Run make build-check"
 
-    @staticmethod
-    def _parse_steps(text: str) -> list[dict]:
+    @classmethod
+    def _parse_steps(cls, text: str) -> list[dict]:
         """Return `build-check.yml`'s steps as {name, has_if, run} dicts.
 
         Hand-parsed rather than PyYAML on purpose. This module is pure stdlib
@@ -129,7 +132,10 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
             if line and not line.startswith("      ") and stripped:
                 break  # dedented out of the steps list
             if line.startswith("      - "):
-                current = {"name": None, "has_if": False, "run": None}
+                current = {
+                    "name": None, "has_if": False, "run": None,
+                    "style": None, "continue_on_error": False,
+                }
                 steps.append(current)
                 run_indent = None
                 # Re-indent the first key onto the eight-space level the rest of
@@ -143,7 +149,7 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
                 if not stripped or len(line) - len(line.lstrip(" ")) >= run_indent:
                     current["run"].append(line[run_indent:])
                     continue
-                current["run"] = "\n".join(current["run"]).rstrip("\n")
+                current["run"] = cls._join(current["run"], current["style"])
                 run_indent = None
             if line.startswith("        ") and not line.startswith("         "):
                 key, _, value = stripped.partition(":")
@@ -151,15 +157,41 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
                     current["name"] = value.strip()
                 elif key == "if":
                     current["has_if"] = True
+                elif key == "continue-on-error":
+                    current["continue_on_error"] = value.strip() not in ("false", "")
                 elif key == "run" and value.strip() in ("|", "|-", ">-", ">"):
                     current["run"] = []
+                    current["style"] = value.strip()
                     run_indent = 10
                 elif key == "run":
                     current["run"] = value.strip()
+                    current["style"] = "plain"
         for step in steps:
             if isinstance(step["run"], list):
-                step["run"] = "\n".join(step["run"]).rstrip("\n")
+                step["run"] = cls._join(step["run"], step["style"])
         return steps
+
+    @staticmethod
+    def _join(body: list[str], style: str | None) -> str:
+        """Join a block scalar's lines the way YAML would, per its style.
+
+        `|` keeps newlines; `>` folds a single newline to a space (blank lines
+        stay newlines). Getting this wrong is not cosmetic: a folded body run as
+        if it were literal is a different script — `set -euo pipefail pin=…` on
+        one line, which bash rejects — so a test that "executes the real body"
+        would be executing something GitHub never runs.
+        """
+        if style in (">", ">-"):
+            out: list[str] = []
+            for line in body:
+                if not line.strip():
+                    out.append("\n")
+                elif out and out[-1] != "\n":
+                    out[-1] = out[-1] + " " + line.strip()
+                else:
+                    out.append(line.strip())
+            return "".join(out).strip()
+        return "\n".join(body).rstrip("\n")
 
     def setUp(self):
         self.root = Path(__file__).resolve().parents[1]
@@ -211,6 +243,16 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
             "first place; the whole point is that it is not",
         )
         self.assertIn(self.GATE, self.names)
+        self.assertFalse(
+            self._step()["continue_on_error"],
+            "continue-on-error neuters the step as completely as deleting it, "
+            "and neither lint-ci-parity nor the position check notices",
+        )
+        self.assertEqual(
+            self._step()["style"], "|",
+            "the body below is executed verbatim; a folded scalar would run as "
+            "one line and is a different script",
+        )
         self.assertEqual(
             self.names[index + 1], self.GATE,
             "another step between the install and the gate can replace a shared "
@@ -235,7 +277,12 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
         (fake / "tools/requirements-sast.txt").write_text(
             "pip-audit>=2.10,<3\nsemgrep>=1.166,<2\n", encoding="utf-8"
         )
-        self.assertNotEqual(self._run_body(fake).returncode, 0)
+        result = self._run_body(fake)
+        self.assertNotEqual(result.returncode, 0)
+        # Assert the cause, not just the exit code: with bandit absent (Gate F's
+        # env, where the positive control skips) a step that can never succeed
+        # for an unrelated reason would satisfy a bare non-zero check.
+        self.assertNotIn("installing pinned:", result.stdout)
 
     def _bandit_shim(self, extension_loader_source: str) -> str:
         holder = tempfile.TemporaryDirectory()
@@ -258,6 +305,9 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
         (shim / "bandit/__init__.py").write_text("", encoding="utf-8")
         result = self._run_body(self.root, {"PYTHONPATH": str(shim)})
         self.assertNotEqual(result.returncode, 0, result.stdout)
+        # It got past the grep and the install, and died on the import.
+        self.assertIn("installing pinned:", result.stdout)
+        self.assertIn("bandit.core", result.stderr)
 
     def test_step_body_fails_when_the_registry_resolves_every_id(self):
         """The probe's second direction, which the other cases cannot reach.
@@ -276,6 +326,7 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
         )
         result = self._run_body(self.root, {"PYTHONPATH": shim})
         self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn("did not resolve as lint-nosec-form", result.stderr)
 
     def test_step_body_fails_when_the_registry_resolves_nothing(self):
         """The probe's first direction, so neither half can be deleted unnoticed.
@@ -293,6 +344,7 @@ class BanditRegistryProvisioningTest(unittest.TestCase):
         )
         result = self._run_body(self.root, {"PYTHONPATH": shim})
         self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertIn("did not resolve as lint-nosec-form", result.stderr)
 
 
 class CiPytestProvisioningTest(unittest.TestCase):

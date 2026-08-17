@@ -69,9 +69,8 @@ the expensive half of that install and neither is needed by any gate that runs
 under `SKIP_SAST`. Bandit alone is what `lint-nosec-form` needs.
 
 **The pin is read, not restated.** The new step greps the `bandit` line out of
-`tools/requirements-sast.txt` rather than naming a version. A second copy of
-`bandit>=1.9,<2` is a thing that can drift from the canonical one; deriving it
-cannot. The pattern is anchored `^bandit([^A-Za-z0-9._-]|$)` so a future
+`tools/requirements-sast.txt` rather than naming a version. A second copy of the version range is a thing
+that can drift from the canonical one; deriving it cannot. The pattern is anchored `^bandit([^A-Za-z0-9._-]|$)` so a future
 `bandit-extras` line cannot be picked up instead. Same principle `lint-ci-parity.py` applies to its own
 reachable-target set ("*derived* from the Makefile, never declared").
 
@@ -88,10 +87,13 @@ level up. Security review found three routes to that, all since measured:
 | The grep matches nothing → `pip install ""` exits **0 with no output**, and a failing command substitution inside a `run:` block does not fail the step on its own | Confirmed against pip and `bash -e` | `set -euo pipefail` with the substitution in an *assignment*, whose status `set -e` does honour |
 | bandit installs but its registry import raises — an API move inside `>=1.9,<2`, a broken plugin entry point — so `id_checker()` returns `None` and `lint-nosec-form` degrades to a caveat and exit 0 | Confirmed by reading `id_checker`'s `except Exception: return None` | A `python -c` assertion reaching for the same API, checking **both** directions: a real id resolves, a nonexistent one does not |
 | A later `pip install` replaces a shared transitive dep of bandit, exiting 0 while breaking it | Standard pip resolver behaviour | Moving the step to **last before `Run make build-check`**, so nothing runs in between |
+| `continue-on-error: true` on the step — it fails, the job does not, and neither `lint-ci-parity` nor a position check notices | Confirmed by adding it | AC4b's test reads the key and asserts it absent |
+| The body reformatted from `\|` to a folded `>-` scalar — the file's dominant style for multi-token commands — so what runs is one line and `bash` rejects it | Confirmed by reformatting it | AC4b's test records the scalar style and asserts `\|`, because the body it executes must be the body GitHub runs |
 
-Each is mutation-tested: with no bandit line in the requirements file, with the
-registry import broken, and with a `check_id` that resolves everything, the step
-body exits non-zero. An unmutated assertion is an unverified one.
+Every row is mutation-tested. AC4b is the single canonical statement of the
+mutation set — the workflow-level and body-level cases and their counts live
+there, and nothing else restates them, so the number cannot drift. An unmutated
+assertion is an unverified one.
 
 ## Decision 2 — two grouped steps, not seven, and not one
 
@@ -188,8 +190,18 @@ not something to paper over by adding a second runner in `build-check.yml`.
       `guides-readme-outcome-label-drift/spec.md` (names
       `catalogue-site-tests-absent-from-ci`) each carry a `Status`-line
       annotation recording that the anchor was closed and by what. Both are
-      Frozen; no body line changes; the carrier is the one `CONVENTIONS.md`
-      § *Superseding a frozen document* licenses.
+      Frozen and no body line changes.
+
+      **Both the carrier and this second *shape* of it are licensed.**
+      `CONVENTIONS.md` § *Superseding a frozen document* makes the `Status`
+      parenthetical the one edit a frozen spec accepts, and — since
+      [`frozen-doc-supersession-annotations`](../frozen-doc-supersession-annotations/spec.md)
+      landed — names two shapes for it: the supersession pointer, and this one,
+      a pointer recording that a `[backlog].open` anchor the body names has been
+      closed. Rules 3 and 4 hold (one-way, no body line moves); rules 1 and 2 do
+      not apply, because nothing was superseded and there is no ADR to point at.
+      That sequencing was deliberate: this spec was written while the rule was
+      still in flight and said so, and the sibling merged first.
 
 - [x] **AC5 — every new step carries a disposition.** `STEP_DISPOSITION` in
       `tools/lint-ci-parity.py` gains one entry per new step: `LOCAL("test")`
@@ -203,7 +215,9 @@ not something to paper over by adding a second runner in `build-check.yml`.
 
 - [x] **AC7 — gates pass.** `python3 tools/lint-ruff.py`, `make lint-mypy`,
       `SKIP_SAST=1 make build-check`, `make sast`, and
-      `lint-spec-status.py --root . --base-ref origin/main` all exit 0.
+      `python3 .claude/skills/work-loop/scripts/lint-spec-status.py --root .
+      --base-ref origin/main` all exit 0. (That script lives under the skill,
+      not in `tools/`.)
 
 - [x] **AC8 — both register entries are closed.**
       `catalogue-site-tests-absent-from-ci` and
@@ -291,10 +305,11 @@ proven present — on every run. Four things this does **not** do:
    from landing gated by nothing — `lint-ci-parity` only enforces
    workflow-step → local-target, never the reverse, and the reverse discipline
    exists only for `packs/**/tests`. Measured: **eight** `tools/test*.py` files
-   are invoked by no `Makefile` target, no workflow, and no tool script, two of
-   them arriving in the last four merges (#980, #982). The measurement and its
-   method live in the register entry `tools-test-runner-boundary`; this bullet
-   points at it rather than restating the list.
+   are invoked by no `Makefile` target, no workflow, and no tool script — two of
+   them arrivals from this same batch. The count, the file list, the method and
+   the dated measurement live in the register entry
+   `tools-test-runner-boundary`; this bullet points at it rather than restating
+   them, because a "last N merges" figure decays on every merge.
 4. **This couples every PR to formatting elsewhere.** Two of the seven suites
    assert on raw substrings of `pages.yml`, `web/src/lib/catalogue-navigation.ts`
    and two `.astro` files — including occurrence *counts* of quoted `paths:`
