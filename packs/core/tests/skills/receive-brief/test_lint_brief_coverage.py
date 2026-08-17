@@ -177,6 +177,56 @@ def test_slug_differs_from_filename() -> None:
                f"gamma back-links by slug, must be untracked: {out}{err}")
 
 
+def test_path_form_backlink_joins_to_brief() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # The canonical `Brief:` spelling is the brief's repository-relative
+        # path — the form the spec template, `docs/CONVENTIONS.md`, and
+        # workspace-status provenance all require. It must resolve to the same
+        # brief as the bare slug, or untracked detection silently stops firing
+        # for every path-form spec.
+        write_spec(root, "gamma", "Draft", brief="docs/product/briefs/myb.md")
+        write_brief(root, "myb", [("alpha", "<auto>")])
+        rc, out, err = run_lint(root)
+        combined = (out + err).lower()
+        expect(rc == 0, f"untracked is informational, got {rc}: {err}")
+        expect("gamma" in combined and "untracked" in combined,
+               f"path-form back-link must resolve to the brief: {out}{err}")
+
+
+def test_path_form_backlink_attributes_to_the_named_brief() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # Two real briefs, and a spec naming the SECOND one's path. The path
+        # form must attribute gamma to `other` and to `other` only — a join
+        # that ignored the path (or matched loosely) would either drop gamma
+        # entirely or report it under both briefs.
+        write_spec(root, "gamma", "Draft", brief="docs/product/briefs/other.md")
+        write_brief(root, "myb", [("alpha", "<auto>")])
+        write_brief(root, "other", [("beta", "<auto>")])
+        rc, out, err = run_lint(root)
+        expect(rc == 0, f"untracked is informational, got {rc}: {err}")
+
+        # Split the report into per-brief sections so attribution is checked,
+        # not just presence somewhere in the output.
+        sections: dict[str, list[str]] = {}
+        current = None
+        for line in (out + err).splitlines():
+            marker = "lint-brief-coverage: brief '"
+            if marker in line:
+                current = line.split(marker, 1)[1].split("'", 1)[0]
+                sections[current] = []
+            elif current is not None:
+                sections[current].append(line)
+
+        expect("other" in sections and "myb" in sections,
+               f"both briefs should be reported: {out}{err}")
+        expect(any("gamma" in ln and "untracked" in ln for ln in sections["other"]),
+               f"gamma names other's path, must be untracked under it: {out}{err}")
+        expect(not any("gamma" in ln for ln in sections["myb"]),
+               f"gamma must not be attributed to myb: {out}{err}")
+
+
 def test_prose_pipe_after_table_is_not_a_row() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)

@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.7.3] — 2026-08-17
+
+#### Fixed
+
+- **A spec's `Brief:` back-link is documented and resolved as a path.** The
+  canonical form is the brief's repository-relative path
+  (`docs/product/briefs/<slug>.md`) — the form workspace reconciliation
+  requires; a bare slug blocked the spec from being dispatchable. Brief
+  guidance, the brief template, and the adopter field reference now agree on
+  it, and the brief-coverage lint recognises the path form when reporting a
+  spec that back-links a brief but is missing from its Spec map.
+
 ### [core][2.7.2] — 2026-08-17
 
 #### Fixed
