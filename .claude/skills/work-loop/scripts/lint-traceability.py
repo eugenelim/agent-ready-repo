@@ -1032,13 +1032,29 @@ def build_standalone(root: Path, layout: dict, g: Graph,
     # form the spec template and workspace-status provenance require. The path
     # form is `<dir>/<file>.md`, which `_CROSSREPO_RE` would otherwise classify
     # as a well-formed cross-repo reference and report unresolvable, silently
-    # dropping the local brief↔spec edge. Resolve it through the recognised
-    # brief files so the alias is exact: a brief whose `Slug:` differs from its
-    # filename stem still maps to its own node.
+    # dropping the local brief↔spec edge.
+    #
+    # Both sides are compared as canonical resolved paths, so a symlinked briefs
+    # base still matches: the recognised file arrives already resolved (via
+    # `_confined`), while the authored value is resolved through the same
+    # confinement helper. Keying off the file rather than its stem also keeps a
+    # brief whose `Slug:` differs from its filename mapped to its own node.
     brief_id_by_path = {
-        path.relative_to(root).as_posix(): bid
-        for bid, path in brief_paths.items()
+        path.resolve(): bid for bid, path in brief_paths.items()
     }
+
+    def _alias_brief_path(value: str) -> str:
+        """Map a repository-relative brief path to its brief node id.
+
+        Returns `value` unchanged when it is not a path, escapes the root, or
+        names no recognised brief — those keep their existing classification.
+        """
+        if "/" not in value:
+            return value
+        candidate = _confined_path(root / value, root)
+        if candidate is None:
+            return value
+        return brief_id_by_path.get(candidate, value)
 
     # Edge: spec → component (forward `Component:` on a spec, reverse-indexed so
     # the producer is the spec and the consumer is the component) — one edge per
@@ -1052,8 +1068,7 @@ def build_standalone(root: Path, layout: dict, g: Graph,
                 _wire(g, origin=spec_id, target=_token(m.group(1)),
                       local_ids=local_ids, rollup=rollup, origin_is_producer=True)
         _wire_up(g, consumer=spec_id,
-                 candidates=[brief_id_by_path.get(v, v)
-                             for v in _spec_up_values(text)],
+                 candidates=[_alias_brief_path(v) for v in _spec_up_values(text)],
                  local_ids=local_ids, rollup=rollup)
 
     # Edge: brief ← parent intent, and ladder rungs ← parent intent — both via
