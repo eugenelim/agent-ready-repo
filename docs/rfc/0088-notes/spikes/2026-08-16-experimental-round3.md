@@ -530,3 +530,71 @@ observed child contents were exactly `HOME`, `PATH` and `TMPDIR`.
 Recorded in the RFC's amendment history. These reviews validate the record, not
 the architecture. They do not change any Experimental exit decision, authorize
 acceptance, or authorize implementation.
+
+## Supersession notes
+
+Append-only. Nothing above is rewritten; the RFC's `## Amendments` section is
+authoritative where it and this note disagree.
+
+- **2026-08-16 — S3, S2, S1 and the platform rows superseded by round 4.** The
+  [round-4 note](2026-08-16-experimental-round4.md) supersedes several verdicts
+  recorded above, and a reader who stops here will otherwise read them as
+  current:
+  - S3 moves from **Partial** to **Pass on the named gates**.
+  - `WebRTC — Not prevented; egress observed` and `WebTransport — Not
+    prevented` are superseded: both are controllable, WebRTC by a context init
+    script and WebTransport by that script together with the broker-owned
+    proxy. Round 4 also read the accepted command line back, so "no flag
+    removed the surface" is now a measured negative rather than one
+    indistinguishable from an unapplied flag.
+  - `APIRequestContext methods — method unobservable` is superseded: method
+    policy is enforceable once the broker terminates the tunnel.
+  - `Linux proxy behaviour — Not tested` is superseded: it is measured.
+  - `S1-ATTACHMENT-ENDPOINT-CONFINEMENT` passing above is now known to be a
+    property of the macOS per-user temporary root, not of Playwright. The same
+    row **fails on Linux**, reproduced twice.
+  - S1's headline verdict becomes **Pass on the named gates (macOS); Partial
+    on Linux**, not the unqualified Pass recorded above.
+  - `S2-BROWSER-DOWNLOAD-SOURCE` above records `cdn.playwright.dev` and
+    `playwright.download.prss.microsoft.com` as the approved set, derived from
+    the installer's own `--dry-run`. Round 4 measured the real chromium install
+    at connection level and found it also contacts **`storage.googleapis.com`**,
+    so that two-host set is incomplete for the payload it describes. The unmet
+    `downloadHostVerifiedAtConnectionLevel` check is now met.
+  - The `S3-RAW-NODE-EGRESS` disposition "denial is possible only in a child
+    that does not need the Playwright transport" is superseded: an OS-level
+    boundary keeps the transport while denying raw egress.
+
+- **2026-08-16 — S4 verdict superseded by approver disposition.** This note
+  records S4 as **Partial** because its gate text was not operable as written.
+  The approver amended that gate text rather than commissioning the common
+  corpus: the clause-3 precondition is now clearance of the blocking dependency
+  scan, and an execution-backed exclusion discharges the corpus requirement. S4
+  is **Pass** under the amended rule. The measurements in this note are
+  unchanged — no exclusion or execution row was converted to a pass — and the
+  stage-one keyword screen remains non-discriminating and is now labelled a
+  triage aid. See the RFC's
+  [S4 gate decision](../../0088-web-pilot-foundation.md#s4-gate-decision).
+
+- **2026-08-17 — `S2-PLATFORM-CODE-SIGNATURE` withdrawn.** This note records the
+  extracted browser payload as **Signed**, on the strength of `codesign -dv`.
+  That subcommand *displays* signing information; it does not validate it. Round
+  5 ran `codesign -v` and a Gatekeeper assessment on the same payload: the
+  verification **fails** and Gatekeeper rejects it with "code has no resources
+  but signature indicates they must be present". Round 6 captured the full
+  diagnostic but did not diagnose the cause — the message is consistent with
+  Playwright extracting the archive in a way that does not preserve the signed
+  bundle, which is neither evidence of a tampered payload nor of an intact one.
+  The row is withdrawn as a pass. Separately, round 5 found an anchor this note
+  could not have seen, because it globbed only the installed payload: a
+  DSSE-signed in-toto SLSA provenance statement is published *beside* the
+  download and its subject digest matches the archive bytes. See correction 5
+  and the [rounds 5 and 6 note](2026-08-16-experimental-round5.md).
+
+- **2026-08-17 — sandbox posture, applying to every row in this note.** Round 6
+  read Chromium's sandbox state back from the browser and found `Layer 1
+  Sandbox: None` on Linux and `--no-sandbox` on the macOS command line;
+  Playwright passes it by default. Every measurement in this note was therefore
+  taken with the renderer sandbox off. No disposition here is withdrawn on that
+  account — the rails measured are the rails measured — but none of them speaks
+  to the configuration a production pack would ship. See correction 15.
