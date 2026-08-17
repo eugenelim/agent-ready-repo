@@ -2081,14 +2081,17 @@ queue   = [
   # keeping it the only home for check-ignore; the boundary lint rebuilt on an
   # explicit context + one per-invocation inventory + structured findings with
   # a side-effect-free callable API and --check/--root selectors; its
-  # falsification suite converted to fixture plants plus a 4-launch real-tree
-  # end-to-end layer; tools/lint-agents-md.py's 3 per-probe check-ignore calls
-  # batched to 1.
+  # falsification suite converted to fixture plants plus a minimal real-tree
+  # end-to-end layer with a recorded launch bound; lint-agents-md.py's per-probe
+  # check-ignore calls batched into one.
+  # Behaviour preservation is proven by a CAPTURED baseline: the unmodified
+  # lint's exact stdout/stderr/exit code is recorded against the real tree and
+  # staged fixtures, and the refactor must reproduce it byte-for-byte.
   # Done when: boundary lint launches exactly one check-ignore process and
-  # builds one inventory; the complete falsification suite exits 0 inside five
-  # minutes reporting no fewer cases than before; catalogue lint --deep,
-  # catalogue verify and pre_pr_catalogue.py all still pass with unchanged
-  # terminal wording.
+  # builds one inventory; every captured baseline reproduces byte-for-byte; the
+  # complete falsification suite exits 0 inside five minutes reporting no fewer
+  # cases than before; catalogue lint --deep, catalogue verify and
+  # pre_pr_catalogue.py all still pass with unchanged terminal wording.
   # Non-goals: lint daemon; persistent or SQLite scan cache; diff-only terminal
   # gates; pytest-xdist; in-process pre-PR aggregator; moving repo lints into
   # agentbundle; weakening any falsification case; raising the time budget.

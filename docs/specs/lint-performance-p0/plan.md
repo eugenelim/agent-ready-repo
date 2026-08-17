@@ -108,7 +108,19 @@ Shape is `service`; `ui` and `data` sub-sections pruned.
     scan order and falsely refusing in the other. **This divergence from decision
     5's sibling concern is intentional:** the memo key must stay lexical *and*
     unresolved; applying `resolve()` here reopens a confirmed Blocker.
-11. **The `_NO_RUNNER` map and packs root move into the context.** Proven
+11. **The runner parse is memoised, its findings are not.** The runner reader
+    appends its own findings and is reached by two checks, so one missing or
+    malformed runner file yields **two** findings today. `parse_runners` therefore
+    returns `(lines, parse_findings)` and each consuming check re-appends
+    `parse_findings`. One parse, two emissions — otherwise "parsed once" and
+    "reproduce the baseline byte-for-byte" are mutually unsatisfiable.
+12. **Every Git subprocess runs under a scrubbed environment.** Resolver calls
+    and staged-lint calls alike. A `git init`-ed fixture still honours
+    `core.excludesFile` and ambient `GIT_DIR`/`GIT_INDEX_FILE`, and this repo runs
+    these lints from a pre-PR hook where Git sets both — so without scrubbing, a
+    maintainer's global ignore file can capture non-vacuity failures as required
+    passes.
+13. **The `_NO_RUNNER` map and packs root move into the context.** Proven
     necessary: the unmodified lint staged into a fixture root emits one
     stale-exemption finding per real entry. The import-time `packs/` guard moves
     into `--root` canonicalisation so a fixture load does not trip it against the
@@ -295,14 +307,35 @@ return sorted.
   unparseable pack test; a symlinked test source; a linked test dir; a linked
   test root; a runner spanning two suites; a suite named by no runner; a stale
   exemption; a missing runner file; a malformed **`.py`** runner file (the parse
-  failure only arises in the Python runner path, not the workflow path); a root
-  with no `packs/`; a root with no recipe; an empty include list; an include
-  list with no projected root.
+  failure only arises in the Python runner path, not the workflow path); an
+  empty include list; an include list with no projected root; and — the shape
+  that proves ignore-subtraction still happens — **a `tests/` tree whose only
+  content is gitignored**, which must still raise the empty-test-tree finding.
+- **Two roots are deliberately not fixture shapes:** a root without `packs/` and
+  a root without the recipe. Both trip an import-time refusal whose message
+  embeds an **absolute** path, so their bytes are host-dependent and cannot be
+  committed or reproduced. T4 proves those refusals by direct assertion on the
+  CLI's exit code and relativized message instead.
+- Each fixture supplies a minimal self-host recipe and the runner files, so a
+  planted behaviour is isolated rather than buried under recipe and
+  stale-exemption noise. Record in the spec which checks' *passing* output is
+  pinned only by the real-tree capture.
+- No fixture builder writes any `.py` into `<fixture>/tools/` beyond the staged
+  subject and the resolver; the harness asserts this before running, because
+  staging makes that directory the subject's `sys.path[0]`.
+- Every link plant's target resolves strictly inside its own fixture root;
+  fixture roots live outside the repository worktree; cleanup never follows a
+  link or junction.
 - Each non-vacuity refusal gets its **own** fixture shape, because several are
   mutually exclusive within one invocation — their checks return early.
-- Stage `git show <base>:tools/lint-pack-test-boundary.py` into
-  `<fixture>/tools/`, run it, record the triple into
-  `tools/lint-boundary-golden.json`.
+- Stage `git show <sha>:tools/lint-pack-test-boundary.py` into
+  `<fixture>/tools/` under a scrubbed Git environment, run it, record the triple
+  base64-encoded into `tools/lint-boundary-golden.json` alongside the pinned
+  40-hex SHA and the SHA-256 of the extracted blob. Verify the `git show` exit
+  code before staging — a shallow clone returns 128 with empty stdout.
+- Sort findings before forming the compared surface, and exclude any message
+  embedding an interpreter-version-dependent string. Verify byte-determinism on
+  the CI platform as well as the capture host.
 
 **Done when:** `python3 tools/test-lint-boundary-golden.py` exits 0 against the
 unmodified lint, and the committed JSON holds a baseline for the real tree and
@@ -312,7 +345,7 @@ every fixture shape.
 
 **Depends on:** T1
 
-**Touches:** tools/test-lint-no-direct-check-ignore.py, tools/repo/build_gate_chain.py, .github/workflows/docs.yml, tools/test-all.py
+**Touches:** tools/test-lint-no-direct-check-ignore.py
 
 **Tests:** (TDD)
 - fails on synthetic sources for each bypass shape: `["git","check-ignore",…]`;
@@ -335,22 +368,20 @@ every fixture shape.
 - Enumerate tracked `*.py` under `tools/`, `packs/`, `packages/` via
   `git ls-files`; parse with `ast`; flag `check-ignore` anywhere in a resolved
   argv sequence, or in a shell-string / `os.system` / `os.popen` construction.
-- Wire both gates into the **unfiltered** required chain via
-  `tools/repo/build_gate_chain.py`, accepting the `STEP_DISPOSITION` entry that
-  implies, because `docs.yml` is `paths`-filtered and would not fire for most
-  changes these gates guard. Also add the new scripts to `docs.yml`'s `paths:`
-  and a `tools/test-all.py` entry, per AGENTS.md § *New tool scripts*.
+- **CI wiring is deferred to T7**, deliberately: this gate only goes green once
+  T4 and T6 land, so wiring it into the required chain during Wave 2 would leave
+  `make build-check` red across a wave boundary.
 - Record the non-Python surface (`.sh`, `Makefile`, workflow `run:`) as either
   textually covered or a knowingly accepted gap in the audit note.
 
-**Done when:** the gate exits 0 on the migrated tree, 1 for every synthetic
-bypass and for an unparseable file, and appears in the required chain.
+**Done when:** the gate exits 0 on the migrated tree and 1 for every synthetic
+bypass and for an unparseable file. (Chain membership is T7's done-condition.)
 
 ### T4: The refactored lint reproduces the golden baseline byte-for-byte
 
 **Depends on:** T1, T2
 
-**Touches:** tools/lint-pack-test-boundary.py, tools/test-lint-boundary-golden.py
+**Touches:** tools/lint-pack-test-boundary.py, tools/test-lint-boundary-golden.py, tools/test-lint-boundary-structural.py
 
 **Tests:** (TDD)
 - **the golden comparison is the behavioural contract:** every baseline in
@@ -380,9 +411,21 @@ bypass and for an unparseable file, and appears in the required chain.
   refused by the CLI; the canonical form is what the resolver receives.
 - the callable API accepts a context missing `packs/` or the recipe, so the
   non-vacuity refusals remain reachable.
+- **injected `_NO_RUNNER`:** a fixture-supplied map produces the stale-exemption
+  and unnamed-suite findings against that fixture's own destinations. This is the
+  licensed divergence, so it is the one behaviour the baseline cannot check.
+- the two uncaptured refusals (`packs/`-missing, recipe-missing) are asserted
+  directly on the CLI's exit code and **relativized** message, since their
+  captured bytes would embed an absolute path.
+- the gitignored-only `tests/` tree fixture still raises the empty-test-tree
+  finding, proving ignore-subtraction survived.
 - fixture-root CLI launches are counted and bounded; the bound is recorded.
 
-**Approach:** introduce `BoundaryContext` (incl. `no_runner`), `Finding`,
+**Approach:** compare by co-staging the refactored lint **and**
+`tools/lint_git_ignore.py` into each fixture root and invoking with no
+arguments — `--root` cannot be the comparison path, because it prints a
+partial-run header by design. Then introduce `BoundaryContext` (incl.
+`no_runner`), `Finding`,
 `CheckResult`, `BoundaryInventory`; delete `FAILURES`; convert each `case_*` to
 a function taking the inventory and returning a `CheckResult`, preserving each
 early-return and accumulate-then-guard shape. Build the inventory once, carrying
@@ -462,7 +505,13 @@ process-count test asserts exactly one `check-ignore`.
 
 **Depends on:** T3, T5, T6
 
-**Touches:** docs/adr/, docs/specs/pack-test-boundary-remaining-packs/{spec,plan}.md, docs/specs/lint-performance-p0/notes/lint-inventory.md, workspace.toml
+**Touches:** docs/adr/, docs/specs/pack-test-boundary-remaining-packs/{spec,plan}.md, docs/specs/lint-performance-p0/notes/lint-inventory.md, workspace.toml, tools/repo/build_gate_chain.py, tools/test_build_gate_chain.py, .github/workflows/docs.yml, tools/test-all.py
+
+**Anchor carve-out:** `tools/test_build_gate_chain.py` is listed in
+§ Construction tests as an anchor. Appending the new gate steps requires updating
+its exact ordered `EXPECTED_SCRIPT_STEPS` list. That specific update is
+authorised — it records the new steps rather than accommodating a failure — and
+is the **only** permitted edit to that file.
 
 **Tests:** (goal-based check — each run, actual exit code recorded)
 - `tools/lint-pack-test-boundary.py`; `tools/test-lint-pack-test-boundary.py`;
@@ -476,9 +525,17 @@ process-count test asserts exactly one `check-ignore`.
 - `make lint-ruff` (mypy explicitly not claimed — see § Constraints)
 
 **Approach:**
+- Wire all three new gates — the resolver unit test, the AST source gate, and
+  **the golden harness** — into the unfiltered required chain via
+  `tools/repo/build_gate_chain.py`, plus `docs.yml`'s `paths:` and step list and
+  a `tools/test-all.py` entry. The golden harness's job checks out at
+  `fetch-depth: 0`, because `docs.yml`'s `actions/checkout` sets no depth and
+  defaults to 1, which cannot resolve `git show <pinned-sha>:…`. Deferred here
+  from T3 so the chain is never wired red across a wave boundary.
 - Author an ADR recording the argv-terminator → stdin-batching reversal: the
   `--` terminator's protection is *strengthened*, not lost, because candidates
-  leave argv entirely for NUL-framed stdin, which no option parser reads.
+  leave argv entirely for NUL-framed stdin, which no option parser reads. Fill
+  the assigned ADR number into `spec.md § Assumptions`.
 - Annotate `docs/specs/pack-test-boundary-remaining-packs/spec.md` and its
   `plan.md` **only** in their `Status` fields, pointing at that ADR, per
   `docs/CONVENTIONS.md § Superseding a frozen document`. No body edit — an
@@ -489,9 +546,11 @@ process-count test asserts exactly one `check-ignore`.
   `[backlog].closed`.
 - Run `make build-self` if any `packs/` file changed (expected: none).
 
-**Done when:** every command has run with its exit code recorded, the ADR
-exists, both `Status` fields carry the pointer with no body edit, the
-after-evidence is committed, and the backlog item is closed.
+**Done when:** every command has run with its exit code recorded, all three new
+gates appear in the required chain and run on a PR touching only a `tools/` or
+`packages/` Python file, the ADR exists with its number filled into the spec,
+both `Status` fields carry the pointer with no body edit, the after-evidence is
+committed, and the backlog item is closed.
 
 ## Rollout
 
@@ -571,3 +630,31 @@ after-evidence is committed, and the backlog item is closed.
   rather than a spec, and forbids body edits including appends. Annotating the
   shipped spec's `AC10a` was therefore prohibited. T7 now authors an ADR and
   annotates only the two `Status` fields, on human direction.
+- 2026-08-17 — Round 3 (15 further Blockers across both lenses) hardened the
+  golden mechanism itself. On human direction the design-affecting findings were
+  applied and the remaining bookkeeping/coverage findings folded into task test
+  lists rather than a fourth prose round. Applied: the runner parse is memoised
+  but its findings are re-emitted, because the reader is reached by two checks and
+  parsing once would delete six findings from any baseline with a bad runner file
+  — "parsed once" and "byte-identical" were otherwise mutually unsatisfiable; the
+  `packs/`-missing and recipe-missing fixture shapes are **dropped**, because the
+  import-time refusal embeds an absolute path and their bytes are unreproducible
+  (those refusals are now proven by direct assertion); the comparison drive is
+  co-staging the refactored lint plus the resolver and running argument-free,
+  since `--root` prints a partial-run header by design and could never match;
+  findings are sorted before comparison and interpreter-version-dependent text is
+  excluded, because the walk returns filesystem order and three same-host runs
+  proved neither that nor CPython-minor stability; every Git subprocess runs under
+  a scrubbed environment after a probe showed a hostile `core.excludesFile`
+  silently captures non-vacuity failures as required passes; the pin gained a
+  40-hex SHA plus subject-blob hash and a `git show` exit-code check; baselines
+  are stored base64 and compared as bytes; a fixture shape covering a
+  gitignored-only `tests/` tree was added, being the one shape that proves
+  ignore-subtraction survived; and all CI wiring — including the golden harness,
+  which had none — moved to T7 with `fetch-depth: 0`, since T3 would otherwise
+  wire a red gate across a wave boundary. Also corrected: the enforcement floor
+  had been measured under the filename-pattern rule the spec forbids (≈763 under
+  the allowlist, not 292); the allowlist now names `tools/test-run-pack-evals.py`
+  and `tools/test-pre-pr.sh`; and the audit note's `lint-agents-md` row still
+  described the drift-note behaviour the spec now forbids.
+

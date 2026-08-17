@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0071 (`evals/` is skill-local runtime content); `guides/_shared/reference/catalogue-authoring-standards.md` § 4 (cross-pack behaviour is not pack-owned); a new ADR authored by this spec records the argv-terminator → stdin-batching reversal and supersedes part of `docs/specs/pack-test-boundary-remaining-packs/`
+- **Constrained by:** ADR-0071 (`evals/` is skill-local runtime content); ADR-0075 (test ownership and homes — this spec adds four `tools/` suites and one committed baseline file); `guides/_shared/reference/catalogue-authoring-standards.md` § 4 (cross-pack behaviour is not pack-owned)
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none <!-- no external interface surface; the callable lint APIs are internal repo-tooling seams -->
@@ -115,30 +115,101 @@ proceeding; *Never do* is a hard rule, even under time pressure.
 The captured contract. One harness stages a **copy of the lint** into a root and
 records the resulting `(stdout, stderr, exit_code)` triple.
 
-- **Capture subject:** the lint as of the spec's base revision, read from Git
-  (`git show <base>:tools/lint-pack-test-boundary.py`), never from the working
-  tree. This is what keeps the baseline regenerable after the refactor lands.
-- **Roots captured:** the real repository tree, plus one staged fixture
-  catalogue per behaviour under test.
+- **Capture subject:** the lint as of a pinned revision, read from Git
+  (`git show <sha>:tools/lint-pack-test-boundary.py`), never from the working
+  tree.
+- **Subject integrity:** the pin is a literal full 40-hex commit SHA stored in
+  the committed baseline alongside the SHA-256 of the extracted blob. The harness
+  verifies **both** before writing the staged file, and verifies the `git show`
+  exit code — a shallow clone returns 128 with empty stdout, which must abort
+  rather than stage and execute an empty subject. Changing either value is an
+  `Ask first` amendment, because repointing the pin at the post-refactor commit
+  would make the baseline describe the very code it polices.
 - **Why staging works:** the lint derives its root from its own `__file__`, so
-  copying it into `<fixture>/tools/` makes `<fixture>` its root. All emitted
-  paths are root-relative, so output is comparable across roots.
+  copying it into `<fixture>/tools/` makes `<fixture>` its root.
+- **Comparison drive:** the **refactored** lint is compared by co-staging it and
+  the resolver module into each fixture root and invoking it with **no
+  arguments**. `--root` is deliberately **not** the comparison path: a
+  fixture-scoped run prints a partial-run header by design, so it could never
+  match a staged baseline.
 - **Comparison:** stdout and stderr are compared **separately** and
-  byte-for-byte, together with the exit code. Interleaving the two streams is
-  not stable and must not be relied on.
-- **Determinism:** verified — three consecutive runs of the same root produce
-  byte-identical stdout and byte-identical stderr, with no absolute path in
-  either stream.
+  byte-for-byte as **bytes**, together with the exit code. Both streams are
+  stored base64-encoded — a str-decoded baseline cannot round-trip a
+  surrogate-escaped path in Git's stderr, and the comparison would then pass on
+  two streams that differ.
+- **Hermeticity:** every staged-lint subprocess and every resolver subprocess
+  runs under a scrubbed Git environment — `GIT_CONFIG_NOSYSTEM=1`,
+  `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` pointed at an empty file,
+  `GIT_DIR` / `GIT_WORK_TREE` / `GIT_INDEX_FILE` / `GIT_COMMON_DIR` /
+  `GIT_CEILING_DIRECTORIES` unset, and fixture repositories initialised with an
+  empty `core.excludesFile`. Without this a maintainer's global ignore file
+  silently rewrites the contract: with `core.excludesFile` matching `tests/`, a
+  fixture's pack test comes back *ignored*, and because the ignored set is
+  subtracted and two findings fire on the emptiness of what remains, those
+  failures get captured as required **passes**. The same leak is live outside
+  capture — Git sets `GIT_DIR` and `GIT_INDEX_FILE` for hook processes, and these
+  lints run from a pre-PR hook. Capture additionally asserts identical bytes
+  under a deliberately hostile global ignore file.
+- **Determinism:** findings are sorted before the compared surface is formed,
+  because the walk returns filesystem order. Any message embedding an
+  interpreter-version-dependent string is excluded from the compared surface.
+  Determinism is verified on the capture host *and* on the CI platform before
+  the baseline is adopted — three same-host runs prove neither filesystem order
+  nor CPython-minor stability.
 
-**One captured behaviour is deliberately superseded rather than preserved:** the
-`_NO_RUNNER` exemption map is a module constant of real repository paths, so the
-unmodified lint run against any fixture root emits a stale-exemption finding for
-every entry. The refactor makes that map injectable through the context. The
-golden baseline therefore binds the refactored lint **when it is given the real
-map** (which includes the real tree), and the injected-map behaviour is new
-specified behaviour tested on its own. This is the only intentional divergence
-between captured and required output, and it is recorded here rather than
-discovered during comparison.
+### What capture cannot observe
+
+The triple is blind to exactly three things. Each has its own criterion, so the
+sufficiency of this approach is checkable rather than assumed:
+
+| Not observable in the triple | Proven instead by |
+| --- | --- |
+| Git subprocess count | the structural process-count criterion, at an instrumented seam |
+| inventory / runner-parse count | the one-per-invocation criteria, at named seams |
+| filesystem side effects | the callable-API "mutates no file" criterion, plus the suite hashing the real `Makefile`, workflows, recipes and projected trees before and after |
+
+It *does* observe failure count and attribution, because findings print as
+`FAIL:` lines plus an `✖ … N failure(s)` summary — so behaviours like one cause
+producing two findings are captured automatically, with no hand-written count.
+
+### Deliberate divergences
+
+Exactly three, recorded here rather than discovered during comparison:
+
+1. **`_NO_RUNNER` becomes injectable.** The map is a module constant of real
+   repository paths, so the unmodified lint against any fixture root emits a
+   stale-exemption finding per entry. The baseline binds the refactored lint
+   **given the real map** (which covers the real tree); injected-map behaviour is
+   new specified behaviour with its own criteria and tests.
+2. **Runner-parse findings are re-emitted, not re-parsed.** The runner reader
+   appends its own findings and is reached by two checks, so one missing or
+   malformed runner file produces **two** findings today. Parsing once must not
+   delete them: the memoised parse returns its findings alongside its lines, and
+   each consuming check re-appends them. The doubled emission is preserved
+   behaviour; only the parse is deduplicated.
+3. **Degradation becomes fatal.** Unobservable in the baselines only because no
+   fixture is captured Git-less.
+
+**Two roots are deliberately not captured.** A root without `packs/` and a root
+without the recipe both trip an import-time refusal whose message embeds an
+**absolute** path, so their bytes are host-dependent and unreproducible. Those
+two refusals are proven by direct assertion on the refactored CLI's exit code and
+relativized message instead.
+
+### Knowingly preserved but weak
+
+Capture freezes current behaviour, including current weaknesses. These are
+preserved deliberately, reviewed at capture time, and are **not** fixed here —
+recording them stops a future reader mistaking them for intended design:
+
+- A pack in the self-host include list whose entire `.apm/skills/` directory is
+  missing is skipped before the "nothing was projected" guard, so it passes
+  silently — while a pack whose skills exist but stop being projected fails. An
+  asymmetric fail-open.
+- The source-confinement analysis parses a lossy decode of the test source
+  rather than the bytes the interpreter would execute. The failure directions
+  land fail-closed (mangling yields a syntax error, which is reported), but the
+  divergence is now contract.
 
 ## Real-tree controls
 
@@ -223,19 +294,59 @@ type-checks nothing in this diff and is not claimed as a gate for it.
 
 - [ ] A golden harness captures `(stdout, stderr, exit_code)` for the lint read
       from a pinned Git revision, against the real tree and against each staged
-      fixture root, comparing the two streams separately and byte-for-byte.
-- [ ] The baseline is regenerable from that pinned revision after the refactor
-      lands, and regeneration is a separate explicit action that cannot run as a
-      side effect of the test.
+      fixture root, comparing the two streams separately, byte-for-byte, as
+      bytes, with both stored base64-encoded.
+- [ ] The committed baseline records the pinned full 40-hex SHA **and** the
+      SHA-256 of the extracted subject blob; the harness verifies both, and the
+      `git show` exit code, before writing the staged file, aborting and naming
+      any mismatch. Changing either value is an `Ask first` amendment.
+- [ ] Regeneration is a separate explicit action that the ordinary test path
+      cannot trigger, and a regeneration performed against any subject other than
+      the pinned one fails.
+- [ ] The real-tree baseline's `ok` lines embed live catalogue counters, so an
+      unrelated pack, skill-test directory or exemption change legitimately
+      invalidates it. Its regeneration is therefore reviewable as a
+      counters-only diff, and a regeneration whose diff is not counters-only is
+      treated as a finding rather than a refresh.
+- [ ] Every staged-lint and resolver subprocess runs under a scrubbed hermetic
+      Git environment, and capture asserts identical bytes under a deliberately
+      hostile global ignore file. Without this a maintainer's `core.excludesFile`
+      can freeze non-vacuity failures as required passes.
+- [ ] Findings are sorted before the compared surface is formed, and any message
+      embedding an interpreter-version-dependent string is excluded from that
+      surface. Byte-determinism is verified on the CI platform, not only the
+      capture host, before the baseline is adopted.
+- [ ] The refactored lint is compared by co-staging it **and** the resolver
+      module into each fixture root and invoking it with no arguments; `--root`
+      is not the comparison path.
 - [ ] The refactored lint reproduces every captured baseline byte-for-byte when
       given the real `_NO_RUNNER` map, including the real-tree baseline.
-- [ ] The `_NO_RUNNER` injection divergence documented in
-      [§ Golden baseline](#golden-baseline) is the **only** intentional
-      difference between captured and produced output; any other difference
-      fails the comparison.
-- [ ] Fixture roots are `git init`-ed, so the ignore layer resolves rather than
-      degrading to a no-op, and a fixture-local `.gitignore` entry is asserted
-      to come back ignored.
+- [ ] The three divergences and the two uncaptured roots documented in
+      [§ Golden baseline](#golden-baseline) are the only permitted differences;
+      any other difference fails the comparison. The two uncaptured refusals are
+      proven instead by direct assertion on the CLI's exit code and relativized
+      message.
+- [ ] The injected-`_NO_RUNNER` semantics are specified and tested on their own:
+      a fixture-supplied map produces the stale-exemption and unnamed-suite
+      findings against that fixture's own destinations.
+- [ ] Fixture roots are `git init`-ed with an empty `core.excludesFile`, so the
+      ignore layer resolves rather than degrading to a no-op, and a
+      fixture-local `.gitignore` entry is asserted to come back ignored.
+- [ ] A fixture shape covers a `tests/` tree whose **only** content is
+      gitignored, with an explicit assertion that the empty-test-tree finding
+      still fires. This is the one shape that proves the ignored set is still
+      subtracted; without it, a refactor that drops ignore filtering reproduces
+      every baseline and passes.
+- [ ] No fixture builder writes any `.py` into `<fixture>/tools/` other than the
+      staged subject and the resolver, asserted before the subject runs —
+      staging makes that directory the subject's `sys.path[0]`, so a fixture
+      `os.py` or `ast.py` would shadow the standard library.
+- [ ] Every fixture link plant's target resolves strictly inside its own fixture
+      root, fixture roots live outside the repository worktree, and cleanup never
+      follows a link or junction.
+- [ ] The golden harness is a standing CI gate in the unfiltered required chain,
+      triggered by any change to the lint, the resolver or the harness, with its
+      job checking out at full depth so the pinned revision resolves.
 
 **Batched Git-ignore resolver**
 
@@ -243,7 +354,9 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       importable package), and is the only approved home for direct
       `git check-ignore` subprocess construction in production lint code.
 - [ ] Portable `agentbundle` and shipped pack/skill code import no repo-only
-      `tools/` helper, and no portable or shipped-pack resolver is added.
+      `tools/` helper, and no portable or shipped-pack resolver is added —
+      verified by extending the source gate to flag `import tools` / `from tools`
+      under `packages/` and `packs/`, not merely asserted.
 - [ ] Candidates may be absolute-under-root or root-relative, and results are
       keyed so a caller can test membership with the **exact objects it
       supplied** — asserted for absolute, relative and non-existent candidates.
@@ -280,6 +393,10 @@ type-checks nothing in this diff and is not claimed as a gate for it.
 - [ ] `--no-index` is not introduced, so tracked files remain excluded from the
       ignored set exactly as before.
 - [ ] The resolver uses no shell, prints nothing, and returns structured data.
+- [ ] Any Git stderr the resolver carries is relativized against the canonical
+      root and length-bounded before a call site prints or records it — Git's
+      fatal messages embed absolute paths, and the stderr stream is both
+      byte-compared and committed.
 
 **Ignore-degradation safety**
 
@@ -303,10 +420,14 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       the path; it is never silently skipped.
 - [ ] Exemptions are an explicit allowlist of individual files, each with a
       recorded reason — not a filename pattern. A pattern would exempt
-      `tools/test-*.py`, and in this repository those files *are* CI gates.
+      `tools/test-*.py`, and in this repository those files *are* CI gates. The
+      allowlist names at minimum `tools/test-run-pack-evals.py` (asserts a real
+      `.gitignore` fact on a single path) and, for the non-Python textual half,
+      `tools/test-pre-pr.sh` (documents the probe path in a comment).
 - [ ] The approved helper is present in the scanned inventory and exempted
       there, and the scanned file count is asserted against a floor recorded in
-      the audit note.
+      the audit note. That floor is measured under the **allowlist** rule, not a
+      filename pattern — the two differ by more than a factor of two.
 - [ ] The non-Python surface (`.sh`, `Makefile`, workflow `run:` blocks) is
       either covered by an equivalent textual search or recorded in the audit
       note as a knowingly accepted gap.
@@ -397,7 +518,9 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       its target already exists.
 - [ ] Every planted violation proves all four falsification properties.
 - [ ] The suite reports no fewer cases than the measured pre-change count
-      recorded in the audit note.
+      recorded in the audit note, **and** a mechanically-derived check asserts
+      every finding-emission site in the refactored lint is reached by at least
+      one case. A case count is not coverage.
 
 **Preserved gates and governance**
 
@@ -495,8 +618,10 @@ Git-155), macOS APFS, Python 3.13.13, on 2026-08-17.
 - Product: exactly one repo-only resolver is built; no portable or shipped-pack
   resolver, because measurement found zero callers needing one (user
   confirmation 2026-08-17).
-- Product: the two lints' Git-missing behaviour is deliberately **unified** to
-  fail-open. This is an authorised divergence from the originating brief's
+- Product: the **resolver's** missing-Git policy is deliberately **unified** to
+  `FAIL_OPEN` across both call sites; each call site then treats a degraded
+  resolution as **fatal** (diagnose and exit non-zero). The two halves are not in
+  tension: the resolver does not raise, and the caller does not proceed. This is an authorised divergence from the originating brief's
   instruction to preserve divergent policies behind an option; it was raised
   before adoption and chosen knowingly. The policy parameter is retained and
   required at every call site so the posture stays explicit (user confirmation

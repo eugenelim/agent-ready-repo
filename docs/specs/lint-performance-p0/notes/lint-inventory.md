@@ -151,7 +151,7 @@ must never print the six-check terminal wording.
 
 | Entrypoint/check | Owner | Scope class | Gate wiring | Traversal roots | Ignore semantics | Git process shape | Repeated work | Self-test model | P0 disposition |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `tools/lint-agents-md.py` | repo tooling | repo-global | `.github/workflows/docs.yml:86`; `pre_pr_catalogue.py:113` | root `AGENTS.md`, `packs/core/seeds/AGENTS.md`, projected docs; **3 fixed gitignore probe paths** | **asserts probes ARE ignored** — inverted vs. the boundary lint; a non-ignored probe calls `note()`, which is **fatal** (`fail = 1` → exit 1) | **3 `check-ignore`, one per probe path** (line 313, inside a `for probe in (...)` loop) | none beyond the 3 probes | 3 fixture-based self-tests (see § 4) | **CHANGE** — one Git subprocess per candidate path. 3 → 1 batched. Git-missing contract **differs today**: no `FileNotFoundError` guard, so absent Git raises. Unified to fail-open by authorised decision (2026-08-17); because its probe assertion is inverted, "nothing ignored" yields a clean `exit 1` with 3 drift notes rather than a silent pass |
+| `tools/lint-agents-md.py` | repo tooling | repo-global | `.github/workflows/docs.yml:86`; `pre_pr_catalogue.py:113` | root `AGENTS.md`, `packs/core/seeds/AGENTS.md`, projected docs; **3 fixed gitignore probe paths** | **asserts probes ARE ignored** — inverted vs. the boundary lint; a non-ignored probe calls `note()`, which is **fatal** (`fail = 1` → exit 1) | **3 `check-ignore`, one per probe path** (line 313, inside a `for probe in (...)` loop) | none beyond the 3 probes | 3 fixture-based self-tests (see § 4) | **CHANGE** — one Git subprocess per candidate path. 3 → 1 batched. Git-missing contract **differs today**: no `FileNotFoundError` guard, so absent Git raises. The **resolver's** policy is unified to fail-open by authorised decision (2026-08-17), but the **call site treats a degraded resolution as fatal**: it exits 1 naming **Git unavailability**, and must NOT emit three `drift-watch:` notes claiming `.gitignore` drifted — that would misdiagnose a real degradation as a content finding |
 | `tools/lint-ci-parity.py` | repo tooling | repo-global | `build-check`; Make | `Makefile`, `.github/workflows/*.yml`, gate chain | no Git ignore use | 0 | none | `tools/test-lint-ci-parity.py` — **fixture roots via `--root` + one real-root e2e launch** | **no change** — 0.13 s. Already the exact target architecture; used as the repo precedent for the boundary-lint refactor |
 | `tools/lint-build.py` | repo tooling | repo-global | `pre_pr_catalogue.py:120` | build outputs | no Git ignore use | 3; `git merge-base` in a **bounded 2-element base-ref fallback loop** that returns on first success | none | none | **no change** — not an ignore query; bounded fallback, not per-candidate |
 | `tools/lint-nosec-form.py` | repo tooling | repo-global (security-gate form) | `build-check` | `tools/`, `packs/`, `packages/` Python sources | no Git ignore use | 1 (`rev-parse`) | none | `tools/test-lint-nosec-form.py`, temp fixture | **no change** — 5.33 s, the slowest non-P0 lint, but one bounded pass and zero ignore queries. Recorded as P1 watch item only |
@@ -343,23 +343,31 @@ returned by `_pack_test_escapes` as `(lineno, message)` tuples and surface insid
 the `pack test reaches above …` message's `{expression}` slot at `:791`. A test
 asserting them as standalone findings would be written wrong.
 
-## Enforcement-gate scan-set floor
+## Enforcement-gate scan set and allowlist
 
-Measured for the T3 gate's recorded floor, under an exclusion rule of
-"basename starts `test-`/`test_`, or the path contains a `tests/` segment",
-over `tools/`, `packs/`, `packages/`, ignoring `__pycache__`:
+The gate enumerates **tracked** files via `git ls-files` over `tools/`,
+`packs/`, `packages/`, and exempts an explicit **allowlist of individual files**
+— filename *patterns* are forbidden, because `tools/test-*.py` files are CI gates
+in this repository.
 
 | Quantity | Count |
 | --- | --- |
-| total `*.py` | **765** |
-| excluded by the rule | **473** |
-| **scanned** | **292** |
+| tracked `*.py` under `tools/`, `packs/`, `packages/` | **765** |
+| explicit allowlist entries | 2 (see below) |
+| **floor for the scanned set** | **≈763** |
 
-Note the gate as specified enumerates **tracked** files via `git ls-files`
-rather than walking the filesystem, because `pip install -e packages/…` can
-leave build or vendored content under `packages/` that would inflate and
-destabilise this floor. The figures above are the filesystem walk and are the
-upper bound; the tracked-file count is recorded when T3 lands.
+Allowlist, each with its reason:
+
+| File | Reason |
+| --- | --- |
+| `tools/test-run-pack-evals.py` | contains a real `git check-ignore` call on a **single** path, asserting a genuine `.gitignore` fact |
+| `tools/test-pre-pr.sh` | non-Python textual half only; documents the probe path in a comment |
+
+**Superseded measurement.** An earlier draft recorded 765 total / 473 excluded /
+**292 scanned**, measured under an exclusion rule of "basename starts
+`test-`/`test_`, or the path contains a `tests/` segment". That is the *pattern*
+rule the spec now forbids, so 292 is **not** the gate's floor and is 2.6× too
+low. Retained here only so the correction is legible.
 
 ## Two behavioural details the refactor must not flatten
 
