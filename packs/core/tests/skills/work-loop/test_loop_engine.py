@@ -12,6 +12,7 @@ import importlib.util
 import io
 import json
 import os
+import signal
 import stat
 import subprocess
 import sys
@@ -710,6 +711,102 @@ def test_a_guard_module_load_failure_never_discards_the_audit_record(tmp: Path) 
 
     if pending_path.read_text(encoding="utf-8") != payload:
         fail(name, "the audit record was modified")
+        return
+    ok(name)
+
+
+_TMP_RECOVERY_CASES = [
+    # (label, writer, expect the tmp file to survive)
+    #
+    # `deep-nesting` is the regression: `json.loads` raises RecursionError — NOT a
+    # ValueError — so a narrowed `except (FileNotFoundError, ValueError)` let it
+    # escape as a traceback from inside `sl.exclusive(...)`. And because the dotfile
+    # was never removed, EVERY later transition on that spec failed identically.
+    ("deep-nesting", lambda p: p.write_text(
+        '{"state":"X","run_id":"y","z":' + "[" * 20000 + "]" * 20000 + "}",
+        encoding="utf-8"), False),
+    ("malformed", lambda p: p.write_text("{ not json", encoding="utf-8"), False),
+    ("non-finite", lambda p: p.write_text(
+        '{"state":"X","run_id":"y","n":NaN}', encoding="utf-8"), False),
+    ("missing-fields", lambda p: p.write_text('{"foo":1}', encoding="utf-8"), False),
+    # Structural: says nothing about the content, so the artifact must survive.
+    ("fifo", lambda p: os.mkfifo(p), True),
+]
+
+
+@pytest.mark.parametrize(
+    "label,writer,must_survive", _TMP_RECOVERY_CASES,
+    ids=[c[0] for c in _TMP_RECOVERY_CASES],
+)
+def test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content(
+    label: str, writer, must_survive: bool, tmp: Path,
+) -> None:
+    """Two independent properties, both of which this line has got wrong once.
+
+    Nothing may ESCAPE — it runs inside `cmd_transition`'s critical section and
+    `main()` handles only `GuardsUnavailable` and `KeyboardInterrupt`. And only invalid
+    CONTENT may authorise the unlink, because a structural read failure says nothing
+    about the file and deleting a byte-perfect crash-recovery artifact is irreversible.
+    Catching broadly while deleting narrowly is what satisfies both.
+    """
+    name = f"recover-tmp-{label}"
+    spec_dir = tmp / f"spec-{label}"
+    spec_dir.mkdir(parents=True)
+    tmp_path = spec_dir / ".engine-state-abc.json.tmp"
+    writer(tmp_path)
+
+    stderr = io.StringIO()
+    try:
+        with contextlib.redirect_stderr(stderr), contextlib.redirect_stdout(io.StringIO()):
+            _engine._recover_engine_state_tmp(spec_dir)
+    except BaseException as exc:  # noqa: BLE001 — that nothing escapes is the assertion
+        fail(name, f"{label}: {type(exc).__name__} escaped a lock-holding section: {exc}")
+        return
+
+    survived = tmp_path.exists() or tmp_path.is_fifo()
+    if survived != must_survive:
+        fail(name, f"{label}: tmp file {'survived' if survived else 'was deleted'}, "
+                   f"expected the opposite. stderr={stderr.getvalue().strip()[:160]!r}")
+        return
+    if "warning" not in stderr.getvalue():
+        fail(name, f"{label}: the decision was silent: {stderr.getvalue()!r}")
+        return
+    ok(name)
+
+
+def test_gitignore_courtesy_cannot_hang_the_locked_init(tmp: Path) -> None:
+    """`_ensure_gitignore_entry` runs under `cmd_init`'s lock and must not block.
+
+    It was a plain `read_text()`, and the caller's `is_symlink()` pre-check does not
+    exclude a FIFO — so a repo-root `.gitignore` FIFO hung `init` indefinitely while
+    holding `engine-state.json.lock`. Past `stale_after` the lock is reclaimed and a
+    second writer admitted, which is the lost update the lock exists to prevent.
+
+    The alarm is a LIVENESS guard, not a performance assertion: a blocking read has no
+    exit code to assert on, so interrupting it is the only way to tell "refused" from
+    "blocked forever".
+    """
+    name = "gitignore-cannot-hang-locked-init"
+    gitignore = tmp / ".gitignore"
+    os.mkfifo(gitignore)
+
+    def _blocked(*_a):
+        raise TimeoutError("the read blocked instead of refusing")
+
+    previous = signal.signal(signal.SIGALRM, _blocked)
+    signal.alarm(5)
+    try:
+        with pytest.raises(Exception) as caught:  # noqa: PT011 — the reader's vocabulary
+            _engine._ensure_gitignore_entry(gitignore, ".loop-run/")
+    except TimeoutError:
+        fail(name, "the gitignore read blocked instead of refusing — a lock holder "
+                   "that blocks is reclaimed as stale and a second writer admitted")
+        return
+    finally:
+        signal.alarm(0)
+        signal.signal(signal.SIGALRM, previous)
+    if "regular file" not in str(caught.value):
+        fail(name, f"refused, but not as a non-regular file: {caught.value!r}")
         return
     ok(name)
 

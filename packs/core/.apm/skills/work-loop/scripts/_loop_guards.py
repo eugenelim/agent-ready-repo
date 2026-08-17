@@ -113,9 +113,10 @@ INTERNAL_ERROR = "internal-error"
 # enters: `_scalar()`, at each interpolation of state-file or argv data.
 _MAX_SCALAR_CHARS = 120
 
-# Backstop only. Every known external interpolation goes through `_scalar`, so a
-# reason should never approach this; it exists so that a site added later without
-# `_scalar` is still bounded rather than unbounded. Set well above the longest
+# Backstop, and load-bearing rather than theoretical: the audit that introduced
+# `_scalar` MISSED `check_identity`'s success message, where a 100 KB `run_id`
+# reached stdout at exactly this cap. Treat it as what holds when a site is
+# missed, not as evidence that none is. Set well above the longest
 # authored reason (`_BOTH_CAUSES` plus two digests, ~1050 chars) so it cannot
 # truncate legitimate text \u2014 `test_the_longest_authored_reason_survives_intact`
 # pins that separation.
@@ -155,14 +156,42 @@ def _scalar(value: object) -> str:
     return text
 
 
-def _one_line(text: str) -> str:
-    """Collapse whitespace. Reasons are a one-line CLI contract.
+# Every remaining C0 control character plus DEL, escaped rather than passed through.
+# `str.split()` already consumes the whitespace ones; what survives is the dangerous
+# half, most importantly ESC. Reasons and messages are printed to a stream a
+# supervising agent captures and logs, so a `run_id` of "aaa\x1b[2J\x1b[31mFAKE-OK"
+# in state.json otherwise emits a real screen-clear and colour change into that
+# transcript. Collapsing whitespace alone does not stop it.
+_CONTROL_ESCAPES = str.maketrans({c: f"\\x{c:02x}" for c in [*range(32), 127]})
 
-    Whitespace collapse is the part that matters for the contract: it is what
-    stops a newline in interpolated data from forging a second stderr line. The
-    length backstop is secondary \u2014 see `_MAX_REASON_CHARS`.
+
+def _bounded(value: object) -> str:
+    """`str(value)` bounded, WITHOUT `repr`'s quoting.
+
+    For the one place the output format is pinned by a golden capture:
+    `check_identity`'s success message prints `run_id=<value>` unquoted, and
+    substituting `_scalar` there changed a shipped CLI's stdout to `run_id='<value>'`
+    — caught by the parity table, which is what it is for.
+
+    Control characters are not this function's job: `_one_line` escapes them at the
+    `GuardResult` chokepoint, so every reason and message is covered whether or not
+    its site remembered a helper. What is left here is the length bound.
     """
-    collapsed = " ".join(str(text).split())
+    text = str(value)
+    if len(text) > _MAX_SCALAR_CHARS:
+        text = text[: _MAX_SCALAR_CHARS - 1] + "…"
+    return text
+
+
+def _one_line(text: str) -> str:
+    """Collapse whitespace, neutralise control characters, and cap length.
+
+    All three parts are the same one-line CLI contract from different angles:
+    collapsing whitespace stops a newline in interpolated data from forging a second
+    stderr line, escaping the remaining control characters stops it forging terminal
+    output, and the cap is the length backstop (see `_MAX_REASON_CHARS`).
+    """
+    collapsed = " ".join(str(text).split()).translate(_CONTROL_ESCAPES)
     if len(collapsed) > _MAX_REASON_CHARS:
         collapsed = collapsed[: _MAX_REASON_CHARS - 1] + "\u2026"
     return collapsed
@@ -516,6 +545,14 @@ def read_managed_json(path: Path, label: str) -> dict:
         raise ManagedContentError(
             f"{label} malformed: {exc.msg} at line {exc.lineno}"
         ) from exc
+    except RecursionError as exc:
+        # `json.loads` raises this — NOT a `ValueError` — on a deeply nested document,
+        # so it escaped every reader-vocabulary handler and reached a lock holder as a
+        # traceback. It is unambiguously invalid content: the bytes parsed nowhere and
+        # no amount of retrying helps. Classifying it structurally instead would leave
+        # a planted `.engine-state-*.json.tmp` in place, re-warning on every
+        # transition forever.
+        raise ManagedContentError(f"{label} is nested too deeply to parse") from exc
     if not isinstance(data, dict):
         raise ManagedContentError(f"{label} root must be an object")
     return data
@@ -996,7 +1033,8 @@ def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
     return GuardResult(
         ok=True,
         message=(
-            f"run_id={stored} schema_version={state.get('schema_version')}"
+            f"run_id={_bounded(stored)} "
+            f"schema_version={_bounded(state.get('schema_version'))}"
         ),
         data={"run_id": stored, "schema_version": state.get("schema_version")},
     )
@@ -1131,7 +1169,7 @@ def non_negative_int(state: dict, field: str, default):
     if isinstance(raw, bool) or not isinstance(raw, int):
         return f"{field} must be a non-negative integer, got {type(raw).__name__}"
     if raw < 0:
-        return f"{field} must be a non-negative integer, got {raw}"
+        return f"{field} must be a non-negative integer, got {_scalar(raw)}"
     return raw
 
 
