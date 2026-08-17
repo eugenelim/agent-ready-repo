@@ -201,6 +201,13 @@ def _run_lines(step: str) -> list[str]:
 UNPARSEABLE = "\x00unparseable"
 
 
+# KNOWN DIVERGENCE, fail-closed: this splitter does not model backslash line
+# continuations, so `echo a \` followed by a comparison is one bash statement (the
+# comparison becomes echo's arguments) but two statements here. The consequence is a
+# guard that exits 1 unconditionally — red, never green — so it wastes an
+# implementer's time rather than shipping a hole. Fixing it means joining
+# continuations before splitting; left undone deliberately because the failure
+# direction is safe and a half-modelled continuation is worse than none.
 def _split_line(line: str) -> list[str]:
     """Split on `;`, `&&`, `||` OUTSIDE quotes.
 
@@ -493,6 +500,16 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         blk = _job_block(text, job_id)
         check(f"timeout[{job_id}]", "timeout-minutes:" in blk)
         check(f"runs-on[{job_id}]", "runs-on: ubuntu-latest" in blk)
+        # Same class as runs-on: an environment substitution the gates then execute
+        # inside. A container missing make/python fails closed, but the substitution
+        # itself is unreviewed by anything else in this repo.
+        check(f"no-container[{job_id}]",
+              re.search(r"^    (container|services):", blk, re.M) is None)
+        # A job-level concurrency group can SERIALISE these jobs — green, but the
+        # whole point of the split undone, and AC11's measurement is post-merge so
+        # nothing else would notice.
+        check(f"no-job-concurrency[{job_id}]",
+              re.search(r"^    concurrency:", blk, re.M) is None)
         check(f"python-version[{job_id}]",
               f"python-version: {EXPECTED_PYTHON}" in blk)
         check(f"no-job-permissions[{job_id}]", "permissions:" not in blk)
@@ -739,6 +756,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("rename-aggregator-id", "aggregator-present",
      lambda t: t.replace("  build-check:\n", "  aggregate:\n", 1)),
     # The whole-workflow no-ops (post-implementation re-review blockers 2 and 3).
+    ("container-override", "no-container[gate-main]",
+     lambda t: t.replace("  gate-main:\n", "  gate-main:\n    container: alpine\n", 1)),
+    ("job-concurrency-serialises", "no-job-concurrency[gate-sast]",
+     lambda t: t.replace("  gate-sast:\n", "  gate-sast:\n    concurrency: solo\n", 1)),
     ("workflow-env-makeflags", "no-workflow-env",
      lambda t: t.replace("\npermissions:\n", "\nenv:\n  MAKEFLAGS: '-n'\npermissions:\n", 1)),
     ("job-env-python", "no-job-env[gate-main]",
