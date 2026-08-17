@@ -33,6 +33,28 @@ just their condition; `set +e` and bare pipelines are rejected on guarded bodies
 and `--self-test` runs a mutation matrix whose id set is derived from the
 fully-populated baseline, so the coverage claim is not computed from an empty input.
 
+## Deliberately NOT asserted, with the reason each is safe
+
+Recorded so a later reviewer does not re-derive it, and so nobody "hardens" a
+non-problem. Each was executed, not reasoned about:
+
+- `pytest -k nothing` / `--deselect` everything → pytest exits **5** (no tests
+  collected), and that propagates through `| tee` under `pipefail`. Verified.
+- `python -c pass`, `echo x > /dev/null` as extra guard statements → allowlisted,
+  exit 0, and the comparisons still follow. No effect.
+- `timeout-minutes: 0` → the job is cancelled, so `needs.<job>.result` is not
+  `success` and the guard fires.
+- `strategy.matrix` with an empty list → the job produces no instances and never
+  reports; once AC2 requires it by name the PR hangs rather than merging.
+- A step `name:` containing the text `if:` → `_key_re` is line-anchored, YAML parses
+  it as one scalar, and nothing is disabled.
+- `uses: actions/checkout@main` → scanner-owned. zizmor ranks `unpinned-uses` HIGH
+  and `.github/zizmor.yml` suppresses nothing, so do not add an assertion here.
+- Backslash continuations in the GUARD body → the comparison becomes an argument to
+  the previous command and the trailing `&& exit 1` then runs unconditionally: red,
+  never green. (This is NOT true of the anchor, where the same trick hid a `-n` —
+  which is why `_run_lines` joins continuations before splitting.)
+
 Exit codes: 0 = pass, 1 = violations (or a self-test failure).
 """
 
