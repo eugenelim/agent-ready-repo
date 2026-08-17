@@ -34,9 +34,28 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 SCRIPT_DIR = Path(__file__).resolve().parent
 
 
+# Control-character neutralisation for this tool's own diagnostics.
+#
+# A DELIBERATE copy of `_loop_guards._CONTROL_ESCAPES`, and the duplication is the
+# point: these lines fire on paths where the guard module may be unavailable or
+# unloadable, which is exactly when a diagnostic matters most. Reaching through the
+# loader here would make the sanitiser fail in the case it exists for.
+#
+# Not cosmetic. A refusal interpolates filenames and exception text that can originate
+# in a planted file — `_recover_engine_state_tmp` reads its name from a `glob()` — so a
+# `.engine-state-<ESC>[2J<ESC>[31mFAKE-OK.json.tmp` emitted a real screen-clear and
+# colour change into the stream a supervising agent captures and logs.
+_CONTROL_ESCAPES = str.maketrans({c: f"\\x{c:02x}" for c in [*range(32), 127]})
+
+
+def _diag(text: object) -> str:
+    """One-line, control-character-safe text for a warning or a refusal."""
+    return " ".join(str(text).split()).translate(_CONTROL_ESCAPES)
+
+
 def stop(reason: str, code: int = 1) -> int:
     """One line on stderr, a non-zero exit, never a traceback."""
-    print(f"check-spec-status: {reason}", file=sys.stderr)
+    print(f"check-spec-status: {_diag(reason)}", file=sys.stderr)
     return code
 
 

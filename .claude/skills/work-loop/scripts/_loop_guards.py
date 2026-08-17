@@ -1211,7 +1211,7 @@ def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
             return GuardResult(
                 ok=False,
                 reason=(
-                    f"implementation retry cap reached ({count}/{cap}); "
+                    f"implementation retry cap reached ({_scalar(count)}/{_scalar(cap)}); "
                     "reset and start a new run"
                 ),
             )
@@ -1228,7 +1228,7 @@ def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
             return GuardResult(
                 ok=False,
                 reason=(
-                    f"review retry cap reached ({count}/{cap}); "
+                    f"review retry cap reached ({_scalar(count)}/{_scalar(cap)}); "
                     "reset and start a new run"
                 ),
             )
@@ -1255,7 +1255,7 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
             ok=False,
             reason=(
                 f"wave check: current_wave_index={_scalar(idx)} does not match "
-                f"--wave-index {wave_index}"
+                f"--wave-index {_scalar(wave_index)}"
             ),
         )
 

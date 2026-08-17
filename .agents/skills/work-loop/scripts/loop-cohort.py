@@ -78,8 +78,27 @@ _SHIP_IT_RE = re.compile(r"^SHIP IT\s*$", re.MULTILINE)
 _RE_FINGERPRINT = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 
 
+# Control-character neutralisation for this tool's own diagnostics.
+#
+# A DELIBERATE copy of `_loop_guards._CONTROL_ESCAPES`, and the duplication is the
+# point: these lines fire on paths where the guard module may be unavailable or
+# unloadable, which is exactly when a diagnostic matters most. Reaching through the
+# loader here would make the sanitiser fail in the case it exists for.
+#
+# Not cosmetic. A refusal interpolates filenames and exception text that can originate
+# in a planted file — `_recover_engine_state_tmp` reads its name from a `glob()` — so a
+# `.engine-state-<ESC>[2J<ESC>[31mFAKE-OK.json.tmp` emitted a real screen-clear and
+# colour change into the stream a supervising agent captures and logs.
+_CONTROL_ESCAPES = str.maketrans({c: f"\\x{c:02x}" for c in [*range(32), 127]})
+
+
+def _diag(text: object) -> str:
+    """One-line, control-character-safe text for a warning or a refusal."""
+    return " ".join(str(text).split()).translate(_CONTROL_ESCAPES)
+
+
 def stop(reason: str, code: int = 1) -> int:
-    print(f"loop-cohort: stop — {reason}", file=sys.stderr)
+    print(f"loop-cohort: stop — {_diag(reason)}", file=sys.stderr)
     return code
 
 
@@ -97,7 +116,7 @@ def _emit(message: str | None) -> None:
     pre-change golden capture caught. Empty message means nothing to say.
     """
     if message:
-        print(f"loop-cohort: {message}")
+        print(f"loop-cohort: {_diag(message)}")
 
 
 def _resolve_spec_dir(raw: str) -> Path:
@@ -1178,8 +1197,8 @@ def _classify_report(report_path: Path, state: dict) -> dict:
         # genuinely contains no findings — and that classification feeds the review
         # retry accounting.
         print(
-            f"loop-cohort: warning — {report_path.name} could not be read "
-            f"({exc}); classified invalid",
+            f"loop-cohort: warning — {_diag(report_path.name)} could not be read "
+            f"({_diag(exc)}); classified invalid",
             file=sys.stderr,
         )
         return {
