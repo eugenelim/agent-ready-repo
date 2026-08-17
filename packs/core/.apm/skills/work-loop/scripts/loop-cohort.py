@@ -597,28 +597,18 @@ def cmd_init(args: argparse.Namespace) -> int:
 
 
 def cmd_identity(args: argparse.Namespace) -> int:
+    """CLI adapter over `check_identity`. Branches on `ok`, never on `reason`."""
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
     except ValueError as exc:
         return stop(str(exc))
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-    if state.get("schema_version") != 1:
-        sv = state.get("schema_version")
-        return stop(f"identity: unsupported schema_version={sv!r} (expected 1)")
-    stored_run_id = state.get("run_id")
-    if args.expect_run_id is not None and stored_run_id != args.expect_run_id:
-        return stop(
-            f"identity: run_id mismatch (stored={stored_run_id!r}, "
-            f"expected={args.expect_run_id!r})"
-        )
-    result = {"run_id": stored_run_id, "schema_version": state.get("schema_version")}
+    result = _g.check_identity(spec_dir, expect_run_id=args.expect_run_id)
+    if not result.ok:
+        return stop(result.reason)
     if args.json:
-        print(json.dumps(result))
+        print(json.dumps(result.data))
     else:
-        print(f"loop-cohort: run_id={stored_run_id} schema_version={result['schema_version']}")
+        print(result.message)
     return 0
 
 
@@ -779,65 +769,15 @@ def cmd_approve_plan(args: argparse.Namespace) -> int:
 
 
 def cmd_plan_check_current(args: argparse.Namespace) -> int:
+    """CLI adapter over `check_plan_current`."""
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
     except ValueError as exc:
         return stop(str(exc))
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-
-    if state.get("plan_review_status") != "approved":
-        return stop("plan_review_status: pending")
-
-    spec_path = spec_dir / "spec.md"
-    plan_path = spec_dir / "plan.md"
-    if not spec_path.exists():
-        return stop(f"plan check-current: spec.md not found at {spec_path}")
-    if not plan_path.exists():
-        return stop(f"plan check-current: plan.md not found at {plan_path}")
-
-    err = _assert_status_legal("plan check-current", spec_path, plan_path)
-    if err is not None:
-        return err
-
-    current_spec_hash = sha256_canonical_contract(spec_path)
-    if state.get("approved_spec_hash") != current_spec_hash:
-        return stop(
-            "plan check-current: spec.md no longer matches the approved baseline — "
-            + _BOTH_CAUSES
-            + f" (approved={state.get('approved_spec_hash', 'null')!r} "
-            f"current={current_spec_hash!r})"
-        )
-
-    current_plan_hash = sha256_canonical_contract(plan_path)
-    if state.get("approved_plan_hash") != current_plan_hash:
-        return stop(
-            "plan check-current: plan.md no longer matches the approved baseline — "
-            + _BOTH_CAUSES
-            + f" (approved={state.get('approved_plan_hash', 'null')!r} "
-            f"current={current_plan_hash!r})"
-        )
-
-    if args.require_schedule:
-        if state.get("plan_hash") != state.get("approved_plan_hash"):
-            return stop(
-                "plan check-current: plan_hash != approved_plan_hash "
-                "(schedule not run or run on a different plan version); "
-                + _BOTH_CAUSES
-            )
-        waves = state.get("schedule_waves", [])
-        if not waves:
-            return stop("plan check-current: schedule_waves is empty (run schedule first)")
-        idx = state.get("current_wave_index", 0)
-        if not (0 <= idx < len(waves)):
-            return stop(
-                f"plan check-current: current_wave_index={idx} out of range "
-                f"[0, {len(waves)})"
-            )
-
-    print(f"loop-cohort: plan check-current OK for {spec_dir.name}")
+    result = _g.check_plan_current(spec_dir, require_schedule=args.require_schedule)
+    if not result.ok:
+        return stop(result.reason)
+    print(result.message)
     return 0
 
 
@@ -845,26 +785,11 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
 
 
 def _schedule_check_current_impl(spec_dir: Path) -> int:
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-    plan_path = spec_dir / "plan.md"
-    if not plan_path.exists():
-        return stop(f"schedule check-current: plan.md not found at {plan_path}")
-    err = _assert_status_legal("schedule check-current", plan_path)
-    if err is not None:
-        return err
-
-    current_hash = sha256_canonical_contract(plan_path)
-    stored = state.get("plan_hash")
-    if stored != current_hash:
-        return stop(
-            "schedule check-current: plan.md no longer matches the scheduled "
-            "baseline — " + _BOTH_CAUSES
-            + f" (stored={stored!r} current={current_hash!r})"
-        )
-    print(f"loop-cohort: schedule check-current OK for {spec_dir.name}")
+    """CLI adapter over `check_schedule_current`."""
+    result = _g.check_schedule_current(spec_dir)
+    if not result.ok:
+        return stop(result.reason)
+    print(result.message)
     return 0
 
 
@@ -971,50 +896,58 @@ def cmd_schedule(args: argparse.Namespace) -> int:
 
 
 def cmd_check(args: argparse.Namespace) -> int:
+    """CLI adapter over `check_phase`.
+
+    Note the guard reads state for EVERY phase including `implement` — this verb has
+    always refused on a missing or malformed `state.json` before reaching the
+    `implement` stub, and the engine's `wave-complete` guard depends on that.
+    """
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
     except ValueError as exc:
         return stop(str(exc))
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-    # The `implement` phase is a no-op stub (returns 0 for any state); skip
-    # schema validation there so pre-Phase-1 state files don't break the hook.
-    # For phases that actually evaluate counters, reject incompatible state.
-    if args.phase != "implement" and state.get("schema_version") != 1:
-        sv = state.get("schema_version")
-        return stop(f"check: unsupported schema_version={sv!r} (expected 1); run reset pair")
-    return _evaluate(state, args.phase)
+    result = _g.check_phase(spec_dir, phase=args.phase)
+    if not result.ok:
+        return stop(result.reason)
+    if result.message:
+        print(result.message)
+    return 0
 
 
 def _evaluate(state: dict, phase: str) -> int:
-    if phase == "implement":
-        # Phase-1 compatibility stub: exits 0 unconditionally for any
-        # valid Phase-1 state. Token-budget and same-error fields are
-        # Phase-2 reserved — no Phase-1 writers or guards defined.
-        return 0
+    """Retained for callers that already hold a state dict.
 
+    Delegates the cap arithmetic to the shared guard's helpers so there is still one
+    implementation; it exists because the phase decision is occasionally wanted
+    without a second read.
+    """
+    if phase == "implement":
+        return 0
     if phase == "gates-failed":
-        count = int(state.get("implementation_retry_count", 0))
-        cap = int(state.get("max_implementation_retries", DEFAULTS["max_implementation_retries"]))
+        count = _g._non_negative_int(state, "implementation_retry_count", 0)
+        cap = _g._non_negative_int(
+            state, "max_implementation_retries", DEFAULTS["max_implementation_retries"]
+        )
+        if isinstance(count, str) or isinstance(cap, str):
+            return stop(f"check: {count if isinstance(count, str) else cap}")
         if count >= cap:
             return stop(
                 f"implementation retry cap reached ({count}/{cap}); "
                 "reset and start a new run"
             )
         return 0
-
     if phase == "review":
-        count = int(state.get("review_retry_count", 0))
-        cap = int(state.get("max_review_retries", DEFAULTS["max_review_retries"]))
+        count = _g._non_negative_int(state, "review_retry_count", 0)
+        cap = _g._non_negative_int(
+            state, "max_review_retries", DEFAULTS["max_review_retries"]
+        )
+        if isinstance(count, str) or isinstance(cap, str):
+            return stop(f"check: {count if isinstance(count, str) else cap}")
         if count >= cap:
             return stop(
-                f"review retry cap reached ({count}/{cap}); "
-                "reset and start a new run"
+                f"review retry cap reached ({count}/{cap}); reset and start a new run"
             )
         return 0
-
     return stop(f"unknown phase {phase!r}")
 
 
@@ -1022,39 +955,16 @@ def _evaluate(state: dict, phase: str) -> int:
 
 
 def cmd_wave_check(args: argparse.Namespace) -> int:
+    """CLI adapter over `check_wave`."""
     try:
         spec_dir = _resolve_spec_dir(args.spec_dir)
     except ValueError as exc:
         return stop(str(exc))
-    try:
-        state = read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return stop(str(exc))
-
-    waves = state.get("schedule_waves", [])
-    idx = int(state.get("current_wave_index", 0))
-    n = len(waves)
-
-    # Optional index check (used by wave-passed guard)
-    if args.wave_index is not None and idx != args.wave_index:
-        return stop(
-            f"wave check: current_wave_index={idx} does not match "
-            f"--wave-index {args.wave_index}"
-        )
-
-    if args.expect == "more":
-        if idx < n - 1:
-            print(f"loop-cohort: wave check more — wave_index={idx} has more waves (total={n})")
-            return 0
-        return stop(f"wave check more: no more waves (current={idx}, total={n})")
-
-    if args.expect == "last":
-        if idx == n - 1:
-            print(f"loop-cohort: wave check last — wave_index={idx} is the last wave (total={n})")
-            return 0
-        return stop(f"wave check last: not the last wave (current={idx}, total={n})")
-
-    return stop(f"wave check: unknown --expect value {args.expect!r}")
+    result = _g.check_wave(spec_dir, expect=args.expect, wave_index=args.wave_index)
+    if not result.ok:
+        return stop(result.reason)
+    print(result.message)
+    return 0
 
 
 @_locked("wave advance")

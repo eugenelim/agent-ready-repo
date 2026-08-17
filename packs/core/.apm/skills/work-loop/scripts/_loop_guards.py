@@ -82,6 +82,13 @@ __all__ = [
     "contained_reason",
     # retry caps
     "DEFAULTS",
+    # the six read-only guards
+    "check_identity",
+    "check_plan_current",
+    "check_schedule_current",
+    "check_phase",
+    "check_wave",
+    "check_artifact_status",
 ]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -780,6 +787,402 @@ def assert_status_legal(verb: str, *paths: Path) -> str | None:
                 f"{list(allowed)} after approval"
             )
     return None
+
+
+# ── the six read-only guards ───────────────────────────────────────────────
+#
+# One implementation each, called by `loop-engine.py` in-process, by the matching
+# `loop-cohort.py` / `check-spec-status.py` CLI verb, and by tests. Every reason and
+# success string is the verb's existing text verbatim, minus the CLI's own prefix —
+# the adapters add that back, and T0's goldens hold the pre-change literals.
+#
+# Each guard reads the files it needs at call time. Three guards in one transition
+# therefore perform three fresh bounded reads, exactly as three child processes did.
+# A shared snapshot is the one change that could alter behaviour under concurrent
+# cohort mutation, so it is deliberately absent.
+
+
+def _require_spec_dir(spec_dir: Path) -> str | None:
+    """Validate the one thing a callee can: that `spec_dir` is a directory.
+
+    Confinement belongs to the caller (see the module docstring). Re-testing
+    "absolute, no `..`" here would be dead code — every caller resolves first — so
+    this checks existence and type instead, which can actually fail.
+    """
+    try:
+        info = os.lstat(spec_dir)
+    except OSError as exc:
+        return f"spec-dir cannot be examined: {exc}"
+    if not stat.S_ISDIR(info.st_mode):
+        return f"spec-dir is not a directory: {spec_dir}"
+    return None
+
+
+def _state_or_reason(spec_dir: Path) -> tuple[dict | None, str | None]:
+    """Read `state.json`, mapping its failure vocabulary to a reason."""
+    problem = _require_spec_dir(spec_dir)
+    if problem is not None:
+        return None, problem
+    try:
+        return read_state(spec_dir), None
+    except (FileNotFoundError, ValueError) as exc:
+        return None, str(exc)
+
+
+@contained
+def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
+    """Engine/cohort run-ID pairing, plus the cohort schema version."""
+    state, reason = _state_or_reason(spec_dir)
+    if reason is not None:
+        return GuardResult(ok=False, reason=reason)
+    if state.get("schema_version") != 1:
+        sv = state.get("schema_version")
+        return GuardResult(
+            ok=False,
+            reason=f"identity: unsupported schema_version={sv!r} (expected 1)",
+        )
+    stored = state.get("run_id")
+    if expect_run_id is not None and stored != expect_run_id:
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"identity: run_id mismatch (stored={stored!r}, "
+                f"expected={expect_run_id!r})"
+            ),
+        )
+    return GuardResult(
+        ok=True,
+        message=(
+            f"loop-cohort: run_id={stored} schema_version={state.get('schema_version')}"
+        ),
+        data={"run_id": stored, "schema_version": state.get("schema_version")},
+    )
+
+
+@contained
+def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> GuardResult:
+    """Approved spec and plan baselines still match what is on disk."""
+    state, reason = _state_or_reason(spec_dir)
+    if reason is not None:
+        return GuardResult(ok=False, reason=reason)
+
+    if state.get("plan_review_status") != "approved":
+        # Deliberately unprefixed, as it has always been. The engine reads exit
+        # status, and the skill documents this exact string as the cue to run
+        # pre-EXECUTE review rather than as a termination signal.
+        return GuardResult(ok=False, reason="plan_review_status: pending")
+
+    spec_path = spec_dir / "spec.md"
+    plan_path = spec_dir / "plan.md"
+    if not spec_path.exists():
+        return GuardResult(
+            ok=False, reason=f"plan check-current: spec.md not found at {spec_path}"
+        )
+    if not plan_path.exists():
+        return GuardResult(
+            ok=False, reason=f"plan check-current: plan.md not found at {plan_path}"
+        )
+
+    legality = assert_status_legal("plan check-current", spec_path, plan_path)
+    if legality is not None:
+        return GuardResult(ok=False, reason=legality)
+
+    current_spec_hash = sha256_canonical_contract(spec_path)
+    if state.get("approved_spec_hash") != current_spec_hash:
+        return GuardResult(
+            ok=False,
+            reason=(
+                "plan check-current: spec.md no longer matches the approved baseline — "
+                + _BOTH_CAUSES
+                + f" (approved={state.get('approved_spec_hash', 'null')!r} "
+                f"current={current_spec_hash!r})"
+            ),
+        )
+
+    current_plan_hash = sha256_canonical_contract(plan_path)
+    if state.get("approved_plan_hash") != current_plan_hash:
+        return GuardResult(
+            ok=False,
+            reason=(
+                "plan check-current: plan.md no longer matches the approved baseline — "
+                + _BOTH_CAUSES
+                + f" (approved={state.get('approved_plan_hash', 'null')!r} "
+                f"current={current_plan_hash!r})"
+            ),
+        )
+
+    if require_schedule:
+        if state.get("plan_hash") != state.get("approved_plan_hash"):
+            return GuardResult(
+                ok=False,
+                reason=(
+                    "plan check-current: plan_hash != approved_plan_hash "
+                    "(schedule not run or run on a different plan version); "
+                    + _BOTH_CAUSES
+                ),
+            )
+        waves = state.get("schedule_waves", [])
+        if not waves:
+            return GuardResult(
+                ok=False,
+                reason="plan check-current: schedule_waves is empty (run schedule first)",
+            )
+        idx = _non_negative_int(state, "current_wave_index", 0)
+        if isinstance(idx, str):
+            return GuardResult(ok=False, reason=f"plan check-current: {idx}")
+        if not (0 <= idx < len(waves)):
+            return GuardResult(
+                ok=False,
+                reason=(
+                    f"plan check-current: current_wave_index={idx} out of range "
+                    f"[0, {len(waves)})"
+                ),
+            )
+
+    return GuardResult(
+        ok=True, message=f"loop-cohort: plan check-current OK for {spec_dir.name}"
+    )
+
+
+@contained
+def check_schedule_current(spec_dir: Path) -> GuardResult:
+    """The scheduled plan is still the plan on disk."""
+    state, reason = _state_or_reason(spec_dir)
+    if reason is not None:
+        return GuardResult(ok=False, reason=reason)
+    plan_path = spec_dir / "plan.md"
+    if not plan_path.exists():
+        return GuardResult(
+            ok=False,
+            reason=f"schedule check-current: plan.md not found at {plan_path}",
+        )
+    legality = assert_status_legal("schedule check-current", plan_path)
+    if legality is not None:
+        return GuardResult(ok=False, reason=legality)
+    current = sha256_canonical_contract(plan_path)
+    stored = state.get("plan_hash")
+    if stored != current:
+        return GuardResult(
+            ok=False,
+            reason=(
+                "schedule check-current: plan.md no longer matches the scheduled "
+                "baseline — " + _BOTH_CAUSES
+                + f" (stored={stored!r} current={current!r})"
+            ),
+        )
+    return GuardResult(
+        ok=True, message=f"loop-cohort: schedule check-current OK for {spec_dir.name}"
+    )
+
+
+def _non_negative_int(state: dict, field: str, default):
+    """Validate a counter as a non-negative int, or return a reason string.
+
+    `int()` coerced `"3"`, `3.7` and `-1` alike, so a malformed counter changed the
+    retry-cap arithmetic silently — and `Infinity` raised `OverflowError` out of the
+    guard entirely. The non-finite case is refused earlier, at the JSON boundary;
+    this catches the rest. Returns a `str` on failure so callers can prefix it with
+    their own verb name, matching the existing message shapes.
+    """
+    raw = state.get(field, default)
+    if isinstance(raw, bool) or not isinstance(raw, int):
+        return f"{field} must be a non-negative integer, got {type(raw).__name__}"
+    if raw < 0:
+        return f"{field} must be a non-negative integer, got {raw}"
+    return raw
+
+
+@contained
+def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
+    """Implementation and review retry caps.
+
+    Reads state FIRST, for every phase including `implement`. `cmd_check` has always
+    called `read_state` before reaching the `implement` stub, so `check --phase
+    implement` is not a total no-op: it refuses on a missing or malformed
+    `state.json`. Returning `ok` unconditionally for `implement` would drop a live
+    refusal that the `wave-complete` guard depends on.
+    """
+    state, reason = _state_or_reason(spec_dir)
+    if reason is not None:
+        return GuardResult(ok=False, reason=reason)
+
+    # The `implement` phase skips schema validation so pre-Phase-1 state files do not
+    # break the hook; phases that actually evaluate counters reject incompatible state.
+    if phase != "implement" and state.get("schema_version") != 1:
+        sv = state.get("schema_version")
+        return GuardResult(
+            ok=False,
+            reason=f"check: unsupported schema_version={sv!r} (expected 1); run reset pair",
+        )
+
+    if phase == "implement":
+        # Phase-1 compatibility stub: exits 0 for any readable Phase-1 state.
+        return GuardResult(ok=True, message="")
+
+    if phase == "gates-failed":
+        count = _non_negative_int(state, "implementation_retry_count", 0)
+        cap = _non_negative_int(state, "max_implementation_retries",
+                                DEFAULTS["max_implementation_retries"])
+        for value in (count, cap):
+            if isinstance(value, str):
+                return GuardResult(ok=False, reason=f"check: {value}")
+        if count >= cap:
+            return GuardResult(
+                ok=False,
+                reason=(
+                    f"implementation retry cap reached ({count}/{cap}); "
+                    "reset and start a new run"
+                ),
+            )
+        return GuardResult(ok=True, message="")
+
+    if phase == "review":
+        count = _non_negative_int(state, "review_retry_count", 0)
+        cap = _non_negative_int(state, "max_review_retries",
+                                DEFAULTS["max_review_retries"])
+        for value in (count, cap):
+            if isinstance(value, str):
+                return GuardResult(ok=False, reason=f"check: {value}")
+        if count >= cap:
+            return GuardResult(
+                ok=False,
+                reason=(
+                    f"review retry cap reached ({count}/{cap}); "
+                    "reset and start a new run"
+                ),
+            )
+        return GuardResult(ok=True, message="")
+
+    return GuardResult(ok=False, reason=f"unknown phase {phase!r}")
+
+
+@contained
+def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) -> GuardResult:
+    """Current wave index, and whether more waves remain."""
+    state, reason = _state_or_reason(spec_dir)
+    if reason is not None:
+        return GuardResult(ok=False, reason=reason)
+
+    waves = state.get("schedule_waves", [])
+    idx = _non_negative_int(state, "current_wave_index", 0)
+    if isinstance(idx, str):
+        return GuardResult(ok=False, reason=f"wave check: {idx}")
+    total = len(waves)
+
+    if wave_index is not None and idx != wave_index:
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"wave check: current_wave_index={idx} does not match "
+                f"--wave-index {wave_index}"
+            ),
+        )
+
+    if expect == "more":
+        if idx < total - 1:
+            return GuardResult(
+                ok=True,
+                message=(
+                    f"loop-cohort: wave check more — wave_index={idx} has more waves "
+                    f"(total={total})"
+                ),
+            )
+        return GuardResult(
+            ok=False,
+            reason=f"wave check more: no more waves (current={idx}, total={total})",
+        )
+
+    if expect == "last":
+        if idx == total - 1:
+            return GuardResult(
+                ok=True,
+                message=(
+                    f"loop-cohort: wave check last — wave_index={idx} is the last wave "
+                    f"(total={total})"
+                ),
+            )
+        return GuardResult(
+            ok=False,
+            reason=f"wave check last: not the last wave (current={idx}, total={total})",
+        )
+
+    return GuardResult(ok=False, reason=f"wave check: unknown --expect value {expect!r}")
+
+
+_FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
+
+
+@contained
+def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> GuardResult:
+    """A spec or plan artifact carries the expected `**Status:**` value.
+
+    `filename` must be a single path component and must not be all dots. The charset
+    alone admits `.` and `..` — the exact class `0cb5c213` ("reject dot path segments
+    in capture-evidence `--repo`") fixed a day before this change, whose blessed form
+    is segment equality rather than a narrower charset, because a leading dot is
+    legitimate in a real filename.
+
+    Single-component is what makes the confinement honest: `O_NOFOLLOW` rejects a
+    symlink only at the FINAL component, so `sub/spec.md` with `sub` swapped after
+    the prefix check would otherwise read outside the directory. The descriptor
+    re-check proves type and inode identity, not confinement — and this guard claims
+    only that.
+    """
+    problem = _require_spec_dir(spec_dir)
+    if problem is not None:
+        return GuardResult(ok=False, reason=problem)
+
+    if not _FILENAME_RE.fullmatch(filename) or set(filename) == {"."}:
+        return GuardResult(
+            ok=False,
+            reason=f"check-spec-status: --file must be a single path component: {filename!r}",
+        )
+
+    # TWO paths, deliberately. Confinement needs the canonical one — resolve first,
+    # then verify the prefix, which is the CWE-73 depth rather than the shallower
+    # `..`-strip. But the READ must use the UNRESOLVED path, because `resolve()`
+    # dereferences a symlink at the final component, so handing the resolved path to
+    # the reader means `O_NOFOLLOW` never sees the link and a symlinked `spec.md`
+    # sails through. Found by test, not by reading.
+    unresolved = spec_dir / filename
+    try:
+        target = unresolved.resolve()
+        inside = target.is_relative_to(spec_dir.resolve())
+    except (OSError, RuntimeError) as exc:
+        # RuntimeError: `Path.resolve()` on a symlink loop under the 3.11/3.12 floor.
+        return GuardResult(
+            ok=False, reason=f"check-spec-status: cannot resolve {filename}: {exc}"
+        )
+    if not inside:
+        return GuardResult(ok=False, reason="check-spec-status: --file must be within spec-dir")
+
+    if not target.exists():
+        return GuardResult(
+            ok=False, reason=f"check-spec-status: {filename} not found at {target}"
+        )
+
+    try:
+        token = read_md_status(unresolved)
+    except UnreadableArtifact as exc:
+        return GuardResult(ok=False, reason=f"check-spec-status: cannot read {target}: {exc}")
+
+    if token is None:
+        return GuardResult(
+            ok=False,
+            reason=f"check-spec-status: no **Status:** line found in {target}",
+        )
+    if token != expect:
+        return GuardResult(
+            ok=False,
+            reason=(
+                f"check-spec-status: {filename} Status is {token!r}, expected {expect!r}"
+            ),
+        )
+    return GuardResult(
+        ok=True,
+        message=f"check-spec-status: OK — Status: {expect} at {target}",
+        data={"path": str(target), "status": token},
+    )
 
 
 # Last statement in the file, on purpose. A module truncated at a clean statement

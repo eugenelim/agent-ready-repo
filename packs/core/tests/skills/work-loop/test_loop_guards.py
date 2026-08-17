@@ -362,8 +362,17 @@ def test_directory_and_symlink_artifacts_refuse(g, tmp_path: Path) -> None:
 
 
 def test_oversized_artifact_refuses(g, tmp_path: Path) -> None:
+    """Sparse-extended, not 8 MiB of real bytes.
+
+    The reader's size check reads `st_size` from the `lstat` *before* opening, so a
+    sparse file trips it identically while occupying one block. Writing the bytes for
+    real costs 8 MiB per run per fixture, and this suite already filled a temp
+    filesystem once doing exactly that.
+    """
     big = tmp_path / "plan.md"
-    big.write_text("x" * (8 * 1024 * 1024 + 16), encoding="utf-8")
+    big.write_text("# P\n\n- **Status:** Approved\n", encoding="utf-8")
+    os.truncate(big, 8 * 1024 * 1024 + 16)
+    assert big.stat().st_blocks * 512 < 64 * 1024, "fixture is not sparse"
     with pytest.raises(ValueError, match="8 MiB"):
         g.read_managed_text(big, "plan.md")
 
@@ -700,3 +709,356 @@ def test_loader_copies_are_structurally_identical() -> None:
     assert len(distinct) == 1, (
         "the loader copies have drifted; present: " + ", ".join(sorted(bodies))
     )
+
+
+# ══ T1b: the six guard decisions ═══════════════════════════════════════════
+#
+# One case per branch each guard can take. The point is not coverage for its own
+# sake: each of these branches is a refusal the FSM depends on, and the whole risk
+# of moving the guards in-process is that one silently stops firing.
+
+SPEC_MD = "# Spec\n\n- **Status:** {s}\n\n## Acceptance Criteria\n\n- [ ] AC1\n"
+PLAN_MD = "# Plan\n\n- **Status:** {s}\n\n## T1 First\n\n**Depends on:** none\n"
+
+
+def cohort_state(**over) -> dict:
+    st = {
+        "schema_version": 1, "run_id": "run-1", "feature": "f",
+        "plan_review_status": "pending",
+        "approved_spec_hash": None, "approved_plan_hash": None, "plan_hash": None,
+        "schedule_waves": [], "current_wave_index": 0,
+        "implementation_retry_count": 0, "review_round_count": 0,
+        "review_retry_count": 0, "finding_fingerprints": [],
+        "previous_finding_fingerprints": [],
+        "max_implementation_retries": 5, "max_review_retries": 5,
+    }
+    st.update(over)
+    return st
+
+
+@pytest.fixture
+def spec(g, tmp_path: Path):
+    """A spec dir factory. `approved=True` pins REAL hashes so drift is meaningful."""
+    def build(*, spec_status="Approved", plan_status="Approved", approved=False,
+              waves=None, no_state=False, no_spec=False, no_plan=False, **over) -> Path:
+        d = tmp_path / f"spec{len(list(tmp_path.iterdir()))}"
+        d.mkdir()
+        if not no_spec:
+            (d / "spec.md").write_text(SPEC_MD.format(s=spec_status), encoding="utf-8")
+        if not no_plan:
+            (d / "plan.md").write_text(PLAN_MD.format(s=plan_status), encoding="utf-8")
+        if no_state:
+            return d
+        if approved:
+            over.setdefault("plan_review_status", "approved")
+            over.setdefault("approved_spec_hash", g.sha256_canonical_contract(d / "spec.md"))
+            over.setdefault("approved_plan_hash", g.sha256_canonical_contract(d / "plan.md"))
+            over.setdefault("plan_hash", g.sha256_canonical_contract(d / "plan.md"))
+            over.setdefault("schedule_waves", waves if waves is not None else [["T1"], ["T2"]])
+        (d / "state.json").write_text(json.dumps(cohort_state(**over)), encoding="utf-8")
+        return d
+    return build
+
+
+# ── check_identity ─────────────────────────────────────────────────────────
+
+def test_check_identity_branches(g, spec) -> None:
+    d = spec()
+    ok = g.check_identity(d, expect_run_id="run-1")
+    assert ok.ok and ok.data == {"run_id": "run-1", "schema_version": 1}
+
+    bad = g.check_identity(d, expect_run_id="other")
+    assert not bad.ok and "run_id mismatch" in bad.reason
+
+    # expect_run_id=None means "just tell me", which the CLI allows.
+    assert g.check_identity(d, expect_run_id=None).ok
+
+    assert not g.check_identity(spec(schema_version=99), expect_run_id="run-1").ok
+    assert not g.check_identity(spec(no_state=True), expect_run_id="run-1").ok
+
+
+# ── check_plan_current ─────────────────────────────────────────────────────
+
+def test_check_plan_current_refuses_pending_without_a_verb_prefix(g, spec) -> None:
+    """The one refusal with no verb prefix, and it must stay that way.
+
+    `SKILL.md` documents this exact string as the cue to run pre-EXECUTE review
+    rather than as a termination signal, so re-prefixing it would change how the
+    loop reads a normal PLAN-stage state.
+    """
+    result = g.check_plan_current(spec())
+    assert not result.ok
+    assert result.reason == "plan_review_status: pending"
+
+
+def test_check_plan_current_branches(g, spec) -> None:
+    assert g.check_plan_current(spec(approved=True)).ok
+
+    drifted = spec(approved=True)
+    (drifted / "spec.md").write_text(SPEC_MD.format(s="Approved") + "\ndrift\n", encoding="utf-8")
+    r = g.check_plan_current(drifted)
+    assert not r.ok and "spec.md no longer matches the approved baseline" in r.reason
+
+    drifted = spec(approved=True)
+    (drifted / "plan.md").write_text(PLAN_MD.format(s="Approved") + "\ndrift\n", encoding="utf-8")
+    r = g.check_plan_current(drifted)
+    assert not r.ok and "plan.md no longer matches the approved baseline" in r.reason
+
+    missing = spec(approved=True)
+    (missing / "spec.md").unlink()
+    assert "spec.md not found" in g.check_plan_current(missing).reason
+
+    missing = spec(approved=True)
+    (missing / "plan.md").unlink()
+    assert "plan.md not found" in g.check_plan_current(missing).reason
+
+    regressed = spec(approved=True)
+    (regressed / "spec.md").write_text(SPEC_MD.format(s="Draft"), encoding="utf-8")
+    r = g.check_plan_current(regressed)
+    assert not r.ok and "Status is 'Draft'" in r.reason
+
+
+def test_check_plan_current_require_schedule_branches(g, spec) -> None:
+    assert g.check_plan_current(spec(approved=True), require_schedule=True).ok
+
+    r = g.check_plan_current(spec(approved=True, waves=[]), require_schedule=True)
+    assert not r.ok and "schedule_waves is empty" in r.reason
+
+    r = g.check_plan_current(spec(approved=True, current_wave_index=9), require_schedule=True)
+    assert not r.ok and "out of range" in r.reason
+
+    r = g.check_plan_current(spec(approved=True, plan_hash="0" * 64), require_schedule=True)
+    assert not r.ok and "plan_hash != approved_plan_hash" in r.reason
+
+    # Without --require-schedule the same states are fine: the flag is the difference.
+    assert g.check_plan_current(spec(approved=True, waves=[])).ok
+
+
+# ── check_schedule_current ─────────────────────────────────────────────────
+
+def test_check_schedule_current_branches(g, spec) -> None:
+    assert g.check_schedule_current(spec(approved=True)).ok
+
+    r = g.check_schedule_current(spec(approved=True, plan_hash="0" * 64))
+    assert not r.ok and "no longer matches the scheduled baseline" in r.reason
+
+    missing = spec(approved=True)
+    (missing / "plan.md").unlink()
+    assert "plan.md not found" in g.check_schedule_current(missing).reason
+
+    bad_status = spec(approved=True)
+    (bad_status / "plan.md").write_text(PLAN_MD.format(s="Drafting"), encoding="utf-8")
+    assert not g.check_schedule_current(bad_status).ok
+
+    # The missing-state refusal, which the CLI has always performed here.
+    assert not g.check_schedule_current(spec(no_state=True)).ok
+
+
+# ── check_phase ────────────────────────────────────────────────────────────
+
+def test_check_phase_reads_state_even_for_implement(g, spec) -> None:
+    """`implement` is a stub, but NOT a total no-op.
+
+    `cmd_check` has always called `read_state` before reaching it, so a missing or
+    malformed `state.json` refuses. The engine's `wave-complete` guard is this check,
+    so returning ok unconditionally would drop a live refusal.
+    """
+    assert g.check_phase(spec(), phase="implement").ok
+    assert not g.check_phase(spec(no_state=True), phase="implement").ok
+
+    corrupt = spec()
+    (corrupt / "state.json").write_text("{not json", encoding="utf-8")
+    assert not g.check_phase(corrupt, phase="implement").ok
+
+    # ...but `implement` still skips schema validation, so a pre-Phase-1 state file
+    # does not break the hook — that asymmetry is deliberate and load-bearing.
+    assert g.check_phase(spec(schema_version=99), phase="implement").ok
+    assert not g.check_phase(spec(schema_version=99), phase="review").ok
+
+
+def test_check_phase_retry_caps(g, spec) -> None:
+    assert g.check_phase(spec(review_retry_count=4), phase="review").ok
+    r = g.check_phase(spec(review_retry_count=5), phase="review")
+    assert not r.ok and "review retry cap reached (5/5)" in r.reason
+
+    assert g.check_phase(spec(implementation_retry_count=4), phase="gates-failed").ok
+    r = g.check_phase(spec(implementation_retry_count=5), phase="gates-failed")
+    assert not r.ok and "implementation retry cap reached (5/5)" in r.reason
+
+    assert not g.check_phase(spec(), phase="nonsense").ok
+
+
+def test_check_phase_validates_counter_types(g, spec) -> None:
+    """`int()` coerced these silently, changing the cap arithmetic.
+
+    `"3"` and `3.7` both became 3; `-1` passed every comparison; `Infinity` raised
+    OverflowError straight out of the guard. The non-finite case is refused earlier at
+    the JSON boundary — this covers the rest.
+    """
+    for value in ("4", 4.7, -1, True):
+        r = g.check_phase(spec(review_retry_count=value), phase="review")
+        assert not r.ok, f"{value!r} was accepted as a counter"
+        assert "non-negative integer" in r.reason
+    r = g.check_phase(spec(max_review_retries="5"), phase="review")
+    assert not r.ok and "non-negative integer" in r.reason
+
+
+# ── check_wave ─────────────────────────────────────────────────────────────
+
+def test_check_wave_branches(g, spec) -> None:
+    first = spec(approved=True, waves=[["T1"], ["T2"], ["T3"]], current_wave_index=0)
+    mid = spec(approved=True, waves=[["T1"], ["T2"], ["T3"]], current_wave_index=1)
+    last = spec(approved=True, waves=[["T1"], ["T2"], ["T3"]], current_wave_index=2)
+
+    assert g.check_wave(first, expect="more").ok
+    assert g.check_wave(mid, expect="more").ok
+    r = g.check_wave(last, expect="more")
+    assert not r.ok and "no more waves" in r.reason
+
+    assert g.check_wave(last, expect="last").ok
+    r = g.check_wave(first, expect="last")
+    assert not r.ok and "not the last wave" in r.reason
+
+    # The optional index check the `wave-passed` guard relies on.
+    assert g.check_wave(mid, expect="more", wave_index=1).ok
+    r = g.check_wave(mid, expect="more", wave_index=0)
+    assert not r.ok and "does not match --wave-index 0" in r.reason
+
+    assert not g.check_wave(first, expect="sideways").ok
+    assert not g.check_wave(spec(no_state=True), expect="last").ok
+
+
+# ── check_artifact_status ──────────────────────────────────────────────────
+
+def test_check_artifact_status_branches(g, spec) -> None:
+    d = spec(spec_status="Shipped", plan_status="Done")
+    ok = g.check_artifact_status(d, filename="spec.md", expect="Shipped")
+    assert ok.ok and ok.data["status"] == "Shipped"
+    assert g.check_artifact_status(d, filename="plan.md", expect="Done").ok
+
+    r = g.check_artifact_status(d, filename="spec.md", expect="Approved")
+    assert not r.ok and "Status is 'Shipped', expected 'Approved'" in r.reason
+
+    missing = spec(no_spec=True)
+    assert "not found" in g.check_artifact_status(missing, filename="spec.md", expect="X").reason
+
+    nostatus = spec()
+    (nostatus / "spec.md").write_text("# no status here\n", encoding="utf-8")
+    r = g.check_artifact_status(nostatus, filename="spec.md", expect="Shipped")
+    assert not r.ok and "no **Status:** line" in r.reason
+
+
+def test_check_artifact_status_filename_is_one_component(g, spec) -> None:
+    """AC9. A single component is what makes the confinement honest.
+
+    `O_NOFOLLOW` rejects a symlink only at the FINAL component, so `sub/spec.md` with
+    `sub` swapped after the prefix check would read outside the directory. And the
+    charset alone admits every dot segment — the class `0cb5c213` fixed the day
+    before this change — so dot-only names are rejected by segment equality, not by
+    narrowing the charset, which would also reject legitimate leading-dot names.
+    """
+    d = spec()
+    (d / "sub").mkdir()
+    (d / "sub" / "spec.md").write_text(SPEC_MD.format(s="Approved"), encoding="utf-8")
+    for bad in ("sub/spec.md", "..", ".", "...", "../spec.md", "a/b/c.md"):
+        r = g.check_artifact_status(d, filename=bad, expect="Approved")
+        assert not r.ok, f"{bad!r} was accepted"
+        assert "single path component" in r.reason or "within spec-dir" in r.reason
+
+    # A legitimate leading dot is still fine — the guard is segment equality.
+    (d / ".hidden.md").write_text(SPEC_MD.format(s="Approved"), encoding="utf-8")
+    assert g.check_artifact_status(d, filename=".hidden.md", expect="Approved").ok
+
+
+def test_check_artifact_status_refuses_unsafe_targets(g, spec) -> None:
+    d = spec()
+    (d / "spec.md").unlink()
+    os.mkfifo(d / "spec.md")
+    with Alarm(5):
+        r = g.check_artifact_status(d, filename="spec.md", expect="Approved")
+    assert not r.ok and "regular file" in r.reason
+
+    d2 = spec()
+    real = d2 / "real.md"
+    real.write_text(SPEC_MD.format(s="Approved"), encoding="utf-8")
+    (d2 / "spec.md").unlink()
+    try:
+        (d2 / "spec.md").symlink_to(real)
+    except (OSError, NotImplementedError):
+        pytest.skip("symlink creation unavailable")
+    r = g.check_artifact_status(d2, filename="spec.md", expect="Approved")
+    assert not r.ok, "a symlinked artifact was accepted"
+
+
+# ── cross-guard properties ─────────────────────────────────────────────────
+
+def test_spec_dir_must_be_a_directory(g, tmp_path: Path) -> None:
+    afile = tmp_path / "not-a-dir"
+    afile.write_text("x", encoding="utf-8")
+    for call in (
+        lambda p: g.check_identity(p, expect_run_id=None),
+        lambda p: g.check_plan_current(p),
+        lambda p: g.check_schedule_current(p),
+        lambda p: g.check_phase(p, phase="review"),
+        lambda p: g.check_wave(p, expect="last"),
+        lambda p: g.check_artifact_status(p, filename="spec.md", expect="X"),
+    ):
+        assert not call(afile).ok
+        assert not call(tmp_path / "absent").ok
+
+
+def test_each_guard_reads_state_afresh(g, spec, monkeypatch) -> None:
+    """No cross-guard snapshot: three guards mean three reads.
+
+    A shared snapshot is the one change that could alter behaviour under concurrent
+    cohort mutation, which is why the spec forbids it. Three separately-invoked child
+    processes read three times; this proves the in-process path still does.
+    """
+    d = spec(approved=True)
+    reads: list[str] = []
+    real = g.read_managed_json
+
+    def counting(path, label):
+        reads.append(label)
+        return real(path, label)
+
+    monkeypatch.setattr(g, "read_managed_json", counting)
+    g.check_identity(d, expect_run_id="run-1")
+    g.check_schedule_current(d)
+    g.check_wave(d, expect="more")
+    assert reads.count("state.json") == 3, f"expected 3 fresh reads, saw {reads}"
+
+
+def test_guards_create_and_mutate_nothing(g, spec) -> None:
+    """Directory-level, not a six-file byte compare.
+
+    `_recover_engine_state_tmp` globs `.engine-state-*.json.tmp` and PROMOTES the
+    first valid match over `engine-state.json`, so a stray temp file left by a guard
+    would silently become engine state — which a named-file comparison cannot see.
+    A `state.json.lock` would likewise be invisible, and it is the observable half of
+    "no guard acquires the cohort mutation lock".
+    """
+    d = spec(approved=True)
+    (d / "engine-state.json").write_text('{"state": "CODE-IMPLEMENTATION"}', encoding="utf-8")
+
+    def snapshot():
+        return {
+            p.relative_to(d).as_posix(): p.read_bytes()
+            for p in sorted(d.rglob("*")) if p.is_file()
+        }
+
+    before = snapshot()
+    assert before, "fixture is empty — the assertion would pass vacuously"
+    g.check_identity(d, expect_run_id="run-1")
+    g.check_plan_current(d, require_schedule=True)
+    g.check_schedule_current(d)
+    g.check_phase(d, phase="review")
+    g.check_wave(d, expect="more")
+    g.check_artifact_status(d, filename="spec.md", expect="Approved")
+    after = snapshot()
+    assert after == before, (
+        "guards changed the spec directory: "
+        f"{sorted(set(after) ^ set(before)) or 'contents differ'}"
+    )
+    assert not list(d.glob(".engine-state-*.json.tmp"))
+    assert not list(d.glob("*.lock"))

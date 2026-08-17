@@ -323,6 +323,11 @@ def capture_cli(root: Path) -> dict:
          note="sha256_canonical_contract reads through the symlink today")
 
     d = build_case(root, "integ-oversized-spec", spec_status="Approved", cohort=cohort)
+    # Filled for real, NOT sparse-extended. This script must keep reproducing the
+    # committed capture byte-for-byte, and switching to a sparse file changes the
+    # artifact's content and therefore this row's recorded message. The equivalent
+    # test uses a sparse file, because that one runs on every invocation while this
+    # runs once.
     filler = "\n<!-- " + ("x" * 4096) + " -->\n"
     with (d / "spec.md").open("a", encoding="utf-8") as fh:
         written = 0
@@ -356,6 +361,29 @@ def capture_cli(root: Path) -> dict:
 
 def main() -> int:
     import tempfile
+
+    # HARD REFUSAL, and the reason is worth stating plainly. This script captures
+    # what the CLIs did BEFORE the guard extraction. Re-running it afterwards
+    # silently rewrites `before` with the NEW behaviour, so every parity assertion
+    # compares the change against itself and passes no matter what broke. That is
+    # precisely the tautology the goldens exist to prevent — and it is an easy
+    # mistake to make, because the command looks idempotent. It is not.
+    #
+    # `--force` exists only for the one legitimate case: re-capturing before any
+    # guard has moved, e.g. while still building the fixture matrix.
+    existing = [p.name for p in (gs.GOLDEN_DIGESTS, gs.GOLDEN_CLI_STREAMS) if p.is_file()]
+    if existing and "--force" not in sys.argv:
+        print(
+            f"refusing: {', '.join(existing)} already exist.\n"
+            "These are the PRE-CHANGE capture. Regenerating them after the guards "
+            "have moved replaces the independent expectation with the new behaviour, "
+            "and every parity test then passes vacuously.\n"
+            "If you genuinely need to re-capture before anything has moved, pass "
+            "--force.",
+            file=sys.stderr,
+        )
+        return 1
+
     gs.FIXTURES.mkdir(parents=True, exist_ok=True)
 
     digests = capture_digests()

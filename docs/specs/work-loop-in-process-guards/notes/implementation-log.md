@@ -60,3 +60,35 @@ re-pinning the baseline is expected rather than an interruption.
   for the wrong reason), and the capability scan tripped on its own docstrings —
   which discuss `subprocess` precisely to explain its absence. The scan is now over
   the AST.
+
+## W3 · T1b
+
+- **I overwrote the pre-change goldens, and nearly shipped it.** Re-ran
+  `generate_goldens.py` after the extraction to pick up an unrelated fixture tweak.
+  That command *looks* idempotent and is not: it captures whatever the tree
+  currently does, so `before` was rewritten with the post-change behaviour. Every
+  parity assertion would then have compared the change against itself and passed no
+  matter what broke — the exact tautology T0 exists to prevent. Caught only because
+  I happened to diff the result. Restored from git, and the generator now **refuses
+  to overwrite** unless passed `--force`. The refusal message says why, because the
+  mistake is easy and the symptom is silence.
+- **Disk exhaustion mid-wave.** `OSError: [Errno 28]` from a test's `mkdir`, not a
+  regression — the volume was at 100% (159 MiB free of 460 GiB). My own contribution
+  was ~695 MB of pytest temp dirs and 8 MiB oversized-artifact fixtures rewritten on
+  every run. Fixed properly: the *test* now sparse-extends with `os.truncate`, which
+  trips the reader's `st_size` pre-check for one block instead of 8 MiB. The
+  *generator* keeps filling for real, because it must keep reproducing the committed
+  capture byte-for-byte and a sparse file changes the artifact's content — and it
+  runs once, not every invocation.
+- **`_evaluate` kept, narrowed.** It takes an already-read state dict, so it cannot
+  simply forward to `check_phase` (which reads). It now delegates the cap arithmetic
+  to the shared `_non_negative_int`, so the validation has one implementation even
+  though the entry point is duplicated.
+- **`check_artifact_status` had a real symlink hole, found by test not by reading.**
+  I wrote `target = (spec_dir / filename).resolve()` and then read `target`. But
+  `resolve()` dereferences a symlink at the final component, so `O_NOFOLLOW` never
+  saw the link and a symlinked `spec.md` was accepted — meaning AC15's
+  `artifact-integrity` change would not actually have happened for that row. Now two
+  paths: confinement verifies the **resolved** path (canonicalize-then-verify-prefix,
+  the CWE-73 depth), and the read uses the **unresolved** one. Audited the other five
+  reader call sites; all already pass unresolved paths.
