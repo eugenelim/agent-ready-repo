@@ -816,6 +816,93 @@ def test_a_lock_holding_verb_refuses_an_unloadable_parser_without_writing(
     )
 
 
+# ── AC15/AC16 — the artifact-integrity rows the parity table cannot express ─
+#
+# `test_loop_guards_parity.EXEMPT_ROWS` names this test as the one that covers them,
+# and asserts by AST that it exists. Keep the name in sync with that mapping.
+
+_ARTIFACT_INTEGRITY_ROWS = {
+    # golden key -> (script, argv-after-spec-dir, how to break the artifact)
+    "check-spec-status/symlinked-spec-md": (
+        "check-spec-status.py", ["--expect", "Approved"], "symlink-spec"),
+    "check-spec-status/oversized-spec-md": (
+        "check-spec-status.py", ["--expect", "Approved"], "oversize-spec"),
+    "plan-check-current/symlinked-plan-md": (
+        "loop-cohort.py", None, "symlink-plan"),
+}
+
+
+def _golden_rows() -> dict:
+    raw = json.loads(
+        (Path(__file__).resolve().parent / "fixtures" / "golden_cli_streams.json")
+        .read_text(encoding="utf-8")
+    )
+    return {r["key"]: r for r in raw["rows"]}
+
+
+@pytest.mark.parametrize("key", sorted(_ARTIFACT_INTEGRITY_ROWS))
+def test_an_artifact_integrity_change_matches_its_golden(key: str, tmp_path: Path) -> None:
+    """The three ratified `artifact-integrity` changes, driven through the real CLI.
+
+    Each was captured pre-change as a SUCCESS (`before.returncode == 0`): the old
+    unbounded `read_text` followed a symlink and accepted a 9 MiB file. The bounded
+    reader refuses both, which is a deliberate change recorded with a `change_reason`
+    — and until now it was asserted nowhere, in either the parity table or here.
+
+    The recorded `after` carries only `returncode`, so that is what is compared
+    against; the one-line/no-traceback contract is asserted alongside it. The
+    before/after inequality is the non-vacuity check — a row whose verdict did not
+    actually change does not belong on the exemption list.
+    """
+    script_name, extra_argv, breakage = _ARTIFACT_INTEGRITY_ROWS[key]
+    golden = _golden_rows()[key]
+    assert golden.get("change_reason") == "artifact-integrity", (
+        f"{key} is no longer an artifact-integrity row — update this test's table"
+    )
+
+    repo = tmp_path / "repo"
+    spec_dir = _cohort_fixture(repo, approved=True)
+
+    if breakage == "symlink-spec":
+        real = spec_dir / "real-spec.md"
+        (spec_dir / "spec.md").rename(real)
+        (spec_dir / "spec.md").symlink_to(real)
+    elif breakage == "symlink-plan":
+        real = spec_dir / "real-plan.md"
+        (spec_dir / "plan.md").rename(real)
+        (spec_dir / "plan.md").symlink_to(real)
+    elif breakage == "oversize-spec":
+        # Sparse. `os.truncate` trips the reader's `st_size` pre-check while
+        # allocating one block; writing 9 MiB for real exhausted the volume once.
+        with Path(spec_dir / "spec.md").open("r+b") as fh:
+            os.truncate(fh.fileno(), 9 * 1024 * 1024)
+    else:  # pragma: no cover - table and branches are edited together
+        raise AssertionError(f"unknown breakage {breakage!r}")
+
+    argv = ([str(spec_dir), *extra_argv] if extra_argv is not None
+            else ["plan", "check-current", str(spec_dir)])
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPTS / script_name), *argv],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        check=False, cwd=str(repo), timeout=60,
+    )
+
+    expected_rc = golden["after"]["returncode"]
+    assert proc.returncode == expected_rc, (
+        f"{key}: expected returncode {expected_rc} (the recorded `after`), got "
+        f"{proc.returncode}.\nstdout={proc.stdout!r}\nstderr={proc.stderr!r}"
+    )
+    # Non-vacuity: this row only earns its `change_reason` if the verdict moved.
+    assert golden["before"]["returncode"] != expected_rc, (
+        f"{key}: before and after agree, so nothing changed and the row should not "
+        "carry a change_reason"
+    )
+    assert "Traceback" not in proc.stderr, f"{key} tracebacked:\n{proc.stderr}"
+    assert len(proc.stderr.strip().splitlines()) == 1, (
+        f"{key}: expected one stderr line, got:\n{proc.stderr}"
+    )
+
+
 # ── fail-closed status parsing ─────────────────────────────────────────────
 
 def test_unloadable_parser_refuses_instead_of_skipping(tmp_path: Path) -> None:
@@ -1367,27 +1454,52 @@ def test_guards_create_and_mutate_nothing(g, spec) -> None:
     d = spec(approved=True)
     (d / "engine-state.json").write_text('{"state": "CODE-IMPLEMENTATION"}', encoding="utf-8")
 
+    # AC18 covers the repo-root `.loop-run/` as well as the spec dir. It is a second
+    # place the engine writes — `_LOOP_RUN_DIR_NAME` in `loop-engine.py` — so a guard
+    # dropping a pending-event or lock file there would be invisible to a spec-dir
+    # snapshot. Seeded with a file so the comparison cannot pass empty-to-empty.
+    loop_run = d.parent / ".loop-run"
+    loop_run.mkdir()
+    (loop_run / "pending.json").write_text('{"seeded": true}', encoding="utf-8")
+
+    roots = {"spec": d, "loop-run": loop_run}
+
     def snapshot():
+        # Both directories must exist AT SNAPSHOT TIME. Without this the whole
+        # assertion degrades to comparing {} with {} the moment a fixture changes.
+        for label, root in roots.items():
+            assert root.is_dir(), (
+                f"{label} directory {root} is absent — the comparison would pass "
+                "vacuously, which AC18 explicitly forbids"
+            )
         return {
-            p.relative_to(d).as_posix(): p.read_bytes()
-            for p in sorted(d.rglob("*")) if p.is_file()
+            f"{label}/{p.relative_to(root).as_posix()}": p.read_bytes()
+            for label, root in roots.items()
+            for p in sorted(root.rglob("*")) if p.is_file()
         }
 
     before = snapshot()
     assert before, "fixture is empty — the assertion would pass vacuously"
+    assert any(k.startswith("loop-run/") for k in before), (
+        "the .loop-run half of the snapshot is empty — seed it or the guard writes "
+        "this test exists to catch would be invisible"
+    )
+
     g.check_identity(d, expect_run_id="run-1")
     g.check_plan_current(d, require_schedule=True)
     g.check_schedule_current(d)
     g.check_phase(d, phase="review")
     g.check_wave(d, expect="more")
     g.check_artifact_status(d, filename="spec.md", expect="Approved")
+
     after = snapshot()
     assert after == before, (
-        "guards changed the spec directory: "
+        "guards changed a watched directory: "
         f"{sorted(set(after) ^ set(before)) or 'contents differ'}"
     )
-    assert not list(d.glob(".engine-state-*.json.tmp"))
-    assert not list(d.glob("*.lock"))
+    for root in roots.values():
+        assert not list(root.glob(".engine-state-*.json.tmp"))
+        assert not list(root.glob("*.lock"))
 
 
 def test_all_is_pinned_to_the_declared_surface(g) -> None:

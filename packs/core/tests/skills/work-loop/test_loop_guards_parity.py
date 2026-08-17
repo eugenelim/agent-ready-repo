@@ -106,12 +106,18 @@ def _state(**over) -> dict:
 
 def build(guards, root: Path, name: str, *, spec_status="Approved", plan_status="Approved",
           approved=False, waves=None, no_state=False, no_spec=False, no_plan=False,
-          spec_body=None, **over) -> Path:
+          spec_body=None, post=None, **over) -> Path:
     """ONE fixture builder, used by both halves of every row.
 
     That is the load-bearing detail: if the API and the CLI were given
     separately-constructed directories, a difference in the fixtures could masquerade
     as agreement — or as drift.
+
+    `post` is a callable run AFTER the state file is written, mirroring how the
+    generator built the drift and missing-artifact cases: the approved hashes must pin
+    the clean body, and only then is the artifact drifted, deleted, or regressed. A
+    kwarg that mutated before the pin would make the hash match the damage and the
+    guard pass, so these cases cannot be expressed as pre-build kwargs.
     """
     d = root / name
     d.mkdir(parents=True)
@@ -129,7 +135,45 @@ def build(guards, root: Path, name: str, *, spec_status="Approved", plan_status=
             over.setdefault("plan_hash", guards.sha256_canonical_contract(d / "plan.md"))
             over.setdefault("schedule_waves", waves if waves is not None else [["T1"], ["T2"]])
         (d / "state.json").write_text(json.dumps(_state(**over), indent=2), encoding="utf-8")
+    if post is not None:
+        post(d)
     return d
+
+
+# ── post-build fixture mutations, matching the generator's construction ────
+
+def _drift_spec(d: Path) -> None:
+    (d / "spec.md").write_text(SPEC_MD.format(status="Approved") + "\ndrifted\n",
+                               encoding="utf-8")
+
+
+def _drift_plan(d: Path) -> None:
+    (d / "plan.md").write_text(PLAN_MD.format(status="Approved") + "\ndrifted\n",
+                               encoding="utf-8")
+
+
+def _unlink_spec(d: Path) -> None:
+    (d / "spec.md").unlink()
+
+
+def _unlink_plan(d: Path) -> None:
+    (d / "plan.md").unlink()
+
+
+def _regress_spec_status(d: Path) -> None:
+    (d / "spec.md").write_text(SPEC_MD.format(status="Draft"), encoding="utf-8")
+
+
+def _nest_spec_md(d: Path) -> None:
+    """A `--file sub/spec.md` target that really resolves inside `spec_dir`.
+
+    The narrowing AC9 adds is about a multi-component path, not an escaping one — so
+    the fixture has to put a genuine `spec.md` at `sub/spec.md`, or the refusal could
+    be coming from confinement instead of the component rule.
+    """
+    sub = d / "sub"
+    sub.mkdir()
+    (sub / "spec.md").write_text(SPEC_MD.format(status="Approved"), encoding="utf-8")
 
 
 def run_cli(script: Path, argv: list, cwd: Path) -> tuple[int, str, str]:
@@ -286,6 +330,50 @@ def _rows():
         ("check-spec-status/file-escapes-spec-dir", {},
          lambda g, d: g.check_artifact_status(d, filename="../outside.md", expect="Shipped"),
          S, [SPEC, "--file", "../outside.md"]),
+
+        # ── AC9's `--file` narrowing, at the CLI boundary ───────────────────
+        # A multi-component path that resolves INSIDE spec_dir. Previously accepted
+        # (before.returncode == 0); now refused. Expressible declaratively, so it
+        # belongs in the table rather than on the exemption list — it is a narrowing
+        # of a shipped CLI's accepted inputs, which is exactly the kind of change
+        # that needs its artifact at the CLI boundary.
+        ("check-spec-status/file-multi-component-inside", {"post": _nest_spec_md},
+         lambda g, d: g.check_artifact_status(d, filename="sub/spec.md", expect="Approved"),
+         S, [SPEC, "--expect", "Approved", "--file", "sub/spec.md"]),
+
+        # ── rows the golden set recorded but the table never compared ───────
+        # Six of these are the highest-value messages in the tool: the two drift
+        # reasons carry `_BOTH_CAUSES` plus two digests, which is the largest authored
+        # string here and the most likely to be mangled by a relocation. The
+        # `_dir_name` values match the generator's, because several messages
+        # interpolate `spec_dir.name` and `normalize()` cannot rewrite a bare basename.
+        ("identity/ok-json", {"_dir_name": "id-ok"},
+         lambda g, d: g.check_identity(d, expect_run_id=RID),
+         C, ["identity", SPEC, "--expect-run-id", RID, "--json"]),
+        ("plan-check-current/spec-drift",
+         {"approved": True, "_dir_name": "plan-specdrift", "post": _drift_spec},
+         lambda g, d: g.check_plan_current(d),
+         C, ["plan", "check-current", SPEC]),
+        ("plan-check-current/plan-drift",
+         {"approved": True, "_dir_name": "plan-plandrift", "post": _drift_plan},
+         lambda g, d: g.check_plan_current(d),
+         C, ["plan", "check-current", SPEC]),
+        ("plan-check-current/missing-spec",
+         {"approved": True, "_dir_name": "plan-nospec", "post": _unlink_spec},
+         lambda g, d: g.check_plan_current(d),
+         C, ["plan", "check-current", SPEC]),
+        ("plan-check-current/missing-plan",
+         {"approved": True, "_dir_name": "plan-noplan", "post": _unlink_plan},
+         lambda g, d: g.check_plan_current(d),
+         C, ["plan", "check-current", SPEC]),
+        ("plan-check-current/status-regressed",
+         {"approved": True, "_dir_name": "plan-statusregress", "post": _regress_spec_status},
+         lambda g, d: g.check_plan_current(d),
+         C, ["plan", "check-current", SPEC]),
+        ("schedule-check-current/missing-plan",
+         {"approved": True, "_dir_name": "sched-noplan", "post": _unlink_plan},
+         lambda g, d: g.check_schedule_current(d),
+         C, ["schedule", "check-current", SPEC]),
     ]
 
 
@@ -373,21 +461,71 @@ def test_the_table_covers_every_guard(goldens) -> None:
         )
 
 
-def test_every_intentional_change_is_exercised(goldens) -> None:
-    """Every `change_reason` in the goldens appears in this table.
+# Golden rows this table cannot express, each mapped to the test that DOES cover it.
+# A bare set of exempt keys is a promise with nothing behind it — the reviewer found
+# two of the four covered nowhere at all. The mapping is machine-checked below: the
+# named test must exist in the named module, so deleting or renaming it fails here
+# instead of silently un-covering a ratified behaviour change.
+#
+# These three need a symlink or a sparse >8 MiB file, which the declarative fixture
+# kwargs cannot express.
+EXEMPT_ROWS = {
+    "check-spec-status/symlinked-spec-md": (
+        "test_loop_guards.py", "test_an_artifact_integrity_change_matches_its_golden"),
+    "check-spec-status/oversized-spec-md": (
+        "test_loop_guards.py", "test_an_artifact_integrity_change_matches_its_golden"),
+    "plan-check-current/symlinked-plan-md": (
+        "test_loop_guards.py", "test_an_artifact_integrity_change_matches_its_golden"),
+}
 
-    Otherwise a behaviour this change deliberately altered could regress with nothing
-    watching — the golden would still record the intent, and no test would check it.
-    """
+
+def test_every_intentional_change_is_exercised(goldens) -> None:
+    """Every `change_reason` in the goldens appears in this table or in EXEMPT_ROWS."""
     declared = {k for k, r in goldens.items() if "change_reason" in r}
     covered = {key for key, *_ in _rows()}
-    # The artifact-integrity rows need a symlink or a sparse file, which the table's
-    # declarative fixtures cannot express; they live in test_loop_guards.py instead.
-    exempt = {
-        "check-spec-status/symlinked-spec-md",
-        "check-spec-status/oversized-spec-md",
-        "plan-check-current/symlinked-plan-md",
-        "check-spec-status/file-multi-component-inside",
-    }
-    missing = declared - covered - exempt
+    missing = declared - covered - set(EXEMPT_ROWS)
     assert not missing, f"intentional changes with no parity row: {sorted(missing)}"
+
+
+def test_the_golden_set_is_fully_consumed(goldens) -> None:
+    """No golden row may sit unread.
+
+    The failure this closes: 11 of 49 captured rows were never compared against the
+    live CLI, including both drift reasons — the largest authored strings in the tool.
+    Nothing flagged it, because the table only ever asserted that its OWN rows had
+    goldens, never that every golden had a row. Unused captures then accumulate
+    silently and read as coverage they are not providing.
+    """
+    covered = {key for key, *_ in _rows()}
+    unread = sorted(set(goldens) - covered - set(EXEMPT_ROWS))
+    assert not unread, (
+        f"{len(unread)} golden row(s) are never compared against the live CLI: "
+        f"{unread}. Add a parity row, or add an EXEMPT_ROWS entry naming the test "
+        "that covers it."
+    )
+    # And the exemptions must not name rows that no longer exist.
+    stale = sorted(set(EXEMPT_ROWS) - set(goldens))
+    assert not stale, f"EXEMPT_ROWS names golden rows that are gone: {stale}"
+
+
+def test_every_exemption_names_a_test_that_exists() -> None:
+    """The exemption list is a claim about other tests; verify the claim.
+
+    Structural (AST), not a substring scan: a function name appearing in a comment or
+    a docstring must not satisfy it.
+    """
+    import ast
+
+    here = Path(__file__).resolve().parent
+    for key, (module_name, test_name) in sorted(EXEMPT_ROWS.items()):
+        module_path = here / module_name
+        assert module_path.is_file(), f"{key}: exemption names a missing module {module_name}"
+        tree = ast.parse(module_path.read_text(encoding="utf-8"))
+        names = {
+            n.name for n in ast.walk(tree)
+            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
+        }
+        assert test_name in names, (
+            f"{key}: exemption claims {module_name}::{test_name} covers it, but no such "
+            "test exists — the row is uncovered"
+        )
