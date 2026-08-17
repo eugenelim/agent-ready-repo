@@ -215,9 +215,19 @@ _NO_CWD_STEPS = (
     ("gate-sast", "Install SAST/SCA tools"),
     ("gate-export-boundary", "pytest export-boundary gate"),
 )
-# Non-run steps permitted in the aggregator. An action step runs code this file cannot
-# read, so the set is closed rather than filtered.
-_ALLOWED_AGGREGATOR_ACTIONS = ("actions/checkout@", "actions/setup-python@")
+# Non-run steps permitted in the aggregator, compared as the `uses:` VALUE for equality.
+# A substring test over the step chunk — the previous shape — accepted
+# `attacker/repo/actions/setup-python@main`, which is a valid
+# `{owner}/{repo}/{path}@{ref}` reference that CONTAINS `actions/setup-python@`; it also
+# accepted an arbitrary action whose `with:` block merely mentioned the allowed string,
+# since the match was not tied to the `uses:` key at all. An arbitrary action in the job
+# that wears the required check is code this file cannot read, positioned before the
+# auditor. The refs are SHA-pinned, so a version bump is a deliberate edit here — the
+# same coupling the PINNED_* statements carry, for the same reason.
+PINNED_AGGREGATOR_USES = (
+    "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+    "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+)
 
 
 def _step_env_keys(step: str) -> list[str]:
@@ -242,6 +252,35 @@ def _step_env_keys(step: str) -> list[str]:
             match = re.match(r"\s*['\"]?([A-Za-z_][A-Za-z0-9_]*)['\"]?\s*:", follow)
             if match:
                 out.append(match.group(1))
+    return out
+
+
+def _step_key_values(step: str, key: str) -> list[str]:
+    """Values bound to `key` among a step's OWN keys — not inside its run body.
+
+    `_key_values` at `\\s*` indent also matched keys written INSIDE a block scalar, so a
+    body that legitimately emits YAML (`cat > w.yml <<EOF` / `name: x` / `run: y`) tripped
+    the duplicate-key check. Fail-closed, but it reads as a broken test to whoever writes
+    that body. `_step_env_keys` already had the right primitive — scope by indent — and
+    this is its mirror: the step's own keys sit at the shallowest indent in the chunk
+    (plus line 0, whose `- ` prefix `_steps` has already stripped), and everything nested
+    under them is deeper.
+    """
+    lines = step.splitlines()
+    if not lines:
+        return []
+    rest = [ln for ln in lines[1:] if ln.strip()]
+    base = min((len(ln) - len(ln.lstrip()) for ln in rest), default=0)
+    out: list[str] = []
+    for index, line in enumerate(lines):
+        if not line.strip():
+            continue
+        if index and (len(line) - len(line.lstrip())) != base:
+            continue
+        match = re.match(
+            rf"\s*['\"]?{re.escape(key)}['\"]?\s*:[ \t]*(.*?)\s*$", line)
+        if match:
+            out.append(match.group(1).strip())
     return out
 
 
@@ -273,6 +312,22 @@ def _result_var(job_id: str) -> str:
     variable intended — so the comparison never matches and the job is always red.
     """
     return job_id.upper().replace("-", "_") + "_RESULT"
+
+
+GUARD_FINAL_ECHO = 'echo "every gate passed"'
+
+
+def _comparison_line(job_id: str) -> str:
+    """The one legal shape of a gate comparison, derived from the job id.
+
+    Derived rather than listed so that adding a work job forces adding its comparison.
+    The `::error::` annotation is part of the pinned text: it is what an operator reads
+    first in the run summary, and leaving it free would let the body keep its structure
+    while reporting nothing useful.
+    """
+    var = _result_var(job_id)
+    return (f'[ "${var}" != "success" ] && '
+            f'echo "::error::{job_id} reported ${var}" && exit 1')
 
 
 def _job_ids(text: str) -> list[str]:
@@ -558,9 +613,10 @@ def _pinned(step: str, expected: str | tuple[str, ...]) -> str:
     return ""
 
 
-# Populated by `_pinned` on a miss, drained by `main`. A module-level list rather than a
-# return value because every caller is a one-line `check(...)` and threading a diagnostic
-# through all of them would obscure the assertion.
+# Collected per `audit()` call via a contextvar-free indirection: `audit` swaps in the
+# caller's list and restores the previous one, so the diagnostic is scoped to one audit
+# and `audit` stays free of module-level side effects. Every caller of `_pinned` is a
+# one-line `check(...)`, which is why this is not threaded through as a return value.
 _pin_misses: list[tuple[str, str]] = []
 
 
@@ -649,7 +705,17 @@ def _body_is_straight_line(step: str) -> bool:
     return True
 
 
-def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
+def audit(text: str, evaluated: list[str] | None = None,
+          misses: list[tuple[str, str]] | None = None) -> list[str]:
+    global _pin_misses
+    _outer_misses, _pin_misses = _pin_misses, (misses if misses is not None else [])
+    try:
+        return _audit(text, evaluated)
+    finally:
+        _pin_misses = _outer_misses
+
+
+def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     bad: list[str] = []
 
     def check(label: str, ok: bool) -> None:
@@ -734,7 +800,9 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # outranks an exported value — but the comment above claimed there was "no third
     # step", and that was false as written. Now it is true.
     check("aggregator-action-steps-known", all(
-        nm in AGGREGATOR_RUN_STEPS or any(a in st for a in _ALLOWED_AGGREGATOR_ACTIONS)
+        nm in AGGREGATOR_RUN_STEPS
+        # Exactly one `uses:`, equal to one allowed ref — not a substring of the chunk.
+        or _step_key_values(st, "uses") in [[u] for u in PINNED_AGGREGATOR_USES]
         for nm, st in _steps(agg)))
     check("no-env-file-writes-in-aggregator", not any(
         "GITHUB_ENV" in ln or "GITHUB_OUTPUT" in ln
@@ -745,11 +813,31 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     check("guard-straight-line", bool(guard_step) and _body_is_straight_line(guard_step))
     posture_step = _step_named(agg, "posture test")
     check("guard-runs-in-aggregator", bool(_pinned(posture_step, PINNED_POSTURE)))
-    # Equality is the load-bearing half — `python3 -c …` satisfies the allowlist — but the
-    # straight-line rule stops an earlier statement in the same body from arranging for
-    # the interpreter to exit before it reads this file.
-    check("posture-straight-line",
-          bool(posture_step) and _body_is_straight_line(posture_step))
+    # The two aggregator bodies are pinned as ORDERED STATEMENT SETS, not as allowlisted
+    # command words.
+    #
+    # `_body_is_straight_line` validates the command WORD of each statement and leaves
+    # everything else about it free — so with `echo` and `python3` both allowlisted, the
+    # posture body could rewrite this file before running it:
+    #     echo "raise SystemExit(0)" > tools/test-build-check-workflow.py
+    #     python3 tools/test-build-check-workflow.py     # ← still the pinned statement
+    # and equivalently `python3 -c "open(SELF,'w').write('pass')"`. That is the third
+    # occurrence of one shape: an allowlist over one dimension with a second dimension
+    # left free. Enumerating the second dimension (redirections, `-c`, heredocs, …) is
+    # the move that failed the previous four times.
+    #
+    # Both bodies are fully enumerable, so set-equality closes the class without naming
+    # a single trick. `no-env-file-writes-in-aggregator` is retained as the ad-hoc
+    # instance of it, and still fails independently.
+    check("posture-body-exact",
+          _run_lines(posture_step) == [_STRICT_SHELL, PINNED_POSTURE])
+    # DERIVED, not literal: the expected guard body is built from `work_jobs`, so adding a
+    # fourth work job still requires adding its comparison — the property a verbatim pin
+    # would have destroyed.
+    _expected_guard = ([_STRICT_SHELL]
+                       + [_comparison_line(j) for j in work_jobs]
+                       + [GUARD_FINAL_ECHO])
+    check("guard-body-exact", _run_lines(guard_step) == _expected_guard)
 
     # AC3: three-way binding, and each comparison's CONSEQUENT.
     # `[ "$X" != "success" ] || echo ok` carries the comparison and gates nothing.
@@ -828,10 +916,14 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         # `run: echo bypassed` after the real body audited clean. Closing three of N keys
         # was arbitrary. This closes every key that decides what a step does, and it does
         # not depend on an inference about GitHub's parser either way.
+        # Indent-scoped via `_step_key_values`: at `\s*` this also matched keys written
+        # inside a block scalar, so a body emitting a YAML fragment tripped it. `with` is
+        # in the tuple because a duplicate `with:` leaves `persist-credentials[job]`
+        # satisfied by the first binding while YAML resolves the second.
         check(f"no-duplicate-step-keys[{jid}]", all(
-            len(_key_values(st, key)) <= 1
+            len(_step_key_values(st, key)) <= 1
             for _n, st in _steps(blk)
-            for key in ("run", "uses", "working-directory", "name", "env")))
+            for key in ("run", "uses", "working-directory", "name", "env", "with")))
     # Blocker: `working-directory:` on a pinned step runs the pinned text somewhere else.
     for _jid, _stepname in _NO_CWD_STEPS:
         _st = _step_named(_job_block(text, _jid), _stepname)
@@ -1083,8 +1175,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
                          'run: echo "make build-check PACKS_DIR=packs SAST_DELEGATED=1"')),
     ("echo-wrap-comparisons", "comparison[gate-main]",
-     lambda t: t.replace('[ "$GATE_MAIN_RESULT" != "success" ] && exit 1',
-                         """echo '[ "$GATE_MAIN_RESULT" != "success" ] && exit 1'""")),
+     lambda t: t.replace('[ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1',
+                         "echo " + repr('[ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1'))),
     ("echo-wrap-guard", "guard-runs-in-aggregator",
      lambda t: t.replace(f"          python3 {SELF_NAME}\n",
                          f'          echo "python3 {SELF_NAME}"\n')),
@@ -1097,15 +1189,15 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          'echo "pip install -r tools/requirements-sast.txt"')),
     # -- consequents and negation ------------------------------------------------
     ("drop-consequent", "comparison[gate-sast]",
-     lambda t: t.replace('[ "$GATE_SAST_RESULT" != "success" ] && exit 1',
-                         '[ "$GATE_SAST_RESULT" != "success" ] || echo ok')),
+     lambda t: t.replace('[ "$GATE_SAST_RESULT" != "success" ] && echo "::error::gate-sast reported $GATE_SAST_RESULT" && exit 1',
+                         '[ "$GATE_SAST_RESULT" != "success" ] && echo "::error::gate-sast reported $GATE_SAST_RESULT" || echo ok')),
     ("negate-tree-probe", "export-boundary-probe-not-negated",
      lambda t: t.replace("test -d packages/agentbundle", "! test -d packages/agentbundle")),
     ("un-negate-grep", "export-boundary-skip-negated",
      lambda t: t.replace('! grep -Eq "^SKIPPED"', 'grep -Eq "^SKIPPED"')),
     ("multi-hyphen-comparison", "comparison[gate-export-boundary]",
-     lambda t: t.replace('[ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && exit 1',
-                         '[ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] || echo ok')),
+     lambda t: t.replace('[ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1',
+                         '[ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" || echo ok')),
     ("multi-hyphen-env", "env-binding[gate-export-boundary]",
      lambda t: t.replace("GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}",
                          "GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-main.result }}")),
@@ -1235,7 +1327,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("drop-python-version", "python-version[gate-sast]",
      lambda t: t.replace('          python-version: "3.11"\n', "", 2)),
     ("drop-checkout", "checkout-present[gate-sast]",
-     lambda t: t.replace("      - uses: actions/checkout@v4\n        with:\n"
+     lambda t: t.replace("      - uses: actions/checkout@"
+                         "11d5960a326750d5838078e36cf38b85af677262\n        with:\n"
                          "          fetch-depth: 0\n          persist-credentials: false\n", "", 2)),
     ("head-ref-concurrency", "concurrency-group",
      lambda t: t.replace(EXPECTED_CONCURRENCY_GROUP, "build-check-${{ github.head_ref }}")),
@@ -1286,8 +1379,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                 .replace("  gate-sast:\n", "  gate-sast:\n    name: make build-check\n", 1)),
     # The comparison loop must inherit _load_bearing like every other assertion.
     ("background-comparison", "comparison[gate-main]",
-     lambda t: t.replace('[ "$GATE_MAIN_RESULT" != "success" ] && exit 1',
-                         '[ "$GATE_MAIN_RESULT" != "success" ] && exit 1 &')),
+     lambda t: t.replace('[ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1', '[ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1 &')),
     ("drop-pull-request-trigger", "trigger-pull-request",
      lambda t: t.replace("  pull_request:\n    branches: [main]\n", "")),
     ("drop-delegation-flag", "anchor-step",
@@ -1389,7 +1481,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace(f"python3 {SELF_NAME}",
                          f"PYTHONPATH=/tmp/x python3 {SELF_NAME}", 1)),
     # An earlier statement in the posture body arranging for the interpreter to no-op.
-    ("posture-body-not-straight-line", "posture-straight-line",
+    ("posture-body-not-straight-line", "posture-body-exact",
      lambda t: t.replace(f"          python3 {SELF_NAME}\n",
                          "          mkdir -p /tmp/x\n"
                          f"          python3 {SELF_NAME}\n", 1)),
@@ -1407,6 +1499,42 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "        with:\n"
                          "          script: core.exportVariable('GATE_MAIN_RESULT','success')\n"
                          "      - name: Require every gate\n", 1)),
+    # -- the second dimension: what a pinned statement READS, and who else runs -----
+    # The posture body rewriting this file before invoking it — via redirect, and via a
+    # `-c` payload. Both command words are allowlisted, so only set-equality catches them.
+    ("posture-redirect-overwrites-auditor", "posture-body-exact",
+     lambda t: t.replace(f"          python3 {SELF_NAME}\n",
+                         f'          echo "raise SystemExit(0)" > {SELF_NAME}\n'
+                         f"          python3 {SELF_NAME}\n", 1)),
+    ("posture-dash-c-overwrites-auditor", "posture-body-exact",
+     lambda t: t.replace(f"          python3 {SELF_NAME}\n",
+                         f"          python3 -c \"open('{SELF_NAME}','w').write('pass')\"\n"
+                         f"          python3 {SELF_NAME}\n", 1)),
+    ("guard-body-gains-a-redirect", "guard-body-exact",
+     lambda t: t.replace('          echo "every gate passed"',
+                         '          echo x > /tmp/y\n          echo "every gate passed"', 1)),
+    ("guard-comparison-loses-its-diagnostic", "guard-body-exact",
+     lambda t: t.replace('&& echo "::error::gate-sast reported $GATE_SAST_RESULT" ', "", 1)),
+    # A lookalike action ref that CONTAINS an allowed one; and the allowed string hidden
+    # in a `with:` value rather than being the `uses:` value at all.
+    ("lookalike-action-ref-in-aggregator", "aggregator-action-steps-known",
+     lambda t: t.replace("      - name: Require every gate\n",
+                         "      - uses: attacker/repo/actions/setup-python@main\n"
+                         "      - name: Require every gate\n", 1)),
+    ("allowed-string-hidden-in-with", "aggregator-action-steps-known",
+     lambda t: t.replace("      - name: Require every gate\n",
+                         "      - uses: attacker/evil@v1\n        with:\n"
+                         "          note: actions/setup-python@v5\n"
+                         "      - name: Require every gate\n", 1)),
+    ("unpinned-checkout-ref-in-aggregator", "aggregator-action-steps-known",
+     lambda t: _sub_in_job(
+         t, "build-check",
+         "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+         "      - uses: actions/checkout@main")),
+    ("duplicate-with-on-checkout", "no-duplicate-step-keys[gate-main]",
+     lambda t: t.replace("        with:\n          fetch-depth: 0\n",
+                         "        with:\n          fetch-depth: 0\n"
+                         "        with:\n          persist-credentials: true\n", 1)),
 ]
 
 
@@ -1421,12 +1549,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
 # a gate reported `failure`, `audit` MUST reject. The converse is not required —
 # rejecting a body bash would also fail is merely conservative. That asymmetry is what
 # makes this a safety check and not a brittle equivalence test.
-_GUARD_BASE = (
-    'set -euo pipefail\n'
-    '[ "$GATE_MAIN_RESULT" != "success" ] && exit 1\n'
-    '[ "$GATE_SAST_RESULT" != "success" ] && exit 1\n'
-    '[ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && exit 1\n'
-    'echo "every gate passed"'
+_GUARD_BASE = "\n".join(
+    [_STRICT_SHELL]
+    + [_comparison_line(j) for j in REQUIRED_WORK_JOBS]
+    + [GUARD_FINAL_ECHO]
 )
 _FIRST_TEST = '[ "$GATE_MAIN_RESULT"'
 
@@ -1576,8 +1702,8 @@ def main(argv: list[str]) -> int:
     if not WORKFLOW.is_file():
         print(f"✖ {WORKFLOW} not found", file=sys.stderr)
         return 1
-    _pin_misses.clear()
-    violations = audit(WORKFLOW.read_text(encoding="utf-8"))
+    misses: list[tuple[str, str]] = []
+    violations = audit(WORKFLOW.read_text(encoding="utf-8"), misses=misses)
     if violations:
         print(f"✖ {len(violations)} posture violation(s):", file=sys.stderr)
         for v in violations:
@@ -1585,10 +1711,10 @@ def main(argv: list[str]) -> int:
         # An equality pin is MEANT to fail when the workflow is edited, so the failure
         # has to say what changed. Printing the bare label made the intended coupling
         # look like a broken test.
-        for want, got in _pin_misses:
+        for want, got in misses:
             print(f"\n  pinned statement not found:\n    expected: {want}\n"
                   f"    nearest:  {got}", file=sys.stderr)
-        if _pin_misses:
+        if misses:
             print("\n  These statements ARE the gate, so this file pins them verbatim.\n"
                   "  If the workflow change is intentional, update the PINNED_* constant\n"
                   "  in the same commit — do not relax the comparison.", file=sys.stderr)

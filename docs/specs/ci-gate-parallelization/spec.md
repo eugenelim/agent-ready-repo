@@ -852,6 +852,39 @@ nothing about whether the classes each assertion can be defeated by are enumerat
 so the metric is now phrased as the count it is, and the class argument lives in prose
 next to the code.
 
+**The recurring shape, named by the reviewer on the fourth sighting: an allowlist over
+one dimension with a second dimension left free.** Every round of this verifier failed
+the same way, and reading the rounds together is what makes it visible:
+
+| Round | Allowlisted | Left free | Bypass |
+| --- | --- | --- | --- |
+| 8 | command words | argv tokens | `make -n` |
+| c1 | argv tokens | the statement | `MAKEFLAGS=-n make …` |
+| c2 | the statement | the working directory | `working-directory: tools` |
+| c3 | command words in a body | what a statement reads/writes | `echo "raise SystemExit(0)" > <the auditor>` |
+
+Each fix was correct and each left a sibling dimension unconstrained, so the next round
+found it. The escape is not a better allowlist — it is to ask whether the thing being
+constrained is **finitely enumerable**, and if it is, pin the whole set. The two
+aggregator bodies are five statements and two statements; the aggregator's non-run steps
+are two SHA-pinned actions. Set-equality over those needs no enumeration of redirections,
+`-c` payloads, heredocs, or lookalike action refs — the classes a denylist would have had
+to anticipate. Where the set genuinely varies (the export-boundary body, a `pip install`
+whose argument is read from a requirements file), the allowlist stays, and that is the
+honest boundary of the technique.
+
+The corollary for reviewers: **when the same fix shape recurs, stop fixing instances and
+report the shape.** That single sentence closed more of this file than the previous four
+rounds of patches.
+
+**A no-op transform reads exactly like a passing test.** Twice more this round a mutation
+appeared to prove something it never ran: a replace-string that did not match the real
+workflow (comment lines sat between the keys) reported "GREEN — regression" for a
+duplicate-key case that was in fact blocked. The self-test catches this for the mutation
+matrix — it fails any transform equal to its input — but ad-hoc verification scripts have
+no such guard, so assert `mutated != original` in those too. This is the same lesson the
+Makefile parse-error mutation taught, recurring in a different tool.
+
 **Where a belief cannot be argued, execute it.** The one recorded "probed and safe"
 claim that was wrong (folded scalars) had been written from reasoning, not from a run.
 The file now carries a differential harness: for the guard body that decides the

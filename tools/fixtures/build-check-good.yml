@@ -26,11 +26,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
       - name: Install tools dependencies
@@ -54,11 +54,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
       - name: Detect whether SAST-relevant files changed
@@ -77,11 +77,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
       - name: Install tools dependencies
@@ -105,10 +105,10 @@ jobs:
     timeout-minutes: 5
     if: ${{ always() }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
         with:
           python-version: "3.11"
       # TWO run steps, as the real aggregator has. An earlier fixture folded the posture
@@ -127,7 +127,7 @@ jobs:
           GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
         run: |
           set -euo pipefail
-          [ "$GATE_MAIN_RESULT" != "success" ] && exit 1
-          [ "$GATE_SAST_RESULT" != "success" ] && exit 1
-          [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && exit 1
+          [ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1
+          [ "$GATE_SAST_RESULT" != "success" ] && echo "::error::gate-sast reported $GATE_SAST_RESULT" && exit 1
+          [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1
           echo "every gate passed"
