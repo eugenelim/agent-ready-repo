@@ -23,6 +23,8 @@ one that matters:
 
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 import subprocess
 import sys
@@ -36,7 +38,7 @@ LINTER = REPO_ROOT / "tools" / "lint-agents-md.py"
 
 #: A single ~400-line main() aborts every later block on one exception, so the
 #: reported count silently drops. Falling below this is a failure in itself.
-_CASE_FLOOR = 15
+_CASE_FLOOR = 21
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -211,6 +213,52 @@ def main() -> int:
               "should be gitignored" not in combined,
               "emitted the drift note while git was unusable: "
               + combined[-800:])
+
+    # ---- the two refusal branches, which no PATH shim can reach ---------
+    # A hostile PATH produces git-ABSENT or git-BROKEN. It cannot produce the two
+    # REFUSAL states: git exiting 128 on an unusable candidate, and the resolver
+    # declining before launch. Those are driven in-process, because the remedy
+    # differs — "re-run where git works" is actively wrong for both, and that
+    # exact conflation was a review finding against this lint's sibling.
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("lint_agents_md", LINTER)
+    module = importlib.util.module_from_spec(spec)
+    sys.path.insert(0, str(REPO_ROOT / "tools"))
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.path.remove(str(REPO_ROOT / "tools"))
+
+    real_resolver = module.lint_git_ignore.git_ignored_paths
+    for label, exc, want, must_not in (
+        ("git refused the batch",
+         module.lint_git_ignore.GitIgnoreError("exit 128: outside repository"),
+         "git rejected the probe batch", "re-run where git works"),
+        ("resolver refused pre-launch",
+         ValueError("candidate escapes the repository root"),
+         "refused before git was called", "re-run where git works"),
+    ):
+        def _raising(*_a, _exc=exc, **_kw):
+            raise _exc
+
+        module.lint_git_ignore.git_ignored_paths = _raising
+        buffer = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buffer), \
+                    contextlib.redirect_stderr(buffer):
+                module.main()
+        except SystemExit:
+            pass
+        finally:
+            module.lint_git_ignore.git_ignored_paths = real_resolver
+        emitted = buffer.getvalue()
+        check(f"{label}: names its own cause",
+              want in emitted, emitted[-700:])
+        check(f"{label}: does not send the reader to another machine",
+              must_not not in emitted, emitted[-700:])
+        check(f"{label}: does NOT claim .gitignore drifted",
+              "should be gitignored" not in emitted, emitted[-700:])
 
     if _CASES < _CASE_FLOOR:
         _FAILURES.append(

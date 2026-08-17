@@ -171,6 +171,12 @@ sufficiency of this approach is checkable rather than assumed:
 It *does* observe failure count and attribution, because findings print as
 `FAIL:` lines plus an `✖ … N failure(s)` summary — so behaviours like one cause
 producing two findings are captured automatically, with no hand-written count.
+Redaction preserves this rather than costing it: the tally is adjusted **down by
+exactly the number of lines redacted**, not erased, and the lint emits one `FAIL:`
+line per finding followed by `len(findings)`, so the subtraction is exact. Erasing
+it would have discarded the one signal the compared surface has to keep — a
+finding appended twice but printed once, which is precisely what the memoised
+runner parse in divergence 2 below could regress into.
 
 ### Deliberate divergences
 
@@ -297,9 +303,11 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       two streams separately, byte-for-byte, as bytes, with both stored
       base64-encoded.
       **Amended during implementation, with the reason:** the real tree is
-      deliberately *not* a captured case, because *every* line it prints is
-      ambient — live catalogue counters (`(21 packs)`,
-      `(32 destinations, 8 declared unrun)`) that any unrelated PR moves. A
+      deliberately *not* a captured case, because every line it prints except the
+      terminal verdict is ambient — live catalogue counters (`(21 packs)`,
+      `(32 destinations, 8 declared unrun)`) that any unrelated PR moves. The
+      verdict itself carries no ambient value, which is exactly why it is the line
+      the real-tree layer pins byte-exact instead. A
       fixture's output is ambient only where it reads repository-level constants,
       and that much is separable: `_canonical` drops the findings derived from the
       real `_NO_RUNNER` map, so adding an exemption — the routine edit — no longer
@@ -336,9 +344,11 @@ type-checks nothing in this diff and is not claimed as a gate for it.
       must equal the subject's runner inventory, and each property is proven by a
       mutation that reddens the suite.
       **Recorded limit:** adding a `_RUNNER_FILES` entry is a known re-pin
-      trigger. It does not add a redactable line — the missing file fails
-      `runners-keep-suites-isolated`, so that check's `ok` line leaves all 22
-      baselines — and regeneration cannot clear it, because regeneration re-runs
+      trigger. Its added `FAIL: runner file … does not exist` lines *are*
+      redacted; what cannot be is the consequence — the missing file makes
+      `runners-keep-suites-isolated` fail, so that check's `ok` line **disappears**
+      from all 22 baselines, and an absent line is not something a redaction can
+      restore. Regeneration cannot clear it either, because regeneration re-runs
       the pinned subject, whose older inventory still passes. Repointing the pin
       is accepted for that case: the repo gains a CI runner rarely, and never
       without review, whereas suites are ungated routinely — and it was only the

@@ -335,11 +335,23 @@ def main() -> int:
             missing_git_policy=lint_git_ignore.MissingGitPolicy.FAIL_OPEN,
             timeout=30.0,
         )
-    except (lint_git_ignore.GitIgnoreError, ValueError) as exc:
+    except lint_git_ignore.GitIgnoreError as exc:
+        # Git RAN and exited outside {0, 1} — a nested repository root, or a probe
+        # beyond a symlink. "Re-run where git works" is the wrong remedy: git works
+        # fine, and the same run will fail the same way anywhere.
         note(
-            f"drift-watch: git is unavailable or refused the request, so the "
-            f"session-scratch gitignore probes could not be resolved ({exc}). "
-            f"This is not a .gitignore finding — re-run where git works."
+            f"drift-watch: git rejected the probe batch, so the session-scratch "
+            f"gitignore probes could not be resolved ({exc}). This is not a "
+            f".gitignore finding — one probe path was unusable."
+        )
+    except ValueError as exc:
+        # The resolver refused before launching git: a probe outside the repository
+        # root, or one carrying a leading `:` git would read as pathspec magic.
+        note(
+            f"drift-watch: a probe was refused before git was called, so the "
+            f"session-scratch gitignore probes could not be resolved ({exc}). This "
+            f"is not a .gitignore finding — the path is outside the repository root "
+            f"or carries a leading `:`."
         )
     else:
         if resolution.degraded:

@@ -151,7 +151,7 @@ must never print the six-check terminal wording.
 
 | Entrypoint/check | Owner | Scope class | Gate wiring | Traversal roots | Ignore semantics | Git process shape | Repeated work | Self-test model | P0 disposition |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `tools/lint-agents-md.py` | repo tooling | repo-global | `docs.yml` step *Run AGENTS.md linter*; `pre_pr_catalogue.py` step `agents-md hygiene` | root `AGENTS.md`, `packs/core/seeds/AGENTS.md`, projected docs; **3 fixed gitignore probe paths** | **asserts probes ARE ignored** — inverted vs. the boundary lint; a non-ignored probe calls `note()`, which is **fatal** (`fail = 1` → exit 1) | **3 `check-ignore`, one per probe path** (line 313, inside a `for probe in (...)` loop) | none beyond the 3 probes | 3 fixture-based self-tests (see § 4) | **CHANGE** — one Git subprocess per candidate path. 3 → 1 batched. Git-missing contract **differs today**: no `FileNotFoundError` guard, so absent Git raises. The **resolver's** policy is unified to fail-open by authorised decision (2026-08-17), but the **call site treats a degraded resolution as fatal**: it exits 1 naming **Git unavailability**, and must NOT emit three `drift-watch:` notes claiming `.gitignore` drifted — that would misdiagnose a real degradation as a content finding |
+| `tools/lint-agents-md.py` | repo tooling | repo-global | `docs.yml` step *Run AGENTS.md linter*; `pre_pr_catalogue.py` step `agents-md hygiene` | root `AGENTS.md`, `packs/core/seeds/AGENTS.md`, projected docs; **3 fixed gitignore probe paths** | **asserts probes ARE ignored** — inverted vs. the boundary lint; a non-ignored probe calls `note()`, which is **fatal** (`fail = 1` → exit 1) | **3 `check-ignore`, one per probe path** — pre-change shape: a `for probe in (...)` loop over the three session-scratch probe paths, one subprocess per iteration; the loop no longer exists after this change | none beyond the 3 probes | 3 fixture-based self-tests (see § 4) | **CHANGE** — one Git subprocess per candidate path. 3 → 1 batched. Git-missing contract **differs today**: no `FileNotFoundError` guard, so absent Git raises. The **resolver's** policy is unified to fail-open by authorised decision (2026-08-17), but the **call site treats a degraded resolution as fatal**: it exits 1 naming **Git unavailability**, and must NOT emit three `drift-watch:` notes claiming `.gitignore` drifted — that would misdiagnose a real degradation as a content finding |
 | `tools/lint-ci-parity.py` | repo tooling | repo-global | `build-check`; Make | `Makefile`, `.github/workflows/*.yml`, gate chain | no Git ignore use | 0 | none | `tools/test-lint-ci-parity.py` — **fixture roots via `--root` + one real-root e2e launch** | **no change** — 0.13 s. Already the exact target architecture; used as the repo precedent for the boundary-lint refactor |
 | `tools/lint-build.py` | repo tooling | repo-global | `pre_pr_catalogue.py:120` | build outputs | no Git ignore use | 3; `git merge-base` in a **bounded 2-element base-ref fallback loop** that returns on first success | none | none | **no change** — not an ignore query; bounded fallback, not per-candidate |
 | `tools/lint-nosec-form.py` | repo tooling | repo-global (security-gate form) | `build-check` | `tools/`, `packs/`, `packages/` Python sources | no Git ignore use | 1 (`rev-parse`) | none | `tools/test-lint-nosec-form.py`, temp fixture | **no change** — 5.33 s, the slowest non-P0 lint, but one bounded pass and zero ignore queries. Recorded as P1 watch item only |
@@ -235,7 +235,7 @@ case, so the `CHANGE` scope is unaffected.
 
 | Self-test | Subject | `sys.executable` launches | Fixture | P0 disposition |
 | --- | --- | --- | --- | --- |
-| `test_build_gate_chain.py` | gate-chain parity | 20 | temp | **no change** — fixture gate chains; also anchors `tools/lint-agents-md.py` into the chain (line 235) |
+| `test_build_gate_chain.py` | gate-chain parity | 20 | temp | **no change** — fixture gate chains; also anchors `tools/lint-agents-md.py` into the chain via the `agents-md hygiene` step in `EXPECTED_PRE_PR_REPO_STEPS` |
 | `test_lint_guides_no_repo_only_refs.py` | guides ref lint | 6 | temp | **no change** |
 | `test_export_work_index.py` | work-index export | 6 | temp | **no change** |
 | `test_check_artifact_contents.py` | artifact contents | 4 | temp | **no change** |
@@ -351,9 +351,9 @@ The gate enumerates **tracked** files via `git ls-files` over `tools/`,
 in this repository.
 
 Superseded by the measured after-figures in
-[§ After evidence](#after-evidence-measured-2026-08-17-same-host): the scanned set
-is **817 files with 4 allowlist entries**, against a recorded floor of **700**.
-The mid-work estimate below (765 tracked `.py`, 2 allowlist entries, ≈763 floor)
+[§ Enforcement-gate scan set](#enforcement-gate-scan-set), which is where the
+scanned/allowlisted/floor triple is stated — deliberately once, so a re-measure
+cannot leave a second copy behind. The mid-work estimate below (765 tracked `.py`, 2 allowlist entries, ≈763 floor)
 predates two corrections — the enumeration adding new-but-not-ignored files, and
 `SCAN_ROOTS` gaining `.github` and `Makefile` — and is retained only so the
 correction is legible.
@@ -380,16 +380,14 @@ low. Retained here only so the correction is legible.
 ## Two behavioural details the refactor must not flatten
 
 1. **`case_pack_tests_stay_in_pack` is deliberately not ignore-filtered.** It
-   walks `packs/<pack>/tests` with a raw `os.walk`
-   (the `ast.Attribute`/`node.attr == "parent"` branch in the pack-root resolver), **not** through `_walk`, so a
+   walks `packs/<pack>/tests` with a raw `os.walk`, **not** through `_walk`, so a
    gitignored `.py` file under a pack's test tree is still inspected for climbing
    above its owning pack. The single batched ignored-set therefore applies only
    to `_walk` outputs. Applying it universally would newly exempt gitignored pack
    tests from source confinement — a contract weakening disguised as
    deduplication.
-2. **`_test_basenames` has no production caller.**
-   the `_TestFileContext` constructor is called only from the self-test; no
-   `case_*` uses it. Adding
+2. **`_test_basenames` has no production caller.** It is called only from the
+   self-test's non-colliding-runner cases; no `case_*` uses it. Adding
    test basenames to the per-invocation inventory would add a `_walk` over every
    destination that no check consumes — more traversal, not less. It stays a
    lazily-called helper.
@@ -515,7 +513,10 @@ exists, so a second concurrent suite fails loudly instead of overwriting; the
 to plant never deletes another run's file; and because the plants are untracked,
 `git status --untracked-files=no` cannot see a leftover — so their absence is
 asserted by direct path existence checks rather than inferred from porcelain.
-The residual is tracked as a P1 residual below rather than counted as closed.
+The residual is tracked two ways rather than counted as closed: as P1 residual 4
+below, and as the `selftest-untracked-plant-window` slug in
+`workspace.toml [backlog].open`. The second matters because this note retires
+with the spec and the mechanism does not.
 
 Its trailing note — *"Same pattern is worth auditing across `tools/test-*`"* —
 is discharged by § 4 of this inventory: all 66 other lint self-tests were
@@ -600,10 +601,10 @@ with the exit code it actually returned. Terminal wording unchanged throughout.
 | `python3 tools/lint-pack-test-boundary.py` | 0 | six `ok` lines + `✓ … passed (6 cases).` |
 | `python3 tools/test-lint-pack-test-boundary.py` | 0 | 128 cases; 4 real-tree CLI launches |
 | `python3 tools/test-lint-boundary-golden.py` | 0 | 22 captured baselines reproduced |
-| `python3 tools/test-lint-boundary-structural.py` | 0 | 72 cases |
+| `python3 tools/test-lint-boundary-structural.py` | 0 | 87 cases |
 | `python3 tools/test-lint-git-ignore.py` | 0 | 100 cases |
 | `python3 tools/lint-no-direct-check-ignore.py` | 0 | 817 files scanned, 4 allowlisted |
-| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | 42 cases |
+| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | 50 cases |
 | `python3 tools/lint-agents-md.py` | 0 | unchanged terminal wording |
 | `python3 tools/test-lint-agents-md-gitignore-probes.py` | 0 | 17 cases |
 | `python3 tools/test_lint_agents_md_{legacy,diataxis,risk}_block.py` | 0 | 3 suites, unchanged |
@@ -668,3 +669,5 @@ Out of scope here; captured so they are not silently lost.
    the spec requires, or copying the whole worktree per run, which reintroduces
    the traversal cost this spec removes. Bounded meanwhile by refuse-before-plant,
    a `finally` scoped to the planting branch, and direct absence assertions.
+   Tracked as `selftest-untracked-plant-window` in `workspace.toml [backlog].open`
+   — a greppable successor, so the live mechanism does not retire with this spec.

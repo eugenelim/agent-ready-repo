@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import enum
 import os
 import re
 import sys
@@ -162,6 +163,15 @@ def _walk_candidates(base: Path) -> list[Path]:
     return found
 
 
+class RefusalSource(enum.Enum):
+    """Who declined to answer. An enum, matching `lint_git_ignore`'s own
+    discriminators (`MissingGitPolicy`, `DegradationReason`) rather than a bare
+    string a typo could silently turn into the wrong diagnosis."""
+
+    GIT = "git"            # git ran and exited outside {0, 1}
+    RESOLVER = "resolver"  # refused before launch: out-of-root, or pathspec magic
+
+
 class GitIgnoreUnresolved(RuntimeError):
     """A standalone walk could not resolve the ignore set. Never fail open."""
 
@@ -185,8 +195,15 @@ class IgnoreOutcome(NamedTuple):
     ignored: frozenset[Path]
     degraded: bool = False
     detail: str | None = None
-    refused: bool = False
-    refused_by: str | None = None
+    refused_by: RefusalSource | None = None
+
+    @property
+    def refused(self) -> bool:
+        """Derived, never stored. Two fields encoding one fact admit an
+        inconsistent pair — `refused=True, refused_by=None` — which falls through
+        to whichever branch is last and reinstates the misattribution
+        `refused_by` exists to prevent."""
+        return self.refused_by is not None
 
 
 def _resolve_ignored(root: Path, candidates: list[Path]) -> IgnoreOutcome:
@@ -211,12 +228,12 @@ def _resolve_ignored(root: Path, candidates: list[Path]) -> IgnoreOutcome:
     except lint_git_ignore.GitIgnoreError as exc:
         # Git ran and exited outside {0, 1}: a partial, untrustworthy answer.
         return IgnoreOutcome(frozenset(), degraded=True, detail=str(exc),
-                             refused=True, refused_by="git")
+                             refused_by=RefusalSource.GIT)
     except ValueError as exc:
         # The resolver refused a candidate before launching git — out-of-root, or
         # a `:` prefix git would read as pathspec magic. No subprocess ran.
         return IgnoreOutcome(frozenset(), degraded=True, detail=str(exc),
-                             refused=True, refused_by="resolver")
+                             refused_by=RefusalSource.RESOLVER)
     return IgnoreOutcome(
         frozenset(resolution.ignored),
         degraded=resolution.degraded,
@@ -321,8 +338,7 @@ class BoundaryInventory:
     ignored: frozenset[Path]
     ignore_degraded: bool
     ignore_detail: str | None
-    ignore_refused: bool = False
-    ignore_refused_by: str | None = None
+    ignore_refused_by: RefusalSource | None = None
     _walks: dict[Path, tuple[Path, ...]] = field(default_factory=dict)
     _confinement: dict[Path, bool] = field(default_factory=dict)
     _destinations: tuple[Path, ...] | None = None
@@ -356,7 +372,6 @@ class BoundaryInventory:
                 self.ignore_detail = outcome.detail
                 # Carried too, or a batch git *refused* here would be reported as
                 # "git is unavailable" — the conflation `refused` exists to stop.
-                self.ignore_refused = self.ignore_refused or outcome.refused
                 self.ignore_refused_by = (
                     self.ignore_refused_by or outcome.refused_by
                 )
@@ -476,7 +491,6 @@ def build_inventory(context: BoundaryContext) -> BoundaryInventory:
         ignored=outcome.ignored,
         ignore_degraded=outcome.degraded,
         ignore_detail=outcome.detail,
-        ignore_refused=outcome.refused,
         ignore_refused_by=outcome.refused_by,
     )
     for key, found in prewalked.items():
@@ -1500,10 +1514,10 @@ def inspect_boundary_results(
         # Not cosmetic. `_walk` subtracts the ignored set and two findings fire
         # on the emptiness of what remains, so an unresolved ignore layer turns
         # those failures into passes. Refuse to report such a verdict.
-        if not inventory.ignore_refused:
+        if inventory.ignore_refused_by is None:
             cause = "git is unavailable"
             remedy = "re-run where git works"
-        elif inventory.ignore_refused_by == "resolver":
+        elif inventory.ignore_refused_by is RefusalSource.RESOLVER:
             # No subprocess ran; naming git here would send the reader to the
             # wrong place entirely.
             cause = "a candidate was refused before git was called"
@@ -1511,9 +1525,14 @@ def inspect_boundary_results(
                 "the path is outside the repository root or carries a leading "
                 "`:` git would read as pathspec magic — see the detail above"
             )
-        else:
+        elif inventory.ignore_refused_by is RefusalSource.GIT:
             cause = "git rejected the candidate batch"
             remedy = "a candidate was unusable — see the detail above"
+        else:  # pragma: no cover — unreachable while RefusalSource is exhaustive
+            # Deliberately not folded into the git branch: a future member added
+            # without a branch here must be visible, not silently misattributed.
+            cause = f"the ignore layer was refused by {inventory.ignore_refused_by!r}"
+            remedy = "this refusal source has no diagnosis yet — report it"
         degraded_findings.append(Finding(
             "ignore-layer",
             f"{cause}, so which paths are ignored could not be resolved "

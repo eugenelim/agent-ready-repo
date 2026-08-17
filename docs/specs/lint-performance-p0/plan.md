@@ -110,7 +110,7 @@ Shape is `service`; `ui` and `data` sub-sections pruned.
     unresolved; applying `resolve()` here reopens a confirmed Blocker.
 11. **The runner parse is memoised, its findings are not.** The runner reader
     appends its own findings and is reached by two checks, so one missing or
-    malformed runner file yields **two** findings today. `parse_runners` therefore
+    malformed runner file yields **two** findings today. `_parse_runner_files` therefore
     returns `(lines, parse_findings)` and each consuming check re-appends
     `parse_findings`. One parse, two emissions — otherwise "parsed once" and
     "reproduce the baseline byte-for-byte" are mutually unsatisfiable.
@@ -184,7 +184,7 @@ structural suite drives. `inspect_boundary` is a thin wrapper over it.
 `CheckResult.summary` exists because the CLI's six `ok` lines embed per-check
 counters computed inside the checks; a bare `tuple[Finding, ...]` cannot carry
 them and the golden comparison would fail on stdout. `build_inventory` and
-`parse_runners` are named so the structural once-per-invocation counts have real
+`_parse_runner_files` are named so the structural once-per-invocation counts have real
 seams to instrument.
 
 CLI: no-argument behaviour reproduces the real-tree golden baseline. Adds
@@ -211,7 +211,7 @@ zero-resolving selection exits non-zero naming the accepted set.
 ### State & control flow
 
 One invocation: canonicalise root → build context → `build_inventory` (one pack
-enumeration, one projection enumeration, one `parse_runners`, one destination
+enumeration, one projection enumeration, one `_parse_runner_files`, one destination
 build, one batched ignore resolution over the union of walk candidates) → run
 selected checks against that inventory → CLI formats and exits. The single
 batched ignore call happens during inventory construction, so no check can
@@ -315,7 +315,6 @@ here — stating it on this line would invert the edge and create a cycle.
   no-opped.
 - regeneration is a separate explicit action (`--regenerate`) that the ordinary
   test path cannot trigger.
-- the real-tree baseline is captured and stored.
 
 **Approach:**
 - Fixture builders synthesise minimal catalogues, one shape per behaviour: a
@@ -357,8 +356,9 @@ here — stating it on this line would invert the edge and create a cycle.
   the CI platform as well as the capture host.
 
 **Done when:** `python3 tools/test-lint-boundary-golden.py` exits 0 against the
-unmodified lint, and the committed JSON holds a baseline for the real tree and
-every fixture shape.
+unmodified lint, and the committed JSON holds a baseline for every fixture
+shape. The real tree is deliberately not among them — see the amended
+criterion in `spec.md § Golden baseline`, which is the single statement of why.
 
 ### T3: A standing gate keeps `check-ignore` inside the approved helper
 
@@ -396,7 +396,7 @@ every fixture shape.
 **Done when:** the gate exits 0 on the migrated tree and 1 for every synthetic
 bypass and for an unparseable file. (Chain membership is T7's done-condition.)
 
-### T4: The refactored lint reproduces the golden baseline byte-for-byte
+### T4: The refactored lint reproduces the golden baseline's canonical surface
 
 **Depends on:** T1, T2
 
@@ -404,12 +404,12 @@ bypass and for an unparseable file. (Chain membership is T7's done-condition.)
 
 **Tests:** (TDD)
 - **the golden comparison is the behavioural contract:** every baseline in
-  `tools/lint-boundary-golden.json` is reproduced byte-for-byte on both streams
-  with the same exit code, given the real `_NO_RUNNER` map. The `_NO_RUNNER`
-  injection divergence documented in `spec.md § Golden baseline` is the only
-  permitted difference.
+  `tools/lint-boundary-golden.json` reproduces the canonical surface defined in
+  `spec.md § Golden baseline`, on both streams, with the same exit code. Streams
+  are stored raw and compared after canonicalisation; that section — not this
+  bullet — enumerates what the surface normalises and why.
 - structural: one complete invocation → exactly one `build_inventory` call,
-  exactly one `parse_runners` call, exactly one `check-ignore` subprocess, one
+  exactly one `_parse_runner_files` call, exactly one `check-ignore` subprocess, one
   destination build — instrumented at the named seams.
 - confinement memo: one glob base reached from several call sites is scanned
   once; a linked base and its direct target each get their own verdict in
@@ -605,6 +605,14 @@ committed, and the backlog item is closed.
   argv construction (`"check-" "ignore"`, `shlex.split`, starred args).
   Mitigation: documented as such; the runtime process-count assertion carries the
   strong property.
+
+## Notes
+
+- [`notes/lint-inventory.md`](notes/lint-inventory.md) — the task-zero audit, and
+  the single canonical home for every measured figure and count.
+- [`notes/disposition-record.md`](notes/disposition-record.md) — the
+  resolve-vs-surface record the `work-loop` self-coverage gate requires: what was
+  escalated to the human and why, and what was settled by measurement instead.
 
 ## Changelog
 

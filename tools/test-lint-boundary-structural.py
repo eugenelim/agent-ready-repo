@@ -48,7 +48,7 @@ _spec.loader.exec_module(M)
 
 #: A single ~400-line main() aborts every later block on one exception, so the
 #: reported count silently drops. Falling below this is a failure in itself.
-_CASE_FLOOR = 84
+_CASE_FLOOR = 90
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -669,7 +669,7 @@ def main() -> int:  # noqa: C901 — independent structural assertions
                 M._resolve_ignored = real_resolve
             return " ".join(f.message for f in found)
 
-        messages = _refusal_messages(refused=True, refused_by="git")
+        messages = _refusal_messages(refused_by=M.RefusalSource.GIT)
         check("a git-refused batch says git REJECTED the batch",
               "rejected the candidate batch" in messages, messages[-400:])
         check("a git-refused batch does not say git is unavailable",
@@ -678,7 +678,7 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         # The resolver can refuse a candidate before any subprocess starts — an
         # out-of-root path, or one carrying a leading `:`. Reporting that as
         # "git rejected the batch" points at a process that never ran.
-        messages = _refusal_messages(refused=True, refused_by="resolver")
+        messages = _refusal_messages(refused_by=M.RefusalSource.RESOLVER)
         check("a resolver refusal says the refusal happened before git ran",
               "refused before git was called" in messages, messages[-400:])
         check("a resolver refusal does not blame git for rejecting a batch",
@@ -689,9 +689,23 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         check("a resolver refusal still does not say git is unavailable",
               "git is unavailable" not in messages, messages[-400:])
 
+        # `refused` is derived, so `refused=True, refused_by=None` — the pair that
+        # reinstates the misattribution — is not representable.
+        check("refused is derived from refused_by, not stored alongside it",
+              "refused" not in M.IgnoreOutcome._fields,
+              repr(M.IgnoreOutcome._fields))
+        check("no refusal source means not refused",
+              not M.IgnoreOutcome(frozenset()).refused)
+        for source in M.RefusalSource:
+            check(f"{source.value} counts as refused",
+                  M.IgnoreOutcome(frozenset(), refused_by=source).refused)
+        check("every RefusalSource has its own diagnosis",
+              {s.value for s in M.RefusalSource} == {"git", "resolver"},
+              repr([s.value for s in M.RefusalSource]))
+
         # Absent git is the third, distinct state, and the only one whose remedy
         # is to change where you run.
-        messages = _refusal_messages(refused=False)
+        messages = _refusal_messages(refused_by=None)
         check("an unavailable git says so, and names no refusal",
               "git is unavailable" in messages
               and "refused" not in messages, messages[-400:])
@@ -740,7 +754,7 @@ def main() -> int:  # noqa: C901 — independent structural assertions
     # `_NO_RUNNER` map and from `_RUNNER_FILES` entries no fixture creates.
     # Without a pin here the redaction could broaden until it swallowed real
     # regressions, and the golden gate would go quiet instead of red.
-    G = _load_golden()
+    G = _golden          # already loaded above; a second exec_module is pure cost
     ambient = (
         "FAIL: _NO_RUNNER names packs/x/tests/skills/y, which holds no suite\n"
         "FAIL: runner file tools/test-all.py does not exist — the collision\n"
@@ -765,21 +779,25 @@ def main() -> int:  # noqa: C901 — independent structural assertions
           repr(G._canonical("FAIL: kept\n\n   \n\nok   [c] (0)\n")))
     check("an unrelated finding survives redaction",
           "real regression sentinel" in reduced, repr(reduced))
-    check("the failure tally is normalised, since it counts redacted findings",
-          "<ambient-adjusted>" in reduced and "4 failure(s)" not in reduced,
-          repr(reduced))
-    # The set the redaction trusts must match what the fixture actually writes;
-    # a typo here silently turns a compared finding into an ignored one.
-    check("every trusted runner path is one the base fixture writes",
-          {
-              "Makefile",
-              ".github/workflows/build-check.yml",
-              ".github/workflows/catalogue-tooling-ci-gates.yml",
-              ".github/workflows/docs.yml",
-              "tools/test-all.py",
-              "packages/agentbundle/agentbundle/catalogue_tooling/"
-              "self_host_windows.py",
-          } == G._FIXTURE_RUNNER_FILES, repr(sorted(G._FIXTURE_RUNNER_FILES)))
+    # Two of the four planted findings are ambient, so the tally must read 2 —
+    # `original - redacted`, exactly. Asserting the arithmetic rather than the
+    # absence of a number is what keeps a double-appended finding visible.
+    check("the failure tally is adjusted down by exactly the redacted count",
+          "✖ lint-pack-test-boundary: 2 failure(s)" in reduced, repr(reduced))
+    check("the tally is not erased",
+          "<ambient-adjusted>" not in reduced, repr(reduced))
+    # The set the redaction trusts must match what the fixture actually writes; a
+    # typo there silently turns a compared finding into an ignored one. Assert it
+    # against a REAL fixture rather than against a copy of the same literal —
+    # comparing two hand-maintained lists only makes them drift together.
+    with tempfile.TemporaryDirectory(prefix="boundary-runnerset-") as rtd:
+        probe = Path(rtd) / "fx"
+        probe.mkdir(parents=True, exist_ok=True)
+        G._base_fixture(probe)
+        absent = sorted(r for r in G._FIXTURE_RUNNER_FILES
+                        if not (probe / r).exists())
+        check("every trusted runner path is one the base fixture really writes",
+              absent == [], repr(absent))
     check("the trusted set is exactly the subject's runner inventory",
           set(M._RUNNER_FILES) == G._FIXTURE_RUNNER_FILES,
           repr(sorted(set(M._RUNNER_FILES) ^ G._FIXTURE_RUNNER_FILES)))

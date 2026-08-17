@@ -1943,6 +1943,20 @@ open = [
   # product wants an illustrative register (it currently has none).
   # Unblocks when: ready now.
   { slug = "site-design-principles", type = "design" },
+  # The live remnant of `selftest-mutates-tracked-makefile` (now in `closed`). That
+  # item's tracked-`Makefile` mutation is gone; its MECHANISM is not. Layer 3 of
+  # `tools/test-lint-pack-test-boundary.py` plants two UNTRACKED files in the real
+  # worktree for one lint launch each — `packs/figma/.apm/skills/figma/scripts/
+  # test_planted_boundary_violation.py` and a symlinked `packs/figma/tests/
+  # test_planted_link.py` — so a concurrent `git add -A` can still stage an
+  # injected violation, and the local re-run then passes because cleanup restored
+  # the tree. Bounded today by refuse-before-plant, a `finally` scoped to the
+  # planting branch, and direct absence assertions (porcelain cannot see an
+  # untracked leftover). Closing it fully means giving up the end-to-end proof that
+  # the production CLI is wired to the real catalogue, or copying the worktree per
+  # run — so it needs a design decision, not a patch.
+  # Unblocks when: ready now.
+  { slug = "selftest-untracked-plant-window", type = "shape" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
@@ -1961,8 +1975,9 @@ closed = [
   # The two real-Makefile rewrites behind the PR #961 failure are gone. Reduced,
   # not eliminated: layer 3 still plants two UNTRACKED files in the real worktree
   # for one lint launch each, so a concurrent `git add -A` can still stage an
-  # injected violation. Recorded as P1 residual 4 in the audit note; bounded by
-  # refuse-before-plant and a planting-branch-scoped finally. The
+  # injected violation. Successor: `selftest-untracked-plant-window` in
+  # [backlog].open; bounded meanwhile by refuse-before-plant and a
+  # planting-branch-scoped finally. The
   # trailing "worth auditing across tools/test-*" note is discharged as well —
   # all 66 other lint self-tests were audited and none mutates a tracked file
   # (docs/specs/lint-performance-p0/notes/lint-inventory.md § 4).

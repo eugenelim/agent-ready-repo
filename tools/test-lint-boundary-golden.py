@@ -387,17 +387,12 @@ FIXTURES: dict[str, Callable[[Path], None]] = {
 
 # Deliberately NOT a fixture: a root with no `packs/` directory at all trips an
 # import-time refusal whose message embeds an ABSOLUTE path, so its bytes are
-# host-dependent and cannot be committed. It is proven instead by direct
-# assertion on the CLI's exit code and relativized message.
+# host-dependent and cannot be committed. T4 proves it by direct assertion on the
+# CLI's exit code and relativized message instead.
 #
-# A root missing only the RECIPE *is* capturable and is a fixture below — the
-# no-argument CLI reports it as an ordinary finding; only a `--root` run refuses
-# before walking.
-# A root with no `packs/` at all trips an import-time refusal whose message
-# embeds an ABSOLUTE path, so its bytes are host-dependent and cannot be
-# committed. T4 proves it by direct assertion on exit code and message instead.
-# (A root with `packs/` present but empty, and one missing only the recipe, ARE
-# capturable — see the fixtures of those names.)
+# A root with `packs/` present but empty, and one missing only the RECIPE, ARE
+# capturable and are fixtures below — for the recipe case the no-argument CLI
+# reports an ordinary finding, and only a `--root` run refuses before walking.
 UNCAPTURABLE = ("packs-missing-entirely",)
 
 
@@ -408,28 +403,13 @@ UNCAPTURABLE = ("packs-missing-entirely",)
 _SYNTAX_TAIL = re.compile(r"(is not parseable:).*", re.DOTALL)
 _UNPARSEABLE_TAIL = re.compile(r"(unparseable Python:)[^`\n]*")
 
-#: Findings derived from the REAL repository's `_NO_RUNNER` map rather than from
-#: anything the fixture does. Every fixture inherits one per entry, because the
-#: pinned subject reads that module constant and cannot be handed an injected map.
-#:
-#: They are dropped from the compared surface, and that is not cosmetic. Left in,
-#: adding a `_NO_RUNNER` entry — the documented, sanctioned action when a new
-#: suite is intentionally ungated — reddens 18 of 22 baselines, and
-#: `--regenerate` cannot clear it because it re-reads the *pinned* subject and so
-#: reproduces the old map. The gate would stay red until someone repointed the
-#: pin, which is an `Ask first` amendment. A gate that a legitimate edit can
-#: deadlock is a gate people learn to route around.
-#:
-#: Nothing is lost: the injected-map behaviour — including a stale entry and an
-#: entry a runner also names — is pinned directly in
-#: `tools/test-lint-boundary-structural.py`, which drives the callable API and
-#: can supply its own map.
 #: The runner files `_base_fixture` actually creates. A `runner file … does not
 #: exist` finding naming one of these is fixture behaviour — the
 #: `missing-runner-file` case deletes `tools/test-all.py` on purpose and the
 #: baseline must keep reporting it. A finding naming anything else came from a
 #: `_RUNNER_FILES` entry added after the pin, for a file no fixture ever had, and
-#: is dropped for the same reason as the `_NO_RUNNER` map below.
+#: is dropped for the same reason as the `_NO_RUNNER` map (see
+#: `_AMBIENT_NO_RUNNER` below).
 #:
 #: Creating stand-ins instead is not an option: `_stage` puts the fixture's
 #: `tools/` on the staged subject's `sys.path[0]`, and the stray-file guard below
@@ -437,9 +417,11 @@ _UNPARSEABLE_TAIL = re.compile(r"(unparseable Python:)[^`\n]*")
 #: is not worth weakening for capture convenience.
 #:
 #: KNOWN RE-PIN TRIGGER, and the one this redaction does NOT cover: adding an
-#: entry to `_RUNNER_FILES` does not merely add a line — the missing file makes
+#: entry to `_RUNNER_FILES` adds `FAIL: runner file …` lines that this redaction
+#: DOES drop — but not the consequence: the missing file makes
 #: `runners-keep-suites-isolated` fail, so its `ok` line disappears from all 22
-#: baselines. There is no line to redact, and `--regenerate` cannot help because
+#: baselines, and no redaction can restore an absent line. `--regenerate` cannot
+#: help either, because
 #: it re-runs the pinned subject, whose older list still passes. Adding a runner
 #: file therefore requires repointing `PINNED_COMMIT`/`PINNED_BLOB_SHA256` at a
 #: commit containing it. That is accepted rather than fixed: `_RUNNER_FILES` grows
@@ -462,14 +444,40 @@ _RUNNER_MISSING = re.compile(
 )
 
 
-def _drop_unpinned_runner_misses(stream: str) -> str:
-    """Drop `runner file … does not exist` lines the fixture never could cause."""
-    return _RUNNER_MISSING.sub(
-        lambda m: m.group(0) if m.group(1) in _FIXTURE_RUNNER_FILES else "",
-        stream,
-    )
+def _drop_unpinned_runner_misses(stream: str) -> tuple[str, int]:
+    """Drop `runner file … does not exist` lines the fixture never could cause.
+
+    Returns the stream and how many lines went, because the caller subtracts that
+    from the failure tally rather than erasing it.
+    """
+    dropped = 0
+
+    def _sub(match: re.Match) -> str:
+        nonlocal dropped
+        if match.group(1) in _FIXTURE_RUNNER_FILES:
+            return match.group(0)
+        dropped += 1
+        return ""
+
+    return _RUNNER_MISSING.sub(_sub, stream), dropped
 
 
+#: Findings derived from the REAL repository's `_NO_RUNNER` map rather than from
+#: anything the fixture does. Every fixture inherits one per entry, because the
+#: pinned subject reads that module constant and cannot be handed an injected map.
+#:
+#: They are dropped from the compared surface, and that is not cosmetic. Left in,
+#: adding a `_NO_RUNNER` entry — the documented, sanctioned action when a new
+#: suite is intentionally ungated — reddens 18 of 22 baselines, and
+#: `--regenerate` cannot clear it because it re-reads the *pinned* subject and so
+#: reproduces the old map. The gate would stay red until someone repointed the
+#: pin, which is an `Ask first` amendment. A gate that a legitimate edit can
+#: deadlock is a gate people learn to route around.
+#:
+#: Nothing is lost: the injected-map behaviour — including a stale entry and an
+#: entry a runner also names — is pinned directly in
+#: `tools/test-lint-boundary-structural.py`, which drives the callable API and
+#: can supply its own map.
 _AMBIENT_NO_RUNNER = re.compile(
     r"^FAIL: _NO_RUNNER names \S+, which holds no suite\b.*\n?", re.MULTILINE
 )
@@ -482,7 +490,9 @@ def _canonical(stream: str) -> str:  # noqa: C901 — a flat normalisation pipel
     paths in filesystem order, and one message embeds `str(SyntaxError)`. Both
     are legitimate variation that must not read as a regression.
     """
-    stream = _drop_unpinned_runner_misses(_AMBIENT_NO_RUNNER.sub("", stream))
+    stream, ambient_no_runner = _AMBIENT_NO_RUNNER.subn("", stream)
+    stream, ambient_runner_miss = _drop_unpinned_runner_misses(stream)
+    redacted = ambient_no_runner + ambient_runner_miss
     blocks: list[str] = []
     current: list[str] = []
     for line in stream.splitlines():
@@ -520,13 +530,22 @@ def _canonical(stream: str) -> str:  # noqa: C901 — a flat normalisation pipel
     # sorting makes the surface independent of accumulation order.
     fails = sorted(b for b in normalised if b.startswith("FAIL: "))
     rest = [b for b in normalised if not b.startswith("FAIL: ")]
-    # The `✖ … N failure(s)` tally counts the ambient findings we just dropped, so
-    # it moves with them. The fixture-derived FAIL lines above are the signal; the
-    # per-fixture count is re-asserted where it matters (the runner-inventory
-    # double-report) in the falsification suite.
+    # The `✖ … N failure(s)` tally counts the ambient findings just dropped, so it
+    # is adjusted DOWN by exactly that many rather than erased. The lint prints one
+    # `FAIL:` line per finding and then `len(findings)`, so `original - redacted`
+    # is exact, not an estimate.
+    #
+    # Keeping a number here is what preserves the one signal wholesale erasure
+    # loses: a finding appended twice but printed once. That is not hypothetical —
+    # the memoised runner parse must re-append its findings per consumer (spec
+    # § Golden baseline, deliberate divergence 2), so a double-append is exactly
+    # the regression this surface has to be able to see.
+
+    def _adjust(match: re.Match) -> str:
+        return f"{match.group(1)}{int(match.group(2)) - redacted}{match.group(3)}"
+
     rest = [
-        re.sub(r"(✖ lint-pack-test-boundary: )\d+( failure\(s\))",
-               r"\1<ambient-adjusted>\2", b)
+        re.sub(r"(✖ lint-pack-test-boundary: )(\d+)( failure\(s\))", _adjust, b)
         for b in rest
     ]
     return "\n".join([*fails, *rest]).strip() + "\n"

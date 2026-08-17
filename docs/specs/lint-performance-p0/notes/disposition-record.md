@@ -1,0 +1,33 @@
+# Resolve-vs-surface disposition record
+
+Opened at PLAN, closed at DECIDE, per the `work-loop` self-coverage gate. The
+rule it implements: between human gates, resolve everything a referent can
+resolve, and surface only the irreducible.
+
+## Surfaced to the human (irreducible)
+
+| # | Item | Why it could not be resolved here |
+| --- | --- | --- |
+| S1 | **Measured 3-file scope** vs the brief's wider net | The brief named seven P0 patterns; measurement found only three files carrying one. Narrowing scope is the requester's call, not the implementer's. Resolved by human choice. |
+| S2 | **One repo-only resolver** instead of the brief's portable `agentbundle` helper | The brief mandated a package-local implementation. Measurement found zero callers for it: portable catalogue lint issues no Git subprocess, `catalogue verify` already batches one `git ls-files`, and all seven shipped pack lints call Git only for root discovery. Building it would have created a boundary with nothing behind it — but dropping a stated requirement needs the requester. Resolved by human choice. |
+| S3 | **Unifying Git-missing policy to fail-open** | The brief said explicitly: *"Do not accidentally unify fail-open and fail-closed behavior."* Both call sites turned out to want fail-open, so preserving a divergence would have meant inventing one. Flagged as diverging from the brief's own rule and resolved by human choice; `MissingGitPolicy` still carries `RAISE` so the option exists rather than being designed away. |
+| S4 | **Characterization test before touching the prose enumeration** | Two defensible orders. Resolved by human choice. |
+| S5 | **Sealed-baseline drift — OPEN at time of writing** | `loop-cohort plan check-current` and `schedule check-current` both exit 1: `spec.md` and `plan.md` no longer match the baseline sealed at `approve-plan`, because implementation amended them (each amendment carries its recorded reason in the AC). The tool documents a cohort-only recovery and states plainly that re-running `approve-plan` *"is a re-approval in substance"*. A re-approval is a human scope gate, and the brief forbids hand-editing engine or cohort state, so this cannot be self-resolved. Minimum viable rung: **steer** — the human authorises the documented five-step cohort-only recovery, which is then executed with the sanctioned verbs. Deliberately deferred until adversarial review is Clean, so the re-pin captures final content instead of re-drifting. |
+
+## Resolved without surfacing
+
+Each of these was a real question that a referent could settle from the
+repository, a probe, or measurement — so it was settled rather than escalated.
+
+| Item | How it was resolved |
+| --- | --- |
+| Does `check-ignore --stdin` parse pathspec magic? | Probed git 2.50.1 directly: `:!x`, `:(exclude)x`, `:(glob)x`, `:(icase)x`, `:(attr:…)x` each exit 128 while echoing candidates processed before them. `:(literal)` is rejected outright, so it is not an escape hatch. |
+| Is a partial result on exit 128 safe to use? | No — verified that git echoes what it processed before failing. Made a hard error rather than a policy outcome. |
+| Can a hostile `core.excludesFile` corrupt a capture? | Yes, verified: with `GIT_CONFIG_COUNT=1` pointing it at a hostile file, `check-ignore` reported an extra path ignored and exited **0**. Closed the channel and asserted identical bytes under a deliberately hostile global ignore. |
+| Which env channels leak into a Git subprocess? | Enumerated and closed: `GIT_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`, `GIT_COMMON_DIR`, `GIT_OBJECT_DIRECTORY`, `GIT_ALTERNATE_OBJECT_DIRECTORIES`, `GIT_CONFIG`, `GIT_CONFIG_COUNT`/`KEY_n`/`VALUE_n`, `GIT_CONFIG_PARAMETERS`, and the four pathspec vars. `GIT_CEILING_DIRECTORIES` is **set**, not unset — unsetting it widened discovery, the opposite of hardening. |
+| Would one shared resolver or three be right? | Measured caller counts per distribution boundary; one, per S2. |
+| Is `_NO_RUNNER`/`_RUNNER_FILES` churn a real gate hazard? | Reproduced it: adding a `_NO_RUNNER` entry reddened 18 of 22 fixtures and `--regenerate` could not clear it. Fixed by redacting ambient state; six mutations pin the fix. |
+| Is the `_RUNNER_FILES` case fixable the same way? | No — it changes a check's verdict rather than adding a redactable line, and neutralising it would mean weakening a fail-closed staging guard or writing into a staged `tools/`. Recorded as a re-pin trigger instead of overstated as fixed. |
+| Did the `selftest-mutates-tracked-makefile` hazard fully close? | No. Tracked-file mutation is gone (2 real `Makefile` rewrites → 0); two **untracked** plants remain for one lint launch each, so a concurrent `git add -A` can still stage one. Recorded as P1 residual 4 rather than counted as closed. |
+| Was the SAST failure caused by this diff? | No — `pip-audit`'s `ensurepip` failed against a full host disk. Re-run after freeing space: exit 0, full SAST. Both runs recorded so the first is not misread as real. |
+| Do my own new assertions actually discriminate? | Checked by mutation, and two did not: a summary assertion was `all()` over an empty sequence, and a Windows-path assertion could not tell `str` from `as_posix` on POSIX. Both replaced with assertions proven to fail under mutation. |
