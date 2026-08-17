@@ -816,10 +816,49 @@ happened **six times** in this single change:
 | 4 | `MAKEFLAGS` scrub in the chain assertion | the identical hazard in the verdict harness |
 | 5 | banning `continue-on-error` | its exact twin, a falsy step-level `if:` |
 | 6 | load-bearing-exit on the export step | the aggregator's guard body |
+| 7 | quote-tolerant key matching in `_has_if` | five other key checks still bare-spelled |
 
 The diagnostic is textual: **if a fix reads "add check X to assertion Y", it is an
 instance fix.** Push it into the shared helper so every call site inherits it, then
 replay the demonstrated bypass against *every* assertion of that shape.
+
+**The deepest instance of the same error was choosing the wrong QUESTION, not the
+wrong scope.** Four rounds hardened "do this statement's argv tokens contain something
+forbidden?" by enumerating forbidden things — dry-run flags, then redirect flags, then
+command substitutions. Every round the next reviewer found a way to reach `make` that
+is not an argv token at all: a shell assignment prefix (`MAKEFLAGS=-n make …`), make's
+fake-success flags (`-i`, `-t`), non-`$()` expansions (`${UNSET:--n}`, `$'\055n'`), and
+YAML scalar folding (a `>`-folded or plain multi-line `run:` hands bash a trailing flag
+on a line the checker counted as a separate statement). A denylist cannot be finished
+against an open class.
+
+The question that ends it is **"is this statement, whitespace-normalised, exactly the
+pinned text?"** — and it was already in the file: the `comparison[*]` checks used
+equality, and they were the only controls none of those vectors defeated. The lesson is
+therefore sharper than "prefer allowlists": **when one assertion in a file resists
+every round of attack and its siblings keep falling, the difference between them is the
+finding.** Generalise the shape that held instead of patching the ones that broke.
+
+Two costs of equality-pinning, both accepted: editing the workflow now requires editing
+the verifier in the same commit (intended coupling — those five statements *are* the
+gate), and several previously separate assertions became unfailable and were **deleted**
+rather than kept, because a conjunct that cannot fail independently inflates a coverage
+count without adding a proof.
+
+**Family coverage is not class coverage.** `--self-test` reports that every assertion
+family has at least one mutation. Every bypass found in the final round landed in a
+family that *already* had a passing mutation. A coverage metric over assertions says
+nothing about whether the classes each assertion can be defeated by are enumerated —
+so the metric is now phrased as the count it is, and the class argument lives in prose
+next to the code.
+
+**Where a belief cannot be argued, execute it.** The one recorded "probed and safe"
+claim that was wrong (folded scalars) had been written from reasoning, not from a run.
+The file now carries a differential harness: for the guard body that decides the
+required check, it runs candidate bodies through **real bash** and requires that
+anything bash would take green with a gate failed is rejected by the verifier. It is
+proven load-bearing by neutering one guard function, which makes it fire seven
+findings. Assertions encode beliefs about a system; the system is available, so ask it.
 
 **Corollary, and the one that cost most:** a mutation must fail for the *right
 reason*. One mutation here produced a make **parse error** rather than the condition

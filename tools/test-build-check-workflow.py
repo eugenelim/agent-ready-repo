@@ -33,21 +33,54 @@ just their condition; `set +e` and bare pipelines are rejected on guarded bodies
 and `--self-test` runs a mutation matrix whose id set is derived from the
 fully-populated baseline, so the coverage claim is not computed from an empty input.
 
+## Controls are pinned by STATEMENT EQUALITY, not by token containment
+
+The deeper form of the same lesson, and the one that took longest to learn. Four
+review rounds hardened `_invocation` by enumerating what must not appear in a
+statement's argv — dry-run flags, redirect flags, command substitutions — and each
+round found a way to reach `make` that is not an argv token at all:
+
+- a shell assignment prefix — `MAKEFLAGS=-n make build-check …` (measured: exit 0,
+  recipe printed, never run) and `PYTEST_ADDOPTS=--co python -m pytest …` (exit 0
+  against a FAILING suite, and no `SKIPPED` lines, so the skip grep passes too);
+- make flags that fake success rather than print — `-i` (`Error 1 (ignored)`) and
+  `-t` (`Nothing to be done`), neither of which a dry-run denylist contained;
+- expansions that are not `$(…)` — `${UNSET:--n}` (exempt from `set -u`, so it works
+  unconditionally) and `$'\055n'`;
+- YAML scalar folding — a plain multi-line or `>`-folded `run:` hands bash a trailing
+  `-n` on a line the audit counted as a separate statement.
+
+Every one of those is invisible to a check that asks "do the args contain X?" and
+none survives a check that asks "is this statement, whitespace-normalised, exactly
+the pinned text?". So each load-bearing invocation is pinned by **equality** via
+`_pinned` — the technique the `comparison[*]` checks already used, which is why the
+comparison loop was the one control none of these vectors defeated. `_invocation`
+survives only for statements that legitimately vary (a `pip install "$pin"` whose
+argument is read from the requirements file), and it now also rejects an assignment
+prefix and the `${`/`$'` expansion forms.
+
+The trade is deliberate: an equality pin fails when the workflow is edited, and the
+implementer must update this file in the same commit. That is the intended coupling —
+these five statements ARE the gate, and a change to one should not be silent.
+
 ## Deliberately NOT asserted, with the reason each is safe
 
 Recorded so a later reviewer does not re-derive it, and so nobody "hardens" a
-non-problem. Each was executed, not reasoned about:
+non-problem. Every entry that CAN be expressed as a mutation now is one — a prose
+claim of "probed and safe" drifts from the code silently, and one entry here was
+already wrong: folded scalars (`>-`) were recorded as probed-and-blocked when they
+were in fact a live bypass. A recorded-as-verified negative is load-bearing exactly
+because the next reviewer will not re-derive it, so a wrong entry costs more than a
+missing one. What remains are the claims no mutation can express:
 
 - `pytest -k nothing` / `--deselect` everything → pytest exits **5** (no tests
-  collected), and that propagates through `| tee` under `pipefail`. Verified.
+  collected), and that propagates through `| tee` under `pipefail`. Executed.
 - `python -c pass`, `echo x > /dev/null` as extra guard statements → allowlisted,
   exit 0, and the comparisons still follow. No effect.
 - `timeout-minutes: 0` → the job is cancelled, so `needs.<job>.result` is not
   `success` and the guard fires.
 - `strategy.matrix` with an empty list → the job produces no instances and never
   reports; once AC2 requires it by name the PR hangs rather than merging.
-- A step `name:` containing the text `if:` → `_key_re` is line-anchored, YAML parses
-  it as one scalar, and nothing is disabled.
 - `uses: actions/checkout@main` → scanner-owned. zizmor ranks `unpinned-uses` HIGH
   and `.github/zizmor.yml` suppresses nothing, so do not add an assertion here.
 - Backslash continuations in the GUARD body → the comparison becomes an argument to
@@ -70,6 +103,12 @@ SELF_NAME = "tools/test-build-check-workflow.py"
 
 AGGREGATOR_JOB_ID = "build-check"
 AGGREGATOR_NAME = "make build-check"
+# Exactly these, so no third run step can be added to the job that wears the required
+# check. Two rather than one, so each carries an honest lint-ci-parity disposition.
+AGGREGATOR_RUN_STEPS = (
+    "Run the build-check.yml posture test",
+    "Require every gate",
+)
 REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary")
 
 EXPECTED_PYTHON = '"3.11"'
@@ -89,7 +128,24 @@ _STRICT_SHELL = "set -euo pipefail"
 # _invocation so every assertion inherits it — patching assertions one at a time
 # is how three consecutive drafts each left a different one neuterable.
 _DISCARDING_TAIL = re.compile(r"\|\||;\s*(true|:)\s*$|&\s*$")
-_DRY_RUN_FLAGS = frozenset({"-n", "--dry-run", "--just-print", "--recon"})
+# Belt-and-braces behind `_pinned`. Kept because `_invocation` still serves the
+# statements that legitimately vary, and extended past dry-run with make's
+# FAKE-SUCCESS flags: `-t` reports "Nothing to be done" and `-i` reports
+# "Error 1 (ignored)", both exit 0, and neither prints a recipe — so a denylist built
+# only from dry-run forms missed them. `-q`/`--question` is deliberately absent: it
+# means "quiet" to pip and "ask, don't run" to make, and the make anchors are
+# equality-pinned, so including it would break a legitimate pip invocation to
+# re-close a hole `_pinned` already closes.
+_NEUTERING_FLAGS = frozenset({
+    "-n", "--dry-run", "--just-print", "--recon",
+    "-t", "--touch", "-i", "--ignore-errors",
+    "-o", "--old-file", "--assume-old", "-W", "--what-if",
+    "--co", "--collect-only",
+})
+# Expansion forms that can reintroduce a flag no argv token equals. `$(`/backtick were
+# the enumerated pair; `${UNSET:--n}` and `$'\055n'` are the two the enumeration
+# missed, and `${…:-…}` is exempt from `set -u` so it needs no cooperating variable.
+_EXPANSION_FORMS = ("$(", "`", "${", "$'")
 # A guard body is a STRAIGHT LINE of allowlisted commands. This is deliberately an
 # allowlist and not a denylist: three review rounds enumerated short-circuit forms
 # (`exit 0`, `set +e`, `if false`, `exec`, `trap`) and each round found a sibling the
@@ -128,6 +184,18 @@ _ALLOWED_STEP_ENV = frozenset({
     "BASE_SHA", "HEAD_SHA",
     "GATE_MAIN_RESULT", "GATE_SAST_RESULT", "GATE_EXPORT_BOUNDARY_RESULT",
 })
+
+
+# The five statements that ARE the gate, pinned verbatim. See the module docstring's
+# STATEMENT EQUALITY section for why containment checks cannot hold this line.
+PINNED_ANCHOR = "make build-check PACKS_DIR=packs SAST_DELEGATED=1"
+PINNED_SAST = "make sast"
+PINNED_SAST_INSTALL = "pip install -r tools/requirements-sast.txt"
+PINNED_TREE_PROBE = "test -d packages/agentbundle"
+PINNED_EXPORT_PYTEST = (
+    "python -m pytest tools/test_check_artifact_contents.py -q -rs 2>&1 "
+    '| tee "$RUNNER_TEMP/out.txt"'
+)
 
 
 def _step_env_keys(step: str) -> list[str]:
@@ -245,11 +313,48 @@ def _checkout_steps(block: str) -> list[str]:
 
 
 def _run_body(step: str) -> str:
-    m = re.search(r"run:\s*[|>][-+0-9]*\s*\n(.*?)(?=\n\s{0,8}\w[\w-]*:|\Z)", step, re.S)
-    if m:
-        return m.group(1)
-    m = re.search(r"run:\s*(.+)", step)
-    return m.group(1) if m else ""
+    """A step's `run:` body with YAML SCALAR FOLDING applied.
+
+    Three scalar styles reach bash, and only one of them is line-per-line:
+
+    - `run: |` LITERAL — newlines preserved. One YAML line is one shell statement.
+    - `run: >` FOLDED — newlines become SPACES. Two YAML lines are ONE shell
+      statement.
+    - `run: <text>` PLAIN — a plain scalar continues onto any more-indented following
+      line, also folded with a space.
+
+    An earlier version read only the first line of a plain scalar and treated a
+    folded scalar as if it were literal. Both were live green bypasses on the anchor:
+
+        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1
+          -n
+
+    is one statement ending in `-n` to bash and two statements to that reader, so
+    every argv-level check inspected a clean `make …` line while the recipe was only
+    printed. The `>-` form is the same defect. This is also the entry the previous
+    "Deliberately NOT asserted" block wrongly recorded as probed-and-safe.
+    """
+    lines = step.splitlines()
+    for index, line in enumerate(lines):
+        head = re.match(r"^(\s*)['\"]?run['\"]?\s*:[ \t]*(.*)$", line)
+        if not head:
+            continue
+        indent = len(head.group(1))
+        first = head.group(2).strip()
+        block: list[str] = []
+        for follow in lines[index + 1:]:
+            if not follow.strip():
+                continue
+            if len(follow) - len(follow.lstrip()) <= indent:
+                break
+            block.append(follow.strip())
+        style = first[:1]
+        if style == "|":
+            return "\n".join(block)
+        if style == ">":
+            return " ".join(block)
+        return " ".join([first] + block)
+    return ""
 
 
 def _all_run_bodies(text: str) -> str:
@@ -290,13 +395,6 @@ def _run_lines(step: str) -> list[str]:
 UNPARSEABLE = "\x00unparseable"
 
 
-# KNOWN DIVERGENCE, fail-closed: this splitter does not model backslash line
-# continuations, so `echo a \` followed by a comparison is one bash statement (the
-# comparison becomes echo's arguments) but two statements here. The consequence is a
-# guard that exits 1 unconditionally — red, never green — so it wastes an
-# implementer's time rather than shipping a hole. Fixing it means joining
-# continuations before splitting; left undone deliberately because the failure
-# direction is safe and a half-modelled continuation is worse than none.
 def _split_line(line: str) -> list[str]:
     """Split on `;`, `&&`, `||` OUTSIDE quotes.
 
@@ -357,6 +455,25 @@ def _load_bearing(line: str) -> bool:
     return not _DISCARDING_TAIL.search(line)
 
 
+def _key_values(text: str, key: str, indent: str = r"\s*") -> list[str]:
+    """Every value bound to `key` at `indent`, quoting-tolerant — as a LIST.
+
+    Returning a list is the point. A duplicate mapping key is valid YAML *text*, and
+    PyYAML resolves it last-key-wins, so `re.search`/`findall` on a bare spelling
+    reports the FIRST binding while the parser uses the SECOND:
+
+        GATE_SAST_RESULT: ${{ needs.gate-sast.result }}
+        GATE_SAST_RESULT: success
+
+    Existence checks passed that unchanged — the key is allowlisted and the first line
+    still matches the binding regex — so the guard would compare a forged literal. The
+    same shape adds a second `if:` after a pinned one. Callers require EXACTLY ONE
+    value, which makes an ADDED key fail as loudly as a SUBSTITUTED one.
+    """
+    return [m.group(1).strip() for m in re.finditer(
+        rf"^{indent}['\"]?{re.escape(key)}['\"]?\s*:[ \t]*(.*?)\s*$", text, re.M)]
+
+
 def _command(stmt: str) -> tuple[str, list[str]]:
     """(command word, args) after stripping `!` and leading VAR=val assignments."""
     toks = stmt.split()
@@ -368,15 +485,55 @@ def _command(stmt: str) -> tuple[str, list[str]]:
     return (toks[i], toks[i + 1:]) if i < len(toks) else ("", [])
 
 
+def _assignment_prefixed(stmt: str) -> bool:
+    """Does this statement set an environment variable FOR a command?
+
+    `MAKEFLAGS=-n make build-check …` and `PYTEST_ADDOPTS=--co python -m pytest …` are
+    the whole reason `_pinned` exists: `_command` strips the assignment to find the
+    command word, so the neutering never appeared in the argv it inspected, and being
+    shell rather than YAML it never met `_ALLOWED_STEP_ENV` either. No statement in
+    this workflow legitimately has this shape — the bare assignments it does contain
+    (`pin="$(grep …)"`) have no command word after them.
+    """
+    toks = stmt.split()
+    i = 1 if toks[:1] == ["!"] else 0
+    seen = False
+    while i < len(toks) and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", toks[i]):
+        seen, i = True, i + 1
+    return seen and i < len(toks)
+
+
+def _pinned(step: str, expected: str) -> str:
+    """The load-bearing statement that EQUALS `expected` after whitespace collapse.
+
+    The primitive the rest of this file's argv checks should have been from the start.
+    Equality admits no assignment prefix, no extra flag, no expansion and no reordering,
+    so it needs no enumeration of what those could be — which is what four rounds of
+    denylist patching kept getting wrong. Whitespace is normalised so reflowing a long
+    line stays legal; nothing else is.
+    """
+    want = " ".join(expected.split())
+    for stmt, line in _statements(step):
+        if stmt == UNPARSEABLE or not _load_bearing(line):
+            continue
+        if " ".join(stmt.split()) == want:
+            return stmt
+    return ""
+
+
 def _invocation(step_or_block: str, command: str, *required_args: str,
                 allow_negation: bool = False) -> str:
     """The load-bearing statement whose COMMAND WORD is `command` and whose ARG
     TOKENS include every `required_args` entry.
 
-    Rejects, uniformly: a discarded exit status (`|| true`, trailing `&`, `; true`);
-    a dry run (`-n`, `--dry-run`); a redirected target (`-C`, `-f`) which runs
-    something other than what is pinned; and — unless allowed — a negated form,
-    since `! test -d x` succeeds exactly when the tree is missing.
+    Retained ONLY for statements that legitimately vary — `pip install "$pin"`, whose
+    argument is read out of the requirements file rather than restated. Everything
+    load-bearing and fixed goes through `_pinned` instead; prefer that for anything new.
+
+    Rejects, uniformly: a discarded exit status (`|| true`, trailing `&`, `; true`); a
+    neutering flag; a redirected target (`-C`, `-f`) which runs something other than
+    what is pinned; an assignment prefix; any expansion form; and — unless allowed — a
+    negated form, since `! test -d x` succeeds exactly when the tree is missing.
     """
     for stmt, line in _statements(step_or_block):
         if stmt == UNPARSEABLE:
@@ -385,13 +542,15 @@ def _invocation(step_or_block: str, command: str, *required_args: str,
             continue
         if not allow_negation and stmt.split()[:1] == ["!"]:
             continue
+        if _assignment_prefixed(stmt):
+            continue
         cmd, args = _command(stmt)
         if cmd != command:
             continue
-        if _DRY_RUN_FLAGS & set(args) or _REDIRECT_FLAGS & set(args):
+        if _NEUTERING_FLAGS & set(args) or _REDIRECT_FLAGS & set(args):
             continue
-        if "$(" in stmt or "`" in stmt:
-            continue  # substitution can reintroduce a flag no token equals
+        if any(form in stmt for form in _EXPANSION_FORMS):
+            continue
         if all(any(a == tok or a in tok for tok in args) for a in required_args):
             return stmt
     return ""
@@ -467,15 +626,18 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     check("aggregator-present", AGGREGATOR_JOB_ID in job_ids)
 
     agg = _job_block(text, AGGREGATOR_JOB_ID)
-    _name_re = rf"^\s*name:\s*\"?{re.escape(AGGREGATOR_NAME)}\"?\s*$"
+    # Quote-tolerant like every other key matcher: `'name': make build-check` on a
+    # second job put the sole required status-check name on a job of the author's
+    # choosing while a bare-spelling count still returned 1.
+    _name_re = (rf"^\s*['\"]?name['\"]?\s*:\s*['\"]?"
+                rf"{re.escape(AGGREGATOR_NAME)}['\"]?\s*$")
     check("one-required-name", len(re.findall(_name_re, text, re.M)) == 1)
     # ...and it must be THIS job's name. Otherwise renaming the aggregator and
     # putting the required-check name on a trivial `noop` job — wired into needs:,
     # env: and a comparison so every derived check still passes — makes the sole
     # required check a job whose only step is `echo ok`.
     check("required-name-is-aggregator", re.search(_name_re, agg, re.M) is not None)
-    _agg_job_ifs = re.findall(r"^    if:\s*(.+?)\s*$", agg, re.M)
-    check("aggregator-always", _agg_job_ifs == ["${{ always() }}"])
+    check("aggregator-always", _key_values(agg, "if", "    ") == ["${{ always() }}"])
     # A job-level `if:` skips the whole job. On a work job that surfaces as
     # `skipped`, which the aggregator's != "success" catches — but a second `if:` on
     # the aggregator itself is a duplicate YAML key whose winner is parser-dependent,
@@ -513,6 +675,17 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # leaves every comparison intact and never evaluates one. Same shape as
     # export-boundary-strict-shell / -no-set-relax, applied here because this body
     # decides the required check.
+    # The STRUCTURAL control on env-file forgery: the aggregator may host exactly the
+    # two run steps below, so there is no third step to write GATE_*_RESULT into
+    # $GITHUB_ENV from. The substring check that follows is the weaker of the pair and
+    # kept only because it can still fail independently — writing the env file from
+    # INSIDE one of the two pinned steps satisfies this check and not that one. On its
+    # own the substring check was near-decorative: the name need not be written
+    # literally (`os.environ['GITHUB_'+'ENV']` defeats it), and the real mitigation is
+    # that the bindings live on the guard step, where step-level `env:` outranks
+    # anything an earlier step exported.
+    check("aggregator-run-steps-pinned",
+          {nm for nm, st in _steps(agg) if _run_body(st)} == set(AGGREGATOR_RUN_STEPS))
     check("no-env-file-writes-in-aggregator", not any(
         "GITHUB_ENV" in ln or "GITHUB_OUTPUT" in ln
         for _n, st in _steps(agg) for ln in _run_lines(st)))
@@ -537,9 +710,12 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         # an earlier step lets that step's body write GATE_*_RESULT=success into
         # $GITHUB_ENV, and the guard then reads forged values while every assertion
         # about its body still holds.
+        # EXACTLY ONE binding, compared for equality. `re.search` reported the first of
+        # two duplicate keys while YAML resolves the last, so appending
+        # `GATE_SAST_RESULT: success` forged the result with every check still green.
         check(f"env-binding[{job_id}]",
-              re.search(rf"{var}:\s*\$\{{\{{\s*needs\.{re.escape(job_id)}\.result\s*\}}\}}",
-                        _step_named(agg, "Require every gate")) is not None)
+              _key_values(_step_named(agg, "Require every gate"), var)
+              == [f"${{{{ needs.{job_id}.result }}}}"])
         # Command-word model, not a block regex: an earlier draft's whole-block
         # search was satisfied by `echo '[ "$X" != "success" ] && exit 1'`, which
         # greens the required check with every gate failed. The consequent must sit
@@ -613,15 +789,16 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         # inside. A container missing make/python fails closed, but the substitution
         # itself is unreviewed by anything else in this repo.
         check(f"no-container[{job_id}]",
-              re.search(r"^    (container|services):", blk, re.M) is None)
+              _key_re("container", "    ").search(blk) is None
+              and _key_re("services", "    ").search(blk) is None)
         # A job-level concurrency group can SERIALISE these jobs — green, but the
         # whole point of the split undone, and AC11's measurement is post-merge so
         # nothing else would notice.
         check(f"no-job-concurrency[{job_id}]",
-              re.search(r"^    concurrency:", blk, re.M) is None)
+              _key_re("concurrency", "    ").search(blk) is None)
         check(f"python-version[{job_id}]",
               f"python-version: {EXPECTED_PYTHON}" in blk)
-        check(f"no-job-permissions[{job_id}]", "permissions:" not in blk)
+        check(f"no-job-permissions[{job_id}]", _key_re("permissions").search(blk) is None)
         # Job-level env: only (4 spaces). Step-level env: at 8 is legitimate and used.
         check(f"no-job-env[{job_id}]", _key_re("env", "    ").search(blk) is None)
         check(f"no-step-shell[{job_id}]", _key_re("shell").search(blk) is None)
@@ -636,7 +813,7 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
               bool(checkouts) and all("persist-credentials: false" in c for c in checkouts))
         if job_id != AGGREGATOR_JOB_ID:
             check(f"no-job-if[{job_id}]", _key_re("if", "    ").search(blk) is None)
-            check(f"no-needs[{job_id}]", not re.search(r"^\s+needs:", blk, re.M))
+            check(f"no-needs[{job_id}]", _key_re("needs", r"\s+").search(blk) is None)
             check(f"fetch-depth[{job_id}]",
                   bool(checkouts) and all("fetch-depth: 0" in c for c in checkouts))
 
@@ -644,12 +821,20 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # `environment`, so AC5c runs the SAST leg in gate-main too — silent double scan.
     main_blk = _job_block(text, "gate-main")
     anchor = _step_named(main_blk, "Run make build-check")
-    check("anchor-step", bool(_invocation(anchor, "make", "build-check")))
+    # EQUALITY, not containment. This single pin replaces four separate argv checks and
+    # closes what all four missed: `MAKEFLAGS=-n make build-check …` (prefix), `make -i`
+    # / `make -t` (fake success), `${UNSET:--n}` (expansion), and a trailing `-n` folded
+    # in from the next YAML line.
+    #
+    # It also subsumes the separate delegation-is-argument and delegation-not-prefix
+    # checks, which are GONE rather than kept alongside it: neither could fail without
+    # this one failing too, and this file's own history says a conjunct that cannot fail
+    # independently inflates the matrix without adding a proof. The classes they named
+    # are now several MUTATIONS against this one assertion, which is the right shape —
+    # `SAST_DELEGATED=1 make build-check PACKS_DIR=packs` is simply not equal to the
+    # pinned text, so it fails here with the ADR-0085 reasoning above it.
+    check("anchor-step", bool(_pinned(anchor, PINNED_ANCHOR)))
     check("anchor-no-if", bool(anchor) and not _has_if(anchor))
-    check("delegation-is-argument",
-          bool(_invocation(anchor, "make", "build-check", "SAST_DELEGATED=1")))
-    check("delegation-not-prefix", not any(
-        re.match(r"^SAST_DELEGATED=1\s+make\b", st) for st, _ in _statements(anchor)))
     # AC14(1): lint-nosec-form sets a caveat and exits 0 without bandit, so the
     # install must be in THIS job — it runs inside make build-check's chain, and the
     # split moved the SAST provisioning to gate-sast.
@@ -672,14 +857,16 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # AC4: the predicate has exactly one consumer.
     sast_blk = _job_block(text, "gate-sast")
     sast_step = _step_named(sast_blk, "make sast")
-    check("sast-step-present", bool(_invocation(sast_step, "make", "sast")))
-    # EQUALITY, not substring: `… != 'true' && false` satisfies a substring test
-    # while `make sast` never runs.
-    _sast_ifs = re.findall(r"^\s*if:\s*(.+?)\s*$", sast_step, re.M)
+    check("sast-step-present", bool(_pinned(sast_step, PINNED_SAST)))
+    # EQUALITY, and exactly one binding: `… != 'true' && false` satisfies a substring
+    # test while `make sast` never runs, and a SECOND `if:` appended after the pinned one
+    # wins under last-key-wins while findall still reported only the first.
     check("sast-step-condition",
-          _sast_ifs == [PINNED_SAST_IF.split("if: ", 1)[1]])
+          _key_values(sast_step, "if") == [PINNED_SAST_IF.split("if: ", 1)[1]])
     install = _step_named(sast_blk, "SAST/SCA tools")
-    check("sast-install-present", bool(_invocation(install, "pip", "requirements-sast.txt")))
+    # Pinned too: `pip install --dry-run -r …` exits 0 and installs nothing, and
+    # `--dry-run` was in the flag denylist only for make.
+    check("sast-install-present", bool(_pinned(install, PINNED_SAST_INSTALL)))
     check("sast-install-unconditional", bool(install) and not _has_if(install))
 
     # AC14(2): the export-boundary suite's silent tree-shape skip.
@@ -692,19 +879,18 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
           bool(exp_lines) and exp_lines[0] == _STRICT_SHELL)
     check("export-boundary-straight-line",
           bool(exp_step) and _body_is_straight_line(exp_step))
-    check("export-boundary-tree-probe",
-          bool(_invocation(exp_step, "test", "-d", "packages/agentbundle")))
+    check("export-boundary-tree-probe", bool(_pinned(exp_step, PINNED_TREE_PROBE)))
     check("export-boundary-probe-not-negated", not any(
         st.split()[:1] == ["!"] and "packages/agentbundle" in st
         for st, _ in _statements(exp_step)))
-    pytest_stmt = (_invocation(exp_step, "python", "-m", "pytest",
-                               "tools/test_check_artifact_contents.py", "-rs")
-                   or _invocation(exp_step, "pytest",
-                                  "tools/test_check_artifact_contents.py", "-rs"))
+    # The pipeline pinned whole, `| tee` included. Containment let
+    # `PYTEST_ADDOPTS=--co python -m pytest …` through — exit 0 against a FAILING suite,
+    # and because nothing ran there were no `SKIPPED` lines either, so the skip grep
+    # below passed as well. Two controls, one bypass. Equality ends the class, and
+    # subsumes the separate --collect-only check, which is deleted rather than kept as a
+    # conjunct that can no longer fail on its own.
+    pytest_stmt = _pinned(exp_step, PINNED_EXPORT_PYTEST)
     check("export-boundary-skip-flag", bool(pytest_stmt))
-    # `--co` / `--collect-only` executes nothing while still exiting 0.
-    check("export-boundary-not-collect-only",
-          not any(f in pytest_stmt.split() for f in ("--co", "--collect-only")))
     # (An earlier draft had an "export-boundary-no-bare-pipe" check here. Its second
     # conjunct was loop-invariant, so it could never fail independently of
     # export-boundary-strict-shell and its mutation passed only for that co-fired
@@ -713,18 +899,28 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # The grep must read the file `tee` wrote. Untied, pointing it at a path nothing
     # creates passes: grep exits 2 on a missing file and `!` inverts that to 0, so
     # every skip becomes invisible.
+    # Compared as UNQUOTED EQUALITY of the last argument, not by substring: dropping the
+    # quotes and appending a suffix (`… "$RUNNER_TEMP/out.txt"` written, then
+    # `grep … $RUNNER_TEMP/out.txt.bak` read) satisfies `target in stmt` while grepping a
+    # file nothing creates — grep exits 2, `!` inverts it to 0, and every skip is
+    # invisible again.
+
+    def _unquote(tok: str) -> str:
+        return tok.strip().strip("\"'")
+
     _tee_target = ""
     for _st, _ in _statements(exp_step):
         _toks = _st.split()
         if "tee" in _toks:
             _idx = _toks.index("tee")
             if _idx + 1 < len(_toks):
-                _tee_target = _toks[_idx + 1]
+                _tee_target = _unquote(_toks[_idx + 1])
             break
     grep_stmt = next((st for st, ln in _statements(exp_step)
                       if st != UNPARSEABLE and _command(st)[0] == "grep"
                       and SKIP_ASSERT_PATTERN in st and _load_bearing(ln)
-                      and _tee_target and _tee_target in st), "")
+                      and _tee_target
+                      and _unquote(st.split()[-1]) == _tee_target), "")
     check("export-boundary-skip-check", bool(grep_stmt))
     # The grep must be negated: `grep -q` exits 0 when it FINDS a skip, so a bare
     # `grep … && exit 1` as the last line is red on healthy runs and green on skips.
@@ -871,7 +1067,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("set-relax", "export-boundary-straight-line",
      lambda t: t.replace("          test -d packages/agentbundle",
                          "          set +o pipefail\n          test -d packages/agentbundle")),
-    ("collect-only", "export-boundary-not-collect-only",
+    ("collect-only", "export-boundary-skip-flag",
      lambda t: t.replace("-q -rs", "--co -q -rs")),
     ("drop-suite-path", "export-boundary-skip-flag",
      lambda t: t.replace("tools/test_check_artifact_contents.py -q -rs", "-q -rs")),
@@ -914,10 +1110,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace('[ "$GATE_MAIN_RESULT" != "success" ]',
                          '[ "$GATE_MAIN_RESULT" != "success" -a -f /nonexistent ]', 1)),
     # Blocker 5: a flag hidden behind a continuation, and behind substitution.
-    ("continuation-hides-dry-run", "delegation-is-argument",
+    ("continuation-hides-dry-run", "anchor-step",
      lambda t: t.replace("        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
                          "        run: |\n          make build-check PACKS_DIR=packs SAST_DELEGATED=1 \\\n          -n")),
-    ("substitution-hides-dry-run", "delegation-is-argument",
+    ("substitution-hides-dry-run", "anchor-step",
      lambda t: t.replace("run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
                          "run: make build-check PACKS_DIR=packs SAST_DELEGATED=1 $(printf -- -n)")),
     ("container-override", "no-container[gate-main]",
@@ -1014,7 +1210,8 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace('          [ "$GATE_MAIN_RESULT"',
                          '          set +e\n          [ "$GATE_MAIN_RESULT"')),
     ("drop-guard-strict-shell", "guard-strict-shell",
-     lambda t: t.replace("          set -euo pipefail\n          python3", "          python3", 1)),
+     lambda t: t.replace('          set -euo pipefail\n          [ "$GATE_MAIN_RESULT"',
+                         '          [ "$GATE_MAIN_RESULT"', 1)),
     # The required-check name must be bound to the AGGREGATOR, not merely unique.
     ("relocate-required-name", "required-name-is-aggregator",
      lambda t: t.replace("  build-check:\n    name: make build-check\n", "  build-check:\n", 1)
@@ -1025,9 +1222,9 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          '[ "$GATE_MAIN_RESULT" != "success" ] && exit 1 &')),
     ("drop-pull-request-trigger", "trigger-pull-request",
      lambda t: t.replace("  pull_request:\n    branches: [main]\n", "")),
-    ("drop-delegation-flag", "delegation-is-argument",
+    ("drop-delegation-flag", "anchor-step",
      lambda t: t.replace(" SAST_DELEGATED=1", "", 1)),
-    ("delegation-as-prefix", "delegation-not-prefix",
+    ("delegation-as-prefix", "anchor-step",
      lambda t: t.replace("run: make build-check PACKS_DIR=packs SAST_DELEGATED=1",
                          "run: SAST_DELEGATED=1 make build-check PACKS_DIR=packs")),
     ("drop-sast-condition", "sast-step-condition",
@@ -1042,7 +1239,162 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("rebind-env-var", "env-binding[gate-sast]",
      lambda t: t.replace("GATE_SAST_RESULT: ${{ needs.gate-sast.result }}",
                          "GATE_SAST_RESULT: ${{ needs.gate-main.result }}")),
+    # -- the statement-vs-token class (convergence round) ------------------------
+    # Every one of these audited CLEAN against the previous token-set checks and
+    # returned exit 0 in real make/pytest. They are the reason the anchors are pinned
+    # by equality; each is kept as its own case so the class cannot silently reopen.
+    ("assignment-prefix-hides-makeflags", "anchor-step",
+     lambda t: t.replace(f"run: {PINNED_ANCHOR}", f"run: MAKEFLAGS=-n {PINNED_ANCHOR}")),
+    ("make-ignore-errors-fakes-success", "anchor-step",
+     lambda t: t.replace("run: make build-check", "run: make -i build-check")),
+    ("make-touch-fakes-success", "anchor-step",
+     lambda t: t.replace("run: make build-check", "run: make -t build-check")),
+    ("brace-expansion-hides-dry-run", "anchor-step",
+     lambda t: t.replace(f"run: {PINNED_ANCHOR}",
+                         f"run: {PINNED_ANCHOR} ${{UNSET:--n}}")),
+    ("ansi-c-quote-hides-dry-run", "anchor-step",
+     lambda t: t.replace(f"run: {PINNED_ANCHOR}", f"run: {PINNED_ANCHOR} $'\\055n'")),
+    # YAML scalar folding: bash sees ONE statement ending in `-n`, the old reader saw two.
+    ("plain-multiline-folds-in-dry-run", "anchor-step",
+     lambda t: t.replace(f"        run: {PINNED_ANCHOR}\n",
+                         f"        run: {PINNED_ANCHOR}\n          -n\n")),
+    ("folded-scalar-folds-in-dry-run", "anchor-step",
+     lambda t: t.replace(f"        run: {PINNED_ANCHOR}\n",
+                         f"        run: >-\n          {PINNED_ANCHOR}\n          -n\n")),
+    ("assignment-prefix-hides-pytest-addopts", "export-boundary-skip-flag",
+     lambda t: t.replace("          python -m pytest tools/test_check",
+                         "          PYTEST_ADDOPTS=--co python -m pytest tools/test_check")),
+    ("pip-dry-run-installs-nothing", "sast-install-present",
+     lambda t: t.replace("pip install -r tools/requirements-sast.txt",
+                         "pip install --dry-run -r tools/requirements-sast.txt", 1)),
+    # -- duplicate-key forgery (last-key-wins) -----------------------------------
+    ("duplicate-env-binding-forges-result", "env-binding[gate-sast]",
+     lambda t: t.replace("          GATE_SAST_RESULT: ${{ needs.gate-sast.result }}\n",
+                         "          GATE_SAST_RESULT: ${{ needs.gate-sast.result }}\n"
+                         "          GATE_SAST_RESULT: success\n", 1)),
+    ("duplicate-if-on-sast-step", "sast-step-condition",
+     lambda t: t.replace("        if: steps.changes.outputs.skip_sast != 'true'\n",
+                         "        if: steps.changes.outputs.skip_sast != 'true'\n"
+                         "        if: ${{ false }}\n", 1)),
+    # -- the five assertions that still matched a bare spelling -------------------
+    ("quoted-container", "no-container[gate-main]",
+     lambda t: t.replace("  gate-main:\n", "  gate-main:\n    'container': alpine\n", 1)),
+    ("quoted-services", "no-container[gate-main]",
+     lambda t: t.replace("  gate-main:\n", "  gate-main:\n    'services':\n      db: {}\n", 1)),
+    ("quoted-job-concurrency", "no-job-concurrency[gate-sast]",
+     lambda t: t.replace("  gate-sast:\n", "  gate-sast:\n    'concurrency': solo\n", 1)),
+    ("quoted-job-permissions", "no-job-permissions[gate-sast]",
+     lambda t: t.replace("  gate-sast:\n",
+                         "  gate-sast:\n    'permissions':\n      contents: write\n", 1)),
+    ("quoted-needs-on-work-job", "no-needs[gate-sast]",
+     lambda t: t.replace("  gate-sast:\n", "  gate-sast:\n    'needs': [gate-main]\n", 1)),
+    ("quoted-duplicate-required-name", "one-required-name",
+     lambda t: t.replace("  gate-sast:\n", "  gate-sast:\n    'name': make build-check\n", 1)),
+    # -- aggregator step-set is closed -------------------------------------------
+    ("third-run-step-in-aggregator", "aggregator-run-steps-pinned",
+     lambda t: t.replace("      - name: Require every gate\n",
+                         "      - name: Prepare\n        run: echo hello\n"
+                         "      - name: Require every gate\n", 1)),
+    # -- the tee/grep tie is unquoted EQUALITY, not substring ---------------------
+    ("grep-reads-suffixed-path", "export-boundary-skip-check",
+     lambda t: t.replace('! grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"',
+                         "! grep -Eq \"^SKIPPED\" $RUNNER_TEMP/out.txt.bak", 1)),
 ]
+
+
+# ── Differential check: this file's model of bash, against bash ──────────────
+#
+# Every assertion above encodes a BELIEF about what a shell does. The mutation matrix
+# proves the assertions fire; it cannot prove the beliefs are true — and one of them
+# was not (see the module docstring on scalar folding). So for the one body whose
+# behaviour decides the required status check, ask bash directly.
+#
+# The property, stated as an implication rather than an equality: if bash exits 0 with
+# a gate reported `failure`, `audit` MUST reject. The converse is not required —
+# rejecting a body bash would also fail is merely conservative. That asymmetry is what
+# makes this a safety check and not a brittle equivalence test.
+_GUARD_BASE = (
+    'set -euo pipefail\n'
+    '[ "$GATE_MAIN_RESULT" != "success" ] && exit 1\n'
+    '[ "$GATE_SAST_RESULT" != "success" ] && exit 1\n'
+    '[ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && exit 1\n'
+    'echo "every gate passed"'
+)
+_FIRST_TEST = '[ "$GATE_MAIN_RESULT"'
+
+
+def _before_first_test(body: str, inserted: str) -> str:
+    return body.replace(_FIRST_TEST, f"{inserted}\n{_FIRST_TEST}", 1)
+
+
+# Short-circuit forms a reader might not think of as one. Several were found only by
+# running them: `exit 000` is exit-zero, and a `while false` wrapper or a subshell with
+# `|| true` leaves every comparison textually intact and evaluates none.
+_DIFFERENTIAL_VARIANTS: list[tuple[str, object]] = [
+    ("baseline", lambda b: b),
+    ("exit-0-prefix", lambda b: _before_first_test(b, "exit 0")),
+    ("bare-exit-prefix", lambda b: _before_first_test(b, "exit")),
+    ("exit-000-prefix", lambda b: _before_first_test(b, "exit 000")),
+    ("true-then-exit-0", lambda b: _before_first_test(b, "true; exit 0")),
+    ("while-false-wrapper", lambda b: _before_first_test(b, "while false; do") + "\ndone"),
+    ("subshell-or-true", lambda b: b.replace(_FIRST_TEST, f"( {_FIRST_TEST}", 1)
+                                   .replace("&& exit 1", "&& exit 1 ) || true", 1)),
+    ("eval-indirection", lambda b: _before_first_test(b, 'eval "exit 0"')),
+    ("reassign-result", lambda b: _before_first_test(b, "GATE_MAIN_RESULT=success")),
+    ("default-if-unset", lambda b: _before_first_test(
+        b, "GATE_MAIN_RESULT=${GATE_MAIN_RESULT:-success}")),
+    ("always-false-conjunct", lambda b: b.replace(
+        '!= "success" ]', '!= "success" -a -f /nonexistent ]')),
+    ("chained-false-test", lambda b: b.replace(
+        '!= "success" ] &&', '!= "success" ] && [ -f /nonexistent ] &&')),
+    ("set-plus-e-and-or-true", lambda b: b.replace(
+        _STRICT_SHELL, f"{_STRICT_SHELL}\nset +e").replace("&& exit 1", "&& exit 1 || true")),
+]
+
+
+def _differential_failures() -> list[str]:
+    """Bodies bash would take GREEN with a gate failed, that `audit` accepts."""
+    import os
+    import shutil
+    import subprocess
+
+    if not shutil.which("bash"):
+        # Same reasoning as tools/assert-sast-chain-reachable.py: the make-free Windows
+        # contributor path is a shipped acceptance criterion, so a hard shell
+        # dependency here would fail a gate it has no business failing.
+        return []
+    good = _baseline()
+    indented = "\n".join(f"          {ln}" for ln in _GUARD_BASE.splitlines())
+    if indented not in good:
+        return ["differential: guard body not found in the fixture — harness is blind"]
+
+    env = dict(os.environ)
+    env.update({"GATE_MAIN_RESULT": "failure", "GATE_SAST_RESULT": "success",
+                "GATE_EXPORT_BOUNDARY_RESULT": "success"})
+    out: list[str] = []
+    for name, transform in _DIFFERENTIAL_VARIANTS:
+        body = transform(_GUARD_BASE)  # type: ignore[operator]
+        if name != "baseline" and body == _GUARD_BASE:
+            out.append(f"differential[{name}]: transform was a no-op — proves nothing")
+            continue
+        spliced = good.replace(
+            indented, "\n".join(f"          {ln}" for ln in body.splitlines()), 1)
+        accepted = not audit(spliced)
+        green = subprocess.run(["bash", "-c", body], env=env, cwd=REPO_ROOT,
+                               capture_output=True, text=True).returncode == 0
+        if name == "baseline":
+            # The harness's own premise: an UNMODIFIED guard must be red with a gate
+            # failed. If this ever passes, every "blocked" verdict below is vacuous.
+            if green:
+                out.append("differential[baseline]: clean guard exits 0 with a gate "
+                           "failed — the harness proves nothing")
+            if not accepted:
+                out.append("differential[baseline]: clean guard rejected by audit")
+            continue
+        if green and accepted:
+            out.append(f"differential[{name}]: bash exits 0 with gate-main failed, "
+                       "and audit accepts it")
+    return out
 
 
 def _family(check_id: str) -> str:
@@ -1086,13 +1438,22 @@ def self_test() -> int:
     if uncovered:
         failures.append(f"assertion families evaluated but unmutated: {uncovered}")
 
+    failures.extend(_differential_failures())
+
     if failures:
         print(f"\u2716 self-test: {len(failures)} problem(s):", file=sys.stderr)
         for f in failures:
             print(f"  - {f}", file=sys.stderr)
         return 1
+    # Stated as "every family has at least one mutation", which is what the check above
+    # actually proves. It is NOT a completeness claim: the convergence round's bypasses
+    # all landed in families that already had a passing mutation (`anchor-step`,
+    # `env-binding[*]`), so family coverage says nothing about whether the CLASSES a
+    # family can be defeated by are enumerated. The docstring argues the classes;
+    # this line only counts.
     print(f"\u2713 self-test: baseline clean; {len(_MUTATIONS)} mutations each caught; "
-          f"{len(covered)} assertion families mutation-proven")
+          f"every one of {len(covered)} assertion families has \u22651 mutation; "
+          f"{len(_DIFFERENTIAL_VARIANTS) - 1} guard bodies agreed with bash")
     return 0
 
 

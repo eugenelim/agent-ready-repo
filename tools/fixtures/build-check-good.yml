@@ -111,6 +111,15 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      # TWO run steps, as the real aggregator has. An earlier fixture folded the posture
+      # invocation into the guard step, which let `guard-runs-in-aggregator` and
+      # `guard-straight-line` be satisfied by the same body and left the real workflow's
+      # two-step shape — chosen so each step carries an honest lint-ci-parity
+      # disposition — unrepresented in every proof.
+      - name: Run the build-check.yml posture test
+        run: |
+          set -euo pipefail
+          python3 tools/test-build-check-workflow.py
       - name: Require every gate
         env:
           GATE_MAIN_RESULT: ${{ needs.gate-main.result }}
@@ -118,7 +127,6 @@ jobs:
           GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
         run: |
           set -euo pipefail
-          python3 tools/test-build-check-workflow.py
           [ "$GATE_MAIN_RESULT" != "success" ] && exit 1
           [ "$GATE_SAST_RESULT" != "success" ] && exit 1
           [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && exit 1
