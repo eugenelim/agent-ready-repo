@@ -498,6 +498,8 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-nosec-form.py",
     "tools/test-lint-ci-parity.py",
     "tools/test-build-check-windows-workflow.py",
+    "tools/test-build-check-workflow.py",
+    "tools/assert-sast-chain-reachable.py",
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
     "tools/repo/check_contract_drift.py",

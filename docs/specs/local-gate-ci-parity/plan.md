@@ -1,7 +1,7 @@
 # Plan: local-gate-ci-parity
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Executing | Done -->
+- **Status:** Done (superseded in part by [ADR-0085](../../adr/0085-split-the-sast-gate-into-its-own-ci-job.md) — the AC3/AC3a/AC3b verdict case set; everything else stands) <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially

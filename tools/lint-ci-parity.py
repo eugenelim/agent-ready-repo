@@ -250,9 +250,53 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
             "(tools/requirements-sast.txt), so there is no make target to name."
         ),
     "Run make build-check":
+        LOCAL("build-check"),
+    # ── spec/ci-gate-parallelization: build-check.yml is four jobs ────────────
+    # `make build-check` still covers gate-main ∪ gate-sast, but NO single local
+    # command equals any single CI job — gate-main runs the local gate minus SAST.
+    # That is AC16's one-to-many parity model; per-job reproduction is
+    # `make build-check SAST_DELEGATED=1` and `make sast` respectively.
+    "<unnamed step in gate-main>":
         CI_ONLY(
-            "Invokes the local gate itself — this is the parity anchor, not a "
-            "divergence."
+            "`uses: actions/checkout@v4` — repository checkout. No local "
+            "equivalent; a working tree is the local precondition, not a gate."
+        ),
+    "<unnamed step in gate-sast>":
+        CI_ONLY("Repository checkout for the SAST job."),
+    "Set up Python (gate-sast)":
+        CI_ONLY("Interpreter provisioning; pinned per AC12."),
+    "Run make sast":
+        LOCAL("sast"),
+    "<unnamed step in gate-export-boundary>":
+        CI_ONLY(
+            "Repository checkout for the export-boundary job. Deliberately NOT "
+            "sparse: the suite's real-artifact tests skipif on "
+            "packages/agentbundle being a directory (AC14)."
+        ),
+    "Set up Python (gate-export-boundary)":
+        CI_ONLY("Interpreter provisioning; pinned per AC12."),
+    "Install tools dependencies (gate-export-boundary)":
+        CI_ONLY(
+            "Provisioning. `build` and `setuptools` come from here; without them "
+            "the suite's wheel check skips while reporting green."
+        ),
+    "Install agentbundle (editable) + pytest (gate-export-boundary)":
+        CI_ONLY("Provisioning; the gate declares pytest in _DEPENDENCY_IMPORTS."),
+    "Install credbroker (editable, with crypto extra) (gate-export-boundary)":
+        CI_ONLY(
+            "Provisioning. check-artifact-contents.py's _DEPENDENCY_IMPORTS "
+            "includes credbroker and RAISES on a miss."
+        ),
+    "Set up Python (aggregator)":
+        CI_ONLY("Interpreter provisioning for the posture test."),
+    "Run the build-check.yml posture test":
+        LOCAL("build-check"),
+    "Require every gate":
+        CI_ONLY(
+            "Consults needs.*.result across sibling jobs. No local target can "
+            "reproduce it — `make ci` runs the legs directly rather than through "
+            "GitHub's scheduler. This is the residual AC16 names, and it is why "
+            "this step is split from the posture test above, which IS local."
         ),
     "Install ripgrep":
         CI_ONLY(

@@ -413,6 +413,21 @@ def build_check(args: argparse.Namespace) -> int:
             "test-build-check-windows-workflow",
             "tools", "test-build-check-windows-workflow.py",
         ),
+        # spec/ci-gate-parallelization AC13: the posture test for build-check.yml's
+        # own job graph. Runs its mutation matrix first — an assertion whose mutation
+        # never executes is an unverified assertion, and this file is the local-parity
+        # path for the copy that runs inside the aggregator job.
+        _script_step(
+            "test-build-check-workflow",
+            "tools", "test-build-check-workflow.py",
+        ),
+        # AC10: no CI path executes `build-check`'s `$(MAKE) sast` branch after
+        # ADR-0085, so nothing else would notice it being deleted or made
+        # unreachable. Skips cleanly where `make` is absent.
+        _script_step(
+            "assert-sast-chain-reachable",
+            "tools", "assert-sast-chain-reachable.py",
+        ),
         _script_step(
             "lint-ci-parity",
             "tools", "lint-ci-parity.py",

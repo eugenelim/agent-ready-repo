@@ -1,0 +1,123 @@
+# Clean baseline for tools/test-build-check-workflow.py --self-test.
+#
+# NOT a workflow GitHub runs — it is the fixture every proof in that file is
+# measured against, so it must be SHAPE-REPRESENTATIVE of the real
+# .github/workflows/build-check.yml, not merely valid YAML. An earlier fixture had
+# four single-line steps per job and omitted the `push: branches: [main]` trigger.
+# That hid two defects: a job-block/step-block confusion (the audit inspected only
+# the first `run:` per job and passed by accident of step ordering), and the
+# unasserted push-to-main run that AC12 names as the belt-and-braces for the
+# head-commit self-certification residual. So this fixture carries: the real trigger
+# set, `runs-on` per job, multiple block-scalar `run:` bodies in gate-main, and the
+# guards in the shapes AC14 requires.
+name: build-check
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  merge_group:
+permissions:
+  contents: read
+concurrency:
+  group: build-check-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+jobs:
+  gate-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install tools dependencies
+        run: |
+          pip install -r tools/requirements.txt
+          python -m pip install -e packages/agentbundle/ pytest
+      - name: Install bandit unconditionally (lint-nosec-form's ID registry)
+        run: pip install bandit
+      - name: Run make build-check
+        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1
+      - name: ruff lint
+        run: |
+          python3 tools/lint-ruff.py
+      - name: pytest credbroker
+        run: |
+          python -m pytest packages/credbroker -q
+  gate-sast:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Detect whether SAST-relevant files changed
+        id: changes
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "skip_sast=false" >> "$GITHUB_OUTPUT"
+      - name: Install SAST/SCA tools
+        run: pip install -r tools/requirements-sast.txt
+      - name: Run make sast
+        if: steps.changes.outputs.skip_sast != 'true'
+        run: make sast
+  gate-export-boundary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install tools dependencies
+        run: |
+          pip install -r tools/requirements.txt
+          python -m pip install -e packages/agentbundle/ pytest
+          python -m pip install -e './packages/credbroker[crypto]'
+      - name: pytest export-boundary gate
+        run: |
+          set -euo pipefail
+          test -d packages/agentbundle
+          python -m pytest tools/test_check_artifact_contents.py -q -rs > out.txt
+          ! grep -Eq "^SKIPPED" out.txt
+  build-check:
+    name: make build-check
+    needs:
+      - gate-main
+      - gate-sast
+      - gate-export-boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ always() }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Require every gate
+        env:
+          GATE_MAIN_RESULT: ${{ needs.gate-main.result }}
+          GATE_SAST_RESULT: ${{ needs.gate-sast.result }}
+          GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
+        run: |
+          set -euo pipefail
+          python3 tools/test-build-check-workflow.py
+          [ "$GATE_MAIN_RESULT" != "success" ] && exit 1
+          [ "$GATE_SAST_RESULT" != "success" ] && exit 1
+          [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && exit 1
+          echo "every gate passed"

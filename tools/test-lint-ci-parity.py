@@ -130,6 +130,38 @@ def _run_verdict(makefile: str, env_extra: dict[str, str]) -> str:
     return res.stdout + res.stderr
 
 
+def _run_verdict_make(makefile: str, cli_vars: dict[str, str],
+                      env_extra: dict[str, str]) -> str:
+    """Execute `gate_verdict` under REAL make, so `$(origin …)` is meaningful.
+
+    # STUB: AC5b — `_run_verdict` above substitutes `$(…)` by hand and runs the body
+    under `sh`. That cannot express `$(origin SAST_DELEGATED)`, which is a make
+    function, not a variable expansion — so the origin-gated branch would never be
+    taken and the case would silently exercise the wrong one. AC5b's whole provenance
+    design rests on command-line vs environment origin, so it must be driven by make.
+
+    `cli_vars` are passed as command-line assignments (origin: `command line`);
+    `env_extra` goes into the environment (origin: `environment`).
+    """
+    macro = re.search(r"define gate_verdict\n.*?\nendef", makefile, re.S)
+    body = macro.group(0) if macro else ""
+    with tempfile.TemporaryDirectory() as td:
+        mk = pathlib.Path(td) / "verdict.mk"
+        mk.write_text(
+            body
+            + "\nSAST_DIRS := tools packs packages\n"
+            + "SAST_CONFIG := bandit.yaml Makefile\n"
+            + "verdict:\n\t$(call gate_verdict,make ci)\n",
+            encoding="utf-8",
+        )
+        env = {k: v for k, v in os.environ.items() if k not in _VERDICT_ENV_KEYS}
+        env.update(env_extra)
+        argv = ["make", "-f", str(mk), "verdict"]
+        argv += [f"{k}={v}" for k, v in cli_vars.items()]
+        res = subprocess.run(argv, capture_output=True, text=True, check=False, env=env)
+    return res.stdout + res.stderr
+
+
 def _classified(steps=None, by_step=None, duplicates=None) -> dict:
     steps = list(steps or [])
     return {
@@ -559,11 +591,12 @@ def main() -> int:
     # for `GITHUB_WORKFLOW` survives inverting the test, which would print the
     # reassuring CI line on a laptop — exactly the false assurance AC3a removes.
     if shutil.which("sh"):
+        # The `ci-skip` case is retired (spec/ci-gate-parallelization AC5f): after the
+        # split build-check.yml never sets SKIP_SAST=1, so that branch lost its only
+        # producer, and a branch no workflow can reach is a gate that gates nothing.
         for label, env, expected, forbidden in (
             ("local-skip", {"SKIP_SAST": "1"},
-             "INCOMPLETE — this is NOT a full pass", "complete for this diff"),
-            ("ci-skip", {"SKIP_SAST": "1", "GITHUB_WORKFLOW": "build-check"},
-             "complete for this diff", "INCOMPLETE"),
+             "INCOMPLETE — this is NOT a full pass", "complete for this target"),
             ("full-run", {}, "complete — every leg of this target was invoked", "INCOMPLETE"),
         ):
             out = _run_verdict(makefile, env)
@@ -584,6 +617,24 @@ def main() -> int:
         finally:
             os.environ.clear()
             os.environ.update(polluted)
+
+        # STUB: AC5b / AC5c — driven by REAL make, because `$(origin …)` is a make
+        # function that textual substitution cannot express. Provenance is command-line
+        # origin, not any environment variable: every candidate (GITHUB_WORKFLOW, CI,
+        # GITHUB_ACTIONS, RUNNER_ENVIRONMENT) is either synthesised by `act` or
+        # exportable from a devcontainer image or a shell profile.
+        out = _run_verdict_make(makefile, {"SAST_DELEGATED": "1"}, {})
+        _check_true("verdict-delegated-cli-is-quiet",
+                    "SAST/SCA was NOT invoked here" in out)
+        _check("verdict-delegated-cli-claims-no-scan",
+               "SAST/SCA included" in out, False)
+        # An AMBIENT SAST_DELEGATED must not buy the quiet state — AC5c makes the
+        # scan run in that case, so the honest verdict is the unchanged "complete".
+        out = _run_verdict_make(makefile, {}, {"SAST_DELEGATED": "1"})
+        _check_true("verdict-delegated-ambient-is-not-quiet",
+                    "complete — every leg of this target was invoked" in out)
+        _check("verdict-delegated-ambient-not-mislabelled",
+               "SAST/SCA was NOT invoked here" in out, False)
     else:  # pragma: no cover — Windows contributor path
         print("… verdict polarity cases skipped: no `sh` on PATH")
 
