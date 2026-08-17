@@ -13,7 +13,7 @@ contract:
   yourDecisions:
     - "Approve the Stage 0 concept"
     - "Review the design and independent critique"
-whatChanges: "After installing architect, every design decision gets a method: `architect-design` shapes a Stage 0 concept before any full write-up begins, writes the complete Google-style doc, and converges it against review; `architect-diagram` draws any system in Mermaid (C4, sequence, state, ER, or flowchart); `architect-review` critiques any design artifact with severity-tagged findings. The `design-reviewer` subagent reads finished artifacts cold — no authoring context — so the review cannot mark its own homework. You decide at two gates: the Stage 0 concept before the full doc is written, and the independent review findings before the doc is shared or acted on."
+whatChanges: "After installing architect, every design decision gets a method: `architect-design` shapes a Stage 0 concept before any full write-up begins, writes the complete Google-style doc, and converges it against review; `architect-diagram` draws any system in Mermaid (C4, sequence, state, ER, or flowchart); `architect-review` critiques any design artifact with severity-tagged findings and may consult one bounded untrusted project-knowledge envelope after fixing its scope and rubric. The `design-reviewer` subagent reads finished artifacts cold — no authoring context — so the review cannot mark its own homework. Retrieved knowledge remains candidate evidence, and you decide at two gates: the Stage 0 concept before the full doc is written, and the independently grounded review findings before the doc is shared or acted on."
 skills:
   - name: architect-design
     description: "Authors a Google-style technical design doc: Stage 0 concept → Stage 1 full write-up → Stage 2 review-ready artifact, grounded against the repo's reference architecture."
@@ -22,7 +22,7 @@ skills:
     description: "Draws the system, data model, flow, state, or deployment in Mermaid — C4 component, sequence, state, ER, or deployment topology."
     humanTouches: 1
   - name: architect-review
-    description: "Critiques an existing design doc, diagram, RFC, or ADR with a rubric-routed severity-tagged review; dispatches the independent forked-context design-reviewer subagent."
+    description: "Critiques an existing design doc, diagram, RFC, or ADR with a rubric-routed severity-tagged review; an optional CQ-REVIEW enquiry supplies untrusted candidate checks without changing independent judgment."
     humanTouches: 1
 humanGates:
   - id: G-concept
@@ -66,7 +66,7 @@ relatedJourneys:
 |----------|-------------|
 | `architect-design` | Frame a concept, write a Google-style design doc, and converge it against review |
 | `architect-diagram` | Draw a Mermaid diagram — C4, sequence, state, ER, or flowchart |
-| `architect-review` | Critique a design doc or diagram with severity-tagged findings |
+| `architect-review` | Critique a design doc or diagram with independently grounded, severity-tagged findings |
 
 ---
 

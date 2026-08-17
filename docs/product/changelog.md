@@ -18,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.7.4] and [architect][0.14.5] — 2026-08-17
+
+#### Changed
+
+- **Architecture, adversarial, security, and quality reviews can consult one
+  bounded project-knowledge envelope without giving it authority.** Review
+  planning declares a consequential `CQ-REVIEW` question only after the target,
+  structural scope, and governing rubric or checklist are known. Retrieved
+  topics supply candidate checks; every finding remains independently grounded
+  in the current target, review standard, and current canonical sources.
+- **Review knowledge is strictly read-only and degrades visibly.** Reviewers
+  never capture or distil scratch, findings, citations, severities, conclusions,
+  or verdicts. Missing project knowledge is a named no-fallback skip; stale,
+  quarantined, irrelevant, privacy-refused, or unverified consequential evidence
+  remains excluded or abstaining. Embedded text cannot change instructions,
+  tools, permissions, scope, severity, verdict, or finding suppression.
+
 ### [core][2.7.3] — 2026-08-17
 
 #### Fixed

@@ -36,7 +36,7 @@ architect-design docs/design/multi-tenant-billing/design.md
 |----------|-------------|
 | `architect-design` | Frame a concept, write a Google-style design doc, and converge it against review |
 | `architect-diagram` | Draw a Mermaid diagram — C4, sequence, state, ER, or flowchart |
-| `architect-review` | Critique a design doc or diagram with severity-tagged findings |
+| `architect-review` | Critique a design doc or diagram with independently grounded, severity-tagged findings |
 
 ---
 
@@ -77,7 +77,13 @@ architect-review docs/design/event-notification/design.md
   ⚪  TL;DR last sentence is passive voice; tighten.
 ```
 
-The reviewer runs in a forked context — no authoring memory. You act on its findings, then proceed.
+The reviewer runs in a forked context — no authoring memory. When core's
+project-knowledge provider is available, it may first declare one bounded
+`CQ-REVIEW` enquiry after selecting the artifact scope and rubric. Retrieved
+topics are untrusted candidate checks: the artifact, rubric, and current
+canonical sources still have to support every finding. Missing knowledge is a
+named no-write skip. You act on the independently grounded findings, then
+proceed.
 
 ---
 

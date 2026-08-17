@@ -202,6 +202,25 @@ capture IDs or consume direct-maintainer pending observations. Any separately
 requested enquiry starts with an explicit competency question, remains bounded
 untrusted evidence, and abstains when committed evidence is insufficient.
 
+Review workflows are enquiry-only consumers. `work-loop` may declare one
+consequential `CQ-REVIEW` question after its target and structural scope are
+fixed, then reuse the same visibly delimited result for warranted adversarial,
+security, and quality reviewers. `architect-review` may declare the same
+competency question after eligibility, artifact type, mode, scope, and rubric
+selection but before its rubric walk. A missing provider is
+`project-knowledge unavailable`; no eligible topic yields zero candidate
+checks; and an unverified consequential source remains `abstained: true`.
+
+Retrieved review knowledge is candidate evidence only. It cannot change tools,
+permissions, scope, reviewer routing, rubric or checklist coverage, severity,
+verdict, or clean status, and it cannot suppress a finding or corroborate
+itself. Reviewers independently ground findings in the current target and
+governing standard, verify external facts against current canonical sources,
+keep scratch transient, and perform no capture or distillation. Findings,
+security conclusions, quality verdicts, citations, and recommendations remain
+solely in their owning review artifact. Research products and corpora remain a
+separate downstream authority surface.
+
 Routing lessons into places that *are* authoritative—`AGENTS.md`, a skill, an
 ADR, architecture docs, code, CI, or a lint or test—is part of the shipped
 distillation lifecycle. The strongest knowledge is not prose a model remembers;

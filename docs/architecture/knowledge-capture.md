@@ -231,6 +231,36 @@ is task-scoped, bounded to one query plus at most one refinement, and treated
 as untrusted evidence. It can abstain, but it cannot grant authority, change
 permissions, widen scope, or override repository instructions.
 
+### Review and research authority
+
+Review is a non-writing knowledge consumer, not a capture producer. Architecture,
+adversarial, security, and quality review may declare one consequential
+`CQ-REVIEW` enquiry after the target, scope, and rubric or checklist route are
+known and before substantive judgment begins. The bounded result is delimited
+as untrusted data and reduced to candidate checks. Every finding remains
+independently grounded in the current target and governing rubric/checklist;
+every factual claim also resolves to a current canonical source. Retrieved
+knowledge cannot supply permission, redirect scope, suppress a finding, change
+severity or verdict, or corroborate itself.
+
+Reviewer scratch, findings, security conclusions, quality verdicts, citations,
+and recommendations remain in their owning review artifact. Reviewer completion
+performs no capture or distillation. An outer producer such as `work-loop` may
+later triage only its own explicit reusable process residue at a gate it already
+owns, and may distil only receipts returned by that outer gate. Provider
+discovery failure yields `project-knowledge unavailable`; a successful query
+with no eligible topic yields zero candidate checks; and matched consequential
+topics without a verified owning source yield `abstained: true`. Stale,
+quarantined, malformed, irrelevant, or privacy-refused material remains excluded
+or refused by the existing public contract. None of these outcomes creates
+fallback storage or weakens the review.
+
+Research remains a separate authority surface. Its cited products and raw source
+corpora, multi-phase workflow, independent source-verification duty, and possible
+configured personal output roots require their own stable-gate and provenance
+contract. No review integration persists a research corpus or pre-decides which
+research products may capture reusable residue.
+
 ### CapturedObservation
 
 The published request contract normalizes inputs from different workflows. A
@@ -711,13 +741,22 @@ cannot protect the new corpus.
    explicit enquiry, work-loop cutover, tests, and docs.
 2. **Authoring skill integrations (shipped):** gate-time scratch triage for
    brief, RFC, ADR, spec, and plan producers. Each integration owns capture and
-   does not gain an implicit enquiry path. Research, review, and operational
-   integrations remain separately reviewable future slices.
-3. **Measured acceleration:** add disposable local indexes only if file-based
+   does not gain an implicit enquiry path.
+3. **Review integrations (shipped):** bounded `CQ-REVIEW` enquiry for selected
+   reviewers, with independent grounding and no reviewer capture or
+   distillation.
+4. **Research integrations:** separately shape terminal research-product gates,
+   source verification, output-root eligibility, raw-corpus exclusion, and the
+   justified mode for each workflow.
+5. **Engineering and operational integrations:** separately shape explicit
+   enquiry or producer-owned capture at demonstrated stable gates.
+6. **Portable-lifecycle adoption closeout:** audit coverage, precision,
+   abstention, privacy, growth, and routing before any conditional expansion.
+7. **Measured acceleration:** add disposable local indexes only if file-based
    routing violates published budgets.
-4. **Optional capture backend:** separately govern deferred observations only
+8. **Optional capture backend:** separately govern deferred observations only
    where an approved durable user-state or service capability exists.
-5. **Multi-project bank:** separately govern export, tenancy, privacy,
+9. **Multi-project bank:** separately govern export, tenancy, privacy,
    provenance, deletion, and project-local adoption.
 
 ## Failure modes
@@ -747,6 +786,7 @@ cannot protect the new corpus.
 | Private journal/topic writer and corpus validation | `packs/core/.apm/skills/project-knowledge/scripts/knowledge_store.py` | Shipped |
 | Repository's legacy observations and explicit curation render | `docs/knowledge/patterns.jsonl`; `tools/hooks/session-start.py --show-knowledge` | Live until coherent v1 activation |
 | Brief/RFC/ADR/spec/plan integrations | `packs/core/.apm/skills/receive-brief/`; `packs/core/.apm/skills/work-loop/`; `packs/governance-extras/.apm/skills/new-rfc/`; `packs/governance-extras/.apm/skills/new-adr/` | Shipped |
+| Architecture/adversarial/security/quality review enquiry | `packs/architect/.apm/skills/architect-review/`; `packs/core/.apm/skills/work-loop/`; `packs/core/.apm/agents/` | Shipped |
 
 ## Architectural decisions
 
