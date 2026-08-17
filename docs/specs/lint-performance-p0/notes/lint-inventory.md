@@ -592,9 +592,22 @@ with the exit code it actually returned. Terminal wording unchanged throughout.
 | `agentbundle catalogue lint --deep` | 0 | `ok: 58 finding(s)` (warnings only) |
 | `agentbundle catalogue verify` | 0 | `catalogue verify: ok` |
 | `python3 tools/catalogue/pre_pr_catalogue.py` | 0 | 19/19 steps `✓`, fail-fast order intact |
-| `SKIP_SAST=1 make build-check` | 0 | full required chain incl. the 5 new steps |
+| `SKIP_SAST=1 make build-check` | 0 | full required chain incl. all 6 new steps |
+| `python3 tools/run-bandit-gate.py tools packs packages tests` | 0 | no finding in any new file |
+| `make build-check` (with SAST) | **2** | **environmental, not this diff** — see below |
 | `python3 tools/lint-ruff.py` | 0 | `All checks passed!` |
 | `scripts/lint-spec-status.py --root .` | 0 | `spec metadata clean` |
+
+**The one non-zero result, stated plainly.** `make build-check` *with* SAST exits
+2 on this machine. The failing leg is `pip-audit`, which creates a virtualenv per
+requirements file; `ensurepip` fails because the host disk is full (222 MiB free
+of 460 GiB). It is not caused by this change — no dependency is added — and the
+security scanner that *does* read this diff, `run-bandit-gate.py` over `tools`,
+`packs`, `packages` and `tests`, exits 0 with no finding in any new file. The repo
+prints "Re-run without SKIP_SAST before treating this as green", so recording the
+`SKIP_SAST=1` pass without this note would be exactly the kind of partial claim
+this spec is otherwise careful to avoid. Re-run the SAST leg on a host with disk
+headroom before merge.
 
 `make lint-mypy` is deliberately **absent**: `tools/lint-mypy.py` targets only
 `packages/agentbundle/agentbundle` and `packages/credbroker/credbroker`, so it
