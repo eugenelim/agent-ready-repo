@@ -1,6 +1,6 @@
 # Spec: distribution-adapters
 
-- **Status:** Shipped
+- **Status:** Shipped (superseded in part by [ADR-0040](../../adr/0040-route-cohort-skills-to-shared-agents-skills-home.md) — the Copilot cell of § Primitive types' projection table, `direct-directory` → `.github/skills/<name>/`, now routes to the shared `.agents/skills/`, as do cursor's and gemini's in the later Changelog entries; every other row and every other decision stands)
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0001](../../rfc/0001-bundle-distribution-by-adapter-spec.md), [RFC-0002](../../rfc/0002-self-hosting.md), [RFC-0004](../../rfc/0004-install-scope-per-pack.md) (contract-v0.2 amendment — install-scope dimension)

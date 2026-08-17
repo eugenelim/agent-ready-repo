@@ -167,6 +167,19 @@ Four rules, each earning its place:
    record, not a purer one. The test is whether a reader's understanding of
    what was decided changes. If it does, it is not mechanical.
 
+**The same carrier, for a pointer that is not a supersession.** A frozen
+document sometimes names a `workspace.toml [backlog].open` anchor — "Deferred as
+`<slug>`", "recorded as `<slug>`" — and the PR that works the entry deletes the
+slug, leaving the prose pointing at nothing. A reader then cannot tell whether
+the work was done or lost, and `lint-spec-status.py` invariant (iv) does not
+catch it: it checks `(deferred: <slug>)` markers only. Record it on the `Status`
+line, in the same form and under the same carrier. **Rules 3 and 4 hold
+unchanged** — the pointer is one-way and no body line moves. **Rules 1 and 2 do
+not apply**: nothing was superseded, so there is no part to scope and no ADR to
+point at; name the spec that closed the anchor, which is the only record there
+is. Say plainly that it is not a supersession, so a later reader does not
+discount a document that is entirely still correct.
+
 These four rules are **convention-enforced, not machine-enforced**: the linter
 checks the status token's vocabulary and nothing else. A reviewer is the only
 thing standing between a supersession and a one-way, unscoped, or body-editing

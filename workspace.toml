@@ -1631,6 +1631,22 @@ open = [
   # artifact is committed in. That is a schema change, hence its own PR.
   {slug = "publish-control-evidence-not-repo-bound", summary = "Record the observed repository in the publish-control evidence artifact and have the linter check it matches the committing repo", source = "spec/capture-evidence-repo-dot-segments"},
 
+  # docs/specs/distribution-adapters/spec.md carries `- **Status:** Shipped`,
+  # which CONVENTIONS.md's lifecycle table puts in the Frozen class ("bodies
+  # cannot change") -- yet every adapter PR amends it: each one's Constrained-by
+  # says "Amends docs/specs/distribution-adapters/spec.md (v0.N -> v0.N+1
+  # Changelog entry)", and its per-adapter projection table has demonstrably been
+  # edited since it shipped (its Copilot skill cell moved from
+  # .github/instructions/ to .github/skills/ long after ship). So the repo treats
+  # it as Living while its Status says Frozen.
+  # spec/frozen-doc-supersession-annotations annotated it under the frozen rule
+  # rather than reopening this, and said so in its Honest scope.
+  # This is the same shape as frozen-spec-supersession Decision 2, which resolved
+  # the identical ambiguity for plan.md by scoping the licence to a phase. Decide
+  # which class this document is in and make CONVENTIONS.md say so; a document
+  # whose status and treatment disagree is a rule nobody can apply.
+  {slug = "distribution-adapters-lifecycle-class", summary = "Decide whether docs/specs/distribution-adapters/spec.md is Living or Frozen -- its Status says Shipped but every adapter PR amends its Changelog and projection table", source = "spec/frozen-doc-supersession-annotations review"},
+
   # build-check.yml installs tools/requirements-sast.txt only when
   # skip_sast != 'true', so on a SKIP_SAST PR bandit is absent and
   # lint-nosec-form's unknown-id check (a well-formed but nonexistent ID like a
