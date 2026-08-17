@@ -1683,6 +1683,43 @@ open = [
   # cost and deserves its own decision, not a ride-along.
   {slug = "lint-nosec-form-require-id-registry", summary = "Add --require-id-registry to lint-nosec-form.py so an unreachable bandit registry exits 2 instead of degrading to an exit-0 caveat, and decide whether bandit becomes a hard build-check prerequisite", source = "spec/build-check-coverage-gaps security review"},
 
+  # Nothing stops the NEXT tools/ test from landing gated by nothing.
+  # lint-ci-parity enforces workflow-step -> local-make-target and never the
+  # reverse; lint-pack-test-boundary.py enforces the reverse direction only for
+  # packs/**/tests (its _RUNNER_FILES / _NO_RUNNER tables), not for tools/.
+  # That asymmetry is the defect that produced #958, and spec/
+  # build-check-coverage-gaps fixed the instance without closing the class.
+  # Measured 2026-08-17 by scanning Makefile + .github/workflows/ + every
+  # non-test tools/**/*.py and packages/agentbundle/**/*.py for each of the 65
+  # tools/test*.py filenames: EIGHT are invoked by nothing at all --
+  # test-check-atlassian-phase3-readiness, test-check-contract-drift,
+  # test-compare-bandit-suppressions, test_build_site_dry_run,
+  # test_enterprise_rollout_playbook, test_export_work_index,
+  # test_guide_typed_asides, test_live_demo_guide. Two of those arrived in the
+  # last two merges (#980, #982), so this is an active leak, not a backlog.
+  # Note the scan must include tools/catalogue/ and tools/hooks/ as invocation
+  # sources: an earlier pass over Makefile + workflows alone reported 14 and was
+  # wrong, because pre_pr_catalogue.py invokes several directly.
+  # Fix: extend the _RUNNER_FILES/_NO_RUNNER discipline to tools/test*.py -- a
+  # test file must name a runner or carry an explicit no-runner disposition.
+  {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; eight are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
+  # Wiring the seven guides/site suites into build-check.yml (spec/
+  # build-check-coverage-gaps) couples EVERY PR to the formatting of files those
+  # tests substring-assert against. test_check_rendered_site_links.py's
+  # test_pages_gate_runs_after_both_builds_before_upload_and_has_path_filters
+  # asserts on raw text of pages.yml including exact single-quoted `paths:`
+  # entries and their occurrence COUNTS; test_catalogue_navigation.py does the
+  # same against web/src/lib/catalogue-navigation.ts and two .astro files.
+  # build-check.yml has no `paths:` filter, so a cosmetic requote in pages.yml
+  # now reddens the required check for an unrelated PR. Worse, per the
+  # antipattern recorded in docs/knowledge/observations/antipattern/2026-08.jsonl
+  # those assertions do not detect REMOVAL of what they claim to pin -- they are
+  # the source-substring shape that register entry exists to name.
+  # Fix: re-express both against parsed YAML / a parsed module graph, then
+  # confirm each goes red when the pinned control is deleted. Do not simply
+  # loosen them; the ordering they assert is real.
+  {slug = "site-test-source-substring-assertions", summary = "Re-express test_check_rendered_site_links' pages.yml ordering assertion and test_catalogue_navigation's web/src assertions against parsed structure, and verify each by deletion", source = "spec/build-check-coverage-gaps review"},
+
   # docs/specs/distribution-adapters/spec.md carries `- **Status:** Shipped`,
   # which CONVENTIONS.md's lifecycle table puts in the Frozen class ("bodies
   # cannot change") -- yet every adapter PR amends it: each one's Constrained-by

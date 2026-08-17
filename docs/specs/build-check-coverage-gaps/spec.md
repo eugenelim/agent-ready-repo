@@ -98,13 +98,10 @@ body exits non-zero. An unmutated assertion is an unverified one.
 Seven separate steps would put seven near-identical rows in `STEP_DISPOSITION`
 for no gain. One step would merge two unrelated concerns behind a single
 disposition, which is the residual `lint-ci-parity` documents and does not need
-feeding. Two steps, grouped by what they gate:
-
-- **guides and catalogue navigation** — `test_validate_guides`,
-  `test_check_guide_index`, `test_catalogue_navigation`,
-  `test_documentation_entry_links`
-- **site build and link rewriting** — `test_build_site_link_rewrites`,
-  `test_check_rendered_site_links`, `test_build_site_routing`
+feeding. Two steps, grouped by what they gate — `pytest guides + catalogue
+navigation` and `pytest site build + link rewriting`. **AC1 is the canonical
+list of which file goes where; this section does not restate it**, so a
+regrouping cannot leave two lists disagreeing.
 
 This follows the existing `pytest guides sidebar generation` step, which already
 groups three related `tools/test_build_site_*.py` files under one disposition.
@@ -162,6 +159,38 @@ not something to paper over by adding a second runner in `build-check.yml`.
       results differ — one `unknown-id` violation versus none. Measured by
       running it, not read off the docstring.
 
+- [x] **AC4b — the install step itself is pinned, and the pin is verified by
+      deletion.** `tools/test_build_gate_chain.py` gains
+      `BanditRegistryProvisioningTest`: it parses `build-check.yml`, asserts the
+      step exists, carries no `if:`, and is the step immediately before `Run
+      make build-check` — then **extracts and executes that step's real body**
+      with `pip` stubbed, once against the tree (passes) and twice against
+      mutated input (fails). Four mutations of the workflow — delete the step,
+      restore its `if:`, insert a step before the gate, drop the registry probe
+      — each turn the suite red; the restored control is green. Two further
+      mutations cover the probe's own halves: deleting either
+      `check_id("B307")` or `check_id("B999")` reddens the suite, so neither
+      direction can be dropped unnoticed. Without any of this, deleting the step
+      *and its roster row* passes `lint-ci-parity` in both directions and the
+      gate is silently inert again.
+
+      The test parses `build-check.yml` with a **stdlib** line-structured scan,
+      not PyYAML: this module is pure stdlib per `AGENTS.md`, and it also runs
+      in Gate F of `catalogue-tooling-ci-gates.yml`, whose job installs only
+      `agentbundle` (which declares no dependencies) — so a `yaml` import would
+      fail at collection there. A pin that cannot run in one of the two jobs
+      that run it is not a pin. Verified by running the suite with `yaml` made
+      unimportable.
+
+- [x] **AC4c — closing the two register entries leaves no dangling pointer.**
+      `bandit-nosec-form-lint/spec.md` (AC4b names
+      `build-check-installs-bandit-unconditionally`) and
+      `guides-readme-outcome-label-drift/spec.md` (names
+      `catalogue-site-tests-absent-from-ci`) each carry a `Status`-line
+      annotation recording that the anchor was closed and by what. Both are
+      Frozen; no body line changes; the carrier is the one `CONVENTIONS.md`
+      § *Superseding a frozen document* licenses.
+
 - [x] **AC5 — every new step carries a disposition.** `STEP_DISPOSITION` in
       `tools/lint-ci-parity.py` gains one entry per new step: `LOCAL("test")`
       for the two pytest steps (the `Makefile`'s `test` target runs all seven
@@ -217,6 +246,8 @@ Goal-based, plus one measured before/after.
 | AC1, AC2 | The workflow scan described in AC2, run on the base and on the change. |
 | AC3, AC3a | Read the edited workflow; assert the new step has no `if:` and is the last step before `Run make build-check`. Then run the step body verbatim against three mutated inputs and assert each exits non-zero. |
 | AC4 | `scan_source(src, path, id_checker())` vs `scan_source(src, path, None)` on a `B`-shaped nonexistent ID. |
+| AC4b | `pytest tools/test_build_gate_chain.py -k Bandit`, then the same against four mutated copies of `build-check.yml`; assert red each time and green on restore. |
+| AC4c | `parse_status` on both edited files; `git diff --unified=0` showing only `- **Status:**` lines. |
 | AC5, AC6 | `python3 tools/lint-ci-parity.py`; exit code and summary line. |
 | AC7 | The four gate commands. |
 | AC8 | `tomllib.load` on `workspace.toml`; assert neither slug is present. |
@@ -233,15 +264,22 @@ Four findings from `security-reviewer`, each recorded in `workspace.toml
 
 | Slug | Why not here |
 | --- | --- |
-| `lint-nosec-form-require-id-registry` | The tool degrades to an exit-0 caveat when the registry is unreachable. **Every route to that is closed in CI by this change**; what remains is a local `SKIP_SAST=1 make build-check` without bandit. Fixing it in the linter makes bandit a hard prerequisite for every contributor — a real cost, and its own decision. |
+| `lint-nosec-form-require-id-registry` | The tool degrades to an exit-0 caveat when the registry is unreachable. In CI that is now closed on three counts — the step fails if the pin is unresolvable, fails if the registry is unusable, and AC4b's test fails if the step is deleted, made conditional, or displaced. What remains is a **local** `SKIP_SAST=1 make build-check` without bandit. Fixing that in the linter makes bandit a hard prerequisite for every contributor — a real cost, and its own decision. |
 | `build-check-yml-no-permissions-block` | Adding `permissions: contents: read` changes the job's token scope. That is a behaviour change, which the bundled-fixes carve-out fails closed on, and it applies to three other workflows too. |
 | `sast-requirements-hash-locked` | Needs a generated locked file and a refresh procedure. |
 | `sast-requirements-not-audited` | `pip-audit` covers `tools/requirements.txt` and the pack files, not the CI-tooling ones. Confirmed by reading the `Makefile` invocations. A different file set and a different decision (audit vs. Dependabot). |
 
+Two more from `adversarial-reviewer`:
+
+| Slug | Why not here |
+| --- | --- |
+| `tools-test-runner-boundary` | Closing the **class** means extending `lint-pack-test-boundary.py`'s runner discipline from `packs/**/tests` to `tools/`. Eight `tools/` test files are invoked by nothing at all today — two of them landed in the last two merges — so it is worth doing and is its own change. |
+| `site-test-source-substring-assertions` | Re-expressing two suites' substring assertions against parsed structure. Needed, but it is a rewrite of tests this change only *wires up*. |
+
 ## Honest scope
 
 The seven tests now gate `main`, and bandit's registry is now present — and
-proven present — on every run. Two things this does **not** do:
+proven present — on every run. Four things this does **not** do:
 
 1. **Gate F's `paths-ignore` still excludes doc surfaces.** A PR touching only
    `docs/**` does not run `test_catalogue_tooling_rewire` or
@@ -249,3 +287,21 @@ proven present — on every run. Two things this does **not** do:
 2. **`lint-nosec-form`'s unknown-ID check gains CI reach, not novelty.** Where
    `make sast` runs, `run-bandit-gate.py` already catches the same shape via
    bandit's stderr. What changes is that a `SKIP_SAST` PR is now covered too.
+3. **The recurrence class stays open.** Nothing stops the *next* `tools/` test
+   from landing gated by nothing — `lint-ci-parity` only enforces
+   workflow-step → local-target, never the reverse, and the reverse discipline
+   exists only for `packs/**/tests`. Measured: **eight** `tools/test*.py` files
+   are invoked by no `Makefile` target, no workflow, and no tool script, two of
+   them arriving in the last four merges (#980, #982). The measurement and its
+   method live in the register entry `tools-test-runner-boundary`; this bullet
+   points at it rather than restating the list.
+4. **This couples every PR to formatting elsewhere.** Two of the seven suites
+   assert on raw substrings of `pages.yml`, `web/src/lib/catalogue-navigation.ts`
+   and two `.astro` files — including occurrence *counts* of quoted `paths:`
+   entries. `build-check.yml` has no `paths:` filter, so a cosmetic requote in
+   `pages.yml` now reddens the required check for an unrelated PR. The coupling
+   already existed in `make ci`; wiring the suites makes it block merges. Those
+   assertions are also the shape
+   `docs/knowledge/observations/antipattern/2026-08.jsonl` names — they do not
+   detect removal of what they pin. Registered as
+   `site-test-source-substring-assertions`.

@@ -1,6 +1,6 @@
 # Spec: guides-readme-outcome-label-drift
 
-- **Status:** Shipped
+- **Status:** Shipped (its deferral `catalogue-site-tests-absent-from-ci` was closed by [`build-check-coverage-gaps`](../build-check-coverage-gaps/spec.md), so that register anchor no longer resolves; not a supersession — every decision here stands)
 - **Owner:** eugenelim
 - **Plan:** none — light mode, single task
 - **Contract:** none. One documentation table cell; no schema, code, or

@@ -1,6 +1,6 @@
 # Spec: bandit-nosec-form-lint
 
-- **Status:** Shipped
+- **Status:** Shipped (AC4b's deferral `build-check-installs-bandit-unconditionally` was closed by [`build-check-coverage-gaps`](../build-check-coverage-gaps/spec.md), so that register anchor no longer resolves; not a supersession — every decision here stands)
 - **Owner:** eugenelim
 - **Plan:** none — see § Named deviation
 - **Mode:** full (governance surface — it adds a gate to the `build-check`

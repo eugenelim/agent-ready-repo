@@ -133,14 +133,30 @@ jobs:
         #       the same API and both directions of its answer.
         #   (c) a later pip resolution replacing a shared transitive dep of
         #       bandit; running last leaves nothing between here and the gate.
+        #
+        # The registry probe raises rather than asserting: a bare `assert` is
+        # compiled out under PYTHONOPTIMIZE, which would restore the silent pass
+        # this probe exists to remove.
+        #
+        # tools/test_build_gate_chain.py pins this step's existence, its lack of
+        # an `if:`, and its position — extracting this very body and running it
+        # against two mutated inputs. Nothing else does: lint-ci-parity's roster
+        # only demands a disposition for steps that exist, so deleting this step
+        # and its row would leave both gates green.
         run: |
           set -euo pipefail
           pin="$(grep -E '^bandit([^A-Za-z0-9._-]|$)' tools/requirements-sast.txt)"
           echo "installing pinned: $pin"
           pip install "$pin"
-          python -c "from bandit.core import extension_loader as e; \
-            assert e.MANAGER.check_id('B307'), 'bandit registry did not resolve a real test id'; \
-            assert not e.MANAGER.check_id('B999'), 'bandit registry resolved a nonexistent test id'"
+          python - <<'PROBE'
+          from bandit.core import extension_loader as loader
+          if not loader.MANAGER.check_id("B307") or loader.MANAGER.check_id("B999"):
+              raise SystemExit(
+                  "bandit's registry did not resolve as lint-nosec-form's "
+                  "id_checker() expects; its unknown-id check would silently "
+                  "no-op behind a green gate"
+              )
+          PROBE
 
       - name: Run make build-check
         # Pass SKIP_SAST=1 only when the diff touches no SAST-relevant file; the
