@@ -8,7 +8,7 @@
 > heading is a prompt, not an error. Keep only the sections that earn their
 > place.
 
-- **Slug:** `<slug>` <!-- kebab-case; this brief's identity. Derived specs back-link the brief's repository-relative path, not this slug -->
+- **Slug:** `<slug>` <!-- kebab-case; matches the filename. Derived specs back-link this brief by path (`docs/product/briefs/<slug>.md`), not by the bare slug -->
 - **Received:** YYYY-MM-DD
 - **Owner:** <who owns delivering this repo's slice>
 - **Status:** Draft <!-- Draft | Ready | Executing | Shipped — set by hand at DoR gate and at ship; distinct from the auto-derived Spec map Status column -->

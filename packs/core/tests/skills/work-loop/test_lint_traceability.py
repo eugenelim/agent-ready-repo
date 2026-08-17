@@ -552,6 +552,9 @@ def test_path_form_brief_backlink_resolves_local() -> None:
         rc, out, err = run(root)
         combined = out + err
         expect(rc == 0, f"path-form Brief → exit 0, got {rc}: {err}")
+        # The orphan line alone does NOT discriminate: an unaliased path
+        # resolves `unresolvable`, which still grants an in-edge. The
+        # cross-repo and raw-id assertions below are the real guards.
         expect("ORPHAN spec:alpha" not in out,
                f"spec parented via a path-form Brief is not an orphan: {out}")
         expect("cross-repo" not in combined,
@@ -559,6 +562,32 @@ def test_path_form_brief_backlink_resolves_local() -> None:
         expect("docs/product/briefs/b.md" not in combined,
                f"the path must resolve to the brief node, not remain a raw "
                f"external id: {combined}")
+
+
+def test_path_form_brief_backlink_resolves_through_symlinked_base() -> None:
+    """The recognised brief file arrives symlink-resolved, but the authored
+    `Brief:` value is the canonical unresolved path. Comparing raw relative
+    paths would miss, reintroducing the false cross-repo classification, so
+    both sides must be canonicalised before lookup."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        real = root / "docs" / "briefs2"
+        real.mkdir(parents=True)
+        write(real / "b.md", "# Brief: b\n\n- **Slug:** `b`\n")
+        (root / "docs" / "product").mkdir(parents=True, exist_ok=True)
+        try:
+            (root / "docs" / "product" / "briefs").symlink_to(
+                real, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            return  # platform without usable symlinks — nothing to assert
+        write_spec(root, "alpha", brief="docs/product/briefs/b.md")
+        rc, out, err = run(root)
+        combined = out + err
+        expect(rc == 0, f"path-form Brief via symlinked base → exit 0, got {rc}: {err}")
+        # The discriminating assertion: an unresolved-path comparison leaves the
+        # value classified cross-repo and unresolvable.
+        expect("cross-repo" not in combined,
+               f"symlinked briefs base must still resolve locally: {combined}")
 
 
 def test_path_form_brief_backlink_resolves_when_slug_differs_from_stem() -> None:
@@ -573,6 +602,8 @@ def test_path_form_brief_backlink_resolves_when_slug_differs_from_stem() -> None
         write_spec(root, "alpha", brief="docs/product/briefs/shape-a.md")
         rc, out, err = run(root)
         combined = out + err
+        # `rc == 0` is the discriminating assertion here: a stem-keyed alias
+        # would resolve to a nonexistent `brief:shape-a` node and fire DANGLING.
         expect(rc == 0, f"path-form Brief → exit 0, got {rc}: {err}")
         expect("ORPHAN spec:alpha" not in out,
                f"spec must attach to brief:real-slug via its file path: {out}")
