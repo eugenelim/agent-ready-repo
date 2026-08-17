@@ -163,7 +163,7 @@ def main() -> int:
     )
     if not result.ok:
         return stop(result.reason)
-    print(result.message)
+    print(f"check-spec-status: {result.message}")
     return 0
 
 

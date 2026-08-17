@@ -87,6 +87,19 @@ def _disabled(verb: str) -> int:
     return stop(f"{verb} is disabled in Phase 1")
 
 
+def _emit(message: str | None) -> None:
+    """Print a guard's success message under THIS tool's prefix.
+
+    The prefix belongs to the adapter, not to the guard layer: the layer is shared by
+    `loop-cohort`, `loop-engine` and `check-spec-status`, so a prefix baked into a
+    `message` is wrong for two of the three callers — and when it was, the adapter's
+    own prefix doubled it (`check-spec-status: check-spec-status: ...`), which the
+    pre-change golden capture caught. Empty message means nothing to say.
+    """
+    if message:
+        print(f"loop-cohort: {message}")
+
+
 def _resolve_spec_dir(raw: str) -> Path:
     """Resolve <spec-dir> to an absolute path; reject `..` traversal."""
     p = Path(raw).resolve()
@@ -624,7 +637,7 @@ def cmd_identity(args: argparse.Namespace) -> int:
     if args.json:
         print(json.dumps(result.data))
     else:
-        print(result.message)
+        _emit(result.message)
     return 0
 
 
@@ -793,7 +806,7 @@ def cmd_plan_check_current(args: argparse.Namespace) -> int:
     result = _g.check_plan_current(spec_dir, require_schedule=args.require_schedule)
     if not result.ok:
         return stop(result.reason)
-    print(result.message)
+    _emit(result.message)
     return 0
 
 
@@ -805,7 +818,7 @@ def _schedule_check_current_impl(spec_dir: Path) -> int:
     result = _g.check_schedule_current(spec_dir)
     if not result.ok:
         return stop(result.reason)
-    print(result.message)
+    _emit(result.message)
     return 0
 
 
@@ -925,8 +938,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     result = _g.check_phase(spec_dir, phase=args.phase)
     if not result.ok:
         return stop(result.reason)
-    if result.message:
-        print(result.message)
+    _emit(result.message)
     return 0
 
 
@@ -942,7 +954,7 @@ def cmd_wave_check(args: argparse.Namespace) -> int:
     result = _g.check_wave(spec_dir, expect=args.expect, wave_index=args.wave_index)
     if not result.ok:
         return stop(result.reason)
-    print(result.message)
+    _emit(result.message)
     return 0
 
 

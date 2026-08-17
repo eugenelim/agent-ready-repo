@@ -3249,7 +3249,13 @@ _TRANSITION_STEPS = [
     ("transition-table validation", "illegal transition"),
     ("CODE schedule pre-check", "_schedule_check_current(spec_dir)"),
     ("event-specific guard", "guard_fn(spec_dir, state, event_args)"),
-    ("state decision", "_write_engine_state_atomic(spec_dir, new_state)"),
+    # The DECISION and the FINALIZATION are two steps, and they were previously one
+    # anchor: the label said "state decision" while the anchor was the atomic write,
+    # so AC17's decision step had no anchor at all and the count only looked right
+    # because crash recovery had been split into two. This list is now one-for-one
+    # with AC17's twelve.
+    ("state decision", '"gate_question": _GATE_QUESTIONS.get(next_state)'),
+    ("outbox plus state finalization", "_write_engine_state_atomic(spec_dir, new_state)"),
 ]
 
 
@@ -3297,10 +3303,13 @@ def test_transition_steps_appear_in_the_documented_order() -> None:
 
 
 def test_wave_index_validation_wins_over_an_unreadable_engine_state(tmp: Path) -> None:
-    """Double violation, steps 2 vs 4: the earlier step's refusal is the one reported.
+    """Double violation, steps 2 vs 5: the earlier step's refusal is the one reported.
 
     `wave-passed` without `--wave-index` AND an unreadable engine-state.json. The
-    wave-index check is step 2 and the read is step 4, so the wave-index message wins.
+    wave-index check is step 2 and the engine-state read is step 5, so the wave-index
+    message wins. Step numbers are AC17's twelve, which `_TRANSITION_STEPS` mirrors
+    one-for-one — an earlier revision cited two different numberings in these two
+    docstrings.
     """
     name = "double-violation-wave-index-vs-read"
     spec_dir = make_spec_dir(tmp, name)
@@ -3316,6 +3325,8 @@ def test_wave_index_validation_wins_over_an_unreadable_engine_state(tmp: Path) -
 
 def test_schedule_precheck_wins_over_a_failing_event_guard(tmp: Path) -> None:
     """Double violation, steps 9 vs 10: the CODE schedule pre-check precedes the guard.
+
+    Step numbers are AC17's twelve, mirrored by `_TRANSITION_STEPS`.
 
     A drifted plan hash AND a not-last wave. `gates-clean`'s own guard would refuse on
     the wave, but the schedule pre-check runs first.

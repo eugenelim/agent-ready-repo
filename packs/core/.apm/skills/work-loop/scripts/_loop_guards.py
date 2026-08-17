@@ -9,7 +9,9 @@ about whether a transition is legal.
 Contract — every public function in this module:
 
   * takes explicit typed arguments and returns a `GuardResult`;
-  * prints NOTHING to stdout or stderr;
+  * prints NOTHING to stdout or stderr, and carries no CLI prefix in `reason`
+    or `message` — each adapter adds its own, so the layer cannot double it
+    (which it did once, caught by the golden capture);
   * parses no arguments, reads no `sys.argv`, never calls `sys.exit`;
   * mutates no state file and creates no file anywhere;
   * never spawns a process and never opens a socket.
@@ -238,7 +240,10 @@ def contained(fn):
     its import allowlist forbids.
 
     The reason never carries raw artifact content — only an exception type and a
-    message — because a refusal is printed to a stderr the agent captures.
+    message — because a refusal is printed to a stderr the agent captures. It DOES
+    name the failing guard: six guards share this decorator and their reasons are
+    otherwise indistinguishable, so an operator reading `internal-error: RuntimeError:
+    ...` could not tell which decision failed to be made.
     """
 
     @functools.wraps(fn)
@@ -248,7 +253,9 @@ def contained(fn):
         except Exception as exc:  # noqa: BLE001 — the containment boundary itself
             return GuardResult(
                 ok=False,
-                reason=_one_line(f"{INTERNAL_ERROR}: {type(exc).__name__}: {exc}"),
+                reason=_one_line(
+                    f"{INTERNAL_ERROR}: {fn.__name__}: {type(exc).__name__}: {exc}"
+                ),
             )
 
     return wrapper
@@ -941,7 +948,7 @@ def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
     return GuardResult(
         ok=True,
         message=(
-            f"loop-cohort: run_id={stored} schema_version={state.get('schema_version')}"
+            f"run_id={stored} schema_version={state.get('schema_version')}"
         ),
         data={"run_id": stored, "schema_version": state.get("schema_version")},
     )
@@ -1028,7 +1035,7 @@ def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> Gua
             )
 
     return GuardResult(
-        ok=True, message=f"loop-cohort: plan check-current OK for {spec_dir.name}"
+        ok=True, message=f"plan check-current OK for {spec_dir.name}"
     )
 
 
@@ -1059,7 +1066,7 @@ def check_schedule_current(spec_dir: Path) -> GuardResult:
             ),
         )
     return GuardResult(
-        ok=True, message=f"loop-cohort: schedule check-current OK for {spec_dir.name}"
+        ok=True, message=f"schedule check-current OK for {spec_dir.name}"
     )
 
 
@@ -1171,7 +1178,7 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
             return GuardResult(
                 ok=True,
                 message=(
-                    f"loop-cohort: wave check more — wave_index={idx} has more waves "
+                    f"wave check more — wave_index={idx} has more waves "
                     f"(total={total})"
                 ),
             )
@@ -1185,7 +1192,7 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
             return GuardResult(
                 ok=True,
                 message=(
-                    f"loop-cohort: wave check last — wave_index={idx} is the last wave "
+                    f"wave check last — wave_index={idx} is the last wave "
                     f"(total={total})"
                 ),
             )
@@ -1265,7 +1272,7 @@ def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> Guar
         )
     return GuardResult(
         ok=True,
-        message=f"check-spec-status: OK — Status: {expect} at {target}",
+        message=f"OK — Status: {expect} at {target}",
         data={"path": str(target), "status": token},
     )
 

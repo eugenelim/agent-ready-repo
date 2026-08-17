@@ -572,7 +572,11 @@ def test_contained_converts_exception_to_refusal(g) -> None:
 
     result = boom(1)
     assert result.ok is False
-    assert result.reason.startswith("internal-error: RuntimeError")
+    assert result.reason.startswith(f"{g.INTERNAL_ERROR}: ")
+    # The failing function is named. Six guards share this decorator, so without it an
+    # operator cannot tell which decision failed to be made.
+    assert "boom" in result.reason, f"reason does not name the guard: {result.reason!r}"
+    assert "RuntimeError" in result.reason
     assert "\n" not in result.reason, "reason must be one line — it is a CLI contract"
 
 
@@ -656,6 +660,9 @@ def test_every_guard_contains_an_unexpected_exception(guard_name, tmp_path) -> N
     assert result.ok is False
     assert result.reason.startswith(g.INTERNAL_ERROR), (
         f"{guard_name} refused without the internal-error marker: {result.reason!r}"
+    )
+    assert guard_name in result.reason, (
+        f"the reason does not name the failing guard: {result.reason!r}"
     )
     assert "RuntimeError" in result.reason
     assert "\n" not in result.reason, "a reason is a one-line CLI contract"
@@ -1238,12 +1245,19 @@ def test_every_cohort_verb_refuses_when_the_module_is_unavailable(tmp_path: Path
 def test_loader_copies_are_structurally_identical() -> None:
     """Three copies is a decision — the loader cannot live in the module it loads.
 
-    Byte-identity is impossible: each copy differs in function name and in the tool
-    prefix on its messages. So the comparison is over the normalized AST of the
-    function body, and the test additionally asserts the prefixes really do differ,
-    which stops the normalization being loosened until it passes vacuously.
+    The comparison is over the AST of the function body with the docstring dropped,
+    and it needs no normalization at all: once the CLI prefixes moved out of the guard
+    layer into the adapters, the three bodies became identical as written. That is
+    strictly better than a normalized comparison, because there is no substitution
+    left that could be loosened until the test passes vacuously. (An earlier revision
+    substituted the tool names and claimed in its docstring to assert that the
+    prefixes really differed; it did not make that assertion, and the substitution is
+    now provably a no-op — asserted below, so reintroducing a tool-specific literal
+    fails here rather than being silently absorbed.)
 
-    Copies land across T1a/T2/T3, so absent ones are reported rather than failed.
+    All three copies must resolve. Skipping when fewer were found is how this test
+    would quietly stop covering a renamed copy — it is the failure mode, not a
+    tolerance.
     """
     import ast
     import re as _re
@@ -1256,26 +1270,32 @@ def test_loader_copies_are_structurally_identical() -> None:
     bodies: dict[str, str] = {}
     for filename, funcname in wanted.items():
         path = SCRIPTS / filename
-        if not path.is_file():
-            continue
+        assert path.is_file(), f"loader copy {filename} is missing"
         tree = ast.parse(path.read_text(encoding="utf-8"))
         fn = next((n for n in tree.body
                    if isinstance(n, ast.FunctionDef) and n.name == funcname), None)
-        if fn is None:
-            continue
-        # Drop the docstring, then normalize the tool-specific literals away.
+        assert fn is not None, (
+            f"{filename} has no top-level {funcname}() — if the loader was renamed, "
+            "update `wanted` so this check keeps covering all three copies"
+        )
         body = fn.body[1:] if (fn.body and isinstance(fn.body[0], ast.Expr)
                                and isinstance(fn.body[0].value, ast.Constant)) else fn.body
-        dumped = "\n".join(ast.dump(node) for node in body)
-        dumped = _re.sub(r"loop-cohort|loop-engine|check-spec-status", "<TOOL>", dumped)
-        bodies[filename] = dumped
+        bodies[filename] = "\n".join(ast.dump(node) for node in body)
 
-    if len(bodies) < 2:
-        pytest.skip(f"only {len(bodies)} loader copy present so far: {sorted(bodies)}")
-    distinct = set(bodies.values())
-    assert len(distinct) == 1, (
-        "the loader copies have drifted; present: " + ", ".join(sorted(bodies))
+    assert len(bodies) == 3, f"expected 3 loader copies, compared {len(bodies)}"
+    assert len(set(bodies.values())) == 1, (
+        "the loader copies have drifted:\n"
+        + "\n".join(f"  {f}: {len(b)} chars" for f, b in sorted(bodies.items()))
     )
+    # No tool-specific literal may reappear in a body, which is what made the old
+    # normalization necessary and what would make this comparison meaningless again.
+    for filename, body in bodies.items():
+        leaked = _re.findall(r"loop-cohort|loop-engine|check-spec-status", body)
+        assert not leaked, (
+            f"{filename}'s loader body names a specific tool ({sorted(set(leaked))}). "
+            "The three copies are identical as written; keep tool-specific text in the "
+            "caller, not in the shared loader body."
+        )
 
 
 # ══ T1b: the six guard decisions ═══════════════════════════════════════════
