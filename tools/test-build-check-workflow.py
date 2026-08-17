@@ -138,12 +138,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "build-check.yml"
-# A `paths:`/`paths-ignore:` key at trigger-option indent. `[ ]{4}` rather than
-# `\s{4}`: the latter spans newlines, so it also matched a 2-space `paths:` after
-# blank lines and a job-level key — fail-closed, but not the scope the comment
-# claimed. Searched within the `on:` block only, so a step input named `paths:`
-# elsewhere cannot trip it.
-_TRIGGER_PATHS_RE = re.compile(r"^[ ]{4}paths(-ignore)?[ ]*:", re.M)
 
 
 def _on_block(text: str) -> str:
@@ -249,6 +243,15 @@ def _key_re(key: str, indent: str = r"\s*") -> re.Pattern[str]:
     assertion now shares this matcher so the CLASS is closed, not a spelling.
     """
     return re.compile(rf"^{indent}['\"]?{re.escape(key)}['\"]?\s*:", re.M)
+
+
+# `paths:`/`paths-ignore:` anywhere inside the `on:` block, at ANY indent and in any
+# quoting. An earlier draft hard-coded `[ ]{4}` and the bare spelling — the only key
+# matcher in this file not going through `_key_re` — so `'paths':`, `"paths-ignore":`,
+# a 6-space indent, and the `on.push` trigger each slipped past while the audit stayed
+# green. Indent is deliberately unconstrained: the block is already scoped to `on:`,
+# so any depth within it is a trigger option.
+_TRIGGER_PATHS_RES = (_key_re("paths", r"[ ]+"), _key_re("paths-ignore", r"[ ]+"))
 
 
 # Step-level `env:` stays legal — the detect step and the guard need it — but its KEYS
@@ -1309,6 +1312,21 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("contrast-suite-pinned",
           bool(_pinned(_contrast_step, PINNED_CONTRAST_SUITE)))
 
+    # Whole-body equality, not statement presence. `_pinned` finds a statement
+    # wherever it sits, so a prepended `exit 0` left every pin satisfied while the
+    # step ran nothing — measured green. These three bodies are finitely enumerable
+    # (one, one, and two statements), which is this file's own stated escape from the
+    # neutering ladder: pin the whole set rather than enumerate what may not precede it.
+    check("site-guides-body-exact",
+          _run_lines(_step_named(main_blk, "pytest guides + catalogue navigation"))
+          == [PINNED_SITE_GUIDES_PYTEST])
+    check("site-build-body-exact",
+          _run_lines(_step_named(main_blk, "pytest site build + link rewriting"))
+          == [PINNED_SITE_BUILD_PYTEST])
+    check("contrast-body-exact",
+          _run_lines(_step_named(main_blk, "docs palette contrast gate"))
+          == [PINNED_CONTRAST_CHECKER, PINNED_CONTRAST_SUITE])
+
     # AC2's second neutering form. `continue-on-error` is covered file-wide, and
     # cwd redirection by _NO_CWD_STEPS above — but a step-level `if:` was the live
     # bypass: `if: ${{ false }}` on either pytest step or the contrast step skipped
@@ -1330,7 +1348,8 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # yamllint-truthy-friendly spelling nothing else here pins) made the whole
     # assertion vacuous and a paths: filter passed undetected.
     _on = _on_block(text)
-    check("no-path-filter", bool(_on) and not _TRIGGER_PATHS_RE.search(_on))
+    check("no-path-filter",
+          bool(_on) and not any(r.search(_on) for r in _TRIGGER_PATHS_RES))
 
     # AC4: the predicate has exactly one consumer.
     sast_blk = _job_block(text, "gate-sast")
@@ -1519,6 +1538,24 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("dry-run-contrast-checker", "contrast-checker-pinned",
      lambda t: t.replace("python3 tools/check-docs-contrast.py",
                          "python3 tools/check-docs-contrast.py --dry-run")),
+    ("exit-0-prefix-in-contrast-step", "contrast-body-exact",
+     lambda t: t.replace("          python3 tools/check-docs-contrast.py\n",
+                         "          exit 0\n          python3 tools/check-docs-contrast.py\n")),
+    ("exit-0-prefix-in-site-step", "site-guides-body-exact",
+     lambda t: t.replace("          python -m pytest\n          tools/test_validate_guides.py",
+                         "          exit 0\n          python -m pytest\n          tools/test_validate_guides.py")),
+    ("exit-0-prefix-in-site-build-step", "site-build-body-exact",
+     lambda t: t.replace("          python -m pytest\n          tools/test_build_site_link_rewrites.py",
+                         "          exit 0\n          python -m pytest\n          tools/test_build_site_link_rewrites.py")),
+    ("quote-paths-key", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n    'paths':\n      - 'tools/**'\n", 1)),
+    ("paths-ignore-key", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n    paths-ignore:\n      - 'docs/**'\n", 1)),
+    ("deep-indent-paths", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n      branches: [main]\n      paths:\n        - 'tools/**'\n", 1)),
     ("quote-on-key", "no-path-filter",
      lambda t: t.replace("on:\n", "'on':\n", 1)),
     # A paths: filter on a workflow whose jobs are required contexts leaves every

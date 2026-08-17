@@ -56,6 +56,12 @@ def _css(pairs: str, light_overrides: str = "") -> str:
     declarations and no test could distinguish them — deleting the light theme from
     `theme_tables` left the whole suite green while silently dropping 14 pairs,
     including the three closest to the floor in the shipped palette.
+
+    One residual, stated rather than left implied: every fixture here declares the
+    full `PAIRS` set in BOTH blocks, so none exercises light *inheriting* a name it
+    does not declare. Mutating the merge to `dict(light)` therefore leaves this suite
+    green; the shipped-palette run is what catches that (one pair errors, exit 1), so
+    it is not silent in CI.
     """
     return (
         ":root {\n" + pairs + "}\n"
@@ -118,8 +124,9 @@ def test_floor_is_the_wcag_aa_threshold() -> None:
 def test_tightest_real_pairs_straddle_the_floor() -> None:
     """#767676 on white is the canonical just-above-4.5 web pair; #777777 just fails.
 
-    Both are within 0.03 of the floor, so this brackets it tightly — an earlier
-    draft used #8a8a8a (3.45), loose enough that FLOOR could drift ~24% undetected.
+    Measured margins: #767676 is 4.5422 (+0.042), #777777 is 4.4781 (-0.022) — the
+    floor is bracketed within 0.07 total. An earlier draft used #8a8a8a (3.45), loose
+    enough that FLOOR could drift ~24% undetected.
     """
     assert mod.ratio("#767676", "#ffffff") >= mod.FLOOR
     assert mod.ratio("#777777", "#ffffff") < mod.FLOOR
