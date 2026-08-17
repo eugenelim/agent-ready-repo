@@ -825,10 +825,20 @@ def _cohort_fixture(root: Path, *, approved: bool) -> Path:
     return spec_dir
 
 
-@pytest.mark.parametrize("verb", ["approve-plan", "schedule"])
+# `pre_approved` selects WHICH hash block inside `cmd_approve_plan` is exercised, and
+# it is not cosmetic. With `plan_review_status: "pending"` the crash-window
+# `_read_md_status` refuses first, so the two `sha256_canonical_contract` blocks are
+# never reached — every approve-plan row passed while the `except` tuples they exist to
+# cover were narrowed back. `"approved"` takes the idempotency branch, where the hash
+# comparison runs BEFORE any status read.
+@pytest.mark.parametrize("verb,pre_approved", [
+    ("approve-plan", False),   # crash-window status read refuses
+    ("approve-plan", True),    # idempotency branch: reaches the hash comparison
+    ("schedule", True),
+], ids=["approve-plan-pending", "approve-plan-already-approved", "schedule"])
 @pytest.mark.parametrize("breakage", ["symlinked", "oversized"])
 def test_a_lock_holding_verb_refuses_an_unsafe_artifact_without_writing(
-    verb: str, breakage: str, tmp_path: Path,
+    verb: str, pre_approved: bool, breakage: str, tmp_path: Path,
 ) -> None:
     """The four widened `except` tuples, at the two verbs that hold the cohort lock.
 
@@ -839,8 +849,18 @@ def test_a_lock_holding_verb_refuses_an_unsafe_artifact_without_writing(
 
     The byte-comparison is the load-bearing assertion. A one-line refusal that had
     already written half its result would satisfy an exit-code check.
+
+    Coverage limit, stated rather than implied: of `cmd_approve_plan`'s two
+    `sha256_canonical_contract` blocks, only the idempotency one is reachable by
+    breaking an artifact. The pending branch's block — the one that WRITES what it
+    computes — sits after `_read_md_status`, and both read the same file through the
+    same bounded reader, so any breakage that would trip the hash trips the status read
+    first. Its `except` is therefore a guard against the artifact becoming unsafe
+    BETWEEN those two reads: a genuine TOCTOU, covered by
+    `test_the_write_block_refuses_a_mid_verb_swap_without_writing` below rather than
+    here.
     """
-    spec_dir = _cohort_fixture(tmp_path, approved=(verb == "schedule"))
+    spec_dir = _cohort_fixture(tmp_path, approved=pre_approved)
     target = spec_dir / "plan.md"
 
     if breakage == "symlinked":
@@ -859,16 +879,89 @@ def test_a_lock_holding_verb_refuses_an_unsafe_artifact_without_writing(
 
     proc = run_cohort(verb, spec_dir, "--expect-run-id", RUN_ID, cwd=tmp_path)
 
-    assert proc.returncode != 0, f"{verb}/{breakage} reported success on an unsafe artifact"
+    assert proc.returncode != 0, f"{verb}/{breakage}/pre_approved={pre_approved} reported success on an unsafe artifact"
     assert "Traceback" not in proc.stderr, (
-        f"{verb}/{breakage} escaped as a traceback:\n{proc.stderr}"
+        f"{verb}/{breakage}/pre_approved={pre_approved} escaped as a traceback:\n{proc.stderr}"
     )
     assert len(proc.stderr.strip().splitlines()) == 1, (
-        f"{verb}/{breakage} expected one stderr line, got:\n{proc.stderr}"
+        f"{verb}/{breakage}/pre_approved={pre_approved} expected one stderr line, got:\n{proc.stderr}"
     )
     assert state_file.read_bytes() == before, (
-        f"{verb}/{breakage} mutated state.json while refusing — a partial write from "
+        f"{verb}/{breakage}/pre_approved={pre_approved} mutated state.json while refusing — a partial write from "
         "a lock holder is the failure this criterion exists to prevent"
+    )
+
+
+def test_the_write_block_refuses_a_mid_verb_swap_without_writing(tmp_path: Path) -> None:
+    """`cmd_approve_plan`'s WRITE block: the artifact goes unsafe after the status read.
+
+    This is the block AC12 singles out — "entirely unguarded and wrote its result".
+    It cannot be reached by breaking the artifact up front, because `_read_md_status`
+    reads the same file through the same reader and refuses first. So the failure it
+    guards is a TOCTOU: `Status: Approved` is read successfully, and the file becomes
+    non-regular before `sha256_canonical_contract` runs.
+
+    Simulated in a sandbox by making the guard module's `read_managed_text` succeed for
+    the status read and then fail, which is what a swap between the two reads looks
+    like from inside the verb. Without the `except`, that is a traceback out of a
+    process holding the cohort lock; with a returning stub, it stores a non-digest as
+    the approved baseline.
+    """
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    for name in ("loop-cohort.py", "_statelock.py", "lint-spec-status.py"):
+        (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "state.json").write_bytes(
+        (SCRIPTS.parent / "assets" / "state.json").read_bytes()
+    )
+
+    # A guard module whose reader fails only AFTER the first two successful reads
+    # (spec.md and plan.md status), i.e. exactly when the hashing block runs.
+    guard_src = GUARDS.read_text(encoding="utf-8")
+    anchor = "def read_managed_text(path: Path, label: str) -> str:"
+    assert anchor in guard_src, "injection anchor moved — update this test"
+    injected = anchor + """
+    global _SWAP_READS
+    try:
+        _SWAP_READS += 1
+    except NameError:
+        _SWAP_READS = 1
+    if _SWAP_READS > 2:
+        raise ValueError(f"{label} must be a regular file")
+"""
+    (scripts / "_loop_guards.py").write_text(
+        guard_src.replace(anchor, injected, 1), encoding="utf-8"
+    )
+
+    repo = tmp_path / "repo"
+    spec_dir = _cohort_fixture(repo, approved=False)   # pending -> the write branch
+    state_file = spec_dir / "state.json"
+    before = state_file.read_bytes()
+
+    proc = subprocess.run(
+        [sys.executable, str(scripts / "loop-cohort.py"), "approve-plan",
+         str(spec_dir), "--expect-run-id", RUN_ID],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        check=False, cwd=str(repo), timeout=60,
+    )
+
+    assert proc.returncode != 0, (
+        f"approve-plan reported success after the artifact went unsafe mid-verb:\n"
+        f"{proc.stdout}{proc.stderr}"
+    )
+    assert "Traceback" not in proc.stderr, (
+        f"the write block escaped as a traceback:\n{proc.stderr}"
+    )
+    assert len(proc.stderr.strip().splitlines()) == 1, (
+        f"expected one stderr line, got:\n{proc.stderr}"
+    )
+    assert "cannot pin the approved artifacts" in proc.stderr, (
+        f"refused, but not from the write block: {proc.stderr.strip()[:200]!r}"
+    )
+    assert state_file.read_bytes() == before, (
+        "approve-plan wrote state.json after failing to hash — the baseline would "
+        "record a half-applied approval"
     )
 
 

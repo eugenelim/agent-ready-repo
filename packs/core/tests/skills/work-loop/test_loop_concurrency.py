@@ -836,19 +836,54 @@ def test_the_guard_path_cannot_reach_lint_spec_status_git_calls() -> None:
     requires, so the roots are read from `_PARSER_SYMBOLS` rather than restated:
     a symbol added there widens this walk automatically.
 
-    Vacuity is the real hazard — a reachability walk that resolves nothing proves
-    nothing. So this pins BOTH sides: no spawn in the reachable set, and the three
-    spawning functions present in the *unreachable* set. If the walk collapses, the
-    second assertion fails.
+    Vacuity is the real hazard, and the FIRST version of this test fell into it. It
+    asserted only that no spawn was in the reachable set and that the spawning
+    functions were disjoint from it — both trivially true when the walk resolves
+    nothing, which is exactly what happens here: `parse_status` and
+    `extract_status_token` call no other same-module function, so the reachable set
+    IS the root set. Patching `reachable_from` to `return set()` left it green.
+
+    So the artifact is a POSITIVE CONTROL plus the negative claim. `main()` demonstrably
+    reaches all three spawning functions through a multi-hop walk; if the walker stops
+    resolving edges, that assertion goes red and the negative result below stops being
+    reported as meaningful. Without it, "the guard path reaches no spawn" is
+    indistinguishable from "the walker found nothing at all".
     """
     import ast as _ast
 
     parser = SCRIPT_DIR / "lint-spec-status.py"
     tree = _ast.parse(parser.read_text(encoding="utf-8"))
+    funcs = ss.functions_in(tree)
 
+    spawning = {
+        name for name, fn in funcs.items() if any(True for _ in ss.spawn_calls(fn))
+    }
+    if not spawning:
+        fail("guard-path-reachability",
+             f"no spawning function found in {parser.name} — the scan is not looking "
+             "at what it thinks it is (did the spawn set or the file change?)")
+        return
+
+    # ── positive control: the walker really does resolve multi-hop edges ────
+    # `main` is the CLI entry point and reaches every spawning function. This is the
+    # assertion that makes the negative result below mean something.
+    control = ss.reachable_from(tree, {"main"})
+    missed = sorted(spawning - control)
+    if missed:
+        fail("guard-path-reachability",
+             f"positive control failed: walking from main() did not reach {missed}, so "
+             "the reachability walker is not resolving edges and the negative result "
+             "below would be vacuous")
+        return
+    if len(control) < 5:
+        fail("guard-path-reachability",
+             f"positive control resolved only {len(control)} name(s) from main(); the "
+             "walk has collapsed to something too shallow to trust")
+        return
+
+    # ── the negative claim ─────────────────────────────────────────────────
     guards = _load_module(SCRIPT_DIR / "_loop_guards.py", "_guards_reach")
     roots = set(guards._PARSER_SYMBOLS)
-    funcs = ss.functions_in(tree)
     callable_roots = roots & set(funcs)
     if not callable_roots:
         fail("guard-path-reachability",
@@ -857,7 +892,6 @@ def test_the_guard_path_cannot_reach_lint_spec_status_git_calls() -> None:
         return
 
     reachable = ss.reachable_from(tree, callable_roots)
-
     offenders = sorted({
         f"{label} at {parser.name}:{node.lineno} (in {name}())"
         for name in reachable
@@ -868,23 +902,6 @@ def test_the_guard_path_cannot_reach_lint_spec_status_git_calls() -> None:
              f"the guard path reaches a process spawn in {parser.name}: {offenders}. "
              "AC21's deferral of the four unbounded git calls rests on them being "
              "unreachable; bound them or re-scope the criterion.")
-        return
-
-    # The vacuity guard. These three functions hold the four unbounded git calls;
-    # they must exist, must spawn, and must NOT be reachable. A walk that resolved
-    # nothing would still satisfy the offenders check above.
-    spawning = sorted({
-        name for name, fn in funcs.items() if any(True for _ in ss.spawn_calls(fn))
-    })
-    if not spawning:
-        fail("guard-path-reachability",
-             f"no spawning function found in {parser.name} — the scan is not looking "
-             "at what it thinks it is (did the spawn set or the file change?)")
-        return
-    leaked = sorted(set(spawning) & reachable)
-    if leaked:
-        fail("guard-path-reachability",
-             f"spawning function(s) {leaked} are reachable from the guard path")
         return
     ok("guard-path-reachability")
 
