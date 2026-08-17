@@ -456,6 +456,35 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
+  # cross-repository reference, so now that a spec's `Brief:` back-link is the
+  # canonical path form it reports a brief that lives in THIS repo as "unknown /
+  # not-yet-catalogued (cross-repo, unresolvable)" and drops the brief↔spec edge
+  # it exists to generalize. Informational, exit 0, so no gate catches it. A
+  # mistyped path is also only informational, where a mistyped bare slug has
+  # always been a fatal dangling pointer — so path-form typos are detected less
+  # strictly than slug-form ones. Fix: resolve a canonical local brief path to
+  # its brief node before endpoint classification
+  # (packs/core/.apm/skills/work-loop/scripts/lint-traceability.py). Attempted
+  # and withdrawn during the brief-path provenance fix: the shipped
+  # docs/specs/traceability-lint/spec.md makes this Ask-first ("changing a
+  # producer-pointer field") and its Never-do list forbids identifying a node by
+  # file path, hardcoding an artifact path, and treating a well-formed cross-repo
+  # reference as dangling — and a naive alias hard-failed on brief files that
+  # exist under a `[traceability].briefs` override. Unblocked by a reviewed
+  # amendment to that spec carrying the Ask-first sign-off; no `needs` edge.
+  {slug = "traceability-brief-path-backlink-unresolved", source = "spec-less brief-path provenance fix (review rounds 1 and 4)"},
+  # lint-brief-coverage.py and lint-traceability.py both still match a bare-slug
+  # `Brief:` back-link, so a slug-form spec passes every early gate and only
+  # fails later at workspace-status reconciliation, where it blocks dispatch.
+  # The docstrings now say the slug is backward-compatible only, but nothing
+  # tells an author at lint time. Fix: have the coverage lint emit a non-fatal
+  # note naming any spec whose back-link matched by slug rather than by path
+  # (lint-brief-coverage.py, receive-brief skill). Deferred because it adds
+  # output to a lint many repositories run in CI. Unblocked once the note is
+  # agreed to be non-fatal and that lint's output contract is versioned; no
+  # tracked dependency, so no `needs` edge.
+  {slug = "brief-backlink-slug-form-needs-lint-note", source = "spec-less brief-path provenance fix (review concern 5)"},
   # The publish job's environment gate asks a human to release executable plugin
   # code adopters install, but GitHub's approval UI shows only the environment
   # name and a comment box — nothing about what is being published. A summary

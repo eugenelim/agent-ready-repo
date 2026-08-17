@@ -17,8 +17,11 @@ new state.
 Rollup rules:
   - A brief is *delivered* only when its Spec map is non-empty AND every mapped
     spec is `Shipped`. An empty map is never vacuously delivered.
-  - A spec that back-links a brief (`Brief: <slug>`) but is absent from that
-    brief's Spec map is reported **untracked** — informational, never an error.
+  - A spec that back-links a brief but is absent from that brief's Spec map is
+    reported **untracked** — informational, never an error. The canonical
+    back-link is the path form pinned by `docs/CONVENTIONS.md` § Spec metadata
+    contract; the bare `Slug:` spelling is still matched here for backward
+    compatibility only.
   - A `docs/product/briefs/_template.md` (or any `_`-prefixed file) is the
     shipped template, not a brief; it is skipped.
 
@@ -81,7 +84,11 @@ def extract_token(raw: str) -> str:
 
 
 def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
-    """Return (status-token, brief-back-link-slug) from a spec's header.
+    """Return (status-token, brief-back-link) from a spec's header.
+
+    The back-link is the canonical path form, or a legacy bare slug. A leading
+    `./` is stripped so the path spelling compares equal to the brief's own
+    repository-relative path.
 
     A `Brief:` value that is empty, `none`, or the template HTML-comment
     placeholder counts as no back-link (None).
@@ -99,16 +106,22 @@ def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
                 value = m.group(1).strip()
                 if not _is_placeholder(value):
                     brief = extract_token(value).strip("`")
+                    if brief.startswith("./"):
+                        brief = brief[2:]
     return status, brief
 
 
 def parse_brief_slug(brief_text: str, fallback: str) -> str:
     """Return the brief's canonical slug from its `- **Slug:**` field.
 
-    A derived spec's `Brief:` back-link names this slug, which need not equal
-    the brief's filename stem — so the slug, not the stem, is the join key for
-    coverage and untracked detection. Falls back to `fallback` (the filename
-    stem) only when no usable `Slug:` field is present.
+    A derived spec's `Brief:` back-link canonically names the brief's
+    repository-relative path, the form pinned by `docs/CONVENTIONS.md`
+    § Spec metadata contract; the bare slug is matched only for backward
+    compatibility. The template pins slug == filename stem, but the join keys
+    off this field (and, for the path spelling, off the file itself), so a
+    hand-edited brief that breaks that invariant still maps correctly. Falls
+    back to `fallback` (the filename stem) only when no usable `Slug:` field is
+    present.
     """
     for line in brief_text.splitlines():
         m = _SLUG_RE.search(line)
@@ -216,9 +229,13 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                 out.append(f"  - {spec_slug}: {status if status else 'missing'}")
 
         # Untracked: specs that back-link this brief but aren't in its map.
+        # A back-link names the brief either by its `Slug:` identity or by its
+        # canonical repository-relative path (the form the spec template,
+        # `docs/CONVENTIONS.md`, and workspace-status provenance all specify);
+        # both resolve to this brief, so either spelling is recognised here.
         untracked = sorted(
             slug for slug, (_, back) in specs.items()
-            if back == brief_slug and slug not in mapped
+            if back in (brief_slug, rel) and slug not in mapped
         )
         for slug in untracked:
             out.append(
