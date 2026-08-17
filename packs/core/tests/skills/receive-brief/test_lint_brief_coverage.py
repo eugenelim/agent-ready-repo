@@ -177,6 +177,38 @@ def test_slug_differs_from_filename() -> None:
                f"gamma back-links by slug, must be untracked: {out}{err}")
 
 
+def test_path_form_backlink_joins_to_brief() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # The canonical `Brief:` spelling is the brief's repository-relative
+        # path — the form the spec template, `docs/CONVENTIONS.md`, and
+        # workspace-status provenance all require. It must resolve to the same
+        # brief as the bare slug, or untracked detection silently stops firing
+        # for every path-form spec.
+        write_spec(root, "gamma", "Draft", brief="docs/product/briefs/myb.md")
+        write_brief(root, "myb", [("alpha", "<auto>")])
+        rc, out, err = run_lint(root)
+        combined = (out + err).lower()
+        expect(rc == 0, f"untracked is informational, got {rc}: {err}")
+        expect("gamma" in combined and "untracked" in combined,
+               f"path-form back-link must resolve to the brief: {out}{err}")
+
+
+def test_path_form_backlink_respects_slug_identity() -> None:
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        # Path-form recognition joins on the brief's real relative path, so a
+        # spec naming a *different* brief's path stays unmatched rather than
+        # being swept into this brief's untracked list.
+        write_spec(root, "gamma", "Draft", brief="docs/product/briefs/other.md")
+        write_brief(root, "myb", [("alpha", "<auto>")])
+        rc, out, err = run_lint(root)
+        combined = (out + err).lower()
+        expect(rc == 0, f"unrelated back-link must not error, got {rc}: {err}")
+        expect("gamma" not in combined,
+               f"a foreign brief path must not join to this brief: {out}{err}")
+
+
 def test_prose_pipe_after_table_is_not_a_row() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)

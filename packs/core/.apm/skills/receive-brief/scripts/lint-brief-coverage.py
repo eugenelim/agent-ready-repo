@@ -216,9 +216,13 @@ def check(root: Path) -> tuple[list[str], list[str]]:
                 out.append(f"  - {spec_slug}: {status if status else 'missing'}")
 
         # Untracked: specs that back-link this brief but aren't in its map.
+        # A back-link names the brief either by its `Slug:` identity or by its
+        # canonical repository-relative path (the form the spec template,
+        # `docs/CONVENTIONS.md`, and workspace-status provenance all specify);
+        # both resolve to this brief, so either spelling is recognised here.
         untracked = sorted(
             slug for slug, (_, back) in specs.items()
-            if back == brief_slug and slug not in mapped
+            if back in (brief_slug, rel) and slug not in mapped
         )
         for slug in untracked:
             out.append(
