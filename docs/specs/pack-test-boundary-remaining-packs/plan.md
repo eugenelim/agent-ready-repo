@@ -1,7 +1,7 @@
 # Plan: pack-test-boundary-remaining-packs
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done (superseded in part by ADR-0085 — `git check-ignore` is now invoked over NUL-delimited stdin, so AC10a's `--` argv terminator no longer applies; everything else stands) <!-- Drafting | Executing | Done -->
+- **Status:** Done (superseded in part by ADR-0087 — `git check-ignore` is now invoked over NUL-delimited stdin, so AC10a's `--` argv terminator no longer applies; everything else stands) <!-- Drafting | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn. When it changes substantially

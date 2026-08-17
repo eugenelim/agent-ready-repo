@@ -1,4 +1,4 @@
-# ADR-0085: Lints resolve Git-ignore status in one batched call over stdin
+# ADR-0087: Lints resolve Git-ignore status in one batched call over stdin
 
 - **Status:** Accepted
 - **Date:** 2026-08-17

@@ -229,7 +229,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/lint-ci-parity.py",
     "tools/test-test-all.py",
     "tools/repo/check_contract_drift.py",
-    # lint-performance-p0 (ADR-0085)
+    # lint-performance-p0 (ADR-0087)
     "tools/test-lint-git-ignore.py",
     "tools/lint-no-direct-check-ignore.py",
     "tools/test-lint-no-direct-check-ignore.py",

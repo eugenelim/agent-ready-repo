@@ -434,7 +434,7 @@ def build_check(args: argparse.Namespace) -> int:
             "check-contract-drift",
             "tools", "repo", "check_contract_drift.py",
         ),
-        # lint-performance-p0 (ADR-0085). These go in the UNFILTERED chain, not
+        # lint-performance-p0 (ADR-0087). These go in the UNFILTERED chain, not
         # `docs.yml`, because that workflow is `paths`-filtered to an explicit
         # file allowlist with no `tools/**` or `packages/**` entry — a PR adding
         # a per-path `check-ignore` to an unlisted file would run neither gate.

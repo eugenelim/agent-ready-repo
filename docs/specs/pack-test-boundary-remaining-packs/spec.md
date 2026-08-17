@@ -1,6 +1,6 @@
 # Spec: pack-test-boundary-remaining-packs
 
-- **Status:** Shipped (superseded in part by ADR-0085 — `git check-ignore` is now invoked over NUL-delimited stdin, so AC10a's `--` argv terminator no longer applies; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by ADR-0087 — `git check-ignore` is now invoked over NUL-delimited stdin, so AC10a's `--` argv terminator no longer applies; everything else stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071, `guides/_shared/reference/catalogue-authoring-standards.md` § 4
