@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import argparse
 import importlib.util
+import os
+import stat
 import sys
 from pathlib import Path
 
@@ -30,25 +32,100 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-LINT_SPEC_STATUS = SCRIPT_DIR / "lint-spec-status.py"
 
 
-def _load_status_parser():
-    """Import parse_status and extract_status_token from lint-spec-status.py."""
-    spec = importlib.util.spec_from_file_location(
-        "_lint_spec_status", str(LINT_SPEC_STATUS)
-    )
-    if spec is None or spec.loader is None:
-        print(
-            f"check-spec-status: cannot load {LINT_SPEC_STATUS}",
-            file=sys.stderr,
+def stop(reason: str, code: int = 1) -> int:
+    """One line on stderr, a non-zero exit, never a traceback."""
+    print(f"check-spec-status: {reason}", file=sys.stderr)
+    return code
+
+
+class GuardsUnavailable(RuntimeError):
+    """`_loop_guards.py` could not be loaded; every verb must refuse."""
+
+
+_guards_module: object | None = None
+_guards_error: str | None = None
+
+# The symbols a load must provide. Checked against the loaded module rather than
+# trusted, because a file truncated at a clean statement boundary loads WITHOUT
+# raising and would otherwise hand back a half-configured guard.
+_GUARDS_REQUIRED = (
+    "GuardResult", "read_managed_json", "read_managed_text", "read_state",
+    "state_path_for", "canonical_contract", "sha256_canonical_contract",
+    "UnreadableArtifact", "read_md_status", "assert_status_legal",
+    "validate_run_id", "DEFAULTS",
+)
+
+
+def load_guards():
+    """Load the sibling `_loop_guards.py` by path, once per process.
+
+    ── This function body is duplicated verbatim in `loop-engine.py` and
+    ── `check-spec-status.py`. That is a decision, not an accident: the loader cannot
+    ── live in the module it loads, and importing this 1800-line argparse CLI from
+    ── `check-spec-status.py` just to borrow it is the coupling the whole change
+    ── exists to avoid. A normalized-source-comparison test keeps the three copies
+    ── from drifting.
+    ──
+    ── By path rather than `import _loop_guards`, matching `_statelock()`: a plain
+    ── import resolves under file-path invocation but not under the importlib-based
+    ── test harness, which does not put this directory on `sys.path`.
+    ──
+    ── NOT registered in `sys.modules`, also matching `_statelock()`. `exec_module`
+    ── does not remove a registered entry when the module body raises, so
+    ── registering would mean hand-rolling the failed-load cleanup that `import`
+    ── does for free — and would make the module a session-global singleton whose
+    ── memoised parser leaks between test files.
+    ──
+    ── `sys.dont_write_bytecode` is saved and restored to its PRIOR value, never to
+    ── `False`, so a host interpreter started with `-B` keeps its setting.
+    """
+    global _guards_module
+    if _guards_module is not None:
+        return _guards_module
+    path = SCRIPT_DIR / "_loop_guards.py"
+    try:
+        info = os.lstat(path)
+    except OSError as exc:
+        raise GuardsUnavailable(
+            f"cannot load {path}: {exc}. Restore the file or re-run `make build-self`."
+        ) from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise GuardsUnavailable(
+            f"cannot load {path}: not a regular file (symlink or device). "
+            "Restore the file or re-run `make build-self`."
         )
-        sys.exit(1)
-    module = importlib.util.module_from_spec(spec)
-    # Suppress lint-spec-status's own stdout/stderr side-effects during import
-    # by only loading the module object without executing it as __main__.
-    spec.loader.exec_module(module)
-    return module.parse_status, module.extract_status_token
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location("_loop_guards", str(path))
+        if spec is None or spec.loader is None:
+            raise GuardsUnavailable(f"cannot load {path}: no import spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except GuardsUnavailable:
+        raise
+    except BaseException as exc:
+        raise GuardsUnavailable(
+            f"cannot load {path}: {type(exc).__name__}: {exc}. Restore the file or "
+            "re-run `make build-self`."
+        ) from exc
+    finally:
+        sys.dont_write_bytecode = previous
+    if not getattr(module, "_MODULE_COMPLETE", False):
+        raise GuardsUnavailable(
+            f"cannot load {path}: module is truncated (no completeness marker). "
+            "Restore the file or re-run `make build-self`."
+        )
+    missing = [n for n in _GUARDS_REQUIRED if not hasattr(module, n)]
+    if missing:
+        raise GuardsUnavailable(
+            f"cannot load {path}: incomplete module, missing {missing}. Restore the "
+            "file or re-run `make build-self`."
+        )
+    _guards_module = module
+    return _guards_module
 
 
 def main() -> int:
@@ -69,47 +146,18 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    spec_dir = Path(args.spec_dir).resolve()
-    target_path = (spec_dir / args.file).resolve()
-
-    if not target_path.is_relative_to(spec_dir):
-        print(
-            "check-spec-status: --file must be within spec-dir",
-            file=sys.stderr,
-        )
-        return 1
-
-    if not target_path.exists():
-        print(
-            f"check-spec-status: {args.file} not found at {target_path}",
-            file=sys.stderr,
-        )
-        return 1
-
-    parse_status, _ = _load_status_parser()
-
     try:
-        text = target_path.read_text(encoding="utf-8")
-    except OSError as exc:
-        print(f"check-spec-status: cannot read {target_path}: {exc}", file=sys.stderr)
-        return 1
+        guards = load_guards()
+    except GuardsUnavailable as exc:
+        return stop(str(exc))
 
-    token = parse_status(text)
-    if token is None:
-        print(
-            f"check-spec-status: no **Status:** line found in {target_path}",
-            file=sys.stderr,
-        )
-        return 1
-
-    if token != args.expect:
-        print(
-            f"check-spec-status: {args.file} Status is {token!r}, expected {args.expect!r}",
-            file=sys.stderr,
-        )
-        return 1
-
-    print(f"check-spec-status: OK — Status: {args.expect} at {target_path}")
+    spec_dir = Path(args.spec_dir).resolve()
+    result = guards.check_artifact_status(
+        spec_dir, filename=args.file, expect=args.expect
+    )
+    if not result.ok:
+        return stop(result.reason)
+    print(result.message)
     return 0
 
 

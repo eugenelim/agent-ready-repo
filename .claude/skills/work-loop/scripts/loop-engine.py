@@ -48,11 +48,11 @@ sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-# ── the lock-hold budget (ADR-0074 / spec AC10) ────────────────────────────
+# ── the lock-hold budget (ADR-0074 / spec/work-loop-in-process-guards AC22) ─
 #
-# `cmd_transition` holds the state lock across git-shelling guards. Three
-# numbers are ONE budget, and breaking the ordering silently reinstates the
-# lost update this lock exists to prevent:
+# `cmd_transition` holds the state lock across a read-decide-write section. Three
+# numbers are ONE budget, and breaking the ordering silently reinstates the lost
+# update this lock exists to prevent:
 #
 #     statelock timeout (10s)  <  max hold  <  statelock stale_after (300s)
 #
@@ -60,15 +60,45 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # live holder. `stale_after` must exceed one, or a merely-slow holder is judged
 # dead, its lock is reclaimed, and a second writer is admitted.
 #
-# max hold = SUBPROCESS_TIMEOUT_S x MAX_SUBPROCESS_CALLS_UNDER_LOCK
-#          = 20 x 6 = 120s, comfortably inside 300s.
+# THE BUDGET IS IN TWO HALVES, and saying so is the point — the previous version of
+# this comment implied one number bounded everything, which stopped being true the
+# moment the guards moved in-process.
 #
-# Bounding every call is what makes the hold provable rather than hoped-for.
-# test-loop-concurrency.py's budget case walks this module's locked call graph
-# and fails if a subprocess call appears without a `timeout=`, so adding a guard
-# cannot quietly break the arithmetic.
+# 1. The SUBPROCESS half is time-bounded:
+#
+#        max hold = SUBPROCESS_TIMEOUT_S x MAX_SUBPROCESS_CALLS_UNDER_LOCK
+#                 = 20 x 2 = 40s, comfortably inside 300s.
+#
+#    The constant counts INVOCATION EDGES on the reachable call graph, not call
+#    sites. There is exactly ONE `subprocess.run` site under the lock — inside
+#    `_get_repo_root` — reached along two edges from `cmd_transition`: once via its
+#    own `_resolve_spec_dir`, once directly. The `_locked` decorator's
+#    `_resolve_spec_dir` runs BEFORE `sl.exclusive()` and is deliberately not
+#    counted. It was 6 before the guards moved in-process, which was a conservative
+#    bound over a measured maximum of five.
+#
+# 2. The IN-PROCESS half is byte-bounded, NOT time-bounded. Every file the guard
+#    layer reads goes through `read_managed_json` / `read_managed_text`, capped at
+#    8 MiB, and `canonical_contract` costs roughly 0.14 s/MiB — so about 1.0 s at
+#    the cap. Guard calls are function calls and are deliberately NOT counted as
+#    subprocesses; counting them would make the arithmetic describe something it
+#    does not measure.
+#
+#    A byte cap bounds bytes, not seconds. `O_NONBLOCK` closes the reachable local
+#    case — a FIFO or device swapped in after the type pre-check, which would
+#    otherwise block `os.open` forever — but a stalled network mount can still block
+#    `os.read`, and `_recover_pending` reads repo-global state under this same lock.
+#    That residual is ACCEPTED and named rather than papered over: its only recovery
+#    is the stale-lock reclaim, which is itself the hazard this budget exists to
+#    prevent. There is no stdlib way to bound a blocking read without threads or
+#    signals, and adding either under the lock would be a worse trade.
+#
+# `test_loop_concurrency.py`'s budget case derives all of this from source: it walks
+# the locked call graph, fails if a subprocess call appears without a `timeout=`,
+# fails if this constant disagrees with the edge count, and fails if the inequality
+# breaks. Adding a guard cannot quietly break the arithmetic.
 SUBPROCESS_TIMEOUT_S = 20.0
-MAX_SUBPROCESS_CALLS_UNDER_LOCK = 6
+MAX_SUBPROCESS_CALLS_UNDER_LOCK = 2
 SCHEMA_VERSION = 1
 _LOOP_RUN_DIR_NAME = ".loop-run"
 _MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
@@ -124,70 +154,14 @@ def _events_pending_path(repo_root: Path) -> Path:
 
 
 def _read_managed_json(path: Path, label: str) -> dict:
-    """Read a bounded regular JSON file without following or racing a symlink."""
-    try:
-        before = os.lstat(path)
-    except FileNotFoundError:
-        raise
-    except OSError as exc:
-        raise ValueError(f"{label} cannot be examined: {exc}") from exc
-    if not stat.S_ISREG(before.st_mode):
-        raise ValueError(f"{label} must be a regular file")
-    if before.st_size > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
-            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
-        )
-    flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
-    try:
-        fd = os.open(path, flags)
-    except FileNotFoundError:
-        raise
-    except OSError as exc:
-        raise ValueError(f"{label} cannot be opened safely: {exc}") from exc
-    try:
-        try:
-            opened = os.fstat(fd)
-            if not stat.S_ISREG(opened.st_mode):
-                raise ValueError(f"{label} must be a regular file")
-            identity = (before.st_dev, before.st_ino)
-            if (opened.st_dev, opened.st_ino) != identity:
-                raise ValueError(f"{label} changed while being opened")
-            chunks: list[bytes] = []
-            remaining = _MAX_MANAGED_JSON_BYTES + 1
-            while remaining:
-                chunk = os.read(fd, min(64 * 1024, remaining))
-                if not chunk:
-                    break
-                chunks.append(chunk)
-                remaining -= len(chunk)
-            raw = b"".join(chunks)
-            after_fd = os.fstat(fd)
-        except OSError as exc:
-            raise ValueError(f"{label} could not be read safely: {exc}") from exc
-    finally:
-        os.close(fd)
-    try:
-        after_path = os.lstat(path)
-    except OSError as exc:
-        raise ValueError(f"{label} changed while being read") from exc
-    if (
-        (after_fd.st_dev, after_fd.st_ino) != identity
-        or (after_path.st_dev, after_path.st_ino) != identity
-    ):
-        raise ValueError(f"{label} changed while being read")
-    if len(raw) > _MAX_MANAGED_JSON_BYTES:
-        raise ValueError(
-            f"{label} exceeds {_MAX_MANAGED_JSON_BYTES}-byte (8 MiB) limit"
-        )
-    try:
-        data = json.loads(raw.decode("utf-8"))
-    except UnicodeDecodeError as exc:
-        raise ValueError(f"{label} is not valid UTF-8") from exc
-    except json.JSONDecodeError as exc:
-        raise ValueError(f"{label} malformed: {exc.msg} at line {exc.lineno}") from exc
-    if not isinstance(data, dict):
-        raise ValueError(f"{label} root must be an object")
-    return data
+    """Delegate to the shared bounded reader.
+
+    This was a byte-identical copy of `loop-cohort.py`'s. After this change the
+    engine loads `_loop_guards` anyway, so a third copy of the bounded,
+    symlink-safe, dev/ino-checked reader is exactly the drift AC3 forbids — and it
+    would have been the one copy missing `O_NONBLOCK`.
+    """
+    return _guards().read_managed_json(path, label)
 
 
 def _discard_regular_file(path: Path) -> bool:
@@ -508,152 +482,209 @@ _DONE_EXEMPT_FROM_SCHEDULE_GUARD = frozenset({"done"})
 # Each entry: (mode, event) → guard_call_fn(spec_dir, engine_state, event_args)
 # Guard functions return None on success, or a non-empty error string on failure.
 
-LOOP_COHORT = str(SCRIPT_DIR / "loop-cohort.py")
-CHECK_SPEC_STATUS = str(SCRIPT_DIR / "check-spec-status.py")
+
+class GuardsUnavailable(RuntimeError):
+    """`_loop_guards.py` could not be loaded; every verb must refuse."""
 
 
-def _run(cmd: list[str]) -> tuple[int, str]:
-    """Run a subprocess; return (returncode, combined stderr). Bounded."""
+_guards_module: object | None = None
+_guards_error: str | None = None
+
+# The symbols a load must provide. Checked against the loaded module rather than
+# trusted, because a file truncated at a clean statement boundary loads WITHOUT
+# raising and would otherwise hand back a half-configured guard.
+_GUARDS_REQUIRED = (
+    "GuardResult", "read_managed_json", "read_managed_text", "read_state",
+    "state_path_for", "canonical_contract", "sha256_canonical_contract",
+    "UnreadableArtifact", "read_md_status", "assert_status_legal",
+    "validate_run_id", "DEFAULTS",
+)
+
+
+def _guards():
+    """Load the sibling `_loop_guards.py` by path, once per process.
+
+    ── This function body is duplicated verbatim in `loop-engine.py` and
+    ── `check-spec-status.py`. That is a decision, not an accident: the loader cannot
+    ── live in the module it loads, and importing this 1800-line argparse CLI from
+    ── `check-spec-status.py` just to borrow it is the coupling the whole change
+    ── exists to avoid. A normalized-source-comparison test keeps the three copies
+    ── from drifting.
+    ──
+    ── By path rather than `import _loop_guards`, matching `_statelock()`: a plain
+    ── import resolves under file-path invocation but not under the importlib-based
+    ── test harness, which does not put this directory on `sys.path`.
+    ──
+    ── NOT registered in `sys.modules`, also matching `_statelock()`. `exec_module`
+    ── does not remove a registered entry when the module body raises, so
+    ── registering would mean hand-rolling the failed-load cleanup that `import`
+    ── does for free — and would make the module a session-global singleton whose
+    ── memoised parser leaks between test files.
+    ──
+    ── `sys.dont_write_bytecode` is saved and restored to its PRIOR value, never to
+    ── `False`, so a host interpreter started with `-B` keeps its setting.
+    """
+    global _guards_module
+    if _guards_module is not None:
+        return _guards_module
+    path = SCRIPT_DIR / "_loop_guards.py"
     try:
-        proc = subprocess.run(
-            cmd, capture_output=True, text=True, encoding="utf-8", check=False,
-            timeout=SUBPROCESS_TIMEOUT_S,
+        info = os.lstat(path)
+    except OSError as exc:
+        raise GuardsUnavailable(
+            f"cannot load {path}: {exc}. Restore the file or re-run `make build-self`."
+        ) from exc
+    if not stat.S_ISREG(info.st_mode):
+        raise GuardsUnavailable(
+            f"cannot load {path}: not a regular file (symlink or device). "
+            "Restore the file or re-run `make build-self`."
         )
-    except subprocess.TimeoutExpired:
-        return 1, (
-            f"timed out after {SUBPROCESS_TIMEOUT_S:.0f}s: {' '.join(cmd[:3])}"
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec = importlib.util.spec_from_file_location("_loop_guards", str(path))
+        if spec is None or spec.loader is None:
+            raise GuardsUnavailable(f"cannot load {path}: no import spec")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+    except GuardsUnavailable:
+        raise
+    except BaseException as exc:
+        raise GuardsUnavailable(
+            f"cannot load {path}: {type(exc).__name__}: {exc}. Restore the file or "
+            "re-run `make build-self`."
+        ) from exc
+    finally:
+        sys.dont_write_bytecode = previous
+    if not getattr(module, "_MODULE_COMPLETE", False):
+        raise GuardsUnavailable(
+            f"cannot load {path}: module is truncated (no completeness marker). "
+            "Restore the file or re-run `make build-self`."
         )
-    return proc.returncode, (proc.stderr.strip() or proc.stdout.strip())
+    missing = [n for n in _GUARDS_REQUIRED if not hasattr(module, n)]
+    if missing:
+        raise GuardsUnavailable(
+            f"cannot load {path}: incomplete module, missing {missing}. Restore the "
+            "file or re-run `make build-self`."
+        )
+    _guards_module = module
+    return _guards_module
 
 
-def _guard_plan_check_current_require_schedule(
-    spec_dir: Path, engine_state: dict, _
-) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir), "--require-schedule"]
-    )
-    if rc != 0:
-        return f"plan check-current --require-schedule failed: {msg}"
-    return None
+# Each entry: (mode, event) → guard_fn(spec_dir, engine_state, event_args).
+# Guard functions return None on success, or a non-empty error string on failure —
+# the convention that predates this change and that `cmd_transition` still reads.
+#
+# Every one of these used to be `_run([sys.executable, LOOP_COHORT, ...])`. The
+# decisions now come from `_loop_guards`, so a transition is one interpreter. The
+# engine's own prefix is preserved verbatim on each; what disappeared is the nested
+# `loop-cohort: stop — ` / `check-spec-status: ` marker that only existed because a
+# child process's stderr was being captured.
 
 
-def _guard_plan_check_current(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir)]
-    )
-    if rc != 0:
-        return f"plan check-current failed: {msg}"
-    return None
+def _guard_reason(prefix: str, result) -> str | None:
+    """Compose the engine's error text from a GuardResult.
+
+    Branches on `ok`, never on `reason` — an `ok=False, reason=None` result would
+    otherwise read as success, and `GuardResult` raises rather than allowing that
+    combination in the first place.
+    """
+    if result.ok:
+        return None
+    return f"{prefix}: {result.reason}"
 
 
 def _guard_check_phase_implement(spec_dir: Path, engine_state: dict, _) -> str | None:
-    # Phase-1 stub: exits 0 unconditionally.
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "check", str(spec_dir), "--phase", "implement"]
+    return _guard_reason(
+        "check --phase implement failed",
+        _guards().check_phase(spec_dir, phase="implement"),
     )
-    if rc != 0:
-        return f"check --phase implement failed: {msg}"
-    return None
 
 
 def _guard_check_phase_gates_failed(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "check", str(spec_dir), "--phase", "gates-failed"]
+    return _guard_reason(
+        "check --phase gates-failed failed",
+        _guards().check_phase(spec_dir, phase="gates-failed"),
     )
-    if rc != 0:
-        return f"check --phase gates-failed failed: {msg}"
-    return None
 
 
 def _guard_wave_check_more(spec_dir: Path, engine_state: dict, event_args: dict) -> str | None:
     wave_index = event_args.get("wave_index")
     if wave_index is None:
         return "wave-passed requires --wave-index"
-    cmd = [
-        sys.executable, LOOP_COHORT, "wave", "check", str(spec_dir),
-        "--expect", "more", "--wave-index", str(wave_index),
-    ]
-    rc, msg = _run(cmd)
-    if rc != 0:
-        return f"wave check --expect more --wave-index {wave_index} failed: {msg}"
-    return None
+    return _guard_reason(
+        f"wave check --expect more --wave-index {wave_index} failed",
+        _guards().check_wave(spec_dir, expect="more", wave_index=wave_index),
+    )
 
 
 def _guard_wave_check_last(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "wave", "check", str(spec_dir), "--expect", "last"]
+    return _guard_reason(
+        "wave check --expect last failed",
+        _guards().check_wave(spec_dir, expect="last"),
     )
-    if rc != 0:
-        return f"wave check --expect last failed: {msg}"
-    return None
 
 
 def _guard_check_phase_review(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "check", str(spec_dir), "--phase", "review"]
+    return _guard_reason(
+        "check --phase review failed",
+        _guards().check_phase(spec_dir, phase="review"),
     )
-    if rc != 0:
-        return f"check --phase review failed: {msg}"
-    return None
 
 
 def _guard_check_spec_status(spec_dir: Path, engine_state: dict, _) -> str | None:
-    rc, msg = _run([sys.executable, CHECK_SPEC_STATUS, str(spec_dir)])
-    if rc != 0:
-        return f"check-spec-status failed: {msg}"
-    return None
+    return _guard_reason(
+        "check-spec-status failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Shipped"),
+    )
 
 
 def _guard_spec_approved(spec_dir: Path, engine_state: dict, _) -> str | None:
     """Guard for spec-approved: spec.md must have Status: Approved."""
-    rc, msg = _run(
-        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    return _guard_reason(
+        "check-spec-status --expect Approved failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Approved"),
     )
-    if rc != 0:
-        return f"check-spec-status --expect Approved failed: {msg}"
-    return None
 
 
 def _guard_plan_approved(spec_dir: Path, engine_state: dict, _) -> str | None:
     """Guard for plan-approved: plan.md must have Status: Approved."""
-    rc, msg = _run(
-        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir),
-         "--expect", "Approved", "--file", "plan.md"]
+    return _guard_reason(
+        "check-spec-status --expect Approved --file plan.md failed",
+        _guards().check_artifact_status(spec_dir, filename="plan.md", expect="Approved"),
     )
-    if rc != 0:
-        return f"check-spec-status --expect Approved --file plan.md failed: {msg}"
-    return None
 
 
 def _guard_plan_locked_code(spec_dir: Path, engine_state: dict, _) -> str | None:
-    """Guard for plan-locked (code mode): spec Approved + plan check-current --require-schedule."""
-    rc, msg = _run(
-        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    """plan-locked (code mode): spec Approved, then plan check-current --require-schedule.
+
+    Two checks in the same order as before — they were two child processes and are
+    now two function calls.
+    """
+    err = _guard_reason(
+        "check-spec-status --expect Approved failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Approved"),
     )
-    if rc != 0:
-        return f"check-spec-status --expect Approved failed: {msg}"
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir),
-         "--require-schedule"]
+    if err:
+        return err
+    return _guard_reason(
+        "plan check-current --require-schedule failed",
+        _guards().check_plan_current(spec_dir, require_schedule=True),
     )
-    if rc != 0:
-        return f"plan check-current --require-schedule failed: {msg}"
-    return None
 
 
 def _guard_plan_locked_spec_plan(spec_dir: Path, engine_state: dict, _) -> str | None:
-    """Guard for plan-locked (spec-plan mode): spec Approved + plan check-current."""
-    rc, msg = _run(
-        [sys.executable, CHECK_SPEC_STATUS, str(spec_dir), "--expect", "Approved"]
+    """plan-locked (spec-plan mode): spec Approved, then plan check-current."""
+    err = _guard_reason(
+        "check-spec-status --expect Approved failed",
+        _guards().check_artifact_status(spec_dir, filename="spec.md", expect="Approved"),
     )
-    if rc != 0:
-        return f"check-spec-status --expect Approved failed: {msg}"
-    rc, msg = _run(
-        [sys.executable, LOOP_COHORT, "plan", "check-current", str(spec_dir)]
+    if err:
+        return err
+    return _guard_reason(
+        "plan check-current failed",
+        _guards().check_plan_current(spec_dir, require_schedule=False),
     )
-    if rc != 0:
-        return f"plan check-current failed: {msg}"
-    return None
 
 
 def _guard_check_spec_status_on_code_review(
@@ -961,28 +992,19 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def _run_id_preflight(spec_dir: Path, engine_run_id: str) -> str | None:
-    """Call loop-cohort identity --expect-run-id; return error string on failure."""
-    cmd = [
-        sys.executable, str(SCRIPT_DIR / "loop-cohort.py"),
-        "identity", str(spec_dir),
-        "--expect-run-id", engine_run_id,
-    ]
-    rc, msg = _run(cmd)
-    if rc != 0:
-        return f"run_id preflight failed: {msg}"
-    return None
+    """Engine/cohort run-ID pairing. In-process; was `loop-cohort.py identity`."""
+    return _guard_reason(
+        "run_id preflight failed",
+        _guards().check_identity(spec_dir, expect_run_id=engine_run_id),
+    )
 
 
 def _schedule_check_current(spec_dir: Path) -> str | None:
-    """Call loop-cohort schedule check-current; return error string on failure."""
-    cmd = [
-        sys.executable, str(SCRIPT_DIR / "loop-cohort.py"),
-        "schedule", "check-current", str(spec_dir),
-    ]
-    rc, msg = _run(cmd)
-    if rc != 0:
-        return f"schedule check-current failed: {msg}"
-    return None
+    """Scheduled-plan currency. In-process; was `loop-cohort.py schedule check-current`."""
+    return _guard_reason(
+        "schedule check-current failed",
+        _guards().check_schedule_current(spec_dir),
+    )
 
 
 @_locked("transition")
