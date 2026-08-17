@@ -492,6 +492,125 @@ def test_contained_passes_baseexception_through(g) -> None:
         exiting(1)
 
 
+# The six guards, with one valid-shaped call each. Kept as data so the containment
+# and purity checks below iterate the same set, and so adding a seventh guard without
+# adding it here shows up as a coverage gap rather than passing silently — see
+# `test_the_six_guard_table_matches_all`.
+SIX_GUARDS = {
+    "check_identity": {"expect_run_id": "11111111-2222-3333-4444-555555555555"},
+    "check_plan_current": {},
+    "check_schedule_current": {},
+    "check_phase": {"phase": "implement"},
+    "check_wave": {"expect": "more"},
+    "check_artifact_status": {"filename": "spec.md", "expect": "Approved"},
+}
+
+
+def test_the_six_guard_table_matches_all(g) -> None:
+    """`SIX_GUARDS` must stay the full set, or the tests below silently under-cover."""
+    exported = {n for n in g.__all__ if n.startswith("check_")}
+    assert set(SIX_GUARDS) == exported, (
+        f"SIX_GUARDS and __all__'s guards disagree: "
+        f"only-in-table={sorted(set(SIX_GUARDS) - exported)}, "
+        f"only-in-__all__={sorted(exported - set(SIX_GUARDS))}"
+    )
+
+
+@pytest.mark.parametrize("guard_name", sorted(SIX_GUARDS))
+def test_every_guard_contains_an_unexpected_exception(guard_name, tmp_path) -> None:
+    """AC10, per guard. Removing `@contained` from any one of the six must fail here.
+
+    The existing containment tests decorate ad-hoc local functions, which proves the
+    decorator works and nothing about whether the guards carry it. All six do today,
+    so this is purely a regression net — and it is the mutation that was not run: with
+    only the local-function tests, deleting `@contained` from `check_phase` left the
+    suite green while restoring a traceback out of a process holding the state lock.
+
+    The injection targets the two module-level entry helpers every guard funnels
+    through (`_state_or_reason` for five, `_require_spec_dir` for
+    `check_artifact_status`), so the exception originates *inside* the guard body
+    rather than being handed to it as an argument.
+    """
+    g = load_guards(name=f"_guards_contain_{guard_name}")
+    spec_dir = tmp_path / "spec"
+    spec_dir.mkdir()
+
+    def boom(*_a, **_k):
+        raise RuntimeError("injected\nmulti-line\nfailure")
+
+    g._state_or_reason = boom
+    g._require_spec_dir = boom
+
+    result = getattr(g, guard_name)(spec_dir, **SIX_GUARDS[guard_name])
+
+    assert isinstance(result, g.GuardResult), (
+        f"{guard_name} returned {type(result).__name__}, not a GuardResult — "
+        "@contained is missing, so the exception escaped"
+    )
+    assert result.ok is False
+    assert result.reason.startswith(g.INTERNAL_ERROR), (
+        f"{guard_name} refused without the internal-error marker: {result.reason!r}"
+    )
+    assert "RuntimeError" in result.reason
+    assert "\n" not in result.reason, "a reason is a one-line CLI contract"
+
+
+def test_a_crashing_guard_is_a_nonzero_exit_with_no_traceback(tmp_path: Path) -> None:
+    """AC10's other half: the containment holds at the CLI boundary too.
+
+    In-process containment is necessary but not sufficient — the adapter still has to
+    map a crash-refusal onto a non-zero exit and a single stderr line. Driven through
+    `check-spec-status.py`, whose one guard is `check_artifact_status`, with the
+    sandbox's guard module edited to raise from inside that guard.
+    """
+    sandbox = tmp_path / "scripts"
+    sandbox.mkdir()
+    for name in ("_loop_guards.py", "lint-spec-status.py", "check-spec-status.py"):
+        (sandbox / name).write_bytes((SCRIPTS / name).read_bytes())
+    (sandbox.parent / "assets").mkdir()
+    (sandbox.parent / "assets" / "state.json").write_bytes(
+        (SCRIPTS.parent / "assets" / "state.json").read_bytes()
+    )
+
+    # Inject at the guard's first statement, so the raise happens inside the body
+    # that `@contained` wraps.
+    guard_src = (sandbox / "_loop_guards.py").read_text(encoding="utf-8")
+    anchor = "def _require_spec_dir("
+    assert anchor in guard_src, "injection anchor moved — update this test"
+    head, _, tail = guard_src.partition(anchor)
+    body_start = tail.index("\n", tail.index('"""', tail.index('"""') + 3)) + 1
+    guard_src = (
+        head + anchor + tail[:body_start]
+        + '    raise RuntimeError("injected crash")\n' + tail[body_start:]
+    )
+    (sandbox / "_loop_guards.py").write_text(guard_src, encoding="utf-8")
+
+    spec_dir = tmp_path / "spec"
+    spec_dir.mkdir()
+    (spec_dir / "spec.md").write_text("# S\n\n- **Status:** Approved\n", encoding="utf-8")
+
+    proc = subprocess.run(
+        [sys.executable, str(sandbox / "check-spec-status.py"), str(spec_dir),
+         "--expect", "Approved"],
+        capture_output=True, text=True, timeout=60,
+    )
+    assert proc.returncode != 0, "a crashing guard reported success"
+    assert "Traceback" not in proc.stderr, (
+        f"the crash escaped as a traceback:\n{proc.stderr}"
+    )
+    assert len(proc.stderr.strip().splitlines()) == 1, (
+        f"expected one stderr line, got:\n{proc.stderr}"
+    )
+    assert g_internal_error_marker() in proc.stderr, (
+        f"the refusal is not marked as an internal error: {proc.stderr!r}"
+    )
+
+
+def g_internal_error_marker() -> str:
+    """`INTERNAL_ERROR`, read from the module rather than restated as a literal."""
+    return load_guards(name="_guards_marker").INTERNAL_ERROR
+
+
 def test_contained_reason_never_returns_none_on_failure(g) -> None:
     """The mutation-path helpers, where `None` means "proceed".
 
@@ -560,6 +679,140 @@ def test_the_longest_authored_reason_survives_intact(g) -> None:
     assert len(longest) + 200 < g._MAX_REASON_CHARS, (
         f"_MAX_REASON_CHARS={g._MAX_REASON_CHARS} leaves no headroom over the "
         f"longest authored constant ({len(longest)} chars) plus its interpolations"
+    )
+
+
+# ── AC12 — the widened except clauses on the lock-holding mutation verbs ───
+
+RUN_ID = "11111111-2222-3333-4444-555555555555"
+
+
+def _cohort_fixture(root: Path, *, approved: bool) -> Path:
+    """A spec dir with a valid cohort `state.json`, inside a real git repo."""
+    subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
+    spec_dir = root / "docs" / "specs" / "ac12"
+    spec_dir.mkdir(parents=True)
+    (spec_dir / "spec.md").write_text("# S\n\n- **Status:** Approved\n", encoding="utf-8")
+    (spec_dir / "plan.md").write_text(
+        "# P\n\n- **Status:** Approved\n\n## T1 a\n\n**Depends on:** none\n",
+        encoding="utf-8",
+    )
+    zero = "0" * 64
+    state = {
+        "schema_version": 1, "run_id": RUN_ID, "feature": "ac12",
+        "plan_review_status": "approved" if approved else "pending",
+        "approved_spec_hash": zero, "approved_plan_hash": zero, "plan_hash": zero,
+        "schedule_waves": [["T1"]], "current_wave_index": 0,
+        "implementation_retry_count": 0, "review_round_count": 0,
+        "review_retry_count": 0, "finding_fingerprints": [],
+        "previous_finding_fingerprints": [],
+        "max_implementation_retries": 5, "max_review_retries": 5,
+    }
+    (spec_dir / "state.json").write_text(json.dumps(state, indent=2), encoding="utf-8")
+    return spec_dir
+
+
+@pytest.mark.parametrize("verb", ["approve-plan", "schedule"])
+@pytest.mark.parametrize("breakage", ["symlinked", "oversized"])
+def test_a_lock_holding_verb_refuses_an_unsafe_artifact_without_writing(
+    verb: str, breakage: str, tmp_path: Path,
+) -> None:
+    """The four widened `except` tuples, at the two verbs that hold the cohort lock.
+
+    `ValueError` is the bounded reader's whole failure vocabulary and was not in these
+    handlers; `ImportError` reaches them through the canonical parser. Both would
+    otherwise leave a lock-holding verb as a traceback — and `cmd_approve_plan`
+    *writes what it computes*, so an escape partway through is the dangerous shape.
+
+    The byte-comparison is the load-bearing assertion. A one-line refusal that had
+    already written half its result would satisfy an exit-code check.
+    """
+    spec_dir = _cohort_fixture(tmp_path, approved=(verb == "schedule"))
+    target = spec_dir / "plan.md"
+
+    if breakage == "symlinked":
+        real = spec_dir / "plan.real.md"
+        target.rename(real)
+        target.symlink_to(real)
+    else:
+        # Sparse-extend past the reader's 8 MiB cap. `os.truncate` trips the
+        # `st_size` pre-check while allocating one block, not 8 MiB — writing for
+        # real exhausted the volume mid-suite once already.
+        with Path(target).open("r+b") as fh:
+            os.truncate(fh.fileno(), 9 * 1024 * 1024)
+
+    state_file = spec_dir / "state.json"
+    before = state_file.read_bytes()
+
+    proc = run_cohort(verb, spec_dir, "--expect-run-id", RUN_ID, cwd=tmp_path)
+
+    assert proc.returncode != 0, f"{verb}/{breakage} reported success on an unsafe artifact"
+    assert "Traceback" not in proc.stderr, (
+        f"{verb}/{breakage} escaped as a traceback:\n{proc.stderr}"
+    )
+    assert len(proc.stderr.strip().splitlines()) == 1, (
+        f"{verb}/{breakage} expected one stderr line, got:\n{proc.stderr}"
+    )
+    assert state_file.read_bytes() == before, (
+        f"{verb}/{breakage} mutated state.json while refusing — a partial write from "
+        "a lock holder is the failure this criterion exists to prevent"
+    )
+
+
+@pytest.mark.parametrize("verb", ["approve-plan", "schedule"])
+def test_a_lock_holding_verb_refuses_an_unloadable_parser_without_writing(
+    verb: str, tmp_path: Path,
+) -> None:
+    """A corrupt canonical parser must also be a clean refusal from a lock holder.
+
+    Split from the artifact cases because it arrives by a different route: an unsafe
+    *artifact* raises `ValueError` from the bounded reader, while an unloadable
+    *canonical parser* raises `ImportError` from `_lint_spec_status()`.
+
+    Honest scope note: this does NOT discriminate the `ImportError` term in the four
+    `except` tuples. Both parser-touching entry points — `read_md_status` and
+    `sha256_canonical_contract` — convert `ImportError` into the reader's `ValueError`
+    vocabulary at the boundary, so nothing reaches those tuples as an `ImportError`
+    today (mutation-checked: removing the term keeps every case green). The term is
+    kept as a backstop because `canonical_contract` itself does not convert, so a
+    future direct call from a locked verb would need it. What this test pins is the
+    end-to-end property the criterion is actually about: no traceback, one line, and
+    no write.
+
+    Needs a sandbox rather than the real scripts, because the breakage is a corrupt
+    `lint-spec-status.py`, which is a shipped file.
+    """
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    for name in ("loop-cohort.py", "_loop_guards.py", "_statelock.py"):
+        (scripts / name).write_bytes((SCRIPTS / name).read_bytes())
+    (scripts / "lint-spec-status.py").write_text(
+        "def parse_status(  # truncated mid-signature\n", encoding="utf-8"
+    )
+    (tmp_path / "assets").mkdir()
+    (tmp_path / "assets" / "state.json").write_bytes(
+        (SCRIPTS.parent / "assets" / "state.json").read_bytes()
+    )
+
+    repo = tmp_path / "repo"
+    spec_dir = _cohort_fixture(repo, approved=(verb == "schedule"))
+    state_file = spec_dir / "state.json"
+    before = state_file.read_bytes()
+
+    proc = subprocess.run(
+        [sys.executable, str(scripts / "loop-cohort.py"), verb, str(spec_dir),
+         "--expect-run-id", RUN_ID],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        check=False, cwd=str(repo), timeout=60,
+    )
+
+    assert proc.returncode != 0, f"{verb} succeeded with no canonical status parser"
+    assert "Traceback" not in proc.stderr, f"{verb} tracebacked:\n{proc.stderr}"
+    assert len(proc.stderr.strip().splitlines()) == 1, (
+        f"{verb} expected one stderr line, got:\n{proc.stderr}"
+    )
+    assert state_file.read_bytes() == before, (
+        f"{verb} mutated state.json while refusing on an unloadable parser"
     )
 
 
