@@ -239,6 +239,16 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         CI_ONLY(
             "Provisioning."
         ),
+    "Install bandit unconditionally (lint-nosec-form's ID registry)":
+        CI_ONLY(
+            "Provisioning — but not interchangeable with the conditional step "
+            "above, which is why it is a separate row. `make build-check` "
+            "chains lint-nosec-form.py on every run, and its unknown-test-id "
+            "check reads bandit's registry; without bandit that check silently "
+            "no-ops. Behind the skip_sast condition it was inert on exactly the "
+            "diffs it exists for. Locally the contributor already has bandit "
+            "(tools/requirements-sast.txt), so there is no make target to name."
+        ),
     "Run make build-check":
         CI_ONLY(
             "Invokes the local gate itself — this is the parity anchor, not a "
@@ -281,6 +291,13 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest make-free gate chains (windows-build-gate-chain)":
         LOCAL("test"),
     "pytest guides sidebar generation":
+        LOCAL("test"),
+    # Both wired by docs/specs/build-check-coverage-gaps. The seven files these
+    # two steps run were on `make test`'s Makefile line and in no workflow's
+    # run: steps — locally gated, remotely not.
+    "pytest guides + catalogue navigation":
+        LOCAL("test"),
+    "pytest site build + link rewriting":
         LOCAL("test"),
     # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
     # this step runs the gate's own tests, so a regression to always-exit-0 goes

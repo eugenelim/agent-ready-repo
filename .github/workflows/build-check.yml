@@ -97,6 +97,26 @@ jobs:
         if: steps.changes.outputs.skip_sast != 'true'
         run: pip install -r tools/requirements-sast.txt
 
+      - name: Install bandit unconditionally (lint-nosec-form's ID registry)
+        # Deliberately NOT behind the skip_sast condition above, and deliberately
+        # not the whole of requirements-sast.txt.
+        #
+        # `make build-check` chains tools/lint-nosec-form.py on every run. One of
+        # its checks — a well-formed but nonexistent test id, which bandit
+        # resolves to nothing and so treats as a blanket suppression — needs
+        # bandit's own registry and silently no-ops without it. Behind the
+        # condition it was inert on exactly the PRs it exists for: a SKIP_SAST
+        # diff, where `make sast` does not run and nothing else catches the
+        # shape. See docs/specs/bandit-nosec-form-lint/spec.md AC4b.
+        #
+        # semgrep and pip-audit stay conditional: they are the expensive half of
+        # that install and no gate running under SKIP_SAST needs them.
+        #
+        # The pin is READ, not restated — a second copy of the version range can
+        # drift from the canonical one in requirements-sast.txt; deriving it
+        # cannot.
+        run: pip install "$(grep -E '^bandit' tools/requirements-sast.txt)"
+
       - name: Install agentbundle (editable) + pytest
         run: python -m pip install -e packages/agentbundle/ pytest
 
@@ -220,6 +240,31 @@ jobs:
       # navigation. make build-check runs no pytest — wire them explicitly.
       - name: pytest guides sidebar generation
         run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
+
+      # Seven of the thirteen tools/ suites `make test` runs were a run step in
+      # NO workflow — they gated `make ci` locally and nothing on the way to
+      # main. That is how #958 merged green while leaving main red on
+      # test_catalogue_navigation. Wired here as two grouped steps, split by what
+      # they gate. Counted per file across all of .github/workflows/: two
+      # siblings on the same Makefile line (test_catalogue_tooling_rewire,
+      # test_catalogue_tooling_docs) ARE run, by Gate F of
+      # catalogue-tooling-ci-gates.yml, so they are deliberately absent here.
+      - name: pytest guides + catalogue navigation
+        run: >-
+          python -m pytest
+          tools/test_validate_guides.py
+          tools/test_check_guide_index.py
+          tools/test_catalogue_navigation.py
+          tools/test_documentation_entry_links.py
+
+      # test_check_rendered_site_links.py appears in pages.yml as a `paths:`
+      # trigger and never as a run step — easy to miscount as covered.
+      - name: pytest site build + link rewriting
+        run: >-
+          python -m pytest
+          tools/test_build_site_link_rewrites.py
+          tools/test_check_rendered_site_links.py
+          tools/test_build_site_routing.py
 
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)

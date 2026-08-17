@@ -1669,42 +1669,6 @@ open = [
   # passing is the false positive that spec exists to avoid.
   {slug = "adr-0050-supersession-body-survey", summary = "Body-survey the ADR-0050 -> ADR-0055 chain; platform-site/spec.md still documents a MkDocs route for a build that no longer exists and cites no ADR, so no header scan reaches it", source = "spec/frozen-doc-supersession-annotations review"},
 
-  # build-check.yml installs tools/requirements-sast.txt only when
-  # skip_sast != 'true', so on a SKIP_SAST PR bandit is absent and
-  # lint-nosec-form's unknown-id check (a well-formed but nonexistent ID like a
-  # typo'd B999, which bandit resolves to nothing and so treats as a blanket
-  # suppression) silently no-ops. Where bandit IS installed, make sast runs too
-  # and run-bandit-gate.py already fails on bandit's own stderr for that case --
-  # so the check currently adds zero CI coverage, only local and defence-in-depth
-  # value. Surfaced in spec/bandit-nosec-form-lint AC4b rather than hidden.
-  # Fix: drop the `if:` on that install step, or add an unconditional bandit-only
-  # install, so the registry is present on every build-check run. Weigh against
-  # the install cost on diffs that scan nothing.
-  {slug = "build-check-installs-bandit-unconditionally", summary = "Install bandit on every build-check run so lint-nosec-form's unknown-ID check is not inert on SKIP_SAST PRs", source = "spec/bandit-nosec-form-lint"},
-
-  # 7 of the 13 pytest files named on Makefile:349 (`make test`) are a run step
-  # in NO workflow: test_validate_guides, test_check_guide_index,
-  # test_catalogue_navigation, test_documentation_entry_links,
-  # test_build_site_link_rewrites, test_check_rendered_site_links,
-  # test_build_site_routing. So they gate `make ci` locally and nothing
-  # remotely. Counted per-file across all of .github/workflows/, not just
-  # build-check.yml -- an earlier draft of this entry said 9 because it grepped
-  # build-check.yml alone and missed Gate F.
-  #   - test_check_rendered_site_links appears in pages.yml:23,45 but only as a
-  #     `paths:` trigger, never as a run step. Easy to miscount as covered.
-  #   - test_catalogue_tooling_rewire and _docs ARE run, by Gate F of
-  #     catalogue-tooling-ci-gates.yml:513,515 -- so they are NOT in this list.
-  #     Note though that workflow's paths-ignore covers docs/**, guides/**,
-  #     docs-site/** and web/**, so it does not gate doc-surface PRs either.
-  #     Do not "fix" those two here; that would duplicate Gate F.
-  # This is not theoretical: it is exactly how #958 merged green while leaving
-  # main red on test_catalogue_navigation, the failure PR #967 recorded as a
-  # known skip and this entry's sibling spec then fixed.
-  # Fix: add the seven as explicit build-check.yml steps (or one grouped step)
-  # and give each its lint-ci-parity disposition. Wiring one alone was declined
-  # in guides-readme-outcome-label-drift -- partial coverage reads as coverage.
-  {slug = "catalogue-site-tests-absent-from-ci", summary = "Wire the 7 catalogue/site pytest files from Makefile:349 that are a run step in no GitHub workflow into build-check.yml, with lint-ci-parity dispositions", source = "spec/guides-readme-outcome-label-drift"},
-
   # test-loop-cohort.sh is 493 lines / 51 cases of bash and uses ~20 bash-isms
   # ([[, local, $(), declare). AGENTS.md's "New tool scripts: Python, not bash"
   # rule grandfathers existing .sh, but this one is a portability dead end: a
