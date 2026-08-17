@@ -11,13 +11,20 @@ Findings are measured, not inferred. Method is recorded in
 [§ Measurement method](#measurement-method) so the after-numbers are
 comparable.
 
+> **This file is the single canonical home for the before/after performance
+> figures.** `spec.md`, `plan.md`, `workspace.toml` and `docs/specs/README.md`
+> reference [§ Baseline evidence](#baseline-evidence-before) rather than
+> restating the numbers, so the copies cannot drift as the after-column is
+> filled in.
+
 ---
 
 ## Headline result
 
-Of **38** production lint entry points, **7** pack/skill-owned lint scripts,
-and **27** lint self-tests audited, exactly **three files** exhibit a P0
-pattern:
+Audited: **38** production lint entry points, **7** pack/skill-owned lint
+scripts, and **67** lint self-tests under `tools/` — 35 hyphen-named
+(`test-*.py`) plus 32 underscore-named (`test_*.py`). Exactly **three files**
+exhibit a P0 pattern:
 
 | File | P0 patterns present |
 | --- | --- |
@@ -203,6 +210,38 @@ real checkout.
 | `packs/core/tests/skills/receive-brief/test_lint_brief_coverage.py` | brief coverage | 0 | no — temp fixture | **no change** |
 | `packages/agentbundle/tests/**` (catalogue lint/verify/skill-spec) | portable lints | pytest in-process | no — fixture catalogues | **no change** |
 
+### The 32 underscore-named self-tests under `tools/`
+
+A first pass of this audit globbed only `tools/test-*.py` and missed the
+underscore-named family entirely. Corrected: all 32 were enumerated and
+scanned. **Aggregate result — 0 contain `check-ignore`, 0 mutate the real
+worktree, 0 write the real `Makefile`**; every one that needs a tree builds a
+temporary fixture. None reruns a complete catalogue or worktree lint per planted
+case, so the `CHANGE` scope is unaffected.
+
+| Self-test | Subject | `sys.executable` launches | Fixture | P0 disposition |
+| --- | --- | --- | --- | --- |
+| `test_build_gate_chain.py` | gate-chain parity | 20 | temp | **no change** — fixture gate chains; also anchors `tools/lint-agents-md.py` into the chain (line 235) |
+| `test_lint_guides_no_repo_only_refs.py` | guides ref lint | 6 | temp | **no change** |
+| `test_export_work_index.py` | work-index export | 6 | temp | **no change** |
+| `test_check_artifact_contents.py` | artifact contents | 4 | temp | **no change** |
+| `test_contract_parity.py` | contract parity | 4 | temp | **no change** |
+| `test_workspace_status_cli.py` | workspace-status CLI | 4 | temp | **no change** |
+| `test_lint_agents_md_{diataxis,legacy,risk}_block.py` | agents-md checks 8/10d/10g | 1 each | temp | **no change** |
+| `test_build_site_dry_run.py`, `test_check_rendered_site_links.py` | site build / links | 1 each | temp | **no change** |
+| `test_lint_guide_titles.py`, `test_validate_guides.py`, `test_conformance_portability.py`, `test_workspace_status.py`, `test_build_site_{inventory,projection,routing,sidebar}.py` | assorted | 0 | temp | **no change** — in-process |
+| `test_build_site_link_rewrites.py`, `test_catalogue_curation_guard.py`, `test_catalogue_navigation.py`, `test_catalogue_tooling_docs.py`, `test_catalogue_tooling_rewire.py`, `test_check_guide_index.py`, `test_check_release_impact.py`, `test_documentation_entry_links.py`, `test_enterprise_rollout_playbook.py`, `test_guide_typed_asides.py`, `test_live_demo_guide.py`, `test_release_check.py`, `test_scaffold_projection.py` | assorted | 0 | in-process | **no change** — pure in-process assertions |
+
+Correction to § 1–3: production rows previously recording self-test model
+"none" for `lint-guide-titles`, `lint-guides-no-repo-only-refs`,
+`validate_guides`, `check-guide-index`, `check-artifact-contents`,
+`check-rendered-site-links`, `lint-conformance-portability` and
+`lint-catalogue-curation-guard` are wrong — each has a self-test in the table
+above. Their P0 dispositions are unchanged.
+
+Also present: `tools/test-lint-build.sh` (the one non-Python lint self-test).
+Scanned: no `check-ignore`, no real-tree mutation. **No change.**
+
 ---
 
 ## 5. Gate wiring and aggregators
@@ -233,8 +272,30 @@ boundary**. Measured, only **one** boundary has a caller:
 | portable `agentbundle` | **none** — catalogue lint 0 Git calls, verify 1 batched `ls-files` | **no helper.** Adding one would have no caller; forbidden by *add an option only when a second caller actually needs to differ* |
 | shipped pack/skill content | **none** — all 7 pack lints measured at 0 `check-ignore` | **no helper.** Shipped code must stay independent of repo-only `tools/`; nothing needs it |
 
-Consequence: exactly **one** helper module. The source-level enforcement test
-therefore has exactly one approved home to whitelist.
+Consequence: exactly **one** helper module — a flat
+`tools/lint_git_ignore.py`, not a package. `tools/catalogue/` and `tools/repo/`
+carry no `__init__.py`, so an importable `tools/lintlib/` package would be the
+first of its kind under `tools/` and would collide with the spec's own *never add
+a new module boundary* rail. A flat module needs no new boundary and is matched
+by the `tools/lint_*.py` glob, so the source-enforcement gate scans the very file
+it whitelists rather than exempting something it never looked at.
+
+## Two behavioural details the refactor must not flatten
+
+1. **`case_pack_tests_stay_in_pack` is deliberately not ignore-filtered.** It
+   walks `packs/<pack>/tests` with a raw `os.walk`
+   (`tools/lint-pack-test-boundary.py:763`), **not** through `_walk`, so a
+   gitignored `.py` file under a pack's test tree is still inspected for climbing
+   above its owning pack. The single batched ignored-set therefore applies only
+   to `_walk` outputs. Applying it universally would newly exempt gitignored pack
+   tests from source confinement — a contract weakening disguised as
+   deduplication.
+2. **`_test_basenames` has no production caller.**
+   `tools/lint-pack-test-boundary.py:855` is called only from the self-test
+   (`tools/test-lint-pack-test-boundary.py:601,653`); no `case_*` uses it. Adding
+   test basenames to the per-invocation inventory would add a `_walk` over every
+   destination that no check consumes — more traversal, not less. It stays a
+   lazily-called helper.
 
 ---
 
@@ -255,7 +316,8 @@ therefore has exactly one approved home to whitelist.
 | inventory constructions | **none — no inventory exists** |
 | wall clock, one invocation | **32.35 s** |
 
-`tools/test-lint-pack-test-boundary.py`:
+`tools/test-lint-pack-test-boundary.py` — **measured** in an isolated worktree
+at `63c71012`, not derived:
 
 | Metric | Before |
 | --- | --- |
@@ -264,7 +326,18 @@ therefore has exactly one approved home to whitelist.
 | real-worktree scans | **12** |
 | real `Makefile` rewrites | **2** |
 | real pack-tree plants | 7 distinct plant sites |
-| suite floor from lint launches alone | **≈ 6.5 min** — over the 5-minute inner-loop budget |
+| **measured wall clock** | **306.4 s (5.1 min)** |
+| **exit code** | **0 — the suite passes** |
+| **cases reported at runtime** | **82** — the floor the refactor must not regress |
+| static `cases += 1` sites | **47** (loops make the runtime count higher) |
+
+306.4 s exceeds the 300 s inner-loop budget by ~6 s. The suite is *correct* and
+sits almost exactly on the cutoff, which is why the earlier run presented as
+"71% then stall" rather than as a failure: any additional load tips it over.
+
+An earlier draft of this audit estimated a "≈6.5 min floor" by multiplying
+12 × 32.35 s. That was an over-estimate and is withdrawn — later launches hit a
+warm filesystem cache. The measured 306.4 s is the figure of record.
 
 `tools/lint-agents-md.py`:
 
@@ -277,6 +350,36 @@ Every other production lint: **0.13 s – 5.33 s**, and **0** `check-ignore`
 subprocesses. Full sweep in the P0 spec's evidence section.
 
 ---
+
+## A shipped spec already committed to this work, and only half shipped
+
+`docs/specs/pack-test-boundary-remaining-packs/spec.md` is **Shipped**. Its
+`plan.md:636` reads:
+
+> Add the `--` terminator to `git check-ignore` **and batch paths over stdin
+> rather than one subprocess per file.**
+
+Only the first clause landed. `tools/lint-pack-test-boundary.py:162` carries the
+`--` terminator; the stdin batching was never implemented, which is why the
+per-path subprocess loop survived into this audit. This spec completes the
+unimplemented half.
+
+That shipped spec's `AC10a` (`spec.md:395`, marked `[x]`) asserts as part of its
+contract:
+
+> `git check-ignore` is invoked with a `--` terminator.
+
+The batched resolver invokes `git check-ignore --stdin -z` with **no** path
+arguments at all, so the `--` terminator becomes meaningless — there is no argv
+path for it to disambiguate. The protection `--` provided (a path that looks
+like an option cannot be parsed as one) is *strengthened*, not lost: candidates
+move off argv entirely onto NUL-framed stdin, which no option parser reads.
+`AC10a`'s literal wording is nonetheless superseded and must be annotated in the
+frozen document per `docs/CONVENTIONS.md § Superseding a frozen document`.
+
+This is a correction to the audit: the first pass of this inventory recorded
+`lint-pack-test-boundary.py`'s Git process shape without noticing that a shipped
+spec had already specified the fix.
 
 ## Existing backlog item this audit closes
 
