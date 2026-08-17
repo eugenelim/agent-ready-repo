@@ -29,7 +29,7 @@ A **canonical surface** derived from the captured streams, not the raw bytes.
 ``docs/specs/lint-performance-p0/spec.md`` § *Golden baseline* is the normative
 enumeration of every class that surface normalises and of how each one is
 supported. It is deliberately not restated here. An earlier version of this
-docstring described three of the eleven operations and closed on "compared byte
+docstring described a subset of the operations and closed on "compared byte
 for byte" — the exact phrasing the spec spent two review rounds removing — which
 is how a second description at the point of use becomes the drift vector for the
 first. Read the spec; `_canonical` below is its implementation.
@@ -484,6 +484,17 @@ def _drop_unpinned_runner_misses(stream: str) -> tuple[str, int]:
 #: entry a runner also names — is pinned directly in
 #: `tools/test-lint-boundary-structural.py`, which drives the callable API and
 #: can supply its own map.
+#: Only the three real line terminators. `str.splitlines()` would also split on
+#: `\x0b`, `\x0c`, `\x1c`-`\x1e`, `\x85`, `\u2028` and `\u2029` — verified: a path
+#: containing U+2028 or a form feed was silently broken into two lines and then
+#: reordered by the tail rules, which contradicts the resolver's own criterion that
+#: newlines and Unicode in paths round-trip correctly. Normalising `\r\n` and `\r`
+#: to `\n` is deliberate and load-bearing (it is what lets a POSIX-captured
+#: baseline compare on a Windows host, where `print()` emits `\r\n`); splitting on
+#: anything else is not.
+_LINE_TERMINATOR = re.compile(r"\r\n|\r|\n")
+
+
 _AMBIENT_NO_RUNNER = re.compile(
     r"^FAIL: _NO_RUNNER names \S+, which holds no suite\b.*\n?", re.MULTILINE
 )
@@ -501,7 +512,7 @@ def _canonical(stream: str) -> str:  # noqa: C901 — a flat normalisation pipel
     redacted = ambient_no_runner + ambient_runner_miss
     blocks: list[str] = []
     current: list[str] = []
-    for line in stream.splitlines():
+    for line in _LINE_TERMINATOR.split(stream):
         if line.startswith(("FAIL: ", "ok   [", "✓ ", "✖ ")) and current:
             blocks.append("\n".join(current))
             current = [line]
@@ -512,7 +523,7 @@ def _canonical(stream: str) -> str:  # noqa: C901 — a flat normalisation pipel
 
     normalised: list[str] = []
     for block in blocks:
-        lines = block.splitlines()
+        lines = block.split("\n")   # blocks were joined with "\n" above
         # Redaction above deletes whole lines. A deleted line leaves a blank
         # behind, and a blank does not start a new block, so it rides along as a
         # tail line of whatever block precedes it — which is precisely how a
@@ -765,7 +776,7 @@ def _compare() -> int:
                 import difflib
                 diff = "\n".join(
                     difflib.unified_diff(
-                        w.splitlines(), g.splitlines(),
+                        _LINE_TERMINATOR.split(w), _LINE_TERMINATOR.split(g),
                         fromfile=f"baseline/{name}/{stream}",
                         tofile=f"produced/{name}/{stream}", lineterm="",
                     )

@@ -604,24 +604,27 @@ ignored by an explicit path rule — both conditions at once.
 For a goal-based task the record *is* the artifact, so each command is listed
 with the exit code it actually returned. Terminal wording unchanged throughout.
 
-Case-count rows cite each suite's `_CASE_FLOOR` rather than the count from one
-run, and that is a correction, not a shorthand. A hand-copied count drifted three
-times in this spec's own review rounds — every time a round added cases, the row
-recording them went stale inside the same commit that had just fixed it. The floor
-is a constant the suite enforces on itself and CI re-checks every run, so citing
-it cannot silently rot; the live count is always ≥ it by construction.
+Case-count rows name each suite's `_CASE_FLOOR` **without quoting its value**, and
+that is the second correction to these rows, not the first. Quoting a per-run count
+drifted three times — every round that added cases left the row stale inside the
+commit that had just fixed it. Quoting the floor's *number* instead drifted a
+fourth time, for the same reason: the value was still copied by hand, only the
+thing being copied had changed. Naming the constant and nothing else is the version
+with nothing left to rot — the suite enforces the floor on itself, CI re-checks it
+every run, and the live count is ≥ it by construction. Read the constant in the
+file if you want the number.
 
 | Command | Exit | Note |
 | --- | --- | --- |
 | `python3 tools/lint-pack-test-boundary.py` | 0 | six `ok` lines + `✓ … passed (6 cases).` |
-| `python3 tools/test-lint-pack-test-boundary.py` | 0 | ≥ `_CASE_FLOOR` = 124 cases; 4 real-tree CLI launches |
+| `python3 tools/test-lint-pack-test-boundary.py` | 0 | ≥ its in-suite `_CASE_FLOOR`; 4 real-tree CLI launches |
 | `python3 tools/test-lint-boundary-golden.py` | 0 | 22 captured baselines reproduced |
-| `python3 tools/test-lint-boundary-structural.py` | 0 | ≥ `_CASE_FLOOR` = 90 cases |
-| `python3 tools/test-lint-git-ignore.py` | 0 | ≥ `_CASE_FLOOR` = 95 cases |
+| `python3 tools/test-lint-boundary-structural.py` | 0 | ≥ its in-suite `_CASE_FLOOR` |
+| `python3 tools/test-lint-git-ignore.py` | 0 | ≥ its in-suite `_CASE_FLOOR` |
 | `python3 tools/lint-no-direct-check-ignore.py` | 0 | 817 files scanned, 4 allowlisted |
-| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | ≥ `_CASE_FLOOR` = 45 cases |
+| `python3 tools/test-lint-no-direct-check-ignore.py` | 0 | ≥ its in-suite `_CASE_FLOOR` |
 | `python3 tools/lint-agents-md.py` | 0 | unchanged terminal wording |
-| `python3 tools/test-lint-agents-md-gitignore-probes.py` | 0 | ≥ `_CASE_FLOOR` = 21 cases |
+| `python3 tools/test-lint-agents-md-gitignore-probes.py` | 0 | ≥ its in-suite `_CASE_FLOOR` |
 | `python3 tools/test_lint_agents_md_{legacy,diataxis,risk}_block.py` | 0 | 3 suites, unchanged |
 | `python3 tools/test-lint-ci-parity.py` | 0 | 102 cases; aggregator-extraction anchor holds |
 | `python3 tools/test_build_gate_chain.py` | 0 | 19 tests; ordered chain list updated |

@@ -137,9 +137,16 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   match a staged baseline.
 - **Comparison:** stdout and stderr are stored **raw**, base64-encoded, and
   compared **separately** — never merged — together with the exit code. Raw
-  storage is what keeps the baseline honest: a str-decoded baseline cannot
-  round-trip a surrogate-escaped path in Git's stderr, and the comparison would
-  then pass on two streams that differ.
+  storage preserves the captured record for diagnosis and for a privacy audit:
+  base64 rather than a JSON string because a stream may hold bytes that are not
+  valid UTF-8, which a `str` round trip would silently replace.
+  It does **not** make the comparison byte-exact, and an earlier draft of this
+  bullet claimed it did — that "the comparison would otherwise pass on two streams
+  that differ". It does: the compared surface is built from
+  `.decode("utf-8", "replace")`, so two genuinely different byte sequences collapse
+  onto one surface. Verified: `p/\xff.py` and `p/\xfe.py` both become
+  `p/\ufffd.py`. That lossy decode is a normalisation like any other and is listed
+  as class 8 below.
   What is compared is not the raw bytes but a **canonical surface** derived from
   them. This list is the complete inventory of what `_canonical` normalises, and it
   is normative: a change to that function that is not reflected here is a spec
@@ -158,21 +165,34 @@ records the resulting `(stdout, stderr, exit_code)` triple.
      CPython churn into the surface and would need this widened.
   4. **Order between findings** — `FAIL:` blocks are sorted among themselves,
      because two checks can both contribute and accumulation order must not matter.
-  4b. **Order between finding and non-finding blocks** — every `FAIL:` block is
+  5. **Order between finding and non-finding blocks** — every `FAIL:` block is
      emitted before every non-`FAIL:` block, whatever order they were printed in.
      A no-op today, because stdout carries the `ok`/`✓` lines and stderr the
      `FAIL`/`✖` ones and the two streams are compared separately; recorded because
-     the surface performs it regardless, which is the same standard class 6 is held
+     the surface performs it regardless — the same standard the hoist below is held
      to.
-  5. **Order within a finding** — a finding's indented path list is sorted,
+  6. **Order within a finding** — a finding's indented path list is sorted,
      separately from (4), because the walk returns filesystem order. These are two
-     distinct normalisations with two distinct reasons; merging them is how the
+     distinct normalisations with two distinct reasons; merging them is how an
      earlier draft lost one.
-  6. **Position within a finding** — indented path lines are hoisted above
+  7. **Position within a finding** — indented path lines are hoisted above
      unindented hint lines. A no-op on today's baselines, where every emitted path
      already precedes its hint, and recorded because it is a normalisation the
      surface performs whether or not it currently changes anything.
-  7. **Whitespace** — blank tail lines are dropped, blocks holding only blanks are
+  8. **Line terminators** — `\r\n` and a bare `\r` are normalised to `\n`. This is
+     what lets one POSIX-captured baseline compare on a Windows host, where
+     `print()` emits `\r\n`, and it went unrecorded for six review rounds. Only
+     those three: `str.splitlines()` would additionally split on `\x0b`, `\x0c`,
+     `\x85`, `\u2028` and `\u2029`, which would break a path containing one into
+     two lines and then reorder the pieces — contradicting the resolver criterion
+     that newlines and Unicode in paths round-trip correctly. The splitter is
+     therefore an explicit three-terminator pattern, not `splitlines()`.
+  9. **Lossy UTF-8 decode** — the surface is built from
+     `.decode("utf-8", "replace")`, so an invalid byte becomes `U+FFFD` and two
+     distinct byte sequences can share one surface. The raw bytes remain in the
+     baseline for diagnosis; the comparison is not byte-exact, and the Comparison
+     bullet above no longer claims otherwise.
+  10. **Whitespace** — blank tail lines are dropped, blocks holding only blanks are
      dropped, and the surface is `strip()`ped with one trailing newline. This is
      what stops a redaction from surfacing as a whitespace-only difference.
   How each class is held, stated exactly — an earlier draft of this sentence
@@ -180,15 +200,18 @@ records the resulting `(stdout, stderr, exit_code)` triple.
   disproved it are the reason the list below distinguishes three kinds of support
   rather than two:
   - **Mutation-proven** (removing the behaviour reddens a suite): classes 1, 2, 4,
-    4b, 5, 6, and the blank-*tail* drop in 7.
+    5, 6, 7, 8, and the blank-*tail* drop in 10.
   - **Corpus-present but not same-host provable**: class 3. Two baselines
     (`malformed-runner-file`, `pack-test-unparseable`) do carry an
     interpreter-dependent message, but removing the elision leaves *both* sides of
     the comparison equally un-elided, so it stays green on one host. Its purpose is
     stability across CPython minors, which only a second interpreter demonstrates —
     hence the cross-platform determinism check below rather than a mutation.
+  - **Unavoidable rather than chosen**: class 9. A lossy decode is what makes a
+    text surface possible at all; it is listed so nobody mistakes the comparison
+    for byte-exact.
   - **Redundant, kept defensively**: the blank-only-*block* drop and the final
-    `strip()` in class 7. Both are unreachable once blank tails are dropped, and a
+    `strip()` in class 10. Both are unreachable once blank tails are dropped, and a
     mutation removing either stays green. They are retained because the redaction
     that feeds them deletes whole lines, and cheap belt-and-braces at that seam is
     worth more than the line count it costs — but they are not evidence of

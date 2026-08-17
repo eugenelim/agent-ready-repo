@@ -48,7 +48,7 @@ _spec.loader.exec_module(M)
 
 #: A single ~400-line main() aborts every later block on one exception, so the
 #: reported count silently drops. Falling below this is a failure in itself.
-_CASE_FLOOR = 96
+_CASE_FLOOR = 103
 
 _FAILURES: list[str] = []
 _CASES = 0
@@ -808,6 +808,27 @@ def main() -> int:  # noqa: C901 — independent structural assertions
           G._canonical("FAIL: b\nFAIL: a\n") == G._canonical("FAIL: a\nFAIL: b\n")
           == "FAIL: a\nFAIL: b\n",
           repr(G._canonical("FAIL: b\nFAIL: a\n")))
+    # Line terminators. This is what lets a POSIX-captured baseline compare on a
+    # Windows host, where `print()` emits `\r\n` — so it is load-bearing, not
+    # cosmetic, and it was absent from the normative list for six review rounds.
+    check("CRLF and LF produce the same surface",
+          G._canonical("FAIL: a\r\nok   [x] (0)\r\n")
+          == G._canonical("FAIL: a\nok   [x] (0)\n"),
+          repr(G._canonical("FAIL: a\r\nok   [x] (0)\r\n")))
+    check("a bare CR is also normalised",
+          G._canonical("FAIL: a\rok   [x] (0)\r")
+          == G._canonical("FAIL: a\nok   [x] (0)\n"))
+    # …and only those three. `str.splitlines()` also splits on these five, which
+    # would break a path containing one into two lines and then reorder or drop the
+    # pieces — directly contradicting the resolver criterion that newlines and
+    # Unicode in paths round-trip correctly.
+    for label, ch in (("U+2028", "\u2028"), ("U+2029", "\u2029"),
+                      ("form feed", "\x0c"), ("NEL", "\x85"),
+                      ("vertical tab", "\x0b")):
+        surface = G._canonical(f"FAIL: p/a{ch}b.py is bad\n")
+        check(f"{label} in a path does not split the line",
+              "\n" not in surface.rstrip("\n"), repr(surface))
+
     check("every FAIL block precedes every non-FAIL block, whatever the emitted "
           "order",
           G._canonical("ok   [x] (1)\nFAIL: z\n")
