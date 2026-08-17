@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
-- **Brief:** docs/product/briefs/tech-site-completion.md
+- **Brief:** tech-site-completion
 - **Discovery:** none
 - **Contract:** none
 - **Shape:** ui

@@ -555,6 +555,28 @@ def test_dangling_up_field_still_fires() -> None:
                f"resolving Brief means not also a backward orphan: {out}")
 
 
+def test_annotated_none_up_fields_are_placeholders() -> None:
+    """Explanations and punctuation after `none` do not assert pointers."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_brief(root, "b")
+        write_spec(root, "alpha", brief="b")
+        write_spec(root, "parenthesized", contract="none (no published contract)")
+        write_spec(root, "sentence", contract="none. Documentation only")
+        write_spec(root, "semicolon", contract="none; internal behavior only")
+        write_spec(root, "em-dash", contract="none — consumes an existing contract")
+        spec = root / "docs" / "specs" / "em-dash" / "spec.md"
+        with spec.open("a", encoding="utf-8") as handle:
+            handle.write("\nThe **Contract:** label is metadata documentation.\n")
+
+        rc, out, err = run(root)
+
+        expect(rc == 0, f"annotated placeholders must not dangle, got {rc}: {err}")
+        expect("DANGLING" not in err, f"annotated placeholders stay unset: {err}")
+        expect("ORPHAN spec:em-dash" in out and "no producer" in out,
+               f"the canonical first field remains authoritative: {out}")
+
+
 # --------------------------------------------------------------------------
 # Root→leaf reachability (sidecar mode) — the disconnected-subtree backstop
 # --------------------------------------------------------------------------

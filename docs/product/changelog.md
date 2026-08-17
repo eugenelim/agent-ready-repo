@@ -18,6 +18,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [core][2.7.2] — 2026-08-17
+
+#### Fixed
+
+- **Explicitly absent traceability metadata remains absent.** The first
+  rendered pointer field is authoritative, and `none` values with explanatory
+  annotations or ordinary punctuation no longer become dangling pointers when
+  a repository adds its first discovery anchor.
+
 ### [core][2.7.1] — 2026-08-17
 
 #### Added

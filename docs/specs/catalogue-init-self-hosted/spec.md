@@ -5,7 +5,8 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Mode:** Full (risk triggers: multi-feature, structural public-interface change, destructive operation, security boundary)
 - **Constrained by:** RFC-0059 (catalogue-curation pack), ini-005 (AgentBundle Portable Catalogue Tooling), ini-006 (Catalogue CI Contract)
-- **Contract:** `agentbundle catalogue init --preset self-hosted` CLI surface; `agentbundle catalogue package --flavor source` CLI surface; `agentbundle.catalogue_tooling.identity` module; self-hosted-source-manifest.json schema
+- **Brief:** none
+- **Contract:** none
 - **Shape:** mixed
 
 > **Spec contract:** this document defines what "done" means. The implementing

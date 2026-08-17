@@ -3,8 +3,8 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Contract:** the local gate chain gains a step kind. No published interface
-  changes; `tools/` is non-release-impacting.
+- **Brief:** none
+- **Contract:** none
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

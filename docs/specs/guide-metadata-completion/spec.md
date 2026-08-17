@@ -4,9 +4,9 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
-- **Brief:** docs/product/briefs/tech-site-completion.md
+- **Brief:** tech-site-completion
 - **Discovery:** none
-- **Contract:** contracts/guide.schema.json
+- **Contract:** none
 - **Shape:** data
 
 > **Spec contract:** this document defines what done means. The implementing

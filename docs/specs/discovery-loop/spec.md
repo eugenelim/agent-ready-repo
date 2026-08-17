@@ -5,7 +5,7 @@
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0053 (governing — the no-engine coordinator contract, the typed sidecar, the gate state machine, the bounds, the supervisor topology, and the exploratory scaffold this spec implements); RFC-0048 (the foundation; this is child 5 — it marks D7/D8 spike-confirmed, owns all four acceptance blockers, and carries the loop-scoped reviewer roster); RFC-0051 (the self-coverage gate — `discovery-loop` is the primary home of the full seven-module design-convergence instantiation, wired as the pre-G2 phase); RFC-0049 (the sibling downstream release loop that reads the same sidecar instances by convention); RFC-0050 (the `experience` lens this loop detect-and-degrades on); RFC-0041 + ADR-0031 (the doctrine + reference-library + reuse, no-engine idiom); RFC-0040 (the three-tier layout the sidecar paths obey); RFC-0025 (the iteration cap + light/full this loop's outer cap mirrors); RFC-0019 (`receive-brief`, the requirements-ingest seam); RFC-0036 (the converters / md-to-office projection adapter for enterprise-format emit); ADR-0022 (the cross-repo reference-by-version the traceability slot reuses); ADR-0042 (reviewer selection keyed to loop + work type)
 - **Brief:** none
-- **Contract:** the typed sidecar schema — `references/sidecar-schema.md` carried in the `discovery-loop` skill (a carried, `schema_version`-stamped contract read by convention, **not** a `contracts/<type>/` REST/event surface and **not** a `core` doctrine file)
+- **Contract:** none
 - **Shape:** mixed
 
 > **Spec contract:** this document defines what "done" means. The implementing
