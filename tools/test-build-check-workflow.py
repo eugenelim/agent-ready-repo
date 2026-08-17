@@ -282,6 +282,21 @@ PINNED_EXPORT_PYTEST = (
     '| tee "$RUNNER_TEMP/out.txt"'
 )
 PINNED_POSTURE = f"python3 {SELF_NAME}"
+# spec/site-ci-contract-closure AC2. These four statements are FIXED, so they go
+# through `_pinned` (statement equality) rather than `_invocation` (argv membership)
+# — this file's own guidance. Membership alone accepted
+# `python -m pytest --collect-only <modules>` and `… -q -k nope`, which collect or
+# select nothing while every module name stayed present and the audit stayed clean.
+PINNED_SITE_GUIDES_PYTEST = (
+    "python -m pytest tools/test_validate_guides.py tools/test_check_guide_index.py "
+    "tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py"
+)
+PINNED_SITE_BUILD_PYTEST = (
+    "python -m pytest tools/test_build_site_link_rewrites.py "
+    "tools/test_check_rendered_site_links.py tools/test_build_site_routing.py"
+)
+PINNED_CONTRAST_CHECKER = "python3 tools/check-docs-contrast.py"
+PINNED_CONTRAST_SUITE = "python -m pytest tools/test_check_docs_contrast.py -q"
 # `working-directory:` decides WHERE a pinned statement runs, so it is the YAML sibling
 # of the `-C`/`-f` ban in `_REDIRECT_FLAGS` — and it was unasserted. Measured:
 # `working-directory: tools` on the anchor leaves the pinned text untouched, audits
@@ -1279,6 +1294,21 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
                   or bool(_invocation(main_blk, "python3", _script)))
         check(f"contrast-gate[{_script}]", ok)
 
+    # Statement equality on the four fixed statements. The membership checks above
+    # stay as the roster pin (they name WHICH modules must appear); these pin HOW
+    # they are invoked, which is what closes argument-level neutering.
+    check("site-guides-pytest-pinned",
+          bool(_pinned(_step_named(main_blk, "pytest guides + catalogue navigation"),
+                       PINNED_SITE_GUIDES_PYTEST)))
+    check("site-build-pytest-pinned",
+          bool(_pinned(_step_named(main_blk, "pytest site build + link rewriting"),
+                       PINNED_SITE_BUILD_PYTEST)))
+    _contrast_step = _step_named(main_blk, "docs palette contrast gate")
+    check("contrast-checker-pinned",
+          bool(_pinned(_contrast_step, PINNED_CONTRAST_CHECKER)))
+    check("contrast-suite-pinned",
+          bool(_pinned(_contrast_step, PINNED_CONTRAST_SUITE)))
+
     # AC2's second neutering form. `continue-on-error` is covered file-wide, and
     # cwd redirection by _NO_CWD_STEPS above — but a step-level `if:` was the live
     # bypass: `if: ${{ false }}` on either pytest step or the contrast step skipped
@@ -1294,7 +1324,13 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # contexts by name, so a filtered trigger means a PR touching none of the
     # filtered paths never runs the workflow, the required checks never report,
     # and the PR is permanently unmergeable — Expected, not skipped-as-success.
-    check("no-path-filter", not _TRIGGER_PATHS_RE.search(_on_block(text)))
+    # `_on_block` returns "" when the top-level key is not the bare `on:` it anchors
+    # on, and `search("")` is trivially falsy — so requiring the span be NON-EMPTY is
+    # what keeps this fail-closed. Without that, quoting the key as `'on':` (a
+    # yamllint-truthy-friendly spelling nothing else here pins) made the whole
+    # assertion vacuous and a paths: filter passed undetected.
+    _on = _on_block(text)
+    check("no-path-filter", bool(_on) and not _TRIGGER_PATHS_RE.search(_on))
 
     # AC4: the predicate has exactly one consumer.
     sast_blk = _job_block(text, "gate-sast")
@@ -1460,8 +1496,6 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("drop-contrast-suite", "contrast-gate[tools/test_check_docs_contrast.py]",
      lambda t: t.replace(
          "          python -m pytest tools/test_check_docs_contrast.py -q\n", "")),
-    # A paths: filter on a workflow whose jobs are required contexts leaves every
-    # non-matching PR permanently unmergeable.
     ("if-false-on-contrast-step", "site-step-no-if[docs palette contrast gate]",
      lambda t: t.replace("      - name: docs palette contrast gate\n",
                          "      - name: docs palette contrast gate\n        if: ${{ false }}\n")),
@@ -1471,6 +1505,24 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("cwd-redirect-contrast-step", "no-working-directory[gate-main/docs palette contrast gate]",
      lambda t: t.replace("      - name: docs palette contrast gate\n",
                          "      - name: docs palette contrast gate\n        working-directory: tools\n")),
+    # The vacuity guard: quoting the top-level key must not silently disable the
+    # assertion above it.
+    ("collect-only-site-guides", "site-guides-pytest-pinned",
+     lambda t: t.replace("          python -m pytest\n          tools/test_validate_guides.py",
+                         "          python -m pytest --collect-only\n          tools/test_validate_guides.py")),
+    ("k-filter-site-build", "site-build-pytest-pinned",
+     lambda t: t.replace("          tools/test_build_site_routing.py\n",
+                         "          tools/test_build_site_routing.py -k nope\n")),
+    ("k-filter-contrast-suite", "contrast-suite-pinned",
+     lambda t: t.replace("python -m pytest tools/test_check_docs_contrast.py -q",
+                         "python -m pytest tools/test_check_docs_contrast.py -q -k nope")),
+    ("dry-run-contrast-checker", "contrast-checker-pinned",
+     lambda t: t.replace("python3 tools/check-docs-contrast.py",
+                         "python3 tools/check-docs-contrast.py --dry-run")),
+    ("quote-on-key", "no-path-filter",
+     lambda t: t.replace("on:\n", "'on':\n", 1)),
+    # A paths: filter on a workflow whose jobs are required contexts leaves every
+    # non-matching PR permanently unmergeable.
     ("add-path-filter", "no-path-filter",
      lambda t: t.replace("  pull_request:\n    branches: [main]\n",
                          "  pull_request:\n    branches: [main]\n"

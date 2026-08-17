@@ -78,8 +78,9 @@ that required CI does not execute.
   seven names is proven by seeded deletion against an in-memory copy, because a
   bare presence assertion cannot detect removal.
 - [x] `tools/check-docs-contrast.py` has focused tests for light and dark pairs,
-  the 4.5:1 threshold boundary (asserted on the comparison's inclusivity plus the
-  tightest real pairs either side, since no 6-hex pair yields exactly 4.5), each
+  the 4.5:1 threshold boundary (asserted on the comparison's inclusivity through the
+  seam `main()` uses, plus the tightest real pairs either side; measured: no
+  gray-on-gray 6-hex pair and no shipped-palette pair lands exactly on 4.5), each
   named invalid-input case — malformed hex, legal-but-unsupported three-digit
   shorthand, an unresolvable `var()` chain, and a palette that cannot be read or
   decoded — and non-zero exit on failure.

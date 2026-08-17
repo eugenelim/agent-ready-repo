@@ -48,12 +48,24 @@ def _load():
 mod = _load()
 
 
-def _css(pairs: str) -> str:
-    """A minimal two-theme sheet defining every name PAIRS references."""
+def _css(pairs: str, light_overrides: str = "") -> str:
+    """A minimal two-theme sheet defining every name PAIRS references.
+
+    `light_overrides` is written ONLY into the `[data-theme='light']` block, so a
+    fixture can make the themes differ. Without that, both blocks carried identical
+    declarations and no test could distinguish them — deleting the light theme from
+    `theme_tables` left the whole suite green while silently dropping 14 pairs,
+    including the three closest to the floor in the shipped palette.
+    """
     return (
         ":root {\n" + pairs + "}\n"
-        "[data-theme='light'] {\n" + pairs + "}\n"
+        "[data-theme='light'] {\n" + pairs + light_overrides + "}\n"
     )
+
+
+def _all_pairs_ok() -> str:
+    return ("".join(f"  {fg}: #000000;\n" for fg, _ in mod.PAIRS)
+            + "".join(f"  {bg}: #ffffff;\n" for _, bg in mod.PAIRS))
 
 
 def _run(root: Path) -> subprocess.CompletedProcess[str]:
@@ -93,10 +105,24 @@ def test_threshold_is_inclusive_at_the_floor() -> None:
     assert mod.passes(mod.FLOOR + 1e-9) is True
 
 
+def test_floor_is_the_wcag_aa_threshold() -> None:
+    """Pin the constant itself.
+
+    Every other assertion here is FLOOR-relative, so without this the threshold
+    could be moved a long way with the whole suite green — and changing it is an
+    "Ask first" boundary in the spec.
+    """
+    assert mod.FLOOR == 4.5
+
+
 def test_tightest_real_pairs_straddle_the_floor() -> None:
-    """#767676 on white is the canonical just-above-4.5 web pair; #777 lighter fails."""
+    """#767676 on white is the canonical just-above-4.5 web pair; #777777 just fails.
+
+    Both are within 0.03 of the floor, so this brackets it tightly — an earlier
+    draft used #8a8a8a (3.45), loose enough that FLOOR could drift ~24% undetected.
+    """
     assert mod.ratio("#767676", "#ffffff") >= mod.FLOOR
-    assert mod.ratio("#8a8a8a", "#ffffff") < mod.FLOOR
+    assert mod.ratio("#777777", "#ffffff") < mod.FLOOR
 
 
 # --------------------------------------------------------------------------
@@ -169,6 +195,53 @@ def test_malformed_palette_value_exits_non_zero_without_traceback(tmp_path: Path
     (tmp_path / "docs-site" / "src" / "styles").mkdir(parents=True)
     (tmp_path / "docs-site" / "src" / "styles" / "starlight.css").write_text(
         _css(pairs), encoding="utf-8")
+    r = _run(tmp_path)
+    assert r.returncode != 0, r.stdout + r.stderr
+    assert "Traceback" not in r.stderr, f"must refuse, not crash: {r.stderr}"
+
+
+def test_below_floor_in_light_theme_only_is_caught(tmp_path: Path) -> None:
+    """The light theme must be enumerated, not just dark.
+
+    `theme_tables` builds light as `{**dark, **light}`. Deleting the light entry, or
+    swapping the merge order so light no longer overrides, both left every other test
+    green — while dropping 14 pairs including the three tightest in the shipped
+    palette. This fixture is clean in `:root` and fails only under
+    `[data-theme='light']`, so it can only pass if light is actually checked.
+    """
+    fg0, bg0 = mod.PAIRS[0]
+    (tmp_path / "docs-site" / "src" / "styles").mkdir(parents=True)
+    (tmp_path / "docs-site" / "src" / "styles" / "starlight.css").write_text(
+        _css(_all_pairs_ok(), light_overrides=f"  {fg0}: #808080;\n  {bg0}: #858585;\n"),
+        encoding="utf-8")
+    r = _run(tmp_path)
+    assert r.returncode != 0, r.stdout + r.stderr
+    assert "light" in r.stdout, f"the light theme must be named in the failure: {r.stdout}"
+
+
+def test_both_themes_are_enumerated(tmp_path: Path) -> None:
+    """A clean palette must still report BOTH themes, so a dropped theme is visible."""
+    (tmp_path / "docs-site" / "src" / "styles").mkdir(parents=True)
+    (tmp_path / "docs-site" / "src" / "styles" / "starlight.css").write_text(
+        _css(_all_pairs_ok()), encoding="utf-8")
+    r = _run(tmp_path)
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert "dark" in r.stdout and "light" in r.stdout, r.stdout
+    # Every registered pair, in both themes.
+    assert r.stdout.count("on ") == 2 * len(mod.PAIRS), r.stdout
+
+
+def test_unresolvable_var_in_palette_exits_non_zero_without_traceback(tmp_path: Path) -> None:
+    """Covers the `resolve()` handler in `main()` at the CLI boundary.
+
+    Deleting that try/except left the suite green: the unresolvable-var case was
+    asserted only at the `resolve()` unit level, so AC3's no-traceback promise was
+    unproven for that handler.
+    """
+    fg0, _ = mod.PAIRS[0]
+    (tmp_path / "docs-site" / "src" / "styles").mkdir(parents=True)
+    (tmp_path / "docs-site" / "src" / "styles" / "starlight.css").write_text(
+        _css(_all_pairs_ok() + f"  {fg0}: var(--nope);\n"), encoding="utf-8")
     r = _run(tmp_path)
     assert r.returncode != 0, r.stdout + r.stderr
     assert "Traceback" not in r.stderr, f"must refuse, not crash: {r.stderr}"

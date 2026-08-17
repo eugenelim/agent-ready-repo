@@ -96,8 +96,9 @@ assertion in T3 is genuinely red-first.
 
 **Tests:**
 - TDD (`stub: true`): known passing and failing ratios, plus threshold
-  inclusivity — no 6-hex pair yields exactly 4.5, so assert the `>=` boundary
-  directly and bracket it with the tightest real pairs either side (AC3).
+  inclusivity — no gray-on-gray 6-hex pair and no shipped-palette pair lands exactly
+  on 4.5, so assert the boundary through the seam `main()` calls and bracket it with
+  the tightest real pairs either side (AC3).
 - TDD (`stub: true`): each named invalid-input case refuses with a diagnostic and
   a non-zero exit rather than an uncaught traceback — malformed hex, legal
   three-digit shorthand, and an unresolvable `var()` chain (AC3).
