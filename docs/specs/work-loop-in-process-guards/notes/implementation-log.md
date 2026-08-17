@@ -92,3 +92,22 @@ re-pinning the baseline is expected rather than an interruption.
   paths: confinement verifies the **resolved** path (canonicalize-then-verify-prefix,
   the CWE-73 depth), and the read uses the **unresolved** one. Audited the other five
   reader call sites; all already pass unresolved paths.
+
+## W4 · T2
+
+- **The goldens caught two of my bugs in one run.** `check_artifact_status`'s reasons
+  embedded `check-spec-status: `, so the adapter's own prefix doubled it —
+  `check-spec-status: check-spec-status: spec.md Status is …`. A CLI prefix inside
+  the guard layer is precisely the CLI concern that layer is supposed to be free of;
+  reasons are now prefix-free like every other guard's.
+- **Check order turned out to be load-bearing.** Putting the single-component rule
+  before the confinement check re-diagnosed `--file ../outside.md` as a component
+  problem, changing an existing message with no `change_reason`. Confinement now runs
+  first, so that row keeps `--file must be within spec-dir` and the component rule
+  catches only the genuinely new case: a multi-component path resolving *inside*
+  `spec_dir`.
+- **AC9's scanner note was right to be rewritten.** `check-spec-status.py` was never
+  in the semgrep rule's `paths.include`, so no coverage is lost; the rule file now
+  says so, and names the behavioural test that replaces the exemplar.
+- The loader-identity test is no longer skipping — two of three copies exist and
+  compare equal after normalization.

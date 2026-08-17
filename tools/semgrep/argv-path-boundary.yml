@@ -81,7 +81,13 @@ rules:
           - pattern: $ARGS.$FIELD.resolve()
           - pattern: pathlib.Path($ARGS.$FIELD)
           - pattern: Path($ARGS.$FIELD)
-      # `check-spec-status.py:72-80` is the in-repo reference pattern: resolve,
+      # NOTE: `check-spec-status.py` was never in paths.include below, so moving
+      # this pattern into the shared guard costs this rule NO coverage — it only
+      # means that file stays ineligible for the EXPANSION CONDITION ratchet, since
+      # it keeps a bare `Path(args.spec_dir).resolve()` with no in-function
+      # containment. The behavioural guard is now
+      # `test_loop_guards.py::test_check_artifact_status_*`.
+      # `_loop_guards.check_artifact_status` is the in-repo reference pattern: resolve,
       # then assert containment with is_relative_to in the same function. That
       # shape is already legible to a taint analyser, so it must not fire —
       # without this clause the rule false-positives on its own exemplar.

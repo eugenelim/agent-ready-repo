@@ -1116,27 +1116,29 @@ _FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> GuardResult:
     """A spec or plan artifact carries the expected `**Status:**` value.
 
-    `filename` must be a single path component and must not be all dots. The charset
-    alone admits `.` and `..` — the exact class `0cb5c213` ("reject dot path segments
-    in capture-evidence `--repo`") fixed a day before this change, whose blessed form
-    is segment equality rather than a narrower charset, because a leading dot is
-    legitimate in a real filename.
+    Reasons here are PREFIX-FREE, like every other guard's. `check-spec-status.py`
+    prints its own `check-spec-status: ` prefix, and the engine composes its own —
+    so embedding one in the reason produced `check-spec-status: check-spec-status:
+    …`, which the pre-change goldens caught immediately. A CLI prefix inside the
+    guard layer is exactly the CLI concern this layer is supposed to be free of.
 
-    Single-component is what makes the confinement honest: `O_NOFOLLOW` rejects a
-    symlink only at the FINAL component, so `sub/spec.md` with `sub` swapped after
-    the prefix check would otherwise read outside the directory. The descriptor
-    re-check proves type and inode identity, not confinement — and this guard claims
-    only that.
+    Check ORDER is load-bearing, and also golden-caught. Confinement runs BEFORE the
+    single-component rule, so `--file ../outside.md` keeps its existing
+    "must be within spec-dir" message rather than being re-diagnosed as a component
+    problem. The component rule then catches the genuinely new case: a
+    multi-component path that resolves *inside* `spec_dir`, which used to be
+    accepted.
+
+    Why single-component matters at all: `O_NOFOLLOW` rejects a symlink only at the
+    FINAL component, so `sub/spec.md` with `sub` swapped after the prefix check would
+    read outside the directory. And the charset alone admits every dot segment — the
+    class `0cb5c213` fixed the day before this change — so dot-only names are
+    rejected by segment equality rather than by narrowing the charset, which would
+    also reject legitimate leading-dot filenames.
     """
     problem = _require_spec_dir(spec_dir)
     if problem is not None:
         return GuardResult(ok=False, reason=problem)
-
-    if not _FILENAME_RE.fullmatch(filename) or set(filename) == {"."}:
-        return GuardResult(
-            ok=False,
-            reason=f"check-spec-status: --file must be a single path component: {filename!r}",
-        )
 
     # TWO paths, deliberately. Confinement needs the canonical one — resolve first,
     # then verify the prefix, which is the CWE-73 depth rather than the shallower
@@ -1150,33 +1152,28 @@ def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> Guar
         inside = target.is_relative_to(spec_dir.resolve())
     except (OSError, RuntimeError) as exc:
         # RuntimeError: `Path.resolve()` on a symlink loop under the 3.11/3.12 floor.
-        return GuardResult(
-            ok=False, reason=f"check-spec-status: cannot resolve {filename}: {exc}"
-        )
+        return GuardResult(ok=False, reason=f"cannot resolve {filename}: {exc}")
     if not inside:
-        return GuardResult(ok=False, reason="check-spec-status: --file must be within spec-dir")
+        return GuardResult(ok=False, reason="--file must be within spec-dir")
+
+    if not _FILENAME_RE.fullmatch(filename) or set(filename) == {"."}:
+        return GuardResult(
+            ok=False, reason=f"--file must be a single path component: {filename!r}"
+        )
 
     if not target.exists():
-        return GuardResult(
-            ok=False, reason=f"check-spec-status: {filename} not found at {target}"
-        )
+        return GuardResult(ok=False, reason=f"{filename} not found at {target}")
 
     try:
         token = read_md_status(unresolved)
     except UnreadableArtifact as exc:
-        return GuardResult(ok=False, reason=f"check-spec-status: cannot read {target}: {exc}")
+        return GuardResult(ok=False, reason=f"cannot read {target}: {exc}")
 
     if token is None:
-        return GuardResult(
-            ok=False,
-            reason=f"check-spec-status: no **Status:** line found in {target}",
-        )
+        return GuardResult(ok=False, reason=f"no **Status:** line found in {target}")
     if token != expect:
         return GuardResult(
-            ok=False,
-            reason=(
-                f"check-spec-status: {filename} Status is {token!r}, expected {expect!r}"
-            ),
+            ok=False, reason=f"{filename} Status is {token!r}, expected {expect!r}"
         )
     return GuardResult(
         ok=True,
