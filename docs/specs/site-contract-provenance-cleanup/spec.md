@@ -1,9 +1,9 @@
 # Spec: Site contract provenance cleanup
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** RFC-0089, ADR-0055, ADR-0085
+- **Constrained by:** [RFC-0089](../../rfc/0089-starlight-docs-boundary.md), [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md), [ADR-0085](../../adr/0085-docs-rendering-is-site-local.md)
 - **Brief:** docs/product/briefs/tech-site-completion.md
 - **Discovery:** none
 - **Contract:** none
@@ -44,43 +44,56 @@ contains no duplicate or already-shipped site debt.
 
 ## Testing Strategy
 
-- Frozen-document integrity uses TDD construction tests because the invariant is
-  byte-level: only the permitted Status line changes.
+- Frozen-document integrity is verified goal-based, as a one-changed-line delta
+  per document (`git diff --numstat`), because that is exactly what the
+  byte-level invariant asserts. A durable construction test is deliberately not
+  written: it could only anchor on a git base ref (unavailable post-merge) or a
+  committed hash, and a committed hash would reject the meaning-preserving
+  mechanical rewrites `docs/CONVENTIONS.md` § Superseding a frozen document
+  explicitly licenses.
 - Living-guidance and backlog dispositions use goal-based checks against the
   canonical files because their outcome is exact text and lifecycle membership.
 - Lifecycle integrity uses the full workspace reconciliation and the existing
   rendered-link unit suite.
+- The external-visual-reference prohibition (AC10) is a manual reviewer check,
+  recorded as performed-and-clean; the term is never written into a tracked
+  file, commit message, or PR body.
 
 ## Acceptance Criteria
 
-- [ ] The Phase 4b product-docs spec Status names ADR-0055 as the authority for
-  the superseded docs URL instruction, identifies only that superseded scope,
-  and leaves every other frozen body byte unchanged.
-- [ ] After RFC-0089's follow-on palette ADR exists, ADR-0055's Status points
+- [x] The Phase 4b product-docs spec Status names ADR-0055 as the standing
+  authority for the corrected docs URL instruction and names the spec that
+  applied the correction, identifies only that scope, states plainly that it is
+  not a supersession of a decision made in that spec (ADR-0055 was already
+  Accepted when it shipped, so the instruction was contrary to it rather than
+  superseded by it), and leaves every other frozen body byte unchanged.
+- [x] After RFC-0089's follow-on palette ADR exists, ADR-0055's Status points
   forward to that ADR for only the superseded token-sharing rationale, and the
   frozen `starlight-migration` spec Status points to it for only the amber
   palette/token assertions; every frozen body byte remains unchanged.
-- [ ] Living guidance distinguishes the Pages workflow's current two-phase
+- [x] Living guidance distinguishes the Pages workflow's current two-phase
   generation order (`--journeys-only`, marketing build, full docs aggregation,
   docs build) from the valid local full-generation sequence; both preserve the
   load-bearing marketing-before-docs render order and run combined page and
   fragment checking after both builds. No living instruction claims the
   repository has no link checker or that the two sequences are identical.
-- [ ] The registered `web-docs-link-check-gate` item is closed as already
+- [x] The registered `web-docs-link-check-gate` item is closed as already
   shipped and points to `docs/specs/rendered-site-link-debt/spec.md` while
   retaining its original review header and vintage.
-- [ ] `site-link-check-contract-docs` is resolved within the same canonical
+- [x] `site-link-check-contract-docs` is resolved within the same canonical
   closure and does not enter the backlog as a duplicate item.
-- [ ] The orphan rendered-link historical comment block is either attached to
+- [x] The orphan rendered-link historical comment block is either attached to
   its shipped target or retained in an explicitly historical location; it
   cannot appear to be open membership.
-- [ ] The registered `starlight-migration-rfc` item is closed to RFC-0089 after
-  that RFC is accepted, with its original source and review provenance intact.
-- [ ] A full Type 1/2/3 workspace reconciliation reports no inconsistency
+- [x] The registered `starlight-migration-rfc` item is recorded as satisfied by
+  accepted RFC-0089 and retained in `[backlog].open` — removal would break
+  `lint-spec-status.py` invariant (iv), whose anchor lives in a frozen body this
+  spec may not edit — with its original source and review provenance intact.
+- [x] A full Type 1/2/3 workspace reconciliation reports no inconsistency
   introduced by the lifecycle transaction.
-- [ ] Existing rendered-link unit tests pass and the cleanup changes no emitted
+- [x] Existing rendered-link unit tests pass and the cleanup changes no emitted
   route or navigation contract.
-- [ ] No tracked artifact introduced by this spec names the external visual
+- [x] No tracked artifact introduced by this spec names the external visual
   reference.
 
 ## Assumptions
@@ -97,3 +110,17 @@ contains no duplicate or already-shipped site debt.
   mechanism (source: `docs/CONVENTIONS.md`).
 - Process: lifecycle membership is changed through canonical work intake after
   its target artifact exists (source: `docs/product/briefs/tech-site-completion.md`).
+- Process: AC7's closure is a disposition, not a membership removal.
+  `lint-spec-status.py` invariant (iv) resolves a `(deferred: <slug>)` anchor
+  against `[backlog].open` only and fails hard, and the frozen
+  `starlight-migration` spec carries that anchor in a body this spec may not
+  edit — so the entry stays in `[backlog].open`, recorded as satisfied by
+  RFC-0089 with its source and review provenance intact. Widening invariant (iv)
+  is a published-interface change requiring an RFC and is out of scope (source:
+  `docs/CONVENTIONS.md` § Spec metadata contract; the brief's registered-debt
+  note that open membership remains for this compatibility pointer).
+- Technical: AC4's closure and AC6's comment disposition already landed in
+  commit `0455eea1`; this spec verifies them and normalises AC4's pointer to the
+  repository-relative spec path rather than re-performing the closure (source:
+  `workspace.toml` rendered-link comment block, which records that canonical
+  closure verification remains here).

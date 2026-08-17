@@ -83,13 +83,19 @@ PY
 
 **Order is load-bearing:** the `web/` Astro build cleans `build/` (repo
 root) on every run, so it MUST run before this site writes into
-`build/docs/`. Full sequence (mirrors `.github/workflows/pages.yml`):
+`build/docs/`. Valid local full-generation sequence (`make site-link-check`
+runs it and then the link checker):
 
 ```bash
 python tools/build-site.py            # sync generated content into src/
 npm run build --prefix web            # cleans + writes build/
 npm run build --prefix docs-site      # writes build/docs/
 ```
+
+CI is **not** identical — `.github/workflows/pages.yml` splits generation in two
+(`build-site.py --journeys-only`, marketing build, full `build-site.py`, docs
+build) and is canonical for the CI order; this section is canonical for the local
+order and the marketing-before-docs invariant. Both run the checker after both builds.
 
 `web/AGENTS.md` references this section rather than restating it.
 
@@ -108,9 +114,9 @@ Mermaid blocks in content are transformed at build time into
 ## Broken links
 
 Starlight does not fail the build on broken internal links (unlike the
-previous MkDocs `--strict` mode). Broken anchors and cross-page links in
-`guides/**` must be caught by manual review or a link-checker tool. To
-check locally: run the build sequence above and inspect `build/docs/`.
+previous MkDocs `--strict` mode), so the repository gates them after both
+builds with `tools/check-rendered-site-links.py` — the implementation
+authority for page and fragment resolution. Run `make site-link-check`.
 
 ## What to verify on styling changes
 

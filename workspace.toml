@@ -192,6 +192,8 @@ shipped = [
   {path = "docs/specs/workspace-status-simplification-order-2b/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status simplification — Order 2B", needs = []},
   {path = "docs/specs/workspace-mcp/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-mcp — Stage 1 implementation", needs = []},
   {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
+  # Tech-site completion programme — shipped 2026-08-17.
+  {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
 ]
 queue   = [
   # Project knowledge lifecycle roadmap — RFC-0077 / ADR-0081 / ADR-0082.
@@ -233,7 +235,6 @@ queue   = [
   # Tech-site completion programme — approved 2026-08-17 from the canonical brief.
   # These entries are independently shippable. `needs` records only hard delivery
   # ordering; the brief retains the broader wave and evidence sequence.
-  {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
   {path = "docs/specs/site-ci-contract-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Require the existing site construction tests and docs contrast checker in CI", needs = []},
   {path = "docs/specs/docs-site-build-contract-hardening/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Harden docs rendering with site-local cleanup and built-in plugin tests", needs = [{type = "local", kind = "spec", path = "docs/specs/site-ci-contract-closure/spec.md"}]},
   {path = "docs/specs/guide-title-clarity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Apply the four approved guide-title wording changes", needs = []},
@@ -461,6 +462,15 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # tools/lint-build.py's RFC_AUTHORISED_DIRS still credits the `docs-site` entry to
+  # ADR-0055, while the tuple's own header says entries are added only when an
+  # Accepted RFC authorises the directory — and RFC-0089 is now exactly that RFC.
+  # Live-code residue of the starlight-migration-rfc debt, which AC7 of
+  # spec/site-contract-provenance-cleanup otherwise settled. Fix: re-attribute the
+  # `docs-site` comment to RFC-0089 in tools/lint-build.py. Deferred from that spec
+  # because no acceptance criterion covers it and it falls outside every task's
+  # declared Touches. Unblocks when: picked up — one comment line, no dependency.
+  {slug = "lint-build-docs-site-rfc-attribution", source = "spec/site-contract-provenance-cleanup (review concern 7)"},
   # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
   # cross-repository reference, so now that a spec's `Brief:` back-link is the
   # canonical path form it reports a brief that lives in THIS repo as "unknown /
@@ -924,8 +934,16 @@ open = [
   #   workflow after both builds — it needs the built tree, so it cannot run in
   #   build-check.
   # Unblocks when: picked up — no dependency.
-  # Closed 2026-08-17 as already shipped by spec/rendered-site-link-debt;
-  # canonical closure verification remains in site-contract-provenance-cleanup.
+  # Closed 2026-08-17 as already shipped by docs/specs/rendered-site-link-debt/spec.md
+  # — the committed checker is tools/check-rendered-site-links.py, run after both
+  # builds by .github/workflows/pages.yml and by `make site-link-check`. Closure
+  # verified 2026-08-17 by spec/site-contract-provenance-cleanup (AC4), which also
+  # resolved the newly discovered site-link-check-contract-docs guidance gap into
+  # this same closure rather than registering it as a duplicate item (AC5): the
+  # living-guidance surfaces (guides/AGENTS.md, docs-site/AGENTS.md, Makefile) now
+  # name the checker and distinguish the local sequence from the CI two-phase one.
+  # This block is closed — it carries no {slug = ...} object and is not open
+  # membership (AC6).
   # Original source: spec/marketing-docs-link-repair (out of scope).
 
   # docs/specs/phase4b-product-docs-completion/spec.md is Shipped and still instructs
@@ -940,6 +958,12 @@ open = [
   #   (b) amending AC7 in place. (a) preserves history and is the likelier call.
   # Unblocks when: picked up — needs a decision on amending a Shipped spec.
   # Merged 2026-08-17 into spec/site-contract-provenance-cleanup.
+  # Resolved 2026-08-17 by spec/site-contract-provenance-cleanup (AC1): option (a),
+  # a Status-line annotation naming ADR-0055 as the standing authority and
+  # spec/marketing-docs-link-repair as the correcting spec, and stating plainly that
+  # it is not a supersession. Option (b) declined — amending AC7 in place is a
+  # frozen-body edit. The body, including the stale AC7 text, is deliberately
+  # unchanged; the Status line is the only pointer a reader gets.
   # Original source: spec/marketing-docs-link-repair (out of scope).
 
   # Three XD-chain structural invariants lost their only implementation. The
@@ -1767,12 +1791,18 @@ open = [
   # ── Starlight migration follow-ons ─────────────────────────────────────────
   # RFC required before a new top-level directory is permanent (AGENTS.md §"Check before acting").
   # Mirrors RFC-0061 (web/) precedent.
-  # Satisfied 2026-08-17 by accepted RFC-0089. Membership remains temporarily
-  # because the frozen shipped spec's `(deferred: starlight-migration-rfc)`
-  # pointer is a hard lint contract; spec/site-contract-provenance-cleanup owns
-  # the safe closure without rewriting the frozen body.
+  # Satisfied 2026-08-17 by accepted RFC-0089 (docs/rfc/0089-starlight-docs-boundary.md).
+  # Disposition settled 2026-08-17 by spec/site-contract-provenance-cleanup (AC7):
+  # membership REMAINS here while the anchor does. Removing it would red
+  # lint-spec-status.py invariant (iv), which is HARD and resolves a
+  # `(deferred: <slug>)` anchor against [backlog].open only — and the anchor lives
+  # in the body of the frozen shipped docs/specs/starlight-migration/spec.md, which
+  # the frozen-document rule forbids editing. [backlog].closed is not an escape
+  # hatch either: the workspace engine admits only kind = "defect" there. Widening
+  # invariant (iv) is a published-interface change and needs an RFC. The brief's
+  # registered-debt note already sanctions this retention.
   # Original source: spec/starlight-migration.
-  {slug = "starlight-migration-rfc", summary = "Satisfied by RFC-0089; retained until frozen deferred-reference closure is lint-safe", source = "spec/starlight-migration"},
+  {slug = "starlight-migration-rfc", summary = "Satisfied by RFC-0089; retained as the frozen deferred-reference lint anchor", source = "spec/starlight-migration"},
 
   # ── Adopter-SAST follow-ons (spec/pack-script-root-boundary-validation) ────
   # An adopter's org Snyk Code scan reports CWE-23 path-traversal against the

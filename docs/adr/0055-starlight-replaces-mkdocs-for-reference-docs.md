@@ -1,6 +1,6 @@
 # ADR-0055: Starlight replaces MkDocs for reference docs — Astro+Node.js only pipeline
 
-- **Status:** Accepted
+- **Status:** Accepted — **partially amended:** the **shared palette and design-token sub-decision** (docs-site consuming `web/`'s design tokens) is **superseded by [ADR-0085](0085-docs-rendering-is-site-local.md)** (docs rendering is site-local; the docs palette is self-contained, 2026-08-17); every other decision in this ADR — Starlight replacing MkDocs, the Astro+Node.js-only pipeline, the docs mount point, and the build order — stands.
 - **Date:** 2026-07-25
 - **Decision-makers:** eugenelim
 - **Supersedes:** [ADR-0050](0050-astro-marketing-site-toolchain-and-deploy.md)
