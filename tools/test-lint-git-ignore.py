@@ -323,6 +323,35 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
               len(rec.calls[0]["kwargs"]["input"]) > 1 << 20,
               f"{len(rec.calls[0]['kwargs']['input'])} bytes")
 
+        # Against REAL git, unmocked. The mocked case above proves only that a
+        # >1 MiB `input=` was passed once; a `Popen`+`write`+`wait`
+        # implementation would deadlock on a payload this size, and only a real
+        # subprocess can demonstrate that it does not.
+        real_big = [root / f"{'q' * 200}{i}.ignored" for i in range(6000)]
+        import signal
+
+        def _timeout(_sig, _frm):
+            raise TimeoutError("git_ignored_paths blocked on a large payload")
+
+        previous = signal.signal(signal.SIGALRM, _timeout)
+        signal.alarm(60)
+        blocked = None
+        try:
+            big_res = M.git_ignored_paths(
+                root, real_big,
+                missing_git_policy=M.MissingGitPolicy.FAIL_OPEN, timeout=60.0,
+            )
+        except TimeoutError as exc:
+            blocked, big_res = exc, None
+        finally:
+            signal.alarm(0)
+            signal.signal(signal.SIGALRM, previous)
+        check("a >1 MiB payload completes against real git (no deadlock)",
+              blocked is None, repr(blocked))
+        check("the large real batch resolved every candidate",
+              big_res is not None and len(big_res.ignored) == 6000,
+              f"{None if big_res is None else len(big_res.ignored)}")
+
         # ---- bytes payload, not str ------------------------------------
         check("payload is bytes",
               isinstance(rec.calls[0]["kwargs"]["input"], bytes))
@@ -399,9 +428,8 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
                 )
             except M.GitIgnoreError as exc:
                 raised = exc
-        check("exit 128 raises GitIgnoreError", raised is not None, repr(raised))
-        check("exit 128 is not policy-routed (partial result not returned)",
-              raised is not None)
+        check("exit 128 raises GitIgnoreError rather than returning a partial "
+              "result", raised is not None, repr(raised))
         check("exit 128 carries git stderr",
               raised is not None and "fatal:" in str(raised), str(raised))
         # It relativizes what it knows — the root and the home directory. It does
@@ -519,12 +547,55 @@ def main() -> int:  # noqa: C901 — a flat list of independent contract checks
               f"leaked: {res.ignored!r}")
 
         # ---- base64 round trip helpers used by the golden harness -------
-        if hasattr(M, "encode_stream"):
-            blob = b"line\0with\xffbytes\n"
-            check("stream encode/decode round-trips bytes",
-                  M.decode_stream(M.encode_stream(blob)) == blob)
-            check("encoded form is ascii-safe json text",
-                  base64.b64decode(M.encode_stream(blob)) == blob)
+        # No `hasattr` guard: these are unconditionally defined and exported, so
+        # a guard would silently delete its own case if one were ever removed.
+        blob = b"line\0with\xffbytes\n"
+        check("stream encode/decode round-trips bytes",
+              M.decode_stream(M.encode_stream(blob)) == blob)
+        check("encoded form is ascii-safe json text",
+              base64.b64decode(M.encode_stream(blob)) == blob)
+        check("both codecs are exported",
+              {"encode_stream", "decode_stream"} <= set(M.__all__),
+              repr(M.__all__))
+
+        # ---- SEC-1: the config-injection channel is closed ---------------
+        # GIT_CONFIG_COUNT survives GIT_CONFIG_NOSYSTEM and redirected global and
+        # system config, and it is the only channel that leaks SILENTLY (rc=0
+        # with an extra path reported ignored, rather than a fail-closed 128).
+        hostile_excludes = tmp / "hostile-excludes-file"
+        hostile_excludes.write_text("*.kept\n", encoding="utf-8")
+        injected = dict(os.environ)
+        injected.update({
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "core.excludesFile",
+            "GIT_CONFIG_VALUE_0": str(hostile_excludes),
+            "GIT_GLOB_PATHSPECS": "1",
+        })
+        scrubbed_env = M.hermetic_git_env(injected)
+        for leaked in ("GIT_CONFIG_COUNT", "GIT_CONFIG_KEY_0",
+                       "GIT_CONFIG_VALUE_0", "GIT_GLOB_PATHSPECS"):
+            check(f"hermetic env drops {leaked}", leaked not in scrubbed_env,
+                  repr(scrubbed_env.get(leaked)))
+        with mock.patch.dict(os.environ, injected, clear=False):
+            res = M.git_ignored_paths(
+                root, [root / "b.kept"],
+                missing_git_policy=M.MissingGitPolicy.FAIL_OPEN, timeout=30.0,
+            )
+        check("an injected core.excludesFile cannot leak in", res.ignored == (),
+              f"leaked: {res.ignored!r}")
+
+        # ---- degradation details are redacted ----------------------------
+        rec = _Recorder(raises=OSError(
+            f"Not a directory: '{Path.home()}/somewhere/deep'"))
+        with mock.patch.object(M.subprocess, "run", rec):
+            degraded = M.git_ignored_paths(
+                root, [root / "a.ignored"],
+                missing_git_policy=M.MissingGitPolicy.FAIL_OPEN, timeout=30.0,
+            )
+        check("a degradation detail redacts the home directory",
+              degraded.detail is not None
+              and str(Path.home()) not in degraded.detail,
+              repr(degraded.detail))
 
     for f in _FAILURES:
         sys.stderr.write(f"FAIL {f}\n")

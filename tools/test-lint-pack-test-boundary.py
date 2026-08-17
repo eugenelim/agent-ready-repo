@@ -22,7 +22,9 @@ Three layers:
 
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import subprocess
 import sys
 import tempfile
@@ -51,19 +53,31 @@ def _load():
 #: prove the CLI is wired to the real catalogue. The number is asserted, so
 #: adding one is a decision rather than an accident.
 _REAL_LAUNCH_BUDGET = 4
+
+#: Measured pre-change case count (docs/specs/lint-performance-p0/notes/
+#: lint-inventory.md). The suite must never report fewer.
+_CASE_FLOOR = 82
 _REAL_LAUNCHES = {"count": 0}
 
 
-def _run() -> tuple[int, str]:
-    """(exit code, stderr) from the production CLI against the REAL tree.
+def _run_full() -> tuple[int, str, str]:
+    """(exit code, stdout, stderr) from the production CLI on the REAL tree.
 
     The reason matters: the lint has several failure sites, so `exit != 0` alone
-    would let a plant "pass" on an unrelated fault.
+    would let a plant "pass" on an unrelated fault. stdout matters too — the
+    success lines and the terminal verdict live there, and no captured baseline
+    pins them because every fixture exits 1.
     """
     _REAL_LAUNCHES["count"] += 1
     r = subprocess.run([sys.executable, str(LINT)],
                        cwd=ROOT, capture_output=True, text=True)
-    return r.returncode, r.stderr
+    return r.returncode, r.stdout, r.stderr
+
+
+def _run() -> tuple[int, str]:
+    """(exit code, stderr) — the failure-path shape most plants want."""
+    rc, _out, err = _run_full()
+    return rc, err
 
 
 def _load_golden():
@@ -118,16 +132,40 @@ def _findings(mod, root: Path, check_name: str | None):
 
     In-process through the callable API — no CLI launch, so a plant costs
     milliseconds rather than a full production run.
+
+    Deliberately **unfiltered**: an earlier version returned only findings whose
+    `check` matched, which made the attribution assertion downstream unable to
+    fail — the very property the spec calls load-bearing. Selection is narrowed
+    via `inspect_boundary`, and attribution is then a real claim about what came
+    back.
     """
     selection = None if check_name is None else [check_name]
-    import contextlib
-    import io
     buf = io.StringIO()
     with contextlib.redirect_stdout(buf):
-        found = mod.inspect_boundary(_fixture_context(mod, root), selection)
-    if check_name is None:
-        return found
-    return [f for f in found if f.check == check_name]
+        return list(
+            mod.inspect_boundary(_fixture_context(mod, root), selection)
+        )
+
+
+def _symlinks_available() -> bool:
+    """Whether this host can create a symlink at all.
+
+    Windows without Developer Mode cannot, and this suite is in the required gate
+    chain — so the link cases report a counted SKIP rather than turning a
+    Windows maintainer's build red for a capability the platform withholds.
+    """
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as td:
+        target = Path(td) / "t"
+        target.write_text("x", encoding="utf-8")
+        try:
+            (Path(td) / "l").symlink_to(target)
+        except OSError:
+            return False
+        return True
+
+
+_SYMLINKS = _symlinks_available()
 
 
 def _tracked_state() -> set[str]:
@@ -570,6 +608,10 @@ steps:
         tmp = Path(td)
         clean_root = _fixture(tmp, "clean")
         clean_ctx = _fixture_context(mod, clean_root)
+        # Property 4 is one fact per *check*, not per plant: asserting it inside
+        # the plant loop re-ran six distinct facts seventeen times and inflated
+        # the case count without adding coverage.
+        baseline_checks: set[str] = set()
 
         for fixture, check_name, needle in plants:
             cases += 1
@@ -593,12 +635,7 @@ steps:
                     f"{fixture}: findings attributed to an unintended check: "
                     f"{sorted({f.check for f in found})}"
                 )
-            cases += 1
-            if _findings(mod, clean_root, check_name):
-                failures.append(
-                    f"{fixture}: the same check fails on the clean fixture too, "
-                    f"so this plant proves nothing"
-                )
+            baseline_checks.add(check_name)
 
         for fixture, check_name in negatives:
             cases += 1
@@ -628,6 +665,15 @@ steps:
                     f"runner-inventory failure, got {sorted(reporters)}"
                 )
 
+        # Property 4, once per check that any plant targeted.
+        for check_name in sorted(baseline_checks):
+            cases += 1
+            if _findings(mod, clean_root, check_name):
+                failures.append(
+                    f"[{check_name}] fails on the clean fixture, so every plant "
+                    f"targeting it proves nothing"
+                )
+
         # The clean fixture must pass every check, or every plant above is
         # measured against a broken baseline.
         cases += 1
@@ -645,9 +691,43 @@ steps:
     # launches stay, each with a try/finally cleanup guarantee and a refusal to
     # run if its target already exists.
     cases += 1
-    rc, err = _run()
+    rc, out, err = _run_full()
     if rc != 0:
         failures.append(f"real tree, clean: expected exit 0, got {rc}\n{err}")
+    # Every captured baseline exits 1, so no golden case pins the SUCCESS path.
+    # Assert the terminal wording here, byte-exact — it is the line an operator
+    # reads to conclude the gate held, and the six-check count in it is the claim
+    # that all six ran.
+    cases += 1
+    if "✓ lint-pack-test-boundary: passed (6 cases)." not in out:
+        failures.append(
+            f"the clean real tree did not print the six-check pass line; "
+            f"stdout tail: {out[-300:]!r}"
+        )
+    cases += 1
+    if "partial run" in out:
+        failures.append(
+            "a no-argument run must not present itself as partial"
+        )
+    cases += 1
+    expected_ok = [
+        "ok   [apm-carries-no-tests]",
+        "ok   [projection-carries-no-tests]",
+        "ok   [tests-live-in-the-pack-tree]",
+        "ok   [pack-tests-stay-in-pack]",
+        "ok   [runners-keep-suites-isolated]",
+        "ok   [every-suite-dir-has-a-runner]",
+    ]
+    missing_ok = [line for line in expected_ok if line not in out]
+    if missing_ok:
+        failures.append(f"clean run omitted success lines: {missing_ok}")
+    # Order matters: it is the documented execution order of the six checks.
+    cases += 1
+    positions = [out.find(line) for line in expected_ok]
+    if positions != sorted(positions):
+        failures.append(
+            f"the six success lines are out of documented order: {positions}"
+        )
 
     # One representative runtime-boundary plant.
     plant_dir = ROOT / "packs" / "figma" / ".apm" / "skills" / "figma" / "scripts"
@@ -673,7 +753,14 @@ steps:
 
     # One representative linked-tree plant.
     linked_test = ROOT / "packs" / "figma" / "tests" / "test_planted_link.py"
-    if linked_test.exists() or linked_test.is_symlink():
+    if not _SYMLINKS:
+        cases += 1
+        sys.stderr.write(
+            "SKIP real-tree linked-source plant — this host cannot create "
+            "symlinks (Windows without Developer Mode); the fixture link cases "
+            "are skipped for the same reason\n"
+        )
+    elif linked_test.exists() or linked_test.is_symlink():
         failures.append(f"refusing to plant over an existing path: {linked_test}")
     else:
         cases += 1
@@ -757,6 +844,24 @@ steps:
     else:
         failures.append("non-colliding runner fixtures not found in the tree")
 
+    # The two real-tree plants are UNTRACKED, so `git status --untracked-files=no`
+    # cannot see a leftover. Assert their absence directly.
+    cases += 1
+    leftover = [
+        str(path.relative_to(ROOT))
+        for path in (
+            ROOT / "packs/figma/.apm/skills/figma/scripts"
+                   "/test_planted_boundary_violation.py",
+            ROOT / "packs/figma/tests/test_planted_link.py",
+        )
+        if path.exists() or path.is_symlink()
+    ]
+    if leftover:
+        failures.append(
+            f"real-tree plants survived the layer: {leftover}. The next run will "
+            f"refuse to plant, and a `git add -A` would commit them."
+        )
+
     # No case may leave a tracked file changed. Compared against the snapshot
     # taken before any plant ran, so the developer's own uncommitted work does
     # not read as a violation.
@@ -767,6 +872,15 @@ steps:
             f"the suite left tracked files modified: {sorted(changed)}. No case "
             f"may mutate a tracked file — see the "
             f"selftest-mutates-tracked-makefile history."
+        )
+
+    # A single ~400-line main() aborts every later block on one exception, so
+    # the count silently drops. The floor is the measured pre-change count from
+    # the audit note; falling below it is a failure even if nothing else reds.
+    if cases < _CASE_FLOOR:
+        failures.append(
+            f"only {cases} cases ran, below the floor of {_CASE_FLOOR}. A run "
+            f"that stops early must not report green."
         )
 
     for f in failures:

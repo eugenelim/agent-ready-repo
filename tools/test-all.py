@@ -129,6 +129,8 @@ TESTS: list[tuple[str, list[str]]] = [
      [sys.executable, "tools/lint-no-direct-check-ignore.py"]),
     ("no-direct-check-ignore-self-test",
      [sys.executable, "tools/test-lint-no-direct-check-ignore.py"]),
+    ("agents-md-gitignore-probes",
+     [sys.executable, "tools/test-lint-agents-md-gitignore-probes.py"]),
     ("pre-pr", ["bash", "tools/test-pre-pr.sh"]),
     ("root-validation", [sys.executable, "-m", "pytest", "-q",
                          "tests/roster/test_work_loop_root_validation.py"]),

@@ -143,6 +143,10 @@ def main() -> int:
           "tools/test-run-pack-evals.py" in M.ALLOWLIST,
           "it holds a real single-path check-ignore call asserting a "
           "genuine .gitignore fact")
+    check("test-pre-pr.sh is NOT allowlisted",
+          "tools/test-pre-pr.sh" not in M.ALLOWLIST,
+          "it only mentions the probe in a comment, which scan_text already "
+          "skips — an entry would hide a future real invocation there")
 
     # ---- exemption is a file list, not a filename pattern ---------------
     # A `test-*` pattern would exempt this repo's actual CI gates, one of which
@@ -160,12 +164,30 @@ def main() -> int:
     check("the scan is not vacuous", len(result.scanned) > 100,
           str(len(result.scanned)))
 
-    # ---- non-Python surface is covered or explicitly recorded -----------
-    check("the non-Python surface is scanned too",
-          any(p.suffix in {".sh", ""} or p.name == "Makefile"
-              for p in result.scanned)
-          or M.NON_PYTHON_DISPOSITION,
-          "neither scanned nor dispositioned")
+    # ---- non-Python surface is genuinely scanned ------------------------
+    # Not `... or M.NON_PYTHON_DISPOSITION` — that constant is a non-empty
+    # string, so the whole expression was always truthy and the claim untested.
+    # Assert the concrete facts instead: those files are in the inventory, and
+    # the textual matcher actually flags a planted invocation in one.
+    scanned_names = {p.name for p in result.scanned}
+    scanned_suffixes = {p.suffix for p in result.scanned}
+    check("a Makefile is in the scanned inventory",
+          "Makefile" in scanned_names, sorted(scanned_names)[:5])
+    check("workflow YAML is in the scanned inventory",
+          ".yml" in scanned_suffixes, sorted(scanned_suffixes))
+    check("shell sources are in the scanned inventory",
+          ".sh" in scanned_suffixes, sorted(scanned_suffixes))
+    check("scan_text flags a real shell invocation",
+          bool(M.scan_text("fake.sh", 'git check-ignore -q "$p"')))
+    check("scan_text flags a -C form with a quoted argument",
+          bool(M.scan_text("fake.sh", 'git -C "$root" check-ignore -q "$p"')))
+    check("scan_text ignores a comment about the rule",
+          not M.scan_text("fake.sh", '# never call git check-ignore per path'))
+    check("scan_text ignores a YAML step label naming the rule",
+          not M.scan_text("fake.yml",
+                          '- name: No direct git check-ignore outside the helper'))
+    check("scan_text ignores an unrelated git command",
+          not M.scan_text("fake.sh", 'git ls-files -z'))
 
     # ---- end to end: a planted offender fails the CLI -------------------
     with tempfile.TemporaryDirectory(prefix="check-ignore-gate-") as td:

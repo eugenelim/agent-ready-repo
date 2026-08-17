@@ -115,53 +115,45 @@ def main() -> int:
               "drift-watch" not in proc.stderr, proc.stderr[-800:])
 
         # ---- the not-ignored note keeps its exact pre-change wording ----
-        # The batching change reindented this f-string, which is exactly how a
-        # message silently drifts. Pin the bytes against a fixture where the
-        # probe genuinely is not ignored.
+        # Run the LINT, not a reconstruction. An earlier version compared two
+        # string literals defined in this file, which cannot fail no matter what
+        # the lint prints — and the batching change reindented that f-string,
+        # which is exactly how a message drifts unnoticed.
         sandbox = tmp / "wording"
         (sandbox / "docs" / "specs" / "example").mkdir(parents=True)
         (sandbox / "docs" / "specs" / "example" / "state.json").write_text(
             "{}", encoding="utf-8"
         )
+        (sandbox / "AGENTS.md").write_text("# AGENTS\n", encoding="utf-8")
+        (sandbox / "CLAUDE.md").symlink_to("AGENTS.md")
+        (sandbox / "docs").mkdir(exist_ok=True)
+        (sandbox / "docs" / "CHARTER.md").write_text("# charter\n", encoding="utf-8")
+        for quadrant in ("tutorials", "how-to", "reference", "explanation"):
+            (sandbox / "guides" / quadrant).mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "init", "-q", "."], cwd=str(sandbox),
                        capture_output=True, check=True)
         (sandbox / ".gitignore").write_text("", encoding="utf-8")
+
         expected = (
             "drift-watch: 'docs/specs/example/state.json' should be gitignored "
             "(session-scratch — see "
             ".claude/skills/work-loop/references/state-schema.md, "
             "CONVENTIONS.md#supervisor-mode)."
         )
-        import importlib.util as _ilu
-        _spec = _ilu.spec_from_file_location("_agents_md_probe_mod", LINTER)
-        _mod = _ilu.module_from_spec(_spec)
-        sys.modules["_agents_md_probe_mod"] = _mod
-        _sys_path0 = sys.path[0]
-        sys.path.insert(0, str(REPO_ROOT / "tools"))
-        try:
-            _spec.loader.exec_module(_mod)
-            resolution = _mod.lint_git_ignore.git_ignored_paths(
-                sandbox, [Path("docs/specs/example/state.json")],
-                missing_git_policy=_mod.lint_git_ignore.MissingGitPolicy.FAIL_OPEN,
-                timeout=30.0,
-            )
-            not_ignored = Path("docs/specs/example/state.json") not in set(
-                resolution.ignored
-            )
-        finally:
-            sys.path.remove(str(REPO_ROOT / "tools"))
-        check("an un-ignored probe is detected as such in a bare sandbox",
-              not_ignored, repr(resolution))
-        # The wording itself, reassembled the way the lint assembles it.
-        probe = "docs/specs/example/state.json"
-        assembled = (
-            f"drift-watch: '{probe}' should be gitignored "
-            f"(session-scratch — see "
-            f".claude/skills/work-loop/references/state-schema.md, "
-            f"CONVENTIONS.md#supervisor-mode)."
+        wording = subprocess.run(
+            [sys.executable, str(LINTER)], cwd=str(sandbox),
+            capture_output=True, text=True, check=False,
+            env={**os.environ, "GIT_CEILING_DIRECTORIES": str(tmp)},
         )
-        check("note wording is byte-identical to the pre-change text",
-              assembled == expected, f"{assembled!r} != {expected!r}")
+        emitted = wording.stdout + wording.stderr
+        check("an un-ignored probe produces the drift note",
+              "should be gitignored" in emitted, emitted[-600:])
+        check("the note wording is byte-identical to the pre-change text",
+              expected in emitted,
+              f"expected substring absent.\n  want: {expected!r}\n"
+              f"  got: {[ln for ln in emitted.splitlines() if 'drift-watch' in ln]}")
+        check("an un-ignored probe fails the lint (note() is fatal)",
+              wording.returncode != 0, f"rc={wording.returncode}")
 
         # ---- Git unusable: name the cause, do not blame .gitignore -----
         # Two distinct shapes, because they take different code paths today:

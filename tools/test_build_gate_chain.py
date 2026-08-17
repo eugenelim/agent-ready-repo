@@ -235,6 +235,7 @@ EXPECTED_SCRIPT_STEPS = [
     "tools/test-lint-no-direct-check-ignore.py",
     "tools/test-lint-boundary-golden.py",
     "tools/test-lint-boundary-structural.py",
+    "tools/test-lint-agents-md-gitignore-probes.py",
 ]
 
 EXPECTED_PRE_PR_REPO_STEPS = [

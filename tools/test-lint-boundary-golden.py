@@ -61,6 +61,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from collections.abc import Callable
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
@@ -79,21 +80,18 @@ PINNED_BLOB_SHA256 = (
     "73dd318669c4094cdfc08cdfce825ffd8075d378ee8a67ab2130c0acb6276b3b"
 )
 
-_LEAKING_GIT_VARS = (
-    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR",
-    "GIT_CEILING_DIRECTORIES", "GIT_OBJECT_DIRECTORY",
-    "GIT_ALTERNATE_OBJECT_DIRECTORIES", "GIT_CONFIG",
-)
+sys.path.insert(0, str(ROOT / "tools"))
+import lint_git_ignore  # noqa: E402 — needs the path insert above
 
 
 def _hermetic_env() -> dict[str, str]:
-    env = dict(os.environ)
-    for name in _LEAKING_GIT_VARS:
-        env.pop(name, None)
-    env["GIT_CONFIG_NOSYSTEM"] = "1"
-    env["GIT_CONFIG_GLOBAL"] = os.devnull
-    env["GIT_CONFIG_SYSTEM"] = os.devnull
-    return env
+    """The shared scrub, not a private copy.
+
+    A second implementation is how a fix lands in one place and not the other —
+    and this is the path that WRITES the committed baseline, so a gap here is a
+    poisoned baseline that reproduces green forever.
+    """
+    return lint_git_ignore.hermetic_git_env(os.environ)
 
 
 def _git(args: list[str], cwd: Path) -> None:
@@ -165,20 +163,22 @@ def _fx_empty_packs_root(root: Path) -> None:
 def _fx_recipe_missing(root: Path) -> None:
     """The self-host recipe is absent.
 
-    The CLI refuses such a root before traversing, so this refusal is only
-    reachable through the callable API — which is exactly why the API accepts a
-    context the CLI would reject.
+    Reachable two ways, and the distinction matters: the **no-argument** CLI
+    (which is how this fixture is captured, with the subject staged into the
+    fixture root) reports it as a finding, while a `--root` run refuses before
+    traversing. That is why the callable API accepts a context the `--root` path
+    rejects.
     """
     _base_fixture(root)
     (root / "packages/agentbundle/agentbundle/build/recipes/self-host.toml").unlink()
 
 
-def _fx_stale_exemption_also_run(root: Path) -> None:
-    """A suite named by a runner AND declared unrun — the inverse exemption."""
-    _base_fixture(root)
-    # The base fixture's Makefile already names packs/demo/tests/skills/demo.
-    # The suite is live and a runner names it, so declaring it unrun is the error.
-    _write(root / "tools/exemption-marker", "see _NO_RUNNER injection\n")
+# The inverse-exemption branch ("declared unrun but a runner names it") needs an
+# INJECTED `_NO_RUNNER` map, which the pinned pre-refactor subject cannot accept —
+# it reads the module constant. A fixture here would inherit that constant and
+# capture bytes identical to `clean`, asserting coverage it does not provide.
+# It is covered instead by tools/test-lint-boundary-structural.py's injected-map
+# variant, which drives the callable API directly.
 
 
 def _fx_clean(root: Path) -> None:
@@ -274,6 +274,28 @@ def _fx_pack_test_unparseable(root: Path) -> None:
            "def broken(:\n")
 
 
+def symlinks_available() -> bool:
+    """Whether this host can create a symlink.
+
+    Windows without Developer Mode cannot, and this harness is in the required
+    gate chain — an unguarded `symlink_to` would surface as a traceback there
+    rather than a diagnosis.
+    """
+    with tempfile.TemporaryDirectory() as td:
+        target = Path(td) / "t"
+        target.write_text("x", encoding="utf-8")
+        try:
+            (Path(td) / "l").symlink_to(target)
+        except OSError:
+            return False
+        return True
+
+
+SYMLINK_FIXTURES = (
+    "symlinked-test-source", "linked-test-dir", "linked-test-root",
+)
+
+
 def _fx_symlinked_test_source(root: Path) -> None:
     _base_fixture(root)
     target = root / f"packs/{_PACK}/tests/skills/{_SKILL}/test_demo.py"
@@ -339,7 +361,7 @@ def _fx_no_projected_roots(root: Path) -> None:
     shutil.rmtree(root / ".agents")
 
 
-FIXTURES: dict[str, callable] = {
+FIXTURES: dict[str, Callable[[Path], None]] = {
     "clean": _fx_clean,
     "apm-test-file": _fx_apm_test_file,
     "apm-singular-test-dir": _fx_apm_singular_test_dir,
@@ -362,7 +384,6 @@ FIXTURES: dict[str, callable] = {
     "no-projected-roots": _fx_no_projected_roots,
     "empty-packs-root": _fx_empty_packs_root,
     "recipe-missing-api-only": _fx_recipe_missing,
-    "stale-exemption-also-run": _fx_stale_exemption_also_run,
 }
 
 # Deliberately NOT fixtures. A root without `packs/` or without the recipe trips
@@ -460,16 +481,25 @@ def _run_staged(root: Path, subject: bytes | None) -> dict:
     if (ROOT / RESOLVER_REL).is_file():
         shutil.copy2(ROOT / RESOLVER_REL, tools / Path(RESOLVER_REL).name)
 
+    # `test-all.py` is exempt because `_base_fixture` writes it as one of the
+    # lint's six required runner files, and a hyphenated name is not importable —
+    # so it cannot shadow anything.
     stray = sorted(
         p.name for p in tools.glob("*.py")
         if p.name not in {Path(SUBJECT_REL).name, Path(RESOLVER_REL).name,
                           "test-all.py"}
     )
+    # A package directory shadows just as effectively as a module, and the glob
+    # above cannot see it.
+    stray += sorted(
+        f"{d.name}/" for d in tools.iterdir()
+        if d.is_dir() and (d / "__init__.py").exists()
+    )
     if stray:
         raise SystemExit(
             f"fixture {root.name} wrote {stray} into tools/; staging makes that "
-            f"directory the subject's sys.path[0], so a file named os.py or "
-            f"ast.py would shadow the standard library"
+            f"directory the subject's sys.path[0], so a module or package named "
+            f"os, ast or subprocess would shadow the standard library"
         )
 
     proc = subprocess.run(
@@ -478,13 +508,13 @@ def _run_staged(root: Path, subject: bytes | None) -> dict:
     )
     return {
         "exit_code": proc.returncode,
-        "stdout_b64": base64.b64encode(proc.stdout).decode("ascii"),
-        "stderr_b64": base64.b64encode(proc.stderr).decode("ascii"),
+        "stdout_b64": lint_git_ignore.encode_stream(proc.stdout),
+        "stderr_b64": lint_git_ignore.encode_stream(proc.stderr),
     }
 
 
 def _decode(record: dict, key: str) -> str:
-    return base64.b64decode(record[key].encode("ascii")).decode("utf-8", "replace")
+    return lint_git_ignore.decode_stream(record[key]).decode("utf-8", "replace")
 
 
 def _make_fixture(tmp: Path, name: str) -> Path:
@@ -505,7 +535,10 @@ def _capture_all(subject: bytes | None) -> dict:
     # it would become a nested repo the real catalogue lints then walk.
     with tempfile.TemporaryDirectory(prefix="lint-golden-") as td:
         tmp = Path(td)
+        skip_links = not symlinks_available()
         for name in FIXTURES:
+            if skip_links and name in SYMLINK_FIXTURES:
+                continue          # reported by the caller, not silently dropped
             cases[name] = _run_staged(_make_fixture(tmp, name), subject)
     return cases
 
@@ -527,6 +560,20 @@ def _regenerate() -> int:
         },
         "cases": _capture_all(subject),
     }
+    # The one code path that WRITES the committed file must run the leak scan
+    # over every case, not just the one `_self_check` samples. An absolute path
+    # here is both a privacy leak and a host-dependent byte.
+    needles = [str(ROOT), str(Path.home()), "/private/var", "/var/folders"]
+    leaks: list[str] = []
+    for name, record in payload["cases"].items():
+        both = _decode(record, "stdout_b64") + _decode(record, "stderr_b64")
+        leaks += [f"{name}: {n}" for n in needles if n and n in both]
+    if leaks:
+        raise SystemExit(
+            "refusing to write the baseline — captured streams contain absolute "
+            "paths, which are host-dependent and a privacy leak:\n  "
+            + "\n  ".join(leaks[:10])
+        )
     BASELINE.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n",
                         encoding="utf-8")
     sys.stderr.write(
@@ -559,6 +606,14 @@ def _compare() -> int:
     produced = _capture_all(None)
     missing = sorted(set(stored["cases"]) - set(produced))
     extra = sorted(set(produced) - set(stored["cases"]))
+    if missing and not symlinks_available():
+        skipped = [n for n in missing if n in SYMLINK_FIXTURES]
+        missing = [n for n in missing if n not in SYMLINK_FIXTURES]
+        if skipped:
+            sys.stderr.write(
+                f"SKIP {len(skipped)} symlink fixture(s) — this host cannot "
+                f"create symlinks: {skipped}\n"
+            )
     if missing:
         failures.append(f"baseline has cases the harness no longer builds: {missing}")
     if extra:
@@ -609,14 +664,26 @@ def _self_check() -> int:
 
     with tempfile.TemporaryDirectory(prefix="lint-golden-self-") as td:
         tmp = Path(td)
-        # Determinism: three captures of one fixture must agree.
-        seen = set()
-        for i in range(3):
-            root = _make_fixture(tmp, f"det{i}" if False else "clean")
-            seen.add(json.dumps(_run_staged(root, blob), sort_keys=True))
-            shutil.rmtree(root)
-        if len(seen) != 1:
-            failures.append(f"capture is not deterministic across 3 runs: {len(seen)}")
+        # Determinism, over the fixtures that actually vary. `clean` exercises
+        # neither source of non-determinism `_canonical` exists to absorb — a
+        # multi-path finding in filesystem order, and interpreter-dependent
+        # `str(SyntaxError)` text — so three captures of it proved little.
+        for name in ("pack-test-escapes", "pack-test-unparseable",
+                     "apm-test-file", "clean"):
+            seen = set()
+            for _ in range(3):
+                root = _make_fixture(tmp, name)
+                seen.add(_canonical(
+                    base64.b64decode(
+                        _run_staged(root, blob)["stderr_b64"]
+                    ).decode("utf-8", "replace")
+                ))
+                shutil.rmtree(root)
+            if len(seen) != 1:
+                failures.append(
+                    f"capture of {name!r} is not deterministic across 3 runs "
+                    f"({len(seen)} distinct results)"
+                )
 
         # No captured stream may carry an absolute path — that would be both a
         # privacy leak and a host-dependent byte.

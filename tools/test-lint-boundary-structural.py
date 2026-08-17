@@ -24,6 +24,7 @@ order-independence.
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import importlib.util
 import io
 import os
@@ -91,15 +92,20 @@ def _load_golden():
     return module
 
 
-def _tree_signature(root: Path) -> set[tuple[str, int]]:
-    """Cheap mutation detector: relative path plus size for every file."""
+def _tree_signature(root: Path) -> set[tuple[str, str]]:
+    """Mutation detector: relative path plus content hash for every file.
+
+    Content hash rather than size — a same-length rewrite is exactly the edit a
+    size comparison misses, and the spec's wording is "hashing".
+    """
     signature = set()
     for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
         dirnames[:] = [d for d in dirnames if d not in {".git", "__pycache__"}]
         for name in filenames:
             path = Path(dirpath) / name
             with contextlib.suppress(OSError):
-                signature.add((str(path.relative_to(root)), path.stat().st_size))
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                signature.add((str(path.relative_to(root)), digest))
     return signature
 
 
@@ -130,8 +136,6 @@ def main() -> int:  # noqa: C901 — independent structural assertions
     check("clean tree yields no findings", findings == (), repr(findings[:3]))
     check("exactly one inventory construction", builds["inventory"] == 1,
           str(builds["inventory"]))
-    check("at most one check-ignore process", counter.check_ignore <= 1,
-          f"{counter.check_ignore} processes")
     check("exactly one check-ignore process for a non-empty candidate set",
           counter.check_ignore == 1, f"{counter.check_ignore}")
     check("runner files parsed exactly once", inv.runner_parses == 1,
@@ -140,11 +144,17 @@ def main() -> int:  # noqa: C901 — independent structural assertions
           inv.destination_builds == 1, str(inv.destination_builds))
     check("every walk base was pre-batched (no lazy misses)",
           inv.walk_misses == 0, f"{inv.walk_misses} lazy walks")
-    check("confinement memo has one entry per distinct base",
-          len(inv._confinement) == len(set(inv._confinement)),
-          str(len(inv._confinement)))
+    # Not `len(dict) == len(set(dict))` — dict keys are unique by construction,
+    # so that form can never fail. Assert against the distinct bases actually
+    # visited, and that the memo is not empty (a memo that never populated would
+    # otherwise look tidy).
+    _visited = {Path(os.path.normpath(str(b))) for b in inv._confinement}
+    check("confinement memo is keyed by distinct normalised bases",
+          set(inv._confinement) == _visited and len(inv._confinement) > 0,
+          f"{len(inv._confinement)} entries")
 
     # ---- the callable API is side-effect-free ---------------------------
+    check("inspect_boundary prints nothing to stdout", out == "", out[:300])
     check("inspect_boundary prints nothing to stderr", err == "", err[:300])
     check("inspect_boundary returns structured findings",
           isinstance(findings, tuple))
@@ -319,33 +329,68 @@ def main() -> int:  # noqa: C901 — independent structural assertions
                 expected = [M._glob_tree_is_confined(p) for p in order]
                 check(f"memo verdicts are order-independent ({label})",
                       verdicts == expected, f"{verdicts} != {expected}")
+            # Count real scans rather than dict growth: a second call that
+            # re-scanned and overwrote the same key leaves the length unchanged,
+            # so size proves nothing about memoisation.
             inv3 = M.build_inventory(M.default_context())
-            inv3.glob_tree_is_confined(real)
-            before = len(inv3._confinement)
-            inv3.glob_tree_is_confined(real)
-            check("a repeated base is not rescanned",
-                  len(inv3._confinement) == before)
+            scans = {"n": 0}
+            real_scan = M._glob_tree_is_confined
+
+            def counting_scan(base, _real=real_scan):
+                scans["n"] += 1
+                return _real(base)
+
+            M._glob_tree_is_confined = counting_scan
+            try:
+                inv3.glob_tree_is_confined(real)
+                inv3.glob_tree_is_confined(real)
+                inv3.glob_tree_is_confined(real)
+            finally:
+                M._glob_tree_is_confined = real_scan
+            check("a repeated base is scanned exactly once", scans["n"] == 1,
+                  f"{scans['n']} scans for 3 calls")
 
     # ---- the ignored set is scoped to the walk, not applied globally ----
-    # pack-tests-stay-in-pack uses a raw os.walk on purpose, so a gitignored
-    # test that climbs above its pack must still fail.
+    # pack-tests-stay-in-pack uses a raw os.walk on purpose, so a gitignored test
+    # that climbs above its pack must still fail. The trap: if the ignore layer
+    # silently degraded, the escape still fails and this case still greens — the
+    # exact regression it exists to catch. So first prove the file really IS in
+    # the resolved ignored set, then prove the check still reports it.
     with tempfile.TemporaryDirectory(prefix="boundary-ignorescope-") as td:
         fixture = Path(td) / "fx"
         _build_min_fixture(fixture)
-        escape = (fixture / "packs" / "demo" / "tests" / "skills" / "demo"
-                  / "test_ignored_escape.py")
+        rel = "packs/demo/tests/skills/demo/test_ignored_escape.py"
+        escape = fixture / rel
         escape.parent.mkdir(parents=True, exist_ok=True)
         escape.write_text(
             "from pathlib import Path\n"
             "REPO_ROOT = Path(__file__).resolve().parents[4]\n",
             encoding="utf-8",
         )
-        (fixture / ".gitignore").write_text(
-            "packs/demo/tests/skills/demo/test_ignored_escape.py\n",
-            encoding="utf-8",
+        (fixture / ".gitignore").write_text(rel + "\n", encoding="utf-8")
+
+        # Precondition, asserted rather than assumed.
+        resolution = M.lint_git_ignore.git_ignored_paths(
+            fixture, [escape],
+            missing_git_policy=M.lint_git_ignore.MissingGitPolicy.FAIL_OPEN,
+            timeout=30.0,
         )
-        subprocess.run(["git", "add", "-A"], cwd=str(fixture),
-                       capture_output=True, check=False)
+        check("the planted escape really is gitignored (layer resolved)",
+              not resolution.degraded and escape in set(resolution.ignored),
+              f"degraded={resolution.degraded} ignored={resolution.ignored!r}")
+
+        inv_scope = M.build_inventory(M.default_context(fixture))
+        check("the inventory's ignored set contains the planted escape",
+              escape in inv_scope.ignored,
+              f"{len(inv_scope.ignored)} ignored paths")
+        check("the inventory did not degrade", not inv_scope.ignore_degraded,
+              repr(inv_scope.ignore_detail))
+        # And the walk-derived view excludes it, which is what makes the next
+        # assertion meaningful rather than incidental.
+        walked = inv_scope.walk(fixture / "packs/demo/tests/skills/demo")
+        check("the walk view excludes the gitignored file", escape not in walked,
+              repr([p.name for p in walked]))
+
         found, _, _ = _silent(M.inspect_boundary, M.default_context(fixture),
                               ["pack-tests-stay-in-pack"])
         check("a gitignored pack test that climbs above its pack still fails",
@@ -431,6 +476,41 @@ def main() -> int:  # noqa: C901 — independent structural assertions
     check("the emission-site scan is not vacuous", len(_sites) >= 20,
           f"found only {len(_sites)} sites")
 
+    # ---- ignore-layer degradation is fatal, and named correctly ---------
+    # The spec dedicates an AC section to this and nothing exercised it. Two
+    # distinct causes, because the remediation differs: git that cannot run at
+    # all, and git that runs and rejects the batch.
+    with tempfile.TemporaryDirectory(prefix="boundary-degraded-") as td:
+        fixture = Path(td) / "fx"
+        _build_min_fixture(fixture)
+        broken = Path(td) / "brokengit"
+        broken.mkdir()
+        (broken / "git").write_text("#!/bin/sh\nexit 127\n", encoding="utf-8")
+        (broken / "git").chmod(0o755)
+        env = dict(os.environ)
+        env["PATH"] = f"{broken}{os.pathsep}{env['PATH']}"
+        cli = subprocess.run(
+            [sys.executable, str(LINT), "--root", str(fixture)],
+            capture_output=True, text=True, check=False, env=env,
+        )
+        merged = cli.stdout + cli.stderr
+        check("a broken git makes the lint exit non-zero",
+              cli.returncode != 0, f"rc={cli.returncode}")
+        check("a broken git is reported as an ignore-layer failure",
+              "could not be resolved" in merged or "ignored could not" in merged
+              or "unavailable" in merged or "rejected" in merged,
+              merged[-500:])
+        check("a broken git does not traceback",
+              "Traceback (most recent call last)" not in merged, merged[-400:])
+        check("a broken git does not report a pass",
+              "passed" not in merged, merged[-300:])
+
+        # A refused batch reports a different cause than an unavailable git.
+        refused = _resolve_refused(fixture)
+        check("a refused batch is flagged refused, not merely degraded",
+              refused is not None and refused.refused and refused.degraded,
+              repr(refused))
+
     # ---- no persistence between invocations ----------------------------
     inv_a = M.build_inventory(context)
     inv_b = M.build_inventory(context)
@@ -447,6 +527,11 @@ def main() -> int:  # noqa: C901 — independent structural assertions
         return 1
     sys.stderr.write(f"ok — {_CASES} cases passed\n")
     return 0
+
+
+def _resolve_refused(root: Path):
+    """An IgnoreOutcome for a candidate git will refuse (pathspec magic)."""
+    return M._resolve_ignored(root, [Path(":(glob)nope.py")])
 
 
 def _build_min_fixture(root: Path) -> None:

@@ -69,6 +69,7 @@ on:
       - 'tools/test-lint-boundary-golden.py'
       - 'tools/lint-boundary-golden.json'
       - 'tools/test-lint-boundary-structural.py'
+      - 'tools/test-lint-agents-md-gitignore-probes.py'
       # The boundary lint reads these as runner call sites, so a change to
       # any of them has to re-trigger it — collapsing the Makefile's
       # pack-test lines is precisely the regression it exists to catch.
@@ -192,6 +193,8 @@ jobs:
         run: python3 tools/lint-no-direct-check-ignore.py
       - name: No direct git check-ignore — self-test
         run: python3 tools/test-lint-no-direct-check-ignore.py
+      - name: agents-md session-scratch gitignore probes
+        run: python3 tools/test-lint-agents-md-gitignore-probes.py
 
   # Aggregator end-to-end. Duplicates the per-layer linter jobs by design —
   # those each surface with their own check name in PR UI; this one catches

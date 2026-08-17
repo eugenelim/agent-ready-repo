@@ -36,18 +36,26 @@ from __future__ import annotations
 
 import argparse
 import ast
+import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
+
+import lint_git_ignore  # tools/ is sys.path[0] for a script run
 
 sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 ROOT = Path(__file__).resolve().parents[1]
 
-#: Roots whose sources are policed.
-SCAN_ROOTS = ("tools", "packs", "packages")
+#: Roots whose sources are policed. `.github` and the root `Makefile` are in
+#: here because both drive the lint targets, so both are plausible sites for a
+#: reintroduced per-path loop — and because the non-Python disposition below
+#: claims to cover them. An earlier version claimed the coverage without
+#: scanning either.
+SCAN_ROOTS = ("tools", "packs", "packages", ".github", "Makefile")
 
 #: Files exempt from the rule, each with the reason it is exempt. A filename
 #: pattern is deliberately not used — see the module docstring.
@@ -58,12 +66,12 @@ ALLOWLIST: dict[str, str] = {
         "this gate; its detection fixtures contain the pattern by construction",
     "tools/test-lint-no-direct-check-ignore.py":
         "the gate's own self-test; its fixtures contain the pattern on purpose",
+    # tools/test-pre-pr.sh is deliberately NOT here: it only mentions the probe
+    # in a comment, which scan_text already skips, and an allowlist entry would
+    # hide a future real invocation in that script.
     "tools/test-run-pack-evals.py":
         "asserts a genuine .gitignore fact about one single path, not an "
         "ignore-query loop over candidates",
-    "tools/test-pre-pr.sh":
-        "documents the probe path in a comment; its sandbox is git init-ed so "
-        "the real drift-watch can run",
 }
 
 #: Lowest acceptable number of scanned files. A gate that silently stops
@@ -80,6 +88,15 @@ NON_PYTHON_DISPOSITION = (
 
 _TEXT_SUFFIXES = (".sh", ".yml", ".yaml", ".mk")
 _TEXT_NAMES = ("Makefile",)
+
+
+class GitListingError(RuntimeError):
+    """`git ls-files` failed. Distinct from "the tree has no sources".
+
+    Reported by its real cause rather than as an empty inventory: the previous
+    message said "no tracked sources found to scan", which names the wrong thing
+    at 3am.
+    """
 
 
 @dataclass
@@ -171,14 +188,33 @@ def scan_source(rel: str, source: str) -> list[str]:
     return findings
 
 
+#: `git … check-ignore` on one line, permitting intervening arguments such as
+#: `-C "$root"` or `--no-pager` (quoted values included). Deliberately not a bare
+#: "check-ignore" substring: that matched this gate's own script name in a `run:`
+#: line, six false positives on the first run against `.github`.
+_TEXT_INVOCATION = re.compile(r"\bgit\b[^\n]{0,120}?\bcheck-ignore\b")
+
+#: A YAML step label is prose, not a command — `- name: No direct git
+#: check-ignore outside the helper` describes the rule rather than breaking it.
+_YAML_LABEL = re.compile(r"^-?\s*name:\s")
+
+
 def scan_text(rel: str, source: str) -> list[str]:
-    """Findings for a non-Python gate surface, by textual search."""
+    """Findings for a non-Python gate surface, by textual search.
+
+    Shell, Makefile and workflow lines carry no argv structure for an AST walk,
+    so this is a regex over the command form. Matching the *command* rather than
+    the substring matters: a step named "No direct git check-ignore …" or a
+    `run:` line naming this gate's own script is a reference, not a use.
+    """
     findings: list[str] = []
     for lineno, line in enumerate(source.splitlines(), 1):
         stripped = line.strip()
         if stripped.startswith("#"):
             continue                      # a comment about the rule is not a use
-        if "check-ignore" in stripped:
+        if _YAML_LABEL.match(stripped):
+            continue                      # a step label names the rule, not a use
+        if _TEXT_INVOCATION.search(stripped):
             findings.append(
                 f"{rel}:{lineno}: invokes `git check-ignore` directly. Route it "
                 f"through tools/lint_git_ignore.py."
@@ -201,9 +237,16 @@ def _tracked_files(root: Path) -> list[Path]:
         ["git", "ls-files", "-z", "--cached", "--others", "--exclude-standard",
          *SCAN_ROOTS],
         cwd=str(root), capture_output=True, check=False,
+        # The shared scrub: without it a host `core.excludesFile` filters the
+        # `--others` half, so an author whose global ignore matches a newly
+        # added file watches this gate skip it and pass.
+        env=lint_git_ignore.hermetic_git_env(os.environ),
     )
     if proc.returncode != 0:
-        return []
+        raise GitListingError(
+            f"`git ls-files` exited {proc.returncode}: "
+            f"{proc.stderr.decode('utf-8', 'replace').strip()[:400]}"
+        )
     return [
         root / name for name in
         (chunk.decode("utf-8", "surrogateescape")
@@ -255,7 +298,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = ROOT if args.root is None else Path(args.root).resolve()
 
-    result = audit(root)
+    try:
+        result = audit(root)
+    except GitListingError as exc:
+        print(f"✖ {exc}", file=sys.stderr)
+        return 1
 
     if not result.scanned:
         print("✖ no tracked sources found to scan — this must not pass "

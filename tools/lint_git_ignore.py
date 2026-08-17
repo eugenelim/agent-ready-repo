@@ -86,6 +86,17 @@ _LEAKING_GIT_VARS = (
     "GIT_OBJECT_DIRECTORY",
     "GIT_ALTERNATE_OBJECT_DIRECTORIES",
     "GIT_CONFIG",
+    # The one channel that survives GIT_CONFIG_NOSYSTEM plus redirected global
+    # and system config files, and the only one that leaks *silently*. Verified:
+    # with GIT_CONFIG_COUNT=1 / KEY_0=core.excludesFile / VALUE_0=<file>,
+    # `check-ignore --stdin -z` reports extra paths as ignored and exits 0. The
+    # pathspec variables below fail closed instead (exit 128 -> GitIgnoreError),
+    # which is why they are far less dangerous — but they are dropped too.
+    "GIT_CONFIG_COUNT",
+    "GIT_GLOB_PATHSPECS",
+    "GIT_ICASE_PATHSPECS",
+    "GIT_LITERAL_PATHSPECS",
+    "GIT_NOGLOB_PATHSPECS",
 )
 
 
@@ -152,6 +163,12 @@ def hermetic_git_env(base: Mapping[str, str]) -> dict[str, str]:
     """
     env = dict(base)
     for name in _LEAKING_GIT_VARS:
+        env.pop(name, None)
+    # GIT_CONFIG_COUNT indexes GIT_CONFIG_KEY_n / GIT_CONFIG_VALUE_n pairs;
+    # dropping the count alone would leave them addressable if a later git
+    # learned to infer it, so remove the whole family.
+    for name in [k for k in env
+                 if k.startswith(("GIT_CONFIG_KEY_", "GIT_CONFIG_VALUE_"))]:
         env.pop(name, None)
     env["GIT_CONFIG_NOSYSTEM"] = "1"
     # os.devnull is an empty, always-readable config on every supported host.
@@ -289,14 +306,21 @@ def git_ignored_paths(
         )
     except FileNotFoundError as exc:
         return _degrade(missing_git_policy, DegradationReason.GIT_ABSENT,
-                        "git executable not found on PATH", exc)
+                        _bound_detail(repo_root,
+                                      "git executable not found on PATH"), exc)
     except subprocess.TimeoutExpired as exc:
         return _degrade(missing_git_policy, DegradationReason.TIMED_OUT,
-                        f"git check-ignore exceeded {timeout}s for "
-                        f"{len(by_relative)} candidate(s)", exc)
+                        _bound_detail(repo_root,
+                                      f"git check-ignore exceeded {timeout}s "
+                                      f"for {len(by_relative)} candidate(s)"),
+                        exc)
     except OSError as exc:
+        # `{exc}` interpolates an absolute path for e.g. a bad cwd
+        # (NotADirectoryError names it), so this must be redacted like any other
+        # diagnostic that reaches operator output or a committed baseline.
         return _degrade(missing_git_policy, DegradationReason.EXECUTION_ERROR,
-                        f"git could not be executed: {exc}", exc)
+                        _bound_detail(repo_root,
+                                      f"git could not be executed: {exc}"), exc)
 
     # 0 = at least one ignored, 1 = none ignored. Both are real answers.
     if completed.returncode not in (0, 1):

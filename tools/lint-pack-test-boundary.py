@@ -162,12 +162,23 @@ def _walk_candidates(base: Path) -> list[Path]:
     return found
 
 
+class GitIgnoreUnresolved(RuntimeError):
+    """A standalone walk could not resolve the ignore set. Never fail open."""
+
+
 class IgnoreOutcome(NamedTuple):
-    """The ignored subset, plus whether Git actually answered."""
+    """The ignored subset, plus whether Git actually answered.
+
+    `refused` distinguishes "git could not run" from "git ran and rejected the
+    batch". The remediation differs — one says re-run where git works, the other
+    says a candidate was unusable — so folding them together sends the reader the
+    wrong way.
+    """
 
     ignored: frozenset[Path]
     degraded: bool = False
     detail: str | None = None
+    refused: bool = False
 
 
 def _resolve_ignored(root: Path, candidates: list[Path]) -> IgnoreOutcome:
@@ -189,8 +200,12 @@ def _resolve_ignored(root: Path, candidates: list[Path]) -> IgnoreOutcome:
             missing_git_policy=lint_git_ignore.MissingGitPolicy.FAIL_OPEN,
             timeout=120.0,
         )
-    except (lint_git_ignore.GitIgnoreError, ValueError) as exc:
-        return IgnoreOutcome(frozenset(), degraded=True, detail=str(exc))
+    except lint_git_ignore.GitIgnoreError as exc:
+        return IgnoreOutcome(frozenset(), degraded=True, detail=str(exc),
+                             refused=True)
+    except ValueError as exc:
+        return IgnoreOutcome(frozenset(), degraded=True, detail=str(exc),
+                             refused=True)
     return IgnoreOutcome(
         frozenset(resolution.ignored),
         degraded=resolution.degraded,
@@ -198,19 +213,32 @@ def _resolve_ignored(root: Path, candidates: list[Path]) -> IgnoreOutcome:
     )
 
 
-def _walk(base: Path, ignored: frozenset[Path] | None = None) -> list[Path]:
+def _walk(base: Path, ignored: frozenset[Path] | None = None,
+          root: Path | None = None) -> list[Path]:
     """Authored test content under *base*, with gitignored residue removed.
 
     *ignored* is supplied by the per-invocation inventory, which resolves every
     base's candidates in one process. Callers outside a lint invocation — the
     self-test calls this directly — may omit it and pay for one batched
     resolution of just this base.
+
+    Raises:
+        GitIgnoreUnresolved: when no *ignored* set was supplied and Git could not
+            answer. Returning unfiltered content would be fail-open in the one
+            helper whose siblings go to lengths to be fail-closed, and silently
+            so — the caller could not tell a clean tree from an unresolved one.
     """
     found = _walk_candidates(base)
     if not found:
         return found
     if ignored is None:
-        ignored = _resolve_ignored(ROOT, found).ignored
+        outcome = _resolve_ignored(ROOT if root is None else root, found)
+        if outcome.degraded:
+            raise GitIgnoreUnresolved(
+                f"cannot decide which paths under {base.name} are ignored "
+                f"({outcome.detail}); refusing to return unfiltered content"
+            )
+        ignored = outcome.ignored
     return [p for p in found if p not in ignored]
 
 
@@ -282,6 +310,7 @@ class BoundaryInventory:
     ignored: frozenset[Path]
     ignore_degraded: bool
     ignore_detail: str | None
+    ignore_refused: bool = False
     _walks: dict[Path, tuple[Path, ...]] = field(default_factory=dict)
     _confinement: dict[Path, bool] = field(default_factory=dict)
     _destinations: tuple[Path, ...] | None = None
@@ -292,15 +321,28 @@ class BoundaryInventory:
     destination_builds: int = 0
 
     def walk(self, base: Path) -> list[Path]:
-        """Filtered test content under *base*, from the pre-resolved ignore set."""
+        """Filtered test content under *base*, from the pre-resolved ignore set.
+
+        A miss resolves that base's candidates on the spot rather than filtering
+        them against a set they were never submitted to. Filtering against a
+        stale set is the quiet failure: gitignored residue under an
+        un-enumerated base would be reported as a boundary violation, and
+        nothing would say why. `_enumerate_walk_bases` should make misses
+        impossible — `walk_misses` is asserted zero for the real tree — so a miss
+        is a bug being contained, not a supported path.
+        """
         key = Path(os.path.normpath(str(base)))
         cached = self._walks.get(key)
         if cached is None:
             self.walk_misses += 1
-            cached = tuple(
-                path for path in _walk_candidates(base)
-                if path not in self.ignored
-            )
+            found = _walk_candidates(base)
+            outcome = _resolve_ignored(self.context.root, found)
+            if outcome.degraded:
+                # Surfaced through the inventory so the caller's fatal-degradation
+                # path sees it, rather than silently returning unfiltered content.
+                self.ignore_degraded = True
+                self.ignore_detail = outcome.detail
+            cached = tuple(p for p in found if p not in outcome.ignored)
             self._walks[key] = cached
         return list(cached)
 
@@ -416,6 +458,7 @@ def build_inventory(context: BoundaryContext) -> BoundaryInventory:
         ignored=outcome.ignored,
         ignore_degraded=outcome.degraded,
         ignore_detail=outcome.detail,
+        ignore_refused=outcome.refused,
     )
     for key, found in prewalked.items():
         inventory._walks[key] = tuple(
@@ -424,13 +467,13 @@ def build_inventory(context: BoundaryContext) -> BoundaryInventory:
     return inventory
 
 
-def case_apm_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> None:
+def case_apm_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> str | None:
     root = inv.context.root
     packs = inv.packs
     if not packs:
         out.append("no packs found under packs/ — this must not pass "
                         "vacuously")
-        return
+        return None
     hits: list[Path] = []
     for pack in packs:
         hits += inv.walk(pack / ".apm")
@@ -441,11 +484,11 @@ def case_apm_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> None:
             + "\n  Move it to packs/<pack>/tests/ — see "
               "catalogue-authoring-standards.md § 4."
         )
-        return
-    print(f"ok   [apm-carries-no-tests] ({len(packs)} packs)")
+        return None
+    return f"ok   [apm-carries-no-tests] ({len(packs)} packs)"
 
 
-def case_projection_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> None:
+def case_projection_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> str | None:
     """The installed artifact, checked directly rather than inferred."""
     root = inv.context.root
     before = len(out)
@@ -459,7 +502,7 @@ def case_projection_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> 
     include = list(inv.include)
     if not include:
         out.append("self-host recipe lists no packs to project")
-        return
+        return None
     adapter_roots = list(inv.context.projected_roots)
     if not adapter_roots:
         out.append(
@@ -467,7 +510,7 @@ def case_projection_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> 
             ".agents/skills — run `make build-self`; this check must not pass "
             "vacuously"
         )
-        return
+        return None
     hits: list[Path] = []
     total = 0
     for name in include:
@@ -494,13 +537,14 @@ def case_projection_carries_no_tests(inv: BoundaryInventory, out: list[str]) -> 
             f"projected skills carry test content ({total} checked):\n    "
             + "\n    ".join(_rel(h, root) for h in hits)
         )
-        return
+        return None
     if len(out) == before:
-        print(f"ok   [projection-carries-no-tests] ({total} projected skills, "
-              f"{len(include)} packs)")
+        return (f"ok   [projection-carries-no-tests] ({total} projected "
+                f"skills, {len(include)} packs)")
+    return None
 
 
-def case_tests_live_in_the_pack_tree(inv: BoundaryInventory, out: list[str]) -> None:
+def case_tests_live_in_the_pack_tree(inv: BoundaryInventory, out: list[str]) -> str | None:
     """The positive half — a pack that owns tests has them where policy says."""
     root = inv.context.root
     before = len(out)
@@ -509,7 +553,7 @@ def case_tests_live_in_the_pack_tree(inv: BoundaryInventory, out: list[str]) -> 
     if not packs:
         out.append("no packs found under packs/ — this must not pass "
                         "vacuously")
-        return
+        return None
     for pack in packs:
         tests = pack / "tests"
         if not tests.is_dir():
@@ -523,7 +567,8 @@ def case_tests_live_in_the_pack_tree(inv: BoundaryInventory, out: list[str]) -> 
             continue
         owning += 1
     if len(out) == before:
-        print(f"ok   [tests-live-in-the-pack-tree] ({owning} packs own tests)")
+        return f"ok   [tests-live-in-the-pack-tree] ({owning} packs own tests)"
+    return None
 
 
 def _path_value(
@@ -1008,7 +1053,7 @@ def _pack_test_escapes(
     return sorted(set(hits))
 
 
-def case_pack_tests_stay_in_pack(inv: BoundaryInventory, out: list[str]) -> None:
+def case_pack_tests_stay_in_pack(inv: BoundaryInventory, out: list[str]) -> str | None:
     """Pack tests may inspect only their owning pack and temporary fixtures.
 
     Note this walk is deliberately NOT ignore-filtered: it uses a raw `os.walk`
@@ -1066,7 +1111,8 @@ def case_pack_tests_stay_in_pack(inv: BoundaryInventory, out: list[str]) -> None
                         "pack-local coverage directly at its owning pack"
                     )
     if len(out) == before:
-        print(f"ok   [pack-tests-stay-in-pack] ({checked} Python files checked)")
+        return f"ok   [pack-tests-stay-in-pack] ({checked} Python files checked)"
+    return None
 
 
 # Runner call sites: one invocation per line is close enough, because every
@@ -1261,7 +1307,7 @@ def _parse_runner_files(
     return out, findings
 
 
-def case_runners_keep_suites_isolated(inv: BoundaryInventory, out: list[str]) -> None:
+def case_runners_keep_suites_isolated(inv: BoundaryInventory, out: list[str]) -> str | None:
     """One pytest process per skill test directory — a correctness requirement.
 
     Overlapping basenames *across* destination directories are expected, and a
@@ -1286,11 +1332,12 @@ def case_runners_keep_suites_isolated(inv: BoundaryInventory, out: list[str]) ->
             "collision can pass green"
         )
     if len(out) == before:
-        print(f"ok   [runners-keep-suites-isolated] "
-              f"({checked} multi-directory invocation(s) checked)")
+        return (f"ok   [runners-keep-suites-isolated] "
+                f"({checked} multi-directory invocation(s) checked)")
+    return None
 
 
-def case_every_suite_dir_has_a_runner(inv: BoundaryInventory, out: list[str]) -> None:
+def case_every_suite_dir_has_a_runner(inv: BoundaryInventory, out: list[str]) -> str | None:
     """Every destination is named by a runner, or declared unrun with a reason.
 
     Without this the answer to "which suites actually run" lives only in a spec
@@ -1302,7 +1349,7 @@ def case_every_suite_dir_has_a_runner(inv: BoundaryInventory, out: list[str]) ->
     if not destinations:
         out.append("no skill test directories found — this must not pass "
                         "vacuously")
-        return
+        return None
     runner_lines, runner_findings = inv.runner_lines()
     out.extend(runner_findings)
     run: set[Path] = set()
@@ -1330,9 +1377,10 @@ def case_every_suite_dir_has_a_runner(inv: BoundaryInventory, out: list[str]) ->
             f"hides the next directory that goes missing"
         )
     if len(out) == before:
-        print(f"ok   [every-suite-dir-has-a-runner] "
-              f"({len(destinations)} destinations, "
-              f"{len(inv.context.no_runner)} declared unrun)")
+        return (f"ok   [every-suite-dir-has-a-runner] "
+                f"({len(destinations)} destinations, "
+                f"{len(inv.context.no_runner)} declared unrun)")
+    return None
 
 
 class Check(NamedTuple):
@@ -1361,11 +1409,41 @@ class Finding:
     message: str
 
 
+@dataclass(frozen=True)
+class CheckResult:
+    """One check's outcome: its findings, and its success-line payload.
+
+    `summary` exists because each `ok   [check] (…)` line embeds counters only
+    that check computes. Returning it instead of printing it is what lets the
+    callable API stay genuinely silent — the CLI does the printing.
+    """
+
+    check: str
+    findings: tuple[Finding, ...]
+    summary: str | None = None
+
+
 def inspect_boundary(
     context: BoundaryContext,
     checks: Collection[str] | None = None,
 ) -> tuple[Finding, ...]:
-    """Run the selected checks and return their findings, in emission order.
+    """Findings from the selected checks, in emission order.
+
+    A thin wrapper over :func:`inspect_boundary_results` for callers that only
+    want findings.
+    """
+    return tuple(
+        finding
+        for result in inspect_boundary_results(context, checks)
+        for finding in result.findings
+    )
+
+
+def inspect_boundary_results(
+    context: BoundaryContext,
+    checks: Collection[str] | None = None,
+) -> tuple[CheckResult, ...]:
+    """Run the selected checks and return a :class:`CheckResult` for each.
 
     Side-effect-free: parses no arguments, prints nothing, calls no `sys.exit`,
     and mutates no file. The CLI is a thin formatter over this.
@@ -1389,23 +1467,39 @@ def inspect_boundary(
     selected = [c for c in CHECKS if checks is None or c.name in set(checks)]
 
     inventory = build_inventory(context)
-    findings: list[Finding] = []
+    results: list[CheckResult] = []
     for check in selected:
         emitted: list[str] = []
-        check.run(inventory, emitted)
-        findings.extend(Finding(check.name, message) for message in emitted)
+        summary = check.run(inventory, emitted)
+        results.append(CheckResult(
+            check=check.name,
+            findings=tuple(Finding(check.name, m) for m in emitted),
+            summary=summary,
+        ))
+    degraded_findings: list[Finding] = []
     if inventory.ignore_degraded:
         # Not cosmetic. `_walk` subtracts the ignored set and two findings fire
         # on the emptiness of what remains, so an unresolved ignore layer turns
         # those failures into passes. Refuse to report such a verdict.
-        findings.append(Finding(
+        cause = (
+            "git rejected the candidate batch"
+            if inventory.ignore_refused else
+            "git is unavailable"
+        )
+        remedy = (
+            "a candidate was unusable — see the detail above"
+            if inventory.ignore_refused else
+            "re-run where git works"
+        )
+        degraded_findings.append(Finding(
             "ignore-layer",
-            f"git could not resolve which paths are ignored "
+            f"{cause}, so which paths are ignored could not be resolved "
             f"({inventory.ignore_detail}); the ignore-derived verdicts in this "
-            f"run would be unsound, so no pass is reported. Re-run where git "
-            f"works.",
+            f"run would be unsound, so no pass is reported. {remedy}.",
         ))
-    return tuple(findings)
+        results.append(CheckResult("ignore-layer",
+                                   tuple(degraded_findings), None))
+    return tuple(results)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -1458,13 +1552,22 @@ def main(argv: list[str] | None = None) -> int:
         print(f"partial run — checks: {', '.join(ran)}"
               + (f" — root: {args.root}" if args.root else ""))
     try:
-        findings = inspect_boundary(context, args.checks)
+        results = inspect_boundary_results(context, args.checks)
     except ValueError as exc:
+        # Reached only if `choices=` is ever relaxed; argparse rejects an unknown
+        # name at exit 2 today. Kept so the API's contract has a CLI-side answer
+        # rather than a traceback if that changes.
         print(f"✖ {exc}", file=sys.stderr)
         return 2
 
-    # The per-check `ok   [name] (...)` lines are printed by the checks
-    # themselves, because each embeds counters only that check computes.
+    # The CLI owns every byte of output. Each check returned its own success
+    # line because only it can compute the counters in it; printing them here,
+    # in check order, is what keeps the API silent without changing stdout.
+    findings = [f for result in results for f in result.findings]
+    for result in results:
+        if result.summary is not None:
+            print(result.summary)
+
     print()
     if findings:
         for finding in findings:

@@ -461,6 +461,10 @@ def build_check(args: argparse.Namespace) -> int:
             "boundary-lint structural properties",
             "tools", "test-lint-boundary-structural.py",
         ),
+        _script_step(
+            "agents-md gitignore probes",
+            "tools", "test-lint-agents-md-gitignore-probes.py",
+        ),
         # Directory-scoped: each suite's conftest puts its skill's scripts/ on
         # sys.path, so both collect nothing from the repo root. Pure stdlib —
         # no install, no network — so they belong in the local chain.
