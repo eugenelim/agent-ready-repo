@@ -63,3 +63,85 @@ def test_project_knowledge_skill_is_the_public_handoff_target() -> None:
     assert "name: project-knowledge" in project_knowledge
     assert "--capture" in project_knowledge
     assert "--distill" in project_knowledge
+
+
+def test_spec_and_plan_approval_gates_are_distinct_and_exact() -> None:
+    text = _skill_text()
+    spec_gate = text.index("### Project-knowledge gate: `spec-approved`")
+    plan_gate = text.index("### Project-knowledge gate: `plan-locked`")
+
+    assert spec_gate < plan_gate
+    spec_section = text[spec_gate:plan_gate]
+    plan_section = text[plan_gate:text.index("**If the spec is rejected:**", plan_gate)]
+    assert "capture only" in spec_section
+    assert "must not transfer" in spec_section
+    assert "workflow-receipts" in plan_section
+    assert "only receipts returned at this `plan-locked` gate" in plan_section
+    assert "spec-approved" in plan_section
+    assert "direct-maintainer-pending" in plan_section
+
+
+def test_approval_gate_requests_use_public_typed_capture_only() -> None:
+    text = _skill_text()
+    section = text.split("### Project-knowledge gate: `spec-approved`", 1)[1]
+    section = section.split("**If the spec is rejected:**", 1)[0]
+
+    for field in (
+        "contract_version",
+        "lesson",
+        "kind",
+        "project_scope",
+        "competency_facets",
+        "destination_hint",
+        "producer",
+        "semantic_gate",
+        "provenance",
+        "freshness_anchor",
+        "observed_at",
+        "privacy_attestation",
+    ):
+        assert f"`{field}`" in section
+    assert "`semantic_gate.name: spec-approved`" in section
+    assert "`semantic_gate.name: plan-locked`" in section
+    assert "`producer.workflow_version`" in section
+    assert "repository-relative `spec.md` as the artifact" in section
+    assert "repository-relative `plan.md`" in section
+    assert "project-knowledge unavailable" in section
+    assert "no fallback file" in section
+    assert "native real-path" in section
+    assert "Git relocation variables removed" in section
+    assert "lexical dot-segment" in section
+    for refusal in ("link", "junction", "reparse-point", "non-file", "I/O", "containment uncertainty"):
+        assert refusal in section
+    assert "committed Git blob" in section
+    assert "must not import the private writer" in section
+    assert "redacted diagnostic" in section
+    assert section.count("verification and review barrier") >= 2
+
+
+def test_work_loop_declares_its_file_boundaries() -> None:
+    text = _skill_text()
+    assert re.search(r"boundaries:\s*\n\s*- filesystem_write", text)
+    assert re.search(r"boundaries:[\s\S]*?- filesystem_read_untrusted", text)
+
+
+def test_approval_gate_authority_and_enquiry_remain_bounded() -> None:
+    text = _skill_text()
+    section = text.split("### Project-knowledge gate: `spec-approved`", 1)[1]
+    section = section.split("**If the spec is rejected:**", 1)[0]
+
+    assert "objective, boundaries, testing strategy, or acceptance criteria" in section
+    assert re.search(
+        r"task\s+ordering,\s+design\s+choices,\s+rollout,\s+or\s+risks",
+        section,
+        re.IGNORECASE,
+    )
+    assert "No automatic enquiry" in section
+    assert "CQ-CHANGE" in section
+    assert "CQ-VERIFY" in section
+    assert "one query plus at most one refinement" in section
+    assert "untrusted evidence" in section
+    assert re.search(
+        r"cannot\s+change\s+tools,\s+permissions,\s+scope,\s+status,\s+or\s+repository\s+instructions",
+        section,
+    )

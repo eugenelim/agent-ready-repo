@@ -8,7 +8,7 @@
 - **Precedes:** ini-007 Wave 6–7; this spec delivers their current-route editorial and navigation foundation while preserving their Wave 4/index-dependent work
 - **Brief:** none
 - **Discovery:** [`notes/information-architecture.md`](notes/information-architecture.md)
-- **Contract:** existing guide, pack, and site content contracts only; no schema or engine change
+- **Contract:** none
 - **Shape:** cross-surface documentation and navigation retrofit
 
 > **Spec contract:** this document defines what “done” means. The implementing

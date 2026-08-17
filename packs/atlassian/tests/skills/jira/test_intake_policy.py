@@ -1,0 +1,196 @@
+"""Credentialed-request boundary tests for read-only Jira intake."""
+
+from __future__ import annotations
+
+import asyncio
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+import httpx
+import pytest
+
+SKILL_ROOT = Path(__file__).resolve().parents[3] / ".apm/skills/jira"
+PROFILE = SKILL_ROOT.parent / "jira-brief-intake/references/intake-profile.json"
+
+
+def _load_client():
+    path = SKILL_ROOT / "scripts/_client.py"
+    spec = importlib.util.spec_from_file_location("jira_intake_client", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _public_resolver(host: str, port: int, **_kwargs):
+    assert host == "tracker.example.test"
+    return [(None, None, None, None, ("93.184.216.34", port))]
+
+
+@pytest.fixture(autouse=True)
+def _isolate_proxy_environment(monkeypatch) -> None:
+    monkeypatch.delenv("HTTPS_PROXY", raising=False)
+    monkeypatch.delenv("https_proxy", raising=False)
+
+
+def test_policy_rejects_scheme_host_and_credential_mismatch() -> None:
+    client_module = _load_client()
+    with pytest.raises(client_module.AuthError):
+        client_module.IntakeRequestPolicy.from_profile(
+            PROFILE, "http://tracker.example.test", resolver=_public_resolver
+        )
+    with pytest.raises(client_module.AuthError):
+        client_module.IntakeRequestPolicy.from_profile(
+            PROFILE, "https://untrusted.example.test", resolver=_public_resolver
+        )
+
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE, "https://tracker.example.test", resolver=_public_resolver
+    )
+    credentials = client_module.Credentials(
+        base_url="https://different.example.test",
+        token="fixture",
+        flavor="server",
+        email=None,
+    )
+    with pytest.raises(client_module.AuthError):
+        client_module.JiraClient(credentials, intake_policy=policy)
+
+
+def test_policy_disables_redirects_and_refuses_writes(monkeypatch) -> None:
+    client_module = _load_client()
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        return httpx.Response(302, headers={"Location": "https://example.test/"})
+
+    transport = httpx.MockTransport(handler)
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(
+            *args, **{**kwargs, "transport": transport}
+        ),
+    )
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE, "https://tracker.example.test", resolver=_public_resolver
+    )
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="server",
+        email=None,
+    )
+
+    async def exercise() -> None:
+        async with client_module.JiraClient(
+            credentials,
+            intake_policy=policy,
+        ) as client:
+            assert client._client.follow_redirects is False
+            with pytest.raises(client_module.JiraError, match="redirect"):
+                await client._request("GET", "/rest/api/2/issue/EX-1")
+            with pytest.raises(client_module.JiraError, match="read-only"):
+                await client._request("POST", "/rest/api/2/issue")
+
+    asyncio.run(exercise())
+    assert len(seen) == 1
+
+
+def test_policy_enforces_response_bytes(tmp_path, monkeypatch) -> None:
+    client_module = _load_client()
+    profile = json.loads(PROFILE.read_text(encoding="utf-8"))
+    profile["budget"]["max_bytes"] = 2
+    profile_path = tmp_path / "profile.json"
+    profile_path.write_text(json.dumps(profile), encoding="utf-8")
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(200, content=b"too large", request=request)
+    )
+    real_client = httpx.AsyncClient
+    monkeypatch.setattr(
+        client_module.httpx,
+        "AsyncClient",
+        lambda *args, **kwargs: real_client(
+            *args, **{**kwargs, "transport": transport}
+        ),
+    )
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        profile_path, "https://tracker.example.test", resolver=_public_resolver
+    )
+    credentials = client_module.Credentials(
+        base_url="https://tracker.example.test",
+        token="fixture",
+        flavor="server",
+        email=None,
+    )
+
+    async def exercise() -> None:
+        async with client_module.JiraClient(
+            credentials,
+            intake_policy=policy,
+        ) as client:
+            with pytest.raises(client_module.JiraError, match="byte budget"):
+                await client._request("GET", "/rest/api/2/issue/EX-1")
+
+    asyncio.run(exercise())
+
+
+def test_socket_backend_connects_to_pinned_address() -> None:
+    client_module = _load_client()
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE, "https://tracker.example.test", resolver=_public_resolver
+    )
+    backend = client_module._PinnedAsyncNetworkBackend(policy)
+    connected: list[tuple[str, int]] = []
+
+    class FakeBackend:
+        async def connect_tcp(
+            self, host: str, port: int, *_args: object, **_kwargs: object
+        ) -> object:
+            connected.append((host, port))
+            return object()
+
+    backend._backend = FakeBackend()
+    asyncio.run(backend.connect_tcp("tracker.example.test", 443))
+    assert connected == [("93.184.216.34", 443)]
+
+
+def test_https_proxy_and_no_proxy_are_honored_and_proxy_socket_is_pinned(
+    monkeypatch,
+) -> None:
+    client_module = _load_client()
+
+    def resolver(host: str, port: int, **_kwargs):
+        address = "93.184.216.35" if host == "proxy.example" else "93.184.216.34"
+        return [(None, None, None, None, (address, port))]
+
+    policy = client_module.IntakeRequestPolicy.from_profile(
+        PROFILE, "https://tracker.example.test", resolver=resolver
+    )
+    monkeypatch.setenv("HTTPS_PROXY", "https://proxy.example:8443")
+    monkeypatch.setattr(client_module, "proxy_bypass", lambda _host: False)
+    proxy_url, proxy_pin = client_module._https_proxy_settings(policy)
+    assert proxy_url == "https://proxy.example:8443"
+    assert proxy_pin == ("proxy.example", 8443, frozenset({"93.184.216.35"}))
+
+    backend = client_module._PinnedAsyncNetworkBackend(policy, proxy_pin)
+    connected: list[tuple[str, int]] = []
+
+    class FakeBackend:
+        async def connect_tcp(
+            self, host: str, port: int, *_args: object, **_kwargs: object
+        ) -> object:
+            connected.append((host, port))
+            return object()
+
+    backend._backend = FakeBackend()
+    asyncio.run(backend.connect_tcp("proxy.example", 8443))
+    assert connected == [("93.184.216.35", 8443)]
+
+    monkeypatch.setattr(client_module, "proxy_bypass", lambda _host: True)
+    assert client_module._https_proxy_settings(policy) == (None, None)

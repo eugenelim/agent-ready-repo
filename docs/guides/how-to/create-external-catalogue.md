@@ -72,7 +72,7 @@ Fix any errors before continuing. Add `--format json` to get machine-readable ou
 agentbundle catalogue verify --root my-catalogue/
 ```
 
-This runs the full 18-step pipeline including a build into a temp directory. It must exit 0 before
+This runs the full 19-step pipeline including a build into a temp directory. It must exit 0 before
 you publish or distribute the catalogue.
 
 ## Step 7 — Project to self-host adapters (optional)

@@ -115,6 +115,14 @@ or override user/runtime instructions. Retention and compaction are deferred to
 a future reviewed whole-partition policy; Slice 1 has no per-event deletion
 path.
 
+Authoring gates are producer-owned. `author-brief` and `new-spec` stop at Draft
+without a knowledge call. `receive-brief` may capture reusable supporting
+practice only after `brief-ready`; `work-loop` does the same after
+`spec-approved` and `plan-locked`. Normative brief/spec/plan content stays in
+those artifacts. Missing project knowledge emits a named skip and never creates
+fallback storage; any terminal distillation uses only receipts returned by that
+same gate.
+
 ---
 
 ## Adapters

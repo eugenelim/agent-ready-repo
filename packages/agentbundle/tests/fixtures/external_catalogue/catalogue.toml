@@ -1,0 +1,31 @@
+schema = 1
+
+[catalogue]
+name = "example-catalogue"
+display-name = "Example Catalogue"
+description = "Portable verifier fixture"
+minimum-agentbundle-version = "0.37.2"
+
+[catalogue.paths]
+packs = "packs"
+profiles = "profiles"
+contracts = "contracts"
+marketplace = ".claude-plugin/marketplace.json"
+build-output = "dist"
+
+[catalogue.build]
+recipes = ["default"]
+self-host = false
+claude-plugin-branch = "main"
+marketplace-description = "Example Catalogue"
+
+[catalogue.package]
+include = ["packs/alpha", "packs/beta"]
+required = ["packs/alpha", "packs/beta"]
+
+[distribution.agentbundle]
+preferred-adapter = "claude-code"
+default-source = "git+https://example.com/example/catalogue"
+
+[distribution.agentbundle.artifactory]
+enabled = false

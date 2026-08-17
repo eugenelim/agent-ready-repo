@@ -33,14 +33,15 @@ CORE_DEP_PACKS = ("governance-extras", "monorepo-extras")
 # Every pack shipping a `credentialed: true` skill declares a required dep on
 # `credential-brokers` — the pack that ships the `credbroker` floor and the
 # `sso-broker.py` engine. Ranges differ by need: `atlassian` needs the exit-4
-# `refresh` contract that landed in 0.3.0; the others only need the broker to
-# exist. `credential-brokers` itself is absent because it ships
+# `refresh` contract that landed in 0.3.0. Zero-major caret ranges do not cross
+# a minor boundary, so every current consumer must declare the shipped 0.3 line.
+# `credential-brokers` itself is absent because it ships
 # `credential-setup` (`credentialed: true`) and cannot depend on itself, and
 # `github` because it shells out to `gh`, which owns its own credential chain.
 CREDENTIALED_PACK_BROKER_RANGE = {
     "atlassian": "^0.3",
-    "figma": "^0.2",
-    "linear": "^0.2",
+    "figma": "^0.3",
+    "linear": "^0.3",
 }
 
 
@@ -114,11 +115,11 @@ def test_credentialed_packs_require_credential_brokers(pack_name, expected_range
 def test_the_install_gate_refuses_without_the_broker_and_admits_it_with(pack_name):
     """Drive the real resolver, not a second implementation of its rules.
 
-    `verify.py`'s dependency step is a pass-through, so an unsatisfiable range —
-    declaring `^0.3` while the pack ships `0.2.2` — surfaces only when an
-    adopter tries to install. Re-deriving caret-minor semantics here would be a
-    second copy of the rule this test exists to protect, free to drift from the
-    resolver without either side going red.
+    Every credentialed consumer declares the shipped 0.3 broker line, and the
+    real install resolver must admit that installed broker version. Re-deriving
+    caret-minor semantics here would be a second copy of the rule this test
+    exists to protect, free to drift from the resolver without either side
+    going red.
     """
     from agentbundle.commands.install import validate_dependencies_required
     from agentbundle.config import PackState, State

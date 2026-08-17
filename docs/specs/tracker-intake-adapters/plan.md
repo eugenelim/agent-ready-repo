@@ -1,7 +1,7 @@
 # Plan: Tracker intake adapters
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document may change as implementation teaches us. Substantial changes are
@@ -9,7 +9,7 @@
 
 ## Approach
 
-Pin one versioned semantic fixture matrix against the Group 2 schemas and completed Group 4 surface. Then update Jira, Jira Align, Linear, and GitHub in four parallel, file-disjoint tasks. Each keeps its acquisition mechanism but replaces direct brief creation and classification with normalized emission and a name-based `work-intake` handoff. A convergence task runs every common fixture through every profile, followed by pack release and tracker documentation. Convergence compares artifact, membership, processor, and authority rather than adapter prose. Manual guide QA records its durable evidence in `docs/specs/tracker-intake-adapters/notes/adapter-guide-walkthrough.md`; PLAN names but does not create that file.
+Pin one versioned semantic fixture matrix against the Group 2 schemas and completed Group 4 surface. Then update Jira, Jira Align, Linear, and GitHub as one dependency-independent wave. The installed Phase-1 supervisor runs that wave sequentially in task-ID order because parallel write fan-out is disabled. Each adapter keeps its acquisition mechanism but replaces direct brief creation and classification with normalized emission and a name-based `work-intake` handoff. A convergence task runs every common fixture through every profile, followed by pack release and tracker documentation. Convergence compares artifact, membership, processor, and authority rather than adapter prose. Manual guide QA records its durable evidence in `docs/specs/tracker-intake-adapters/notes/adapter-guide-walkthrough.md`; PLAN names but does not create that file.
 
 ## Constraints
 
@@ -19,6 +19,8 @@ Pin one versioned semantic fixture matrix against the Group 2 schemas and comple
 - Group 4 `work-intake` owns classification, creation, registration, and processor selection.
 - Group 6 owns refresh conflicts, execution locks, and write-back.
 - Jira, Jira Align, and Linear retain sibling-skill acquisition; GitHub retains `gh`.
+- Credential-bearing adapter-controlled HTTP profiles permit only `https`; trusted acquisition metadata, not tracker-authored text, supplies locator and revision.
+- Adapter JSON input and output use strict RFC 8259 parsing and emission.
 - Intake stays read-only, `.apm/` stays authoritative, and no dependency is added.
 
 ## Construction tests
@@ -63,16 +65,16 @@ Traces to: AC1–AC23 · both JSON Schemas.
 
 **Depends on:** spec:normalized-intake-workspace-contracts/T4, spec:work-intake-surface/T6
 
-**Touches:** `packs/atlassian/.apm/skills/jira-brief-intake/evals/**`, `packs/atlassian/.apm/skills/jira-align-brief-intake/evals/**`, `packs/linear/.apm/skills/linear-brief-intake/evals/**`, `packs/github/.apm/skills/github-brief-intake/evals/**`
+**Touches:** `packs/atlassian/.apm/skills/jira-brief-intake/evals/**`, `packs/atlassian/.apm/skills/jira-align-brief-intake/evals/**`, `packs/linear/.apm/skills/linear-brief-intake/evals/**`, `packs/github/.apm/skills/github-brief-intake/evals/**`, `tests/roster/test_tracker_intake_adapters.py`, `packs/atlassian/tests/skills/jira-brief-intake/test_jira_brief_intake.py`, `packs/atlassian/tests/skills/jira-align-brief-intake/test_jira_align_brief_intake.py`, `packs/linear/tests/skills/linear-brief-intake/test_linear_brief_intake.py`, `packs/github/tests/skills/github-brief-intake/test_github_brief_intake.py`
 
 **Verification mode:** TDD for expected routes; goal-based JSON Schema validation.
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the Group 2 schema modules, completed `work-intake` router, and shared profile harness are created by upstream RFC-0083 work and are unavailable at PLAN. First EXECUTE materializes `test_common_routes_validate`, `test_ssrf_matrix_fails_before_credentials`, and `test_profile_budgets_are_deterministic` as compilable failing pytest cases before production edits.
+**Stub:** compilable red pytest stubs materialized during PLAN in `tests/roster/test_tracker_intake_adapters.py`: `test_common_routes_validate`, `test_ssrf_matrix_fails_before_credentials`, and `test_profile_budgets_are_deterministic`. T1 replaces the stubs with the shared harness and fixture assertions before adapter production edits.
 
 - Common fixtures cover direct spec, multi-spec brief, cross-repo briefs, incoherent collection, and defect. Covers AC3–AC10.
-- Boundary fixtures cover malformed input, missing revision, unknown profile, hostile instructions, sensitive data, confidentiality mismatch, adapter-controlled HTTP SSRF, GitHub fixed-host argv, credential ordering, and profile budgets. Covers AC13–AC15, AC20–AC22.
+- Boundary fixtures cover malformed input, missing revision, unknown profile, hostile instructions and shell metacharacters, sensitive data, confidentiality mismatch, adapter-controlled HTTP SSRF, discrete sibling-skill/GitHub argv, credential ordering, and profile budgets. Covers AC13–AC15, AC20–AC22.
 - Expected normalized records validate before adapter work begins. Covers AC1–AC2.
 - Projection fixtures define the minimal boundary/tool expectations later asserted for every changed skill. Covers AC23.
 
@@ -94,11 +96,11 @@ Traces to: AC1–AC23 · both JSON Schemas.
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the Jira normalizer/profile boundary and imported Group 2 validator are created by this or upstream RFC-0083 work and are unavailable at PLAN. First EXECUTE materializes `test_jira_normalizes_routes`, `test_jira_ssrf_precedes_credentials`, `test_jira_resource_budget`, and `test_jira_boundary_metadata` as compilable failing pytest cases before production edits.
+**Stub:** compilable red pytest stubs materialized during PLAN in `packs/atlassian/tests/skills/jira-brief-intake/test_jira_brief_intake.py`: `test_jira_normalizes_routes`, `test_jira_ssrf_precedes_credentials`, `test_jira_resource_budget`, and `test_jira_boundary_metadata`.
 
 - Map Epic, Story/Task, board, sprint, JQL, and defect fixtures. Covers AC1–AC10.
 - Assert `jira` is the only acquisition skill and no write verb occurs. Covers AC11–AC12.
-- Assert hostile/sensitive and missing-router cases fail safely. Covers AC13–AC16.
+- Assert hostile/sensitive and missing-router cases fail safely; tracker-derived CLI values use discrete argv or schema-validated data files with no shell. Covers AC13–AC16.
 - Assert allowed schemes/hosts, blocked address classes, redirect/DNS behavior, and no credential-bearing request before validation. Covers AC20–AC21.
 - Assert Jira maximum pages/items/bytes and timeout/retry/backoff yield deterministic marked truncation or view-only refusal. Covers AC22.
 - Assert minimal boundary/tool declarations project unchanged. Covers AC23.
@@ -123,11 +125,11 @@ Traces to: AC1–AC23 · both JSON Schemas.
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the Jira Align normalizer/profile boundary and imported Group 2 validator are created by this or upstream RFC-0083 work and are unavailable at PLAN. First EXECUTE materializes `test_jira_align_normalizes_routes`, `test_jira_align_ssrf_precedes_credentials`, `test_jira_align_resource_budget`, and `test_jira_align_boundary_metadata` as compilable failing pytest cases before production edits.
+**Stub:** compilable red pytest stubs materialized during PLAN in `packs/atlassian/tests/skills/jira-align-brief-intake/test_jira_align_brief_intake.py`: `test_jira_align_normalizes_routes`, `test_jira_align_ssrf_precedes_credentials`, `test_jira_align_resource_budget`, and `test_jira_align_boundary_metadata`.
 
 - Map Feature, child story/task/defect, cross-repo, and incoherent fixtures. Covers AC1–AC10.
 - Require a profile version for organization mappings. Covers AC2, AC10, AC15.
-- Assert `jira-align`-only reads, no writes, and safe hostile/missing-router behavior. Covers AC11–AC16.
+- Assert `jira-align`-only reads, no writes, and safe hostile/missing-router behavior; tracker-derived CLI values use discrete argv or schema-validated data files with no shell. Covers AC11–AC16.
 - Assert allowed schemes/hosts, blocked address classes, redirect/DNS behavior, and no credential-bearing request before validation. Covers AC20–AC21.
 - Assert Jira Align maximum pages/items/bytes and timeout/retry/backoff yield deterministic marked truncation or view-only refusal. Covers AC22.
 - Assert minimal boundary/tool declarations project unchanged. Covers AC23.
@@ -152,11 +154,11 @@ Traces to: AC1–AC23 · both JSON Schemas.
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the Linear normalizer/profile boundary and imported Group 2 validator are created by this or upstream RFC-0083 work and are unavailable at PLAN. First EXECUTE materializes `test_linear_normalizes_routes`, `test_linear_ssrf_precedes_credentials`, `test_linear_resource_budget`, and `test_linear_boundary_metadata` as compilable failing pytest cases before production edits.
+**Stub:** compilable red pytest stubs materialized during PLAN in `packs/linear/tests/skills/linear-brief-intake/test_linear_brief_intake.py`: `test_linear_normalizes_routes`, `test_linear_ssrf_precedes_credentials`, `test_linear_resource_budget`, and `test_linear_boundary_metadata`.
 
 - Map Issue, sub-issue, Project, collection, cross-repo, and regression fixtures. Covers AC1–AC10.
 - Prove type and item count do not decide brief identity. Covers AC7, AC10.
-- Assert `linear`-only reads, no writes, and safe hostile/missing-router behavior. Covers AC11–AC16.
+- Assert `linear`-only reads, no writes, and safe hostile/missing-router behavior; tracker-derived CLI values use discrete argv or schema-validated data files with no shell. Covers AC11–AC16.
 - Assert allowed schemes/hosts, blocked address classes, redirect/DNS behavior, and no credential-bearing request before validation. Covers AC20–AC21.
 - Assert Linear maximum pages/items/bytes and timeout/retry/backoff yield deterministic marked truncation or view-only refusal. Covers AC22.
 - Assert minimal boundary/tool declarations project unchanged. Covers AC23.
@@ -167,7 +169,7 @@ Traces to: AC1–AC23 · both JSON Schemas.
 - Preserve field provenance and comparable revision for Group 6.
 - Enforce the versioned Linear destination and resource-budget policy at the acquisition boundary.
 - Keep sync behavior outside this task except a non-behavioral processor reference.
-- Add Tier-A/behavior evals and `[pack.evals]` declaration.
+- Add Tier-A/behavior evals; T7 owns the pack-level `[pack.evals]` release declaration.
 
 **Done when:** Linear fixtures match common routes without direct materialization or tracker writes.
 
@@ -181,11 +183,11 @@ Traces to: AC1–AC23 · both JSON Schemas.
 
 **Tests:**
 
-**Stub:** draft (uncompiled) — the GitHub normalizer/profile boundary and imported Group 2 validator are created by this RFC-0083 work and are unavailable at PLAN. First EXECUTE materializes `test_github_normalizes_routes`, `test_github_rejects_untrusted_hostname_before_gh`, `test_github_resource_budget`, and `test_github_boundary_metadata` as compilable failing pytest cases before production edits.
+**Stub:** compilable red pytest stubs materialized during PLAN in `packs/github/tests/skills/github-brief-intake/test_github_brief_intake.py`: `test_github_normalizes_routes`, `test_github_rejects_untrusted_hostname_before_gh`, `test_github_resource_budget`, and `test_github_boundary_metadata`.
 
 - Map Issue, Milestone, incoherent milestone, cross-repo, and regression fixtures. Covers AC1–AC10.
 - Assert approved `gh` reads are the only operations and anonymous/private ambiguity fails safely. Covers AC11–AC12.
-- Assert hostile/sensitive and missing-router cases fail safely. Covers AC13–AC16.
+- Assert hostile/sensitive and missing-router cases fail safely; every tracker-derived `gh` value remains a discrete argument with no shell. Covers AC13–AC16.
 - With a fake `gh` argv sink, assert host selection comes only from trusted repository/administrator configuration, credentials stay bound to that host, payload/source-locator host values never reach argv, and mismatched or untrusted `--hostname`/URL input is rejected before `gh` is called. Do not assert that adapter code controls `gh` redirects or DNS. Covers AC20–AC21.
 - Assert GitHub maximum pages/items/bytes and timeout/retry/backoff yield deterministic marked truncation or view-only refusal. Covers AC22.
 - Assert minimal boundary/tool declarations project unchanged. Covers AC23.
@@ -198,7 +200,7 @@ Traces to: AC1–AC23 · both JSON Schemas.
 - Keep transport-level redirect and DNS guarantees assigned to approved `gh`, while enforcing all locally controllable host/credential/argv checks before invocation.
 - Enforce the versioned GitHub resource-budget policy around `gh` output and pagination.
 - Remove direct creation, local fallback routing, and intake write-back.
-- Add Tier-A/behavior evals and `[pack.evals]` declaration.
+- Add Tier-A/behavior evals; T7 owns the pack-level `[pack.evals]` release declaration.
 
 **Done when:** GitHub fixtures match common routes, fake argv proves trusted configured-host and credential binding with pre-invocation rejection of payload-derived or mismatched host/URL input, and the adapter invokes no write or direct artifact writer.
 
@@ -206,7 +208,7 @@ Traces to: AC1–AC23 · both JSON Schemas.
 
 **Depends on:** T2, T3, T4, T5
 
-**Touches:** `packs/atlassian/.apm/skills/jira-brief-intake/evals/**`, `packs/atlassian/.apm/skills/jira-align-brief-intake/evals/**`, `packs/linear/.apm/skills/linear-brief-intake/evals/**`, `packs/github/.apm/skills/github-brief-intake/evals/**`, `packs/atlassian/tests/pack/**`, `packs/linear/tests/pack/**`, `packs/github/tests/pack/**`
+**Touches:** `packs/atlassian/.apm/skills/jira-brief-intake/evals/**`, `packs/atlassian/.apm/skills/jira-align-brief-intake/evals/**`, `packs/linear/.apm/skills/linear-brief-intake/evals/**`, `packs/github/.apm/skills/github-brief-intake/evals/**`, `tests/roster/test_tracker_intake_adapters.py`
 
 **Verification mode:** Goal-based cross-profile integration matrix.
 
@@ -232,7 +234,7 @@ Traces to: AC1–AC23 · both JSON Schemas.
 
 **Depends on:** T6
 
-**Touches:** `packs/atlassian/pack.toml`, `packs/atlassian/.claude-plugin/plugin.json`, `packs/atlassian/README.md`, `packs/linear/pack.toml`, `packs/linear/.claude-plugin/plugin.json`, `packs/linear/README.md`, `packs/github/pack.toml`, `packs/github/.claude-plugin/plugin.json`, `packs/github/README.md`, `guides/_shared/how-to/choose-a-tracker-integration.md`, `guides/_shared/reference/tracker-vocabulary.md`, `guides/atlassian/**`, `guides/linear/**`, `guides/github/**`, `docs/product/journeys/pm-intakes-from-tracker.md`, `docs/architecture/overview.md`, `docs/product/changelog.md`, `docs/specs/tracker-intake-adapters/notes/adapter-guide-walkthrough.md`
+**Touches:** `packs/atlassian/pack.toml`, `packs/atlassian/.claude-plugin/plugin.json`, `packs/atlassian/README.md`, `packs/linear/pack.toml`, `packs/linear/.claude-plugin/plugin.json`, `packs/linear/README.md`, `packs/github/pack.toml`, `packs/github/.claude-plugin/plugin.json`, `packs/github/README.md`, `.claude-plugin/marketplace.json`, `guides/_shared/how-to/choose-a-tracker-integration.md`, `guides/_shared/reference/tracker-vocabulary.md`, `guides/atlassian/**`, `guides/linear/**`, `guides/github/**`, `docs/product/journeys/pm-intakes-from-tracker.md`, `docs/architecture/overview.md`, `docs/product/changelog.md`, `docs/specs/tracker-intake-adapters/notes/adapter-guide-walkthrough.md`
 
 **Verification mode:** Goal-based catalogue/docs checks; manual guide walkthrough.
 
@@ -261,7 +263,7 @@ Traces to: AC1–AC23 · both JSON Schemas.
 - **Rollback:** Revert adapter pack releases while retaining the shared dual reader; keep canonical artifacts.
 - **Infrastructure:** None.
 - **External integration:** Existing credentials/read APIs remain; no polling or webhook service.
-- **Sequence:** Shared T1 → parallel T2–T5 → convergence T6 → release/docs T7. Group 6 follows.
+- **Sequence:** Shared T1 → dependency-independent T2–T5 wave executed sequentially by the installed Phase-1 supervisor → convergence T6 → release/docs T7. Group 6 follows.
 - **Compatibility:** Legacy state remains readable, but updated adapters never write it.
 
 ## Risks
@@ -278,3 +280,4 @@ Traces to: AC1–AC23 · both JSON Schemas.
 ## Changelog
 
 - 2026-08-09: Initial full-mode plan from accepted RFC-0083 and confirmed assumptions.
+- 2026-08-16: Reconciled the approved plan with the shipped Phase-1 supervisor, named the shared roster harness, corrected task ownership, and materialized PLAN-time red stubs; added HTTPS-only, trusted-provenance, and strict-JSON security controls from pre-execution review.

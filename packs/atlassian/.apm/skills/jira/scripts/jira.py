@@ -84,9 +84,11 @@ try:
     from ._client import (  # noqa: E402
         REGISTER_COMMAND,
         AuthError,
+        IntakeRequestPolicy,
         JiraClient,
         JiraError,
         SsoSessionUnavailable,
+        load_base_url,
         load_credentials,
         operator_command,
     )
@@ -221,6 +223,12 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Write output to this file instead of stdout.",
+    )
+    p.add_argument(
+        "--intake-profile",
+        type=Path,
+        default=None,
+        help="Bind this invocation to a reviewed, read-only intake profile.",
     )
 
     sub = p.add_subparsers(
@@ -1062,6 +1070,27 @@ async def _run(args: argparse.Namespace) -> int:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION
 
+    intake_policy: IntakeRequestPolicy | None = None
+    if args.intake_profile is not None:
+        if args.insecure:
+            print(
+                "error: --insecure is incompatible with tracker intake",
+                file=sys.stderr,
+            )
+            return EXIT_USER_ACTION
+        try:
+            destination = (
+                sso_config.base_url
+                if auth_path == "sso-cookie"
+                else load_base_url()
+            )
+            intake_policy = IntakeRequestPolicy.from_profile(
+                args.intake_profile, destination
+            )
+        except AuthError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USER_ACTION
+
     # `--register` only means anything on the SSO-cookie path. On the token
     # path it parsed and was ignored, so the operator got `ok: connected …` and
     # exit 0 with no capture — a silent no-op on the one command whose whole
@@ -1079,7 +1108,11 @@ async def _run(args: argparse.Namespace) -> int:
     # shared construction below. That construction runs for every subcommand, so
     # recovering inside it would recapture on a `get-issue` too. Every other
     # command keeps today's path unchanged.
-    if auth_path == "sso-cookie" and args.command == "check":
+    if (
+        auth_path == "sso-cookie"
+        and args.command == "check"
+        and intake_policy is None
+    ):
         floor_error = _credbroker_floor_error()
         if floor_error is not None:
             print(floor_error, file=sys.stderr)
@@ -1097,7 +1130,9 @@ async def _run(args: argparse.Namespace) -> int:
                     "session cookie is a bearer secret; TLS verification stays on).",
                     file=sys.stderr,
                 )
-            client = JiraClient.from_sso_cookies(sso_config)
+            client = JiraClient.from_sso_cookies(
+                sso_config, intake_policy=intake_policy
+            )
         else:
             if args.insecure:
                 # CONVENTIONS requires this whenever the flag fires; the token
@@ -1108,7 +1143,11 @@ async def _run(args: argparse.Namespace) -> int:
                     file=sys.stderr,
                 )
             credentials = load_credentials()
-            client = JiraClient(credentials, verify_tls=not args.insecure)
+            client = JiraClient(
+                credentials,
+                verify_tls=not args.insecure,
+                intake_policy=intake_policy,
+            )
     except AuthError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return EXIT_USER_ACTION

@@ -14,17 +14,30 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
-## What's new in 0.37.1
+## What's new in 0.37.2
 
-**New catalogue scaffolds now document the guide callout contract.** The
-bundled authoring reference distinguishes exact quoted wording, which stays a
+`agentbundle catalogue verify` now performs all 19 advertised checks. It
+validates profile schemas and pack references, dependency ranges and cycles,
+adapter compatibility, generated-output drift, pack preflight metadata, and
+skill evaluation manifests. The verifier remains read-only and portable across
+external catalogues.
+
+Dependency ranges now use the same npm-compatible grammar in verify, lint, and
+install: caret, tilde, comparator, compound, and prerelease forms agree across
+all three commands. In particular, caret ranges below `1.0.0` now use normal
+semver compatibility (`^0.2` does not include `0.3.x`).
+
+## Catalogue authoring
+
+New catalogue scaffolds document the guide callout contract. The bundled
+authoring reference distinguishes exact quoted wording, which stays a
 blockquote, from guidance that should render as a Starlight `note`, `tip`,
 `caution`, or `danger` aside. Existing catalogues remain unchanged until their
 scaffolded authoring reference is refreshed.
 
 ## Contract discovery
 
-The bundled public contract inventory now includes the strict
+The bundled public contract inventory includes the strict
 `knowledge-captured-observation.schema.json` contract used by the core pack's
 project-knowledge capture handoff.
 

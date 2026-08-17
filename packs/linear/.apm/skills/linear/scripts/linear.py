@@ -14,6 +14,7 @@ Auth: ``Authorization: <KEY>`` (no "Bearer" prefix — Linear uses bare token).
 Endpoint: https://api.linear.app/graphql
 Rate limit: 5 000 req/hr for Personal API Keys; 429 + Retry-After respected.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -60,12 +61,22 @@ EXIT_USER_ACTION = 2
 GRAPHQL_URL = "https://api.linear.app/graphql"
 PAGE_SIZE = 50
 MAX_PAGES = 5  # hard bound: ≤250 issues (PAGE_SIZE × MAX_PAGES)
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
+MAX_RETRIES = 1
+RETRY_BACKOFF_SECONDS = (1,)
 DEFAULT_TIMEOUT_S = 30.0
 
 TOKEN_CLI_FLAGS = frozenset({
-    "--token", "--api-token", "--api-key", "--bearer", "-t",
-    "--linear-token", "--pat", "--password",
-    "--access-token", "--auth-token",
+    "--token",
+    "--api-token",
+    "--api-key",
+    "--bearer",
+    "-t",
+    "--linear-token",
+    "--pat",
+    "--password",
+    "--access-token",
+    "--auth-token",
 })
 
 
@@ -75,8 +86,7 @@ def _render_windows_command(argv: list[str], fallback: str) -> str:
     if any(
         not value
         or any(
-            not char.isascii()
-            or (not char.isalnum() and char not in safe_punctuation)
+            not char.isascii() or (not char.isalnum() and char not in safe_punctuation)
             for char in value
         )
         for value in argv
@@ -144,6 +154,7 @@ class _ScrubbingArgumentParser(argparse.ArgumentParser):
 # Credential resolution
 # ---------------------------------------------------------------------------
 
+
 def _load_api_key() -> str:
     """Resolve the Linear API key via credbroker (lazy import).
 
@@ -173,6 +184,7 @@ def _load_api_key() -> str:
 # GraphQL transport
 # ---------------------------------------------------------------------------
 
+
 def _graphql_request(
     api_key: str,
     query: str,
@@ -199,7 +211,9 @@ def _graphql_request(
     }
 
     try:
-        resp = httpx.post(url, json=payload, headers=headers, timeout=timeout)
+        resp = _bounded_post(
+            url, json_body=payload, headers=headers, timeout=timeout
+        )
     except httpx.TransportError as exc:
         sys.stderr.write(f"error: network error — {exc}\n")
         raise SystemExit(EXIT_ERROR) from exc
@@ -220,17 +234,49 @@ def _graphql_request(
         raise SystemExit(EXIT_ERROR)
 
     try:
-        body = resp.json()
-    except Exception as exc:
-        sys.stderr.write(f"error: non-JSON response from Linear — {exc}\n")
+        body = json.loads(
+            resp.content.decode("utf-8"),
+            parse_constant=lambda value: (_ for _ in ()).throw(
+                ValueError(f"non-standard JSON constant: {value}")
+            ),
+        )
+    except (UnicodeDecodeError, ValueError, json.JSONDecodeError) as exc:
+        sys.stderr.write("error: Linear returned invalid strict JSON\n")
         raise SystemExit(EXIT_ERROR) from exc
 
     if "errors" in body:
-        messages = "; ".join(e.get("message", str(e)) for e in body["errors"])
-        sys.stderr.write(f"error: GraphQL error — {messages}\n")
+        sys.stderr.write("error: Linear returned a GraphQL error\n")
         raise SystemExit(EXIT_ERROR)
 
     return body
+
+
+def _bounded_post(
+    url: str,
+    *,
+    json_body: dict[str, Any],
+    headers: dict[str, str],
+    timeout: float,
+) -> httpx.Response:
+    """Stream one response and stop before the fixed profile byte cap."""
+    with httpx.stream(
+        "POST", url, json=json_body, headers=headers, timeout=timeout
+    ) as response:
+        content = bytearray()
+        for chunk in response.iter_bytes():
+            if len(content) + len(chunk) > MAX_RESPONSE_BYTES:
+                sys.stderr.write(
+                    "error: Linear response exceeded the 2 MiB profile budget\n"
+                )
+                raise SystemExit(EXIT_ERROR)
+            content.extend(chunk)
+        return httpx.Response(
+            response.status_code,
+            headers=response.headers,
+            content=bytes(content),
+            request=response.request,
+            extensions=response.extensions,
+        )
 
 
 def _graphql_with_retry(
@@ -245,15 +291,17 @@ def _graphql_with_retry(
 
     # Check if the raw httpx.Response came back (429 path)
     if isinstance(result, httpx.Response) and result.status_code == 429:
-        retry_after = int(result.headers.get("Retry-After", "1"))
+        try:
+            requested_delay = max(0, int(result.headers.get("Retry-After", "1")))
+        except ValueError:
+            requested_delay = RETRY_BACKOFF_SECONDS[0]
+        retry_after = min(RETRY_BACKOFF_SECONDS[0], requested_delay)
         log.debug("429 rate-limited; sleeping %s s (Retry-After)", retry_after)
         time.sleep(retry_after)
         # Second attempt — if it 429s again, surface as error
         result2 = _graphql_request(api_key, query, variables, url=url)
         if isinstance(result2, httpx.Response) and result2.status_code == 429:
-            sys.stderr.write(
-                "error: rate limited by Linear twice in a row; try again later.\n"
-            )
+            sys.stderr.write("error: rate limited by Linear twice in a row; try again later.\n")
             raise SystemExit(EXIT_ERROR)
         return result2
 
@@ -274,11 +322,13 @@ query GetIssueByIdentifier($identifier: String!) {
     nodes {
       id
       identifier
+      updatedAt
       title
       description
       children {
         nodes {
           identifier
+          updatedAt
           title
         }
       }
@@ -297,9 +347,11 @@ query GetProject($id: String!, $first: Int!, $cursor: String) {
   project(id: $id) {
     id
     name
+    updatedAt
     issues(first: $first, after: $cursor) {
       nodes {
         identifier
+        updatedAt
         title
         description
       }
@@ -317,6 +369,7 @@ query GetProject($id: String!, $first: Int!, $cursor: String) {
 # Subcommand implementations
 # ---------------------------------------------------------------------------
 
+
 def cmd_check(args: argparse.Namespace, api_key: str) -> None:
     data = _graphql_with_retry(api_key, _VIEWER_QUERY)
     viewer = data.get("data", {}).get("viewer", {})
@@ -324,14 +377,10 @@ def cmd_check(args: argparse.Namespace, api_key: str) -> None:
 
 
 def cmd_get_issue(args: argparse.Namespace, api_key: str) -> None:
-    data = _graphql_with_retry(
-        api_key, _GET_ISSUE_QUERY, {"identifier": args.identifier}
-    )
+    data = _graphql_with_retry(api_key, _GET_ISSUE_QUERY, {"identifier": args.identifier})
     nodes = data.get("data", {}).get("issues", {}).get("nodes", [])
     if not nodes:
-        sys.stderr.write(
-            f"error: issue {args.identifier!r} not found — check the identifier.\n"
-        )
+        sys.stderr.write(f"error: issue {args.identifier!r} not found — check the identifier.\n")
         raise SystemExit(EXIT_ERROR)
     _write_output(nodes[0], args)
 
@@ -352,7 +401,8 @@ def _get_project_pages(
     cursor: str | None = None
     project_meta: dict[str, Any] = {}
 
-    for _page in range(MAX_PAGES):
+    complete = True
+    for page_index in range(MAX_PAGES):
         variables: dict[str, Any] = {
             "id": project_id,
             "first": PAGE_SIZE,
@@ -361,13 +411,15 @@ def _get_project_pages(
         data = _graphql_with_retry(api_key, _GET_PROJECT_QUERY, variables, url=url)
         project_node = data.get("data", {}).get("project")
         if project_node is None:
-            sys.stderr.write(
-                f"error: project {project_id!r} not found or inaccessible.\n"
-            )
+            sys.stderr.write(f"error: project {project_id!r} not found or inaccessible.\n")
             raise SystemExit(EXIT_ERROR)
 
         if not project_meta:
-            project_meta = {"id": project_node.get("id"), "name": project_node.get("name")}
+            project_meta = {
+                "id": project_node.get("id"),
+                "name": project_node.get("name"),
+                "updatedAt": project_node.get("updatedAt"),
+            }
 
         issues_conn = project_node.get("issues", {})
         all_issues.extend(issues_conn.get("nodes", []))
@@ -375,14 +427,25 @@ def _get_project_pages(
 
         if not page_info.get("hasNextPage"):
             break
+        if page_index == MAX_PAGES - 1:
+            complete = False
+            break
         cursor = page_info.get("endCursor")
 
-    return {**project_meta, "issues": {"nodes": all_issues}}
+    return {
+        **project_meta,
+        "issues": {"nodes": all_issues},
+        "intake_budget": {
+            "complete": complete,
+            "result": "complete" if complete else "marked-incomplete",
+        },
+    }
 
 
 # ---------------------------------------------------------------------------
 # Output helpers
 # ---------------------------------------------------------------------------
+
 
 def _write_output(data: Any, args: argparse.Namespace) -> None:
     fmt = getattr(args, "format", "json")
@@ -390,9 +453,12 @@ def _write_output(data: Any, args: argparse.Namespace) -> None:
 
     if fmt == "jsonl":
         items = data if isinstance(data, list) else [data]
-        text = "\n".join(json.dumps(item, ensure_ascii=False) for item in items) + "\n"
+        text = (
+            "\n".join(json.dumps(item, ensure_ascii=False, allow_nan=False) for item in items)
+            + "\n"
+        )
     else:
-        text = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+        text = json.dumps(data, indent=2, ensure_ascii=False, allow_nan=False) + "\n"
 
     if output_path:
         Path(output_path).write_text(text, encoding="utf-8")
@@ -404,6 +470,7 @@ def _write_output(data: Any, args: argparse.Namespace) -> None:
 # ---------------------------------------------------------------------------
 # CLI wiring
 # ---------------------------------------------------------------------------
+
 
 def _build_parser() -> _ScrubbingArgumentParser:
     p = _ScrubbingArgumentParser(

@@ -5,12 +5,12 @@ installing pack's manifest and resolves each entry against the union of
 repo-scope and user-scope state files. Missing or out-of-range required
 packs cause a non-zero exit with spec-mandated stderr.
 
-Six tests, TDD-first:
+Dependency-gate tests, TDD-first:
   1. test_install_refuses_missing_required
   2. test_install_proceeds_when_required_at_repo_scope
   3. test_install_proceeds_when_required_at_user_scope
   4. test_install_refuses_out_of_range_required
-  5. test_install_refuses_unsupported_range_grammar
+  5. Shared dependency range forms and their exclusion boundaries
   6. test_install_no_required_table_proceeds
 """
 
@@ -20,6 +20,8 @@ import argparse
 import contextlib
 import io
 from pathlib import Path
+
+import pytest
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -97,24 +99,6 @@ pack = "core"
 version = "^0.1"
 """
 
-ADDON_WITH_REQUIRED_UNSUPPORTED_RANGE = """\
-[pack]
-name = "addon"
-version = "0.1.0"
-
-[pack.adapter-contract]
-version = "0.2"
-
-[pack.install]
-default-scope = "repo"
-allowed-scopes = ["repo"]
-
-[[pack.dependencies.required]]
-catalogue = "agent-ready-repo"
-pack = "core"
-version = "~0.1"
-"""
-
 ADDON_NO_DEPENDENCIES = """\
 [pack]
 name = "addon"
@@ -145,6 +129,10 @@ catalogue = "agent-ready-repo"
 pack = "core"
 version = "^0.1"
 """
+
+
+def _addon_with_range(version_range: str) -> str:
+    return ADDON_WITH_REQUIRED.replace('version = "^0.1"', f'version = "{version_range}"')
 
 
 # ---------------------------------------------------------------------------
@@ -281,24 +269,94 @@ def test_install_refuses_out_of_range_required(tmp_path):
 
 
 # ---------------------------------------------------------------------------
-# Test 5: refuse when version range grammar is unsupported
+# Test 5: use one dependency range grammar across verify and install
 # ---------------------------------------------------------------------------
 
 
-def test_install_refuses_unsupported_range_grammar(tmp_path):
-    """Gate fires with the unsupported-range message when grammar is not ^X.Y."""
+@pytest.mark.parametrize(
+    ("version_range", "installed_version"),
+    [
+        ("^0.1", "0.1.5"),
+        ("~0.1", "0.1.5"),
+        (">=0.1", "0.2.0"),
+        (">=0.1 <1.0", "0.5.0"),
+        (">=0.1.0-alpha.1", "0.1.0-alpha.2"),
+    ],
+)
+def test_install_accepts_rfc_version_range_forms(
+    tmp_path, version_range, installed_version
+):
+    """Every range form accepted by verify is accepted by the installer."""
     cat = tmp_path / "cat"
-    _stage_pack(cat, "addon", ADDON_WITH_REQUIRED_UNSUPPORTED_RANGE)
+    _stage_pack(cat, "addon", _addon_with_range(version_range))
+    target = tmp_path / "repo"
+    target.mkdir()
+    _pre_install_core(cat, target, version=installed_version)
+
+    rc, _, err = _install(
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
+    )
+    assert rc == 0, err
+
+
+def test_install_rejects_malformed_range(tmp_path):
+    cat = tmp_path / "cat"
+    _stage_pack(cat, "addon", _addon_with_range("not-a-version"))
     target = tmp_path / "repo"
     target.mkdir()
 
     rc, _, err = _install(
         {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
     )
-    assert rc != 0, "install must refuse with unsupported range grammar"
-    first_line = err.strip().splitlines()[0] if err.strip() else ""
-    expected = "install: unsupported version range '~0.1' for required pack 'core'; only ^X.Y is supported"  # noqa: E501
-    assert first_line == expected, f"unexpected stderr first line: {first_line!r}"
+
+    assert rc != 0
+    assert "not-a-version" in err
+    assert "unsupported version range" in err
+
+
+def test_install_rejects_oversized_numeric_range_without_traceback(tmp_path):
+    oversized = "1" + "0" * 5000
+    cat = tmp_path / "cat"
+    _stage_pack(cat, "addon", _addon_with_range(oversized))
+    target = tmp_path / "repo"
+    target.mkdir()
+
+    rc, _, err = _install(
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
+    )
+
+    assert rc != 0
+    assert "unsupported version range" in err
+    assert "Traceback" not in err
+
+
+@pytest.mark.parametrize(
+    ("version_range", "installed_version"),
+    [
+        ("^0.1", "0.0.9"),
+        ("^0.1", "0.2.0"),
+        ("~0.1", "0.2.0"),
+        (">=0.1", "0.0.9"),
+        (">=0.1 <1.0", "1.0.0"),
+        (">=0.1.0-alpha.1", "0.1.0-alpha.0"),
+    ],
+)
+def test_install_rejects_versions_outside_each_range_form(
+    tmp_path, version_range, installed_version
+):
+    cat = tmp_path / "cat"
+    _stage_pack(cat, "addon", _addon_with_range(version_range))
+    target = tmp_path / "repo"
+    target.mkdir()
+    _pre_install_core(cat, target, version=installed_version)
+
+    rc, _, err = _install(
+        {"pack": "addon", "catalogue": str(cat), "output": str(target), "scope": None, "force": False}  # noqa: E501
+    )
+
+    assert rc != 0
+    assert "requires 'core'" in err
+    assert "unsupported version range" not in err
 
 
 # ---------------------------------------------------------------------------

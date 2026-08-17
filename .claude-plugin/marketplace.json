@@ -37,7 +37,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, and it queries the real API and answers.",
+      "description": "Run Jira and Confluence from a conversation. Ask for the team's open work, a defect breakdown, or this quarter's flow metrics, or intake Jira and Jira Align work through one content-based repository route.",
       "displayName": "Atlassian",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -213,7 +213,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.3.1"
+      "version": "0.3.2"
     },
     {
       "author": {
@@ -248,15 +248,15 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Point it at a GitHub Milestone and get a product brief back, issues and all.",
+      "description": "Read GitHub Issues or Milestones into the shared content-based repository intake route without writing back to GitHub.",
       "displayName": "GitHub",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
         "github",
+        "issue",
         "milestone",
-        "brief",
         "intake",
-        "receive-brief"
+        "work-intake"
       ],
       "license": "Apache-2.0 OR MIT",
       "name": "github",
@@ -267,7 +267,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.1.3"
+      "version": "0.1.4"
     },
     {
       "author": {
@@ -275,7 +275,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Pull a Linear issue into a product brief, and push the status back when it moves.",
+      "description": "Read Linear work into the shared content-based repository intake route, with a separate approved delta sync for existing briefs.",
       "displayName": "Linear",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -293,7 +293,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.2.2"
+      "version": "0.2.4"
     },
     {
       "author": {

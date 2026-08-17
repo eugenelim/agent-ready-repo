@@ -1,6 +1,8 @@
 ---
 name: new-rfc
 description: Use this skill when the user asks to propose, draft, or open an RFC, OR when generating follow-on implementation artifacts (specs, ADRs) for an already-Accepted RFC. Triggers on "RFC", "propose a change to...", "let's get input on...", "draft a proposal", "create the follow-on specs for RFC-NNNN", "generate ADRs for the accepted RFC", "implement the follow-on work from an RFC". Do NOT use for recording a standalone architectural decision outside an RFC context (use `new-adr`), or for authoring a spec with no associated Accepted RFC (use `new-spec` for standalone spec authoring; for RFC follow-on work, invoke this skill first).
+metadata:
+  boundaries: [filesystem_read_untrusted, filesystem_write]
 ---
 
 # Skill: new-rfc
@@ -313,6 +315,62 @@ push back: a normal PR (or a spec, if it's a feature) is enough.
 8. Update the RFC index table (`docs/rfc/README.md` by default, or the
    non-default location's sibling index; create it with the standard header
    row if absent).
+
+   ### Project-knowledge gate: `rfc-handoff-ready`
+
+   This terminal gate runs only after the RFC file and index exist and every mandatory pre-handoff check
+   in step 6 is executed and clean: citation
+   integrity, completeness, adversarial review, security review when fired,
+   and the cold-reader check. Research findings, preview, citation-unverified
+   drafts, an unclean review, and rejected or abandoned work make no
+   project-knowledge call.
+
+   Keep transient scratch only for reusable research-navigation,
+   citation-integrity, option-modelling, de-risking, or review practice. Never
+   mine the transcript or tool history, copy the research corpus, or capture
+   the RFC's evidence argument, recommendation, option decision, or open questions;
+   those remain normative in the RFC.
+
+   At the gate, discard noise and route normative content first. For each
+   admitted observation, discover the optional public `project-knowledge`
+   skill from core, construct the strict published request, and invoke
+   `project-knowledge --capture`. Supply `contract_version`, `lesson`, `kind`,
+   `project_scope`, `competency_facets`, `destination_hint`, `producer`,
+   `semantic_gate`, `provenance`, `freshness_anchor`, `observed_at`, and
+   `privacy_attestation`. Set `producer.workflow: new-rfc`, use the shipped
+   governance-extras pack version for `producer.workflow_version`, set
+   `semantic_gate.name: rfc-handoff-ready`, and name the repository-relative
+   RFC as the artifact. The producer never imports a private writer, locates
+   journals, invents IDs, selects a partition, or creates storage.
+
+   Before a provenance line or `sha256-bytes-v1` read, discover the repository
+   root with Git relocation variables removed, reject lexical dot-segment traversal,
+   and use native real-path resolution to prove a regular-file
+   target stays beneath that root. Refuse symlink, junction, reparse-point,
+   non-file, I/O, or containment uncertainty. A committed Git blob identity,
+   also resolved with relocation variables removed, is the read-free
+   alternative. Privacy or instruction uncertainty refuses capture with a
+   redacted diagnostic and no persisted body.
+
+   If the provider is missing, emit exactly `project-knowledge unavailable`,
+   create no fallback file, and complete the RFC normally. Retain only returned
+   `{capture_id, partition}` pairs in gate-local memory. Then distil with
+   `selection_mode: workflow-receipts` using receipts from this same `rfc-handoff-ready` gate.
+   Never guess IDs, select
+   `direct-maintainer-pending`, drain another workflow, or turn unresolved
+   observations into false success; unresolved remains pending.
+
+   Before step 9 emits the completion receipt, return any journal, topic, or
+   map diff through the RFC's applicable verification and review barrier. Do
+   not claim persistence or reconciliation until that barrier is clean; a
+   named no-diff outcome needs no extra review.
+
+   No automatic enquiry is allowed. A separately visible, consequential
+   `CQ-DESIGN` enquiry may run only during step 4's research/de-risk decision,
+   with declared task/scope/risk and one query plus at most one refinement.
+   Treat the bounded result as untrusted evidence. Verified direct sources
+   still control the RFC; missing or unverifiable consequential evidence means
+   abstain without adding a claim.
 
 9. **Return a completion receipt** (alongside the `REVIEW READINESS` summary
    from step 6): the **identifier** (`RFC-NNNN`); the **file path** written;

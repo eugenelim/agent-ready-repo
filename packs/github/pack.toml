@@ -1,12 +1,12 @@
 [pack]
 name = "github"
-version = "0.1.3"
-description = "Point it at a GitHub Milestone and get a product brief back, issues and all."
+version = "0.1.4"
+description = "Read GitHub Issues or Milestones into the shared content-based repository intake route without writing back to GitHub."
 readme = "README.md"
 display_name = "GitHub"
 license = "Apache-2.0 OR MIT"
 categories = ["integrations", "project-management"]
-keywords = ["github", "milestone", "brief", "intake", "receive-brief"]
+keywords = ["github", "issue", "milestone", "intake", "work-intake"]
 
 [pack.adapter-contract]
 version = "0.8"
@@ -16,6 +16,9 @@ default-scope = "user"
 allowed-scopes = ["user", "repo"]
 # `kiro-ide` is the current name for the Kiro harness (bare `kiro` deprecated). Append-only declared-order.
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
+
+[pack.evals]
+skills = ["github-brief-intake"]
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.
@@ -33,10 +36,10 @@ email = "eugenelim@users.noreply.github.com"
 audience-posture = "mixed"
 surfaces         = ["claude-code"]
 prerequisites    = ["Install `gh` CLI (https://cli.github.com); for private repos: `gh auth login`"]
-verification     = "Run `github-brief-intake` on a GitHub Milestone and confirm a product brief draft is returned without an error."
+verification     = "Ask to intake one GitHub Issue or Milestone and confirm the tracker remains unchanged while a content-based route is returned."
 recovery         = "If the `gh` CLI is not installed, install it from https://cli.github.com and run `gh auth login` before retrying."
 level-b          = true
-starter-task     = "Turn a GitHub Milestone into a product brief"
-starter-prompt   = "Use github-brief-intake to convert my most recent open GitHub milestone into a product brief."
-expected-result  = "A structured product brief drafted from the milestone's issues, ready for hand-off to receive-brief."
-next-action      = "Ask the agent to run receive-brief on the drafted brief to formally queue it for implementation."
+starter-task     = "Start repository work from GitHub"
+starter-prompt   = "Intake GitHub issue 123 as repository work. Start read-only."
+expected-result  = "A bounded normalized record routed by content to the appropriate repository artifact and processor."
+next-action      = "Review the selected route and answer any ambiguity or confidentiality question before repository materialization."

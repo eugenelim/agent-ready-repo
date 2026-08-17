@@ -123,7 +123,9 @@ backlog = [
 
 ["ini-002".brief_queue]
 executing = ""
-ready     = []
+ready     = [
+  {path = "docs/product/briefs/tech-site-completion.md", kind = "brief", source = {mode = "repo-origin", ref = "workspace.toml", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8"}, summary = "Make the public technology sites reviewably complete", needs = []},
+]
 draft     = []
 
 ["ini-002".work]
@@ -133,6 +135,7 @@ shipped = [
   {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
   {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
   {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
+  {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-foundation/spec.md"}]},
   {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
   {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
   "spec/docs-site-design-refresh",
@@ -197,6 +200,8 @@ shipped = [
   {path = "docs/specs/workspace-status-simplification-order-2b/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status simplification — Order 2B", needs = []},
   {path = "docs/specs/workspace-mcp/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-mcp — Stage 1 implementation", needs = []},
   {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
+  # Tech-site completion programme — shipped 2026-08-17.
+  {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
 ]
 queue   = [
   # Project knowledge lifecycle roadmap — RFC-0077 / ADR-0081 / ADR-0082.
@@ -205,19 +210,10 @@ queue   = [
   # retire later entries through normal review when their assumed shape has changed;
   # queue comments are a roadmap, while each approved spec is the implementation truth.
 
-  # Slice 1 is shipped in the work list above. Its measured behavior is the adaptive
-  # starting point for every remaining slice; do not preserve an assumed integration
-  # shape when foundation evidence supports splitting, combining, reordering, or retiring it.
-
-  # Slice 2 — authoring semantic-gate integrations. Add explicit scratch triage and shared
-  # project-knowledge handoffs to brief, RFC, ADR, spec, and plan authoring workflows.
-  # Normative decisions stay in their owning artifacts; only reusable supporting practice
-  # residue is captured. Each workflow owns gate timing and free-form scratch, never locates
-  # the private writer, and may distill only its capture receipts. Enquiry requires a
-  # separately declared competency question/read boundary. Start by reassessing this and
-  # every later slice against foundation evidence; reshape the roadmap before speccing if
-  # the foundation changes the integration seam.
-  {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-foundation/spec.md"}]},
+  # Slices 1 and 2 are shipped in the work list above. Their measured behavior is
+  # the adaptive starting point for every remaining slice; do not preserve an
+  # assumed integration shape when evidence supports splitting, combining,
+  # reordering, or retiring it.
 
   # Slice 3 — review and research integrations. Extend the proven handoff to selected
   # architecture, adversarial, security, quality, and research workflows at stable meaning
@@ -243,6 +239,22 @@ queue   = [
   # and a separately governed multi-project bank. Reassess whether this remains one closeout
   # spec after Slice 4; it must not implement those conditional follow-ons itself.
   {path = "docs/specs/project-knowledge-adoption-closeout/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Evaluate and close out the portable project knowledge lifecycle", needs = [{type = "local", kind = "spec", path = "docs/specs/project-knowledge-engineering-operational-integrations/spec.md"}]},
+
+  # Tech-site completion programme — approved 2026-08-17 from the canonical brief.
+  # These entries are independently shippable. `needs` records only hard delivery
+  # ordering; the brief retains the broader wave and evidence sequence.
+  {path = "docs/specs/site-ci-contract-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Require the existing site construction tests and docs contrast checker in CI", needs = []},
+  {path = "docs/specs/docs-site-build-contract-hardening/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Harden docs rendering with site-local cleanup and built-in plugin tests", needs = [{type = "local", kind = "spec", path = "docs/specs/site-ci-contract-closure/spec.md"}]},
+  {path = "docs/specs/guide-title-clarity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Apply the four approved guide-title wording changes", needs = []},
+  {path = "docs/specs/guide-metadata-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete reviewed metadata for every rendered public guide", needs = [{type = "local", kind = "spec", path = "docs/specs/guide-title-clarity/spec.md"}]},
+  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
+  {path = "docs/specs/site-browser-quality-gate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Gate emitted-site responsiveness, accessibility, and navigation behavior", needs = []},
+  {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = [{type = "local", kind = "spec", path = "docs/specs/site-browser-quality-gate/spec.md"}]},
+  # CI throughput. Independent of the project-knowledge chain above — it touches
+  # only .github/workflows/, the Makefile's gate_verdict banner, and docs/adr/.
+  # The critical path is set by one serial job, so the fix is job layout, not
+  # making any gate faster; the export-boundary gate's own cost is deferred.
+  {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -458,6 +470,233 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # tools/lint-build.py's RFC_AUTHORISED_DIRS still credits the `docs-site` entry to
+  # ADR-0055, while the tuple's own header says entries are added only when an
+  # Accepted RFC authorises the directory — and RFC-0089 is now exactly that RFC.
+  # Live-code residue of the starlight-migration-rfc debt, which AC7 of
+  # spec/site-contract-provenance-cleanup otherwise settled. Fix: re-attribute the
+  # `docs-site` comment to RFC-0089 in tools/lint-build.py. Deferred from that spec
+  # because no acceptance criterion covers it and it falls outside every task's
+  # declared Touches. Unblocks when: picked up — one comment line, no dependency.
+  {slug = "lint-build-docs-site-rfc-attribution", source = "spec/site-contract-provenance-cleanup (review concern 7)"},
+  # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
+  # cross-repository reference, so now that a spec's `Brief:` back-link is the
+  # canonical path form it reports a brief that lives in THIS repo as "unknown /
+  # not-yet-catalogued (cross-repo, unresolvable)" and drops the brief↔spec edge
+  # it exists to generalize. Informational, exit 0, so no gate catches it. A
+  # mistyped path is also only informational, where a mistyped bare slug has
+  # always been a fatal dangling pointer — so path-form typos are detected less
+  # strictly than slug-form ones. Fix: resolve a canonical local brief path to
+  # its brief node before endpoint classification
+  # (packs/core/.apm/skills/work-loop/scripts/lint-traceability.py). Attempted
+  # and withdrawn during the brief-path provenance fix: the shipped
+  # docs/specs/traceability-lint/spec.md makes this Ask-first ("changing a
+  # producer-pointer field") and its Never-do list forbids identifying a node by
+  # file path, hardcoding an artifact path, and treating a well-formed cross-repo
+  # reference as dangling — and a naive alias hard-failed on brief files that
+  # exist under a `[traceability].briefs` override. Unblocked by a reviewed
+  # amendment to that spec carrying the Ask-first sign-off; no `needs` edge.
+  {slug = "traceability-brief-path-backlink-unresolved", source = "spec-less brief-path provenance fix (review rounds 1 and 4)"},
+  # lint-brief-coverage.py and lint-traceability.py both still match a bare-slug
+  # `Brief:` back-link, so a slug-form spec passes every early gate and only
+  # fails later at workspace-status reconciliation, where it blocks dispatch.
+  # The docstrings now say the slug is backward-compatible only, but nothing
+  # tells an author at lint time. Fix: have the coverage lint emit a non-fatal
+  # note naming any spec whose back-link matched by slug rather than by path
+  # (lint-brief-coverage.py, receive-brief skill). Deferred because it adds
+  # output to a lint many repositories run in CI. Unblocked once the note is
+  # agreed to be non-fatal and that lint's output contract is versioned; no
+  # tracked dependency, so no `needs` edge.
+  {slug = "brief-backlink-slug-form-needs-lint-note", source = "spec-less brief-path provenance fix (review concern 5)"},
+  # AC11 of spec/ci-gate-parallelization asks for the post-split PR critical path
+  # to be MEASURED, not assumed — the split's whole justification is a wall-clock
+  # number and no gate can assert it. The measurement needs a real post-merge run
+  # of build-check.yml (three work jobs + aggregator) and
+  # catalogue-tooling-ci-gates.yml (Gate A-tests / Gate A-packs), necessarily after the
+  # spec ships; CONVENTIONS § "A spec directory freezes as a unit" then makes
+  # spec.md unwritable, so the result lands HERE rather than back in the AC.
+  # Ceilings live in AC11 — do not restate them here, they drifted once already.
+  # To close: read per-job durations from one post-merge run of each workflow,
+  # compare against AC11's ceilings and spec.md § Measured baseline, and record.
+  # A miss inside AC11's stated noise band is measurement noise (that spec's
+  # samples are single runs) — re-measure on a second run before concluding
+  # anything. A larger miss needs a diagnosis: likeliest causes are per-job
+  # provisioning above assumption A1's figure, or GitHub not
+  # scheduling the four jobs concurrently (A3). Repo-wide all-green is bounded by
+  # docs.yml and by Windows cold-runner variance, neither in that spec's scope —
+  # report it, don't gate on it.
+  # PR-RUN MEASUREMENT (PR #990, commit after the MAKEFLAGS harness fix), against
+  # AC11's ceilings — both MET:
+  #   merge-blocking (build-check):        430-450s -> 185s   MET vs AC11
+  #   jobs this change touches:            450s     -> 185s   MET vs AC11
+  #   Gate A (catalogue-tooling):          253-264s -> 134s
+  #   repo-wide all-green:                 450s     -> ~202s, bounded by docs.yml
+  #     (out of scope, reported not gated — the spec predicted exactly this bound)
+  # Per-job: gate-main 185s, gate-sast 147s, gate-export-boundary 136s,
+  # aggregator 8s. gate-main and gate-sast within ~40s of each other across runs,
+  # confirming the "do not split further" decision.
+  #
+  # STILL OPEN, which is why this entry stays open: (1) the POST-MERGE push-to-main
+  # run, which exercises a path the PR run cannot; (2) AC15's non-relevant-diff
+  # class, unreachable from that branch because SAST_CONFIG contains both Makefile
+  # and build-check.yml — needs a docs/**-only PR after merge. Do NOT narrow
+  # SAST_CONFIG to manufacture it (spec Boundaries § Never do).
+  {slug = "ci-gate-parallelization-critical-path-measurement", source = "spec/ci-gate-parallelization AC11"},
+  # packs/core/tests/skills/work-loop/test_statelock.py's
+  # `concurrent-reclaimers-one-holder` case failed once in CI on 2026-08-17
+  # ("two holders after a reclaim race"), then PASSED on a re-run of the same
+  # commit and 3/3 locally. So it is non-deterministic, not a regression from the
+  # commit it appeared on — that commit touched one unrelated file
+  # (tools/test-build-check-workflow.py).
+  #
+  # Recorded rather than dismissed, because "flaky" is a conclusion and only
+  # half of one is evidenced here. What the re-run proves is non-determinism.
+  # What it does NOT prove is that spec/ci-gate-parallelization's Gate A split
+  # left the race's PROBABILITY unchanged: those pack/hook suites used to run as
+  # a step inside `agentbundle-tests`, after ~127s of other work on a warm
+  # runner, and now run first in their own `pack-hook-tests` job. That is exactly
+  # the kind of timing change a reclaim-race test is sensitive to. A dedicated
+  # runner plausibly makes it LESS likely, not more — but nothing here measured
+  # it either way, and this is the first observed failure of that case.
+  #
+  # Next action: re-run the case under load in both job shapes before either
+  # fixing the lock or calling the test flaky. Do not quarantine it first — a
+  # quarantined concurrency test is a deleted one.
+  {slug = "statelock-reclaim-race-flake", source = "CI observation 2026-08-17, spec/ci-gate-parallelization"},
+  # AC2's apply step. The required set is ["make build-check"] with strict = true
+  # (API-verified 2026-08-17, once /protection recovered from an all-session 503). The
+  # three work jobs are added POST-MERGE, because a required check cannot precede the job
+  # that reports it — adding them first leaves every PR pending forever.
+  #
+  # Confirmed while reading it: there are NO stale "Gate A — agentbundle tests (…)"
+  # entries in the required set, so this spec's Gate A rename cannot orphan a required
+  # check. That was an open worry; it is closed.
+  {slug = "ci-gate-parallelization-branch-protection-widening", source = "spec/ci-gate-parallelization AC2"},
+  # Five of six adversarial review rounds against tools/test-build-check-workflow.py had
+  # YAML-MODELLING root causes, not security-reasoning ones: scalar folding, duplicate
+  # keys, an inferred base indent, positive-substring-over-a-block, and key spelling
+  # encodings. Each was a consequence of re-implementing a YAML parser in regex.
+  # yaml.safe_load plus a structural comparison would delete _key_re, _key_values,
+  # _sub_mapping, _step_key_values, _run_body's three-style folding, _steps, _job_ids and
+  # both *-modelled fail-closed checks, replacing them with ONE assumption (PyYAML's
+  # resolution matches the Actions parser's) that is smaller than the set it retires.
+  #
+  # NOT done in that spec, deliberately: it reverses the file's documented stdlib-only
+  # rationale and adds an import to the job wearing the sole required check. Owner chose
+  # to ship stdlib. Before doing this, deliberately check PyYAML-vs-Actions equivalence on
+  # duplicate keys, escaped keys, explicit keys and anchors — do not assume it.
+  {slug = "ci-gate-parallelization-posture-test-yaml-parser", source = "review round 5, spec/ci-gate-parallelization"},
+  # AC3 of spec/ci-gate-parallelization makes the aggregator job wear the sole
+  # required status check. `pull_request` evaluates build-check.yml AND its posture
+  # test (tools/test-build-check-workflow.py) from the PR's own ref, so a single
+  # coordinated PR that edits the workflow's needs:, the aggregator's env: block,
+  # its != "success" comparisons, and the posture test together can present a green
+  # required check with gates that did not run. Recorded as CLOSABLE, not inherent —
+  # writing "inherent" into an ADR's accepted consequences is how a fixable gap
+  # becomes permanent. Two mechanisms bound it, neither in that spec's scope
+  # (branch-protection changes are a stated non-goal there): a repository ruleset
+  # requiring workflows resolved from a PINNED ref, so a PR cannot define the check
+  # that gates it; and a CODEOWNERS entry for .github/workflows/** plus the posture
+  # test, making the bypass need a second human. This repo has no CODEOWNERS today.
+  # To close: decide between the two (or both) and apply.
+  {slug = "ci-gate-parallelization-required-workflow-pinned-ref", source = "spec/ci-gate-parallelization AC3"},
+  # tools/test-ci-security-workflow.py asserts ci-security.yml's security posture
+  # (permissions, pull_request_target absence) — and is invoked by NOTHING. Found
+  # while looking for a precedent to model a new posture test on: only
+  # test-build-check-windows-workflow.py is genuinely wired (via
+  # tools/repo/build_gate_chain.py, and pinned in test_build_gate_chain.py's
+  # EXPECTED_SCRIPT_STEPS). A shipped AC in spec/secret-scanner-for-api-key-workflows
+  # claims that file gates ci-security.yml, so the claim is live and false. This is
+  # the repo's own "wire it explicitly or it never gates" failure, in a file whose
+  # whole job is to prevent it. To close: wire it into the gate chain (and update
+  # EXPECTED_SCRIPT_STEPS + its pinned count), or delete it and correct the AC.
+  # Second, smaller item, recorded so the next author does not copy the shape:
+  # ci-security.yml documents "cancel-in-progress gated to pull_request only —
+  # push-to-main scans run to completion", and codeql.yml uses unconditional
+  # cancel-in-progress on a push trigger. Both rest on a false belief — GitHub
+  # allows one running plus one PENDING run per concurrency group regardless of
+  # that flag, so a third queued run cancels the pending one. See AC12 of
+  # spec/ci-gate-parallelization for the group expression that avoids it.
+  {slug = "ci-security-posture-test-unwired", source = "spec/ci-gate-parallelization AC13"},
+  # permissions: contents: read + persist-credentials: false for
+  # catalogue-tooling-ci-gates.yml — one of three workflows with no permissions
+  # block. Deliberately NOT bundled into spec/ci-gate-parallelization's Gate A
+  # split even though that change already has the file open: this is a seven-gate
+  # workflow whose Gates D and E upload and download an artifact, and nothing in
+  # that spec reviewed Gates B–G for token use. (The artifact actions use
+  # ACTIONS_RUNTIME_TOKEN rather than GITHUB_TOKEN, so contents: read is very
+  # likely safe — but "very likely safe" is a verification, not the mechanical
+  # ride-along the bundled-fixes carve-out admits.) To close: review all seven
+  # gates for token use, artifact movement and git writes, then apply.
+  {slug = "catalogue-tooling-workflow-hardening", source = "spec/ci-gate-parallelization AC12"},
+  # DECISION, recorded so it is not re-proposed: a GitHub merge queue was evaluated
+  # as the fix for branch protection's strict:true rebase-and-rerun thrash and was
+  # REJECTED. Two reasons, in order. (1) It does not address the complaint that
+  # motivated spec/ci-gate-parallelization — a merge queue leaves per-PR feedback
+  # latency exactly as it is; only job parallelism reduces the wait between pushing
+  # and seeing green. These are separate problems and conflating them cost a round of
+  # bad advice. (2) Requiring a queue makes GitHub's direct merge API
+  # (PUT /repos/{owner}/{repo}/pulls/{n}/merge) fail, so tool harnesses with a
+  # raise-PR / merge button break rather than degrade; integrating means moving them
+  # to the enqueuePullRequest GraphQL mutation. If that integration cost is ever paid,
+  # the setup is: add a `merge_group:` trigger to build-check.yml (without it the
+  # queue never sees a green required check and every PR is ejected on timeout), set
+  # strict=false since the queue supersedes it, and set the queue's status-check
+  # timeout well above the slowest required check.
+  {slug = "merge-queue-rejected-tooling-integration", source = "spec/ci-gate-parallelization Objective"},
+  # project-knowledge --capture TIMES OUT on this repo, and reports the timeout as a
+  # capacity/request problem. Reproduced: a well-formed 2.5KB observation (well under
+  # the 16KB capture_event_bytes budget) takes 33.4s against script_seconds=30 and
+  # returns {"reason_code":"journal_capacity","recovery_action":"fix_request",
+  # "retryable":false}. Both fields are wrong and actively misleading: nothing about
+  # the request needs fixing, it is not a capacity breach, and a deadline breach IS
+  # retryable. The refusal comes from _remaining_timeout() in knowledge_store.py,
+  # which reuses the journal_capacity code for an elapsed deadline. Git is not the
+  # cause — `git ls-files` and `git status` are ~0.2-0.4s here, and the process burns
+  # only ~2.4s of system time across 33s wall, so it is waiting on something.
+  # Consequence: the work-loop's Capture learnings gate cannot complete on this repo,
+  # so lessons are silently not captured by anyone who does not read the exit code.
+  # To close: (1) give a deadline breach its own reason_code with retryable=true and a
+  # recovery_action that is not fix_request; (2) find what consumes the 30s (suspect a
+  # lock acquire or a filesystem walk, not git) and either speed it up or raise
+  # script_seconds for capture.
+  {slug = "project-knowledge-capture-times-out", source = "spec/ci-gate-parallelization Capture learnings"},
+
+  # Pre-flight 2026-08-16: the managed enterprise runtime blocks two classes of
+  # package-suite fixture setup. First, pip/ensurepip cannot create its temporary
+  # trust-store CA file:
+  # test_credentials_wheel.py::test_agentbundle_credentials_is_removed_from_installed_wheel
+  # and test_editable_source_detection.py::test_editable_detection_against_real_install.
+  # Second, protected key-material globs (*.pem and *.key) cannot be read even under
+  # approved temporary roots. Affected files:
+  # integration/test_trust_fallback_tls.py, unit/test_system_trust.py, and
+  # unit/test_https_catalogue.py::test_build_opener_custom_ca_bundle.
+  # These failures reproduce outside this initiative's diff and occur before the
+  # behavior under test. Fix: run the full suite in CI or a managed profile that
+  # permits both isolated fixture classes; do not weaken production credential policy.
+  # Unblocks when: that supported verification environment is available.
+  {slug = "pre-existing-enterprise-agentbundle-full-suite", source = "pre-flight/2026-08-16"},
+
+  # Security review 2026-08-17: validate_dependencies_required() has always
+  # satisfied required dependencies by installed pack name + version only.
+  # PackState records a credential-free source URI, while dependency entries
+  # declare a logical catalogue name; no canonical mapping currently proves
+  # those identities match. A same-name pack from another source can therefore
+  # satisfy the gate. Fix: define and persist a canonical catalogue identity on
+  # installed rows, migrate existing state, then require identity + name + range
+  # before writes. Files: commands/install.py, config.py, state migrations/tests.
+  # Unblocks when: the provenance contract and migration ship through a new spec.
+  {slug = "pre-existing-install-dependency-source-provenance", source = "pre-flight/2026-08-17"},
+
+  # Security review 2026-08-17: catalogue verify step 3 predates the verifier
+  # correctness initiative and returns no diagnostic when its validator import
+  # or bundled pack.schema.json load fails, presenting an unperformed schema
+  # check as clean. Fix: make validator/resource unavailability a bounded
+  # CAT-V-003 error and add wheel/zipapp failure-path tests. File:
+  # packages/agentbundle/agentbundle/catalogue_tooling/verify.py::_step_pack_schema.
+  # Unblocks when: a step-3 behavior-change spec defines the public diagnostic.
+  {slug = "pre-existing-pack-schema-validator-fail-open", source = "pre-flight/2026-08-17"},
+
   # The publish job's environment gate asks a human to release executable plugin
   # code adopters install, but GitHub's approval UI shows only the environment
   # name and a comment box — nothing about what is being published. A summary
@@ -495,6 +734,22 @@ open = [
   # `workflow_run` + `conclusion == success` rather than a GitHub Environment
   # reviewer, which is a non-control in a single-maintainer repo.
   {slug = "plugin-publish-required-reviewer", source = "spec/claude-plugin-route-scope"},
+
+  # The publication-control evidence has no upper bound on age.
+  # compare_evidence checks observed_at is a non-empty string and nothing more,
+  # so the committed artifact (observed_at 2026-08-12) keeps the gate green
+  # forever no matter what changes in GitHub settings afterwards: the ruleset
+  # flipped to `evaluate`, a second bypass actor added, the App re-installed
+  # org-wide. Pre-existing, but spec/publish-control-evidence-repo-binding
+  # strengthened the artifact's SUBJECT claim, which makes the unbounded TIME
+  # claim the weaker half of the pair. Surfaced by security review there.
+  # Fix: a max-age check in compare_evidence, with the number declared in
+  # .github/claude-plugin-publish-control.json so it is reviewable rather than
+  # buried in the linter. The hard part is not the check: expiry blocks every
+  # merge until an operator with the App private key re-runs the capture, so
+  # decide the operational answer (how long, who is paged, what the escape
+  # hatch is) before writing it. That is why it is not a ride-along.
+  {slug = "publish-control-evidence-max-age", summary = "Bound the age of the publish-control evidence -- observed_at is checked for being a non-empty string and nothing else, so a stale artifact certifies settings that may have changed", source = "spec/publish-control-evidence-repo-binding security review"},
   # `_aggregate_marketplace` runs on an adopter's `run_self_host`, and
   # `[pack.adapter-contract]` is optional in `contracts/pack.schema.json` — so a
   # schema-valid adopter pack resolves ["repo"] and vanishes from their own
@@ -723,7 +978,17 @@ open = [
   #   workflow after both builds — it needs the built tree, so it cannot run in
   #   build-check.
   # Unblocks when: picked up — no dependency.
-  {slug = "web-docs-link-check-gate", source = "spec/marketing-docs-link-repair (out of scope)"},
+  # Closed 2026-08-17 as already shipped by docs/specs/rendered-site-link-debt/spec.md
+  # — the committed checker is tools/check-rendered-site-links.py, run after both
+  # builds by .github/workflows/pages.yml and by `make site-link-check`. Closure
+  # verified 2026-08-17 by spec/site-contract-provenance-cleanup (AC4), which also
+  # resolved the newly discovered site-link-check-contract-docs guidance gap into
+  # this same closure rather than registering it as a duplicate item (AC5): the
+  # living-guidance surfaces (guides/AGENTS.md, docs-site/AGENTS.md, Makefile) now
+  # name the checker and distinguish the local sequence from the CI two-phase one.
+  # This block is closed — it carries no {slug = ...} object and is not open
+  # membership (AC6).
+  # Original source: spec/marketing-docs-link-repair (out of scope).
 
   # docs/specs/phase4b-product-docs-completion/spec.md is Shipped and still instructs
   # the superseded docsUrl form in three places: the in-scope bullet (line 24), the
@@ -736,7 +1001,14 @@ open = [
   #   that the docsUrl direction was superseded on 2026-08-06 and by which spec, or
   #   (b) amending AC7 in place. (a) preserves history and is the likelier call.
   # Unblocks when: picked up — needs a decision on amending a Shipped spec.
-  {slug = "phase4b-docsurl-instruction-stale", source = "spec/marketing-docs-link-repair (out of scope)"},
+  # Merged 2026-08-17 into spec/site-contract-provenance-cleanup.
+  # Resolved 2026-08-17 by spec/site-contract-provenance-cleanup (AC1): option (a),
+  # a Status-line annotation naming ADR-0055 as the standing authority and
+  # spec/marketing-docs-link-repair as the correcting spec, and stating plainly that
+  # it is not a supersession. Option (b) declined — amending AC7 in place is a
+  # frozen-body edit. The body, including the stale AC7 text, is deliberately
+  # unchanged; the Status line is the only pointer a reader gets.
+  # Original source: spec/marketing-docs-link-repair (out of scope).
 
   # Three XD-chain structural invariants lost their only implementation. The
   # deterministic checker `tools/check-xd-chain.py` and its `xd-chain-gate.yml`
@@ -1058,7 +1330,7 @@ open = [
   # (375/390/430px) and a physical device. Dev server: make site-serve.
   # Fix: run the mobile audit; open a mobile-CSS PR.
   # Unblocks when: screened on actual mobile viewport + physical device.
-  {slug = "site-mobile-responsiveness"},
+  # Merged 2026-08-17 into spec/site-browser-quality-gate.
 
   # NARROWED 2026-08-15. The content half is DONE: `grep -rn "install research"
   # guides/` returns zero hits, so no adopter-facing guide carries the retired id.
@@ -1545,14 +1817,28 @@ open = [
   {slug = "push-acs-to-linear", needs = "work:spec/m5-linear-brief-intake-and-sync"},
 
   # ── journey-template-revamp experience polish ─────────────────────────────────
-  {slug = "journey-good-output-transcripts", summary = "Author goodOutputDescription transcripts for the P1 journeys", source = "spec/journey-template-revamp experience-review Minor-3"},
-  {slug = "journey-hero-descriptive-eyebrow", summary = "Pair the journey hero slug with a descriptive eyebrow", source = "spec/journey-template-revamp experience-review Minor-4"},
-  {slug = "journey-decision-chip-gate-anchors", summary = "Anchor journey contract chips to their gate cards", source = "spec/journey-template-revamp experience-review Nit-5"},
+  # Merged 2026-08-17 into spec/journey-page-completion. Original sources:
+  # spec/journey-template-revamp experience-review Minor-3,
+  # spec/journey-template-revamp experience-review Minor-4, and
+  # spec/journey-template-revamp experience-review Nit-5.
+  # journey-good-output-transcripts (Minor-3), journey-hero-descriptive-eyebrow
+  # (Minor-4), and journey-decision-chip-gate-anchors (Nit-5).
 
   # ── Starlight migration follow-ons ─────────────────────────────────────────
   # RFC required before a new top-level directory is permanent (AGENTS.md §"Check before acting").
   # Mirrors RFC-0061 (web/) precedent.
-  {slug = "starlight-migration-rfc", summary = "Open RFC for the docs-site/ top-level directory (mirrors RFC-0061 precedent)", source = "spec/starlight-migration"},
+  # Satisfied 2026-08-17 by accepted RFC-0089 (docs/rfc/0089-starlight-docs-boundary.md).
+  # Disposition settled 2026-08-17 by spec/site-contract-provenance-cleanup (AC7):
+  # membership REMAINS here while the anchor does. Removing it would red
+  # lint-spec-status.py invariant (iv), which is HARD and resolves a
+  # `(deferred: <slug>)` anchor against [backlog].open only — and the anchor lives
+  # in the body of the frozen shipped docs/specs/starlight-migration/spec.md, which
+  # the frozen-document rule forbids editing. [backlog].closed is not an escape
+  # hatch either: the workspace engine admits only kind = "defect" there. Widening
+  # invariant (iv) is a published-interface change and needs an RFC. The brief's
+  # registered-debt note already sanctions this retention.
+  # Original source: spec/starlight-migration.
+  {slug = "starlight-migration-rfc", summary = "Satisfied by RFC-0089; retained as the frozen deferred-reference lint anchor", source = "spec/starlight-migration"},
 
   # ── Adopter-SAST follow-ons (spec/pack-script-root-boundary-validation) ────
   # An adopter's org Snyk Code scan reports CWE-23 path-traversal against the
@@ -1625,79 +1911,132 @@ open = [
   # have no corresponding surface here.
   {slug = "sast-cwe-delta-review", summary = "Review the 23-CWE residual delta vs Snyk Code's published rule tables and add rules only where the class is real for this codebase", source = "spec/pack-script-root-boundary-validation"},
 
-  # 12 shipped specs cite an ADR that a later ADR superseded, with no forward
-  # pointer on their Status line. Surveyed in docs/specs/frozen-spec-supersession
-  # (see its Survey table) and deliberately NOT fixed there, because the fix is
-  # not mechanical: citing ADR-0017 does not mean a spec taught the reversed
-  # nosec spelling -- most cite it for the gate itself, which stands. Each needs
-  # a judgment about whether the superseded SUB-decision is one that spec relied
-  # on, and ADR-0040/0042 supersede different sub-decisions than ADR-0084 does.
-  # Stamping "superseded in part" onto specs that are wholly unaffected is worse
-  # than no annotation.
-  # The mechanism to apply is now written down: CONVENTIONS.md
-  # "Superseding a frozen document". Work is the judgment, not the edit.
-  {slug = "frozen-spec-supersession-survey", summary = "Decide, per spec, whether each of the 12 shipped specs citing a superseded ADR relied on the superseded sub-decision, and annotate only those", source = "spec/frozen-spec-supersession"},
+  # build-check.yml declares no top-level `permissions:` block, so every step --
+  # including three pip installs and an editable install that executes setup.py
+  # -- runs under the repository's DEFAULT GITHUB_TOKEN. The job also runs on
+  # `push: branches: [main]`, where that default may be write-scoped. 10 of the
+  # 14 workflows here already declare one; ci-security.yml:27 documents
+  # `contents: read` as the intended posture, so this is the repo's own pattern
+  # being missed rather than an unconsidered gap. Surfaced by security review on
+  # spec/build-check-coverage-gaps and deliberately NOT bundled there: adding the
+  # block changes the job's token scope, which is a behaviour change and outside
+  # that spec's bundled-fixes carve-out.
+  # Fix: add `permissions: contents: read` at the top of build-check.yml (and
+  # sweep the other three undeclared workflows). zizmor's `excessive-permissions`
+  # audit would own this class going forward, but ci-security.yml:120 filters it
+  # out with --min-severity high -- lower the threshold or add a rule-specific
+  # run in the same change, or the next one lands the same way.
+  {slug = "build-check-yml-no-permissions-block", summary = "Declare `permissions: contents: read` on build-check.yml (and the three other undeclared workflows), and stop zizmor's --min-severity high from filtering out excessive-permissions", source = "spec/build-check-coverage-gaps security review"},
+  # tools/requirements-sast.txt is installed by range (`bandit>=1.9,<2` etc.)
+  # with no hashes, and after spec/build-check-coverage-gaps its bandit line is
+  # fetched on 100% of build-check runs rather than a subset. The repo already
+  # demonstrates the stronger shape one workflow over: ci-security.yml:107 runs
+  # `pip install --require-hashes -r tools/requirements-ci-security-locked.txt`.
+  # Fix: generate a hash-locked tools/requirements-sast-locked.txt from the range
+  # file and install from it with --require-hashes in both the conditional and
+  # the unconditional step, keeping requirements-sast.txt as the canonical input
+  # so nothing restates a pin. Needs a refresh procedure, hence its own PR.
+  {slug = "sast-requirements-hash-locked", summary = "Generate and install a hash-locked tools/requirements-sast-locked.txt with --require-hashes, mirroring the ci-security locked file", source = "spec/build-check-coverage-gaps security review"},
+  # pip-audit covers tools/requirements.txt and every packs/*/requirements.txt
+  # (Makefile:235) and the PEP 517 build-system requirements (Makefile:238). It
+  # does NOT cover tools/requirements-sast.txt or
+  # tools/requirements-ci-security-locked.txt -- the CI tooling itself has no SCA.
+  # Confirmed by reading the audit invocations, not inferred. Adjacent to
+  # npm-dependabot-wiring but a different ecosystem and a different file set.
+  # Fix: add the two CI-tooling requirements files to the audit-requirements.py
+  # invocation, or wire Dependabot for pip so the bumps arrive as PRs. Decide
+  # which, then do one -- doing both duplicates the noise.
+  {slug = "sast-requirements-not-audited", summary = "Give tools/requirements-sast.txt and requirements-ci-security-locked.txt SCA coverage -- pip-audit skips both today", source = "spec/build-check-coverage-gaps security review"},
+  # lint-nosec-form.py's unknown-id check degrades silently when bandit's
+  # registry is unreachable: id_checker() catches Exception and returns None,
+  # and main() then appends " (bandit absent: IDs not resolved)" to an EXIT-0
+  # line. That contradicts the tool's own stated rule two guards above it -- an
+  # empty scan exits 2 precisely because "a silent no-op is not a pass".
+  # spec/build-check-coverage-gaps closed every route to this IN CI (the install
+  # step now asserts the registry resolves, in both directions, and runs last),
+  # but a local `SKIP_SAST=1 make build-check` on a machine without bandit still
+  # reports OK on a degraded scan.
+  # Fix: give the script a --require-id-registry flag that turns
+  # `known_ids is None` into exit 2, and pass it from tools/repo/build_gate_chain.py
+  # so local and CI behave identically. Deferred because it makes bandit a hard
+  # prerequisite of `make build-check` for every contributor -- that is a real
+  # cost and deserves its own decision, not a ride-along.
+  {slug = "lint-nosec-form-require-id-registry", summary = "Add --require-id-registry to lint-nosec-form.py so an unreachable bandit registry exits 2 instead of degrading to an exit-0 caveat, and decide whether bandit becomes a hard build-check prerequisite", source = "spec/build-check-coverage-gaps security review"},
 
-  # The publication-control evidence artifact records NO repository field:
-  # build_evidence emits version, branch, app, environment, identities_agree,
-  # canary, observed_at, observation_source -- and the committed
-  # docs/specs/claude-plugin-hook-parity/publish-control-evidence.json has no
-  # repo. So nothing binds the evidence to a subject, and running the capture
-  # against a different, well-configured repo yields a byte-indistinguishable
-  # artifact. capture-evidence-repo-dot-segments closed ONE route to a
-  # wrong-subject capture (dot-segment traversal); this is the wider gap it
-  # deliberately did not close, surfaced in that spec's Honest scope section.
-  # Fix: record the observed repo in the evidence document and have
-  # lint-claude-plugin-publish-control.py compare it against the repository the
-  # artifact is committed in. That is a schema change, hence its own PR.
-  {slug = "publish-control-evidence-not-repo-bound", summary = "Record the observed repository in the publish-control evidence artifact and have the linter check it matches the committing repo", source = "spec/capture-evidence-repo-dot-segments"},
+  # Nothing stops the NEXT tools/ test from landing gated by nothing.
+  # lint-ci-parity enforces workflow-step -> local-make-target and never the
+  # reverse; lint-pack-test-boundary.py enforces the reverse direction only for
+  # packs/**/tests (its _RUNNER_FILES / _NO_RUNNER tables), not for tools/.
+  # That asymmetry is the defect that produced #958, and spec/
+  # build-check-coverage-gaps fixed the instance without closing the class.
+  # Measured 2026-08-17 by scanning Makefile + .github/workflows/ + every
+  # non-test tools/**/*.py and packages/agentbundle/**/*.py for each of the 65
+  # tools/test*.py filenames: EIGHT are invoked by nothing at all --
+  # test-check-atlassian-phase3-readiness, test-check-contract-drift,
+  # test-compare-bandit-suppressions, test_build_site_dry_run,
+  # test_enterprise_rollout_playbook, test_export_work_index,
+  # test_guide_typed_asides, test_live_demo_guide. Two of those arrived in the
+  # last two merges (#980, #982), so this is an active leak, not a backlog.
+  # Note the scan must include tools/catalogue/ and tools/hooks/ as invocation
+  # sources: an earlier pass over Makefile + workflows alone reported 14 and was
+  # wrong, because pre_pr_catalogue.py invokes several directly.
+  # Fix: extend the _RUNNER_FILES/_NO_RUNNER discipline to tools/test*.py -- a
+  # test file must name a runner or carry an explicit no-runner disposition.
+  {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; eight are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
+  # Wiring the seven guides/site suites into build-check.yml (spec/
+  # build-check-coverage-gaps) couples EVERY PR to the formatting of files those
+  # tests substring-assert against. test_check_rendered_site_links.py's
+  # test_pages_gate_runs_after_both_builds_before_upload_and_has_path_filters
+  # asserts on raw text of pages.yml including exact single-quoted `paths:`
+  # entries and their occurrence COUNTS; test_catalogue_navigation.py does the
+  # same against web/src/lib/catalogue-navigation.ts and two .astro files.
+  # build-check.yml has no `paths:` filter, so a cosmetic requote in pages.yml
+  # now reddens the required check for an unrelated PR. Worse, per the
+  # antipattern recorded in docs/knowledge/observations/antipattern/2026-08.jsonl
+  # those assertions do not detect REMOVAL of what they claim to pin -- they are
+  # the source-substring shape that register entry exists to name.
+  # Fix: re-express both against parsed YAML / a parsed module graph, then
+  # confirm each goes red when the pinned control is deleted. Do not simply
+  # loosen them; the ordering they assert is real.
+  {slug = "site-test-source-substring-assertions", summary = "Re-express test_check_rendered_site_links' pages.yml ordering assertion and test_catalogue_navigation's web/src assertions against parsed structure, and verify each by deletion", source = "spec/build-check-coverage-gaps review"},
 
-  # build-check.yml installs tools/requirements-sast.txt only when
-  # skip_sast != 'true', so on a SKIP_SAST PR bandit is absent and
-  # lint-nosec-form's unknown-id check (a well-formed but nonexistent ID like a
-  # typo'd B999, which bandit resolves to nothing and so treats as a blanket
-  # suppression) silently no-ops. Where bandit IS installed, make sast runs too
-  # and run-bandit-gate.py already fails on bandit's own stderr for that case --
-  # so the check currently adds zero CI coverage, only local and defence-in-depth
-  # value. Surfaced in spec/bandit-nosec-form-lint AC4b rather than hidden.
-  # Fix: drop the `if:` on that install step, or add an unconditional bandit-only
-  # install, so the registry is present on every build-check run. Weigh against
-  # the install cost on diffs that scan nothing.
-  {slug = "build-check-installs-bandit-unconditionally", summary = "Install bandit on every build-check run so lint-nosec-form's unknown-ID check is not inert on SKIP_SAST PRs", source = "spec/bandit-nosec-form-lint"},
+  # docs/specs/distribution-adapters/spec.md carries `- **Status:** Shipped`,
+  # which CONVENTIONS.md's lifecycle table puts in the Frozen class ("bodies
+  # cannot change") -- yet every adapter PR amends it: each one's Constrained-by
+  # says "Amends docs/specs/distribution-adapters/spec.md (v0.N -> v0.N+1
+  # Changelog entry)", and its per-adapter projection table has demonstrably been
+  # edited since it shipped (its Copilot skill cell moved from
+  # .github/instructions/ to .github/skills/ long after ship). So the repo treats
+  # it as Living while its Status says Frozen.
+  # spec/frozen-doc-supersession-annotations annotated it under the frozen rule
+  # rather than reopening this, and said so in its Honest scope.
+  # This is the same shape as frozen-spec-supersession Decision 2, which resolved
+  # the identical ambiguity for plan.md by scoping the licence to a phase. Decide
+  # which class this document is in and make CONVENTIONS.md say so; a document
+  # whose status and treatment disagree is a rule nobody can apply.
+  {slug = "distribution-adapters-lifecycle-class", summary = "Decide whether docs/specs/distribution-adapters/spec.md is Living or Frozen -- its Status says Shipped but every adapter PR amends its Changelog and projection table", source = "spec/frozen-doc-supersession-annotations review"},
 
-  # 7 of the 13 pytest files named on Makefile:349 (`make test`) are a run step
-  # in NO workflow: test_validate_guides, test_check_guide_index,
-  # test_catalogue_navigation, test_documentation_entry_links,
-  # test_build_site_link_rewrites, test_check_rendered_site_links,
-  # test_build_site_routing. So they gate `make ci` locally and nothing
-  # remotely. Counted per-file across all of .github/workflows/, not just
-  # build-check.yml -- an earlier draft of this entry said 9 because it grepped
-  # build-check.yml alone and missed Gate F.
-  #   - test_check_rendered_site_links appears in pages.yml:23,45 but only as a
-  #     `paths:` trigger, never as a run step. Easy to miscount as covered.
-  #   - test_catalogue_tooling_rewire and _docs ARE run, by Gate F of
-  #     catalogue-tooling-ci-gates.yml:513,515 -- so they are NOT in this list.
-  #     Note though that workflow's paths-ignore covers docs/**, guides/**,
-  #     docs-site/** and web/**, so it does not gate doc-surface PRs either.
-  #     Do not "fix" those two here; that would duplicate Gate F.
-  # This is not theoretical: it is exactly how #958 merged green while leaving
-  # main red on test_catalogue_navigation, the failure PR #967 recorded as a
-  # known skip and this entry's sibling spec then fixed.
-  # Fix: add the seven as explicit build-check.yml steps (or one grouped step)
-  # and give each its lint-ci-parity disposition. Wiring one alone was declined
-  # in guides-readme-outcome-label-drift -- partial coverage reads as coverage.
-  {slug = "catalogue-site-tests-absent-from-ci", summary = "Wire the 7 catalogue/site pytest files from Makefile:349 that are a run step in no GitHub workflow into build-check.yml, with lint-ci-parity dispositions", source = "spec/guides-readme-outcome-label-drift"},
-
-  # docs/specs/bandit-nosec-comment-hygiene/spec.md § Known skip points at the
-  # register entry `pre-existing-guides-readme-outcome-label-drift`, which
-  # guides-readme-outcome-label-drift closed -- so that prose pointer now
-  # dangles. lint-spec-status.py invariant (iv) only checks `(deferred: <slug>)`
-  # markers, so nothing catches it. The spec is Frozen (CONVENTIONS § Document
-  # lifecycle: bodies cannot change), so the annotation has to use whatever
-  # mechanism frozen-spec-supersession-convention settles -- almost certainly a
-  # status-line annotation rather than a body append. Unblocks when that lands;
-  # this spec is then its first caller.
-  {slug = "bandit-hygiene-known-skip-dangling-pointer", summary = "Annotate bandit-nosec-comment-hygiene's § Known skip to record that its register entry was closed, using the frozen-doc mechanism from frozen-spec-supersession-convention", source = "spec/guides-readme-outcome-label-drift"},
+  # ADR-0050 (Astro marketing site) is Superseded by ADR-0055 (Starlight
+  # replaces MkDocs), with no "in part" -- so the whole record is history.
+  # spec/frozen-doc-supersession-annotations disposed of that chain on the
+  # `Constrained by:` header scan alone (one citing spec,
+  # marketing-docs-link-repair, which names ADR-0055 on the next line and so
+  # forwards its own reader). That spec's own Decision 1 says a header scan is
+  # the STARTING set, not the population -- and adversarial review found the
+  # counterexample: docs/specs/platform-site/spec.md:58's route table still
+  # reads `| /docs/ | MkDocs reference (existing) | 0 | site/docs/ -- unchanged |`
+  # for a build that no longer exists (site/ and mkdocs.yml are both gone), in a
+  # Shipped spec that cites no ADR at all.
+  # Not done there because there is no literal string to grep the way the skill
+  # homes were: a body survey means reading the MkDocs -> Starlight migration
+  # across ten-plus documents (starlight-migration, platform-site,
+  # guides-sidebar-generation, m3-experience-design-rename and their plans),
+  # which is a different subject from that spec's.
+  # Fix: run the body survey for the ADR-0050 -> ADR-0055 chain and annotate the
+  # documents that state a route the build no longer takes. Same per-document
+  # judgment; a "superseded in part" on a spec that merely mentions MkDocs in
+  # passing is the false positive that spec exists to avoid.
+  {slug = "adr-0050-supersession-body-survey", summary = "Body-survey the ADR-0050 -> ADR-0055 chain; platform-site/spec.md still documents a MkDocs route for a build that no longer exists and cites no ADR, so no header scan reaches it", source = "spec/frozen-doc-supersession-annotations review"},
 
   # test-loop-cohort.sh is 493 lines / 51 cases of bash and uses ~20 bash-isms
   # ([[, local, $(), declare). AGENTS.md's "New tool scripts: Python, not bash"
@@ -1866,7 +2205,7 @@ open = [
   # unreviewed strings into meta tags and social previews. Each needs a human
   # one-liner. Consider batching by pack. Files: guides/**/*.md frontmatter.
   # Unblocks when: ready now.
-  { slug = "guide-summary-backfill" },
+  # Merged 2026-08-17 into spec/guide-metadata-completion.
 
   # The marketing site and the docs site are two visually disconnected products.
   # At /docs/ the Starlight chrome replaces everything: the header loses the
@@ -1882,7 +2221,7 @@ open = [
   # must either stay palette-neutral or amend that rule through an RFC — do not
   # quietly work around it.
   # Unblocks when: ready now, but confirm the palette question first.
-  { slug = "site-shared-chrome-band" },
+  # Merged 2026-08-17 into spec/site-shared-chrome after RFC-0089 and ADR-0085.
 
   # tools/lint-guide-titles.py (added by spec/tech-site-polish-batch) found 9
   # guides whose frontmatter title and body H1 disagreed. The H1s were
@@ -1902,7 +2241,7 @@ open = [
   # sidebar labels from a frozen baseline before falling back to the page title,
   # so a title change may not move the sidebar label — check both.
   # Unblocks when: ready now.
-  { slug = "guide-title-wording-review" },
+  # Merged 2026-08-17 into spec/guide-title-clarity.
 
   # Test coverage landed for tools/lint-guide-titles.py and build-site.py's
   # leading_h1 / _strip_leading_h1 / _strip_guide_metadata transforms
@@ -1916,7 +2255,7 @@ open = [
   # docs-site/, which is a new dependency and therefore an AGENTS.md
   # dependency-table entry — hence deferred rather than bundled.
   # Unblocks when: ready now; decide whether docs-site earns a test runner.
-  { slug = "rehype-plugin-unit-tests" },
+  # Merged 2026-08-17 into spec/docs-site-build-contract-hardening.
 
   # Docs pages carry a large number of interactive elements under the WCAG 2.2
   # 24x24 target-size minimum — 40-47 on the docs landing, 12-26 on content
@@ -1928,7 +2267,8 @@ open = [
   # already fixed in spec/tech-site-polish-batch (drawer links went from 17px to
   # 44px full-width rows).
   # Unblocks when: ready now.
-  { slug = "docs-tap-target-audit", type = "design" },
+  # Merged 2026-08-17 into spec/site-browser-quality-gate; the canonical audit
+  # scaffold is that spec's notes/docs-tap-target-audit.md.
 
   # There is no docs/design/principles/ artefact for either site surface, so the
   # in-session design review could trace none of its findings to a project
@@ -1942,7 +2282,7 @@ open = [
   # docs surface should use display serif at H1/H2 scale at all; and whether the
   # product wants an illustrative register (it currently has none).
   # Unblocks when: ready now.
-  { slug = "site-design-principles", type = "design" },
+  # Closed 2026-08-17 to docs/design/principles/tech-site.md.
   # The live remnant of `selftest-mutates-tracked-makefile` (now in `closed`). That
   # item's tracked-`Makefile` mutation is gone; its MECHANISM is not. Layer 3 of
   # `tools/test-lint-pack-test-boundary.py` plants two UNTRACKED files in the real
@@ -2062,7 +2402,8 @@ backlog = []
 
 ["ini-007".work]
 active  = [
-
+]
+shipped = [
   # Catalogue verifier correctness. Independent (no unsatisfied predecessor). Gated on
   # Wave 2 (already shipped). Serialized AFTER Wave 3 to avoid concurrent agentbundle
   # version-bump conflicts (both Wave 3 and verifier-correctness bump the agentbundle
@@ -2086,14 +2427,14 @@ active  = [
   # Wave 3's need uses its canonical path: `work:` needs match shipped entry paths by
   # exact string, and Wave 3 is registered (and will ship) under the canonical form.
   {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}, {type = "local", kind = "spec", path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md"}]},
-]
-shipped = [
   # Lint execution performance — P0. Shipped 2026-08-17 (ADR-0087).
   # The boundary lint went from a check-ignore subprocess per candidate path to
   # one batched call, and from six checks each rebuilding overlapping state to
   # one per-invocation inventory. Its falsification suite moved off the real
-  # worktree onto fixture catalogues, which closed the
-  # `selftest-mutates-tracked-makefile` backlog item (PR #961's failure mode).
+  # worktree onto fixture catalogues, which closed the tracked-file half of the
+  # `selftest-mutates-tracked-makefile` backlog item (PR #961's failure mode). Two
+  # untracked plants remain for one lint launch each — successor:
+  # `selftest-untracked-plant-window` in [backlog].open.
   # Behaviour preservation is proven by a captured golden baseline rather than a
   # prose enumeration. Measured before/after:
   #   docs/specs/lint-performance-p0/notes/lint-inventory.md § After evidence

@@ -1,0 +1,2 @@
+[catalogue]
+source = "git+https://example.com/example/catalogue"

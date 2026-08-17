@@ -4370,9 +4370,8 @@ def validate_dependencies_required(
     user_state.packs (key by pack name; a pack at either scope satisfies
     the gate).
 
-    Version-range grammar: exactly ``^X.Y`` (caret-minor). An installed
-    version ``A.B.C`` satisfies ``^X.Y`` when ``A == X AND (B > Y OR (B
-    == Y AND C >= 0))``, i.e. ``>= X.Y.0 AND < (X+1).0.0``.
+    Version ranges use the shared catalogue dependency grammar, including
+    caret, tilde, comparator, compound, and prerelease forms.
 
     ``also_installing`` (pack-profiles) — names of packs being installed in
     the *same batch* as this one (a profile install). A required dep whose name
@@ -4391,9 +4390,10 @@ def validate_dependencies_required(
             Caller is expected to print str(exc) to stderr and exit 1.
     """
     batch = also_installing or set()
-    import re
-
-    _CARET_RE = re.compile(r"^\^([0-9]+)\.([0-9]+)$")
+    from agentbundle.catalogue_tooling.version_ranges import (
+        parse_version_range,
+        version_satisfies,
+    )
 
     pack_name = pack_toml.get("pack", {}).get("name", "<unknown>")
     deps = pack_toml.get("pack", {}).get("dependencies", {})
@@ -4425,15 +4425,11 @@ def validate_dependencies_required(
         dep_range = entry.get("version", "")
 
         # Validate grammar first (even before checking if the dep is installed).
-        m = _CARET_RE.match(dep_range)
-        if m is None:
+        if not parse_version_range(dep_range):
             raise RuntimeError(
                 f"install: unsupported version range {dep_range!r} for required pack "
-                f"{dep_name!r}; only ^X.Y is supported"
+                f"{dep_name!r}"
             )
-
-        req_major = int(m.group(1))
-        req_minor = int(m.group(2))
 
         dep_version = installed.get(dep_name)
         if dep_version is None:
@@ -4454,27 +4450,7 @@ def validate_dependencies_required(
         # gate real: a dep pre-installed (or written earlier in the batch) at a
         # version that does not satisfy the range is refused, not name-bypassed.
 
-        # Parse installed version X.Y.Z (allow fewer components).
-        parts = dep_version.split(".")
-        try:
-            inst_major = int(parts[0]) if len(parts) > 0 else 0
-            inst_minor = int(parts[1]) if len(parts) > 1 else 0
-            inst_patch = int(parts[2]) if len(parts) > 2 else 0
-        except (ValueError, IndexError) as exc:
-            raise RuntimeError(
-                f"install: pack {pack_name!r} requires {dep_name!r} "
-                f"(version {dep_range}); install {dep_name} first"
-            ) from exc
-
-        # Satisfy: major must match AND version >= X.Y.0 AND < (X+1).0.0.
-        satisfies = (
-            inst_major == req_major
-            and (
-                inst_minor > req_minor
-                or (inst_minor == req_minor and inst_patch >= 0)
-            )
-        )
-        if not satisfies:
+        if version_satisfies(dep_version, dep_range) is not True:
             raise RuntimeError(
                 f"install: pack {pack_name!r} requires {dep_name!r} "
                 f"(version {dep_range}); install {dep_name} first"

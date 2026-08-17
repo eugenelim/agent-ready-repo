@@ -1,6 +1,6 @@
 ---
 **Feature:** phase4b-product-docs-completion
-**Status:** Shipped
+**Status:** Shipped (the `/guides/<pack>/` `docsUrl` direction at lines 24 and AC7, and line 66's "docsUrl wrong" row, were corrected to `/docs/guides/<pack>/` by [`spec/marketing-docs-link-repair`](../marketing-docs-link-repair/spec.md) on 2026-08-06; [ADR-0055](../../adr/0055-starlight-replaces-mkdocs-for-reference-docs.md), Accepted 2026-07-25, already mounted reference docs there when this spec shipped, so this is a correction of an instruction that was contrary to it — not a supersession of any decision made here. Every decision in this spec stands.)
 **Mode:** full (multi-feature, structural/public-interface change — public routes, guide index, cross-pack READMEs)
 ---
 

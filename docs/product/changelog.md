@@ -18,7 +18,83 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### [core][2.7.0] — 2026-08-16
+### [core][2.7.3] — 2026-08-17
+
+#### Fixed
+
+- **A spec's `Brief:` back-link is documented and resolved as a path.** The
+  canonical form is the brief's repository-relative path
+  (`docs/product/briefs/<slug>.md`) — the form workspace reconciliation
+  requires; a bare slug blocked the spec from being dispatchable. Brief
+  guidance, the brief template, and the adopter field reference now agree on
+  it, and the brief-coverage lint recognises the path form when reporting a
+  spec that back-links a brief but is missing from its Spec map.
+
+### [core][2.7.2] — 2026-08-17
+
+#### Fixed
+
+- **Explicitly absent traceability metadata remains absent.** The first
+  rendered pointer field is authoritative, and `none` values with explanatory
+  annotations or ordinary punctuation no longer become dangling pointers when
+  a repository adds its first discovery anchor.
+### [agentbundle][0.37.2] — 2026-08-17
+
+#### Added
+
+- **`catalogue verify` now performs all 19 advertised checks.** Profiles are
+  schema-validated and confined to local pack roots; dependencies are checked
+  for structure, supported ranges, required-pack compatibility, and cycles;
+  adapter declarations are checked against the shipped contract; configured
+  output is compared with a fresh confined build; pack manifests receive a
+  narrow preflight; and skill evaluation manifests are validated without
+  parsing opaque payload files.
+- **External catalogue portability has an end-to-end regression fixture.** A
+  synthetic two-pack catalogue verifies successfully through the real CLI,
+  including a portable seed that discusses this repository by name.
+
+#### Changed
+
+- **Dependency range semantics now agree across verify, lint, and install.**
+  Caret, tilde, comparator, compound, and prerelease forms use one
+  dependency-free npm-compatible parser. Below `1.0.0`, caret ranges keep their
+  normal semver meaning, so `^0.2` no longer accepts `0.3.x`.
+- **Host-only catalogue policy moved out of the distributable verifier.** Seed
+  and APM leak checks specific to this repository now run from the local build
+  gate, so external catalogues are not rejected for host vocabulary.
+- **Verifier help and adopter documentation now consistently describe a
+  19-step pipeline.**
+
+#### Fixed
+
+- **Malformed catalogue configuration now returns a bounded, redacted
+  diagnostic instead of leaking exception text.** The existing optional-PyYAML
+  guard remains a structured warning and now has explicit regression coverage.
+
+### [figma][0.3.2] — 2026-08-17
+
+#### Fixed
+
+- **Figma now declares the credential-brokers minor it actually supports.**
+  Dependency validation no longer relies on treating `^0.2` as compatible with
+  `0.3.x`.
+
+### [linear][0.2.4] — 2026-08-17
+
+#### Fixed
+
+- **Linear now declares the credential-brokers minor it actually supports.**
+  Dependency validation no longer relies on treating `^0.2` as compatible with
+  `0.3.x`.
+
+### [iac-terraform][0.1.7] — 2026-08-17
+
+#### Fixed
+
+- **IaC Terraform now declares the governance-extras minor it actually supports.**
+  Dependency validation no longer relies on treating `^0.6` as compatible with
+  `0.9.x`.
+### [core][2.7.1] — 2026-08-17
 
 #### Added
 
@@ -83,6 +159,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   notes, tips, cautions, and dangers with visible labels and icons. Prompts,
   transcripts, sample output, and other exact quoted wording remain
   blockquotes.
+- **Briefs, RFCs, ADRs, specs, and plans can hand reusable supporting lessons
+  to project knowledge at exact stable gates.** Draft, incomplete, rejected,
+  or abandoned authoring work does not capture. Normative content remains in
+  its owning artifact; missing project knowledge creates no fallback file;
+  terminal distillation is limited to receipts returned by the same gate; and
+  optional enquiry requires a declared competency question and remains bounded
+  untrusted evidence. Core is now 2.7.1 and governance-extras is now 0.9.7.
 - **Documentation now keeps readers oriented from entry to exit.** The docs
   home leads with one clear starting point and described outcome cards; guide
   pages restore previous/next navigation from the published sidebar order; and
@@ -127,6 +210,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   hand-written navigation label, the sidebar now shows the page's own title
   instead — "Adapt to Project" now reads "How to adapt a freshly installed pack
   to your project". No page moved and no link changed. No pack version changes.
+
+### [atlassian][0.8.4], [linear][0.2.3], [github][0.1.4] — 2026-08-16
+
+#### Changed
+
+- **Tracker intake now uses one content-based repository route.** Jira, Jira
+  Align, Linear, and GitHub emit the same bounded normalized contract and hand
+  it to `work-intake`. Equivalent content selects the same intent, brief, spec,
+  defect, processor, lifecycle membership, and authority regardless of tracker
+  object names.
+- **Tracker intake is read-only and explicitly bounded.** Versioned profiles
+  declare destination policy, pagination, item and byte caps, timeouts, retries,
+  and backoff. Unsafe destinations, malformed input, missing provenance,
+  unknown profiles, embedded instructions, and confidentiality mismatches stop
+  before repository writes.
+- **GitHub Milestones are no longer assumed to be briefs.** GitHub uses trusted
+  fixed-host, shell-free `gh` reads and delegates classification to
+  `work-intake`; the intake path no longer comments, labels, closes, or edits
+  Issues.
+
+#### Added
+
+- **Shared tracker guidance now explains the common route and vocabulary.**
+  Updated Jira, Linear, GitHub, selection, reference, and journey pages show the
+  tracker read boundary, the repository write boundary, and the human decisions
+  that remain before materialization.
 
 ### [agentbundle][0.37.1] — 2026-08-16
 
@@ -575,6 +684,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a repository policy lint, not a packaged one: `pack.schema.json` and the
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
+
+## [governance-extras][0.9.7] — 2026-08-16
+
+### Changed
+
+- **RFC and ADR authoring now hand reusable supporting lessons to project
+  knowledge only at clean handoff and accepted-decision gates.** Missing
+  project knowledge leaves no fallback file, and enquiry remains an explicit,
+  bounded, untrusted-evidence step.
 
 ## [core][2.5.5] — 2026-08-10
 

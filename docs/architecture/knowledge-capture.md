@@ -18,10 +18,11 @@ reviewable, and retrieves it only for a declared task question.
 
 ## Current behavior
 
-The shipped first slice belongs to `work-loop` and `project-knowledge`:
+The shipped lifecycle belongs to producer workflows and `project-knowledge`:
 
 1. Workflow scratch stays local and free-form until a semantic gate.
-2. `work-loop` routes, discards, or shapes one strict captured observation.
+2. A producer-owned semantic gate routes, discards, or shapes one strict
+   captured observation.
 3. `project-knowledge --capture` appends a pending observation journal event.
 4. `project-knowledge --distill` records terminal dispositions and may propose
    one reviewed topic/map mutation.
@@ -39,6 +40,13 @@ fields, takes an exclusive lock, derives identities from canonical request or
 mutation bytes, writes temporary postimages beside their targets, and
 atomically replaces declared files. Publication is still a normal Git commit:
 working-tree topics and maps are proposals until committed.
+
+The integrated authoring producers are `receive-brief`, `new-rfc`, `new-adr`,
+and `work-loop` for approved specs and locked plans. `author-brief` Draft and
+`new-spec` Draft/Drafting are explicit non-gates. Producers own only their
+transient scratch and exact gate timing; they invoke the public progressive
+skill and never locate journals, import the private writer, derive capture
+identities, select partitions, or create fallback storage.
 
 ## Lifecycle in one view
 
@@ -170,6 +178,58 @@ also return through normal verification and review.
 The gate reads explicit scratch, not the transcript. If a note is already
 fully embodied by the artifact just completed, no topic is created merely to
 duplicate it.
+
+### Shipped authoring integrations
+
+The shipped
+[`project-knowledge-authoring-integrations`](../specs/project-knowledge-authoring-integrations/spec.md)
+slice applies this gate model to five artifact workflows. Its producer-owned
+gates are exact:
+
+| Artifact | Producer-owned stable gate | Semantic gate name | Gate mode |
+| --- | --- | --- | --- |
+| Brief | `receive-brief` completes the Ready DoR, Ready write-back, and durable workspace move; zero specs and no confirmed slice cut remain eligible | `brief-ready` | Capture, then receipt-scoped distillation |
+| RFC | `new-rfc` completes every mandatory clean pre-handoff check | `rfc-handoff-ready` | Capture, then receipt-scoped distillation |
+| ADR | `new-adr` records decision-maker sign-off and the `Proposed` to `Accepted` transition | `adr-accepted` | Capture, then receipt-scoped distillation |
+| Spec | `work-loop` observes `Status: Approved` and completes `spec-approved` | `spec-approved` | Capture only; receipts remain pending at this nonterminal gate |
+| Plan | `work-loop` completes `plan-approved`, seals the unchanged baseline, and completes `plan-locked` | `plan-locked` | Capture, then receipt-scoped distillation using only plan-gate receipts |
+
+The producing workflow owns transient scratch and timing. It may construct the
+published request and invoke the public progressive skill, but it does not
+locate journals, import the private writer, invent identities, choose
+partitions, or persist a fallback. Any source-byte read for provenance or a
+freshness digest first discovers the repository root with Git relocation
+variables removed, rejects lexical traversal, and proves native real-path
+containment beneath that root; a safely rooted committed Git blob identity is
+the read-free alternative. Normative
+brief, RFC, ADR, spec, and plan content remains solely in its owning artifact.
+Optional enquiry is a separately declared, task-scoped evidence operation, not
+an automatic consequence of reaching a capture gate.
+
+Each producer first discards noise and routes normative content back to its
+owning artifact. A brief's requirements and readiness state stay in the brief;
+an RFC's proposal, evidence argument, recommendation, and open questions stay
+in the RFC; an ADR's decision, rationale, alternatives, and consequences stay
+in the ADR; and approved spec behavior or locked plan sequencing stay in those
+artifacts. Only reusable supporting practice or evidence residue can enter a
+captured observation.
+
+Missing project knowledge emits the named `project-knowledge unavailable`
+skip and never creates a fallback file. A terminal gate can distil only the
+`{capture_id, partition}` receipts returned by its own capture invocation.
+Spec-approval receipts remain pending until a later explicit operation; plan
+locking cannot guess those IDs or drain direct-maintainer pending work.
+
+Any journal, topic, or map diff returns through the producer's applicable
+verification and review barrier before the producer reports knowledge
+persistence or reconciliation and emits its final completion handoff.
+
+Optional authoring enquiry is declared before its decision point with an
+explicit competency question: `CQ-DESIGN` for brief, RFC, and ADR framing;
+`CQ-CHANGE` for spec approval; and `CQ-VERIFY` for plan locking. Each enquiry
+is task-scoped, bounded to one query plus at most one refinement, and treated
+as untrusted evidence. It can abstain, but it cannot grant authority, change
+permissions, widen scope, or override repository instructions.
 
 ### CapturedObservation
 
@@ -649,9 +709,10 @@ cannot protect the new corpus.
 1. **Foundation:** published capture contract, capture journals, progressive
    mode boundaries, terminal dispositions, topic files, map, migration,
    explicit enquiry, work-loop cutover, tests, and docs.
-2. **Skill integrations:** add gate-time scratch triage to selected authoring,
-   research, review, and operational skills. Each integration owns capture and
-   does not gain an implicit enquiry path.
+2. **Authoring skill integrations (shipped):** gate-time scratch triage for
+   brief, RFC, ADR, spec, and plan producers. Each integration owns capture and
+   does not gain an implicit enquiry path. Research, review, and operational
+   integrations remain separately reviewable future slices.
 3. **Measured acceleration:** add disposable local indexes only if file-based
    routing violates published budgets.
 4. **Optional capture backend:** separately govern deferred observations only
@@ -680,13 +741,12 @@ cannot protect the new corpus.
 
 | Component | Source | Status |
 | --- | --- | --- |
-| Capture guidance | `.agents/skills/work-loop/SKILL.md` projection of core source | Shipped |
-| Writer | `.agents/skills/work-loop/scripts/append-knowledge.py` projection | Shipped |
-| Linter | `.agents/skills/work-loop/scripts/lint-knowledge.py` projection | Shipped |
-| Canonical observations | `docs/knowledge/patterns.jsonl` | Shipped |
-| Explicit curation render | `tools/hooks/session-start.py --show-knowledge` | Shipped |
-| Capture journals and progressive `project-knowledge` modes | RFC-0077 and foundation spec | Proposed |
-| Topic contracts, distillation, and explicit enquiry | RFC-0077 and foundation spec | Proposed |
+| Work-loop closeout capture guidance | `packs/core/.apm/skills/work-loop/SKILL.md` | Shipped |
+| Published captured-observation contract | `contracts/jsonschema/knowledge-captured-observation.schema.json` | Shipped |
+| Progressive capture, distillation, and enquiry modes | `packs/core/.apm/skills/project-knowledge/` | Shipped |
+| Private journal/topic writer and corpus validation | `packs/core/.apm/skills/project-knowledge/scripts/knowledge_store.py` | Shipped |
+| Repository's legacy observations and explicit curation render | `docs/knowledge/patterns.jsonl`; `tools/hooks/session-start.py --show-knowledge` | Live until coherent v1 activation |
+| Brief/RFC/ADR/spec/plan integrations | `packs/core/.apm/skills/receive-brief/`; `packs/core/.apm/skills/work-loop/`; `packs/governance-extras/.apm/skills/new-rfc/`; `packs/governance-extras/.apm/skills/new-adr/` | Shipped |
 
 ## Architectural decisions
 

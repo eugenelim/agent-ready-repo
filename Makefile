@@ -83,26 +83,30 @@ package:
 # scrolls away, and the reader who scrolls to the bottom is exactly the reader
 # about to conclude "green, ship it". $(1) is the invoked target's name.
 #
-# Three outcomes, not two. build-check.yml sets SKIP_SAST=1 itself whenever a
-# PR's diff touches nothing SAST-relevant, so shouting INCOMPLETE inside a green
-# required check on most PRs would train readers to ignore the banner — the same
-# way the mid-run echo trained them to miss the skip. In CI the skip is a
-# decision the workflow made from the diff; on a laptop it is a shortcut whose
-# consequence the reader is about to inherit.
+# Three outcomes, not two. Since ADR-0086 build-check.yml no longer sets
+# SKIP_SAST=1: the SAST/SCA leg is its own `gate-sast` job, and `gate-main`
+# invokes this target with SAST_DELEGATED=1 instead. So the third outcome is
+# "delegated" — this target did not scan, and something else did. On a laptop
+# SKIP_SAST is still a shortcut whose consequence the reader inherits, which is
+# why it keeps the INCOMPLETE banner.
 #
 # "was invoked", not "ran": make reports whether each leg exited 0, and a leg can
 # exit 0 having gated nothing — the wired catalogue-curation guard skips its
 # path-gate when the base ref is missing or stale (backlog
 # `curation-guard-silent-base-skip`). The banner should not assert more than make
 # can see.
-# The CI-intentional branch keys on GITHUB_WORKFLOW, not GITHUB_ACTIONS alone:
-# the reassuring line asserts a specific provenance ("build-check.yml decided the
-# diff has nothing to scan"), and any process can export GITHUB_ACTIONS — `act`,
-# a devcontainer image, a developer exercising the CI branch — which would hand
-# them a claim that is not true of their run.
+# The delegated branch keys on `$(origin SAST_DELEGATED)` being `command line`,
+# NOT on any environment variable. That is the whole point: GITHUB_WORKFLOW, CI,
+# GITHUB_ACTIONS and RUNNER_ENVIRONMENT are each either synthesised by `act` or
+# exportable from a devcontainer image or a shell profile, so none of them can
+# distinguish "CI deliberately delegated this" from "something in my environment
+# happens to be set". Command-line origin can, because only the invoker supplies
+# it. An ambient SAST_DELEGATED therefore does NOT reach the quiet banner and does
+# NOT skip the leg — it runs the scan and prints the honest "complete" verdict.
 define gate_verdict
-@if [ -n "$(SKIP_SAST)" ] && [ "$$GITHUB_WORKFLOW" = "build-check" ]; then \
-	printf '\n%s: %s\n\n' '$(1)' 'complete for this diff — SAST/SCA skipped by build-check.yml because the diff touches nothing scannable.'; \
+@if [ "$(origin SAST_DELEGATED)" = "command line" ] && [ -n "$(SAST_DELEGATED)" ]; then \
+	printf '\n%s: %s\n' '$(1)' 'complete for this target — SAST/SCA was NOT invoked here; it is delegated.'; \
+	printf '%s\n\n' 'This target did not scan. To scan on this machine: make sast'; \
 elif [ -n "$(SKIP_SAST)" ]; then \
 	printf '\n%s\n' '*************************************************************'; \
 	printf '*** %s: %s\n' '$(1)' 'INCOMPLETE — this is NOT a full pass.'; \
@@ -124,14 +128,18 @@ build-check:
 	$(PYTHON) tools/repo/build_gate_chain.py build-check --packs-dir $(PACKS_DIR) --output-dir $(OUTPUT_DIR)
 	# SAST/SCA gate (ADR-0017) — runs last so the fast, offline drift/lint
 	# checks above fail quickly before the slower, network-bound scanners.
-	# SKIP_SAST short-circuits the SAST/SCA leg only (the drift + lint gates
-	# above always run). build-check.yml sets it for PRs that touch no
-	# SAST-relevant file (neither SAST_DIRS nor SAST_CONFIG) — the scanners
-	# have nothing to scan, so the ~76k-LOC pass is pure waste there. Intent of
-	# ADR-0017 is preserved: SAST stays chained into the required build-check
-	# job (not a separate skippable workflow) and runs on every PR that changes
-	# a SAST-relevant file.
-	@if [ -n "$(SKIP_SAST)" ]; then \
+	# Two things short-circuit this leg only (the drift + lint gates above always
+	# run): SKIP_SAST, still a laptop shortcut; and SAST_DELEGATED passed ON THE
+	# COMMAND LINE, which is how `gate-main` says "gate-sast owns the scan".
+	# ADR-0086 partially supersedes ADR-0017 here: the leg is no longer chained
+	# into the required job in CI, but this Makefile chain is DELIBERATELY intact
+	# so `make build-check` on a developer machine still scans — that is what
+	# ADR-0017's dogfooding rationale actually required, and tools/assert-sast-
+	# chain-reachable.py pins it, because after the split no CI path runs this
+	# branch and nothing else would notice it being deleted.
+	@if [ "$(origin SAST_DELEGATED)" = "command line" ] && [ -n "$(SAST_DELEGATED)" ]; then \
+		echo "build-check: SAST_DELEGATED passed on the command line — SAST/SCA delegated, not invoked by this target"; \
+	elif [ -n "$(SKIP_SAST)" ]; then \
 		echo "build-check: SKIP_SAST set — skipping SAST/SCA gate (no SAST-relevant changes to scan)"; \
 	else \
 		$(MAKE) sast; \
@@ -141,7 +149,11 @@ build-check:
 # SAST/SCA gate (ADR-0017). Three OSS scanners, installed from
 # tools/requirements-sast.txt as CI-only dev tools — never shipped runtime
 # deps. Chained into build-check above so the repo's single native gate runs it
-# locally and in build-check.yml CI. Not added to tools/hooks/pre-pr.py or
+# locally. NOT in build-check.yml CI any more: since ADR-0086 the leg is its own
+# `gate-sast` job and `gate-main` passes SAST_DELEGATED=1, so this chain runs only
+# on a developer machine — which is exactly what ADR-0017's dogfooding rationale
+# required, and what tools/assert-sast-chain-reachable.py now pins. Not added to
+# tools/hooks/pre-pr.py or
 # tools/catalogue/pre_pr_catalogue.py (the Windows CI path runs the former;
 # Semgrep has no Windows support). Linux/macOS only (Semgrep).
 #
@@ -323,8 +335,10 @@ test:
 	$(PYTHON) -m pytest packs/core/tests/hooks/ -q
 	$(PYTHON) -m pytest packs/core/tests/pack/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/adapt-to-project/ -q
+	$(PYTHON) -m pytest packs/core/tests/skills/author-brief/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/bug-fix/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/capture-work/ -q
+	$(PYTHON) -m pytest packs/core/tests/skills/new-spec/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/project-knowledge/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/receive-brief/ -q
 	$(PYTHON) -m pytest packs/core/tests/skills/work-intake/ -q
@@ -333,10 +347,16 @@ test:
 	$(PYTHON) -m pytest packs/product-documentation/tests/ -q
 	$(PYTHON) -m pytest packs/architect/tests/pack/ -q
 	$(PYTHON) -m pytest packs/credential-brokers/tests/pack/ -q
-	$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
-	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
 	$(PYTHON) -c "import httpx"
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira/test_intake_policy.py -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
+	$(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
+	$(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
+	$(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
 	$(PYTHON) -m pytest packs/linear/tests/skills/linear/ -q
+	$(PYTHON) -m pytest packs/linear/tests/skills/linear-brief-intake/ -q
 	$(PYTHON) -m pytest packs/converters/tests/skills/markdown-to-html/ -q
 	$(PYTHON) -m pytest packs/converters/tests/skills/mermaid-renderer/ -q
 	@n=$$($(PYTHON) -m pytest packs/desk-research/tests/skills/desk-research/ -q --collect-only | grep -c '::' || true); \
@@ -384,7 +404,11 @@ ci: build-check pre-pr lint-ruff lint-mypy test
 # ── Site publishing ──────────────────────────────────────────────────────────
 # Requires: npm ci --prefix docs-site (one-time setup)
 # Build order is load-bearing: web/ build cleans build/; docs-site/ build
-# writes into build/docs/. This matches .github/workflows/pages.yml.
+# writes into build/docs/. These targets are the valid LOCAL full-generation
+# sequence — one build-site.py pass, then both builds. CI is NOT identical; see
+# docs-site/AGENTS.md § Build, which owns that comparison. site-link-check is the
+# one target here that runs tools/check-rendered-site-links.py after both builds,
+# as CI does.
 
 .PHONY: site-sync site-build site-link-check site-serve
 

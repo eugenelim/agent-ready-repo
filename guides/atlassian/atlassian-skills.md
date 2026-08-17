@@ -30,8 +30,8 @@ Show me the whole Atlas team backlog across APP and API. Do not change Jira.
 | Crawl a Confluence space to Markdown | [confluence-crawler](#confluence-crawler) |
 | Compute cycle time, throughput, WIP, DORA metrics | [flow-metrics](#flow-metrics) |
 | Compare flow metrics before and after a change | [ai-adoption-report](#ai-adoption-report) |
-| Turn a Jira epic into a product brief | [jira-brief-intake](#jira-brief-intake) |
-| Turn a Jira Align feature into a product brief | [jira-align-brief-intake](#jira-align-brief-intake) |
+| Start repository work from Jira | [jira-brief-intake](#jira-brief-intake) |
+| Start repository work from Jira Align | [jira-align-brief-intake](#jira-align-brief-intake) |
 | Fix a defect end-to-end from a Jira ticket | [jira-defect-flow](#jira-defect-flow) |
 | Read or write Jira Align portfolio data | [jira-align](#jira-align) |
 
@@ -226,20 +226,30 @@ Show me the whole Atlas team backlog across APP and API. Do not change Jira.
 
 ## jira-brief-intake
 
-**Use it for:** turning a Jira epic (and its child issues) into a product brief for `receive-brief`.
+**Use it for:** reading Jira work into the shared content-based repository route.
 
 **Natural requests:**
 
-- "Turn PROJ-100 into specs."
-- "Decompose this Jira epic into a product brief."
+- "Intake Jira issue PROJ-123 as repository work. Start read-only."
+- "Route this Jira board from its content, not its hierarchy."
 
-**Reads:** the epic and its children via `jira`. Writes the brief to `docs/product/briefs/`. Does not write back to Jira.
+**Reads:** bounded source data via `jira`, after profile destination validation.
+
+**Writes:** none to Jira and none directly to the repository. Emits
+`normalized-intake.v1`; `work-intake` owns classification and materialization.
+
+**Limits:** 5 pages, 250 items, 2 MiB, 30 seconds, and two bounded retries by
+default. Exhaustion is explicit.
 
 ---
 
 ## jira-align-brief-intake
 
-**Use it for:** turning a Jira Align Feature into a product brief. One-way intake only — never writes back to Jira Align.
+**Use it for:** reading Jira Align work into the shared content-based repository
+route. The versioned organization profile supplies hints; a Feature is not
+automatically a brief.
+
+**Writes:** none to Jira Align and none directly to the repository.
 
 ---
 

@@ -7,6 +7,7 @@
   {"query": "Capture this multi-feature handoff as a product brief artifact.", "should_trigger": true},
   {"query": "Make a DoR-ready draft brief from this unstructured request.", "should_trigger": true},
   {"query": "Convert this stakeholder message into a registered brief.", "should_trigger": true},
+  {"query": "Turn these unstructured discovery notes into a reviewable Draft brief.", "should_trigger": true},
 
   {"query": "Decompose this ready brief into confirmed specs.", "should_trigger": false},
   {"query": "Write a spec for a single export setting.", "should_trigger": false},
@@ -15,5 +16,6 @@
   {"query": "Fix the defect described in this failing test.", "should_trigger": false},
   {"query": "Record an architecture decision for our queue choice.", "should_trigger": false},
   {"query": "Create a new reusable agent skill.", "should_trigger": false},
-  {"query": "Refresh requirements for an existing registered artifact.", "should_trigger": false}
+  {"query": "Refresh requirements for an existing registered artifact.", "should_trigger": false},
+  {"query": "Capture a reusable lesson from a completed workflow gate.", "should_trigger": false}
 ]

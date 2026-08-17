@@ -1,6 +1,6 @@
 [pack]
 name = "governance-extras"
-version = "0.9.6"
+version = "0.9.7"
 description = "Write the RFC, record the ADR, and keep track of which ones are still open. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Governance Extras"
@@ -81,6 +81,17 @@ providers = ["skill:desk-research", "skill:desk-research-project-synthesize"]
 when      = "A desk-research project has produced synthesized findings that inform the RFC being drafted."
 purpose   = "Provide structured research evidence from a completed desk-research project as an input artifact to the RFC drafting workflow."
 fallback  = "If desk-research is absent, new-rfc proceeds without promoted evidence and notes the missing input in the RFC context block."
+
+[[pack.integrations]]
+id        = "project-knowledge-authoring-handoff"
+pack      = "core"
+kind      = "handoff"
+role      = "Stable authoring-gate knowledge capture"
+consumers = ["skill:new-rfc", "skill:new-adr"]
+providers = ["skill:project-knowledge"]
+when      = "A selected governance authoring workflow reaches its exact stable semantic gate and has reusable supporting practice to capture."
+purpose   = "Submit the published captured-observation request through core's public progressive skill and distil only receipts returned at that same terminal gate."
+fallback  = "If project-knowledge is unavailable, emit the named skip and complete governance authoring without fallback persistence."
 
 [[pack.integrations]]
 id        = "design-proposal-product-engineering"

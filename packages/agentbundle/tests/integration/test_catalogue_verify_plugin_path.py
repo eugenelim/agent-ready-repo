@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from agentbundle.catalogue_tooling.verify import (
     _step_plugin_validation,
     _step_version_parity,
@@ -116,6 +117,25 @@ def test_step4_reports_malformed_manifest(tmp_path):
     assert any("parse error" in d.message for d in result)
 
 
+def test_step4_refuses_linked_manifest(tmp_path):
+    """Step 4 never follows a plugin manifest link outside its pack."""
+    _make_pack(tmp_path)
+    pack_dir = tmp_path / "packs" / "my-pack"
+    outside = tmp_path / "outside.json"
+    _write(outside, _manifest())
+    plugin_json = pack_dir / ".claude-plugin" / "plugin.json"
+    plugin_json.parent.mkdir(parents=True)
+    try:
+        plugin_json.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    result = _step_plugin_validation(tmp_path, None, None, tmp_path)
+
+    assert [diagnostic.code for diagnostic in result] == ["CAT-V-004"]
+    assert "source entry is not a regular file" in result[0].message
+
+
 # ---------------------------------------------------------------------------
 # AC2 — step 5 resolves the same path and detects mismatches
 # ---------------------------------------------------------------------------
@@ -162,3 +182,28 @@ def test_step5_clean_when_pair_agrees(tmp_path):
     )
 
     assert _step_version_parity(tmp_path, None, None, tmp_path) == []
+
+
+@pytest.mark.parametrize("linked_manifest", ["pack.toml", "plugin.json"])
+def test_step5_refuses_linked_parity_input(tmp_path, linked_manifest):
+    """Step 5 refuses links for both files in the parity comparison."""
+    _make_pack(tmp_path, plugin_json=_manifest())
+    pack_dir = tmp_path / "packs" / "my-pack"
+    if linked_manifest == "pack.toml":
+        linked_path = pack_dir / "pack.toml"
+        outside = tmp_path / "outside.toml"
+        _write(outside, PACK_TOML)
+    else:
+        linked_path = pack_dir / ".claude-plugin" / "plugin.json"
+        outside = tmp_path / "outside.json"
+        _write(outside, _manifest())
+    linked_path.unlink()
+    try:
+        linked_path.symlink_to(outside)
+    except OSError:
+        pytest.skip("symlinks not available")
+
+    result = _step_version_parity(tmp_path, None, None, tmp_path)
+
+    assert [diagnostic.code for diagnostic in result] == ["CAT-V-005"]
+    assert "source entry is not a regular file" in result[0].message

@@ -1,0 +1,17 @@
+{
+  "skill_name": "linear-brief-intake",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Intake Linear issue LIN-123.",
+      "expected_output": "Uses linear reads, preserves updatedAt provenance, emits normalized-intake.v1, and invokes work-intake without writing a brief directly.",
+      "assertions": ["Tracker acquisition is read-only", "Routing is delegated to work-intake"]
+    },
+    {
+      "id": 2,
+      "prompt": "Make this unrelated Linear Cycle one brief.",
+      "expected_output": "Treats the Cycle as a hint and asks whether the content is one outcome, separate units, or view-only.",
+      "assertions": ["The Cycle type does not determine the artifact", "No Linear write is proposed"]
+    }
+  ]
+}

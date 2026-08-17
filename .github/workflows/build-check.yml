@@ -11,112 +11,144 @@ on:
   push:
     branches: [main]
 
+# AC12: contents: read is sufficient — all 56 steps reviewed: no token use, no
+# artifact upload/download, no PR comment, no push.
+permissions:
+  contents: read
+
+# AC12: keyed so NON-PR events never share a group. `cancel-in-progress` gating
+# alone is insufficient — GitHub permits one running plus one PENDING run per
+# group regardless of that flag, so a third queued run cancels the pending one.
+# With push-to-main in scope that would cancel an intermediate commit's SAST run,
+# which is the belt-and-braces the head-commit self-certification residual relies
+# on. github.run_id gives every non-PR event its own group. Do NOT use
+# github.head_ref: it is fork-supplied, so two fork PRs on the same branch name
+# would share a group and either could cancel the other's required check.
+concurrency:
+  group: build-check-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# ── Local reproduction, per job (spec/ci-gate-parallelization AC16) ───────────
+# Parity with the local gate is ONE-TO-MANY after this split: `make build-check`
+# covers gate-main ∪ gate-sast, but no single local command equals any single CI
+# job. Addressability is the replacement invariant, so each job's anchor step has a
+# named local command:
+#
+#   gate-main              make build-check SAST_DELEGATED=1
+#                          ^ CI-EQUIVALENCE ONLY — *not* the pre-push command. It
+#                            skips the SAST/SCA leg by design. Its other ~50 steps
+#                            map to `make test` / `lint-ruff` / `lint-mypy` / `pre-pr`.
+#   gate-sast              make sast
+#   gate-export-boundary   make test runs the same suite — but WITHOUT the -rs skip
+#                          check or the tree probe, so a green `make test` is
+#                          compatible with a red job.
+#   aggregator             make build-check runs the posture test via
+#                          build_gate_chain.py; the needs.*.result guard has no
+#                          local counterpart in any target.
+#
+#   all four               make ci   ← the only job-level "local green implies CI
+#                                      green" claim. Use this before pushing.
 jobs:
-  build-check:
-    name: make build-check
+  gate-main:
+    name: gate-main
     runs-on: ubuntu-latest
-    # Bumped 15 → 25 (RFC-0082): the real sdist gate permits 120 seconds for
-    # collection plus 900 for execution, and must report its own fail-closed
-    # timeout before Actions terminates the surrounding setup/SAST job.
+    # 25 minutes: this job runs the drift/lint chain plus ~50 pytest and lint
+    # steps. The RFC-0082 sdist budget that used to justify this number travels
+    # with gate-export-boundary, which now hosts that gate.
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
-          # Full history so the SAST-relevance diff below can reach the PR's
-          # merge-base. (check-adr-immutability in docs.yml also uses
-          # fetch-depth: 0, though it diffs 2-dot rather than the 3-dot
-          # merge-base form used here.)
+          # Full history: the chain gates below fail OPEN without it — lint-catalogue-curation-guard's path-gate, lint-build's top-level audit, and lint-spec-status's base-ref resolution each exit 0 when the base ref is unreachable (AC12).
           fetch-depth: 0
-
-      # SAST is relevant to a PR when it touches either the scanned dirs
-      # (SAST_DIRS) or the gate's own config/CI surface (SAST_CONFIG — e.g.
-      # bandit.yaml, this workflow). A PR that touches neither has nothing to
-      # scan, so skip that leg — the job still runs (it is the required check)
-      # and its drift + lint gates still execute. Push-to-main always runs SAST
-      # (this step is PR-only; github.event.pull_request.base.sha is absent on
-      # push), so post-merge keeps a full pass as belt-and-braces.
-      #
-      # Two safety properties:
-      #   - Single source of truth: both lists are read from the Makefile, so
-      #     the predicate can't drift from SAST_DIRS / SAST_CONFIG.
-      #   - Fail CLOSED: any error reading the scope or the changed-file set
-      #     routes to skip_sast=false, so uncertain detection runs SAST. And
-      #     because SAST_CONFIG includes this workflow + bandit.yaml, a PR that
-      #     loosens the gate is itself scanned by the gate it changes.
-      - name: Detect whether SAST-relevant files changed
-        id: changes
-        if: github.event_name == 'pull_request'
-        run: |
-          base="${{ github.event.pull_request.base.sha }}"
-          head="${{ github.event.pull_request.head.sha }}"
-          dirs=$(make -s print-sast-dirs) || {
-            echo "::warning::Could not read SAST_DIRS from Makefile — running SAST (fail-closed)."
-            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
-          cfg=$(make -s print-sast-config) || {
-            echo "::warning::Could not read SAST_CONFIG from Makefile — running SAST (fail-closed)."
-            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
-          changed=$(git diff --name-only "$base"..."$head") || {
-            echo "::warning::Could not compute changed files — running SAST (fail-closed)."
-            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
-          dir_pat="^($(echo "$dirs" | tr ' ' '|'))/"
-          run=false
-          # Any file under a scanned dir → SAST is relevant.
-          if printf '%s\n' "$changed" | grep -qE "$dir_pat"; then run=true; fi
-          # Any edit to the gate's config/CI surface → SAST must run so the
-          # change is validated by the gate it changes. Whole-line fixed-string
-          # match (paths contain regex metachars like '.').
-          for c in $cfg; do
-            if printf '%s\n' "$changed" | grep -qxF "$c"; then run=true; fi
-          done
-          if [ "$run" = true ]; then
-            echo "skip_sast=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "skip_sast=true" >> "$GITHUB_OUTPUT"
-            echo "::notice::No SAST-relevant files changed (dirs: [$dirs]; config: [$cfg]) — skipping SAST/SCA gate."
-          fi
-
+          # AC12: the token must not persist into .git/config. zizmor's
+          # `artipacked` audit ranks below this repo's --min-severity high,
+          # so AC13's posture test is the only thing asserting it.
+          persist-credentials: false
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with:
           python-version: "3.11"
-
       - name: Install tools dependencies
         # `make build-check` chains `tools/hooks/pre-pr.py` and
         # `tools/catalogue/pre_pr_catalogue.py`. Install tools/requirements.txt
         # before invoking make so the projected-artifact lint surface is reachable in CI.
         run: pip install -r tools/requirements.txt
-
-      - name: Install SAST/SCA tools
-        # `make build-check` chains `make sast` (ADR-0017), which needs Bandit,
-        # pip-audit, and Semgrep on PATH. Install before invoking make so the
-        # dogfooded SAST gate is reachable. The shipped packages stay
-        # dependency-free; these are CI-only dev tools. Skipped when the diff
-        # touches no SAST-relevant file (see the detection step above) — the
-        # SKIP_SAST flag below bypasses the scan, so the tools needn't be
-        # installed.
-        if: steps.changes.outputs.skip_sast != 'true'
-        run: pip install -r tools/requirements-sast.txt
-
       - name: Install agentbundle (editable) + pytest
         run: python -m pip install -e packages/agentbundle/ pytest
-
+      - name: Install bandit unconditionally (lint-nosec-form's ID registry)
+        # Unconditional, and deliberately not the whole of requirements-sast.txt.
+        #
+        # `make build-check` chains tools/lint-nosec-form.py on every run. One of
+        # its checks — a well-formed but nonexistent test id, which bandit
+        # resolves to nothing and so treats as a blanket suppression — needs
+        # bandit's own registry and silently no-ops without it. See
+        # docs/specs/bandit-nosec-form-lint/spec.md AC4b.
+        #
+        # Post-split (ADR-0086) this step is MORE load-bearing, not less: `make sast`
+        # never runs in this job at all — it is gate-sast's — so nothing else here
+        # would provision bandit and the lint would be inert on EVERY PR. The rest
+        # of requirements-sast.txt belongs to gate-sast, which installs it
+        # unconditionally. spec/ci-gate-parallelization AC14(1); the posture test
+        # asserts this step's presence in this job.
+        #
+        # The pin is READ, not restated — a second copy of the version range can
+        # drift from the canonical one in requirements-sast.txt; deriving it
+        # cannot.
+        #
+        # LAST step before `make build-check`, and it asserts its own success.
+        # Both matter, because a provisioning step that quietly does nothing
+        # would leave the required check green with the gate it enables inert —
+        # the exact shape this whole step exists to remove. Three routes, all
+        # measured rather than assumed:
+        #   (a) a grep that matches nothing yields `pip install ""`, which exits
+        #       0 with no output; `set -e` on the assignment is what stops it.
+        #   (b) a bandit whose registry import raises — an API move inside the
+        #       >=1.9,<2 range, a broken plugin entry point — leaves
+        #       id_checker() returning None, and lint-nosec-form then degrades
+        #       to a caveat and exit 0. The python assertion below reaches for
+        #       the same API and both directions of its answer.
+        #   (c) a later pip resolution replacing a shared transitive dep of
+        #       bandit; running last leaves nothing between here and the gate.
+        #
+        # The registry probe raises rather than asserting: a bare `assert` is
+        # compiled out under PYTHONOPTIMIZE, which would restore the silent pass
+        # this probe exists to remove.
+        #
+        # tools/test_build_gate_chain.py pins this step's existence, its lack of
+        # an `if:`, and its position — extracting this very body and running it
+        # against two mutated inputs. Nothing else does: lint-ci-parity's roster
+        # only demands a disposition for steps that exist, so deleting this step
+        # and its row would leave both gates green.
+        run: |
+          set -euo pipefail
+          pin="$(grep -E '^bandit([^A-Za-z0-9._-]|$)' tools/requirements-sast.txt)"
+          echo "installing pinned: $pin"
+          pip install "$pin"
+          python - <<'PROBE'
+          from bandit.core import extension_loader as loader
+          if not loader.MANAGER.check_id("B307") or loader.MANAGER.check_id("B999"):
+              raise SystemExit(
+                  "bandit's registry did not resolve as lint-nosec-form's "
+                  "id_checker() expects; its unknown-id check would silently "
+                  "no-op behind a green gate"
+              )
+          PROBE
       - name: Run make build-check
-        # Pass SKIP_SAST=1 only when the diff touches no SAST-relevant file; the
-        # Makefile then skips the SAST/SCA leg while still running every drift
-        # and lint gate. Empty string (the default / push-to-main) runs SAST.
-        run: make build-check PACKS_DIR=packs ${{ steps.changes.outputs.skip_sast == 'true' && 'SKIP_SAST=1' || '' }}
-
+        # SAST_DELEGATED is passed as a make ARGUMENT, not an env prefix:
+        # $(origin SAST_DELEGATED) must be `command line` for the Makefile to
+        # treat the delegation as deliberate (ADR-0086). As a prefix the origin
+        # is `environment`, the recipe would run the SAST leg here as well as in
+        # gate-sast, and the scan would silently run twice.
+        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1
       - name: Install ripgrep
         run: sudo apt-get update && sudo apt-get install -y ripgrep
-
       - name: Install ruff + mypy
         run: pip install ruff mypy
-
       - name: ruff lint (style, imports, common bugs)
         # tools/lint-ruff.py delegates to `python -m ruff check .` with the
         # project config from pyproject.toml. Fails the build on any violation.
         run: python3 tools/lint-ruff.py
-
       - name: mypy type-check (typed packages only)
         # tools/lint-mypy.py scopes mypy to packages/agentbundle/agentbundle and
         # packages/credbroker/credbroker; tests/build_pipeline/ is a test tree, not library code.
@@ -143,7 +175,6 @@ jobs:
           tests/unit/test_resolve_user_scope_target_adapter.py
           tests/unit/test_resolve_target_adapter_user_config.py
           tests/unit/test_install_argparse_adapter_flag.py
-
       - name: pytest converters install/uninstall (AC6a)
         working-directory: packages/agentbundle
         run: python -m pytest tests/integration/test_install_converters_user_scope.py
@@ -220,7 +251,6 @@ jobs:
       # navigation. make build-check runs no pytest — wire them explicitly.
       - name: pytest guides sidebar generation
         run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py
-
       - name: Install credbroker (editable, with crypto extra)
         # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
         # AND runs the stdlib-purity gate under the *stronger* condition — with
@@ -228,17 +258,6 @@ jobs:
         # import never reaches them (credbroker AC4). The vault tests that need
         # the extra arrive with task T4.
         run: python -m pip install -e './packages/credbroker[crypto]'
-
-      # RFC-0082's export-boundary gate runs in release-agentbundle.yml, so
-      # nothing here would catch it regressing to always-exit-0. make
-      # build-check runs no pytest — wire its tests explicitly. This follows
-      # the credbroker install because the extracted sdist suite preflights it.
-      - name: pytest export-boundary gate
-        # `build` and `setuptools` come from tools/requirements.txt, installed
-        # earlier in this job — the single declaration. The real wheel test
-        # skips without them and the real sdist test fails, so both are
-        # load-bearing for the AC3/AC9 proof.
-        run: python -m pytest tools/test_check_artifact_contents.py
 
       - name: pytest credbroker (RFC-0023 Phase 1)
         working-directory: packages/credbroker
@@ -249,6 +268,22 @@ jobs:
       # neither `make build-check` nor any package pytest discovers. Wire it
       # explicitly or it never gates. Placed after the credbroker[crypto]
       # install above so the in-process import + crypto-extra cases resolve.
+      - name: pytest guides + catalogue navigation
+        run: >-
+          python -m pytest
+          tools/test_validate_guides.py
+          tools/test_check_guide_index.py
+          tools/test_catalogue_navigation.py
+          tools/test_documentation_entry_links.py
+
+      # test_check_rendered_site_links.py appears in pages.yml as a `paths:`
+      # trigger and never as a run step — easy to miscount as covered.
+      - name: pytest site build + link rewriting
+        run: >-
+          python -m pytest
+          tools/test_build_site_link_rewrites.py
+          tools/test_check_rendered_site_links.py
+          tools/test_build_site_routing.py
       - name: pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)
         working-directory: packs/credential-brokers/tests/skills/credential-setup
         # `requires_crypto` gates on find_spec("cryptography") and ("argon2"), so a
@@ -287,7 +322,6 @@ jobs:
         run: |
           python -c "import credbroker, httpx"
           python -m pytest test_sso_config.py test_sso_client.py test_setup_sso.py
-
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         run: |
           python tools/lint-conformance-portability.py --root .
@@ -398,7 +432,6 @@ jobs:
           python -m pytest
           tests/unit/test_install_event_dropped_wirings.py
           tests/unit/test_validate_hook_wiring_per_file_compatibility.py
-
       - name: pytest core work-loop activation hook (roster-owned)
         run: python -m pytest tests/roster/test_core_work_loop_hook.py
 
@@ -419,7 +452,6 @@ jobs:
           tests/unit/test_cli_scope_flags.py
           tests/integration/test_reconcile.py
           tests/unit/test_list_targets_cmd.py
-
       - name: converters source-attribution scrub (AC2)
         run: |
           # rg exits 0 with hits, 1 with no matches, ≥2 on error
@@ -439,7 +471,6 @@ jobs:
               echo "::error::rg failed in scrub step (exit $rc)"
               exit 1 ;;
           esac
-
       - name: converters Rail-C marker scrub (AC3)
         run: |
           [ -d packs/converters ] || { echo "::error::packs/converters/ missing"; exit 1; }
@@ -455,7 +486,6 @@ jobs:
               echo "::error::rg failed in Rail-C step (exit $rc)"
               exit 1 ;;
           esac
-
       - name: converters evals.json carry-over disposition (AC4 + AC4a)
         run: |
           # Pin the spec's skill disposition mechanically:
@@ -546,7 +576,6 @@ jobs:
       - name: pytest msg-to-markdown extraction (extraction-msg-to-markdown-python-contract)
         working-directory: packs/converters/tests/skills/msg-to-markdown
         run: python -m pytest test_drift.py test_convert.py test_security.py test_parity.py
-
       - name: catalogue-curation guard lint + self-test (RFC-0059 D6)
         # RFC-0059: the catalogue-curation skills must never change this repo's
         # agentbundle engine behaviour or credential-brokers. Two honest layers:
@@ -559,7 +588,6 @@ jobs:
         run: |
           python3 tools/test-lint-catalogue-curation-guard.py
           python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main
-
       - name: catalogue-curation skill-script tests (RFC-0059 security ACs)
         # The deterministic helpers behind the catalogue-curation skills:
         # SSRF allowlist + write-jail (assimilate-primitive), the resumable
@@ -595,7 +623,6 @@ jobs:
           )
           run_with_floor packs/catalogue-curation/tests/skills/assimilate-primitive 30
           run_with_floor packs/catalogue-curation/tests/skills/assimilate-repo 7
-
       - name: experience framework-agnosticism lint + self-test (design-craft-pack AC8)
         # RFC-0033: the experience pack (renamed from design-craft, ADR-0038)
         # ships portable design method, never a stack or a values table. The
@@ -608,7 +635,6 @@ jobs:
         run: |
           python3 tools/test-lint-experience-agnostic.py
           python3 tools/lint-experience-agnostic.py
-
       - name: pack description drift backstop + self-test
         # A pack's `[pack].description` is display copy — what a person reads in
         # a listing while deciding whether to install. The quality bar is
@@ -626,3 +652,186 @@ jobs:
         run: |
           python3 tools/test-lint-pack-descriptions.py
           python3 tools/lint-pack-descriptions.py
+
+  gate-sast:
+    name: gate-sast
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # Full history so the relevance diff below reaches the PR's merge-base.
+          fetch-depth: 0
+          # AC12: the token must not persist into .git/config. zizmor's
+          # `artipacked` audit ranks below this repo's --min-severity high,
+          # so AC13's posture test is the only thing asserting it.
+          persist-credentials: false
+      - name: Set up Python (gate-sast)
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.11"
+      - name: Install SAST/SCA tools
+        # `make build-check` chains `make sast` (ADR-0017), which needs Bandit,
+        # pip-audit, and Semgrep on PATH. Install before invoking make so the
+        # dogfooded SAST gate is reachable. The shipped packages stay
+        # dependency-free; these are CI-only dev tools.
+        #
+        # UNCONDITIONAL, deliberately (AC4). It used to be gated on the relevance
+        # predicate, but a cross-job `steps.*` reference evaluates EMPTY rather than
+        # erroring — so `'' != 'true'` is true and a conditional install in a job
+        # that no longer hosts the detect step would silently provision nothing.
+        # Installing always leaves the predicate exactly ONE consumer: the
+        # `Run make sast` step below. The posture test asserts this step carries no
+        # `if:`, and ~11s of install on a job that always runs is the price.
+        run: pip install -r tools/requirements-sast.txt
+      - name: Detect whether SAST-relevant files changed
+        id: changes
+        if: github.event_name == 'pull_request'
+        env:
+          # Never do: no ${{ }} inside a run: body this change writes or moves.
+          # Passed as env so the values are data, not spliced command text.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          base="$BASE_SHA"
+          head="$HEAD_SHA"
+          dirs=$(make -s print-sast-dirs) || {
+            echo "::warning::Could not read SAST_DIRS from Makefile — running SAST (fail-closed)."
+            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          cfg=$(make -s print-sast-config) || {
+            echo "::warning::Could not read SAST_CONFIG from Makefile — running SAST (fail-closed)."
+            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          changed=$(git diff --name-only "$base"..."$head") || {
+            echo "::warning::Could not compute changed files — running SAST (fail-closed)."
+            echo "skip_sast=false" >> "$GITHUB_OUTPUT"; exit 0; }
+          dir_pat="^($(echo "$dirs" | tr ' ' '|'))/"
+          run=false
+          # Any file under a scanned dir → SAST is relevant.
+          if printf '%s\n' "$changed" | grep -qE "$dir_pat"; then run=true; fi
+          # Any edit to the gate's config/CI surface → SAST must run so the
+          # change is validated by the gate it changes. Whole-line fixed-string
+          # match (paths contain regex metachars like '.').
+          for c in $cfg; do
+            if printf '%s\n' "$changed" | grep -qxF "$c"; then run=true; fi
+          done
+          if [ "$run" = true ]; then
+            echo "skip_sast=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip_sast=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::No SAST-relevant files changed (dirs: [$dirs]; config: [$cfg]) — skipping SAST/SCA gate."
+          fi
+      - name: Run make sast
+        # AC4: the predicate has exactly ONE consumer — this step. The scanner
+        # install above is unconditional, because a cross-job `steps.*` reference
+        # evaluates EMPTY rather than erroring, so `'' != 'true'` is true and a
+        # conditional install in another job would silently provision nothing.
+        if: steps.changes.outputs.skip_sast != 'true'
+        run: make sast
+
+  gate-export-boundary:
+    name: gate-export-boundary
+    runs-on: ubuntu-latest
+    # RFC-0082: the real sdist gate permits 120 seconds for collection plus 900
+    # for execution, and must report its own fail-closed timeout before Actions
+    # terminates the surrounding job. This comment travels with the gate.
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # Full history for parity with the other jobs; and NO sparse-checkout — the suite's three real-artifact tests skipif on packages/agentbundle being a directory, so a narrowed checkout makes this 150s gate exit 0 having verified nothing (AC14(2)).
+          fetch-depth: 0
+          # AC12: the token must not persist into .git/config. zizmor's
+          # `artipacked` audit ranks below this repo's --min-severity high,
+          # so AC13's posture test is the only thing asserting it.
+          persist-credentials: false
+      - name: Set up Python (gate-export-boundary)
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.11"
+      - name: Install tools dependencies (gate-export-boundary)
+        # `make build-check` chains `tools/hooks/pre-pr.py` and
+        # `tools/catalogue/pre_pr_catalogue.py`. Install tools/requirements.txt
+        # before invoking make so the projected-artifact lint surface is reachable in CI.
+        run: pip install -r tools/requirements.txt
+      - name: Install agentbundle (editable) + pytest (gate-export-boundary)
+        # Bare pytest, not the editable agentbundle: the suite imports no
+        # agentbundle and _DEPENDENCY_IMPORTS does not list it — it BUILDS the package
+        # via subprocess, which needs the source tree (present), not an install. If
+        # CI proves otherwise, add it back AND to AC1's manifest with that reason.
+        run: python -m pip install pytest
+      - name: Install credbroker (editable, with crypto extra) (gate-export-boundary)
+        # Installing the [crypto] extra verifies it resolves (spec credbroker AC1)
+        # AND runs the stdlib-purity gate under the *stronger* condition — with
+        # cryptography/argon2 present, the subprocess still proves the base
+        # import never reaches them (credbroker AC4). The vault tests that need
+        # the extra arrive with task T4.
+        run: python -m pip install -e './packages/credbroker[crypto]'
+
+      # RFC-0082's export-boundary gate runs in release-agentbundle.yml, so
+      # nothing here would catch it regressing to always-exit-0. make
+      # build-check runs no pytest — wire its tests explicitly. This follows
+      # the credbroker install because the extracted sdist suite preflights it.
+      - name: pytest export-boundary gate
+        # AC14(2). tools/check-artifact-contents.py declares
+        # _DEPENDENCY_IMPORTS = ("pytest", "yaml", "jsonschema", "credbroker") and
+        # RAISES on a miss, so the module direction is already fail-closed. What is
+        # NOT is the tree shape: all three real-artifact tests skipif on
+        # packages/agentbundle being a directory, with reason "engine package not
+        # present" — which matches no dependency-token pattern. So assert the tree
+        # and assert ZERO skips, reason-agnostically.
+        run: |
+          set -euo pipefail
+          test -d packages/agentbundle
+          python -m pytest tools/test_check_artifact_contents.py -q -rs 2>&1 | tee "$RUNNER_TEMP/out.txt"
+          ! grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"
+
+  build-check:
+    name: make build-check
+    # AC3: the aggregator. It follows the shape already running in
+    # build-check-windows.yml — one env var per dependency, one inline
+    # `!= "success"` test each — with two strengthenings that precedent lacks:
+    # the guard runs HERE (not only via build_gate_chain.py inside gate-main,
+    # which is the far side of the edge it protects), and each comparison
+    # carries its consequent on the same statement.
+    #
+    # It is NOT the only thing gating this workflow: branch protection requires
+    # gate-main, gate-sast and gate-export-boundary by name (AC2, applied
+    # post-merge), so an unwired or deleted job blocks the PR regardless of what
+    # this job reports.
+    needs:
+      - gate-main
+      - gate-sast
+      - gate-export-boundary
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ always() }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          # AC12 exempts this job from fetch-depth: 0 — it runs one stdlib script
+          # that parses one workflow file and touches no history.
+          persist-credentials: false
+      - name: Set up Python (aggregator)
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with:
+          python-version: "3.11"
+      # Two steps, not one, so each can carry an HONEST lint-ci-parity disposition:
+      # the posture test IS covered locally (build_gate_chain.py runs it under
+      # `make build-check`), while consulting needs.*.result has no local
+      # counterpart in any target — the residual AC16 names. One merged step would
+      # have forced a disposition that was half false either way.
+      - name: Run the build-check.yml posture test
+        run: |
+          set -euo pipefail
+          python3 tools/test-build-check-workflow.py
+      - name: Require every gate
+        env:
+          GATE_MAIN_RESULT: ${{ needs.gate-main.result }}
+          GATE_SAST_RESULT: ${{ needs.gate-sast.result }}
+          GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
+        run: |
+          set -euo pipefail
+          [ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1
+          [ "$GATE_SAST_RESULT" != "success" ] && echo "::error::gate-sast reported $GATE_SAST_RESULT" && exit 1
+          [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1
+          echo "every gate passed"

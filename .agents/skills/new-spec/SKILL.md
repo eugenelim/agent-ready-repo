@@ -338,6 +338,16 @@ look like?" before any code.
    retcon body** (the failure mode in step 4) stops a single document from
    contradicting itself across tenses. Remind the user of both.
 
+## Project-knowledge non-gate
+
+Creating or reviewing a spec at `Status: Draft` and a plan at `Status: Drafting`
+is not a stable semantic gate. This skill does not call `project-knowledge --capture`,
+does not persist scratch, and does not attempt
+enquiry or distillation merely because the files exist or the spec-mode review
+is clean. Abandoned or rejected authoring is also a no-op. `work-loop` owns
+`spec-approved` and `plan-locked` after their separate human and state-machine
+gates succeed.
+
 ## Anti-patterns to refuse
 
 - Drafting a spec for something already half-built without checking against

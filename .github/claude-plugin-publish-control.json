@@ -1,5 +1,6 @@
 {
-  "version": 1,
+  "version": 2,
+  "repo": "eugenelim/agent-ready-repo",
   "branch": {
     "target": "refs/heads/claude-plugins-dist",
     "restrict_updates": true,

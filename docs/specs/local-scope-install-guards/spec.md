@@ -3,8 +3,8 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Contract:** `install --scope local` refuses three previously-accepted cases.
-  Behaviour change; released as a minor.
+- **Brief:** none
+- **Contract:** none
 
 > **Spec contract:** this document defines what "done" means. The implementing
 > PR must match this spec, or update it. Verification must be derivable from it.

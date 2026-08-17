@@ -63,8 +63,10 @@ if __package__ in (None, "") and __spec__ is None:
 try:
     from ._client import (  # noqa: E402
         AuthError,
+        IntakeRequestPolicy,
         JiraAlignClient,
         JiraAlignError,
+        load_base_url,
         load_credentials,
     )
 except ModuleNotFoundError as _import_exc:  # noqa: E402
@@ -211,6 +213,12 @@ def _build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=None,
         help="Write output to this file instead of stdout.",
+    )
+    p.add_argument(
+        "--intake-profile",
+        type=Path,
+        default=None,
+        help="Bind this invocation to a reviewed, read-only intake profile.",
     )
 
     sub = p.add_subparsers(
@@ -581,6 +589,23 @@ def _csv_scalar(value: Any) -> str:
 
 
 async def _run(args: argparse.Namespace) -> int:
+    intake_policy: IntakeRequestPolicy | None = None
+    if args.intake_profile is not None:
+        if args.insecure:
+            print(
+                "error: --insecure is incompatible with tracker intake",
+                file=sys.stderr,
+            )
+            return EXIT_USER_ACTION
+        try:
+            destination = load_base_url()
+            intake_policy = IntakeRequestPolicy.from_profile(
+                args.intake_profile, destination
+            )
+        except AuthError as exc:
+            print(f"error: {exc}", file=sys.stderr)
+            return EXIT_USER_ACTION
+
     try:
         credentials = load_credentials()
     except AuthError as exc:
@@ -590,7 +615,9 @@ async def _run(args: argparse.Namespace) -> int:
     writer = OutputWriter(args.format, args.output)
     try:
         async with JiraAlignClient(
-            credentials, verify_tls=not args.insecure
+            credentials,
+            verify_tls=not args.insecure,
+            intake_policy=intake_policy,
         ) as client:
             if args.command == "check":
                 return await _cmd_check(client)

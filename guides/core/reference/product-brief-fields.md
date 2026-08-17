@@ -17,7 +17,7 @@ The brief template is a **guide, not a schema**. Every field below except Outcom
 
 | Field | Required? | Meaning |
 | --- | --- | --- |
-| `Slug` | yes | Kebab-case identifier; matches the filename and the `Brief:` back-link on derived specs. |
+| `Slug` | yes | Kebab-case identifier; matches the filename. |
 | `Received` | recommended | The date the brief was handed over (`YYYY-MM-DD`). |
 | `Owner` | recommended | Who owns delivering this repo's slice. |
 | `Epic` | optional | Id or link of an external coordinator (a tracker epic, an integration repo) when this repo's work is one slice of a cross-repo effort. Omit when there is none. This is the only pointer to the wider effort — the repo owns its slice, not a coordination hub. |
@@ -81,7 +81,7 @@ A markdown table whose rows the coverage lint reconciles against the specs:
 
 | Field / marker | Where | Meaning |
 | --- | --- | --- |
-| `Brief: <slug>` | spec header (sibling to `Constrained by:` / `Contract:`) | Product provenance — the brief this spec was derived from. Distinct from `Constrained by:`, which cites the ADRs/RFCs that *govern* the spec. The coverage map rolls up from these back-links. |
+| `Brief: docs/product/briefs/<slug>.md` | spec header (sibling to `Constrained by:` / `Contract:`) | Product provenance — the brief this spec was derived from, named by its repository-relative path (a bare slug fails reconciliation and blocks dispatch). Distinct from `Constrained by:`, which cites the ADRs/RFCs that *govern* the spec. The coverage map rolls up from these back-links. |
 | `Satisfies: US-n` | appended to an acceptance criterion | Story trace (Shape B only). Marks the AC that satisfies story `US-n`, giving story-granular coverage. Omitted in Shape A. |
 
 ## The coverage lint

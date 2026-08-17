@@ -41,6 +41,8 @@ rfc-status
 
 **ADR (Architecture Decision Record)** — the record of a decision already made. It captures the decision, the alternatives that were considered and why they were rejected, and the consequences. ADRs are immutable once merged; when a decision is reversed, the original ADR is superseded, not deleted. `new-adr` runs two critique tracks — a standard context / consequences analysis and an adversarial pass that argues against the decision — so the final record honestly names what was left on the table. If an RFC preceded the decision, the ADR links back to it.
 
+When core's `project-knowledge` skill is installed, `new-rfc` may capture reusable supporting practice only after every mandatory check is clean and the RFC file and index entry have been written. `new-adr` may do the same only when the decision-maker actually changes the ADR from Proposed to Accepted. Drafts, previews, abandoned work, and normative proposal or decision content are never captured. Missing project knowledge is a named skip with no fallback file; any distillation is limited to receipts returned by that same authoring gate.
+
 ---
 
 ## Entry points
@@ -110,6 +112,8 @@ The agent previews each draft before writing. Approve — RFC first, then ADR.
 ## Cross-pack
 
 **Requires — `core`:** governance-extras layers on top of core. The RFC and ADR templates scaffold into `docs/` — the same directory core's `work-loop` reads for specs and specs' plans. Install `core` first or alongside.
+
+**Optional handoff — `project-knowledge`:** At the `rfc-handoff-ready` and `adr-accepted` gates, the producer can submit the public typed captured-observation request through core's progressive skill. The authoring skill owns transient scratch and timing; it never accesses private journals, persists scratch automatically, or creates alternate storage.
 
 **Downstream — `work-loop`:** When an RFC is accepted, a `work-loop` run implements it. The RFC's follow-on artifacts (specs, CONVENTIONS.md edits) become queue entries in `workspace.toml`.
 

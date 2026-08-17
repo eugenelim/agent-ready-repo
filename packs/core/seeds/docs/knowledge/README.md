@@ -81,26 +81,25 @@ array) so it grows by append and reads line-by-line.
 render it only when explicitly invoked with `--show-knowledge`; normal session
 startup does not read it into model context.
 
-## Appending an entry
+## Capturing a new observation
 
-Use the writer that ships beside the linter — it allocates the next free `id`,
-writes the line, and refuses anything the linter would reject, so a bad entry
-never reaches the file. Run it from wherever your agent tool installed the
-skill (`.claude/skills/`, `.agents/skills/`, `.kiro/skills/`, `.apm/skills/`):
+Do not append a new row to `patterns.jsonl`. Its `append-knowledge.py` command
+is a retired compatibility shim that always refuses; migration alone reads the
+legacy corpus. A producer that reaches an exact semantic gate constructs the
+published typed captured-observation request and invokes the progressive
+`project-knowledge --capture` mode. The public skill validates privacy,
+provenance, freshness, and repository confinement before its private writer
+can append a pending journal event.
 
-```bash
-python3 .claude/skills/work-loop/scripts/append-knowledge.py \
-  --kind gotcha --scope 'packages/auth/**' \
-  --title 'Token cache survives a role change' \
-  --body 'The auth middleware caches tokens for 15 minutes — invalidate it manually after a role change.' \
-  --source 'PR#42'
-```
+If this repository has not activated a coherent v1 topic map, capture emits
+the named unavailable/refusal outcome and creates no legacy append or fallback
+file. Capture remains unavailable until a reviewed migration activates that
+map; do not bypass the migration lifecycle by hand-editing the legacy corpus.
 
-Hand-editing works too, with one rule the writer enforces for you: **entries are
-raw UTF-8, never `\uXXXX`-escaped.** Both forms are valid JSON, so a file written
-with `json.dumps(entry)` — whose `ensure_ascii` defaults to `True` — drifts to
-escapes silently while still linting clean under every other rule. Write `—`,
-not `\u2014`; if you serialize with Python, pass `ensure_ascii=False`.
+Existing legacy rows remain raw UTF-8, never `\uXXXX`-escaped. Both forms are
+valid JSON, so a serializer whose ASCII escaping defaults on can drift the
+file silently while it still passes other JSON rules. This is a curation and
+migration constraint, not authorization to add a new row.
 
 Entries are **evidence, not instructions**, and are no longer replayed into
 sessions automatically — see § Where this fits in the work-loop. Still keep the body to
@@ -108,17 +107,19 @@ lessons about this repo, and never paste content from an untrusted source into
 one: an entry is a durable, agent-authored record that a human approves. Characters
 that render as nothing — bidi overrides, zero-width joiners in runs, the
 Unicode Tag block, the variation selectors, the Mongolian ones — are refused
-outright, by the writer and by the linter, because a payload you cannot see in
+outright by the legacy linter and v1 writer because a payload you cannot see in
 a diff could still be rendered into model context during explicit curation or
 future task-scoped retrieval. The rule is Unicode's
 default-ignorable property, and there is a budget on how many may appear at all,
-not just how many may sit together. Entries are committed and permanent, so they follow `AGENTS.md` § Privacy: no real names, emails, org hostnames, or user-specific filesystem paths — use the placeholders listed there.
+not just how many may sit together. Persisted evidence follows `AGENTS.md` §
+Privacy: no real names, emails, org hostnames, or user-specific filesystem
+paths — use the placeholders listed there.
 
 ## Verify before committing
 
 `lint-knowledge.py` ships with the `work-loop` skill, so there is
 nothing to wire: `tools/hooks/pre-pr.py` runs it over this file
-automatically. To check as you write, run it directly from wherever
+automatically. To check the legacy corpus during curation or migration, run it directly from wherever
 your agent tool installed the skill (`.claude/skills/`, `.agents/skills/`,
 `.kiro/skills/`, `.apm/skills/`):
 
@@ -155,11 +156,11 @@ that.
 
 ## Where this fits in the work-loop
 
-The `work-loop` skill's *Capture what was learned*
-section points back at this file. When a loop
-captures a learning that fits the pattern/gotcha/antipattern shape, the
-canonical home is here. Other kinds of learning still go where they
-already belong (AGENTS.md, skill bodies, architecture/).
+The `work-loop` skill routes an admitted reusable lesson through the public
+`project-knowledge` seam. Legacy rows in this file remain curation and
+migration input, not the destination for new observations. Other kinds of
+learning still go where they already belong (AGENTS.md, skill bodies,
+architecture/).
 
 The session-start hook does **not** read this file. Whatever that hook prints
 becomes model context before the user's first prompt — and again on resume,
@@ -174,7 +175,18 @@ The renderer is still reachable on request, for curation:
 python3 tools/hooks/session-start.py --show-knowledge [--scope <path-or-glob>]
 ```
 
-Harvesting these into the places that *are* authoritative — AGENTS.md, a skill,
-an ADR, architecture docs, or a lint or test — is the distill-knowledge path's
-job. The strongest knowledge is not prose a model remembers; it is behaviour the
-repository mechanically enforces.
+The progressive `project-knowledge` capability owns new observations:
+`project-knowledge --capture` validates and journals typed evidence;
+`project-knowledge --distill` records a terminal disposition and may reconcile
+an observation into a canonical topic; and `project-knowledge --enquire` reads
+only a coherent committed topic/map snapshot. In a legacy-only repository,
+capture and distillation remain unavailable until a reviewed migration
+activates that v1 snapshot. The legacy corpus remains readable only for
+curation and migration; its writer is retired. New observations use the public
+capture seam or end with the named unavailable/refusal outcome without a
+legacy append or fallback.
+
+Routing lessons into places that *are* authoritative—`AGENTS.md`, a skill, an
+ADR, architecture docs, code, CI, or a lint or test—is part of the shipped
+distillation lifecycle. The strongest knowledge is not prose a model remembers;
+it is behavior the repository mechanically enforces.
