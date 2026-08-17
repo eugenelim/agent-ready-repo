@@ -78,6 +78,7 @@ __all__ = [
     "read_md_status",
     "assert_status_legal",
     "validate_run_id",
+    "non_negative_int",
     "contained",
     "contained_reason",
     # retry caps
@@ -927,7 +928,7 @@ def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> Gua
                 ok=False,
                 reason="plan check-current: schedule_waves is empty (run schedule first)",
             )
-        idx = _non_negative_int(state, "current_wave_index", 0)
+        idx = non_negative_int(state, "current_wave_index", 0)
         if isinstance(idx, str):
             return GuardResult(ok=False, reason=f"plan check-current: {idx}")
         if not (0 <= idx < len(waves)):
@@ -975,7 +976,7 @@ def check_schedule_current(spec_dir: Path) -> GuardResult:
     )
 
 
-def _non_negative_int(state: dict, field: str, default):
+def non_negative_int(state: dict, field: str, default):
     """Validate a counter as a non-negative int, or return a reason string.
 
     `int()` coerced `"3"`, `3.7` and `-1` alike, so a malformed counter changed the
@@ -1020,8 +1021,8 @@ def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
         return GuardResult(ok=True, message="")
 
     if phase == "gates-failed":
-        count = _non_negative_int(state, "implementation_retry_count", 0)
-        cap = _non_negative_int(state, "max_implementation_retries",
+        count = non_negative_int(state, "implementation_retry_count", 0)
+        cap = non_negative_int(state, "max_implementation_retries",
                                 DEFAULTS["max_implementation_retries"])
         for value in (count, cap):
             if isinstance(value, str):
@@ -1037,8 +1038,8 @@ def check_phase(spec_dir: Path, *, phase: str) -> GuardResult:
         return GuardResult(ok=True, message="")
 
     if phase == "review":
-        count = _non_negative_int(state, "review_retry_count", 0)
-        cap = _non_negative_int(state, "max_review_retries",
+        count = non_negative_int(state, "review_retry_count", 0)
+        cap = non_negative_int(state, "max_review_retries",
                                 DEFAULTS["max_review_retries"])
         for value in (count, cap):
             if isinstance(value, str):
@@ -1064,7 +1065,7 @@ def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) ->
         return GuardResult(ok=False, reason=reason)
 
     waves = state.get("schedule_waves", [])
-    idx = _non_negative_int(state, "current_wave_index", 0)
+    idx = non_negative_int(state, "current_wave_index", 0)
     if isinstance(idx, str):
         return GuardResult(ok=False, reason=f"wave check: {idx}")
     total = len(waves)

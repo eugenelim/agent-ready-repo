@@ -1062,3 +1062,66 @@ def test_guards_create_and_mutate_nothing(g, spec) -> None:
     )
     assert not list(d.glob(".engine-state-*.json.tmp"))
     assert not list(d.glob("*.lock"))
+
+
+def test_all_is_pinned_to_the_declared_surface(g) -> None:
+    """`__all__` is the loaders' completeness contract, so it is pinned explicitly.
+
+    AC13 makes `set(__all__) <= set(dir(module))` the check that turns a
+    cleanly-truncated file into a load failure. That check is only as good as
+    `__all__` is complete: a name dropped from the list stops being covered, and the
+    loader would happily hand back a module missing it.
+
+    Pinning it here rather than deriving it from the module is deliberate — a derived
+    expectation would move with the code, which is the antipattern this spec has been
+    tripping over since T0.
+    """
+    expected = {
+        # result type + containment
+        "GuardResult", "contained", "contained_reason",
+        # bounded, symlink-safe readers
+        "read_managed_json", "read_managed_text", "read_state", "state_path_for",
+        # canonical contract hashing
+        "canonical_contract", "sha256_canonical_contract",
+        # status parsing, legality, validation
+        "UnreadableArtifact", "read_md_status", "assert_status_legal",
+        "validate_run_id", "non_negative_int",
+        # retry caps
+        "DEFAULTS",
+        # the six read-only guards
+        "check_identity", "check_plan_current", "check_schedule_current",
+        "check_phase", "check_wave", "check_artifact_status",
+    }
+    actual = set(g.__all__)
+    assert actual == expected, (
+        "the guard module's public surface changed.\n"
+        f"  added:   {sorted(actual - expected)}\n"
+        f"  removed: {sorted(expected - actual)}\n"
+        "If this is intentional, update both this list and the loaders' required-symbol "
+        "expectations — the completeness check is only as strong as __all__ is complete."
+    )
+    assert len(g.__all__) == len(set(g.__all__)), "__all__ contains a duplicate"
+    # Every guard the FSM dispatches must be exported, or the engine cannot reach it.
+    assert {"check_identity", "check_plan_current", "check_schedule_current",
+            "check_phase", "check_wave", "check_artifact_status"} <= actual
+
+
+def test_the_loaders_required_symbols_are_a_subset_of_all(g) -> None:
+    """The three loader copies check a required-symbol set; it must not exceed `__all__`.
+
+    A loader requiring a name that `__all__` does not export would fail on a perfectly
+    good module — the false-refusal direction, which is the half that does not show up
+    in normal use.
+    """
+    import re as _re
+
+    for filename in ("loop-cohort.py", "loop-engine.py", "check-spec-status.py"):
+        src = (SCRIPTS / filename).read_text(encoding="utf-8")
+        match = _re.search(r"_GUARDS_REQUIRED = \(([^)]*)\)", src, _re.S)
+        if match is None:
+            continue
+        required = set(_re.findall(r'"([A-Za-z_][A-Za-z0-9_]*)"', match.group(1)))
+        missing = sorted(required - set(g.__all__))
+        assert not missing, (
+            f"{filename} requires symbols the guard module does not export: {missing}"
+        )
