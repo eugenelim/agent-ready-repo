@@ -77,8 +77,11 @@ missing one. What remains are the claims no mutation can express:
   collected), and that propagates through `| tee` under `pipefail`. Executed.
 - `python -c pass`, `echo x > /dev/null` as extra guard statements → allowlisted,
   exit 0, and the comparisons still follow. No effect.
-- `timeout-minutes: 0` → the job is cancelled, so `needs.<job>.result` is not
-  `success` and the guard fires.
+- `timeout-minutes: 0` → on a WORK job the job is cancelled, so `needs.<job>.result` is
+  not `success` and the guard fires; on the AGGREGATOR the mechanism is different — the
+  required check itself reports `cancelled`, which blocks the merge rather than allowing
+  it. Fail-closed either way, but by two different routes, and the value of this block is
+  that the next reviewer can trust the reason as written.
 - `strategy.matrix` with an empty list → the job produces no instances and never
   reports; once AC2 requires it by name the PR hangs rather than merging.
 - `uses: actions/checkout@main` → scanner-owned. zizmor ranks `unpinned-uses` HIGH
@@ -128,20 +131,15 @@ _STRICT_SHELL = "set -euo pipefail"
 # _invocation so every assertion inherits it — patching assertions one at a time
 # is how three consecutive drafts each left a different one neuterable.
 _DISCARDING_TAIL = re.compile(r"\|\||;\s*(true|:)\s*$|&\s*$")
-# Belt-and-braces behind `_pinned`. Kept because `_invocation` still serves the
-# statements that legitimately vary, and extended past dry-run with make's
-# FAKE-SUCCESS flags: `-t` reports "Nothing to be done" and `-i` reports
-# "Error 1 (ignored)", both exit 0, and neither prints a recipe — so a denylist built
-# only from dry-run forms missed them. `-q`/`--question` is deliberately absent: it
-# means "quiet" to pip and "ask, don't run" to make, and the make anchors are
-# equality-pinned, so including it would break a legitimate pip invocation to
-# re-close a hole `_pinned` already closes.
-_NEUTERING_FLAGS = frozenset({
-    "-n", "--dry-run", "--just-print", "--recon",
-    "-t", "--touch", "-i", "--ignore-errors",
-    "-o", "--old-file", "--assume-old", "-W", "--what-if",
-    "--co", "--collect-only",
-})
+# `_invocation` now reaches ONLY the bandit step's `pip install "$pin"` and its registry
+# probe, so this set is scoped to what pip can actually receive. Make's fake-success
+# flags (`-t`, `-i`, `-o`, `-W`) were briefly listed here and are removed: they are
+# unreachable — no surviving call site invokes make — and worse, `-t` is pip's `--target`
+# and `-i` its `--index-url`, so listing them would fail an ordinary mirror-URL edit.
+# That is the same ambiguity that kept `-q` out (quiet to pip, "question" to make), and
+# it applies identically. Make's flags are `_pinned`'s domain now, where equality needs
+# no enumeration.
+_NEUTERING_FLAGS = frozenset({"-n", "--dry-run"})
 # Expansion forms that can reintroduce a flag no argv token equals. `$(`/backtick were
 # the enumerated pair; `${UNSET:--n}` and `$'\055n'` are the two the enumeration
 # missed, and `${…:-…}` is exempt from `set -u` so it needs no cooperating variable.
@@ -190,12 +188,36 @@ _ALLOWED_STEP_ENV = frozenset({
 # STATEMENT EQUALITY section for why containment checks cannot hold this line.
 PINNED_ANCHOR = "make build-check PACKS_DIR=packs SAST_DELEGATED=1"
 PINNED_SAST = "make sast"
-PINNED_SAST_INSTALL = "pip install -r tools/requirements-sast.txt"
+# A TUPLE of accepted spellings, not one string. `python -m pip` is the form this same
+# workflow uses in three other steps, and pinning only the bare `pip` spelling would
+# route an ordinary hygiene edit through a puzzling gate failure. Each alternative has
+# to be equally safe, which is why the list stays short and is not padded with
+# spellings nobody uses.
+PINNED_SAST_INSTALL = (
+    "pip install -r tools/requirements-sast.txt",
+    "python -m pip install -r tools/requirements-sast.txt",
+)
 PINNED_TREE_PROBE = "test -d packages/agentbundle"
 PINNED_EXPORT_PYTEST = (
     "python -m pytest tools/test_check_artifact_contents.py -q -rs 2>&1 "
     '| tee "$RUNNER_TEMP/out.txt"'
 )
+PINNED_POSTURE = f"python3 {SELF_NAME}"
+# `working-directory:` decides WHERE a pinned statement runs, so it is the YAML sibling
+# of the `-C`/`-f` ban in `_REDIRECT_FLAGS` — and it was unasserted. Measured:
+# `working-directory: tools` on the anchor leaves the pinned text untouched, audits
+# clean, and with any `tools/Makefile` defining a no-op `build-check` the command exits
+# 0 while the entire ~50-step chain, every lint and the local posture test go unrun.
+# Scoped to the pinned steps only: ~28 other gate-main steps use it legitimately.
+_NO_CWD_STEPS = (
+    ("gate-main", "Run make build-check"),
+    ("gate-sast", "Run make sast"),
+    ("gate-sast", "Install SAST/SCA tools"),
+    ("gate-export-boundary", "pytest export-boundary gate"),
+)
+# Non-run steps permitted in the aggregator. An action step runs code this file cannot
+# read, so the set is closed rather than filtered.
+_ALLOWED_AGGREGATOR_ACTIONS = ("actions/checkout@", "actions/setup-python@")
 
 
 def _step_env_keys(step: str) -> list[str]:
@@ -503,22 +525,43 @@ def _assignment_prefixed(stmt: str) -> bool:
     return seen and i < len(toks)
 
 
-def _pinned(step: str, expected: str) -> str:
-    """The load-bearing statement that EQUALS `expected` after whitespace collapse.
+def _pinned(step: str, expected: str | tuple[str, ...]) -> str:
+    """The load-bearing statement EQUAL to `expected` (or any of them) after whitespace
+    collapse.
 
     The primitive the rest of this file's argv checks should have been from the start.
     Equality admits no assignment prefix, no extra flag, no expansion and no reordering,
     so it needs no enumeration of what those could be — which is what four rounds of
     denylist patching kept getting wrong. Whitespace is normalised so reflowing a long
     line stays legal; nothing else is.
+
+    A pin is deliberately coupled to the workflow: editing one of these statements means
+    editing this file in the same commit. That coupling is only tolerable if the failure
+    EXPLAINS itself, so misses are recorded with the expected and nearest text — see
+    `_pin_misses`. An implementer's first encounter with the coupling should not be a
+    bare label.
     """
-    want = " ".join(expected.split())
+    wants = (expected,) if isinstance(expected, str) else expected
+    normalised = [" ".join(w.split()) for w in wants]
+    nearest = ""
     for stmt, line in _statements(step):
         if stmt == UNPARSEABLE or not _load_bearing(line):
             continue
-        if " ".join(stmt.split()) == want:
+        flat = " ".join(stmt.split())
+        if flat in normalised:
             return stmt
+        # Nearest = shares the command word, so the diagnostic points at the statement
+        # the author probably edited rather than at the first line of the body.
+        if not nearest and flat.split()[:1] == normalised[0].split()[:1]:
+            nearest = flat
+    _pin_misses.append((normalised[0], nearest or "(no statement with that command)"))
     return ""
+
+
+# Populated by `_pinned` on a miss, drained by `main`. A module-level list rather than a
+# return value because every caller is a one-line `check(...)` and threading a diagnostic
+# through all of them would obscure the assertion.
+_pin_misses: list[tuple[str, str]] = []
 
 
 def _invocation(step_or_block: str, command: str, *required_args: str,
@@ -643,25 +686,23 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # the aggregator itself is a duplicate YAML key whose winner is parser-dependent,
     # so require exactly one and require it to be always().
 
-    # AC13: the guard must RUN here, as a python invocation — not appear as a
-    # filename in an echo, a needs: entry or a with: value. Two distinct
-    # invocations are required, and the audit one must NOT carry --self-test:
-    # otherwise the aggregator could run only the mutation matrix (which passes
-    # against synthetic fixtures) and never audit the real workflow at all.
-    def _guard_invocations() -> tuple[bool, bool]:
-        audit_run = self_run = False
-        for stmt, line in _statements(agg):
-            if stmt == UNPARSEABLE or not _load_bearing(line):
-                continue
-            cmd, args = _command(stmt)
-            if cmd not in ("python3", "python") or SELF_NAME not in args:
-                continue
-            if "--self-test" in args:
-                self_run = True
-            else:
-                audit_run = True
-        return audit_run, self_run
-
+    # AC13: the guard must RUN here — not appear as a filename in an echo, a needs:
+    # entry or a with: value.
+    #
+    # PINNED BY EQUALITY, like the other four, and it was the last load-bearing
+    # statement that was not. A command-word check saw `python3` and `SELF_NAME` in the
+    # argv of
+    #     python3 -c "import sys" tools/test-build-check-workflow.py
+    # which exits 0 having never executed this file, and it was the ONE argv checker
+    # that never consulted `_assignment_prefixed`, so
+    # `PYTHONPATH=/tmp/x python3 tools/…` passed too — and with the posture step's body
+    # unconstrained, an earlier line in it could write `/tmp/x/sitecustomize.py`
+    # containing `os._exit(0)`, after which every python invocation on the box exits 0
+    # before running anything. That composes with a neutered anchor: gate-main's
+    # in-chain copy of this audit also never runs, because the chain that would run it
+    # is a dry run. This is the only auditor inside the job that wears the required
+    # check, so it gets the strongest available control and its body is held to the same
+    # straight-line rule as the guard's.
     # Both aggregator steps must be unconditional: `if: ${{ false }}` on them merges
     # a PR with every gate red, since the aggregator is the required check.
     # Indexed labels, so an UNNAMED step still gets checked — dropping a step's name
@@ -686,6 +727,15 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     # anything an earlier step exported.
     check("aggregator-run-steps-pinned",
           {nm for nm, st in _steps(agg) if _run_body(st)} == set(AGGREGATOR_RUN_STEPS))
+    # ...and the NON-run steps are known too. The check above reads `_run_body`, which is
+    # empty for a `uses:` step, so `- uses: actions/github-script@v7` with
+    # `script: core.exportVariable('GATE_MAIN_RESULT','success')` sat outside both it and
+    # the env-file check. The forgery still failed — step-level `env:` on the guard
+    # outranks an exported value — but the comment above claimed there was "no third
+    # step", and that was false as written. Now it is true.
+    check("aggregator-action-steps-known", all(
+        nm in AGGREGATOR_RUN_STEPS or any(a in st for a in _ALLOWED_AGGREGATOR_ACTIONS)
+        for nm, st in _steps(agg)))
     check("no-env-file-writes-in-aggregator", not any(
         "GITHUB_ENV" in ln or "GITHUB_OUTPUT" in ln
         for _n, st in _steps(agg) for ln in _run_lines(st)))
@@ -693,11 +743,13 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
     guard_lines = _run_lines(guard_step)
     check("guard-strict-shell", bool(guard_lines) and guard_lines[0] == _STRICT_SHELL)
     check("guard-straight-line", bool(guard_step) and _body_is_straight_line(guard_step))
-    _agg_audit, _ = _guard_invocations()
-    # One invocation is enough: this file runs its mutation matrix on EVERY
-    # invocation (see main()), so a separate `--self-test` call would be redundant
-    # and an assertion demanding one would pin a shape the design dropped.
-    check("guard-runs-in-aggregator", _agg_audit)
+    posture_step = _step_named(agg, "posture test")
+    check("guard-runs-in-aggregator", bool(_pinned(posture_step, PINNED_POSTURE)))
+    # Equality is the load-bearing half — `python3 -c …` satisfies the allowlist — but the
+    # straight-line rule stops an earlier statement in the same body from arranging for
+    # the interpreter to exit before it reads this file.
+    check("posture-straight-line",
+          bool(posture_step) and _body_is_straight_line(posture_step))
 
     # AC3: three-way binding, and each comparison's CONSEQUENT.
     # `[ "$X" != "success" ] || echo ok` carries the comparison and gates nothing.
@@ -769,6 +821,22 @@ def audit(text: str, evaluated: list[str] | None = None) -> list[str]:
         check(f"steps-parsed[{jid}]", bool(_steps(blk)))
         check(f"shell-parseable[{jid}]",
               not any(st == UNPARSEABLE for st, _ in _statements(blk)))
+        # Duplicate mapping keys, retired as a CLASS rather than key by key. `if` and
+        # `GATE_*_RESULT` were closed by requiring exactly one value; that left the key
+        # that carries the command open — a second `run:` on a step is valid YAML text,
+        # resolves last-key-wins, and `_run_body` returns at the FIRST one, so
+        # `run: echo bypassed` after the real body audited clean. Closing three of N keys
+        # was arbitrary. This closes every key that decides what a step does, and it does
+        # not depend on an inference about GitHub's parser either way.
+        check(f"no-duplicate-step-keys[{jid}]", all(
+            len(_key_values(st, key)) <= 1
+            for _n, st in _steps(blk)
+            for key in ("run", "uses", "working-directory", "name", "env")))
+    # Blocker: `working-directory:` on a pinned step runs the pinned text somewhere else.
+    for _jid, _stepname in _NO_CWD_STEPS:
+        _st = _step_named(_job_block(text, _jid), _stepname)
+        check(f"no-working-directory[{_jid}/{_stepname}]",
+              bool(_st) and _key_re("working-directory").search(_st) is None)
 
     # AC12
     check("top-permissions", re.search(
@@ -1299,6 +1367,46 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("grep-reads-suffixed-path", "export-boundary-skip-check",
      lambda t: t.replace('! grep -Eq "^SKIPPED" "$RUNNER_TEMP/out.txt"',
                          "! grep -Eq \"^SKIPPED\" $RUNNER_TEMP/out.txt.bak", 1)),
+    # -- what the statement text does NOT determine (re-review blockers) ----------
+    # `working-directory:` runs the pinned text against a different tree; measured to
+    # exit 0 with the whole chain unrun, given any Makefile in the target directory.
+    ("cwd-redirects-anchor", "no-working-directory[gate-main/Run make build-check]",
+     lambda t: t.replace("      - name: Run make build-check\n",
+                         "      - name: Run make build-check\n        working-directory: tools\n", 1)),
+    ("cwd-redirects-sast", "no-working-directory[gate-sast/Run make sast]",
+     lambda t: t.replace("      - name: Run make sast\n",
+                         "      - name: Run make sast\n        working-directory: tools\n", 1)),
+    ("quoted-cwd-redirects-export",
+     "no-working-directory[gate-export-boundary/pytest export-boundary gate]",
+     lambda t: t.replace("      - name: pytest export-boundary gate\n",
+                         "      - name: pytest export-boundary gate\n"
+                         "        'working-directory': tools\n", 1)),
+    # `python3 -c "import sys" <file>` exits 0 having never read <file>.
+    ("posture-never-executes-the-file", "guard-runs-in-aggregator",
+     lambda t: t.replace(f"python3 {SELF_NAME}",
+                         f'python3 -c "import sys" {SELF_NAME}', 1)),
+    ("posture-pythonpath-prefix", "guard-runs-in-aggregator",
+     lambda t: t.replace(f"python3 {SELF_NAME}",
+                         f"PYTHONPATH=/tmp/x python3 {SELF_NAME}", 1)),
+    # An earlier statement in the posture body arranging for the interpreter to no-op.
+    ("posture-body-not-straight-line", "posture-straight-line",
+     lambda t: t.replace(f"          python3 {SELF_NAME}\n",
+                         "          mkdir -p /tmp/x\n"
+                         f"          python3 {SELF_NAME}\n", 1)),
+    # A second `run:` key: valid YAML, last-key-wins, and `_run_body` read the first.
+    ("duplicate-run-key-on-anchor", "no-duplicate-step-keys[gate-main]",
+     lambda t: t.replace(f"        run: {PINNED_ANCHOR}\n",
+                         f"        run: {PINNED_ANCHOR}\n        run: make -n build-check\n", 1)),
+    ("quoted-duplicate-run-key-on-sast", "no-duplicate-step-keys[gate-sast]",
+     lambda t: t.replace("        run: make sast\n",
+                         "        run: make sast\n        'run': echo bypassed\n", 1)),
+    # An action step in the aggregator runs code this file cannot read.
+    ("github-script-step-in-aggregator", "aggregator-action-steps-known",
+     lambda t: t.replace("      - name: Require every gate\n",
+                         "      - uses: actions/github-script@v7\n"
+                         "        with:\n"
+                         "          script: core.exportVariable('GATE_MAIN_RESULT','success')\n"
+                         "      - name: Require every gate\n", 1)),
 ]
 
 
@@ -1468,11 +1576,22 @@ def main(argv: list[str]) -> int:
     if not WORKFLOW.is_file():
         print(f"✖ {WORKFLOW} not found", file=sys.stderr)
         return 1
+    _pin_misses.clear()
     violations = audit(WORKFLOW.read_text(encoding="utf-8"))
     if violations:
         print(f"✖ {len(violations)} posture violation(s):", file=sys.stderr)
         for v in violations:
             print(f"  - {v}", file=sys.stderr)
+        # An equality pin is MEANT to fail when the workflow is edited, so the failure
+        # has to say what changed. Printing the bare label made the intended coupling
+        # look like a broken test.
+        for want, got in _pin_misses:
+            print(f"\n  pinned statement not found:\n    expected: {want}\n"
+                  f"    nearest:  {got}", file=sys.stderr)
+        if _pin_misses:
+            print("\n  These statements ARE the gate, so this file pins them verbatim.\n"
+                  "  If the workflow change is intentional, update the PINNED_* constant\n"
+                  "  in the same commit — do not relax the comparison.", file=sys.stderr)
         return 1
     print("✓ build-check.yml posture OK")
     return 0
