@@ -495,6 +495,27 @@ open = [
   # and build-check.yml — needs a docs/**-only PR after merge. Do NOT narrow
   # SAST_CONFIG to manufacture it (spec Boundaries § Never do).
   {slug = "ci-gate-parallelization-critical-path-measurement", source = "spec/ci-gate-parallelization AC11"},
+  # packs/core/tests/skills/work-loop/test_statelock.py's
+  # `concurrent-reclaimers-one-holder` case failed once in CI on 2026-08-17
+  # ("two holders after a reclaim race"), then PASSED on a re-run of the same
+  # commit and 3/3 locally. So it is non-deterministic, not a regression from the
+  # commit it appeared on — that commit touched one unrelated file
+  # (tools/test-build-check-workflow.py).
+  #
+  # Recorded rather than dismissed, because "flaky" is a conclusion and only
+  # half of one is evidenced here. What the re-run proves is non-determinism.
+  # What it does NOT prove is that spec/ci-gate-parallelization's Gate A split
+  # left the race's PROBABILITY unchanged: those pack/hook suites used to run as
+  # a step inside `agentbundle-tests`, after ~127s of other work on a warm
+  # runner, and now run first in their own `pack-hook-tests` job. That is exactly
+  # the kind of timing change a reclaim-race test is sensitive to. A dedicated
+  # runner plausibly makes it LESS likely, not more — but nothing here measured
+  # it either way, and this is the first observed failure of that case.
+  #
+  # Next action: re-run the case under load in both job shapes before either
+  # fixing the lock or calling the test flaky. Do not quarantine it first — a
+  # quarantined concurrency test is a deleted one.
+  {slug = "statelock-reclaim-race-flake", source = "CI observation 2026-08-17, spec/ci-gate-parallelization"},
   # AC3 of spec/ci-gate-parallelization makes the aggregator job wear the sole
   # required status check. `pull_request` evaluates build-check.yml AND its posture
   # test (tools/test-build-check-workflow.py) from the PR's own ref, so a single
