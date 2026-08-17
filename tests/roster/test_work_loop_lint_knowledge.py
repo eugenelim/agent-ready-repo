@@ -671,7 +671,7 @@ def _check_readme_parity() -> list[str]:
     # thought to guard. A comment asking two files to stay in sync is not a
     # guard, which is the rule this function exists to enforce — so a new
     # duplicated section has to be added here rather than trusted.
-    guarded = ("Appending an entry", "Verify before committing")
+    guarded = ("Capturing a new observation", "Verify before committing")
     problems: list[str] = []
     for heading in guarded:
         sections = []
@@ -704,6 +704,35 @@ def _check_readme_parity() -> list[str]:
         problems.append("docs/knowledge/README.md and its seed state different "
                         "field limits — this paragraph is the shipped policy "
                         "and must be byte-identical")
+    lifecycle_required = {
+        "--capture",
+        "--distill",
+        "--enquire",
+        "legacy append or fallback",
+    }
+    lifecycle_forbidden = {
+        "canonical home is here",
+        "distill-knowledge path",
+    }
+    for path in pair:
+        text = path.read_text(encoding="utf-8")
+        section = text.split("## Where this fits in the work-loop", 1)
+        if len(section) != 2:
+            problems.append(
+                f"{_rel(path)} has no '## Where this fits in the work-loop' section"
+            )
+            continue
+        body = re.sub(r"\s+", " ", section[1])
+        missing = sorted(term for term in lifecycle_required if term not in body)
+        stale = sorted(term for term in lifecycle_forbidden if term in body)
+        if missing:
+            problems.append(
+                f"{_rel(path)} omits current lifecycle term(s) {missing}"
+            )
+        if stale:
+            problems.append(
+                f"{_rel(path)} retains retired lifecycle term(s) {stale}"
+            )
     return problems
 
 

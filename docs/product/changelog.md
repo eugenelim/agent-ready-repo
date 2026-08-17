@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### [core][2.7.0] — 2026-08-16
+### [core][2.7.1] — 2026-08-17
 
 #### Added
 
@@ -582,15 +582,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a repository policy lint, not a packaged one: `pack.schema.json` and the
   packaged pack lint both run against *adopter* catalogues, so a rule in either
   would turn this catalogue's house style into someone else's build break.
-
-## [core][2.7.1] — 2026-08-17
-
-### Changed
-
-- **Brief, spec, and plan authoring now hand reusable supporting lessons to
-  project knowledge only at their stable gates.** Draft and incomplete work
-  does not capture; typed requests use the public seam; terminal distillation
-  is receipt-scoped; and normative artifact authority remains unchanged.
 
 ## [governance-extras][0.9.7] — 2026-08-16
 

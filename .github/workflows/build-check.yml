@@ -294,6 +294,8 @@ jobs:
           python -m pytest tests/ -q
           python -m pytest packs/architect/tests/pack/ -q
           python -m pytest packs/core/tests/pack/ -q
+          python -m pytest packs/core/tests/skills/author-brief/ -q
+          python -m pytest packs/core/tests/skills/new-spec/ -q
           python -m pytest packs/core/tests/skills/workspace-status/ -q
           python -m pytest packs/credential-brokers/tests/pack/ -q
           python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q

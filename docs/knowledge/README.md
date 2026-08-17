@@ -95,9 +95,8 @@ can append a pending journal event.
 
 If this repository has not activated a coherent v1 topic map, capture emits
 the named unavailable/refusal outcome and creates no legacy append or fallback
-file. Activate v1 only through the reviewed migration lifecycle described in
-the architecture page; do not bypass that lifecycle by hand-editing the legacy
-corpus.
+file. Capture remains unavailable until a reviewed migration activates that
+map; do not bypass the migration lifecycle by hand-editing the legacy corpus.
 
 Existing legacy rows remain raw UTF-8, never `\uXXXX`-escaped. Both forms are
 valid JSON, so a serializer whose ASCII escaping defaults on can drift the
@@ -159,11 +158,11 @@ that.
 
 ## Where this fits in the work-loop
 
-The `work-loop` skill's *Capture what was learned*
-section points back at this file. When a loop
-captures a learning that fits the pattern/gotcha/antipattern shape, the
-canonical home is here. Other kinds of learning still go where they
-already belong (AGENTS.md, skill bodies, architecture/).
+The `work-loop` skill routes an admitted reusable lesson through the public
+`project-knowledge` seam. Legacy rows in this file remain curation and
+migration input, not the destination for new observations. Other kinds of
+learning still go where they already belong (AGENTS.md, skill bodies,
+architecture/).
 
 The session-start hook does **not** read this file. Whatever that hook prints
 becomes model context before the user's first prompt — and again on resume,
