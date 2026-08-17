@@ -77,7 +77,7 @@ decisions to hold work to.
 The bottom layers cite the upper layers; upper layers do not know about
 lower layers. That's the whole point of the hierarchy.
 
-**The brief altitude.** A *brief* (`product/briefs/<slug>.md`) sits between
+**The brief altitude.** A *brief* (`docs/product/briefs/<slug>.md`) sits between
 the roadmap and the specs — it is where an externally-authored, multi-feature
 product handoff (a PRD, a solution packet) lands when it's too big to be one
 spec. The altitude reads `roadmap → brief → spec → AC`: the roadmap names
