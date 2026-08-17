@@ -222,7 +222,7 @@ _GUARDS_REQUIRED = (
     "GuardResult", "read_managed_json", "read_managed_text", "read_state",
     "state_path_for", "canonical_contract", "sha256_canonical_contract",
     "UnreadableArtifact", "read_md_status", "assert_status_legal",
-    "validate_run_id", "DEFAULTS",
+    "validate_run_id", "non_negative_int", "DEFAULTS",
 )
 
 
@@ -323,6 +323,7 @@ except GuardsUnavailable as exc:
     read_state = state_path_for = _guards_unavailable
     canonical_contract = sha256_canonical_contract = _guards_unavailable
     read_md_status = assert_status_legal = validate_run_id = _guards_unavailable
+    non_negative_int = _guards_unavailable
     _template_max_implementation_retries = _template_max_review_retries = _guards_unavailable
     _sha256_bytes = _lint_spec_status = _guards_unavailable
     UnreadableArtifact = GuardsUnavailable
@@ -344,6 +345,7 @@ else:
     read_md_status = _read_md_status = _g.read_md_status
     assert_status_legal = _g.assert_status_legal
     validate_run_id = _g.validate_run_id
+    non_negative_int = _g.non_negative_int
     UnreadableArtifact = _g.UnreadableArtifact
     _sha256_bytes = _g._sha256_bytes
     _lint_spec_status = _g._lint_spec_status
@@ -924,8 +926,8 @@ def _evaluate(state: dict, phase: str) -> int:
     if phase == "implement":
         return 0
     if phase == "gates-failed":
-        count = _g._non_negative_int(state, "implementation_retry_count", 0)
-        cap = _g._non_negative_int(
+        count = non_negative_int(state, "implementation_retry_count", 0)
+        cap = non_negative_int(
             state, "max_implementation_retries", DEFAULTS["max_implementation_retries"]
         )
         if isinstance(count, str) or isinstance(cap, str):
@@ -937,8 +939,8 @@ def _evaluate(state: dict, phase: str) -> int:
             )
         return 0
     if phase == "review":
-        count = _g._non_negative_int(state, "review_retry_count", 0)
-        cap = _g._non_negative_int(
+        count = non_negative_int(state, "review_retry_count", 0)
+        cap = non_negative_int(
             state, "max_review_retries", DEFAULTS["max_review_retries"]
         )
         if isinstance(count, str) or isinstance(cap, str):
