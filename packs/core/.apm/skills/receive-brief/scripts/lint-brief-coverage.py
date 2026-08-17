@@ -86,7 +86,9 @@ def extract_token(raw: str) -> str:
 def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
     """Return (status-token, brief-back-link) from a spec's header.
 
-    The back-link is the canonical path form, or a legacy bare slug.
+    The back-link is the canonical path form, or a legacy bare slug. A leading
+    `./` is stripped so the path spelling compares equal to the brief's own
+    repository-relative path.
 
     A `Brief:` value that is empty, `none`, or the template HTML-comment
     placeholder counts as no back-link (None).
@@ -104,6 +106,8 @@ def parse_spec(spec_text: str) -> tuple[str | None, str | None]:
                 value = m.group(1).strip()
                 if not _is_placeholder(value):
                     brief = extract_token(value).strip("`")
+                    if brief.startswith("./"):
+                        brief = brief[2:]
     return status, brief
 
 
