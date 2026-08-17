@@ -1,7 +1,7 @@
 # Plan: lint-performance-p0
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Audit:** [`notes/lint-inventory.md`](notes/lint-inventory.md) — scope contract and single canonical home for all figures and counts. Not restated here.
 
 ## Approach
@@ -281,7 +281,12 @@ return sorted.
 
 ### T2: The current lint's behaviour is captured as a byte-exact baseline
 
-**Depends on:** none — and it **must** land before T4 touches the lint.
+**Depends on:** none
+
+**Ordering note (not a dependency):** this task must land *before* T4 touches the
+lint, because the baseline has to come from the unmodified subject. That
+constraint is expressed as T4's dependency on this task, not as a dependency
+here — stating it on this line would invert the edge and create a cycle.
 
 **Touches:** tools/test-lint-boundary-golden.py, tools/lint-boundary-golden.json
 

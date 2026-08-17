@@ -1,6 +1,6 @@
 # Spec: lint-performance-p0
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0071 (`evals/` is skill-local runtime content); ADR-0075 (test ownership and homes — this spec adds four `tools/` suites and one committed baseline file); `guides/_shared/reference/catalogue-authoring-standards.md` § 4 (cross-pack behaviour is not pack-owned)
