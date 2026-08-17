@@ -201,6 +201,7 @@ shipped = [
   {path = "docs/specs/workspace-mcp/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-mcp — Stage 1 implementation", needs = []},
   {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
   # Tech-site completion programme — shipped 2026-08-17.
+  {path = "docs/specs/site-ci-contract-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Require the existing site construction tests and docs contrast checker in CI", needs = []},
   {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
 ]
 queue   = [
@@ -243,7 +244,6 @@ queue   = [
   # Tech-site completion programme — approved 2026-08-17 from the canonical brief.
   # These entries are independently shippable. `needs` records only hard delivery
   # ordering; the brief retains the broader wave and evidence sequence.
-  {path = "docs/specs/site-ci-contract-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Require the existing site construction tests and docs contrast checker in CI", needs = []},
   {path = "docs/specs/docs-site-build-contract-hardening/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Harden docs rendering with site-local cleanup and built-in plugin tests", needs = [{type = "local", kind = "spec", path = "docs/specs/site-ci-contract-closure/spec.md"}]},
   {path = "docs/specs/guide-title-clarity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Apply the four approved guide-title wording changes", needs = []},
   {path = "docs/specs/guide-metadata-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete reviewed metadata for every rendered public guide", needs = [{type = "local", kind = "spec", path = "docs/specs/guide-title-clarity/spec.md"}]},
@@ -470,6 +470,17 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
+  # .github/workflows/build-check.yml carries a comment block describing the
+  # credential-setup skill suite that sits above the WRONG step: the steps
+  # spec/build-check-coverage-gaps inserted displaced it from the
+  # `pytest credential-setup skill` step it documents, and
+  # spec/site-ci-contract-closure's contrast step widened that gap by one more.
+  # A reader takes it as describing whichever step follows it. Fix: move the block
+  # back above its own step. Deliberately deferred rather than tidied in passing:
+  # it pre-dates both changes and neither orphaned it, so it falls outside the
+  # bundled-fixes carve-out. Unblocks when: picked up — comment move only, no
+  # dependency.
+  {slug = "build-check-stranded-credential-setup-comment", source = "spec/site-ci-contract-closure (review concern 16)"},
   # tools/lint-build.py's RFC_AUTHORISED_DIRS still credits the `docs-site` entry to
   # ADR-0055, while the tuple's own header says entries are added only when an
   # Accepted RFC authorises the directory — and RFC-0089 is now exactly that RFC.
