@@ -652,35 +652,6 @@ open = [
   # Deferred rather than bundled: the fix is to change the publisher's import surface,
   # which is publish-path code this PR deliberately does not touch.
   {slug = "marketplace-publisher-branch-layer-2-only", summary = "The publisher's BRANCH push target is covered by the parity gate's literal layer only, not the resolved-value layer", source = "spec/marketplace-generator-single-source (review concern 4)"},
-  # .github/workflows/build-check.yml carries a comment block describing the
-  # credential-setup skill suite that sits above the WRONG step: the steps
-  # spec/build-check-coverage-gaps inserted displaced it from the
-  # `pytest credential-setup skill` step it documents, and
-  # spec/site-ci-contract-closure's contrast step widened that gap by one more.
-  # A reader takes it as describing whichever step follows it. Fix: move the block
-  # back above its own step. Deliberately deferred rather than tidied in passing:
-  # it pre-dates both changes and neither orphaned it, so it falls outside the
-  # bundled-fixes carve-out. Unblocks when: picked up — comment move only, no
-  # dependency.
-  {slug = "build-check-stranded-credential-setup-comment", source = "spec/site-ci-contract-closure (review concern 16)"},
-  # web/src/design-system.md claims the Starlight CSS imports web/'s tokens.css at
-  # build time (lines ~455-456 and ~492). Already false before
-  # spec/docs-site-build-contract-hardening — starlight.css stopped importing it — and
-  # now unrecoverable, since the copy that made the sentence half-true is gone. Fix:
-  # correct both passages to say the docs palette is self-contained per ADR-0085.
-  # Deferred from that spec: the file is outside every task's Touches and the change
-  # is marketing-side documentation, not the generator contract. Unblocks when: picked
-  # up — prose only, no dependency.
-  {slug = "design-system-md-stale-token-import-claim", source = "spec/docs-site-build-contract-hardening (review blocker 4)"},
-  # tools/lint-build.py's RFC_AUTHORISED_DIRS still credits the `docs-site` entry to
-  # ADR-0055, while the tuple's own header says entries are added only when an
-  # Accepted RFC authorises the directory — and RFC-0089 is now exactly that RFC.
-  # Live-code residue of the starlight-migration-rfc debt, which AC7 of
-  # spec/site-contract-provenance-cleanup otherwise settled. Fix: re-attribute the
-  # `docs-site` comment to RFC-0089 in tools/lint-build.py. Deferred from that spec
-  # because no acceptance criterion covers it and it falls outside every task's
-  # declared Touches. Unblocks when: picked up — one comment line, no dependency.
-  {slug = "lint-build-docs-site-rfc-attribution", source = "spec/site-contract-provenance-cleanup (review concern 7)"},
   # lint-traceability.py classifies any `<dir>/<file>.md` producer pointer as a
   # cross-repository reference, so now that a spec's `Brief:` back-link is the
   # canonical path form it reports a brief that lives in THIS repo as "unknown /
@@ -1660,19 +1631,50 @@ open = [
   # ── Quick wins ───────────────────────────────────────────────────────────────
   # (single focused session; no external environment; small diff)
 
-  # Surfaced 2026-08-16 while closing profiles-agents-normative-pointer. That
-  # entry said it "mirrors" a pointer wave 1 added to packs/AGENTS.md and
-  # packs/README.md. It does not: NEITHER file carries such a pointer. Verified
-  # by grep, and independently recorded at
-  # docs/product/research/catalogue-audience-discovery.md:276 — "packs/AGENTS.md
-  # does NOT say 'the machine source of truth is `contracts/pack.schema.json`'".
-  # So the pattern was established for profiles/ (spec/contracts-readme-
-  # governance-sweep, 2026-08-16) and packs/ is still the odd one out — the exact
-  # inversion of what the original entry assumed.
-  # Fix: add the same one-line pointer to contracts/pack.schema.json in
-  #   packs/AGENTS.md § schema map, and to packs/README.md; keep both under the
-  #   150-line subdirectory AGENTS.md cap.
-  # Unblocks when: picked up — no dependency.
+
+  # BLOCKED, and NOT the one-line edit this entry used to describe. Rewritten
+  # 2026-08-18 by spec/stale-reference-corrections, which tried the edit and
+  # reverted it.
+  #
+  # The gap is real: neither packs/AGENTS.md nor packs/README.md names
+  # contracts/pack.schema.json, while profiles/AGENTS.md:18 names
+  # contracts/profile.schema.json. Independently recorded at
+  # docs/product/research/catalogue-audience-discovery.md:276.
+  #
+  # WHY THE OBVIOUS FIX FAILS. packs/AGENTS.md and packs/README.md are both
+  # projected into the authoring scaffold
+  # (tools/catalogue/sync_authoring_scaffold.py `_SYNC_PAIRS`), and the scaffold is
+  # what `catalogue init` writes into an ADOPTER's catalogue root. That root ships
+  # only guides/ packs/ profiles/ tests/ — there is NO contracts/ directory. So the
+  # pointer is true in this repository and false in every adopter's tree.
+  # test_scaffold_projection.py::test_packs_agents_md_cites_only_paths_it_ships
+  # catches it and fails with "State the rule without the citation, or ship the
+  # file." Measured: the edit reddens `make ci` on arrival. The existing text is
+  # path-free on purpose.
+  #
+  # packs/README.md has NO equivalent assertion, so a pointer added there lands
+  # green — and is just as false for the adopter. Do not take the green as licence.
+  #
+  # SECOND INSTANCE, found the same way: profiles/AGENTS.md already carries the
+  # dangling form, and no test covers profiles/AGENTS.md (test_scaffold_projection
+  # asserts only that it exists and is non-empty). So the file this entry called the
+  # precedent to mirror is a second occurrence of the same defect, not the pattern.
+  #
+  # Fix requires a decision, which is why this is not mechanical:
+  #   (a) ship contracts/pack.schema.json (and profile.schema.json) in the scaffold,
+  #       so the citation is true everywhere. An engine/packaging change — it widens
+  #       what `catalogue init` writes and what the wheel carries.
+  #   (b) state the rule without a path in both trees, i.e. keep today's wording, and
+  #       close this entry as won't-fix — then correct profiles/AGENTS.md to match.
+  #   (c) split the two audiences: a repo-only pointer that the projection strips.
+  #       No such mechanism exists in _SYNC_PAIRS (it is byte-identity), so this is
+  #       the most expensive option.
+  # Recommend (a) if an adopter is ever expected to validate pack.toml offline,
+  # otherwise (b). Either way, extend the cites-only-paths-it-ships assertion to
+  # profiles/AGENTS.md in the same change, or the second instance survives.
+  #
+  # Also still true, and unchanged: packs/AGENTS.md is at exactly 150 lines against
+  # the 150-line subdirectory cap, so any wording change must be net-zero.
   {slug = "packs-agents-normative-pointer", source = "spec/contracts-readme-governance-sweep AC6"},
 
   # docs-site-design-refresh deferral (spec Assumptions). The SCA half
@@ -2392,14 +2394,17 @@ open = [
   {slug = "sast-requirements-hash-locked", summary = "Generate and install a hash-locked tools/requirements-sast-locked.txt with --require-hashes, mirroring the ci-security locked file", source = "spec/build-check-coverage-gaps security review"},
   # pip-audit covers tools/requirements.txt and every packs/*/requirements.txt
   # (Makefile:235) and the PEP 517 build-system requirements (Makefile:238). It
-  # does NOT cover tools/requirements-sast.txt or
-  # tools/requirements-ci-security-locked.txt -- the CI tooling itself has no SCA.
+  # does NOT cover tools/requirements-sast.txt,
+  # tools/requirements-ci-security-locked.txt, or tools/requirements-evals-locked.txt
+  # -- the CI tooling itself has no SCA. The evals file was added here by
+  # spec/stale-reference-corrections: it is equally unaudited and fell outside every
+  # other entry, so nothing named it.
   # Confirmed by reading the audit invocations, not inferred. Adjacent to
   # npm-dependabot-wiring but a different ecosystem and a different file set.
-  # Fix: add the two CI-tooling requirements files to the audit-requirements.py
+  # Fix: add the three CI-tooling requirements files to the audit-requirements.py
   # invocation, or wire Dependabot for pip so the bumps arrive as PRs. Decide
   # which, then do one -- doing both duplicates the noise.
-  {slug = "sast-requirements-not-audited", summary = "Give tools/requirements-sast.txt and requirements-ci-security-locked.txt SCA coverage -- pip-audit skips both today", source = "spec/build-check-coverage-gaps security review"},
+  {slug = "sast-requirements-not-audited", summary = "Give tools/requirements-sast.txt, requirements-ci-security-locked.txt, and requirements-evals-locked.txt SCA coverage -- pip-audit skips all three today", source = "spec/build-check-coverage-gaps security review"},
   # The seven entries below all came out of spec/pip-audit-batching, which was
   # ARCHIVED without shipping (see docs/specs/pip-audit-batching/spec.md for why
   # batching pip-audit trades away per-manifest SCA fidelity). None of them is
@@ -2452,16 +2457,6 @@ open = [
   # is safe (NamedTemporaryFile is O_EXCL, 0600); the directory is the issue.
   # Fix: write each filtered manifest inside a per-run TemporaryDirectory() (0700).
   {slug = "sca-temp-manifest-leaves-its-directory", summary = "The filtered manifest is written to shared /tmp, so a relative include in a requirements file resolves against a world-writable dir", source = "spec/pip-audit-batching security review"},
-  # Makefile:259 cites "docs/backlog.md § semgrep-mcp-cve-allowlist" as the
-  # diagnosis and unblock condition for four live --ignore-vuln suppressions, but
-  # docs/backlog.md is an anchor tombstone and the entry lives in this file. That
-  # stale pointer is the only recorded expiry for those four suppressions.
-  # Also in scope: tools/requirements-evals-locked.txt is unaudited and falls
-  # outside sast-requirements-not-audited above, which names only
-  # requirements-sast.txt and requirements-ci-security-locked.txt.
-  # Fix: repoint the comment at workspace.toml, and widen the slug above to name
-  # the evals file.
-  {slug = "sast-semgrep-cve-allowlist-pointer-stale", summary = "Makefile:259 points the four --ignore-vuln suppressions at docs/backlog.md, which is a tombstone -- their only recorded expiry is dangling", source = "spec/pip-audit-batching security review"},
   # The four entries below all came out of spec/semgrep-selftest-batching, which
   # DID ship (batching the self-test's five semgrep spawns into one). None is
   # caused by that change -- each is a pre-existing property of the control it
