@@ -46,10 +46,10 @@ Supply-chain posture, two controls:
 
 `src/styles/starlight.css` is a **self-contained** token sheet (`--doc-*`
 primitives → `--sl-*` Starlight slots): enterprise cobalt on cool neutral
-grounds, Source Serif 4 display headings. It does **not** import the
-`tokens.css` that `tools/build-site.py` still copies from `web/` (copy is
-vestigial; removal deferred). Do not re-import it; do not "align" docs
-colors to `web/`'s amber system without a new spec.
+grounds, Source Serif 4 display headings. Nothing copies `web/`'s `tokens.css`
+here and nothing imports it — ADR-0085 makes docs rendering site-local. Do not
+re-import it; do not "align" docs colors to `web/`'s amber system without a
+new spec.
 
 The primitive components (`src/components/primitives/*.astro`) still
 consume `web/`-style `--ds-*` token names; a compatibility block at the
@@ -102,7 +102,7 @@ order and the marketing-before-docs invariant. Both run the checker after both b
 ## Development
 
 ```bash
-python tools/build-site.py   # first — generated content + tokens.css copy
+python tools/build-site.py   # first — generated content
 npm run dev --prefix docs-site
 ```
 

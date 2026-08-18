@@ -334,6 +334,11 @@ test:
 	# spec/site-ci-contract-closure AC6: the docs-palette WCAG gate runs locally
 	# too, so `make ci` covers what gate-main's contrast step runs.
 	$(PYTHON) tools/check-docs-contrast.py
+	# spec/docs-site-build-contract-hardening AC6: the rehype plugin suite runs
+	# locally too. Without this `make ci` stays green with a red plugin suite —
+	# the orphan class the register tracks as tools-test-runner-boundary.
+	npm run test:plugins --prefix docs-site
+	$(PYTHON) tools/test_pages_workflow.py
 	$(PYTHON) -m pytest tests/ -q
 	$(PYTHON) -m pytest packs/core/tests/hooks/ -q
 	$(PYTHON) -m pytest packs/core/tests/pack/ -q

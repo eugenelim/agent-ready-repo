@@ -12,10 +12,6 @@ Copies:
 Generates:
   docs-site/src/content/docs/packs/index.md  (pack catalogue summary page)
 
-Copies:
-  web/src/styles/tokens.css → docs-site/src/styles/tokens.css
-  (gitignored target; imported by docs-site/src/styles/starlight.css at build time)
-
 Usage:
   python tools/build-site.py
   python tools/build-site.py --dry-run
@@ -1205,25 +1201,13 @@ def main() -> None:
     else:
         print("  warn  CONTRIBUTING.md missing", file=sys.stderr)
 
-    print("build-site: copying design tokens …")
-    tokens_src = REPO_ROOT / "web" / "src" / "styles" / "tokens.css"
-    # Copy to docs-site/src/styles/ (gitignored) where starlight.css imports it
-    tokens_dst = REPO_ROOT / "docs-site" / "src" / "styles" / "tokens.css"
-    if tokens_src.exists():
-        if args.dry_run:
-            print(
-                f"  copy  {tokens_src.relative_to(REPO_ROOT)}"
-                f" → {tokens_dst.relative_to(REPO_ROOT)}"
-            )
-        else:
-            tokens_dst.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(tokens_src, tokens_dst)
-    else:
-        print(
-            "error  web/src/styles/tokens.css missing — docs-site CSS depends on it",
-            file=sys.stderr,
-        )
-        sys.exit(1)
+    # No design-token copy. `docs-site/src/styles/starlight.css` is a self-contained
+    # token sheet and stopped importing the copied file; ADR-0085 makes docs
+    # rendering site-local, superseding ADR-0055's token-sharing sub-decision. The
+    # copy was vestigial, and the accompanying hard failure —
+    # "web/src/styles/tokens.css missing — docs-site CSS depends on it" — asserted a
+    # dependency that no longer existed, so a marketing-side change could stop
+    # generation for a file the docs site does not read.
 
     # Whole-build totals, printed last: the two transforms run across the guide
     # mirror AND the pack-README copies, so a per-stage line would attribute

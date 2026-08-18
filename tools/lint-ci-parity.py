@@ -371,6 +371,10 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # and its suite on the site/catalogue pytest line.
     "docs palette contrast gate":
         LOCAL("test"),
+    # spec/docs-site-build-contract-hardening AC7. Reachable from `make ci` via the
+    # `test` target, which invokes the same script.
+    "pages.yml deploy-gate posture":
+        LOCAL("test"),
     # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
     # this step runs the gate's own tests, so a regression to always-exit-0 goes
     # red here rather than staying silently green.
