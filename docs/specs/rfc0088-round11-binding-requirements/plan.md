@@ -220,8 +220,17 @@ Satisfies AC10 through AC14.
 
 ## Rollout
 
-- **Delivery:** one PR per arm (T1–T5), then a promotion PR (T6). Each PR is
-  independently revertible; nothing is behind a flag because nothing ships.
+- **Delivery:** **one PR, not the six this plan first specified — a deviation from
+  the commissioning brief's "promote in increments, PR each", recorded here rather
+  than left for a reader to notice.** It was feasible to split: each arm could have
+  promoted its own artifacts and added its own note section. It was not done because
+  the note is a single narrative whose headline claim ("two requirements do not
+  hold") is a statement about all five arms together, and the RFC evidence layer is
+  one entry — so five PRs would each have rewritten the same two documents, and the
+  intermediate states would have published a note whose conclusion contradicted the
+  arms not yet landed. The cost of that choice is a larger single review surface,
+  and the reviewer is owed the reason. Each arm remains independently revertible at
+  the artifact level. Nothing is behind a flag because nothing ships.
 - **Infrastructure:** none. All work is local to the evidence tree and the docs
   tree.
 - **External-system integration:** none. No live identity provider, no network
