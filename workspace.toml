@@ -1563,6 +1563,23 @@ open = [
   # governance-extras, then file the ADR-0071 erratum. A governance change, so it
   # wants its own PR. Unblocks when: picked up.
   {slug = "adr-errata-convention", source = "spec/pack-test-boundary-remaining-packs review"},
+  # SECOND CONCRETE INSTANCE, 2026-08-18 (spec/npm-dependabot-wiring). ADR-0083's
+  # comparison table (:72) and its deferred-items list (:201) both name
+  # `npm-dependabot-wiring` as deferred to the repo owner. That item has now SHIPPED and
+  # its [backlog].open entry is deleted, so both references resolve to nothing — the
+  # dangling-pointer class this repository has already fixed twice elsewhere
+  # (sast-semgrep-cve-allowlist-pointer-stale cited a tombstone; the phase4b docsUrl AC
+  # asserted a superseded direction).
+  # It was NOT corrected in that PR, and the reason is exactly this entry: CONVENTIONS
+  # freezes an ADR body, the shipped new-adr template moves only the Status line, and
+  # the `## Errata` convention is RFC-scoped. There is no licensed shape for "this
+  # accepted deferral has since been discharged". docs/specs/npm-sca-gate/spec.md (:203,
+  # :263) carries the same two references and is equally frozen.
+  # Note the shape differs from ADR-0071's: that one names a DELETED FILE, which is
+  # wrong-on-its-face. These name a RESOLVED DEFERRAL, which was true when written and
+  # is still true as history — so whatever mechanism this entry lands should decide
+  # whether a discharged deferral needs annotating at all, or only a false claim does.
+  # Cheap either way: both are pointer updates once a licensed shape exists.
 
   # The repo has no CI for JavaScript that lives in a pack. `web/` and
   # `docs-site/` are covered — pages.yml and pack-evals.yml run npm, and both
@@ -1706,16 +1723,6 @@ open = [
   # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
-  # npm-sca-gate deferrals (spec Assumptions).
-  #
-  # Dependabot: the npm SCA gate blocks merges on known CVEs, but nothing opens
-  #   the bump PRs — remediation is hand-driven (`npm audit fix
-  #   --package-lock-only`). Dependabot is the complementary automation. Left to
-  #   the repo owner because it changes weekly PR volume and review workload,
-  #   not because it is technically hard: it is one `.github/dependabot.yml`
-  #   with an `npm` ecosystem entry per project directory.
-  # Unblocks when: the repo owner decides the PR volume is wanted.
-  {slug = "npm-dependabot-wiring", summary = "Add .github/dependabot.yml with npm ecosystem entries for docs-site/ and web/ so transitive advisory bumps arrive as PRs instead of waiting for someone to run npm audit fix", source = "spec/npm-sca-gate"},
 
   # allowScripts enforcement: both docs-site/AGENTS.md and web/AGENTS.md document
   #   an invariant — the lockfile's `"hasInstallScript": true` entries must stay
