@@ -488,13 +488,6 @@ backlog = []
 # Distinct from [ini-NNN.shaping_queue].backlog (per-initiative non-active tier).
 [backlog]
 open = [
-  # RFC-0088 round 10's Linux trust arm. Both trust drivers
-  # (s3/r5-mitm-trust.mjs, s3/r7-trust-and-method-composed.mjs) are macOS-only, so
-  # this is a NEW driver plus a ~3 GB mcr.microsoft.com/playwright:v1.62.0-noble
-  # pull -- deferred on a space-constrained host, not dropped. Without it, the
-  # trust/method composition remains measured on one platform only, which is the
-  # platform-coverage half of RFC-0088 blocker item 1.
-  {slug = "rfc0088-round10-linux-trust-arm", source = "spec/rfc0088-round10-measurement AC5"},
   # .github/workflows/build-check.yml carries a comment block describing the
   # credential-setup skill suite that sits above the WRONG step: the steps
   # spec/build-check-coverage-gaps inserted displaced it from the

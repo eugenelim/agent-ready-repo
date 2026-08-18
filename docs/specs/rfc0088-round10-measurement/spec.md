@@ -122,8 +122,9 @@ suite (`r9-gates.sh`).
       realm, restarts the browser against it, and records whether the shim is
       registered before that realm exists. Whatever the outcome, it is recorded as
       *measured* — the standing claim today is "requirement, not measurement".
-- [ ] **AC5 — Linux trust arm** *(deferred: rfc0088-round10-linux-trust-arm)* —
-      requires a ~3 GB image pull and a new driver; see Assumptions.
+- [x] **AC5 — Linux trust arm.** Both trust drivers run on Linux, 9 of 9 each, with
+      `provenance.platform` asserted from the artifact. It needed a runner, not the
+      new driver A1 claimed (R10-8).
 - [x] **AC6 — No apparatus figure moves as a deliverable.** The round publishes no
       new coverage percentage or claim-accounting total. If a control defect is
       found it is fixed and recorded, and does **not** extend the round.
@@ -134,13 +135,12 @@ suite (`r9-gates.sh`).
 
 ## Assumptions
 
-- **A1 — The Linux trust arm is deferred, not dropped.** It needs both a ~3 GB
-  `mcr.microsoft.com/playwright:v1.62.0-noble` pull and a **new** driver: the
-  trust drivers (`s3/r5-mitm-trust.mjs`, `s3/r7-trust-and-method-composed.mjs`)
-  are macOS-only, so there is nothing to merely re-run. The host has 15 GB free
-  and is running the owner's own Docker infrastructure; the pull is the owner's
-  call, not this round's. Recorded as AC5 with a deferral slug so the gap stays
-  visible rather than quietly becoming "not applicable".
+- **A1 — WITHDRAWN, and it was wrong in the costly direction.** This assumption
+  said the Linux trust arm needed a new driver because both trust drivers are
+  macOS-only. Neither is: the claim came from filenames, not from reading the code.
+  It needed a runner of about seventy lines, and both drivers pass 9 of 9 on Linux.
+  An estimate that overstates the cost of a residual is an estimate that argues for
+  leaving it open — see R10-8.
 - **A2 — Reproduction identity holds.** Verified before planning: Playwright
   1.62.0 and bundled Chromium 151.0.7922.34 launch with `chromiumSandbox: true`
   on this host — the same versions as the promoted evidence.
