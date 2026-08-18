@@ -27,9 +27,10 @@ import {
   expectLandmarkKeyboardReachable,
   expectNoHorizontalOverflow,
   expectNoSeriousAxeViolations,
-  expectVisibleFocusIndicator,
+  expectSkipLinkFirst,
   gotoSettled,
   label,
+  tabToAndAssertFocus,
 } from './quality-assertions';
 import { withBase, withDocsBase } from './site-base';
 
@@ -51,14 +52,14 @@ const DOCS_ROUTES = ['/', '/guides/core/how-to/start-a-project/'] as const;
 test.describe('marketing routes at every approved width', () => {
   for (const route of MARKETING_ROUTES) {
     for (const width of WIDTHS) {
-      test(`${route} @${width}`, async ({ page }) => {
+      test(`${route} @${width}`, async ({ page }, testInfo) => {
         const ctx = { route, width };
         const errors = collectPageErrors(page);
         await page.setViewportSize({ width, height: 900 });
         await gotoSettled(page, withBase(route), ctx);
 
         await expectNoHorizontalOverflow(page, ctx);
-        await expectNoSeriousAxeViolations(page, ctx);
+        await expectNoSeriousAxeViolations(page, ctx, testInfo);
         await expectFragmentsResolve(page, ctx);
         expect(errors, `${label(ctx)}: page/console errors`).toEqual([]);
       });
@@ -75,19 +76,29 @@ test.describe('marketing primary navigation is keyboard-operable', () => {
       await page.setViewportSize({ width, height: 900 });
       await gotoSettled(page, withBase('/'), ctx);
 
+      // The skip link must be the first thing Tab reaches, at every width.
+      await expectSkipLinkFirst(page, ctx);
+
       // Below the marketing breakpoint the links live in a <details> drawer, so
       // reaching them requires opening it first — which is itself the behaviour
-      // worth asserting.
+      // worth asserting. Focus is reached by Tab, not `.focus()`: the rings are
+      // `:focus-visible`, which `.focus()` matches only by Chromium heuristic.
       const drawerToggle = page.locator('.nav__mobile > summary');
       if (await drawerToggle.isVisible()) {
-        await drawerToggle.focus();
-        await expectVisibleFocusIndicator(page, ctx);
+        await tabToAndAssertFocus(page, '.nav__mobile > summary', ctx);
         await page.keyboard.press('Enter');
         await expect(page.locator('.nav__drawer')).toBeVisible();
         await expectLandmarkKeyboardReachable(page, '.nav__drawer', ctx);
       } else {
+        // A nav link's own focus ring, asserted at every desktop width — not only
+        // inside the drawer branch, which left 1440 with no focus assertion at all.
+        await tabToAndAssertFocus(page, '.nav__links a[href]', ctx);
         await expectLandmarkKeyboardReachable(page, '.nav__links', ctx);
       }
+      // Footer link focus visibility, asserted at every width for the same reason.
+      await page.reload();
+      await gotoSettled(page, withBase('/'), ctx);
+      await tabToAndAssertFocus(page, 'footer a[href]', ctx, 120);
       await expectLandmarkKeyboardReachable(page, 'footer', ctx);
     });
   }
@@ -102,7 +113,9 @@ test.describe('journey decision chips reach their gate by keyboard', () => {
     '/journeys/release-engineering/',
   ] as const;
   for (const route of PRIORITY) {
-    for (const width of [360, 1440] as const) {
+    // Narrowest and widest of the approved set rather than literals, so a change to
+    // WIDTHS carries here too.
+    for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
       test(`${route} @${width}`, async ({ page }) => {
         const ctx = { route, width };
         await page.setViewportSize({ width, height: 900 });
@@ -134,11 +147,65 @@ test.describe('journey decision chips reach their gate by keyboard', () => {
   }
 });
 
+test.describe('docs search and theme controls are keyboard-operable', () => {
+  // AC6 names these explicitly, and they exist on both approved docs routes. The
+  // matrix sets the theme through `localStorage` precisely to avoid depending on the
+  // control, so without this case the clause had no verification at all.
+  for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
+    test(`/docs/ search and theme @${width}`, async ({ page }) => {
+      const ctx = { route: '/docs/', width, theme: 'light' } as const;
+      await page.addInitScript(() => localStorage.setItem('starlight-theme', 'light'));
+      await page.setViewportSize({ width, height: 900 });
+      await gotoSettled(page, withDocsBase('/'), ctx);
+
+      // Search: reachable by keyboard, visibly focused, and it opens.
+      await tabToAndAssertFocus(page, 'site-search button', ctx, 30);
+      await page.keyboard.press('Enter');
+      await expect(
+        page.locator('dialog[open], site-search dialog[open]'),
+        `${label(ctx)}: search did not open on Enter`
+      ).toBeVisible();
+      await page.keyboard.press('Escape');
+
+      // Theme control. WHERE it lives depends on the width, and testing the wrong
+      // place asserted a path the design does not have: at 1440 it sits in the
+      // Starlight header; at phone widths it is inside the collapsed Docs menu
+      // (`sidebar-pane`, display:none until opened), so a keyboard user must open
+      // that menu first. Measured, not assumed — the first version of this case
+      // failed at 360 for exactly this reason.
+      await gotoSettled(page, withDocsBase('/'), ctx);
+      const menuButton = page.locator('starlight-menu-button button').first();
+      if (await menuButton.isVisible()) {
+        await tabToAndAssertFocus(page, 'starlight-menu-button button', ctx, 30);
+        await page.keyboard.press('Enter');
+        // Asserted on the OBSERVABLE state, not on `aria-expanded`. Measured:
+        // Starlight's menu button opens on Enter but leaves `aria-expanded="false"`,
+        // so asserting the attribute fails on a menu that did open. That is pinned
+        // framework behaviour, recorded as an observation in the tap-target audit
+        // rather than worked around here — and the thing a keyboard user needs is
+        // that the control becomes reachable, which is what this asserts.
+      }
+      const select = page.locator('starlight-theme-select select').locator('visible=true').first();
+      await expect(
+        select,
+        `${label(ctx)}: no visible theme control` +
+          ((await menuButton.isVisible()) ? ' after opening the Docs menu with Enter' : '')
+      ).toBeVisible();
+      await select.focus();
+      await select.selectOption('dark');
+      await expect(
+        page.locator('html'),
+        `${label(ctx)}: selecting dark did not change the theme`
+      ).toHaveAttribute('data-theme', 'dark');
+    });
+  }
+});
+
 test.describe('docs routes at every approved width in both themes', () => {
   for (const route of DOCS_ROUTES) {
     for (const width of WIDTHS) {
       for (const theme of THEMES) {
-        test(`${route} @${width} ${theme}`, async ({ page }) => {
+        test(`${route} @${width} ${theme}`, async ({ page }, testInfo) => {
           const ctx = { route, width, theme };
           const errors = collectPageErrors(page);
           await page.setViewportSize({ width, height: 900 });
@@ -151,8 +218,9 @@ test.describe('docs routes at every approved width in both themes', () => {
           await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
 
           await expectNoHorizontalOverflow(page, ctx);
-          await expectNoSeriousAxeViolations(page, ctx);
+          await expectNoSeriousAxeViolations(page, ctx, testInfo);
           await expectFragmentsResolve(page, ctx);
+          await expectSkipLinkFirst(page, ctx);
           expect(errors, `${label(ctx)}: page/console errors`).toEqual([]);
         });
       }

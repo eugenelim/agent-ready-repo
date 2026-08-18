@@ -14,9 +14,19 @@
 
 ## Objective
 
-Contributors receive a deterministic required-CI signal when a representative
-marketing, catalogue, pack, journey, Now, or documentation page becomes
-inaccessible or unusable at an approved viewport. The gate exercises the
+Contributors receive a deterministic, deployment-blocking CI signal when a
+representative marketing, catalogue, pack, journey, Now, or documentation page
+becomes inaccessible or unusable at an approved viewport.
+
+**Deployment-blocking, not merge-blocking** — stated because the difference
+matters and the sibling
+[`docs-site-build-contract-hardening`](../docs-site-build-contract-hardening/spec.md)
+spec records the same residual. The gate lives in `pages.yml`, which is not a
+required merge context: branch protection requires `make build-check`,
+`gate-main`, `gate-sast` and `gate-export-boundary`. A red gate stops the Pages
+deploy; it does not stop a merge. It cannot move to `build-check.yml`, which must
+carry no `paths:` filter and deliberately provisions no Node. The construction
+test that proves the gate is wired correctly DOES run in a required context. The gate exercises the
 combined emitted site, consumes measured and criterion-grounded tap-target
 evidence, and leaves physical-device review as a visible release
 responsibility.
@@ -86,10 +96,16 @@ responsibility.
   emitted yet, so those six cases skip loudly rather than assert a shape this spec
   does not own. They begin gating the moment that slice lands.
 - [x] The accepted tap-target audit classifies every candidate as conforming,
-  demonstrated non-exempt failure, inline-content exception,
-  user-agent/framework-controlled exception, equivalent-control exception, or
-  essential exception and records all required geometry, spacing, context,
-  rationale, owner, and remediation fields.
+  demonstrated non-exempt failure, **spacing exception**, inline-content
+  exception, user-agent/framework-controlled exception, equivalent-control
+  exception, or essential exception and records all required geometry, spacing,
+  context, rationale, owner, and remediation fields.
+
+  The spacing clause was added on 2026-08-18: WCAG 2.2 SC 2.5.8 lists five
+  exceptions — Spacing, Equivalent, Inline, User agent control, Essential — and
+  this criterion's original enumeration omitted Spacing. 27 of the 56 measured
+  candidates conform through it and had nowhere valid to be recorded. The
+  omission was in the spec, not in the measurement.
 - [x] No tap-target exemption is broad, selector-only, inferred from CSS, or
   justified solely by framework ownership; every demonstrated failure is
   covered by a construction test before remediation and by emitted-browser
@@ -97,15 +113,28 @@ responsibility.
 - [x] A seeded overflow, broken route, serious axe violation, missing focus
   state, broken keyboard path, and broken fragment each cause the focused suite
   to fail with route, width, and theme context.
-- [x] The required workflow runs the deterministic subset on relevant site,
+- [x] The deployment workflow runs the deterministic subset on relevant site,
   guide, generator, test, dependency-lock, configuration, and workflow changes,
-  and a failure blocks the workflow.
+  and a failure blocks that workflow — and therefore the deploy, not the merge
+  (see the Objective's residual). Its wiring is asserted by
+  `tools/test-pages-workflow.py`, whose mutation self-test proves each assertion
+  can fail, and by `tools/test_browser_gate_subset.py`, which runs in the
+  required `make build-check` context.
 - [x] Screenshot capture remains optional, runs outside the required subset,
   and writes no tracked files during CI.
 - [x] Print evidence covers `/`, `/docs/`, the ordinary, code-heavy,
   aside-heavy, and long-table guide routes named in
-  [`notes/print-audit.md`](notes/print-audit.md), including navigation removal,
-  content, links, code, asides, tables, clipping, overlap, and page breaks.
+  [`notes/print-audit.md`](notes/print-audit.md), including navigation
+  visibility, content, links, code, asides, tables, clipping and width overflow.
+
+  **Narrowed on 2026-08-18 to the axes actually measured.** Vertical overlap and
+  page-break quality — orphaned headings, unusable breaks, unexpected blank
+  pages — were NOT measured: the audit records element-box geometry against the
+  printable width, document horizontal overflow, per-route navigation
+  visibility, and PDF page count, and page count is not page-break quality.
+  Judging breaks needs a human reading six PDFs. Registered as
+  `[backlog].open` slug `print-audit-page-break-quality` rather than left as an
+  implied claim, because `close-stale` in AC13 rests only on the axes above.
 - [x] Print closes stale when browser/framework defaults satisfy that contract;
   otherwise the audit names each exact failure and the smallest narrow rule
   boundary before a conditional remediation spec is created.

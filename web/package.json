@@ -12,7 +12,7 @@
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",
-    "test:e2e:gate": "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts docs-wayfinding.spec.ts"
+    "test:e2e:gate": "playwright test site-quality-gate.spec.ts quality-assertions.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "1.62.0",

@@ -21,6 +21,10 @@ on:
       - 'tools/check-site-plugin-offers.py'
       - 'tools/check-rendered-site-links.py'
       - 'tools/test_check_rendered_site_links.py'
+      # The browser gate's allowlist and matrix contract. Listed for the same reason
+      # the line above is: an edit that disables the check must trigger a run.
+      - 'tools/test_browser_gate_subset.py'
+      - 'tools/test-pages-workflow.py'
       - 'tools/pack_scope.py'
       - '.github/workflows/pages.yml'
   pull_request:
@@ -43,6 +47,8 @@ on:
       - 'tools/check-site-plugin-offers.py'
       - 'tools/check-rendered-site-links.py'
       - 'tools/test_check_rendered_site_links.py'
+      - 'tools/test_browser_gate_subset.py'
+      - 'tools/test-pages-workflow.py'
       - 'tools/pack_scope.py'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
@@ -74,6 +80,15 @@ jobs:
 
       - name: Install web dependencies
         run: npm ci --prefix web
+
+      # Provisioned HERE, beside the deps install, rather than beside the gate that
+      # uses it. `--with-deps` pulls an apt layer, and that is the step's common
+      # failure mode: four minutes deep — after two npm installs, two site builds
+      # and six checks — an apt or CDN hiccup discards all of it. The browser is not
+      # cached because the apt layer cannot be; the download itself could be, and
+      # is not worth a cache key yet.
+      - name: Install Playwright Chromium
+        run: npx --prefix web playwright install --with-deps chromium
 
       - name: Set up Python
         uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
@@ -177,14 +192,19 @@ jobs:
       # AC11 requires required CI to leave the tree clean. `tools/test_browser_gate_subset.py`
       # asserts the allowlist in both directions.
       #
-      # Playwright's browser is provisioned here rather than cached: the runner
-      # image ships no Chromium, and `--with-deps` is what the install needs on
-      # ubuntu-latest.
-      - name: Install Playwright Chromium
-        run: npx --prefix web playwright install --with-deps chromium
-
       - name: Run the deterministic browser quality gate
         run: npm run test:e2e:gate --prefix web
+
+      # Failure evidence. `if: failure()` so a green run uploads nothing, and
+      # `test-results/` is run output under web/ — not a tracked path, so AC11 holds.
+      - name: Upload browser gate failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: browser-gate-failure
+          path: web/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa  # v3.0.1

@@ -23,34 +23,60 @@ themes — 20 cases — with the theme set through Starlight's own
 `localStorage['starlight-theme']` key *before* navigation and read back from
 `html[data-theme]`, and every measurement taken after `networkidle`.
 
-414 undersized observations resolve to **44 distinct candidates**. Every one
-satisfies an SC 2.5.8 exception; there are **zero demonstrated non-exempt
-failures** and therefore no remediation in this audit.
+Undersized observations across those 20 cases resolve to **56 distinct
+candidates**. Every one conforms through an SC 2.5.8 exception; there are **zero
+demonstrated non-exempt failures** and therefore no remediation in this audit.
 
-### Two measurement traps, corrected — both produced plausible false failures
+### The target set, defined once
+
+Four rules decide whether an element is a tap target here. Each was added because
+its absence produced a wrong answer, and all four are needed together:
+
+1. non-zero box;
+2. not `display:none` / `visibility:hidden`;
+3. resting `opacity > 0` — otherwise it is **hover-revealed** and classified as its
+   own group rather than dropped; and
+4. it receives a tap at its own centre (`document.elementFromPoint`) **after being
+   scrolled into view**.
+
+Adjacency for the spacing clause is measured against the set satisfying all four,
+for both groups: what a finger can collide with is the same set whether or not the
+target itself is hover-revealed.
+
+### Three measurement traps, corrected — each produced plausible false results
 
 Recorded because the corrected method is the load-bearing part of this evidence,
-and because a later reader re-measuring naively will get the wrong answer.
+and the naive method is what a later reader reaches for first.
 
 1. **Ancestor adjacency.** Measuring each target against every other reported
-   `centre-to-nearest = 0` for any nested link — against its own container. Every
+   centre-to-nearest 0 for any nested link — against its own container. Every
    nested link looked like a spacing failure. Excluded via
    `e.contains(o) || o.contains(e)`.
 
 2. **Unpainted overlay targets.** Three breadcrumb links reported a gap of 0
-   against a 412×35 `<a>` containing "Prerequisites" — the mobile
-   table-of-contents list, whose links still report a box while the panel is not
-   painted. That invented a failure against something a finger cannot reach.
-   Settled by hit testing rather than geometry: `document.elementFromPoint` at
-   each breadcrumb's own centre returns the breadcrumb itself at 360, 414 and
-   1440. The target set for SC 2.5.8 is therefore "elements that receive a tap at
-   their own centre", and with that set the breadcrumb gaps are 33.2 / 38.5 /
-   49–61.5px. The overlay is absent at 1440, which is why the artifact appeared
-   only at 360–414.
+   against a 412×35 `<a>` in the mobile table-of-contents list, whose links report
+   a box while the panel is not painted — a failure against something a finger
+   cannot reach. Rule 4 closes it: with the hit-tested set the breadcrumb gaps are
+   33.2 / 38.5 / 49–61.5px. The overlay is absent at 1440, which is why the
+   artifact appeared only at 360–414.
 
-This is what the spec's "never infer a classification from a source selector or
-CSS declaration" means in practice: both artifacts were *measured*, and both were
-wrong, because they measured the wrong frame.
+3. **Hover-revealed targets silently dropped.** An earlier pass filtered
+   `opacity === 0` out of the candidate set entirely, which removed **12**
+   Starlight heading-anchor links — 23.98 × 34.8, i.e. under the 24px minimum, and
+   named in this audit's own candidate inventory under "heading anchors". They
+   receive a tap once scrolled into view, so they are real targets and AC7 requires
+   them classified. An exclusion rule that is not written down is not a rule;
+   rule 3 above now states it and the group is classified below.
+
+Trap 2 excludes *painted-but-unreachable*; trap 3 admits *unpainted-but-reachable*.
+The two cut in opposite directions, which is why the target set is stated as one
+definition rather than as a filter chain.
+
+A fourth error was a classification bug rather than a measurement one: treating any
+`<li>` as running text applied the Inline clause to the three docs-footer
+destination links, whose list items carry no text beyond the link. "In running
+text" now requires the host element to carry text beyond the link itself, and those
+three are classified on their measured clearance instead.
 
 ## Classification contract
 
@@ -103,86 +129,134 @@ interactive target visible in a matrix case receives its own measured row.
 
 One row represents one candidate in one route/width/theme context.
 
-One row per distinct candidate. `Width` lists every approved width the candidate
-was observed at; geometry is given as a range when it varies across them.
-`Spacing` is the distance from the candidate's centre to the nearest **other
-painted** target.
+Grouped by exception class, with the rationale stated once per group: 56 rows
+repeating one sentence is a wall a re-verifier will skip. Per-candidate columns
+carry what actually varies — context, widths, geometry and measured clearance.
+`Widths` lists every approved width the candidate was observed at; geometry and
+clearance are ranges when they vary.
 
-| Route | Widths | Themes | Selector or content context | Target box (w×h) | Spacing | WCAG classification | Rationale | Owner | Exact remediation if required |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'How to orient at the start of a sessio' in main, `display:inline` | 283.2×20 | 22–987.1 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Your first workspace session' in main, `display:inline` | 218.6×20 | 22–50 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'decide' in main, `display:inline` | 51.3×20 | 34.7–106 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'research' in main, `display:inline` | 66.4×20 | 42.3–75 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'shape' in main, `display:inline` | 46×20 | 50–64.9 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'design the system' in main, `display:inline` | 138×20 | 0–18 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'start with core' in main, `display:inline` | 118.4×20 | 22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'system' in main, `display:inline` | 54.3×20 | 0 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Get started' in main, `display:inline` | 84.2×20 | 22–50 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Compare install routes' in main, `display:inline` | 169.8×20 | 0–22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Browse every pack' in main, `display:inline` | 144.5×20 | 0–22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Preview an install or upgrade' in main, `display:inline` | 219.1×20 | 18–22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'upgrade safely' in main, `display:inline` | 112.2×20 | 18–22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Create the first valid catalogue' in main, `display:inline` | 231.9×20 | 22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'The three supervised loops' in main, `display:inline` | 206.8×20 | 22–78 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'The file-safety contract' in main, `display:inline` | 178×20 | 22–50 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'agentbundle CLI reference' in main, `display:inline` | 207.5×20 | 22–50 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Complete pack reference' in main, `display:inline` | 191.4×20 | 22–50 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'The two-room model' in main, `display:inline` | 158.9×20 | 22–50 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'workspace.toml schema reference' in main, `display:inline` | 261.7×20 | 22–50 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 375, 390, 414, 1440 | dark+light | `<a>` 'author contracts' in main, `display:inline` | 124.4×20 | 0–18 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 375, 390, 414, 1440 | dark+light | `<a>` 'stop at the production gate' in main, `display:inline` | 204.1×20 | 0–18 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 375, 390, 414, 1440 | dark+light | `<a>` 'Author against the portable standards' in main, `display:inline` | 285.6×20 | 22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `start-a-project` | 390, 414, 1440 | dark+light | `<a>` 'How to plan and execute non-trivial wo' in main, `display:inline` | 310.3×20 | 22–154.1 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390 | dark+light | `<a>` 'start with evidence' in main, `display:inline` | 143.8×20 | 18 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 390, 414 | dark+light | `<a>` 'produce a reviewable infrastructure pl' in main, `display:inline` | 306.1×20 | 18 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 414, 1440 | dark+light | `<a>` 'design the experience' in main, `display:inline` | 167.9×20 | 0–18 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 414, 1440 | dark+light | `<a>` 'adapter support' in main, `display:inline` | 121.1×20 | 22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 1440 | dark+light | `<a>` 'initialize an organization-owned catal' in main, `display:inline` | 319.4×20 | 22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 1440 | dark+light | `<a>` 'install a curated profile' in main, `display:inline` | 172.3×20 | 22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 1440 | dark+light | `<a>` 'Add this catalogue as a plugin marketp' in main, `display:inline` | 325.4×20 | 54 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 1440 | dark+light | `<a>` 'Understand packs, profiles, adapters, ' in main, `display:inline` | 513.5×20 | 22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 1440 | dark+light | `<a>` 'Implement the provider-neutral verify ' in main, `display:inline` | 515.1×20 | 22 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | owning guide/docs content | none — conforms by exception |
-| `/docs/ + start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Platform' in nav[Site footer], `display:inline` | 51.4×16 | 49.7 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | `site-shared-chrome` (footer destinations) | none — conforms by exception |
-| `/docs/ + start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'GitHub' in nav[Site footer], `display:inline` | 42.4×16 | 45.2 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | `site-shared-chrome` (footer destinations) | none — conforms by exception |
-| `/docs/ + start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'PyPI' in nav[Site footer], `display:inline` | 27.5×16 | 37.7 | inline-content exception | in a sentence; height equals the line-height of the non-target text around it | `site-shared-chrome` (footer destinations) | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Decide what to build' in main, `display:block` | 264.7–318.7×21.6 | 120.8–140.8 | spacing exception | a 24px circle on its centre clears every other target by 120.8–140.8px | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Provision and release safely' in main, `display:block` | 264.7–318.7×21.6 | 140.8–148.8 | spacing exception | a 24px circle on its centre clears every other target by 140.8–148.8px | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Document what ships' in main, `display:block` | 264.7–318.7×21.6 | 140.8–194.4 | spacing exception | a 24px circle on its centre clears every other target by 140.8–194.4px | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Build and govern a catalogue' in main, `display:block` | 264.7–318.7×21.6 | 140.8–172.8 | spacing exception | a 24px circle on its centre clears every other target by 140.8–172.8px | owning guide/docs content | none — conforms by exception |
-| `/docs/` | 375, 390, 414, 1440 | dark+light | `<a>` 'Design the product and system' in main, `display:block` | 279.7–318.7×21.6 | 120.8–140.8 | spacing exception | a 24px circle on its centre clears every other target by 120.8–140.8px | owning guide/docs content | none — conforms by exception |
-| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Docs' in nav[Breadcrumb], `display:block` | 29×18 | 33.2 | spacing exception | a 24px circle on its centre clears every other target by 33.2px | pinned Starlight (breadcrumbs) | none — conforms by exception |
-| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Guides' in nav[Breadcrumb], `display:block` | 39.6×18 | 38.5 | spacing exception | a 24px circle on its centre clears every other target by 38.5px | pinned Starlight (breadcrumbs) | none — conforms by exception |
-| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'The Build Loop (core)' in nav[Breadcrumb], `display:block` | 122.5×18 | 49–61.5 | spacing exception | a 24px circle on its centre clears every other target by 49–61.5px | pinned Starlight (breadcrumbs) | none — conforms by exception |
+### Spacing exception, hover-revealed — 12 candidates
+
+Starlight heading-anchor links, `opacity: 0` until hover or focus. Recorded
+rather than excluded: they receive a tap once scrolled into view, so they are
+real targets. 23.98px wide is 0.02px under the 24px minimum — a sub-pixel
+shortfall from Starlight's own sizing — and every one clears its nearest
+neighbour by ≥ 50px, so SC 2.5.8's Spacing clause applies comfortably.
+
+| Route | Widths | Themes | Context | Target box (w×h) | Centre-to-nearest | Owner |
+| --- | --- | --- | --- | --- | ---: | --- |
+| `/docs/` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Choose what you ' | 23.98×34.8 | 92.2 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Choose by role”' | 23.98×34.8 | 78.3–78.4 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Use a catalogue”' | 23.98×34.8 | 64.9–92.9 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Build and operat' | 23.98×34.8 | 151.8 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Understand and r' | 23.98×34.8 | 50–64.9 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Prerequisites”' | 23.98×34.8 | 64.9 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Step 1 — Confirm' | 23.98×34.8 | 167.7 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Step 2 — Run wor' | 23.98×34.8 | 412.5 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Step 3 — Identif' | 23.98×34.8 | 99.7–134.5 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Step 4 — Pick a ' | 23.98×34.8 | 475.4–566.2 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Step 5 — Start w' | 23.98×34.8 | 90–118 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414 | dark+light | `<a class=sl-anchor-link>` 'Section titled “Related”' | 23.98×34.8 | 50 | owning guide/docs content |
+
+### Inline-content exception — 29 candidates
+
+Rationale, stated once for the group: each is `display:inline` inside a
+paragraph or list item that carries text beyond the link, so its height is the
+line-height of the surrounding non-target text. SC 2.5.8, Inline.
+
+| Route | Widths | Themes | Context | Target box (w×h) | Centre-to-nearest | Owner |
+| --- | --- | --- | --- | --- | ---: | --- |
+| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'How to orient at the start of a ' | 283.2×20 | 22–1009.5 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Your first workspace session' | 218.61×20 | 22–50 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'decide' | 51.27×20 | 34.7–106 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'research' | 66.36×20 | 42.3–75 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'shape' | 46.02×20 | 50–64.9 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'design the system' | 138.05×20 | 0–18 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'start with core' | 118.44×20 | 22 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'system' | 54.31×20 | 0 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Get started' | 84.22×20 | 22–50 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Compare install routes' | 169.81×20 | 0–22 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Browse every pack' | 144.55×20 | 0–22 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Preview an install or upgrade' | 219.08×20 | 18–22 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'upgrade safely' | 112.16×20 | 18–22 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'The three supervised loops' | 206.78×20 | 22–78 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'The file-safety contract' | 178.03×20 | 22–50 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'agentbundle CLI reference' | 207.55×20 | 22–50 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Complete pack reference' | 191.44×20 | 22–50 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'The two-room model' | 158.92×20 | 22–50 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'workspace.toml schema reference' | 261.73×20 | 22–50 | owning guide/docs content |
+| `/docs/` | 375, 390, 414, 1440 | dark+light | `<a>` 'author contracts' | 124.36×20 | 0–18 | owning guide/docs content |
+| `/docs/` | 375, 390, 414, 1440 | dark+light | `<a>` 'stop at the production gate' | 204.06×20 | 0–18 | owning guide/docs content |
+| `start-a-project` | 390, 414, 1440 | dark+light | `<a>` 'How to plan and execute non-triv' | 310.31×20 | 22–154.1 | owning guide/docs content |
+| `/docs/` | 360, 375, 390 | dark+light | `<a>` 'start with evidence' | 143.84×20 | 18 | owning guide/docs content |
+| `/docs/` | 390, 414 | dark+light | `<a>` 'produce a reviewable infrastruct' | 306.08×20 | 18 | owning guide/docs content |
+| `/docs/` | 414, 1440 | dark+light | `<a>` 'design the experience' | 167.88×20 | 0–18 | owning guide/docs content |
+| `/docs/` | 414, 1440 | dark+light | `<a>` 'adapter support' | 121.09×20 | 22 | owning guide/docs content |
+| `/docs/` | 1440 | dark+light | `<a>` 'initialize an organization-owned' | 319.36×20 | 22 | owning guide/docs content |
+| `/docs/` | 1440 | dark+light | `<a>` 'install a curated profile' | 172.27×20 | 22 | owning guide/docs content |
+| `/docs/` | 1440 | dark+light | `<a>` 'Add this catalogue as a plugin m' | 325.38×20 | 54 | owning guide/docs content |
+
+### Spacing exception — 15 candidates
+
+Rationale, stated once for the group: not in running text, so the Inline clause
+does not apply — accepted on measured clearance instead. SC 2.5.8's Spacing clause
+is satisfied when a 24px-diameter circle centred on the target does not intersect
+another target's circle, i.e. **centre-to-nearest ≥ 12px** (the circle's radius).
+The `Centre-to-nearest` column is that measured distance, not the remaining
+clearance — a 33.2px measurement leaves 21.2px of clearance beyond the 12px the
+criterion needs.
+
+| Route | Widths | Themes | Context | Target box (w×h) | Centre-to-nearest | Owner |
+| --- | --- | --- | --- | --- | ---: | --- |
+| `both` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Platform' | 51.41×16 | 49.7 | `site-shared-chrome` |
+| `both` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'GitHub' | 42.42×16 | 45.2 | `site-shared-chrome` |
+| `both` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'PyPI' | 27.47×16 | 37.7 | `site-shared-chrome` |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a class=astro-vodiqeol>` 'Decide what to build' | 264.69–318.69×21.59 | 120.8–140.8 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a class=astro-vodiqeol>` 'Provision and release safely' | 264.69–318.69×21.59 | 140.8–148.8 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a class=astro-vodiqeol>` 'Document what ships' | 264.69–318.69×21.59 | 140.8–194.4 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a class=astro-vodiqeol>` 'Build and govern a catalogue' | 264.69–318.69×21.59 | 140.8–172.8 | owning guide/docs content |
+| `/docs/` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Create the first valid catalogue' | 231.94×20 | 22 | owning guide/docs content |
+| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Docs' | 29.05×18 | 33.2 | pinned Starlight |
+| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'Guides' | 39.64×18 | 38.5 | pinned Starlight |
+| `start-a-project` | 360, 375, 390, 414, 1440 | dark+light | `<a>` 'The Build Loop (core)' | 122.45×18 | 49–61.5 | pinned Starlight |
+| `/docs/` | 375, 390, 414, 1440 | dark+light | `<a class=astro-vodiqeol>` 'Design the product and system' | 279.69–318.69×21.59 | 120.8–140.8 | owning guide/docs content |
+| `/docs/` | 375, 390, 414, 1440 | dark+light | `<a>` 'Author against the portable stan' | 285.56×20 | 22 | owning guide/docs content |
+| `/docs/` | 1440 | dark+light | `<a>` 'Understand packs, profiles, adap' | 513.48×20 | 22 | owning guide/docs content |
+| `/docs/` | 1440 | dark+light | `<a>` 'Implement the provider-neutral v' | 515.14×20 | 22 | owning guide/docs content |
 
 ## Final shaping classification and exemption table
 
 | Classification | Accepted rows | Evidence state |
 | --- | ---: | --- |
-| Measured conforming (≥24×24) | — | Not enumerated: only undersized candidates are rows here |
-| Inline-content exception | 36 | Measured 2026-08-18 |
-| Spacing exception (24px circle clear) | 8 | Measured 2026-08-18 |
+| Inline-content exception (SC 2.5.8, Inline) | 29 | Measured 2026-08-18 |
+| Spacing exception (SC 2.5.8, Spacing) | 15 | Measured 2026-08-18 |
+| Spacing exception, hover-revealed | 12 | Measured 2026-08-18 |
 | Demonstrated non-exempt failure | 0 | Measured 2026-08-18 |
 | User-agent/framework-controlled exception | 0 | None needed |
 | Equivalent-control exception | 0 | None needed |
 | Essential exception | 0 | None needed |
+| **Total classified** | **56** | |
+
+Measured targets at or above 24×24 are not enumerated: only undersized candidates
+need a classification, and listing the conforming majority would bury the 56 rows
+that carry the argument.
 
 No row is classified as a framework-controlled exception, and that is deliberate:
-the brief's decision 10 and this spec's Never-do bar framework ownership from
-being an exception by itself. The three breadcrumb rows are Starlight-owned, and
-they are accepted on their **measured spacing**, with ownership recorded only to
+the brief's decision 10 and this spec's Never-do bar framework ownership from being
+an exception by itself. The Starlight-owned rows — breadcrumbs and heading
+anchors — are accepted on **measured clearance**, with ownership recorded only to
 say who would fix them if they ever failed.
 
-## Cross-recorded axe observations
+## Cross-recorded browser observations
 
 The acceptance bar requires serious/critical axe, overflow, focus, keyboard and
-unstable-framework-control observations to be cross-recorded with the browser
-gate. Measured across the full approved 60-case matrix on 2026-08-18:
+unstable-framework-control observations to be cross-recorded with the browser gate.
+Measured across the full approved 60-case matrix on 2026-08-18:
 
 | Observation | Count | Disposition |
 | --- | ---: | --- |
 | serious or critical axe findings | **0** | threshold met (AC5) |
-| document horizontal overflow beyond 1px | **0** | threshold met (AC4); measured 0px on all 60 cases |
+| document horizontal overflow beyond 1px | **0** | threshold met (AC4); 0px on all 60 |
 | missing focus indication | 0 | none observed |
 | broken keyboard path | 0 | none observed |
 | unresolved same-document fragment | 0 | none observed |
@@ -190,31 +264,48 @@ gate. Measured across the full approved 60-case matrix on 2026-08-18:
 
 ### One accepted lower-severity result
 
-`landmark-unique` — **moderate** — 8 occurrences: `/docs/guides/core/how-to/start-a-project/`
-at 360, 375, 390 and 414 in both themes. Two `role="region"` landmarks on one page
-without distinguishing accessible names.
+`landmark-unique` — **moderate** — 8 occurrences:
+`/docs/guides/core/how-to/start-a-project/` at 360, 375, 390 and 414 in both themes.
+Two `role="region"` landmarks on one page without distinguishing accessible names.
 
 - **Exact cause, traced to source rather than inferred.**
   `@expressive-code/core` ships an inline runtime module (`tabindex-js-module`)
   that, for each `.expressive-code pre > code` parent, sets `tabindex="0"` and
   `role="region"` when the element scrolls and removes both when it does not. It
-  sets no accessible name. It runs through a ResizeObserver with a 250ms debounce
-  inside `requestIdleCallback` — which is also why measurement requires a settle,
-  and why axe run at `load` reports these same elements as a *serious*
+  sets no accessible name. It runs through a `ResizeObserver` with a 250ms debounce
+  inside `requestIdleCallback` — which is also why the gate must settle before
+  measuring, and why axe run at `load` reports these same elements as a *serious*
   `scrollable-region-focusable` failure that does not exist.
 - **Owner:** `@expressive-code/core`, via the pinned docs renderer.
-- **Why accepted:** severity is moderate, and the approved ceiling is zero
-  serious/critical. Accepted on severity plus this exact recorded cause — **not**
-  on framework ownership, which the brief's decision 10 and this spec's Never-do
-  bar from being an exception by itself. Ownership here records who would fix it.
-- **Available remediation, if a future reader wants it closed:** a docs-local
+- **Why accepted:** severity is moderate and the approved ceiling is zero
+  serious/critical. Accepted on severity plus this exact recorded cause — **not** on
+  framework ownership, which the brief's decision 10 and this spec's Never-do bar
+  from being an exception by itself. Ownership records who would fix it.
+- **Runtime signal:** the gate now attaches every non-serious axe finding to the
+  test result, so this list is checkable against a run rather than being a snapshot
+  that rots when the docs renderer moves.
+- **Available remediation if a future reader wants it closed:** a docs-local
   build-time pass adding `aria-label` to `<pre>` inside `.expressive-code`. A name
   persists because Expressive Code only toggles `role`/`tabindex`, and an
-  `aria-label` on a non-scrolling `<pre>` carries no role, so assistive tech
-  ignores it.
-- **Not a gap in earlier work.** The shipped `rehype-scrollable-tables` plugin
-  wraps TABLES only and already names each region after its nearest preceding
-  heading, precisely to avoid this rule. Code blocks were never in its scope.
+  `aria-label` on a non-scrolling `<pre>` carries no role, so assistive tech ignores
+  it.
+- **Not a gap in earlier work.** The shipped `rehype-scrollable-tables` plugin wraps
+  TABLES only and already names each region after its nearest preceding heading,
+  precisely to avoid this rule. Code blocks were never in its scope.
+
+### One framework observation, recorded not fixed
+
+Starlight's compact Docs menu button opens on `Enter` but leaves
+`aria-expanded="false"`. Measured at 360: after `Enter` the theme control becomes
+visible — so the menu genuinely opened — while the attribute does not change.
+
+axe reports nothing for it, so it is not a serious or critical finding and does not
+affect AC5's ceiling. It is recorded because the browser gate asserts the
+*observable* state (the control becoming reachable) rather than the attribute, and a
+later reader who assumes `aria-expanded` is trustworthy here will write a test that
+fails on a menu that works. Owner: pinned Starlight. Not fixed: this spec's Never-do
+bars replacing a Starlight-native control, and the brief bars treating
+framework-owned behaviour as a defect without a demonstrated user outcome.
 
 ## Exception register
 
@@ -224,8 +315,12 @@ criterion conformance rather than exceptions granted. The one accepted
 lower-severity result is the `landmark-unique` axe observation recorded above.
 Broad selectors and framework-ownership-only rationales remain prohibited.
 
-| ID | Route / width / theme | Exact selector or content context | Geometry / spacing | WCAG exception class | Rationale | Owner | Revisit trigger |
-| --- | --- | --- | --- | --- | --- | --- | --- |
+**Empty, deliberately.** Every one of the 56 undersized candidates conforms through
+SC 2.5.8's own Inline or Spacing clause on measured geometry, which is criterion
+conformance rather than an exception granted against it. Nothing is exempted here,
+so there is no row — the table shape is omitted rather than left as a bare header
+that reads as unfilled. The one accepted lower-severity result is the
+`landmark-unique` axe observation above, which is not a target-size exception.
 
 ## Defect register
 

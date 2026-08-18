@@ -8,15 +8,30 @@ Run this before approving a site release.
 ## What CI already proves — do not repeat it by hand
 
 `npm run test:e2e:gate --prefix web` runs after both site builds and before the
-Pages artifact is uploaded, so a failure cannot deploy. It exercises the approved
+Pages artifact is uploaded, so a failure cannot deploy.
+
+To run it yourself, build the combined artifact first — **in this order.** The
+marketing build cleans the shared artifact root, so reversing the two builds leaves
+you testing a half-built site, and running the gate against a stale `build/` gives a
+green that means nothing:
+
+```bash
+python3 tools/build-site.py --journeys-only   # marketing renderer inputs
+npm run build --prefix web                    # writes build/, cleaning it first
+python3 tools/build-site.py                   # aggregates docs content
+npm run build --prefix docs-site              # writes build/docs/
+npm run test:e2e:gate --prefix web
+``` It exercises the approved
 60-case matrix: eight marketing routes at 360, 375, 390, 414 and 1440 CSS pixels
 with no theme mutation, plus `/docs/` and a nested guide route at the same five
 widths in both docs themes. Each case asserts at most 1px document-level
 horizontal overflow, zero serious or critical axe findings, no page or console
 error, and that every same-document fragment resolves.
 
-If that is green, responsive layout, contrast, landmark structure and fragment
-integrity are covered on those routes. Checking them again on a laptop adds
+If that is green, responsive layout, contrast and fragment integrity are covered
+on those routes. Landmark structure is NOT: the only landmark rule that fires on
+this site (`landmark-unique`, from Expressive Code's unnamed code-block regions) is
+moderate, and the gate fails only on serious or critical findings. Checking them again on a laptop adds
 nothing.
 
 ## 1. Physical-device pass — required, and not automatable
@@ -37,9 +52,12 @@ Perform this on **one compact iOS browser** and **one compact Android browser**:
 5. On that guide, scroll one wide code block and one wide table sideways.
 6. Rotate to landscape and back on any one of those pages.
 
-Record device, OS version, browser and version, and the outcome in the table
-below. If you cannot get a device, record a blocker and an owner — **do not record
-a pass you did not observe.**
+Tick the two boxes in
+[`docs/product/release-checklist.md`](../../product/release-checklist.md) —
+that file is the living release record and the one a releaser actually reads — and
+record device, OS version, browser and version in the table below. If you cannot
+get a device, record a blocker and an owner in both places. **Do not record a pass
+you did not observe.**
 
 | Date | Device | OS | Browser | Outcome | Notes |
 | --- | --- | --- | --- | --- | --- |

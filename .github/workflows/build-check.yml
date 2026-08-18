@@ -291,6 +291,7 @@ jobs:
           tools/test_build_site_link_rewrites.py
           tools/test_check_rendered_site_links.py
           tools/test_build_site_routing.py
+          tools/test_browser_gate_subset.py
       # spec/site-ci-contract-closure AC4. The docs palette's WCAG floor becomes a
       # required gate here rather than in docs.yml or pages.yml: neither is a
       # required context, so a gate placed there could not block a merge. Both

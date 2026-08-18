@@ -19,6 +19,12 @@ export default defineConfig({
   use: {
     baseURL: PREVIEW_ORIGIN,
     headless: true,
+    // A gate failure that reproduces only on the CI runner otherwise leaves one
+    // line of message and nothing to look at — no DOM, no image, no timeline. Both
+    // are run artifacts under `web/test-results/`, never tracked files, so AC11's
+    // clean-tree requirement still holds.
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   webServer: {
     command: `npm run preview -- --port ${PREVIEW_PORT}`,

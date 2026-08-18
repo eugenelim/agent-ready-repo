@@ -18,6 +18,7 @@
 import { test, expect, type Page } from '@playwright/test';
 
 import {
+  collectPageErrors,
   expectFragmentsResolve,
   expectLandmarkKeyboardReachable,
   expectNoHorizontalOverflow,
@@ -26,6 +27,7 @@ import {
   expectVisibleFocusIndicator,
   gotoSettled,
   label,
+  measureHorizontalOverflow,
 } from './quality-assertions';
 import { withBase } from './site-base';
 
@@ -46,8 +48,19 @@ async function setBody(page: Page, body: string, head = ''): Promise<void> {
   );
 }
 
-/** Assert the helper rejects, and that its message names the case. */
-async function expectRejectsWithContext(promise: Promise<unknown>): Promise<void> {
+/**
+ * Assert the helper rejects, that its message names the case, and — when given —
+ * that it failed for the EXPECTED reason.
+ *
+ * Without `expectedReason` a fixture that starts failing for a new reason still
+ * passes. That is the residual of two fixture bugs already found here: a missing
+ * `<title>` made every "clean" case fail as a serious violation, and a scrollable
+ * `<div>` never tripped `scrollable-region-focusable` at all.
+ */
+async function expectRejectsWithContext(
+  promise: Promise<unknown>,
+  expectedReason?: string
+): Promise<void> {
   let message: string | null = null;
   try {
     await promise;
@@ -56,6 +69,12 @@ async function expectRejectsWithContext(promise: Promise<unknown>): Promise<void
   }
   expect(message, 'assertion did not fail on a seeded defect').not.toBeNull();
   expect(message, 'failure message omits route/width/theme context').toContain(CONTEXT);
+  if (expectedReason) {
+    expect(
+      message,
+      `failed, but not for the seeded reason (${expectedReason})`
+    ).toContain(expectedReason);
+  }
 }
 
 test.describe('label', () => {
@@ -76,19 +95,27 @@ test.describe('horizontal overflow', () => {
     await expectRejectsWithContext(expectNoHorizontalOverflow(page, CTX));
   });
 
-  test('1px is tolerated, 2px is not', async ({ page }) => {
-    // The accepted subpixel tolerance is exactly 1px (brief decision 11); a
-    // helper that tolerated more would pass a real defect.
+  test('exactly 1px is tolerated and exactly 2px is not', async ({ page }) => {
+    // The accepted tolerance is exactly 1px (brief decision 11). Seeding 8px for
+    // the failing half let OVERFLOW_TOLERANCE_PX drift as far as 7 and stay green,
+    // and the passing half proved nothing without asserting the measured value —
+    // 0px of overflow would have passed identically.
     await setBody(
       page,
       '<main><div style="position:absolute;left:0;width:calc(100vw + 1px);height:10px"></div></main>'
     );
+    expect(await measureHorizontalOverflow(page), 'fixture should overflow by exactly 1px').toBe(1);
     await expectNoHorizontalOverflow(page, CTX);
+
     await setBody(
       page,
-      '<main><div style="position:absolute;left:0;width:calc(100vw + 8px);height:10px"></div></main>'
+      '<main><div style="position:absolute;left:0;width:calc(100vw + 2px);height:10px"></div></main>'
     );
-    await expectRejectsWithContext(expectNoHorizontalOverflow(page, CTX));
+    expect(await measureHorizontalOverflow(page), 'fixture should overflow by exactly 2px').toBe(2);
+    await expectRejectsWithContext(
+      expectNoHorizontalOverflow(page, CTX),
+      'scrolls horizontally by 2px'
+    );
   });
 });
 
@@ -108,7 +135,10 @@ test.describe('serious axe violations', () => {
       page,
       `<main><h1>h</h1><pre style="width:120px;overflow-x:auto">${'x'.repeat(400)}</pre></main>`
     );
-    await expectRejectsWithContext(expectNoSeriousAxeViolations(page, CTX));
+    await expectRejectsWithContext(
+      expectNoSeriousAxeViolations(page, CTX),
+      'scrollable-region-focusable'
+    );
   });
 
   test('seeded colour-contrast failure fails with context', async ({ page }) => {
@@ -118,7 +148,7 @@ test.describe('serious axe violations', () => {
       page,
       '<main><h1>h</h1><p style="color:#bbbbbb;background:#ffffff">low contrast</p></main>'
     );
-    await expectRejectsWithContext(expectNoSeriousAxeViolations(page, CTX));
+    await expectRejectsWithContext(expectNoSeriousAxeViolations(page, CTX), 'color-contrast');
   });
 
   test('a MODERATE finding does not fail the gate', async ({ page }) => {
@@ -160,7 +190,37 @@ test.describe('focus indication', () => {
       '<style>a:focus{outline:none;box-shadow:none;text-decoration:none}</style>'
     );
     await page.locator('#a').focus();
-    await expectRejectsWithContext(expectVisibleFocusIndicator(page, CTX));
+    await expectRejectsWithContext(
+      expectVisibleFocusIndicator(page, CTX),
+      'no focus indicator it did not'
+    );
+  });
+
+  test('an always-underlined link with no focus ring still fails', async ({ page }) => {
+    // The hole the earlier form left open: reading only the FOCUSED style accepted
+    // any element whose resting style already carried an underline or box-shadow,
+    // so a deleted focus ring passed. The seeded fixture removed outline, shadow
+    // AND decoration together, which hid it.
+    await setBody(
+      page,
+      '<main><a id="a" href="#x">link</a><h2 id="x">x</h2></main>',
+      '<style>a{text-decoration:underline}a:focus{outline:none;box-shadow:none}</style>'
+    );
+    await page.locator('#a').focus();
+    await expectRejectsWithContext(
+      expectVisibleFocusIndicator(page, CTX),
+      'no focus indicator it did not'
+    );
+  });
+
+  test('a ring that appears only on focus passes', async ({ page }) => {
+    await setBody(
+      page,
+      '<main><a id="a" href="#x">link</a><h2 id="x">x</h2></main>',
+      '<style>a{text-decoration:underline}a:focus{outline:3px solid #000}</style>'
+    );
+    await page.locator('#a').focus();
+    await expectVisibleFocusIndicator(page, CTX);
   });
 });
 
@@ -187,9 +247,60 @@ test.describe('keyboard reachability', () => {
     // present and clickable — a broken keyboard path that a link-count check or a
     // click-based test would both miss.
     await setBody(page, '<footer><a href="/a">a</a><a href="/b" tabindex="-1">b</a></footer>');
+    await expectRejectsWithContext(expectLandmarkKeyboardReachable(page, 'footer', CTX));
+  });
+
+  test('an ABSENT landmark fails rather than silently passing', async ({ page }) => {
+    // The hole this closes: `if (expected === 0) return` meant a renamed class or a
+    // <footer> turned <div> collapsed the whole contract to a no-op, green.
+    await setBody(page, '<main><a href="/a">a</a></main>');
     await expectRejectsWithContext(
-      expectLandmarkKeyboardReachable(page, 'footer', CTX, 12)
+      expectLandmarkKeyboardReachable(page, 'footer', CTX),
+      'is absent'
     );
+  });
+
+  test('a landmark with no visible links fails', async ({ page }) => {
+    await setBody(page, '<footer><a href="/a" style="display:none">a</a></footer>');
+    await expectRejectsWithContext(
+      expectLandmarkKeyboardReachable(page, 'footer', CTX),
+      'no visible links'
+    );
+  });
+
+  test('two links to the same destination are both reachable', async ({ page }) => {
+    // Tracking reached links by `href` made this unsatisfiable — a logo plus a
+    // "Home" link failed as a keyboard defect. Tracked by element identity now.
+    await setBody(page, '<footer><a href="/same">logo</a><a href="/same">Home</a></footer>');
+    await expectLandmarkKeyboardReachable(page, 'footer', CTX);
+  });
+});
+
+test.describe('page and console error collection', () => {
+  test('a thrown page error is collected', async ({ page }) => {
+    // AC3 promises "no HTTP error, client error, or unhandled page error". The HTTP
+    // half was seeded; without this the client half could silently never match and
+    // 60 cases would report clean forever.
+    const errors = collectPageErrors(page);
+    await setBody(page, '<main><h1>h</h1></main>', '<script>setTimeout(()=>{throw new Error("seeded boom")},0)</script>');
+    await page.waitForTimeout(200);
+    expect(errors.join('\n'), 'a thrown error was not collected').toContain('seeded boom');
+  });
+
+  test('a console error is collected', async ({ page }) => {
+    const errors = collectPageErrors(page);
+    await setBody(page, '<main><h1>h</h1></main>', '<script>console.error("seeded console problem")</script>');
+    await page.waitForTimeout(200);
+    expect(errors.join('\n'), 'a console error was not collected').toContain(
+      'seeded console problem'
+    );
+  });
+
+  test('a clean page collects nothing', async ({ page }) => {
+    const errors = collectPageErrors(page);
+    await setBody(page, '<main><h1>h</h1><p>quiet</p></main>');
+    await page.waitForTimeout(200);
+    expect(errors).toEqual([]);
   });
 });
 

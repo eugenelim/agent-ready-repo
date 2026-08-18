@@ -1679,6 +1679,14 @@ open = [
   # (docs-site-npm-sca-gap) was discharged by spec/npm-sca-gate + ADR-0083 —
   # `tools/audit-npm.py` now runs as a leg of `make sast`. Print: docs-site print
   # rendering left at Starlight defaults (accent/hairlines untuned for paper).
+  # NOT discharged by spec/site-browser-quality-gate's print audit (2026-08-18),
+  # despite that audit closing `close-stale`. The two ask different questions: the
+  # audit measured CONTENT INTEGRITY on six representative routes — clipping, width
+  # overflow, per-route navigation visibility, body text present — and found no
+  # failure, which is why it added no print CSS. This anchor is about AESTHETIC
+  # tuning for paper, which the audit did not evaluate and its decision rule
+  # explicitly bars proposing from preference. Print is settled for correctness and
+  # open for tuning; a reader should not read one as the other.
   {slug = "docs-site-print-styles", source = "spec/docs-site-design-refresh"},
 
   # npm-sca-gate deferrals (spec Assumptions).
@@ -2566,6 +2574,30 @@ open = [
   # asserted by test_the_archival_conversion_record_stays_unwired.
   # Closing this file as a sanctioned case reduces the leak count again; the numeral
   # in the summary drifts with every instance closed, so trust the enumeration, not it.
+  # spec/site-browser-quality-gate shipped its decision-to-gate keyboard cases in a
+  # state where they SKIP: semantic `#decision-<id>` chips are
+  # spec/journey-page-completion's contract and are not emitted yet, so six cases in
+  # web/src/test/e2e/site-quality-gate.spec.ts assert nothing today. They begin
+  # gating the moment that slice lands, and nobody is presently prompted to confirm
+  # they did. Fix: after journey-page-completion merges, run the gate and confirm the
+  # six cases RUN rather than skip; if they still skip, the chip contract and the
+  # gate's selector disagree.
+  {slug = "browser-gate-journey-chip-cases-inert", source = "spec/site-browser-quality-gate AC6", summary = "Confirm the six decision-chip browser cases stop skipping once journey-page-completion emits semantic gate IDs"},
+  # The tap-target audit's docs-footer rows measure a footer that
+  # spec/site-shared-chrome replaces with the approved three-group taxonomy, and its
+  # product-orientation band does not exist yet so has no rows at all. The audit says
+  # so, but that prose freezes with the spec. Fix: re-measure both docs routes at all
+  # five widths in both themes after shared chrome lands and update
+  # notes/docs-tap-target-audit.md.
+  {slug = "tap-target-audit-remeasure-after-shared-chrome", source = "spec/site-browser-quality-gate T0", summary = "Re-measure the docs tap-target audit after site-shared-chrome replaces the footer and adds the orientation band"},
+  # spec/site-browser-quality-gate AC12 was narrowed to the axes its print audit
+  # actually measures: box geometry against the printable width, document horizontal
+  # overflow, per-route navigation visibility, PDF page count. NOT measured: vertical
+  # overlap, orphaned headings, unusable page breaks, unexpected blank pages. Page
+  # COUNT is not break quality, and `close-stale` in AC13 rests only on the measured
+  # axes. Fix: read the six generated PDFs and record break quality, or state in the
+  # audit that break quality is out of scope and why.
+  {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Judge print page-break quality on the six representative routes; page count is not break quality"},
   {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
   # Wiring the seven guides/site suites into build-check.yml (spec/
   # build-check-coverage-gaps) couples EVERY PR to the formatting of files those
