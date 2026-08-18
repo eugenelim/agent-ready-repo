@@ -1,11 +1,14 @@
-"""Tests for guide-routing additions to tools/build-site.py (5 tests).
+"""Tests for guide-routing additions to tools/build-site.py (7 tests).
 
 Covers: frontmatter parsing, guide-metadata stripping, slug-override routing,
-alias redirect-stub generation, and docs/guides/ exclusion.
+alias redirect-stub generation, docs/guides/ exclusion, and generation's
+independence from the marketing design-token file.
 """
 from __future__ import annotations
 
 import importlib.util
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -185,3 +188,78 @@ def test_docs_guides_not_mirrored_from_real_guides_root(tmp_path):
         )
     # Sanity: some actual guides/ content was mirrored
     assert any(site_docs.rglob("*.md")), "Expected mirrored guides to produce at least one file"
+
+
+# --------------------------------------------------------------------------
+# spec/docs-site-build-contract-hardening AC1/AC2 — no marketing-token dependency
+# --------------------------------------------------------------------------
+#
+# These two run the generator as a SUBPROCESS inside a temp tree rather than
+# calling `main()` in-process. `REPO_ROOT` is module-level and the token copy lived
+# inline in `main()`, so an in-process call would read the real
+# `web/src/styles/tokens.css` and write into the real
+# `docs-site/src/content/docs/` — no isolation, and a dirtied worktree. Copying
+# `build-site.py` plus `site.toml` into the fixture makes `REPO_ROOT` the fixture.
+#
+# Before this change the generator exited 1 with
+# `error  web/src/styles/tokens.css missing — docs-site CSS depends on it`. That
+# claim was false: `docs-site/src/styles/starlight.css` stopped importing the copied
+# file, so the copy was vestigial and the hard failure was a false dependency.
+
+
+def _generator_fixture(tmp_path):
+    """A minimal tree where the generator can run with REPO_ROOT == tmp_path."""
+    (tmp_path / "tools").mkdir()
+    shutil.copy2(_SCRIPT, tmp_path / "tools" / "build-site.py")
+    real_site_toml = _SCRIPT.parent.parent / "site.toml"
+    if real_site_toml.is_file():
+        shutil.copy2(real_site_toml, tmp_path / "site.toml")
+    # The trees the generator reads and writes. Empty is fine: this asserts the
+    # token contract, not mirroring behaviour, which the tests above cover.
+    for d in ("guides", "packs", "docs-site/src/content/docs", "docs-site/src/styles",
+              "web/src/styles"):
+        (tmp_path / d).mkdir(parents=True, exist_ok=True)
+    return tmp_path
+
+
+def _run_generator(root):
+    return subprocess.run(
+        [sys.executable, str(root / "tools" / "build-site.py")],
+        cwd=root, capture_output=True, text=True,
+    )
+
+
+def test_generation_succeeds_without_the_marketing_token_file(tmp_path):
+    """AC2: no marketing token file present, and generation still succeeds.
+
+    This is the criterion's whole point — the previous contract exited 1 here.
+    """
+    root = _generator_fixture(tmp_path)
+    tokens = root / "web" / "src" / "styles" / "tokens.css"
+    assert not tokens.exists(), "fixture must not provide the marketing token file"
+    r = _run_generator(root)
+    assert r.returncode == 0, (
+        "generation must not depend on the marketing token file:\n"
+        + r.stdout + r.stderr
+    )
+    assert "tokens.css missing" not in (r.stdout + r.stderr), r.stdout + r.stderr
+
+
+def test_generation_writes_no_docs_token_copy(tmp_path):
+    """AC1/AC2: even WITH a marketing token file present, no copy is emitted.
+
+    Asserted with the source present, because a test that only removes the source
+    cannot distinguish "the copy was deleted" from "the copy was skipped for lack of
+    input" — the mutation that reintroduces the copy would then still pass.
+    """
+    root = _generator_fixture(tmp_path)
+    src = root / "web" / "src" / "styles" / "tokens.css"
+    src.write_text(":root { --brand: #f59e0b; }\n", encoding="utf-8")
+    r = _run_generator(root)
+    assert r.returncode == 0, r.stdout + r.stderr
+    copied = root / "docs-site" / "src" / "styles" / "tokens.css"
+    assert not copied.exists(), (
+        "generation must not copy marketing tokens into docs-site: the docs palette "
+        "is self-contained per ADR-0085"
+    )
+    assert "copying design tokens" not in r.stdout, r.stdout

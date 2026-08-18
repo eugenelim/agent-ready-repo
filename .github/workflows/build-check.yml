@@ -305,6 +305,13 @@ jobs:
         run: |
           python3 tools/check-docs-contrast.py
           python -m pytest tools/test_check_docs_contrast.py -q
+      # spec/docs-site-build-contract-hardening AC7. Posture of the DEPLOY workflow,
+      # asserted from a required context — pages.yml is not itself required, so
+      # without this a deploy-gate deletion would only surface after merge. Invoked
+      # as a script, not via pytest: it defines no `test_` function, so a pytest
+      # collection would silently run nothing.
+      - name: pages.yml deploy-gate posture
+        run: python3 tools/test-pages-workflow.py
       - name: pytest credential-setup skill (RFC-0023 T8 + missing-credbroker guard)
         working-directory: packs/credential-brokers/tests/skills/credential-setup
         # `requires_crypto` gates on find_spec("cryptography") and ("argon2"), so a

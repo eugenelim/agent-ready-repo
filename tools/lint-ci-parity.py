@@ -111,7 +111,12 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "Deploy workflow. Its built-output `check-site-plugin-offers.py` "
         "assertion is intentionally non-blocking because it requires the full "
         "site build; the assertion's self-test remains in the blocking local "
-        "build gate chain.",
+        "build gate chain. Since spec/docs-site-build-contract-hardening it ALSO "
+        "carries one hard gate — the rehype plugin suite, whose local counterpart "
+        "is `make test` (npm run test:plugins --prefix docs-site) and whose "
+        "presence, ordering and path filters are pinned by "
+        "tools/test-pages-workflow.py, run from the required gate-main. It blocks "
+        "the deploy, not the merge: this workflow is not a required context.",
     "publish-catalogue.yml": "Publish workflow, not a gate.",
     "publish-claude-plugins.yml": "Publish workflow, not a gate.",
     "release-agentbundle.yml":
@@ -370,6 +375,10 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # `make ci` via the `test` target: the checker on its own line near the top,
     # and its suite on the site/catalogue pytest line.
     "docs palette contrast gate":
+        LOCAL("test"),
+    # spec/docs-site-build-contract-hardening AC7. Reachable from `make ci` via the
+    # `test` target, which invokes the same script.
+    "pages.yml deploy-gate posture":
         LOCAL("test"),
     # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
     # this step runs the gate's own tests, so a regression to always-exit-0 goes

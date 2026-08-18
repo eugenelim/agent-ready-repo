@@ -87,7 +87,6 @@ docs-site/src/content/docs/packs/
 docs-site/src/content/docs/guides/
 docs-site/src/content/docs/changelog.md
 docs-site/src/content/docs/contributing.md
-docs-site/src/styles/tokens.css
 docs-site/src/sidebar-config.json
 
 # workspace-status repair artifacts — written by repair-plan/repair-apply;

@@ -10,7 +10,8 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "test:plugins": "node --test src/plugins/rehype-scrollable-tables.test.ts"
   },
   "dependencies": {
     "@astrojs/starlight": "0.41.4",

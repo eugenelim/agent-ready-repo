@@ -334,6 +334,13 @@ test:
 	# spec/site-ci-contract-closure AC6: the docs-palette WCAG gate runs locally
 	# too, so `make ci` covers what gate-main's contrast step runs.
 	$(PYTHON) tools/check-docs-contrast.py
+	# spec/docs-site-build-contract-hardening AC6: the rehype plugin suite runs
+	# locally too. Without this `make ci` stays green with a red plugin suite —
+	# the orphan class the register tracks as tools-test-runner-boundary.
+	@command -v npm >/dev/null 2>&1 || { echo "make test: npm not found — install Node.js (>=24, per docs-site/package.json engines)" >&2; exit 1; }
+	@test -d docs-site/node_modules || { echo "make test: docs-site deps missing — run: npm ci --prefix docs-site" >&2; exit 1; }
+	npm run test:plugins --prefix docs-site
+	$(PYTHON) tools/test-pages-workflow.py
 	$(PYTHON) -m pytest tests/ -q
 	$(PYTHON) -m pytest packs/core/tests/hooks/ -q
 	$(PYTHON) -m pytest packs/core/tests/pack/ -q

@@ -112,6 +112,16 @@ jobs:
       - name: Install docs-site dependencies
         run: npm ci --prefix docs-site
 
+      # spec/docs-site-build-contract-hardening AC7. The rehype plugin's focused
+      # suite, after the docs deps install (it imports the plugin's declared runtime
+      # dependency) and before the artifact upload, so a failure blocks the deploy.
+      # Node's built-in runner under the engines floor docs-site/package.json
+      # declares — no test dependency is added. pages.yml is not a required MERGE
+      # context, so this gates deployment, not merge; the required workflow carries
+      # no Node and must carry no paths: filter, so the suite cannot live there.
+      - name: Plugin unit tests
+        run: npm run test:plugins --prefix docs-site
+
       - name: Aggregate content
         run: python tools/build-site.py
 
