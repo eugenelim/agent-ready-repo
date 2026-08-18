@@ -1,0 +1,4 @@
+[pack]
+name = "pack-without-journey"
+version = "0.1.0"
+description = "Legacy pack without a journey."

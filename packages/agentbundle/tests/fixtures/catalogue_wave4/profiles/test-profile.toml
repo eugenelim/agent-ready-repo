@@ -1,0 +1,8 @@
+scope = "repo"
+description = "Fixture profile."
+
+[[packs]]
+pack = "pack-with-journey"
+
+[[packs]]
+pack = "pack-without-journey"

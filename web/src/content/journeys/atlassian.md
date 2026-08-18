@@ -3,7 +3,7 @@ generated: true
 journey_id: atlassian
 pack: atlassian
 start_state: read-only
-end_state: publish
+end_state: confirmed-write
 scope: user
 tagline: "Run Jira and Confluence from a conversation"
 prerequisitePacks: []

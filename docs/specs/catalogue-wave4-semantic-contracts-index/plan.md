@@ -1,6 +1,6 @@
 # Plan: catalogue-wave4-semantic-contracts-index
 
-- **Status:** Drafting
+- **Status:** Done
 - **Spec:** [`spec.md`](spec.md)
 
 ## Mode and declined patterns
@@ -84,23 +84,26 @@ Third wave (once T1+T2+T3 complete): T4 (needs T1, T2, T3).
 # packages/agentbundle/tests/integration/test_catalogue_wave4_journey_validator.py
 class TestJourneyValidator:
     def test_all_required_keys_present_returns_journey_data(self):
-        raise NotImplementedError  # STUB: AC1
+        raise NotImplementedError  # STUB: AC6
     def test_missing_required_key_returns_none_and_emits_error(self):
-        raise NotImplementedError  # STUB: AC3
+        raise NotImplementedError  # STUB: AC6
     def test_journey_absent_returns_empty_array_no_warning(self):
-        raise NotImplementedError  # STUB: AC5
+        raise NotImplementedError  # STUB: AC7
     def test_malformed_yaml_fails_index_generation(self):
-        raise NotImplementedError  # STUB: AC4
+        raise NotImplementedError  # STUB: AC6
     def test_optional_keys_absent_no_warning(self):
-        raise NotImplementedError  # STUB: AC2
+        raise NotImplementedError  # STUB: AC6
     def test_pyyaml_absent_with_no_journey_md_does_not_raise(self):
         # journey_absent → parse_journey_md never imports yaml → no ImportError
         # assert: (None, []) returned without attempting yaml import
-        raise NotImplementedError  # STUB: AC4
+        raise NotImplementedError  # STUB: AC7
     def test_pyyaml_absent_with_present_journey_md_emits_error(self):
         # journey file exists; monkeypatch import yaml to raise ImportError
         # assert: (None, [error_message]) returned with install instruction
-        raise NotImplementedError  # STUB: AC4
+        raise NotImplementedError  # STUB: AC6
+    def test_unsafe_yaml_tag_and_non_mapping_frontmatter_emit_errors(self):
+        # safe loader refuses executable tags; list/scalar frontmatter is not a mapping
+        raise NotImplementedError  # STUB: AC6
 ```
 
 **Approach:**
@@ -110,8 +113,10 @@ Write `journey_validator.py` exporting:
   `{"journey_id", "pack", "start_state", "end_state", "scope", "tagline", "contract"}`
 - `CONTRACT_REQUIRED_KEYS: frozenset[str]` — required sub-keys of `contract`:
   `{"useItWhen", "youProvide", "youReceive", "yourDecisions"}`
-- `parse_journey_md(path: Path) -> tuple[dict | None, list[str]]` — reads a JOURNEY.md
-  file. Returns `(frontmatter_dict, errors)`. Rules:
+- `parse_journey_md(catalogue_root: Path, path: Path) -> tuple[dict | None, list[str]]`
+  — reads a JOURNEY.md file through `read_confined_regular_file(catalogue_root, path)`
+  and reports only its catalogue-relative path. Returns `(frontmatter_dict, errors)`.
+  Rules:
   - File absent → `(None, [])` (caller maps None to empty journeys array, no error)
   - File present, valid YAML with all required keys → `(data, [])`
   - File present, valid YAML, missing required key → `(None, [error_message])`
@@ -121,6 +126,8 @@ Write `journey_validator.py` exporting:
   exit 1, no output file written, structured diagnostic emitted (AC6).
   - Extracts only the YAML frontmatter block (content between leading `---` delimiters);
     does not parse JOURNEY.md body markdown.
+  - Uses `yaml.safe_load` only, rejects unsafe YAML tags and non-mapping frontmatter,
+    and never calls `yaml.load` with an unsafe loader or evaluates YAML-derived text.
 
 Use `PyYAML` via the `agentbundle[lint]` optional extra for YAML parsing (Option B, frozen at Phase 0B). PyYAML is NOT in agentbundle's base dependencies — it is in the `lint` optional extra only. Import PyYAML lazily: attempt `import yaml` only inside `parse_journey_md`, not at module load time. If a JOURNEY.md file is absent, `parse_journey_md` is never called and PyYAML is never imported — the command exits 0 without requiring the lint extra. If a JOURNEY.md file is present and PyYAML is unavailable (`import yaml` raises `ImportError`), return `(None, ["PyYAML required — install agentbundle[lint]"])`, which triggers the fail-closed exit-1 path in the command handler. No new top-level runtime dependency is added.
 
@@ -171,12 +178,32 @@ After writing `contracts/catalogue-index.schema.json`, byte-copy it to
 
 ## T3 — CLI registration (`agentbundle catalogue index`)
 
-**Verification mode:** goal-based
+**Verification mode:** TDD
 
 **Touches:**
 - `packages/agentbundle/agentbundle/cli.py`
+- `packages/agentbundle/tests/unit/test_cli_path_normalisation.py`
+- `packages/agentbundle/tests/integration/test_catalogue_wave4_integration.py` (new)
 
-**Tests:** none (goal-based)
+**Tests:**
+
+```python
+def test_catalogue_root_is_a_pinned_path_bearing_attribute():
+    # Assert catalogue_root is in the exact _PATH_BEARING_ATTRS allow-list.
+    raise NotImplementedError  # STUB: AC14
+
+def test_catalogue_index_normalises_backslash_root_before_dispatch(tmp_path):
+    # Install a fake/capturing agentbundle.commands.catalogue_index module in
+    # sys.modules, then invoke catalogue index with a backslash-form root.
+    # Assert the handler receives the normalized slash form.
+    raise NotImplementedError  # STUB: AC14
+
+def test_catalogue_index_does_not_load_user_config(monkeypatch):
+    # Install a fake agentbundle.commands.catalogue_index module in sys.modules,
+    # make load_user_config raise if called, then invoke catalogue index in-process.
+    # The command must dispatch without reading user-scope configuration.
+    raise NotImplementedError  # STUB: AC20
+```
 
 **Approach:**
 
@@ -223,7 +250,16 @@ _ci_p.add_argument(
 _ci_p.set_defaults(func=_lazy("catalogue_index"))
 ```
 
-**Done when:** `agentbundle catalogue index --help` exits 0 and lists all four flags.
+Add `catalogue_root` to `_PATH_BEARING_ATTRS` and its exact pinned allow-list test so
+Windows-style roots enter the same normalized path checks as POSIX roots. At dispatch,
+identify `catalogue_sub == "index"` and do not call `load_user_config()` for this
+command; the index is catalogue-root-contained and does not consume user configuration.
+Other commands retain the existing one-time user-config load. Because the real command
+module belongs to dependent T4, T3's dispatch tests inject a minimal fake module with a
+capturing `run(args)` through `sys.modules`; they do not import or depend on T4.
+
+**Done when:** the three tests above pass, and `agentbundle catalogue index --help`
+exits 0 and lists all four flags.
 
 ---
 
@@ -258,21 +294,25 @@ class TestGenerateIndex:
 
 `index_generator.py` exports `generate_index(catalogue_root: Path, generated_at: str | None) -> dict`.
 
-**Symlink confinement (applies to ALL reads and scans in this algorithm):**
-- **Directory walks:** check `entry.is_symlink()` before descending or including any entry;
-  silently exclude symlinks.
-- **Direct file reads (steps 1-3):** before calling `open()` on any constructed path
-  (`catalogue.toml`, `packs/<name>/pack.toml`, `packs/<name>/JOURNEY.md`,
-  `profiles/*.toml`), call `path.is_symlink()` and treat the file as absent if it is a
-  symlink — do NOT dereference. `path.is_symlink()` alone is the correct guard; do not
-  call `path.resolve()`, which dereferences. A symlink could escape `CATALOGUE_ROOT`
-  into arbitrary filesystem paths (AC20 / spec.md:335-336).
+**Input confinement (applies to ALL reads and scans in this algorithm):**
+- Reuse `catalogue_tooling.file_safety.read_confined_regular_file` and
+  `sha256_confined_regular_file` (or extend that module once) for direct reads. Every
+  read proves the canonical regular file remains beneath `CATALOGUE_ROOT`; final and
+  parent symlinks, Windows junctions/reparse points, hard-link uncertainty, and
+  containment errors fail closed.
+- Directory walks check `entry.is_symlink()` and `entry.is_junction()` where available
+  before descending or including an entry, maintain a canonical visited-directory set,
+  and re-check each child's resolved containment. Catch `(OSError, RuntimeError)` from
+  resolution, including symlink loops. Silently exclude symlink/junction entries from
+  content and digests; surface unreadable or uncertain regular files as errors.
 
 Algorithm:
-1. Read `catalogue.toml` from root (symlink check first). Extract `[catalogue].name`
+1. Read `catalogue.toml` from root through the confined regular-file helper. Extract `[catalogue].name`
    (required) and `[catalogue].description` (optional).
-2. Enumerate `packs/*/pack.toml`. For each pack (symlink check before reading pack.toml):
-   - Extract required fields: `name`, `version`, `scope`.
+2. Enumerate confined, non-link `packs/*/pack.toml` entries. For each pack:
+   - Extract required fields: `name`, `version`, `scope`. Source `scope` from
+     `[pack.install].default-scope` for non-legacy packs; legacy packs without that
+     table resolve to `repo`, matching the installer's conservative default.
    - Extract optional fields: `description`, `categories`.
    - Derive `adapters` via the same contract-version-aware logic as
      `_profile_pack_allowed_adapters` (frozen rule, Phase 0B / AC10):
@@ -302,7 +342,7 @@ Algorithm:
    - Extract `integrations` from `[[pack.integrations]]` entries; emit empty array
      if absent.
    - Build `integrations_inverse` by scanning all packs.
-   - Call `parse_journey_md(packs/<name>/JOURNEY.md)` (symlink check before reading). Map
+   - Call `parse_journey_md(catalogue_root, packs/<name>/JOURNEY.md)`. Map
      result to `journeys` and `effects` (author-declared); exit 1 if the validator returns
      errors (fail-closed per AC6 — missing required keys or malformed YAML are errors).
    - Build `content` by scanning canonical pack source directories: enumerate
@@ -376,17 +416,27 @@ Algorithm:
      to an ISO 8601 UTC string (second precision, `Z` suffix).
   3. Else pass `None` → `generated_at` field omitted from output.
 - Calls `generate_index(catalogue_root, generated_at)`.
-- On `--dry-run`: validates but does not write; prints "Validation passed." to stdout.
-- On success: writes JSON (UTF-8, final newline, 2-space indent, sorted keys). Prints
-  summary table or JSON result to stdout per `--format`.
+- On `--dry-run`: validates but does not write. Table mode prints
+  "Validation passed." to stdout; JSON mode emits only the single JSON result document
+  described by the public `--format json` contract.
+- On success: serializes strict JSON (`allow_nan=False`, UTF-8, final newline, 2-space
+  indent, sorted keys) and writes through `agentbundle.safety.write_files_no_follow`
+  or an equivalent repository no-follow atomic writer. Default and relative output
+  paths are confined under `CATALOGUE_ROOT`; an explicit absolute destination is
+  permitted but must not be a symlink, junction, or reparse point. A failed validation
+  or write leaves an existing output unchanged. Prints summary table or JSON result to
+  stdout per `--format`.
 - Makes no network requests; does not invoke subprocesses.
+- Converts `OSError`, `UnicodeDecodeError`, `tomllib.TOMLDecodeError`, invalid
+  `SOURCE_DATE_EPOCH`, and confined-read errors into structured relative-path/field
+  diagnostics with exit 1 and no traceback.
 
 **Done when (manual QA):**
 ```bash
 python3 -m agentbundle catalogue index . --dry-run  # exits 0
 python3 -m agentbundle catalogue index . --output /tmp/ci.json  # exits 0, file written
 python3 -c "import json; d=json.load(open('/tmp/ci.json')); print(len(d['packs']), 'packs')"  # prints N packs
-python3 -m agentbundle catalogue index nonexistent-path  # exits 1 or 2
+python3 -m agentbundle catalogue index nonexistent-path  # exits 1 (input failure, not usage)
 ```
 
 ---
@@ -401,8 +451,8 @@ python3 -m agentbundle catalogue index nonexistent-path  # exits 1 or 2
 - `packs/desk-research/JOURNEY.md` (verify existing; update if required keys missing)
 - `packs/architect/JOURNEY.md` (verify existing; update if required keys missing)
 
-**Tests:** none (verified by T9 integration test — `catalogue index` run against first-party
-catalogue exits 0 and all four packs produce non-empty `journeys`)
+**Tests:** no stub (goal-based). T9 covers the isolated two-pack fixture; T5's Done-when
+commands separately exercise the live first-party catalogue and assert AC26 dynamically.
 
 **Approach:**
 
@@ -411,8 +461,10 @@ For each of the four JOURNEY.md files:
 2. Check all AC1 required keys are present: `journey_id`, `pack`, `start_state`,
    `end_state`, `scope`, `tagline`, `contract` (with sub-keys `useItWhen`, `youProvide`,
    `youReceive`, `yourDecisions`).
-3. If any required key is absent, add it with a placeholder value and note in the commit
-   message that the field was added for convention conformance.
+3. If any required key is absent, derive a meaningful pack-specific value from the pack
+   README, manifest, and existing journey body. If those sources do not determine the
+   value, surface for human input; never publish placeholder semantic data. Record the
+   convention-conformance addition in the final handoff, not Git metadata.
 4. Do not change existing values unless they are structurally incorrect (e.g., wrong type).
 5. Apply migration conformance rule (AC5): these files predate the formal convention;
    verify body contains the activation-trigger table and at least two numbered workflow
@@ -427,7 +479,7 @@ from agentbundle.catalogue_tooling.journey_validator import parse_journey_md
 from pathlib import Path
 failed = []
 for journey in sorted(Path('packs').glob('*/JOURNEY.md')):
-    data, errors = parse_journey_md(journey)
+    data, errors = parse_journey_md(Path('.'), journey)
     if errors:
         failed.append((journey, errors))
         print(f'FAIL {journey}: {errors}')
@@ -441,6 +493,11 @@ print('All JOURNEY.md files pass.')
 Each JOURNEY.md that exists must parse with an empty errors list.  The four packs named
 in AC23–AC25 (core, governance-extras, desk-research, architect) must appear in the output
 and pass; any additional packs with JOURNEY.md files must also pass.
+
+Then run `agentbundle catalogue index . --dry-run --format json` and an automated
+live-catalogue assertion that enumerates `packs/*/JOURNEY.md`, indexes `.`, and proves
+every matching pack entry contains a non-empty `journeys` array (AC26). This live-root
+check is separate from T9's dedicated two-pack fixture.
 
 ---
 
@@ -475,6 +532,9 @@ If it exits non-zero, copy the guide to the scaffold path manually, then rerun.
 **Done when:**
 - `grep -q "Journey format" guides/_shared/reference/catalogue-authoring-standards.md` exits 0
 - `! grep -qi "not yet available" guides/_shared/reference/catalogue-authoring-standards.md` exits 0
+- An automated assertion extracts the updated Journey-format section and rejects host
+  workflow paths, Make targets, and internal RFC/ADR/spec citations; every relative
+  Markdown link in the section resolves from the scaffold copy (AC28).
 - `python3 tools/catalogue/sync_authoring_scaffold.py --check` exits 0
 
 ---
@@ -495,23 +555,27 @@ class TestParseJourneyMd:
     def test_all_required_keys_present(self, tmp_path):
         # write fixture JOURNEY.md with all AC1 required keys
         # assert returns (data_dict, [])
-        raise NotImplementedError  # STUB: AC1
+        raise NotImplementedError  # STUB: AC6
     def test_missing_required_key_emits_error(self, tmp_path):
         # write fixture JOURNEY.md missing one required key
         # assert returns (None, [error_message])
-        raise NotImplementedError  # STUB: AC3
+        raise NotImplementedError  # STUB: AC6
     def test_journey_absent_returns_none_no_warning(self, tmp_path):
         # file does not exist
         # assert returns (None, [])
-        raise NotImplementedError  # STUB: AC5
+        raise NotImplementedError  # STUB: AC7
     def test_malformed_yaml_returns_none_emits_error(self, tmp_path):
         # write fixture with invalid YAML in frontmatter
         # assert returns (None, [error_message])
-        raise NotImplementedError  # STUB: AC4
+        raise NotImplementedError  # STUB: AC6
     def test_optional_keys_absent_no_warning(self, tmp_path):
         # write fixture with only required keys (no optional keys)
         # assert returns (data_dict, [])
-        raise NotImplementedError  # STUB: AC2
+        raise NotImplementedError  # STUB: AC6
+    def test_unsafe_yaml_tag_and_non_mapping_frontmatter_emit_errors(self, tmp_path):
+        # parameterize unsafe tag, list, and scalar frontmatter
+        # assert returns (None, [error_message]) without executing constructors
+        raise NotImplementedError  # STUB: AC6
 
 # test_catalogue_wave4_index_generator.py
 class TestGenerateIndex:
@@ -519,10 +583,17 @@ class TestGenerateIndex:
         # fixture catalogue: two packs (one with JOURNEY.md, one without), one profile
         # assert: output parses as JSON; validates against catalogue-index.schema.json;
         # pack with JOURNEY.md has non-empty journeys; pack without has empty journeys;
-        # profile entry present; digest fields are non-empty strings;
+        # profile entry present; digest fields are 64-character lowercase hex strings;
         # pack with .apm/skills/ has non-empty content.skills list;
         # pack with .apm/hook-wiring/ has non-empty execution list
         raise NotImplementedError  # STUB: AC13
+    def test_journey_effects_are_exact(self, tmp_path):
+        # first JOURNEY.md declares one effect; assert the exact generated effect object
+        raise NotImplementedError  # STUB: AC3
+    def test_forward_and_inverse_integrations_are_exact(self, tmp_path):
+        # first pack.toml declares one integration targeting the second pack
+        # assert the exact forward object and exact inverse object on the target pack
+        raise NotImplementedError  # STUB: AC18
     def test_deterministic_with_source_date_epoch(self, tmp_path):
         # run generate_index twice with same SOURCE_DATE_EPOCH
         # assert outputs are byte-identical
@@ -541,6 +612,10 @@ class TestGenerateIndex:
         # assert content.skills list is alphabetically sorted in both outputs
         # (validates that sort is applied post-scan, not relying on os enumeration order)
         raise NotImplementedError  # STUB: AC16
+    def test_pack_and_profile_arrays_sorted_by_name(self, tmp_path):
+        # create packs and profiles in reverse alphabetical order
+        # assert generated packs[].name and profiles[].name are ascending
+        raise NotImplementedError  # STUB: AC16
     def test_cache_artifacts_excluded_from_content_scripts_and_digest(self, tmp_path):
         # fixture: pack with a script file, then add __pycache__/foo.pyc AND .cache/result
         # Step 1: generate index WITHOUT cache artifacts → record digest_before
@@ -552,6 +627,12 @@ class TestGenerateIndex:
         # produce byte-identical index; asserting only content.scripts is insufficient —
         # cache could still pollute the digest without appearing in content.scripts)
         raise NotImplementedError  # STUB: AC16
+    def test_digest_matches_exact_sorted_relative_path_algorithm(self, tmp_path):
+        # controlled pack includes pack.toml plus a distributed .apm source file
+        # independently hash each file, assemble sorted POSIX
+        # "<relative-path>:<file-sha256>\n" bytes, and SHA-256 that concatenation
+        # assert generated digest equals the exact expected 64-character lowercase hex
+        raise NotImplementedError  # STUB: AC17
     def test_authored_dotfiles_included_in_content_seeds(self, tmp_path):
         # fixture pack with seeds/.gitignore present (canonical pack layout ships this)
         # run generate_index against fixture
@@ -599,7 +680,7 @@ class TestGenerateIndex:
         # fixture non-legacy pack with allowed-adapters = ["claude"]  # invalid; correct is "claude-code"
         # assert generate_index raises SystemExit(1) and diagnostic names the unknown value
         # validates that allowed-adapters subset is validated against bundled adapter keys
-        raise NotImplementedError  # STUB: AC12
+        raise NotImplementedError  # STUB: AC10
 ```
 
 **Done when:** `python3 -m pytest packages/agentbundle/tests/integration/test_catalogue_wave4_journey_validator.py packages/agentbundle/tests/integration/test_catalogue_wave4_index_generator.py -q` exits 0.
@@ -633,6 +714,12 @@ class TestCatalogueIndexSchema:
         # fixture: index missing schema_version
         # assert agentbundle.build.validate.validate() returns non-empty errors list
         raise NotImplementedError  # STUB: AC13
+    def test_unknown_top_level_and_nested_properties_fail_validation(self):
+        # parameterize an unknown top-level field and unknown fields in catalogue,
+        # pack, journey summary, journey contract, effect, integration, content,
+        # and profile objects
+        # assert each fixture produces non-empty errors (additionalProperties: false)
+        raise NotImplementedError  # STUB: AC9
     def test_contracts_and_data_copies_byte_identical(self):
         # read contracts/catalogue-index.schema.json
         # read packages/agentbundle/agentbundle/_data/catalogue-index.schema.json
@@ -666,16 +753,33 @@ class TestCatalogueIndexCommand:
         # run agentbundle catalogue index FIXTURE_DIR --dry-run
         # assert exit 0; assert no catalogue-index.json written
         raise NotImplementedError  # STUB: AC14
+    def test_dry_run_json_format_emits_one_result_document(self, tmp_path):
+        # run agentbundle catalogue index FIXTURE_DIR --dry-run --format json
+        # assert stdout parses as exactly one object with the exact AC15 success keys,
+        # schema_version=1, command="catalogue index", status="ok", dry_run=True,
+        # output=None, and diagnostics=[]
+        raise NotImplementedError  # STUB: AC15
+    def test_written_json_format_emits_exact_success_result(self, tmp_path):
+        # run with --output <tmp_path/ci.json> --format json
+        # assert exact AC15 result keys, dry_run=False, output equals the written path
+        # string, status="ok", and diagnostics=[]
+        raise NotImplementedError  # STUB: AC15
+    def test_json_failure_emits_exact_result_and_diagnostic_shape(self, tmp_path):
+        # run a failing invocation with --format json
+        # assert the exact AC15 result keys, status="error", output=None, and one or
+        # more diagnostics whose keys are exactly code, message, and location
+        raise NotImplementedError  # STUB: AC19
     def test_output_file_written_and_validates(self, tmp_path):
         # run agentbundle catalogue index FIXTURE_DIR --output <tmp_path/ci.json>
-        # assert exit 0; file exists; parses as JSON; validates against schema
+        # assert exit 0; file exists; raw bytes end in exactly one newline and decode
+        # as strict UTF-8; parsed JSON validates against schema
         raise NotImplementedError  # STUB: AC13
     def test_pack_with_journey_has_nonempty_journeys(self, tmp_path):
         # pack-with-journey has JOURNEY.md with all required keys → non-empty journeys
-        raise NotImplementedError  # STUB: AC7
+        raise NotImplementedError  # STUB: AC22
     def test_pack_without_journey_has_empty_journeys(self, tmp_path):
         # pack-without-journey has no JOURNEY.md → journeys: []
-        raise NotImplementedError  # STUB: AC5
+        raise NotImplementedError  # STUB: AC7
     def test_profile_present_in_output(self, tmp_path):
         # fixture has one profile → profile entry present in output profiles array
         raise NotImplementedError  # STUB: AC11
@@ -684,7 +788,7 @@ class TestCatalogueIndexCommand:
         raise NotImplementedError  # STUB: AC16
     def test_nonexistent_root_exits_nonzero(self):
         # run agentbundle catalogue index /nonexistent-path
-        # assert exit 1 or 2
+        # assert exit 1 (unreadable input, not argparse usage)
         raise NotImplementedError  # STUB: AC19
     def test_malformed_journey_exits_1_no_output_file(self, tmp_path):
         # Write a fresh minimal catalogue in tmp_path with one pack containing a JOURNEY.md
@@ -692,13 +796,44 @@ class TestCatalogueIndexCommand:
         # Do NOT use FIXTURE_DIR (it contains valid content — don't modify it).
         # run: agentbundle catalogue index <tmp_path/catalogue> --output <tmp_path/ci.json>
         # assert exit 1; assert ci.json does NOT exist
-        raise NotImplementedError  # STUB: AC4
+        raise NotImplementedError  # STUB: AC8
     def test_missing_required_journey_key_exits_1_no_output_file(self, tmp_path):
         # Write a fresh minimal catalogue in tmp_path with one pack containing a JOURNEY.md
         # that has valid YAML but is missing one required key (e.g., journey_id absent).
         # Do NOT use FIXTURE_DIR.
         # assert exit 1; assert no output file written
-        raise NotImplementedError  # STUB: AC3
+        raise NotImplementedError  # STUB: AC8
+    def test_unsafe_yaml_tag_and_non_mapping_frontmatter_exit_1(self, tmp_path):
+        # safe loader rejects executable tags; list/scalar frontmatter is not a mapping
+        # assert exit 1, structured pack diagnostic, no output replacement
+        raise NotImplementedError  # STUB: AC6
+    def test_malformed_catalogue_pack_and_profile_toml_fail_closed(self, tmp_path):
+        # parameterize malformed catalogue.toml, pack.toml, and profile TOML
+        # assert exit 1, relative-path diagnostic, no traceback, output unchanged
+        raise NotImplementedError  # STUB: AC19
+    def test_invalid_source_date_epoch_fails_closed(self, tmp_path):
+        # SOURCE_DATE_EPOCH=not-an-integer → exit 1, field diagnostic, no output
+        raise NotImplementedError  # STUB: AC19
+    def test_default_output_symlink_is_rejected_without_clobber(self, tmp_path):
+        # catalogue-index.json symlinks outside root; target bytes remain unchanged
+        raise NotImplementedError  # STUB: AC20
+    def test_relative_output_escape_is_rejected_without_writing(self, tmp_path):
+        # --output ../outside.json is outside CATALOGUE_ROOT
+        # assert exit 1 and no outside file is created or replaced
+        raise NotImplementedError  # STUB: AC20
+    def test_explicit_absolute_link_or_reparse_output_is_rejected(self, tmp_path):
+        # explicit absolute output names a symlink, junction, or reparse destination
+        # assert exit 1 and the outside target bytes remain unchanged
+        raise NotImplementedError  # STUB: AC20
+    def test_parent_symlink_and_junction_inputs_are_not_read(self, tmp_path):
+        # catalogue input path escapes through a parent link/reparse point
+        # assert exit 1 or safe exclusion, with no outside bytes incorporated
+        raise NotImplementedError  # STUB: AC20
+    def test_command_uses_no_network_or_subprocess(self, monkeypatch, tmp_path):
+        # invoke the command in-process after monkeypatching socket connection entry
+        # points plus subprocess.run/Popen to raise immediately
+        # assert the valid dry run exits 0 without triggering any patched entry point
+        raise NotImplementedError  # STUB: AC20
     def test_invalid_generated_at_exits_1(self, tmp_path):
         # run: agentbundle catalogue index FIXTURE_DIR --generated-at "not-a-date" --output <tmp_path/ci.json>
         # assert exit 1 (explicit parse failure before schema validation)
@@ -733,14 +868,14 @@ class TestCatalogueIndexCommand:
         # NO [pack.adapter-contract] section (legacy pack, no contract version)
         # → installer ignores [pack.install]; index must emit full adapter set
         # assert adapters contains ALL contracts/adapter.toml keys, not just ["claude"]
-        raise NotImplementedError  # STUB: AC12
+        raise NotImplementedError  # STUB: AC10
     def test_non_legacy_pack_uses_allowed_adapters_subset(self, tmp_path):
         # fixture pack with [pack.adapter-contract] version = "1.0" AND
         # [pack.install] allowed-adapters = ["claude-code"]
         # (canonical field is [pack.adapter-contract].version, NOT a standalone contract_version;
         # "claude" is not a key in contracts/adapter.toml — use "claude-code")
         # assert adapters == ["claude-code"] (subset honored for non-legacy packs)
-        raise NotImplementedError  # STUB: AC12
+        raise NotImplementedError  # STUB: AC10
 ```
 
 Fixture is the dedicated two-pack catalogue specified in AC22 (not the live repo root).
@@ -758,9 +893,12 @@ with all required frontmatter keys from AC1.
 **Touches:**
 - `packages/agentbundle/pyproject.toml`
 - `packages/agentbundle/agentbundle/version.py`
+- `packages/agentbundle/CHANGELOG.md`
+- `packages/agentbundle/README-pypi.md`
 - `docs/product/changelog.md`
 - `docs/specs/catalogue-wave4-semantic-contracts-index/spec.md` (Status: Implementing → Shipped)
-- `workspace.toml` (move Wave 4 entry from queue to shipped)
+- `docs/specs/catalogue-wave4-semantic-contracts-index/plan.md` (Status: Executing → Done)
+- `workspace.toml` (read-only at this gate; publication-confirmed follow-up owns the move)
 
 **Tests:** none (goal-based)
 
@@ -770,9 +908,9 @@ with all required frontmatter keys from AC1.
    the next unclaimed minor version (Wave 2 shipped as `0.27.0`; Wave 3 targets `0.28.0`;
    Wave 4 takes the next after both).
 2. Set `version = "<VER>"` in `pyproject.toml`. Set `CLI_VERSION = "<VER>"` in `version.py`.
-3. Confirm every commit that modified `agentbundle/_data/` or added the `catalogue index`
-   CLI has `Engine-Change-RFC: RFC-0076` in its message. Add to the commit message for
-   this task if not yet present.
+   Update the package changelog and PyPI README for the release-bearing CLI surface.
+3. Do not stage, commit, rebase, or push. Include `Engine-Change-RFC: RFC-0076` in the
+   final handoff so the human-owned commit carries the required footer.
 4. Add `[Unreleased]` or `<VER>` entry to `docs/product/changelog.md` covering:
    - New `agentbundle catalogue index` command
    - `catalogue-index.schema.json` bundled in `_data/`
@@ -787,16 +925,25 @@ with all required frontmatter keys from AC1.
    (`- [x] OQ2 resolved in Wave 4 spec`) and that the accepted resolution remains
    compatible with the Wave 4 implementation. No RFC mutation is required — OQ2 was
    resolved at spec approval time.
-7. Update spec.md Status: Shipped.
-8. Move Wave 4 entry from `queue` to `shipped` in `workspace.toml` ini-007 work section.
-9. Run `python3 tools/lint-ruff.py` and fix any issues.
+7. Mark every shipped acceptance criterion in `spec.md` `[x]`; if an acceptance
+   criterion is genuinely deferred, record the explicit workspace anchor instead.
+   Then update spec.md Status: Shipped and plan.md Status: Done.
+8. Keep the Wave 4 entry queued in `workspace.toml` through the human merge/release
+   gate. The package release convention permits the version-bump PR to mark the spec
+   Shipped and plan Done, but the workspace move occurs only after publication is
+   confirmed. Record that publication-confirmed follow-up explicitly in the handoff;
+   do not mutate `workspace.toml` in this pre-merge worktree.
+9. Run `python3 .agents/skills/work-loop/scripts/lint-spec-status.py --root .` and
+   `python3 tools/lint-ruff.py`; fix any issues.
 
 **Done when:**
 - `grep "version" packages/agentbundle/pyproject.toml` shows `<VER>`
 - `SKIP_SAST=1 make build-check` exits 0
 - `python3 -m pytest packages/agentbundle/tests/ -q` exits 0
-- `grep "Engine-Change-RFC: RFC-0076" $(git log --format="%H" HEAD~10..HEAD)` returns at least one commit
+- Final handoff includes `Engine-Change-RFC: RFC-0076`
 - Spec Status shows Shipped
+- Plan Status shows Done, every acceptance criterion is checked or explicitly deferred,
+  and `lint-spec-status.py` exits 0
 
 ## Constraints
 

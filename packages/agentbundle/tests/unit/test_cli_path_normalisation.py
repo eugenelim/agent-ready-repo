@@ -5,9 +5,11 @@ same code path as `packs/core/seeds`."""
 from __future__ import annotations
 
 import argparse
+import sys
+import types
 
 import pytest
-from agentbundle.cli import _build_parser, _normalise_path_separators
+from agentbundle.cli import _build_parser, _normalise_path_separators, main
 
 
 def _parse(argv: list[str]) -> argparse.Namespace:
@@ -87,8 +89,40 @@ def test_allow_list_pins_path_bearing_attributes():
             "path",
             "target",   # catalogue init target directory
             "source",   # catalogue init --source (self-hosted preset)
+            "catalogue_root",  # catalogue index root directory
         }
     ) == _PATH_BEARING_ATTRS
+
+
+def test_catalogue_index_normalises_backslash_root_before_dispatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    captured: dict[str, str] = {}
+    fake = types.ModuleType("agentbundle.commands.catalogue_index")
+
+    def run(args: argparse.Namespace) -> int:
+        captured["catalogue_root"] = args.catalogue_root
+        return 0
+
+    fake.run = run  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "agentbundle.commands.catalogue_index", fake)
+
+    assert main(["catalogue", "index", r"some\catalogue"]) == 0
+    assert captured == {"catalogue_root": "some/catalogue"}
+
+
+def test_catalogue_index_does_not_load_user_config(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    fake = types.ModuleType("agentbundle.commands.catalogue_index")
+    fake.run = lambda _args: 0  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "agentbundle.commands.catalogue_index", fake)
+
+    def fail_load():
+        raise AssertionError("catalogue index must not read user config")
+
+    monkeypatch.setattr("agentbundle.user_config.load_user_config", fail_load)
+    assert main(["catalogue", "index", ".", "--dry-run"]) == 0
 
 
 def test_agentbundle_build_validate_path_normalises():

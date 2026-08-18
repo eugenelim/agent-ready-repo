@@ -35,28 +35,49 @@ installed state, and it does not run compilers, network fetches, or pack code.
 
 ## Catalogue verification
 
-`agentbundle catalogue verify` now performs all 19 advertised checks. It
-validates profile schemas and pack references, dependency ranges and cycles,
-adapter compatibility, generated-output drift, pack preflight metadata, and
-skill evaluation manifests. The verifier remains read-only and portable across
+`agentbundle catalogue verify` performs all 19 advertised checks. It validates
+profile schemas and pack references, dependency ranges and cycles, adapter
+compatibility, generated-output drift, pack preflight metadata, and skill
+evaluation manifests. The verifier remains read-only and portable across
 external catalogues.
 
-Dependency ranges now use the same npm-compatible grammar in verify, lint, and
+Dependency ranges use the same npm-compatible grammar in verify, lint, and
 install: caret, tilde, comparator, compound, and prerelease forms agree across
-all three commands. In particular, caret ranges below `1.0.0` now use normal
-semver compatibility (`^0.2` does not include `0.3.x`).
+all three commands. In particular, caret ranges below `1.0.0` use normal semver
+compatibility (`^0.2` does not include `0.3.x`).
+
+`agentbundle catalogue index` now generates a deterministic, adapter-neutral
+`catalogue-index.json` from catalogue, pack, profile, and optional journey
+metadata. The command validates against its bundled public schema before an
+atomic no-follow write; `--dry-run` writes nothing, and `--format json` emits one
+closed result document for automation.
+
+The generated index exposes content-addressable pack digests, structural content
+and execution inventory, profile composition, declared external effects, and
+forward and inverse pack integrations without relying on one agent host's
+marketplace format.
 
 ## Catalogue authoring
 
-New catalogue scaffolds document the guide callout contract. The bundled
-authoring reference distinguishes exact quoted wording, which stays a
-blockquote, from guidance that should render as a Starlight `note`, `tip`,
-`caution`, or `danger` aside. Existing catalogues remain unchanged until their
-scaffolded authoring reference is refreshed.
+New catalogue scaffolds document the `JOURNEY.md` convention: required and
+optional frontmatter, external-effect declarations, reader-facing body sections,
+and migration guidance. Existing packs without a journey remain valid and appear
+with an empty `journeys` array.
+
+The same authoring reference retains the guide callout contract: exact quoted
+wording remains a blockquote, while guidance uses the documented typed aside.
+
+Generate and validate a neutral index with:
+
+```bash
+agentbundle catalogue index . --dry-run
+agentbundle catalogue index . --output catalogue-index.json
+```
 
 ## Contract discovery
 
-The bundled public contract inventory includes the strict
+The bundled public contract inventory includes `catalogue-index.schema.json` as
+the closed contract for generated neutral indexes. It also includes the strict
 `knowledge-captured-observation.schema.json` contract used by the core pack's
 project-knowledge capture handoff.
 
