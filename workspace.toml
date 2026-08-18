@@ -674,7 +674,7 @@ open = [
   # 28s extraction. The step-level measurement is the one that answers the question.
   #
   # CONSEQUENCE, as pre-committed: opened
-  # ci-gate-credbroker-runner-cost-review below. This entry is retained (not deleted)
+  # ci-gate-credbroker-headroom-what-moves-next below. This entry is retained (not deleted)
   # because spec/ci-gate-credbroker AC12 carries a `(deferred: <slug>)` marker and a
   # frozen spec accepts only a Status-line parenthetical — so the slug must resolve
   # for lint-spec-status invariant (iv) as long as that spec stands. The MEASUREMENT
@@ -686,26 +686,56 @@ open = [
   # acceptance criterion, for exactly the reason this result demonstrates.
   {slug = "ci-gate-credbroker-critical-path-measurement", source = "spec/ci-gate-credbroker AC12"},
   # The consequence ci-gate-credbroker-critical-path-measurement pre-committed to if
-  # no critical-path shift was observed. It was not: gate-main stayed the longest work
-  # job on 4/4 post-merge runs. So the honest question is whether gate-credbroker earns
-  # its own runner.
+  # no critical-path shift was observed. It was not. But "does the runner earn its
+  # cost?" is the WRONG QUESTION, and framing it that way once already sent the
+  # analysis in the wrong direction.
   #
-  # THE CASE FOR KEEPING IT, which is not nothing: the job is 37-44s of a ~200s
-  # critical path, so it costs nothing in wall-clock; it made the credbroker suite's
-  # [crypto] precondition and zero-skip property into standing gates that did not
-  # exist when the step lived in gate-main; and gate-main will be the target of any
-  # future extraction, which is easier with the pattern already proven.
+  # The runner exists, is paid for, and is ~80% IDLE: gate-credbroker runs 37-44s
+  # against a 10-minute timeout, while gate-main binds the critical path at 181-204s
+  # (mean 193, n=4). The question is not whether to delete a 44s job. It is what
+  # ELSE should move onto it.
   #
-  # THE CASE AGAINST: one more runner per CI run, one more required status check to
-  # keep green, and the throughput benefit it was justified by is unobservable.
+  # THE PRECONDITION HAS INVERTED, which is the part most likely to be missed. This
+  # work was originally scoped "extract the cheapest step that reaches the ceiling and
+  # stop", where the ceiling was gate-sast at ~158s — further extraction was worthless
+  # until gate-sast dropped. Post-merge that is no longer true: gate-sast runs 132-166
+  # (mean ~153) and gate-main 181-204 (mean 193). gate-sast is ALREADY below gate-main.
+  # The stated precondition for extracting more is satisfied; nobody needs to wait for
+  # a pip-audit or semgrep change first.
   #
-  # TO DECIDE: do NOT re-litigate on gate-main totals — that signal is too noisy on
-  # this trunk (see the measurement entry's diagnosis). Decide on whether the two
-  # standing controls in AC4 are worth a required check, which is a judgment call, not
-  # a measurement. If the answer is no, reverting is clean: the spec, plan and this
-  # register carry the whole rationale, and the posture test's job-set derivation makes
-  # removing a job as loud as adding one.
-  {slug = "ci-gate-credbroker-runner-cost-review", source = "spec/ci-gate-credbroker AC12 consequence"},
+  # WHAT IS ACTUALLY MOVABLE, measured on run 32093318277 (a3d4fcfe):
+  #   69s  Run make build-check                       INDIVISIBLE - it IS the chained gate
+  #   34s  pytest catalogue-test carve-out (RFC-0082) movable, and the known-hard one
+  #   26s  Install ripgrep                            pure provisioning; used only by the
+  #                                                   two `rg` scrub steps, so it moves
+  #                                                   with them or gets cached
+  #   ~75s ~50 further steps, each under 6s           each carries a parity disposition;
+  #                                                   the trade is observability for
+  #                                                   seconds, and it was declined once
+  # Moving the carve-out alone: gate-credbroker ~78s, gate-main ~170s. gate-main still
+  # binds. That is the honest ceiling of this lever - it narrows the gap, it does not
+  # close it, because 69s of gate-main is one indivisible step.
+  #
+  # THE HARD PART IS UNCHANGED and is why this is an entry rather than a task. The
+  # RFC-0082 carve-out runs `pytest tests/`, eight pack test directories, a ten-file
+  # tools batch and an inline `import httpx`. spec/ci-gate-parallelization records that
+  # four revisions failed to enumerate its coupling graph by inspection, and
+  # spec/ci-gate-credbroker carries a Never-do against extracting it. Neither is
+  # revoked by this entry: a future spec must do the enumeration properly, and the
+  # cheap-looking headroom is not a licence to skip it.
+  #
+  # WHAT IS NOW PROVEN AND MAKES THAT SPEC CHEAPER: the four-file coupling
+  # (build-check.yml + posture test + fixture + parity roster), the fourth-placement
+  # rule, PINNED_JOB_STATEMENTS as the way to pin a moved step's body, and
+  # add-work-job-unwired proving the job-set derivation is load-bearing. A second
+  # extraction is a smaller change than the first was.
+  #
+  # NOT a cost review. If someone still wants to argue gate-credbroker should not
+  # exist, the case against it is one runner and one required check; the case for it is
+  # that it made the credbroker suite's [crypto] precondition and zero-skip property
+  # standing gates that did not exist when the step lived in gate-main. That argument
+  # is judgment, not measurement - but it is not what this entry is for.
+  {slug = "ci-gate-credbroker-headroom-what-moves-next", source = "spec/ci-gate-credbroker AC12 consequence"},
   # AC13 IS DONE — applied by the repo owner 2026-08-18 and verified by read-back:
   #   strict=true, and checks[] = the exact five contexts {make build-check, gate-main,
   #   gate-sast, gate-export-boundary, gate-credbroker}, EVERY entry app_id=15368.
