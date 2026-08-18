@@ -2474,58 +2474,6 @@ open = [
   # invocation, or wire Dependabot for pip so the bumps arrive as PRs. Decide
   # which, then do one -- doing both duplicates the noise.
   {slug = "sast-requirements-not-audited", summary = "Give tools/requirements-sast.txt, requirements-ci-security-locked.txt, and requirements-evals-locked.txt SCA coverage -- pip-audit skips all three today", source = "spec/build-check-coverage-gaps security review"},
-  # The seven entries below all came out of spec/pip-audit-batching, which was
-  # ARCHIVED without shipping (see docs/specs/pip-audit-batching/spec.md for why
-  # batching pip-audit trades away per-manifest SCA fidelity). None of them is
-  # caused by batching -- every one is live in `make sast` today, and each was
-  # left here rather than bundled into that PR because each is its own decision.
-  # Cheapest first: sca-no-strict-flag is a one-flag change measured free.
-  #
-  # Without -S, a resolved dependency the advisory service cannot serve (a PyPI
-  # 404 for that name+version) is skipped while pip-audit still exits 0 -- the
-  # same "silent no-op is not a pass" class ADR-0084 already gated for bandit.
-  # Measured free: the nine-manifest audit ran 11.3s with --strict vs 11.1s
-  # without, same input, both green.
-  # Fix: add -S to the audit-requirements.py invocations. Decide separately
-  # whether the requirements-sast.txt and /dev/stdin invocations get it too.
-  {slug = "sca-no-strict-flag", summary = "pip-audit runs without -S/--strict, so a dependency the advisory service cannot serve is skipped at exit 0 -- measured free to adopt", source = "spec/pip-audit-batching security review"},
-  # partition() sends every line starting with `-` into the audited half, and the
-  # emptiness test at audit_lines() then excludes exactly those lines. So a
-  # manifest whose only content is `-r nested.txt`, `-c constraints.txt` or `-e .`
-  # prints "no third-party requirements to audit" and is audited ZERO times, at
-  # exit 0. Latent -- no such manifest exists today -- but self-test case 4
-  # already treats `-r other.txt` as a supported shape, so the shape is blessed.
-  # Fix: count dependency-bearing option lines (-r, -c, -e, --find-links, bare
-  # URL/path) as content that must be audited, or exit 2 on one.
-  {slug = "sca-requirements-include-lines-unaudited", summary = "A manifest containing only -r/-c/-e lines reports no-third-party and is audited zero times at exit 0", source = "spec/pip-audit-batching security review"},
-  # pip-audit defaults its vulnerability service, OSV URL, format and output from
-  # PIP_AUDIT_* env vars, and the resolution venv's pip honours PIP_INDEX_URL /
-  # PIP_EXTRA_INDEX_URL. A stale local export re-points the advisory feed or the
-  # index and yields "No known vulnerabilities found" at exit 0 without touching
-  # a tracked file. Realistic trigger is a stale shell profile, not an attacker.
-  # Fix: pass -s pypi and --format columns explicitly, and run each pip-audit
-  # with PIP_AUDIT_* / PIP_INDEX_URL / PIP_EXTRA_INDEX_URL scrubbed from the
-  # child environment, so the gate's data sources are code-pinned.
-  {slug = "sca-ambient-env-can-green-the-gate", summary = "PIP_AUDIT_* and PIP_INDEX_URL can re-point the SCA gate's advisory feed or index and green it at exit 0", source = "spec/pip-audit-batching security review"},
-  # Makefile:247 builds argv from $(find packs -name requirements.txt | sort),
-  # whose exit status is swallowed by the pipeline. A renamed, moved or missing
-  # manifest shrinks the audited set silently at exit 0; nothing asserts the
-  # expected count, so the gate cannot tell "all nine clean" from "six clean".
-  # Fix: assert in tools/test-audit-requirements.py that the audited set covers
-  # every requirements*.txt on disk under packs/ and tools/, and its count.
-  {slug = "sca-audited-set-has-no-floor", summary = "A renamed or missing per-skill requirements.txt shrinks the pip-audit input set silently at exit 0", source = "spec/pip-audit-batching security review"},
-  # No pip-audit invocation carries a timeout=, so a pathological pip resolver
-  # backtrack hangs the gate instead of failing it. Low severity today (each
-  # invocation measured 7-17s) but the failure mode is an indefinite CI hang.
-  # Fix: pass an explicit timeout= and aggregate TimeoutExpired as a failure
-  # rather than letting it surface as a traceback.
-  {slug = "sca-no-timeout-on-pip-audit", summary = "pip-audit invocations have no timeout, so a resolver backtrack hangs the gate instead of failing it", source = "spec/pip-audit-batching security review"},
-  # audit_lines() writes the filtered manifest to the shared system temp dir, so
-  # any relative -r / -c / --find-links / local-path reference inside a manifest
-  # re-resolves against a world-writable directory instead of its own. File mode
-  # is safe (NamedTemporaryFile is O_EXCL, 0600); the directory is the issue.
-  # Fix: write each filtered manifest inside a per-run TemporaryDirectory() (0700).
-  {slug = "sca-temp-manifest-leaves-its-directory", summary = "The filtered manifest is written to shared /tmp, so a relative include in a requirements file resolves against a world-writable dir", source = "spec/pip-audit-batching security review"},
   # Semgrep's signal for a target it could not parse depends on HOW it failed.
   # A PARTIAL failure (unbalanced bracket, stray token) does surface as a
   # path-attributed PartialParsing entry in `errors`, and --strict escalates it
