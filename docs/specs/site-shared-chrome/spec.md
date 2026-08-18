@@ -14,93 +14,203 @@
 
 ## Objective
 
-Readers can move between the marketing and documentation sites without having
-to relearn destination names or wonder whether they have left the product. A
-small shared information-architecture contract drives both renderers, while
-each site keeps the visual system and native controls suited to its reading
-mode.
+Readers can move between the marketing and documentation sites through one
+clear destination vocabulary without having to relearn the product map. A
+small renderer-neutral information-architecture contract drives both projects;
+marketing keeps its product-oriented chrome and docs keeps its pinned
+Starlight reading experience and independent palette.
 
 ## Boundaries
 
 ### Always do
 
-- Share destination labels, targets, grouping, and internal/external semantics
-  through repository-owned data rather than duplicated renderer literals.
-- Preserve the marketing route contract and Starlight's title, search, theme,
-  sidebar, and pagination behavior.
-- Render the shared contract independently in each site's existing palette and
-  component system.
+- Store only destination IDs, labels, targets, groups, order, and target kind
+  in `site.toml`; project renderer-local data through the existing generator.
+- Use the exact approved taxonomy, copy, renderer treatments, focus/current
+  semantics, and mobile disclosure behavior below.
+- Preserve Starlight ownership of documentation navigation and controls.
+- Render both projects independently in their existing palettes, components,
+  tokens, spacing, and responsive systems.
 
 ### Ask first
 
-- Add, remove, rename, or reorder a destination beyond the approved current
-  marketing taxonomy.
-- Change the docs palette, Starlight override boundary, or marketing CTA.
-- Introduce a new route or make the two renderers share runtime code or CSS.
+- Add, remove, rename, or reorder a destination beyond this approved contract.
+- Change the docs palette, supported Starlight override boundary, marketing
+  CTA, current-location rules, or external-link treatment.
+- Make the two renderers share runtime code, CSS, components, tokens, state, or
+  breakpoint logic.
 
 ### Never do
 
-- Align docs colors or tokens with `web/` merely to create visual similarity.
-- Replace a Starlight-native control with custom shared chrome.
-- Add a dependency or treat an internal path as an external destination.
+- Align docs colors or components with `web/` merely to create visual
+  similarity.
+- Replace a Starlight-native title, search, theme, docs menu, sidebar,
+  breadcrumb, table of contents, pagination, edit control, skip link, or content
+  layout.
+- Treat an internal combined-site path as external or expose renderer-specific
+  presentation in the shared data contract.
+- Add a dependency or restore `/work/` as a public destination.
+
+## Approved content and behavior
+
+### Marketing header
+
+Render this exact order and destination contract:
+
+1. **How it works** → `/#three-loops`
+2. **Use cases** → `/#use-cases`
+3. **Catalogue** → `/catalogue/`
+4. **Now** → `/now/`
+5. **Docs** → `/docs/`
+6. **Try the build loop** → `/#install` as the existing CTA
+
+Desktop and marketing-mobile disclosure use the same order and labels.
+
+### Shared destination groups
+
+Both renderer-specific footers use these exact groups and order:
+
+- **Product:** How it works, Use cases, Catalogue, Packs, Journeys.
+- **Docs:** Get started, Install, The three loops, All docs.
+- **Project:** Now, Changelog, Contributing, Claude plugins, GitHub, PyPI.
+
+| Group | Label | Target |
+| --- | --- | --- |
+| Product | How it works | `/#three-loops` |
+| Product | Use cases | `/#use-cases` |
+| Product | Catalogue | `/catalogue/` |
+| Product | Packs | `/packs/` |
+| Product | Journeys | `/journeys/` |
+| Docs | Get started | `/docs/getting-started/` |
+| Docs | Install | `/docs/getting-started/install/` |
+| Docs | The three loops | `/docs/getting-started/three-loops/` |
+| Docs | All docs | `/docs/` |
+| Project | Now | `/now/` |
+| Project | Changelog | `/docs/changelog/` |
+| Project | Contributing | `/docs/contributing/` |
+| Project | Claude plugins | `/plugins/` |
+| Project | GitHub | existing canonical repository URL, unchanged |
+| Project | PyPI | existing canonical package URL, unchanged |
+
+Marketing keeps its existing brand and tagline:
+`agent-ready-repo` and “The supervised AI operating model for software teams.”
+
+The docs footer follows Starlight previous/next navigation, uses the same three
+groups in the docs palette and content width, then ends with the quiet line
+`© <year> · agent-ready-repo`. It does not repeat the marketing brand block or
+tagline. At wide widths the groups form three columns; at phone widths they
+form one readable sequence with no footer disclosures.
+
+### Docs product orientation
+
+Above the Starlight header, render one non-sticky product-orientation band:
+
+> **Product** | How it works · Use cases · Catalogue · Now · **Docs**
+
+`Product` links to `/`. `Docs` is the current destination on docs pages. The
+band scrolls away; the pinned Starlight header remains sticky and singular.
+
+At approved phone widths, show a **Product** disclosure beside the independent
+**Docs** menu. The Product trigger is not a direct link. Its expanded contents
+are Product home, How it works, Use cases, Catalogue, and Now, in that order,
+inside a landmark named **Product navigation**. Opening or closing it does not
+open, close, rename, or replace Starlight's Docs menu.
+
+### Link, focus, and current-location rules
+
+- All combined-site links are internal, base-qualified, open in the same tab,
+  and have no external glyph or external-only relationship metadata.
+- GitHub and PyPI are the only external shared-chrome destinations. They open
+  in the same tab and append an `aria-hidden` `↗` plus visually hidden
+  “external” text.
+- Link kind is declared in canonical data, not inferred from hostname in a
+  renderer. Starlight-managed content links keep native treatment.
+- Each renderer supplies a visible `:focus-visible` outline and offset that is
+  not color-only, clipped, or hidden; each existing skip link remains the first
+  focusable control.
+- Opening the Product disclosure leaves focus on its trigger, and native tab
+  order exposes its links next. Open, hover, focus, and current states remain
+  visually distinct.
+- Exact destination pages use `aria-current="page"`. Catalogue uses
+  `aria-current="location"` on pack and journey descendants. Docs uses
+  `aria-current="page"` on `/docs/` and `aria-current="location"` throughout
+  nested docs. Now uses `aria-current="page"` only on `/now/`. Homepage
+  fragment destinations do not claim current state without client-side
+  route/fragment evidence.
+- Current state is distinguishable by shape or weight, not color alone, and the
+  same semantic rule applies in footers.
+
+### Explicitly not shared
+
+CSS, components, color or type tokens, palettes, spacing, breakpoints, focus
+implementation, disclosure state, JavaScript, Starlight internals, content
+layout, and renderer-specific footer appearance are not shared. Shared chrome
+means only the destination architecture and vocabulary above.
 
 ## Testing Strategy
 
-- Canonical navigation parsing, validation, and renderer projection use TDD
-  through generator construction tests.
-- Labels, hrefs, order, internal/external treatment, routes, and fragments use
-  goal-based assertions against emitted HTML from both sites.
-- Responsive layout, keyboard behavior, and visual identity use deterministic
-  browser checks plus recorded design review in each renderer's own themes.
+- Canonical parsing, validation, ordering, and renderer projection use TDD in
+  generator construction tests.
+- Exact labels, hrefs, group/order, target kind, current semantics, route
+  preservation, singular controls, and fragments use emitted HTML from both
+  sites.
+- Responsive disclosure, keyboard paths, focus visibility, overflow, and axe
+  results use the `site-browser-quality-gate` matrix and recorded
+  renderer-specific design review.
 
 ## Acceptance Criteria
 
-- [ ] `site.toml` is the canonical repository source for shared product
-  destination labels, targets, group order, and internal/external semantics
-  consumed by both renderers.
-- [ ] Generator validation rejects duplicate destination IDs, duplicate group
-  IDs, missing group references, invalid target kinds, and internal targets
-  outside the approved existing route inventory.
-- [ ] Marketing primary navigation retains the current destination order and
-  CTA, and every pre-change href still resolves.
-- [ ] The Docs destination is treated as internal in the combined site: it has
-  no external-link glyph, new-tab behavior, or external-only relationship
-  metadata.
-- [ ] The docs site adds a thin product-orientation band driven by the shared
-  destination contract without displacing or duplicating Starlight's title,
-  search, theme control, or sidebar.
-- [ ] Marketing and docs footers expose the same approved destination taxonomy,
-  labels, group order, targets, and internal/external semantics.
-- [ ] Marketing chrome continues to use the platform design system, and docs
-  chrome continues to use the docs-specific palette and pinned Starlight
-  contracts; no CSS, component, or color-token implementation is shared across
-  renderers.
-- [ ] Every existing public route, sidebar entry, pagination link, and
-  navigation destination still resolves, and combined rendered page/fragment
-  checking passes.
-- [ ] At 360, 375, 390, 414, and 1440 CSS-pixel widths, chrome has at most 1px
-  horizontal overflow, is fully keyboard-usable, and produces zero serious or
-  critical axe findings on the approved route/theme matrix.
+- [ ] `site.toml` is the sole renderer-neutral source for shared destination
+  IDs, labels, targets, groups, order, and internal/external kind; it contains
+  no CSS, token, breakpoint, state, or component prescription.
+- [ ] Generator validation rejects duplicate destination/group IDs, missing
+  group references, invalid target kinds, order drift, and unknown internal
+  destinations, and projects deterministic renderer-local data.
+- [ ] Marketing header and mobile disclosure emit the exact six destinations,
+  order, labels, targets, and existing CTA treatment approved above.
+- [ ] Marketing and docs footers emit the exact Product, Docs, and Project
+  groups; marketing retains its brand/tagline, while docs uses the approved
+  subordinate renderer-native treatment after Starlight pagination.
+- [ ] Desktop docs emits the exact non-sticky product-orientation band above one
+  unchanged sticky Starlight header, with Product home and Docs current
+  treatment as specified.
+- [ ] Phone docs emits the exact Product disclosure beside the independent Docs
+  menu, with the approved landmark, item order, and isolated disclosure state.
+- [ ] Internal and external links follow the exact kind, base, same-tab, glyph,
+  accessible-name, and relationship-metadata rules above; Docs is internal and
+  only GitHub and PyPI are external.
+- [ ] Skip, focus-visible, exact-page `aria-current`, category-current, footer
+  current, and homepage-fragment rules match the approved behavior and do not
+  rely on color alone.
+- [ ] Starlight remains the singular owner of its title/header, search, theme,
+  docs menu, sidebar, breadcrumbs, page title/description, table of contents,
+  edit control, pagination, skip link, and content layout on home and nested
+  guide routes.
+- [ ] Neither emitted project shares or imports the other renderer's CSS,
+  components, palette, tokens, spacing, breakpoints, focus implementation,
+  disclosure state, JavaScript, or Starlight internals.
+- [ ] `/now/` exists before shared navigation adopts it, `/work/` is absent
+  from public shared chrome, all other existing routes/sidebar/pagination links
+  still resolve, and combined page/fragment checks pass.
+- [ ] At 360, 375, 390, 414, and 1440 CSS-pixel widths in the approved themes,
+  chrome has at most 1px horizontal overflow, is fully keyboard-usable, has
+  visible focus, and produces zero serious or critical axe findings.
 - [ ] Recorded design review finds no Major issue against either renderer's
   named aesthetic direction or the four tech-site principles.
 
 ## Assumptions
 
-- Technical: the marketing renderer currently owns navigation/footer literals,
-  the docs renderer owns a custom Starlight footer, and `site.toml` already
-  drives cross-renderer site generation (source: repository inspection on
-  2026-08-17).
-- Technical: build order remains marketing first and docs second into one Pages
-  artifact (source: `.github/workflows/pages.yml` and repository build scripts).
-- Process: implementation does not begin until RFC-0089 is Accepted (source:
-  RFC-0089 lifecycle contract).
-- Product: shared chrome means shared information architecture and destination
-  vocabulary, not shared CSS or component implementations (source: user
-  approval of `docs/product/briefs/tech-site-completion.md`).
-- Product: docs adds a thin product-orientation band, footers share destination
-  taxonomy, and Docs receives internal-link treatment (source:
-  `docs/product/briefs/tech-site-completion.md`).
-- Product: existing destination order, routes, and marketing CTA are the
-  approved contract (source: user confirmation 2026-08-17).
-- Process: the platform and docs aesthetic directions remain authoritative on
-  their owning renderers (source: user confirmation 2026-08-17).
+- Technical: marketing owns current navigation/footer components, docs owns a
+  custom Starlight footer, and `site.toml` already drives cross-renderer site
+  generation (source: repository inspection on 2026-08-17).
+- Technical: the docs product band can compose the pinned default header at a
+  supported Starlight override seam without replacing its behavior (source:
+  pinned Starlight contract and approved design decision 2026-08-17).
+- Product: the complete taxonomy, wording, mobile behavior, link treatment,
+  current/focus semantics, footer treatments, and non-shared boundaries above
+  are accepted (source: user approvals 2026-08-17).
+- Product: `/now/` is owned by `site-now-surface`; this spec consumes it only
+  after the route exists and never restores public `/work/` (source: user
+  approval 2026-08-17).
+- Process: RFC-0089 and ADR-0085 remain ratified and preserve separate renderer
+  projects, docs palette independence, and pinned Starlight behavior.

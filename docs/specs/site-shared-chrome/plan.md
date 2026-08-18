@@ -8,68 +8,81 @@
 
 ## Approach
 
-Capture the approved destination taxonomy in `site.toml`, validate it in the
-existing stdlib generation path, and project renderer-local data for Astro and
-Starlight. Adapt each renderer's existing chrome without sharing runtime code,
-then prove emitted labels, links, routes, accessibility, and responsive
-behavior across the combined build.
+Capture the exact approved destination taxonomy in `site.toml`, validate it in
+the existing stdlib generation path, and project renderer-local data for Astro
+and Starlight. Wait for `/now/`, then adapt both renderers in one wave without
+sharing presentation or state. Prove exact emitted content, internal/external
+semantics, singular Starlight controls, routes, keyboard/focus behavior, and
+responsive quality against the combined build.
 
 ## Constraints
 
 - `docs/design/principles/tech-site.md` arbitrates cross-surface decisions.
-- RFC-0089 must be Accepted before implementation; it owns renderer autonomy
-  and the ordered single-artifact boundary.
+- RFC-0089 and ADR-0085 own renderer autonomy, ordered build, independent docs
+  palette, and pinned Starlight boundaries.
 - `docs/specs/platform-site/aesthetic-direction.md` owns marketing appearance;
   `docs/specs/docs-site-design-refresh/creative-direction.md` owns docs
   appearance.
-- `docs-site/AGENTS.md` governs the docs palette and pinned Starlight contracts.
-- No dependency, route, palette unification, or shared renderer component.
+- [`spec.md`](spec.md) contains the exact content and behavior contract;
+  implementation does not reopen labels, order, footer treatment, mobile
+  disclosure, focus/current semantics, or ownership.
+- `/now/` must exist before either renderer links to it.
+- No dependency, palette unification, shared renderer code, restored `/work/`,
+  or route change beyond the separately approved `/now/` replacement.
 
 ## Construction tests
 
-**Integration tests:** build marketing first and docs second, inspect both
-renderers' emitted chrome from one canonical fixture, and run the combined
-page-and-fragment checker against the complete route inventory.
+**Integration tests:** build marketing first and docs second, enumerate both
+renderers' exact emitted chrome from one canonical fixture, assert singular
+Starlight controls, and run combined page/fragment checks against the complete
+route inventory.
 
-**Manual verification:** recorded design review in marketing and both docs
-themes at compact and wide widths; physical-device chrome review remains the
+**Manual verification:** record design review in marketing and both docs themes
+at compact and wide widths; physical-device chrome review remains the
 programme's manual release check.
 
 ## Design (LLD)
 
 ### Design decisions
 
-- `site.toml` stores renderer-neutral destination data; generator-owned
-  projection is chosen over importing one renderer into the other. Traces to:
-  AC1, AC2, AC7.
-- Renderer-local components keep independent visual systems. Shared CSS or a
-  cross-workspace component package is rejected. Traces to: AC5-AC7, AC10.
+- `site.toml` stores only renderer-neutral destination data. Generator-owned
+  projection is chosen over one renderer importing the other. Traces to:
+  AC1, AC2, AC10.
+- Renderer-local components retain independent visual and state systems.
+  Shared CSS/components/tokens and custom replacements for Starlight controls
+  are rejected. Traces to: AC4-AC6, AC9, AC10.
+- The desktop docs band scrolls away above the sticky Starlight header; compact
+  Product disclosure is independent of the Docs menu. Traces to: AC5, AC6.
+
+### Data & schema
+
+- Destination records carry stable ID, label, target, and kind. Group records
+  carry stable ID and ordered destination references. Presentation and
+  responsive behavior remain renderer-local. Traces to: AC1, AC2.
+- Kind, not hostname comparison, owns internal/external behavior. Traces to:
+  AC7.
 
 ### Component / module decomposition
 
 - `tools/build-site.py` validates and projects the destination contract.
 - Marketing `SiteNav` and `SiteFooter` consume the marketing projection.
-- A docs-specific orientation-band override and existing docs footer consume
-  the docs projection while Starlight retains native controls. Traces to:
-  AC1-AC7.
+- A docs-specific supported header override composes the orientation band with
+  the default header; the docs footer consumes local projected data after
+  native pagination. Traces to: AC3-AC10.
 
 ### State & control flow
 
-- Static destination data flows from `site.toml` through generation into both
-  builds. Mobile disclosure, Starlight search/theme, and pagination keep their
-  existing state owners. Traces to: AC3, AC5, AC8, AC9.
-
-### Behavior & rules
-
-- Target kind, not hostname comparison in a component, determines
-  internal/external treatment. Internal targets keep base-path qualification;
-  external targets keep the repository's current safe relationship handling.
-  Traces to: AC2, AC4, AC6.
+- Static data flows from `site.toml` into both builds. Marketing mobile state,
+  docs Product disclosure, and Starlight Docs/search/theme/sidebar state remain
+  separate renderer-local owners. Traces to: AC3, AC5, AC6, AC10.
+- Current state derives from the emitted route/category contract. Homepage
+  fragments remain non-current without client-side fragment evidence. Traces
+  to: AC8.
 
 ### Quality attributes (NFRs)
 
-- Emitted browser checks enforce keyboard, overflow, and axe thresholds on the
-  approved route/theme matrix. Traces to: AC9.
+- Emitted browser checks enforce keyboard, focus, overflow, and axe thresholds
+  on the approved route/theme matrix. Traces to: AC12.
 
 ## Tasks
 
@@ -80,57 +93,65 @@ programme's manual release check.
 **Touches:** site.toml, tools/build-site.py, tools/test_build_site_routing.py
 
 **Tests:**
-- TDD: add failing fixtures for duplicate IDs, missing group members, unsupported
-  target kinds, and unknown internal destinations (AC1, AC2).
-- TDD: add one canonical fixture and assert stable group/destination ordering in both
-  renderer projections (AC1, AC6).
+- TDD: fail duplicate IDs, missing group members, unsupported kinds, unknown
+  internal targets, and order drift (AC1, AC2).
+- TDD: project one exact canonical fixture into deterministic renderer-local
+  data and reject presentation/state fields (AC1, AC2, AC10).
 
 **Approach:**
-- Add the smallest renderer-neutral tables needed for destinations and groups.
-- Validate through the existing Python generation boundary without a new
-  package.
+- Add the smallest destination/group tables required by the two current
+  consumers.
+- Encode the exact header and footer taxonomy and explicit target kind from the
+  spec, without presentation data or a new package.
 
-**Done when:** malformed fixtures fail with actionable messages and the valid
-fixture yields deterministic renderer inputs.
+**Done when:** malformed fixtures fail actionably and the exact fixture yields
+stable independent projections.
 
-### T2: Marketing chrome consumes the shared contract without behavior drift
+### T2: Marketing chrome consumes the approved contract
 
-**Depends on:** T1
+**Depends on:** T1, spec:site-now-surface/T2
 
 **Touches:** web/src/components/layout/SiteNav.astro, web/src/components/layout/SiteFooter.astro, web/src/**/*.generated.*
 
 **Tests:**
-- Goal-based: assert current primary-nav order, CTA, footer taxonomy, hrefs, and base-path
-  qualification in emitted marketing HTML (AC3, AC4, AC6, AC8).
-- TDD: seed a stale literal in a fixture and prove projection consistency fails
-  (AC1).
+- Goal-based: assert the exact six-item header/mobile order, labels, targets,
+  CTA, three footer groups, brand/tagline, target kinds, base qualification,
+  external treatment, and current states in emitted HTML (AC3, AC4, AC7,
+  AC8).
+- TDD: seed a stale literal and prove projection consistency fails (AC1).
 
 **Approach:**
-- Replace duplicated destination literals with generated renderer-local data.
-- Remove external-only treatment from the internal Docs link.
+- Replace duplicated literals with generated marketing-local data.
+- Replace Work with Now and remove external treatment from Docs.
+- Preserve marketing component, palette, focus implementation, and mobile
+  disclosure ownership.
 
-**Done when:** emitted marketing chrome matches the approved contract and every
-existing destination resolves.
+**Done when:** emitted marketing chrome exactly matches the contract, `/work/`
+is absent from public chrome, and every destination resolves.
 
-### T3: Docs gains renderer-native orientation and the shared footer taxonomy
+### T3: Docs gains product orientation and its renderer-native footer
 
-**Depends on:** T1
+**Depends on:** T1, spec:site-now-surface/T2
 
 **Touches:** docs-site/astro.config.mjs, docs-site/src/components/*.astro, docs-site/src/**/*.generated.*
 
 **Tests:**
-- Goal-based: assert the orientation band and footer consume the canonical labels, order,
-  targets, and target kinds (AC4-AC6).
-- Goal-based: assert title, search, theme, sidebar, and pagination controls remain present
-  and singular on home and nested guide pages (AC5, AC8).
+- Goal-based: assert the desktop band, compact Product disclosure, landmark,
+  item order, link kinds, current state, and exact footer groups/content (AC4-
+  AC8).
+- Goal-based: assert one title/header, search, theme control, Docs menu,
+  sidebar, breadcrumbs, table of contents, edit control, pagination, skip link,
+  and content layout owner on home and nested guide routes (AC9).
+- Goal-based: assert Product and Docs disclosure states are independent (AC6).
 
 **Approach:**
-- Add a thin docs-specific override at the supported Starlight component seam.
-- Extend the existing docs footer without importing marketing components or
-  tokens.
+- Compose a docs-local orientation wrapper at the pinned supported header seam;
+  keep the band non-sticky and the default Starlight header sticky.
+- Extend the docs-local footer after native pagination without importing
+  marketing components, palette, tokens, layout, or state.
 
-**Done when:** docs exposes product orientation and the shared taxonomy while
-all pinned Starlight controls remain intact.
+**Done when:** docs exposes the approved product map and subordinate footer
+while every pinned Starlight affordance remains present, singular, and native.
 
 ### T4: Combined emitted chrome passes route, browser, and design evidence
 
@@ -139,34 +160,41 @@ all pinned Starlight controls remain intact.
 **Touches:** web/src/test/e2e/**/*.ts, tools/test_check_rendered_site_links.py
 
 **Tests:**
-- Goal-based: build both sites and run complete page/fragment and route checks (AC8).
-- Goal-based E2E: exercise the approved route/theme/viewport matrix for keyboard use, overflow,
-  and axe thresholds (AC9).
-- Visual/manual QA: record renderer-specific design review against the named directions and
-  principles (AC10).
+- Goal-based: build both sites, enumerate the exact content/kind/current
+  contract, and run complete page/fragment and route checks (AC3-AC11).
+- Goal-based E2E: exercise the approved route/theme/viewport matrix for skip
+  order, focus visibility, keyboard paths, independent disclosures, overflow,
+  and axe thresholds (AC5-AC8, AC12).
+- Visual/manual QA: record renderer-specific design review against the named
+  directions and principles (AC13).
 
 **Approach:**
-- Verify emitted behavior; do not use source-shape or screenshot-existence
-  assertions as proof.
+- Verify emitted behavior; source shape and screenshot existence are not proof.
 - Keep optional screenshots outside required CI and tracked output.
 
-**Done when:** combined link, route, browser, and recorded design-review gates
-all pass.
+**Done when:** exact emitted content, combined links/routes, browser behavior,
+and renderer-specific design reviews pass.
 
 ## Rollout
 
-Land contract/projection support before renderer consumption, then ship both
-renderer adaptations in the same completion wave so vocabulary cannot drift.
-Rollback is a normal source revert; no infrastructure or dependency change.
+Land the data contract and projection support first. After `/now/` exists,
+ship both renderer adaptations in the same completion wave so vocabulary cannot
+drift. Browser verification follows the deterministic gate foundation.
+Rollback is a normal source revert; no dependency or infrastructure changes.
 
 ## Risks
 
-- Over-generalizing the contract could create a new navigation framework; the
-  tables stay limited to the two current consumers and approved taxonomy.
-- A docs override can accidentally replace framework behavior; explicit
-  presence-and-singularity tests protect the pinned controls.
+- Over-generalizing the contract could create a navigation framework; fields
+  remain limited to the two current consumers and approved taxonomy.
+- A docs override could duplicate framework controls; presence-and-singularity
+  and independent-state tests protect the pinned behavior.
+- Current-state logic can overclaim homepage fragments; the exact route rules
+  prohibit inferred client state.
 
 ## Changelog
 
-- 2026-08-17: initial plan after approval of the shared-IA, separate-renderer
-  contract.
+- 2026-08-17: initial plan after approval of the shared-IA,
+  separate-renderer contract.
+- 2026-08-17: fixed the exact Now-based taxonomy, both footer treatments, docs
+  desktop/mobile behavior, link/focus/current semantics, Starlight ownership,
+  non-shared boundary, and `/now/` dependency.

@@ -33,6 +33,11 @@ one that opens with the reader's next meaningful outcome, this principle favors
 the outcome-led surface; system vocabulary appears at the first decision where
 it helps the reader act.
 
+**Durable application:** journey semantic IDs, `globalGate`, and legacy gate
+codes are machine contracts, not adopter copy. Decision navigation displays
+human labels and derived order only. Public Now content describes released
+outcomes, never the queue, plans, commits, or what the team is “working on.”
+
 **Traces from:** `team-evaluates-and-adopts`, Stage 1 pain: “The README
 explains what it does but not how to get started on a real project.”
 
@@ -47,6 +52,11 @@ claim and one that places a real output, route, command, or bounded example next
 to it, this principle favors the evidence-bearing design even when it is less
 visually dramatic.
 
+**Durable application:** `/now/` projects only reviewed Highlights from dated,
+versioned changelog releases. Unreleased work cannot become public evidence;
+AI-assisted drafting may use implementation diffs and verification evidence,
+but deterministic site generation never invents or refreshes the copy.
+
 **Traces from:** `team-evaluates-and-adopts`, Stage 3 pain: “Decision makers
 want to see it on our code, not a toy example.”
 
@@ -60,6 +70,12 @@ want to see it on our code, not a toy example.”
 same destination differently per surface and one that preserves its name,
 route, and place in the information architecture, this principle favors the
 stable map unless repository evidence proves the existing map is harmful.
+
+**Durable application:** `site.toml` may share destination IDs, labels,
+targets, groups, order, and target kind across renderers, but no presentation.
+The approved replacement of public `/work/` with `/now/` is a deliberate
+contract amendment, not permission for further route churn. Source ownership
+may move only when compatibility preserves the public route.
 
 **Traces from:** `team-evaluates-and-adopts`, Stage 2 pain: “The value was
 visible but I can't reproduce it reliably yet because I'm self-discovering the
@@ -76,6 +92,12 @@ renderers and one that preserves each surface's task-specific hierarchy while
 sharing product destinations and terminology, this principle favors the
 task-specific design. Shared identity never overrides readability,
 accessibility, or framework-native affordances.
+
+**Durable application:** the docs product-orientation band and Product mobile
+disclosure remain distinct from Starlight's documentation header, Docs menu,
+search, theme control, sidebar, breadcrumbs, table of contents, and pagination.
+Marketing and docs do not share CSS, components, palettes, tokens, breakpoints,
+focus implementation, disclosure state, or Starlight internals.
 
 **Traces from:** `team-evaluates-and-adopts`, Stage 1 pain: “Every team member
 will ask me what this is before they try it — I need a one-sentence answer.”
