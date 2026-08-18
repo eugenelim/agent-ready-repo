@@ -225,6 +225,11 @@ requirements this spec was written to measure.
       session survives it, verified against a server endpoint rather than inferred
       from which files are on disk, with a control arm that purges the cookie store
       instead and whose authenticated request therefore fails.
+- [x] **AC16 — a per-consumer job root closes the third residue class.** A consumer
+      confined to its own job root by the Node permission model cannot read another
+      consumer's committed artifact, with a shared-root control arm that can, and a
+      guard confirming the confined consumer still reads its own artifact so the
+      denial is confinement rather than a broken host.
 
 ## Resolve-vs-surface record
 
