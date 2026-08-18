@@ -274,7 +274,9 @@ Satisfies AC10 through AC14.
   plan's risk section anticipated.** Two are in controls this round wrote; four are
   in inherited apparatus and were found only because this round re-ran the
   inherited controls rather than trusting them. R11-6 — the published archive
-  digest cannot converge, because the archive contains an artifact recording the
-  archive's own size — is **diagnosed and deliberately left unfixed**: breaking
-  that self-reference is an evidence-base design decision, and the spec's *Ask
-  first* boundary puts it outside a round scoped to five arms.
+  digest could not converge, because the archive contains an artifact recording
+  the archive's own size — was **surfaced rather than fixed**, because breaking
+  that self-reference is an evidence-base design decision and the spec's *Ask
+  first* boundary puts it outside a round scoped to five arms. The approver
+  directed the fix on 2026-08-18; it ships as its own apparatus PR, and the digest
+  now converges across four consecutive promotes.

@@ -2371,10 +2371,12 @@ that mechanism rather than record the channel as inherently uncontrollable.
   re-ran the inherited controls instead of trusting them — round 10's negative-test
   harness refusing to run its own twenty-five mutations, because round 11's facts
   are claimed in a document that harness's hard-coded corpus did not list. The
-  sixth is diagnosed and deliberately left unfixed: the published archive digest
-  cannot converge, because the archive contains an artifact recording the
-  archive's own size, so it alternates between two values. Breaking that
-  self-reference is an evidence-base design decision rather than this round's.
+  sixth was surfaced rather than fixed: the published archive digest could not
+  converge, because the archive contains an artifact recording the archive's own
+  size, so it alternated between two values. Breaking that self-reference is an
+  evidence-base design decision rather than this round's, and the approver
+  directed it on 2026-08-18 — the accounting tool no longer accounts for envelope
+  facts, and the digest now reproduces across consecutive promotes.
 
 - **2026-08-18 — approver dispositions on A, B, C and D; eleventh round commissioned.**
   All four decisions answered. B accepted for macOS only (Linux and Windows deferred);
@@ -2798,7 +2800,7 @@ that mechanism rather than record the channel as inherently uncontrollable.
 - **2026-08-17 — seventh Experimental run.** Promoted the
   [round-7 note](0088-notes/spikes/2026-08-17-experimental-round7.md) and its
   [manifested archive](0088-notes/spikes/round7-evidence-archive.md)
-  (101 manifested files, round-7 archive SHA-256 `e4186b24…9635`), reconstructed
+  (101 manifested files, round-7 archive SHA-256 `0c97fc37…bb82`), reconstructed
   and verified independently, with the note's own published procedure run
   end-to-end. **The first round in four to close a blocker on
   measurement rather than to correct its predecessor:** one item closes, four
