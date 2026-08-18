@@ -116,8 +116,17 @@ export async function measureHorizontalOverflow(page: Page): Promise<number> {
 export async function expectNoSeriousAxeViolations(
   page: Page,
   ctx: CaseContext,
-  testInfo?: TestInfo
+  testInfo: TestInfo
 ): Promise<void> {
+  // Required, and asserted rather than left to the type — Playwright transpiles
+  // these files without typechecking them (see tools/test_browser_gate_subset.py),
+  // so an omitted argument would otherwise surface as `Cannot read properties of
+  // undefined (reading 'attach')` on whichever page first carries a moderate
+  // finding. That is a worse signal than the silent drop this replaced.
+  expect(
+    testInfo,
+    `${label(ctx)}: expectNoSeriousAxeViolations needs the live TestInfo`
+  ).toBeTruthy();
   await page.addScriptTag({ content: axe.source });
   const violations = await page.evaluate(async () => {
     const results = await (window as typeof window & { axe: typeof axe }).axe.run(document, {
@@ -132,7 +141,10 @@ export async function expectNoSeriousAxeViolations(
   });
   const blocking = violations.filter((v) => v.impact === 'serious' || v.impact === 'critical');
   const lower = violations.filter((v) => v.impact !== 'serious' && v.impact !== 'critical');
-  if (lower.length > 0 && testInfo) {
+  // Required, not optional: an optional TestInfo let a caller drop the
+  // lower-severity record without any signal, which is the same silent-rot
+  // failure the accepted-exception note above describes.
+  if (lower.length > 0) {
     await testInfo.attach(`axe-lower-severity ${label(ctx)}`, {
       body: JSON.stringify(lower, null, 1),
       contentType: 'application/json',
@@ -223,21 +235,83 @@ export async function expectVisibleFocusIndicator(page: Page, ctx: CaseContext):
   ).toBe(true);
 }
 
-/** Tab until `selector` holds focus, then assert its focus indicator. */
+/**
+ * Tab forward from the current focus until `selector` holds focus, then assert a
+ * visible focus indicator.
+ *
+ * `maxTabs` is a number when the tab distance is part of what the case asserts —
+ * "the skip link is the first stop", "the search button is near the top of the
+ * header". Pass `'derive'` instead when the control's tab depth is a function of
+ * page content rather than a contract: the docs theme control sits in the mobile
+ * sidebar *after* every nav link, so its real distance is 312 presses at 360px
+ * and 4 at 1440px. A fixed budget there asserts the sidebar's length, not
+ * reachability, and fails the moment a guide is added.
+ */
+/**
+ * Everything the platform puts in the sequential focus order that these suites
+ * care about. One definition, because two copies drift the moment either grows a
+ * selector and no test compares them.
+ */
+const FOCUSABLE_SELECTOR =
+  'a[href], button, input:not([type=hidden]), select, textarea, summary, [tabindex]:not([tabindex="-1"])';
+
+/** Tab presses to allow for reaching anything on the page: every focusable, plus
+ * slack for stops FOCUSABLE_SELECTOR does not enumerate. */
+async function deriveTabBudget(
+  page: Page,
+  ctx: CaseContext,
+  what: string
+): Promise<{ focusables: number; budget: number }> {
+  const focusables = await page.locator(FOCUSABLE_SELECTOR).count();
+  // Asserted non-zero: a locator that matched nothing would silently collapse the
+  // budget to the slack alone and read, in the failure message, like a hand-picked
+  // one.
+  expect(
+    focusables,
+    `${label(ctx)}: deriving a Tab budget for ${what} found no focusables`
+  ).toBeGreaterThan(0);
+  return { focusables, budget: focusables + 10 };
+}
+
 export async function tabToAndAssertFocus(
   page: Page,
   selector: string,
   ctx: CaseContext,
-  maxTabs = 60
+  maxTabs: number | 'derive' = 60
 ): Promise<void> {
   const present = await page.locator(selector).count();
   expect(present, `${label(ctx)}: ${selector} is absent`).toBeGreaterThan(0);
+  const derived = maxTabs === 'derive';
+  let focusables = 0;
+  if (derived) {
+    ({ focusables, budget: maxTabs } = await deriveTabBudget(page, ctx, selector));
+  }
   for (let i = 0; i < maxTabs; i += 1) {
     await page.keyboard.press('Tab');
-    const onTarget = await page.evaluate(
-      (sel) => !!document.activeElement?.closest(sel),
-      selector
-    );
+    // Visibility-filtered, because `selector` may legitimately match more than one
+    // element with only some of them rendered — Starlight emits two theme selects
+    // and hides one per breakpoint. Matching a hidden instance would report a
+    // control as keyboard-reachable while reading its invisible computed ring.
+    //
+    // Written out rather than delegated to `checkVisibility()`, which ignores
+    // `opacity` unless asked (`checkOpacity` defaults to false) and so would only
+    // have caught `display:none` — precisely the case where the element is not
+    // focusable anyway, making the guard a no-op. The cases that matter are the
+    // ones that stay focusable: zero opacity on the element or any ancestor, and
+    // `visibility:hidden`.
+    const onTarget = await page.evaluate((sel) => {
+      const hit = (document.activeElement as HTMLElement | null)?.closest(
+        sel
+      ) as HTMLElement | null;
+      if (!hit) return false;
+      const box = hit.getBoundingClientRect();
+      if (box.width === 0 || box.height === 0) return false;
+      for (let node: Element | null = hit; node; node = node.parentElement) {
+        const style = getComputedStyle(node);
+        if (style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return false;
+      }
+      return true;
+    }, selector);
     if (onTarget) {
       await expectVisibleFocusIndicator(page, ctx);
       return;
@@ -245,7 +319,8 @@ export async function tabToAndAssertFocus(
   }
   expect(
     false,
-    `${label(ctx)}: ${selector} was not reachable within ${maxTabs} Tab presses`
+    `${label(ctx)}: ${selector} was not reachable within ${maxTabs} Tab presses` +
+      (derived ? ` (budget derived from ${focusables} focusables on the page)` : '')
   ).toBe(true);
 }
 
@@ -306,12 +381,7 @@ export async function expectLandmarkKeyboardReachable(
   const expected = probes!.length;
   expect(expected, `${label(ctx)}: ${selector} contains no visible links`).toBeGreaterThan(0);
 
-  const focusables = await page
-    .locator(
-      'a[href], button, input:not([type=hidden]), select, textarea, summary, [tabindex]:not([tabindex="-1"])'
-    )
-    .count();
-  const budget = focusables + 10;
+  const { focusables, budget } = await deriveTabBudget(page, ctx, selector);
 
   const reached = new Set<string>();
   let presses = 0;

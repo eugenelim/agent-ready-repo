@@ -28,6 +28,7 @@ import {
   gotoSettled,
   label,
   measureHorizontalOverflow,
+  tabToAndAssertFocus,
 } from './quality-assertions';
 import { withBase } from './site-base';
 
@@ -120,12 +121,12 @@ test.describe('horizontal overflow', () => {
 });
 
 test.describe('serious axe violations', () => {
-  test('clean document passes', async ({ page }) => {
+  test('clean document passes', async ({ page }, testInfo) => {
     await setBody(page, '<main><h1>Heading</h1><p>Prose.</p></main>');
-    await expectNoSeriousAxeViolations(page, CTX);
+    await expectNoSeriousAxeViolations(page, CTX, testInfo);
   });
 
-  test('seeded scrollable-region-focusable fails with context', async ({ page }) => {
+  test('seeded scrollable-region-focusable fails with context', async ({ page }, testInfo) => {
     // A `<pre>` that scrolls but cannot take focus. This exact rule is what the
     // docs code blocks were FALSELY reported under before the settle became an
     // asserted precondition, so it is the one worth being able to detect for
@@ -136,27 +137,37 @@ test.describe('serious axe violations', () => {
       `<main><h1>h</h1><pre style="width:120px;overflow-x:auto">${'x'.repeat(400)}</pre></main>`
     );
     await expectRejectsWithContext(
-      expectNoSeriousAxeViolations(page, CTX),
+      expectNoSeriousAxeViolations(page, CTX, testInfo),
       'scrollable-region-focusable'
     );
   });
 
-  test('seeded colour-contrast failure fails with context', async ({ page }) => {
+  test('seeded colour-contrast failure fails with context', async ({ page }, testInfo) => {
     // The other class the settle question involved: the marketing hero CTA was
     // falsely reported for contrast before paint settled.
     await setBody(
       page,
       '<main><h1>h</h1><p style="color:#bbbbbb;background:#ffffff">low contrast</p></main>'
     );
-    await expectRejectsWithContext(expectNoSeriousAxeViolations(page, CTX), 'color-contrast');
+    await expectRejectsWithContext(
+      expectNoSeriousAxeViolations(page, CTX, testInfo),
+      'color-contrast'
+    );
   });
 
-  test('a MODERATE finding does not fail the gate', async ({ page }) => {
+  test('a MODERATE finding does not fail the gate', async ({ page }, testInfo) => {
     // The threshold is zero serious/critical (AC5); lower severities are exact,
     // owned, audit-linked results, not failures. `page-has-heading-one` is
     // moderate, and a helper that failed on it would red-line the whole matrix.
     await setBody(page, '<main><p>no h1 here</p></main>');
-    await expectNoSeriousAxeViolations(page, CTX);
+    await expectNoSeriousAxeViolations(page, CTX, testInfo);
+    // And the record exists. Without this the whole `testInfo.attach` block could
+    // be deleted and this test would stay green — the requirement would be
+    // enforced in the signature and by nothing that runs.
+    expect(
+      testInfo.attachments.map((a) => a.name),
+      'the lower-severity axe record was not attached'
+    ).toContainEqual(expect.stringContaining('axe-lower-severity'));
   });
 });
 
@@ -211,6 +222,87 @@ test.describe('focus indication', () => {
       expectVisibleFocusIndicator(page, CTX),
       'no focus indicator it did not'
     );
+  });
+
+  // Every fixture above styles `a:focus` and focuses programmatically. The real
+  // site rings via `:focus-visible` (web/src/styles/base.css), which a link does
+  // NOT match under `.focus()` in Chromium — so the pair below is the only
+  // coverage of the pattern production actually uses, and it has to arrive by
+  // Tab. That makes these also the only falsification of `tabToAndAssertFocus`.
+  test('a :focus-visible-only ring is seen when reached by Tab', async ({ page }) => {
+    await setBody(
+      page,
+      '<main><a id="a" href="#x">link</a><h2 id="x">x</h2></main>',
+      '<style>a{text-decoration:none}a:focus-visible{outline:3px solid #000}</style>'
+    );
+    await tabToAndAssertFocus(page, '#a', CTX, 10);
+  });
+
+  test('a suppressed :focus-visible ring fails even when reached by Tab', async ({ page }) => {
+    await setBody(
+      page,
+      '<main><a id="a" href="#x">link</a><h2 id="x">x</h2></main>',
+      '<style>a{text-decoration:none}a:focus-visible{outline:none;box-shadow:none}</style>'
+    );
+    await expectRejectsWithContext(
+      tabToAndAssertFocus(page, '#a', CTX, 10),
+      'no focus indicator it did not'
+    );
+  });
+
+  test('a derived budget reaches a target no fixed-10 budget would', async ({ page }) => {
+    // The `'derive'` branch is the only new logic in the helper, and until this
+    // fixture existed it ran solely inside the built-site gate — nothing pinned the
+    // derived value, so a derivation returning `focusables` with no slack, or a
+    // stale count, was invisible at 1440 (target = 4th stop) and only reddened at
+    // 360. Sixteen anchors with the target LAST: fixed-10 cannot reach it, derived
+    // must.
+    const filler = Array.from({ length: 15 }, (_, i) => `<a href="#x">l${i}</a>`).join('');
+    const body = `<main>${filler}<a id="a" href="#x">target</a><h2 id="x">x</h2></main>`;
+    const style = '<style>a{text-decoration:none}a:focus-visible{outline:3px solid #000}</style>';
+
+    await setBody(page, body, style);
+    await expectRejectsWithContext(
+      tabToAndAssertFocus(page, '#a', CTX, 10),
+      'not reachable within 10 Tab presses'
+    );
+
+    await setBody(page, body, style);
+    await tabToAndAssertFocus(page, '#a', CTX, 'derive');
+  });
+
+  test('an unreachable target reports the budget it derived', async ({ page }) => {
+    // The exhaustion path and its diagnostic, which the fixed-budget fixtures
+    // never exercise. `tabindex="-1"` keeps the element present (so the presence
+    // assert passes) and out of the tab order (so the walk must exhaust).
+    await setBody(
+      page,
+      '<main><a href="#x">l</a><span id="a" tabindex="-1">target</span><h2 id="x">x</h2></main>'
+    );
+    await expectRejectsWithContext(
+      tabToAndAssertFocus(page, '#a', CTX, 'derive'),
+      'budget derived from'
+    );
+  });
+
+  test('a still-focusable but invisible match does not satisfy the walk', async ({ page }) => {
+    // Two elements matching ONE selector, the invisible one first in tab order —
+    // the shape Starlight's paired theme selects would take if either were ever
+    // hidden by opacity rather than `display`. `opacity:0` keeps an element
+    // focusable, so without the filter the walk stops on the one nobody can see
+    // and reads its computed ring.
+    await setBody(
+      page,
+      '<main><a class="t" href="#x" style="opacity:0">hidden</a>' +
+        '<a class="t" href="#x">visible</a><h2 id="x">x</h2></main>',
+      '<style>a{text-decoration:none}a:focus-visible{outline:3px solid #000}</style>'
+    );
+    await tabToAndAssertFocus(page, '.t', CTX, 10);
+    // It skipped the first and landed on the second.
+    const onVisible = await page.evaluate(
+      () => document.activeElement === document.querySelectorAll('.t')[1]
+    );
+    expect(onVisible, 'the walk stopped on the invisible match').toBe(true);
   });
 
   test('a ring that appears only on focus passes', async ({ page }) => {

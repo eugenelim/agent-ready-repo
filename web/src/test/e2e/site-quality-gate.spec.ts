@@ -97,7 +97,9 @@ test.describe('marketing primary navigation is keyboard-operable', () => {
         await expectLandmarkKeyboardReachable(page, '.nav__links', ctx);
       }
       // Footer link focus visibility, asserted at every width for the same reason.
-      await page.reload();
+      // Re-navigated rather than reloaded: the tab position has to reset, and a
+      // `reload()` followed by a `goto()` just loads the page twice in the slowest
+      // test in the suite.
       await gotoSettled(page, withBase('/'), ctx);
       await tabToAndAssertFocus(page, 'footer a[href]', ctx, 120);
       await expectLandmarkKeyboardReachable(page, 'footer', ctx);
@@ -158,6 +160,13 @@ test.describe('docs search and theme controls are keyboard-operable', () => {
   // control, so without this case the clause had no verification at all.
   for (const width of [WIDTHS[0], WIDTHS[WIDTHS.length - 1]] as const) {
     test(`/docs/ search and theme @${width}`, async ({ page }) => {
+      // Tripled from the 30s default. Measured on an unloaded machine: 7.3s at
+      // 360px (the 312-press sidebar walk) and 1.8s at 1440px. The headroom is not
+      // for the passing path but the failing one — if the theme control leaves the
+      // tab order, exhausting a ~380-press derived budget has to finish so the
+      // maintainer reads `not reachable within N presses (budget derived from …)`
+      // instead of a context-free `Test timeout of 30000ms exceeded`.
+      test.slow();
       const ctx = { route: '/docs/', width, theme: 'light' } as const;
       await page.addInitScript(() => localStorage.setItem('starlight-theme', 'light'));
       await page.setViewportSize({ width, height: 900 });
@@ -196,7 +205,26 @@ test.describe('docs search and theme controls are keyboard-operable', () => {
         `${label(ctx)}: no visible theme control` +
           ((await menuButton.isVisible()) ? ' after opening the Docs menu with Enter' : '')
       ).toBeVisible();
-      await select.focus();
+      // AC6 names three properties — keyboard reachable, operable, visibly focused.
+      // `select.focus()` + `selectOption` proved the second and neither of the
+      // others. Reached by keyboard with its focus ring asserted, the way the
+      // search button beside it already was.
+      //
+      // Budget derived, not fixed: Starlight emits two theme selects — a header
+      // one and a sidebar one, each hidden at the other's breakpoint. At mobile
+      // widths the visible instance is the 312th tab stop, behind every sidebar
+      // nav link. A fixed budget is not unsound — too small fails loudly — but it
+      // encodes the sidebar's current length, so it needs raising every time a
+      // guide is added, and nothing connects the number to the cause.
+      await tabToAndAssertFocus(page, 'starlight-theme-select select', ctx, 'derive');
+      // The walk filters for visibility, but `select` above is the specific
+      // instance this case asserted visible; pin that they are the same element so
+      // a future Starlight that hides one with `opacity` (still focusable) cannot
+      // satisfy the walk with a control the user cannot see.
+      expect(
+        await select.evaluate((el) => el === document.activeElement),
+        `${label(ctx)}: Tab reached a theme select, but not the visible one`
+      ).toBe(true);
       await select.selectOption('dark');
       await expect(
         page.locator('html'),

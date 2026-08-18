@@ -26,6 +26,9 @@ themes — 20 cases — with the theme set through Starlight's own
 Undersized observations across those 20 cases resolve to **56 distinct
 candidates**. Every one conforms through an SC 2.5.8 exception; there are **zero
 demonstrated non-exempt failures** and therefore no remediation in this audit.
+This is the count's home; § Final shaping classification decomposes it per class
+(29 + 15 + 12) and repeats the total only as a sum of the cells directly above it,
+so the two cannot drift apart unnoticed.
 
 ### The target set, defined once
 
@@ -94,7 +97,8 @@ candidate as one of:
 The list is complete against the criterion: SC 2.5.8 defines exactly five
 exceptions — Spacing, Equivalent, Inline, User agent control, Essential. An earlier
 revision of this contract, and of the spec's AC7, omitted Spacing, which left 27 of
-the 56 measured candidates classified against a class neither document admitted.
+the measured candidates (§ Evidence availability) classified against a class
+neither document admitted.
 
 Framework ownership identifies an implementation owner; it is not itself an
 exception. Record exact geometry and spacing in emitted output. Never infer a
@@ -135,8 +139,8 @@ interactive target visible in a matrix case receives its own measured row.
 
 One row represents one candidate in one route/width/theme context.
 
-Grouped by exception class, with the rationale stated once per group: 56 rows
-repeating one sentence is a wall a re-verifier will skip. Per-candidate columns
+Grouped by exception class, with the rationale stated once per group: one row per
+candidate repeating one sentence is a wall a re-verifier will skip. Per-candidate columns
 carry what actually varies — context, widths, geometry and measured clearance.
 `Widths` lists every approved width the candidate was observed at; geometry and
 clearance are ranges when they vary.
@@ -253,11 +257,18 @@ criterion.
 | User-agent/framework-controlled exception | 0 | None needed |
 | Equivalent-control exception | 0 | None needed |
 | Essential exception | 0 | None needed |
-| **Total classified** | **56** | |
+| **Total classified** | 56 | |
 
 Measured targets at or above 24×24 are not enumerated: only undersized candidates
-need a classification, and listing the conforming majority would bury the 56 rows
-that carry the argument.
+need a classification, and listing the conforming majority would bury the rows that
+carry the argument.
+
+The total sits directly beneath its own addends (29 + 15 + 12), which is the reason
+it is restated here at all: a sum a reader can check against the four cells above it
+cannot quietly disagree with them. Free-floating restatements elsewhere in this file
+can, and did — an earlier revision left a superseded total standing beside its
+replacement — so every other mention now refers to § Evidence availability instead
+of repeating the number.
 
 No row is classified as a framework-controlled exception, and that is deliberate:
 the brief's decision 10 and this spec's Never-do bar framework ownership from being
@@ -335,12 +346,8 @@ lower-severity result is the `landmark-unique` axe observation recorded above, w
 is not a target-size exception. Broad selectors and framework-ownership-only
 rationales remain prohibited.
 
-**Empty, deliberately.** Every one of the 56 undersized candidates conforms through
-SC 2.5.8's own Inline or Spacing clause on measured geometry, which is criterion
-conformance rather than an exception granted against it. Nothing is exempted here,
-so there is no row — the table shape is omitted rather than left as a bare header
-that reads as unfilled. The one accepted lower-severity result is the
-`landmark-unique` axe observation above, which is not a target-size exception.
+**Empty, deliberately.** Nothing is exempted here, so there is no row — the table
+shape is omitted rather than left as a bare header that reads as unfilled.
 
 ## Defect register
 

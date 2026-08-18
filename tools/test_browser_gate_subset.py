@@ -32,9 +32,7 @@ GATE_SCRIPT = "test:e2e:gate"
 # exemption. A reason string is reviewable in a diff; an edited assertion is not.
 # Two categories, because they carry different obligations. A write-based exclusion
 # must STAY true — if a spec stops writing, its exemption is stale and it belongs
-# back in the gate — while a scope-based one is a judgement that only a human can
-# re-make. Deriving "excluded because it writes" forced every future read-only spec
-# into required CI, with nowhere to record a reason but the assertion itself.
+# back in the gate — while a scope-based one is a judgement only a human can re-make.
 EXCLUDED_WRITERS: dict[str, str] = {
     "screenshots.spec.ts":
         "writes fixture PNGs into tracked docs/specs/site-ui-primitives/**; AC11 "
@@ -46,13 +44,19 @@ EXCLUDED_WRITERS: dict[str, str] = {
 
 EXCLUDED_BY_SCOPE: dict[str, str] = {
     "docs-wayfinding.spec.ts":
-        "owned by spec/documentation-entry-navigation, not by this gate. Its "
-        "layout-fit assertions (the deck must render on one line, the title must "
-        "be <= 48px, elements must sit inside 1440x900) were written against local "
-        "font rendering; making them deploy-blocking on a Linux runner couples the "
-        "deploy to font-fallback metrics. The docs routes it covers are already in "
-        "this gate's matrix at all five widths in both themes for overflow, axe, "
-        "fragments and skip-link order.",
+        "created by and documented in spec/docs-wayfinding-cluster, not owned by "
+        "this gate. Its layout-fit assertions (the deck must render on one line, "
+        "the title must be <= 48px, elements must sit inside 1440x900) were written "
+        "against local font rendering; making them deploy-blocking on a Linux "
+        "runner couples the deploy to font-fallback metrics. The docs routes it "
+        "covers are already in this gate's matrix at all five widths in both themes "
+        "for overflow, axe, fragments and skip-link order. RESIDUAL, stated plainly: "
+        "no Makefile line, workflow or package script invokes this file, so it runs "
+        "on demand only. This is the same orphan class as the "
+        "tools-test-runner-boundary backlog slug, but that slug's scope is "
+        "tools/test*.py, so closing it will NOT discharge this file. No register "
+        "entry covers orphaned e2e specs today; said here rather than pointed at a "
+        "slug that cannot resolve it.",
 }
 
 EXCLUDED: dict[str, str] = {**EXCLUDED_WRITERS, **EXCLUDED_BY_SCOPE}
@@ -240,8 +244,15 @@ def _imported_names(text: str, module: str) -> set[str]:
 
 
 def test_every_helper_a_spec_uses_is_imported_by_that_spec() -> None:
-    exported = _exported_names(HELPERS_MODULE) | _exported_names(BASE_MODULE)
-    assert exported, "no exported helper names found — the parser stopped working"
+    # Asserted per module, not on the union. Unioning let an export-style change in
+    # one file (a bottom `export { … }` block, a default export) empty its half while
+    # the other kept the assert green — measured: the guard then passed having checked
+    # zero helper names.
+    helpers = _exported_names(HELPERS_MODULE)
+    base = _exported_names(BASE_MODULE)
+    assert helpers, f"no exported names parsed from {HELPERS_MODULE.name}"
+    assert base, f"no exported names parsed from {BASE_MODULE.name}"
+    exported = helpers | base
 
     problems: list[str] = []
     for spec in sorted(E2E_DIR.glob("*.spec.ts")):
