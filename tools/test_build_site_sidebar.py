@@ -220,3 +220,121 @@ def test_malformed_baseline_entry_is_skipped_not_raised(tmp_path):
     p.write_text('[[entry]]\nslug = "guides/a"\n\n'
                  '[[entry]]\nslug = "guides/b"\nlabel = "Bee"\n', encoding="utf-8")
     assert build_site.load_guide_baseline(p) == {"guides/b": "Bee"}
+
+
+# --------------------------------------------------------------------------
+# spec/guide-title-clarity — the nine reviewed title decisions
+# --------------------------------------------------------------------------
+#
+# Raw-string comparison on purpose. `tools/lint-guide-titles.py` enforces only the
+# RELATIONAL title↔H1 match through a `normalise()` that casefolds and strips
+# punctuation, so it passes just as happily on `Run an Audit` / `# Run an Audit`.
+# Three of the four decisions here are substantially casing changes, so a
+# normalised comparison would accept `Run A Frontend Audit` and pin nothing.
+#
+# Without these, reverting any approved title, any of the five controls, or the
+# two baseline deletions fails nothing in the suite: four of the five controls
+# have no `guide-nav-baseline.toml` entry, so the pair guard does not reach them.
+
+# The four approved strings, frozen by the brief's decision 7.
+APPROVED_TITLES = {
+    "guides/frontend-engineering/how-to/page-screen-contract.md":
+        "Write a page or screen contract",
+    "guides/frontend-engineering/how-to/run-an-audit.md":
+        "Run a frontend audit",
+    "guides/frontend-engineering/tutorials/scaffold-a-component.md":
+        "Scaffold a component from a screen brief",
+    "guides/iac-terraform/README.md":
+        "Terraform and OpenTofu guides",
+}
+# The five reviewed titles the same decision holds UNCHANGED.
+# Read from the tree, not from memory: an earlier draft of this dict guessed the
+# wording and the test caught it. Quoting is preserved as written in each file.
+CONTROL_TITLES = {
+    "guides/_shared/how-to/install-user-scope-pack-into-codex.md":
+        '"How to install a user-scope pack into Codex"',
+    "guides/_shared/how-to/install-user-scope-pack-into-kiro.md":
+        '"How to install a user-scope pack into Kiro"',
+    "guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md":
+        '"Authenticate Jira and Confluence with an SSO web session"',
+    "guides/frontend-engineering/reference/frontend-engineering.md":
+        "Frontend Engineering Pack",
+    "guides/governance-extras/how-to/new-adr.md":
+        '"How to record a decision with an ADR"',
+}
+# Slugs whose baseline entry was DELETED so the label resolves from frontmatter.
+DEBASELINED_SLUGS = {
+    "guides/frontend-engineering/tutorials/scaffold-a-component":
+        "Scaffold a component from a screen brief",
+    "guides/frontend-engineering/how-to/run-an-audit":
+        "Run a frontend audit",
+}
+# The retired wording, which must not survive in the four sources.
+RETIRED_STRINGS = (
+    "Write a Page/Screen Contract",
+    "Run an Audit",
+    "Scaffold a Component",
+    "IaC (Terraform) guides",
+)
+
+
+def _frontmatter_title(rel: str) -> str:
+    for line in (REPO_ROOT / rel).read_text(encoding="utf-8").splitlines():
+        if line.startswith("title:"):
+            return line[len("title:"):].strip()
+    return ""
+
+
+def _body_h1(rel: str) -> str:
+    for line in (REPO_ROOT / rel).read_text(encoding="utf-8").splitlines():
+        if line.startswith("# "):
+            return line[2:].strip()
+    return ""
+
+
+def test_approved_guide_titles_are_exact():
+    """The four decisions, compared raw — casing and punctuation included."""
+    actual = {rel: _frontmatter_title(rel) for rel in APPROVED_TITLES}
+    assert actual == APPROVED_TITLES
+
+
+def test_approved_titles_match_their_body_h1():
+    """Frontmatter and H1 move together; a CI gate asserts it, so does this."""
+    mismatched = {rel: (_frontmatter_title(rel), _body_h1(rel))
+                  for rel in APPROVED_TITLES
+                  if _frontmatter_title(rel) != _body_h1(rel)}
+    assert not mismatched, f"title/H1 drift: {mismatched}"
+
+
+def test_reviewed_control_titles_are_unchanged():
+    """The five titles the same decision reviewed and chose to KEEP.
+
+    Four of these carry no baseline entry, so nothing else in the suite would
+    notice them being reworded alongside a future title sweep.
+    """
+    actual = {rel: _frontmatter_title(rel) for rel in CONTROL_TITLES}
+    assert actual == CONTROL_TITLES
+
+
+def test_retired_title_strings_absent_from_the_four_sources():
+    """Path-scoped: the retired wording legitimately survives as provenance in the
+    changelogs, the brief, `workspace.toml`, and the lint fixtures."""
+    offenders = []
+    for rel in APPROVED_TITLES:
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        offenders += [f"{rel}: {s}" for s in RETIRED_STRINGS if s in text]
+    assert not offenders, offenders
+
+
+def test_debaselined_slugs_resolve_their_label_from_frontmatter():
+    """The baseline entries were DELETED, not relabelled.
+
+    Relabelling would have been tautological — `test_no_baseline_pair_regressed`
+    loads the same file it compares against — so this asserts the emitted sidebar
+    label equals the frontmatter title with no baseline entry backing it.
+    """
+    baseline = build_site.load_guide_baseline(REPO_ROOT / "guide-nav-baseline.toml")
+    projected = dict(_pairs(_guides_group()))
+    for slug, want in DEBASELINED_SLUGS.items():
+        assert slug not in baseline, f"{slug} must have no baseline entry"
+        assert projected.get(slug) == want, (slug, projected.get(slug), want)

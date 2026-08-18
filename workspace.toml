@@ -2682,6 +2682,13 @@ open = [
   # run — so it needs a design decision, not a patch.
   # Unblocks when: ready now.
   { slug = "selftest-untracked-plant-window", type = "shape" },
+  # Deferred out of guide-title-clarity (#1013): the pack's sidebar GROUP label
+  # still reads "IaC (Terraform)" while its index page reads "Terraform and
+  # OpenTofu guides". The group label is pack identity from
+  # packs/iac-terraform/pack.toml display_name and also renders in the
+  # marketing catalogue and pack cards, so aligning it is a naming decision
+  # across surfaces that spec does not own.
+  { slug = "iac-terraform-group-label-alignment", source = "spec/guide-title-clarity", summary = "Align the iac-terraform sidebar GROUP label with its retitled index page" },
 ]
 
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives

@@ -233,6 +233,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **Four guide titles now name the job they do.** "Write a Page/Screen Contract"
+  is "Write a page or screen contract", "Run an Audit" is "Run a frontend
+  audit", "Scaffold a Component" is "Scaffold a component from a screen brief",
+  and the Terraform pack's guide index is "Terraform and OpenTofu guides" —
+  which is accurate, since those guides have always covered both engines. Every
+  page keeps its existing address, so links and bookmarks still work; only the
+  wording on the page, in the sidebar, and in the browser tab changes.
 - **Guide callouts now say what kind of attention they need.** Supporting
   context, optional techniques, pitfalls, and severe hazards render as typed
   notes, tips, cautions, and dangers with visible labels and icons. Prompts,

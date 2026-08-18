@@ -51,28 +51,28 @@ lead with the user's job.
 
 ## Acceptance Criteria
 
-- [x] `page-screen-contract.md` presents
+- [x] **AC1** — `page-screen-contract.md` presents
   “Write a page or screen contract” as its canonical title.
-- [x] `run-an-audit.md` presents “Run a frontend audit” as its canonical
+- [x] **AC2** — `run-an-audit.md` presents “Run a frontend audit” as its canonical
   title.
-- [x] `scaffold-a-component.md` presents
+- [x] **AC3** — `scaffold-a-component.md` presents
   “Scaffold a component from a screen brief” as its canonical title.
-- [x] `guides/iac-terraform/README.md` presents
+- [x] **AC4** — `guides/iac-terraform/README.md` presents
   “Terraform and OpenTofu guides” as its canonical title.
-- [x] For each changed guide, the source H1, the frontmatter `title:` (the
+- [x] **AC5** — For each changed guide, the source H1, the frontmatter `title:` (the
   published canonical title — the build strips the body H1), the generated page
   H1, the browser/search title, and the sidebar ITEM label are coherent with the
   approved string. The `iac-terraform` sidebar GROUP label in `site.toml`
   (`IaC (Terraform)`) is deliberately unchanged: the approved decision names the
   page title, and changing a declared guide group is an “Ask first” boundary
   outside this spec.
-- [x] Where a baseline label previously froze one of these titles, its
+- [x] **AC6** — Where a baseline label previously froze one of these titles, its
   `guide-nav-baseline.toml` entry is DELETED rather than relabelled, so the
   sidebar label resolves from the frontmatter title. Editing the label instead
   would make the pair guard tautological: `tools/test_build_site_sidebar.py`
   loads the same baseline file it compares against, so an edited label passes by
   construction and witnesses nothing.
-- [x] The five reviewed titles outside this four-file set do not change,
+- [x] **AC7** — The five reviewed titles outside this four-file set do not change,
   enumerated here because “the five” was previously recoverable only by git
   archaeology:
   - `guides/_shared/how-to/install-user-scope-pack-into-codex.md`
@@ -80,17 +80,21 @@ lead with the user's job.
   - `guides/atlassian/how-to/authenticate-jira-confluence-with-sso-cookies.md`
   - `guides/frontend-engineering/reference/frontend-engineering.md`
   - `guides/governance-extras/how-to/new-adr.md`
-- [x] The four retired strings — `Write a Page/Screen Contract`, `Run an Audit`,
+- [x] **AC8** — The four retired strings — `Write a Page/Screen Contract`, `Run an Audit`,
   `Scaffold a Component`, `IaC (Terraform) guides` — appear in none of the four
-  source files. They legitimately persist as provenance in
-  `docs/product/changelog.md`, the mirrored docs changelog, `workspace.toml`, and
-  `tools/test_lint_guide_titles.py` fixtures; those must not change.
-- [x] `guides/frontend-engineering/README.md`'s link text for the three
+  source files. They legitimately persist as provenance elsewhere and must not
+  be scrubbed: `docs/product/briefs/tech-site-completion.md:147-151` (the
+  approved change list), this spec and its plan, `workspace.toml`,
+  `tools/test_lint_guide_titles.py` fixtures, and `docs/product/changelog.md`
+  with its docs mirror (the release note quotes each old title beside its new
+  one). Verification asserts absence in the four source files, not
+  repository-wide absence.
+- [x] **AC9** — `guides/frontend-engineering/README.md`'s link text for the three
   frontend-engineering pages matches their approved titles, so the pack's primary
   in-site entry point does not contradict them.
-- [x] Every pre-change route for the four guides still resolves and the
+- [x] **AC10** — Every pre-change route for the four guides still resolves and the
   combined rendered-link checker reports no broken page or fragment.
-- [x] A rendered-surface review finds no Major issue against the owning
+- [x] **AC11** — A rendered-surface review finds no Major issue against the owning
   surface's aesthetic direction — `docs/specs/docs-site-design-refresh/creative-direction.md`'s
   dominant goal “Instrument-grade clarity” — or the tech-site principle “Lead
   with the user's job; reveal the system second.” NOT the marketing site's

@@ -1,6 +1,9 @@
-# Rendered-surface review — guide title clarity (AC8)
+# Rendered-surface review — guide title clarity (AC11)
 
-Performed 2026-08-17 against the combined emitted site, served from `build/`.
+Performed 2026-08-17 against the combined emitted site, served from `build/`,
+built from base commit `caaabe12` with this change applied. The pre-change route
+inventory in [`route-baseline.txt`](route-baseline.txt) was captured the same
+day from a build of `caaabe12` WITHOUT this change.
 
 ## Runtime
 
@@ -30,8 +33,24 @@ Not the marketing site's "Precision authority": these pages render only on
 | Emitted `<h1>` equals the approved string, all 4 routes × 5 widths × 2 themes | 40/40 |
 | `<title>` carries the approved string | 4/4 |
 | `<h1>` visually truncated at any width | **none** |
-| Sidebar item labels show the approved strings | yes, all three |
-| Retired labels present anywhere in emitted sidebar | none |
+| Sidebar ITEM labels show the approved string, all 4 items × 1440 and 360 | 4/4 |
+| Retired title strings present as a sidebar ITEM label | none |
+| Sidebar GROUP label for the `iac-terraform` pack | `IaC (Terraform)` — unchanged, see below |
+
+The first draft of this table recorded "yes, all three" and omitted
+`iac-terraform` — the one item whose surroundings actually differ. Re-observed
+at 1440 and 360 in both themes: all four item labels carry the approved string.
+
+The pack's sidebar GROUP heading still reads `IaC (Terraform)`, so the
+`iac-terraform` page renders as `IaC (Terraform) › Terraform and OpenTofu
+guides`. That is intended here and not a defect of this change. The group label
+is a distinct string from the four the brief freezes; it originates in
+`packs/iac-terraform/pack.toml`'s `display_name` (mirrored to `site.toml` and
+`docs-site/src/sidebar-config.json`), which is pack identity rendered in the
+marketing catalogue and pack cards as well as this sidebar. Renaming it is a
+judgment-led naming decision across surfaces this spec does not own, so it is
+deferred to `[backlog].open` as `iac-terraform-group-label-alignment` rather
+than made silently.
 
 Each of the four titles names the reader's job in the imperative
 (`Write a page or screen contract`, `Run a frontend audit`,
@@ -39,9 +58,13 @@ Each of the four titles names the reader's job in the imperative
 (`Terraform and OpenTofu guides`), which is what "lead with the user's job"
 asks for. None is truncated at 360 CSS px, the narrowest approved width.
 
-**No issue attributable to this change was observed.** Severity is not assigned
-here: the brief bars generated severity classifications, so a human reviewer owns
-the Blocker/Major/Minor/Note call on anything they judge differently.
+**No issue attributable to this change was observed.** AC11 asks whether the
+review finds a Major issue; it found no issue at all against that criterion, and
+an empty finding set contains no Major member, so AC11 closes on the evidence
+without this note assigning a severity to anything. No severity is generated
+here — the brief bars that — and a human reviewer retains the
+Blocker/Major/Minor/Note call on anything they judge differently, including the
+deferred group-label mismatch above.
 
 ## Pre-existing defect observed, NOT caused by this change
 

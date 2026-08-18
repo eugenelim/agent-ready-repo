@@ -1,3 +1,7 @@
+# Pre-change emitted-route inventory for guide-title-clarity.
+# Captured 2026-08-17 from a combined marketing+docs build of base commit
+# caaabe12 with this change NOT applied. Compared as MEMBERSHIP, not order.
+# Lines beginning with '#' are provenance, not routes.
 404.html
 catalogue/index.html
 docs/404.html

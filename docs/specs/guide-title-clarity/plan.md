@@ -31,18 +31,18 @@ search/title contexts against the precision-authority design goal.
 
 The source H1 is the canonical fallback title until metadata is present.
 Navigation labels match the approved title where the page participates in
-navigation. No route is derived from the new wording. Traces to: AC1-AC7.
+navigation. No route is derived from the new wording. Traces to: AC1-AC9.
 
 ### Component / module decomposition
 
 The source Markdown owns page wording, `guide-nav-baseline.toml` owns pinned
 sidebar labels, and generated Starlight pages provide the emitted evidence.
-Traces to: AC1-AC7.
+Traces to: AC1-AC9.
 
 ### Quality attributes (NFRs)
 
 The four titles remain understandable in a five-second scan and introduce no
-Major design finding against the approved directions. Traces to: AC8.
+Major design finding against the approved directions. Traces to: AC11.
 
 ## Tasks
 
@@ -50,14 +50,33 @@ Major design finding against the approved directions. Traces to: AC8.
 
 **Depends on:** none
 
-**Touches:** tools/test_lint_guide_titles.py, tools/test_build_site_sidebar.py
+**Touches:** tools/test_build_site_sidebar.py
 
 **Tests:**
 - TDD (`stub: true`): the four approved strings are the frontmatter `title:` of
   their four source files, compared as RAW strings (AC1-AC4).
-- TDD (`stub: true`): the five enumerated control titles are unchanged (AC6).
+- TDD (`stub: true`): each approved frontmatter title equals its body `# ` H1
+  (AC5).
+- TDD (`stub: true`): the five enumerated control titles are unchanged (AC7).
+- TDD (`stub: true`): the four retired strings are absent from the four source
+  files — and only those four files, since the strings legitimately persist as
+  provenance elsewhere (AC8).
 - TDD (`stub: true`): the sidebar item label for the two de-baselined pages
-  resolves from the frontmatter title (AC5).
+  resolves from the frontmatter title (AC6).
+
+Shipped as five tests appended to `tools/test_build_site_sidebar.py`, over the
+constants `APPROVED_TITLES`, `CONTROL_TITLES`, `DEBASELINED_SLUGS`, and
+`RETIRED_STRINGS`. `tools/test_lint_guide_titles.py` is NOT touched: it is
+already required CI and already owns the relational title↔H1 invariant, and the
+`Touches:` line above previously named it on the mistaken assumption that the
+control-title pins belonged beside its fixtures.
+
+Falsification, run against the working tree and reverted (three reversions, all
+caught): reverting one approved frontmatter title → 4 failures; reverting one
+control title → 1 failure; restoring a deleted `guide-nav-baseline.toml` entry
+for a de-baselined slug → 1 failure. An earlier draft of `CONTROL_TITLES`
+guessed the five strings from memory and the suite caught it, which is the
+behaviour these tests exist to provide.
 
 **Approach:**
 - Compare RAW strings, not through `tools/lint-guide-titles.py`'s `normalise()`:
@@ -74,7 +93,8 @@ Major design finding against the approved directions. Traces to: AC8.
   points pytest cannot collect.
 
 **Done when:** the focused tests fail on the old four strings and protect the
-five controls.
+five controls — demonstrated by the reverted-mutation runs recorded above, not
+by the suite merely passing.
 
 ### T2: Source and navigation use the approved titles
 
@@ -84,7 +104,7 @@ five controls.
 
 **Tests:**
 - Goal-based (`no stub (mode)`): run the title linter and the focused tests
-  (AC1-AC6).
+  (AC1-AC8).
 - Goal-based (`no stub (mode)`): `! grep -q` each retired string over exactly the
   four source paths — `! grep -q`, because `grep -c` exits 1 on no-match and CI
   would read success as failure. Path-scoped, because the retired strings
@@ -100,7 +120,7 @@ five controls.
   deliberate act; relabelling would make the pair guard tautological.
   `page-screen-contract` and `iac-terraform/README` have no baseline entry, so
   nothing to remove there. Add no navigation entries.
-- Update the three stale link labels in `guides/frontend-engineering/README.md`.
+- Update the three stale link labels in `guides/frontend-engineering/README.md` (AC9).
 - Leave `site.toml`'s `IaC (Terraform)` group label alone (AC5 records why).
 
 **Done when:** all source and navigation title contracts pass.
@@ -119,12 +139,12 @@ five controls.
 - Goal-based (`no stub (mode)`): diff the emitted route set against the pre-change
   inventory captured in `notes/route-baseline.txt`, compared as MEMBERSHIP not
   count (a rename preserves a count), then run
-  `tools/check-rendered-site-links.py --build-dir build` (AC7).
+  `tools/check-rendered-site-links.py --build-dir build` (AC10).
 - Manual QA (`no stub (mode)`): a human reviewer reads the four titles in
   navigation and in the browser/search title at the brief's approved widths — 360,
   375, 390, 414, 1440 — in both docs themes, and records the observation and its
   severity in `notes/render-review.md`. The invariant: each title names the
-  reader's job and is not truncated in the sidebar at the narrowest width (AC8).
+  reader's job and is not truncated in the sidebar at the narrowest width (AC11).
 
 **Approach:**
 - Use emitted HTML as evidence rather than source-only assertions.
