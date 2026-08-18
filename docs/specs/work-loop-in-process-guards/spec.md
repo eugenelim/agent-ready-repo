@@ -1,6 +1,6 @@
 # Spec: work-loop in-process guards
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0061, ADR-0074
@@ -146,13 +146,13 @@ references that place rather than repeating the value.
 
 ### Process topology
 
-- [ ] AC1 — A transition launches zero child Python processes for run-ID,
+- [x] AC1 — A transition launches zero child Python processes for run-ID,
       schedule, cohort, wave, phase, plan, or artifact-status guards. Verified
       table-wise over **every `(mode, source_state, event)` entry** — that is,
       every key of every inner dict of `_TRANSITIONS_BY_MODE`, not its two
       top-level mode keys — with the entry list read from the module rather than
       restated here. *(T5)*
-- [ ] AC2 — The engine still evaluates every guard the FSM requires: the run-ID
+- [x] AC2 — The engine still evaluates every guard the FSM requires: the run-ID
       preflight on all transitions, the schedule pre-check on CODE states except
       the `done` exemption, and every dispatched guard **including the two
       delegates reached indirectly**. Every `sys.executable` site in
@@ -162,7 +162,7 @@ references that place rather than repeating the value.
 
 ### One implementation
 
-- [ ] AC3 — A shared callable guard module exists at
+- [x] AC3 — A shared callable guard module exists at
       `packs/core/.apm/skills/work-loop/scripts/_loop_guards.py`, is Python
       3.11+ stdlib-only, and is the single implementation of each guard decision
       and of the bounded safe-file readers. `loop-engine.py`, `loop-cohort.py`,
@@ -170,12 +170,12 @@ references that place rather than repeating the value.
       duplicate `_read_managed_json` is deleted and `_read_engine_state` routes
       through the shared reader, so no guard algorithm and no safe-reader
       implementation exists in a second file. *(T1a, T3)*
-- [ ] AC4 — Every status read on the work-loop guard path resolves through
+- [x] AC4 — Every status read on the work-loop guard path resolves through
       `lint-spec-status.py`, and an AST assertion confirms `_loop_guards.py`
       compiles no `Status`-matching pattern of its own. (Scoped to the guard
       path: other status matchers exist elsewhere in the repository — see
       Assumptions — and are out of scope.) *(T1b)*
-- [ ] AC5 — The canonical contract digest is unchanged by the relocation. A
+- [x] AC5 — The canonical contract digest is unchanged by the relocation. A
       checked-in fixture of digests, generated from the **pre-move**
       `loop-cohort.py` over a frozen corpus committed inside the pack's own
       fixtures directory, is reproduced exactly by the moved implementation, and
@@ -184,7 +184,7 @@ references that place rather than repeating the value.
 
 ### The callable contract
 
-- [ ] AC6 — Every public function in `_loop_guards.py` takes explicit typed
+- [x] AC6 — Every public function in `_loop_guards.py` takes explicit typed
       arguments (`Path`, expected run ID, phase, wave expectation, wave index,
       filename, expected status) and returns a structured result whose `ok` and
       `reason` fields cannot disagree — `GuardResult.__post_init__` **raises
@@ -210,14 +210,14 @@ references that place rather than repeating the value.
       through one turns the lazy parser load into an `internal-error:` refusal that
       emits nothing and would satisfy an empty-stream-only assertion while hiding a
       wrong verdict. *(T1b)*
-- [ ] AC7 — `spec_dir` is documented as a caller-confined absolute resolved
+- [x] AC7 — `spec_dir` is documented as a caller-confined absolute resolved
       `Path`; the module names which helper each of its three callers uses to
       satisfy that precondition, and validates at the boundary what a callee can
       actually validate — that `spec_dir` exists and is a directory
       (`lstat` + `S_ISDIR`). The former "absolute, no `..`" re-check is dropped
       as unfalsifiable: all three callers `resolve()` first, after which the
       property holds by construction. *(T1b)*
-- [ ] AC8 — An expected validation failure returns an ordinary failure result
+- [x] AC8 — An expected validation failure returns an ordinary failure result
       carrying a one-line reason, never a raised exception: run-ID mismatch;
       unsupported schema; baseline drift; cap reached; wrong wave; wrong status;
       and a state or artifact file that is missing, malformed, oversized,
@@ -239,7 +239,7 @@ references that place rather than repeating the value.
       the symlink guarantee is therefore POSIX-only and the racy path pre-check
       is all that remains there. This inherits an existing gap rather than adding
       one, and is stated rather than left silent. *(T1a, T1b)*
-- [ ] AC9 — `check_artifact_status`'s `filename` must be a single path component
+- [x] AC9 — `check_artifact_status`'s `filename` must be a single path component
       matching `^[A-Za-z0-9._-]+$`, **and is additionally rejected when it consists
       only of dots** (`.`, `..`, `...`). The charset alone admits every dot segment,
       which is the exact class `0cb5c213` ("reject dot path segments in
@@ -263,7 +263,7 @@ references that place rather than repeating the value.
       own expansion ratchet. T1b's confinement cases are the compensating control
       for the pattern's new home, and the CodeQL `py/path-injection` before/after
       comparison is an acceptance artifact, not plan prose. *(T1b, T2)*
-- [ ] AC10 — The guard-call boundary contains every unexpected `Exception` and
+- [x] AC10 — The guard-call boundary contains every unexpected `Exception` and
       turns it into a refusal: for each guard, an injected arbitrary exception
       produces a one-line refusal and a non-zero exit from the engine and from
       the CLI, never a traceback and never a reported success. Containment
@@ -282,12 +282,12 @@ references that place rather than repeating the value.
       can tell a crash-refusal from a policy refusal. Every reason is
       whitespace-collapsed and length-capped, and never interpolates raw artifact
       content — only a field name and its type. *(T1b)*
-- [ ] AC11 — The two reason-returning helpers on the mutation path
+- [x] AC11 — The two reason-returning helpers on the mutation path
       (`validate_run_id`, `assert_status_legal`), whose `None` means "legal,
       proceed", are covered by containment in a form that cannot turn a failure
       into `None`. A contained failure returns a non-empty reason string, so no
       mutation verb proceeds past a check that did not complete. *(T1a)*
-- [ ] AC12 — Routing `spec.md` / `plan.md` reads through the bounded reader
+- [x] AC12 — Routing `spec.md` / `plan.md` reads through the bounded reader
       introduces a `ValueError` class the mutation path did not previously handle.
       **Three sites are tested; two more keep the handler as
       unreachable-by-construction defence in depth.** Tested:
@@ -312,7 +312,7 @@ references that place rather than repeating the value.
       them; the handler is retained against future re-expansion but is labelled
       unreachable rather than asserted.
       No traceback escapes a lock-holding process. *(T1a)*
-- [ ] AC13 — Two modules load by path, through **two** loaders: `_loop_guards.py`
+- [x] AC13 — Two modules load by path, through **two** loaders: `_loop_guards.py`
       via `load_guards()` (three copies — the cohort CLI, the engine, and
       `check-spec-status.py`), and `lint-spec-status.py` via `_lint_spec_status()`
       **inside `_loop_guards.py`**, lazily and memoised, first executed during a
@@ -349,8 +349,13 @@ references that place rather than repeating the value.
       of it ("every relocated name plus the six guards") silently omits
       `GuardResult`, `read_managed_text`, `validate_run_id`, and
       `assert_status_legal`, which are converted or new rather than relocated. A
-      pinning test asserts `__all__` equals the relocation list plus those four plus
-      the six guards. This detects accidental truncation only, **not** tampering;
+      pinning test asserts `__all__` equals the exported surface exactly — the
+      21 names the module publishes. That is deliberately NOT the whole relocation
+      list: ten relocated names stay private (`_sha256_bytes`, `_lint_spec_status`,
+      the template-cap helpers, the regexes), and `__all__` adds `contained`,
+      `contained_reason` and `ManagedContentError`, which the relocation list does
+      not contain. `non_negative_int` was removed from it once no caller outside the
+      module remained. This detects accidental truncation only, **not** tampering;
       tampering is the accepted write-access residual below.
       **Stream handling, on the loader that needs it.** `lint-spec-status.py` calls
       `sys.stdout.reconfigure(...)` at module scope. That mutates the stream **in
@@ -390,7 +395,7 @@ references that place rather than repeating the value.
       cache-free loader was considered and declined: it replaces a battle-tested
       import path with new code in a privileged position, and in specification it
       produced four defects of its own. *(T1a)*
-- [ ] AC14 — An unloadable or unparseable canonical status parser is a refusal,
+- [x] AC14 — An unloadable or unparseable canonical status parser is a refusal,
       not a skipped check. `_read_md_status`'s former `except ImportError:
       return None` no longer lets `_assert_status_legal` treat a broken parser as
       "no status line", so the post-approval status-regression guard cannot
@@ -408,14 +413,15 @@ references that place rather than repeating the value.
 
 ### CLI compatibility
 
-- [ ] AC15 — `loop-cohort.py identity`, `plan check-current`,
+- [x] AC15 — `loop-cohort.py identity`, `plan check-current`,
       `schedule check-current`, `check`, `wave check`, and `check-spec-status.py`
       keep their accepted arguments and defaults, their exit-zero versus
       non-zero behavior, their one-line stderr failure form, their success stdout
       messages, and their no-traceback failure behavior. Proven against golden
       stdout and stderr literals captured from the **pre-change** CLIs for every
       failure branch of all six verbs — including `plan_review_status: pending`
-      and `_evaluate`'s three refusals, none of which carry a verb prefix. Because those messages embed
+      and the retry-cap refusals `check_phase` produces, none of which carry a
+      verb prefix. Because those messages embed
       absolute paths and live 64-hex digests, capture and comparison both run
       through one normalization function defined canonically in `plan.md`'s T0.
       **Three named exception classes, each asserted against an explicit `after`
@@ -427,15 +433,22 @@ references that place rather than repeating the value.
       8 MiB cap to reads that are plain `path.read_text()` today, so a symlinked,
       non-regular, or over-cap artifact newly refuses. That class reaches
       `cmd_approve_plan` and `_schedule_run_impl` as well as the read-only verbs, so
-      it changes the accepted-input surface of four cohort verbs, not just the six
+      it changes the accepted-input surface of **six** cohort verbs, not just the six
       read-only ones — enumerated and ratified rather than left to be discovered.
+      The two beyond the original four are `init`, whose `assets/state.json` template
+      read is now bounded (a repo-shipped file, so no user-facing input surface
+      moved), and `review record`, whose `--report` read is now bounded. The report is
+      user-supplied, so its path is **resolved before reading** to keep a symlinked
+      report working exactly as it did; only genuinely unbounded shapes — a FIFO or an
+      over-cap file — are refused, and the reader's reason is printed rather than
+      discarded, because that verb returns `invalid` at exit 0.
       Every other row is asserted against `before`. Each row carries a closed
       `change_reason` enum (`numeric-coercion` | `file-narrowing` |
       `artifact-integrity`); the self-check asserts `after` is present **iff**
       `change_reason` is set, and that the observed enum set equals the declared
       one — so the exception list is machine-readable rather than restated a third
       time. *(T0, T2, T6)*
-- [ ] AC16 — Where AC8's numeric validation changes a verdict that today's
+- [x] AC16 — Where AC8's numeric validation changes a verdict that today's
       coercion accepts — a string-typed or float-typed counter that `int()`
       currently absorbs — the affected inputs are enumerated and recorded so the
       change is deliberate rather than discovered. The fixture carries **two
@@ -447,31 +460,37 @@ references that place rather than repeating the value.
 
 ### Locking and state safety
 
-- [ ] AC17 — `cmd_transition` holds the engine-state lock across the following
+- [x] AC17 — `cmd_transition` holds the engine-state lock across the following
       steps, in exactly this order — read from the source, since this criterion is
       the rail the `Never do` reordering prohibition is measured against:
       **(1)** spec-dir re-resolution; **(2)** `--wave-index` validation;
-      **(3)** crash recovery (`_recover_engine_state_tmp`, then `_get_repo_root`
-      plus `_recover_pending`); **(4)** engine-state read; **(5)** the
-      `schema_version` check; **(6)** run-ID preflight; **(7)** transition-table
-      validation; **(8)** the CODE schedule pre-check; **(9)** the event-specific
-      guard; **(10)** the state decision; **(11)** outbox plus state finalization.
+      **(3)** crash recovery of a left-over engine-state tmp
+      (`_recover_engine_state_tmp`); **(4)** crash recovery of the pending outbox
+      (`_get_repo_root` plus `_recover_pending`); **(5)** engine-state read;
+      **(6)** the `schema_version` check; **(7)** run-ID preflight;
+      **(8)** transition-table validation; **(9)** the CODE schedule pre-check;
+      **(10)** the event-specific guard; **(11)** the state decision;
+      **(12)** outbox plus state finalization.
+      Twelve, not eleven: an earlier revision folded the two crash-recovery steps
+      into one and merged the state decision with the finalization, which kept the
+      count at eleven while leaving the decision with no anchor of its own.
+      `_TRANSITION_STEPS` is one-for-one with this list.
       A double-violation case proves the earlier step's refusal wins: a
       `wave-passed` event with **both** a missing `--wave-index` and an unreadable
       `engine-state.json` refuses on the wave-index (step 2), not on the read
-      (step 4); a second pair covers steps 8 vs 9.
-      The source-order assertion backing the other nine boundaries carries a
+      (step 5); a second pair covers steps 9 vs 10.
+      The source-order assertion backing the other ten boundaries carries a
       **vacuity guard and a mutation check**, because four of the eleven steps have
       no callee to anchor on (`--wave-index` validation, the `schema_version` check,
       transition-table validation, and the state decision) and must key on literals
       — an anchor that silently stops matching would drop out of a sorted list that
-      then always passes. The assertion fails unless **all eleven** anchors resolve,
+      then always passes. The assertion fails unless **all twelve** anchors resolve,
       and `Done when:` requires that swapping any adjacent pair of the eleven makes
       it red. This is the antipattern `e6d4c14a` records: *"a gate whose scanned file
       set can collapse to zero while still exiting 0 is silent when it works and
       silent when it is broken… an unmutated assertion is an unverified one."*
       *(T3)*
-- [ ] AC18 — No `_loop_guards.py` function acquires the cohort mutation lock, and
+- [x] AC18 — No `_loop_guards.py` function acquires the cohort mutation lock, and
       the **recursive listing** of the spec directory and of the repo-root
       `.loop-run/` directory — names and bytes — is identical before and after any
       sequence of guard-API calls. The assertion fails if either directory is
@@ -480,10 +499,10 @@ references that place rather than repeating the value.
       `_recover_engine_state_tmp`'s `.engine-state-*.json.tmp` glob or a
       `state.json.lock`. File timestamps are deliberately excluded: nothing in the
       loop keys off artifact mtime. *(T1b)*
-- [ ] AC19 — Each logical guard reads the files it needs at call time; no cohort
+- [x] AC19 — Each logical guard reads the files it needs at call time; no cohort
       snapshot is shared or cached across guards. A test counts `state.json` reads
       across a three-guard transition and asserts three. *(T1b)*
-- [ ] AC20 — `_loop_guards.py` loads under direct file-path invocation, under the
+- [x] AC20 — `_loop_guards.py` loads under direct file-path invocation, under the
       tests' importlib harness, and from a projected adopter-shaped copy, without
       adding the repository root to `sys.path`, without depending on the working
       directory, and without installing `agentbundle`. A test asserts the engine
@@ -492,7 +511,7 @@ references that place rather than repeating the value.
 
 ### The lock-hold budget
 
-- [ ] AC21 — Every `subprocess` call reachable from a guard while
+- [x] AC21 — Every `subprocess` call reachable from a guard while
       `cmd_transition` holds the lock passes an explicit `timeout=`, and the only
       such calls are `git`. The claim is scoped to the **guard call path**, not to
       transitive capability. `loop-engine.py` and `_loop_guards.py` are scanned
@@ -506,7 +525,7 @@ references that place rather than repeating the value.
       CLI's failure mode on a slow repository, which would need its own criterion.
       It is recorded in `Deferred` instead. The matched call set is the canonical
       spawn set AC23 names. *(T4)*
-- [ ] AC22 — The lock-hold budget is stated honestly rather than overclaimed.
+- [x] AC22 — The lock-hold budget is stated honestly rather than overclaimed.
       `MAX_SUBPROCESS_CALLS_UNDER_LOCK` equals the number of external subprocess
       **invocation edges** on the reachable call graph — distinct from call sites,
       of which there is one — and its value is written in exactly one place,
@@ -525,7 +544,7 @@ references that place rather than repeating the value.
 
 ### Tests and gates
 
-- [ ] AC23 — A deterministic test fails if a transition executes
+- [x] AC23 — A deterministic test fails if a transition executes
       `sys.executable`, any other Python interpreter (including the Windows
       `py`/`pyw` launchers), `loop-cohort.py`, `check-spec-status.py`, or any
       other `.py` script, via any spawn primitive in the canonical set defined in
@@ -537,13 +556,13 @@ references that place rather than repeating the value.
       engine state for each path. A source-absence AST assertion over both
       `loop-engine.py` and `_loop_guards.py` runs alongside as an independent
       second signal. *(T5)*
-- [ ] AC24 — Parity tests assert the callable API and the CLI adapter reach the
+- [x] AC24 — Parity tests assert the callable API and the CLI adapter reach the
       same success-or-failure verdict for shared fixtures covering run-ID
       identity, schedule currency, plan currency with and without a required
       schedule, phase retry caps, wave checks, and spec and plan status checks —
       each including the missing-or-malformed-`state.json` refusal the CLI
       performs today. *(T6)*
-- [ ] AC25 — `pytest packs/core/tests/skills/work-loop/` passes, including
+- [x] AC25 — `pytest packs/core/tests/skills/work-loop/` passes, including
       `test_loop_engine.py`, `test_loop_cohort.py`,
       `test_loop_cohort_schedule.py`, `test_loop_cohort_max_iter_single_source.py`,
       `test_loop_engine_events_jsonl.py`, and `test_loop_concurrency.py`;
@@ -560,10 +579,10 @@ references that place rather than repeating the value.
       `List`/`Tuple`/`Call` node contains both `"rev-parse"` and
       `"--show-toplevel"` — so AC23's `git`-argv assertion must key on `argv[0]`
       plus the `timeout` kwarg without co-locating those two literals. *(T0, T5, T7)*
-- [ ] AC26 — `make build-check` and `make lint-ruff` pass, and the Core pack
+- [x] AC26 — `make build-check` and `make lint-ruff` pass, and the Core pack
       source and its `.claude/` and `.agents/` projections are byte-identical.
       *(T7)*
-- [ ] AC27 — No new runtime dependency, MCP requirement, daemon, package
+- [x] AC27 — No new runtime dependency, MCP requirement, daemon, package
       installation, or `uv` requirement is introduced. The Core pack version is
       bumped in **both** files that carry it — `packs/core/pack.toml` and
       `packs/core/.claude-plugin/plugin.json` — because `catalogue verify`'s
@@ -649,7 +668,8 @@ a criterion, the criterion references this section rather than restating it.
   reproduced defect (source: probe, 2026-08-17).
 - Technical: `DEFAULTS` is computed at module scope from two helpers that each do
   an unbounded, unchecked `TEMPLATE_PATH.read_text()` on
-  `assets/state.json`; `_evaluate` needs `DEFAULTS`, so `check_phase` does, so the
+  `assets/state.json`; the retry-cap arithmetic needs `DEFAULTS`, so `check_phase`
+  does, so the
   first guard call inside the critical section would trigger that read — which is
   why AC8 covers the bundled template and the plan makes `DEFAULTS` lazy (source:
   `loop-cohort.py:83-110`, `:1165`, `:1174`).

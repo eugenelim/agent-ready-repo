@@ -1,7 +1,7 @@
 # Plan: work-loop in-process guards
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as you learn — while its Status is `Drafting`
@@ -189,7 +189,7 @@ included.
   counts the reads. The residual (engine holds only its own lock while reading the
   cohort's state) is pre-existing and recorded against
   `loop-outbox-cross-spec-rmw`. Traces to: AC19.
-- **The engine's duplicate `_read_managed_json` goes away.** Byte-identical to the
+- **The engine's duplicate `read_managed_json` goes away.** Byte-identical to the
   cohort's, and the engine imports the shared module anyway. Traces to: AC3.
 
 ### Data & schema
@@ -235,11 +235,11 @@ loop-cohort.py / check-spec-status.py CLI
 New: `_loop_guards.py`. Unchanged: `_statelock.py`, `lint-spec-status.py`
 (except four `timeout=` ride-alongs, see T4). Shrunk to adapters:
 `loop-cohort.py`'s `cmd_identity`, `cmd_plan_check_current`,
-`_schedule_check_current_impl`, `cmd_check`/`_evaluate`, `cmd_wave_check`; all of
+`_schedule_check_current_impl`, `cmd_check`/`check_phase` (the `check_phase` wrapper was deleted; it had no caller), `cmd_wave_check`; all of
 `check-spec-status.py`. Rewired: `loop-engine.py`'s `_run_id_preflight`,
 `_schedule_check_current`, the ten dispatched `_GUARDS` functions, the two
 indirect delegates, `_read_engine_state`. Deleted: `_run`, `LOOP_COHORT`,
-`CHECK_SPEC_STATUS`, the engine's duplicate `_read_managed_json`, and the two dead
+`CHECK_SPEC_STATUS`, the engine's duplicate `read_managed_json`, and the two dead
 `_guard_plan_check_current*` functions. Traces to: AC1, AC2, AC3.
 
 ### Failure, edge cases & resilience
@@ -254,7 +254,7 @@ indirect delegates, `_read_engine_state`. Deleted: `_run`, `LOOP_COHORT`,
   style `_statelock.py:326-344` already uses. The loader re-raises any load
   exception as `ImportError` so `SyntaxError` (a direct `Exception` subclass) is
   covered by the existing `except (ImportError, OSError)` clauses.
-- **Unloadable canonical parser refuses.** `_read_md_status`'s
+- **Unloadable canonical parser refuses.** `read_md_status`'s
   `except ImportError: return None` becomes an `UnreadableArtifact`-class failure.
   Only an absent status *token* is still skipped.
 - **Bounded readers.** `read_managed_json` and a new `read_managed_text` both:
@@ -277,7 +277,7 @@ indirect delegates, `_read_engine_state`. Deleted: `_run`, `LOOP_COHORT`,
   `TextIOWrapper` always has `reconfigure`, is never `None`, and swallows writes.
   Snapshot-and-restore of the *references* is explicitly not the mechanism —
   `reconfigure` mutates in place, so restoring a reference restores nothing.
-- **Mutation verbs widened.** `_read_md_status`, `cmd_plan_check_current`,
+- **Mutation verbs widened.** `read_md_status`, `cmd_plan_check_current`,
   `_schedule_check_current_impl`, and `_schedule_run_impl` gain `ValueError` in
   their `except` clauses so an unsafe artifact refuses instead of raising —
   `_schedule_run_impl` runs under the cohort state lock.
@@ -410,7 +410,7 @@ byte-for-byte.
 - `TEMPLATE_PATH` is read through the bounded reader, and importing
   `_loop_guards` performs no file I/O (`DEFAULTS` is lazy) — asserted by patching
   the reader and confirming zero calls at import. Verifies AC8.
-- All **four** `ValueError` conversion sites: `_read_md_status` (widened to
+- All **four** `ValueError` conversion sites: `read_md_status` (widened to
   `(OSError, UnicodeDecodeError, ValueError)`, raising `UnreadableArtifact`, which
   `_assert_status_legal` already catches — the path that protects the six mutation
   verbs), plus `cmd_plan_check_current`, `_schedule_check_current_impl`, and
@@ -429,16 +429,16 @@ byte-for-byte.
   stating the no-print/no-parse/no-exit/no-mutate/no-spawn contract and
   `spec_dir`'s precondition. No `sys.stdout.reconfigure` — it is a library.
 - **The canonical relocation list** (only copy; Design references it):
-  `_MAX_MANAGED_JSON_BYTES`, `_read_managed_json`, `state_path_for`, `read_state`,
+  `_MAX_MANAGED_JSON_BYTES`, `read_managed_json`, `state_path_for`, `read_state`,
   `_lint_module`, `_lint_spec_status`, `_sha256_bytes`, `_STATUS_PLACEHOLDER`,
   `_AC_HEADING_RE`, `_HEADING_RE`, `_BOLD_LEAD_RE`, `_BOLD_DEPTH`, `_BOTH_CAUSES`,
   `canonical_contract`, `sha256_canonical_contract`, `UnreadableArtifact`,
-  `_read_md_status`, `_LEGAL_AFTER_APPROVAL`, `TEMPLATE_PATH`,
+  `read_md_status`, `_LEGAL_AFTER_APPROVAL`, `TEMPLATE_PATH`,
   `_template_max_implementation_retries`, `_template_max_review_retries`,
   `DEFAULTS`. Moved byte-for-byte apart from the changes named below —
   `_STATUS_PLACEHOLDER` keeps its exact literal because it feeds the digest.
-- Add `O_NONBLOCK` to `_read_managed_json`'s open flags and add `read_managed_text`
-  with the same shape; point `sha256_canonical_contract` and `_read_md_status` at
+- Add `O_NONBLOCK` to `read_managed_json`'s open flags and add `read_managed_text`
+  with the same shape; point `sha256_canonical_contract` and `read_md_status` at
   it. Route `TEMPLATE_PATH` through it.
 - **`read_managed_text` must not lose universal-newline decoding.** `read_text()`
   folds CR and CRLF to LF before `canonical_contract` runs, which makes
@@ -461,7 +461,7 @@ byte-for-byte.
   `assert_status_legal(verb, *paths) -> str | None`,
   `validate_run_id(state, expect_run_id, verb) -> str | None`. Keep their two
   message sets distinct from `cmd_identity`'s — different decisions.
-- Change `_read_md_status`'s `except ImportError: return None` to raise
+- Change `read_md_status`'s `except ImportError: return None` to raise
   `UnreadableArtifact`; re-word `_lint_spec_status`'s `ImportError` text to a
   module-neutral form (the one string that legitimately changes).
 - `_loop_guards.py` **omits `from __future__ import annotations`**, with a one-line
@@ -507,7 +507,7 @@ byte-for-byte.
   and let integrity failures raise.
 - Keep `_validate_run_id` and `_assert_status_legal` in `loop-cohort.py` as
   wrappers mapping a returned reason to `stop(...)`.
-- Widen the `ValueError` handling at the three **tested** sites: `_read_md_status`
+- Widen the `ValueError` handling at the three **tested** sites: `read_md_status`
   (raising `UnreadableArtifact`), `_schedule_run_impl` (both its raw
   `plan_path.read_text()` and its hash call, under the cohort lock), and
   `cmd_approve_plan` (its already-approved-branch hash, whose current
@@ -535,9 +535,9 @@ check goes red on a perturbed `canonical_contract`, and `make lint-ruff` passes.
   `TextIOWrapper`, not an `io.StringIO`: a `StringIO` has no `reconfigure`, so
   capturing through one turns the lazy parser load into a silent
   `internal-error:` refusal that emits nothing. Verifies AC6.
-- AST: imports match **the canonical allowlist — `contextlib`, `dataclasses`,
-  `functools`, `hashlib`, `importlib.util`, `io`, `json`, `os`, `re`, `stat`,
-  `sys`, `pathlib`** (twelve names) — and the module contains no `argparse`, no
+- AST: imports match **the canonical allowlist — `collections.abc`, `contextlib`,
+  `dataclasses`, `functools`, `hashlib`, `importlib.util`, `io`, `json`, `os`, `re`,
+  `stat`, `sys`, `pathlib`** (thirteen names) — and the module contains no `argparse`, no
   `sys.exit`, no `sys.argv`, no `.reconfigure(` call, no *unrestored* stream
   mutation, no top-level write or command execution, and no reference to
   `subprocess`, `os.system`, `os.popen`, `os.exec*`, `os.spawn*`, `os.fork`,
@@ -605,7 +605,7 @@ check goes red on a perturbed `canonical_contract`, and `make lint-ruff` passes.
 - Add the six guard functions, each reproducing its verb's decision sequence and
   its exact reason and success strings minus the CLI prefix.
 - Reduce `cmd_identity`, `cmd_plan_check_current`, `_schedule_check_current_impl`,
-  `cmd_check`/`_evaluate`, and `cmd_wave_check` to: resolve spec-dir → call the
+  `cmd_check`/`check_phase`, and `cmd_wave_check` to: resolve spec-dir → call the
   guard → `stop(result.reason)` or `print(result.message)`, branching on `ok`.
   `cmd_identity` keeps its `--json` branch, fed from `result.data`.
 
@@ -714,7 +714,7 @@ semgrep comment names the new location.
   and shedding both nested markers (`loop-cohort: stop — `,
   `check-spec-status: `).
 - Delete `_run`, `LOOP_COHORT`, `CHECK_SPEC_STATUS`, and the engine's duplicate
-  `_read_managed_json`; point `_read_engine_state` at the shared reader.
+  `read_managed_json`; point `_read_engine_state` at the shared reader.
 - Keep `subprocess` and `_get_repo_root` — git is still needed and still bounded.
 - Leave `cmd_transition`'s body order, `@_locked`, the CODE-state pre-check
   condition, and the `done` exemption untouched.
