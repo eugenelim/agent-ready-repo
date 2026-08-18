@@ -21,7 +21,7 @@ Released entries inside it: exactly **one**.
 | Release | Date | Eligible | Why |
 | --- | --- | :---: | --- |
 | `governance-extras` 0.9.7 | 2026-08-16 | yes | `##`-level entry, versioned and dated, outside every `[Unreleased]` region |
-| 28 further entries dated 2026-08-17 | 2026-08-17 | no | `###` children of the first `## [Unreleased]` heading |
+| 28 further entries | 2026-08-12 … 2026-08-17 | no | `###` children of the first `## [Unreleased]` heading |
 
 The 28 are not a gap. `changelog.md` carries three separate `## [Unreleased]`
 regions, and its newest dated entries are nested inside the first. The spec is

@@ -135,6 +135,17 @@ jobs:
         env:
           ASTRO_TELEMETRY_DISABLED: "1"
 
+      # The anchor-correspondence test needs `build/docs/changelog/index.html`,
+      # so it can only run here: build-check.yml has no site build and the test
+      # would skip there forever. It compares all 122 parsed release anchors
+      # against the emitted heading ids in document order — the only place the
+      # reimplemented github-slugger's `-N` duplicate counter is checked against
+      # reality.
+      - name: Install test runner
+        run: pip install pytest
+      - name: Assert release anchors match the emitted changelog
+        run: python3 -m pytest -p no:cacheprovider -q tools/test_build_site_routing.py -k anchor
+
       - name: Check rendered internal links
         run: python3 tools/check-rendered-site-links.py --build-dir build
 

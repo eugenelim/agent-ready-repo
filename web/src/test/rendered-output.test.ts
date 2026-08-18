@@ -540,8 +540,22 @@ describe.skipIf(!webBuilt)('built marketing output', () => {
   it('now AC7: the built page is a pure function of the committed projection', () => {
     // No clock, no window, no build date reaches the page. A date-derived filter
     // would make the same source emit different HTML tomorrow.
-    const src = readFileSync(join(REPO_ROOT, 'web/src/pages/now/index.astro'), 'utf8');
-    expect(src).not.toMatch(/Date\.now|new Date\(\)/);
+    // Both files: the page holds the projection import and the schema guard, the
+    // component holds the date formatting. Scanning only the page left the
+    // formatter — the one place a clock could enter — unscanned after extraction.
+    //
+    // Comments are stripped first. Both files explain in prose WHY they avoid
+    // `new Date(iso)`, and a raw text scan matches that explanation, so the guard
+    // fired on the very comment documenting the correct behaviour.
+    const stripComments = (src: string) =>
+      src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/.*$/gm, '$1');
+    for (const rel of [
+      'web/src/pages/now/index.astro',
+      'web/src/components/now/NowHighlights.astro',
+    ]) {
+      const code = stripComments(readFileSync(join(REPO_ROOT, rel), 'utf8'));
+      expect(code, `${rel} reaches for a clock`).not.toMatch(/Date\.now|new Date\(/);
+    }
     const projection = JSON.parse(readFileSync(NOW_PROJECTION, 'utf8'));
     expect(projection).not.toHaveProperty('launchDate');
   });

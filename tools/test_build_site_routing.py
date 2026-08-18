@@ -510,8 +510,31 @@ def test_a_decorated_unreleased_heading_still_opens_an_unreleased_region():
         assert _groups(text) == [], f"{title!r} leaked its Highlights"
 
 
-def test_a_heading_mentioning_unreleased_that_classifies_as_neither_fails():
-    """Refuse rather than guess — guessing wrong publishes in-progress work."""
+def test_prose_headings_are_not_release_entries_and_do_not_fail_the_build():
+    """Ordinary prose must not be mistaken for a release, or for an Unreleased region.
+
+    Markdown reference links share the `[a][b]` shape a release heading uses, so
+    an unanchored search made these look like malformed releases and hard-failed
+    the entire site build. The word "unreleased" inside a sentence did the same.
+    Both are now reported rather than fatal.
+    """
+    for title in (
+        "## Thanks to [everyone][credits] who filed issues",
+        "## Migrating from [v1][v1-docs] to [v2][v2-docs]",
+        "### Fixed an unreleased regression",
+        "## Notes on unreleased material",
+    ):
+        text = f"""# Changelog
+
+{title}
+
+- a bullet
+"""
+        assert build_site.project_now_highlights(text)["groups"] == [], title
+
+
+def test_a_heading_mentioning_unreleased_outside_a_region_is_reported():
+    """Surfaced as a diagnostic, because it is a real near-miss worth seeing."""
     text = """# Changelog
 
 ## Notes on unreleased material
@@ -520,12 +543,30 @@ def test_a_heading_mentioning_unreleased_that_classifies_as_neither_fails():
 
 - Ambiguous.
 """
-    try:
-        build_site.project_now_highlights(text)
-    except ValueError as exc:
-        assert "does not open an Unreleased section" in str(exc)
-    else:  # pragma: no cover
-        raise AssertionError("an ambiguous 'unreleased' heading did not fail")
+    build_site.parse_changelog_releases(text)
+    reported = build_site.parse_changelog_releases.last_diagnostics[
+        "ambiguous_unreleased"
+    ]
+    assert [title for _, title in reported] == ["Notes on unreleased material"]
+
+
+def test_a_misplaced_highlights_block_is_reported_rather_than_dropped_in_silence():
+    """A refusal that says nothing is indistinguishable from writing nothing."""
+    text = """# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Changed
+
+#### Highlights
+
+- Nested too deep to publish.
+"""
+    assert _groups(text) == []
+    reported = build_site.parse_changelog_releases.last_diagnostics[
+        "misplaced_highlights"
+    ]
+    assert [(level, title) for _, level, title in reported] == [(4, "Highlights")]
 
 
 def test_a_release_entry_closes_at_the_next_heading_of_its_own_level():
@@ -589,6 +630,60 @@ def test_a_highlights_heading_below_the_entrys_immediate_child_level_is_ignored(
 - Nested two levels down; belongs to `Changed`, not to the release.
 """
     assert _groups(text) == []
+
+
+def test_a_nested_fence_does_not_close_its_outer_block():
+    """A ``` inside a ````-fenced sample must not end the fence.
+
+    This was the one fail-open that survived two review rounds. The inner ```
+    closed the block, the sample's release heading became a real release, and the
+    trailing markers restored parity so the unterminated-fence raise never
+    fired — `fake copy` published as a public highlight.
+    """
+    text = """# Changelog
+
+## [real][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Real.
+
+````markdown
+```
+## [fake][9.9.9] — 2026-08-06
+
+### Highlights
+
+- fake copy
+```
+````
+"""
+    groups = _groups(text)
+    assert [g["packages"][0]["name"] for g in groups] == ["real"]
+    assert _bullets(groups[0]) == ["Real."]
+
+
+def test_a_tilde_fence_is_not_closed_by_a_backtick_run():
+    """A closing fence must use the SAME marker character."""
+    text = """# Changelog
+
+## [real][1.0.0] — 2026-08-05
+
+### Highlights
+
+- Real.
+
+~~~markdown
+```
+## [fake][9.9.9] — 2026-08-06
+
+### Highlights
+
+- fake copy
+```
+~~~
+"""
+    assert [g["packages"][0]["name"] for g in _groups(text)] == ["real"]
 
 
 def test_an_unterminated_code_fence_fails_instead_of_swallowing_the_file():
@@ -944,23 +1039,93 @@ def test_the_launch_seed_covers_exactly_the_released_entries_in_its_window():
     projected = {g["changelogAnchor"] for g in groups}
     assert not projected & {r["anchor"] for r in unreleased}
 
-    # AC5 says "all AND ONLY". The projection deliberately applies no date
-    # window, so the "only" half holds as a measured launch fact rather than by
-    # construction — which is exactly why it needs an assertion. If a released
-    # entry outside the window later gains Highlights this fails, and that is the
-    # signal to re-read AC5 rather than to quietly widen it.
-    assert all(start <= g["date"] <= end for g in groups), [
-        g["date"] for g in groups
+    # AC5 says "all AND ONLY", and the "only" half is about the LAUNCH SEED, not
+    # about everything `/now/` will ever show. Quantifying over `groups` would
+    # make the first post-launch highlight fail a required gate, and would
+    # contradict both `test_the_window_does_not_filter_the_projection` and the
+    # spec clause saying the projection applies no date window. Scoped to the
+    # seeded anchors instead: every entry seeded AT LAUNCH came from the window.
+    seeded = {r["anchor"] for r in released}
+    assert seeded <= projected, sorted(seeded - projected)
+    for group in groups:
+        if group["changelogAnchor"] in seeded:
+            assert start <= group["date"] <= end, group["heading"]
+
+
+def test_release_anchors_match_the_emitted_page_one_for_one_in_order():
+    """Full-corpus, ORDER-SENSITIVE correspondence against every emitted heading.
+
+    Three weaker forms were tried and each let a real defect through:
+
+    - Membership ("every anchor exists somewhere on the page") passes when two
+      identical headings swap their `-N` suffixes, because both ids exist either
+      way.
+    - Resolving each anchor to its heading TEXT cannot separate duplicates —
+      duplicates are duplicates precisely because their text is identical.
+    - Checking only the anchors that actually PROJECT shrinks the corpus from 122
+      release headings to the one group `/now/` currently shows, whose base is
+      unique. Deleting `_Slugger`'s duplicate handling outright passed every
+      test in both suites under that form.
+
+    So this compares the whole sequence, in document order, against the emitted
+    page. `pages.yml` runs it after the docs build; `build-check.yml` has no site
+    build, hence the skip.
+    """
+    import re
+
+    if not _EMITTED_CHANGELOG.exists():
+        import pytest
+
+        pytest.skip(
+            "needs the combined build: python3 tools/build-site.py && "
+            "npm run build --prefix web && npm run build --prefix docs-site"
+        )
+
+    page = _EMITTED_CHANGELOG.read_text(encoding="utf-8")
+    emitted: list[tuple[str, str]] = []
+    for match in re.finditer(
+        r"<h[1-6][^>]*\bid=\"([^\"]+)\"[^>]*>(.*?)</h[1-6]>", page, re.S
+    ):
+        anchor, inner = match.group(1), match.group(2)
+        if anchor.startswith("starlight__"):
+            continue
+        text = re.sub(r"<[^>]+>", "", inner)
+        text = (
+            text.replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">")
+            .replace("&quot;", '"').replace("&#39;", "'")
+        )
+        emitted.append((anchor, " ".join(text.split())))
+
+    releases = build_site.parse_changelog_releases(
+        _CHANGELOG.read_text(encoding="utf-8")
+    )
+    assert releases, "no release entries parsed from the real changelog"
+
+    expected = [(r["anchor"], " ".join(r["heading"].split())) for r in releases]
+    # Starlight appends an anchor-link affordance, so match on the heading text
+    # the parser saw being a prefix of the emitted text.
+    actual = [
+        (anchor, text)
+        for anchor, text in emitted
+        if any(anchor == want for want, _ in expected)
+        or any(text.startswith(want_text) and want_text for _, want_text in expected)
     ]
+    got_anchors = [a for a, _ in actual]
+    want_anchors = [a for a, _ in expected]
+    assert got_anchors == want_anchors, (
+        "release anchors diverge from the emitted page in id or order:\n"
+        f"  first mismatch at {next((i for i, (g, w) in enumerate(zip(got_anchors, want_anchors, strict=False)) if g != w), 'length')}\n"
+        f"  parser: {want_anchors[:6]}\n  emitted: {got_anchors[:6]}"
+    )
+    # And the duplicates specifically, since they are the only place the parser's
+    # `-N` counter and github-slugger can disagree.
+    suffixed = [a for a in want_anchors if a.endswith("-1")]
+    assert suffixed, "fixture drift: the changelog should still repeat two headings"
+    for anchor in suffixed:
+        base = anchor[: -len("-1")]
+        assert base in got_anchors, base
+        assert got_anchors.index(base) < got_anchors.index(anchor)
 
-
-# Anchor CORRESPONDENCE — that each release's anchor resolves to its own heading —
-# is asserted in `web/src/test/rendered-output.test.ts`, not here. This module runs
-# in `build-check.yml` with no site build, so a test needing `build/` could only
-# ever skip in CI; `rendered-output.test.ts` runs in `pages.yml` after both builds.
-# Membership alone was also too weak: with two `[core][2.3.0] — 2026-08-07`
-# headings in the file, swapping which one got the `-1` suffix left both ids
-# present and passed.
 
 def test_the_public_work_surface_is_gone_from_the_marketing_source():
     """`/work/` is removed outright — no page, no component, no exporter, no redirect.

@@ -1062,10 +1062,21 @@ _UNRELEASED_RE = re.compile(r"^\[?unreleased\]?(?:\W|$)", re.IGNORECASE)
 # `[core][2.7.4] and [architect][0.14.5] — 2026-08-17` — one entry may release
 # several packages at once, so identity is a list, not a scalar.
 _RELEASE_PKG_RE = re.compile(r"\[([A-Za-z0-9][A-Za-z0-9._-]*)\]\[([^\]]+)\]")
+# The pair must LEAD the heading. Markdown reference links share the `[a][b]`
+# shape, so searching anywhere makes ordinary prose look like a release:
+# `## Thanks to [everyone][credits] who filed issues` and
+# `## Migrating from [v1][v1-docs] to [v2][v2-docs]` each hard-failed the whole
+# site build before this was anchored.
+_RELEASE_LEAD_RE = re.compile(r"^\[([A-Za-z0-9][A-Za-z0-9._-]*)\]\[([^\]]+)\]")
 _RELEASE_DATE_RE = re.compile(r"(\d{4})-(\d{2})-(\d{2})\s*$")
 _HIGHLIGHTS_RE = re.compile(r"^highlights$", re.IGNORECASE)
 _BULLET_RE = re.compile(r"^[ \t]*[-*+][ \t]+(.*)$")
-_FENCE_RE_CHANGELOG = re.compile(r"^\s*(```|~~~)")
+# Capture the marker CHARACTER and its run length. A bare `(```|~~~)` closes a
+# ````-fenced block on the ``` inside it, and the trailing markers then restore
+# parity so the unterminated-fence raise never fires — sample content publishes
+# as a real release. CommonMark: a closing fence uses the same character and is
+# at least as long as the opener.
+_FENCE_RE_CHANGELOG = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _COMMENT_INLINE_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 
 
@@ -1114,12 +1125,12 @@ def _parse_release_identity(title: str) -> dict | None:
     date is a source defect and raises, because silently dropping it would
     under-report the launch window.
     """
+    if _RELEASE_LEAD_RE.match(title) is None:
+        return None
     packages = [
         {"name": name, "version": version}
         for name, version in _RELEASE_PKG_RE.findall(title)
     ]
-    if not packages:
-        return None
     if len(packages) == 1 and _UNRELEASED_RE.match(f"[{packages[0]['name']}]"):
         return None
     date_match = _RELEASE_DATE_RE.search(title)
@@ -1170,16 +1181,26 @@ def parse_changelog_releases(text: str) -> list[dict]:
     highlights_level: int | None = None
     in_fence = False
     fence_opened_at: int | None = None
+    fence_marker: str | None = None
     in_comment = False
     comment_opened_at: int | None = None
+    ambiguous: list[tuple[int, str]] = []
+    misplaced: list[tuple[int, int, str]] = []
 
     for lineno, raw in enumerate(lines, start=1):
         # Fenced code wins over comment syntax: `<!--` inside a shell sample is
         # sample text, not a comment.
         if in_fence:
-            if _FENCE_RE_CHANGELOG.match(raw):
+            closer = _FENCE_RE_CHANGELOG.match(raw)
+            if (
+                closer is not None
+                and fence_marker is not None
+                and closer.group(1)[0] == fence_marker[0]
+                and len(closer.group(1)) >= len(fence_marker)
+            ):
                 in_fence = False
                 fence_opened_at = None
+                fence_marker = None
             # A `#` inside a fenced block is shell syntax, not a heading, and a
             # `-` inside one is not a bullet.
             continue
@@ -1202,9 +1223,11 @@ def parse_changelog_releases(text: str) -> list[dict]:
             in_comment = True
             comment_opened_at = lineno
 
-        if _FENCE_RE_CHANGELOG.match(raw):
+        opener = _FENCE_RE_CHANGELOG.match(raw)
+        if opener is not None:
             in_fence = True
             fence_opened_at = lineno
+            fence_marker = opener.group(1)
             continue
 
         heading = _CHANGELOG_HEADING_RE.match(raw)
@@ -1263,24 +1286,24 @@ def parse_changelog_releases(text: str) -> list[dict]:
             continue
 
         if "unreleased" in title.casefold():
-            # Classified as neither an Unreleased region nor a release entry, yet
-            # it says "unreleased". Rather than guess, refuse: guessing wrong in
-            # this direction publishes in-progress work.
-            raise ValueError(
-                "changelog heading mentions 'unreleased' but does not open an "
-                f"Unreleased section: {title!r}"
-            )
+            # Says "unreleased" yet opened neither a region nor an entry. Worth
+            # surfacing, NOT worth failing the build on: `### Fixed an unreleased
+            # regression` is ordinary prose, and raising here stopped the whole
+            # site render on it.
+            ambiguous.append((lineno, title))
 
         # A `Highlights` heading counts only as the entry's IMMEDIATE child. At
         # any other depth it belongs to something else, and attaching its
         # bullets to the nearest open release publishes copy under a release
         # that does not claim it.
-        if (
-            _HIGHLIGHTS_RE.match(title)
-            and entry_level is not None
-            and level == entry_level + 1
-        ):
-            highlights_level = level
+        if _HIGHLIGHTS_RE.match(title):
+            if entry_level is not None and level == entry_level + 1:
+                highlights_level = level
+            else:
+                # Refused — and silently so without this. A `#### Highlights`
+                # under `### Changed` is the second-likeliest authoring mistake
+                # and produced output identical to writing nothing.
+                misplaced.append((lineno, level, title))
         stack.append((level, False))
 
     if in_fence:
@@ -1297,6 +1320,10 @@ def parse_changelog_releases(text: str) -> list[dict]:
             f"{comment_opened_at}; every release after it would be ignored"
         )
 
+    parse_changelog_releases.last_diagnostics = {  # type: ignore[attr-defined]
+        "ambiguous_unreleased": ambiguous,
+        "misplaced_highlights": misplaced,
+    }
     return releases
 
 
@@ -1424,14 +1451,23 @@ def _report_now_projection(changelog: Path, dry_run: bool = False) -> None:
         f"  {bullets} released highlight(s) in {len(groups)} release group(s)"
         + (" (dry run)" if dry_run else "")
     )
-    withheld = [
-        r for r in parse_changelog_releases(text)
-        if r["unreleased"] and r["highlights"]
-    ]
-    for entry in withheld:
+    releases = parse_changelog_releases(text)
+    diagnostics = getattr(parse_changelog_releases, "last_diagnostics", {})
+    for entry in releases:
+        if entry["unreleased"] and entry["highlights"]:
+            print(
+                f"  note  {len(entry['highlights'])} highlight(s) not published — "
+                f"beneath [Unreleased]: {entry['heading']}"
+            )
+    for lineno, level, title in diagnostics.get("misplaced_highlights", []):
         print(
-            f"  note  {len(entry['highlights'])} highlight(s) not published — "
-            f"beneath [Unreleased]: {entry['heading']}"
+            f"  note  line {lineno}: '{'#' * level} {title}' is not a release "
+            "entry's immediate child, so its bullets do not publish"
+        )
+    for lineno, title in diagnostics.get("ambiguous_unreleased", []):
+        print(
+            f"  note  line {lineno}: heading {title!r} mentions 'unreleased' but "
+            "opens no Unreleased section; entries beneath it count as released"
         )
 
 
@@ -1610,10 +1646,10 @@ def main() -> None:
 
     print("build-site: copying changelog …")
     changelog_dst = SITE_DOCS / "changelog.md"
-    if changelog_src.exists():
-        copy_file(changelog_src, changelog_dst, rewriter=_rewrite_changelog, dry_run=args.dry_run)
-    else:
-        print("  warn  docs/product/changelog.md missing", file=sys.stderr)
+    # Unconditional: `_report_now_projection` above already raised if the source
+    # were absent, so an `exists()` guard here would read as a supported
+    # missing-changelog path that cannot occur.
+    copy_file(changelog_src, changelog_dst, rewriter=_rewrite_changelog, dry_run=args.dry_run)
 
     print("build-site: copying contributing guide …")
     contributing_src = REPO_ROOT / "CONTRIBUTING.md"
