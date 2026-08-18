@@ -255,6 +255,11 @@ def _key_re(key: str, indent: str = r"\s*") -> re.Pattern[str]:
 # `pull_request: {branches: [main], paths: ['x']}` hid the filter mid-line while the
 # bare block spelling above it kept `trigger-pull-request` satisfied. Matching after
 # any whitespace, `{` or `,` sees the flow form too.
+# Explicit-key (`? k` / `: v`) and escape-encoded (`"p\x61ths":`) key syntax, in
+# either block or flow position. Both resolve to a normal key that every
+# spelling-based matcher in this file misses.
+_UNMODELLED_KEY_RE = re.compile(r'(?:^|[{,])[ \t]*\?[ \t]|"[^"\n]*\\[^"\n]*"\s*:', re.M)
+
 _TRIGGER_PATHS_RES = (
     re.compile(r"(?:^|[\s{,])['\"]?paths['\"]?\s*:", re.M),
     re.compile(r"(?:^|[\s{,])['\"]?paths-ignore['\"]?\s*:", re.M),
@@ -292,9 +297,10 @@ PINNED_EXPORT_PYTEST = (
     '| tee "$RUNNER_TEMP/out.txt"'
 )
 PINNED_POSTURE = f"python3 {SELF_NAME}"
-# spec/site-ci-contract-closure AC2. These four statements are FIXED, so they go
-# through `_pinned` (statement equality) rather than `_invocation` (argv membership)
-# — this file's own guidance. Membership alone accepted
+# spec/site-ci-contract-closure AC2. These four statements are FIXED, and are held by
+# WHOLE-BODY equality in the `*-body-exact` checks — not by `_pinned`, whose four
+# statement-equality conjuncts were removed as non-independent (see the removal note
+# at the checks). Argv membership alone accepted
 # `python -m pytest --collect-only <modules>` and `… -q -k nope`, which collect or
 # select nothing while every module name stayed present and the audit stayed clean.
 PINNED_SITE_GUIDES_PYTEST = (
@@ -1350,15 +1356,23 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     # yamllint-truthy-friendly spelling nothing else here pins) made the whole
     # assertion vacuous and a paths: filter passed undetected.
     # Every key assertion in this file matches a SPELLING (`k:`, `'k':`, `k :`). Two
-    # standard YAML forms resolve to the same key and match none of them, and both
-    # were measured green against the real workflow: an escape-encoded key
-    # (`"i\x66":` → `if`) and explicit-key syntax (`? if` / `: value`). Rather than
-    # teach every matcher a fourth and fifth spelling, refuse the syntax outright —
-    # neither appears in this workflow or the fixture, and neither has a legitimate
-    # use here. This is fail-closed for all nine `_key_re` consumers, not just the
-    # two assertions that surfaced it.
-    check("no-unmodelled-key-syntax",
-          not re.search(r'^[ ]*\?[ ]|^[ ]*"[^"\n]*\\', text, re.M))
+    # standard YAML forms resolve to the same key and match none of them: an
+    # escape-encoded key (`"i\x66":` → `if`) and explicit-key syntax (`? if` /
+    # `: value`). Rather than teach every matcher two more spellings, refuse the
+    # syntax outright — neither appears in this workflow or the fixture, and neither
+    # has a legitimate use here.
+    #
+    # Matched in KEY POSITION, not at line start. An earlier draft anchored both
+    # alternatives to `^`, which closed the spelling only where it had been found:
+    # `pull_request: {branches: [main], "p\x61ths": ['tools/**']}` audited clean
+    # while resolving to a live `paths` filter. Line-anchoring also false-positived
+    # on any line beginning with a quoted string containing a backslash — the shape
+    # a backslash-continued command already produces twice in this workflow.
+    _unmodelled = _UNMODELLED_KEY_RE.search(text)
+    if _unmodelled:
+        _note_miss("no `? key` or escape-encoded key syntax",
+                   _unmodelled.group(0).strip())
+    check("no-unmodelled-key-syntax", _unmodelled is None)
     # Exactly one top-level `on:`. Every other key in this file closes the
     # duplicate-key class; `on:` was the one left open, and it is the key deciding
     # whether the required contexts report at all. A second `on:` also truncates
@@ -1555,6 +1569,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("dry-run-contrast-checker", "contrast-body-exact",
      lambda t: t.replace("python3 tools/check-docs-contrast.py",
                          "python3 tools/check-docs-contrast.py --dry-run")),
+    ("flow-escaped-paths-key", "no-unmodelled-key-syntax",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n"
+                         "  pull_request: {branches: [main], \"p\\x61ths\": ['tools/**']}\n", 1)),
     ("escaped-key-syntax", "no-unmodelled-key-syntax",
      lambda t: t.replace('      - name: docs palette contrast gate\n',
                          '      - name: docs palette contrast gate\n        "i\\x66": ${{ false }}\n')),
