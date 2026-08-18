@@ -85,10 +85,16 @@ candidate as one of:
 
 - conforming;
 - demonstrated non-exempt failure;
+- **spacing exception**;
 - inline-content exception;
 - user-agent/framework-controlled exception;
 - equivalent-control exception; or
 - essential exception.
+
+The list is complete against the criterion: SC 2.5.8 defines exactly five
+exceptions — Spacing, Equivalent, Inline, User agent control, Essential. An earlier
+revision of this contract, and of the spec's AC7, omitted Spacing, which left 27 of
+the 56 measured candidates classified against a class neither document admitted.
 
 Framework ownership identifies an implementation owner; it is not itself an
 exception. Record exact geometry and spacing in emitted output. Never infer a
@@ -198,13 +204,25 @@ line-height of the surrounding non-target text. SC 2.5.8, Inline.
 
 ### Spacing exception — 15 candidates
 
-Rationale, stated once for the group: not in running text, so the Inline clause
-does not apply — accepted on measured clearance instead. SC 2.5.8's Spacing clause
-is satisfied when a 24px-diameter circle centred on the target does not intersect
-another target's circle, i.e. **centre-to-nearest ≥ 12px** (the circle's radius).
-The `Centre-to-nearest` column is that measured distance, not the remaining
-clearance — a 33.2px measurement leaves 21.2px of clearance beyond the 12px the
-criterion needs.
+Rationale, stated once for the group: not in running text, so the Inline clause does
+not apply — accepted on measured clearance instead.
+
+SC 2.5.8's Spacing clause has **two forms, with different thresholds**, and an
+earlier revision of this paragraph stated only the first and applied its number to
+both:
+
+- **circle vs. a full-size neighbour's box** — the 24px-diameter circle centred on
+  the undersized target must not intersect that box, i.e. **centre-to-box ≥ 12px**;
+- **circle vs. another undersized target's circle** — the two circles must not
+  intersect, which needs **centre-to-centre ≥ 24px**, not 12.
+
+The `Centre-to-nearest` column holds the **centre-to-box** distance to the nearest
+other tappable target. The conclusion survives the correction with room to spare:
+the smallest value recorded anywhere in this audit is 22px centre-to-box, which
+implies ≥30px centre-to-centre, and the hover-revealed group's minimum is 50px. So
+every row clears the binding form whichever applies — but the rule as previously
+written would have accepted two undersized targets 13px apart, which fails the
+criterion.
 
 | Route | Widths | Themes | Context | Target box (w×h) | Centre-to-nearest | Owner |
 | --- | --- | --- | --- | --- | ---: | --- |
@@ -309,11 +327,13 @@ framework-owned behaviour as a defect without a demonstrated user outcome.
 
 ## Exception register
 
-No TARGET-SIZE exception is accepted: all 44 undersized candidates satisfy either
-the inline-content or the spacing exception on measured geometry, which are
-criterion conformance rather than exceptions granted. The one accepted
-lower-severity result is the `landmark-unique` axe observation recorded above.
-Broad selectors and framework-ownership-only rationales remain prohibited.
+No TARGET-SIZE exception is accepted. Every undersized candidate (count in
+§ Evidence availability — stated once there, deliberately not restated here) satisfies
+SC 2.5.8's own Inline or Spacing clause on measured geometry, which is criterion
+conformance rather than an exception granted against it. The one accepted
+lower-severity result is the `landmark-unique` axe observation recorded above, which
+is not a target-size exception. Broad selectors and framework-ownership-only
+rationales remain prohibited.
 
 **Empty, deliberately.** Every one of the 56 undersized candidates conforms through
 SC 2.5.8's own Inline or Spacing clause on measured geometry, which is criterion
@@ -324,10 +344,10 @@ that reads as unfilled. The one accepted lower-severity result is the
 
 ## Defect register
 
-**No target-size defect is demonstrated.** 414 undersized observations across 20
-matrix cases resolve to 44 distinct candidates, every one conforming through an
-SC 2.5.8 exception on measured geometry. Nothing returns to an owning spec and no
-remediation spec is warranted from this audit.
+**No target-size defect is demonstrated.** Every distinct candidate conforms through
+SC 2.5.8's Inline or Spacing clause on measured geometry — see § Evidence
+availability for the count and § Final shaping classification for the split. Nothing
+returns to an owning spec and no remediation spec is warranted from this audit.
 
 Two candidate groups belong to surfaces another spec will change, and are recorded
 so a later reader does not read this audit as covering them after that change:
@@ -348,5 +368,8 @@ The audit moves to **Accepted** only when:
 - serious/critical axe, overflow beyond 1px, missing focus, broken keyboard,
   and unstable framework-control observations are cross-recorded with the
   browser gate;
-- the record names any physical-device discrepancy; and
+- the record names any physical-device discrepancy — **none is known, and that is
+  not the same as none existing**: the device pass is Blocked, recorded with its
+  owner in `docs/product/release-checklist.md` § site-browser-quality-gate, so
+  discrepancies are unmeasured rather than absent; and
 - no site source was changed as part of classification.

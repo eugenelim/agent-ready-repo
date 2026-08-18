@@ -251,11 +251,16 @@ tests and evidence; there is no production infrastructure change.
   remediation by owning behavior.
 - 2026-08-18: implemented. Measured outcomes, recorded here because several close
   tasks by finding nothing:
-  - **T0 (tap-target audit): zero demonstrated failures.** 414 undersized
-    observations → 44 distinct candidates, all conforming through the
-    inline-content or spacing exception on measured geometry. Two measurement
-    traps corrected first — ancestor adjacency, and unpainted overlay targets
-    settled by `elementFromPoint` rather than geometry.
+  - **T0 (tap-target audit): zero demonstrated failures.** Every distinct
+    undersized candidate conforms through SC 2.5.8's Inline or Spacing clause on
+    measured geometry; the audit's § Evidence availability is the single home for
+    the counts, so they are not restated here to drift against it. THREE
+    measurement traps were corrected first, not two — ancestor adjacency, unpainted
+    overlay targets settled by `elementFromPoint` rather than geometry, and
+    hover-revealed targets that an `opacity === 0` filter had dropped without a
+    recorded rule. The third also required the target set to be restated as one
+    definition rather than a filter chain, because trap 2 excludes
+    painted-but-unreachable while trap 3 admits unpainted-but-reachable.
   - **T2 (60-case matrix): passes.** 0px document overflow and zero
     serious/critical axe on all 60. One accepted moderate result,
     `landmark-unique` ×8, traced to `@expressive-code/core`'s runtime module and

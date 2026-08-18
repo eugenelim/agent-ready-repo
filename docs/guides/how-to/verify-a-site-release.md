@@ -21,8 +21,10 @@ npm run build --prefix web                    # writes build/, cleaning it first
 python3 tools/build-site.py                   # aggregates docs content
 npm run build --prefix docs-site              # writes build/docs/
 npm run test:e2e:gate --prefix web
-``` It exercises the approved
-60-case matrix: eight marketing routes at 360, 375, 390, 414 and 1440 CSS pixels
+```
+
+The gate exercises the approved 60-case matrix: eight marketing routes at 360, 375,
+390, 414 and 1440 CSS pixels
 with no theme mutation, plus `/docs/` and a nested guide route at the same five
 widths in both docs themes. Each case asserts at most 1px document-level
 horizontal overflow, zero serious or critical axe findings, no page or console

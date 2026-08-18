@@ -32,6 +32,7 @@ import {
   label,
   tabToAndAssertFocus,
 } from './quality-assertions';
+
 import { withBase, withDocsBase } from './site-base';
 
 /** AC1's exact marketing route set. `/now/` replaced the retired `/work/`. */
@@ -133,8 +134,12 @@ test.describe('journey decision chips reach their gate by keyboard', () => {
           const chip = chips.nth(i);
           const href = await chip.getAttribute('href');
           const id = decodeURIComponent((href ?? '').slice(1));
-          await chip.focus();
-          await expectVisibleFocusIndicator(page, ctx);
+          // Reached by keyboard, like every other AC6 case. `chip.focus()` was the
+          // programmatic pattern `tabToAndAssertFocus` exists to replace — the rings
+          // are `:focus-visible`, which `.focus()` matches only by heuristic — and it
+          // called an identifier this file never imported, so these six cases would
+          // have thrown ReferenceError the moment chips appeared rather than gating.
+          await tabToAndAssertFocus(page, `a[href="${href}"]`, ctx, 120);
           await page.keyboard.press('Enter');
           await expect(
             page.locator(`#${CSS.escape(id)}`),

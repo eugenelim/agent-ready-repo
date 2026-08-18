@@ -200,3 +200,59 @@ def test_the_approved_matrix_is_exactly_sixty_cases() -> None:
     assert marketing == 40, marketing
     assert docs == 20, docs
     assert marketing + docs == 60
+
+
+# ── Unbound helper identifiers ───────────────────────────────────────────────
+# The defect this closes shipped once: `site-quality-gate.spec.ts` CALLED
+# `expectVisibleFocusIndicator` without importing it. Playwright transpiles TS but
+# does not typecheck, `vitest.config.ts` includes only `src/test/**/*.test.ts` so
+# e2e specs are never checked there, and `astro check` needs a dependency this spec
+# may not add. The identifier sat inside a branch that only runs when journey chips
+# exist, so it would have thrown `ReferenceError` the moment
+# journey-page-completion landed — turning six "passing-when-present" cases into
+# six errors.
+#
+# Narrow on purpose: this is not a typechecker. It asserts one property — every
+# helper name a spec uses is imported by that spec — which is exactly the class that
+# escaped.
+HELPERS_MODULE = E2E_DIR / "quality-assertions.ts"
+BASE_MODULE = E2E_DIR / "site-base.ts"
+
+
+def _exported_names(path: Path) -> set[str]:
+    text = path.read_text(encoding="utf-8")
+    return set(
+        re.findall(r"^export (?:async function|function|const) (\w+)", text, re.M)
+    )
+
+
+def _imported_names(text: str, module: str) -> set[str]:
+    block = re.search(
+        rf"import\s*\{{([^}}]*)\}}\s*from\s*'\./{re.escape(module)}'", text, re.S
+    )
+    if not block:
+        return set()
+    return {
+        part.strip().split(" as ")[-1].strip()
+        for part in block.group(1).split(",")
+        if part.strip() and not part.strip().startswith("type ")
+    }
+
+
+def test_every_helper_a_spec_uses_is_imported_by_that_spec() -> None:
+    exported = _exported_names(HELPERS_MODULE) | _exported_names(BASE_MODULE)
+    assert exported, "no exported helper names found — the parser stopped working"
+
+    problems: list[str] = []
+    for spec in sorted(E2E_DIR.glob("*.spec.ts")):
+        text = spec.read_text(encoding="utf-8")
+        imported = _imported_names(text, "quality-assertions") | _imported_names(
+            text, "site-base"
+        )
+        # Strip the import block itself before looking for uses, so an imported name
+        # does not count as its own use.
+        body = re.sub(r"import\s*\{[^}]*\}\s*from\s*'[^']*';", "", text, flags=re.S)
+        for name in exported:
+            if re.search(rf"\b{re.escape(name)}\s*\(", body) and name not in imported:
+                problems.append(f"{spec.name} calls {name}() without importing it")
+    assert not problems, "\n".join(problems)
