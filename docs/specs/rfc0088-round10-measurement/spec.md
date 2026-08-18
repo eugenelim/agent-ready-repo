@@ -12,12 +12,23 @@
 
 <!-- Mode: full (work-loop). Risk triggers that fired: security boundary (browser
 launch, network I/O, filesystem, OS sandbox profiles) and multi-feature/dependent
-tasks (four measurement tasks). NAMED SKIP: this repository does not ship
-scripts/loop-engine.py, scripts/loop-cohort.py, scripts/lint-spec-status.py or
-scripts/check-base-freshness.py, so full mode's FSM bookkeeping and its mechanical
-doc-drift linter cannot run. The loop discipline (PLAN -> EXECUTE -> GATES ->
-REVIEW -> DECIDE) runs without the state machine; base freshness was established
-by fetching origin/main and branching from it. -->
+tasks (four measurement tasks).
+
+CORRECTION: an earlier version of this block recorded a NAMED SKIP claiming this
+repository ships none of full mode's scripts. That was wrong -- it looked for them
+at repo-relative scripts/, but the skill's paths are SKILL-relative, and all four
+live at .claude/skills/work-loop/scripts/. CI found the error the direct way: the
+doc-drift linter I had declared absent ran and failed the build on a real
+violation in this very spec (an AC5 deferral naming a slug that was never
+registered in workspace.toml [backlog].open).
+
+What actually happened: the loop discipline (PLAN -> EXECUTE -> GATES -> REVIEW ->
+DECIDE) ran, but the loop-engine/loop-cohort FSM bookkeeping did not, because it
+was believed unavailable. That is recorded here rather than retro-fitted -- firing
+the transitions after the fact would produce a state trail that never guided the
+work. Base freshness was established by fetching origin/main and branching from
+it. Subagent reviewers are a genuine named skip, under a standing session
+instruction not to dispatch them. -->
 
 ## Objective
 
