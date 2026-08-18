@@ -58,7 +58,7 @@ jobs:
   agentbundle-windows:
     name: AgentBundle compatibility (windows)
     runs-on: windows-latest
-    # Dependency setup plus the remaining 15 sequential portability stages can
+    # Dependency setup plus the remaining 16 sequential portability stages can
     # exceed the old 10-minute ceiling on a cold runner. CredBroker's package
     # suite is split below, so 15 minutes remains a bounded compatibility budget.
     timeout-minutes: 15
@@ -96,7 +96,8 @@ jobs:
       - name: Windows compat build-check
         # Drives agentbundle/catalogue_tooling/self_host_windows.py:
         # catalogue build → self-host drift check → path-sensitive pytest suite
-        # → experience lint → pre-pr aggregator. Stops on first failure.
+        # → experience lint → pre-pr aggregator → okf compiler checks. Stops on
+        # first failure.
         run: agentbundle catalogue self-host --check --windows --root .
 
   credbroker-tests-windows:

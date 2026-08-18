@@ -40,6 +40,8 @@ them with inferred measurements.
 | Cost compiler check | `python3 packs/catalogue-curation/.apm/skills/compile-okf/scripts/compile_okf.py --root . --pack _okf-pilot-cost-engineering --check` | `OKF000 check clean packs/_okf-pilot-cost-engineering` |
 | Real-pilot JSON discovery and release-surface tests | `env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=packages/agentbundle python3 -m pytest -p no:cacheprovider tests/roster/test_okf_catalogue_discovery.py -q` | `3 passed` |
 | Focused discovery and version suite | `env PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=packages/agentbundle python3 -m pytest -p no:cacheprovider packages/agentbundle/tests/unit/test_okf_discovery.py packages/agentbundle/tests/integration/test_show_cmd.py packages/agentbundle/tests/unit/test_local_scope_t12_show.py packages/agentbundle/tests/unit/test_version.py -q` | Passed after the release-surface boundary repair |
+| macOS write-mode determinism (AC22 partial) | Compile each managed pack twice in write mode (`python3 packs/catalogue-curation/.apm/skills/compile-okf/scripts/compile_okf.py --root . --pack <pack>`), then compare the managed tree between the two runs — `git status` stays clean, so the second compile reproduces the first byte for byte | macOS 25.5.0 arm64 / CPython 3.13.13. `_okf-pilot-cost-engineering`: both compiles succeed and leave an identical tree. `core`: write mode refuses both times with `OKF010 packs/core/.apm/skills/security-checklists ownership conflict`, because that managed directory also holds 11 hand-authored `references/*.md` this pilot deliberately retains. Check mode is clean for both packs. |
+| Windows knowledge-bundle verification | `agentbundle catalogue self-host --check --windows --root .` gained an `okf compiler checks` stage invoking `tools/check-okf-managed-packs.py` | Wired in required CI. Before it, no Windows runner invoked the compiler: the Windows suite runs the adopter-facing `tools/hooks/pre-pr.py`, while the OKF gate lives in the maintainer aggregator `tools/catalogue/pre_pr_catalogue.py`. Write mode remains unavailable on Windows by design — `_apply_outputs_transactionally` refuses with `OKF010` because `os.supports_dir_fd` is empty there. |
 | Adapter preservation spike | `env PYTHONPATH=packages/agentbundle python3 docs/rfc/0087-notes/verify_adapter_spike.py` | All seven adapters passed; nested OKF tree digest `sha256:4c502a8833a955799b8aaa2f52769306fedcaa79c0233dcc086c321ea8366900` |
 | Fast repository build check | `SKIP_SAST=1 make build-check` | Passed in supervisor-recorded T8 evidence |
 | Full AgentBundle package suite | Isolated-venv `make ci` invocation supplied by the operator on 2026-08-17 | Passed to 100%; the same run also passed the CredBroker package suite |
@@ -64,14 +66,14 @@ them with inferred measurements.
 | D4 authority boundary | Compiler checks and generated Skills preserve no-tools and inert knowledge boundaries. | Evidence present from compiler and focused tests; model behavior still pending |
 | D5 pilot experiment | Cost pilot remains underscore-prefixed and unpublished; security-checklists remains the in-place core pilot. | Partial: experiment assets exist, model E2E and Approver decision pending |
 | D6 catalogue discovery | `show --format json` exposes OKF data only as pre-release single-pack discovery and excludes cross-pack publication surfaces. | Evidence present from discovery tests |
-| D7 deterministic verification | `compile-okf --check` is wired and clean for both pilots; fast build-check, the full AgentBundle package suite, and full SAST/SCA passed. | Partial: Windows byte-identical evidence remains unavailable |
+| D7 deterministic verification | `compile-okf --check` is wired and clean for both pilots on Linux, Windows, and macOS; fast build-check, the full AgentBundle package suite, and full SAST/SCA passed. | Check-mode evidence present on all three platforms; write-mode evidence is macOS-only and cannot be produced on Windows or for `core` (see AC22) |
 | D8 single-version support | Active profile remains `agentbundle-okf/v1` mapping to OKF 0.2. | Evidence present |
 
 ## Acceptance criterion accounting
 
 | Criterion | Status |
 | --- | --- |
-| AC22 | Local compiler checks are clean for both pilots. Linux/Windows CI byte-identical evidence is not locally produced in this session. |
+| AC22 | Deferred as unsatisfiable as written (`okf-ac22-write-mode-unsatisfiable-as-written`). Check mode is clean for both pilots on Linux CI, Windows CI, and macOS. Write mode is byte-identical across two compiles for `_okf-pilot-cost-engineering` on macOS, refuses on Windows (`os.supports_dir_fd` empty), and refuses for `core` on every platform (unmanaged siblings in the managed directory). |
 | AC23 | The adapter spike preserves nested OKF regular-file bytes across Claude Code, Kiro IDE, Kiro CLI, Copilot, Cursor, Codex, and Gemini. |
 | AC24 | The compile-okf Skill and authoring prerequisite are shipped in catalogue-curation. Fast build-check and the operator-supplied isolated-venv full SAST/SCA run passed. |
 | AC25 | Both pilots compile through the generic compiler path. No caller-name branch evidence is recorded in the focused compiler tests. |
@@ -79,7 +81,7 @@ them with inferred measurements.
 | AC26 | Cost-engineering satisfies the frozen case and hand-authored baseline prerequisite. Security-checklists has matching frozen case counts and enough security-critical cases, but its model E2E baseline remains pending, so the overall AC remains pending. |
 | AC27 | Pending. No local model E2E harness was available, so no generated-router success rate, security-critical attempt result, or fabricated-path measurement is claimed. |
 | AC28 | Pending. No maintainer update/timing exercise was completed in this local run. |
-| AC29 | Fast repository build-check, direct compiler checks, the full AgentBundle package suite, full SAST/SCA, focused post-repair package and roster suites, and the exact real-sdist gate passed. Combined operator evidence covers every local `make ci` leg after the repair; site-link and Windows evidence remain external. |
+| AC29 | Fast repository build-check, direct compiler checks, the full AgentBundle package suite, full SAST/SCA, focused post-repair package and roster suites, and the exact real-sdist gate passed. Combined operator evidence covers every local `make ci` leg after the repair. Windows now runs the compiler check in required CI; site-link evidence remains external. |
 
 ## Pending human and external gates
 

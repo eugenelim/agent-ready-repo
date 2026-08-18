@@ -2249,6 +2249,28 @@ open = [
   # Unblocks when: a Tier-B grading RFC or cassette harness spec is accepted.
   {slug = "behavior-check-for-backend-skills"},
 
+  # spec/okf-authoring-projection AC22. The AC asks for two WRITE-mode compiles
+  # producing byte-identical managed trees on Linux and Windows CI plus a local
+  # macOS run. Two measured facts make that unsatisfiable as written:
+  #   1. Windows cannot write at all. _apply_outputs_transactionally refuses with
+  #      OKF010 "safe managed output writes are unavailable on this platform"
+  #      because os.supports_dir_fd is empty there; the dir-fd confinement is a
+  #      deliberate security control, not a portability bug.
+  #   2. `core` cannot write on ANY platform. Its managed directory
+  #      packs/core/.apm/skills/security-checklists/ also holds 11 hand-authored
+  #      references/*.md that RFC-0087 deliberately retains for current
+  #      orchestrator loading, and the ownership guard refuses to take over a
+  #      directory holding files it does not manage (OKF010 ownership conflict).
+  # Measured 2026-08-18 on macOS 25.5.0 arm64 / CPython 3.13.13: two write-mode
+  # compiles of _okf-pilot-cost-engineering are byte-identical; `core` write mode
+  # refuses both times; check mode is clean for both packs.
+  # Fix: amend AC22 to state that check mode (re-render + committed-byte
+  #   comparison) is the evidence wherever write mode is unavailable, and say
+  #   which packs and platforms that covers — alongside the AC26/AC27 amendment,
+  #   since all three are the same Approver decision.
+  # Unblocks when: the RFC-0087 erratum covering AC22/AC26/AC27 is signed off.
+  {slug = "okf-ac22-write-mode-unsatisfiable-as-written"},
+
   # spec/m6-role-journey-guides Agent section follow-on. The Agent section of
   # guides/core/explanation/role-journeys.md covers headless AI execution
   # (agent-executes-spec journey). The swarm/coordinated-agent-pipeline extension

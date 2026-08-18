@@ -106,3 +106,6 @@ docs/knowledge/**/*.lock
 docs/knowledge/*.lock
 docs/knowledge/**/*.lock.stale-*
 docs/knowledge/*.lock.stale-*
+
+# Coverage artifacts from local --cov runs (binary; never committed).
+.coverage

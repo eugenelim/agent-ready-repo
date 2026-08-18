@@ -218,9 +218,15 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   their trees differ, otherwise fails as `OKF011` for any committed drift, and
   leaves source, generated output, stdout-visible candidate review values, and
   the working tree unchanged.
-- [ ] **AC22:** Two write-mode compiles from identical canonical bytes and
-  profile/compiler versions produce byte-identical complete managed trees on
-  Linux and Windows CI runners and in a recorded local macOS verification.
+- [ ] **AC22:** (deferred: okf-ac22-write-mode-unsatisfiable-as-written)
+  <!-- The marker leads deliberately. lint-spec-status invariant (ii)
+       matches per physical line, so moving it onto a continuation line
+       passes today and fails when this spec goes Shipped. -->
+  Two write-mode compiles from identical canonical bytes and profile/compiler
+  versions produce byte-identical complete managed trees on Linux and Windows
+  CI runners and in a recorded local macOS verification. Measurements and the
+  proposed rewording live in `workspace.toml [backlog].open` under that slug;
+  measured evidence is in [`pilot-results.md`](../../rfc/0087-notes/pilot-results.md).
 - [ ] **AC23:** Claude Code, Kiro IDE, Kiro CLI, Copilot, Cursor, Codex, and
   Gemini projections preserve the generated router's nested OKF regular-file
   bytes and pass existing Agent Skills/catalogue lint rules.

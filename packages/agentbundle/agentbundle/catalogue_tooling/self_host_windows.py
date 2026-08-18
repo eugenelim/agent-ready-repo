@@ -127,6 +127,17 @@ def run_windows_compat(root: Path) -> int:
             [py, str(root / "tools" / "hooks" / "pre-pr.py")],
             root,
         ),
+        # Re-renders every declared knowledge bundle and compares the result
+        # against the committed tree, so a Windows-only encoding, path, or
+        # ordering difference fails here rather than reaching main. The
+        # adopter-facing hook above does not carry this gate — it is a
+        # catalogue-maintainer concern — so without this stage no Windows runner
+        # touches the compiler at all.
+        (
+            "okf compiler checks",
+            [py, str(root / "tools" / "check-okf-managed-packs.py"), "--root", str(root)],
+            root,
+        ),
     ]
 
     for label, cmd, cwd in steps:

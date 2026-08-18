@@ -59,6 +59,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   address returns a 404 rather than implying the surface moved. `Work` in the
   site navigation is now `Now`.
 
+### [agentbundle][0.38.1] — 2026-08-18
+
+#### Fixed
+
+- **Windows runners now verify knowledge-bundle output instead of being assumed
+  to.** The Windows compat suite ran the adopter-facing pre-PR hook, which
+  carries no OKF gate, so no Windows runner touched the compiler at all. The
+  suite gains an `okf compiler checks` stage: it re-renders every declared
+  bundle and compares the result against the committed tree, so a Windows-only
+  encoding, path, or ordering difference now fails there instead of reaching
+  main unnoticed.
+
 ### [agentbundle][0.38.0] — 2026-08-17
 
 #### Added
