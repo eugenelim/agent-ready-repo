@@ -33,7 +33,7 @@ my-catalogue/
 ```
 
 `catalogue.toml` has required fields across five nested tables. See
-[Catalogue format reference](../../_reference/catalogue-format.md) for the complete
+[Catalogue format reference](../reference/catalogue-format.md) for the complete
 schema — the full surface spans ~20 fields and is not shown inline here.
 
 ---

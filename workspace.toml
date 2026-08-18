@@ -525,6 +525,17 @@ open = [
   # Fix: ship a ledger regenerator + document the update procedure, then wire the
   # ledger tests. Same class as site-test-source-substring-assertions.
   # Unblocks when: someone owns the regenerator.
+  # spec/guide-metadata-completion moved guides/_reference/catalogue-format.md to
+  # guides/_shared/reference/. Row 1 of
+  # docs/specs/guide-typed-asides-conversion/notes/blockquote-baseline-identities.jsonl
+  # still names the old path, and test_ledger_matches_converted_asides_and_unchanged_quotations
+  # iterates files that EXIST, so that row is never visited and its coverage is
+  # silently dropped rather than failing. The record is frozen and has no
+  # regenerator, and its `line` fields are compared ledger-against-baseline rather
+  # than against live files, so repointing one row alone would desynchronise the
+  # pair. Not rewritten here. Fix: regenerate ledger and baseline together, or
+  # accept the one-row gap explicitly.
+  {slug = "typed-asides-ledger-row-orphaned-by-guide-move", source = "spec/guide-metadata-completion AC8", summary = "Row 1 of the typed-asides blockquote ledger names a path moved by the metadata spec; the suite skips missing files so its coverage vanishes silently"},
   {slug = "guide-blockquote-ledger-has-no-regenerator", summary = "The guide blockquote ledger has no regenerator, so its tests cannot be gated without reddening unrelated PRs", source = "spec/guide-typed-asides-test-gate (review blocker 1)"},
   # tools/test_guide_typed_asides.py used to assert README-pypi.md names the exact
   # current pyproject version (`## What's new in <version>`). Nothing else in the repo

@@ -68,6 +68,11 @@ existing public route; every other public route remains unchanged.
   in `metadata-decisions.md`; each receives its exact schema-valid `summary`,
   `pack`, and `kind`, while `title` is exact from that ledger except for the
   four replacements owned by `guide-title-clarity`.
+- [x] The five exempt files remain mirrored and published — e.g.
+  `/docs/guides/AGENTS/` and `/docs/guides/_shared/how-to/` are reachable — so five
+  emitted pages carry no `summary` while the other 188 do. Recorded so the
+  exemption's blast radius is on the record rather than implied by "structural
+  indexes stay outside the content contract".
 - [x] The only files exempt from public-guide metadata are
   `guides/AGENTS.md`, `guides/_shared/tutorials/README.md`,
   `guides/_shared/how-to/README.md`,
@@ -82,13 +87,17 @@ existing public route; every other public route remains unchanged.
 
   "Matches" is `tools/lint-guide-titles.py`'s definition — NFKC, backticks and
   asterisks stripped, whitespace collapsed, casefolded, trailing punctuation
-  removed — and that gate is green over 193 files, the same count as on `main`.
+  removed — and that gate is green. Its printed count is the **walk size** (193 both
+  before and after), which is invariant to whether any comparison ran, so it is not
+  evidence of coverage; the number that moved is the count of files actually
+  compared, which `check_file` skips for any file without a frontmatter `title`:
+  **54 before, 179 after**. All 125 ledger titles are byte-identical to their H1s.
   Recorded because a stricter byte-equality reading finds five mismatches
-  (`release-engineering/README.md`,
-  `frontend-engineering/reference/performance-targets.md`,
-  `_shared/how-to/install-agentbundle-from-clone.md`,
-  `_shared/how-to/preview-install-or-upgrade.md`,
-  `core/how-to/adapt-to-project.md`) that differ only by case, inline-code
+  (`guides/release-engineering/README.md`,
+  `guides/frontend-engineering/reference/performance-targets.md`,
+  `guides/_shared/how-to/install-agentbundle-from-clone.md`,
+  `guides/_shared/how-to/preview-install-or-upgrade.md`,
+  `guides/core/how-to/adapt-to-project.md`) that differ only by case, inline-code
   markers or a hyphen. All five predate this spec, none is a ledger row, and the
   gate accepts them; they are named here so a later reader does not rediscover
   them as this change's doing.
@@ -107,6 +116,21 @@ existing public route; every other public route remains unchanged.
   internal `docs/guides/` maintainer guide.
 - [x] Existing optional `slug`, `order`, and `aliases` values remain unchanged
   unless a source is already invalid under `contracts/guide.schema.json`.
+- [x] Applying the reviewed titles changes **125 sidebar labels** and reorders items
+  in **11 sidebar groups**, and that is accepted rather than incidental. Each of the
+  125 previously took a title-cased filename fallback ("Pack Catalogue",
+  "Shaping A New Engagement"); the curated title replacing it is what the criterion
+  below requires. The reorder follows because `project_guide_sidebar` sorts kind
+  buckets by resolved label, so labels and order cannot move independently in the
+  current projector. Affected groups: Architect/Tutorials,
+  Cross-cutting/{Explanation,How-to}, Desk Research/Tutorials,
+  Experience Design/How-to, Governance Extras/How-to,
+  Product Discovery/{How-to,Reference}, Product Documentation/How-to,
+  The Build Loop (core)/{Explanation,How-to}. `catalogue-format` also moves group,
+  from the removed "Reference material" to Cross-cutting/Reference. Approved
+  2026-08-18 against the Ask-first boundary on sidebar order; registered as
+  `[backlog].open` slug `guide-sidebar-label-order-coupling` because a projector that
+  could vary order independently of label does not exist and is not built here.
 - [x] The built marketing and documentation sites enumerate all 125 affected
   pages and expose each reviewed title and summary wherever their current
   page-list, search, or description contracts consume guide metadata.

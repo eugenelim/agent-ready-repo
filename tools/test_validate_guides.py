@@ -461,3 +461,24 @@ def test_approved_file_with_frontmatter_is_still_silent(tmp_path):
 def test_the_allowlist_holds_exactly_the_five_approved_paths(tmp_path):
     """The set is a reviewable constant, and its size is part of the contract."""
     assert sorted(validate_guides.STRUCTURAL_NON_CONTENT) == sorted(APPROVED_EXCEPTIONS)
+
+
+def test_a_subdirectory_guides_root_cannot_exempt_by_basename(tmp_path):
+    """The CLI reaches this via --guides-root, which the API tests above never vary.
+
+    Pointing the root at a subdirectory collapses the allowlist comparison to a
+    basename, so `guides/core/AGENTS.md` would match the approved top-level
+    `AGENTS.md`. Reported as a real defect against the first implementation of the
+    allowlist, which only checked the relative path.
+    """
+    guides = tmp_path / "guides"
+    _write_guide(guides, "core/AGENTS.md", "# Not exempt\n\nNo frontmatter.\n")
+    # The honest root exempts nothing here, because core/AGENTS.md is not one of five.
+    code, errors, warnings = _run([guides], guides_root=guides)
+    assert any("has no frontmatter" in w for w in warnings), warnings
+    # And a subdirectory root must not turn it into the approved `AGENTS.md`.
+    code, errors, warnings = _run([guides / "core"], guides_root=guides / "core")
+    assert code == 0, errors
+    assert any("has no frontmatter" in w for w in warnings), (
+        f"a subdirectory guides root exempted core/AGENTS.md; warnings={warnings}"
+    )

@@ -67,8 +67,24 @@ def is_structural_non_content(path: Path, guides_root: Path) -> bool:
     the full guides-root-relative path, so passing a file's own parent would reduce
     this to a basename comparison.
     """
+    root = guides_root.resolve()
+    # The allowlist is only meaningful relative to a real guides root. `--guides-root`
+    # is caller-supplied, and pointing it at a SUBDIRECTORY collapses the comparison
+    # to a basename: `--guides-root guides/core` makes `guides/core/AGENTS.md` relative
+    # path `AGENTS.md`, which would match the approved top-level entry. Requiring the
+    # root to be named `guides` closes that without constraining where the tree lives.
+    # Trade-off, stated because a test pins the behaviour: callers skip allowlisted
+    # files BEFORE _validate_file, which is where canonical slugs and aliases are
+    # registered. Today none of the five carries frontmatter so nothing is lost, and
+    # on the pre-allowlist validator they returned early at the `fm is None` branch
+    # without registering either — so this is not a regression. But the day one of the
+    # five gains a `slug:` or `aliases:`, the duplicate-slug and alias-collision
+    # guards go blind for it while
+    # test_approved_file_with_frontmatter_is_still_silent keeps passing.
+    if root.name != "guides":
+        return False
     try:
-        rel = path.resolve().relative_to(guides_root.resolve())
+        rel = path.resolve().relative_to(root)
     except ValueError:
         return False
     return rel.as_posix() in STRUCTURAL_NON_CONTENT

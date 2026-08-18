@@ -138,6 +138,3 @@ label = "GitHub"
 dir = "linear"
 label = "Linear"
 
-[[guide_groups]]
-dir = "_reference"
-label = "Reference material"

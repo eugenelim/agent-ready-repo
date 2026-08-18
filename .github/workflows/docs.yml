@@ -25,6 +25,8 @@ on:
       - 'tools/lint-guides-no-repo-only-refs.py'
       - 'tools/lint-guide-titles.py'
       - 'tools/test_lint_guide_titles.py'
+      - 'tools/validate_guides.py'
+      - 'tools/test_validate_guides.py'
       - 'tools/build-site.py'
       - 'packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py'
       - 'packages/agentbundle/tests/unit/test_catalogue_skill_spec_lint.py'
@@ -115,6 +117,34 @@ jobs:
         run: python3 tools/lint-guide-titles.py
       - name: Run its tests
         run: python3 tools/test_lint_guide_titles.py
+
+  validate-guides:
+    name: Published guides carry complete metadata
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      # jsonschema + pyyaml: without them the validator silently degrades to a
+      # field-by-field fallback, so the install is part of the assertion.
+      - name: Install tooling requirements
+        run: pip install -r tools/requirements.txt
+      # Runs the CLI against the REAL tree. tools/test_validate_guides.py only
+      # exercises tmp_path fixtures, so before this step the zero-warning state
+      # spec/guide-metadata-completion established had no repeating guard: guide 126
+      # could land with no frontmatter and every gate stayed green.
+      - name: Validate published-guide metadata
+        run: python3 tools/validate_guides.py
+      - name: Fail on any warning, not only on errors
+        # The validator exits 0 for warnings by design (migration warnings were
+        # advisory while the backfill was in flight). The backfill is complete, so a
+        # warning now means a regression.
+        run: |
+          set -euo pipefail
+          out="$(python3 tools/validate_guides.py 2>&1)"
+          echo "$out"
+          if ! grep -q '0 errors, 0 warnings' <<<"$out"; then
+            echo "::error::published-guide metadata is incomplete — see the warnings above"
+            exit 1
+          fi
 
   lint-skill-spec:
     name: agentskills.io spec
