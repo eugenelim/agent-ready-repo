@@ -77,12 +77,12 @@ count and the character count of `<main>`'s rendered text.
 
 | Route | Paper settings | Navigation, measured per route | Content result | Code / aside / table result | Clipping / width overflow | Observed failure and smallest rule boundary | Disposition | Owner |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `/` | A4 portrait, 0.4in margins, backgrounds off | present: marketing nav bar (717×76) with logo and the 44×44 mobile disclosure, footer, skip link; hidden by the sub-desktop breakpoint, not by print rules: `.nav__links`, `.nav__cta`; not on this route: Starlight header, sidebar, table of contents, pagination | 8 page(s), 5,588 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header, table of contents, footer, skip link; hidden by print rules: sidebar; not on this route: marketing nav, pagination | 3 page(s), 3,260 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/guides/core/how-to/start-a-project/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header, table of contents, footer, skip link; hidden by print rules: sidebar; not on this route: marketing nav, pagination | 4 page(s), 3,842 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/guides/catalogue-curation/tutorials/your-first-skill/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header, table of contents, footer, skip link; hidden by print rules: sidebar; not on this route: marketing nav, pagination | 12 page(s), 14,992 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/guides/atlassian/tutorials/review-your-team-backlog/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header, table of contents, footer, skip link; hidden by print rules: sidebar; not on this route: marketing nav, pagination | 12 page(s), 13,397 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
-| `/docs/guides/converters/reference/converter-skills/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header, table of contents, footer, skip link; hidden by print rules: sidebar; not on this route: marketing nav, pagination | 12 page(s), 15,488 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/` | A4 portrait, 0.4in margins, backgrounds off | present: marketing nav bar (717×76) with logo and the 44×44 mobile disclosure, footer (717×823), skip link (148×42), and ONE of the two `.nav__cta` instances (35×110); NOT printed — `.nav__links` `display:none` from the sub-desktop breakpoint, and the other `.nav__cta` (the copy inside the closed `.nav__drawer`) zero-box because the `<details>` is shut, which is not a breakpoint effect; not on this route: Starlight header, sidebar, table of contents, pagination | 8 page(s), 5,588 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 3 page(s), 3,260 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/core/how-to/start-a-project/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 4 page(s), 3,842 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/catalogue-curation/tutorials/your-first-skill/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 12 page(s), 14,992 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/atlassian/tutorials/review-your-team-backlog/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 12 page(s), 13,397 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/converters/reference/converter-skills/` | A4 portrait, 0.4in margins, backgrounds off | present: Starlight header (717×56), footer (685×106), skip link (114×28); NOT printed — sidebar: `.sidebar-pane` `visibility:hidden` from the sub-desktop default (717 < 800px, the binding cause) and `nav.sidebar` additionally `display:none` from print rules; NOT printed — table of contents in EITHER form: `.right-sidebar-panel` `display:none` from `sl-hidden lg:sl-block` (a breakpoint, not print) and the `#starlight__mobile-toc` bar zero-box under print; NOT printed — `starlight-menu-button` `display:none` from print rules; not on this route: marketing nav, pagination | 12 page(s), 15,488 chars of `<main>` text | rendered in flow at 717px | **0px** overflow, **0** boxes past the printable width | none observed | `close-stale` | eugenelim |
 
 Per-route content inventory, so a later reader can tell the representative roles
 were actually exercised rather than assumed: `/` 1 table / 35 links / 25 headings;
@@ -105,13 +105,32 @@ naive method is the one a later reader will reach for first.
 
 ### A second consequence of measuring at 717px
 
-The printable width is below the marketing site's desktop breakpoint, so **A4
-portrait prints the mobile layout**. That is a property of the paper, not a defect:
-the nav collapses to its burger, `.nav__links` and `.nav__cta` compute to zero size,
-and the footer stacks. Every marketing row below should be read that way, and a
-reader expecting the desktop link list in a printout will not find it. Re-verified
-2026-08-18 by running the procedure below: `nav.nav` 717×76 present, `.nav__links`
-and `.nav__cta` 0×0, `.nav__mobile` 44×44 present.
+The printable width is below **both** renderers' desktop breakpoints, so **A4
+portrait prints the mobile layout on all six routes**. That is a property of the
+paper, not a defect, but it changes what several rows mean and an earlier revision of
+this record got two of them wrong.
+
+On `/` the nav collapses to its burger: `.nav__links` goes `display:none`, one of the
+two `.nav__cta` instances prints at 35×110 while the copy inside the closed
+`.nav__drawer` is zero-box, and a reader expecting the desktop link list will not
+find it.
+
+On the five docs routes, 717px is below Starlight's 800px main breakpoint and its
+`72rem` TOC breakpoint, which means **no table of contents prints in either form** —
+the desktop panel is `display:none` from `sl-hidden lg:sl-block`, a breakpoint rather
+than a print rule, and the collapsed `#starlight__mobile-toc` bar is zero-box under
+print. An earlier revision of the rows claimed the table of contents was present on
+all five; it is not. That error came from a probe that tested only `display` and
+`visibility` and so read a zero-box element as present — the fourth instance of this
+audit's recurring trap, and the reason the procedure below now defines "prints" as a
+real box AND neither `display:none` nor `visibility:hidden`.
+
+The sidebar is likewise doubly hidden: `.sidebar-pane` is already
+`visibility:hidden` from the sub-desktop default at 717px — the binding cause — and
+`nav.sidebar` is additionally `display:none` from print rules. Attributing it to
+print rules alone names a cause that is not the one doing the work.
+
+Re-measured 2026-08-18 with the corrected probe. Values are in the rows above.
 
 ### Re-measuring these rows
 
@@ -121,20 +140,29 @@ to keep working. The procedure is the reproducible part, and it is five steps:
 
 1. Build and serve the emitted site. The build order is load-bearing and owned by
    [`docs/guides/how-to/verify-a-site-release.md`](../../../guides/how-to/verify-a-site-release.md)
-   — follow its block rather than a copy, then `astro preview`.
+   — follow its block rather than a copy, then serve it with
+   `npm run preview --prefix web -- --port <the port in web/src/test/e2e/site-base.ts>`.
 2. Per route, open a Playwright page and set **both**:
-   - `await page.emulateMedia({ media: 'print' })`, without which step 3 reads
+   - `await page.emulateMedia({ media: 'print' })`, without which step 4 reads
      *screen* media and every "hidden by print rules" attribution below is wrong —
      Starlight's sidebar hiding lives inside `@media print`; and
    - the viewport to **717 × 900**, the printable width itself. `emulateMedia`
      switches media queries, not the layout viewport, so print media *without* this
      width is what produced the false clipping described above. Both are required;
      neither substitutes for the other.
-3. Set `localStorage['starlight-theme'] = 'light'` *before* navigating — Starlight's
-   default is `auto`, resolved from `prefers-color-scheme`, so a dark-preferring host
-   otherwise measures a theme this record does not describe.
-4. Read navigation visibility from computed `display`/`visibility` on each chrome
-   selector *on that route*, never carried across routes.
+3. `await page.addInitScript(() => localStorage.setItem('starlight-theme', 'light'))`,
+   then navigate. Starlight's default is `auto`, resolved from `prefers-color-scheme`,
+   so a dark-preferring host otherwise measures a theme this record does not describe.
+   It must be `addInitScript` rather than a `page.evaluate` before the first `goto`:
+   that would run on `about:blank`, where `localStorage` throws `SecurityError` and
+   the value would not belong to the preview origin anyway.
+4. Per route, decide *prints* / *does not print* for each chrome selector as: a
+   non-zero `getBoundingClientRect()` **and** neither `display:none` nor
+   `visibility:hidden`. Testing only `display` and `visibility` reports a zero-box
+   element as present, which is how an earlier revision came to claim a table of
+   contents that does not print. Use `querySelectorAll` and report every instance:
+   `.nav__cta` matches two elements whose fates differ. Never carry a result across
+   routes.
 5. Take the PDF for the page count, and `<main>`'s `innerText.length` for the
    character count. `margin` is an object, not a string — a string throws
    `pdf.margin: expected object, got string`, and dropping it silently yields

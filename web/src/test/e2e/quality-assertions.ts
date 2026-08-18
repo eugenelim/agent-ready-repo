@@ -59,6 +59,45 @@ export function collectPageErrors(page: Page): string[] {
  * site accessibility regression and sends a maintainer hunting the site instead of
  * the harness. So the postcondition is asserted and names itself.
  */
+/**
+ * Wait until every finite CSS animation has stopped running.
+ *
+ * Measured cause, not a precaution: `.hero__inner` fades in over 300ms
+ * (`Hero.astro`, `--ds-dur-gentle`). On an unloaded machine that finishes before
+ * `document.fonts.ready` resolves, so axe sees opacity 1. Under load in the full
+ * suite it did not, and axe computed contrast against a semi-transparent
+ * composite — ten SERIOUS `color-contrast` findings on `/` @360, all on
+ * `.hero__cta--primary`, in a run that passed twice in isolation. Waiting for
+ * `load`, `networkidle`, fonts and Expressive Code does not cover animations.
+ *
+ * Infinite animations are excluded rather than waited on: a looping animation would
+ * never settle, and hanging the gate on one would be a worse failure than the flake.
+ */
+export async function waitForAnimationsToSettle(
+  page: Page,
+  ctx: CaseContext
+): Promise<void> {
+  const settled = await page
+    .waitForFunction(
+      () =>
+        document
+          .getAnimations()
+          .filter((a) => a.effect?.getComputedTiming().iterations !== Infinity)
+          .every((a) => a.playState !== 'running'),
+      undefined,
+      { timeout: 5000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+  expect(
+    settled,
+    `${label(ctx)}: finite CSS animations never stopped running. This is a HARNESS ` +
+      'precondition — measuring colour or geometry mid-animation reads a ' +
+      'semi-transparent composite — not a site regression. Do not "fix" the site ' +
+      'for this.'
+  ).toBe(true);
+}
+
 export async function gotoSettled(page: Page, url: string, ctx: CaseContext): Promise<void> {
   const response = await page.goto(url, { waitUntil: 'load' });
   expect(response, `${label(ctx)}: no response`).not.toBeNull();
@@ -83,6 +122,8 @@ export async function gotoSettled(page: Page, url: string, ctx: CaseContext): Pr
       'HARNESS precondition — the settle no longer outlasts Expressive Code\'s ' +
       'debounce — not a site regression. Do not "fix" the site for this.'
   ).toBe(true);
+
+  await waitForAnimationsToSettle(page, ctx);
 }
 
 /** Document-level horizontal overflow must stay within the accepted tolerance. */
@@ -236,18 +277,6 @@ export async function expectVisibleFocusIndicator(page: Page, ctx: CaseContext):
 }
 
 /**
- * Tab forward from the current focus until `selector` holds focus, then assert a
- * visible focus indicator.
- *
- * `maxTabs` is a number when the tab distance is part of what the case asserts —
- * "the skip link is the first stop", "the search button is near the top of the
- * header". Pass `'derive'` instead when the control's tab depth is a function of
- * page content rather than a contract: the docs theme control sits in the mobile
- * sidebar *after* every nav link, so its real distance is 312 presses at 360px
- * and 4 at 1440px. A fixed budget there asserts the sidebar's length, not
- * reachability, and fails the moment a guide is added.
- */
-/**
  * Everything the platform puts in the sequential focus order that these suites
  * care about. One definition, because two copies drift the moment either grows a
  * selector and no test compares them.
@@ -273,6 +302,18 @@ async function deriveTabBudget(
   return { focusables, budget: focusables + 10 };
 }
 
+/**
+ * Tab forward from the current focus until `selector` holds focus, then assert a
+ * visible focus indicator.
+ *
+ * `maxTabs` is a number when the tab distance is part of what the case asserts —
+ * "the skip link is the first stop", "the search button is near the top of the
+ * header". Pass `'derive'` instead when the control's tab depth is a function of
+ * page content rather than a contract: the docs theme control sits in the mobile
+ * sidebar *after* every nav link, so its real distance is 312 presses at 360px
+ * and 4 at 1440px. A fixed budget there asserts the sidebar's length, not
+ * reachability, and fails the moment a guide is added.
+ */
 export async function tabToAndAssertFocus(
   page: Page,
   selector: string,
@@ -283,10 +324,11 @@ export async function tabToAndAssertFocus(
   expect(present, `${label(ctx)}: ${selector} is absent`).toBeGreaterThan(0);
   const derived = maxTabs === 'derive';
   let focusables = 0;
+  let budget = derived ? 0 : (maxTabs as number);
   if (derived) {
-    ({ focusables, budget: maxTabs } = await deriveTabBudget(page, ctx, selector));
+    ({ focusables, budget } = await deriveTabBudget(page, ctx, selector));
   }
-  for (let i = 0; i < maxTabs; i += 1) {
+  for (let i = 0; i < budget; i += 1) {
     await page.keyboard.press('Tab');
     // Visibility-filtered, because `selector` may legitimately match more than one
     // element with only some of them rendered — Starlight emits two theme selects
@@ -300,15 +342,23 @@ export async function tabToAndAssertFocus(
     // ones that stay focusable: zero opacity on the element or any ancestor, and
     // `visibility:hidden`.
     const onTarget = await page.evaluate((sel) => {
-      const hit = (document.activeElement as HTMLElement | null)?.closest(
-        sel
-      ) as HTMLElement | null;
-      if (!hit) return false;
-      const box = hit.getBoundingClientRect();
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || !el.closest(sel)) return false;
+      // Geometry and visibility are read from the FOCUSED element, not from the
+      // ancestor that matched `sel`: a `display:contents` wrapper reports a 0x0 box
+      // while its children render and take focus, so measuring the match would
+      // reject a control that is plainly visible.
+      const box = el.getBoundingClientRect();
       if (box.width === 0 || box.height === 0) return false;
-      for (let node: Element | null = hit; node; node = node.parentElement) {
-        const style = getComputedStyle(node);
-        if (style.visibility === 'hidden' || parseFloat(style.opacity) === 0) return false;
+      // `visibility` is read from the element ALONE. It inherits, so the computed
+      // value already accounts for a hidden ancestor, and a descendant may override
+      // it back to `visible` and genuinely render — walking ancestors for it would
+      // reject that element, reporting a real control as a keyboard defect.
+      if (getComputedStyle(el).visibility === 'hidden') return false;
+      // `opacity` is the opposite: it does not inherit, but it composites the whole
+      // subtree, and no descendant can undo an ancestor's zero. So this one walks.
+      for (let node: Element | null = el; node; node = node.parentElement) {
+        if (parseFloat(getComputedStyle(node).opacity) === 0) return false;
       }
       return true;
     }, selector);
@@ -319,7 +369,7 @@ export async function tabToAndAssertFocus(
   }
   expect(
     false,
-    `${label(ctx)}: ${selector} was not reachable within ${maxTabs} Tab presses` +
+    `${label(ctx)}: ${selector} was not reachable within ${budget} Tab presses` +
       (derived ? ` (budget derived from ${focusables} focusables on the page)` : '')
   ).toBe(true);
 }

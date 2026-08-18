@@ -2599,6 +2599,9 @@ open = [
   # audit that break quality is out of scope and why.
   {slug = "print-audit-page-break-quality", source = "spec/site-browser-quality-gate AC12", summary = "Judge print page-break quality on the six representative routes; page count is not break quality"},
   {slug = "tools-test-runner-boundary", summary = "Extend lint-pack-test-boundary's runner/no-runner discipline to tools/test*.py; seven are invoked by nothing today", source = "spec/build-check-coverage-gaps review"},
+  # Same orphan class one layer up, and deliberately a separate slug: the entry above
+  # is scoped to tools/test*.py, so closing it would not discharge an e2e spec.
+  {slug = "e2e-spec-runner-boundary", summary = "docs-wayfinding.spec.ts is invoked by no Makefile line, workflow or package script; decide whether orphaned web/src/test/e2e specs get a runner or an explicit on-demand contract", source = "spec/site-browser-quality-gate review"},
   # Wiring the seven guides/site suites into build-check.yml (spec/
   # build-check-coverage-gaps) couples EVERY PR to the formatting of files those
   # tests substring-assert against. test_check_rendered_site_links.py's

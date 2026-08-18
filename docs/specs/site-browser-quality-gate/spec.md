@@ -103,7 +103,8 @@ responsibility.
 
   The spacing clause was added on 2026-08-18: WCAG 2.2 SC 2.5.8 lists five
   exceptions — Spacing, Equivalent, Inline, User agent control, Essential — and
-  this criterion's original enumeration omitted Spacing. 27 of the measured
+  this criterion's original enumeration omitted Spacing. 27 of the measured candidates (the two Spacing groups in the tap-target audit's
+  classification table)
   candidates conform through it and had nowhere valid to be recorded. The
   omission was in the spec, not in the measurement.
 - [x] No tap-target exemption is broad, selector-only, inferred from CSS, or

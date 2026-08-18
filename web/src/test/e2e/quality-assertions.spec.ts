@@ -15,7 +15,7 @@
  * one fails carrying its context. Asserting only the failure would pass for a
  * helper that always throws.
  */
-import { test, expect, type Page } from '@playwright/test';
+import { test, expect, type Page, type TestInfo } from '@playwright/test';
 
 import {
   collectPageErrors,
@@ -25,6 +25,7 @@ import {
   expectNoSeriousAxeViolations,
   expectSkipLinkFirst,
   expectVisibleFocusIndicator,
+  waitForAnimationsToSettle,
   gotoSettled,
   label,
   measureHorizontalOverflow,
@@ -61,7 +62,7 @@ async function setBody(page: Page, body: string, head = ''): Promise<void> {
 async function expectRejectsWithContext(
   promise: Promise<unknown>,
   expectedReason?: string
-): Promise<void> {
+): Promise<string> {
   let message: string | null = null;
   try {
     await promise;
@@ -76,6 +77,7 @@ async function expectRejectsWithContext(
       `failed, but not for the seeded reason (${expectedReason})`
     ).toContain(expectedReason);
   }
+  return message as string;
 }
 
 test.describe('label', () => {
@@ -152,6 +154,22 @@ test.describe('serious axe violations', () => {
     await expectRejectsWithContext(
       expectNoSeriousAxeViolations(page, CTX, testInfo),
       'color-contrast'
+    );
+  });
+
+  test('omitting the TestInfo fails on every call, not just a lower-severity one', async ({
+    page,
+  }) => {
+    // The required parameter is enforced by an assertion rather than a typechecker,
+    // because Playwright transpiles these files without checking them. That
+    // assertion's trigger is never hit by a well-formed caller, so without this
+    // fixture the assertion could be deleted and the suite would stay green — the
+    // requirement would be enforced by nothing that runs. Deliberately passes a
+    // missing TestInfo the way a forgetful caller would.
+    await setBody(page, '<main><h1>Heading</h1><p>Prose.</p></main>');
+    await expectRejectsWithContext(
+      expectNoSeriousAxeViolations(page, CTX, undefined as unknown as TestInfo),
+      'needs the live TestInfo'
     );
   });
 
@@ -262,26 +280,66 @@ test.describe('focus indication', () => {
     const style = '<style>a{text-decoration:none}a:focus-visible{outline:3px solid #000}</style>';
 
     await setBody(page, body, style);
-    await expectRejectsWithContext(
+    const fixedMessage = await expectRejectsWithContext(
       tabToAndAssertFocus(page, '#a', CTX, 10),
       'not reachable within 10 Tab presses'
     );
+    // And the other direction: a fixed budget must not claim a derived one.
+    expect(fixedMessage).not.toContain('budget derived from');
 
     await setBody(page, body, style);
     await tabToAndAssertFocus(page, '#a', CTX, 'derive');
   });
 
-  test('an unreachable target reports the budget it derived', async ({ page }) => {
-    // The exhaustion path and its diagnostic, which the fixed-budget fixtures
-    // never exercise. `tabindex="-1"` keeps the element present (so the presence
-    // assert passes) and out of the tab order (so the walk must exhaust).
+  test('the exhaustion message pins the count, the slack and every selector clause', async ({
+    page,
+  }) => {
+    // One fixture carrying one of each kind FOCUSABLE_SELECTOR enumerates, so
+    // dropping any clause from it — or the `:not([type=hidden])` exclusion, or the
+    // `+ 10` slack — changes a number asserted here. `tabindex="-1"` keeps the
+    // target present (the presence assert passes) and out of the tab order (the walk
+    // must exhaust).
     await setBody(
       page,
-      '<main><a href="#x">l</a><span id="a" tabindex="-1">target</span><h2 id="x">x</h2></main>'
+      '<main>' +
+        '<a href="#x">a</a><button>b</button><input type="text">' +
+        '<input type="hidden"><select><option>o</option></select>' +
+        '<textarea></textarea><details><summary>s</summary>d</details>' +
+        '<span tabindex="0">t</span>' +
+        '<span id="a" tabindex="-1">target</span><h2 id="x">x</h2></main>'
     );
+    const message = await expectRejectsWithContext(
+      tabToAndAssertFocus(page, '#a', CTX, 'derive'),
+      'budget derived from 7 focusables'
+    );
+    // 7 enumerated + 10 slack. The hidden input is excluded and the -1 target is
+    // not counted, which is what makes 7 the number rather than 9.
+    expect(message).toContain('within 17 Tab presses');
+  });
+
+  test('the derived budget spends its slack on stops the locator does not enumerate', async ({
+    page,
+  }) => {
+    // The slack's stated purpose. `contenteditable` is focusable but is NOT in
+    // FOCUSABLE_SELECTOR, so these three stops exist only in the real tab order —
+    // a derivation without slack cannot reach a target behind them.
+    const editable = '<div contenteditable="true">e</div>'.repeat(3);
+    await setBody(
+      page,
+      `<main><a href="#x">a</a>${editable}<a id="a" href="#x">target</a><h2 id="x">x</h2></main>`,
+      '<style>a{text-decoration:none}a:focus-visible{outline:3px solid #000}</style>'
+    );
+    await tabToAndAssertFocus(page, '#a', CTX, 'derive');
+  });
+
+  test('deriving a budget on a page with no focusables fails saying so', async ({ page }) => {
+    // The non-zero assert inside deriveTabBudget. Unreachable from
+    // expectLandmarkKeyboardReachable (which already proved a visible link exists),
+    // so this call site is the only one that can drive it.
+    await setBody(page, '<main><span id="a" tabindex="-1">target</span></main>');
     await expectRejectsWithContext(
       tabToAndAssertFocus(page, '#a', CTX, 'derive'),
-      'budget derived from'
+      'found no focusables'
     );
   });
 
@@ -305,6 +363,58 @@ test.describe('focus indication', () => {
     expect(onVisible, 'the walk stopped on the invisible match').toBe(true);
   });
 
+  test('an ANCESTOR carrying the zero opacity also disqualifies the match', async ({
+    page,
+  }) => {
+    // The case the walk exists for, and the one the element-level fixture above
+    // cannot prove: the zero sits on a wrapper and the focusable itself is unstyled,
+    // so an element-only check would accept it. This is the real shape — Starlight
+    // would hide the `starlight-theme-select` wrapper, not the `<select>` inside it.
+    await setBody(
+      page,
+      '<main><span style="opacity:0"><a class="t" href="#x">wrapped</a></span>' +
+        '<a class="t" href="#x">visible</a><h2 id="x">x</h2></main>',
+      '<style>a{text-decoration:none}a:focus-visible{outline:3px solid #000}</style>'
+    );
+    await tabToAndAssertFocus(page, '.t', CTX, 10);
+    const onVisible = await page.evaluate(
+      () => document.activeElement === document.querySelectorAll('.t')[1]
+    );
+    expect(onVisible, 'the walk stopped inside the zero-opacity wrapper').toBe(true);
+  });
+
+  test('a display:contents match is measured by the focused element, not the wrapper', async ({
+    page,
+  }) => {
+    // `hit` used to be `activeElement.closest(sel)`, which can be an ancestor. A
+    // `display:contents` wrapper reports a 0x0 box while its child renders and takes
+    // focus, so measuring the match rejected a plainly visible control.
+    await setBody(
+      page,
+      '<main><span class="w" style="display:contents"><a href="#x">real</a></span>' +
+        '<h2 id="x">x</h2></main>',
+      '<style>a{text-decoration:none}a:focus-visible{outline:3px solid #000}</style>'
+    );
+    await tabToAndAssertFocus(page, '.w', CTX, 10);
+  });
+
+  test('a visibility:visible child of a hidden ancestor is still reachable', async ({
+    page,
+  }) => {
+    // The false negative the other direction. `visibility` inherits but a descendant
+    // may override it back to `visible` and genuinely render, so walking ancestors
+    // for `visibility` would report a real, visible control as unreachable. Only
+    // `opacity` composites in a way no descendant can undo.
+    await setBody(
+      page,
+      '<main><div style="visibility:hidden">' +
+        '<a id="a" href="#x" style="visibility:visible">visible again</a>' +
+        '</div><h2 id="x">x</h2></main>',
+      '<style>a{text-decoration:none}a:focus-visible{outline:3px solid #000}</style>'
+    );
+    await tabToAndAssertFocus(page, '#a', CTX, 10);
+  });
+
   test('a ring that appears only on focus passes', async ({ page }) => {
     await setBody(
       page,
@@ -313,6 +423,40 @@ test.describe('focus indication', () => {
     );
     await page.locator('#a').focus();
     await expectVisibleFocusIndicator(page, CTX);
+  });
+});
+
+test.describe('animation settle', () => {
+  test('a mid-flight fade is waited out', async ({ page }) => {
+    // Reproduces the measured flake: axe read `.hero__cta--primary` mid-fade and
+    // reported ten SERIOUS contrast findings. 1200ms so the window is unmistakable.
+    await setBody(
+      page,
+      '<main><h1 id="f">fading</h1></main>',
+      '<style>@keyframes f{from{opacity:0}to{opacity:1}}' +
+        '#f{animation:f 1200ms linear both}</style>'
+    );
+    const before = await page.evaluate(
+      () => parseFloat(getComputedStyle(document.querySelector('#f')!).opacity)
+    );
+    expect(before, 'fixture did not actually start mid-fade').toBeLessThan(1);
+    await waitForAnimationsToSettle(page, CTX);
+    const after = await page.evaluate(
+      () => parseFloat(getComputedStyle(document.querySelector('#f')!).opacity)
+    );
+    expect(after, 'returned before the fade finished').toBe(1);
+  });
+
+  test('an infinite animation is excluded, not waited on', async ({ page }) => {
+    // A looping animation never settles. Hanging the gate on one would be a worse
+    // failure than the flake, so it must be skipped rather than timed out.
+    await setBody(
+      page,
+      '<main><h1 id="s">spinning</h1></main>',
+      '<style>@keyframes s{to{transform:rotate(360deg)}}' +
+        '#s{animation:s 200ms linear infinite}</style>'
+    );
+    await waitForAnimationsToSettle(page, CTX);
   });
 });
 

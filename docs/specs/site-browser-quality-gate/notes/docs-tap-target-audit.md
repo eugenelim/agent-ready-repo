@@ -26,9 +26,9 @@ themes — 20 cases — with the theme set through Starlight's own
 Undersized observations across those 20 cases resolve to **56 distinct
 candidates**. Every one conforms through an SC 2.5.8 exception; there are **zero
 demonstrated non-exempt failures** and therefore no remediation in this audit.
-This is the count's home; § Final shaping classification decomposes it per class
-(29 + 15 + 12) and repeats the total only as a sum of the cells directly above it,
-so the two cannot drift apart unnoticed.
+This is the count's prose home; § Final shaping classification decomposes it per
+class and repeats the total as the sum of the cells directly above it. The two are
+kept in agreement by a test rather than by a promise — see that section.
 
 ### The target set, defined once
 
@@ -97,8 +97,8 @@ candidate as one of:
 The list is complete against the criterion: SC 2.5.8 defines exactly five
 exceptions — Spacing, Equivalent, Inline, User agent control, Essential. An earlier
 revision of this contract, and of the spec's AC7, omitted Spacing, which left 27 of
-the measured candidates (§ Evidence availability) classified against a class
-neither document admitted.
+the measured candidates classified against a class neither document admitted — the
+two Spacing groups in § Final shaping classification.
 
 Framework ownership identifies an implementation owner; it is not itself an
 exception. Record exact geometry and spacing in emitted output. Never infer a
@@ -263,12 +263,13 @@ Measured targets at or above 24×24 are not enumerated: only undersized candidat
 need a classification, and listing the conforming majority would bury the rows that
 carry the argument.
 
-The total sits directly beneath its own addends (29 + 15 + 12), which is the reason
-it is restated here at all: a sum a reader can check against the four cells above it
-cannot quietly disagree with them. Free-floating restatements elsewhere in this file
-can, and did — an earlier revision left a superseded total standing beside its
-replacement — so every other mention now refers to § Evidence availability instead
-of repeating the number.
+The total sits directly beneath its own addends. An earlier revision of this document
+promised *in prose* that the count lived in one place, and the promise was false — the
+number was in five. A promise is not a check, so the arithmetic is now enforced by
+`tools/test_browser_gate_subset.py`: every `### … — N candidates` heading must equal
+the evidence rows beneath it, each classification cell must equal its heading, and
+this total must equal their sum. Reclassify one candidate and exactly one edit keeps
+that green.
 
 No row is classified as a framework-controlled exception, and that is deliberate:
 the brief's decision 10 and this spec's Never-do bar framework ownership from being

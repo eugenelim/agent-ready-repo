@@ -52,11 +52,9 @@ EXCLUDED_BY_SCOPE: dict[str, str] = {
         "covers are already in this gate's matrix at all five widths in both themes "
         "for overflow, axe, fragments and skip-link order. RESIDUAL, stated plainly: "
         "no Makefile line, workflow or package script invokes this file, so it runs "
-        "on demand only. This is the same orphan class as the "
-        "tools-test-runner-boundary backlog slug, but that slug's scope is "
-        "tools/test*.py, so closing it will NOT discharge this file. No register "
-        "entry covers orphaned e2e specs today; said here rather than pointed at a "
-        "slug that cannot resolve it.",
+        "on demand only. Registered as [backlog].open slug "
+        "e2e-spec-runner-boundary — a separate entry from tools-test-runner-boundary, "
+        "whose scope is tools/test*.py and so cannot discharge an e2e spec.",
 }
 
 EXCLUDED: dict[str, str] = {**EXCLUDED_WRITERS, **EXCLUDED_BY_SCOPE}
@@ -267,3 +265,72 @@ def test_every_helper_a_spec_uses_is_imported_by_that_spec() -> None:
             if re.search(rf"\b{re.escape(name)}\s*\(", body) and name not in imported:
                 problems.append(f"{spec.name} calls {name}() without importing it")
     assert not problems, "\n".join(problems)
+
+
+# --- Tap-target audit arithmetic -------------------------------------------------
+#
+# The audit states its candidate count in prose, in three group headings, and in a
+# classification table, and an earlier revision left two of those disagreeing. The
+# document used to promise in prose that the number lived in one place; a promise is
+# not a check. These two tests are the check: every group heading must match the rows
+# beneath it, the table cells must match the headings, and the total must be their
+# sum. Reclassify one candidate and exactly one edit keeps this green.
+
+TAP_TARGET_AUDIT = (
+    REPO_ROOT / "docs" / "specs" / "site-browser-quality-gate" / "notes" /
+    "docs-tap-target-audit.md"
+)
+_GROUP_RE = re.compile(r"^### (?P<name>.+?) — (?P<count>\d+) candidates\s*$")
+_TOTAL_RE = re.compile(r"^\|\s*\*\*Total classified\*\*\s*\|\s*(?P<total>\d+)\s*\|")
+
+
+def _audit_groups() -> dict[str, tuple[int, int]]:
+    """Map group name -> (count claimed in its heading, rows actually beneath it)."""
+    groups: dict[str, tuple[int, int]] = {}
+    current: str | None = None
+    for line in TAP_TARGET_AUDIT.read_text(encoding="utf-8").splitlines():
+        match = _GROUP_RE.match(line)
+        if match:
+            current = match.group("name")
+            groups[current] = (int(match.group("count")), 0)
+            continue
+        if line.startswith("## "):
+            current = None
+            continue
+        if current and line.startswith("| `"):
+            claimed, rows = groups[current]
+            groups[current] = (claimed, rows + 1)
+    return groups
+
+
+def test_every_group_heading_matches_the_rows_beneath_it() -> None:
+    groups = _audit_groups()
+    assert groups, f"no `### ... — N candidates` groups parsed from {TAP_TARGET_AUDIT.name}"
+    for name, (claimed, rows) in groups.items():
+        assert claimed == rows, (
+            f"{TAP_TARGET_AUDIT.name}: group '{name}' heading claims {claimed} "
+            f"candidates but {rows} evidence rows follow it"
+        )
+
+
+def test_the_classification_total_is_the_sum_of_its_group_cells() -> None:
+    text = TAP_TARGET_AUDIT.read_text(encoding="utf-8")
+    groups = _audit_groups()
+    totals = [
+        int(m.group("total")) for m in (_TOTAL_RE.match(ln) for ln in text.splitlines()) if m
+    ]
+    assert len(totals) == 1, (
+        f"{TAP_TARGET_AUDIT.name}: expected exactly one **Total classified** cell "
+        f"carrying a number, found {len(totals)}"
+    )
+    expected = sum(claimed for claimed, _ in groups.values())
+    assert totals[0] == expected, (
+        f"{TAP_TARGET_AUDIT.name}: **Total classified** says {totals[0]} but the "
+        f"group headings sum to {expected}"
+    )
+    # And each group's cell in the classification table agrees with its heading.
+    for name, (claimed, _rows) in groups.items():
+        assert f"| {claimed} | Measured" in text, (
+            f"{TAP_TARGET_AUDIT.name}: no classification-table cell carries group "
+            f"'{name}'s count of {claimed}"
+        )
