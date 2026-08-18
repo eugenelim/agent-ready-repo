@@ -147,7 +147,10 @@ jobs:
       # also fails rather than skips when CI is set.
       - name: Assert release anchors match the emitted changelog
         env:
-          CI: "true"
+          # Not `CI`: Actions sets that everywhere, and this module also runs in
+          # `gate-main`, which has no site build. This variable marks the one
+          # place the emitted artifact must exist.
+          REQUIRE_EMITTED_CHANGELOG: "1"
         run: |
           test -f build/docs/changelog/index.html
           python3 -m pytest -p no:cacheprovider -q tools/test_build_site_routing.py -k anchor

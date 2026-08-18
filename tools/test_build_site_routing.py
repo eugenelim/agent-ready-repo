@@ -544,6 +544,15 @@ def test_the_reference_link_unreleased_heading_opens_a_region_not_an_entry():
         "## [Unreleased][unreleased] — 2026-08-18",
         "## [Unreleased][HEAD] — 2026-08-18",
         "## [unreleased][main] — 2026-08-18",
+        # The VERSION slot, not just the name. A version left as `unreleased`
+        # while the number is still being cut published its Highlights and
+        # rendered the public label "agentbundle unreleased".
+        "## [agentbundle][unreleased] — 2026-08-18",
+        "## [core][UNRELEASED] — 2026-08-18",
+        # And the multi-package form, which this changelog actually uses. Scoping
+        # the guard to a single pair skipped these entirely.
+        "## [Unreleased][unreleased] and [core][2.7.4] — 2026-08-17",
+        "## [core][2.7.4] and [architect][unreleased] — 2026-08-17",
     ):
         text = f"""# Changelog
 
@@ -1117,17 +1126,27 @@ def test_the_real_changelog_has_no_silently_withheld_highlights():
     authors to expect, and they publish when the entry is promoted at release
     time. Pinning that would fail the build for doing the documented thing.
     """
+    rel = _CHANGELOG.relative_to(_REPO_ROOT).as_posix()
     parsed = build_site.parse_changelog_releases(
         _CHANGELOG.read_text(encoding="utf-8")
     )
-    assert parsed.diagnostics["misplaced_highlights"] == [], (
-        "a Highlights block is not its release entry's immediate child, so its "
-        "bullets do not publish"
-    )
-    assert parsed.diagnostics["unreleased_regions"] == [], (
-        "a heading reads as Unreleased without being the canonical "
-        "'## [Unreleased]', so everything beneath it is withheld"
-    )
+    # The message is built from the diagnostics rather than left to pytest's
+    # tuple repr: `[(813, 4, 'Highlights')] == []` surfaces the line number but
+    # makes the reader guess which number is the line and which the level.
+    misplaced = [
+        f"{rel}:{lineno}: '{'#' * level} {title}' is not its release entry's "
+        "immediate child, so its bullets do not publish — move it one level up"
+        for lineno, level, title in parsed.diagnostics["misplaced_highlights"]
+    ]
+    assert not misplaced, "\n".join(misplaced)
+
+    regions = [
+        f"{rel}:{lineno}: heading {title!r} reads as Unreleased, so every entry "
+        "beneath it is withheld from /now/ — reword it, or use the canonical "
+        "'## [Unreleased]' if that is what you meant"
+        for lineno, title in parsed.diagnostics["unreleased_regions"]
+    ]
+    assert not regions, "\n".join(regions)
 
 
 def test_no_projected_release_heading_lives_under_an_unreleased_region():
@@ -1229,17 +1248,22 @@ def test_release_anchors_match_the_emitted_page_one_for_one_in_order():
 
         import pytest
 
-        # In CI this test is wired into the ONE job that builds the site, so a
-        # missing artifact means the wiring broke — and a fully-skipped pytest
-        # selection exits 0, which would report success for the only check that
-        # holds the duplicate-slug counter against reality. Locally a skip is the
-        # right answer.
+        # Keyed on a DEDICATED variable, not on `CI`. GitHub Actions sets `CI` in
+        # every job, and this module also runs in `gate-main`, which has no site
+        # build — so gating on `CI` failed that job for a legitimately absent
+        # artifact. Only the `pages.yml` step that builds the site sets
+        # `REQUIRE_EMITTED_CHANGELOG`, and there a missing artifact means the
+        # wiring broke: a fully-skipped pytest selection exits 0, which would
+        # report success for the only check holding the duplicate-slug counter
+        # against reality.
         message = (
             "needs the combined build: python3 tools/build-site.py && "
             "npm run build --prefix web && npm run build --prefix docs-site"
         )
-        if os.environ.get("CI"):
-            raise AssertionError(f"emitted changelog absent in CI — {message}")
+        if os.environ.get("REQUIRE_EMITTED_CHANGELOG"):
+            raise AssertionError(
+                f"emitted changelog absent where it is required — {message}"
+            )
         pytest.skip(message)
 
     page = _EMITTED_CHANGELOG.read_text(encoding="utf-8")

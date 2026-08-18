@@ -1156,11 +1156,25 @@ def _parse_release_identity(title: str) -> dict | None:
     # release publishes every dated child beneath it, and letting it reach the
     # date check hard-fails the site build on the undated form.
     #
-    # An exact-token test, not a substring one, so `unreleased-tools` keeps
-    # releasing. The previous guard compared through `_UNRELEASED_RE` and died
-    # silently when that pattern was broadened to a bare `unreleased` — `.match`
-    # against a string starting with `[` can never succeed.
-    if len(packages) == 1 and packages[0]["name"].casefold() == "unreleased":
+    # Checked across EVERY pair and BOTH slots. Scoping it to the first pair's
+    # name left two live bypasses: `## [agentbundle][unreleased] — 2026-08-18`
+    # published its Highlights and rendered the public label
+    # "agentbundle unreleased" — a version left as `unreleased` while the number
+    # is still being cut is the realistic trigger — and the multi-package form
+    # `## [Unreleased][unreleased] and [core][2.7.4] — 2026-08-17`, which is a
+    # shape this changelog actually uses, skipped the guard entirely. Neither
+    # produced any diagnostic, so the required pin could not see them either.
+    #
+    # An exact-token test, not a substring one, so `unreleased-tools` and
+    # `my-unreleased` keep releasing. The guard this replaced compared through
+    # `_UNRELEASED_RE` and died silently when that pattern was broadened to a
+    # bare `unreleased` — `.match` against a string starting with `[` can never
+    # succeed.
+    if any(
+        part.casefold() == "unreleased"
+        for pkg in packages
+        for part in (pkg["name"], pkg["version"])
+    ):
         return None
     date_match = _RELEASE_DATE_RE.search(title)
     if date_match is None:
