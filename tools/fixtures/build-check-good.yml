@@ -55,6 +55,23 @@ jobs:
       - name: pytest credbroker
         run: |
           python -m pytest packages/credbroker -q
+      - name: pytest guides + catalogue navigation
+        run: >-
+          python -m pytest
+          tools/test_validate_guides.py
+          tools/test_check_guide_index.py
+          tools/test_catalogue_navigation.py
+          tools/test_documentation_entry_links.py
+      - name: pytest site build + link rewriting
+        run: >-
+          python -m pytest
+          tools/test_build_site_link_rewrites.py
+          tools/test_check_rendered_site_links.py
+          tools/test_build_site_routing.py
+      - name: docs palette contrast gate
+        run: |
+          python3 tools/check-docs-contrast.py
+          python -m pytest tools/test_check_docs_contrast.py -q
   gate-sast:
     runs-on: ubuntu-latest
     timeout-minutes: 25

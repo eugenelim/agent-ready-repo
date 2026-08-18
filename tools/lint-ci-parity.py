@@ -347,6 +347,11 @@ STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test"),
     "pytest site build + link rewriting":
         LOCAL("test"),
+    # spec/site-ci-contract-closure AC4/AC6. Both halves are reachable from
+    # `make ci` via the `test` target: the checker on its own line near the top,
+    # and its suite on the site/catalogue pytest line.
+    "docs palette contrast gate":
+        LOCAL("test"),
     # RFC-0082 export boundary. The gate itself runs in release-agentbundle.yml;
     # this step runs the gate's own tests, so a regression to always-exit-0 goes
     # red here rather than staying silently green.

@@ -138,6 +138,17 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "build-check.yml"
+
+
+def _on_block(text: str) -> str:
+    """The `on:` mapping body — up to the next top-level key."""
+    m = re.search(r"^on:\s*$", text, re.M)
+    if not m:
+        return ""
+    nxt = re.search(r"^[A-Za-z]", text[m.end():], re.M)
+    return text[m.end():m.end() + nxt.start()] if nxt else text[m.end():]
+
+
 SELF_NAME = "tools/test-build-check-workflow.py"
 
 AGGREGATOR_JOB_ID = "build-check"
@@ -149,6 +160,28 @@ AGGREGATOR_RUN_STEPS = (
     "Require every gate",
 )
 REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary")
+
+# spec/site-ci-contract-closure AC2. The seven site/catalogue modules that
+# spec/build-check-coverage-gaps AC1 moved into gate-main. Enumerated HERE rather
+# than derived from the Makefile on purpose: a roster read out of the thing being
+# checked is circular — deleting a module from both Makefile and workflow would
+# then pass. This list is the independent pin; Make/CI agreement is a separate
+# concern owned by tools/lint-ci-parity.py's coverage layer.
+SITE_TEST_MODULES = (
+    "tools/test_validate_guides.py",
+    "tools/test_check_guide_index.py",
+    "tools/test_catalogue_navigation.py",
+    "tools/test_documentation_entry_links.py",
+    "tools/test_build_site_link_rewrites.py",
+    "tools/test_check_rendered_site_links.py",
+    "tools/test_build_site_routing.py",
+)
+# spec/site-ci-contract-closure AC4. The docs-palette contrast gate: the checker
+# and its own suite. Registered so removing either from gate-main fails here.
+CONTRAST_SCRIPTS = (
+    "tools/check-docs-contrast.py",
+    "tools/test_check_docs_contrast.py",
+)
 
 EXPECTED_PYTHON = '"3.11"'
 # The runner is the outermost layer this file can reach: it decides what every
@@ -212,6 +245,27 @@ def _key_re(key: str, indent: str = r"\s*") -> re.Pattern[str]:
     return re.compile(rf"^{indent}['\"]?{re.escape(key)}['\"]?\s*:", re.M)
 
 
+# `paths:`/`paths-ignore:` anywhere inside the `on:` block, at ANY indent and in any
+# quoting. An earlier draft hard-coded `[ ]{4}` and the bare spelling — the only key
+# matcher in this file not going through `_key_re` — so `'paths':`, `"paths-ignore":`,
+# a 6-space indent, and the `on.push` trigger each slipped past while the audit stayed
+# green. Indent is deliberately unconstrained: the block is already scoped to `on:`,
+# so any depth within it is a trigger option.
+# Unanchored on purpose. `_key_re` pins a key to line start, so
+# `pull_request: {branches: [main], paths: ['x']}` hid the filter mid-line while the
+# bare block spelling above it kept `trigger-pull-request` satisfied. Matching after
+# any whitespace, `{` or `,` sees the flow form too.
+# Explicit-key (`? k` / `: v`) and escape-encoded (`"p\x61ths":`) key syntax, in
+# either block or flow position. Both resolve to a normal key that every
+# spelling-based matcher in this file misses.
+_UNMODELLED_KEY_RE = re.compile(r'(?:^|[{,])[ \t]*\?[ \t]|"[^"\n]*\\[^"\n]*"\s*:', re.M)
+
+_TRIGGER_PATHS_RES = (
+    re.compile(r"(?:^|[\s{,])['\"]?paths['\"]?\s*:", re.M),
+    re.compile(r"(?:^|[\s{,])['\"]?paths-ignore['\"]?\s*:", re.M),
+)
+
+
 # Step-level `env:` stays legal — the detect step and the guard need it — but its KEYS
 # are pinned. `MAKEFLAGS: '-n'` on the anchor turns the whole chain into a recipe
 # printer; `PYTHON: 'true'` wins over the Makefile's `PYTHON ?=` and substitutes the
@@ -243,6 +297,22 @@ PINNED_EXPORT_PYTEST = (
     '| tee "$RUNNER_TEMP/out.txt"'
 )
 PINNED_POSTURE = f"python3 {SELF_NAME}"
+# spec/site-ci-contract-closure AC2. These four statements are FIXED, and are held by
+# WHOLE-BODY equality in the `*-body-exact` checks — not by `_pinned`, whose four
+# statement-equality conjuncts were removed as non-independent (see the removal note
+# at the checks). Argv membership alone accepted
+# `python -m pytest --collect-only <modules>` and `… -q -k nope`, which collect or
+# select nothing while every module name stayed present and the audit stayed clean.
+PINNED_SITE_GUIDES_PYTEST = (
+    "python -m pytest tools/test_validate_guides.py tools/test_check_guide_index.py "
+    "tools/test_catalogue_navigation.py tools/test_documentation_entry_links.py"
+)
+PINNED_SITE_BUILD_PYTEST = (
+    "python -m pytest tools/test_build_site_link_rewrites.py "
+    "tools/test_check_rendered_site_links.py tools/test_build_site_routing.py"
+)
+PINNED_CONTRAST_CHECKER = "python3 tools/check-docs-contrast.py"
+PINNED_CONTRAST_SUITE = "python -m pytest tools/test_check_docs_contrast.py -q"
 # `working-directory:` decides WHERE a pinned statement runs, so it is the YAML sibling
 # of the `-C`/`-f` ban in `_REDIRECT_FLAGS` — and it was unasserted. Measured:
 # `working-directory: tools` on the anchor leaves the pinned text untouched, audits
@@ -254,6 +324,12 @@ _NO_CWD_STEPS = (
     ("gate-sast", "Run make sast"),
     ("gate-sast", "Install SAST/SCA tools"),
     ("gate-export-boundary", "pytest export-boundary gate"),
+    # spec/site-ci-contract-closure AC2. Same reasoning as the anchor: a redirected
+    # cwd leaves every pinned module name byte-identical while pytest collects from
+    # a different tree, so the roster assertion passes and nothing it names runs.
+    ("gate-main", "pytest guides + catalogue navigation"),
+    ("gate-main", "pytest site build + link rewriting"),
+    ("gate-main", "docs palette contrast gate"),
 )
 # Non-run steps permitted in the aggregator, compared as the `uses:` VALUE for equality.
 # A substring test over the step chunk — the previous shape — accepted
@@ -1208,6 +1284,104 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
           and "requirements-sast.txt" in bandit_step
           and bool(_invocation(bandit_step, "python") or "extension_loader" in bandit_step))
 
+    # spec/site-ci-contract-closure AC2. Each site module must be an ARGUMENT of a
+    # pytest statement inside gate-main — not merely a token somewhere in the file.
+    # `_invocation` enforces command-word + argv membership, so a module named only
+    # in a comment, in an `echo`, or in another job does not satisfy this.
+    #
+    # Placement is asserted against gate-main by job id, not "the required job":
+    # branch protection requires four contexts, and the aggregator is one of them
+    # but runs no pytest. Its two run steps are pinned by AGGREGATOR_RUN_STEPS, so
+    # a module smuggled there would fail that pin instead.
+    for _mod in SITE_TEST_MODULES:
+        check(f"site-module[{_mod}]",
+              bool(_invocation(main_blk, "python", "-m", "pytest", _mod))
+              or bool(_invocation(main_blk, "python3", "-m", "pytest", _mod))
+              or bool(_invocation(main_blk, "pytest", _mod)))
+
+    # AC4: the contrast gate runs in gate-main, checker and suite both.
+    for _script in CONTRAST_SCRIPTS:
+        if _script.endswith("test_check_docs_contrast.py"):
+            ok = (bool(_invocation(main_blk, "python", "-m", "pytest", _script))
+                  or bool(_invocation(main_blk, "python3", "-m", "pytest", _script))
+                  or bool(_invocation(main_blk, "pytest", _script)))
+        else:
+            ok = (bool(_invocation(main_blk, "python", _script))
+                  or bool(_invocation(main_blk, "python3", _script)))
+        check(f"contrast-gate[{_script}]", ok)
+
+    # The `*-body-exact` checks below subsume statement-equality pins on these four
+    # statements: `_run_lines(step) == [P]` implies `_pinned(step, P)` unconditionally
+    # (same source, and none of the pinned texts contains `;`, `&&`, `||` or a
+    # trailing `&`). Four such conjuncts were written here and removed rather than
+    # kept — this file's own history deletes conjuncts that cannot fail independently,
+    # because they inflate the family and mutation counts without adding a proof. The
+    # `site-module[*]` / `contrast-gate[*]` membership checks DO stay: they compare an
+    # independent roster against the pinned strings, so a coordinated edit to both the
+    # workflow and a `PINNED_*` constant still fails there.
+
+    # Whole-body equality, not statement presence. `_pinned` finds a statement
+    # wherever it sits, so a prepended `exit 0` left every pin satisfied while the
+    # step ran nothing — measured green. These three bodies are finitely enumerable
+    # (one, one, and two statements), which is this file's own stated escape from the
+    # neutering ladder: pin the whole set rather than enumerate what may not precede it.
+    check("site-guides-body-exact",
+          _run_lines(_step_named(main_blk, "pytest guides + catalogue navigation"))
+          == [PINNED_SITE_GUIDES_PYTEST])
+    check("site-build-body-exact",
+          _run_lines(_step_named(main_blk, "pytest site build + link rewriting"))
+          == [PINNED_SITE_BUILD_PYTEST])
+    check("contrast-body-exact",
+          _run_lines(_step_named(main_blk, "docs palette contrast gate"))
+          == [PINNED_CONTRAST_CHECKER, PINNED_CONTRAST_SUITE])
+
+    # AC2's second neutering form. `continue-on-error` is covered file-wide, and
+    # cwd redirection by _NO_CWD_STEPS above — but a step-level `if:` was the live
+    # bypass: `if: ${{ false }}` on either pytest step or the contrast step skipped
+    # the gate with this file reporting posture OK. gate-main carries no step-level
+    # `if:` at all, so the honest assertion is that it stays that way.
+    for _step_name in ("pytest guides + catalogue navigation",
+                       "pytest site build + link rewriting",
+                       "docs palette contrast gate"):
+        _st = _step_named(main_blk, _step_name)
+        check(f"site-step-no-if[{_step_name}]", bool(_st) and not _has_if(_st))
+
+    # AC5. build-check.yml must carry NO paths: filter. Its jobs are required
+    # contexts by name, so a filtered trigger means a PR touching none of the
+    # filtered paths never runs the workflow, the required checks never report,
+    # and the PR is permanently unmergeable — Expected, not skipped-as-success.
+    # `_on_block` returns "" when the top-level key is not the bare `on:` it anchors
+    # on, and `search("")` is trivially falsy — so requiring the span be NON-EMPTY is
+    # what keeps this fail-closed. Without that, quoting the key as `'on':` (a
+    # yamllint-truthy-friendly spelling nothing else here pins) made the whole
+    # assertion vacuous and a paths: filter passed undetected.
+    # Every key assertion in this file matches a SPELLING (`k:`, `'k':`, `k :`). Two
+    # standard YAML forms resolve to the same key and match none of them: an
+    # escape-encoded key (`"i\x66":` → `if`) and explicit-key syntax (`? if` /
+    # `: value`). Rather than teach every matcher two more spellings, refuse the
+    # syntax outright — neither appears in this workflow or the fixture, and neither
+    # has a legitimate use here.
+    #
+    # Matched in KEY POSITION, not at line start. An earlier draft anchored both
+    # alternatives to `^`, which closed the spelling only where it had been found:
+    # `pull_request: {branches: [main], "p\x61ths": ['tools/**']}` audited clean
+    # while resolving to a live `paths` filter. Line-anchoring also false-positived
+    # on any line beginning with a quoted string containing a backslash — the shape
+    # a backslash-continued command already produces twice in this workflow.
+    _unmodelled = _UNMODELLED_KEY_RE.search(text)
+    if _unmodelled:
+        _note_miss("no `? key` or escape-encoded key syntax",
+                   _unmodelled.group(0).strip())
+    check("no-unmodelled-key-syntax", _unmodelled is None)
+    # Exactly one top-level `on:`. Every other key in this file closes the
+    # duplicate-key class; `on:` was the one left open, and it is the key deciding
+    # whether the required contexts report at all. A second `on:` also truncates
+    # `_on_block`, so the mapping YAML actually resolves would go unscanned.
+    check("one-on-key", len(_key_values(text, "on", "")) == 1)
+    _on = _on_block(text)
+    check("no-path-filter",
+          bool(_on) and not any(r.search(_on) for r in _TRIGGER_PATHS_RES))
+
     # AC4: the predicate has exactly one consumer.
     sast_blk = _job_block(text, "gate-sast")
     sast_step = _step_named(sast_blk, "make sast")
@@ -1332,6 +1506,113 @@ def _sub_in_job(text: str, job_id: str, old: str, new: str) -> str:
 
 
 _MUTATIONS: list[tuple[str, str, object]] = [
+    # -- spec/site-ci-contract-closure AC2/AC4/AC5 -------------------------------
+    # Removal is the mode a bare presence assertion cannot see, so each family is
+    # proved by deleting the thing it pins rather than by asserting it is there.
+    # One deletion mutation PER module. `_family` collapses `site-module[<mod>]` to
+    # `site-module[*]`, so a single member would satisfy the coverage claim while the
+    # other six sat unmutated — the exact asserted-but-unproven posture this file
+    # exists to reject. Generated, so adding a module to SITE_TEST_MODULES cannot
+    # silently ship without its proof.
+    *[(f"drop-site-module[{_m}]", f"site-module[{_m}]",
+       (lambda mod: (lambda t: t.replace(f"          {mod}\n", "")))(_m))
+      for _m in SITE_TEST_MODULES],
+    # Misspelling, the mode a substring match over the file would still pass.
+    ("misspell-site-module", "site-module[tools/test_build_site_routing.py]",
+     lambda t: t.replace("tools/test_build_site_routing.py",
+                         "tools/test_build_site_routeing.py")),
+    # Present in the file, but MOVED to a job whose name branch protection requires
+    # for a different purpose and which runs no site tests. A plain deletion would
+    # prove only what drop-site-module already proves; this makes job PLACEMENT the
+    # thing that fails, which is what AC2 actually claims to detect.
+    ("site-module-wrong-job", "site-module[tools/test_catalogue_navigation.py]",
+     lambda t: _sub_in_job(
+         _sub_in_job(t, "gate-main",
+                     "          tools/test_catalogue_navigation.py\n", ""),
+         "gate-sast", "      - name: Run make sast\n",
+         "      - name: pytest moved\n        run: >-\n          python -m pytest\n"
+         "          tools/test_catalogue_navigation.py\n"
+         "      - name: Run make sast\n")),
+    # Named only inside an echo — the command-word rule must reject it.
+    ("echo-wrap-site-modules", "site-module[tools/test_check_guide_index.py]",
+     lambda t: t.replace("          python -m pytest\n"
+                         "          tools/test_validate_guides.py\n"
+                         "          tools/test_check_guide_index.py\n",
+                         "          echo python -m pytest\n"
+                         "          tools/test_validate_guides.py\n"
+                         "          tools/test_check_guide_index.py\n")),
+    ("drop-contrast-checker", "contrast-gate[tools/check-docs-contrast.py]",
+     lambda t: t.replace("          python3 tools/check-docs-contrast.py\n", "")),
+    ("drop-contrast-suite", "contrast-gate[tools/test_check_docs_contrast.py]",
+     lambda t: t.replace(
+         "          python -m pytest tools/test_check_docs_contrast.py -q\n", "")),
+    ("if-false-on-contrast-step", "site-step-no-if[docs palette contrast gate]",
+     lambda t: t.replace("      - name: docs palette contrast gate\n",
+                         "      - name: docs palette contrast gate\n        if: ${{ false }}\n")),
+    ("if-false-on-site-step", "site-step-no-if[pytest guides + catalogue navigation]",
+     lambda t: t.replace("      - name: pytest guides + catalogue navigation\n",
+                         "      - name: pytest guides + catalogue navigation\n        if: ${{ false }}\n")),
+    ("cwd-redirect-contrast-step", "no-working-directory[gate-main/docs palette contrast gate]",
+     lambda t: t.replace("      - name: docs palette contrast gate\n",
+                         "      - name: docs palette contrast gate\n        working-directory: tools\n")),
+    # The vacuity guard: quoting the top-level key must not silently disable the
+    # assertion above it.
+    ("collect-only-site-guides", "site-guides-body-exact",
+     lambda t: t.replace("          python -m pytest\n          tools/test_validate_guides.py",
+                         "          python -m pytest --collect-only\n          tools/test_validate_guides.py")),
+    ("k-filter-site-build", "site-build-body-exact",
+     lambda t: t.replace("          tools/test_build_site_routing.py\n",
+                         "          tools/test_build_site_routing.py -k nope\n")),
+    ("k-filter-contrast-suite", "contrast-body-exact",
+     lambda t: t.replace("python -m pytest tools/test_check_docs_contrast.py -q",
+                         "python -m pytest tools/test_check_docs_contrast.py -q -k nope")),
+    ("dry-run-contrast-checker", "contrast-body-exact",
+     lambda t: t.replace("python3 tools/check-docs-contrast.py",
+                         "python3 tools/check-docs-contrast.py --dry-run")),
+    ("flow-escaped-paths-key", "no-unmodelled-key-syntax",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n"
+                         "  pull_request: {branches: [main], \"p\\x61ths\": ['tools/**']}\n", 1)),
+    ("escaped-key-syntax", "no-unmodelled-key-syntax",
+     lambda t: t.replace('      - name: docs palette contrast gate\n',
+                         '      - name: docs palette contrast gate\n        "i\\x66": ${{ false }}\n')),
+    ("explicit-key-syntax", "no-unmodelled-key-syntax",
+     lambda t: t.replace('      - name: docs palette contrast gate\n',
+                         '      - name: docs palette contrast gate\n        ? if\n        : ${{ false }}\n')),
+    ("duplicate-on-key", "one-on-key",
+     lambda t: t.rstrip() + "\non:\n  pull_request:\n    paths: ['x']\n"),
+    ("flow-style-trigger-paths", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n"
+                         "  pull_request: {branches: [main], paths: ['tools/**']}\n", 1)),
+    ("exit-0-prefix-in-contrast-step", "contrast-body-exact",
+     lambda t: t.replace("          python3 tools/check-docs-contrast.py\n",
+                         "          exit 0\n          python3 tools/check-docs-contrast.py\n")),
+    ("exit-0-prefix-in-site-step", "site-guides-body-exact",
+     lambda t: t.replace("          python -m pytest\n          tools/test_validate_guides.py",
+                         "          exit 0\n          python -m pytest\n          tools/test_validate_guides.py")),
+    ("exit-0-prefix-in-site-build-step", "site-build-body-exact",
+     lambda t: t.replace("          python -m pytest\n          tools/test_build_site_link_rewrites.py",
+                         "          exit 0\n          python -m pytest\n          tools/test_build_site_link_rewrites.py")),
+    ("quote-paths-key", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n    'paths':\n      - 'tools/**'\n", 1)),
+    ("paths-ignore-key", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n    paths-ignore:\n      - 'docs/**'\n", 1)),
+    ("deep-indent-paths", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n      branches: [main]\n      paths:\n        - 'tools/**'\n", 1)),
+    # Vacuity guard: respelling the top-level `on:` key must not silently disable
+    # `no-path-filter` by emptying the span it searches.
+    ("quote-on-key", "no-path-filter",
+     lambda t: t.replace("on:\n", "'on':\n", 1)),
+    # A paths: filter on a workflow whose jobs are required contexts leaves every
+    # non-matching PR permanently unmergeable.
+    ("add-path-filter", "no-path-filter",
+     lambda t: t.replace("  pull_request:\n    branches: [main]\n",
+                         "  pull_request:\n    branches: [main]\n"
+                         "    paths:\n      - 'tools/**'\n")),
     # -- the neutering class, applied to EVERY control (round-8 blocker 1) --------
     ("or-true-anchor", "anchor-step",
      lambda t: t.replace("make build-check PACKS_DIR=packs SAST_DELEGATED=1",

@@ -43,6 +43,20 @@ PAIRS = [
 FLOOR = 4.5
 DECL_RE = re.compile(r"(--[a-z0-9-]+)\s*:\s*([^;]+);")
 VAR_RE = re.compile(r"var\((--[a-z0-9-]+)\)")
+# Exactly six hex digits. Three-digit shorthand (`#abc`) is legal CSS but NOT
+# accepted here: `int("ab", 16)` would parse it happily and return a
+# plausible-but-wrong luminance, and a silently wrong contrast number is worse
+# than a refusal.
+HEX6_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
+
+
+class ColourError(ValueError):
+    """A palette value this checker refuses to interpret.
+
+    Raised instead of letting `int(..., 16)` or a `KeyError` escape, so a
+    malformed palette produces a diagnostic and a non-zero exit rather than a
+    traceback — the difference between a gate that reports and one that crashes.
+    """
 
 
 def split_blocks(css: str) -> list[tuple[str, str]]:
@@ -73,8 +87,11 @@ def theme_tables(css: str) -> dict[str, dict[str, str]]:
 
 def resolve(name: str, table: dict[str, str], depth: int = 0) -> str:
     if depth > 10:
-        raise ValueError(f"var() chain too deep resolving {name}")
-    value = table[name]
+        raise ColourError(f"var() chain too deep resolving {name} (cycle?)")
+    try:
+        value = table[name]
+    except KeyError:
+        raise ColourError(f"{name} is not defined in this theme") from None
     m = VAR_RE.fullmatch(value)
     return resolve(m.group(1), table, depth + 1) if m else value
 
@@ -84,9 +101,24 @@ def _linearize(c: float) -> float:
 
 
 def luminance(hex_color: str) -> float:
-    h = hex_color.lstrip("#")
+    if not HEX6_RE.match(hex_color.strip()):
+        raise ColourError(
+            f"{hex_color!r} is not a six-digit hex colour "
+            "(three-digit shorthand is not supported)"
+        )
+    h = hex_color.strip().lstrip("#")
     r, g, b = (int(h[i : i + 2], 16) / 255 for i in (0, 2, 4))
     return 0.2126 * _linearize(r) + 0.7152 * _linearize(g) + 0.0722 * _linearize(b)
+
+
+def passes(r: float) -> bool:
+    """Whether a measured ratio clears the floor.
+
+    Extracted so the boundary is testable: WCAG's threshold is inclusive, and a
+    test asserting that against `FLOOR` alone is a tautology that stays green if
+    this comparison is flipped to `>`.
+    """
+    return r >= FLOOR
 
 
 def ratio(fg: str, bg: str) -> float:
@@ -95,23 +127,43 @@ def ratio(fg: str, bg: str) -> float:
 
 
 def main() -> int:
-    css = CSS_PATH.read_text(encoding="utf-8")
+    try:
+        css = CSS_PATH.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        # A missing or unreadable sheet is a gate failure, not a crash: this runs as
+        # a required CI step, and a traceback there reads as tooling breakage rather
+        # than the contract violation it is.
+        print(f"error  cannot read or decode {CSS_PATH}: {exc}")
+        print("\ncheck-docs-contrast: palette unreadable")
+        return 1
     tables = theme_tables(css)
     failures = 0
     for theme, table in tables.items():
         for fg_name, bg_name in PAIRS:
-            fg, bg = resolve(fg_name, table), resolve(bg_name, table)
+            try:
+                fg, bg = resolve(fg_name, table), resolve(bg_name, table)
+            except ColourError as exc:
+                print(f"error  {theme}: {fg_name}/{bg_name} — {exc}")
+                failures += 1
+                continue
             if not (fg.startswith("#") and bg.startswith("#")):
                 print(f"error  {theme}: {fg_name}/{bg_name} not plain hex ({fg!r}, {bg!r})")
                 failures += 1
                 continue
-            r = ratio(fg, bg)
-            status = "ok  " if r >= FLOOR else "FAIL"
-            if r < FLOOR:
+            try:
+                r = ratio(fg, bg)
+            except ColourError as exc:
+                print(f"error  {theme}: {fg_name}/{bg_name} — {exc}")
+                failures += 1
+                continue
+            ok = passes(r)
+            status = "ok  " if ok else "FAIL"
+            if not ok:
                 failures += 1
             print(f"{status}  {theme:5} {fg_name} on {bg_name}: {r:.2f}")
     if failures:
-        print(f"\ncheck-docs-contrast: {failures} pair(s) below {FLOOR}:1")
+        print(f"\ncheck-docs-contrast: {failures} pair(s) failed — "
+              f"below {FLOOR}:1, or a value this checker refuses to interpret")
         return 1
     print("\ncheck-docs-contrast: all pairs pass")
     return 0
