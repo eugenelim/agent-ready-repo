@@ -2902,6 +2902,16 @@ open = [
 # Resolved repo-durable items. Kept rather than deleted so a reader who arrives
 # from a stale reference finds the disposition instead of a silent gap.
 closed = [
+  # The RFC-0087 OKF projection replaced security-checklists' deterministic
+  # boundary-to-module table with a flat concept index. That made work-loop's
+  # security-reviewer dispatch impossible without guessing or reading every
+  # module, and hid the standards anchors and delegation legend at the routing
+  # point. Resolved by restoring the hand-authored router and moving the OKF
+  # projection into its own sibling skill directory; both pilot callers remain
+  # compiler-managed. The historical operational-safety plan instruction
+  # still names the direct config-misconfig reference and therefore needs no edit.
+  {slug = "security-checklists-okf-router-regression", summary = "The generated security-checklists router lost its boundary-to-module routing table, standards anchors, and delegation legend", source = "RFC-0087 OKF pilot regression"},
+
   # Original report (spec/npm-sca-gate): the suite appended a
   #   deliberately-violating `lint-selftest-scratch` target to the REAL Makefile
   #   to prove the boundary linter fires, then restored it. Any `git add -A`

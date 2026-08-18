@@ -296,6 +296,9 @@ generated Skill passes the existing deep Skill lint.
   drift, double-compile mismatch, first index creation, managed-index
   replacement, stale removal, changed output/index, symlink swap, partial
   filesystem failure, and stdout/stderr stability.
+- Prove a renamed router cedes only an explicitly marked hand-authored
+  `SKILL.md`, while a generated-marked router or modified stale reference fails
+  closed as `OKF010`.
 - Snapshot the tree before and after every failing/check invocation and assert
   no unauthorized mutation.
 - Run the identical-byte check on Linux and Windows CI and record one local

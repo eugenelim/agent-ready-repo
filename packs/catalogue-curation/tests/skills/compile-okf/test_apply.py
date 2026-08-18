@@ -502,6 +502,178 @@ def test_compile_pack_merges_every_declared_bundle_deterministically(tmp_path: P
     assert records[".apm/skills/second-router/SKILL.md"]["source_path"] == "okf/second"
 
 
+def test_compile_pack_hands_a_renamed_router_back_to_its_author(tmp_path: Path) -> None:
+    root = _make_catalogue(tmp_path)
+    pack = root / "packs" / "demo"
+    assert compile_pack(root, "demo", check=False).exit_code == 0
+
+    former_router = pack / ".apm" / "skills" / "rich-router" / "SKILL.md"
+    former_router.write_text(
+        f"{okf_compiler.ROUTER_HANDOFF_MARKER}\n# Hand-authored routing authority\n",
+        encoding="utf-8",
+    )
+    direct_reference = former_router.parent / "references" / "direct-routing.md"
+    direct_reference.write_text("# Direct routing reference\n", encoding="utf-8")
+    manifest = pack / "pack.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            '"router-skill" = "rich-router"',
+            '"router-skill" = "rich-router-okf"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = compile_pack(root, "demo", check=False)
+
+    assert result.exit_code == 0
+    assert former_router.read_text(encoding="utf-8") == (
+        f"{okf_compiler.ROUTER_HANDOFF_MARKER}\n# Hand-authored routing authority\n"
+    )
+    assert direct_reference.read_text(encoding="utf-8") == "# Direct routing reference\n"
+    assert not (former_router.parent / "references" / "okf").exists()
+    assert (pack / ".apm" / "skills" / "rich-router-okf" / "SKILL.md").is_file()
+    assert compile_pack(root, "demo", check=True).exit_code == 0
+
+
+def test_router_handoff_refuses_to_remove_modified_generated_references(tmp_path: Path) -> None:
+    root = _make_catalogue(tmp_path)
+    pack = root / "packs" / "demo"
+    assert compile_pack(root, "demo", check=False).exit_code == 0
+
+    former_router = pack / ".apm" / "skills" / "rich-router" / "SKILL.md"
+    former_router.write_text(
+        f"{okf_compiler.ROUTER_HANDOFF_MARKER}\n# Hand-authored routing authority\n",
+        encoding="utf-8",
+    )
+    stale_reference = former_router.parent / "references" / "okf" / "concepts" / "runbook.md"
+    stale_reference.write_text("modified generated reference\n", encoding="utf-8")
+    manifest = pack / "pack.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            '"router-skill" = "rich-router"',
+            '"router-skill" = "rich-router-okf"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = compile_pack(root, "demo", check=False)
+
+    assert result.exit_code == 1
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["OKF010"]
+    assert stale_reference.read_text(encoding="utf-8") == "modified generated reference\n"
+
+
+def test_router_handoff_requires_an_explicit_author_marker(tmp_path: Path) -> None:
+    root = _make_catalogue(tmp_path)
+    pack = root / "packs" / "demo"
+    assert compile_pack(root, "demo", check=False).exit_code == 0
+
+    former_router = pack / ".apm" / "skills" / "rich-router" / "SKILL.md"
+    former_router.write_text("# Corrupted generated router\n", encoding="utf-8")
+    manifest = pack / "pack.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            '"router-skill" = "rich-router"',
+            '"router-skill" = "rich-router-okf"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = compile_pack(root, "demo", check=False)
+
+    assert result.exit_code == 1
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["OKF010"]
+    assert former_router.read_text(encoding="utf-8") == "# Corrupted generated router\n"
+
+
+def test_router_handoff_refuses_a_removed_source(tmp_path: Path) -> None:
+    """A deleted bundle source is not a rename; its managed output must not be ceded.
+
+    `current_routers.get(source_path)` returns None once a source is no longer
+    declared. Comparing that to the former router with `!=` reads a removal as a
+    rename, so the old marked SKILL.md would be handed to the author and escape
+    ownership cleanup.
+    """
+    root = _make_catalogue(tmp_path)
+    _add_second_bundle(root)
+    pack = root / "packs" / "demo"
+    assert compile_pack(root, "demo", check=False).exit_code == 0
+
+    former_router = pack / ".apm" / "skills" / "rich-router" / "SKILL.md"
+    former_router.write_text(
+        f"{okf_compiler.ROUTER_HANDOFF_MARKER}\n# Hand-authored routing authority\n",
+        encoding="utf-8",
+    )
+    manifest = pack / "pack.toml"
+    prefix, separator, bundles = manifest.read_text(encoding="utf-8").partition(
+        "\n[[pack.metadata.okf.bundles]]\n"
+    )
+    _, second_separator, second_bundle = bundles.partition(
+        "\n[[pack.metadata.okf.bundles]]\n"
+    )
+    assert separator and second_separator
+    manifest.write_text(prefix + second_separator + second_bundle, encoding="utf-8")
+
+    result = compile_pack(root, "demo", check=False)
+
+    assert result.exit_code == 1
+    assert [diagnostic.code for diagnostic in result.diagnostics] == ["OKF010"]
+    assert former_router.read_text(encoding="utf-8") == (
+        f"{okf_compiler.ROUTER_HANDOFF_MARKER}\n# Hand-authored routing authority\n"
+    )
+
+
+def test_router_handoff_supports_a_renamed_router_in_a_multi_bundle_pack(
+    tmp_path: Path,
+) -> None:
+    root = _make_catalogue(tmp_path)
+    _add_second_bundle(root)
+    pack = root / "packs" / "demo"
+    assert compile_pack(root, "demo", check=False).exit_code == 0
+
+    former_router = pack / ".apm" / "skills" / "rich-router" / "SKILL.md"
+    former_router.write_text(
+        f"{okf_compiler.ROUTER_HANDOFF_MARKER}\n# Hand-authored routing authority\n",
+        encoding="utf-8",
+    )
+    manifest = pack / "pack.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            '"router-skill" = "rich-router"',
+            '"router-skill" = "rich-router-reference"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = compile_pack(root, "demo", check=False)
+
+    assert result.exit_code == 0
+    assert former_router.is_file()
+    assert (pack / ".apm" / "skills" / "rich-router-reference" / "SKILL.md").is_file()
+    assert (pack / ".apm" / "skills" / "second-router" / "SKILL.md").is_file()
+
+
+def test_compile_pack_removes_an_unmodified_router_after_a_rename(tmp_path: Path) -> None:
+    root = _make_catalogue(tmp_path)
+    pack = root / "packs" / "demo"
+    assert compile_pack(root, "demo", check=False).exit_code == 0
+
+    manifest = pack / "pack.toml"
+    manifest.write_text(
+        manifest.read_text(encoding="utf-8").replace(
+            '"router-skill" = "rich-router"',
+            '"router-skill" = "rich-router-reference"',
+        ),
+        encoding="utf-8",
+    )
+
+    result = compile_pack(root, "demo", check=False)
+
+    assert result.exit_code == 0
+    assert not (pack / ".apm" / "skills" / "rich-router").exists()
+    assert (pack / ".apm" / "skills" / "rich-router-reference" / "SKILL.md").is_file()
+
+
 def test_compile_pack_rejects_cross_bundle_router_collision_without_mutation(
     tmp_path: Path,
 ) -> None:

@@ -85,6 +85,10 @@ def test_real_generated_core_pilot_cli_response_validates_schema(
         pack / "okf" / "security-checklists",
     )
     shutil.copytree(
+        CORE_PACK / ".apm" / "skills" / "security-checklists-reference",
+        pack / ".apm" / "skills" / "security-checklists-reference",
+    )
+    shutil.copytree(
         CORE_PACK / ".apm" / "skills" / "security-checklists",
         pack / ".apm" / "skills" / "security-checklists",
     )
@@ -98,12 +102,13 @@ def test_real_generated_core_pilot_cli_response_validates_schema(
     _assert_show_schema(response)
     assert response["name"] == "core"
     assert response["source"] == "catalogue"
+    assert {"security-checklists", "security-checklists-reference"} <= set(response["skills"])
     assert response["knowledge"] == [
         {
             "id": "security-checklists",
             "format": "okf",
             "okf_version": "0.2",
-            "router_skill": "security-checklists",
+            "router_skill": "security-checklists-reference",
             "content_license": "Apache-2.0 OR MIT",
             "concept_count": 11,
             "digest": response["knowledge"][0]["digest"],
@@ -113,10 +118,18 @@ def test_real_generated_core_pilot_cli_response_validates_schema(
     router = next(
         item
         for item in response["skill_metadata"]
-        if item["name"] == "security-checklists"
+        if item["name"] == "security-checklists-reference"
     )
     assert router["generated_from"] == "okf/security-checklists"
     assert router["profile"] == "agentbundle-okf/v1"
+    hand_authored_router = next(
+        item
+        for item in response["skill_metadata"]
+        if item["name"] == "security-checklists"
+    )
+    assert hand_authored_router["generated_from"] is None
+    assert hand_authored_router["profile"] is None
+    assert hand_authored_router["digest"] is None
 
 
 def test_exact_cost_pilot_bytes_validate_cli_response(

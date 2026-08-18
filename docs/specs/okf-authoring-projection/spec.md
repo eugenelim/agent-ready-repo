@@ -212,8 +212,12 @@ RFC-0087 apply to every compiler mode and pilot fixture.
   and applicable generated markers match the prior manifest. A managed
   `index.md` is created only when absent and is replaced or removed only when
   its complete bytes, exact AC11 first-body-line marker, and manifest marker
-  value match the prior manifest. Every mismatch fails as `OKF010` and leaves
-  the path untouched.
+  value match the prior manifest. A router renamed for the same OKF source may
+  cede only its former `SKILL.md` when that file has the explicit
+  `agentbundle-okf: router-handoff=author-owned` marker and no generated
+  router marker; all sibling generated references remain manifest-verified and
+  are removed only when unmodified. Every other mismatch fails as `OKF010` and
+  leaves the path untouched.
 - [ ] **AC21:** `--check` stages two independent compiles, fails as `OKF012` if
   their trees differ, otherwise fails as `OKF011` for any committed drift, and
   leaves source, generated output, stdout-visible candidate review values, and
