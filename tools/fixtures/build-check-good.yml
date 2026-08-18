@@ -65,6 +65,7 @@ jobs:
           tools/test_build_site_link_rewrites.py
           tools/test_check_rendered_site_links.py
           tools/test_build_site_routing.py
+          tools/test_browser_gate_subset.py
       - name: docs palette contrast gate
         run: |
           python3 tools/check-docs-contrast.py

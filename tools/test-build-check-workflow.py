@@ -314,7 +314,12 @@ PINNED_SITE_GUIDES_PYTEST = (
 )
 PINNED_SITE_BUILD_PYTEST = (
     "python -m pytest tools/test_build_site_link_rewrites.py "
-    "tools/test_check_rendered_site_links.py tools/test_build_site_routing.py"
+    "tools/test_check_rendered_site_links.py tools/test_build_site_routing.py "
+    # spec/site-browser-quality-gate AC10/AC11. The browser gate itself lives in
+    # pages.yml, which is not a required merge context; its construction test —
+    # the spec allowlist, the matrix's route/width/theme contract, and the
+    # DOCS_BASE agreement — runs HERE so the wiring is proven in a required one.
+    "tools/test_browser_gate_subset.py"
 )
 PINNED_CONTRAST_CHECKER = "python3 tools/check-docs-contrast.py"
 PINNED_CONTRAST_SUITE = "python -m pytest tools/test_check_docs_contrast.py -q"
