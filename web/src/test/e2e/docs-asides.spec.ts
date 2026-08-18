@@ -4,9 +4,11 @@ import { mkdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join } from 'node:path';
 
-const RECOVERY_ROUTE = '/agent-ready-repo/docs/guides/core/tutorials/start-a-new-project/';
+import { withDocsBase } from './site-base';
+
+const RECOVERY_ROUTE = withDocsBase('/guides/core/tutorials/start-a-new-project/');
 const QUOTATION_ROUTE =
-  '/agent-ready-repo/docs/guides/product-documentation/how-to/author-product-docs/';
+  withDocsBase('/guides/product-documentation/how-to/author-product-docs/');
 // Starlight's typography pass curls apostrophes in rendered prose, so match a
 // stable punctuation-free phrase rather than coupling the journey to glyph form.
 const RECOVERY_ANCHOR = 'if the skill decides to just scaffold and stop';

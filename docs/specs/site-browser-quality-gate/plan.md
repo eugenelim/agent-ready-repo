@@ -1,7 +1,7 @@
 # Plan: Site browser quality gate
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 
 > **Plan contract:** this is the implementation strategy. It may change while
 > Drafting or Executing; substantive changes are recorded below.
@@ -249,3 +249,28 @@ tests and evidence; there is no production infrastructure change.
 - 2026-08-17: replaced `/work/` with `/now/`, fixed the measured tap-target and
   exemption contract, added print disposition evidence, and routed conditional
   remediation by owning behavior.
+- 2026-08-18: implemented. Measured outcomes, recorded here because several close
+  tasks by finding nothing:
+  - **T0 (tap-target audit): zero demonstrated failures.** 414 undersized
+    observations → 44 distinct candidates, all conforming through the
+    inline-content or spacing exception on measured geometry. Two measurement
+    traps corrected first — ancestor adjacency, and unpainted overlay targets
+    settled by `elementFromPoint` rather than geometry.
+  - **T2 (60-case matrix): passes.** 0px document overflow and zero
+    serious/critical axe on all 60. One accepted moderate result,
+    `landmark-unique` ×8, traced to `@expressive-code/core`'s runtime module and
+    accepted on severity plus exact cause, not on ownership.
+  - **T3: no remediation.** Nothing was demonstrated, so nothing returned to an
+    owning spec and no conditional remediation spec was materialized. The docs
+    footer rows and the absent product-orientation band are flagged for
+    re-measurement when `site-shared-chrome` lands.
+  - **T4 (print): `close-stale`.** Six routes, zero clipping, 0px overflow,
+    full body text present. No print CSS added.
+  - **T6: blocked, not passed.** No physical device is reachable; the release
+    checklist records the blocker and owner rather than a pass.
+- 2026-08-18: T1's scope grew by one file. `web/src/test/e2e/site-base.ts` derives
+  the deployment base from `web/astro.config.ts`, because the repository-name
+  literal was in seven places — `playwright.config.ts` twice, including the
+  `webServer.url` that starts the preview server, and five route constants across
+  three spec files. AC3 requires configuration-derived qualification; without this
+  a base change would have hung the preview poll with no test predicting it.

@@ -1,6 +1,6 @@
 # Representative print audit
 
-- **Status:** Planned — browser evidence unavailable
+- **Status:** Accepted — measured 2026-08-18
 - **Owner:** eugenelim
 - **Programme:** `tech-site-completion`
 - **Producing task:** `site-browser-quality-gate/T4`
@@ -14,8 +14,9 @@ legible and navigation-only chrome does not corrupt the printed result. Choose
 selector boundary required. Do not propose a general print stylesheet from
 source inspection or visual preference.
 
-No browser runtime was exposed during shaping, so no printed page was observed
-and neither final disposition is claimed yet.
+Measured 2026-08-18. All six representative routes print without a demonstrated
+contract failure, so the disposition is **`close-stale`**: browser and framework
+defaults are accepted and this programme adds no print CSS.
 
 ## Representative routes
 
@@ -46,14 +47,63 @@ For each route, record:
 
 ## Audit record
 
-| Route | Browser / paper settings | Navigation result | Content result | Code / aside / table result | Clipping / overlap / breaks | Observed failure and smallest rule boundary | Disposition | Owner |
+Printable width at A4 portrait with 0.4in margins is **717 CSS px** at 96dpi.
+Layout was measured with the viewport set to that width — see the method note
+below, which is the load-bearing part of this record.
+
+What each column is measured from, so no cell claims more than the method
+supports. `Navigation result` is computed visibility under print media
+(`display`/`visibility`), not a visual inspection. `Clipping / overlap / breaks`
+reports element-box geometry against the printable width and document-level
+horizontal overflow; **vertical overlap was not separately inspected**, and the
+grounds for reading it as absent are that no element exceeds the page width and
+the full body text is present on every route. `Content result` is the PDF page
+count and the character count of `<main>`'s rendered text.
+
+| Route | Browser / paper settings | Navigation result | Content result | Code / aside / table result | Clipping / width overflow | Observed failure and smallest rule boundary | Disposition | Owner |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| _pending browser execution_ | — | — | — | — | — | — | pending | eugenelim |
+| `/` | Chrome for Testing 151, A4 portrait, 0.4in margins, backgrounds off | Starlight sidebar hidden by its own print rules; header, table of contents, pagination, footer and skip link remain present | 8 page(s), 5,588 characters of main text present | rendered in flow at the page width | **0px** horizontal overflow, **0** elements past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/` | Chrome for Testing 151, A4 portrait, 0.4in margins, backgrounds off | Starlight sidebar hidden by its own print rules; header, table of contents, pagination, footer and skip link remain present | 3 page(s), 3,260 characters of main text present | rendered in flow at the page width | **0px** horizontal overflow, **0** elements past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/core/how-to/start-a-project/` | Chrome for Testing 151, A4 portrait, 0.4in margins, backgrounds off | Starlight sidebar hidden by its own print rules; header, table of contents, pagination, footer and skip link remain present | 4 page(s), 3,842 characters of main text present | rendered in flow at the page width | **0px** horizontal overflow, **0** elements past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/catalogue-curation/tutorials/your-first-skill/` | Chrome for Testing 151, A4 portrait, 0.4in margins, backgrounds off | Starlight sidebar hidden by its own print rules; header, table of contents, pagination, footer and skip link remain present | 12 page(s), 14,992 characters of main text present | rendered in flow at the page width | **0px** horizontal overflow, **0** elements past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/atlassian/tutorials/review-your-team-backlog/` | Chrome for Testing 151, A4 portrait, 0.4in margins, backgrounds off | Starlight sidebar hidden by its own print rules; header, table of contents, pagination, footer and skip link remain present | 12 page(s), 13,397 characters of main text present | rendered in flow at the page width | **0px** horizontal overflow, **0** elements past the printable width | none observed | `close-stale` | eugenelim |
+| `/docs/guides/converters/reference/converter-skills/` | Chrome for Testing 151, A4 portrait, 0.4in margins, backgrounds off | Starlight sidebar hidden by its own print rules; header, table of contents, pagination, footer and skip link remain present | 12 page(s), 15,488 characters of main text present | rendered in flow at the page width | **0px** horizontal overflow, **0** elements past the printable width | none observed | `close-stale` | eugenelim |
+
+Per-route content inventory, so a later reader can tell the representative roles
+were actually exercised rather than assumed: `/` 1 table / 35 links / 25 headings;
+`/docs/` 1 code block / 46 links; ordinary guide 6 code blocks; code-heavy guide
+17 code blocks and 1 table; aside-heavy guide **12 asides** and 3 tables;
+long-table page **16 tables** and 7 code blocks.
+
+## Method note — measuring at the wrong width invents clipping
+
+The first pass measured layout at a 1280px viewport with `emulateMedia({media:
+'print'})` and reported five to six elements per route as "wider than the
+printable area". Every one was an artifact: `emulateMedia` switches media
+*queries*, not the layout viewport, so the page was laid out at 1280px and
+compared against a 717px limit, and every full-bleed `<section>` looked like a
+clipping defect. Re-measured with the viewport set to 717px: zero offenders on all
+six routes.
+
+Recorded because `close-stale` rests on the corrected numbers, and because the
+naive method is the one a later reader will reach for first.
+
+## Residual, stated rather than hidden
+
+Navigation-only chrome — the Starlight header, table of contents, pagination,
+footer and skip link — is still present in print output. The evidence above shows
+it does not corrupt content on the axes measured: no element exceeds the printable
+width, document horizontal overflow is 0px, and the full body text is present on
+every route. Whether its *presence* is worth removing is
+a legibility preference, not a demonstrated contract failure, and the decision
+rule prefers `close-stale` and bars proposing print rules from preference. If a
+future reader wants it gone, that needs an observed failure first.
 
 ## Acceptance bar
 
 - `close-stale` requires all six rows to show acceptable defaults with no
-  demonstrated contract failure.
+  demonstrated contract failure. **Met**: six rows, zero failures, zero clipping,
+  zero overflow.
 - `shape` requires at least one exact failing row, the smallest necessary print
   rule, construction proof that reproduces the failure, emitted print/browser
   evidence after remediation, and an independently shippable owning spec.

@@ -39,6 +39,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Every site release is now checked in a real browser before it can deploy.**
+  Eight marketing routes and two documentation routes are exercised at five phone
+  and desktop widths — both documentation themes — and a release cannot publish if
+  any page scrolls sideways, reports a serious accessibility failure, breaks a
+  keyboard path, or has a link pointing at a heading that does not exist.
+
 - **A new `/now/` page lists what has actually shipped.** It is built from the
   optional `Highlights` block of released changelog entries, so an outcome
   reaches the public site only by being written into a release and passing

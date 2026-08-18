@@ -166,6 +166,26 @@ jobs:
       - name: Assert rendered-output invariants
         run: npm test --prefix web
 
+      # spec/site-browser-quality-gate. The deterministic browser subset: the
+      # approved 60-case route/width/theme matrix plus the falsification suite
+      # that proves each of its assertions can fail. It runs HERE because it
+      # exercises the emitted artifact — after both builds, before the upload, so
+      # a failure cannot deploy.
+      #
+      # An explicit allowlist of spec files, not an exclusion: `screenshots.spec.ts`
+      # and `docs-asides.spec.ts` write PNGs into tracked `docs/specs/**` paths, and
+      # AC11 requires required CI to leave the tree clean. `tools/test_browser_gate_subset.py`
+      # asserts the allowlist in both directions.
+      #
+      # Playwright's browser is provisioned here rather than cached: the runner
+      # image ships no Chromium, and `--with-deps` is what the install needs on
+      # ubuntu-latest.
+      - name: Install Playwright Chromium
+        run: npx --prefix web playwright install --with-deps chromium
+
+      - name: Run the deterministic browser quality gate
+        run: npm run test:e2e:gate --prefix web
+
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa  # v3.0.1
         with:

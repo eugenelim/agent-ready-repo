@@ -2,10 +2,12 @@ import { test, expect } from '@playwright/test';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { withBase } from './site-base';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const FIXTURE_URL = '/agent-ready-repo/primitives-fixture/';
+const FIXTURE_URL = withBase('/primitives-fixture/');
 // web/src/test/e2e/ → up 4 → algiers-v1/ → docs/specs/...
 const SCREENSHOTS_DIR = join(
   __dirname,

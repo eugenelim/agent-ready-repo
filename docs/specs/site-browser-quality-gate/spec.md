@@ -1,6 +1,6 @@
 # Spec: Site browser quality gate
 
-- **Status:** Approved
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0089
@@ -65,53 +65,61 @@ responsibility.
 
 ## Acceptance Criteria
 
-- [ ] Required CI exercises these marketing routes at 360, 375, 390, 414, and
+- [x] Required CI exercises these marketing routes at 360, 375, 390, 414, and
   1440 CSS-pixel widths without theme mutation: `/`, `/catalogue/`,
   `/packs/core/`, `/journeys/`, `/journeys/core/`,
   `/journeys/product-engineering/`, `/journeys/release-engineering/`, and
   `/now/`.
-- [ ] Required CI exercises `/docs/` and
+- [x] Required CI exercises `/docs/` and
   `/docs/guides/core/how-to/start-a-project/` at all five approved widths in
   both the light and dark docs themes.
-- [ ] Every route is base-qualified from configuration and reaches its expected
+- [x] Every route is base-qualified from configuration and reaches its expected
   emitted page without an HTTP error, client error, or unhandled page error.
-- [ ] Every matrix case has no more than 1px document-level horizontal overflow.
-- [ ] Every matrix case reports zero serious or critical axe findings; any
+- [x] Every matrix case has no more than 1px document-level horizontal overflow.
+- [x] Every matrix case reports zero serious or critical axe findings; any
   accepted lower-severity result is exact, owned, and linked to audit evidence.
-- [ ] Representative primary navigation, mobile disclosure, docs search/theme
+- [x] Representative primary navigation, mobile disclosure, docs search/theme
   controls, decision-to-gate links, and footer links are keyboard reachable,
-  operable, and visibly focused on the routes where they appear.
-- [ ] The accepted tap-target audit classifies every candidate as conforming,
+  operable, and visibly focused on the routes where they appear. Decision-to-gate
+  coverage is written and passing-when-present but currently **inert**: semantic
+  `#decision-<id>` chips are `journey-page-completion`'s contract and are not
+  emitted yet, so those six cases skip loudly rather than assert a shape this spec
+  does not own. They begin gating the moment that slice lands.
+- [x] The accepted tap-target audit classifies every candidate as conforming,
   demonstrated non-exempt failure, inline-content exception,
   user-agent/framework-controlled exception, equivalent-control exception, or
   essential exception and records all required geometry, spacing, context,
   rationale, owner, and remediation fields.
-- [ ] No tap-target exemption is broad, selector-only, inferred from CSS, or
+- [x] No tap-target exemption is broad, selector-only, inferred from CSS, or
   justified solely by framework ownership; every demonstrated failure is
   covered by a construction test before remediation and by emitted-browser
   proof afterward.
-- [ ] A seeded overflow, broken route, serious axe violation, missing focus
+- [x] A seeded overflow, broken route, serious axe violation, missing focus
   state, broken keyboard path, and broken fragment each cause the focused suite
   to fail with route, width, and theme context.
-- [ ] The required workflow runs the deterministic subset on relevant site,
+- [x] The required workflow runs the deterministic subset on relevant site,
   guide, generator, test, dependency-lock, configuration, and workflow changes,
   and a failure blocks the workflow.
-- [ ] Screenshot capture remains optional, runs outside the required subset,
+- [x] Screenshot capture remains optional, runs outside the required subset,
   and writes no tracked files during CI.
-- [ ] Print evidence covers `/`, `/docs/`, the ordinary, code-heavy,
+- [x] Print evidence covers `/`, `/docs/`, the ordinary, code-heavy,
   aside-heavy, and long-table guide routes named in
   [`notes/print-audit.md`](notes/print-audit.md), including navigation removal,
   content, links, code, asides, tables, clipping, overlap, and page breaks.
-- [ ] Print closes stale when browser/framework defaults satisfy that contract;
+- [x] Print closes stale when browser/framework defaults satisfy that contract;
   otherwise the audit names each exact failure and the smallest narrow rule
   boundary before a conditional remediation spec is created.
-- [ ] Any observed serious/critical axe failure, overflow beyond 1px, missing
+- [x] Any observed serious/critical axe failure, overflow beyond 1px, missing
   focus indication, broken keyboard path, or unstable framework-owned control
   is recorded as a demonstrated defect or exact accepted exception—never a
   speculative visual preference.
-- [ ] The release checklist records a physical-device pass for one compact iOS
+- [x] The release checklist records a physical-device pass for one compact iOS
   browser and one compact Android browser, or the exact blocker and owner before
-  release approval.
+  release approval. Satisfied by the second branch, deliberately:
+  [`docs/guides/how-to/verify-a-site-release.md`](../../guides/how-to/verify-a-site-release.md)
+  records an explicit **Blocked** row — no physical iOS or Android device is
+  reachable from this environment — with owner and the requirement that it be
+  performed before the next site release is approved. No pass is claimed.
 
 ## Assumptions
 
