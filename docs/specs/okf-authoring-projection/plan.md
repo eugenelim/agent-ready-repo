@@ -1,7 +1,7 @@
 # Plan: OKF authoring projection
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 
 > **Plan contract:** this is the implementation strategy. Unlike the spec, this
 > document is allowed to change as implementation evidence changes.
@@ -31,7 +31,13 @@ outside shipped pack content.
   prerequisite, but `packages/agentbundle` retains an empty base dependency
   list.
 - All source reads, temporary staging, output application, and stale cleanup
-  follow the pack path-confinement and no-symlink rules.
+  follow the pack path-confinement and no-symlink rules. Package-side reads use
+  `catalogue_tooling.file_safety.read_confined_regular_file`; the standalone
+  Skill compiler carries an equivalent descriptor-based implementation with
+  parity tests for hard links, reparse points/junctions, resolve failures, and
+  inspection-to-open swaps.
+- JSON emitted for digests and manifests is strict RFC 8259 JSON and refuses
+  non-finite numbers.
 - This plan adds no public CLI verb, adapter primitive, new top-level directory,
   or published cost-engineering pack.
 
@@ -54,7 +60,7 @@ outside shipped pack content.
 - For one canonical concept in each pilot, a maintainer regenerates, reviews
   the diff, records elapsed time, and confirms no generated file was edited.
 - The RFC Approver confirms case/baseline freeze before generated runs and signs
-  the resulting evidence before an `Open` → `Experimental` transition.
+  the resulting evidence before deciding release, correction, or supersession.
 
 ## Design (LLD)
 
@@ -205,6 +211,9 @@ outside shipped pack content.
   and digest form in AC1–AC2.
 - Validate the schemas themselves as JSON Schema 2020-12 and prove every
   example has the expected verdict.
+- `stub: draft (uncompiled)` — the contract test module is introduced by T1;
+  materialize and collect the AC1–AC2 schema stubs first, then verify red before
+  schema edits.
 
 **Approach:**
 
@@ -226,8 +235,12 @@ red-then-green fixture.
 
 - Stub and implement AC3–AC4 and AC7–AC10, including exact version, YAML,
   resource-bound, symlink, traversal, control-character, Windows device/reserved
-  path, Unicode, case-collision, lifecycle, and diagnostic-order cases.
+  path, hard-link, reparse/junction, resolution-failure, symlink-swap, Unicode,
+  case-collision, non-finite scalar, lifecycle, and diagnostic-order cases.
 - Assert all invalid cases finish before a render/apply callback can run.
+- `stub: draft (uncompiled)` — `okf_compiler.py` does not exist until T2; the
+  first EXECUTE action materializes the AC3/AC7/AC8/AC9/AC10 pytest stubs and
+  verifies their red state before production code.
 
 **Approach:**
 
@@ -252,9 +265,13 @@ reports only the AC7 registry.
   markers, empty branches, deprecated and stale concepts,
   exact/missing/duplicate/fenced instruction headings, canonical review-tuple
   encoding vectors and invalidation, includes, hostile prose, unknown
-  extensions, Skill markers, and manifest bytes.
+  extensions, Skill markers, router/procedure no-tools assertions, strict-JSON
+  rejection of `NaN`/infinities, and manifest bytes.
 - Randomized input enumeration and equivalent Unicode/path orderings produce
   the same normalized output or a stable collision diagnostic.
+- `stub: draft (uncompiled)` — render interfaces are created by T2; T3 starts by
+  materializing and collecting the AC11–AC19 golden-tree stubs before rendering
+  code.
 
 **Approach:**
 
@@ -281,6 +298,10 @@ generated Skill passes the existing deep Skill lint.
   filesystem failure, and stdout/stderr stability.
 - Snapshot the tree before and after every failing/check invocation and assert
   no unauthorized mutation.
+- Run the identical-byte check on Linux and Windows CI and record one local
+  macOS invocation over the same golden fixture.
+- `stub: draft (uncompiled)` — the CLI and apply interfaces are created in this
+  task; materialize the AC5/AC6/AC20–AC22 process stubs first and verify red.
 
 **Approach:**
 
@@ -294,7 +315,7 @@ check-mode non-mutation.
 
 **Depends on:** T4
 
-**Touches:** `packs/catalogue-curation/.apm/skills/compile-okf/**`, `packs/catalogue-curation/pack.toml`, `packs/catalogue-curation/.claude-plugin/plugin.json`, `packs/catalogue-curation/evals/**`, `packs/catalogue-curation/tests/pack/**`, `docs/product/changelog.md`
+**Touches:** `packs/catalogue-curation/.apm/skills/compile-okf/**`, `packs/catalogue-curation/.apm/skills/compile-okf/evals/**`, `packs/catalogue-curation/pack.toml`, `packs/catalogue-curation/.claude-plugin/plugin.json`, `packs/catalogue-curation/tests/pack/**`, `docs/product/changelog.md`
 
 **Verification mode:** Goal-based checks plus Tier-A/Tier-B-lite evals.
 
@@ -303,7 +324,10 @@ check-mode non-mutation.
 - Verify AC24: activation near-misses, a confined sample compilation, declared
   prerequisite behavior, pack/plugin version parity, pack inventory, and no
   internal-governance citations in shipped content.
-- Run pack lint, pack tests, eval schema checks, and self-host drift checks.
+- Run pack lint, pack tests, eval schema checks, self-host drift checks, and the
+  complete repository SAST/SCA path without `SKIP_SAST`.
+- `no stub (goal-based/eval mode)` — the named lint, eval, self-host, and scanner
+  commands are the construction oracles.
 
 **Approach:**
 
@@ -333,13 +357,16 @@ generated adapter projections are synchronized.
   temporary catalogue's `packs/cost-engineering/` path and validate its complete
   discovery response; assert the working catalogue does not list or publish the
   underscore-prefixed source.
+- `no stub (goal-based/recorded E2E mode)` — provenance records and the frozen
+  baseline invocation are the construction oracles.
 
 **Approach:**
 
 - Keep the complete pack-shaped prototype at the immediate reserved
   `packs/_okf-pilot-cost-engineering/` path until a separate pack proposal
   succeeds; record source revisions and transformations without importing
-  vendor-specific examples. The compiler resolves this exact immediate child;
+  vendor-specific examples. Tests copy those exact bytes into an ordinary pack
+  location in a temporary catalogue before invoking the generic compiler;
   normal catalogue discovery continues to ignore underscore-prefixed assets.
 
 **Done when:** Canonical source, legal evidence, cases, baseline, and generated
@@ -360,6 +387,9 @@ output are reviewable and frozen before generated evaluation.
   behavior while satisfying AC12–AC18 and AC25–AC27.
 - Compile with the same stage instrumentation as T6 and assert no
   security-specific compiler branch.
+- `stub: draft (uncompiled)` — T7 begins by materializing collected routing and
+  generated-tree stubs against the existing `security-checklists` behavior,
+  then verifies the generated path is red before replacing the projection.
 
 **Approach:**
 
@@ -387,6 +417,10 @@ and the baseline/case freeze predates generated runs.
   adapter projections for clean, drifted, and unsafe managed inputs.
 - Confirm packs without `[pack.metadata.okf]` retain byte-for-byte behavior and
   do not require PyYAML during normal AgentBundle install/build paths.
+- Confirm dependency audit covers the existing `pyyaml>=6.0` declarations and
+  Bandit/Semgrep scan the compiler path.
+- `no stub (goal-based integration mode)` — the repository gate and adapter
+  projections are the construction oracles.
 
 **Approach:**
 
@@ -411,16 +445,19 @@ with clean pilots and fail predictably for injected drift.
   measurements/failures, and verify the result document accounts for every RFC
   promotion gate.
 - Run documentation link/lint gates and confirm the architecture text labels
-  all OKF surfaces Experimental.
+  all OKF surfaces pre-release without inventing an RFC lifecycle state.
+- `no stub (recorded E2E/documentation mode)` — frozen harness results and
+  documentation gates are the construction oracles.
 
 **Approach:**
 
 - Execute baselines before generated variants, preserve failed attempts, record
   both maintainer update exercises, and ask the RFC Approver to sign the results
-  before changing lifecycle status.
+  before deciding release, correction, or supersession.
 
 **Done when:** The evidence is reproducible, all applicable ACs are checked, and
-the RFC has enough information for its next lifecycle decision.
+the Approver has enough information to decide release, correction, or
+supersession.
 
 ## Rollout
 
@@ -457,10 +494,10 @@ the RFC has enough information for its next lifecycle decision.
   make the prototype unsuitable; stop that pilot rather than weakening licence
   validation.
 - A repository-only gate can be mistaken for a supported AgentBundle feature;
-  docs and runtime help must keep the Experimental authoring-skill boundary
+  docs and runtime help must keep the pre-release authoring-skill boundary
   explicit.
 
 ## Changelog
 
-- 2026-08-15: Initial plan following RFC-0087 Open approval, the single OKF 0.2
+- 2026-08-15: Initial plan following RFC-0087 acceptance, the single OKF 0.2
   support decision, and confirmation of JSON Schema contract locations.

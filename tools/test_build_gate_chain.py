@@ -585,6 +585,36 @@ EXPECTED_PRE_PR_REPO_STEPS = [
         "journey-contract lint self-test",
         [sys.executable, "tools/test-lint-journey-contract.py"],
     ),
+    (
+        "okf compiler check _okf-pilot-cost-engineering",
+        [
+            sys.executable,
+            str(
+                gc.REPO_ROOT
+                / "packs/catalogue-curation/.apm/skills/compile-okf/scripts/compile_okf.py"
+            ),
+            "--root",
+            str(gc.REPO_ROOT),
+            "--pack",
+            "_okf-pilot-cost-engineering",
+            "--check",
+        ],
+    ),
+    (
+        "okf compiler check core",
+        [
+            sys.executable,
+            str(
+                gc.REPO_ROOT
+                / "packs/catalogue-curation/.apm/skills/compile-okf/scripts/compile_okf.py"
+            ),
+            "--root",
+            str(gc.REPO_ROOT),
+            "--pack",
+            "core",
+            "--check",
+        ],
+    ),
 ]
 
 EXPECTED_VERIFY_ARGV = [

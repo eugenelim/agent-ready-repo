@@ -18,6 +18,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### [agentbundle][0.38.0] — 2026-08-17
+
+#### Added
+
+- **`agentbundle show <pack> --format json` now exposes pre-release rich
+  catalogue discovery metadata.** Live catalogue responses add pack metadata,
+  Skill activation metadata, and declared OKF 0.2 knowledge bundles. Installed
+  state continues to return inventory-only data, and human-readable output is
+  unchanged.
+
+### [core][2.8.0] — 2026-08-17
+
+#### Changed
+
+- **`security-checklists` now has canonical OKF source.** The security-reviewer
+  depth library is compiled from pack-local OKF into a generated router while
+  retaining the existing direct reference modules for current orchestrator
+  loading.
+
+### [catalogue-curation][0.3.0] — 2026-08-17
+
+#### Added
+
+- **Catalogue maintainers can compile declared OKF bundles.** The new
+  `compile-okf` authoring skill ships a confined script that projects pack-local
+  OKF source into generated router and reviewed procedure Skills, with write and
+  read-only check modes for committed-output drift.
 ### [core][2.7.5] — 2026-08-17
 
 #### Changed

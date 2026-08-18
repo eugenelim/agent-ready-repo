@@ -82,6 +82,14 @@ with tempfile.TemporaryDirectory() as td:
         "Never write packages/agentbundle/ or packs/credential-brokers/ in this repo.\n",
         encoding="utf-8",
     )
+    portable = sk / "portable-skill"
+    portable.mkdir(parents=True)
+    (portable / "SKILL.md").write_text(
+        "---\nname: portable-skill\ndescription: d\n---\n\n"
+        "Write only inside the selected pack's declared surface; protected trees require "
+        "their own authorized change path.\n",
+        encoding="utf-8",
+    )
     bad = sk / "bad-skill"
     bad.mkdir(parents=True)
     (bad / "SKILL.md").write_text(
@@ -91,10 +99,31 @@ with tempfile.TemporaryDirectory() as td:
     viols = guard.check_presence(root)
     check("presence flags the skill missing the clause", any("bad-skill" in v for v in viols))
     check("presence passes the skill with the clause", not any("good-skill" in v for v in viols))
+    check(
+        "presence passes the portable adopter-facing clause",
+        not any("portable-skill" in v for v in viols),
+    )
 
 # absent pack ⇒ no presence violations (nothing to check)
 with tempfile.TemporaryDirectory() as td:
     check("absent pack lints clean", guard.check_presence(Path(td)) == [])
+
+
+# --- unavailable diff base policy -----------------------------------------
+original_git = guard._git
+guard._git = lambda *_args, **_kwargs: None
+try:
+    with tempfile.TemporaryDirectory() as td:
+        check(
+            "normal mode fails closed when diff base is unavailable",
+            guard.main(["--root", td, "--base", "missing-base"]) == 1,
+        )
+        check(
+            "explicit local skip permits a checkout without the diff base",
+            guard.main(["--root", td, "--local-skip-path-gate"]) == 0,
+        )
+finally:
+    guard._git = original_git
 
 # --- check_dup_sync -------------------------------------------------------
 with tempfile.TemporaryDirectory() as td:

@@ -1,0 +1,155 @@
+{
+  "pilot": "security-checklists",
+  "status": "frozen",
+  "profile": "agentbundle-okf/v1",
+  "okf_version": "0.2",
+  "harness": {
+    "id": "okf-routing-baseline-v1",
+    "model": "pending-local-model-e2e",
+    "runs_per_case": 3,
+    "temperature": 0,
+    "top_p": 1
+  },
+  "cases": [
+    {
+      "id": "SC-001",
+      "prompt": "A new endpoint reads another user's invoice by id. Which module should be loaded?",
+      "expected_path": "concepts/access-control.md",
+      "forbidden_paths": ["concepts/config-misconfig.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-002",
+      "prompt": "A JWT verifier accepts the token's own key URL. Pick the checklist.",
+      "expected_path": "concepts/authn-session.md",
+      "forbidden_paths": ["concepts/outbound-ssrf.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-003",
+      "prompt": "Untrusted input is concatenated into a shell command.",
+      "expected_path": "concepts/injection.md",
+      "forbidden_paths": ["concepts/path-and-file.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-004",
+      "prompt": "A file download path is built from a request parameter.",
+      "expected_path": "concepts/path-and-file.md",
+      "forbidden_paths": ["concepts/access-control.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-005",
+      "prompt": "A diff adds a plaintext API key in test configuration.",
+      "expected_path": "concepts/secrets-and-crypto.md",
+      "forbidden_paths": ["concepts/supply-chain.md"],
+      "security_critical": true
+    },
+    {
+      "id": "SC-006",
+      "prompt": "A user-supplied URL is fetched by a webhook preview endpoint.",
+      "expected_path": "concepts/outbound-ssrf.md",
+      "forbidden_paths": ["concepts/injection.md"],
+      "security_critical": true
+    },
+    {
+      "id": "SC-007",
+      "prompt": "A package manifest adds an unpinned dependency.",
+      "expected_path": "concepts/supply-chain.md",
+      "forbidden_paths": ["concepts/secrets-and-crypto.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-008",
+      "prompt": "An infrastructure change grants wildcard IAM actions.",
+      "expected_path": "concepts/config-misconfig.md",
+      "forbidden_paths": ["concepts/exceptional-conditions.md"],
+      "security_critical": true
+    },
+    {
+      "id": "SC-009",
+      "prompt": "A fallback skips authorization when a dependency times out.",
+      "expected_path": "concepts/exceptional-conditions.md",
+      "forbidden_paths": ["concepts/access-control.md"],
+      "security_critical": true
+    },
+    {
+      "id": "SC-010",
+      "prompt": "Retrieved web content is pasted into a prompt without a data boundary.",
+      "expected_path": "concepts/llm-agent.md",
+      "forbidden_paths": ["concepts/injection.md"],
+      "security_critical": true
+    },
+    {
+      "id": "SC-011",
+      "prompt": "A new skill declares broad filesystem and shell permissions.",
+      "expected_path": "concepts/agentic-skills.md",
+      "forbidden_paths": ["concepts/llm-agent.md"],
+      "security_critical": true
+    },
+    {
+      "id": "SC-012",
+      "prompt": "A route binds request JSON directly onto an account model.",
+      "expected_path": "concepts/access-control.md",
+      "forbidden_paths": ["concepts/injection.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-013",
+      "prompt": "A password reset token is generated with a non-crypto random function.",
+      "expected_path": "concepts/secrets-and-crypto.md",
+      "forbidden_paths": ["concepts/authn-session.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-014",
+      "prompt": "A redirect from an allowed host can reach a metadata endpoint.",
+      "expected_path": "concepts/outbound-ssrf.md",
+      "forbidden_paths": ["concepts/config-misconfig.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-015",
+      "prompt": "A YAML parser loads untrusted bytes with object construction enabled.",
+      "expected_path": "concepts/injection.md",
+      "forbidden_paths": ["concepts/agentic-skills.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-016",
+      "prompt": "An archive extractor writes entries using their original names.",
+      "expected_path": "concepts/path-and-file.md",
+      "forbidden_paths": ["concepts/supply-chain.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-017",
+      "prompt": "A deployment enables permissive CORS with credentials.",
+      "expected_path": "concepts/config-misconfig.md",
+      "forbidden_paths": ["concepts/authn-session.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-018",
+      "prompt": "A model tool can delete resources without confirmation.",
+      "expected_path": "concepts/llm-agent.md",
+      "forbidden_paths": ["concepts/exceptional-conditions.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-019",
+      "prompt": "A skill fetches the latest remote runbook and follows it as instructions.",
+      "expected_path": "concepts/agentic-skills.md",
+      "forbidden_paths": ["concepts/outbound-ssrf.md"],
+      "security_critical": false
+    },
+    {
+      "id": "SC-020",
+      "prompt": "A retry loop can repeat a payment operation indefinitely.",
+      "expected_path": "concepts/exceptional-conditions.md",
+      "forbidden_paths": ["concepts/supply-chain.md"],
+      "security_critical": false
+    }
+  ]
+}

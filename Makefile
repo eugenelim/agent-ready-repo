@@ -249,6 +249,10 @@ sast:
 	# declarations from pyproject.toml itself so the SCA input cannot drift.
 	python3 tools/audit-requirements.py --build-system \
 		packages/agentbundle/pyproject.toml packages/credbroker/pyproject.toml
+	# Audit AgentBundle's authoring/lint extra from pyproject.toml so the SCA
+	# input fails closed if the optional dependency declaration changes.
+	python3 tools/audit-requirements.py --optional-group lint \
+		packages/agentbundle/pyproject.toml
 	# semgrep>=1.166 hard-pins mcp==1.23.3 and click~=8.1.8, both carrying known CVEs
 	# (mcp: CVE-2026-52870, CVE-2026-52869, CVE-2026-59950; click: PYSEC-2026-2132).
 	# Attack surface is negligible: these packages are SAST-tooling transitive deps only,

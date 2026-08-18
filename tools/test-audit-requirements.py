@@ -123,6 +123,29 @@ def main() -> int:
             missing_refused = False
         check("missing build-system requirements fail closed", missing_refused)
 
+    # 9. Optional dependencies are extracted from the package contract so the
+    #    SCA input cannot drift from the declared lint authoring prerequisite.
+    with tempfile.TemporaryDirectory() as tmp:
+        pyproject = Path(tmp) / "pyproject.toml"
+        pyproject.write_text(
+            '[project]\nname = "demo"\n\n'
+            '[project.optional-dependencies]\n'
+            'lint = ["pyyaml>=6.0"]\n',
+            encoding="utf-8",
+        )
+        check(
+            "optional dependency group is extracted",
+            _MOD.optional_dependency_requirements([pyproject], "lint")
+            == ["pyyaml>=6.0"],
+        )
+        try:
+            _MOD.optional_dependency_requirements([pyproject], "missing")
+        except ValueError:
+            missing_extra_refused = True
+        else:
+            missing_extra_refused = False
+        check("missing optional dependency group fails closed", missing_extra_refused)
+
     if FAILURES:
         print(f"\naudit-requirements self-test: {len(FAILURES)} failure(s)")
         return 1

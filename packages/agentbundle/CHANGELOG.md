@@ -6,6 +6,25 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
 — a minor bump on a 0.x release MAY be breaking.
 
+## [0.38.0] — 2026-08-17
+
+### Added
+
+- **`agentbundle show <pack> --format json` now carries pre-release rich
+  catalogue discovery metadata.** Live catalogue responses include three
+  additive fields: `pack_metadata` for the pack allowlist, `skill_metadata` for
+  live Skill activation metadata, and `knowledge` for declared OKF 0.2 bundles.
+  Installed-state fallback preserves the existing inventory-only behavior and
+  emits those three fields as `null` because install state cannot prove them.
+
+### Unchanged
+
+- The discovery experiment does not add OKF metadata to `list-packs`,
+  marketplace output, `catalogue-index.json`, or installed state. Human-readable
+  `show` output keeps its existing table contract.
+- Release commits for this feature must carry the trailer
+  `Engine-Change-RFC: RFC-0087`.
+
 ## [0.37.2] — 2026-08-17
 
 ### Added
@@ -120,7 +139,6 @@ the package targets pre-1.0 semver as documented in `docs/CONVENTIONS.md`
   The build's `.apm` and `seeds` copytrees still pass `symlinks=True`, and that
   stays: preserving a link there is *safe* precisely because nothing reads the
   target at that layer. The defect was the composition, not either layer.
-
 ## [0.36.0] — 2026-08-16
 
 ### Fixed

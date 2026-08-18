@@ -1,0 +1,11 @@
+{
+  "profile": "agentbundle-okf/v1",
+  "bundles": [
+    {
+      "id": "core-routing",
+      "path": "okf/core-routing",
+      "router-skill": "core-routing",
+      "unexpected": true
+    }
+  ]
+}

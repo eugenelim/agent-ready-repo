@@ -2837,8 +2837,12 @@ shipped = [
   # authoring-hub section 12 for offline readers.
   {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = [{type = "local", kind = "spec", path = "docs/specs/catalogue-wave2-pack-integrations/spec.md"}]},
   {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
+  {path = "docs/specs/okf-catalogue-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bounded live OKF metadata through AgentBundle catalogue inspection", needs = []},
 ]
 queue   = [
+  # RFC-0087 authoring pilot. Catalogue discovery has shipped; the authoring
+  # experiment remains active pending its model and maintainer exercise gates.
+  {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
   # Wave 4 — Semantic contracts and neutral index. Gated on Wave 1 + verifier correctness.
   # Verifier correctness is a hard predecessor: both Wave 4 (AC29) and verifier (T12) bump
   # the next AgentBundle minor; concurrent merges would claim the same release number.

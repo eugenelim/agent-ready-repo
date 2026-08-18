@@ -1,0 +1,12 @@
+{
+  "name": "demo-pack",
+  "version": null,
+  "description": null,
+  "skills": ["demo-router"],
+  "agents": ["demo-agent"],
+  "integrations": [],
+  "source": "installed-state",
+  "pack_metadata": null,
+  "skill_metadata": null,
+  "knowledge": null
+}

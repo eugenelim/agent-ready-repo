@@ -73,6 +73,16 @@ that reads every pack belongs to no pack — the rule § 4 states under
 repository's projected tree and its runner call sites, neither of which is
 `agentbundle`'s to know about.
 
+OKF authoring bundles, when present, live under a pack-owned `okf/<bundle>/`
+root and are summarized only by the pre-release `agentbundle show <pack>
+--format json` single-pack discovery response. They are excluded from
+`list-packs`, marketplace projections, and `catalogue-index.json`; those
+surfaces do not become OKF registries or cross-pack knowledge indexes. The
+pre-release `compile-okf` authoring Skill projects canonical OKF source into
+ordinary `.apm/skills/` router/procedure Skills and a pack-local
+`.okf-generated.json` manifest; those generated files are replaceable compiler
+output, not a new pack primitive or lifecycle state.
+
 **One pytest process per skill test directory.** Two skills may each ship a
 `render.py` and a `test_render.py`. Collected into one run, the duplicate *test*
 basenames make pytest error out — loud, and easy to diagnose. The duplicate
