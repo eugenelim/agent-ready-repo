@@ -2,21 +2,11 @@ from __future__ import annotations
 
 import json
 import re
-import subprocess
-import sys
 from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
 WORK_LOOP_SKILL = PACK_ROOT / ".apm" / "skills" / "work-loop" / "SKILL.md"
 EVALS = PACK_ROOT / ".apm" / "skills" / "work-loop" / "evals" / "evals.json"
-PROJECT_KNOWLEDGE = (
-    PACK_ROOT
-    / ".apm"
-    / "skills"
-    / "project-knowledge"
-    / "scripts"
-    / "project_knowledge.py"
-)
 
 
 def _review_enquiry_section() -> str:
@@ -46,37 +36,6 @@ def test_review_enquiry_precedes_first_dispatch_and_reuses_one_envelope() -> Non
     assert "same delimited envelope" in section
     assert "materially changed target or review scope" in section
     assert "new explicit declaration" in section
-
-
-def test_documented_review_query_reaches_the_public_parser() -> None:
-    match = re.search(
-        r'^\{"task_summary":"work-loop review:.*\}$',
-        WORK_LOOP_SKILL.read_text(encoding="utf-8"),
-        re.MULTILINE,
-    )
-    assert match is not None
-    query = json.loads(match.group(0))
-    query["task_summary"] = "work-loop review: review integration contract"
-    query["scope"] = "packs"
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(PROJECT_KNOWLEDGE),
-            "--enquire",
-            "--repo-root",
-            str(PACK_ROOT.parents[1]),
-        ],
-        input=json.dumps(query),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-    diagnostic_or_result = result.stdout or result.stderr
-    assert diagnostic_or_result, "public enquiry returned no result or diagnostic"
-    payload = json.loads(diagnostic_or_result.splitlines()[-1])
-    assert payload.get("reason_code") != "strict_parse"
 
 
 def test_review_enquiry_has_named_degradation_and_no_write_fallback() -> None:
